@@ -102,8 +102,8 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t openssl_read_cost = 0;
 	constexpr std::size_t openssl_write_cost = 0;
 #endif
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 136;
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 136;
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 152;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 152;
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
