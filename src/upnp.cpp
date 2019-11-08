@@ -710,7 +710,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
 
-	char header[2048];
+	char header[2560];
 	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
 		"Host: %s:%d\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
