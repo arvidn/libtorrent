@@ -308,6 +308,7 @@ namespace libtorrent {
 				case errors::unauthorized: ret += "Unauthorized"; break;
 				case errors::forbidden: ret += "Forbidden"; break;
 				case errors::not_found: ret += "Not Found"; break;
+				case errors::method_not_allowed: ret += "Method Not Allowed"; break;
 				case errors::internal_server_error: ret += "Internal Server Error"; break;
 				case errors::not_implemented: ret += "Not Implemented"; break;
 				case errors::bad_gateway: ret += "Bad Gateway"; break;
