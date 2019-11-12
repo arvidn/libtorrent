@@ -68,8 +68,10 @@ std::string make_ep_string(char const* address, bool const is_v6
 	return ret;
 }
 
+int g_alloc_counter = 1000000;
+
 template <typename HandleAlerts, typename Test>
-void run_test(HandleAlerts const& on_alert, Test const& test)
+void run_test(int const round, HandleAlerts const& on_alert, Test const& test)
 {
 	using namespace lt;
 
@@ -143,10 +145,11 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 		}
 	});
 
+	// we're only interested in allocation failures after construction has
+	// completed
+	g_alloc_counter = round;
 	sim.run();
 }
-
-int g_alloc_counter = 1000000;
 
 void* operator new(std::size_t sz)
 {
@@ -203,9 +206,8 @@ TORRENT_TEST(error_handling)
 		std::printf("\n\n === ROUND %d ===\n\n", i);
 		try
 		{
-			g_alloc_counter = i;
 			using namespace lt;
-			run_test(
+			run_test(i,
 				[](lt::session&, lt::alert const*) {},
 				[](std::shared_ptr<lt::session>[2]) {}
 			);
