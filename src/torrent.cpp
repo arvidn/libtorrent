@@ -2192,7 +2192,7 @@ bool is_downloading_state(int const st)
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::start_checking()
+	void torrent::start_checking() try
 	{
 		TORRENT_ASSERT(should_check_files());
 
@@ -2234,7 +2234,7 @@ bool is_downloading_state(int const st)
 			span<sha256_hash> v2_span(hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
 				, [self = shared_from_this(), hashes = std::move(hashes)]
-				(piece_index_t p, sha1_hash const& h, storage_error const& error)
+				(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
 				{ self->on_piece_hashed(std::move(hashes), p, h, error); });
 			++m_checking_piece;
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
@@ -2244,6 +2244,7 @@ bool is_downloading_state(int const st)
 			, static_cast<int>(m_checking_piece));
 #endif
 	}
+	catch (...) { handle_exception(); }
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
