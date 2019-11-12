@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cassert>
 #include <iostream>
-#include <vector>
 #include <utility>
 #include <set>
 

@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <cstdio> // for snprintf
 #include <cstdlib> // for atoi
 #include <cstring>
 #include <utility>

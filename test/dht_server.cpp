@@ -32,10 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "dht_server.hpp"

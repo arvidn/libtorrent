@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/stat.h> // for chmod
 
-#include "libtorrent/session.hpp"
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_stats.hpp"

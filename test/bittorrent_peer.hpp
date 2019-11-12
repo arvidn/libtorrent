@@ -33,11 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef BITTORRENT_PEER_HPP
 #define BITTORRENT_PEER_HPP
 
-#include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "test.hpp" // for EXPORT
 #include <functional>

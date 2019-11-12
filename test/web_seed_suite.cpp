@@ -30,14 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/session.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/string_view.hpp"
 
@@ -47,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "web_seed_suite.hpp"
 #include "make_torrent.hpp"
 
-#include <tuple>
 #include <fstream>
 #include "setup_transfer.hpp"
 

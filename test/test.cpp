@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <vector>
-
 #include "test.hpp"
 
 unit_test_t _g_unit_tests[1024];

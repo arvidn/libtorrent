@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"

@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/dos_blocker.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"

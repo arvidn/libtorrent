@@ -30,13 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 #include "bittorrent_peer.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/io_service.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/random.hpp"
 
