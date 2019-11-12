@@ -9,6 +9,15 @@ import sys
 import shutil
 import multiprocessing
 
+# try to replace the default distutils compiler with the numpy one (which is multi-threaded)
+try:
+    import numpy.distutils.ccompiler
+    import distutils.ccompiler
+    distutils.ccompiler.CCompiler.compile = numpy.distutils.ccompiler.CCompiler_compile
+    os.environ['NPY_NUM_BUILD_JOBS'] = str(multiprocessing.cpu_count())
+except ImportError:
+    pass
+
 
 class flags_parser:
     def __init__(self):
