@@ -1051,10 +1051,11 @@ namespace libtorrent {
 		constexpr static portmap_protocol udp = portmap_protocol::udp;
 		constexpr static portmap_protocol tcp = portmap_protocol::tcp;
 
-		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
-		// whichever is enabled. The return value is a handle referring to the
-		// port mapping that was just created. Pass it to delete_port_mapping()
-		// to remove it.
+		// add_port_mapping adds one or more port forwards on UPnP and/or NAT-PMP,
+		// whichever is enabled. A mapping is created for each listen socket
+		// in the session. The return values are all handles referring to the
+		// port mappings that were just created. Pass them to delete_port_mapping()
+		// to remove them.
 		std::vector<port_mapping_t> add_port_mapping(portmap_protocol t, int external_port, int local_port);
 		void delete_port_mapping(port_mapping_t handle);
 
