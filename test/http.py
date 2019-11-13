@@ -103,20 +103,33 @@ username = None
 password = None
 
 
+def to_string(b):
+    if type(b) is bytes:
+        return b.decode('ASCII')
+    return b
+
+
+def to_bytes(s):
+    if type(s) is str:
+        return s.encode('ASCII')
+    return s
+
+
 class ConnectionHandler:
     def __init__(self, connection, address, timeout):
         self.client = connection
-        self.client_buffer = ''
+        self.client_buffer = to_bytes('')
         self.timeout = timeout
         self.method, self.path, self.protocol = self.get_base_header()
+        print('PROXY - method: %s path: %s protocol: %s' % (self.method, self.path, self.protocol))
         global username
         global password
         if username is not None:
-            auth = base64.b64encode(username + ':' + password)
-            if not 'Proxy-Authorization: Basic ' + auth in self.client_buffer:
-                print('PROXY - failed authentication: %s' % self.client_buffer)
-                self.client.send(HTTPVER + ' 401 Authentication Failed\n' +
-                                 'Proxy-agent: %s\n\n' % VERSION)
+            auth = base64.b64encode(to_bytes(username + ':' + password))
+            if not to_bytes('Proxy-Authorization: Basic ') + auth in self.client_buffer:
+                print('PROXY - failed authentication: %s' % to_string(self.client_buffer))
+                self.client.sendall(to_bytes(HTTPVER + ' 401 Authentication Failed\n' +
+                                    'Proxy-agent: %s\n\n' % VERSION))
                 self.client.close()
                 return
         try:
@@ -125,10 +138,11 @@ class ConnectionHandler:
             elif self.method in ('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT',
                                  'DELETE', 'TRACE'):
                 self.method_others()
-        except Exception:
+        except Exception as e:
+            print('PROXY - ERROR: %s' % e)
             try:
-                self.client.send(HTTPVER + ' 502 Connection failed\n' +
-                                 'Proxy-agent: %s\n\n' % VERSION)
+                self.client.sendall(to_bytes(HTTPVER + ' 502 Connection failed\n' +
+                                    'Proxy-agent: %s\n\n' % VERSION))
             except Exception as e:
                 print('PROXY - ', e)
             self.client.close()
@@ -149,20 +163,20 @@ class ConnectionHandler:
                     retries += 1
                     continue
                 raise e
-            end = self.client_buffer.find('\r\n\r\n')
+            end = self.client_buffer.find(to_bytes('\r\n\r\n'))
             if end != -1:
                 break
-        line_end = self.client_buffer.find('\n')
-        print('PROXY - %s' % self.client_buffer[:line_end])  # debug
-        data = (self.client_buffer[:line_end + 1]).split()
+        line_end = self.client_buffer.find(to_bytes('\n'))
+        print('PROXY - request: %s' % to_string(self.client_buffer[:line_end]))  # debug
+        data = to_string(self.client_buffer[:line_end + 1]).split()
         self.client_buffer = self.client_buffer[line_end + 1:]
         return data
 
     def method_CONNECT(self):
         self._connect_target(self.path)
-        self.client.send(HTTPVER + ' 200 Connection established\n' +
-                         'Proxy-agent: %s\n\n' % VERSION)
-        self.client_buffer = ''
+        self.client.sendall(to_bytes(HTTPVER + ' 200 Connection established\n' +
+                            'Proxy-agent: %s\n\n' % VERSION))
+        self.client_buffer = to_bytes('')
         self._read_write()
 
     def method_others(self):
@@ -171,9 +185,9 @@ class ConnectionHandler:
         host = self.path[:i]
         path = self.path[i:]
         self._connect_target(host)
-        self.target.send('%s %s %s\n' % (self.method, path, self.protocol) +
-                         self.client_buffer)
-        self.client_buffer = ''
+        self.target.sendall(to_bytes('%s %s %s\n' % (self.method, path, self.protocol)) +
+                            self.client_buffer)
+        self.client_buffer = to_bytes('')
         self._read_write()
 
     def _connect_target(self, host):
@@ -191,7 +205,8 @@ class ConnectionHandler:
         time_out_max = self.timeout / 3
         socs = [self.client, self.target]
         count = 0
-        while True:
+        done = False
+        while not done:
             count += 1
             (recv, _, error) = select.select(socs, [], socs, 3)
             if error:
@@ -199,18 +214,23 @@ class ConnectionHandler:
             if recv:
                 for in_ in recv:
                     data = in_.recv(BUFLEN)
+                    if len(data) == 0:
+                        # end of file
+                        done = True
+                        continue
                     if in_ is self.client:
                         out = self.target
                     else:
                         out = self.client
                     if data:
-                        out.send(data)
+                        out.sendall(data)
                         count = 0
-            if count == time_out_max:
+            if count >= time_out_max:
+                print('PROXY - timeout')
                 break
 
 
-def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
+def start_server(host='localhost', port=8080, IPv6=False, timeout=10,
                  handler=ConnectionHandler):
     if IPv6:
         soc_type = socket.AF_INET6

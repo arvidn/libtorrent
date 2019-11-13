@@ -29,20 +29,33 @@ class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 
     def handle_timeout(self):
+        error('timeout')
         raise Exception('socks.py: timeout')
+
+
+def to_string(b):
+    if sys.version_info[0] >= 3 and type(b) is bytes:
+        return b.decode('ASCII')
+    return b
+
+
+def to_bytes(s):
+    if sys.version_info[0] >= 3 and type(s) is str:
+        return s.encode('ASCII')
+    return s
 
 
 CLOSE = object()
 
-VERSION = '\x05'
-NOAUTH = '\x00'
-USERPASS = '\x02'
-CONNECT = '\x01'
-UDP_ASSOCIATE = '\x03'
-IPV4 = '\x01'
-IPV6 = '\x04'
-DOMAIN_NAME = '\x03'
-SUCCESS = '\x00'
+VERSION = to_bytes('\x05')
+NOAUTH = to_bytes('\x00')
+USERPASS = to_bytes('\x02')
+CONNECT = to_bytes('\x01')
+UDP_ASSOCIATE = to_bytes('\x03')
+IPV4 = to_bytes('\x01')
+IPV6 = to_bytes('\x04')
+DOMAIN_NAME = to_bytes('\x03')
+SUCCESS = to_bytes('\x00')
 
 password = None
 username = None
@@ -58,7 +71,7 @@ def send(dest, msg):
         dest.close()
         return 0
     else:
-        return dest.sendall(msg)
+        return dest.sendall(to_bytes(msg))
 
 
 def recv(source, buffer):
@@ -93,7 +106,7 @@ class SocksHandler(StreamRequestHandler):
         self.server.close_request(self.request)
 
     def read(self, n):
-        data = ''
+        data = to_bytes('')
         while len(data) < n:
             extra = self.rfile.read(n)
             if extra == '':
@@ -106,9 +119,11 @@ class SocksHandler(StreamRequestHandler):
         # IMPROVEMENT: Timeout on client
         debug('Connection - authenticating')
         version = self.read(1)
+        debug('Connection - version %d' % ord(version))
 
-        if allow_v4 and version == '\x04':
+        if allow_v4 and version == to_bytes('\x04'):
             cmd = self.read(1)
+            debug('Connection - command %d' % ord(cmd))
             if cmd != CONNECT and cmd != UDP_ASSOCIATE:
                 error('Only supports connect and udp-associate method not (%r) closing' % cmd)
                 self.close_request()
@@ -116,15 +131,18 @@ class SocksHandler(StreamRequestHandler):
 
             raw_dest_port = self.read(2)
             dest_port, = unpack('>H', raw_dest_port)
+            debug('Connection - dest port %d' % dest_port)
 
             raw_dest_address = self.read(4)
             dest_address = '.'.join(map(str, unpack('>4B', raw_dest_address)))
+            debug('Connection - dest address %s' % dest_address)
 
-            user_id = ''
+            user_id = to_bytes('')
             c = self.read(1)
-            while c != '\0':
+            while c != to_bytes('\0'):
                 user_id += c
                 c = self.read(1)
+            debug('Connection - user id %s' % to_string(user_id))
 
             outbound_sock = socket.socket(socket.AF_INET)
             out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
@@ -137,7 +155,7 @@ class SocksHandler(StreamRequestHandler):
             forward(self.request, outbound_sock, 'client')
             return
 
-        if version != '\x05':
+        if version != to_bytes('\x05'):
             error('Wrong version number (%r) closing...' % version)
             self.close_request()
             return
@@ -154,14 +172,14 @@ class SocksHandler(StreamRequestHandler):
         elif USERPASS in method_list:
             self.send_user_pass_auth_method()
             auth_version = self.read(1)
-            if auth_version != '\x01':
+            if auth_version != to_bytes('\x01'):
                 error('Wrong sub-negotiation version number (%r) closing...' % version)
                 self.close_request()
                 return
             usr_len = ord(self.read(1))
-            usr_name = self.read(usr_len)
+            usr_name = to_string(self.read(usr_len))
             pwd_len = ord(self.read(1))
-            pwd = self.read(pwd_len)
+            pwd = to_string(self.read(pwd_len))
 
             if usr_name != username or pwd != password:
                 error('Invalid username or password')
@@ -175,16 +193,22 @@ class SocksHandler(StreamRequestHandler):
             return
 
         # If we were authenticating it would go here
-        version, cmd, zero, address_type = self.read(4)
-        if version != '\x05':
+        version = self.read(1)
+        cmd = self.read(1)
+        zero = self.read(1)
+        address_type = self.read(1)
+        if version != to_bytes('\x05'):
             error('Wrong version number (%r) closing...' % version)
             self.close_request()
+            return
         elif cmd != CONNECT and cmd != UDP_ASSOCIATE:
             error('Only supports connect and udp-associate method not (%r) closing' % cmd)
             self.close_request()
-        elif zero != '\x00':
+            return
+        elif zero != to_bytes('\x00'):
             error('Mangled request. Reserved field (%r) is not null' % zero)
             self.close_request()
+            return
 
         if address_type == IPV4:
             raw_dest_address = self.read(4)
@@ -194,11 +218,12 @@ class SocksHandler(StreamRequestHandler):
             dest_address = ":".join([hex(x)[2:] for x in unpack('>8H', raw_dest_address)])
         elif address_type == DOMAIN_NAME:
             dns_length = ord(self.read(1))
-            dns_name = self.read(dns_length)
+            dns_name = to_string(self.read(dns_length))
             dest_address = dns_name
         else:
             error('Unknown addressing (%r)' % address_type)
             self.close_request()
+            return
 
         raw_dest_port = self.read(2)
         dest_port, = unpack('>H', raw_dest_port)
@@ -210,7 +235,7 @@ class SocksHandler(StreamRequestHandler):
         try:
             out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
         except Exception as e:
-            error('%s' % e)
+            error('getaddrinfo: %s' % e)
             return
 
         if cmd == UDP_ASSOCIATE:
@@ -222,7 +247,7 @@ class SocksHandler(StreamRequestHandler):
         try:
             outbound_sock.connect(out_address)
         except Exception as e:
-            error('%s' % e)
+            error('connect: %s' % e)
             return
 
         if address_type == IPV6:
@@ -234,11 +259,11 @@ class SocksHandler(StreamRequestHandler):
         try:
             forward(self.request, outbound_sock, 'client')
         except Exception as e:
-            error('%s' % e)
+            error('forward: %s' % e)
 
     def send_reply_v4(self, xxx_todo_changeme):
         (bind_addr, bind_port) = xxx_todo_changeme
-        self.wfile.write('\0\x5a\0\0\0\0\0\0')
+        self.wfile.write(to_bytes('\0\x5a\0\0\0\0\0\0'))
         self.wfile.flush()
 
     def send_reply(self, xxx_todo_changeme1):
@@ -246,7 +271,7 @@ class SocksHandler(StreamRequestHandler):
         bind_tuple = tuple(map(int, bind_addr.split('.')))
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
-        msg = pack('>cccc4BH', VERSION, SUCCESS, '\x00', IPV4, *full_address)
+        msg = pack('>cccc4BH', VERSION, SUCCESS, to_bytes('\x00'), IPV4, *full_address)
         self.wfile.write(msg)
 
     def send_reply6(self, xxx_todo_changeme2):
@@ -254,29 +279,30 @@ class SocksHandler(StreamRequestHandler):
         bind_tuple = tuple([int(x, 16) for x in bind_addr.split(':')])
         full_address = bind_tuple + (bind_port,)
         debug('Setting up forwarding port %r' % (full_address,))
-        msg = pack('>cccc8HH', VERSION, SUCCESS, '\x00', IPV6, *full_address)
+        msg = pack('>cccc8HH', VERSION, SUCCESS, to_bytes('\x00'), IPV6, *full_address)
         self.wfile.write(msg)
 
     def send_no_method(self):
-        self.wfile.write('\x05\xff')
+        self.wfile.write(to_bytes('\x05\xff'))
         self.close_request()
 
     def send_no_auth_method(self):
-        self.wfile.write('\x05\x00')
+        self.wfile.write(to_bytes('\x05\x00'))
         self.wfile.flush()
 
     def send_user_pass_auth_method(self):
-        self.wfile.write('\x05\x02')
+        self.wfile.write(to_bytes('\x05\x02'))
         self.wfile.flush()
 
     def send_authenticated(self):
-        self.wfile.write('\x01\x00')
+        self.wfile.write(to_bytes('\x01\x00'))
         self.wfile.flush()
 
 
 if __name__ == '__main__':
 
     debug('starting socks.py %s' % " ".join(sys.argv))
+    debug('python version: %s' % sys.version_info.__str__())
     listen_port = 8002
     i = 1
     while i < len(sys.argv):
