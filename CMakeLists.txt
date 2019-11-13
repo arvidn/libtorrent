@@ -565,7 +565,7 @@ target_link_libraries(torrent-rasterbar
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
 		PRIVATE
-			wsock32 ws2_32 Iphlpapi
+			bcrypt wsock32 ws2_32 Iphlpapi
 			debug dbghelp
 	)
 
