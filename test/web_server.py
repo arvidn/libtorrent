@@ -5,6 +5,8 @@ import os
 import ssl
 import gzip
 import base64
+import socket
+import traceback
 
 # Python 3 has moved {Simple,Base}HTTPServer to http module
 try:
@@ -19,13 +21,27 @@ except ImportError:
 chunked_encoding = False
 keepalive = True
 
+
+def to_string(b):
+    if sys.version_info[0] >= 3 and type(b) is bytes:
+        return b.decode('ASCII')
+    return b
+
+
+def to_bytes(s):
+    if sys.version_info[0] >= 3 and type(s) is str:
+        return s.encode('ASCII')
+    return s
+
+
 try:
     fin = open('test_file', 'rb')
     f = gzip.open('test_file.gz', 'wb')
     f.writelines(fin)
     f.close()
     fin.close()
-except Exception:
+except Exception as e:
+    print(e)
     pass
 
 
@@ -62,7 +78,7 @@ class http_handler(BaseHTTPRequestHandler):
             passed = False
             if 'Authorization' in s.headers:
                 auth = s.headers['Authorization']
-                passed = auth == 'Basic %s' % base64.b64encode('testuser:testpass')
+                passed = auth == 'Basic %s' % to_string(base64.b64encode(to_bytes('testuser:testpass')))
 
             if not passed:
                 s.send_response(401)
@@ -98,7 +114,7 @@ class http_handler(BaseHTTPRequestHandler):
             s.send_header("Content-Length", "%d" % len(response))
             s.send_header("Connection", "close")
             s.end_headers()
-            s.wfile.write(response)
+            s.wfile.write(to_bytes(response))
         elif os.path.split(s.path)[1].startswith('seed?'):
             query = s.path[6:]
             args_raw = query.split('&')
@@ -127,6 +143,7 @@ class http_handler(BaseHTTPRequestHandler):
                 s.wfile.write(data)
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                traceback.print_exc()
                 sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
@@ -166,7 +183,7 @@ class http_handler(BaseHTTPRequestHandler):
                 if not keepalive:
                     s.send_header("Connection", "close")
                     try:
-                        s.request.shutdown()
+                        s.request.shutdown(socket.SHUT_RD)
                     except Exception as e:
                         print('Failed to shutdown read-channel of socket: ', e)
                         sys.stdout.flush()
@@ -178,20 +195,21 @@ class http_handler(BaseHTTPRequestHandler):
                 while length > 0:
                     to_send = min(length, 0x900)
                     if chunked_encoding:
-                        s.wfile.write('%x\r\n' % to_send)
+                        s.wfile.write(to_bytes('%x\r\n' % to_send))
                     data = f.read(to_send)
                     print('read %d bytes' % to_send)
                     sys.stdout.flush()
                     s.wfile.write(data)
                     if chunked_encoding:
-                        s.wfile.write('\r\n')
+                        s.wfile.write(to_bytes('\r\n'))
                     length -= to_send
                     print('sent %d bytes (%d bytes left)' % (len(data), length))
                     sys.stdout.flush()
                 if chunked_encoding:
-                    s.wfile.write('0\r\n\r\n')
+                    s.wfile.write(to_bytes('0\r\n\r\n'))
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                traceback.print_exc()
                 sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")

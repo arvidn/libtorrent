@@ -4,7 +4,7 @@ branches:
     - master
     - RC_1_2
     - RC_1_1
-image: Previous Visual Studio 2015
+image: Visual Studio 2017
 clone_depth: 1
 environment:
   matrix:
@@ -38,11 +38,11 @@ install:
   - if not defined linkflags ( set linkflags="" )
   - if not defined include ( set include="" )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_63_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_69_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
-  - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
+  - set PATH=%PATH%;%BOOST_BUILD_PATH%
   - ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
@@ -50,55 +50,55 @@ install:
   - g++ --version
   - python --version
   - echo %ROOT_DIRECTORY%
-  - cd %BOOST_BUILD_PATH%\src\engine
-  - build.bat >nul
+  - cd %BOOST_BUILD_PATH%
+  - bootstrap.bat >nul
   - cd %ROOT_DIRECTORY%
 
 build_script:
+  - set B2_ARGS="--hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on"
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+    b2.exe %B2_ARGS%
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto%
+    b2.exe  %B2_ARGS%
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests test_upnp test_natpmp testing.execute=off
+    b2.exe %B2_ARGS%
     )
 
   # python binding
   - cd %ROOT_DIRECTORY%\bindings\python
   # we use 64 bit python builds
   - if defined python (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% libtorrent-link=shared stage_module stage_dependencies
+    b2.exe %B2_ARGS% libtorrent-link=shared stage_module stage_dependencies
     )
 
   # simulations
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP testing.execute=off asserts=on
     )
 
   # minimal support for cmake build
   - cd %ROOT_DIRECTORY%
   - mkdir build && cd build
   - if defined cmake (
-    set "PATH=c:\Python27-x64;%PATH%" &&
-    cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
+    cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017 Win64" .. &&
     cmake --build . --config Release -- -verbosity:minimal
     )
 
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l400 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% win-tests
+    appveyor-retry b2.exe -l400 %B2_ARGS% win-tests
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
@@ -121,5 +121,5 @@ test_script:
   # certain unexpected terminations (through exceptions)
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP
+    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
     )
