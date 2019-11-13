@@ -266,6 +266,7 @@ namespace {
 
 			// if we're using the bittyrant choker, sort peers by their return
 			// on investment. i.e. download rate / upload rate
+			// TODO: use an incremental partial_sort() here
 			std::sort(peers.begin(), peers.end()
 				, std::bind(&bittyrant_unchoke_compare, _1, _2));
 
@@ -310,7 +311,7 @@ namespace {
 			// it purely based on the current state of our peers.
 			upload_slots = 0;
 
-			// TODO: optimize this using partial_sort or something. We don't need
+			// TODO: use an incremental partial_sort() here. We don't need
 			// to sort the entire list
 
 			// TODO: make the comparison function a free function and move it
@@ -351,28 +352,28 @@ namespace {
 		{
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 
-			std::partial_sort(peers.begin(), peers.begin()
+			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
 				, std::bind(&unchoke_compare_rr, _1, _2, pieces));
 		}
 		else if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::fastest_upload)
 		{
-			std::partial_sort(peers.begin(), peers.begin()
+			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
 				, std::bind(&unchoke_compare_fastest_upload, _1, _2));
 		}
 		else if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::anti_leech)
 		{
-			std::partial_sort(peers.begin(), peers.begin()
+			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
 				, std::bind(&unchoke_compare_anti_leech, _1, _2));
 		}
 		else
 		{
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
-			std::partial_sort(peers.begin(), peers.begin()
+			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
 				, std::bind(&unchoke_compare_rr, _1, _2, pieces));
 
