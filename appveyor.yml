@@ -4,7 +4,7 @@ branches:
     - master
     - RC_1_2
     - RC_1_1
-image: Previous Visual Studio 2015
+image: Visual Studio 2017
 clone_depth: 1
 environment:
   matrix:
@@ -38,20 +38,21 @@ install:
   - if not defined linkflags ( set linkflags="" )
   - if not defined include ( set include="" )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_63_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_69_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
-  - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
+  - set PATH=%PATH%;%BOOST_BUILD_PATH%
   - ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\msys64\mingw32\bin;%PATH%
   - g++ --version
+  - set "PATH=c:\Python27-x64;%PATH%"
   - python --version
   - echo %ROOT_DIRECTORY%
-  - cd %BOOST_BUILD_PATH%\src\engine
-  - build.bat >nul
+  - cd %BOOST_BUILD_PATH%
+  - bootstrap.bat >nul
   - cd %ROOT_DIRECTORY%
 
 build_script:
@@ -90,8 +91,7 @@ build_script:
   - cd %ROOT_DIRECTORY%
   - mkdir build && cd build
   - if defined cmake (
-    set "PATH=c:\Python27-x64;%PATH%" &&
-    cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 14 2015 Win64" .. &&
+    cmake -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017 Win64" .. &&
     cmake --build . --config Release -- -verbosity:minimal
     )
 

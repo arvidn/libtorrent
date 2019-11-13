@@ -29,6 +29,7 @@ class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 
     def handle_timeout(self):
+        error('timeout')
         raise Exception('socks.py: timeout')
 
 
@@ -106,9 +107,11 @@ class SocksHandler(StreamRequestHandler):
         # IMPROVEMENT: Timeout on client
         debug('Connection - authenticating')
         version = self.read(1)
+        debug('Connection - version %d' % ord(version))
 
         if allow_v4 and version == '\x04':
             cmd = self.read(1)
+            debug('Connection - command %d' % ord(cmd))
             if cmd != CONNECT and cmd != UDP_ASSOCIATE:
                 error('Only supports connect and udp-associate method not (%r) closing' % cmd)
                 self.close_request()
@@ -116,15 +119,18 @@ class SocksHandler(StreamRequestHandler):
 
             raw_dest_port = self.read(2)
             dest_port, = unpack('>H', raw_dest_port)
+            debug('Connection - dst port %d' % dest_port)
 
             raw_dest_address = self.read(4)
             dest_address = '.'.join(map(str, unpack('>4B', raw_dest_address)))
+            debug('Connection - dst port %x' % dest_address)
 
             user_id = ''
             c = self.read(1)
             while c != '\0':
                 user_id += c
                 c = self.read(1)
+            debug('Connection - user id %s' % user_id)
 
             outbound_sock = socket.socket(socket.AF_INET)
             out_address = socket.getaddrinfo(dest_address, dest_port)[0][4]
