@@ -326,7 +326,7 @@ namespace {
 		if (internal_executor)
 		{
 			// the user did not provide an executor, we have to use our own
-			m_io_service = std::make_shared<io_service>();
+			m_io_service = std::make_shared<io_service>(1);
 			ios = m_io_service.get();
 		}
 
