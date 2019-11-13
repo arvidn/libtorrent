@@ -184,6 +184,10 @@ namespace aux {
 		using receive_buffer_size = tcp::socket::receive_buffer_size;
 		using send_buffer_size = tcp::socket::send_buffer_size;
 
+#if BOOST_VERSION >= 106600
+		using executor_type = tcp::socket::executor_type;
+#endif
+
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
