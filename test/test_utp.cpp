@@ -84,7 +84,13 @@ void test_transfer()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
+	ec.clear();
 	create_directory("./tmp1_utp", ec);
+	if (ec)
+	{
+		std::printf("ERROR: failed to create test directory \"./tmp1_utp\": (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+	}
 	std::ofstream file("./tmp1_utp/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
 	file.close();

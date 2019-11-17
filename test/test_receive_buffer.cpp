@@ -215,11 +215,11 @@ TORRENT_TEST(receive_buffer_watermark)
 {
 	receive_buffer b;
 	b.reset(0x4000);
-	b.reserve(35000000);
-	b.received(35000000);
+	b.reserve(33500000);
+	b.received(33500000);
 	b.normalize();
 
-	TEST_EQUAL(b.watermark(), 35000000);
+	TEST_EQUAL(b.watermark(), 33500000);
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
