@@ -25,6 +25,8 @@ rule link_libtorrent ( properties * )
 	return $(result) ;
 }
 
+variant debug-mode : debug : <asserts>on <debug-iterators>on <invariant-checks>full ;
+
 project tools
    : requirements
 	<threading>multi
@@ -36,6 +38,7 @@ project tools
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static
+	<variant>debug-mode
    ;  
 
 exe dht : dht_put.cpp : <include>../ed25519/src ;

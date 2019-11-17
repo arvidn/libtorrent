@@ -5,6 +5,7 @@ import os
 import ssl
 import gzip
 import base64
+import socket
 
 # Python 3 has moved {Simple,Base}HTTPServer to http module
 try:
@@ -165,11 +166,8 @@ class http_handler(BaseHTTPRequestHandler):
                     s.send_header('Content-Encoding', 'gzip')
                 if not keepalive:
                     s.send_header("Connection", "close")
-                    try:
-                        s.request.shutdown()
-                    except Exception as e:
-                        print('Failed to shutdown read-channel of socket: ', e)
-                        sys.stdout.flush()
+                    if not use_ssl:
+                        s.request.shutdown(socket.SHUT_RD)
 
                 s.end_headers()
 
@@ -204,6 +202,7 @@ if __name__ == '__main__':
     use_ssl = sys.argv[3] != '0'
     keepalive = sys.argv[4] != '0'
     min_interval = sys.argv[5]
+    print('python version: %s' % sys.version_info.__str__())
 
     http_handler.protocol_version = 'HTTP/1.1'
     httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)
