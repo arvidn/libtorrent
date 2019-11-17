@@ -210,7 +210,7 @@ class ConnectionHandler:
                 break
 
 
-def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
+def start_server(host='localhost', port=8080, IPv6=False, timeout=10,
                  handler=ConnectionHandler):
     if IPv6:
         soc_type = socket.AF_INET6
@@ -219,6 +219,7 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
     soc = socket.socket(soc_type)
     soc.settimeout(120)
     print("PROXY - Serving on %s:%d." % (host, port))  # debug
+    print('python version: %s' % sys.version_info.__str__())
     soc.bind((host, port))
     soc.listen(0)
     while True:

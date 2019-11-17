@@ -438,9 +438,9 @@ pid_type async_run(char const* cmdline)
 	char buf[2048];
 	std::snprintf(buf, sizeof(buf), "%s", cmdline);
 
+	std::printf("CreateProcess %s\n", buf);
 	PROCESS_INFORMATION pi;
-	STARTUPINFOA startup;
-	memset(&startup, 0, sizeof(startup));
+	STARTUPINFOA startup{};
 	startup.cb = sizeof(startup);
 	startup.dwFlags = STARTF_USESTDHANDLES;
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
@@ -452,8 +452,20 @@ pid_type async_run(char const* cmdline)
 	if (ret == 0)
 	{
 		int const error = GetLastError();
-		std::printf("failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
+		std::printf("ERROR: (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
+	}
+
+	DWORD len = sizeof(buf);
+	if (QueryFullProcessImageNameA(pi.hProcess, PROCESS_NAME_NATIVE, buf, &len) == 0)
+	{
+		int const error = GetLastError();
+		std::printf("ERROR: QueryFullProcessImageName (%d) %s\n", error
+			, error_code(error, system_category()).message().c_str());
+	}
+	else
+	{
+		std::printf("launched: %s\n", buf);
 	}
 	return pi.dwProcessId;
 #else
@@ -478,7 +490,7 @@ pid_type async_run(char const* cmdline)
 	int ret = posix_spawnp(&p, argv[0], nullptr, nullptr, &argv[0], nullptr);
 	if (ret != 0)
 	{
-		std::printf("failed (%d) %s\n", errno, strerror(errno));
+		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
 		return 0;
 	}
 	return p;
