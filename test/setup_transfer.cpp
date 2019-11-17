@@ -544,6 +544,54 @@ void stop_all_proxies()
 	}
 }
 
+namespace {
+
+#ifdef TORRENT_BUILD_SIMULATOR
+void wait_for_port(int) {}
+#else
+void wait_for_port(int const port)
+{
+	// wait until the python program is ready to accept connections
+	int i = 0;
+	io_service ios;
+	for (;;)
+	{
+		tcp::socket s(ios);
+		error_code ec;
+		s.open(tcp::v4(), ec);
+		if (ec)
+		{
+			std::printf("ERROR opening probe socket: (%d) %s\n"
+				, ec.value(), ec.message().c_str());
+			return;
+		}
+		s.connect(tcp::endpoint(address::from_string("127.0.0.1")
+			, std::uint16_t(port)), ec);
+		if (ec == boost::system::errc::connection_refused)
+		{
+			if (i == 100)
+			{
+				std::printf("ERROR: somehow the python program still hasn't "
+					"opened its socket on port %d\n", port);
+				return;
+			}
+			++i;
+			std::this_thread::sleep_for(lt::milliseconds(500));
+			continue;
+		}
+		if (ec)
+		{
+			std::printf("ERROR connecting probe socket: (%d) %s\n"
+				, ec.value(), ec.message().c_str());
+			return;
+		}
+		return;
+	}
+}
+#endif
+
+}
+
 // returns a port on success and -1 on failure
 int start_proxy(int proxy_type)
 {
@@ -611,6 +659,7 @@ int start_proxy(int proxy_type)
 	running_proxies.insert(std::make_pair(port, t));
 	std::printf("%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_port(port);
 	return port;
 }
 
@@ -990,6 +1039,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 	web_server_pid = r;
 	std::printf("%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(1000));
+	wait_for_port(port);
 	return port;
 }
 
