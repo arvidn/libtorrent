@@ -288,7 +288,7 @@ script:
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
-      cmake --build . -- -j2;
+      cmake --build . --parallel 3;
     fi
   - cd ..
 
