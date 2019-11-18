@@ -214,7 +214,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 
 	while (true)
 	{
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 		if (now > end_time) return nullptr;
 
 		alert const* ret = nullptr;

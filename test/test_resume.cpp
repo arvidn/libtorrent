@@ -50,6 +50,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
+#ifdef TORRENT_WINDOWS
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
 using namespace lt;
 
 namespace {
@@ -277,13 +282,13 @@ TORRENT_TEST(piece_slots)
 	std::shared_ptr<torrent_info> ti = generate_torrent();
 
 	error_code ec;
-	create_directories(combine_path("add_torrent_params_test", "test_resume"), ec);
+	create_directories("add_torrent_params_test" SEP "test_resume", ec);
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
-		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
-		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
@@ -340,9 +345,9 @@ void test_piece_slots_seed(settings_pack const& sett)
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test/test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
-		std::ofstream("add_torrent_params_test/test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
-		std::ofstream("add_torrent_params_test/test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
