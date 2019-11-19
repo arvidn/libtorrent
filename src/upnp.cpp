@@ -1290,7 +1290,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
-		log("error while getting external IP address, code: %u", s.error_code);
+		log("error while getting external IP address, code: %d", s.error_code);
 	}
 #endif
 
@@ -1392,8 +1392,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code != -1)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("error while adding port map, code: %u"
-			, s.error_code);
+		log("error while adding port map, code: %d", s.error_code);
 #endif
 	}
 

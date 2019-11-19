@@ -277,6 +277,7 @@ class SocksHandler(StreamRequestHandler):
 if __name__ == '__main__':
 
     debug('starting socks.py %s' % " ".join(sys.argv))
+    debug('python version: %s' % sys.version_info.__str__())
     listen_port = 8002
     i = 1
     while i < len(sys.argv):

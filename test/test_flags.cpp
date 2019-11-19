@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "settings.hpp"
 
 using namespace libtorrent;
@@ -44,13 +45,19 @@ namespace lt = libtorrent;
 
 namespace {
 
+std::string file(std::string name)
+{
+	return combine_path(parent_path(current_working_directory())
+		, combine_path("test_torrents", name));
+}
+
 void test_add_and_get_flags(torrent_flags_t const flags)
 {
 	session ses(settings());
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
@@ -65,7 +72,7 @@ void test_set_after_add(torrent_flags_t const flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = torrent_flags::all & ~flags;
@@ -82,7 +89,7 @@ void test_unset_after_add(torrent_flags_t const flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;

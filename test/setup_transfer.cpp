@@ -229,7 +229,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 
 	while (true)
 	{
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 		if (now > end_time) return nullptr;
 
 		alert const* ret = nullptr;
@@ -453,9 +453,9 @@ pid_type async_run(char const* cmdline)
 	char buf[2048];
 	std::snprintf(buf, sizeof(buf), "%s", cmdline);
 
+	std::printf("CreateProcess %s\n", buf);
 	PROCESS_INFORMATION pi;
-	STARTUPINFOA startup;
-	memset(&startup, 0, sizeof(startup));
+	STARTUPINFOA startup{};
 	startup.cb = sizeof(startup);
 	startup.dwFlags = STARTF_USESTDHANDLES;
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
@@ -467,8 +467,20 @@ pid_type async_run(char const* cmdline)
 	if (ret == 0)
 	{
 		int const error = GetLastError();
-		std::printf("failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
+		std::printf("ERROR: (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
+	}
+
+	DWORD len = sizeof(buf);
+	if (QueryFullProcessImageNameA(pi.hProcess, PROCESS_NAME_NATIVE, buf, &len) == 0)
+	{
+		int const error = GetLastError();
+		std::printf("ERROR: QueryFullProcessImageName (%d) %s\n", error
+			, error_code(error, system_category()).message().c_str());
+	}
+	else
+	{
+		std::printf("launched: %s\n", buf);
 	}
 	return pi.dwProcessId;
 #else
@@ -493,7 +505,7 @@ pid_type async_run(char const* cmdline)
 	int ret = posix_spawnp(&p, argv[0], nullptr, nullptr, &argv[0], nullptr);
 	if (ret != 0)
 	{
-		std::printf("failed (%d) %s\n", errno, strerror(errno));
+		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
 		return 0;
 	}
 	return p;
@@ -547,6 +559,69 @@ void stop_all_proxies()
 	}
 }
 
+namespace {
+
+#ifdef TORRENT_BUILD_SIMULATOR
+void wait_for_port(int) {}
+#else
+void wait_for_port(int const port)
+{
+	// wait until the python program is ready to accept connections
+	int i = 0;
+	io_context ios;
+	for (;;)
+	{
+		tcp::socket s(ios);
+		error_code ec;
+		s.open(tcp::v4(), ec);
+		if (ec)
+		{
+			std::printf("ERROR opening probe socket: (%d) %s\n"
+				, ec.value(), ec.message().c_str());
+			return;
+		}
+		s.connect(tcp::endpoint(make_address("127.0.0.1")
+			, std::uint16_t(port)), ec);
+		if (ec == boost::system::errc::connection_refused)
+		{
+			if (i == 100)
+			{
+				std::printf("ERROR: somehow the python program still hasn't "
+					"opened its socket on port %d\n", port);
+				return;
+			}
+			++i;
+			std::this_thread::sleep_for(lt::milliseconds(500));
+			continue;
+		}
+		if (ec)
+		{
+			std::printf("ERROR connecting probe socket: (%d) %s\n"
+				, ec.value(), ec.message().c_str());
+			return;
+		}
+		return;
+	}
+}
+#endif
+
+std::string get_python()
+{
+#ifdef _WIN32
+	char dummy[1];
+	DWORD const req_size = GetEnvironmentVariable("PYTHON_INTERPRETER", dummy, sizeof(dummy));
+	if (req_size > 1 && req_size < 4096)
+	{
+		std::vector<char> buf(req_size);
+		DWORD const sz = GetEnvironmentVariable("PYTHON_INTERPRETER", buf.data(), buf.size());
+		if (sz == buf.size() - 1) return buf.data();
+	}
+#endif
+	return "python";
+}
+
+}
+
 // returns a port on success and -1 on failure
 int start_proxy(int proxy_type)
 {
@@ -582,29 +657,30 @@ int start_proxy(int proxy_type)
 		case settings_pack::socks4:
 			type = "socks4";
 			auth = " --allow-v4";
-			cmd = "python ../socks.py";
+			cmd = "../socks.py";
 			break;
 		case settings_pack::socks5:
 			type = "socks5";
-			cmd = "python ../socks.py";
+			cmd = "../socks.py";
 			break;
 		case settings_pack::socks5_pw:
 			type = "socks5";
 			auth = " --username testuser --password testpass";
-			cmd = "python ../socks.py";
+			cmd = "../socks.py";
 			break;
 		case settings_pack::http:
 			type = "http";
-			cmd = "python ../http.py";
+			cmd = "../http.py";
 			break;
 		case settings_pack::http_pw:
 			type = "http";
 			auth = " --username testuser --password testpass";
-			cmd = "python ../http.py";
+			cmd = "../http.py";
 			break;
 	}
-	char buf[512];
-	std::snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
+	std::string python_exe = get_python();
+	char buf[1024];
+	std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
 
 	std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	std::printf("%s\n", buf);
@@ -614,6 +690,7 @@ int start_proxy(int proxy_type)
 	running_proxies.insert(std::make_pair(port, t));
 	std::printf("%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_port(port);
 	return port;
 }
 
@@ -1011,9 +1088,11 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 			, std::uint16_t(port)), ec);
 	} while (ec);
 
+	std::string python_exe = get_python();
+
 	char buf[200];
-	std::snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d %d"
-		, port, chunked_encoding, ssl, keepalive, min_interval);
+	std::snprintf(buf, sizeof(buf), "%s ../web_server.py %d %d %d %d %d"
+		, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
 
 	std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
 
@@ -1023,6 +1102,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 	web_server_pid = r;
 	std::printf("%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(1000));
+	wait_for_port(port);
 	return port;
 }
 

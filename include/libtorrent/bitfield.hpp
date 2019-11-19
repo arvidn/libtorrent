@@ -249,13 +249,13 @@ namespace libtorrent {
 		void set_all() noexcept
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0xff, std::size_t(num_words() * 4));
+			std::memset(buf(), 0xff, std::size_t(num_words()) * 4);
 			clear_trailing_bits();
 		}
 		void clear_all() noexcept
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0x00, std::size_t(num_words() * 4));
+			std::memset(buf(), 0x00, std::size_t(num_words()) * 4);
 		}
 
 		// make the bitfield empty, of zero size.

@@ -9,7 +9,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-variant debug-mode : debug : <asserts>on <debug-iterators>on <invariant-checks>on ;
+variant debug-mode : debug : <asserts>on <debug-iterators>on <invariant-checks>full ;
 
 project client_test
 	: requirements

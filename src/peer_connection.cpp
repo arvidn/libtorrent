@@ -4129,7 +4129,7 @@ namespace libtorrent {
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-			if (t) t->dec_num_connecting(m_peer_info);
+			if (t && m_peer_info) t->dec_num_connecting(m_peer_info);
 			m_connecting = false;
 		}
 

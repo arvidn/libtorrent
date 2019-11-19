@@ -115,7 +115,7 @@ namespace aux {
 	{
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + aux::numeric_cast<std::uint16_t>(size)));
 		if (p == nullptr) aux::throw_ex<std::bad_alloc>();
-		new (p) packet();
+		p = new (p) packet();
 		p->allocated = aux::numeric_cast<std::uint16_t>(size);
 		return packet_ptr(p);
 	}

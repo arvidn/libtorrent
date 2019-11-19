@@ -43,15 +43,15 @@ explicit libtorrent_test ;
 
 lib advapi32 : : <name>Advapi32 ;
 
+variant debug-mode : debug : <asserts>on <debug-iterators>on <invariant-checks>full ;
+
 local default-build =
 	<threading>multi
 	<link>shared
-	<asserts>on
-	<invariant-checks>full
 	<picker-debugging>on
 	<logging>on
-	<debug-iterators>on
 	<cxxstd>14
+	<variant>debug-mode
 	;
 
 project

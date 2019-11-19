@@ -301,7 +301,7 @@ namespace {
 		}
 
 		int if_index = 0;
-		int rt_len = int(RTM_PAYLOAD(nl_hdr));
+		auto rt_len = RTM_PAYLOAD(nl_hdr);
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
