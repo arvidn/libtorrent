@@ -56,35 +56,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
 #endif
 
-// ====== CLANG ========
-
-#if defined __clang__
-
-# if !defined TORRENT_BUILDING_LIBRARY
-// TODO: figure out which version of clang this is supported in
-#  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
-# endif
-
-// ======= GCC =========
-
-#elif defined __GNUC__
+#if defined __GNUC__
 
 #ifdef _GLIBCXX_CONCEPT_CHECKS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
 #endif
-
-// deprecation markup is only enabled when libtorrent
-// headers are included by clients, not while building
-// libtorrent itself
-# if __GNUC__ >= 3 && !defined TORRENT_BUILDING_LIBRARY
-#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
-# endif
-
-# if __GNUC__ >= 6 && !defined TORRENT_BUILDING_LIBRARY
-#  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
-# endif
 
 // ======= SUNPRO =========
 
@@ -98,13 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
-
-// deprecation markup is only enabled when libtorrent
-// headers are included by clients, not while building
-// libtorrent itself
-#if !defined TORRENT_BUILDING_LIBRARY
-# define TORRENT_DEPRECATED __declspec(deprecated)
-#endif
 
 // auto and decltype(auto) return types supports since MSVS2015
 // https://msdn.microsoft.com/en-us/library/hh567368.aspx
@@ -400,18 +369,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
-#endif
-
-#ifndef TORRENT_DEPRECATED_ENUM
-#define TORRENT_DEPRECATED_ENUM
-#endif
-
-#ifndef TORRENT_DEPRECATED_MEMBER
-#define TORRENT_DEPRECATED_MEMBER
 #endif
 
 #ifndef TORRENT_USE_COMMONCRYPTO

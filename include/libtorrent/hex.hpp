@@ -66,6 +66,17 @@ namespace libtorrent {
 	}
 
 #if TORRENT_ABI_VERSION == 1
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// deprecated in 1.2
 	TORRENT_DEPRECATED
 	inline void to_hex(char const* in, int len, char* out)
@@ -76,6 +87,14 @@ namespace libtorrent {
 	TORRENT_DEPRECATED
 	inline bool from_hex(char const *in, int len, char* out)
 	{ return aux::from_hex({in, len}, out); }
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif
 }
 

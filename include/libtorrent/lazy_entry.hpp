@@ -91,6 +91,16 @@ namespace libtorrent {
 	TORRENT_DEPRECATED_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000);
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// this is a string that is not 0-terminated. Instead it
 	// comes with a length, specified in bytes. This is particularly
 	// useful when parsing bencoded structures, because strings are
@@ -399,6 +409,13 @@ namespace libtorrent {
 	// that's returned.
 	TORRENT_DEPRECATED_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 	// defined in bdecode.cpp
 	TORRENT_DEPRECATED
