@@ -809,14 +809,6 @@ namespace libtorrent {
 		// shifting.
 		void remove_torrent(const torrent_handle& h, remove_flags_t options = {});
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in libtorrent 1.1. use settings_pack instead
-		TORRENT_DEPRECATED
-		void set_pe_settings(pe_settings const& settings);
-		TORRENT_DEPRECATED
-		pe_settings get_pe_settings() const;
-#endif
-
 		// Applies the settings specified by the settings_pack ``s``. This is an
 		// asynchronous operation that will return immediately and actually apply
 		// the settings to the main thread of libtorrent some time later.
@@ -825,6 +817,22 @@ namespace libtorrent {
 		settings_pack get_settings() const;
 
 #if TORRENT_ABI_VERSION == 1
+
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+		// deprecated in libtorrent 1.1. use settings_pack instead
+		TORRENT_DEPRECATED
+		void set_pe_settings(pe_settings const& settings);
+		TORRENT_DEPRECATED
+		pe_settings get_pe_settings() const;
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistent
 		// connection to it. The only used fields in the proxy settings structs
 		// are ``hostname`` and ``port``.
