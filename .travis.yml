@@ -6,6 +6,12 @@ matrix:
   include:
     - if: repo = arvidn/libtorrent
       env: variant=release sonar_scan=1 toolset=gcc check_headers=1
+    - env: variant=test_debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
+      os: osx
+      osx_image: xcode11.2
+    - env: variant=test_debug crypto=openssl docs=1 python=1 toolset=darwin ios=1
+      os: osx
+      osx_image: xcode11.2
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
         apt:
@@ -18,9 +24,6 @@ matrix:
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - env: cmake=1 toolset=gcc
-    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 python=1 toolset=darwin ios=1
-      os: osx
-      osx_image: xcode11.2
     - env: arch=arm toolset=gcc-arm
 
 notifications:
@@ -70,6 +73,7 @@ before_install:
       export B2=bjam;
     else
       export B2=b2;
+      sysctl hw.ncpu;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
@@ -203,13 +207,13 @@ script:
       python3 -m flake8 --max-line-length=120;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j3 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
+       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
   - 'if [[ $clang_tidy == "1" ]]; then
        which clang-tidy;
        clang-tidy --version;
-       ${B2} -a -j3 clang_tidy;
+       ${B2} -a -j2 clang_tidy;
     fi'
 
   # the common boost-build command line arguments. It's important they are all
@@ -221,18 +225,18 @@ script:
     fi'
 
   - 'if [ "$check_headers" == "1" ]; then
-      ${B2} -j3 check-headers ${B2_ARGS};
+      ${B2} -j2 check-headers ${B2_ARGS};
     fi'
 
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$tests" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} testing.execute=off &&
+      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} testing.execute=off &&
       travis_retry ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} -l300 &&
-      travis_retry ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} test_natpmp enum_if -l300 &&
+      travis_retry ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-        travis_retry ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} test_lsd -l300;
+        travis_retry ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
@@ -243,18 +247,18 @@ script:
   # rebuilding libtorrent itself.
   - cd ../fuzzers
   - 'if [ "$fuzzers" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
+      ${B2} -j2 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
     fi'
 
   - cd ../examples
   - 'if [ "$examples" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} link=shared;
+      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$tools" == "1" ]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} link=shared;
+      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} link=shared;
     fi'
   - cd ..
 
@@ -266,7 +270,7 @@ script:
 # on OSX we need to use the brew version of python, for reasons explained above
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      ${B2} -j3 warnings-as-errors=on warnings=all ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
       else
@@ -288,7 +292,7 @@ script:
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
-      cmake --build . --parallel 3;
+      cmake --build . --parallel 2;
     fi
   - cd ..
 
