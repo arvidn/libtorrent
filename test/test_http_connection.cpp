@@ -221,7 +221,12 @@ void run_suite(std::string const& protocol
 		, static_cast<void*>(h), h_errno);
 	if (h == nullptr && h_errno == HOST_NOT_FOUND)
 	{
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
+		// if we have a proxy, we'll be able to connect to it, we will just get an
+		// error from the proxy saying it failed to connect to the final target
+		if (protocol == "http" && (ps.type == settings_pack::http || ps.type == settings_pack::http_pw))
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 1, err(), ps);
+		else
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}
 	if (ps.type != settings_pack::none)
 		stop_proxy(ps.port);
@@ -234,7 +239,14 @@ void run_suite(std::string const& protocol
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
 TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
+TORRENT_TEST(socks5_proxy_ssl) { run_suite("https", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw_proxy_ssl) { run_suite("https", settings_pack::socks5_pw); }
 #endif // USE_OPENSSL
+
+TORRENT_TEST(http_proxy) { run_suite("http", settings_pack::http); }
+TORRENT_TEST(http__pwproxy) { run_suite("http", settings_pack::http_pw); }
+TORRENT_TEST(socks5_proxy) { run_suite("http", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw_proxy) { run_suite("http", settings_pack::socks5_pw); }
 
 TORRENT_TEST(no_keepalive)
 {

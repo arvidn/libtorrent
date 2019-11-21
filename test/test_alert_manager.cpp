@@ -216,6 +216,7 @@ TORRENT_TEST(extensions)
 #endif
 }
 
+/*
 namespace {
 
 void post_torrent_added(alert_manager* mgr)
@@ -225,6 +226,8 @@ void post_torrent_added(alert_manager* mgr)
 }
 
 } // anonymous namespace
+
+// this test is too flaky
 
 TORRENT_TEST(wait_for_alert)
 {
@@ -266,6 +269,7 @@ TORRENT_TEST(wait_for_alert)
 
 	posting_thread.join();
 }
+*/
 
 TORRENT_TEST(alert_mask)
 {
