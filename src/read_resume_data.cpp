@@ -115,6 +115,12 @@ namespace {
 				{
 					ec = err;
 				}
+				else
+				{
+					ret.ti->internal_set_creation_date(rd.dict_find_int_value("creation date", 0));
+					ret.ti->internal_set_creator(rd.dict_find_string_value("created by", ""));
+					ret.ti->internal_set_comment(rd.dict_find_string_value("comment", ""));
+				}
 			}
 		}
 

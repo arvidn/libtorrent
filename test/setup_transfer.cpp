@@ -84,6 +84,8 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	fs.add_file("test_resume/tmp3", 128 * 1024);
 	lt::create_torrent t(fs, 128 * 1024, 6);
 
+	t.set_comment("test comment");
+	t.set_creator("libtorrent test");
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");
 

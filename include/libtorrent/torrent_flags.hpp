@@ -183,12 +183,22 @@ namespace torrent_flags {
 	// object override any trackers from the torrent file. If the flag is
 	// not set, the trackers from the add_torrent_params object will be
 	// added to the list of trackers used by the torrent.
+	// This flag is set by read_resume_data() if there are trackers present in
+	// the resume data file. This effectively makes the trackers saved in the
+	// resume data take presedence over the original trackers. This includes if
+	// there's an empty list of trackers, to support the case where they were
+	// explicitly removed in the previous session.
 	constexpr torrent_flags_t override_trackers = 11_bit;
 
 	// If this flag is set, the web seeds from the add_torrent_params
 	// object will override any web seeds in the torrent file. If it's not
 	// set, web seeds in the add_torrent_params object will be added to the
 	// list of web seeds used by the torrent.
+	// This flag is set by read_resume_data() if there are web seeds present in
+	// the resume data file. This effectively makes the web seeds saved in the
+	// resume data take presedence over the original ones. This includes if
+	// there's an empty list of web seeds, to support the case where they were
+	// explicitly removed in the previous session.
 	constexpr torrent_flags_t override_web_seeds = 12_bit;
 
 	// if this flag is set (which it is by default) the torrent will be

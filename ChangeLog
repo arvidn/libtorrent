@@ -1,3 +1,4 @@
+	* fixed restoring of trackers, comment, creation date and created-by in resume data
 	* fix handling of torrents with too large pieces
 	* fixed division by zero in anti-leech choker
 	* fixed bug in torrent_info::swap
