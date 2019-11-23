@@ -469,7 +469,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-padded
 		-Wno-global-constructors
 		-Wno-exit-time-destructors
-		-Wno-weak-vtables)
+		-Wno-weak-vtables
+		-Wno-return-std-move-in-c++11
+		-Wno-unknown-warning-option)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
 		-Wall
