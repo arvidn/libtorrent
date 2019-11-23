@@ -184,8 +184,6 @@ install:
       cd ..;
     fi'
 
-  - which python2
-
   - if [[ "$cmake" == "1" ]]; then
       which cmake;
       cmake --version;
