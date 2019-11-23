@@ -566,6 +566,11 @@ namespace libtorrent {
 			, piece_index_t piece);
 		std::map<int, sha1_hash> build_merkle_list(piece_index_t piece) const;
 
+		// internal
+		void internal_set_creator(string_view const);
+		void internal_set_creation_date(std::time_t);
+		void internal_set_comment(string_view const);
+
 		// returns whether or not this is a merkle torrent.
 		// see `BEP 30`__.
 		//

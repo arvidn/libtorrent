@@ -287,3 +287,10 @@ TORRENT_TEST(round_trip_unfinished)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_trackers)
+{
+	add_torrent_params atp;
+	atp.flags |= torrent_flags::override_trackers;
+	test_roundtrip(atp);
+}
+

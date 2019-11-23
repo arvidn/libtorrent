@@ -6211,16 +6211,13 @@ bool is_downloading_state(int const st)
 		}
 
 		// save web seeds
-		if (!m_web_seeds.empty())
+		for (auto const& ws : m_web_seeds)
 		{
-			for (auto const& ws : m_web_seeds)
-			{
-				if (ws.removed || ws.ephemeral) continue;
-				if (ws.type == web_seed_entry::url_seed)
-					ret.url_seeds.push_back(ws.url);
-				else if (ws.type == web_seed_entry::http_seed)
-					ret.http_seeds.push_back(ws.url);
-			}
+			if (ws.removed || ws.ephemeral) continue;
+			if (ws.type == web_seed_entry::url_seed)
+				ret.url_seeds.push_back(ws.url);
+			else if (ws.type == web_seed_entry::http_seed)
+				ret.http_seeds.push_back(ws.url);
 		}
 
 		// write have bitmask

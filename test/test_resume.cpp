@@ -276,6 +276,143 @@ TORRENT_TEST(piece_priorities)
 	test_piece_priorities();
 }
 
+TORRENT_TEST(test_non_metadata)
+{
+	lt::session ses(settings());
+	// this test torrent contain a tracker:
+	// http://torrent_file_tracker.com/announce
+
+	// and a URL seed:
+	// http://torrent_file_url_seed.com
+
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.replace_trackers(std::vector<lt::announce_entry>{announce_entry{"http://torrent_file_tracker2.com/announce"}});
+	h.remove_url_seed("http://torrent_file_url_seed.com/");
+	h.add_url_seed("http://torrent.com/");
+
+	TEST_EQUAL(ti->comment(), "test comment");
+	TEST_EQUAL(ti->creator(), "libtorrent test");
+	auto const creation_date = ti->creation_date();
+
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& atp = ra->params;
+		TEST_CHECK(atp.trackers == std::vector<std::string>{"http://torrent_file_tracker2.com/announce"});
+		TEST_CHECK(atp.url_seeds == std::vector<std::string>{"http://torrent.com/"});
+		TEST_CHECK(atp.ti);
+		TEST_EQUAL(atp.ti->comment(), "test comment");
+		TEST_EQUAL(atp.ti->creator(), "libtorrent test");
+		TEST_EQUAL(atp.ti->creation_date(), creation_date);
+
+		std::vector<char> resume_data = write_resume_data_buf(atp);
+		p = read_resume_data(resume_data);
+		p.ti = ti;
+		p.save_path = ".";
+	}
+
+	ses.remove_torrent(h);
+
+	// now, make sure the fields are restored correctly
+	h = ses.add_torrent(p);
+
+	TEST_EQUAL(h.trackers().size(), 1);
+	TEST_CHECK(h.trackers().at(0).url == "http://torrent_file_tracker2.com/announce");
+	TEST_CHECK(h.url_seeds() == std::set<std::string>{"http://torrent.com/"});
+	auto t = h.status().torrent_file.lock();
+	TEST_EQUAL(ti->comment(), "test comment");
+	TEST_EQUAL(ti->creator(), "libtorrent test");
+	TEST_EQUAL(ti->creation_date(), creation_date);
+}
+
+TORRENT_TEST(test_remove_trackers)
+{
+	lt::session ses(settings());
+	// this test torrent contain a tracker:
+	// http://torrent_file_tracker.com/announce
+
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.replace_trackers(std::vector<lt::announce_entry>{});
+
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& atp = ra->params;
+		TEST_EQUAL(atp.trackers.size(), 0);
+
+		std::vector<char> resume_data = write_resume_data_buf(atp);
+		p = read_resume_data(resume_data);
+		p.ti = ti;
+		p.save_path = ".";
+	}
+
+	ses.remove_torrent(h);
+
+	// now, make sure the fields are restored correctly
+	h = ses.add_torrent(p);
+
+	TEST_EQUAL(h.trackers().size(), 0);
+}
+
+TORRENT_TEST(test_remove_web_seed)
+{
+	lt::session ses(settings());
+	// this test torrent contain a URL seed:
+	// http://torrent_file_url_seed.com
+
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.remove_url_seed("http://torrent_file_url_seed.com/");
+
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& atp = ra->params;
+		TEST_CHECK(atp.url_seeds.size() == 0);
+
+		std::vector<char> resume_data = write_resume_data_buf(atp);
+		p = read_resume_data(resume_data);
+		p.ti = ti;
+		p.save_path = ".";
+	}
+
+	ses.remove_torrent(h);
+
+	// now, make sure the fields are restored correctly
+	h = ses.add_torrent(p);
+
+	TEST_EQUAL(h.url_seeds().size(), 0);
+}
+
 TORRENT_TEST(piece_slots)
 {
 	// make sure the "pieces" field is correctly accepted from resume data
