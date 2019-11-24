@@ -34,23 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/version.hpp"
 
-#if LIBTORRENT_VERSION_NUM < 10200
-#include <boost/bind.hpp>
-namespace pl = boost::placeholders;
-#endif
-
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	using namespace std::placeholders;
 
 	lt::parse_state s;
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::xml_parse({reinterpret_cast<char const*>(data), size}
 		, std::bind(&lt::find_control_url, _1, _2, std::ref(s)));
-#else
-	lt::xml_parse(reinterpret_cast<char const*>(data), reinterpret_cast<char const*>(data) + size
-		, boost::bind(&lt::find_control_url, pl::_1, pl::_2, pl::_3, std::ref(s)));
-#endif
 	return 0;
 }
 

@@ -36,19 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include <cstdint>
 
-#if LIBTORRENT_VERSION_NUM < 10200
-#include <string>
-#endif
-
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size)
 {
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::error_code ec;
 	lt::wchar_utf8(std::wstring{reinterpret_cast<wchar_t const*>(data), size / sizeof(wchar_t)}, ec);
-#else
-	std::string out;
-	lt::wchar_utf8(std::wstring{reinterpret_cast<wchar_t const*>(data), size / sizeof(wchar_t)}, out);
-#endif
 	return 0;
 }
 

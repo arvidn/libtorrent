@@ -41,87 +41,48 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-#if LIBTORRENT_VERSION_NUM >= 10200
 aux::session_settings sett;
 dht::dht_state state;
 std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(sett));
-#else
-dht_settings sett;
-entry state;
-#endif
 
 counters cnt;
 
 struct obs : dht::dht_observer
 {
-#if LIBTORRENT_VERSION_NUM >= 10200
 	void set_external_address(lt::aux::listen_socket_handle const&, lt::address const& /* addr */
 		, lt::address const&) override
 	{}
 	int get_listen_port(aux::transport ssl, aux::listen_socket_handle const& s) override
 	{ return 6881; }
-#else
-	void set_external_address(address const& addr
-		, address const& source) override {}
-#endif
 
 	void get_peers(lt::sha1_hash const&) override {}
 	void outgoing_get_peers(sha1_hash const&
 		, sha1_hash const&, lt::udp::endpoint const&) override {}
 	void announce(sha1_hash const&, lt::address const&, int) override {}
-#if LIBTORRENT_VERSION_NUM >= 10200
 	bool on_dht_request(string_view
 		, dht::msg const&, entry&) override
 	{ return false; }
-#else
-	bool on_dht_request(char const* query, int query_len
-			, dht::msg const& request, entry& response) override { return false; }
-	address external_address() override { return address(); }
-#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 
 	void log(dht_logger::module_t, char const*, ...) override {}
 
-#if LIBTORRENT_VERSION_NUM < 10200
-
-	void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) override {}
-
-#else
-
 	bool should_log(module_t) const override { return true; }
 	void log_packet(message_direction_t
 		, span<char const>
 		, lt::udp::endpoint const&) override {}
-#endif // LIBTORRENT_VERSION_NUM
 #endif // TORRENT_DISABLE_LOGGING
 };
 
 obs o;
-#if LIBTORRENT_VERSION_NUM >= 10300
 io_context ios;
-#else
-io_service ios;
-#endif
-#if LIBTORRENT_VERSION_NUM < 10200
-rate_limited_udp_socket sock(ios);
-#endif
 dht::dht_tracker dht_node(&o
-#if LIBTORRENT_VERSION_NUM >= 10200
 	, ios
 	, [](aux::listen_socket_handle const&, udp::endpoint const&
 		, span<char const>, error_code&, udp_send_flags_t) {}
-#else
-	, sock
-#endif
 	, sett
 	, cnt
-#if LIBTORRENT_VERSION_NUM >= 10200
 	, *dht_storage
-#else
-	, dht::dht_default_storage_constructor
-#endif
 	, std::move(state));
 auto listen_socket = std::make_shared<aux::listen_socket_t>();
 aux::listen_socket_handle s(listen_socket);

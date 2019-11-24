@@ -37,9 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 {
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::parse_utf8_codepoint({reinterpret_cast<char const*>(data), size});
-#endif
 	return 0;
 }
 

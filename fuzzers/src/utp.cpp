@@ -39,15 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-#if LIBTORRENT_VERSION_NUM >= 10300
 io_context ios;
-#else
-io_service ios;
-#endif
 lt::aux::session_settings sett;
 counters cnt;
 
-#if LIBTORRENT_VERSION_NUM >= 10200
 aux::utp_socket_manager man(
 	[](std::weak_ptr<aux::utp_socket_interface>, udp::endpoint const&, span<char const>, error_code&, udp_send_flags_t){}
 	, [](aux::socket_type){}
@@ -55,36 +50,18 @@ aux::utp_socket_manager man(
 	, sett
 	, cnt
 	, nullptr);
-#else
-udp_socket sock(ios);
-aux::utp_socket_manager man(
-	sett
-	, sock
-	, cnt
-	, nullptr
-	, [](boost::shared_ptr<socket_type> const&){}
-	);
-#endif
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	aux::utp_socket_impl* sock = nullptr;
 	{
 		aux::utp_stream str(ios);
-#if LIBTORRENT_VERSION_NUM >= 10200
 		sock = construct_utp_impl(1, 0, &str, man);
-#else
-		sock = construct_utp_impl(1, 0, &str, &man);
-#endif
 		str.set_impl(sock);
 		udp::endpoint ep;
 		time_point ts(seconds(100));
-#if LIBTORRENT_VERSION_NUM >= 10200
 		span<char const> buf(reinterpret_cast<char const*>(data), size);
 		utp_incoming_packet(sock, buf, ep, ts);
-#else
-		utp_incoming_packet(sock, reinterpret_cast<char const*>(data), size, ep, ts);
-#endif
 
 		// clear any deferred acks
 		man.socket_drained();

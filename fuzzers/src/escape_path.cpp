@@ -35,11 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::escape_path({reinterpret_cast<char const*>(data), size});
-#else
-	lt::escape_path(reinterpret_cast<char const*>(data), size);
-#endif
 	return 0;
 }
 

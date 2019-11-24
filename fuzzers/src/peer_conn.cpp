@@ -40,22 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 
 
-#if LIBTORRENT_VERSION_NUM >= 10300
 #include "libtorrent/io_context.hpp"
-#else
-#include "libtorrent/io_service.hpp"
-#endif
 
 using namespace lt;
 
 std::unique_ptr<session> g_ses;
 info_hash_t g_info_hash;
 int g_listen_port = 0;
-#if LIBTORRENT_VERSION_NUM >= 10300
 io_context g_ios;
-#else
-io_service g_ios;
-#endif
 
 //#define DEBUG_LOGGING 1
 

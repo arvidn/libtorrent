@@ -36,11 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	lt::error_code ec;
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::torrent_info ti({reinterpret_cast<char const*>(data), int(size)}, ec, lt::from_span);
-#else
-	lt::torrent_info ti(reinterpret_cast<char const*>(data), size, ec);
-#endif
 	return 0;
 }
 
