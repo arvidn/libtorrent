@@ -4,47 +4,48 @@ dist: xenial
 matrix:
   fast_finish: true
   include:
-    - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc check_headers=1
-    - env: variant=test_debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
-      os: osx
-      osx_image: xcode11.2
-    - env: variant=test_debug crypto=openssl docs=1 python=1 toolset=darwin ios=1
-      os: osx
-      osx_image: xcode11.2
-    - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
-      addons:
-        apt:
-          sources:
-          - ubuntu-toolchain-r-test
-          packages:
-          - python3-pip
-          - g++-6
-    - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
-    - env: variant=test_debug tests=1 mmap=off toolset=gcc
-    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
-    - env: dist=1 toolset=gcc install_boost=1
-      addons:
-        apt:
-          sources:
-          - ubuntu-toolchain-r-test
-          packages:
-          - python-docutils
-          - python-pygments
-          - python-pil
-          - python-aafigure
-          - graphviz
-          - g++-6
-    - env: cmake=1 toolset=gcc install_boost=1
-      addons:
-        apt:
-          sources:
-          - ubuntu-toolchain-r-test
-          packages:
-          - ninja-build
-          - g++-6
-    - env: arch=arm toolset=gcc-arm
+#    - if: repo = arvidn/libtorrent
+#      env: variant=release sonar_scan=1 toolset=gcc check_headers=1
+#    - env: variant=test_debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
+#      os: osx
+#      osx_image: xcode11.2
+#    - env: variant=test_debug crypto=openssl docs=1 python=1 toolset=darwin ios=1
+#      os: osx
+#      osx_image: xcode11.2
+#    - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
+#      addons:
+#        apt:
+#          sources:
+#          - ubuntu-toolchain-r-test
+#          packages:
+#          - python3-pip
+#          - g++-6
+#    - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
+#    - env: variant=test_debug tests=1 mmap=off toolset=gcc
+#    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
+    - env: variant=test_debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
+#    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
+#    - env: dist=1 toolset=gcc install_boost=1
+#      addons:
+#        apt:
+#          sources:
+#          - ubuntu-toolchain-r-test
+#          packages:
+#          - python-docutils
+#          - python-pygments
+#          - python-pil
+#          - python-aafigure
+#          - graphviz
+#          - g++-6
+#    - env: cmake=1 toolset=gcc install_boost=1
+#      addons:
+#        apt:
+#          sources:
+#          - ubuntu-toolchain-r-test
+#          packages:
+#          - ninja-build
+#          - g++-6
+#    - env: arch=arm toolset=gcc-arm
 
 notifications:
   email: false
@@ -55,9 +56,9 @@ git:
 
 branches:
   only:
-    - master
-    - RC_1_2
-    - RC_1_1
+    - wolfssl-openssl
+    #- RC_1_2
+    #- RC_1_1
 
 cache:
   directories:
@@ -82,10 +83,10 @@ before_install:
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     cd ..;
-    wget --quiet https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip;
-    unzip -qq boost_1_68_0.zip;
-    export BOOST_ROOT=$PWD/boost_1_68_0;
-    cd boost_1_68_0/;
+    wget --quiet https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.zip;
+    unzip -qq boost_1_71_0.zip;
+    export BOOST_ROOT=$PWD/boost_1_71_0;
+    cd boost_1_71_0/;
     ./bootstrap.sh;
     export PATH=$BOOST_ROOT:$PATH;
     fi'
@@ -103,7 +104,7 @@ before_install:
       brew link --overwrite python@2;
     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-      export B2=bjam;
+      export B2=b2;
     else
       export B2=b2;
       sysctl hw.ncpu;
@@ -218,6 +219,14 @@ install:
   - if [[ "$cmake" == "1" ]]; then
       which cmake;
       cmake --version;
+    fi
+
+  - if [[ "$crypto" == "wolfssl" ]]; then
+      wget --quiet -O wolfssl-4.2.0-stable.zip https://github.com/wolfSSL/wolfssl/archive/v4.2.0-stable.zip;
+      unzip wolfssl-4.2.0-stable.zip;
+      cd wolfssl-4.2.0-stable;
+      ./autogen.sh && ./configure --enable-asio && make && sudo make install;
+      cd ..;
     fi
 
 script:

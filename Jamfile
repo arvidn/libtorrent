@@ -83,6 +83,10 @@ rule linking ( properties * )
 	{
 		result += <library>crypto ;
 	}
+	else if <crypto>wolfssl in $(properties)
+	{
+		result += <library>wolfssl ;
+	}
 
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
@@ -396,6 +400,41 @@ rule openssl-include-path ( properties * )
 	return $(result) ;
 }
 
+# the search path to pick up the wolfssl libraries from. This is the <search>
+# property of those libraries
+rule wolfssl-lib-path ( properties * )
+{
+	local WOLFSSL_LIB = [ feature.get-values <wolfssl-lib> : $(properties) ] ;
+
+	if <target-os>linux in $(properties) && $(WOLFSSL_LIB) = ""
+	{
+		# on linux, default ./configure install path
+		WOLFSSL_LIB = /usr/local/lib ;
+	}
+
+	local result ;
+	result += <search>$(WOLFSSL_LIB) ;
+	return $(result) ;
+}
+
+# the include path to pick up wolfssl headers from. This is the
+# usage-requirement for the wolfssl-related libraries
+rule wolfssl-include-path ( properties * )
+{
+	local WOLFSSL_INCLUDE = [ feature.get-values <wolfssl-include> : $(properties) ] ;
+
+	if <target-os>linux in $(properties) && $(WOLFSSL_INCLUDE) = ""
+	{
+		# on linux, default ./configure install path
+		WOLFSSL_INCLUDE = /usr/local/include ;
+	}
+
+	local result ;
+	result += <include>$(WOLFSSL_INCLUDE) ;
+	result += <include>$(WOLFSSL_INCLUDE)/wolfssl ;
+	return $(result) ;
+}
+
 path-constant blacklist-file : tools/sanitizer-blacklist.txt ;
 
 rule sanitizer-options ( properties * )
@@ -447,6 +486,9 @@ rule sanitizer-options ( properties * )
 
 feature openssl-lib : : free path ;
 feature openssl-include : : free path ;
+
+feature wolfssl-lib : : free path ;
+feature wolfssl-include : : free path ;
 
 feature sanitize : off rtc on : composite propagated link-incompatible ;
 
@@ -511,10 +553,20 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl libcrypto gcrypt : composite propagated ;
+feature crypto : built-in openssl libcrypto gcrypt wolfssl : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_LIBCRYPTO <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
+feature.compose <crypto>wolfssl
+	: <define>TORRENT_USE_WOLFSSL
+	<define>TORRENT_USE_LIBCRYPTO
+	<define>TORRENT_USE_OPENSSL
+	<define>OPENSSL_NO_SSL2
+	<define>BOOST_ASIO_USE_WOLFSSL
+	<define>OPENSSL_ALL
+	<define>WOLFSSL_SHA512
+	<define>WC_NO_HARDEN
+	;
 
 feature openssl-version : 1.1 pre1.1 : composite propagated ;
 
@@ -601,6 +653,9 @@ lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : :
 lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : :
 	<conditional>@openssl-include-path ;
 
+lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
+	<conditional>@wolfssl-include-path ;
+
 lib dbghelp : : <name>dbghelp ;
 
 # required for networking on beos
@@ -610,7 +665,7 @@ lib gcc : : <name>gcc <link>static ;
 # when using iconv
 lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
-# openssl on linux/bsd etc.
+# gcrypt on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 

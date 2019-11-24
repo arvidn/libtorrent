@@ -60,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <openssl/ssl.h>
-#include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
 namespace libtorrent { namespace aux {
