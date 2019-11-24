@@ -36,11 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	std::string out;
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::aux::sanitize_append_path_element(out, {reinterpret_cast<char const*>(data), size});
-#else
-	lt::aux::sanitize_append_path_element(out, reinterpret_cast<char const*>(data), size);
-#endif
 	return 0;
 }
 

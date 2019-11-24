@@ -37,12 +37,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	lt::http_parser p;
 	bool error;
-#if LIBTORRENT_VERSION_NUM >= 10200
 	p.incoming({reinterpret_cast<char const*>(data), int(size)}, error);
-#else
-	p.incoming({reinterpret_cast<char const*>(data)
-		, reinterpret_cast<char const*>(data) + size}, error);
-#endif
 	return 0;
 }
 

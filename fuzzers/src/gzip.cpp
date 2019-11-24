@@ -37,13 +37,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	lt::error_code ec;
 	std::vector<char> out;
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::inflate_gzip({reinterpret_cast<char const*>(data), int(size)}, out
 		, 100000, ec);
-#else
-	lt::inflate_gzip(reinterpret_cast<char const*>(data), size, out
-		, 100000, ec);
-#endif
 	return 0;
 }
 

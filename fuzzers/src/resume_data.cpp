@@ -32,17 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 #include "libtorrent/version.hpp"
-#if LIBTORRENT_VERSION_NUM >= 10200
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#endif
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-#if LIBTORRENT_VERSION_NUM >= 10200
 	lt::error_code ec;
 	auto ret = lt::read_resume_data({reinterpret_cast<char const*>(data), int(size)}, ec);
-#endif
 	return 0;
 }
 
