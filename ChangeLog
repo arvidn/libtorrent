@@ -1,5 +1,6 @@
 2.0 release
 
+	* added support for wolfSSL
 	* added support for BitTorrent v2 (see docs/upgrade_to_2.0.html)
 	* create_torrent() pad_file_limit parameter removed
 	* create_torrent() merkle- and optimize-alignment flags removed
