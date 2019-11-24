@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // when using wolfcrypt, we need to enable the SHA-512 hasher
 #define WOLFSSL_SHA512 1
 
+#define WC_NO_HARDEN
 #include <wolfssl/wolfcrypt/sha512.h>
 
 #else

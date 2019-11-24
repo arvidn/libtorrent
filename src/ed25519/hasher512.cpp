@@ -100,7 +100,7 @@ namespace aux {
 			, static_cast<std::size_t>(data.size()));
 #elif defined TORRENT_USE_WOLFCRYPT
 		wc_Sha512Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
-			, static_cast<std::size_t>(data.size()));
+			, static_cast<std::uint32_t>(data.size()));
 #else
 		SHA512_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));

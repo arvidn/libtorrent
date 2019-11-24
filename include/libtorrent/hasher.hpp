@@ -68,6 +68,7 @@ extern "C" {
 
 #elif defined TORRENT_USE_WOLFCRYPT
 
+#define WC_NO_HARDEN
 #include <wolfssl/wolfcrypt/sha.h>
 #include <wolfssl/wolfcrypt/sha256.h>
 

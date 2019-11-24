@@ -116,7 +116,7 @@ TORRENT_CRYPTO_NAMESPACE
 			, static_cast<std::size_t>(data.size()));
 #elif defined TORRENT_USE_WOLFCRYPT
 		wc_ShaUpdate(&m_context, reinterpret_cast<unsigned char const*>(data.data())
-			, static_cast<std::size_t>(data.size()));
+			, static_cast<std::uint32_t>(data.size()));
 #else
 		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -241,7 +241,7 @@ TORRENT_CRYPTO_NAMESPACE
 			, static_cast<std::size_t>(data.size()));
 #elif defined TORRENT_USE_WOLFCRYPT
 		wc_Sha256Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
-			, static_cast<std::size_t>(data.size()));
+			, static_cast<std::uint32_t>(data.size()));
 #else
 		SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));

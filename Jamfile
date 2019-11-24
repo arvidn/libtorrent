@@ -400,6 +400,52 @@ rule openssl-include-path ( properties * )
 	return $(result) ;
 }
 
+# the search path to pick up the wolfssl libraries from. This is the <search>
+# property of those libraries
+rule wolfssl-lib-path ( properties * )
+{
+	local WOLFSSL_LIB = [ feature.get-values <wolfssl-lib> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(WOLFSSL_LIB) = ""
+	{
+		# on macOS, default to pick up wolfssl from the homebrew installation
+		# brew install wolfssl
+		WOLFSSL_LIB = /usr/local/lib ;
+	}
+	else if <target-os>linux in $(properties) && $(OPENSSL_LIB) = ""
+	{
+		# on linux, default ./configure install path
+		WOLFSSL_LIB = /usr/local/lib ;
+    }
+
+	local result ;
+	result += <search>$(WOLFSSL_LIB) ;
+	return $(result) ;
+}
+
+# the include path to pick up wolfssl headers from. This is the
+# usage-requirement for the wolfssl-related libraries
+rule wolfssl-include-path ( properties * )
+{
+	local WOLFSSL_INCLUDE = [ feature.get-values <wolfssl-include> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(WOLFSSL_INCLUDE) = ""
+	{
+		# on macOS, default to pick up wolfssl from the homebrew installation
+		# brew install wolfssl
+		WOLFSSL_INCLUDE = /usr/local/include ;
+	}
+	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
+	{
+		# on linux, default ./configure install path
+		WOLFSSL_INCLUDE = /usr/local/include ;
+	}
+
+	local result ;
+	result += <include>$(WOLFSSL_INCLUDE) ;
+	return $(result) ;
+}
+
 path-constant blacklist-file : tools/sanitizer-blacklist.txt ;
 
 rule sanitizer-options ( properties * )
@@ -606,7 +652,8 @@ lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : :
 lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : :
 	<conditional>@openssl-include-path ;
 
-lib wolfssl : : <name>wolfssl ;
+lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
+	<conditional>@wolfssl-include-path ;
 
 lib dbghelp : : <name>dbghelp ;
 
