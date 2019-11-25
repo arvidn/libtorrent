@@ -143,7 +143,7 @@ namespace {
 	file_open_mode_t to_file_open_mode(open_mode_t const mode)
 	{
 		return ((mode & open_mode::write)
-				? file_open_mode::read_write : file_open_mode::read_write)
+				? file_open_mode::read_write : file_open_mode::read_only)
 			| ((mode & open_mode::no_atime)
 				? file_open_mode::no_atime : file_open_mode::read_only)
 			;
