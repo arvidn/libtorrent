@@ -235,6 +235,7 @@ bool is_downloading_state(int const st)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
 		, m_progress_ppm(0)
+		, m_torrent_initialized(false)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -1626,6 +1627,15 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
+		int const blocks_per_piece
+			= (m_torrent_file->piece_length() + default_block_size - 1) / default_block_size;
+		if (blocks_per_piece > piece_picker::max_blocks_per_piece)
+		{
+			set_error(errors::invalid_piece_size, torrent_status::error_file_none);
+			pause();
+			return;
+		}
+
 		// --- MAPPED FILES ---
 		file_storage const& fs = m_torrent_file->files();
 		if (m_add_torrent_params)
@@ -1710,7 +1720,6 @@ bool is_downloading_state(int const st)
 				TORRENT_ASSERT((pr.start & (block_size() - 1)) == 0);
 
 				int block = block_size();
-				int blocks_per_piece = m_torrent_file->piece_length() / block;
 				piece_block pb(pr.piece, pr.start / block);
 				for (; pr.length >= block; pr.length -= block, ++pb.block_index)
 				{
@@ -1819,6 +1828,8 @@ bool is_downloading_state(int const st)
 
 		// this will remove the piece picker, if we're done with it
 		maybe_done_flushing();
+
+		m_torrent_initialized = true;
 	}
 
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
@@ -6449,16 +6460,13 @@ bool is_downloading_state(int const st)
 		}
 
 		// save web seeds
-		if (!m_web_seeds.empty())
+		for (auto const& ws : m_web_seeds)
 		{
-			for (auto const& ws : m_web_seeds)
-			{
-				if (ws.removed || ws.ephemeral) continue;
-				if (ws.type == web_seed_entry::url_seed)
-					ret.url_seeds.push_back(ws.url);
-				else if (ws.type == web_seed_entry::http_seed)
-					ret.http_seeds.push_back(ws.url);
-			}
+			if (ws.removed || ws.ephemeral) continue;
+			if (ws.type == web_seed_entry::url_seed)
+				ret.url_seeds.push_back(ws.url);
+			else if (ws.type == web_seed_entry::http_seed)
+				ret.http_seeds.push_back(ws.url);
 		}
 
 		// write have bitmask
@@ -8532,7 +8540,7 @@ bool is_downloading_state(int const st)
 		update_state_list();
 
 		// if the error happened during initialization, try again now
-		if (!m_connections_initialized && valid_metadata()) init();
+		if (!m_torrent_initialized && valid_metadata()) init();
 		if (!checking_files && should_check_files())
 			start_checking();
 	}

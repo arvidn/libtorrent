@@ -94,6 +94,12 @@ namespace libtorrent {
 			auto const info = atp.ti->metadata();
 			int const size = atp.ti->metadata_size();
 			ret["info"].preformatted().assign(&info[0], &info[0] + size);
+			if (!atp.ti->comment().empty())
+				ret["comment"] = atp.ti->comment();
+			if (atp.ti->creation_date() != 0)
+				ret["creation date"] = atp.ti->creation_date();
+			if (!atp.ti->creator().empty())
+				ret["created by"] = atp.ti->creator();
 		}
 
 		if (!atp.merkle_trees.empty())
@@ -144,9 +150,9 @@ namespace libtorrent {
 		}
 
 		// save trackers
+		entry::list_type& tr_list = ret["trackers"].list();
 		if (!atp.trackers.empty())
 		{
-			entry::list_type& tr_list = ret["trackers"].list();
 			tr_list.emplace_back(entry::list_type());
 			std::size_t tier = 0;
 			auto tier_it = atp.tracker_tiers.begin();
@@ -163,17 +169,11 @@ namespace libtorrent {
 		}
 
 		// save web seeds
-		if (!atp.url_seeds.empty())
-		{
-			entry::list_type& url_list = ret["url-list"].list();
-			std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
-		}
+		entry::list_type& url_list = ret["url-list"].list();
+		std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 
-		if (!atp.http_seeds.empty())
-		{
-			entry::list_type& url_list = ret["httpseeds"].list();
-			std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(url_list));
-		}
+		entry::list_type& httpseeds_list = ret["httpseeds"].list();
+		std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
 
 		// write have bitmask
 		entry::string_type& pieces = ret["pieces"].string();

@@ -306,6 +306,13 @@ TORRENT_TEST(round_trip_unfinished)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_trackers)
+{
+	add_torrent_params atp;
+	atp.flags |= torrent_flags::override_trackers;
+	test_roundtrip(atp);
+}
+
 TORRENT_TEST(round_trip_info_hash)
 {
 	add_torrent_params atp;
@@ -332,3 +339,4 @@ TORRENT_TEST(round_trip_verified_leaf_hashes)
 		{true, true, false, false}, {false, true, false, true}};
 	test_roundtrip(atp);
 }
+

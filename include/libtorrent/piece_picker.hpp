@@ -100,7 +100,11 @@ namespace libtorrent {
 			// the number of priority levels
 			priority_levels = 8,
 			// priority factor
-			prio_factor = 3
+			prio_factor = 3,
+			// max blocks per piece
+			// there are counters in downloading_piece that only have 15 bits to
+			// count blocks per piece, that's restricting this
+			max_blocks_per_piece = (1 << 15) - 1
 		};
 
 		struct block_info

@@ -1643,6 +1643,15 @@ namespace {
 		return true;
 	}
 
+	void torrent_info::internal_set_creator(string_view const c)
+	{ m_created_by = std::string(c); }
+
+	void torrent_info::internal_set_creation_date(std::time_t const t)
+	{ m_creation_date = t; }
+
+	void torrent_info::internal_set_comment(string_view const s)
+	{ m_comment = std::string(s); }
+
 	bdecode_node torrent_info::info(char const* key) const
 	{
 		if (m_info_dict.type() == bdecode_node::none_t)

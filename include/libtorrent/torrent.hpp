@@ -1699,6 +1699,11 @@ namespace libtorrent {
 		// millionths of completeness)
 		std::uint32_t m_progress_ppm:20;
 
+		// set to true once init() completes successfully. This is important to
+		// track in case it fails and need to be retried if the client clears
+		// the torrent error
+		bool m_torrent_initialized:1;
+
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once
 		bool m_was_started = false;

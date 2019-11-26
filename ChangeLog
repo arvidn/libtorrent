@@ -15,6 +15,8 @@
 	* update networking API to networking TS compatible boost.asio
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 
+	* fixed restoring of trackers, comment, creation date and created-by in resume data
+	* fix handling of torrents with too large pieces
 	* fixed division by zero in anti-leech choker
 	* fixed bug in torrent_info::swap
 
