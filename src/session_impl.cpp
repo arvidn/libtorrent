@@ -4004,6 +4004,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
+		// if we unchoke everyone, skip this logic
+		if (settings().get_int(settings_pack::unchoke_slots_limit) < 0) return;
+
 		std::vector<opt_unchoke_candidate> opt_unchoke;
 
 		// collect the currently optimistically unchoked peers here, so we can
@@ -4268,6 +4271,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		time_point const now = aux::time_now();
 		time_duration const unchoke_interval = now - m_last_choke;
 		m_last_choke = now;
+
+		// if we unchoke everyone, skip this logic
+		if (settings().get_int(settings_pack::unchoke_slots_limit) < 0)
+		{
+			m_stats_counters.set_value(counters::num_unchoke_slots, std::numeric_limits<int>::max());
+			return;
+		}
 
 		// build list of all peers that are
 		// unchokable.
@@ -6249,6 +6259,25 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
 					, performance_alert::too_many_optimistic_unchoke_slots);
+		}
+
+		if (allowed_upload_slots == std::numeric_limits<int>::max())
+		{
+			// this means we're not aplpying upload slot limits, unchoke
+			// everyone
+			for (auto const& p : m_connections)
+			{
+				if (p->is_disconnecting() || p->is_connecting())
+					continue;
+
+				auto const t = p->associated_torrent().lock();
+				t->unchoke_peer(*p);
+			}
+		}
+		else
+		{
+			// trigger recalculating unchoke slots
+			m_unchoke_time_scaler = 0;
 		}
 	}
 

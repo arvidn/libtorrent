@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/portmap.hpp" // for portmap_transport
 #include "libtorrent/tracker_manager.hpp" // for event_t
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/deprecated.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>
@@ -221,6 +222,17 @@ TORRENT_VERSION_NAMESPACE_2
 	TORRENT_DEFINE_ALERT_IMPL(name, seq, prio)
 
 #if TORRENT_ABI_VERSION == 1
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
 	// from its base class.
@@ -236,6 +248,14 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
 	};
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif
 
 	// The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
@@ -1827,6 +1847,17 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 #if TORRENT_ABI_VERSION == 1
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// This alert is posted when a bittorrent feature is blocked because of the
 	// anonymous mode. For instance, if the tracker proxy is not set up, no
 	// trackers will be used, because trackers can only be used through proxies
@@ -1854,6 +1885,14 @@ TORRENT_VERSION_NAMESPACE_2
 		int kind;
 		std::string str;
 	};
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif // TORRENT_ABI_VERSION
 
 	// This alert is generated when we receive a local service discovery message

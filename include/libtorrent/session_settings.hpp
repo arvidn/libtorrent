@@ -45,7 +45,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	using dht_settings = dht::dht_settings;
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 	using aux::proxy_settings;
 

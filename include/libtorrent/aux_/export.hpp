@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/deprecated.hpp"
+
 #if !defined TORRENT_ABI_VERSION
 # ifdef TORRENT_NO_DEPRECATE
 #  define TORRENT_ABI_VERSION 3
@@ -124,9 +126,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // only export this type if deprecated functions are enabled
 #if TORRENT_ABI_VERSION >= 2
-# define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
+# define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT TORRENT_DEPRECATED
 #else
-# define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
+# define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT TORRENT_DEPRECATED
 #endif
 
 #endif

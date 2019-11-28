@@ -59,6 +59,10 @@ namespace libtorrent {
 	// information about a file in a file_storage
 	struct TORRENT_DEPRECATED_EXPORT file_entry
 	{
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		// hidden
 		file_entry();
 		// hidden
@@ -67,6 +71,10 @@ namespace libtorrent {
 		file_entry& operator=(file_entry const&) & = default;
 		file_entry(file_entry&&) noexcept = default;
 		file_entry& operator=(file_entry&&) & = default;
+
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.
@@ -319,6 +327,14 @@ namespace aux {
 		void rename_file(file_index_t index, std::string const& new_filename);
 
 #if TORRENT_ABI_VERSION == 1
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif
 		TORRENT_DEPRECATED
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
@@ -340,30 +356,7 @@ namespace aux {
 		void set_name(std::wstring const& n);
 
 		void rename_file_deprecated(file_index_t index, std::wstring const& new_filename);
-#endif // TORRENT_ABI_VERSION
 
-		// returns a list of file_slice objects representing the portions of
-		// files the specified piece index, byte offset and size range overlaps.
-		// this is the inverse mapping of map_file().
-		//
-		// Preconditions of this function is that the input range is within the
-		// torrents address space. ``piece`` may not be negative and
-		//
-		// 	``piece`` * piece_size + ``offset`` + ``size``
-		//
-		// may not exceed the total size of the torrent.
-		std::vector<file_slice> map_block(piece_index_t piece, std::int64_t offset
-			, int size) const;
-
-		// returns a peer_request representing the piece index, byte offset
-		// and size the specified file range overlaps. This is the inverse
-		// mapping over map_block(). Note that the ``peer_request`` return type
-		// is meant to hold bittorrent block requests, which may not be larger
-		// than 16 kiB. Mapping a range larger than that may return an overflown
-		// integer.
-		peer_request map_file(file_index_t file, std::int64_t offset, int size) const;
-
-#if TORRENT_ABI_VERSION == 1
 		// all functions depending on aux::file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead
@@ -396,7 +389,35 @@ namespace aux {
 		reverse_iterator rend_deprecated() const { return m_files.rend(); }
 		iterator file_at_offset_deprecated(std::int64_t offset) const;
 		file_entry at_deprecated(int index) const;
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif // TORRENT_ABI_VERSION
+
+		// returns a list of file_slice objects representing the portions of
+		// files the specified piece index, byte offset and size range overlaps.
+		// this is the inverse mapping of map_file().
+		//
+		// Preconditions of this function is that the input range is within the
+		// torrents address space. ``piece`` may not be negative and
+		//
+		// 	``piece`` * piece_size + ``offset`` + ``size``
+		//
+		// may not exceed the total size of the torrent.
+		std::vector<file_slice> map_block(piece_index_t piece, std::int64_t offset
+			, int size) const;
+
+		// returns a peer_request representing the piece index, byte offset
+		// and size the specified file range overlaps. This is the inverse
+		// mapping over map_block(). Note that the ``peer_request`` return type
+		// is meant to hold bittorrent block requests, which may not be larger
+		// than 16 kiB. Mapping a range larger than that may return an overflown
+		// integer.
+		peer_request map_file(file_index_t file, std::int64_t offset, int size) const;
 
 		// returns the number of files in the file_storage
 		int num_files() const noexcept;

@@ -207,6 +207,7 @@ set(libtorrent_aux_include_files
 	cppint_import_export
 	cpuid
 	deferred_handler
+	deprecated
 	deque
 	dev_random
 	disable_warnings_pop

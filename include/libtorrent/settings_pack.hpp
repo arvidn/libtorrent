@@ -1454,7 +1454,8 @@ namespace aux {
 
 			// ``unchoke_slots_limit`` is the max number of unchoked peers in the
 			// session. The number of unchoke slots may be ignored depending on
-			// what ``choking_algorithm`` is set to.
+			// what ``choking_algorithm`` is set to. Setting this limit to -1
+			// means unlimited, i.e. all peers will always be unchoked.
 			unchoke_slots_limit,
 
 #if TORRENT_ABI_VERSION == 1

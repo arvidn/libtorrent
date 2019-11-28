@@ -425,8 +425,22 @@ namespace aux {
 			void add_dht_node(udp::endpoint const& n) override;
 			void add_dht_router(std::pair<std::string, int> const& node);
 #if TORRENT_ABI_VERSION <= 2
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 			void set_dht_settings(dht::dht_settings const& s);
 			dht::dht_settings get_dht_settings() const;
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif
 
 			// you must give up ownership of the dht state

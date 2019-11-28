@@ -574,6 +574,7 @@ HEADERS = \
   aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
   aux_/deferred_handler.hpp         \
+  aux_/deprecated.hpp               \
   aux_/deque.hpp                    \
   aux_/dev_random.hpp               \
   aux_/disable_warnings_pop.hpp     \

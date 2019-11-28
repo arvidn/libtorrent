@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/hex.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
@@ -53,10 +52,6 @@ using namespace lt;
 using namespace lt::dht;
 using namespace std::placeholders;
 
-// TODO: don't use internal functions to libtorrent
-using lt::aux::from_hex;
-using lt::aux::to_hex;
-
 #ifdef TORRENT_DISABLE_DHT
 
 int main(int argc, char* argv[])
@@ -66,6 +61,43 @@ int main(int argc, char* argv[])
 }
 
 #else
+
+std::string to_hex(lt::span<char const> key)
+{
+	std::string out;
+	for (auto const b : key)
+	{
+		char buf[20];
+		std::snprintf(buf, sizeof(3), "%02x", static_cast<unsigned char>(b));
+		out += (char*)buf;
+	}
+	return out;
+}
+
+int hex_to_int(char in)
+{
+	if (in >= '0' && in <= '9') return int(in) - '0';
+	if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+	if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+	return -1;
+}
+
+bool from_hex(span<char const> in, span<char> out)
+{
+	if (in.size() != out.size() * 2) return false;
+	auto o = out.begin();
+	for (auto i = in.begin(); i != in.end(); ++i, ++o)
+	{
+		int const t1 = hex_to_int(*i);
+		if (t1 == -1) return false;
+		++i;
+		if (i == in.end()) return false;
+		int const t2 = hex_to_int(*i);
+		if (t2 == -1) return false;
+		*o = static_cast<char>((t1 << 4) | (t2 & 0xf));
+	}
+	return true;
+}
 
 namespace {
 void usage()
@@ -202,12 +234,13 @@ void load_dht_state(lt::session& s)
 		return;
 	}
 
-	bdecode_node e;
 	error_code ec;
-	bdecode(state.data(), state.data() + state.size(), e, ec);
+	bdecode_node e = bdecode(state, ec);
 	if (ec)
+	{
 		std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 			, ec.value(), ec.message().c_str());
+	}
 	else
 	{
 		std::printf("load dht state from .dht\n");
@@ -277,8 +310,7 @@ int main(int argc, char* argv[])
 			usage();
 		}
 		sha1_hash target;
-		bool ret = from_hex({argv[0], 40}, target.data());
-		if (!ret)
+		if (!from_hex({argv[0], 40}, target))
 		{
 			std::fprintf(stderr, "invalid hex encoding of target hash\n");
 			return 1;
@@ -356,8 +388,7 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 		std::array<char, 32> public_key;
-		bool ret = from_hex({argv[0], len}, &public_key[0]);
-		if (!ret)
+		if (!from_hex({argv[0], len}, public_key))
 		{
 			std::fprintf(stderr, "invalid hex encoding of public key\n");
 			return 1;

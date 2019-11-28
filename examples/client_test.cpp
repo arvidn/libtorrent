@@ -1080,10 +1080,9 @@ example alert_masks:
 	std::vector<char> in;
 	if (load_file(".ses_state", in))
 	{
-		lt::bdecode_node e;
 		lt::error_code ec;
-		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
-			params = read_session_params(e, session_handle::save_dht_state);
+		lt::bdecode_node e = lt::bdecode(in, ec);
+		if (!ec) params = read_session_params(e, session_handle::save_dht_state);
 	}
 #endif
 

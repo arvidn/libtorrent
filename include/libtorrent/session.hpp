@@ -166,8 +166,23 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<std::shared_ptr<plugin>> extensions;
 
 #if TORRENT_ABI_VERSION <= 2
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
+#endif
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		// this is deprecated. Use the dht_* settings instead.
 		dht::dht_settings dht_settings;
+#if defined __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif
 
 		dht::dht_state dht_state;

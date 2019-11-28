@@ -201,8 +201,8 @@ namespace {
 		// allow lots of peers to try to connect simultaneously
 		set.set_int(settings_pack::listen_queue_size, 3000);
 
-		// unchoke many peers
-		set.set_int(settings_pack::unchoke_slots_limit, 2000);
+		// unchoke all peers
+		set.set_int(settings_pack::unchoke_slots_limit, -1);
 
 		set.set_int(settings_pack::read_cache_line_size, 32);
 		set.set_int(settings_pack::write_cache_line_size, 256);
