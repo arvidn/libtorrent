@@ -287,8 +287,8 @@ namespace aux {
 		// guaranteed to finish in the same order as you initiated them.
 		void read_piece(piece_index_t piece) const;
 
-		// Returns true if this piece has been completely downloaded, and false
-		// otherwise.
+		// Returns true if this piece has been completely downloaded and written
+		// to disk, and false otherwise.
 		bool have_piece(piece_index_t piece) const;
 
 #if TORRENT_ABI_VERSION == 1
