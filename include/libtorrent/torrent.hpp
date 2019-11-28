@@ -778,6 +778,7 @@ namespace libtorrent
 		{
 			if (!valid_metadata()) return false;
 			if (!has_picker()) return m_have_all;
+			if (index < 0 || index >= torrent_file().num_pieces()) return false;
 			return m_picker->have_piece(index);
 		}
 
