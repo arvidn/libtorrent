@@ -742,7 +742,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 	error_code ec;
 	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
 
-	char soap[2048];
+	char soap[1024];
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
@@ -868,7 +868,7 @@ void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
 
 	char const* soap_action = "DeletePortMapping";
 
-	char soap[2048];
+	char soap[1024];
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
@@ -1077,7 +1077,7 @@ void upnp::get_ip_address(rootdevice& d)
 
 	char const* soap_action = "GetExternalIPAddress";
 
-	char soap[2048];
+	char soap[1024];
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
