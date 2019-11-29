@@ -149,8 +149,8 @@ namespace aux {
 		enum string_types
 		{
 			// this is the client identification to the tracker. The recommended
-			// format of this string is: "ClientName/ClientVersion
-			// libtorrent/libtorrentVersion". This name will not only be used when
+			// format of this string is: "client-name/client-version
+			// libtorrent/libtorrent-version". This name will not only be used when
 			// making HTTP requests, but also when sending extended headers to
 			// peers that support that extension. It may not contain \r or \n
 			user_agent = string_type_base,
@@ -189,9 +189,9 @@ namespace aux {
 
 			// sets the network interface this session will use when it opens
 			// outgoing connections. An empty string binds outgoing connections to
-			// INADDR_ANY and port 0 (i.e. let the OS decide). Ths parameter must
+			// INADDR_ANY and port 0 (i.e. let the OS decide). The parameter must
 			// be a string containing one or more, comma separated, adapter names.
-			// Adapter names on unix systems are of the form "eth0", "eth1",
+			// Adapter names on Unix systems are of the form "eth0", "eth1",
 			// "tun0", etc. When specifying multiple interfaces, they will be
 			// assigned in round-robin order. This may be useful for clients that
 			// are multi-homed. Binding an outgoing connection to a local IP does
@@ -232,7 +232,7 @@ namespace aux {
 			// connections on port 7777 on adapter with this GUID.
 			listen_interfaces,
 
-			// when using a poxy, this is the hostname where the proxy is running
+			// when using a proxy, this is the hostname where the proxy is running
 			// see proxy_type.
 			proxy_hostname,
 
@@ -389,7 +389,7 @@ namespace aux {
 			// ``prefer_udp_trackers``: true means that trackers
 			// may be rearranged in a way that udp trackers are always tried
 			// before http trackers for the same hostname. Setting this to false
-			// means that the trackers' tier is respected and there's no
+			// means that the tracker's tier is respected and there's no
 			// preference of one protocol over another.
 			prefer_udp_trackers,
 
@@ -453,7 +453,7 @@ namespace aux {
 			deprecated_guided_read_cache,
 #endif
 
-			// ``no_atime_storage`` this is a linux-only option and passes in the
+			// ``no_atime_storage`` this is a Linux-only option and passes in the
 			// ``O_NOATIME`` to ``open()`` when opening files. This may lead to
 			// some disk performance improvements.
 			no_atime_storage,
@@ -477,7 +477,7 @@ namespace aux {
 
 			// ``strict_end_game_mode`` controls when a
 			// block may be requested twice. If this is ``true``, a block may only
-			// be requested twice when there's ay least one request to every piece
+			// be requested twice when there's at least one request to every piece
 			// that's left to download in the torrent. This may slow down progress
 			// on some pieces sometimes, but it may also avoid downloading a lot
 			// of redundant bytes. If this is ``false``, libtorrent attempts to
@@ -610,7 +610,7 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 			// ``lock_files`` determines whether or not to lock files which
 			// libtorrent is downloading to or seeding from. This is implemented
-			// using ``fcntl(F_SETLK)`` on unix systems and by not passing in
+			// using ``fcntl(F_SETLK)`` on Unix systems and by not passing in
 			// ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
 			// 3rd party processes from corrupting the files under libtorrent's
 			// feet.
@@ -719,7 +719,7 @@ namespace aux {
 			enable_dht,
 
 			// if the allowed encryption level is both, setting this to true will
-			// prefer rc4 if both methods are offered, plaintext otherwise
+			// prefer rc4 if both methods are offered, plain text otherwise
 			prefer_rc4,
 
 			// if true, hostname lookups are done via the configured proxy (if
@@ -759,7 +759,7 @@ namespace aux {
 			dht_prefer_verified_node_ids,
 
 			// when this is true, create an affinity for downloading 4 MiB extents
-			// of adjecent pieces. This is an attempt to achieve better disk I/O
+			// of adjacent pieces. This is an attempt to achieve better disk I/O
 			// throughput by downloading larger extents of bytes, for torrents with
 			// small piece sizes
 			piece_extent_affinity,
@@ -796,14 +796,14 @@ namespace aux {
 			// measured on the uncompressed data. So, if you get 20 bytes of gzip
 			// response that'll expand to 2 megabytes, it will be interrupted
 			// before the entire response has been uncompressed (assuming the
-			// limit is lower than 2 megs).
+			// limit is lower than 2 MiB).
 			tracker_maximum_response_length,
 
 			// the number of seconds from a request is sent until it times out if
 			// no piece response is returned.
 			piece_timeout,
 
-			// the number of seconds one block (16kB) is expected to be received
+			// the number of seconds one block (16 kiB) is expected to be received
 			// within. If it's not, the block is requested from a different peer
 			request_timeout,
 
@@ -852,7 +852,8 @@ namespace aux {
 			urlseed_pipeline_size,
 
 			// number of seconds until a new retry of a url-seed takes place.
-			// Default retry value for http-seeds that don't provide a valid 'retry-after' header.
+			// Default retry value for http-seeds that don't provide
+                        // a valid ``retry-after`` header.
 			urlseed_wait_retry,
 
 			// sets the upper limit on the total number of files this session will
@@ -864,10 +865,12 @@ namespace aux {
 			// of file descriptors a process may have open.
 			file_pool_size,
 
-			// ``max_failcount`` is the maximum times we try to connect to a peer
-			// before stop connecting again. If a peer succeeds, the failcounter
-			// is reset. If a peer is retrieved from a peer source (other than
-			// DHT) the failcount is decremented by one, allowing another try.
+                        // ``max_failcount`` is the maximum times we try to
+                        // connect to a peer before stop connecting again. If a
+                        // peer succeeds, the failure counter is reset. If a
+                        // peer is retrieved from a peer source (other than DHT)
+                        // the failcount is decremented by one, allowing another
+                        // try.
 			max_failcount,
 
 			// the number of seconds to wait to reconnect to a peer. this time is
@@ -948,7 +951,7 @@ namespace aux {
 			// will determine how fast we can ramp up the send rate
 			//
 			// if the send buffer has fewer bytes than ``send_buffer_watermark``,
-			// we'll read another 16kB block onto it. If set too small, upload
+			// we'll read another 16 kiB block onto it. If set too small, upload
 			// rate capacity will suffer. If set too high, memory will be wasted.
 			// The actual watermark may be lower than this in case the upload rate
 			// is low, this is the upper limit.
@@ -994,7 +997,7 @@ namespace aux {
 			// The available options are:
 			//
 			// * ``round_robin`` which round-robins the peers that are unchoked
-			//   when seeding. This distributes the upload bandwidht uniformly and
+			//   when seeding. This distributes the upload bandwidth uniformly and
 			//   fairly. It minimizes the ability for a peer to download everything
 			//   without redistributing it.
 			//
@@ -1009,7 +1012,7 @@ namespace aux {
 			seed_choking_algorithm,
 
 			// ``cache_size`` is the disk write and read cache. It is specified
-			// in units of 16 KiB blocks. Buffers that are part of a peer's send
+			// in units of 16 kiB blocks. Buffers that are part of a peer's send
 			// or receive buffer also count against this limit. Send and receive
 			// buffers will never be denied to be allocated, but they will cause
 			// the actual cached blocks to be flushed or evicted. If this is set
@@ -1174,7 +1177,7 @@ namespace aux {
 
 			// this is the minimum allowed announce interval for a tracker. This
 			// is specified in seconds and is used as a sanity check on what is
-			// returned from a tracker. It mitigates hammering misconfigured
+			// returned from a tracker. It mitigates hammering mis-configured
 			// trackers.
 			min_announce_interval,
 
@@ -1471,7 +1474,7 @@ namespace aux {
 			// ``alert_queue_size`` is the maximum number of alerts queued up
 			// internally. If alerts are not popped, the queue will eventually
 			// fill up to this level. Once the alert queue is full, additional
-			// alerts will be dropped, and not delievered to the client. Once the
+			// alerts will be dropped, and not delivered to the client. Once the
 			// client drains the queue, new alerts may be delivered again. In order
 			// to know that alerts have been dropped, see
 			// session_handle::dropped_alerts().
@@ -1765,7 +1768,7 @@ namespace aux {
 		// settings_pack::allowed_enc_level.
 		enum enc_level : std::uint8_t
 		{
-			// use only plaintext encryption
+			// use only plain text encryption
 			pe_plaintext = 1,
 			// use only rc4 encryption
 			pe_rc4 = 2,

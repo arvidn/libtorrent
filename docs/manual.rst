@@ -127,7 +127,7 @@ The error_code::message() function will typically return a localized error strin
 for system errors. That is, errors that belong to the generic or system category.
 
 Errors that belong to the libtorrent error category are not localized however, they
-are only available in english. In order to translate libtorrent errors, compare the
+are only available in English. In order to translate libtorrent errors, compare the
 error category of the ``error_code`` object against ``lt::libtorrent_category()``,
 and if matches, you know the error code refers to the list above. You can provide
 your own mapping from error code to string, which is localized. In this case, you
@@ -221,7 +221,7 @@ parallel. The benefits are:
 * your disk I/O load is likely to be more local which may improve I/O
   performance and decrease fragmentation.
 
-There are fundamentally 3 seaparate queues:
+There are fundamentally 3 separate queues:
 
 * checking torrents
 * downloading torrents
@@ -269,14 +269,14 @@ torrent_status::allocating state that are auto-managed.
 
 The checking queue will make sure that (of the torrents in its queue) no more than
 settings_pack::active_checking_limit torrents are started at any given time.
-Once a torrent completes checking and moves into a diffferent state, the next in
+Once a torrent completes checking and moves into a different state, the next in
 line will be started for checking.
 
 Any torrent added force-started or force-stopped (i.e. the auto managed flag is
 *not* set), will not be subject to this limit and they will all check
 independently and in parallel.
 
-Once a torrent completes the checking of its files, or fastresume data, it will
+Once a torrent completes the checking of its files, or resume data, it will
 be put in the queue for downloading and potentially start downloading immediately.
 In order to add a torrent and check its files without starting the download, it
 can be added in ``stop_when_ready`` mode.
@@ -381,7 +381,7 @@ to true.
 
 Since it sometimes may take a few minutes for a newly started torrent to find
 peers and be unchoked, or find peers that are interested in requesting data,
-torrents are not considered inactive immadiately. There must be an extended
+torrents are not considered inactive immediately. There must be an extended
 period of no transfers before it is considered inactive and exempt from the
 queuing limits.
 
@@ -475,11 +475,11 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | In the same order as in the torrent file.                    |
 +--------------------------+--------------------------------------------------------------+
 | ``url-list``             | list of strings. List of url-seed URLs used by this torrent. |
-|                          | The urls are expected to be properly encoded and not contain |
+|                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
-| ``httpseeds``            | list of strings. List of httpseed URLs used by this torrent. |
-|                          | The urls are expected to be properly encoded and not contain |
+| ``httpseeds``            | list of strings. List of HTTP seed URLs used by this torrent.|
+|                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
 | ``merkle tree``          | string. In case this torrent is a merkle torrent, this is a  |
@@ -580,7 +580,7 @@ The benefits of this mode are:
 
  * Downloaded pieces are written directly to their final place in the files and
    the total number of disk operations will be fewer and may also play nicer to
-   filesystems' file allocation, and reduce fragmentation.
+   the filesystem file allocation, and reduce fragmentation.
 
  * No risk of a download failing because of a full disk during download, once
    all files have been created.
@@ -592,8 +592,8 @@ There are two kinds of HTTP seeding. One with that assumes a smart (and polite)
 client and one that assumes a smart server. These are specified in `BEP 19`_
 and `BEP 17`_ respectively.
 
-libtorrent supports both. In the libtorrent source code and API, BEP 19 urls
-are typically referred to as *url seeds* and BEP 17 urls are typically referred
+libtorrent supports both. In the libtorrent source code and API, BEP 19 URLs
+are typically referred to as *url seeds* and BEP 17 URLs are typically referred
 to as *HTTP seeds*.
 
 The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a
@@ -630,7 +630,7 @@ internal representation
 
 It is optimized by, at all times, keeping a list of pieces ordered by rarity,
 randomly shuffled within each rarity class. This list is organized as a single
-vector of contigous memory in RAM, for optimal memory locality and to eliminate
+vector of contiguous memory in RAM, for optimal memory locality and to eliminate
 heap allocations and frees when updating rarity of pieces.
 
 Expensive events, like a peer joining or leaving, are evaluated lazily, since
@@ -669,7 +669,7 @@ request. The idea behind this is to make all snubbed peers more likely to be
 able to do download blocks from the same piece, concentrating slow peers on as
 few pieces as possible. The reverse order means that the most common pieces are
 picked, instead of the rarest pieces (or in the case of sequential download,
-the last pieces, intead of the first).
+the last pieces, instead of the first).
 
 parole mode
 -----------
@@ -786,7 +786,7 @@ preventing a client from reconfiguring the peer class ip- and type filters
 to disable or customize which peers they apply to. See set_peer_class_filter()
 and set_peer_class_type_filter().
 
-A peer class can be considered a more general form of *lables* that some
+A peer class can be considered a more general form of *labels* that some
 clients have. Peer classes however are not just applied to torrents, but
 ultimately the peers.
 
@@ -837,7 +837,7 @@ To make uTP sockets exempt from rate limiting:
 
 	ses.set_peer_class_type_filter(flt);
 
-To make all peers on the internal network unthrottled:
+To make all peers on the internal network not subject to throttling:
 
 .. code:: c++
 
@@ -862,7 +862,7 @@ SSL. The protocols are layered like this:
 
 During the SSL handshake, both peers need to authenticate by providing a
 certificate that is signed by the CA certificate found in the .torrent file.
-These peer certificates are expected to be privided to peers through some other
+These peer certificates are expected to be provided to peers through some other
 means than bittorrent. Typically by a peer generating a certificate request
 which is sent to the publisher of the torrent, and the publisher returning a
 signed certificate.
@@ -885,15 +885,15 @@ This setting is only taken into account when the normal listen socket is opened
 socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
 This feature is only available if libtorrent is build with openssl support
-(``TORRENT_USE_OPENSSL``) and requires at least openSSL version 1.0, since it
+(``TORRENT_USE_OPENSSL``) and requires at least OpenSSL version 1.0, since it
 needs SNI support.
 
 Peer certificates must have at least one *SubjectAltName* field of type
-dNSName. At least one of the fields must *exactly* match the name of the
+DNSName. At least one of the fields must *exactly* match the name of the
 torrent. This is a byte-by-byte comparison, the UTF-8 encoding must be
 identical (i.e. there's no unicode normalization going on). This is the
 recommended way of verifying certificates for HTTPS servers according to `RFC
-2818`_. Note the difference that for torrents only *dNSName* fields are taken
+2818`_. Note the difference that for torrents only *DNSName* fields are taken
 into account (not IP address fields). The most specific (i.e. last) *Common
 Name* field is also taken into account if no *SubjectAltName* did not match.
 
@@ -923,7 +923,7 @@ libtorrent's point of view, it doesn't matter what it is. libtorrent only makes
 sure the peer certificates are signed by the correct root certificate.
 
 One way to create the certificates is to use the ``CA.sh`` script that comes
-with openssl, like thisi (don't forget to enter a common Name for the
+with openssl, like this (don't forget to enter a common Name for the
 certificate)::
 
 	CA.sh -newca
@@ -952,7 +952,7 @@ socket receives *n* bytes, a counter is incremented by *n*.
 *Counters* are the most flexible of metrics. It allows the program to sample
 the counter at any interval, and calculate average rates of increments to the
 counter. Some events may be rare and need to be sampled over a longer period in
-order to get userful rates, where other events may be more frequent and evenly
+order to get useful rates, where other events may be more frequent and evenly
 distributed that sampling it frequently yields useful values. Counters also
 provides accurate overall counts. For example, converting samples of a download
 rate into a total transfer count is not accurate and takes more samples.
@@ -960,7 +960,7 @@ Converting an increasing counter into a rate is easy and flexible.
 
 *Gauges* measure the instantaneous state of some kind. This is used for metrics
 that are not counting events or flows, but states that can fluctuate. For
-example, the number of torrents that are currenly being downloaded.
+example, the number of torrents that are currently being downloaded.
 
 It's important to know whether a value is a counter or a gauge in order to
 interpret it correctly. In order to query libtorrent for which counters and
