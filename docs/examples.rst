@@ -3,7 +3,7 @@ libtorrent Examples
 ===================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.13
+:Version: 1.1.14
 
 .. contents:: Table of contents
   :depth: 2

@@ -1050,7 +1050,7 @@ for cat in categories:
 
 	out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.13
+:Version: 1.1.14
 
 `home`__
 
