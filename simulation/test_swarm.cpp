@@ -412,7 +412,7 @@ struct timeout_config : sim::default_config
 		auto it = m_incoming.find(ip);
 		if (it != m_incoming.end()) return sim::route().append(it->second);
 		it = m_incoming.insert(it, std::make_pair(ip, std::make_shared<queue>(
-			std::ref(m_sim->get_io_context())
+			m_sim->get_io_context()
 			, 1000
 			, lt::duration_cast<lt::time_duration>(seconds(10))
 			, 1000, "packet-loss modem in")));
@@ -424,7 +424,7 @@ struct timeout_config : sim::default_config
 		auto it = m_outgoing.find(ip);
 		if (it != m_outgoing.end()) return sim::route().append(it->second);
 		it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
-			std::ref(m_sim->get_io_context()), 1000
+			m_sim->get_io_context(), 1000
 			, lt::duration_cast<lt::time_duration>(seconds(5)), 200 * 1000, "packet-loss out")));
 		return sim::route().append(it->second);
 	}

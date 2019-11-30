@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct torrent_handle;
-	class session;
+	struct session;
 
 	// Generates a magnet URI from the specified torrent. If the torrent
 	// handle is invalid, an empty string is returned.

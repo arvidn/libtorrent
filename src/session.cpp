@@ -34,9 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/extensions/ut_pex.hpp"
-#include "libtorrent/extensions/ut_metadata.hpp"
-#include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -391,33 +388,138 @@ namespace {
 		}
 	}
 
-namespace {
-
-		std::vector<std::shared_ptr<plugin>> default_plugins(
-			bool empty = false)
-		{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-			if (empty) return {};
-			using wrapper = aux::session_impl::session_plugin_wrapper;
-			return {
-				std::make_shared<wrapper>(create_ut_pex_plugin),
-				std::make_shared<wrapper>(create_ut_metadata_plugin),
-				std::make_shared<wrapper>(create_smart_ban_plugin)
-			};
-#else
-			TORRENT_UNUSED(empty);
-			return {};
-#endif
-		}
-	}
-
+#if TORRENT_ABI_VERSION <= 2
 	void session::start(session_flags_t const flags, settings_pack&& sp, io_context* ios)
 	{
-		start({std::move(sp),
-			default_plugins(!(flags & add_default_plugins))}, ios);
+		if (flags & add_default_plugins)
+		{
+			session_params sp_(std::move(sp));
+			start(std::move(sp_), ios);
+		}
+		else
+		{
+			session_params sp_(std::move(sp), {});
+			start(std::move(sp_), ios);
+		}
 	}
+#endif
 
 	session::session(session&&) = default;
+
+	session::session(session_params const& params)
+	{
+		start(session_params(params), nullptr);
+	}
+
+	session::session(session_params&& params)
+	{
+		start(std::move(params), nullptr);
+	}
+
+	session::session()
+	{
+		session_params params;
+		start(std::move(params), nullptr);
+	}
+
+	session::session(session_params&& params, io_context& ios)
+	{
+		start(std::move(params), &ios);
+	}
+
+	session::session(session_params const& params, io_context& ios)
+	{
+		start(session_params(params), &ios);
+	}
+
+#if TORRENT_ABI_VERSION <= 2
+	session::session(settings_pack&& pack, session_flags_t const flags)
+	{
+		start(flags, std::move(pack), nullptr);
+	}
+
+	session::session(settings_pack const& pack, session_flags_t const flags)
+	{
+		start(flags, settings_pack(pack), nullptr);
+	}
+
+	session::session(settings_pack&& pack, io_context& ios, session_flags_t const flags)
+	{
+		start(flags, std::move(pack), &ios);
+	}
+
+	session::session(settings_pack const& pack, io_context& ios, session_flags_t const flags)
+	{
+		start(flags, settings_pack(pack), &ios);
+	}
+#endif
+
+#if TORRENT_ABI_VERSION == 1
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif
+	session::session(fingerprint const& print, session_flags_t const flags
+		, alert_category_t const alert_mask)
+	{
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, int(alert_mask));
+		pack.set_str(settings_pack::peer_fingerprint, print.to_string());
+		if (!(flags & start_default_features))
+		{
+			pack.set_bool(settings_pack::enable_upnp, false);
+			pack.set_bool(settings_pack::enable_natpmp, false);
+			pack.set_bool(settings_pack::enable_lsd, false);
+			pack.set_bool(settings_pack::enable_dht, false);
+		}
+
+		start(flags, std::move(pack), nullptr);
+	}
+
+	session::session(fingerprint const& print, std::pair<int, int> listen_port_range
+		, char const* listen_interface, session_flags_t const flags
+		, alert_category_t const alert_mask)
+	{
+		TORRENT_ASSERT(listen_port_range.first > 0);
+		TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
+
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, int(alert_mask));
+		pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
+		pack.set_str(settings_pack::peer_fingerprint, print.to_string());
+		char if_string[100];
+
+		if (listen_interface == nullptr) listen_interface = "0.0.0.0";
+		std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
+		pack.set_str(settings_pack::listen_interfaces, if_string);
+
+		if (!(flags & start_default_features))
+		{
+			pack.set_bool(settings_pack::enable_upnp, false);
+			pack.set_bool(settings_pack::enable_natpmp, false);
+			pack.set_bool(settings_pack::enable_lsd, false);
+			pack.set_bool(settings_pack::enable_dht, false);
+		}
+		start(flags, std::move(pack), nullptr);
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#endif // TORRENT_ABI_VERSION
 	session& session::operator=(session&&) & = default;
 
 	session::~session()

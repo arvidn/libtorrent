@@ -72,7 +72,9 @@ namespace libtorrent {
 	constexpr save_state_flags_t session_handle::save_tracker_proxy TORRENT_DEPRECATED_ENUM;
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 	constexpr session_flags_t session_handle::add_default_plugins;
+#endif
 #if TORRENT_ABI_VERSION == 1
 	constexpr session_flags_t session_handle::start_default_features;
 #endif

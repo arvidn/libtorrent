@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
-#include <functional>
+#include "libtorrent/session_params.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "settings.hpp"
 
+#include <functional>
 #include <fstream>
 
 using namespace std::placeholders;

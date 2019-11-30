@@ -80,7 +80,7 @@ namespace libtorrent {
 	// any operation on it will throw an invalid_session_handle.
 	struct TORRENT_EXPORT session_handle
 	{
-		friend class session;
+		friend struct session;
 		friend struct aux::session_impl;
 
 		// hidden
@@ -782,9 +782,11 @@ namespace libtorrent {
 		// delete just the part-file associated with this torrent
 		static constexpr remove_flags_t delete_partfile = 1_bit;
 
+#if TORRENT_ABI_VERSION <= 2
 		// this will add common extensions like ut_pex, ut_metadata, lt_tex
 		// smart_ban and possibly others.
-		static constexpr session_flags_t add_default_plugins = 0_bit;
+		static constexpr session_flags_t TORRENT_DEPRECATED_MEMBER add_default_plugins = 0_bit;
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		// this will start features like DHT, local service discovery, UPnP
