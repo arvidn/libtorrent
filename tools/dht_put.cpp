@@ -217,12 +217,13 @@ int generate_key(char const* filename)
 	return 0;
 }
 
-void load_dht_state(lt::session& s)
+lt::session_params load_dht_state()
 {
+	lt::session_params ret;
 	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
 
 	auto const size = f.tellg();
-	if (static_cast<int>(size) <= 0) return;
+	if (static_cast<int>(size) <= 0) return ret;
 	f.seekg(0, std::ios_base::beg);
 
 	std::vector<char> state;
@@ -232,7 +233,7 @@ void load_dht_state(lt::session& s)
 	if (f.fail())
 	{
 		std::fprintf(stderr, "failed to read .dht\n");
-		return;
+		return ret;
 	}
 
 	error_code ec;
@@ -241,25 +242,13 @@ void load_dht_state(lt::session& s)
 	{
 		std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 			, ec.value(), ec.message().c_str());
+		return ret;
 	}
-	else
-	{
-		std::printf("load dht state from .dht\n");
-		s.load_state(e);
-	}
+	std::printf("load dht state from .dht\n");
+	ret = read_session_params(state);
+	return ret;
 }
 
-int save_dht_state(lt::session& s)
-{
-	entry e;
-	s.save_state(e, session::save_dht_state);
-	std::vector<char> state;
-	bencode(std::back_inserter(state), e);
-
-	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-	f.write(state.data(), static_cast<std::streamsize>(state.size()));
-	return 0;
-}
 } // anonymous namespace
 
 int main(int argc, char* argv[])
@@ -288,15 +277,10 @@ int main(int argc, char* argv[])
 		return generate_key(argv[0]);
 	}
 
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_int(settings_pack::alert_mask, 0x7fffffff);
-	lt::session s(sett);
-
-	sett.set_bool(settings_pack::enable_dht, true);
-	s.apply_settings(sett);
-
-	load_dht_state(s);
+	session_params sp = load_dht_state();
+	sp.settings.set_bool(settings_pack::enable_dht, true);
+	sp.settings.set_int(settings_pack::alert_mask, 0x7fffffff);
+	lt::session s(sp);
 
 	if (argv[0] == "get"_sv)
 	{
@@ -417,7 +401,11 @@ int main(int argc, char* argv[])
 		usage();
 	}
 
-	return save_dht_state(s);
+	std::vector<char> state = write_session_params_buf(s.session_state(session::save_dht_state));
+	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+	f.write(state.data(), static_cast<std::streamsize>(state.size()));
+
+	return 0;
 }
 
 #endif

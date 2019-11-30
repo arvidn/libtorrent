@@ -447,29 +447,46 @@ namespace libtorrent {
 		return pack;
 	}
 
-	void save_settings_to_dict(aux::session_settings const& sett, entry::dictionary_type& out)
+	settings_pack non_default_settings(aux::session_settings const& sett)
 	{
-		sett.bulk_get([&out](aux::session_settings_single_thread const& s)
+		settings_pack ret;
+		sett.bulk_get([&ret](aux::session_settings_single_thread const& s)
 		{
 		// loop over all settings that differ from default
-			for (int i = 0; i < settings_pack::num_string_settings; ++i)
+			for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
 			{
-				if (ensure_string(str_settings[i].default_value) == s.get_str(i | settings_pack::string_type_base)) continue;
-				out[str_settings[i].name] = s.get_str(i | settings_pack::string_type_base);
+				std::uint16_t const n = i | settings_pack::string_type_base;
+				if (ensure_string(str_settings[i].default_value) == s.get_str(n)) continue;
+				ret.set_str(n, s.get_str(n));
 			}
 
-			for (int i = 0; i < settings_pack::num_int_settings; ++i)
+			for (std::uint16_t i = 0; i < settings_pack::num_int_settings; ++i)
 			{
-				if (int_settings[i].default_value == s.get_int(i | settings_pack::int_type_base)) continue;
-				out[int_settings[i].name] = s.get_int(i | settings_pack::int_type_base);
+				std::uint16_t const n = i | settings_pack::int_type_base;
+				if (int_settings[i].default_value == s.get_int(n)) continue;
+				ret.set_int(n, s.get_int(n));
 			}
 
-			for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+			for (std::uint16_t i = 0; i < settings_pack::num_bool_settings; ++i)
 			{
-				if (bool_settings[i].default_value == s.get_bool(i | settings_pack::bool_type_base)) continue;
-				out[bool_settings[i].name] = s.get_bool(i | settings_pack::bool_type_base);
+				std::uint16_t const n = i | settings_pack::bool_type_base;
+				if (bool_settings[i].default_value == s.get_bool(n)) continue;
+				ret.set_bool(n, s.get_bool(n));
 			}
 		});
+		return ret;
+	}
+
+	void save_settings_to_dict(settings_pack const& sett, entry::dictionary_type& out)
+	{
+		struct visitor
+		{
+			void operator()(std::uint16_t i, std::string const& str) { out[str_settings[i & settings_pack::index_mask].name] = str; }
+			void operator()(std::uint16_t i, int val) { out[int_settings[i & settings_pack::index_mask].name] = val; }
+			void operator()(std::uint16_t i, bool val) { out[bool_settings[i & settings_pack::index_mask].name] = val; }
+			entry::dictionary_type& out;
+		};
+		sett.for_each(visitor{out});
 	}
 
 	void run_all_updates(aux::session_impl& ses)

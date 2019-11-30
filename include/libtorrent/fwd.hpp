@@ -174,7 +174,9 @@ class entry;
 struct storage_error;
 
 // include/libtorrent/extensions.hpp
+TORRENT_VERSION_NAMESPACE_3
 struct plugin;
+TORRENT_VERSION_NAMESPACE_3_END
 struct torrent_plugin;
 struct peer_plugin;
 struct crypto_plugin;

@@ -47,7 +47,7 @@ TORRENT_TEST(default_settings)
 	aux::session_settings sett;
 
 	entry e;
-	save_settings_to_dict(sett, e.dict());
+	save_settings_to_dict(non_default_settings(sett), e.dict());
 	// all default values are supposed to be skipped
 	// by save_settings
 	TEST_EQUAL(e.dict().size(), 0);
@@ -95,7 +95,7 @@ TORRENT_TEST(apply_pack)
 
 	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
 	entry e;
-	save_settings_to_dict(sett, e.dict());
+	save_settings_to_dict(non_default_settings(sett), e.dict());
 	TEST_EQUAL(e.dict().size(), 1);
 
 	std::string out;
@@ -210,7 +210,7 @@ TORRENT_TEST(load_pack_from_dict)
 	p1.set_bool(settings_pack::send_redundant_have, false);
 
 	entry e;
-	save_settings_to_dict(p1, e.dict());
+	save_settings_to_dict(non_default_settings(p1), e.dict());
 
 	std::string s;
 	bencode(std::back_inserter(s), e);
@@ -260,3 +260,48 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::max_web_seed_connections, settings_pack::int_type_base + 131);
 	TEST_EQUAL(settings_pack::resolver_cache_timeout, settings_pack::int_type_base + 132);
 }
+
+namespace {
+
+bool empty_pack(settings_pack const& sp)
+{
+	for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
+		if (sp.has_val(i | settings_pack::string_type_base)) return false;
+	for (std::uint16_t i = 0; i < settings_pack::num_int_settings; ++i)
+		if (sp.has_val(i | settings_pack::int_type_base)) return false;
+	for (std::uint16_t i = 0; i < settings_pack::num_bool_settings; ++i)
+		if (sp.has_val(i | settings_pack::bool_type_base)) return false;
+	return true;
+}
+
+}
+
+TORRENT_TEST(non_default_settings)
+{
+	aux::session_settings def;
+	settings_pack const p = non_default_settings(def);
+	TEST_CHECK(empty_pack(p));
+}
+
+TORRENT_TEST(non_default_settings2)
+{
+	aux::session_settings def;
+	def.set_int(settings_pack::max_out_request_queue, 1337);
+	settings_pack const p = non_default_settings(def);
+	TEST_EQUAL(p.get_int(settings_pack::max_out_request_queue), 1337);
+}
+
+TORRENT_TEST(save_settings_to_dict)
+{
+	settings_pack p;
+	p.set_str(settings_pack::peer_fingerprint, "abc");
+	p.set_int(settings_pack::max_out_request_queue, 1337);
+	p.set_bool(settings_pack::send_redundant_have, false);
+
+	entry e;
+	save_settings_to_dict(p, e.dict());
+	std::string buf;
+	bencode(std::back_inserter(buf), e);
+	TEST_EQUAL(buf, "d21:max_out_request_queuei1337e16:peer_fingerprint3:abc19:send_redundant_havei0ee");
+}
+
