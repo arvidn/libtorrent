@@ -469,48 +469,6 @@ namespace {
 		}
 	}
 
-TORRENT_VERSION_NAMESPACE_3
-
-	session_params::session_params(settings_pack&& sp)
-		: session_params(std::move(sp), default_plugins())
-	{}
-
-	session_params::session_params(settings_pack const& sp)
-		: session_params(sp, default_plugins())
-	{}
-
-	session_params::session_params()
-		: extensions(default_plugins())
-#ifndef TORRENT_DISABLE_DHT
-		, dht_storage_constructor(dht::dht_default_storage_constructor)
-#endif
-	{}
-
-	session_params::session_params(settings_pack&& sp
-		, std::vector<std::shared_ptr<plugin>> exts)
-		: settings(std::move(sp))
-		, extensions(std::move(exts))
-#ifndef TORRENT_DISABLE_DHT
-		, dht_storage_constructor(dht::dht_default_storage_constructor)
-#endif
-	{}
-
-	session_params::session_params(settings_pack const& sp // NOLINT
-		, std::vector<std::shared_ptr<plugin>> exts)
-		: settings(sp)
-		, extensions(std::move(exts))
-#ifndef TORRENT_DISABLE_DHT
-		, dht_storage_constructor(dht::dht_default_storage_constructor)
-#endif
-	{}
-
-	session_params::session_params(session_params const&) = default;
-	session_params::session_params(session_params&&) = default;
-	session_params& session_params::operator=(session_params const&) & = default;
-	session_params& session_params::operator=(session_params&&) & = default;
-
-TORRENT_VERSION_NAMESPACE_3_END
-
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{

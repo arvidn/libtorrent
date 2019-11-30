@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_HANDLE_HPP_INCLUDED
 #define TORRENT_SESSION_HANDLE_HPP_INCLUDED
 
+#include <memory> // for shared_ptr
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/entry.hpp"
@@ -59,6 +61,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include <deque>
 #endif
+
+#include "libtorrent/extensions.hpp"
 
 namespace libtorrent {
 

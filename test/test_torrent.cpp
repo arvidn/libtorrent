@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/session_params.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>

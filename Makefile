@@ -370,6 +370,7 @@ SOURCES = \
   session_call.cpp                \
   session_handle.cpp              \
   session_impl.cpp                \
+  session_params.cpp              \
   session_settings.cpp            \
   session_stats.cpp               \
   session_udp_sockets.cpp         \
@@ -516,6 +517,7 @@ HEADERS = \
   resolver_interface.hpp       \
   session.hpp                  \
   session_handle.hpp           \
+  session_params.hpp           \
   session_settings.hpp         \
   session_stats.hpp            \
   session_status.hpp           \

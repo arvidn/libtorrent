@@ -116,6 +116,7 @@ set(libtorrent_include_files
 	resolver_interface
 	session
 	session_handle
+	session_params
 	session_settings
 	session_stats
 	session_status
@@ -342,6 +343,7 @@ set(sources
 	resolve_links
 	resolver
 	session
+	session_params
 	session_call
 	session_handle
 	session_impl

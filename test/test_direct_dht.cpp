@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bdecode.hpp"
@@ -103,9 +104,9 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_str(settings_pack::dht_bootstrap_nodes, "");
 	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
-	lt::session responder(sp, {});
+	lt::session responder(session_params(sp, {}));
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
-	lt::session requester(sp, {});
+	lt::session requester(session_params(sp, {}));
 
 	responder.add_extension(std::make_shared<test_plugin>());
 

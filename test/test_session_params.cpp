@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp"
 #include "setup_transfer.hpp" // for addr6
 #include "settings.hpp"
+#include "libtorrent/session_params.hpp"
+#include "libtorrent/extensions.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"

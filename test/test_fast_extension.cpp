@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <cstring>
 #include <functional>
@@ -440,7 +442,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 #if TORRENT_ABI_VERSION == 1
 	sett.set_bool(settings_pack::rate_limit_utp, true);
 #endif
-	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
+	ses.reset(new lt::session(sett));
 
 	error_code ec;
 	add_torrent_params p;

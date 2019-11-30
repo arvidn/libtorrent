@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/io_context.hpp"

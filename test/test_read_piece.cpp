@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
