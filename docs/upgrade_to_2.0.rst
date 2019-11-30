@@ -155,6 +155,32 @@ constructor (see session_params). Instead of taking a `dht_settings` object, it
 is now passed the full `settings_pack`. This is considered a niche interface,
 so there is no backward compatibility option provided.
 
+saving and restoring session state
+==================================
+
+The functions ``save_state()`` and ``load_state()`` on the session object have
+been deprecated in favor loading the session state up-front using
+read_session_params() and construct the session from it.
+
+The session state can be acquired, in the form of a session_params object, by
+calling session::session_state().
+
+The session_params object is passed to the session constructor, and will restore
+the state from a previous session.
+
+Use read_session_params() and write_session_params() to serialize and de-serialize
+the session_params object.
+
+As a result of this, plugins that wish to save and restore state or settings
+must now use the new overload of load_state(), that takes a
+``std::map<std::string, std::string>``. Similarly, for saving state, it now has
+to be saved to a ``std::map<std::string, std::string>`` via the new overload of
+save_state().
+
+A lot of session constructors have been deprecated in favor of the ones that take
+a session_params object. The session_params object can be implicitly constructed
+from a settings_pack, to cover one of the now-deprecated constructors. However,
+to access this conversion `libtorrent/session_params.hpp` must be included.
 
 Adding torrents by URL no longer supported
 ==========================================

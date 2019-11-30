@@ -1076,15 +1076,12 @@ example alert_masks:
 	lt::session_params params;
 
 #ifndef TORRENT_DISABLE_DHT
-	params.settings.set_bool(settings_pack::dht_privacy_lookups, true);
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in))
-	{
-		lt::error_code ec;
-		lt::bdecode_node e = lt::bdecode(in, ec);
-		if (!ec) params = read_session_params(e, session_handle::save_dht_state);
-	}
+		params = read_session_params(in, session_handle::save_dht_state);
+
+	params.settings.set_bool(settings_pack::dht_privacy_lookups, true);
 #endif
 
 	auto& settings = params.settings;
@@ -1958,11 +1955,7 @@ COLUMN OPTIONS
 #ifndef TORRENT_DISABLE_DHT
 	std::printf("\nsaving session state\n");
 	{
-		lt::entry session_state;
-		ses.save_state(session_state, lt::session::save_dht_state);
-
-		std::vector<char> out;
-		bencode(std::back_inserter(out), session_state);
+		std::vector<char> out = write_session_params_buf(ses.session_state(lt::session::save_dht_state));
 		save_file(".ses_state", out);
 	}
 #endif

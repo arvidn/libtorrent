@@ -71,7 +71,9 @@ namespace aux {
 	struct bdecode_node;
 
 	TORRENT_EXTRA_EXPORT settings_pack load_pack_from_dict(bdecode_node const& settings);
-	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& out);
+
+	TORRENT_EXTRA_EXPORT void save_settings_to_dict(settings_pack const& sett, entry::dictionary_type& out);
+	TORRENT_EXTRA_EXPORT settings_pack non_default_settings(aux::session_settings const& sett);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett
 		, aux::session_impl* ses = nullptr);
 	TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const* pack
@@ -174,6 +176,15 @@ namespace aux {
 			type_mask =        0xc000,
 			index_mask =       0x3fff
 		};
+
+		// internal
+		template <typename Fun>
+		void for_each(Fun&& f) const
+		{
+			for (auto const& s : m_strings) f(s.first, s.second);
+			for (auto const& i : m_ints) f(i.first, i.second);
+			for (auto const& b : m_bools) f(b.first, b.second);
+		}
 
 		// enumeration values naming string settings in the pack. To be used with
 		// get_str() and set_str().

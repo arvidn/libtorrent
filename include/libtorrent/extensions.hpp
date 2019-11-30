@@ -181,6 +181,8 @@ namespace libtorrent {
 	// indicating which callbacks this plugin is interested in
 	using feature_flags_t = flags::bitfield_flag<std::uint8_t, struct feature_flags_tag>;
 
+TORRENT_VERSION_NAMESPACE_3
+
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
 	// and can add its own torrent_plugins.
@@ -266,12 +268,21 @@ namespace libtorrent {
 		virtual uint64_t get_unchoke_priority(peer_connection_handle const& /* peer */)
 		{ return (std::numeric_limits<uint64_t>::max)(); }
 
+#if TORRENT_ABI_VERSION <= 2
 		// called when saving settings state
 		virtual void save_state(entry&) {}
 
 		// called when loading settings state
 		virtual void load_state(bdecode_node const&) {}
+#endif
+
+		virtual std::map<std::string, std::string> save_state() const { return {}; }
+
+		// called on startup while loading settings state from the session_params
+		virtual void load_state(std::map<std::string, std::string> const&) {}
 	};
+
+TORRENT_VERSION_NAMESPACE_3_END
 
 	using add_peer_flags_t = flags::bitfield_flag<std::uint8_t, struct add_peer_flags_tag>;
 

@@ -97,8 +97,7 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
 	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
 
-	entry session_state;
-	s->save_state(session_state);
+	entry session_state = write_session_params(s->session_state());
 
 	// test magnet link parsing
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
@@ -186,7 +185,6 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(aux::to_hex(ih), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();
-	s.reset(new lt::session(settings()));
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
@@ -200,7 +198,7 @@ TORRENT_TEST(magnet)
 	TEST_CHECK(!session_state2.dict_find("settings")
 		.dict_find("optimistic_disk_retry"));
 
-	s->load_state(session_state2);
+	s.reset(new lt::session(read_session_params(session_state2)));
 
 #define CMP_SET(x) std::printf(#x ": %d %d\n"\
 	, s->get_settings().get_int(settings_pack:: x)\

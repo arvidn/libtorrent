@@ -53,7 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+TORRENT_VERSION_NAMESPACE_3
 struct plugin;
+TORRENT_VERSION_NAMESPACE_3_END
+
 struct disk_interface;
 struct counters;
 
@@ -117,9 +120,33 @@ struct TORRENT_EXPORT session_params
 	dht::dht_storage_constructor_type dht_storage_constructor;
 
 	disk_io_constructor_type disk_io_constructor;
+
+	// this container can be used by extensions/plugins to store settings. It's
+	// primarily here to make it convenient to save and restore state across
+	// sessions, using read_session_params() and write_session_params().
+	std::map<std::string, std::string> ext_state;
 };
 
 TORRENT_VERSION_NAMESPACE_3_END
+
+// These functions serialize and deserialize a ``session_params`` object to and
+// from bencoded form. The session_params object is used to initialize a new
+// session using the state from a previous one (or by programatically configure
+// the session up-front).
+// The flags parameter can be used to only save and load certain aspects of the
+// session's state.
+// The ``_buf`` suffix indicates the function operates on buffer rather than the
+// bencoded structure.
+// The torrents in a session are not part of the session_params state, they have
+// to be restored separately.
+TORRENT_EXPORT session_params read_session_params(bdecode_node const& e
+	, save_state_flags_t flags = save_state_flags_t::all());
+TORRENT_EXPORT session_params read_session_params(span<char const> buf
+	, save_state_flags_t flags = save_state_flags_t::all());
+TORRENT_EXPORT entry write_session_params(session_params const& sp
+	, save_state_flags_t flags = save_state_flags_t::all());
+TORRENT_EXPORT std::vector<char> write_session_params_buf(session_params const& sp
+	, save_state_flags_t flags = save_state_flags_t::all());
 
 }
 

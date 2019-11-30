@@ -651,6 +651,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 	}
 
+#if TORRENT_ABI_VERSION <= 2
 	// TODO: 2 the ip filter should probably be saved here too
 	void session_impl::save_state(entry* eptr, save_state_flags_t const flags) const
 	{
@@ -663,16 +664,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (flags & session::save_settings)
 		{
 			entry::dictionary_type& sett = e["settings"].dict();
-			save_settings_to_dict(m_settings, sett);
+			save_settings_to_dict(non_default_settings(m_settings), sett);
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-#if TORRENT_ABI_VERSION <= 2
 		if (flags & session::save_dht_settings)
 		{
 			e["dht"] = dht::save_dht_settings(get_dht_settings());
 		}
-#endif
 
 		if (m_dht && (flags & session::save_dht_state))
 		{
@@ -807,11 +806,49 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+#if TORRENT_ABI_VERSION <= 2
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			ext->load_state(*e);
 		}
 #endif
+#endif
+	}
+#endif
+
+	session_params session_impl::session_state(save_state_flags_t const flags) const
+	{
+		TORRENT_ASSERT(is_single_thread());
+
+		session_params ret;
+		if (flags & session::save_settings)
+			ret.settings = non_default_settings(m_settings);
+
+#ifndef TORRENT_DISABLE_DHT
+#if TORRENT_ABI_VERSION <= 2
+	if ((flags & session_handle::save_dht_settings)
+		|| (flags & session_handle::save_dht_settings))
+	{
+		ret.dht_settings = get_dht_settings();
+	}
+#endif
+
+		if (m_dht && (flags & session::save_dht_state))
+			ret.dht_state = m_dht->state();
+#endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (flags & session::save_extension_state)
+		{
+			for (auto const& ext : m_ses_extensions[plugins_all_idx])
+			{
+				auto state = ext->save_state();
+				for (auto& v : state)
+					ret.ext_state[std::move(v.first)] = std::move(v.second);
+			}
+		}
+#endif
+		return ret;
 	}
 
 	proxy_settings session_impl::proxy() const

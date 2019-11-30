@@ -16,8 +16,9 @@ the ``session``, it contains the main loop that serves all torrents.
 
 The basic usage is as follows:
 
-* construct a session
-* load session state from settings file (see load_state())
+* construct a session, possibly passing in the state from a previous session.
+  use read_session_params() and pass in the resulting session_params object to
+  the session constructor.
 * start extensions (see add_extension()).
 * start DHT, LSD, UPnP, NAT-PMP etc (see start_dht(), start_lsd(), start_upnp()
   and start_natpmp()).
@@ -33,7 +34,7 @@ The basic usage is as follows:
 
 * save resume data for all torrent_handles (optional, see
   save_resume_data())
-* save session state (see save_state())
+* save session state (see session_state() and write_session_params())
 * destruct session object
 
 Each class and function is described in this manual, you may want to have a

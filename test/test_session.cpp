@@ -247,8 +247,8 @@ TORRENT_TEST(paused_session)
 	TEST_CHECK(!(h.flags() & torrent_flags::paused));
 }
 
-template <typename Set, typename Save, typename Default, typename Load>
-void test_save_restore(Set setup, Save s, Default d, Load l)
+template <typename Set, typename Save, typename Test>
+void test_save_restore(Set setup, Save s, Test t)
 {
 	entry st;
 	{
@@ -259,26 +259,13 @@ void test_save_restore(Set setup, Save s, Default d, Load l)
 	}
 
 	{
-		settings_pack p = settings();
-		d(p);
-		lt::session ses(p);
 		// the loading function takes a bdecode_node, so we have to transform the
 		// entry
 		std::printf("%s\n", st.to_string().c_str());
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), st);
-		bdecode_node state;
-		error_code ec;
-		int ret = bdecode(buf.data(), buf.data() + buf.size()
-			, state, ec, nullptr, 100, 1000);
-		TEST_EQUAL(ret, 0);
-		if (ec)
-		{
-			std::printf("bdecode: %s\n", ec.message().c_str());
-			std::printf("%s\n", std::string(buf.data(), buf.size()).c_str());
-		}
-		TEST_CHECK(!ec);
-		l(ses, state);
+		lt::session ses(read_session_params(buf));
+		t(ses);
 	}
 }
 
@@ -290,13 +277,9 @@ TORRENT_TEST(save_restore_state)
 			p.set_int(settings_pack::request_queue_time, 1337);
 		},
 		[](lt::session& ses, entry& st) {
-			ses.save_state(st);
+			st = write_session_params(ses.session_state());
 		},
-		[](settings_pack& p) {
-			p.set_int(settings_pack::request_queue_time, 90);
-		},
-		[](lt::session& ses, bdecode_node& st) {
-			ses.load_state(st);
+		[](lt::session& ses) {
 			// make sure we loaded the cache size correctly
 			settings_pack sett = ses.get_settings();
 			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 1337);
@@ -312,16 +295,12 @@ TORRENT_TEST(save_restore_state_save_filter)
 		},
 		[](lt::session& ses, entry& st) {
 			// save everything _but_ the settings
-			ses.save_state(st, ~session::save_settings);
+			st = write_session_params(ses.session_state(~session::save_settings));
 		},
-		[](settings_pack& p) {
-			p.set_int(settings_pack::request_queue_time, 90);
-		},
-		[](lt::session& ses, bdecode_node& st) {
-			ses.load_state(st);
+		[](lt::session& ses) {
 			// make sure whatever we loaded did not include the cache size
 			settings_pack sett = ses.get_settings();
-			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 90);
+			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 3);
 		});
 }
 
@@ -331,32 +310,20 @@ TORRENT_TEST(session_shutdown)
 	lt::session ses(pack);
 }
 
-// make sure we don't restore peer_id from session state
-TORRENT_TEST(save_state_peer_id)
+TORRENT_TEST(save_state_fingerprint)
 {
 	lt::settings_pack pack;
 	pack.set_str(settings_pack::peer_fingerprint, "AAA");
 	lt::session ses(pack);
 	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "AAA");
-
-	lt::entry st;
-	ses.save_state(st);
+	auto const st = write_session_params_buf(ses.session_state());
 
 	pack.set_str(settings_pack::peer_fingerprint, "foobar");
 	ses.apply_settings(pack);
-
 	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "foobar");
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), st);
-	bdecode_node state;
-	error_code ec;
-	int ret = bdecode(buf.data(), buf.data() + buf.size()
-		, state, ec, nullptr, 100, 1000);
-	TEST_EQUAL(ret, 0);
-	ses.load_state(state);
-
-	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "foobar");
+	lt::session ses2(read_session_params(st));
+	TEST_EQUAL(ses2.get_settings().get_str(settings_pack::peer_fingerprint), "AAA");
 }
 
 #if !defined TORRENT_DISABLE_LOGGING

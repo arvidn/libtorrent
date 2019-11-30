@@ -105,5 +105,115 @@ session_params& session_params::operator=(session_params&&) & = default;
 
 TORRENT_VERSION_NAMESPACE_3_END
 
+session_params read_session_params(bdecode_node const& e, save_state_flags_t const flags)
+{
+	session_params params;
+
+	if (e.type() != bdecode_node::dict_t) return params;
+
+#ifndef TORRENT_DISABLE_DHT
+#if TORRENT_ABI_VERSION <= 2
+	if (flags & session_handle::save_dht_settings)
+#else
+	if (flags & session_handle::save_settings)
+#endif
+	{
+		bdecode_node settings = e.dict_find_dict("dht");
+		if (settings)
+		{
+			aux::apply_deprecated_dht_settings(params.settings, settings);
+#if TORRENT_ABI_VERSION <= 2
+			params.dht_settings = dht::read_dht_settings(settings);
+#endif
+		}
+	}
+#endif
+
+	if (flags & session_handle::save_settings)
+	{
+		bdecode_node settings = e.dict_find_dict("settings");
+		if (settings) params.settings = load_pack_from_dict(settings);
+	}
+
+#ifndef TORRENT_DISABLE_DHT
+	if (flags & session_handle::save_dht_state)
+	{
+		bdecode_node settings = e.dict_find_dict("dht state");
+		if (settings)
+		{
+			params.dht_state = dht::read_dht_state(settings);
+		}
+	}
+#endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	if (flags & session::save_extension_state)
+	{
+		auto ext = e.dict_find_dict("extensions");
+		if (ext)
+		{
+			for (int i = 0; i < ext.dict_size(); ++i)
+			{
+				bdecode_node val;
+				string_view key;
+				std::tie(key, val) = ext.dict_at(i);
+				if (val.type() != bdecode_node::string_t) continue;
+				params.ext_state[std::string(key)] = std::string(val.string_value());
+			}
+		}
+	}
+#endif
+
+	return params;
+}
+
+session_params read_session_params(span<char const> buf
+	, save_state_flags_t const flags)
+{
+	return read_session_params(bdecode(buf), flags);
+}
+
+entry write_session_params(session_params const& sp, save_state_flags_t const flags)
+{
+	entry e;
+
+#ifndef TORRENT_DISABLE_DHT
+#if TORRENT_ABI_VERSION <= 2
+	if (flags & session_handle::save_dht_settings)
+	{
+		e["dht"] = dht::save_dht_settings(sp.dht_settings);
+	}
+#endif
+
+	if (flags & session::save_dht_state)
+	{
+		e["dht state"] = dht::save_dht_state(sp.dht_state);
+	}
+#endif
+
+	if (flags & session_handle::save_settings)
+	{
+		save_settings_to_dict(sp.settings, e["settings"].dict());
+	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	if (flags & session::save_extension_state)
+	{
+		auto& ext = e["extensions"].dict();
+		for (auto const& val : sp.ext_state) ext[val.first] = val.second;
+	}
+#endif
+
+	return e;
+}
+
+std::vector<char> write_session_params_buf(session_params const& sp, save_state_flags_t const flags)
+{
+	auto const e = write_session_params(sp, flags);
+	std::vector<char> ret;
+	bencode(std::back_inserter(ret), e);
+	return ret;
+}
+
 }
 

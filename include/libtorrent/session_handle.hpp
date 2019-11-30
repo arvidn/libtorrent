@@ -120,6 +120,14 @@ namespace libtorrent {
 		static constexpr save_state_flags_t TORRENT_DEPRECATED_MEMBER save_tracker_proxy = 10_bit;
 #endif
 
+		// load or save state from plugins
+		static constexpr save_state_flags_t save_extension_state = 11_bit;
+
+#if TORRENT_ABI_VERSION <= 2
+		// deprecated in 2.0
+		// instead of these functions, use session_state() below, and restore
+		// state using the session_params on session construction.
+
 		// loads and saves all session settings, including dht_settings,
 		// encryption settings and proxy settings. ``save_state`` writes all keys
 		// to the ``entry`` that's passed in, which needs to either not be
@@ -136,8 +144,20 @@ namespace libtorrent {
 		// ``peer_fingerprint`` and ``user_agent``. Those are left as configured
 		// by the ``session_settings`` passed to the session constructor or
 		// subsequently set via apply_settings().
+		TORRENT_DEPRECATED
 		void save_state(entry& e, save_state_flags_t flags = save_state_flags_t::all()) const;
+		TORRENT_DEPRECATED
 		void load_state(bdecode_node const& e, save_state_flags_t flags = save_state_flags_t::all());
+#endif
+
+		// returns the current session state. This can be passed to
+		// write_session_params() to save the state to disk and restored using
+		// read_session_params() when constructing a new session. The kind of
+		// state that's included is all settings, the DHT routing table, possibly
+		// plugin-specific state.
+		// the flags parameter can be used to only save certain parts of the
+		// session state
+		session_params session_state(save_state_flags_t flags = save_state_flags_t::all()) const;
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with

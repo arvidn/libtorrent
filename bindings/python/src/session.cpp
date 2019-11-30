@@ -495,9 +495,11 @@ namespace
 
     entry save_state(lt::session const& s, std::uint32_t const flags)
     {
-        allow_threading_guard guard;
         entry e;
+#if TORRENT_ABI_VERSION <= 2
+        allow_threading_guard guard;
         s.save_state(e, save_state_flags_t(flags));
+#endif
         return e;
     }
 
@@ -519,6 +521,7 @@ namespace
 
 	void load_state(lt::session& ses, entry const& st, std::uint32_t const flags)
 	{
+#if TORRENT_ABI_VERSION <= 2
 		allow_threading_guard guard;
 
 		std::vector<char> buf;
@@ -528,6 +531,7 @@ namespace
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(!ec);
 		ses.load_state(e, save_state_flags_t(flags));
+#endif
 	}
 
 	dict get_peer_class(lt::session& ses, lt::peer_class_t const pc)

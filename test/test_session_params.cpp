@@ -124,28 +124,111 @@ TORRENT_TEST(dht_state)
 
 	lt::session ses1(params);
 	TEST_CHECK(ses1.is_dht_running() == true);
-	entry e;
-	ses1.save_state(e);
+	session_params const params1 = ses1.session_state();
+	TEST_EQUAL(params1.settings.get_int(settings_pack::dht_max_dht_items), 10000);
+	TEST_EQUAL(params1.settings.get_int(settings_pack::dht_max_peers), 20000);
+	entry const e = write_session_params(params1);
 
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), e);
 
-	bdecode_node n;
-	error_code ec;
-	int r = bdecode(&tmp[0], &tmp[0] + tmp.size(), n, ec);
-	TEST_CHECK(!r);
-
-	session_params params1 = read_session_params(n);
-	TEST_EQUAL(params1.settings.get_int(settings_pack::dht_max_dht_items), 10000);
-	TEST_EQUAL(params1.settings.get_int(settings_pack::dht_max_peers), 20000);
+	session_params params2 = read_session_params(tmp);
+	TEST_EQUAL(params2.settings.get_int(settings_pack::dht_max_dht_items), 10000);
+	TEST_EQUAL(params2.settings.get_int(settings_pack::dht_max_peers), 20000);
 
 	// not a chance the nid will be the fake initial ones
-	TEST_CHECK(params1.dht_state.nids[0].second != s.nids[0].second);
+	TEST_CHECK(params2.dht_state.nids[0].second != s.nids[0].second);
 	// the host machine may not have IPv6 support in which case there will only be one entry
-	if (params1.dht_state.nids.size() > 1)
-		TEST_CHECK(params1.dht_state.nids[1].second != s.nids[1].second);
+	if (params2.dht_state.nids.size() > 1)
+		TEST_CHECK(params2.dht_state.nids[1].second != s.nids[1].second);
 }
 #endif
+
+namespace {
+
+settings_pack test_pack()
+{
+	settings_pack ret;
+	for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
+	{
+		std::uint16_t const n = i | settings_pack::string_type_base;
+		if (name_for_setting(n) == std::string()) continue;
+		ret.set_str(n , std::to_string(i) + "__");
+	}
+	for (std::uint16_t i = 0; i < settings_pack::num_int_settings; ++i)
+	{
+		std::uint16_t const n = i | settings_pack::int_type_base;
+		if (name_for_setting(n) == std::string()) continue;
+		ret.set_int(n, 1000000 + i);
+	}
+	for (std::uint16_t i = 0; i < settings_pack::num_bool_settings; ++i)
+	{
+		std::uint16_t const n = i | settings_pack::bool_type_base;
+		if (name_for_setting(n) == std::string()) continue;
+		ret.set_bool(n, i & 1);
+	}
+	return ret;
+}
+
+dht::dht_state test_state()
+{
+	dht::dht_state ret;
+	auto a1 = make_address("1.2.3.4");
+	auto a2 = make_address("1234:abcd:ef01::1");
+	ret.nids = dht::node_ids_t{{a1, dht::generate_id(a1)}, {a2, dht::generate_id(a2)}};
+	for (int i = 0; i < 50; ++i)
+		ret.nodes.push_back(rand_udp_ep(rand_v4));
+	for (int i = 0; i < 50; ++i)
+		ret.nodes.push_back(rand_udp_ep(rand_v6));
+	return ret;
+}
+
+session_params test_params()
+{
+	session_params ret;
+	ret.settings = test_pack();
+	ret.dht_state = test_state();
+	for (int i = 0; i < 100; ++i)
+		ret.ext_state[std::to_string(i)] = std::string(std::to_string(i));
+	return ret;
+}
+
+bool operator==(dht::dht_state const& lhs, dht::dht_state const& rhs)
+{
+	return lhs.nids == rhs.nids
+		&& lhs.nodes == rhs.nodes
+		&& lhs.nodes6 == rhs.nodes6
+		;
+}
+
+bool operator==(lt::settings_pack const& lhs, lt::settings_pack const& rhs)
+{
+	for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
+		if (lhs.get_str(i | settings_pack::string_type_base) != rhs.get_str(i | settings_pack::string_type_base)) return false;
+	for (std::uint16_t i = 0; i < settings_pack::num_int_settings; ++i)
+		if (lhs.get_int(i | settings_pack::int_type_base) != rhs.get_int(i | settings_pack::int_type_base)) return false;
+	for (std::uint16_t i = 0; i < settings_pack::num_bool_settings; ++i)
+		if (lhs.get_bool(i | settings_pack::bool_type_base) != rhs.get_bool(i | settings_pack::bool_type_base)) return false;
+	return true;
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(session_params_round_trip)
+{
+	session_params const input = test_params();
+
+	std::vector<char> const buf = write_session_params_buf(input);
+	{
+		std::ofstream f("../session_state.test");
+		f.write(buf.data(), static_cast<std::streamsize>(buf.size()));
+	}
+	session_params const output = read_session_params(buf);
+
+	TEST_CHECK(input.settings == output.settings);
+	TEST_CHECK(input.dht_state == output.dht_state);
+	TEST_CHECK(input.ext_state == output.ext_state);
+}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 TORRENT_TEST(add_plugin)

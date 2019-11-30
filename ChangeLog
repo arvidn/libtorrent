@@ -1,5 +1,7 @@
 2.0 release
 
+	* deprecated save_state() and load_state() on session in favour of new
+	  write_session_params() and read_session_params()
 	* added support for BitTorrent v2 (see docs/upgrade_to_2.0.html)
 	* create_torrent() pad_file_limit parameter removed
 	* create_torrent() merkle- and optimize-alignment flags removed

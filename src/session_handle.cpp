@@ -71,6 +71,7 @@ namespace libtorrent {
 	constexpr save_state_flags_t session_handle::save_web_proxy TORRENT_DEPRECATED_ENUM;
 	constexpr save_state_flags_t session_handle::save_tracker_proxy TORRENT_DEPRECATED_ENUM;
 #endif
+	constexpr save_state_flags_t session_handle::save_extension_state;
 
 #if TORRENT_ABI_VERSION <= 2
 	constexpr session_flags_t session_handle::add_default_plugins;
@@ -172,6 +173,7 @@ namespace libtorrent {
 		return r;
 	}
 
+#if TORRENT_ABI_VERSION <= 2
 	void session_handle::save_state(entry& e, save_state_flags_t const flags) const
 	{
 		entry* ep = &e;
@@ -184,6 +186,12 @@ namespace libtorrent {
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
 		sync_call(&session_impl::load_state, &e, flags);
+	}
+#endif
+
+	session_params session_handle::session_state(save_state_flags_t const flags) const
+	{
+		return sync_call_ret<session_params>(&session_impl::session_state, flags);
 	}
 
 	std::vector<torrent_status> session_handle::get_torrent_status(

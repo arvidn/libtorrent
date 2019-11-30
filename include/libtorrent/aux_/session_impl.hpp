@@ -105,7 +105,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+TORRENT_VERSION_NAMESPACE_3
 	struct plugin;
+TORRENT_VERSION_NAMESPACE_3_END
+
 	struct upnp;
 	struct natpmp;
 	class lsd;
@@ -669,8 +672,11 @@ namespace aux {
 
 			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) override;
 
+#if TORRENT_ABI_VERSION <= 2
 			void save_state(entry* e, save_state_flags_t flags) const;
 			void load_state(bdecode_node const* e, save_state_flags_t flags);
+#endif
+			session_params session_state(save_state_flags_t flags) const;
 
 			bool has_connection(peer_connection* p) const override;
 			void insert_peer(std::shared_ptr<peer_connection> const& c) override;

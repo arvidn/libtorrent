@@ -259,54 +259,6 @@ namespace {
 		return set;
 	}
 
-	session_params read_session_params(bdecode_node const& e, save_state_flags_t const flags)
-	{
-		session_params params;
-
-		bdecode_node settings;
-		if (e.type() != bdecode_node::dict_t) return params;
-
-		if ((flags & session_handle::save_settings)
-#if TORRENT_ABI_VERSION <= 2
-			// just in case someone is saving *just* the dht_settings, save all
-			// settings, since the DHT settings are part of them now
-			|| (flags & session_handle::save_dht_settings)
-#endif
-			)
-		{
-			settings = e.dict_find_dict("settings");
-			if (settings)
-			{
-				params.settings = load_pack_from_dict(settings);
-			}
-		}
-
-#ifndef TORRENT_DISABLE_DHT
-#if TORRENT_ABI_VERSION <= 2
-		if (flags & session_handle::save_dht_settings)
-		{
-			settings = e.dict_find_dict("dht");
-			if (settings)
-			{
-				params.dht_settings = dht::read_dht_settings(settings);
-				aux::apply_deprecated_dht_settings(params.settings, settings);
-			}
-		}
-#endif
-
-		if (flags & session_handle::save_dht_state)
-		{
-			settings = e.dict_find_dict("dht state");
-			if (settings)
-			{
-				params.dht_state = dht::read_dht_state(settings);
-			}
-		}
-#endif
-
-		return params;
-	}
-
 	void session::start(session_params&& params, io_context* ios)
 	{
 		bool const internal_executor = ios == nullptr;
@@ -367,6 +319,7 @@ namespace {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : params.extensions)
 		{
+			ext->load_state(params.ext_state);
 			m_impl->add_ses_extension(std::move(ext));
 		}
 #endif
