@@ -691,6 +691,7 @@ SOURCES =
 	receive_buffer
 	resolve_links
 	session
+	session_params
 	session_handle
 	session_impl
 	session_call

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <fstream>
 

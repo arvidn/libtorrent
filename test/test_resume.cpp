@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/random.hpp"

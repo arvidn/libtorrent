@@ -232,13 +232,15 @@ struct counters;
 
 // include/libtorrent/session.hpp
 class session_proxy;
-TORRENT_VERSION_NAMESPACE_3
-struct session_params;
-TORRENT_VERSION_NAMESPACE_3_END
 class session;
 
 // include/libtorrent/session_handle.hpp
 struct session_handle;
+
+// include/libtorrent/session_params.hpp
+TORRENT_VERSION_NAMESPACE_3
+struct session_params;
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/session_stats.hpp
 struct stats_metric;

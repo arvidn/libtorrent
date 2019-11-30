@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <functional>
 #include <cstdio> // for snprintf
