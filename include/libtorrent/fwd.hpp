@@ -232,7 +232,7 @@ struct counters;
 
 // include/libtorrent/session.hpp
 class session_proxy;
-class session;
+struct session;
 
 // include/libtorrent/session_handle.hpp
 struct session_handle;

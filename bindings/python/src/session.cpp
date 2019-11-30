@@ -6,6 +6,7 @@
 #include <list>
 #include <string>
 #include <libtorrent/session.hpp>
+#include <libtorrent/session_params.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/ip_filter.hpp>
@@ -169,11 +170,19 @@ namespace
 		return ret;
 	}
 
-	std::shared_ptr<lt::session> make_session(boost::python::dict sett, session_flags_t flags)
+	std::shared_ptr<lt::session> make_session(boost::python::dict sett
+#if TORRENT_ABI_VERSION <= 2
+		, session_flags_t flags
+#endif
+	)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
-		return std::make_shared<lt::session>(p, flags);
+		return std::make_shared<lt::session>(p
+#if TORRENT_ABI_VERSION <= 2
+			, flags
+#endif
+		);
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
@@ -804,6 +813,7 @@ void bind_session()
         s.attr("delete_files") = lt::session::delete_files;
     }
 
+#if TORRENT_ABI_VERSION <= 2
     {
         scope s = class_<dummy10>("session_flags_t");
         s.attr("add_default_plugins") = lt::session::add_default_plugins;
@@ -811,6 +821,7 @@ void bind_session()
         s.attr("start_default_features") = lt::session::start_default_features;
 #endif
     }
+#endif
 
     {
     scope s = class_<dummy1>("torrent_flags");
@@ -899,7 +910,11 @@ void bind_session()
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings")
-                , arg("flags")=lt::session::add_default_plugins))
+#if TORRENT_ABI_VERSION <= 2
+                , arg("flags")=lt::session::add_default_plugins
+#endif
+                )
+              )
         )
 #if TORRENT_ABI_VERSION == 1
         .def(

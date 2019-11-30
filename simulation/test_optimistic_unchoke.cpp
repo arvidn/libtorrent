@@ -84,7 +84,7 @@ TORRENT_TEST(optimistic_unchoke)
 
 	session_proxy proxy;
 
-	auto ses = std::make_shared<lt::session>(std::ref(pack), std::ref(ios));
+	auto ses = std::make_shared<lt::session>(pack, ios);
 	ses->async_add_torrent(atp);
 
 	std::vector<std::shared_ptr<sim::asio::io_context>> io_context;
@@ -100,8 +100,8 @@ TORRENT_TEST(optimistic_unchoke)
 			char ep[30];
 			std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 			io_context.push_back(std::make_shared<sim::asio::io_context>(
-				std::ref(sim), addr(ep)));
-			peers.push_back(std::make_shared<peer_conn>(std::ref(*io_context.back())
+				sim, addr(ep)));
+			peers.push_back(std::make_shared<peer_conn>(*io_context.back()
 				, [&,i](int msg, char const* /* buf */, int /* len */)
 				{
 					choke_state& cs = peer_choke_state[i];

@@ -111,7 +111,7 @@ namespace aux {
 	// is done shutting down.
 	class TORRENT_EXPORT session_proxy
 	{
-		friend class session;
+		friend struct session;
 	public:
 		// default constructor, does not refer to any session
 		// implementation object.
@@ -149,23 +149,15 @@ namespace aux {
 	// the settings to be set and pass it in to ``session::apply_settings()``.
 	//
 	// see apply_settings().
-	class TORRENT_EXPORT session : public session_handle
+	struct TORRENT_EXPORT session : session_handle
 	{
-	public:
-
 		// Constructs the session objects which acts as the container of torrents.
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
-		explicit session(session_params const& params)
-		{ start(session_params(params), nullptr); }
-		explicit session(session_params&& params)
-		{ start(std::move(params), nullptr); }
-		session()
-		{
-			session_params params;
-			start(std::move(params), nullptr);
-		}
+		explicit session(session_params const& params);
+		explicit session(session_params&& params);
+		session();
 
 		// Overload of the constructor that takes an external io_context to run
 		// the session object on. This is primarily useful for tests that may want
@@ -180,11 +172,26 @@ namespace aux {
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_context, then
 		// 	destruct the session_proxy object.
-		session(session_params&& params, io_context& ios)
-		{ start(std::move(params), &ios); }
-		session(session_params const& params, io_context& ios)
-		{ start(session_params(params), &ios); }
+		session(session_params&& params, io_context& ios);
+		session(session_params const& params, io_context& ios);
 
+		// movable
+		session(session&&);
+		session& operator=(session&&) &;
+
+		// non-copyable
+		session(session const&) = delete;
+		session& operator=(session const&) = delete;
+
+#if TORRENT_ABI_VERSION <= 2
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
 		// disk cache, ip filter etc.). In order to avoid a race condition between
@@ -196,20 +203,12 @@ namespace aux {
 		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack&& pack
-			, session_flags_t const flags = add_default_plugins)
-		{ start(flags, std::move(pack), nullptr); }
-		session(settings_pack const& pack
-			, session_flags_t const flags = add_default_plugins)
-		{ start(flags, settings_pack(pack), nullptr); }
-
-		// movable
-		session(session&&);
-		session& operator=(session&&) &;
-
-		// non-copyable
-		session(session const&) = delete;
-		session& operator=(session const&) = delete;
+		TORRENT_DEPRECATED
+		session(settings_pack&& pack, session_flags_t const flags);
+		TORRENT_DEPRECATED
+		session(settings_pack const& pack, session_flags_t const flags);
+		explicit session(settings_pack&& pack) : session(std::move(pack), add_default_plugins) {}
+		explicit session(settings_pack const& pack) : session(pack, add_default_plugins) {}
 
 		// overload of the constructor that takes an external io_context to run
 		// the session object on. This is primarily useful for tests that may want
@@ -224,14 +223,19 @@ namespace aux {
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_context, then
 		// 	destruct the session_proxy object.
-		session(settings_pack&& pack
-			, io_context& ios
-			, session_flags_t const flags = add_default_plugins)
-		{ start(flags, std::move(pack), &ios); }
-		session(settings_pack const& pack
-			, io_context& ios
-			, session_flags_t const flags = add_default_plugins)
-		{ start(flags, settings_pack(pack), &ios); }
+		TORRENT_DEPRECATED
+		session(settings_pack&&, io_context&, session_flags_t);
+		TORRENT_DEPRECATED
+		session(settings_pack const&, io_context&, session_flags_t);
+		session(settings_pack&& pack, io_context& ios) : session(std::move(pack), ios, add_default_plugins) {}
+		session(settings_pack const& pack, io_context& ios) : session(pack, ios, add_default_plugins) {}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 #ifdef __GNUC__
@@ -249,51 +253,14 @@ namespace aux {
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, session_flags_t const flags = start_default_features | add_default_plugins
-			, alert_category_t const alert_mask = alert::error_notification)
-		{
-			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, int(alert_mask));
-			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
-			if (!(flags & start_default_features))
-			{
-				pack.set_bool(settings_pack::enable_upnp, false);
-				pack.set_bool(settings_pack::enable_natpmp, false);
-				pack.set_bool(settings_pack::enable_lsd, false);
-				pack.set_bool(settings_pack::enable_dht, false);
-			}
-
-			start(flags, std::move(pack), nullptr);
-		}
+			, alert_category_t const alert_mask = alert::error_notification);
 
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, session_flags_t const flags = start_default_features | add_default_plugins
-			, alert_category_t const alert_mask = alert::error_notification)
-		{
-			TORRENT_ASSERT(listen_port_range.first > 0);
-			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
-
-			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, int(alert_mask));
-			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
-			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
-			char if_string[100];
-
-			if (listen_interface == nullptr) listen_interface = "0.0.0.0";
-			std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
-			pack.set_str(settings_pack::listen_interfaces, if_string);
-
-			if (!(flags & start_default_features))
-			{
-				pack.set_bool(settings_pack::enable_upnp, false);
-				pack.set_bool(settings_pack::enable_natpmp, false);
-				pack.set_bool(settings_pack::enable_lsd, false);
-				pack.set_bool(settings_pack::enable_dht, false);
-			}
-			start(flags, std::move(pack), nullptr);
-		}
+			, alert_category_t const alert_mask = alert::error_notification);
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -336,10 +303,14 @@ namespace aux {
 	private:
 
 		void start(session_params&& params, io_context* ios);
+#if TORRENT_ABI_VERSION <= 2
 		void start(session_flags_t flags, settings_pack&& sp, io_context* ios);
+#endif
 
 		void start(session_params const& params, io_context* ios) = delete;
+#if TORRENT_ABI_VERSION <= 2
 		void start(session_flags_t flags, settings_pack const& sp, io_context* ios) = delete;
+#endif
 
 		// data shared between the main thread
 		// and the working thread

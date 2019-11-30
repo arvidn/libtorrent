@@ -423,7 +423,6 @@ void bind_converters()
     to_python_converter<lt::pause_flags_t, from_bitfield_flag<lt::pause_flags_t>>();
     to_python_converter<lt::deadline_flags_t, from_bitfield_flag<lt::deadline_flags_t>>();
     to_python_converter<lt::save_state_flags_t, from_bitfield_flag<lt::save_state_flags_t>>();
-    to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
     to_python_converter<lt::remove_flags_t, from_bitfield_flag<lt::remove_flags_t>>();
     to_python_converter<lt::reopen_network_flags_t, from_bitfield_flag<lt::reopen_network_flags_t>>();
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
@@ -451,6 +450,10 @@ void bind_converters()
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
     to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
+
+#if TORRENT_ABI_VERSION <= 2
+    to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
+#endif
 
 #if TORRENT_ABI_VERSION == 1
     to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
@@ -507,7 +510,6 @@ void bind_converters()
     to_bitfield_flag<lt::pause_flags_t>();
     to_bitfield_flag<lt::deadline_flags_t>();
     to_bitfield_flag<lt::save_state_flags_t>();
-    to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::remove_flags_t>();
     to_bitfield_flag<lt::reopen_network_flags_t>();
     to_bitfield_flag<lt::file_flags_t>();
@@ -515,4 +517,8 @@ void bind_converters()
     to_bitfield_flag<lt::pex_flags_t>();
     to_bitfield_flag<lt::reannounce_flags_t>();
     to_string_view();
+
+#if TORRENT_ABI_VERSION <= 2
+    to_bitfield_flag<lt::session_flags_t>();
+#endif
 }
