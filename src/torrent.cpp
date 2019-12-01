@@ -2669,7 +2669,7 @@ bool is_downloading_state(int const st)
 
 			aux::listen_socket_handle socket;
 
-			aux::array<announce_protocol_state, int(protocol_version::NUM), protocol_version> state;
+			aux::array<announce_protocol_state, num_protocols, protocol_version> state;
 		};
 	}
 
@@ -2808,7 +2808,7 @@ bool is_downloading_state(int const st)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-		aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol
+		aux::array<bool const, num_protocols, protocol_version> const supports_protocol
 		{ {
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
@@ -9110,7 +9110,7 @@ bool is_downloading_state(int const st)
 				bool found_working = false;
 				bool done = false;
 			};
-			aux::array<state_t, int(protocol_version::NUM), protocol_version> state;
+			aux::array<state_t, num_protocols, protocol_version> state;
 		};
 	}
 
@@ -9129,7 +9129,7 @@ bool is_downloading_state(int const st)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-		aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol{
+		aux::array<bool const, num_protocols, protocol_version> const supports_protocol{
 		{
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
@@ -11086,7 +11086,7 @@ bool is_downloading_state(int const st)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-			aux::array<bool const, int(protocol_version::NUM), protocol_version> const supports_protocol{
+			aux::array<bool const, num_protocols, protocol_version> const supports_protocol{
 			{
 				m_info_hash.has_v1(),
 				m_info_hash.has_v2()

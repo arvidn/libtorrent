@@ -175,11 +175,11 @@ namespace aux {
 		session(session_params&& params, io_context& ios);
 		session(session_params const& params, io_context& ios);
 
-		// movable
+		// hidden
 		session(session&&);
 		session& operator=(session&&) &;
 
-		// non-copyable
+		// hidden
 		session(session const&) = delete;
 		session& operator=(session const&) = delete;
 

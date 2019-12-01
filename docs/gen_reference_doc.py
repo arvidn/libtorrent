@@ -271,6 +271,7 @@ def looks_like_forward_decl(line):
 
 
 def looks_like_function(line):
+    line = line.split('//')[0]
     if line.startswith('friend'):
         return False
     if '::' in line.split('(')[0].split(' ')[-1]:
@@ -300,7 +301,7 @@ def parse_function(lno, lines, filename):
         start_paren += line.count('(')
         end_paren += line.count(')')
 
-        sig_line = line.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').strip()
+        sig_line = line.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('//')[0].strip()
         if signature != '':
             sig_line = '\n   ' + sig_line
         signature += sig_line
@@ -645,6 +646,7 @@ def trim_define(line):
     return line.replace('#ifndef', '').replace('#ifdef', '') \
             .replace('#if', '').replace('defined', '') \
             .replace('TORRENT_ABI_VERSION == 1', '') \
+            .replace('TORRENT_ABI_VERSION <= 2', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
             .replace('!', '').replace('\\', '').strip()
 
@@ -678,7 +680,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
             ' TORRENT_USE_ASSERTS' in line or
             ' TORRENT_USE_INVARIANT_CHECKS' in line or
             ' TORRENT_ASIO_DEBUGGING' in line) or
-            line == '#if TORRENT_ABI_VERSION == 1'):
+            (line == '#if TORRENT_ABI_VERSION == 1' or line == '#if TORRENT_ABI_VERSION <= 2')):
         while lno < len(lines):
             line = lines[lno].strip()
             lno += 1

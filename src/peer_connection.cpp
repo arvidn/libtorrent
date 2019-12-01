@@ -5326,7 +5326,7 @@ namespace libtorrent {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-		aux::array<boost::tribool, int(protocol_version::NUM), protocol_version>
+		aux::array<boost::tribool, num_protocols, protocol_version>
 			hash_failed{ { boost::indeterminate, boost::indeterminate } };
 #ifdef __clang__
 #pragma clang diagnostic pop

@@ -48,6 +48,8 @@ namespace libtorrent
 		NUM
 	};
 
+	constexpr std::size_t num_protocols = int(protocol_version::NUM);
+
 namespace {
 	std::initializer_list<protocol_version> const all_versions{
 		protocol_version::V1,
