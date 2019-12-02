@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/session_params.hpp"
 

@@ -446,7 +446,6 @@ namespace aux {
 
 			// you must give up ownership of the dht state
 			void set_dht_state(dht::dht_state&& state);
-			void set_dht_state(dht::dht_state const& state) = delete;
 
 			void set_dht_storage(dht::dht_storage_constructor_type sc);
 			void start_dht();

@@ -47,43 +47,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/kademlia/dht_state.hpp"
 
 using lt::settings_pack;
 
 #ifndef TORRENT_DISABLE_DHT
 void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 {
-	lt::entry state;
+	lt::dht::dht_state state;
 
 	for (auto dht : networks)
 	{
 		// bootstrap off of 8 of the nodes
 		auto router_nodes = dht->router_nodes();
-
-		char const* nodes_key;
-
 		if (lt::is_v6(router_nodes.front()))
-			nodes_key = "nodes6";
+			state.nodes6 = router_nodes;
 		else
-			nodes_key = "nodes";
-
-		lt::entry::list_type& nodes = state["dht state"][nodes_key].list();
-		for (auto const& n : router_nodes)
-		{
-			std::string node;
-			std::back_insert_iterator<std::string> out(node);
-			lt::aux::write_endpoint(n, out);
-			nodes.push_back(lt::entry(node));
-		}
+			state.nodes = router_nodes;
 	}
 
-	std::vector<char> buf;
-	lt::bencode(std::back_inserter(buf), state);
-	lt::bdecode_node e;
-	lt::error_code ec;
-	lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-
-	ses.load_state(e);
+	ses.set_dht_state(std::move(state));
 	lt::settings_pack pack;
 	pack.set_bool(lt::settings_pack::enable_dht, true);
 	pack.set_int(lt::settings_pack::alert_mask, lt::alert::all_categories);
