@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/performance_counters.hpp"

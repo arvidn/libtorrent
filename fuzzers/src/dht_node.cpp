@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"

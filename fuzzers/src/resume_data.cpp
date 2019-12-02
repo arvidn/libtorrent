@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdint>
-#include "libtorrent/version.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 
