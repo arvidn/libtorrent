@@ -3233,6 +3233,8 @@ bool is_downloading_state(int const st)
 				aep->min_announce = now + resp.min_interval;
 				aep->updating = false;
 				aep->fails = 0;
+				aep->last_error.clear();
+				aep->message = !resp.warning_message.empty() ? resp.warning_message : std::string();
 				int tracker_index = int(ae - m_trackers.data());
 				m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
