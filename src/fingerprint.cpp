@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/assert.hpp"
+#include <cstring> // for strlen
 
 namespace libtorrent {
 
