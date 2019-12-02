@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/version.hpp"
 
 #include <cstdint>
 

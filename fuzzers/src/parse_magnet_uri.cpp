@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/version.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {

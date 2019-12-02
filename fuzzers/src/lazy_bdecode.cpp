@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/version.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
