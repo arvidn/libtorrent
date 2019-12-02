@@ -45,7 +45,7 @@ namespace aux {
 
 	struct session_settings;
 
-	struct TORRENT_EXTRA_EXPORT proxy_settings
+	struct TORRENT_EXPORT proxy_settings
 	{
 		// defaults constructs proxy settings, initializing it to the default
 		// settings.
