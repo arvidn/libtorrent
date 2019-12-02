@@ -1,3 +1,4 @@
+	* clear tracker errors on success
 	* optimize setting with unlimited unchoke slots
 	* fixed restoring of trackers, comment, creation date and created-by in resume data
 	* fix handling of torrents with too large pieces
