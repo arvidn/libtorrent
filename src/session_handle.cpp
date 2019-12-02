@@ -232,6 +232,24 @@ namespace libtorrent {
 		return s->get_context();
 	}
 
+	void session_handle::set_dht_state(dht::dht_state const& st)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		async_call(&session_impl::set_dht_state, dht::dht_state(st));
+#else
+		TORRENT_UNUSED(st);
+#endif
+	}
+
+	void session_handle::set_dht_state(dht::dht_state&& st)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		async_call(&session_impl::set_dht_state, std::move(st));
+#else
+		TORRENT_UNUSED(st);
+#endif
+	}
+
 	torrent_handle session_handle::find_torrent(sha1_hash const& info_hash) const
 	{
 		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle, info_hash);

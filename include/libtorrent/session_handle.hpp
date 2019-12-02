@@ -206,6 +206,12 @@ namespace libtorrent {
 		// internal
 		io_context& get_context();
 
+		// set the DHT state for the session. This will be taken into account the
+		// next time the DHT is started, as if it had been passed in via the
+		// session_params on startup.
+		void set_dht_state(dht::dht_state const& st);
+		void set_dht_state(dht::dht_state&& st);
+
 		// ``find_torrent()`` looks for a torrent with the given info-hash. In
 		// case there is such a torrent in the session, a torrent_handle to that
 		// torrent is returned. In case the torrent cannot be found, an invalid
