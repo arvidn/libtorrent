@@ -358,12 +358,12 @@ namespace libtorrent { namespace {
 				}
 			}
 
-			bdecode_node p6 = pex_msg.dict_find("dropped6");
-#ifndef TORRENT_DISABLE_LOGGING
-			if (p6) num_dropped += p6.string_length() / 18;
-#endif
-			if (p6.type() == bdecode_node::string_t)
+			bdecode_node p6 = pex_msg.dict_find_string("dropped6");
+			if (p6)
 			{
+#ifndef TORRENT_DISABLE_LOGGING
+				num_dropped += p6.string_length() / 18;
+#endif
 				int const num_peers = p6.string_length() / 18;
 				char const* in = p6.string_ptr();
 
@@ -376,14 +376,12 @@ namespace libtorrent { namespace {
 				}
 			}
 
-			p6 = pex_msg.dict_find("added6");
+			p6 = pex_msg.dict_find_string("added6");
 #ifndef TORRENT_DISABLE_LOGGING
 			if (p6) num_added += p6.string_length() / 18;
 #endif
-			bdecode_node const p6f = pex_msg.dict_find("added6.f");
-			if (p6.type() == bdecode_node::string_t
-				&& p6f.type() == bdecode_node::string_t
-				&& p6f.string_length() == p6.string_length() / 18)
+			bdecode_node const p6f = pex_msg.dict_find_string("added6.f");
+			if (p6 && p6f && p6f.string_length() == p6.string_length() / 18)
 			{
 				int const num_peers = p6f.string_length();
 				char const* in = p6.string_ptr();

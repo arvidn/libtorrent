@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 #include "libtorrent/extensions.hpp"
+#include <memory> // for shared_ptr
 #endif
 
 namespace libtorrent {

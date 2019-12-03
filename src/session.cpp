@@ -286,7 +286,7 @@ namespace {
 		if (flags & session_handle::save_dht_settings)
 		{
 			settings = e.dict_find_dict("dht");
-			if (settings && settings.type() == bdecode_node::dict_t)
+			if (settings)
 			{
 				params.dht_settings = dht::read_dht_settings(settings);
 				aux::apply_deprecated_dht_settings(params.settings, settings);
