@@ -1,3 +1,4 @@
+	* fix issue of rapid calls to file_priority() clobbering each other
 	* clear tracker errors on success
 	* optimize setting with unlimited unchoke slots
 	* fixed restoring of trackers, comment, creation date and created-by in resume data

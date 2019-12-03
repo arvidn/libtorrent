@@ -254,7 +254,6 @@ TORRENT_TEST(total_wanted)
 	// the last set priority
 	h.file_priority(file_index_t{1}, default_priority);
 	h.file_priority(file_index_t{1}, dont_download);
-	TEST_EQUAL(h.status({}).total_wanted, 0);
 	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()))));
 	TEST_EQUAL(h.status({}).total_wanted, 0);
 }
