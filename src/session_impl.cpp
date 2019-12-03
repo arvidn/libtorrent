@@ -688,11 +688,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 	}
 
-	proxy_settings session_impl::proxy() const
-	{
-		return proxy_settings(m_settings);
-	}
-
 	void session_impl::load_state(bdecode_node const* e
 		, save_state_flags_t const flags)
 	{
@@ -796,7 +791,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// files in the previous file format, where the DHT settings were in
 			// its own dictionary
 			settings = e->dict_find_dict("dht");
-			if (settings && settings.type() == bdecode_node::dict_t)
+			if (settings)
 			{
 				settings_pack sett;
 				aux::apply_deprecated_dht_settings(sett, settings);
@@ -817,6 +812,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			ext->load_state(*e);
 		}
 #endif
+	}
+
+	proxy_settings session_impl::proxy() const
+	{
+		return proxy_settings(m_settings);
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

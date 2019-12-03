@@ -43,18 +43,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/array.hpp"
 
 #include <functional>
-#include <list>
 #include <utility> // for std::forward
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
 #include <bitset>
 
-namespace libtorrent {
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	struct plugin;
+#include "libtorrent/extensions.hpp"
+#include <memory> // for shared_ptr
+#include <list>
 #endif
+
+namespace libtorrent {
 
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
