@@ -484,6 +484,35 @@ TORRENT_TEST(no_metadata_piece_prio)
 	ses.remove_torrent(h);
 }
 
+TORRENT_TEST(file_priority_multiple_calls)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	error_code ec;
+	auto t = ::generate_torrent(true);
+
+	add_torrent_params addp;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.save_path = ".";
+	addp.ti = t;
+	torrent_handle h = ses.add_torrent(addp);
+
+	for (file_index_t const i : t->files().file_range())
+		h.file_priority(i, lt::low_priority);
+
+	std::vector<download_priority_t> const expected(
+		std::size_t(t->files().num_files()), lt::low_priority);
+	for (int i = 0; i < 10; ++i)
+	{
+		auto const p = h.get_file_priorities();
+		if (p == expected) return;
+		std::this_thread::sleep_for(milliseconds(500));
+	}
+	TEST_CHECK(false);
+}
+
 TORRENT_TEST(export_file_while_seed)
 {
 	settings_pack pack = settings();

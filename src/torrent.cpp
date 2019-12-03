@@ -227,6 +227,7 @@ bool is_downloading_state(int const st)
 		, m_downloaded(0xffffff)
 		, m_progress_ppm(0)
 		, m_torrent_initialized(false)
+		, m_outstanding_file_priority(false)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -4963,29 +4964,28 @@ bool is_downloading_state(int const st)
 	namespace
 	{
 		aux::vector<download_priority_t, file_index_t> fix_priorities(
-			aux::vector<download_priority_t, file_index_t> const& input
+			aux::vector<download_priority_t, file_index_t> input
 			, file_storage const* fs)
 		{
-			aux::vector<download_priority_t, file_index_t> files(input.begin(), input.end());
+			if (fs) input.resize(fs->num_files(), default_priority);
 
-			if (fs) files.resize(fs->num_files(), default_priority);
-
-			for (file_index_t i : files.range())
+			for (file_index_t i : input.range())
 			{
 				// initialize pad files to priority 0
-				if (files[i] > dont_download && fs && fs->pad_file_at(i))
-					files[i] = dont_download;
-				else if (files[i] > top_priority)
-					files[i] = top_priority;
+				if (input[i] > dont_download && fs && fs->pad_file_at(i))
+					input[i] = dont_download;
+				else if (input[i] > top_priority)
+					input[i] = top_priority;
 			}
 
-			return files;
+			return input;
 		}
 	}
 
 	void torrent::on_file_priority(storage_error const& err
 		, aux::vector<download_priority_t, file_index_t> prios)
 	{
+		m_outstanding_file_priority = false;
 		COMPLETE_ASYNC("file_priority");
 		if (m_file_priority != prios)
 		{
@@ -4994,23 +4994,43 @@ bool is_downloading_state(int const st)
 				recalc_share_mode();
 		}
 
-		if (!err) return;
+		if (err)
+		{
+			// in this case, some file priorities failed to get set
+			if (alerts().should_post<file_error_alert>())
+				alerts().emplace_alert<file_error_alert>(err.ec
+					, resolve_filename(err.file()), err.operation, get_handle());
 
-		// in this case, some file priorities failed to get set
-
-		if (alerts().should_post<file_error_alert>())
-			alerts().emplace_alert<file_error_alert>(err.ec
-				, resolve_filename(err.file()), err.operation, get_handle());
-
-		set_error(err.ec, err.file());
-		pause();
+			set_error(err.ec, err.file());
+			pause();
+		}
+		else if (!m_deferred_file_priorities.empty() && !m_abort)
+		{
+			auto new_priority = m_file_priority;
+			// resize the vector if we have to. The last item in the map has the
+			// highest file index.
+			auto const max_idx = std::prev(m_deferred_file_priorities.end())->first;
+			if (new_priority.end_index() <= max_idx)
+			{
+				// any unallocated slot is assumed to have the default priority
+				new_priority.resize(static_cast<int>(max_idx) + 1, default_priority);
+			}
+			for (auto const& p : m_deferred_file_priorities)
+			{
+				file_index_t const index = p.first;
+				download_priority_t const prio = p.second;
+				new_priority[index] = prio;
+			}
+			m_deferred_file_priorities.clear();
+			prioritize_files(std::move(new_priority));
+		}
 	}
 
-	void torrent::prioritize_files(aux::vector<download_priority_t, file_index_t> const& files)
+	void torrent::prioritize_files(aux::vector<download_priority_t, file_index_t> files)
 	{
 		INVARIANT_CHECK;
 
-		auto new_priority = fix_priorities(files
+		auto new_priority = fix_priorities(std::move(files)
 			, valid_metadata() ? &m_torrent_file->files() : nullptr);
 
 		// storage may be NULL during shutdown
@@ -5023,6 +5043,7 @@ bool is_downloading_state(int const st)
 			// possibly not fully updated.
 			update_piece_priorities(new_priority);
 
+			m_outstanding_file_priority = true;
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
@@ -5048,6 +5069,13 @@ bool is_downloading_state(int const st)
 		}
 
 		prio = aux::clamp(prio, dont_download, top_priority);
+
+		if (m_outstanding_file_priority)
+		{
+			m_deferred_file_priorities[index] = prio;
+			return;
+		}
+
 		auto new_priority = m_file_priority;
 		if (new_priority.end_index() <= index)
 		{
@@ -5066,6 +5094,7 @@ bool is_downloading_state(int const st)
 			// piece priorities still stay the same, but the file priorities are
 			// possibly not fully updated.
 			update_piece_priorities(new_priority);
+			m_outstanding_file_priority = true;
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
 				, std::move(new_priority), std::bind(&torrent::on_file_priority, shared_from_this(), _1, _2));
