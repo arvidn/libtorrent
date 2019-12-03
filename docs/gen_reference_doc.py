@@ -301,7 +301,10 @@ def parse_function(lno, lines, filename):
         start_paren += line.count('(')
         end_paren += line.count(')')
 
-        sig_line = line.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('//')[0].strip()
+        sig_line = line.replace('TORRENT_EXPORT ', '') \
+            .replace('TORRENT_EXTRA_EXPORT', '') \
+            .replace('TORRENT_COUNTER_NOEXCEPT', '') \
+            .split('//')[0].strip()
         if signature != '':
             sig_line = '\n   ' + sig_line
         signature += sig_line
@@ -354,7 +357,9 @@ def parse_class(lno, lines, filename):
 
     while lno < len(lines):
         line = lines[lno].strip()
-        decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
+        decl += lines[lno].replace('TORRENT_EXPORT ', '') \
+            .replace('TORRENT_EXTRA_EXPORT', '') \
+            .replace('TORRENT_COUNTER_NOEXCEPT', '').split('{')[0].strip()
         if '{' in line:
             break
         if verbose:

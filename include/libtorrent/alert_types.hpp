@@ -884,6 +884,9 @@ TORRENT_VERSION_NAMESPACE_2
 	// this alert is posted every time a piece completes downloading
 	// and passes the hash check. This alert derives from torrent_alert
 	// which contains the torrent_handle to the torrent the piece belongs to.
+	// Note that being downloaded and passing the hash check may happen before
+	// the piece is also fully flushed to disk. So torrent_handle::have_piece()
+	// may still return false
 	struct TORRENT_EXPORT piece_finished_alert final : torrent_alert
 	{
 		// internal

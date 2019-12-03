@@ -3198,7 +3198,19 @@ bool is_downloading_state(int const st)
 				a.min_announce = now + resp.min_interval;
 				a.updating = false;
 				a.fails = 0;
-				int tracker_index = int(ae - m_trackers.data());
+				a.last_error.clear();
+				a.message = !resp.warning_message.empty() ? resp.warning_message : std::string();
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+				if (v == protocol_version::V1)
+				{
+					aep->last_error.clear();
+					aep->message = a.message;
+					aep->fails = 0;
+				}
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+				int const tracker_index = int(ae - m_trackers.data());
 				m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
 				if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))

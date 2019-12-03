@@ -949,6 +949,68 @@ TORRENT_TEST(try_next)
 	TEST_EQUAL(got_announce, true);
 }
 
+TORRENT_TEST(clear_error)
+{
+	// make sure we clear the error from a previous attempt when succeeding
+	// a tracker announce
+
+	int num_announces = 0;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			// make sure we just listen on a single listen interface
+			pack.set_str(settings_pack::listen_interfaces, "123.0.0.3:0");
+			pack.set_int(settings_pack::min_announce_interval, 1);
+			pack.set_int(settings_pack::tracker_backoff, 1);
+			ses.apply_settings(pack);
+			p.trackers.push_back("http://tracker.com:8080/announce");
+			return 60;
+		},
+		[&](std::string method, std::string req, std::map<std::string, std::string>&)
+		{
+			// don't count the stopped event when shutting down
+			if (req.find("&event=stopped&") != std::string::npos)
+			{
+				return sim::send_response(200, "OK", 2) + "de";
+			}
+			if (num_announces++ == 0)
+			{
+				// the first announce fails
+				return std::string{};
+			}
+
+			// the second announce succeeds, with an empty peer list
+			char response[500];
+			int const size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](torrent_handle h) {
+
+		}
+		, [&](torrent_handle h)
+		{
+			std::vector<announce_entry> const tr = h.trackers();
+			TEST_EQUAL(tr.size(), 1);
+
+			std::printf("tracker \"%s\"\n", tr[0].url.c_str());
+			TEST_EQUAL(tr[0].url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(tr[0].endpoints.size(), 1);
+			auto const& aep = tr[0].endpoints[0];
+
+			TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
+			TEST_CHECK(!aep.info_hashes[protocol_version::V1].last_error);
+			TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
+
+#if TORRENT_ABI_VERSION <= 2
+			TEST_EQUAL(aep.fails, 0);
+			TEST_CHECK(!aep.last_error);
+			TEST_EQUAL(aep.message, "");
+#endif
+		});
+	TEST_EQUAL(num_announces, 2);
+}
+
 std::shared_ptr<torrent_info> make_torrent(bool priv)
 {
 	file_storage fs;

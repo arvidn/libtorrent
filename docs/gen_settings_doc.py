@@ -4,6 +4,7 @@ from __future__ import print_function
 f = open('../include/libtorrent/settings_pack.hpp')
 
 out = open('settings.rst', 'w+')
+all_names = set()
 
 
 def print_field(str, width):
@@ -18,6 +19,8 @@ def render_section(names, description, type, default_values):
     # add link targets for the rest of the manual to reference
     for n in names:
         print('.. _%s:\n' % n, file=out)
+        for w in n.split('_'):
+            all_names.add(w)
 
     if len(names) > 0:
         print('.. raw:: html\n', file=out)
@@ -125,5 +128,9 @@ for line in f:
 
         names.append(line)
 
+dictionary = open('hunspell/settings.dic', 'w+')
+for w in all_names:
+    dictionary.write(w + '\n')
+dictionary.close()
 out.close()
 f.close()

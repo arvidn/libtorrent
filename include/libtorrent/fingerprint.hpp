@@ -37,13 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
 
 	// This is a utility function to produce a client ID fingerprint formatted to
-	// the most common convention.
+	// the most common convention. The fingerprint can be set via the
+	// ``peer_fingerprint`` setting, in settings_pack.
 	//
 	// The name string should contain exactly two characters. These are the
 	// characters unique to your client, used to identify it. Make sure not to
@@ -52,27 +52,31 @@ namespace libtorrent {
 	// +----------+-----------------------+
 	// | id chars | client                |
 	// +==========+=======================+
-	// | 'AZ'     | Azureus               |
-	// +----------+-----------------------+
 	// | 'LT'     | libtorrent (default)  |
 	// +----------+-----------------------+
-	// | 'BX'     | BittorrentX           |
+	// | 'UT'     | uTorrent              |
 	// +----------+-----------------------+
-	// | 'MT'     | Moonlight Torrent     |
+	// | 'UM'     | uTorrent Mac          |
 	// +----------+-----------------------+
-	// | 'TS'     | Torrent Storm         |
+	// | 'qB'     | qBittorrent           |
 	// +----------+-----------------------+
-	// | 'SS'     | Swarm Scope           |
+	// | 'BP'     | BitTorrent Pro        |
 	// +----------+-----------------------+
-	// | 'XT'     | Xan Torrent           |
+	// | 'BT'     | BitTorrent            |
+	// +----------+-----------------------+
+	// | 'DE'     | Deluge                |
+	// +----------+-----------------------+
+	// | 'AZ'     | Azureus               |
+	// +----------+-----------------------+
+	// | 'TL'     | Tribler               |
 	// +----------+-----------------------+
 	//
 	// There's an informal directory of client id's here_.
 	//
 	// .. _here: http://wiki.theory.org/BitTorrentSpecification#peer_id
 	//
-	// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
-	// version of your client.
+	// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to
+	// identify the version of your client.
 	TORRENT_EXPORT std::string generate_fingerprint(std::string name
 		, int major, int minor = 0, int revision = 0, int tag = 0);
 
