@@ -19,13 +19,27 @@ of at least C++11 to build libtorrent.
 
 This also means libtorrent types now support move.
 
+listen interfaces
+=================
+
+There's a subtle change in how the ``listen_interfaces`` setting is interpreted
+in 1.2 compared to 1.1.
+
+In libtorrent-1.1, if you listen to ``0.0.0.0:6881`` (which was the default),
+not only would an IPv4 listen socket be opened (bound to INADDR_ANY) but also an
+IPv6 socket would be opened.
+
+In libtorrent-1.2, if you listen to ``0.0.0.0:6881`` only the IPv4 INADDR_ANY is
+opened as a listen socket. If you want to listen to both IPv4 and IPv6, you need
+to listen to ``0.0.0.0:6881,[::]:6881``.
+
 forward declaring libtorrent types deprecated
 =============================================
 
 Clients are discouraged from forward declaring types from libtorrent.
 Instead, include the <libtorrent/fwd.hpp> header.
 
-A future release will intrduce ABI versioning using an inline namespace, which will break any forward declarations by clients.
+A future release will introduce ABI versioning using an inline namespace, which will break any forward declarations by clients.
 
 There is a new namespace alias, ``lt`` which is shorthand for ``libtorrent``.
 In the future, ``libtorrent`` will be the alias and ``lt`` the namespace name.
@@ -88,7 +102,7 @@ boost replaced by std
 
 ``boost::shared_ptr`` has been replaced by ``std::shared_ptr`` in the libtorrent API.
 The same goes for ``<cstdint>`` types, instead of ``boost::int64_t``, libtorrent now uses ``std::int64_t``.
-Instead of ``boost::array``, ``std::array`` is used, and ``boost::function`` has been replaced by ``std::fuction``.
+Instead of ``boost::array``, ``std::array`` is used, and ``boost::function`` has been replaced by ``std::function``.
 
 strong typedefs
 ===============

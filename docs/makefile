@@ -107,8 +107,10 @@ $(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/li
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst
 	python filter-rst.py manual.rst >manual-plain.txt
 	python filter-rst.py settings.rst >settings-plain.txt
+	python filter-rst.py upgrade_to_1.2.rst >upgrade-1_2-plain.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l manual-plain.txt >hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-1_2-plain.txt >hunspell-report.txt
 #	hunspell -d hunspell/en_US -p hunspell/settings.dic -l settings-plain.txt >hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -H -l $(MANUAL_TARGETS:=.html) >>hunspell-report.txt
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
