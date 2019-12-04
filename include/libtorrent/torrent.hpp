@@ -1273,8 +1273,8 @@ namespace libtorrent {
 		// TODO: this wastes 5 bits per file
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 
-		// any file priority updateds attempted while another file priority update
-		// in in-progress/outstanding with the disk I/O thread, are queued up in
+		// any file priority updates attempted while another file priority update
+		// is in-progress/outstanding with the disk I/O thread, are queued up in
 		// this dictionary. Once the outstanding update comes back, all of these
 		// are applied in one batch
 		std::map<file_index_t, download_priority_t> m_deferred_file_priorities;
