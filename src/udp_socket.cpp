@@ -56,7 +56,7 @@ using namespace std::placeholders;
 std::size_t const tmp_buffer_size = 270;
 
 // used for SOCKS5 UDP wrapper header
-std::size_t const max_header_size = 25;
+std::size_t const max_header_size = 255;
 
 // this class hold the state of the SOCKS5 connection to maintain the UDP
 // ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
@@ -331,8 +331,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	iovec[1] = boost::asio::const_buffer(p.data(), static_cast<std::size_t>(p.size()));
 
 	// set the DF flag for the socket and clear it again in the destructor
-	set_dont_frag df(m_socket, (flags & dont_fragment)
-		&& is_v4(ep));
+	set_dont_frag df(m_socket, (flags & dont_fragment) && is_v4(ep));
 
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
@@ -348,7 +347,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	std::size_t const hostlen = std::min(std::strlen(hostname), std::size_t(255));
+	std::size_t const hostlen = std::min(std::strlen(hostname), max_header_size - 7);
 	write_uint8(hostlen, h); // hostname len
 	std::memcpy(h, hostname, hostlen);
 	h += hostlen;
