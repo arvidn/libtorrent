@@ -584,7 +584,7 @@ namespace libtorrent {
 		download_priority_t file_priority(file_index_t index) const;
 
 		void on_file_priority(storage_error const& err, aux::vector<download_priority_t, file_index_t> prios);
-		void prioritize_files(aux::vector<download_priority_t, file_index_t> const& files);
+		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
 
 		void cancel_non_critical();
@@ -1295,6 +1295,12 @@ namespace libtorrent {
 		// TODO: this wastes 5 bits per file
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 
+		// any file priority updates attempted while another file priority update
+		// is in-progress/outstanding with the disk I/O thread, are queued up in
+		// this dictionary. Once the outstanding update comes back, all of these
+		// are applied in one batch
+		std::map<file_index_t, download_priority_t> m_deferred_file_priorities;
+
 		// this object is used to track download progress of individual files
 		aux::file_progress m_file_progress;
 
@@ -1703,6 +1709,9 @@ namespace libtorrent {
 		// track in case it fails and need to be retried if the client clears
 		// the torrent error
 		bool m_torrent_initialized:1;
+
+		// this is set to true while waiting for an async_set_file_priority
+		bool m_outstanding_file_priority:1;
 
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once

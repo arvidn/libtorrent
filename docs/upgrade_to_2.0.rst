@@ -30,7 +30,7 @@ info-hashes
 -----------
 
 With bittorrent v2 support, each torrent may now have two separate info hashes,
-one sha-1 hash and one sha-256 hash. These are bundled in a new type called
+one SHA-1 hash and one SHA-256 hash. These are bundled in a new type called
 info_hash_t. Many places that previously took an info-hash as sha1_hash now
 takes an info_hash_t. For backwards compatibility, info_hash_t is implicitly
 convertible to and from sha1_hash and is interpreted as the v1 info-hash.
@@ -129,7 +129,7 @@ There is a new ``enum class`` called ``socket_type_t`` used to identify differen
 kinds of sockets. In previous versions of libtorrent this was exposed as plain
 ``int`` with subtly different sets of meanings.
 
-Previously there was an enum value ``udp``, which has been deprecated in favour of ``utp``.
+Previously there was an enum value ``udp``, which has been deprecated in favor of ``utp``.
 
 The socket type is exposed in the following alerts, which now use the ``socket_type_t``
 enum instead of ``int``:
@@ -147,7 +147,7 @@ DHT settings
 DHT configuration options have previously been set separately from the main client settings.
 In libtorrent 2.0 they have been unified into the main settings_pack.
 
-Hence, `lt::dht::dht_settings` is now deprecated, in favour of the new `dht_*`
+Hence, `lt::dht::dht_settings` is now deprecated, in favor of the new `dht_*`
 settings in settings_pack.
 
 Deprecating `dht_settings` also causes an API change to the dht custom storage
@@ -230,7 +230,7 @@ cache_size
 ----------
 
 The ``cache_size`` setting is no longer used. The caching of disk I/O is handled
-by the perating system.
+by the operating system.
 
 get_cache_info() get_cache_status()
 -----------------------------------

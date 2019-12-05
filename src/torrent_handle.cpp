@@ -543,6 +543,7 @@ namespace libtorrent {
 		return sync_call_ret<download_priority_t>(dont_download, &torrent::file_priority, index);
 	}
 
+	// TODO: support moving files into this call
 	void torrent_handle::prioritize_files(std::vector<download_priority_t> const& files) const
 	{
 		async_call(&torrent::prioritize_files

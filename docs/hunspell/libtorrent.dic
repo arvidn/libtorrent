@@ -32,6 +32,7 @@ asio
 uTP
 TCP
 UDP
+udp
 IP
 IPv4
 IPv6
@@ -67,6 +68,7 @@ CRC
 UTF
 bitfield
 RSS
+rss
 socks5
 socks4
 metadata
@@ -511,4 +513,13 @@ anonymization
 Tribler
 gzipped
 processes'
+versioning
+cstdint
+cloneable
+inline
+chrono
 destructors
+fclose
+fopen
+cxxstd
+uri
