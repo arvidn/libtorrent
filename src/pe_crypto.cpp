@@ -328,7 +328,7 @@ namespace libtorrent {
 
 	std::tuple<int, int, int> rc4_handler::decrypt(span<span<char>> bufs)
 	{
-		if (!m_decrypt) std::make_tuple(0, 0, 0);
+		if (!m_decrypt) return std::make_tuple(0, 0, 0);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)

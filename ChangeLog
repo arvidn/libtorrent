@@ -1,3 +1,4 @@
+	* fix bug in protocol encryption/obfuscation
 	* fix buffer overflow in SOCKS5 UDP logic
 	* fix issue of rapid calls to file_priority() clobbering each other
 	* clear tracker errors on success
