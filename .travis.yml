@@ -151,14 +151,14 @@ install:
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
        echo "using darwin : : ccache clang++ : ;" >> ~/user-config.jam;
-       echo "using darwin : ios_sim : ccache clang++ : <cflags>-std=c14 <compileflags>-Wno-deprecated-declarations
+       echo "using darwin : ios_sim : ccache clang++ : <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <compileflags>-mios-simulator-version-min=7
        <compileflags>-fobjc-abi-version=2
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
        <linkflags>-mios-simulator-version-min=7
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
-       echo "using darwin : ios : ccache clang++ : <cflags>-std=c14 <compileflags>-Wno-deprecated-declarations
+       echo "using darwin : ios : ccache clang++ : <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
        <compileflags>-mios-version-min=7
        <compileflags>\"-arch armv7\"
@@ -291,7 +291,7 @@ script:
 
   - cd $TRAVIS_BUILD_DIR;
   - if [[ $ios == "1" ]]; then
-      ${B2} -q darwin-ios darwin-ios_sim -j2 link=static;
+      ${B2} -j2 -q warnings-as-errors=on darwin-ios darwin-ios_sim link=static cxxstd=14;
     fi
 
 # a binary built with sanitizer does not interact well with python
