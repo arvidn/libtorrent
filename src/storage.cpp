@@ -777,7 +777,7 @@ namespace libtorrent {
 		span<byte const> file_range = handle->range();
 		if (std::int64_t(file_range.size()) <= file_offset)
 			return 0;
-		file_range = file_range.subspan(file_offset);
+		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
 		ph.update(file_range);
 

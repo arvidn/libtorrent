@@ -559,13 +559,13 @@ namespace aux {
 			}
 		}
 
-#ifdef TORRENT_WINDOWS
-#define fseek _fseeki64
+#ifdef _MSC_VER
+#define fseeko _fseeki64
 #endif
 
 		if (offset != 0)
 		{
-			if (fseek(f, offset, SEEK_SET) != 0)
+			if (fseeko(f, offset, SEEK_SET) != 0)
 			{
 				ec.ec.assign(errno, generic_category());
 				ec.file(idx);
