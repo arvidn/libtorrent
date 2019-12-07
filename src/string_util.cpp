@@ -149,6 +149,8 @@ namespace libtorrent {
 		return tmp;
 	}
 
+#if TORRENT_ABI_VERSION == 1 \
+	|| !defined TORRENT_DISABLE_LOGGING
 	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
 		std::string ret;
@@ -176,92 +178,101 @@ namespace libtorrent {
 
 		return ret;
 	}
+#endif
+
+	string_view strip_string(string_view in)
+	{
+		while (!in.empty() && is_space(in.front()))
+			in.remove_prefix(1);
+
+		while (!in.empty() && is_space(in.back()))
+			in.remove_suffix(1);
+		return in;
+	}
 
 	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
-	std::vector<listen_interface_t> parse_listen_interfaces(std::string const& in)
+	std::vector<listen_interface_t> parse_listen_interfaces(std::string const& in
+		, std::vector<std::string>& err)
 	{
 		std::vector<listen_interface_t> out;
 
-		std::string::size_type start = 0;
-
-		while (start < in.size())
+		string_view rest = in;
+		while (!rest.empty())
 		{
-			// skip leading spaces
-			while (start < in.size() && is_space(in[start]))
-				++start;
+			string_view element;
+			std::tie(element, rest) = split_string(rest, ',');
 
-			if (start == in.size()) return out;
+			element = strip_string(element);
+			if (element.size() > 1 && element.front() == '"' && element.back() == '"')
+				element = element.substr(1, element.size() - 2);
+			if (element.empty()) continue;
 
 			listen_interface_t iface;
 			iface.ssl = false;
 
-			if (in[start] == '[')
+			string_view port;
+			if (element.front() == '[')
 			{
-				++start;
-				// IPv6 address
-				while (start < in.size() && in[start] != ']')
-					iface.device += in[start++];
+				auto const pos = find_first_of(element, ']', 0);
+				if (pos == string_view::npos
+					|| pos+1 >= element.size()
+					|| element[pos+1] != ':')
+				{
+					err.emplace_back(element);
+					continue;
+				}
 
-				// skip to the colon
-				while (start < in.size() && in[start] != ':')
-					++start;
+				iface.device = strip_string(element.substr(1, pos - 1)).to_string();
+
+				port = strip_string(element.substr(pos + 2));
 			}
 			else
 			{
 				// consume device name
-				while (start < in.size() && !is_space(in[start]) && in[start] != ':')
-					iface.device += in[start++];
+				auto const pos = find_first_of(element, ':', 0);
+				iface.device = strip_string(element.substr(0, pos)).to_string();
+				if (pos == string_view::npos)
+				{
+					err.emplace_back(element);
+					continue;
+				}
+				port = strip_string(element.substr(pos + 1));
 			}
-
-			// skip spaces
-			while (start < in.size() && is_space(in[start]))
-				++start;
-
-			if (start == in.size() || in[start] != ':') return out;
-			++start; // skip colon
-
-			// skip spaces
-			while (start < in.size() && is_space(in[start]))
-				++start;
 
 			// consume port
-			std::string port;
-			while (start < in.size() && is_digit(in[start]) && in[start] != ',')
-				port += in[start++];
+			std::string port_str;
+			for (std::size_t i = 0; i < port.size() && is_digit(port[i]); ++i)
+				port_str += port[i];
 
-			if (port.empty() || port.size() > 5)
+			if (port_str.empty() || port_str.size() > 5)
 			{
-				iface.port = -1;
-			}
-			else
-			{
-				iface.port = std::atoi(port.c_str());
-				if (iface.port < 0 || iface.port > 65535) iface.port = -1;
+				err.emplace_back(element);
+				continue;
 			}
 
-			// skip spaces
-			while (start < in.size() && is_space(in[start]))
-				++start;
+			iface.port = std::atoi(port_str.c_str());
+			if (iface.port < 0 || iface.port > 65535)
+			{
+				err.emplace_back(element);
+				continue;
+			}
+
+			port.remove_prefix(port_str.size());
+			port = strip_string(port);
 
 			// consume potential SSL 's'
-			if (start < in.size() && in[start] == 's')
+			for (auto const c : port)
 			{
-				iface.ssl = true;
-				++start;
+				switch (c)
+				{
+					case 's': iface.ssl = true; break;
+				}
 			}
 
-			// skip until end or comma
-			while (start < in.size() && in[start] != ',')
-				++start;
-
-			if (iface.port >= 0) out.push_back(iface);
-
-			// skip the comma
-			if (start < in.size() && in[start] == ',')
-				++start;
-
+			TORRENT_ASSERT(iface.port >= 0);
+			out.emplace_back(iface);
 		}
 
 		return out;

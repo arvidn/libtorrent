@@ -5192,8 +5192,9 @@ namespace aux {
 		// this function maps the previous functionality of just setting the ssl
 		// listen port in order to enable the ssl listen sockets, to the new
 		// mechanism where SSL sockets are specified in listen_interfaces.
+		std::vector<std::string> ignore;
 		auto current_ifaces = parse_listen_interfaces(
-			m_settings.get_str(settings_pack::listen_interfaces));
+			m_settings.get_str(settings_pack::listen_interfaces), ignore);
 		// these are the current interfaces we have, first remove all the SSL
 		// interfaces
 		current_ifaces.erase(std::remove_if(current_ifaces.begin(), current_ifaces.end()
@@ -5227,16 +5228,18 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		std::string const net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
-		m_listen_interfaces = parse_listen_interfaces(net_interfaces);
+		std::vector<std::string> err;
+		m_listen_interfaces = parse_listen_interfaces(net_interfaces, err);
+
+		for (auto const& e : err)
+		{
+			m_alerts.emplace_alert<listen_failed_alert>(e, lt::address{}, 0
+				, operation_t::parse_address, errors::invalid_port, lt::socket_type_t::tcp);
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			if (!net_interfaces.empty() && m_listen_interfaces.empty())
-			{
-				session_log("ERROR: failed to parse listen_interfaces setting: %s"
-					, net_interfaces.c_str());
-			}
 			session_log("update listen interfaces: %s", net_interfaces.c_str());
 			session_log("parsed listen interfaces count: %d, ifaces: %s"
 				, int(m_listen_interfaces.size())
