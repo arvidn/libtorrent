@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/storage.hpp"
+#include "libtorrent/mmap_storage.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -72,7 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	default_storage::default_storage(storage_params const& params
+	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
 		: m_files(params.files)
 		, m_file_priority(params.priorities)
@@ -91,7 +91,7 @@ namespace libtorrent {
 #endif
 	}
 
-	default_storage::~default_storage()
+	mmap_storage::~mmap_storage()
 	{
 		error_code ec;
 		if (m_part_file) m_part_file->flush_metadata(ec);
@@ -101,7 +101,7 @@ namespace libtorrent {
 		m_pool.release(storage_index());
 	}
 
-	void default_storage::need_partfile()
+	void mmap_storage::need_partfile()
 	{
 		if (m_part_file) return;
 
@@ -110,7 +110,7 @@ namespace libtorrent {
 			, files().num_pieces(), files().piece_length());
 	}
 
-	void default_storage::set_file_priority(settings_interface const& sett
+	void mmap_storage::set_file_priority(settings_interface const& sett
 		, aux::vector<download_priority_t, file_index_t>& prio
 		, storage_error& ec)
 	{
@@ -215,20 +215,20 @@ namespace libtorrent {
 		}
 	}
 
-	bool default_storage::use_partfile(file_index_t const index) const
+	bool mmap_storage::use_partfile(file_index_t const index) const
 	{
 		TORRENT_ASSERT_VAL(index >= file_index_t{}, index);
 		if (index >= m_use_partfile.end_index()) return true;
 		return m_use_partfile[index];
 	}
 
-	void default_storage::use_partfile(file_index_t const index, bool const b)
+	void mmap_storage::use_partfile(file_index_t const index, bool const b)
 	{
 		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
 		m_use_partfile[index] = b;
 	}
 
-	void default_storage::initialize(settings_interface const& sett, storage_error& ec)
+	void mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -368,7 +368,7 @@ namespace libtorrent {
 		m_pool.release(storage_index());
 	}
 
-	bool default_storage::has_any_file(storage_error& ec)
+	bool mmap_storage::has_any_file(storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -394,7 +394,7 @@ namespace libtorrent {
 		return false;
 	}
 
-	void default_storage::rename_file(file_index_t const index, std::string const& new_filename
+	void mmap_storage::rename_file(file_index_t const index, std::string const& new_filename
 		, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
@@ -465,7 +465,7 @@ namespace libtorrent {
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void default_storage::release_files(storage_error&)
+	void mmap_storage::release_files(storage_error&)
 	{
 		if (m_part_file)
 		{
@@ -481,7 +481,7 @@ namespace libtorrent {
 		m_stat_cache.clear();
 	}
 
-	void default_storage::delete_files(remove_flags_t const options, storage_error& ec)
+	void mmap_storage::delete_files(remove_flags_t const options, storage_error& ec)
 	{
 		// make sure we don't have the files open
 		m_pool.release(storage_index());
@@ -494,7 +494,7 @@ namespace libtorrent {
 		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
 	}
 
-	bool default_storage::verify_resume_data(add_torrent_params const& rd
+	bool mmap_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
@@ -502,7 +502,7 @@ namespace libtorrent {
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
-	std::pair<status_t, std::string> default_storage::move_storage(std::string save_path
+	std::pair<status_t, std::string> mmap_storage::move_storage(std::string save_path
 		, move_flags_t const flags, storage_error& ec)
 	{
 		m_pool.release(storage_index());
@@ -517,7 +517,7 @@ namespace libtorrent {
 		return { ret, m_save_path };
 	}
 
-	int default_storage::readv(settings_interface const& sett
+	int mmap_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -596,7 +596,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::writev(settings_interface const& sett
+	int mmap_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -671,7 +671,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::hashv(settings_interface const& sett
+	int mmap_storage::hashv(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -741,7 +741,7 @@ namespace libtorrent {
 		});
 	}
 
-	int default_storage::hashv2(settings_interface const& sett
+	int mmap_storage::hashv2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const flags, storage_error& error)
@@ -786,7 +786,7 @@ namespace libtorrent {
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
 	// directories have been created and retries
-	boost::optional<aux::file_view> default_storage::open_file(settings_interface const& sett
+	boost::optional<aux::file_view> mmap_storage::open_file(settings_interface const& sett
 		, file_index_t const file
 		, aux::open_mode_t mode, storage_error& ec) const
 	{
@@ -844,7 +844,7 @@ namespace libtorrent {
 		return h;
 	}
 
-	boost::optional<aux::file_view> default_storage::open_file_impl(settings_interface const& sett
+	boost::optional<aux::file_view> mmap_storage::open_file_impl(settings_interface const& sett
 		, file_index_t file
 		, aux::open_mode_t mode
 		, error_code& ec) const
@@ -884,7 +884,7 @@ namespace libtorrent {
 		}
 	}
 
-	bool default_storage::tick()
+	bool mmap_storage::tick()
 	{
 		error_code ec;
 		if (m_part_file) m_part_file->flush_metadata(ec);

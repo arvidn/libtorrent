@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_manager.hpp" // for alert_manager

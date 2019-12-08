@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"

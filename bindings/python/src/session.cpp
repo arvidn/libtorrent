@@ -7,10 +7,8 @@
 #include <string>
 #include <libtorrent/session.hpp>
 #include <libtorrent/session_params.hpp>
-#include <libtorrent/storage.hpp>
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/ip_filter.hpp>
-#include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>

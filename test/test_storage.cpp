@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 #include "settings.hpp"
 
-#include "libtorrent/storage.hpp"
+#include "libtorrent/mmap_storage.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/hasher.hpp"
@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/disk_io_job.hpp"
-#include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -180,14 +179,14 @@ std::shared_ptr<StorageType> make_storage(storage_params const& p
 
 #if TORRENT_HAVE_MMAP
 template <>
-std::shared_ptr<default_storage> make_storage(storage_params const& p
+std::shared_ptr<mmap_storage> make_storage(storage_params const& p
 	, aux::file_view_pool& fp)
 {
-	return std::make_shared<default_storage>(p, fp);
+	return std::make_shared<mmap_storage>(p, fp);
 }
 #else
 template <>
-std::shared_ptr<default_storage> make_storage(storage_params const& p
+std::shared_ptr<mmap_storage> make_storage(storage_params const& p
 	, aux::file_view_pool& fp) = delete;
 #endif
 
@@ -225,7 +224,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::printf("default_storage::initialize %s: %d\n"
+		std::printf("mmap_storage::initialize %s: %d\n"
 			, se.ec.message().c_str(), static_cast<int>(se.file()));
 		throw system_error(se.ec);
 	}
@@ -234,7 +233,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 }
 
 #if TORRENT_HAVE_MMAP
-int writev(std::shared_ptr<default_storage> s
+int writev(std::shared_ptr<mmap_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
 	, piece_index_t const piece, int const offset
@@ -244,7 +243,7 @@ int writev(std::shared_ptr<default_storage> s
 	return s->writev(sett, bufs, piece, offset, mode, error);
 }
 
-int readv(std::shared_ptr<default_storage> s
+int readv(std::shared_ptr<mmap_storage> s
 	, aux::session_settings const& sett
 	, span<iovec_t const> bufs
 	, piece_index_t piece
@@ -255,7 +254,7 @@ int readv(std::shared_ptr<default_storage> s
 	return s->readv(sett, bufs, piece, offset, flags, ec);
 }
 
-void release_files(std::shared_ptr<default_storage> s, storage_error& ec)
+void release_files(std::shared_ptr<mmap_storage> s, storage_error& ec)
 {
 	s->release_files(ec);
 }
@@ -463,7 +462,7 @@ void test_remove(std::string const& test_path)
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::printf("default_storage::delete_files %s: %d\n"
+		std::printf("mmap_storage::delete_files %s: %d\n"
 			, se.ec.message().c_str(), static_cast<int>(se.file()));
 	}
 
@@ -496,7 +495,7 @@ void test_rename(std::string const& test_path)
 	s->rename_file(file_index_t(0), "new_filename", se);
 	if (se.ec)
 	{
-		std::printf("default_storage::rename_file failed: %s\n"
+		std::printf("mmap_storage::rename_file failed: %s\n"
 			, se.ec.message().c_str());
 	}
 	TEST_CHECK(!se.ec);
@@ -666,12 +665,12 @@ TORRENT_TEST(check_files_allocate)
 #if TORRENT_HAVE_MMAP
 TORRENT_TEST(rename_mmap_disk_io)
 {
-	test_rename<default_storage>(current_working_directory());
+	test_rename<mmap_storage>(current_working_directory());
 }
 
 TORRENT_TEST(remove_mmap_disk_io)
 {
-	test_remove<default_storage>(current_working_directory());
+	test_remove<mmap_storage>(current_working_directory());
 }
 #endif
 
@@ -1133,7 +1132,7 @@ TORRENT_TEST(iovec_advance_bufs)
 }
 
 #if TORRENT_HAVE_MMAP
-TORRENT_TEST(mmap_disk_io) { run_test<default_storage>(); }
+TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
 
@@ -1460,12 +1459,12 @@ void test_move_storage_into_self()
 #if TORRENT_HAVE_MMAP
 TORRENT_TEST(move_default_storage_to_self)
 {
-	test_move_storage_to_self<default_storage>();
+	test_move_storage_to_self<mmap_storage>();
 }
 
 TORRENT_TEST(move_default_storage_into_self)
 {
-	test_move_storage_into_self<default_storage>();
+	test_move_storage_into_self<mmap_storage>();
 }
 
 #endif
@@ -1506,7 +1505,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	std::vector<char> buf;
 	aux::file_view_pool fp;
 	io_context ios;
-	auto s = setup_torrent<default_storage>(fs, fp, buf, save_path, set);
+	auto s = setup_torrent<mmap_storage>(fs, fp, buf, save_path, set);
 
 	iovec_t b = {&buf[0], 4};
 	storage_error se;

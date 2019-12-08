@@ -81,7 +81,7 @@ category_mapping = {
     'storage_defs.hpp': 'Storage',
     'file_storage.hpp': 'Storage',
     'disk_interface.hpp': 'Custom Storage',
-    'disk_io_thread.hpp': 'Storage',
+    'mmap_disk_io.hpp': 'Storage',
     'disabled_disk_io.hpp': 'Storage',
     'posix_disk_io.hpp': 'Storage',
     'extensions.hpp': 'Plugins',

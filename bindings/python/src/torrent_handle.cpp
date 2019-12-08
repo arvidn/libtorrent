@@ -11,7 +11,6 @@
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_info.hpp>
 #include "libtorrent/announce_entry.hpp"
-#include <libtorrent/storage.hpp>
 #include <libtorrent/disk_interface.hpp>
 #include "gil.hpp"
 

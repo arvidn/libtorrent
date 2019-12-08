@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_params.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/file.hpp"
 
 using namespace lt;
 

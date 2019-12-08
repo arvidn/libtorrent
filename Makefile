@@ -305,7 +305,6 @@ SOURCES = \
   disk_buffer_pool.cpp            \
   disk_interface.cpp              \
   disk_io_job.cpp                 \
-  disk_io_thread.cpp              \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \
   disk_job_pool.cpp               \
@@ -340,6 +339,8 @@ SOURCES = \
   magnet_uri.cpp                  \
   merkle.cpp                      \
   mmap.cpp                        \
+  mmap_disk_io.cpp                \
+  mmap_storage.cpp                \
   natpmp.cpp                      \
   packet_buffer.cpp               \
   parse_url.cpp                   \
@@ -385,7 +386,6 @@ SOURCES = \
   stack_allocator.cpp             \
   stat.cpp                        \
   stat_cache.cpp                  \
-  storage.cpp                     \
   storage_utils.cpp               \
   string_util.cpp                 \
   time.cpp                        \
@@ -443,7 +443,6 @@ HEADERS = \
   disk_buffer_pool.hpp         \
   disk_interface.hpp           \
   disk_io_job.hpp              \
-  disk_io_thread.hpp           \
   disk_io_thread_pool.hpp      \
   disk_job_pool.hpp            \
   disk_observer.hpp            \
@@ -481,6 +480,8 @@ HEADERS = \
   link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \
+  mmap_disk_io.hpp             \
+  mmap_storage.hpp             \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
@@ -536,7 +537,6 @@ HEADERS = \
   stack_allocator.hpp          \
   stat.hpp                     \
   stat_cache.hpp               \
-  storage.hpp                  \
   storage_defs.hpp             \
   string_util.hpp              \
   string_view.hpp              \

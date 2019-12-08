@@ -64,14 +64,12 @@ namespace aux {
 	struct file_view;
 }
 
-	struct disk_io_thread;
-
-	struct TORRENT_EXTRA_EXPORT default_storage
-		: std::enable_shared_from_this<default_storage>
+	struct TORRENT_EXTRA_EXPORT mmap_storage
+		: std::enable_shared_from_this<mmap_storage>
 		, aux::disk_job_fence
 		, boost::noncopyable
 	{
-		// constructs the default_storage based on the give file_storage (fs).
+		// constructs the mmap_storage based on the give file_storage (fs).
 		// ``mapped`` is an optional argument (it may be nullptr). If non-nullptr it
 		// represents the file mapping that have been made to the torrent before
 		// adding it. That's where files are supposed to be saved and looked for
@@ -82,10 +80,10 @@ namespace aux {
 		// an empty vector. Any file whose index is not represented by the vector
 		// (because the vector is too short) are assumed to have priority 1.
 		// this is used to treat files with priority 0 slightly differently.
-		default_storage(storage_params const& params, aux::file_view_pool&);
+		mmap_storage(storage_params const& params, aux::file_view_pool&);
 
 		// hidden
-		~default_storage();
+		~mmap_storage();
 
 		bool has_any_file(storage_error&);
 		void set_file_priority(settings_interface const&

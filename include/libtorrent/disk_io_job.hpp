@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct default_storage;
+	struct mmap_storage;
 
 	enum class job_action_t : std::uint8_t
 	{
@@ -121,7 +121,7 @@ namespace libtorrent {
 			> argument;
 
 		// the disk storage this job applies to (if applicable)
-		std::shared_ptr<default_storage> storage;
+		std::shared_ptr<mmap_storage> storage;
 
 		// this is called when operation completes
 
