@@ -41,15 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#if defined __APPLE__ \
-	&& MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 \
-	&& OPENSSL_VERSION_NUMBER <= 0x009081dfL
-#define TORRENT_MACOS_DEPRECATED_LIBCRYPTO 1
-#endif
-
 #endif // TORRENT_USE_LIBCRYPTO
 
 #ifdef TORRENT_USE_OPENSSL
+
+#if OPENSSL_VERSION_NUMBER < 0x1000000fL
+#error OpenSSL too old, use a recent version with SNI support
+#endif
 
 // all of OpenSSL causes warnings, so we just have to disable them
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -65,12 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux {
 inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
 {
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
 	SSL_set_tlsext_host_name(s, name);
-#endif
 }
-
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
 
 inline void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
 	, int (*servername_callback)(SSL*, int*, void*))
@@ -92,8 +86,6 @@ inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 {
 	return sk_GENERAL_NAME_value(gens, i);
 }
-
-#endif // OPENSSL_VERSION_NUMBER
 
 }
 }

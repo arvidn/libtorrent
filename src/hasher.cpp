@@ -42,11 +42,6 @@ namespace libtorrent {
 
 TORRENT_CRYPTO_NAMESPACE
 
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 	hasher::hasher()
 	{
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -278,10 +273,6 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_close(m_context);
 #endif
 	}
-
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 
 TORRENT_CRYPTO_NAMESPACE_END
 

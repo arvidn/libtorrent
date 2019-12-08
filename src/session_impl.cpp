@@ -171,14 +171,7 @@ namespace {
 	// structures it allocates
 	struct openssl_cleanup
 	{
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 		~openssl_cleanup() { CRYPTO_cleanup_all_ex_data(); }
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 	} openssl_global_destructor;
 }
 #endif
@@ -400,11 +393,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
-#if defined TORRENT_USE_OPENSSL && OPENSSL_VERSION_NUMBER >= 0x90812f
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#if defined TORRENT_USE_OPENSSL
 	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
@@ -448,9 +437,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return SSL_TLSEXT_ERR_OK;
 	}
 	} // anonymous namespace
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 #endif
 
 	session_impl::session_impl(io_context& ioc, settings_pack const& pack
@@ -542,11 +528,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #ifdef TORRENT_USE_OPENSSL
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
 			, servername_callback);
 		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
-#endif // OPENSSL_VERSION_NUMBER
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
