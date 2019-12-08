@@ -60,7 +60,7 @@ struct proxy_base
 
 	void set_proxy(std::string hostname, int port)
 	{
-		m_hostname = hostname;
+		m_hostname = std::move(hostname);
 		m_port = port;
 	}
 

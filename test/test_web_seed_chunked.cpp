@@ -59,4 +59,3 @@ TORRENT_TEST(url_seed)
 {
 	run_http_suite(proxy, "http", 1, 1, 0);
 }
-

@@ -159,7 +159,6 @@ namespace {
 #ifdef TORRENT_USE_OPENSSL
 
 #include <openssl/crypto.h>
-#include <openssl/rand.h>
 
 // by openssl changelog at https://www.openssl.org/news/changelog.html
 // Changes between 1.0.2h and 1.1.0  [25 Aug 2016]
