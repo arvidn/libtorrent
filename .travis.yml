@@ -82,11 +82,12 @@ before_install:
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     cd ..;
-    wget --quiet https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.zip;
-    unzip -qq boost_1_68_0.zip;
-    export BOOST_ROOT=$PWD/boost_1_68_0;
-    cd boost_1_68_0/;
+    wget --quiet https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.zip;
+    unzip -qq boost_1_71_0.zip;
+    export BOOST_ROOT=$PWD/boost_1_71_0;
+    cd boost_1_71_0/;
     ./bootstrap.sh;
+    export PATH=$BOOST_ROOT/tools/build/src/engine/:$PATH;
     export PATH=$BOOST_ROOT:$PATH;
     fi'
 
@@ -138,6 +139,7 @@ install:
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
       echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
+        <cxxflags>-Wno-psabi
         <cxxflags>-fsigned-char
         <cxxflags>-march=armv8-a+crc
         <cxxflags>-mfpu=crypto-neon-fp-armv8
@@ -203,9 +205,9 @@ install:
 
   - 'if [[ "$arch" == "arm" ]]; then
       cd $TRAVIS_BUILD_DIR/test;
-      wget --quiet -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      wget --quiet -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/armv8l-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro.tar.xz;
-      export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
+      export PATH=${PWD}/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
       travis_retry sudo apt-get install -y qemu-user-static;
       wget --quiet -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
@@ -341,5 +343,7 @@ script:
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [[ "$arch" == "arm" ]];
     then
-      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.execute=off;
+      sudo cp -R bin rootfs/;
+      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs";
     fi'
