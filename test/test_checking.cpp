@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/file.hpp"
 
 namespace {
 

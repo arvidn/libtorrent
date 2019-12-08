@@ -45,7 +45,6 @@ set(libtorrent_include_files
 	disk_buffer_pool
 	disk_interface
 	disk_io_job
-	disk_io_thread
 	disk_io_thread_pool
 	disk_job_pool
 	disk_observer
@@ -81,6 +80,8 @@ set(libtorrent_include_files
 	link
 	lsd
 	magnet_uri
+	mmap_disk_io
+	mmap_storage
 	natpmp
 	netlink
 	operations
@@ -135,7 +136,6 @@ set(libtorrent_include_files
 	stack_allocator
 	stat
 	stat_cache
-	storage
 	storage_defs
 	string_util
 	string_view
@@ -358,7 +358,6 @@ set(sources
 	socks5_stream
 	stat
 	stat_cache
-	storage
 	storage_utils
 	time
 	timestamp_history
@@ -382,7 +381,6 @@ set(sources
 	disk_job_pool
 	disk_buffer_pool
 	disk_interface
-	disk_io_thread
 	disk_io_thread_pool
 	disabled_disk_io
 	enum_net
@@ -397,6 +395,8 @@ set(sources
 	peer_info
 	stack_allocator
 	mmap
+	mmap_disk_io
+	mmap_storage
 	posix_disk_io
 	posix_storage
 
