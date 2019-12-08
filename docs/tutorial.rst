@@ -186,7 +186,7 @@ file(s) are downloaded. There are two approaches to doing this:
 
 1. read every piece of the downloaded files from disk and compare it against its
    expected hash.
-2. save to disk the state of which pieces (and partial pieces) are downloaded,
+2. save, to disk, the state of which pieces (and partial pieces) are downloaded,
    and load it back in again when resuming.
 
 If no resume data is provided with a torrent that's added, libtorrent will
@@ -212,16 +212,14 @@ The save_resume_data_alert_ looks something like this:
 	{
 		virtual std::string message() const;
 
-		// points to the resume data.
-		std::shared_ptr<entry> resume_data;
+		// the resume data
+		add_torrent_params params;
 	};
 
-``resume_data`` points to an entry_ object. This represents a node or a tree of
-nodes in a bencoded_ structure, which is the native encoding scheme in
-bittorrent. It can be encoded into a byte buffer or file using `bencode()`_.
-
-When adding a torrent with resume data, set the `add_torrent_params::resume_data`_
-to contain the bencoded buffer of the resume data.
+The ``params`` field is an add_torrent_params_ object containing all the state
+to add the torrent back to the session again. This object can be serialized
+using `write_resume_data()`_ or `write_resume_data_buf()`_, and de-serialized
+with `read_resume_data()`_.
 
 example
 -------
@@ -304,5 +302,7 @@ __ https://blog.libtorrent.org/2015/03/bdecode-parsers/
 .. _`add_torrent_params::resume_data`: reference-Core.html#resume_data
 .. _`bdecode()`: reference-Bdecoding.html#bdecode()
 .. _bdecode_node: reference-Bdecoding.html#bdecode-node
-
+.. _`write_resume_data()`: http://libtorrent.org/reference-Core.html#write_resume_data()
+.. _`write_resume_data_buf()`: http://libtorrent.org/reference-Core.html#write_resume_data_buf()
+.. _`read_resume_data()`: reference-Core.html#read_resume_data()
 
