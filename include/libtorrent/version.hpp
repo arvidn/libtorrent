@@ -37,14 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define LIBTORRENT_VERSION_MAJOR 1
 #define LIBTORRENT_VERSION_MINOR 2
-#define LIBTORRENT_VERSION_TINY 2
+#define LIBTORRENT_VERSION_TINY 3
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "1.2.2.0"
-#define LIBTORRENT_REVISION "b2c3b4dbf"
+#define LIBTORRENT_VERSION "1.2.3.0"
+#define LIBTORRENT_REVISION "922aefbd5"
 
 namespace libtorrent {
 

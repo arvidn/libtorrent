@@ -179,7 +179,7 @@ else:
 
 setup(
     name='python-libtorrent',
-    version='1.2.2',
+    version='1.2.3',
     author='Arvid Norberg',
     author_email='arvid@libtorrent.org',
     description='Python bindings for libtorrent-rasterbar',

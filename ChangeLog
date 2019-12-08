@@ -1,3 +1,5 @@
+1.2.3 release
+
 	* promote errors in parsing listen_interfaces to post listen_failed_alert
 	* fix bug in protocol encryption/obfuscation
 	* fix buffer overflow in SOCKS5 UDP logic

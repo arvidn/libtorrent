@@ -45,7 +45,7 @@ else
 		: : $(boost-include-path) <include>/usr/local/include ;
 }
 
-VERSION = 1.2.2 ;
+VERSION = 1.2.3 ;
 
 rule linking ( properties * )
 {
