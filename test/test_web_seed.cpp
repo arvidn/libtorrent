@@ -49,4 +49,3 @@ TORRENT_TEST(web_seed)
 {
 	run_http_suite(proxy, "http", false);
 }
-

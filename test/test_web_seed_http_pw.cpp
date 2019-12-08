@@ -59,4 +59,3 @@ TORRENT_TEST(url_seed_http_pw_ssl)
 	run_http_suite(proxy, "https", true);
 }
 #endif
-

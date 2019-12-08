@@ -114,7 +114,6 @@ struct ssl_stream
 	void async_accept_handshake(Handler const& h)
 	{
 		// this is used for accepting SSL connections
-		using std::placeholders::_1;
 		m_sock->async_handshake(ssl::stream_base::server, wrap_allocator(
 			[this](error_code const& ec, Handler hn) {
 				handshake(ec, std::move(hn));

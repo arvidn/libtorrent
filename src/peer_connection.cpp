@@ -84,10 +84,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
-#include <openssl/rand.h>
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cstdarg> // for va_start, va_end
 #include <cstdio> // for vsnprintf

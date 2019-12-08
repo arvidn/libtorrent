@@ -49,4 +49,3 @@ TORRENT_TEST(web_seed_socks5_no_peers)
 {
 	run_http_suite(proxy, "http", false, false, false, false, false, false);
 }
-
