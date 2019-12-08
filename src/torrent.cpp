@@ -1347,10 +1347,6 @@ bool is_downloading_state(int const st)
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
 	bool torrent::verify_peer_cert(bool const preverified, boost::asio::ssl::verify_context& ctx)
 	{
@@ -1548,9 +1544,6 @@ bool is_downloading_state(int const st)
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
 	}
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 #endif // TORRENT_OPENSSL
 
 	void torrent::construct_storage()
@@ -7171,10 +7164,6 @@ bool is_downloading_state(int const st)
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -7207,9 +7196,6 @@ bool is_downloading_state(int const st)
 				return false;
 			}
 		}
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 #else // TORRENT_USE_OPENSSL
 		if (is_ssl_torrent())
 		{

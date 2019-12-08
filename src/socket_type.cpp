@@ -186,38 +186,27 @@ namespace aux {
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
 #ifdef TORRENT_USE_OPENSSL
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 
 		set_ssl_hostname_visitor visitor{hostname.c_str(), ec};
 		boost::apply_visitor(visitor, s);
 
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
 		if (visitor.ctx_)
 		{
 			aux::openssl_set_tlsext_servername_callback(visitor.ctx_, nullptr);
 			aux::openssl_set_tlsext_servername_arg(visitor.ctx_, nullptr);
 		}
-#endif // OPENSSL_VERSION_NUMBER
 
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 		if (visitor.ssl_)
 		{
 			aux::openssl_set_tlsext_hostname(visitor.ssl_, hostname.c_str());
 		}
-#endif
 
 #else
 		TORRENT_UNUSED(ec);
 		TORRENT_UNUSED(hostname);
 		TORRENT_UNUSED(s);
-#endif
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
 #endif
 	}
 

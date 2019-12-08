@@ -658,7 +658,11 @@ set_package_properties(OpenSSL
 
 if(OPENSSL_FOUND)
 	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_OPENSSL)
+	target_compile_definitions(torrent-rasterbar
+		PUBLIC
+			TORRENT_USE_LIBCRYPTO
+			TORRENT_USE_OPENSSL
+			OPENSSL_NO_SSL2)
 	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
 endif()
 

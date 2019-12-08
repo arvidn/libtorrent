@@ -1,5 +1,6 @@
 2.0 release
 
+	* requires OpenSSL minimum version 1.0.0 with SNI support
 	* deprecated save_state() and load_state() on session in favour of new
 	  write_session_params() and read_session_params()
 	* added support for BitTorrent v2 (see docs/upgrade_to_2.0.html)

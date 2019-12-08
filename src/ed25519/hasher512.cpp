@@ -38,11 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace aux {
 
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 	hasher512::hasher512()
 	{
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -149,8 +144,5 @@ namespace aux {
 	hasher512::~hasher512() = default;
 #endif
 
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 }
 }
