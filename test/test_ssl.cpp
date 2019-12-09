@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/asio/connect.hpp>
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 #include <boost/asio/ssl.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -635,5 +635,5 @@ TORRENT_TEST(tcp_config7) { test_ssl(7, false); }
 TORRENT_TEST(tcp_config8) { test_ssl(8, false); }
 #else
 TORRENT_TEST(disabled) {}
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_SSL_PEERS
 

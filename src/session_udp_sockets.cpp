@@ -77,7 +77,7 @@ namespace libtorrent { namespace aux {
 
 		utp_socket_impl* impl = nullptr;
 		transport ssl = transport::plaintext;
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		if (boost::get<ssl_stream<utp_stream>>(&s) != nullptr)
 		{
 			impl = boost::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();

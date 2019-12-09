@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 // there is no forward declaration header for asio
 namespace boost {
 namespace asio {
@@ -288,8 +288,10 @@ namespace aux {
 		virtual void inc_boost_connections() = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		virtual libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
+#endif
+#ifdef TORRENT_USE_OPENSSL
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 

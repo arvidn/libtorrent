@@ -220,7 +220,7 @@ namespace aux {
 			aux::socket_type c(aux::instantiate_connection(m_ios, aux::proxy_settings(), m_ssl_context, this, true, false));
 
 			utp_stream* str = nullptr;
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			if (is_ssl(c))
 				str = &boost::get<ssl_stream<utp_stream>>(c).next_layer();
 			else

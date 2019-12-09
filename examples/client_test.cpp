@@ -748,7 +748,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	}
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;

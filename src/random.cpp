@@ -129,11 +129,22 @@ namespace aux {
 			dev.read(buffer);
 
 #elif defined TORRENT_USE_LIBCRYPTO
+
+#if defined TORRENT_USE_WOLFSSL
+// wolfSSL uses wc_RNG_GenerateBlock as the internal function for the
+// openssl compatibility layer. This function API does not support
+// an arbitrary buffer size (openssl does), it is limited by the
+// constant RNG_MAX_BLOCK_LEN.
+// TODO: improve calling RAND_bytes multiple times, using fallback for now
+			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
+#else // TORRENT_USE_WOLFSSL
 			// openssl
 
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+#endif
+
 #else
 			// fallback
 

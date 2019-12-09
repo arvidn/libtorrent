@@ -886,7 +886,7 @@ This setting is only taken into account when the normal listen socket is opened
 socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
 This feature is only available if libtorrent is build with openssl support
-(``TORRENT_USE_OPENSSL``) and requires at least OpenSSL version 1.0, since it
+(``TORRENT_SSL_PEERS``) and requires at least OpenSSL version 1.0, since it
 needs SNI support.
 
 Peer certificates must have at least one *SubjectAltName* field of type

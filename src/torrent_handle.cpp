@@ -358,7 +358,7 @@ namespace libtorrent {
 		, std::string const& dh_params
 		, std::string const& passphrase)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		async_call(&torrent::set_ssl_cert, certificate, private_key, dh_params, passphrase);
 #else
 		TORRENT_UNUSED(certificate);
@@ -373,7 +373,7 @@ namespace libtorrent {
 		, std::string const& private_key
 		, std::string const& dh_params)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		async_call(&torrent::set_ssl_cert_buffer, certificate, private_key, dh_params);
 #else
 		TORRENT_UNUSED(certificate);

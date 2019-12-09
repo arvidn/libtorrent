@@ -59,13 +59,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <functional>
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 #include "libtorrent/ssl_stream.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_SSL_PEERS
 
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -1346,7 +1346,7 @@ bool is_downloading_state(int const st)
 
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 
 	bool torrent::verify_peer_cert(bool const preverified, boost::asio::ssl::verify_context& ctx)
 	{
@@ -1466,8 +1466,8 @@ bool is_downloading_state(int const st)
 		}
 
 		ctx->set_options(context::default_workarounds
-			| boost::asio::ssl::context::no_sslv2
-			| boost::asio::ssl::context::single_dh_use);
+			| context::no_sslv2
+			| context::single_dh_use);
 
 		error_code ec;
 		ctx->set_verify_mode(context::verify_peer
@@ -1602,7 +1602,7 @@ bool is_downloading_state(int const st)
 		if (!cert.empty())
 		{
 			m_ssl_torrent = true;
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			init_ssl(cert);
 #endif
 		}
@@ -2485,7 +2485,7 @@ bool is_downloading_state(int const st)
 		// TODO: this pattern is repeated in a few places. Factor this into
 		// a function and generalize the concept of a torrent having a
 		// dedicated listen port
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		int port = is_ssl_torrent() ? m_ses.ssl_listen_port() : m_ses.listen_port();
 #else
 		int port = m_ses.listen_port();
@@ -2733,7 +2733,7 @@ bool is_downloading_state(int const st)
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
 		req.left = value_or(bytes_left(), 16*1024);
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		// if this torrent contains an SSL certificate, make sure
 		// any SSL tracker presents a certificate signed by it
 		req.ssl_ctx = m_ssl_ctx.get();
@@ -2931,7 +2931,7 @@ bool is_downloading_state(int const st)
 							, (req.event == event_t::stopped ? "stopped"
 								: req.event == event_t::started ? "started" : "")
 							, m_abort
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 							, static_cast<void*>(req.ssl_ctx)
 #else
 							, static_cast<void*>(nullptr)
@@ -5497,7 +5497,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 	namespace {
 		std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
 			, std::string pw)
@@ -6142,7 +6142,9 @@ bool is_downloading_state(int const st)
 		const bool ssl = string_begins_no_case("https://", web->url.c_str());
 		if (ssl)
 		{
+#ifdef TORRENT_SSL_PEERS
 			userdata = m_ssl_ctx.get();
+#endif
 			if (!userdata) userdata = m_ses.ssl_ctx();
 		}
 #endif
@@ -6799,7 +6801,7 @@ bool is_downloading_state(int const st)
 
 	}
 
-#if defined TORRENT_USE_OPENSSL
+#if defined TORRENT_SSL_PEERS
 	struct hostname_visitor
 	{
 		explicit hostname_visitor(std::string const& h) : hostname_(h) {}
@@ -6924,7 +6926,7 @@ bool is_downloading_state(int const st)
 #endif
 		{
 			void* userdata = nullptr;
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			if (is_ssl_torrent())
 			{
 				userdata = m_ssl_ctx.get();
@@ -6937,7 +6939,7 @@ bool is_downloading_state(int const st)
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
 				, m_ses.proxy(), userdata, sm, true, false);
 
-#if defined TORRENT_USE_OPENSSL
+#if defined TORRENT_SSL_PEERS
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
@@ -7163,7 +7165,7 @@ bool is_downloading_state(int const st)
 	{
 //		INVARIANT_CHECK;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -7196,7 +7198,7 @@ bool is_downloading_state(int const st)
 				return false;
 			}
 		}
-#else // TORRENT_USE_OPENSSL
+#else // TORRENT_SSL_PEERS
 		if (is_ssl_torrent())
 		{
 			// Don't accidentally allow seeding of SSL torrents, just
@@ -7204,7 +7206,7 @@ bool is_downloading_state(int const st)
 			p->disconnect(errors::requires_ssl_connection, operation_t::ssl_handshake);
 			return false;
 		}
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_SSL_PEERS
 
 		TORRENT_ASSERT(p != nullptr);
 		TORRENT_ASSERT(!p->is_outgoing());
