@@ -2263,7 +2263,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				, nullptr, nullptr, true, false));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
-		i2p_stream& s = boost::get<i2p_stream>(*m_i2p_listen_socket);
+		i2p_stream& s = std::get<i2p_stream>(*m_i2p_listen_socket);
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
 
@@ -2685,7 +2685,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-			boost::get<ssl_stream<tcp::socket>>(**iter).async_accept_handshake(
+			std::get<ssl_stream<tcp::socket>>(**iter).async_accept_handshake(
 				std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
 		}
 		else
@@ -2709,7 +2709,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-		boost::get<ssl_stream<utp_stream>>(**iter).async_accept_handshake(
+		std::get<ssl_stream<utp_stream>>(**iter).async_accept_handshake(
 			std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
 	}
 
@@ -2802,7 +2802,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_tcp)
-			&& boost::get<tcp::socket>(&s))
+			&& std::get_if<tcp::socket>(&s))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("<== INCOMING CONNECTION [ rejected TCP connection ]");
@@ -4927,14 +4927,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			utp_socket_impl* impl = nullptr;
 			transport ssl = transport::plaintext;
 #ifdef TORRENT_USE_OPENSSL
-			if (boost::get<ssl_stream<utp_stream>>(&s) != nullptr)
+			if (std::get<ssl_stream<utp_stream>>(&s) != nullptr)
 			{
-				impl = boost::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
+				impl = std::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
 				ssl = transport::ssl;
 			}
 			else
 #endif
-				impl = boost::get<utp_stream>(s).get_impl();
+				impl = std::get<utp_stream>(s).get_impl();
 
 			std::vector<std::shared_ptr<listen_socket_t>> with_gateways;
 			std::shared_ptr<listen_socket_t> match;

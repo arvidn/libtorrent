@@ -63,8 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 
-#include <boost/variant/get.hpp>
-
 using namespace std::placeholders;
 using namespace lt;
 

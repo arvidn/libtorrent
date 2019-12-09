@@ -600,7 +600,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	status_t mmap_disk_io::do_read(disk_io_job* j)
 	{
 		j->argument = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
-		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
+		auto& buffer = std::get<disk_buffer_holder>(j->argument);
 		if (!buffer)
 		{
 			j->error.ec = error::no_memory;
@@ -635,7 +635,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	status_t mmap_disk_io::do_write(disk_io_job* j)
 	{
 		time_point const start_time = clock_type::now();
-		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
+		auto buffer = std::move(std::get<disk_buffer_holder>(j->argument));
 
 		iovec_t const b = { buffer.data(), j->d.io.buffer_size};
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
@@ -760,7 +760,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT((r.start % default_block_size) == 0);
 
 		m_store_buffer.insert({j->storage->storage_index(), j->piece, j->d.io.offset}
-			, boost::get<disk_buffer_holder>(j->argument).data());
+			, std::get<disk_buffer_holder>(j->argument).data());
 
 		if (j->storage->is_blocked(j))
 		{
@@ -1060,10 +1060,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if files have to be closed, that's the storage's responsibility
 		status_t ret;
 		std::string p;
-		std::tie(ret, p) = j->storage->move_storage(boost::get<std::string>(j->argument)
+		std::tie(ret, p) = j->storage->move_storage(std::get<std::string>(j->argument)
 			, j->move_flags, j->error);
 
-		boost::get<std::string>(j->argument) = p;
+		std::get<std::string>(j->argument) = p;
 		return ret;
 	}
 
@@ -1077,11 +1077,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_delete_files(disk_io_job* j)
 	{
-		TORRENT_ASSERT(boost::get<remove_flags_t>(j->argument));
+		TORRENT_ASSERT(std::get<remove_flags_t>(j->argument));
 
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-		j->storage->delete_files(boost::get<remove_flags_t>(j->argument), j->error);
+		j->storage->delete_files(std::get<remove_flags_t>(j->argument), j->error);
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
 
@@ -1090,7 +1090,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
-		add_torrent_params const* rd = boost::get<add_torrent_params const*>(j->argument);
+		add_torrent_params const* rd = std::get<add_torrent_params const*>(j->argument);
 		add_torrent_params tmp;
 		if (rd == nullptr) rd = &tmp;
 
@@ -1151,7 +1151,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		// if files need to be closed, that's the storage's responsibility
-		j->storage->rename_file(j->file_index, boost::get<std::string>(j->argument)
+		j->storage->rename_file(j->file_index, std::get<std::string>(j->argument)
 			, j->error);
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
@@ -1186,7 +1186,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	status_t mmap_disk_io::do_file_priority(disk_io_job* j)
 	{
 		j->storage->set_file_priority(m_settings
-			, boost::get<aux::vector<download_priority_t, file_index_t>>(j->argument)
+			, std::get<aux::vector<download_priority_t, file_index_t>>(j->argument)
 			, j->error);
 		return status_t::no_error;
 	}

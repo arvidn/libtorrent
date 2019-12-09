@@ -35,10 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/variant/variant.hpp>
-#include <boost/variant/get.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <variant>
 
 namespace libtorrent {
 namespace aux {
@@ -48,12 +45,12 @@ namespace aux {
 	{ using type = T; };
 
 #define TORRENT_FWD_CALL(x) \
-	return boost::apply_visitor([&](auto& s){ return s.x; }, *this)
+	return std::visit([&](auto& s){ return s.x; }, this->var())
 
 	template <typename... Sockets>
-	struct polymorphic_socket
-		: boost::variant<Sockets...>
+	struct polymorphic_socket : std::variant<Sockets...>
 	{
+		using base = std::variant<Sockets...>;
 		using first_socket = typename first_element<Sockets...>::type;
 		using endpoint_type = typename first_socket::endpoint_type;
 		using protocol_type = typename first_socket::protocol_type;
@@ -63,8 +60,11 @@ namespace aux {
 
 		using executor_type = typename first_socket::executor_type;
 
+		base& var() { return static_cast<base&>(*this); }
+		base const& var() const { return static_cast<base const&>(*this); }
+
 		template <typename S>
-		explicit polymorphic_socket(S s) : boost::variant<Sockets...>(std::move(s))
+		explicit polymorphic_socket(S s) : std::variant<Sockets...>(std::move(s))
 		{
 			static_assert(std::is_nothrow_move_constructible<S>::value
 				, "should really be nothrow move contsructible, since it's part of a variant");

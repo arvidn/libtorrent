@@ -1332,7 +1332,7 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_I2P
-		auto* i2ps = boost::get<i2p_stream>(&m_socket);
+		auto* i2ps = std::get_if<i2p_stream>(&m_socket);
 		if (!i2ps && t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
 		{

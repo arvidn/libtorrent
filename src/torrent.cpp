@@ -6210,11 +6210,11 @@ bool is_downloading_state(int const st)
 		aux::socket_type s = instantiate_connection(m_ses.get_context()
 			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (boost::get<http_stream>(&s))
+		if (std::get_if<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			boost::get<http_stream>(s).set_no_connect(true);
+			std::get<http_stream>(s).set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6235,9 +6235,9 @@ bool is_downloading_state(int const st)
 			&& !is_ip;
 
 		if (proxy_hostnames
-			&& (boost::get<socks5_stream>(&s)
+			&& (std::get_if<socks5_stream>(&s)
 #ifdef TORRENT_USE_OPENSSL
-				|| boost::get<ssl_stream<socks5_stream>>(&s)
+				|| std::get_if<ssl_stream<socks5_stream>>(&s)
 #endif
 				))
 		{
@@ -6245,9 +6245,9 @@ bool is_downloading_state(int const st)
 			// hostnames through it
 			socks5_stream& str =
 #ifdef TORRENT_USE_OPENSSL
-				ssl ? boost::get<ssl_stream<socks5_stream>>(s).next_layer() :
+				ssl ? std::get<ssl_stream<socks5_stream>>(s).next_layer() :
 #endif
-			boost::get<socks5_stream>(s);
+			std::get<socks5_stream>(s);
 
 			str.set_dst_name(hostname);
 		}
@@ -6976,9 +6976,9 @@ bool is_downloading_state(int const st)
 			// everything via i2p.
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
 				, m_ses.i2p_proxy(), nullptr, nullptr, false, false);
-			boost::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			boost::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
-			boost::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
+			std::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+			std::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
+			std::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
 			return ret;
 		}
 		else
@@ -7005,7 +7005,7 @@ bool is_downloading_state(int const st)
 				std::string const host_name = aux::to_hex(
 					m_torrent_file->info_hash().get(peerinfo->protocol()));
 
-				boost::apply_visitor(hostname_visitor{host_name}, ret);
+				std::visit(hostname_visitor{host_name}, ret.var());
 			}
 #endif
 			return ret;
@@ -7230,7 +7230,7 @@ bool is_downloading_state(int const st)
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			aux::socket_type& s = p->get_socket();
 
-			SSL* const ssl_conn = boost::apply_visitor(ssl_native_handle_visitor{}, s);
+			SSL* const ssl_conn = std::visit(ssl_native_handle_visitor{}, s.var());
 
 			if (ssl_conn == nullptr)
 			{
