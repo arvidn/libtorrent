@@ -481,13 +481,13 @@ void http_connection::close(bool force)
 #if TORRENT_USE_I2P
 void http_connection::connect_i2p_tracker(char const* destination)
 {
-	TORRENT_ASSERT(boost::get<i2p_stream>(m_sock.get_ptr()));
+	TORRENT_ASSERT(std::get_if<i2p_stream>(m_sock.get_ptr()));
 #ifdef TORRENT_USE_OPENSSL
 	TORRENT_ASSERT(m_ssl == false);
 #endif
-	boost::get<i2p_stream>(*m_sock).set_destination(destination);
-	boost::get<i2p_stream>(*m_sock).set_command(i2p_stream::cmd_connect);
-	boost::get<i2p_stream>(*m_sock).set_session_id(m_i2p_conn->session_id());
+	std::get<i2p_stream>(*m_sock).set_destination(destination);
+	std::get<i2p_stream>(*m_sock).set_command(i2p_stream::cmd_connect);
+	std::get<i2p_stream>(*m_sock).set_session_id(m_i2p_conn->session_id());
 	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
 	TORRENT_ASSERT(!m_connecting);
 	m_connecting = true;
@@ -572,14 +572,14 @@ void http_connection::connect()
 #ifdef TORRENT_USE_OPENSSL
 			if (m_ssl)
 			{
-				TORRENT_ASSERT(boost::get<ssl_stream<socks5_stream>>(m_sock.get_ptr()));
-				boost::get<ssl_stream<socks5_stream>>(*m_sock).next_layer().set_dst_name(m_hostname);
+				TORRENT_ASSERT(std::get_if<ssl_stream<socks5_stream>>(m_sock.get_ptr()));
+				std::get<ssl_stream<socks5_stream>>(*m_sock).next_layer().set_dst_name(m_hostname);
 			}
 			else
 #endif
 			{
-				TORRENT_ASSERT(boost::get<socks5_stream>(m_sock.get_ptr()));
-				boost::get<socks5_stream>(*m_sock).set_dst_name(m_hostname);
+				TORRENT_ASSERT(std::get_if<socks5_stream>(m_sock.get_ptr()));
+				std::get<socks5_stream>(*m_sock).set_dst_name(m_hostname);
 			}
 		}
 		else
