@@ -19,6 +19,11 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+1.2.3 release
+
+	* promote errors in parsing listen_interfaces to post listen_failed_alert
+	* fix bug in protocol encryption/obfuscation
+	* fix buffer overflow in SOCKS5 UDP logic
 	* fix issue of rapid calls to file_priority() clobbering each other
 	* clear tracker errors on success
 	* optimize setting with unlimited unchoke slots
