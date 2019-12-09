@@ -393,7 +393,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
-#if defined TORRENT_USE_OPENSSL
+#if defined TORRENT_SSL_PEERS
 	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
@@ -443,8 +443,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_context(ioc)
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_SSL_PEERS
 		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
+#elif defined TORRENT_USE_OPENSSL
+		, m_ssl_ctx(boost::asio::ssl::context::sslv23_client)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
@@ -480,7 +482,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			, [this](socket_type s) { this->incoming_connection(std::move(s)); }
 			, m_io_context
 			, m_settings, m_stats_counters, nullptr)
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		, m_ssl_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
@@ -528,6 +530,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #ifdef TORRENT_USE_OPENSSL
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+#endif
+#ifdef TORRENT_SSL_PEERS
 		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
 			, servername_callback);
 		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
@@ -946,7 +950,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 		m_lsd_announce_timer.cancel();
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		for (auto& s : m_incoming_sockets)
 		{
 			s->close(ec);
@@ -1154,7 +1158,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		bool const use_ssl = req.ssl_ctx != nullptr && req.ssl_ctx != &m_ssl_ctx;
 		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
 #endif
@@ -1166,7 +1170,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			req.key ^= ls->tracker_key;
 
 			req.listen_port =
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
 				use_ssl ? ssl_listen_port(ls) :
 #endif
@@ -1177,12 +1181,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		{
 			for (auto& ls : m_listen_sockets)
 			{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 				if ((ls->ssl == transport::ssl) != use_ssl) continue;
 #endif
 				tracker_request socket_req(req);
 				socket_req.listen_port =
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 				// SSL torrents use the SSL listen port
 					use_ssl ? ssl_listen_port(ls.get()) :
 #endif
@@ -1895,7 +1899,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			int const port = iface.port;
 			transport const ssl = iface.ssl ? transport::ssl : transport::plaintext;
 
-#ifndef TORRENT_USE_OPENSSL
+#ifndef TORRENT_SSL_PEERS
 			if (ssl == transport::ssl)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2097,7 +2101,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		for (auto const& iface : m_outgoing_interfaces)
 		{
 			interface_to_endpoints(iface, 0, transport::plaintext, duplex::accept_incoming, eps);
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			interface_to_endpoints(iface, 0, transport::ssl, duplex::accept_incoming, eps);
 #endif
 		}
@@ -2108,7 +2112,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext);
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext);
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			eps.emplace_back(address_v4(), 0, "", transport::ssl);
 			eps.emplace_back(address_v6(), 0, "", transport::ssl);
 #endif
@@ -2439,7 +2443,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		s->write_blocked = false;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		auto i = std::find_if(
 			m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&s] (std::shared_ptr<listen_socket_t> const& ls) { return ls->udp_sock == s; });
@@ -2447,7 +2451,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		// notify the utp socket manager it can start sending on the socket again
 		struct utp_socket_manager& mgr =
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			(i != m_listen_sockets.end() && (*i)->ssl == transport::ssl) ? m_ssl_utp_socket_manager :
 #endif
 			m_utp_socket_manager;
@@ -2491,7 +2495,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!s) return;
 
 		struct utp_socket_manager& mgr =
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			ssl == transport::ssl ? m_ssl_utp_socket_manager :
 #endif
 			m_utp_socket_manager;
@@ -2733,7 +2737,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			(*listen)->incoming_connection = true;
 
 		socket_type c = [&]{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			if (ssl == transport::ssl)
 			{
 				// accept connections initializing the SSL connection to
@@ -2749,11 +2753,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			}
 		}();
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(c));
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		if (ssl == transport::ssl)
 		{
 			TORRENT_ASSERT(is_ssl(c));
@@ -2775,7 +2779,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 
 	void session_impl::on_incoming_utp_ssl(socket_type s)
 	{
@@ -2838,7 +2842,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		incoming_connection(std::move(s));
 	}
 
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_SSL_PEERS
 
 	void session_impl::incoming_connection(socket_type s)
 	{
@@ -3298,7 +3302,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (m_abort)
 		{
 			if (m_utp_socket_manager.num_sockets() == 0
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 				&& m_ssl_utp_socket_manager.num_sockets() == 0
 #endif
 				&& m_undead_peers.empty()
@@ -3309,7 +3313,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #if defined TORRENT_ASIO_DEBUGGING
 			std::fprintf(stderr, "uTP sockets: %d ssl-uTP sockets: %d undead-peers left: %d\n"
 				, m_utp_socket_manager.num_sockets()
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 				, m_ssl_utp_socket_manager.num_sockets()
 #else
 				, 0
@@ -3340,7 +3344,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_last_tick = now;
 
 		m_utp_socket_manager.tick(now);
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		m_ssl_utp_socket_manager.tick(now);
 #endif
 
@@ -3355,7 +3359,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 
 		m_utp_socket_manager.decay();
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		m_ssl_utp_socket_manager.decay();
 #endif
 
@@ -5341,7 +5345,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				return std::uint16_t(sock->tcp_external_port());
 		}
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		for (auto const& s : m_listen_sockets)
 		{
 			if (s->ssl == transport::plaintext)
@@ -5367,7 +5371,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 	std::uint16_t session_impl::ssl_listen_port(listen_socket_t* sock) const
 	{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 
 		if (sock)
 		{

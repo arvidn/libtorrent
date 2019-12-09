@@ -239,6 +239,13 @@ compiling in 64-bit.
 To customize the library path and include path for openssl, set the features
 ``openssl-lib`` and ``openssl-include`` respectively.
 
+The option to link with wolfSSL (by setting the ``crypto`` feature to
+``wolfssl``), requires a custom build of wolfSSL using the following
+options: ``--enable-asio --enable-sni --enable-nginx``.
+
+To customize the library path and include path for wolfSSL, set the features
+``wolfssl-lib`` and ``wolfssl-include`` respectively.
+
 Build features:
 
 +--------------------------+----------------------------------------------------+
@@ -294,6 +301,8 @@ Build features:
 |                          |   libcrypto to use for SHA-1 hashing.              |
 |                          |   This also enables HTTPS-tracker support and      |
 |                          |   support for bittorrent over SSL.                 |
+|                          | * ``wolfssl`` - links against wolfssl to use it    |
+|                          |   for SHA-1 hashing and HTTPS tracker support.     |
 |                          | * ``libcrypto`` - links against libcrypto          |
 |                          |   to use the SHA-1 implementation.                 |
 |                          | * ``gcrypt`` - links against libgcrypt             |

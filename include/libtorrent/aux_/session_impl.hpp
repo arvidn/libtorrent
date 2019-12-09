@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/torrent_list.hpp"
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 #include "libtorrent/ssl_stream.hpp"
 #endif
 
@@ -766,7 +766,7 @@ namespace aux {
 
 			libtorrent::aux::utp_socket_manager* utp_socket_manager() override
 			{ return &m_utp_socket_manager; }
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() override
 			{ return &m_ssl_utp_socket_manager; }
 #endif
@@ -945,7 +945,7 @@ namespace aux {
 			// peers.
 			connection_map m_connections;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			// this list holds incoming connections while they
 			// are performing SSL handshake. When we shut down
 			// the session, all of these are disconnected, otherwise
@@ -997,6 +997,8 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 			ssl::context* ssl_ctx() override { return &m_ssl_ctx; }
+#endif
+#ifdef TORRENT_SSL_PEERS
 			void on_incoming_utp_ssl(socket_type s);
 			void ssl_handshake(error_code const& ec, socket_type* s);
 #endif
@@ -1182,7 +1184,7 @@ namespace aux {
 
 			libtorrent::aux::utp_socket_manager m_utp_socket_manager;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 			// used for uTP connections over SSL
 			libtorrent::aux::utp_socket_manager m_ssl_utp_socket_manager;
 #endif

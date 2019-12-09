@@ -662,6 +662,7 @@ if(OPENSSL_FOUND)
 		PUBLIC
 			TORRENT_USE_LIBCRYPTO
 			TORRENT_USE_OPENSSL
+			TORRENT_SSL_PEERS
 			OPENSSL_NO_SSL2)
 	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
 endif()

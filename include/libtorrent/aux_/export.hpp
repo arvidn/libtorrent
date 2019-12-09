@@ -71,6 +71,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif TORRENT_USE_CRYPTOAPI
 # define TORRENT_CRYPTO_NAMESPACE inline namespace capi {
 # define TORRENT_CRYPTO_NAMESPACE_END }
+#elif defined TORRENT_USE_WOLFSSL
+# define TORRENT_CRYPTO_NAMESPACE inline namespace wcrypto {
+# define TORRENT_CRYPTO_NAMESPACE_END }
 #elif defined TORRENT_USE_LIBCRYPTO
 # define TORRENT_CRYPTO_NAMESPACE inline namespace lcrypto {
 # define TORRENT_CRYPTO_NAMESPACE_END }

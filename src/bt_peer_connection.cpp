@@ -217,7 +217,7 @@ namespace {
 
 		auto out_policy = static_cast<std::uint8_t>(m_settings.get_int(settings_pack::out_enc_policy));
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(get_socket()))
 			out_policy = settings_pack::pe_disabled;
@@ -3256,7 +3256,7 @@ namespace {
 					, "unrecognized protocol header");
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 				if (is_ssl(get_socket()))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3266,7 +3266,7 @@ namespace {
 					disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
 					return;
 				}
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_SSL_PEERS
 
 				if (!is_outgoing()
 					&& m_settings.get_int(settings_pack::in_enc_policy)

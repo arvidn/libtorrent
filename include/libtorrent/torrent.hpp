@@ -88,7 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 // there is no forward declaration header for asio
 namespace boost {
 namespace asio {
@@ -1159,7 +1159,7 @@ namespace libtorrent {
 		}
 
 		bool is_ssl_torrent() const { return m_ssl_torrent; }
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
 			, std::string const& dh_params
@@ -1256,7 +1256,7 @@ namespace libtorrent {
 		// subsystem.
 		storage_holder m_storage;
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		std::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
 
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);

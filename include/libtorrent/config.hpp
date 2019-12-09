@@ -116,7 +116,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // on OSX, use the built-in common crypto for built-in
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
 #  define TORRENT_USE_COMMONCRYPTO 1
-# endif // TORRENT_USE_OPENSSL
+# endif
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED
 
 // execinfo.h is available in the MacOS X 10.5 SDK.
@@ -565,6 +565,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
+
+#if defined TORRENT_SSL_PEERS && !defined TORRENT_USE_OPENSSL
+#error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL
+#endif
 
 #include "libtorrent/aux_/export.hpp"
 

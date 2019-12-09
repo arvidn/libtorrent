@@ -523,3 +523,8 @@ fclose
 fopen
 cxxstd
 uri
+https
+wolfSSL
+wolfssl
+sni
+nginx
