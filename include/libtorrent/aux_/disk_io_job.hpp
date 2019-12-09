@@ -45,10 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/variant/variant.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include <variant>
 #include <string>
 #include <vector>
 #include <memory>
@@ -116,7 +113,7 @@ namespace aux {
 		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types
 		// for move_storage and rename_file this is a string
-		boost::variant<disk_buffer_holder
+		std::variant<disk_buffer_holder
 			, std::string
 			, add_torrent_params const*
 			, aux::vector<download_priority_t, file_index_t>
@@ -139,7 +136,7 @@ namespace aux {
 		using clear_piece_handler = std::function<void(piece_index_t)>;
 		using set_file_prio_handler = std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)>;
 
-		boost::variant<read_handler
+		std::variant<read_handler
 			, write_handler
 			, hash_handler
 			, hash2_handler

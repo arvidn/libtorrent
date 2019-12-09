@@ -215,10 +215,10 @@ namespace aux {
 			utp_stream* str = nullptr;
 #ifdef TORRENT_SSL_PEERS
 			if (is_ssl(c))
-				str = &boost::get<ssl_stream<utp_stream>>(c).next_layer();
+				str = &std::get<ssl_stream<utp_stream>>(c).next_layer();
 			else
 #endif
-				str = boost::get<utp_stream>(&c);
+				str = std::get_if<utp_stream>(&c);
 
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;

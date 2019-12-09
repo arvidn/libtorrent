@@ -6299,11 +6299,11 @@ namespace {
 		aux::socket_type s = instantiate_connection(m_ses.get_context()
 			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (boost::get<http_stream>(&s))
+		if (std::get_if<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			boost::get<http_stream>(s).set_no_connect(true);
+			std::get<http_stream>(s).set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6324,9 +6324,9 @@ namespace {
 			&& !is_ip;
 
 		if (proxy_hostnames
-			&& (boost::get<socks5_stream>(&s)
+			&& (std::get_if<socks5_stream>(&s)
 #if TORRENT_USE_SSL
-				|| boost::get<ssl_stream<socks5_stream>>(&s)
+				|| std::get_if<ssl_stream<socks5_stream>>(&s)
 #endif
 				))
 		{
@@ -6334,9 +6334,9 @@ namespace {
 			// hostnames through it
 			socks5_stream& str =
 #if TORRENT_USE_SSL
-				ssl ? boost::get<ssl_stream<socks5_stream>>(s).next_layer() :
+				ssl ? std::get<ssl_stream<socks5_stream>>(s).next_layer() :
 #endif
-			boost::get<socks5_stream>(s);
+			std::get<socks5_stream>(s);
 
 			str.set_dst_name(hostname);
 		}
@@ -7028,9 +7028,9 @@ namespace {
 			// everything via i2p.
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
 				, m_ses.i2p_proxy(), nullptr, nullptr, false, false);
-			boost::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			boost::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
-			boost::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
+			std::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+			std::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
+			std::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
 			return ret;
 		}
 		else
@@ -7057,7 +7057,7 @@ namespace {
 				std::string const host_name = aux::to_hex(
 					m_torrent_file->info_hashes().get(peerinfo->protocol()));
 
-				boost::apply_visitor(hostname_visitor{host_name}, ret);
+				std::visit(hostname_visitor{host_name}, ret.var());
 			}
 #endif
 			return ret;
@@ -7275,7 +7275,7 @@ namespace {
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			aux::socket_type& s = p->get_socket();
 
-			auto stream_handle = boost::apply_visitor(ssl_handle_visitor{}, s);
+			auto stream_handle = std::visit(ssl_handle_visitor{}, s.var());
 
 			if (!stream_handle)
 			{

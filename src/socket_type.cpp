@@ -78,14 +78,14 @@ namespace aux {
 
 	bool is_ssl(socket_type const& s)
 	{
-		return boost::apply_visitor(is_ssl_visitor{}, s);
+		return std::visit(is_ssl_visitor{}, s.var());
 	}
 
 	bool is_utp(socket_type const& s)
 	{
-		return boost::get<utp_stream>(&s)
+		return std::get_if<utp_stream>(&s)
 #if TORRENT_USE_SSL
-			|| boost::get<ssl_stream<utp_stream>>(&s)
+			|| std::get_if<ssl_stream<utp_stream>>(&s)
 #endif
 			;
 	}
@@ -93,7 +93,7 @@ namespace aux {
 #if TORRENT_USE_I2P
 	bool is_i2p(socket_type const& s)
 	{
-		return boost::get<i2p_stream>(&s);
+		return std::get_if<i2p_stream>(&s);
 	}
 #endif
 
@@ -115,7 +115,7 @@ namespace aux {
 
 	socket_type_t socket_type_idx(socket_type const& s)
 	{
-		return boost::apply_visitor(idx_visitor{}, s);
+		return std::visit(idx_visitor{}, s.var());
 	}
 
 	char const* socket_type_name(socket_type const& s)
@@ -137,7 +137,7 @@ namespace aux {
 
 	void set_close_reason(socket_type& s, close_reason_t code)
 	{
-		boost::apply_visitor(set_close_reason_visitor{code}, s);
+		std::visit(set_close_reason_visitor{code}, s.var());
 	}
 
 	struct get_close_reason_visitor {
@@ -153,7 +153,7 @@ namespace aux {
 
 	close_reason_t get_close_reason(socket_type const& s)
 	{
-		return boost::apply_visitor(get_close_reason_visitor{}, s);
+		return std::visit(get_close_reason_visitor{}, s.var());
 	}
 
 #if TORRENT_USE_SSL
@@ -184,7 +184,7 @@ namespace aux {
 		// of the certificate
 
 		set_ssl_hostname_visitor visitor{hostname.c_str(), ec};
-		boost::apply_visitor(visitor, s);
+		std::visit(visitor, s.var());
 
 		if (visitor.ctx_)
 			ssl::set_server_name_callback(visitor.ctx_, nullptr, nullptr, ec);
@@ -257,7 +257,7 @@ namespace aux {
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder)
 	{
 #if TORRENT_USE_SSL
-		boost::apply_visitor(issue_async_shutdown_visitor{&s, std::move(holder)}, s);
+		std::visit(issue_async_shutdown_visitor{&s, std::move(holder)}, s.var());
 #else
 		TORRENT_UNUSED(holder);
 		error_code e;
