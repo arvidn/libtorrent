@@ -1822,16 +1822,6 @@ namespace aux {
 			expand_unspecified_address(ifs, eps);
 		}
 
-		// if no listen interfaces are specified, create sockets to use
-		// any interface
-		if (eps.empty())
-		{
-			eps.emplace_back(address_v4(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
-			eps.emplace_back(address_v6(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
-		}
-
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
 		while (remove_iter != m_listen_sockets.end())
@@ -5227,7 +5217,16 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		std::string const net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
-		m_listen_interfaces = parse_listen_interfaces(net_interfaces);
+		if (!net_interfaces.empty())
+		{
+			m_listen_interfaces = parse_listen_interfaces(net_interfaces);
+		}
+		else
+		{
+			// if no listen interfaces are specified, create sockets to use
+			// any interface
+			m_listen_interfaces = parse_listen_interfaces("0.0.0.0:0,[::]:0");
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())

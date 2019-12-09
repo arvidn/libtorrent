@@ -213,6 +213,9 @@ namespace aux {
 			// socket binding succeeds, the listen_succeeded_alert is posted. There
 			// may be multiple failures before a success.
 			//
+			// The empty string is treated as ``0.0.0.0:0,[::]:0`` (i.e. listen on
+			// all interfaces using an OS selected port).
+			//
 			// For example:
 			// ``[::1]:8888`` - will only accept connections on the IPv6 loopback
 			// address on port 8888.
