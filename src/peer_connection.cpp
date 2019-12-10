@@ -95,12 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace libtorrent {
-
-	constexpr request_flags_t peer_connection::time_critical;
-	constexpr request_flags_t peer_connection::busy;
-
-	namespace {
-
+namespace {
 	// the limits of the download queue size
 	constexpr int min_request_queue = 2;
 
@@ -108,14 +103,7 @@ namespace libtorrent {
 	{
 		return pb.send_buffer_offset != pending_block::not_in_buffer;
 	}
-
-	}
-
-	constexpr piece_index_t piece_block_progress::invalid_index;
-
-	constexpr disconnect_severity_t peer_connection_interface::normal;
-	constexpr disconnect_severity_t peer_connection_interface::failure;
-	constexpr disconnect_severity_t peer_connection_interface::peer_error;
+}
 
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const

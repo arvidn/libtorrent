@@ -207,7 +207,7 @@ public:
 	node_entry const* next_refresh();
 
 	// nodes that have not been pinged are considered failed by this flag
-	static constexpr find_nodes_flags_t include_failed = 0_bit;
+	static inline constexpr find_nodes_flags_t include_failed = 0_bit;
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.

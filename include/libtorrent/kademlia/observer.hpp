@@ -105,14 +105,14 @@ struct TORRENT_EXTRA_EXPORT observer
 	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
-	static constexpr observer_flags_t flag_queried = 0_bit;
-	static constexpr observer_flags_t flag_initial = 1_bit;
-	static constexpr observer_flags_t flag_no_id = 2_bit;
-	static constexpr observer_flags_t flag_short_timeout = 3_bit;
-	static constexpr observer_flags_t flag_failed = 4_bit;
-	static constexpr observer_flags_t flag_ipv6_address = 5_bit;
-	static constexpr observer_flags_t flag_alive = 6_bit;
-	static constexpr observer_flags_t flag_done = 7_bit;
+	static inline constexpr observer_flags_t flag_queried = 0_bit;
+	static inline constexpr observer_flags_t flag_initial = 1_bit;
+	static inline constexpr observer_flags_t flag_no_id = 2_bit;
+	static inline constexpr observer_flags_t flag_short_timeout = 3_bit;
+	static inline constexpr observer_flags_t flag_failed = 4_bit;
+	static inline constexpr observer_flags_t flag_ipv6_address = 5_bit;
+	static inline constexpr observer_flags_t flag_alive = 6_bit;
+	static inline constexpr observer_flags_t flag_done = 7_bit;
 
 protected:
 

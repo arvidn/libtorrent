@@ -53,9 +53,6 @@ using namespace std::placeholders;
 namespace libtorrent {
 namespace dht {
 
-constexpr traversal_flags_t traversal_algorithm::prevent_request;
-constexpr traversal_flags_t traversal_algorithm::short_timeout;
-
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
 bool is_sorted(It b, It e, Cmp cmp)

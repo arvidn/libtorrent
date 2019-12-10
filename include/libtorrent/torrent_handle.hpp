@@ -261,7 +261,7 @@ namespace aux {
 
 		// instruct libtorrent to overwrite any data that may already have been
 		// downloaded with the data of the new piece being added.
-		static constexpr add_piece_flags_t overwrite_existing = 0_bit;
+		static inline constexpr add_piece_flags_t overwrite_existing = 0_bit;
 
 		// This function will write ``data`` to the storage as piece ``piece``,
 		// as if it had been downloaded from a peer. ``data`` is expected to
@@ -311,30 +311,30 @@ namespace aux {
 
 		// calculates ``distributed_copies``, ``distributed_full_copies`` and
 		// ``distributed_fraction``.
-		static constexpr status_flags_t query_distributed_copies = 0_bit;
+		static inline constexpr status_flags_t query_distributed_copies = 0_bit;
 
 		// includes partial downloaded blocks in ``total_done`` and
 		// ``total_wanted_done``.
-		static constexpr status_flags_t query_accurate_download_counters = 1_bit;
+		static inline constexpr status_flags_t query_accurate_download_counters = 1_bit;
 
 		// includes ``last_seen_complete``.
-		static constexpr status_flags_t query_last_seen_complete = 2_bit;
+		static inline constexpr status_flags_t query_last_seen_complete = 2_bit;
 		// populate the ``pieces`` field in torrent_status.
-		static constexpr status_flags_t query_pieces = 3_bit;
+		static inline constexpr status_flags_t query_pieces = 3_bit;
 		// includes ``verified_pieces`` (only applies to torrents in *seed
 		// mode*).
-		static constexpr status_flags_t query_verified_pieces = 4_bit;
+		static inline constexpr status_flags_t query_verified_pieces = 4_bit;
 		// includes ``torrent_file``, which is all the static information from
 		// the .torrent file.
-		static constexpr status_flags_t query_torrent_file = 5_bit;
+		static inline constexpr status_flags_t query_torrent_file = 5_bit;
 		// includes ``name``, the name of the torrent. This is either derived
 		// from the .torrent file, or from the ``&dn=`` magnet link argument
 		// or possibly some other source. If the name of the torrent is not
 		// known, this is an empty string.
-		static constexpr status_flags_t query_name = 6_bit;
+		static inline constexpr status_flags_t query_name = 6_bit;
 		// includes ``save_path``, the path to the directory the files of the
 		// torrent are saved to.
-		static constexpr status_flags_t query_save_path = 7_bit;
+		static inline constexpr status_flags_t query_save_path = 7_bit;
 
 		// ``status()`` will return a structure with information about the status
 		// of this torrent. If the torrent_handle is invalid, it will throw
@@ -359,7 +359,7 @@ namespace aux {
 		// downloaded, by passing alert_when_available. When set, the
 		// read_piece_alert alert will be delivered, with the piece data, when
 		// it's downloaded.
-		static constexpr deadline_flags_t alert_when_available = 0_bit;
+		static inline constexpr deadline_flags_t alert_when_available = 0_bit;
 
 		// This function sets or resets the deadline associated with a specific
 		// piece index (``index``). libtorrent will attempt to download this
@@ -549,8 +549,8 @@ namespace aux {
 		// transferring the blocks that were requested from it, it is
 		// disconnected. This is a graceful shut down of the torrent in the sense
 		// that no downloaded bytes are wasted.
-		static constexpr pause_flags_t graceful_pause = 0_bit;
-		static constexpr pause_flags_t clear_disk_cache = 1_bit;
+		static inline constexpr pause_flags_t graceful_pause = 0_bit;
+		static inline constexpr pause_flags_t clear_disk_cache = 1_bit;
 
 		// ``pause()``, and ``resume()`` will disconnect all peers and reconnect
 		// all peers respectively. When a torrent is paused, it will however
@@ -612,12 +612,12 @@ namespace aux {
 		// the disk cache will be flushed before creating the resume data.
 		// This avoids a problem with file timestamps in the resume data in
 		// case the cache hasn't been flushed yet.
-		static constexpr resume_data_flags_t flush_disk_cache = 0_bit;
+		static inline constexpr resume_data_flags_t flush_disk_cache = 0_bit;
 
 		// the resume data will contain the metadata from the torrent file as
 		// well. This is default for any torrent that's added without a
 		// torrent file (such as a magnet link or a URL).
-		static constexpr resume_data_flags_t save_info_dict = 1_bit;
+		static inline constexpr resume_data_flags_t save_info_dict = 1_bit;
 
 		// if nothing significant has changed in the torrent since the last
 		// time resume data was saved, fail this attempt. Significant changes
@@ -625,7 +625,7 @@ namespace aux {
 		// priorities having changed etc. If the resume data doesn't need
 		// saving, a save_resume_data_failed_alert is posted with the error
 		// resume_data_not_modified.
-		static constexpr resume_data_flags_t only_if_modified = 2_bit;
+		static inline constexpr resume_data_flags_t only_if_modified = 2_bit;
 
 		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
 		// this torrent.
@@ -1035,7 +1035,7 @@ namespace aux {
 		// by default, force-reannounce will still honor the min-interval
 		// published by the tracker. If this flag is set, it will be ignored
 		// and the tracker is announced immediately.
-		static constexpr reannounce_flags_t ignore_min_interval = 0_bit;
+		static inline constexpr reannounce_flags_t ignore_min_interval = 0_bit;
 
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how

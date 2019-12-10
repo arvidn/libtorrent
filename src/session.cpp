@@ -45,31 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	// declared in extensions.hpp
-	// remove this once C++17 is required
-	constexpr feature_flags_t plugin::optimistic_unchoke_feature;
-	constexpr feature_flags_t plugin::tick_feature;
-	constexpr feature_flags_t plugin::dht_request_feature;
-	constexpr feature_flags_t plugin::alert_feature;
-#endif
-
-namespace aux {
-	constexpr torrent_list_index_t session_interface::torrent_state_updates;
-	constexpr torrent_list_index_t session_interface::torrent_want_tick;
-	constexpr torrent_list_index_t session_interface::torrent_want_peers_download;
-	constexpr torrent_list_index_t session_interface::torrent_want_peers_finished;
-	constexpr torrent_list_index_t session_interface::torrent_want_scrape;
-	constexpr torrent_list_index_t session_interface::torrent_downloading_auto_managed;
-	constexpr torrent_list_index_t session_interface::torrent_seeding_auto_managed;
-	constexpr torrent_list_index_t session_interface::torrent_checking_auto_managed;
-}
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-constexpr add_peer_flags_t torrent_plugin::first_time;
-constexpr add_peer_flags_t torrent_plugin::filtered;
-#endif
-
 namespace {
 
 #if defined TORRENT_ASIO_DEBUGGING

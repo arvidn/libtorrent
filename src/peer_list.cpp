@@ -87,8 +87,6 @@ namespace {
 
 namespace libtorrent {
 
-	constexpr erase_peer_flags_t peer_list::force_erase;
-
 	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
 		: m_locked_peer(nullptr)
 		, m_peer_allocator(alloc)

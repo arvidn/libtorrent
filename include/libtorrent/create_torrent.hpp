@@ -112,11 +112,11 @@ namespace libtorrent {
 		// files, to keep the impact down for clients that don't support
 		// them.
 		// incompatible with v2 metadata, ignored
-		TORRENT_DEPRECATED static constexpr create_flags_t optimize_alignment = 0_bit;
+		TORRENT_DEPRECATED static inline constexpr create_flags_t optimize_alignment = 0_bit;
 #endif
 #if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
-		TORRENT_DEPRECATED static constexpr create_flags_t optimize = 0_bit;
+		TORRENT_DEPRECATED static inline constexpr create_flags_t optimize = 0_bit;
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
@@ -129,7 +129,7 @@ namespace libtorrent {
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
 		// support for BEP 30 merkle torrents has been removed
-		TORRENT_DEPRECATED static constexpr create_flags_t merkle = 1_bit;
+		TORRENT_DEPRECATED static inline constexpr create_flags_t merkle = 1_bit;
 #endif
 
 		// This will include the file modification time as part of the torrent.
@@ -138,13 +138,13 @@ namespace libtorrent {
 		// yield the same info-hash. If the files have different modification times,
 		// with this option enabled, you would get different info-hashes for the
 		// files.
-		static constexpr create_flags_t modification_time = 2_bit;
+		static inline constexpr create_flags_t modification_time = 2_bit;
 
 		// If this flag is set, files that are symlinks get a symlink attribute
 		// set on them and their data will not be included in the torrent. This
 		// is useful if you need to reconstruct a file hierarchy which contains
 		// symlinks.
-		static constexpr create_flags_t symlinks = 3_bit;
+		static inline constexpr create_flags_t symlinks = 3_bit;
 
 		// to create a torrent that can be updated via a *mutable torrent*
 		// (see `BEP 38`_). This also needs to be enabled for torrents that update
@@ -154,16 +154,16 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION <= 2
 		// BEP 52 requires files to be piece aligned so all torrents are now compatible
 		// with BEP 38
-		TORRENT_DEPRECATED static constexpr create_flags_t mutable_torrent_support = 4_bit;
+		TORRENT_DEPRECATED static inline constexpr create_flags_t mutable_torrent_support = 4_bit;
 #endif
 
 		// Do not generate v1 metadata. The resulting torrent will only be usable by
 		// clients which support v2.
-		static constexpr create_flags_t v2_only = 5_bit;
+		static inline constexpr create_flags_t v2_only = 5_bit;
 
 		// do not generate v2 metadata or enforce v2 alignment and padding rules
 		// this is mainly for tests, not recommended for production use
-		static constexpr create_flags_t v1_only = 6_bit;
+		static inline constexpr create_flags_t v1_only = 6_bit;
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
 		// be a power of 2 and a minimum of 16 kiB. If a piece size of 0 is specified, a
