@@ -64,8 +64,6 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht {
 
-constexpr find_nodes_flags_t routing_table::include_failed;
-
 namespace {
 
 	template <typename T, typename K>

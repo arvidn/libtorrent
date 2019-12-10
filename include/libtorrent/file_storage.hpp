@@ -144,8 +144,8 @@ namespace aux {
 			not_a_symlink = (1 << 15) - 1,
 		};
 
-		static constexpr aux::path_index_t no_path{(1 << 30) - 1};
-		static constexpr aux::path_index_t path_is_absolute{(1 << 30) - 2};
+		static inline constexpr aux::path_index_t no_path{(1 << 30) - 1};
+		static inline constexpr aux::path_index_t path_is_absolute{(1 << 30) - 2};
 
 		// the offset of this file inside the torrent
 		std::uint64_t offset:48;
@@ -246,10 +246,10 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 		using flags_t = file_flags_t;
-		TORRENT_DEPRECATED static constexpr file_flags_t pad_file = 0_bit;
-		TORRENT_DEPRECATED static constexpr file_flags_t attribute_hidden = 1_bit;
-		TORRENT_DEPRECATED static constexpr file_flags_t attribute_executable = 2_bit;
-		TORRENT_DEPRECATED static constexpr file_flags_t attribute_symlink = 3_bit;
+		TORRENT_DEPRECATED static inline constexpr file_flags_t pad_file = 0_bit;
+		TORRENT_DEPRECATED static inline constexpr file_flags_t attribute_hidden = 1_bit;
+		TORRENT_DEPRECATED static inline constexpr file_flags_t attribute_executable = 2_bit;
+		TORRENT_DEPRECATED static inline constexpr file_flags_t attribute_symlink = 3_bit;
 #endif
 
 		// allocates space for ``num_files`` in the internal file list. This can
@@ -531,18 +531,18 @@ namespace aux {
 		// the file is a pad file. It's required to contain zeros
 		// at it will not be saved to disk. Its purpose is to make
 		// the following file start on a piece boundary.
-		static constexpr file_flags_t flag_pad_file = 0_bit;
+		static inline constexpr file_flags_t flag_pad_file = 0_bit;
 
 		// this file has the hidden attribute set. This is primarily
 		// a windows attribute
-		static constexpr file_flags_t flag_hidden = 1_bit;
+		static inline constexpr file_flags_t flag_hidden = 1_bit;
 
 		// this file has the executable attribute set.
-		static constexpr file_flags_t flag_executable = 2_bit;
+		static inline constexpr file_flags_t flag_executable = 2_bit;
 
 		// this file is a symbolic link. It should have a link
 		// target string associated with it.
-		static constexpr file_flags_t flag_symlink = 3_bit;
+		static inline constexpr file_flags_t flag_symlink = 3_bit;
 
 		// internal
 		// returns all directories used in the torrent. Files in the torrent are

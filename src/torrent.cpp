@@ -148,8 +148,6 @@ bool is_downloading_state(int const st)
 }
 } // anonymous namespace
 
-	constexpr web_seed_flag_t torrent::ephemeral;
-
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{

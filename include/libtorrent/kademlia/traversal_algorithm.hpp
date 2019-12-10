@@ -65,8 +65,8 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 	void traverse(node_id const& id, udp::endpoint const& addr);
 	void finished(observer_ptr o);
 
-	static constexpr traversal_flags_t prevent_request = 0_bit;
-	static constexpr traversal_flags_t short_timeout = 1_bit;
+	static inline constexpr traversal_flags_t prevent_request = 0_bit;
+	static inline constexpr traversal_flags_t short_timeout = 1_bit;
 
 	void failed(observer_ptr o, traversal_flags_t flags = {});
 	virtual ~traversal_algorithm();

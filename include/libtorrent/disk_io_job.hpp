@@ -97,16 +97,16 @@ namespace libtorrent {
 		// for this job. It means that this no other jobs on the same
 		// storage will execute in parallel with this one. It's used
 		// to lower the fence when the job has completed
-		static constexpr disk_job_flags_t fence = 1_bit;
+		static inline constexpr disk_job_flags_t fence = 1_bit;
 
 		// this job is currently being performed, or it's hanging
 		// on a cache piece that may be flushed soon
-		static constexpr disk_job_flags_t in_progress = 2_bit;
+		static inline constexpr disk_job_flags_t in_progress = 2_bit;
 
 		// this is set for jobs that we're no longer interested in. Any aborted
 		// job that's executed should immediately fail with operation_aborted
 		// instead of executing
-		static constexpr disk_job_flags_t aborted = 6_bit;
+		static inline constexpr disk_job_flags_t aborted = 6_bit;
 
 		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types

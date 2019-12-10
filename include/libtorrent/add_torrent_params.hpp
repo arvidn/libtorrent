@@ -102,7 +102,7 @@ TORRENT_VERSION_NAMESPACE_2
 		using flags_t = torrent_flags_t;
 
 #define DECL_FLAG(name) \
-		TORRENT_DEPRECATED static constexpr torrent_flags_t flag_##name = torrent_flags::name
+		TORRENT_DEPRECATED static inline constexpr torrent_flags_t flag_##name = torrent_flags::name
 
 			DECL_FLAG(seed_mode);
 			DECL_FLAG(upload_mode);

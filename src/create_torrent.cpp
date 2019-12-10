@@ -57,24 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace libtorrent {
-
-#if TORRENT_ABI_VERSION <= 2
-	constexpr create_flags_t create_torrent::optimize_alignment;
-#endif
-#if TORRENT_ABI_VERSION == 1
-	constexpr create_flags_t create_torrent::optimize;
-#endif
-#if TORRENT_ABI_VERSION <= 2
-	constexpr create_flags_t create_torrent::merkle;
-#endif
-	constexpr create_flags_t create_torrent::modification_time;
-	constexpr create_flags_t create_torrent::symlinks;
-#if TORRENT_ABI_VERSION <= 2
-	constexpr create_flags_t create_torrent::mutable_torrent_support;
-#endif
-	constexpr create_flags_t create_torrent::v2_only;
-	constexpr create_flags_t create_torrent::v1_only;
-
 namespace {
 
 	bool default_pred(std::string const&) { return true; }

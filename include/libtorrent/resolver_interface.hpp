@@ -55,11 +55,11 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 	// don't have a cache entry, regardless of how old it is. This is usefull
 	// when completing the lookup quickly is more important than accuracy,
 	// like on shutdown
-	static constexpr resolver_flags cache_only = 0_bit;
+	static inline constexpr resolver_flags cache_only = 0_bit;
 
 	// set this flag for lookups that are not critical during shutdown. i.e.
 	// for looking up tracker names _except_ when stopping a tracker.
-	static constexpr resolver_flags abort_on_shutdown = 1_bit;
+	static inline constexpr resolver_flags abort_on_shutdown = 1_bit;
 
 	virtual void async_resolve(std::string const& host, resolver_flags flags
 		, callback_t const& h) = 0;

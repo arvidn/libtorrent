@@ -67,17 +67,6 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht {
 
-// TODO: 3 move this into it's own .cpp file
-
-constexpr observer_flags_t observer::flag_queried;
-constexpr observer_flags_t observer::flag_initial;
-constexpr observer_flags_t observer::flag_no_id;
-constexpr observer_flags_t observer::flag_short_timeout;
-constexpr observer_flags_t observer::flag_failed;
-constexpr observer_flags_t observer::flag_ipv6_address;
-constexpr observer_flags_t observer::flag_alive;
-constexpr observer_flags_t observer::flag_done;
-
 dht_observer* observer::get_observer() const
 {
 	return m_algorithm->get_node().observer();

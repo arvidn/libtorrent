@@ -64,18 +64,6 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	constexpr file_flags_t file_storage::flag_pad_file;
-	constexpr file_flags_t file_storage::flag_hidden;
-	constexpr file_flags_t file_storage::flag_executable;
-	constexpr file_flags_t file_storage::flag_symlink;
-
-#if TORRENT_ABI_VERSION == 1
-	constexpr file_flags_t file_storage::pad_file;
-	constexpr file_flags_t file_storage::attribute_hidden;
-	constexpr file_flags_t file_storage::attribute_executable;
-	constexpr file_flags_t file_storage::attribute_symlink;
-#endif
-
 	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;
 
@@ -107,9 +95,6 @@ namespace libtorrent {
 		else
 			return piece_length();
 	}
-
-constexpr aux::path_index_t aux::file_entry::no_path;
-constexpr aux::path_index_t aux::file_entry::path_is_absolute;
 
 namespace {
 

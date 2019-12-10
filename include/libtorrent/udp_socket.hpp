@@ -63,10 +63,10 @@ namespace libtorrent {
 		udp_socket(udp_socket const&) = delete;
 		udp_socket& operator=(udp_socket const&) = delete;
 
-		static constexpr udp_send_flags_t peer_connection = 0_bit;
-		static constexpr udp_send_flags_t tracker_connection = 1_bit;
-		static constexpr udp_send_flags_t dont_queue = 2_bit;
-		static constexpr udp_send_flags_t dont_fragment = 3_bit;
+		static inline constexpr udp_send_flags_t peer_connection = 0_bit;
+		static inline constexpr udp_send_flags_t tracker_connection = 1_bit;
+		static inline constexpr udp_send_flags_t dont_queue = 2_bit;
+		static inline constexpr udp_send_flags_t dont_fragment = 3_bit;
 
 		bool is_open() const { return m_abort == false; }
 		udp::socket::executor_type get_executor() { return m_socket.get_executor(); }
