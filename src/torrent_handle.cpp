@@ -65,25 +65,6 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent {
 
-	constexpr resume_data_flags_t torrent_handle::flush_disk_cache;
-	constexpr resume_data_flags_t torrent_handle::save_info_dict;
-	constexpr resume_data_flags_t torrent_handle::only_if_modified;
-	constexpr add_piece_flags_t torrent_handle::overwrite_existing;
-	constexpr pause_flags_t torrent_handle::graceful_pause;
-	constexpr pause_flags_t torrent_handle::clear_disk_cache;
-	constexpr deadline_flags_t torrent_handle::alert_when_available;
-	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
-	constexpr file_progress_flags_t torrent_handle::piece_granularity;
-
-	constexpr status_flags_t torrent_handle::query_distributed_copies;
-	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
-	constexpr status_flags_t torrent_handle::query_last_seen_complete;
-	constexpr status_flags_t torrent_handle::query_pieces;
-	constexpr status_flags_t torrent_handle::query_verified_pieces;
-	constexpr status_flags_t torrent_handle::query_torrent_file;
-	constexpr status_flags_t torrent_handle::query_name;
-	constexpr status_flags_t torrent_handle::query_save_path;
-
 	void block_info::set_peer(tcp::endpoint const& ep)
 	{
 		is_v6_addr = aux::is_v6(ep);

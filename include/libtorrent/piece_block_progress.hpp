@@ -42,7 +42,7 @@ namespace libtorrent {
 
 	struct piece_block_progress
 	{
-		static constexpr piece_index_t invalid_index{-1};
+		static inline constexpr piece_index_t invalid_index{-1};
 
 		// the piece and block index
 		// determines exactly which

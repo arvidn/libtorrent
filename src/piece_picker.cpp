@@ -114,26 +114,6 @@ namespace libtorrent {
 		std::numeric_limits<piece_index_t>::max()
 		, std::numeric_limits<int>::max());
 
-	constexpr prio_index_t piece_picker::piece_pos::we_have_index;
-
-	constexpr picker_options_t piece_picker::rarest_first;
-	constexpr picker_options_t piece_picker::reverse;
-	constexpr picker_options_t piece_picker::on_parole;
-	constexpr picker_options_t piece_picker::prioritize_partials;
-	constexpr picker_options_t piece_picker::sequential;
-	constexpr picker_options_t piece_picker::time_critical_mode;
-	constexpr picker_options_t piece_picker::align_expanded_pieces;
-	constexpr picker_options_t piece_picker::piece_extent_affinity;
-
-	constexpr download_queue_t piece_picker::piece_pos::piece_downloading;
-	constexpr download_queue_t piece_picker::piece_pos::piece_full;
-	constexpr download_queue_t piece_picker::piece_pos::piece_finished;
-	constexpr download_queue_t piece_picker::piece_pos::piece_zero_prio;
-	constexpr download_queue_t piece_picker::piece_pos::num_download_categories;
-	constexpr download_queue_t piece_picker::piece_pos::piece_open;
-	constexpr download_queue_t piece_picker::piece_pos::piece_downloading_reverse;
-	constexpr download_queue_t piece_picker::piece_pos::piece_full_reverse;
-
 	// the max number of blocks to create an affinity for
 	constexpr int max_piece_affinity_extent = 4 * 1024 * 1024 / default_block_size;
 

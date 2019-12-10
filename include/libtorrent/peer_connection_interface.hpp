@@ -51,9 +51,9 @@ namespace libtorrent {
 	// TODO: make this interface smaller!
 	struct TORRENT_EXTRA_EXPORT peer_connection_interface
 	{
-		static constexpr disconnect_severity_t normal{0};
-		static constexpr disconnect_severity_t failure{1};
-		static constexpr disconnect_severity_t peer_error{2};
+		static inline constexpr disconnect_severity_t normal{0};
+		static inline constexpr disconnect_severity_t failure{1};
+		static inline constexpr disconnect_severity_t peer_error{2};
 
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;

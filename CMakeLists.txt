@@ -382,7 +382,6 @@ set(sources
 	disk_job_fence
 	disk_job_pool
 	disk_buffer_pool
-	disk_interface
 	disk_io_thread_pool
 	disabled_disk_io
 	enum_net

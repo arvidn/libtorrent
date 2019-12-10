@@ -220,7 +220,7 @@ namespace libtorrent {
 		bool is_force_erase_candidate(torrent_peer const& pe) const;
 		bool should_erase_immediately(torrent_peer const& p) const;
 
-		static constexpr erase_peer_flags_t force_erase = 1_bit;
+		static inline constexpr erase_peer_flags_t force_erase = 1_bit;
 		void erase_peers(torrent_state* state, erase_peer_flags_t flags = {});
 
 		peers_t m_peers;

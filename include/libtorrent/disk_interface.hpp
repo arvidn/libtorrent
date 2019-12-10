@@ -152,17 +152,17 @@ namespace file_open_mode {
 		// force making a copy of the cached block, rather
 		// than getting a reference to the block already in
 		// the cache.
-		static constexpr disk_job_flags_t force_copy = 0_bit;
+		static inline constexpr disk_job_flags_t force_copy = 0_bit;
 
 		// hint that there may be more disk operations with sequential access to
 		// the file
-		static constexpr disk_job_flags_t sequential_access = 3_bit;
+		static inline constexpr disk_job_flags_t sequential_access = 3_bit;
 
 		// don't keep the read block in cache
-		static constexpr disk_job_flags_t volatile_read = 4_bit;
+		static inline constexpr disk_job_flags_t volatile_read = 4_bit;
 
 		// compute a v1 piece hash
-		static constexpr disk_job_flags_t v1_hash = 5_bit;
+		static inline constexpr disk_job_flags_t v1_hash = 5_bit;
 
 		virtual storage_holder new_torrent(storage_params p
 			, std::shared_ptr<void> const& torrent) = 0;

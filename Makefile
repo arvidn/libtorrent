@@ -306,7 +306,6 @@ SOURCES = \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
-  disk_interface.cpp              \
   disk_io_job.cpp                 \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \

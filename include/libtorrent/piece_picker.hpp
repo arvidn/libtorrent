@@ -127,34 +127,34 @@ namespace libtorrent {
 		};
 
 		// pick rarest first
-		static constexpr picker_options_t rarest_first = 0_bit;
+		static inline constexpr picker_options_t rarest_first = 0_bit;
 
 		// pick the most common first, or the last pieces if sequential
-		static constexpr picker_options_t reverse = 1_bit;
+		static inline constexpr picker_options_t reverse = 1_bit;
 
 		// only pick pieces exclusively requested from this peer
-		static constexpr picker_options_t on_parole = 2_bit;
+		static inline constexpr picker_options_t on_parole = 2_bit;
 
 		// always pick partial pieces before any other piece
-		static constexpr picker_options_t prioritize_partials = 3_bit;
+		static inline constexpr picker_options_t prioritize_partials = 3_bit;
 
 		// pick pieces in sequential order
-		static constexpr picker_options_t sequential = 4_bit;
+		static inline constexpr picker_options_t sequential = 4_bit;
 
 		// treat pieces with priority 6 and below as filtered
 		// to trigger end-game mode until all prio 7 pieces are
 		// completed
-		static constexpr picker_options_t time_critical_mode = 5_bit;
+		static inline constexpr picker_options_t time_critical_mode = 5_bit;
 
 		// only expands pieces (when prefer contiguous blocks is set)
 		// within properly aligned ranges, not the largest possible
 		// range of pieces.
-		static constexpr picker_options_t align_expanded_pieces = 6_bit;
+		static inline constexpr picker_options_t align_expanded_pieces = 6_bit;
 
 		// this will create an affinity to pick pieces in extents of 4 MiB, in an
 		// attempt to improve disk I/O by picking ranges of pieces (if pieces are
 		// small)
-		static constexpr picker_options_t piece_extent_affinity = 7_bit;
+		static inline constexpr picker_options_t piece_extent_affinity = 7_bit;
 
 		struct downloading_piece
 		{
@@ -558,30 +558,30 @@ namespace libtorrent {
 			}
 
 			// the piece is partially downloaded or requested
-			static constexpr download_queue_t piece_downloading{0};
+			static inline constexpr download_queue_t piece_downloading{0};
 
 			// partial pieces where all blocks in the piece have been requested
-			static constexpr download_queue_t piece_full{1};
+			static inline constexpr download_queue_t piece_full{1};
 			// partial pieces where all blocks in the piece have been received
 			// and are either finished or writing
-			static constexpr download_queue_t piece_finished{2};
+			static inline constexpr download_queue_t piece_finished{2};
 			// partial pieces whose priority is 0
-			static constexpr download_queue_t piece_zero_prio{3};
+			static inline constexpr download_queue_t piece_zero_prio{3};
 
 			// the states up to this point indicate the piece is being
 			// downloaded (or at least has a partially downloaded piece
 			// in one of the m_downloads buckets).
-			static constexpr download_queue_t num_download_categories{4};
+			static inline constexpr download_queue_t num_download_categories{4};
 
 			// the piece is open to be picked
-			static constexpr download_queue_t piece_open{4};
+			static inline constexpr download_queue_t piece_open{4};
 
 			// this is not a new download category/download list bucket.
 			// it still goes into the piece_downloading bucket. However,
 			// it indicates that this piece only has outstanding requests
 			// from reverse peers. This is to de-prioritize it somewhat
-			static constexpr download_queue_t piece_downloading_reverse{5};
-			static constexpr download_queue_t piece_full_reverse{6};
+			static inline constexpr download_queue_t piece_downloading_reverse{5};
+			static inline constexpr download_queue_t piece_full_reverse{6};
 
 			// returns one of the valid download categories of state_t or
 			// piece_open if this piece is not being downloaded
@@ -656,7 +656,7 @@ namespace libtorrent {
 			// index is set to this to indicate that we have the
 			// piece. There is no entry for the piece in the
 			// buckets if this is the case.
-			static constexpr prio_index_t we_have_index{-1};
+			static inline constexpr prio_index_t we_have_index{-1};
 
 			// the priority value that means the piece is filtered
 			static constexpr std::uint32_t filter_priority = 0;

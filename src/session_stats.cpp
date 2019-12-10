@@ -41,11 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#if TORRENT_ABI_VERSION == 1
-	constexpr metric_type_t stats_metric::type_counter;
-	constexpr metric_type_t stats_metric::type_gauge;
-#endif
-
 namespace {
 
 	struct stats_metric_impl
