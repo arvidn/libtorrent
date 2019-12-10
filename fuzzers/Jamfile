@@ -27,7 +27,7 @@ project fuzzers
 	<linkflags>-fno-omit-frame-pointer
 	<library>/torrent//torrent/
 	: default-build
-	<cxxstd>14
+	<cxxstd>17
 	<fuzz>on
 	<sanitize>on
 	<link>static

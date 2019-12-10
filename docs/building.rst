@@ -440,10 +440,10 @@ and ``cd`` there::
 
 Run ``cmake`` in the build directory, like this::
 
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -G Ninja ..
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -G Ninja ..
 
-The ``CMAKE_CXX_STANDARD`` has to be at least 14, but you may want to raise it
-to ``17`` if your project use a newer version of the C++ standard.
+The ``CMAKE_CXX_STANDARD`` has to be at least 17, but you may want to raise it
+to ``20`` if your project use a newer version of the C++ standard.
 
 .. warning::
 

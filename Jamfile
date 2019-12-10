@@ -291,9 +291,9 @@ rule building ( properties * )
 	}
 
 	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
-	if ! $(VERSION) || $(VERSION) < 14
+	if ! $(VERSION) || $(VERSION) < 17
 	{
-		ECHO "libtorrent requires at least C++14. Specify <cxxstd>14 or higher" ;
+		ECHO "libtorrent requires at least C++17. Specify <cxxstd>17 or higher" ;
 		result += <build>no ;
 	}
 
@@ -301,6 +301,12 @@ rule building ( properties * )
 	{
 		# allow larger .obj files (with more sections)
 		result += <cflags>/bigobj ;
+	}
+
+	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
+	{
+		# allow larger object files in mingw
+		result += <cflags>-Wa,-mbig-obj ;
 	}
 
 	if ( <asserts>production in $(properties)
@@ -448,7 +454,7 @@ rule sanitizer-options ( properties * )
 		local sanitizers ;
 		local extra ;
 		local flags ;
-   
+
 		# sanitize is a clang and GCC feature
 		if <toolset>clang in $(properties)
 		{
@@ -878,6 +884,9 @@ local usage-requirements =
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 
+	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
+	<define>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
+
 	<cxxflags>$(CXXFLAGS)
 	<linkflags>$(LDFLAGS)
 	;
@@ -896,6 +905,9 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
+
+	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
+	<define>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>src/ed25519/$(ED25519_SOURCES).cpp
@@ -936,7 +948,7 @@ for local target in $(headers)
 		# otherwise the object rule doesn't know which language to interpret them as
 		obj header-build/$(target).o : [ cast.cast _ cpp : $(target) ]
 			: <library>/torrent <cxxflags>-fsyntax-only
-			: <cxxstd>14 ;
+			: <cxxstd>17 ;
 		explicit header-build/$(target).o ;
 		header_targets += $(target) ;
 	}
