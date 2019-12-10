@@ -710,7 +710,6 @@ SOURCES =
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
-	disk_interface
 	disk_io_job
 	disk_io_thread_pool
 	disabled_disk_io
@@ -809,7 +808,6 @@ SOURCES =
 	file_progress
 	ffs
 	add_torrent_params
-	peer_info
 	stack_allocator
 	generate_peer_id
 	mmap

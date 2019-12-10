@@ -79,12 +79,6 @@ namespace libtorrent {
 
 	TORRENT_EXPORT from_span_t from_span;
 
-	constexpr torrent_info_flags_t torrent_info::multifile;
-	constexpr torrent_info_flags_t torrent_info::private_torrent;
-	constexpr torrent_info_flags_t torrent_info::i2p;
-	constexpr torrent_info_flags_t torrent_info::ssl_torrent;
-	constexpr torrent_info_flags_t torrent_info::v2_has_piece_hashes;
-
 	namespace {
 
 	// this is an arbitrary limit to avoid malicious torrents causing

@@ -304,7 +304,6 @@ SOURCES = \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
-  disk_interface.cpp              \
   disk_io_job.cpp                 \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \
@@ -353,7 +352,6 @@ SOURCES = \
   peer_class_set.cpp              \
   peer_connection.cpp             \
   peer_connection_handle.cpp      \
-  peer_info.cpp                   \
   peer_list.cpp                   \
   performance_counters.cpp        \
   piece_picker.cpp                \

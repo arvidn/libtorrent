@@ -620,8 +620,8 @@ namespace aux {
 		// if the block was already time-critical, it returns false.
 		bool make_time_critical(piece_block const& block);
 
-		static constexpr request_flags_t time_critical = 0_bit;
-		static constexpr request_flags_t busy = 1_bit;
+		static inline constexpr request_flags_t time_critical = 0_bit;
+		static inline constexpr request_flags_t busy = 1_bit;
 
 		// adds a block to the request queue
 		// returns true if successful, false otherwise

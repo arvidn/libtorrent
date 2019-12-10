@@ -52,40 +52,6 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent {
 
-	constexpr peer_class_t session_handle::global_peer_class_id;
-	constexpr peer_class_t session_handle::tcp_peer_class_id;
-	constexpr peer_class_t session_handle::local_peer_class_id;
-
-	constexpr save_state_flags_t session_handle::save_settings;
-#if TORRENT_ABI_VERSION <= 2
-	constexpr save_state_flags_t session_handle::save_dht_settings TORRENT_DEPRECATED;
-#endif
-	constexpr save_state_flags_t session_handle::save_dht_state;
-#if TORRENT_ABI_VERSION == 1
-	constexpr save_state_flags_t session_handle::save_encryption_settings;
-	constexpr save_state_flags_t session_handle::save_as_map TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_proxy TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_i2p_proxy TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_dht_proxy TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_peer_proxy TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_web_proxy TORRENT_DEPRECATED_ENUM;
-	constexpr save_state_flags_t session_handle::save_tracker_proxy TORRENT_DEPRECATED_ENUM;
-#endif
-	constexpr save_state_flags_t session_handle::save_extension_state;
-	constexpr save_state_flags_t session_handle::save_ip_filter;
-
-#if TORRENT_ABI_VERSION <= 2
-	constexpr session_flags_t session_handle::add_default_plugins;
-#endif
-#if TORRENT_ABI_VERSION == 1
-	constexpr session_flags_t session_handle::start_default_features;
-#endif
-
-	constexpr remove_flags_t session_handle::delete_files;
-	constexpr remove_flags_t session_handle::delete_partfile;
-
-	constexpr reopen_network_flags_t session_handle::reopen_map_ports;
-
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
 	{

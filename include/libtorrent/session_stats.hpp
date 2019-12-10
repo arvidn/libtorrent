@@ -57,8 +57,8 @@ namespace libtorrent {
 		// session_stats_alert object.
 		int value_index;
 #if TORRENT_ABI_VERSION == 1
-		TORRENT_DEPRECATED static constexpr metric_type_t type_counter = metric_type_t::counter;
-		TORRENT_DEPRECATED static constexpr metric_type_t type_gauge = metric_type_t::gauge;
+		TORRENT_DEPRECATED_MEMBER static inline constexpr metric_type_t type_counter = metric_type_t::counter;
+		TORRENT_DEPRECATED_MEMBER static inline constexpr metric_type_t type_gauge = metric_type_t::gauge;
 #endif
 		metric_type_t type;
 	};

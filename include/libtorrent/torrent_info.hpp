@@ -747,24 +747,24 @@ TORRENT_VERSION_NAMESPACE_3
 		// to know if it should be written as a multi file torrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
-		static constexpr torrent_info_flags_t multifile = 0_bit;
+		static inline constexpr torrent_info_flags_t multifile = 0_bit;
 
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
-		static constexpr torrent_info_flags_t private_torrent = 1_bit;
+		static inline constexpr torrent_info_flags_t private_torrent = 1_bit;
 
 		// this is true if one of the trackers has an .i2p top
 		// domain in its hostname. This means the DHT and LSD
 		// features are disabled for this torrent (unless the
 		// settings allows mixing i2p peers with regular peers)
-		static constexpr torrent_info_flags_t i2p = 2_bit;
+		static inline constexpr torrent_info_flags_t i2p = 2_bit;
 
 		// this flag is set if we found an ssl-cert field in the info
 		// dictionary
-		static constexpr torrent_info_flags_t ssl_torrent = 3_bit;
+		static inline constexpr torrent_info_flags_t ssl_torrent = 3_bit;
 
 		// v2 piece hashes were loaded from the torrent file and verified
-		static constexpr torrent_info_flags_t v2_has_piece_hashes = 4_bit;
+		static inline constexpr torrent_info_flags_t v2_has_piece_hashes = 4_bit;
 
 		torrent_info_flags_t m_flags{};
 	};

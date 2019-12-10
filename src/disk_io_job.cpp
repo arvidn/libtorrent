@@ -114,10 +114,6 @@ namespace libtorrent {
 		};
 	}
 
-	constexpr disk_job_flags_t disk_io_job::fence;
-	constexpr disk_job_flags_t disk_io_job::in_progress;
-	constexpr disk_job_flags_t disk_io_job::aborted;
-
 	disk_io_job::disk_io_job()
 		: argument(remove_flags_t{})
 		, piece(0)

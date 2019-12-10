@@ -46,9 +46,6 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-constexpr tracker_request_flags_t tracker_request::scrape_request;
-constexpr tracker_request_flags_t tracker_request::i2p;
-
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)

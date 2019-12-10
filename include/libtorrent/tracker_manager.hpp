@@ -106,11 +106,11 @@ enum class event_t : std::uint8_t
 	{
 		tracker_request() = default;
 
-		static constexpr tracker_request_flags_t scrape_request = 0_bit;
+		static inline constexpr tracker_request_flags_t scrape_request = 0_bit;
 
 		// affects interpretation of peers string in HTTP response
 		// see parse_tracker_response()
-		static constexpr tracker_request_flags_t i2p = 1_bit;
+		static inline constexpr tracker_request_flags_t i2p = 1_bit;
 
 		std::string url;
 		std::string trackerid;

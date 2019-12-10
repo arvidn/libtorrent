@@ -935,9 +935,4 @@ void socks5::close()
 	m_timer.cancel();
 }
 
-constexpr udp_send_flags_t udp_socket::peer_connection;
-constexpr udp_send_flags_t udp_socket::tracker_connection;
-constexpr udp_send_flags_t udp_socket::dont_queue;
-constexpr udp_send_flags_t udp_socket::dont_fragment;
-
 }

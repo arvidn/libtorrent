@@ -37,10 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-
-	constexpr resolver_flags resolver_interface::cache_only;
-	constexpr resolver_flags resolver_interface::abort_on_shutdown;
-
 	resolver::resolver(io_context& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
