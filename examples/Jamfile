@@ -23,7 +23,7 @@ project client_test
 	<toolset>msvc:<cflags>/wd4373
 	: default-build
 	<link>static
-	<cxxstd>14
+	<cxxstd>17
 	<variant>debug-mode
 	;
 

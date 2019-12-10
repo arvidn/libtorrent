@@ -143,7 +143,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
 
-	int port = 1024 + rand() % 50000;
+	int port = 1024 + std::rand() % 50000;
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
@@ -467,7 +467,7 @@ bool try_connect(lt::session& ses1, int port
 		std::string name;
 		name.reserve(40);
 		for (int i = 0; i < 40; ++i)
-			name += hex_alphabet[rand() % 16];
+			name += hex_alphabet[std::rand() % 16];
 
 		std::printf("SNI: %s\n", name.c_str());
 		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
@@ -499,11 +499,11 @@ bool try_connect(lt::session& ses1, int port
 	{
 		// TODO: also test using a hash that refers to a valid torrent
 		// but that differs from the SNI hash
-		std::generate(handshake + 28, handshake + 48, &rand);
+		std::generate(handshake + 28, handshake + 48, [](){ return char(std::rand()); } );
 	}
 
 	// fill in the peer-id
-	std::generate(handshake + 48, handshake + 68, &rand);
+	std::generate(handshake + 48, handshake + 68, [](){ return char(std::rand()); } );
 
 	std::printf("bittorrent handshake\n");
 	boost::asio::write(ssl_sock, boost::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
@@ -549,7 +549,7 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-	int port = 1024 + rand() % 50000;
+	int port = 1024 + std::rand() % 50000;
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 

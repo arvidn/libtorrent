@@ -5,29 +5,24 @@ branches:
     - RC_2_0
     - RC_1_2
     - RC_1_1
-image: Visual Studio 2017
+image: Visual Studio 2019
 clone_depth: 1
 environment:
   matrix:
     - cmake: 1
     - variant: test_debug
-      compiler: msvc-14.1
+      compiler: msvc
       model: 64
       sim: 1
     - variant: test_debug
-      compiler: msvc-14.1
+      compiler: msvc
       model: 32
       bjam: 1
     - variant: test_release
-      compiler: msvc-14.1
+      compiler: msvc
       model: 64
       python: 1
       python_dist: 1
-      crypto: openssl
-      bjam: 1
-    - variant: test_debug
-      compiler: gcc
-      model: 32
       crypto: openssl
       bjam: 1
 
@@ -40,18 +35,17 @@ install:
   - set ROOT_DIRECTORY=%CD%
   - cd %ROOT_DIRECTORY%
   - if not defined compiler ( set compiler="" )
+  - if not defined linking ( set linking="shared" )
   - if not defined crypto ( set crypto=built-in )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_69_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_71_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 14.1 ;`nusing gcc ;`nusing python : 3.6 : c:\\Python36-x64 : c:\\Python36-x64\\include : c:\\Python36-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing python : 3.6 : c:\\Python36-x64 : c:\\Python36-x64\\include : c:\\Python36-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
-  - set PATH=c:\msys64\mingw32\bin;%PATH%
-  - g++ --version
   - set PATH=c:\Python36-x64;%PATH%
   - set PYTHON_INTERPRETER=c:\Python36-x64\python.exe
   - python --version
@@ -64,19 +58,19 @@ build_script:
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on testing.execute=off
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on testing.execute=off
     )
 
   # python binding
@@ -85,10 +79,10 @@ build_script:
   # boost.python itself doesn't build warning free, so we can't build
   # with warnings-as-errors
   - if defined python (
-    b2.exe --hash openssl-version=pre1.1 warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=shared stage_module stage_dependencies
+    b2.exe --hash openssl-version=pre1.1 warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=%linking% stage_module stage_dependencies
     )
   - if defined python_dist (
-    c:\Python35-x64\python.exe setup.py bdist --format=msi
+    c:\Python36-x64\python.exe setup.py bdist --format=msi
     )
 
   # simulations
@@ -98,22 +92,22 @@ build_script:
     )
 
   # minimal support for cmake build
-  # we need to build the boost libraries we use with C++14
+  # we need to build the boost libraries we use with C++17
   # and stage it for cmake to pick up
   - if defined cmake (
     cd %BOOST_ROOT% &&
-    bjam cxxstd=14 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
+    b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
     mkdir build &&
     cd build &&
-    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017" -A x64 .. &&
+    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 16 2019" -A x64 .. &&
     cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS% -- -verbosity:minimal
     )
 
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on win-tests
+    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on win-tests
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
