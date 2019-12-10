@@ -142,7 +142,7 @@ install:
       echo "using gcc : coverage : ccache g++ --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
-      echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
+      echo "using gcc : arm : ccache arm-linux-gnueabihf-g++ :
         <cxxflags>-Wno-psabi
         <cxxflags>-fsigned-char
         <cxxflags>-march=armv8-a+crc
@@ -159,26 +159,26 @@ install:
        echo "using darwin : : ccache clang++ : ;" >> ~/user-config.jam;
        echo "using darwin : ios_sim : ccache clang++ : <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-       <compileflags>-mios-simulator-version-min=7
+       <compileflags>-mios-simulator-version-min=12
        <compileflags>-fobjc-abi-version=2
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-       <linkflags>-mios-simulator-version-min=7
+       <linkflags>-mios-simulator-version-min=12
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
        echo "using darwin : ios : ccache clang++ : <compileflags>-Wno-deprecated-declarations
        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-       <compileflags>-mios-version-min=7
-       <compileflags>\"-arch armv7\"
+       <compileflags>-mios-version-min=12
+       <compileflags>\"-arch arm64\"
        <compileflags>-fobjc-abi-version=2
        <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-       <linkflags>-mios-version-min=7
-       <linkflags>\"-arch armv7\"
+       <linkflags>-mios-version-min=12
+       <linkflags>\"-arch arm64\"
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
     fi'
   - 'echo "using python : : $(which python3) : /usr/local/Frameworks/Python.framework/Headers : : <target-os>darwin ;" >> ~/user-config.jam'
   - 'echo "using python : : $(which python3) : : : <target-os>linux ;" >> ~/user-config.jam'
   - 'if [[ "$install_boost" = "1" ]]; then
       cd $BOOST_ROOT;
-      sudo ./b2 cxxstd=14 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
+      sudo ./b2 cxxstd=17 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
       cd tools/build/;
       echo "bootstrapping boost.build";
       ./bootstrap.sh;
@@ -208,12 +208,13 @@ install:
 
   - 'if [[ "$arch" == "arm" ]]; then
       cd $TRAVIS_BUILD_DIR/test;
-      wget --no-verbose -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/armv8l-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf.tar.xz;
-      tar xf gcc-linaro.tar.xz;
-      export PATH=${PWD}/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
-      armv8l-linux-gnueabihf-g++ --version;
+      wget --no-verbose -O gcc.tar.xz https://developer.arm.com/-/media/Files/downloads/gnu-a/8.2-2018.11/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz;
+      tar xf gcc.tar.xz;
+      export PATH=$PWD/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin:$PATH;
+      arm-linux-gnueabihf-g++ --version;
+      ./gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ --version;
       travis_retry sudo apt-get install -y qemu-user-static;
-      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
+      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
@@ -245,7 +246,7 @@ script:
       python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=14 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
+       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=17 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
   - 'if [[ $clang_tidy == "1" ]]; then
@@ -303,7 +304,7 @@ script:
 
   - cd $TRAVIS_BUILD_DIR;
   - if [[ $ios == "1" ]]; then
-      ${B2} -j2 -q warnings-as-errors=on darwin-ios darwin-ios_sim link=static cxxstd=14;
+      ${B2} -j2 -q warnings-as-errors=on darwin-ios darwin-ios_sim address-model=64 link=static cxxstd=17;
     fi
 
 # a binary built with sanitizer does not interact well with python
@@ -335,7 +336,7 @@ script:
   - if [[ "$cmake" == "1" ]]; then
       export CXX=g++ &&
       export CC=gcc &&
-      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
+      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . --parallel 2;
     fi
 
@@ -354,6 +355,10 @@ script:
   - 'if [[ "$arch" == "arm" ]];
     then
       ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.execute=off;
-      sudo cp -R bin rootfs/;
-      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs";
+      sudo cp -R bin rootfs/home;
+      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
+      cat test-launcher.sh;
+      chmod +x test-launcher.sh;
+      sudo cp test-launcher.sh rootfs;
+      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
     fi'
