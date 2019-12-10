@@ -527,7 +527,7 @@ add_library(torrent-rasterbar
 	${libtorrent_aux_include_files}
 )
 
-select_cxx_standard(torrent-rasterbar 14)
+select_cxx_standard(torrent-rasterbar 17)
 
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(torrent-rasterbar
@@ -555,6 +555,7 @@ target_compile_definitions(torrent-rasterbar
 		$<$<CONFIG:Debug>:TORRENT_USE_ASSERTS>
 		BOOST_ASIO_ENABLE_CANCELIO
 		BOOST_ASIO_NO_DEPRECATED
+		_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
 	PRIVATE
 		TORRENT_BUILDING_LIBRARY
 		_FILE_OFFSET_BITS=64

@@ -38,7 +38,7 @@ project tools
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static
-	<cxxstd>14
+	<cxxstd>17
 	<variant>debug-mode
    ;  
 

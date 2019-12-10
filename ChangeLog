@@ -1,3 +1,5 @@
+	* libtorrent now requires C++17 to build
+
 2.0 release
 
 	* update userdata in add_torrent_params to be type-safe and add to torrent_handle

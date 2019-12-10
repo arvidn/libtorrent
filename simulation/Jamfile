@@ -24,7 +24,7 @@ project
 	<invariant-checks>full
 	<asserts>on
 	<picker-debugging>on
-	<cxxstd>14
+	<cxxstd>17
 	;
 
 alias libtorrent-sims :
