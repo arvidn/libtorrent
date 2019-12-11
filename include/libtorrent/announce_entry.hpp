@@ -59,7 +59,7 @@ namespace libtorrent {
 #endif
 
 		// internal
-		explicit announce_endpoint(aux::listen_socket_handle const& s);
+		announce_endpoint(aux::listen_socket_handle const& s, bool completed);
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
