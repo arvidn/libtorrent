@@ -47,13 +47,13 @@ namespace libtorrent {
 		minutes32 constexpr tracker_retry_delay_max{60};
 	}
 
-	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
+	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s, bool const completed)
 		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
 		, socket(s)
 		, fails(0)
 		, updating(false)
 		, start_sent(false)
-		, complete_sent(false)
+		, complete_sent(completed)
 		, triggered_manually(false)
 	{}
 

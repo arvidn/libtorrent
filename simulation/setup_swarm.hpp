@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
 
-enum class swarm_test { download, upload };
+enum class swarm_test { download, upload, upload_no_auto_stop };
 
 void setup_swarm(int num_nodes
 	, swarm_test type

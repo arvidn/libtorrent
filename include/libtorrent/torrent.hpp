@@ -1713,6 +1713,10 @@ namespace libtorrent {
 		// this is set to true while waiting for an async_set_file_priority
 		bool m_outstanding_file_priority:1;
 
+		// set to true if we've sent an event=completed to any tracker. This will
+		// prevent us from sending it again to anyone
+		bool m_complete_sent:1;
+
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once
 		bool m_was_started = false;
