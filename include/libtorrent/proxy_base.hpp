@@ -303,7 +303,9 @@ struct wrap_allocator_t
 
 	// rebind the underlying allocator to this wrapped type, since we need to use
 	// it to allocate a larger handler context/closure.
-	using allocator_type = typename boost::asio::associated_allocator<UnderlyingHandler>::type::template rebind<wrap_allocator_t>::other;
+	using allocator_type = typename std::allocator_traits<
+		typename boost::asio::associated_allocator<UnderlyingHandler>::type>::
+			template rebind_alloc<wrap_allocator_t>;
 
 	using executor_type = typename boost::asio::associated_executor<UnderlyingHandler>::type;
 
