@@ -113,7 +113,7 @@ namespace aux {
 #ifdef TORRENT_BUILD_SIMULATOR
 			// simulator
 
-			for (auto& b : buffer) b = char(random(0xff));
+			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
 
 #elif TORRENT_USE_CNG
 			aux::cng_gen_random(buffer);

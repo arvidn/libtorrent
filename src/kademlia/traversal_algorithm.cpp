@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp> // for dht_logger
 #include <libtorrent/kademlia/dht_settings.hpp>
 #include <libtorrent/kademlia/io.hpp>
-#include <libtorrent/session_status.hpp>
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 #include <libtorrent/alert_types.hpp> // for dht_lookup
 #include <libtorrent/aux_/time.hpp>

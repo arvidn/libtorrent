@@ -231,4 +231,3 @@ namespace libtorrent {
 #endif // TORRENT_ABI_VERSION
 
 #endif // TORRENT_SESSION_STATUS_HPP_INCLUDED
-
