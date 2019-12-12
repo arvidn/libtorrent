@@ -3153,7 +3153,7 @@ namespace aux {
 		if (!m_undead_peers.empty())
 		{
 			auto const remove_it = std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
-				, std::bind(&std::shared_ptr<peer_connection>::unique, _1));
+				, [](std::shared_ptr<peer_connection>& ptr) { return ptr.use_count() == 1; });
 			m_undead_peers.erase(remove_it, m_undead_peers.end());
 			if (m_undead_peers.empty())
 			{

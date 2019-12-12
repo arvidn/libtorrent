@@ -393,7 +393,7 @@ namespace {
 		// to keep the session_impl alive
 		m_impl->call_abort();
 
-		if (m_thread && m_thread.unique())
+		if (m_thread && m_thread.use_count() == 1)
 		{
 #if defined TORRENT_ASIO_DEBUGGING
 			wait_for_asio_handlers();
@@ -424,7 +424,7 @@ namespace {
 	session_proxy& session_proxy::operator=(session_proxy&&) noexcept = default;
 	session_proxy::~session_proxy()
 	{
-		if (m_thread && m_thread.unique())
+		if (m_thread && m_thread.use_count() == 1)
 		{
 #if defined TORRENT_ASIO_DEBUGGING
 			wait_for_asio_handlers();

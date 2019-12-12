@@ -262,7 +262,7 @@ namespace libtorrent {
 
 		// we're only supposed to move part files from a fence job. i.e. no other
 		// disk jobs are supposed to be in-flight at this point
-		TORRENT_ASSERT(!m_file || m_file.unique());
+		TORRENT_ASSERT(!m_file || m_file.use_count() == 1);
 		m_file.reset();
 
 		if (!m_piece_map.empty())
