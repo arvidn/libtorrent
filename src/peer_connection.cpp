@@ -70,7 +70,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manager
 #include "libtorrent/ip_filter.hpp"
-#include "libtorrent/ip_voter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/has_block.hpp"
@@ -78,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
-#include "libtorrent/aux_/merkle.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>

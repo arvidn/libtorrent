@@ -252,8 +252,7 @@ namespace libtorrent {
 				|| std::find_if(rq.begin(), rq.end(), aux::has_block(pb)) != rq.end())
 			{
 #if TORRENT_USE_ASSERTS
-				std::vector<pending_block>::const_iterator j
-					= std::find_if(dq.begin(), dq.end(), aux::has_block(pb));
+				auto const j = std::find_if(dq.begin(), dq.end(), aux::has_block(pb));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING

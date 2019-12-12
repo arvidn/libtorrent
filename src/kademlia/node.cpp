@@ -85,8 +85,7 @@ void nop() {}
 
 node_id calculate_node_id(node_id const& nid, aux::listen_socket_handle const& sock)
 {
-	address external_address;
-	external_address = sock.get_external_address();
+	address const external_address = sock.get_external_address();
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
