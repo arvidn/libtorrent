@@ -1,5 +1,6 @@
 1.1.14 release
 
+	* support building with new boost version
 	* add handling on invalid piece index to torrent_handle::have_piece()
 	* fix error in treatment of move_storage() flags
 	* fix division by zero in anti-leech choker
