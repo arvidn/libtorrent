@@ -148,6 +148,12 @@ namespace aux {
 			m_access_list.insert(range(zero<Addr>(), 0));
 		}
 
+		bool empty() const
+		{
+			return m_access_list.empty()
+				|| (m_access_list.size() == 1 && *m_access_list.begin() == range(zero<Addr>(), 0));
+		}
+
 		void add_rule(Addr first, Addr last, std::uint32_t const flags)
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
@@ -251,6 +257,8 @@ namespace aux {
 			// the end of the range is implicit
 			// and given by the next entry in the set
 			std::uint32_t access;
+			friend bool operator==(range const& lhs, range const& rhs)
+			{ return lhs.start == rhs.start && lhs.access == rhs.access; }
 		};
 
 		std::set<range> m_access_list;
@@ -274,6 +282,9 @@ struct TORRENT_EXPORT ip_filter
 		// to nor accepted as incoming connections
 		blocked = 1
 	};
+
+	// returns true if the filter does not contain any rules
+	bool empty() const { return m_filter4.empty() && m_filter6.empty(); }
 
 	// Adds a rule to the filter. ``first`` and ``last`` defines a range of
 	// ip addresses that will be marked with the given flags. The ``flags``
