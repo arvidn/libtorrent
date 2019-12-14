@@ -53,15 +53,6 @@ also works for IPv6.
 
 using namespace lt;
 
-template <class Addr>
-bool compare(ip_range<Addr> const& lhs
-	, ip_range<Addr> const& rhs)
-{
-	return lhs.first == rhs.first
-		&& lhs.last == rhs.last
-		&& lhs.flags == rhs.flags;
-}
-
 template <class T>
 void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 {
@@ -95,153 +86,158 @@ TORRENT_TEST(session_get_ip_filter)
 	TEST_EQUAL(std::get<0>(ipf.export_filter()).size(), 1);
 }
 
-TORRENT_TEST(ip_filter)
+std::vector<ip_range<address_v4>> const expected1 =
 {
-	std::vector<ip_range<address_v4>> range;
+	{addr4("0.0.0.0"), addr4("0.255.255.255"), 0}
+	, {addr4("1.0.0.0"), addr4("3.0.0.0"), ip_filter::blocked}
+	, {addr4("3.0.0.1"), addr4("255.255.255.255"), 0}
+};
 
-	// **** test joining of ranges at the end ****
-	ip_range<address_v4> expected1[] =
+// **** test joining of ranges at the end ****
+TORRENT_TEST(joining_ranges_at_end)
+{
+	ip_filter f;
+	f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	TEST_CHECK(range == expected1);
+}
+
+// **** test joining of ranges at the start ****
+TORRENT_TEST(joining_ranges_at_start)
+{
+	ip_filter f;
+	f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	TEST_CHECK(range == expected1);
+}
+
+// **** test joining of overlapping ranges at the start ****
+TORRENT_TEST(joining_overlapping_ranges_at_start)
+{
+	ip_filter f;
+	f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	TEST_CHECK(range == expected1);
+}
+
+// **** test joining of overlapping ranges at the end ****
+TORRENT_TEST(joining_overlapping_ranges_at_end)
+{
+	ip_filter f;
+	f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
+	f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	TEST_CHECK(range == expected1);
+}
+
+// **** test joining of multiple overlapping ranges 1 ****
+TORRENT_TEST(joining_multiple_overlapping_ranges_1)
+{
+	ip_filter f;
+	f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
+
+	f.add_rule(addr("1.0.1.0"), addr("9.0.0.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	std::vector<ip_range<address_v4>> const expected =
 	{
 		{addr4("0.0.0.0"), addr4("0.255.255.255"), 0}
-		, {addr4("1.0.0.0"), addr4("3.0.0.0"), ip_filter::blocked}
-		, {addr4("3.0.0.1"), addr4("255.255.255.255"), 0}
+		, {addr4("1.0.0.0"), addr4("9.0.0.0"), ip_filter::blocked}
+		, {addr4("9.0.0.1"), addr4("255.255.255.255"), 0}
+	};
+	TEST_CHECK(range == expected);
+}
+
+// **** test joining of multiple overlapping ranges 2 ****
+TORRENT_TEST(joining_multiple_overlapping_ranges_2)
+{
+	ip_filter f;
+	f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
+	f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
+
+	f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
+
+	auto const range = std::get<0>(f.export_filter());
+	test_rules_invariant(range, f);
+
+	std::vector<ip_range<address_v4>> const expected =
+	{
+		{addr4("0.0.0.0"), addr4("0.0.0.255"), 0}
+		, {addr4("0.0.1.0"), addr4("8.0.0.0"), ip_filter::blocked}
+		, {addr4("8.0.0.1"), addr4("255.255.255.255"), 0}
 	};
 
-	{
-		ip_filter f;
-		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+	TEST_CHECK(range == expected);
+}
 
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
-	}
-
-	// **** test joining of ranges at the start ****
-
-	{
-		ip_filter f;
-		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
-
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
-	}
-
-
-	// **** test joining of overlapping ranges at the start ****
-
-	{
-		ip_filter f;
-		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
-
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
-	}
-
-
-	// **** test joining of overlapping ranges at the end ****
-
-	{
-		ip_filter f;
-		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
-		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
-
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
-	}
-
-
-	// **** test joining of multiple overlapping ranges 1 ****
-
-	{
-		ip_filter f;
-		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
-
-		f.add_rule(addr("1.0.1.0"), addr("9.0.0.0"), ip_filter::blocked);
-
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		ip_range<address_v4> expected[] =
-		{
-			{addr4("0.0.0.0"), addr4("0.255.255.255"), 0}
-			, {addr4("1.0.0.0"), addr4("9.0.0.0"), ip_filter::blocked}
-			, {addr4("9.0.0.1"), addr4("255.255.255.255"), 0}
-		};
-
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
-
-	}
-
-	// **** test joining of multiple overlapping ranges 2 ****
-
-	{
-		ip_filter f;
-		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
-		f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
-
-		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
-
-		range = std::get<0>(f.export_filter());
-		test_rules_invariant(range, f);
-
-		TEST_CHECK(range.size() == 3);
-		ip_range<address_v4> expected[] =
-		{
-			{addr4("0.0.0.0"), addr4("0.0.0.255"), 0}
-			, {addr4("0.0.1.0"), addr4("8.0.0.0"), ip_filter::blocked}
-			, {addr4("8.0.0.1"), addr4("255.255.255.255"), 0}
-		};
-
-		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
-
-	}
-
-	// **** test IPv6 ****
-
-	ip_range<address_v6> expected2[] =
+// **** test IPv6 ****
+TORRENT_TEST(ipv6)
+{
+	std::vector<ip_range<address_v6>> const expected2 =
 	{
 		{addr6("::0"), addr6("0:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
 		, {addr6("1::"), addr6("3::"), ip_filter::blocked}
 		, {addr6("3::1"), addr6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
 	};
 
+	ip_filter f;
+	f.add_rule(addr("2::1"), addr("3::"), ip_filter::blocked);
+	f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
+
+	std::vector<ip_range<address_v6>> rangev6;
+	rangev6 = std::get<1>(f.export_filter());
+	test_rules_invariant(rangev6, f);
+
+	TEST_CHECK(rangev6 == expected2);
+}
+
+TORRENT_TEST(default_empty)
+{
 	{
 		ip_filter f;
-		f.add_rule(addr("2::1"), addr("3::"), ip_filter::blocked);
+		TEST_CHECK(f.empty());
+
 		f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
-
-		std::vector<ip_range<address_v6>> rangev6;
-		rangev6 = std::get<1>(f.export_filter());
-		test_rules_invariant(rangev6, f);
-
-		TEST_EQUAL(rangev6.size(), 3);
-		TEST_CHECK(std::equal(rangev6.begin(), rangev6.end(), expected2, &compare<address_v6>));
+		TEST_CHECK(!f.empty());
 	}
 
+	{
+		ip_filter f;
+		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
+		TEST_CHECK(!f.empty());
+	}
+
+	{
+		ip_filter f;
+		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), 0);
+		TEST_CHECK(f.empty());
+	}
+}
+
+TORRENT_TEST(port_filter)
+{
 	port_filter pf;
 
 	// default constructed port filter should allow any port
@@ -261,3 +257,4 @@ TORRENT_TEST(ip_filter)
 	TEST_CHECK(pf.access(6881) == 0);
 	TEST_CHECK(pf.access(65535) == 0);
 }
+
