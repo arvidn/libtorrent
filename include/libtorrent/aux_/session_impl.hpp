@@ -516,7 +516,7 @@ namespace aux {
 			void pause();
 			void resume();
 
-			void set_ip_filter(std::shared_ptr<ip_filter> const& f);
+			void set_ip_filter(std::shared_ptr<ip_filter> f);
 			ip_filter const& get_ip_filter();
 
 			void set_port_filter(port_filter const& f);
