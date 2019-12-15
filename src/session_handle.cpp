@@ -72,6 +72,7 @@ namespace libtorrent {
 	constexpr save_state_flags_t session_handle::save_tracker_proxy TORRENT_DEPRECATED_ENUM;
 #endif
 	constexpr save_state_flags_t session_handle::save_extension_state;
+	constexpr save_state_flags_t session_handle::save_ip_filter;
 
 #if TORRENT_ABI_VERSION <= 2
 	constexpr session_flags_t session_handle::add_default_plugins;
@@ -805,10 +806,10 @@ namespace {
 	}
 #endif // TORRENT_ABI_VERSION
 
-	void session_handle::set_ip_filter(ip_filter const& f)
+	void session_handle::set_ip_filter(ip_filter f)
 	{
-		std::shared_ptr<ip_filter> copy = std::make_shared<ip_filter>(f);
-		async_call(&session_impl::set_ip_filter, copy);
+		std::shared_ptr<ip_filter> copy = std::make_shared<ip_filter>(std::move(f));
+		async_call(&session_impl::set_ip_filter, std::move(copy));
 	}
 
 	ip_filter session_handle::get_ip_filter() const

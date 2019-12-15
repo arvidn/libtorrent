@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #if TORRENT_ABI_VERSION <= 2
 #include "libtorrent/kademlia/dht_settings.hpp"
@@ -125,6 +126,10 @@ struct TORRENT_EXPORT session_params
 	// primarily here to make it convenient to save and restore state across
 	// sessions, using read_session_params() and write_session_params().
 	std::map<std::string, std::string> ext_state;
+
+	// the IP filter to use for the session. This restricts which peers are allowed
+	// to connect. As if passed to set_ip_filter().
+	libtorrent::ip_filter ip_filter;
 };
 
 TORRENT_VERSION_NAMESPACE_3_END

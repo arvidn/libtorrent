@@ -1,5 +1,6 @@
 2.0 release
 
+	* add ip_filter to session_params
 	* added support for wolfSSL for SHA-1 hash and HTTPS (no Torrents over SSL)
 	* requires OpenSSL minimum version 1.0.0 with SNI support
 	* deprecated save_state() and load_state() on session in favour of new

@@ -123,6 +123,9 @@ namespace libtorrent {
 		// load or save state from plugins
 		static constexpr save_state_flags_t save_extension_state = 11_bit;
 
+		// load or save the IP filter set on the session
+		static constexpr save_state_flags_t save_ip_filter = 12_bit;
+
 #if TORRENT_ABI_VERSION <= 2
 		// deprecated in 2.0
 		// instead of these functions, use session_state() below, and restore
@@ -623,7 +626,7 @@ namespace libtorrent {
 		// Each time a peer is blocked because of the IP filter, a
 		// peer_blocked_alert is generated. ``get_ip_filter()`` Returns the
 		// ip_filter currently in the session. See ip_filter.
-		void set_ip_filter(ip_filter const& f);
+		void set_ip_filter(ip_filter f);
 		ip_filter get_ip_filter() const;
 
 		// apply port_filter ``f`` to incoming and outgoing peers. a port filter

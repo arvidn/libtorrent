@@ -835,6 +835,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			}
 		}
 #endif
+
+		if ((flags & session::save_ip_filter) && m_ip_filter)
+		{
+			ret.ip_filter = *m_ip_filter;
+		}
 		return ret;
 	}
 
@@ -1073,11 +1078,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			t->port_filter_updated();
 	}
 
-	void session_impl::set_ip_filter(std::shared_ptr<ip_filter> const& f)
+	void session_impl::set_ip_filter(std::shared_ptr<ip_filter> f)
 	{
 		INVARIANT_CHECK;
 
-		m_ip_filter = f;
+		m_ip_filter = std::move(f);
 
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter

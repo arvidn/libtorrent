@@ -332,6 +332,12 @@ namespace {
 		m_impl->set_dht_storage(std::move(params.dht_storage_constructor));
 #endif
 
+		if (!params.ip_filter.empty())
+		{
+			std::shared_ptr<ip_filter> copy = std::make_shared<ip_filter>(std::move(params.ip_filter));
+			m_impl->set_ip_filter(std::move(copy));
+		}
+
 		m_impl->start_session();
 
 		if (internal_executor)
