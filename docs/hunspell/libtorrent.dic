@@ -510,3 +510,6 @@ cstdint
 cloneable
 inline
 chrono
+hunspell
+online
+dic

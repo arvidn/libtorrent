@@ -2,6 +2,7 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 from __future__ import print_function
 
+import urllib
 import glob
 import os
 import sys
@@ -1087,6 +1088,7 @@ def render_enums(out, enums, print_declared_reference, header_level):
         print('.. raw:: html\n', file=out)
         print('\t<a name="%s"></a>' % e['name'], file=out)
         print('', file=out)
+        dump_report_issue('enum ' + e['name'], out)
         print(heading('enum %s' % e['name'], header_level), file=out)
 
         print_declared_in(out, e)
@@ -1167,6 +1169,14 @@ def print_toc(out, categories, s):
         print(dump_link_targets('\t'), file=out)
 
 
+def dump_report_issue(h, out):
+    print(('.. raw:: html\n\n\t<span style="float:right;">[<a style="color:blue;" ' +
+           'href="http://github.com/arvidn/libtorrent/issues/new?title=docs:%s&labels=' +
+           'documentation&body=%s">report issue</a>]</span>\n\n').format(
+                urllib.quote_plus(h),
+                urllib.quote_plus('Documentation under heading "' + h + '" could be improved')), file=out)
+
+
 out = open('reference.rst', 'w+')
 out.write('''=======================
 reference documentation
@@ -1213,6 +1223,7 @@ __ reference.html
         print('\t<a name="%s"></a>' % c['name'], file=out)
         print('', file=out)
 
+        dump_report_issue('class ' + c['name'], out)
         out.write('%s\n' % heading(c['name'], '-'))
         print_declared_in(out, c)
         c['desc'] = linkify_symbols(c['desc'])
@@ -1253,14 +1264,13 @@ __ reference.html
         for f in c['fun']:
             if f['desc'] == '':
                 continue
-            title = ''
             print('.. raw:: html\n', file=out)
             for n in f['names']:
                 print('\t<a name="%s"></a>' % n, file=out)
             print('', file=out)
-            for n in f['names']:
-                title += '%s ' % n
-            print(heading(title.strip(), '.'), file=out)
+            h = ' '.join(f['names'])
+            dump_report_issue('%s::[%s]' % (c['name'], h), out)
+            print(heading(h, '.'), file=out)
 
             block = '.. parsed-literal::\n\n'
 
@@ -1282,23 +1292,21 @@ __ reference.html
             for n in f['names']:
                 print('\t<a name="%s"></a>' % n, file=out)
             print('', file=out)
-
-            for n in f['names']:
-                print('%s ' % n, end=' ', file=out)
-            print('', file=out)
+            h = ' '.join(f['names'])
+            dump_report_issue('%s::[%s]' % (c['name'], h), out)
+            print(h, file=out)
             f['desc'] = linkify_symbols(f['desc'])
             print('\t%s' % f['desc'].replace('\n', '\n\t'), file=out)
 
             print(dump_link_targets(), file=out)
 
     for f in functions:
-        h = ''
         print('.. raw:: html\n', file=out)
         for n in f['names']:
             print('\t<a name="%s"></a>' % n, file=out)
         print('', file=out)
-        for n in f['names']:
-            h += '%s ' % n
+        h = ' '.join(f['names'])
+        dump_report_issue(h, out)
         print(heading(h, '-'), file=out)
         print_declared_in(out, f)
 
