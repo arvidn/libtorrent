@@ -53,7 +53,7 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t tracking = 0;
 #endif
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __MINGW64__
 #ifndef NDEBUG
 	constexpr std::size_t debug_read_iter = 24 * sizeof(void*);
 	constexpr std::size_t debug_write_iter = 24 * sizeof(void*);
