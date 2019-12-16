@@ -40,8 +40,6 @@ install:
   - cd %ROOT_DIRECTORY%
   - if not defined compiler ( set compiler="" )
   - if not defined crypto ( set crypto=built-in )
-  - if not defined linkflags ( set linkflags="" )
-  - if not defined include ( set include="" )
   - cd %ROOT_DIRECTORY%
   - set BOOST_ROOT=c:\Libraries\boost_1_69_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -65,19 +63,19 @@ build_script:
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on testing.execute=off
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on testing.execute=off
     )
 
   # python binding
@@ -86,7 +84,7 @@ build_script:
   # boost.python itself doesn't build warning free, so we can't build
   # with warnings-as-errors
   - if defined python (
-    b2.exe --hash openssl-version=pre1.1 warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=shared stage_module stage_dependencies
+    b2.exe --hash openssl-version=pre1.1 warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=shared stage_module stage_dependencies
     )
   - if defined python_dist (
     c:\Python35-x64\python.exe setup.py bdist --format=msi
@@ -95,7 +93,7 @@ build_script:
   # simulations
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
     )
 
   # minimal support for cmake build
@@ -114,7 +112,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on win-tests
+    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on win-tests
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
@@ -137,5 +135,5 @@ test_script:
   # certain unexpected terminations (through exceptions)
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug %linkflags% %include% boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full test_debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
     )
