@@ -57,16 +57,18 @@ namespace libtorrent {
 		, triggered_manually(false)
 	{}
 
-	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s)
+	announce_endpoint::announce_endpoint(aux::listen_socket_handle const& s, bool const completed)
 		: local_endpoint(s ? s.get_local_endpoint() : tcp::endpoint())
 #if TORRENT_ABI_VERSION <= 2
 		, fails(0)
 		, updating(false)
 		, start_sent(false)
-		, complete_sent(false)
+		, complete_sent(completed)
 #endif
 		, socket(s)
-	{}
+	{
+		TORRENT_UNUSED(completed);
+	}
 
 	announce_entry::announce_entry(string_view u)
 		: url(u.to_string())

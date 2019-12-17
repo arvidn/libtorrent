@@ -146,7 +146,7 @@ TORRENT_VERSION_NAMESPACE_2
 		friend struct announce_entry;
 
 		// internal
-		explicit announce_endpoint(aux::listen_socket_handle const& s);
+		announce_endpoint(aux::listen_socket_handle const& s, bool completed);
 
 		// the local endpoint of the listen interface associated with this endpoint
 		tcp::endpoint local_endpoint;

@@ -518,6 +518,9 @@ cstdint
 cloneable
 inline
 chrono
+hunspell
+online
+dic
 destructors
 fclose
 fopen

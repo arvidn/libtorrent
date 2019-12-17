@@ -152,7 +152,10 @@ void test_interval(int interval)
 	}
 }
 
-TORRENT_TEST(event_completed)
+template <typename AddTorrent, typename OnAlert>
+std::vector<std::string> test_event(swarm_test const type
+	, AddTorrent add_torrent
+	, OnAlert on_alert)
 {
 	using sim::asio::ip::address_v4;
 	sim::default_config network_cfg;
@@ -163,19 +166,16 @@ TORRENT_TEST(event_completed)
 	sim::http_server http(web_server, 8080);
 
 	// the request strings of all announces
-	std::vector<std::pair<int, std::string>> announces;
+	std::vector<std::string> announces;
 
 	const int interval = 500;
-	lt::time_point start = lt::clock_type::now();
 
 	http.register_handler("/announce"
 	, [&](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		TEST_EQUAL(method, "GET");
-		int const timestamp = int(chrono::duration_cast<lt::seconds>(
-			lt::clock_type::now() - start).count());
-		announces.push_back({timestamp, req});
+		announces.push_back(req);
 
 		char response[500];
 		int const size = std::snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
@@ -185,80 +185,111 @@ TORRENT_TEST(event_completed)
 	lt::settings_pack default_settings = settings();
 	lt::add_torrent_params default_add_torrent;
 
-	int completion = -1;
-
-	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
+	setup_swarm(2, type, sim, default_settings, default_add_torrent
 		// add session
 		, [](lt::settings_pack&) { }
 		// add torrent
-		, [](lt::add_torrent_params& params) {
-			params.trackers.push_back("http://2.2.2.2:8080/announce");
-		}
+		, add_torrent
 		// on alert
-		, [&](lt::alert const*, lt::session&) {}
+		, on_alert
 		// terminate
 		, [&](int const ticks, lt::session& ses) -> bool
 		{
-			if (completion == -1 && is_seed(ses))
-			{
-				completion = int(chrono::duration_cast<lt::seconds>(
-					lt::clock_type::now() - start).count());
-			}
-
 			return ticks > duration;
 		});
 
-	// the first announce should be event=started, the second should be
-	// event=completed, then all but the last should have no event and the last
-	// be event=stopped.
-	for (int i = 0; i < int(announces.size()); ++i)
+	// this is some basic sanity checking of the announces that should always be
+	// true.
+	// the first announce should be event=started then no other announce should
+	// have event=started.
+	// only the last announce should have event=stopped.
+	TEST_CHECK(announces.size() > 2);
+
+	// to keep things simple, just consider one of the v1 or v2 announces, since
+	// we use a hybrid torrent, we get double announces.
+	std::map<std::string, std::vector<std::string>> announces_ih;
+	for (auto&& a : announces)
 	{
-		std::string const& str = announces[i].second;
-		int timestamp = announces[i].first;
-
-		const bool has_start = str.find("&event=started")
-			!= std::string::npos;
-		const bool has_completed = str.find("&event=completed")
-			!= std::string::npos;
-		const bool has_stopped = str.find("&event=stopped")
-			!= std::string::npos;
-
-		// we there can only be one event
-		const bool has_event = str.find("&event=") != std::string::npos;
-
-		std::printf("- %s\n", str.c_str());
-
-		// there is exactly 0 or 1 events.
-		TEST_EQUAL(int(has_start) + int(has_completed) + int(has_stopped)
-			, int(has_event));
-
-		switch (i)
-		{
-			case 0:
-			case 1:
-				TEST_CHECK(has_start);
-				break;
-			case 2:
-			case 3:
-			{
-				// the announce should have come approximately the same time we
-				// completed
-				TEST_CHECK(std::abs(completion - timestamp) <= 1);
-				TEST_CHECK(has_completed);
-				break;
-			}
-			default:
-				if (i >= int(announces.size()) - 2)
-				{
-					TEST_CHECK(has_stopped);
-				}
-				else
-				{
-					TEST_CHECK(!has_event);
-				}
-				break;
-		}
+		auto const ih = a.find("info_hash=");
+		TEST_CHECK(ih != std::string::npos);
+		auto const key = a.substr(ih, 20);
+		announces_ih[key].push_back(std::move(a));
 	}
+
+	for (auto const& entry : announces_ih)
+	{
+		auto const& ann = entry.second;
+		TEST_CHECK(ann.size() > 2);
+		TEST_CHECK(ann.front().find("&event=started") != std::string::npos);
+		for (auto const& a : span<std::string const>(ann).subspan(1))
+			TEST_CHECK(a.find("&event=started") == std::string::npos);
+
+		TEST_CHECK(ann.back().find("&event=stopped") != std::string::npos);
+		for (auto const& a : span<std::string const>(ann).first(ann.size() - 1))
+			TEST_CHECK(a.find("&event=stopped") == std::string::npos);
+	}
+	return announces_ih.begin()->second;
+}
+
+TORRENT_TEST(event_completed_downloading)
+{
+	auto const announces = test_event(swarm_test::download
+		, [](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		}
+		, [&](lt::alert const*, lt::session&) {}
+	);
+
+	// make sure there's exactly one event=completed
+	TEST_CHECK(std::count_if(announces.begin(), announces.end(), [](std::string const& s)
+		{ return s.find("&event=completed") != std::string::npos; }) == 1);
+}
+
+TORRENT_TEST(event_completed_downloading_replace_trackers)
+{
+	auto const announces = test_event(swarm_test::download
+		, [](lt::add_torrent_params& params) {}
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto const* at = alert_cast<add_torrent_alert>(a))
+				at->handle.replace_trackers({announce_entry{"http://2.2.2.2:8080/announce"}});
+		}
+	);
+
+	// make sure there's exactly one event=completed
+	TEST_CHECK(std::count_if(announces.begin(), announces.end(), [](std::string const& s)
+		{ return s.find("&event=completed") != std::string::npos; }) == 1);
+}
+
+TORRENT_TEST(event_completed_seeding)
+{
+	auto const announces = test_event(swarm_test::upload_no_auto_stop
+		, [](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		}
+		, [&](lt::alert const*, lt::session&) {}
+		);
+
+	// make sure there are no event=completed, since we added the torrent as a
+	// seed
+	TEST_CHECK(std::count_if(announces.begin(), announces.end(), [](std::string const& s)
+		{ return s.find("&event=completed") != std::string::npos; }) == 0);
+}
+
+
+TORRENT_TEST(event_completed_seeding_replace_trackers)
+{
+	auto const announces = test_event(swarm_test::upload_no_auto_stop
+		, [](lt::add_torrent_params& params) {}
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto const* at = alert_cast<add_torrent_alert>(a))
+				at->handle.replace_trackers({announce_entry{"http://2.2.2.2:8080/announce"}});
+		}
+	);
+
+	// make sure there are no event=completed, since we added the torrent as a
+	// seed
+	TEST_CHECK(std::count_if(announces.begin(), announces.end(), [](std::string const& s)
+		{ return s.find("&event=completed") != std::string::npos; }) == 0);
 }
 
 TORRENT_TEST(announce_interval_440)

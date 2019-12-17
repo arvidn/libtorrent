@@ -237,6 +237,7 @@ bool is_downloading_state(int const st)
 		, m_progress_ppm(0)
 		, m_torrent_initialized(false)
 		, m_outstanding_file_priority(false)
+		, m_complete_sent(false)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -2833,7 +2834,7 @@ bool is_downloading_state(int const st)
 					return;
 				}
 
-				ae.endpoints.emplace_back(s);
+				ae.endpoints.emplace_back(s, bool(m_complete_sent));
 				std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
 				valid_endpoints++;
 			});
@@ -2901,7 +2902,12 @@ bool is_downloading_state(int const st)
 					if (req.event == event_t::none)
 					{
 						if (!a.start_sent) req.event = event_t::started;
-						else if (!a.complete_sent && is_seed()) req.event = event_t::completed;
+						else if (!m_complete_sent
+							&& !a.complete_sent
+							&& is_seed())
+						{
+							req.event = event_t::completed;
+						}
 					}
 
 					req.triggered_manually = a.triggered_manually;
@@ -3174,6 +3180,10 @@ bool is_downloading_state(int const st)
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
+#if TORRENT_ABI_VERSION == 1
+			if (!ae->complete_sent && r.event == event_t::completed)
+				ae->complete_sent = true;
+#endif
 			announce_endpoint* aep = ae->find_endpoint(r.outgoing_socket);
 			if (aep)
 			{
@@ -3186,7 +3196,13 @@ bool is_downloading_state(int const st)
 				if (!a.start_sent && r.event == event_t::started)
 					a.start_sent = true;
 				if (!a.complete_sent && r.event == event_t::completed)
+				{
 					a.complete_sent = true;
+					// we successfully reported event=completed to one tracker. Don't
+					// send it to any other ones from now on (there may be other
+					// announces outstanding right now though)
+					m_complete_sent = true;
+				}
 				ae->verified = true;
 				a.next_announce = now + interval;
 				a.min_announce = now + resp.min_interval;
@@ -5378,13 +5394,16 @@ bool is_downloading_state(int const st)
 		{
 			t.endpoints.clear();
 			if (t.source == 0) t.source = announce_entry::source_client;
+#if TORRENT_ABI_VERSION == 1
+			t.complete_sent = m_complete_sent;
+#endif
 			for (auto& aep : t.endpoints)
 			{
 				for (auto& a : aep.info_hashes)
-					a.complete_sent = is_seed();
+					a.complete_sent = m_complete_sent;
 #if TORRENT_ABI_VERSION <= 2
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-				aep.complete_sent = is_seed();
+				aep.complete_sent = m_complete_sent;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 			}
@@ -7903,7 +7922,15 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
+			// we just added this torrent as a seed, or force-rechecked it, and we
+			// have all of it. Assume that we sent the event=completed when we
+			// finished downloading it, and don't send any more.
+			m_complete_sent = true;
 			for (auto& t : m_trackers)
+			{
+#if TORRENT_ABI_VERSION == 1
+				t.complete_sent = true;
+#endif
 				for (auto& aep : t.endpoints)
 				{
 					for (auto& a : aep.info_hashes)
@@ -7914,6 +7941,7 @@ bool is_downloading_state(int const st)
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 				}
+			}
 
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)

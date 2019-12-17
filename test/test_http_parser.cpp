@@ -61,7 +61,18 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 			std::tie(payload, protocol) = parser.incoming(recv_buf, error);
 			std::get<0>(ret) += payload;
 			std::get<1>(ret) += protocol;
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// this ia a buggy diagnostic on msvc
+// warning C4834: discarding return value of function with 'nodiscard' attribute
+#pragma warning( disable : 4834 )
+#endif
 			std::get<2>(ret) |= error;
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 			TORRENT_ASSERT(payload + protocol == chunk_size || std::get<2>(ret));
 		}
 		TEST_CHECK(prev == std::make_tuple(0, 0, false) || ret == prev || std::get<2>(ret));
