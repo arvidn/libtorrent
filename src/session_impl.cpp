@@ -5102,7 +5102,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!tptr) return;
 
 		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
-			, tptr->info_hash());
+			, tptr->info_hash(), tptr->get_clientdata());
 
 		remove_torrent_impl(tptr, options);
 
