@@ -187,7 +187,7 @@ namespace libtorrent {
 			&& !interesting_pieces.empty())
 		{
 			t.alerts().emplace_alert<picker_log_alert>(t.get_handle(), c.remote()
-				, c.pid(), flags, interesting_pieces);
+				, c.pid(), flags, interesting_pieces, t.get_userdata());
 		}
 		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
 			, "prefer_contiguous: %d picked: %d"

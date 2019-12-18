@@ -2609,7 +2609,7 @@ namespace aux {
 
 					if (m_alerts.should_post<performance_alert>())
 						m_alerts.emplace_alert<performance_alert>(
-							torrent_handle(), performance_alert::too_few_file_descriptors);
+							torrent_handle(), performance_alert::too_few_file_descriptors, nullptr);
 
 					if (i != m_torrents.end())
 					{
@@ -2707,7 +2707,7 @@ namespace aux {
 			if (m_alerts.should_post<peer_error_alert>())
 			{
 				m_alerts.emplace_alert<peer_error_alert>(torrent_handle(), endp
-					, peer_id(), operation_t::ssl_handshake, ec);
+					, peer_id(), operation_t::ssl_handshake, ec, nullptr);
 			}
 			return;
 		}
@@ -2754,7 +2754,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp, peer_blocked_alert::utp_disabled);
+					, endp, peer_blocked_alert::utp_disabled, nullptr);
 			return;
 		}
 
@@ -2766,7 +2766,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp, peer_blocked_alert::tcp_disabled);
+					, endp, peer_blocked_alert::tcp_disabled, nullptr);
 			return;
 		}
 
@@ -2799,7 +2799,7 @@ namespace aux {
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-						, endp, peer_blocked_alert::invalid_local_interface);
+						, endp, peer_blocked_alert::invalid_local_interface, nullptr);
 				return;
 			}
 			if (!verify_bound_address(local.address(), is_utp(*s), ec))
@@ -2826,7 +2826,7 @@ namespace aux {
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-						, endp, peer_blocked_alert::invalid_local_interface);
+						, endp, peer_blocked_alert::invalid_local_interface, nullptr);
 				return;
 			}
 		}
@@ -2850,7 +2850,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp, peer_blocked_alert::ip_filter);
+					, endp, peer_blocked_alert::ip_filter, nullptr);
 			return;
 		}
 
@@ -2892,7 +2892,7 @@ namespace aux {
 				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
 						, operation_t::bittorrent, s->type()
 						, error_code(errors::too_many_connections)
-						, close_reason_t::none);
+						, close_reason_t::none, nullptr);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -3385,7 +3385,7 @@ namespace aux {
 				&& m_alerts.should_post<performance_alert>())
 			{
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
-					, performance_alert::download_limit_too_low);
+					, performance_alert::download_limit_too_low, nullptr);
 			}
 
 			if (up_limit > 0
@@ -3393,7 +3393,7 @@ namespace aux {
 				&& m_alerts.should_post<performance_alert>())
 			{
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
-					, performance_alert::upload_limit_too_low);
+					, performance_alert::upload_limit_too_low, nullptr);
 			}
 		}
 
@@ -4245,7 +4245,7 @@ namespace aux {
 			max_upload_rate = std::max(20000, m_peak_up_rate + 10000);
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
-					, performance_alert::bittyrant_with_no_uplimit);
+					, performance_alert::bittyrant_with_no_uplimit, nullptr);
 		}
 
 		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
@@ -4724,7 +4724,7 @@ namespace aux {
 		if (ec)
 		{
 			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
-				, *params, ec);
+				, *params, ec, nullptr);
 			return;
 		}
 		TORRENT_ASSERT(params->ti->is_valid());
@@ -4763,7 +4763,7 @@ namespace aux {
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec, params.userdata);
 
 		if (!torrent_ptr) return handle;
 
@@ -4780,7 +4780,7 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.emplace_alert<torrent_added_alert>(handle);
+			m_alerts.emplace_alert<torrent_added_alert>(handle, params.userdata);
 #endif
 
 		// if this was an existing torrent, we can't start it again, or add
@@ -5104,7 +5104,7 @@ namespace aux {
 		if (!tptr) return;
 
 		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
-			, tptr->info_hash());
+			, tptr->info_hash(), tptr->get_userdata());
 
 		remove_torrent_impl(tptr, options);
 
@@ -5144,7 +5144,7 @@ namespace aux {
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
 					m_alerts.emplace_alert<torrent_delete_failed_alert>(t.get_handle()
-						, error_code(), t.torrent_file().info_hash());
+						, error_code(), t.torrent_file().info_hash(), t.get_userdata());
 			}
 		}
 
@@ -5529,7 +5529,7 @@ namespace aux {
 		t->do_connect_boost();
 
 		if (m_alerts.should_post<lsd_peer_alert>())
-			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
+			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer, t->get_userdata());
 	}
 
 	void session_impl::start_natpmp(aux::listen_socket_t& s)
@@ -6309,7 +6309,7 @@ namespace aux {
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
-					, performance_alert::too_many_optimistic_unchoke_slots);
+					, performance_alert::too_many_optimistic_unchoke_slots, nullptr);
 		}
 
 		if (allowed_upload_slots == std::numeric_limits<int>::max())
@@ -6347,7 +6347,7 @@ namespace aux {
 			&& m_alerts.should_post<performance_alert>())
 		{
 			m_alerts.emplace_alert<performance_alert>(torrent_handle()
-				, performance_alert::too_high_disk_queue_limit);
+				, performance_alert::too_high_disk_queue_limit, nullptr);
 		}
 	}
 

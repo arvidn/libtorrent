@@ -99,13 +99,13 @@ namespace libtorrent {
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
-					, e.code(), e.what());
+					, e.code(), e.what(), m_torrent.lock()->get_userdata());
 			} catch (std::exception const& e) {
 				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
-					, error_code(), e.what());
+					, error_code(), e.what(), m_torrent.lock()->get_userdata());
 			} catch (...) {
 				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
-					, error_code(), "unknown error");
+					, error_code(), "unknown error", m_torrent.lock()->get_userdata());
 			}
 #endif
 		} );

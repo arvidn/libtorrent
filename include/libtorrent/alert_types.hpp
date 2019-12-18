@@ -112,7 +112,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_alert : alert
 	{
 		// internal
-		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 		torrent_alert(torrent_alert&&) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
@@ -127,6 +127,11 @@ TORRENT_VERSION_NAMESPACE_2
 		torrent_handle handle;
 
 		char const* torrent_name() const;
+
+		// User data field from add_torrent_params. May be used for any
+		// purpose including finding client data associated with this
+		// torrent without performing a search
+		void* userdata;
 
 	protected:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
@@ -144,7 +149,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
-			tcp::endpoint const& i, peer_id const& pi);
+			tcp::endpoint const& i, peer_id const& pi, void* userdata);
 		peer_alert(peer_alert&& rhs) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
@@ -172,7 +177,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, string_view u);
+			, tcp::endpoint const& ep, string_view u, void* userdata);
 
 #if TORRENT_ABI_VERSION == 1
 		static const int TORRENT_DEPRECATED_MEMBER alert_type = 2;
@@ -230,7 +235,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_DEPRECATED_EXPORT torrent_added_alert final : torrent_alert
 	{
 		// internal
-		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT(torrent_added_alert, 3)
 		static constexpr alert_category_t static_category = alert::status_notification;
@@ -262,7 +267,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+			, torrent_handle const& h, sha1_hash const& ih, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority_critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
@@ -282,9 +287,9 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, piece_index_t p, boost::shared_array<char> d, int s);
+			, piece_index_t p, boost::shared_array<char> d, int s, void* userdata);
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h
-			, piece_index_t p, error_code e);
+			, piece_index_t p, error_code e, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5, alert_priority_critical)
 
@@ -307,7 +312,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, file_index_t idx);
+			, file_index_t idx, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority_normal)
 
@@ -334,7 +339,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view n, file_index_t idx);
+			, string_view n, file_index_t idx, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7, alert_priority_critical)
 
@@ -370,7 +375,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		file_rename_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, file_index_t idx
-			, error_code ec);
+			, error_code ec, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8, alert_priority_critical)
 
@@ -471,7 +476,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// internal
 		performance_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, performance_warning_t w);
+			, performance_warning_t w, void* userdata);
 
 		TORRENT_DEFINE_ALERT(performance_alert, 9)
 
@@ -488,7 +493,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		state_changed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, torrent_status::state_t st
-			, torrent_status::state_t prev_st);
+			, torrent_status::state_t prev_st
+			, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(state_changed_alert, 10, alert_priority_high)
 
@@ -517,7 +523,7 @@ TORRENT_VERSION_NAMESPACE_2
 		tracker_error_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, int times, string_view u
-			, error_code const& e, string_view m);
+			, error_code const& e, string_view m, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(tracker_error_alert, 11, alert_priority_high)
 
@@ -547,7 +553,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		tracker_warning_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, string_view m);
+			, string_view u, string_view m, void* userdata);
 
 		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
 
@@ -572,7 +578,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		scrape_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int incomp, int comp, string_view u);
+			, int incomp, int comp, string_view u, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(scrape_reply_alert, 13, alert_priority_critical)
 
@@ -593,10 +599,10 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		scrape_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, error_code const& e);
+			, string_view u, error_code const& e, void* userdata);
 		scrape_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, string_view m);
+			, string_view u, string_view m, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(scrape_failed_alert, 14, alert_priority_critical)
 
@@ -629,7 +635,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		tracker_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int np, string_view u);
+			, int np, string_view u, void* userdata);
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
 
@@ -651,7 +657,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		dht_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h
-			, int np);
+			, int np, void* userdata);
 
 		TORRENT_DEFINE_ALERT(dht_reply_alert, 16)
 
@@ -669,7 +675,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		tracker_announce_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, int e);
+			, string_view u, int e, void* userdata);
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
 
@@ -691,7 +697,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		hash_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, piece_index_t index);
+			, piece_index_t index, void* userdata);
 
 		TORRENT_DEFINE_ALERT(hash_failed_alert, 18)
 
@@ -707,7 +713,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_ban_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, tcp::endpoint const& ep, peer_id const& peer_id, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_ban_alert, 19)
 
@@ -721,7 +727,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_unsnubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, tcp::endpoint const& ep, peer_id const& peer_id, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert, 20)
 
@@ -735,7 +741,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_snubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, tcp::endpoint const& ep, peer_id const& peer_id, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_snubbed_alert, 21)
 
@@ -750,7 +756,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, operation_t op
-			, error_code const& e);
+			, error_code const& e, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_error_alert, 22)
 
@@ -775,7 +781,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int type);
+			, tcp::endpoint const& ep, peer_id const& peer_id, int type, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
@@ -793,7 +799,7 @@ TORRENT_VERSION_NAMESPACE_2
 		peer_disconnected_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, operation_t op, int type, error_code const& e
-			, close_reason_t r);
+			, close_reason_t r, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24)
 
@@ -828,7 +834,8 @@ TORRENT_VERSION_NAMESPACE_2
 		invalid_request_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, peer_request const& r
-			, bool we_have, bool peer_interested, bool withheld);
+			, bool we_have, bool peer_interested, bool withheld
+			, void* userdata);
 
 		TORRENT_DEFINE_ALERT(invalid_request_alert, 25)
 
@@ -857,7 +864,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_finished_alert(aux::stack_allocator& alloc,
-			torrent_handle h);
+			torrent_handle h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_finished_alert, 26, alert_priority_high)
 
@@ -875,7 +882,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		piece_finished_alert(aux::stack_allocator& alloc,
-			torrent_handle const& h, piece_index_t piece_num);
+			torrent_handle const& h, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
@@ -902,7 +909,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, piece_index_t piece_num);
+			, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
@@ -930,7 +937,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, piece_index_t piece_num);
+			, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
@@ -958,7 +965,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, piece_index_t piece_num);
+			, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
@@ -984,8 +991,8 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
-			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
+			, tcp::endpoint const& ep, peer_id const& peer_id
+			, int block_num, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
@@ -1015,8 +1022,8 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
-			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
+			, tcp::endpoint const& ep, peer_id const& peer_id
+			, int block_num, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(unwanted_block_alert, 32)
 
@@ -1036,7 +1043,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		storage_moved_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, string_view p);
+			, torrent_handle const& h, string_view p, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(storage_moved_alert, 33, alert_priority_critical)
 
@@ -1061,7 +1068,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		storage_moved_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e, string_view file
-			, operation_t op);
+			, operation_t op, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(storage_moved_failed_alert, 34, alert_priority_critical)
 
@@ -1098,7 +1105,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_deleted_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+			, torrent_handle const& h, sha1_hash const& ih, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35, alert_priority_critical)
 
@@ -1113,8 +1120,8 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_delete_failed_alert final : torrent_alert
 	{
 		// internal
-		torrent_delete_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
+		torrent_delete_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+			, error_code const& e, sha1_hash const& ih, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36, alert_priority_critical)
 
@@ -1140,10 +1147,12 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		save_resume_data_alert(aux::stack_allocator& alloc
 			, add_torrent_params&& params
-			, torrent_handle const& h);
+			, torrent_handle const& h
+			, void* userdata);
 		save_resume_data_alert(aux::stack_allocator& alloc
 			, add_torrent_params const& params
-			, torrent_handle const& h) = delete;
+			, torrent_handle const& h
+			, void* userdata) = delete;
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37, alert_priority_critical)
 
@@ -1167,7 +1176,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		save_resume_data_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& e);
+			, torrent_handle const& h, error_code const& e, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38, alert_priority_critical)
 
@@ -1189,7 +1198,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_paused_alert final : torrent_alert
 	{
 		// internal
-		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_paused_alert, 39, alert_priority_high)
 
@@ -1202,7 +1211,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_resumed_alert final : torrent_alert
 	{
 		// internal
-		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_resumed_alert, 40, alert_priority_high)
 
@@ -1215,7 +1224,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_checked_alert final : torrent_alert
 	{
 		// internal
-		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_checked_alert, 41, alert_priority_high)
 
@@ -1228,9 +1237,9 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view u, error_code const& e);
+			, string_view u, error_code const& e, void* userdata);
 		url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view u, string_view m);
+			, string_view u, string_view m, void* userdata);
 
 		TORRENT_DEFINE_ALERT(url_seed_alert, 42)
 
@@ -1268,7 +1277,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		file_error_alert(aux::stack_allocator& alloc, error_code const& ec
-			, string_view file, operation_t op, torrent_handle const& h);
+			, string_view file, operation_t op, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_error_alert, 43, alert_priority_high)
 
@@ -1305,7 +1314,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		metadata_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& ec);
+			, torrent_handle const& h, error_code const& ec, void* userdata);
 
 		TORRENT_DEFINE_ALERT(metadata_failed_alert, 44)
 
@@ -1345,7 +1354,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		metadata_received_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h);
+			, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT(metadata_received_alert, 45)
 
@@ -1676,7 +1685,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		fastresume_rejected_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& ec, string_view file
-			, operation_t op);
+			, operation_t op, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(fastresume_rejected_alert, 53, alert_priority_critical)
 
@@ -1718,7 +1727,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, int r);
+			, tcp::endpoint const& ep, int r, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
 
@@ -1783,7 +1792,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		stats_alert(aux::stack_allocator& alloc, torrent_handle const& h, int interval
-			, stat const& s);
+			, stat const& s, void* userdata);
 
 		TORRENT_DEFINE_ALERT(stats_alert, 57)
 
@@ -1834,7 +1843,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert
 	{
 		// internal
-		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority_high)
 
@@ -1861,7 +1870,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		anonymous_mode_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int k, string_view s);
+			, int k, string_view s, void* userdata);
 
 		TORRENT_DEFINE_ALERT(anonymous_mode_alert, 59)
 
@@ -1896,7 +1905,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i);
+			, tcp::endpoint const& i, void* userdata);
 
 		TORRENT_DEFINE_ALERT(lsd_peer_alert, 60)
 
@@ -1911,7 +1920,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		trackerid_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep , string_view u, const std::string& id);
+			, tcp::endpoint const& ep , string_view u, const std::string& id, void* userdata);
 
 		TORRENT_DEFINE_ALERT(trackerid_alert, 61)
 
@@ -1947,7 +1956,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, error_code const& e, string_view f);
+			, error_code const& e, string_view f, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_error_alert, 64, alert_priority_high)
 
@@ -1978,7 +1987,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_need_cert_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h);
+			, torrent_handle const& h, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65, alert_priority_critical)
 
@@ -2039,7 +2048,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, add_torrent_params const& p, error_code const& ec);
+			, add_torrent_params const& p, error_code const& ec, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority_critical)
 
@@ -2186,7 +2195,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-			, sha1_hash const& old_hash, sha1_hash const& new_hash);
+			, sha1_hash const& old_hash, sha1_hash const& new_hash, void* userdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71, alert_priority_critical)
 
@@ -2413,7 +2422,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, char const* fmt, va_list v);
+			, char const* fmt, va_list v, void* userdata);
 
 		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
 
@@ -2454,7 +2463,8 @@ TORRENT_VERSION_NAMESPACE_2
 		peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& i, peer_id const& pi
 			, peer_log_alert::direction_t dir
-			, char const* event, char const* fmt, va_list v);
+			, char const* event, char const* fmt, va_list v
+			, void* userdata);
 
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
@@ -2574,7 +2584,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		incoming_request_alert(aux::stack_allocator& alloc
 			, peer_request r, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, tcp::endpoint const& ep, peer_id const& peer_id, void* userdata);
 
 		static constexpr alert_category_t static_category = alert::incoming_request_notification;
 		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
@@ -2733,7 +2743,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t flags
-			, span<piece_block const> blocks);
+			, span<piece_block const> blocks, void* userdata);
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
 
@@ -2902,7 +2912,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, piece_index_t piece_num);
+			, piece_index_t piece_num, void* userdata);
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
 

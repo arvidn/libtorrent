@@ -284,7 +284,7 @@ namespace libtorrent {
 						std::string const error_msg = to_string(m_parser.status_code()).data()
 							+ (" " + m_parser.message());
 						t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), url()
-							, error_msg);
+							, error_msg, t->get_userdata());
 					}
 					received_bytes(0, int(bytes_transferred));
 					disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, failure);

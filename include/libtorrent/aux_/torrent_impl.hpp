@@ -55,21 +55,21 @@ namespace libtorrent {
 			, e.what());
 #endif
 		alerts().emplace_alert<torrent_error_alert>(get_handle()
-			, e.code(), e.what());
+			, e.code(), e.what(), m_userdata);
 		pause();
 	} catch (std::exception const& e) {
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: %s", e.what());
 #endif
 		alerts().emplace_alert<torrent_error_alert>(get_handle()
-			, error_code(), e.what());
+			, error_code(), e.what(), m_userdata);
 		pause();
 	} catch (...) {
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: unknown");
 #endif
 		alerts().emplace_alert<torrent_error_alert>(get_handle()
-			, error_code(), "unknown error");
+			, error_code(), "unknown error", m_userdata);
 		pause();
 	}
 #endif

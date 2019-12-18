@@ -92,8 +92,10 @@ namespace libtorrent {
 	time_point alert::timestamp() const { return m_timestamp; }
 
 	torrent_alert::torrent_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
+		, torrent_handle const& h
+		, void* userdata)
 		: handle(h)
+		, userdata(userdata)
 		, m_alloc(alloc)
 	{
 		std::shared_ptr<torrent> t = h.native_handle();
@@ -133,8 +135,9 @@ namespace libtorrent {
 	peer_alert::peer_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, tcp::endpoint const& i
-		, peer_id const& pi)
-		: torrent_alert(alloc, h)
+		, peer_id const& pi
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, endpoint(i)
 		, pid(pi)
 #if TORRENT_ABI_VERSION == 1
@@ -149,8 +152,8 @@ namespace libtorrent {
 	}
 
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, tcp::endpoint const& ep, string_view u)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, tcp::endpoint const& ep, string_view u, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, local_endpoint(ep)
 		, m_url_idx(alloc.copy_string(u))
 #if TORRENT_ABI_VERSION == 1
@@ -171,16 +174,16 @@ namespace libtorrent {
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, piece_index_t p, boost::shared_array<char> d, int s)
-		: torrent_alert(alloc, h)
+		, piece_index_t p, boost::shared_array<char> d, int s, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, buffer(std::move(d))
 		, piece(p)
 		, size(s)
 	{}
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
-		, torrent_handle h, piece_index_t p, error_code e)
-		: torrent_alert(alloc, h)
+		, torrent_handle h, piece_index_t p, error_code e, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 		, piece(p)
 		, size(0)
@@ -208,8 +211,9 @@ namespace libtorrent {
 
 	file_completed_alert::file_completed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, file_index_t idx)
-		: torrent_alert(alloc, h)
+		, file_index_t idx
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, index(idx)
 	{}
 
@@ -224,8 +228,8 @@ namespace libtorrent {
 	}
 
 	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view n, file_index_t const idx)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, string_view n, file_index_t const idx, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, index(idx)
 		, m_name_idx(alloc.copy_string(n))
 #if TORRENT_ABI_VERSION == 1
@@ -252,8 +256,9 @@ namespace libtorrent {
 	file_rename_failed_alert::file_rename_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, file_index_t const idx
-		, error_code ec)
-		: torrent_alert(alloc, h)
+		, error_code ec
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, index(idx)
 		, error(ec)
 	{}
@@ -271,8 +276,9 @@ namespace libtorrent {
 
 	performance_alert::performance_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, performance_warning_t w)
-		: torrent_alert(alloc, h)
+		, performance_warning_t w
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, warning_code(w)
 	{}
 
@@ -300,8 +306,9 @@ namespace libtorrent {
 	state_changed_alert::state_changed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, torrent_status::state_t st
-		, torrent_status::state_t prev_st)
-		: torrent_alert(alloc, h)
+		, torrent_status::state_t prev_st
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, state(st)
 		, prev_state(prev_st)
 	{}
@@ -319,8 +326,8 @@ namespace libtorrent {
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, int times
-		, string_view u, error_code const& e, string_view m)
-		: tracker_alert(alloc, h, ep, u)
+		, string_view u, error_code const& e, string_view m, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, times_in_row(times)
 		, error(e)
 		, m_msg_idx(alloc.copy_string(m))
@@ -349,8 +356,8 @@ namespace libtorrent {
 
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, string_view u, string_view m)
-		: tracker_alert(alloc, h, ep, u)
+		, string_view u, string_view m, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, m_msg_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
 		, msg(m)
@@ -371,8 +378,8 @@ namespace libtorrent {
 
 	scrape_reply_alert::scrape_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, int incomp, int comp, string_view u)
-		: tracker_alert(alloc, h, ep, u)
+		, int incomp, int comp, string_view u, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, incomplete(incomp)
 		, complete(comp)
 	{
@@ -389,8 +396,8 @@ namespace libtorrent {
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, string_view u, error_code const& e)
-		: tracker_alert(alloc, h, ep, u)
+		, string_view u, error_code const& e, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, error(e)
 		, m_msg_idx()
 #if TORRENT_ABI_VERSION == 1
@@ -402,8 +409,8 @@ namespace libtorrent {
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, string_view u, string_view m)
-		: tracker_alert(alloc, h, ep, u)
+		, string_view u, string_view m, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, error(errors::tracker_failure)
 		, m_msg_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
@@ -426,8 +433,8 @@ namespace libtorrent {
 
 	tracker_reply_alert::tracker_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, int np, string_view u)
-		: tracker_alert(alloc, h, ep, u)
+		, int np, string_view u, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, num_peers(np)
 	{
 		TORRENT_ASSERT(!u.empty());
@@ -443,8 +450,8 @@ namespace libtorrent {
 
 	dht_reply_alert::dht_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, int np)
-		: tracker_alert(alloc, h, {}, "")
+		, int np, void* userdata)
+		: tracker_alert(alloc, h, {}, "", userdata)
 		, num_peers(np)
 	{}
 
@@ -457,8 +464,8 @@ namespace libtorrent {
 	}
 
 	tracker_announce_alert::tracker_announce_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, tcp::endpoint const& ep, string_view u, int e)
-		: tracker_alert(alloc, h, ep, u)
+		, torrent_handle const& h, tcp::endpoint const& ep, string_view u, int e, void* userdata)
+		: tracker_alert(alloc, h, ep, u, userdata)
 		, event(e)
 	{
 		TORRENT_ASSERT(!u.empty());
@@ -474,8 +481,9 @@ namespace libtorrent {
 	hash_failed_alert::hash_failed_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, piece_index_t index)
-		: torrent_alert(alloc, h)
+		, piece_index_t index
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, piece_index(index)
 	{
 		TORRENT_ASSERT(index >= piece_index_t(0));
@@ -491,8 +499,8 @@ namespace libtorrent {
 
 	peer_ban_alert::peer_ban_alert(aux::stack_allocator& alloc
 		, torrent_handle h, tcp::endpoint const& ep
-		, peer_id const& peer_id)
-		: peer_alert(alloc, h, ep, peer_id)
+		, peer_id const& peer_id, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 	{}
 
 	std::string peer_ban_alert::message() const
@@ -502,8 +510,8 @@ namespace libtorrent {
 
 	peer_unsnubbed_alert::peer_unsnubbed_alert(aux::stack_allocator& alloc
 		, torrent_handle h, tcp::endpoint const& ep
-		, peer_id const& peer_id)
-		: peer_alert(alloc, h, ep, peer_id)
+		, peer_id const& peer_id, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 	{}
 
 	std::string peer_unsnubbed_alert::message() const
@@ -513,8 +521,8 @@ namespace libtorrent {
 
 	peer_snubbed_alert::peer_snubbed_alert(aux::stack_allocator& alloc
 		, torrent_handle h, tcp::endpoint const& ep
-		, peer_id const& peer_id)
-		: peer_alert(alloc, h, ep, peer_id)
+		, peer_id const& peer_id, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 	{}
 
 	std::string peer_snubbed_alert::message() const
@@ -525,8 +533,8 @@ namespace libtorrent {
 	invalid_request_alert::invalid_request_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
 		, peer_id const& peer_id, peer_request const& r
-		, bool _have, bool _peer_interested, bool _withheld)
-		: peer_alert(alloc, h, ep, peer_id)
+		, bool _have, bool _peer_interested, bool _withheld, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, request(r)
 		, we_have(_have)
 		, peer_interested(_peer_interested)
@@ -550,8 +558,8 @@ namespace libtorrent {
 	}
 
 	torrent_finished_alert::torrent_finished_alert(aux::stack_allocator& alloc
-		, torrent_handle h)
-		: torrent_alert(alloc, h)
+		, torrent_handle h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_finished_alert::message() const
@@ -560,8 +568,8 @@ namespace libtorrent {
 	}
 
 	piece_finished_alert::piece_finished_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, piece_index_t piece_num)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, piece_index_t piece_num, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, piece_index(piece_num)
 	{}
 
@@ -575,8 +583,8 @@ namespace libtorrent {
 
 	request_dropped_alert::request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
@@ -593,8 +601,8 @@ namespace libtorrent {
 
 	block_timeout_alert::block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
@@ -611,8 +619,8 @@ namespace libtorrent {
 
 	block_finished_alert::block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
@@ -629,8 +637,8 @@ namespace libtorrent {
 
 	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep
-		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, peer_id const& peer_id, int block_num, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 #if TORRENT_ABI_VERSION == 1
@@ -650,8 +658,8 @@ namespace libtorrent {
 
 	unwanted_block_alert::unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep
-		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, peer_id const& peer_id, int block_num, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
@@ -667,8 +675,8 @@ namespace libtorrent {
 	}
 
 	storage_moved_alert::storage_moved_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view p)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, string_view p, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, m_path_idx(alloc.copy_string(p))
 #if TORRENT_ABI_VERSION == 1
 		, path(p)
@@ -688,8 +696,8 @@ namespace libtorrent {
 
 	storage_moved_failed_alert::storage_moved_failed_alert(
 		aux::stack_allocator& alloc, torrent_handle const& h, error_code const& e
-		, string_view f, operation_t const op_)
-		: torrent_alert(alloc, h)
+		, string_view f, operation_t const op_, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
@@ -712,8 +720,8 @@ namespace libtorrent {
 	}
 
 	torrent_deleted_alert::torrent_deleted_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, sha1_hash const& ih)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, sha1_hash const& ih, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, info_hash(ih)
 	{}
 
@@ -723,8 +731,8 @@ namespace libtorrent {
 	}
 
 	torrent_delete_failed_alert::torrent_delete_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, error_code const& e, sha1_hash const& ih)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, error_code const& e, sha1_hash const& ih, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 		, info_hash(ih)
 #if TORRENT_ABI_VERSION == 1
@@ -741,8 +749,9 @@ namespace libtorrent {
 
 	save_resume_data_alert::save_resume_data_alert(aux::stack_allocator& alloc
 		, add_torrent_params&& p
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, params(std::move(p))
 #if TORRENT_ABI_VERSION == 1
 		, resume_data(std::make_shared<entry>(write_resume_data(params)))
@@ -756,8 +765,8 @@ namespace libtorrent {
 	}
 
 	save_resume_data_failed_alert::save_resume_data_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, error_code const& e)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, error_code const& e, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 #if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(error.message()))
@@ -772,8 +781,8 @@ namespace libtorrent {
 	}
 
 	torrent_paused_alert::torrent_paused_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_paused_alert::message() const
@@ -782,8 +791,8 @@ namespace libtorrent {
 	}
 
 	torrent_resumed_alert::torrent_resumed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_resumed_alert::message() const
@@ -792,8 +801,8 @@ namespace libtorrent {
 	}
 
 	torrent_checked_alert::torrent_checked_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_checked_alert::message() const
@@ -996,8 +1005,8 @@ namespace {
 	}
 
 	metadata_failed_alert::metadata_failed_alert(aux::stack_allocator& alloc
-		, const torrent_handle& h, error_code const& e)
-		: torrent_alert(alloc, h)
+		, const torrent_handle& h, error_code const& e, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 	{}
 
@@ -1007,8 +1016,8 @@ namespace {
 	}
 
 	metadata_received_alert::metadata_received_alert(aux::stack_allocator& alloc
-		, const torrent_handle& h)
-		: torrent_alert(alloc, h)
+		, const torrent_handle& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string metadata_received_alert::message() const
@@ -1155,8 +1164,9 @@ namespace {
 		, torrent_handle const& h
 		, error_code const& ec
 		, string_view f
-		, operation_t const op_)
-		: torrent_alert(alloc, h)
+		, operation_t const op_
+		, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(ec)
 		, op(op_)
 		, m_path_idx(alloc.copy_string(f))
@@ -1181,8 +1191,8 @@ namespace {
 	}
 
 	peer_blocked_alert::peer_blocked_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, tcp::endpoint const& ep, int r)
-		: peer_alert(alloc, h, ep, peer_id(nullptr))
+		, torrent_handle const& h, tcp::endpoint const& ep, int r, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id(nullptr), userdata)
 		, reason(r)
 	{}
 
@@ -1263,8 +1273,8 @@ namespace {
 	}
 
 	stats_alert::stats_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int in, stat const& s)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, int in, stat const& s, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, transferred(stat_to_array(s))
 		, interval(in)
 	{}
@@ -1295,13 +1305,13 @@ namespace {
 	}
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h) {}
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata) {}
 
 #if TORRENT_ABI_VERSION == 1
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int k, string_view s)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, int k, string_view s, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, kind(k)
 		, str(s)
 	{}
@@ -1320,8 +1330,8 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 	lsd_peer_alert::lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, tcp::endpoint const& i)
-		: peer_alert(alloc, h, i, peer_id(nullptr))
+		, tcp::endpoint const& i, void* userdata)
+		: peer_alert(alloc, h, i, peer_id(nullptr), userdata)
 	{}
 
 	std::string lsd_peer_alert::message() const
@@ -1337,8 +1347,9 @@ namespace {
 		, torrent_handle const& h
 		, tcp::endpoint const& ep
 		, string_view u
-		, const std::string& id)
-		: tracker_alert(alloc, h,  ep, u)
+		, const std::string& id
+		, void* userdata)
+		: tracker_alert(alloc, h,  ep, u, userdata)
 		, m_tracker_idx(alloc.copy_string(id))
 #if TORRENT_ABI_VERSION == 1
 		, trackerid(id)
@@ -1366,8 +1377,8 @@ namespace {
 	torrent_error_alert::torrent_error_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, error_code const& e, string_view f)
-		: torrent_alert(alloc, h)
+		, error_code const& e, string_view f, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 		, m_file_idx(alloc.copy_string(f))
 #if TORRENT_ABI_VERSION == 1
@@ -1398,8 +1409,8 @@ namespace {
 
 #if TORRENT_ABI_VERSION == 1
 	torrent_added_alert::torrent_added_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_added_alert::message() const
@@ -1409,8 +1420,8 @@ namespace {
 #endif
 
 	torrent_removed_alert::torrent_removed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, sha1_hash const& ih)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, sha1_hash const& ih, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, info_hash(ih)
 	{}
 
@@ -1420,8 +1431,8 @@ namespace {
 	}
 
 	torrent_need_cert_alert::torrent_need_cert_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 	{}
 
 	std::string torrent_need_cert_alert::message() const
@@ -1447,8 +1458,8 @@ namespace {
 	}
 
 	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-		, tcp::endpoint const& ep, peer_id const& peer_id, int type)
-		: peer_alert(alloc, h, ep, peer_id)
+		, tcp::endpoint const& ep, peer_id const& peer_id, int type, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, socket_type(type)
 	{}
 
@@ -1461,8 +1472,8 @@ namespace {
 	}
 
 	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, add_torrent_params const& p, error_code const& ec)
-		: torrent_alert(alloc, h)
+		, add_torrent_params const& p, error_code const& ec, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, params(p)
 		, error(ec)
 	{}
@@ -1579,8 +1590,8 @@ namespace {
 
 	peer_error_alert::peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, operation_t const op_
-		, error_code const& e)
-		: peer_alert(alloc, h, ep, peer_id)
+		, error_code const& e, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, op(op_)
 		, error(e)
 #if TORRENT_ABI_VERSION == 1
@@ -1601,8 +1612,8 @@ namespace {
 
 #if TORRENT_ABI_VERSION == 1
 	torrent_update_alert::torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-		, sha1_hash const& old_hash, sha1_hash const& new_hash)
-		: torrent_alert(alloc, h)
+		, sha1_hash const& old_hash, sha1_hash const& new_hash, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, old_ih(old_hash)
 		, new_ih(new_hash)
 	{}
@@ -1620,8 +1631,8 @@ namespace {
 	peer_disconnected_alert::peer_disconnected_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
 		, peer_id const& peer_id, operation_t op_, int type, error_code const& e
-		, close_reason_t r)
-		: peer_alert(alloc, h, ep, peer_id)
+		, close_reason_t r, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, socket_type(type)
 		, op(op_)
 		, error(e)
@@ -1813,8 +1824,8 @@ namespace {
 	}
 
 	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, char const* fmt, va_list v)
-		: torrent_alert(alloc, h)
+		, char const* fmt, va_list v, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, m_str_idx(alloc.format_string(fmt, v))
 	{}
 
@@ -1839,8 +1850,9 @@ namespace {
 		, torrent_handle const& h
 		, tcp::endpoint const& i, peer_id const& pi
 		, peer_log_alert::direction_t dir
-		, char const* event, char const* fmt, va_list v)
-		: peer_alert(alloc, h, i, pi)
+		, char const* event, char const* fmt, va_list v
+		, void* userdata)
+		: peer_alert(alloc, h, i, pi, userdata)
 		, event_type(event)
 		, direction(dir)
 		, m_str_idx(alloc.format_string(fmt, v))
@@ -1960,8 +1972,8 @@ namespace {
 	}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, string_view u, error_code const& e)
-		: torrent_alert(alloc, h)
+		, string_view u, error_code const& e, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(e)
 		, m_url_idx(alloc.copy_string(u))
 		, m_msg_idx()
@@ -1972,8 +1984,8 @@ namespace {
 	{}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, string_view u, string_view m)
-		: torrent_alert(alloc, h)
+		, string_view u, string_view m, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, m_url_idx(alloc.copy_string(u))
 		, m_msg_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
@@ -2001,8 +2013,8 @@ namespace {
 
 	file_error_alert::file_error_alert(aux::stack_allocator& alloc
 		, error_code const& ec, string_view f, operation_t const op_
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h)
+		, torrent_handle const& h, void* userdata)
+		: torrent_alert(alloc, h, userdata)
 		, error(ec)
 		, op(op_)
 		, m_file_idx(alloc.copy_string(f))
@@ -2027,8 +2039,8 @@ namespace {
 
 	incoming_request_alert::incoming_request_alert(aux::stack_allocator& alloc
 		, peer_request r, torrent_handle h
-		, tcp::endpoint const& ep, peer_id const& peer_id)
-		: peer_alert(alloc, h, ep, peer_id)
+		, tcp::endpoint const& ep, peer_id const& peer_id, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, req(r)
 	{}
 
@@ -2221,8 +2233,8 @@ namespace {
 
 	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t const flags
-		, span<piece_block const> blocks)
-		: peer_alert(alloc, h, ep, peer_id)
+		, span<piece_block const> blocks, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, picker_flags(flags)
 		, m_array_idx(alloc.copy_buffer({reinterpret_cast<char const*>(blocks.data())
 			, blocks.size() * int(sizeof(piece_block))}))
@@ -2512,8 +2524,8 @@ namespace {
 
 	block_uploaded_alert::block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, piece_index_t piece_num)
-		: peer_alert(alloc, h, ep, peer_id)
+		, piece_index_t piece_num, void* userdata)
+		: peer_alert(alloc, h, ep, peer_id, userdata)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{

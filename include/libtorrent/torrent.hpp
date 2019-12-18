@@ -1161,6 +1161,8 @@ namespace libtorrent {
 
 		static constexpr int no_gauge_state = 0xf;
 
+		void* get_userdata() const { return m_userdata; }
+
 	private:
 
 		void on_exception(std::exception const& e) override;
@@ -1726,6 +1728,9 @@ namespace libtorrent {
 		// mutate the list while doing this
 		mutable int m_iterating_connections = 0;
 #endif
+
+		// userdata from add_torrent_params
+		void* m_userdata;	
 	};
 }
 
