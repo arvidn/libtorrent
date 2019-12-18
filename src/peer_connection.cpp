@@ -588,7 +588,7 @@ namespace libtorrent {
 		if (t) h = t->get_handle();
 
 		m_ses.alerts().emplace_alert<peer_log_alert>(
-			h, m_remote, m_peer_id, direction, event, fmt, v, t->get_userdata());
+			h, m_remote, m_peer_id, direction, event, fmt, v, t ? t->get_userdata() : nullptr);
 
 		va_end(v);
 
