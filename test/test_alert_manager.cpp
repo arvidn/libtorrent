@@ -52,7 +52,7 @@ TORRENT_TEST(limit)
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i, nullptr);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -69,7 +69,7 @@ TORRENT_TEST(limit)
 	mgr.set_alert_queue_size_limit(200);
 
 	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i, nullptr);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -88,10 +88,10 @@ TORRENT_TEST(limit_int_max)
 	TEST_EQUAL(mgr.alert_queue_size_limit(), inf);
 
 	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i, nullptr);
 
 	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
-		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), sha1_hash());
+		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), sha1_hash(), nullptr);
 
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);
@@ -107,11 +107,11 @@ TORRENT_TEST(priority_limit)
 
 	// this should only add 100 because of the limit
 	for (piece_index_t i{0}; i < piece_index_t{200}; ++i)
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i, nullptr);
 
 	// the limit is twice as high for priority alerts
 	for (file_index_t i(0); i < file_index_t(300); ++i)
-		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
+		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code(), nullptr);
 
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);
@@ -138,7 +138,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -152,7 +152,7 @@ TORRENT_TEST(notify_function)
 	// subsequent posted alerts will not cause an edge (because there are
 	// already alerts queued)
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);
@@ -165,7 +165,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 2);
@@ -198,14 +198,14 @@ TORRENT_TEST(extensions)
 	mgr.add_extension(std::make_shared<test_plugin>(2));
 
 	for (int i = 0; i < 53; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
 
 	TEST_EQUAL(plugin_alerts[0], 53);
 	TEST_EQUAL(plugin_alerts[1], 53);
 	TEST_EQUAL(plugin_alerts[2], 53);
 
 	for (int i = 0; i < 17; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
 
 	TEST_EQUAL(plugin_alerts[0], 70);
 	TEST_EQUAL(plugin_alerts[1], 70);
@@ -286,11 +286,11 @@ TORRENT_TEST(dropped_alerts)
 	alert_manager mgr(1, alert::all_categories);
 
 	// nothing has dropped yet
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
 	// still nothing, there's space for one alert
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
 	// still nothing, there's space for one alert
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
 	// that last alert got dropped though, since it would have brought the queue
 	// size to 3
 	std::vector<alert*> alerts;
@@ -304,9 +304,9 @@ TORRENT_TEST(alerts_dropped_alert)
 {
 	alert_manager mgr(1, alert::all_categories);
 
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
-	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
+	mgr.emplace_alert<torrent_finished_alert>(torrent_handle(), nullptr);
 	// that last alert got dropped though, since it would have brought the queue
 	// size to 3
 	std::vector<alert*> alerts;
@@ -322,7 +322,7 @@ struct post_plugin : lt::plugin
 	void on_alert(alert const*)
 	{
 		if (++depth > 10) return;
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0}, nullptr);
 	}
 
 	alert_manager& mgr;
@@ -337,7 +337,7 @@ TORRENT_TEST(recursive_alerts)
 	auto pl = std::make_shared<post_plugin>(mgr);
 	mgr.add_extension(pl);
 
-	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0}, nullptr);
 
 	TEST_EQUAL(pl->depth, 11);
 }
