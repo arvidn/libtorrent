@@ -52,7 +52,6 @@ namespace libtorrent {
 	constexpr int TORRENT_UDP_HEADER = 8;
 	constexpr int TORRENT_UTP_HEADER = 20;
 	constexpr int TORRENT_SOCKS5_HEADER = 6; // plus the size of the destination address
-
 	constexpr int TORRENT_ETHERNET_MTU = 1500;
 	constexpr int TORRENT_TEREDO_MTU = 1280;
 	constexpr int TORRENT_INET_MIN_MTU = 576;

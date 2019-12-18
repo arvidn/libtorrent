@@ -436,9 +436,11 @@ TORRENT_VERSION_NAMESPACE_2
 			// or that our send buffer watermark is too small, because we can
 			// send it all before the disk gets back to us.
 			// The number of bytes that we keep outstanding, requested from the disk, is calculated
-			// as follows::
+			// as follows:
 			//
-			//   min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
+			// .. code:: C++
+			//
+			//    min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
 			//
 			// If you receive this alert, you might want to either increase your ``send_buffer_watermark``
 			// or ``send_buffer_watermark_factor``.
@@ -715,7 +717,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 	};
 
-	// This alert is generated when a peer is unsnubbed. Essentially when it was snubbed for stalling
+	// This alert is generated when a peer is un-snubbed. Essentially when it was snubbed for stalling
 	// sending data, and now it started sending data again.
 	struct TORRENT_EXPORT peer_unsnubbed_alert final : peer_alert
 	{
@@ -1325,7 +1327,9 @@ TORRENT_VERSION_NAMESPACE_2
 	//
 	// Typically, when receiving this alert, you would want to save the torrent file in order
 	// to load it back up again when the session is restarted. Here's an example snippet of
-	// code to do that::
+	// code to do that:
+	//
+	// .. code:: c++
 	//
 	//	torrent_handle h = alert->handle();
 	//	if (h.is_valid()) {
@@ -1668,8 +1672,8 @@ TORRENT_VERSION_NAMESPACE_2
 
 	};
 
-	// This alert is generated when a fastresume file has been passed to
-	// add_torrent() but the files on disk did not match the fastresume file.
+	// This alert is generated when a fast resume file has been passed to
+	// add_torrent() but the files on disk did not match the fast resume file.
 	// The error_code explains the reason why the resume file was rejected.
 	struct TORRENT_EXPORT fastresume_rejected_alert final : torrent_alert
 	{
@@ -2033,7 +2037,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// This alert is always posted when a torrent was attempted to be added
 	// and contains the return status of the add operation. The torrent handle of the new
-	// torrent can be found in the base class' ``handle`` member. If adding
+	// torrent can be found as the ``handle`` member in the base class. If adding
 	// the torrent failed, ``error`` contains the error code.
 	struct TORRENT_EXPORT add_torrent_alert final : torrent_alert
 	{

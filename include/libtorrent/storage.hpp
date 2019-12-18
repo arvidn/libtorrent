@@ -90,7 +90,7 @@ namespace libtorrent {
 	// before it's written to disk, and decrypting it when it's read again.
 	//
 	// The storage interface is based on pieces. Every read and write operation
-	// happens in the piece-space. Each piece fits 'piece_size' number
+	// happens in the piece-space. Each piece fits ``piece_size`` number
 	// of bytes. All access is done by writing and reading whole or partial
 	// pieces.
 	//
@@ -156,6 +156,8 @@ namespace libtorrent {
 		// The number of bytes read or written should be returned, or -1 on
 		// error. If there's an error, the ``storage_error`` must be filled out
 		// to represent the error that occurred.
+		//
+		// For possible values of ``flags``, see open_mode_t.
 		virtual int readv(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, open_mode_t flags, storage_error& ec) = 0;
 		virtual int writev(span<iovec_t const> bufs

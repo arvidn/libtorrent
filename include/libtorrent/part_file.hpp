@@ -51,8 +51,8 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT part_file
 	{
-		// create a part file at 'path', that can hold 'num_pieces' pieces.
-		// each piece being 'piece_size' number of bytes
+		// create a part file at ``path``, that can hold ``num_pieces`` pieces.
+		// each piece being ``piece_size`` number of bytes
 		part_file(std::string const& path, std::string const& name, int num_pieces, int piece_size);
 		~part_file();
 

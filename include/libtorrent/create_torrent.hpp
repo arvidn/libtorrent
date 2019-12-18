@@ -369,7 +369,9 @@ namespace detail {
 	//
 	// If specified, the predicate ``p`` is called once for every file and directory that
 	// is encountered. Files for which ``p`` returns true are added, and directories for
-	// which ``p`` returns true are traversed. ``p`` must have the following signature::
+	// which ``p`` returns true are traversed. ``p`` must have the following signature:
+	//
+	// .. code:: c++
 	//
 	// 	bool Pred(std::string const& p);
 	//
@@ -389,7 +391,9 @@ namespace detail {
 	// This function will assume that the files added to the torrent file exists at path
 	// ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
 	// object. The optional function ``f`` is called in between every hash that is set. ``f``
-	// must have the following signature::
+	// must have the following signature:
+	//
+	// .. code:: c++
 	//
 	// 	void Fun(piece_index_t);
 	//
@@ -417,11 +421,11 @@ namespace detail {
 	}
 #endif
 
+#if TORRENT_ABI_VERSION == 1
+
 	// all wstring APIs are deprecated since 0.16.11
 	// instead, use the wchar -> utf8 conversion functions
 	// and pass in utf8 strings
-#if TORRENT_ABI_VERSION == 1
-
 	TORRENT_DEPRECATED_EXPORT
 	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::function<bool(std::string)> p, create_flags_t flags = {});

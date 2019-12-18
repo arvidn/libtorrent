@@ -727,8 +727,8 @@ namespace aux {
 		//			std::ofstream out((st.save_path
 		//				+ "/" + st.name + ".fastresume").c_str()
 		//				, std::ios_base::binary);
-		//			out.unsetf(std::ios_base::skipws);
-		//			bencode(std::ostream_iterator<char>(out), *rd->resume_data);
+		//			std::vector<char> buf = write_resume_data_buf(rd->params);
+		//			out.write(buf.data(), buf.size());
 		//			--outstanding_resume_data;
 		//		}
 		//	}
@@ -993,7 +993,8 @@ namespace aux {
 		// ``get_file_priorities()`` returns a vector with the priorities of all
 		// files.
 		//
-		// The priority values are the same as for piece_priority().
+		// The priority values are the same as for piece_priority(). See
+		// download_priority_t.
 		//
 		// Whenever a file priority is changed, all other piece priorities are
 		// reset to match the file priorities. In order to maintain special
@@ -1101,21 +1102,7 @@ namespace aux {
 		// Typically this is one of the source flags in peer_info. i.e.
 		// ``tracker``, ``pex``, ``dht`` etc.
 		//
-		// ``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
-		//
-		// ==== ==========================================
-		// 0x01 peer supports encryption.
-		//
-		// 0x02 peer is a seed
-		//
-		// 0x04 supports uTP. If this is not set, the peer will only be contacted
-		//      over TCP.
-		//
-		// 0x08 supports hole punching protocol. If this
-		//      flag is received from a peer, it can be
-		//      used as a rendezvous point in case direct
-		//      connections to the peer fail
-		// ==== ==========================================
+		// For possible values of ``flags``, see pex_flags_t.
 		void connect_peer(tcp::endpoint const& adr, peer_source_flags_t source = {}
 			, pex_flags_t flags = pex_encryption | pex_utp | pex_holepunch) const;
 
@@ -1252,7 +1239,9 @@ namespace aux {
 
 		// This function is intended only for use by plugins and the alert
 		// dispatch function. This type does not have a stable API and should
-		// be relied on as little as possible.
+		// be relied on as little as possible. Accessing the handle returned by
+		// this function is not thread safe outside of libtorrent's internal
+		// thread (which is used to invoke plugin callbacks).
 		std::shared_ptr<torrent> native_handle() const;
 
 	private:

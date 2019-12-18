@@ -543,7 +543,7 @@ TORRENT_TEST(piece_slots_seed_suggest_cache)
 }
 
 // TODO: test what happens when loading a resume file with both piece priorities
-// and file priorities (file prio should take presedence)
+// and file priorities (file prio should take precedence)
 
 // TODO: make sure a resume file only ever contain file priorities OR piece
 // priorities. Never both.

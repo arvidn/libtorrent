@@ -52,23 +52,23 @@ namespace libtorrent {
 	// +----------+-----------------------+
 	// | id chars | client                |
 	// +==========+=======================+
-	// | 'LT'     | libtorrent (default)  |
+	// | LT       | libtorrent (default)  |
 	// +----------+-----------------------+
-	// | 'UT'     | uTorrent              |
+	// | UT       | uTorrent              |
 	// +----------+-----------------------+
-	// | 'UM'     | uTorrent Mac          |
+	// | UM       | uTorrent Mac          |
 	// +----------+-----------------------+
-	// | 'qB'     | qBittorrent           |
+	// | qB       | qBittorrent           |
 	// +----------+-----------------------+
-	// | 'BP'     | BitTorrent Pro        |
+	// | BP       | BitTorrent Pro        |
 	// +----------+-----------------------+
-	// | 'BT'     | BitTorrent            |
+	// | BT       | BitTorrent            |
 	// +----------+-----------------------+
-	// | 'DE'     | Deluge                |
+	// | DE       | Deluge                |
 	// +----------+-----------------------+
-	// | 'AZ'     | Azureus               |
+	// | AZ       | Azureus               |
 	// +----------+-----------------------+
-	// | 'TL'     | Tribler               |
+	// | TL       | Tribler               |
 	// +----------+-----------------------+
 	//
 	// There's an informal directory of client id's here_.
