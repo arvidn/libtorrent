@@ -6590,7 +6590,7 @@ bool is_downloading_state(int const st)
 				// we have an i2p torrent, but we're not connected to an i2p
 				// SAM proxy.
 				if (alerts().should_post<i2p_alert>())
-					alerts().emplace_alert<i2p_alert>(errors::no_i2p_router, m_userdata);
+					alerts().emplace_alert<i2p_alert>(errors::no_i2p_router);
 				return false;
 			}
 

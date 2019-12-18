@@ -2214,7 +2214,7 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<i2p_alert>())
-				m_alerts.emplace_alert<i2p_alert>(ec, nullptr);
+				m_alerts.emplace_alert<i2p_alert>(ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
