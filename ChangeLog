@@ -1,5 +1,6 @@
 2.0 release
 
+	* add clientdata to add_torrent_params, torrent, and torrent_removed_alert
 	* add ip_filter to session_params
 	* added support for wolfSSL for SHA-1 hash and HTTPS (no Torrents over SSL)
 	* requires OpenSSL minimum version 1.0.0 with SNI support
@@ -12,8 +13,7 @@
 	* announce_entry expose information per v1 and v2 info-hash announces
 	* torrent_removed_alert, torrent_deleted_alert, torrent_delete_failed_alert: info_hash member is no longer a sha-1 hash, but (deprecated) implicitly convertible to one
 	* undeprecate error_file_metadata for torrent errors related to its metadata
-	* remove support for adding a torrent under a UUID (used for previous RSS
-	* support)
+	* remove support for adding a torrent under a UUID (used for previous RSS support)
 	* remove deprecated feature to add torrents by file:// URL
 	* remove deprecated feature to download .torrent file from URL
 	* requires boost >= 1.66 to build

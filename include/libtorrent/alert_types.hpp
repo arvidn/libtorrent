@@ -274,12 +274,17 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, info_hash_t const& ih);
+			, torrent_handle const& h, info_hash_t const& ih, void* clientdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority::critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
 		info_hash_t info_hash;
+
+		// `clientdata` as set in `add_torrent_params` at torrent creation.
+		// This can be used to associate this torrent with related data
+		// in the client application more efficiently than info_hash.
+		void* clientdata;
 	};
 
 	// This alert is posted when the asynchronous read operation initiated by
