@@ -204,8 +204,9 @@ resume torrents based on certain criteria. The criteria depends on the overall
 state the torrent is in (checking, downloading or seeding).
 
 To opt-out of the queuing logic, make sure your torrents are added with the
-add_torrent_params::flag_auto_managed bit *cleared*. Or call
-``torrent_handle::auto_managed(false)`` on the torrent handle.
+torrent_flags::auto_managed bit *cleared* from ``add_torrent_params::flags``.
+Or call ``torrent_handle::unset_flags(torrent_flags::auto_managed)`` on the
+torrent handle.
 
 The overall purpose of the queuing logic is to improve performance under arbitrary
 torrent downloading and seeding load. For example, if you want to download 100

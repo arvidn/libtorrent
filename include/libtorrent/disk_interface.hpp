@@ -58,6 +58,7 @@ namespace libtorrent {
 
 	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, struct file_open_mode_tag>;
 
+	// internal
 	// this is a bittorrent constant
 	constexpr int default_block_size = 0x4000;
 
@@ -105,7 +106,7 @@ namespace libtorrent {
 
 		// ``open_mode`` is a bitmask of the file flags this file is currently
 		// opened with. These are the flags used in the ``file::open()`` function.
-		// The flags used in this bitfield are defined by the file_open_mode enum.
+		// For possible flags, see file_open_mode_t.
 		//
 		// Note that the read/write mode is not a bitmask. The two least significant bits are used
 		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.

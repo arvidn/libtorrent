@@ -128,6 +128,7 @@ namespace libtorrent {
 		// open the file for reading and writing
 		constexpr open_mode_t read_write = 1_bit;
 
+		// the mask for the bits making up the read-write mode.
 		constexpr open_mode_t rw_mask = read_only | write_only | read_write;
 
 		// open the file in sparse mode (if supported by the
