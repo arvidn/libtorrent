@@ -4813,7 +4813,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec, params.clientdata);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
 		if (!torrent_ptr) return handle;
 

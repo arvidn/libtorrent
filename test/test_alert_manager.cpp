@@ -141,7 +141,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -155,7 +155,7 @@ TORRENT_TEST(notify_function)
 	// subsequent posted alerts will not cause an edge (because there are
 	// already alerts queued)
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);
@@ -168,7 +168,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 2);
@@ -201,14 +201,14 @@ TORRENT_TEST(extensions)
 	mgr.add_extension(std::make_shared<test_plugin>(2));
 
 	for (int i = 0; i < 53; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(plugin_alerts[0], 53);
 	TEST_EQUAL(plugin_alerts[1], 53);
 	TEST_EQUAL(plugin_alerts[2], 53);
 
 	for (int i = 0; i < 17; ++i)
-		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code(), nullptr);
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(plugin_alerts[0], 70);
 	TEST_EQUAL(plugin_alerts[1], 70);
