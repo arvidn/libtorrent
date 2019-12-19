@@ -547,3 +547,7 @@ tos
 BP
 qB
 LT1230
+iocontrol
+getname
+getpeername
+fastresume

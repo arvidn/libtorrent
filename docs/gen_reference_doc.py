@@ -567,7 +567,7 @@ def parse_enum(lno, lines, filename):
     global anon_index
 
     line = lines[lno].strip()
-    name = line.replace('enum ', '').split('{')[0].strip()
+    name = line.replace('enum ', '').replace('class ', '').split(':')[0].split('{')[0].strip()
     if len(name) == 0:
         if not internal:
             print('WARNING: anonymous enum at: \x1b[34m%s:%d\x1b[0m' % (filename, lno))
@@ -888,7 +888,7 @@ for filename in files:
                     blanks = 0
                 continue
 
-        if ('class ' in line or 'struct ' in line) and ';' not in line:
+        if ('enum class ' not in line and 'class ' in line or 'struct ' in line) and ';' not in line:
             lno = consume_block(lno - 1, lines)
             context = ''
             blanks += 1

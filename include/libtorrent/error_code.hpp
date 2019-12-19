@@ -534,7 +534,7 @@ namespace libtorrent {
 		// internal
 		std::int32_t file_idx:24;
 
-		// A code from file_operation_t enum, indicating what
+		// A code from operation_t enum, indicating what
 		// kind of operation failed.
 		operation_t operation;
 
