@@ -450,7 +450,7 @@ namespace aux {
 		// the vector is empty when returning, if none of the files in the
 		// torrent are currently open.
 		//
-		// see open_file_state
+		// See open_file_state
 		std::vector<open_file_state> file_status() const;
 
 		// If the torrent is in an error state (i.e. ``torrent_status::error`` is
