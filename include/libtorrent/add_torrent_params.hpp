@@ -59,10 +59,6 @@ namespace libtorrent {
 	struct torrent_plugin;
 	struct torrent_handle;
 
-	struct client_data {
-		virtual ~client_data(){}
-	};
-
 TORRENT_VERSION_NAMESPACE_2
 
 	// The add_torrent_params is a parameter pack for adding torrents to a
@@ -184,7 +180,7 @@ TORRENT_VERSION_NAMESPACE_2
 		void* userdata = nullptr;
 
 		// The ``clientdata`` parameter is optional and will be stored in the torrent.
-		std::shared_ptr<client_data> clientdata = nullptr;
+		void* clientdata = nullptr;
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
