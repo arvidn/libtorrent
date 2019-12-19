@@ -1159,7 +1159,7 @@ namespace libtorrent {
 		}
 		void add_suggest_piece(piece_index_t index);
 
-		client_data* get_clientdata() const { return m_clientdata.get(); }
+		void* get_clientdata() const { return m_clientdata; }
 
 		static constexpr int no_gauge_state = 0xf;
 
@@ -1668,7 +1668,7 @@ namespace libtorrent {
 		// seconds since epoch.
 		time_point32 m_last_upload{seconds32(0)};
 
-		std::shared_ptr<client_data> m_clientdata;
+		void* m_clientdata;
 
 // ----
 
