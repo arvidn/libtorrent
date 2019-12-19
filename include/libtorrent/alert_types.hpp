@@ -274,12 +274,14 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, info_hash_t const& ih);
+			, torrent_handle const& h, info_hash_t const& ih, void* clientdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority::critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
+
 		info_hash_t info_hash;
+		void* clientdata;	// largely redundant with info_hash
 	};
 
 	// This alert is posted when the asynchronous read operation initiated by
@@ -2034,7 +2036,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, add_torrent_params p, error_code const& ec);
+			, add_torrent_params p, error_code const& ec, void* clientdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority::critical)
 
@@ -2047,6 +2049,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// set to the error, if one occurred while adding the torrent.
 		error_code error;
+
+		// in case of error, handle may be invalid. clientdata is provided as context
+		void* clientdata;
 	};
 
 	// This alert is only posted when requested by the user, by calling

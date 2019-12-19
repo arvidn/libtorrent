@@ -1420,9 +1420,10 @@ namespace {
 #endif
 
 	torrent_removed_alert::torrent_removed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, info_hash_t const& ih)
+		, torrent_handle const& h, info_hash_t const& ih, void* clientdata_)
 		: torrent_alert(alloc, h)
 		, info_hash(ih)
+		, clientdata(clientdata_)
 	{}
 
 	std::string torrent_removed_alert::message() const
@@ -1472,10 +1473,11 @@ namespace {
 	}
 
 	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, add_torrent_params p, error_code const& ec)
+		, add_torrent_params p, error_code const& ec, void* clientdata_)
 		: torrent_alert(alloc, h)
 		, params(std::move(p))
 		, error(ec)
+		, clientdata(clientdata_)
 	{}
 
 	std::string add_torrent_alert::message() const
