@@ -69,7 +69,7 @@ namespace libtorrent {
 		boost::system::error_code make_error_code(pcp_errors e);
 	}
 
-	boost::system::error_category& pcp_category();
+	TORRENT_EXPORT boost::system::error_category& pcp_category();
 }
 
 namespace boost { namespace system {

@@ -96,10 +96,12 @@ DOCS_PAGES = \
   docs/reference-Core.html        \
   docs/reference-Create_Torrents.html \
   docs/reference-Custom_Storage.html \
+  docs/reference-DHT.html \
   docs/reference-ed25519.html     \
   docs/reference-Error_Codes.html \
   docs/reference-Filter.html      \
   docs/reference-Plugins.html     \
+  docs/reference-Session.html    \
   docs/reference-Settings.html    \
   docs/reference-Storage.html     \
   docs/reference-Utility.html     \

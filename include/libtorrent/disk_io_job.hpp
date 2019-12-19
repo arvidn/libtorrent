@@ -56,6 +56,7 @@ namespace libtorrent {
 
 	struct cached_piece_entry;
 
+	// internal
 	enum class job_action_t : std::uint8_t
 	{
 		read

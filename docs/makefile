@@ -18,6 +18,8 @@ REFERENCE_TARGETS = \
 	upgrade_to_1.2-ref \
 	reference \
 	reference-Core \
+	reference-DHT \
+	reference-Session \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \

@@ -75,9 +75,12 @@ anon_index = 0
 
 category_mapping = {
     'ed25519.hpp': 'ed25519',
-    'session.hpp': 'Core',
+    'session.hpp': 'Session',
+    'session_handle.hpp': 'Session',
     'add_torrent_params.hpp': 'Core',
-    'session_status.hpp': 'Core',
+    'session_status.hpp': 'Session',
+    'session_stats.hpp': 'Session',
+    'session_params.hpp': 'Session',
     'error_code.hpp': 'Error Codes',
     'storage.hpp': 'Custom Storage',
     'storage_defs.hpp': 'Storage',
@@ -127,7 +130,8 @@ def categorize_symbol(name, filename):
 
     if name.endswith('_category()') \
             or name.endswith('_error_code') \
-            or name.endswith('error_code_enum'):
+            or name.endswith('error_code_enum') \
+            or name.endswith('errors'):
         return 'Error Codes'
 
     if name in category_fun_mapping:
@@ -135,6 +139,9 @@ def categorize_symbol(name, filename):
 
     if f in category_mapping:
         return category_mapping[f]
+
+    if filename.startswith('libtorrent/kademlia/'):
+        return 'DHT'
 
     return 'Core'
 
@@ -1197,6 +1204,7 @@ def render_enums(out, enums, print_declared_reference, header_level):
 sections = \
     {
         'Core': 0,
+        'DHT': 0,
         'Session': 0,
         'Settings': 0,
 
