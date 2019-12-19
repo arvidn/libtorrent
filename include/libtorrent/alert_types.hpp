@@ -2040,7 +2040,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, add_torrent_params const& p, error_code const& ec, void* clientdata);
+			, add_torrent_params const& p, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority_critical)
 
@@ -2053,9 +2053,6 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// set to the error, if one occurred while adding the torrent.
 		error_code error;
-
-		// in case of error, handle may be invalid. clientdata is provided as context
-		void* clientdata;
 	};
 
 	// This alert is only posted when requested by the user, by calling

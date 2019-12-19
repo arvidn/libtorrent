@@ -1462,11 +1462,10 @@ namespace {
 	}
 
 	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, add_torrent_params const& p, error_code const& ec, void* clientdata_)
+		, add_torrent_params const& p, error_code const& ec)
 		: torrent_alert(alloc, h)
 		, params(p)
 		, error(ec)
-		, clientdata(clientdata_)
 	{}
 
 	std::string add_torrent_alert::message() const

@@ -4724,7 +4724,7 @@ namespace aux {
 		if (ec)
 		{
 			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
-				, *params, ec, params->clientdata);
+				, *params, ec);
 			return;
 		}
 		TORRENT_ASSERT(params->ti->is_valid());
@@ -4763,7 +4763,7 @@ namespace aux {
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec, params.clientdata);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
 		if (!torrent_ptr) return handle;
 
