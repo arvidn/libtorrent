@@ -268,7 +268,11 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
 		sha1_hash info_hash;
-		void* clientdata;	// largely redundant with info_hash
+
+		// `clientdata` as set in `add_torrent_params` at torrent creation.
+		// This can be used to associate this torrent with related data
+		// in the client application more efficiently than info_hash.
+		void* clientdata;
 	};
 
 	// This alert is posted when the asynchronous read operation initiated by
