@@ -78,6 +78,7 @@ namespace aux {
 	struct peer_list_entry;
 #endif
 	class torrent;
+	struct client_data_t;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	[[noreturn]] void throw_invalid_handle();
@@ -1251,7 +1252,7 @@ namespace aux {
 		std::shared_ptr<torrent> native_handle() const;
 
 		// returns the clientdata pointer as set in add_torrent_params
-		void* clientdata() const;
+		client_data_t clientdata() const;
 
 	private:
 

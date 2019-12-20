@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/portmap.hpp" // for portmap_transport
 #include "libtorrent/tracker_manager.hpp" // for event_t
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/client_data.hpp"
 #include "libtorrent/aux_/deprecated.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -274,7 +275,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, info_hash_t const& ih, void* clientdata);
+			, torrent_handle const& h, info_hash_t const& ih, client_data_t clientdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority::critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
@@ -284,7 +285,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// `clientdata` as set in `add_torrent_params` at torrent creation.
 		// This can be used to associate this torrent with related data
 		// in the client application more efficiently than info_hash.
-		void* clientdata;
+		client_data_t clientdata;
 	};
 
 	// This alert is posted when the asynchronous read operation initiated by
