@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/fingerprint.hpp"
+#include "libtorrent/client_data.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -190,3 +191,47 @@ TORRENT_TEST(error_condition)
 	TEST_CHECK(ec == boost::system::errc::no_such_file_or_directory);
 }
 
+TORRENT_TEST(client_data_assign)
+{
+	client_data_t v;
+	TEST_CHECK(v.get<int>() == nullptr);
+	int a = 1337;
+	v = &a;
+	TEST_CHECK(v.get<int>() == &a);
+	TEST_CHECK(*v.get<int>() == 1337);
+	TEST_CHECK(v.get<int const>() == nullptr);
+	TEST_CHECK(v.get<int volatile>() == nullptr);
+	TEST_CHECK(v.get<int const volatile>() == nullptr);
+	TEST_CHECK(v.get<float>() == nullptr);
+
+	TEST_CHECK(static_cast<int*>(v) == &a);
+	TEST_CHECK(*static_cast<int*>(v) == 1337);
+	TEST_CHECK(static_cast<int const*>(v) == nullptr);
+	TEST_CHECK(static_cast<int volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<int const volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<float*>(v) == nullptr);
+
+	float b = 42.f;
+	v = &b;
+	TEST_CHECK(v.get<float>() == &b);
+	TEST_CHECK(*v.get<float>() == 42.f);
+	TEST_CHECK(v.get<float const>() == nullptr);
+	TEST_CHECK(v.get<float volatile>() == nullptr);
+	TEST_CHECK(v.get<float const volatile>() == nullptr);
+	TEST_CHECK(v.get<int>() == nullptr);
+
+	TEST_CHECK(static_cast<float*>(v) == &b);
+	TEST_CHECK(*static_cast<float*>(v) == 42.f);
+	TEST_CHECK(static_cast<float const*>(v) == nullptr);
+	TEST_CHECK(static_cast<float volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<float const volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<int*>(v) == nullptr);
+}
+
+TORRENT_TEST(client_data_initialize)
+{
+	int a = 1337;
+	client_data_t v(&a);
+	TEST_CHECK(v.get<int>() == &a);
+	TEST_CHECK(*v.get<int>() == 1337);
+}

@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/client_data.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 
 namespace libtorrent {
@@ -182,7 +183,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// The ``clientdata`` parameter is optional and will be stored in the torrent
 		// as ``torrent_handle::clientdata()``. It can be used to associate this torrent
 		// with related data in the client application more efficiently than info_hash.
-		void* clientdata = nullptr;
+		client_data_t clientdata;
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for

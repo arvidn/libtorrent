@@ -33,6 +33,7 @@ set(libtorrent_include_files
 	broadcast_socket
 	bt_peer_connection
 	choker
+	client_data
 	close_reason
 	config
 	ConvertUTF
