@@ -94,7 +94,7 @@ namespace libtorrent {
 		// look for \n\n and \r\n\r\n
 		// both of which means end of http response header
 		bool found_end = false;
-		if (m_buffer[read_pos - 1] == '\n' && read_pos > 2)
+		if (read_pos > 2 && m_buffer[read_pos - 1] == '\n')
 		{
 			if (m_buffer[read_pos - 2] == '\n')
 			{
