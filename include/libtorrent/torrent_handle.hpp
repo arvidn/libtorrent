@@ -1250,6 +1250,9 @@ namespace aux {
 		// be relied on as little as possible.
 		std::shared_ptr<torrent> native_handle() const;
 
+		// returns the clientdata pointer as set in add_torrent_params
+		void* clientdata() const;
+
 	private:
 
 		template<typename Fun, typename... Args>

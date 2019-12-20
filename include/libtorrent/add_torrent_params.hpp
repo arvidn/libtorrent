@@ -179,7 +179,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// (see torrent_handle::add_extension()).
 		void* userdata = nullptr;
 
-		// The ``clientdata`` parameter is optional and will be stored in the torrent.
+		// The ``clientdata`` parameter is optional and will be stored in the torrent
+		// as ``torrent_handle::clientdata()``. It can be used to associate this torrent
+		// with related data in the client application more efficiently than info_hash.
 		void* clientdata = nullptr;
 
 		// can be set to control the initial file priorities when adding a
