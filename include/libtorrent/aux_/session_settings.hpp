@@ -146,18 +146,20 @@ namespace aux {
 			: session_settings(std::move(lhs), std::unique_lock<std::mutex>(lhs.m_mutex))
 		{}
 
-		session_settings& operator=(session_settings const& lhs)
+		session_settings& operator=(session_settings const& rhs)
 		{
+			if (this == &rhs) return *this;
 			// in C++17, use a single std::scoped_lock instead
-			std::lock(lhs.m_mutex, m_mutex);
-			std::unique_lock<std::mutex> l1(lhs.m_mutex, std::adopt_lock);
+			std::lock(rhs.m_mutex, m_mutex);
+			std::unique_lock<std::mutex> l1(rhs.m_mutex, std::adopt_lock);
 			std::unique_lock<std::mutex> l2(m_mutex, std::adopt_lock);
-			m_store = lhs.m_store;
+			m_store = rhs.m_store;
 			return *this;
 		}
-		session_settings& operator=(session_settings&& lhs)
+		session_settings& operator=(session_settings&& rhs)
 		{
-			m_store = std::move(lhs.m_store);
+			if (this == &rhs) return *this;
+			m_store = std::move(rhs.m_store);
 			return *this;
 		}
 
