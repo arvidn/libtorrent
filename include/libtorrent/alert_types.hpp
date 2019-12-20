@@ -274,7 +274,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih, void* clientdata);
+			, torrent_handle const& h, info_hash_t const& ih, void* clientdata);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority::critical)
 		static constexpr alert_category_t static_category = alert::status_notification;
