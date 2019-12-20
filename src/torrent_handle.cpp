@@ -856,10 +856,10 @@ namespace libtorrent {
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
 
-	void* torrent_handle::clientdata() const
+	client_data_t torrent_handle::clientdata() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return t ? t->get_clientdata() : nullptr;
+		return t ? t->get_clientdata() : client_data_t{};
 	}
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
