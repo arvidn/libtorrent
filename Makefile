@@ -431,6 +431,7 @@ HEADERS = \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   choker.hpp                   \
+  client_data.hpp              \
   close_reason.hpp             \
   config.hpp                   \
   copy_ptr.hpp                 \
