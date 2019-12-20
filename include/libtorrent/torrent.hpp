@@ -1181,7 +1181,7 @@ namespace libtorrent {
 		}
 		void add_suggest_piece(piece_index_t index);
 
-		void* get_clientdata() const { return m_clientdata; }
+		void* get_clientdata() const { return m_clientdata; }	// comes from add_torrent_params
 
 		static constexpr int no_gauge_state = 0xf;
 
