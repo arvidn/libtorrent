@@ -440,15 +440,6 @@ void bind_converters()
         lt::aux::noexcept_movable<lt::tcp::endpoint>>>();
     to_python_converter<lt::aux::noexcept_movable<lt::udp::endpoint>, endpoint_to_tuple<
         lt::aux::noexcept_movable<lt::udp::endpoint>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::stats_metric>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::stats_metric>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::open_file_state>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::open_file_state>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::sha1_hash>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::sha1_hash>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<std::string>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::string>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<int>>, vector_to_list<lt::aux::noexcept_movable<std::vector<int>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::download_priority_t>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::download_priority_t>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>, vector_to_list<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>>();
-    to_python_converter<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>, vector_to_list<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
     to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
@@ -458,8 +449,8 @@ void bind_converters()
 #endif
 
 #if TORRENT_ABI_VERSION == 1
-    to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<char>>>();
+    to_python_converter<std::vector<char>, vector_to_list<std::vector<char>>>();
+    list_to_vector<std::vector<char>>();
 #endif
 
     // python -> C++ conversions
@@ -475,14 +466,7 @@ void bind_converters()
     list_to_vector<std::vector<lt::tcp::endpoint>>();
     list_to_vector<std::vector<lt::udp::endpoint>>();
     list_to_vector<std::vector<std::pair<std::string, int>>>();
-
     // work-around types
-    list_to_vector<lt::aux::noexcept_movable<std::vector<int>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::download_priority_t>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<std::string>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>();
-    list_to_vector<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>();
     dict_to_map<lt::piece_index_t, lt::bitfield, lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>();
     dict_to_map<lt::file_index_t, std::string, lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>();
 
