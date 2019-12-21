@@ -113,7 +113,7 @@ namespace libtorrent {
 
 	class http_parser;
 	struct tracker_request;
-	class bt_peer_connection;
+	struct bt_peer_connection;
 
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
 
@@ -330,15 +330,13 @@ namespace libtorrent {
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
-	class TORRENT_EXTRA_EXPORT torrent
+	struct TORRENT_EXTRA_EXPORT torrent
 		: private single_threaded
 		, private torrent_hot_members
-		, public request_callback
-		, public peer_class_set
-		, public std::enable_shared_from_this<torrent>
+		, request_callback
+		, peer_class_set
+		, std::enable_shared_from_this<torrent>
 	{
-	public:
-
 		torrent(aux::session_interface& ses
 			, bool session_paused, add_torrent_params const& p);
 		~torrent() override;

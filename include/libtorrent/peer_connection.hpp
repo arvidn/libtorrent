@@ -83,7 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
+	struct torrent;
 	struct torrent_peer;
 	struct disk_interface;
 
@@ -95,7 +95,7 @@ namespace aux {
 
 	struct session_interface;
 
-	class min_value_t {};
+	struct min_value_t {};
 	static const min_value_t min_value{};
 
 	struct relative_time
@@ -278,18 +278,17 @@ namespace aux {
 
 	using request_flags_t = flags::bitfield_flag<std::uint8_t, struct request_flags_tag>;
 
-	class TORRENT_EXTRA_EXPORT peer_connection
-		: public peer_connection_hot_members
-		, public bandwidth_socket
-		, public peer_class_set
-		, public disk_observer
-		, public peer_connection_interface
-		, public std::enable_shared_from_this<peer_connection>
+	struct TORRENT_EXTRA_EXPORT peer_connection
+		: peer_connection_hot_members
+		, bandwidth_socket
+		, peer_class_set
+		, disk_observer
+		, peer_connection_interface
+		, std::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
-	friend class torrent;
+	friend struct torrent;
 	friend struct cork;
-	public:
 
 		// explicitly disallow assignment, to silence msvc warning
 		peer_connection& operator=(peer_connection const&) = delete;

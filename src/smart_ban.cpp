@@ -62,7 +62,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-class torrent;
+struct torrent;
 
 namespace {
 

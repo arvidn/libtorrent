@@ -84,11 +84,10 @@ namespace libtorrent {
 	};
 #endif
 
-	class TORRENT_EXTRA_EXPORT bt_peer_connection
-		: public peer_connection
+	struct TORRENT_EXTRA_EXPORT bt_peer_connection
+		: peer_connection
 	{
 	friend class invariant_access;
-	public:
 
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
@@ -240,7 +239,7 @@ namespace libtorrent {
 
 		void on_extended_handshake();
 
-		template<class F, typename... Args>
+		template<typename F, typename... Args>
 		void extension_notify(F message, Args... args);
 
 		// the following functions appends messages

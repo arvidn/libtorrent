@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-class bt_peer_connection;
+struct bt_peer_connection;
 
 // the peer_connection_handle class provides a handle to the internal peer
 // connection object, to be used by plugins. This is a low level interface that

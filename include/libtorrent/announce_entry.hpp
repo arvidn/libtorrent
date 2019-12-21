@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
+	struct torrent;
 
 	struct TORRENT_EXPORT announce_infohash
 	{
@@ -142,7 +142,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION <= 2
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
-		friend class lt::torrent;
+		friend struct lt::torrent;
 		friend struct announce_entry;
 
 		// internal
