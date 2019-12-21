@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_v4
+#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/socks5_stream.hpp" // for socks_error
 
 #include <cstdlib>
 #include <functional>
@@ -67,11 +69,12 @@ std::size_t const max_header_size = 255;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : std::enable_shared_from_this<socks5>
 {
-	explicit socks5(io_service& ios)
+	explicit socks5(io_service& ios, alert_manager& alerts)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
 		, m_retry_timer(ios)
+		, m_alerts(alerts)
 		, m_abort(false)
 		, m_active(false)
 	{}
@@ -103,6 +106,7 @@ private:
 	tcp::resolver m_resolver;
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
+	alert_manager& m_alerts;
 	std::array<char, tmp_buffer_size> m_tmp_buf;
 
 	aux::proxy_settings m_proxy_settings;
@@ -111,7 +115,7 @@ private:
 	// when performing a UDP associate, we get another
 	// endpoint (presumably on the same IP) where we're
 	// supposed to send UDP packets.
-	udp::endpoint m_proxy_addr;
+	tcp::endpoint m_proxy_addr;
 
 	// this is where UDP packets that are to be forwarded
 	// are sent. The result from UDP ASSOCIATE is stored
@@ -472,7 +476,8 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (err) m_bind_port = ep.port();
 }
 
-void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
+void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
+	, alert_manager& alerts)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -490,8 +495,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 		|| ps.type == settings_pack::socks5_pw)
 	{
 		// connect to socks5 server and open up the UDP tunnel
-
-		m_socks5_connection = std::make_shared<socks5>(lt::get_io_service(m_socket));
+		m_socks5_connection = std::make_shared<socks5>(lt::get_io_service(m_socket), alerts);
 		m_socks5_connection->start(ps);
 	}
 }
@@ -517,10 +521,14 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	if (e == boost::asio::error::operation_aborted) return;
 
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::hostname_lookup, e);
+		return;
+	}
 
-	m_proxy_addr.address(i->endpoint().address());
-	m_proxy_addr.port(i->endpoint().port());
+	m_proxy_addr = i->endpoint();
 
 	error_code ec;
 	m_socks5_sock.open(is_v4(m_proxy_addr) ? tcp::v4() : tcp::v6(), ec);
@@ -529,7 +537,7 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connected");
-	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
+	m_socks5_sock.async_connect(m_proxy_addr
 		, std::bind(&socks5::on_connected, self(), _1));
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connect_timeout");
@@ -546,6 +554,9 @@ void socks5::on_connect_timeout(error_code const& e)
 
 	if (m_abort) return;
 
+	if (m_alerts.should_post<socks5_alert>())
+		m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::connect, errors::timed_out);
+
 	error_code ignore;
 	m_socks5_sock.close(ignore);
 }
@@ -561,7 +572,12 @@ void socks5::on_connected(error_code const& e)
 	if (m_abort) return;
 
 	// we failed to connect to the proxy
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::connect, e);
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -591,7 +607,12 @@ void socks5::handshake1(error_code const& e)
 {
 	COMPLETE_ASYNC("socks5::on_handshake1");
 	if (m_abort) return;
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		return;
+	}
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 2)
@@ -603,7 +624,12 @@ void socks5::handshake2(error_code const& e)
 	COMPLETE_ASYNC("socks5::on_handshake2");
 	if (m_abort) return;
 
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -613,6 +639,9 @@ void socks5::handshake2(error_code const& e)
 
 	if (version < 5)
 	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake
+				, socks_error::unsupported_version);
 		error_code ec;
 		m_socks5_sock.close(ec);
 		return;
@@ -626,6 +655,9 @@ void socks5::handshake2(error_code const& e)
 	{
 		if (m_proxy_settings.username.empty())
 		{
+			if (m_alerts.should_post<socks5_alert>())
+				m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake
+					, socks_error::username_required);
 			error_code ec;
 			m_socks5_sock.close(ec);
 			return;
@@ -648,6 +680,10 @@ void socks5::handshake2(error_code const& e)
 	}
 	else
 	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake
+				, socks_error::unsupported_authentication_method);
+
 		error_code ec;
 		m_socks5_sock.close(ec);
 		return;
@@ -658,7 +694,12 @@ void socks5::handshake3(error_code const& e)
 {
 	COMPLETE_ASYNC("socks5::on_handshake3");
 	if (m_abort) return;
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		return;
+	}
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake4");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 2)
@@ -669,7 +710,12 @@ void socks5::handshake4(error_code const& e)
 {
 	COMPLETE_ASYNC("socks5::on_handshake4");
 	if (m_abort) return;
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -705,7 +751,12 @@ void socks5::connect1(error_code const& e)
 {
 	COMPLETE_ASYNC("socks5::connect1");
 	if (m_abort) return;
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::connect, e);
+		return;
+	}
 
 	ADD_OUTSTANDING_ASYNC("socks5::connect2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
@@ -717,7 +768,12 @@ void socks5::connect2(error_code const& e)
 	COMPLETE_ASYNC("socks5::connect2");
 
 	if (m_abort) return;
-	if (e) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -756,6 +812,9 @@ void socks5::hung_up(error_code const& e)
 	m_active = false;
 
 	if (e == boost::asio::error::operation_aborted || m_abort) return;
+
+	if (e && m_alerts.should_post<socks5_alert>())
+		m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_read, e);
 
 	// the socks connection was closed, re-open it in a bit
 	m_retry_timer.expires_from_now(seconds(5));
