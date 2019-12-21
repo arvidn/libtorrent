@@ -315,7 +315,7 @@ namespace libtorrent {
 namespace aux {
 
 	// internal
-	TORRENT_EXPORT string_view integer_to_str(span<char> buf
+	TORRENT_EXPORT string_view integer_to_str(std::array<char, 21>& buf
 		, entry::integer_type val);
 }
 

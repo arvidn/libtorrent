@@ -82,7 +82,7 @@ namespace aux {
 		// not hold number bigger than this:
 		static_assert(sizeof(entry::integer_type) <= 8, "64 bit integers required");
 		static_assert(sizeof(data) <= sizeof(entry::integer_type), "input data too big, see entry::integer_type");
-		char buf[21];
+		std::array<char, 21> buf;
 		auto const str = integer_to_str(buf, val);
 		for (char const c : str)
 		{

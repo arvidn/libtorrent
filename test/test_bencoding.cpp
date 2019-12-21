@@ -229,12 +229,44 @@ TORRENT_TEST(integer_to_str)
 {
 	using lt::aux::integer_to_str;
 
-	char buf[30];
+	std::array<char, 21> buf;
 	TEST_CHECK(integer_to_str(buf, 0) == "0"_sv);
+	TEST_CHECK(integer_to_str(buf, 1) == "1"_sv);
+	TEST_CHECK(integer_to_str(buf, 2) == "2"_sv);
+	TEST_CHECK(integer_to_str(buf, 3) == "3"_sv);
+	TEST_CHECK(integer_to_str(buf, 4) == "4"_sv);
+	TEST_CHECK(integer_to_str(buf, 5) == "5"_sv);
+	TEST_CHECK(integer_to_str(buf, 6) == "6"_sv);
+	TEST_CHECK(integer_to_str(buf, 7) == "7"_sv);
+	TEST_CHECK(integer_to_str(buf, 8) == "8"_sv);
+	TEST_CHECK(integer_to_str(buf, 9) == "9"_sv);
+	TEST_CHECK(integer_to_str(buf, 10) == "10"_sv);
+	TEST_CHECK(integer_to_str(buf, 11) == "11"_sv);
+	TEST_CHECK(integer_to_str(buf, -1) == "-1"_sv);
+	TEST_CHECK(integer_to_str(buf, -2) == "-2"_sv);
+	TEST_CHECK(integer_to_str(buf, -3) == "-3"_sv);
+	TEST_CHECK(integer_to_str(buf, -4) == "-4"_sv);
+	TEST_CHECK(integer_to_str(buf, -5) == "-5"_sv);
+	TEST_CHECK(integer_to_str(buf, -6) == "-6"_sv);
+	TEST_CHECK(integer_to_str(buf, -7) == "-7"_sv);
+	TEST_CHECK(integer_to_str(buf, -8) == "-8"_sv);
+	TEST_CHECK(integer_to_str(buf, -9) == "-9"_sv);
+	TEST_CHECK(integer_to_str(buf, -10) == "-10"_sv);
+	TEST_CHECK(integer_to_str(buf, -11) == "-11"_sv);
+	TEST_CHECK(integer_to_str(buf, 12) == "12"_sv);
+	TEST_CHECK(integer_to_str(buf, -12) == "-12"_sv);
+	TEST_CHECK(integer_to_str(buf, 123) == "123"_sv);
+	TEST_CHECK(integer_to_str(buf, -123) == "-123"_sv);
 	TEST_CHECK(integer_to_str(buf, 1234) == "1234"_sv);
 	TEST_CHECK(integer_to_str(buf, -1234) == "-1234"_sv);
+	TEST_CHECK(integer_to_str(buf, 12345) == "12345"_sv);
+	TEST_CHECK(integer_to_str(buf, -12345) == "-12345"_sv);
+	TEST_CHECK(integer_to_str(buf, 123456) == "123456"_sv);
+	TEST_CHECK(integer_to_str(buf, -123456) == "-123456"_sv);
 	TEST_CHECK(integer_to_str(buf, 123456789012345678LL) == "123456789012345678"_sv);
 	TEST_CHECK(integer_to_str(buf, -123456789012345678LL) == "-123456789012345678"_sv);
+	TEST_CHECK(integer_to_str(buf, std::numeric_limits<std::int64_t>::max()) == "9223372036854775807"_sv);
+	TEST_CHECK(integer_to_str(buf, std::numeric_limits<std::int64_t>::min()) == "-9223372036854775808"_sv);
 }
 
 #if TORRENT_ABI_VERSION == 1

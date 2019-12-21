@@ -49,26 +49,65 @@ namespace libtorrent {
 
 namespace aux {
 
-	string_view integer_to_str(span<char> buf
-		, entry::integer_type val)
+	string_view integer_to_str(std::array<char, 21>& buf, entry::integer_type val)
 	{
-		int sign = 0;
-		if (val < 0)
+		if (val >= 0)
 		{
-			sign = 1;
+			if (val < 10)
+			{
+				buf[0] = '0' + static_cast<char>(val);
+				return {buf.data(), std::size_t(1)};
+			}
+			if (val < 100)
+			{
+				buf[0] = '0' + (val / 10) % 10;
+				buf[1] = '0' + val % 10;
+				return {buf.data(), std::size_t(2)};
+			}
+			if (val < 1000)
+			{
+				buf[0] = '0' + (val / 100) % 10;
+				buf[1] = '0' + (val / 10) % 10;
+				buf[2] = '0' + val % 10;
+				return {buf.data(), std::size_t(3)};
+			}
+			if (val < 10000)
+			{
+				buf[0] = '0' + (val / 1000) % 10;
+				buf[1] = '0' + (val / 100) % 10;
+				buf[2] = '0' + (val / 10) % 10;
+				buf[3] = '0' + val % 10;
+				return {buf.data(), std::size_t(4)};
+			}
+			if (val < 100000)
+			{
+				buf[0] = '0' + (val / 10000) % 10;
+				buf[1] = '0' + (val / 1000) % 10;
+				buf[2] = '0' + (val / 100) % 10;
+				buf[3] = '0' + (val / 10) % 10;
+				buf[4] = '0' + val % 10;
+				return {buf.data(), std::size_t(5)};
+			}
+		}
+		// slow path
+		// convert positive values to negative, since the negative space is
+		// larger, so we can fit INT64_MIN
+		int sign = 1;
+		if (val >= 0)
+		{
+			sign = 0;
 			val = -val;
 		}
 		char* ptr = &buf.back();
-		*ptr-- = '\0';
 		if (val == 0) *ptr-- = '0';
-		while (ptr > buf.data() + sign && val != 0)
+		while (val != 0)
 		{
-			*ptr-- = '0' + char(val % 10);
+			*ptr-- = '0' - char(val % 10);
 			val /= 10;
 		}
 		if (sign) *ptr-- = '-';
 		++ptr;
-		return {ptr, static_cast<std::size_t>(&buf.back() - ptr)};
+		return {ptr, static_cast<std::size_t>(&buf.back() - ptr + 1)};
 	}
 } // aux
 
