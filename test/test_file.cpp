@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/file_view_pool.hpp"
 #include "test.hpp"
 #include <vector>
 #include <set>
@@ -690,5 +691,14 @@ TORRENT_TEST(unc_paths)
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);
 }
+
+TORRENT_TEST(to_file_open_mode)
+{
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write) == file_open_mode::read_write);
+	TEST_CHECK(aux::to_file_open_mode({}) == file_open_mode::read_only);
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::no_atime) == (file_open_mode::read_only | file_open_mode::no_atime));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime) == (file_open_mode::read_write | file_open_mode::no_atime));
+}
+
 
 #endif
