@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct session;
-	class alert;
+	struct alert;
 }
 
 void utp_only(lt::session& ses);

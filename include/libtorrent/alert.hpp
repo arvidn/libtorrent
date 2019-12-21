@@ -82,13 +82,11 @@ namespace libtorrent {
 	// alert types are not copyable, and cannot be constructed by the client. The
 	// pointers returned by libtorrent are short lived (the details are described
 	// under session_handle::pop_alerts())
-	class TORRENT_EXPORT alert
+	struct TORRENT_EXPORT alert
 	{
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-	public:
-
 		// hidden
 		TORRENT_UNEXPORT alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
@@ -298,7 +296,7 @@ namespace libtorrent {
 //
 // .. note::
 //   ``alert_cast<>`` can only cast to an exact alert type, not a base class
-template <class T> T* alert_cast(alert* a)
+template <typename T> T* alert_cast(alert* a)
 {
 	static_assert(std::is_base_of<alert, T>::value
 		, "alert_cast<> can only be used with alert types (deriving from lt::alert)");
@@ -307,7 +305,7 @@ template <class T> T* alert_cast(alert* a)
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
 	return nullptr;
 }
-template <class T> T const* alert_cast(alert const* a)
+template <typename T> T const* alert_cast(alert const* a)
 {
 	static_assert(std::is_base_of<alert, T>::value
 		, "alert_cast<> can only be used with alert types (deriving from lt::alert)");

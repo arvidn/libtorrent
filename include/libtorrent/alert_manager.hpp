@@ -57,9 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class TORRENT_EXTRA_EXPORT alert_manager
+	struct TORRENT_EXTRA_EXPORT alert_manager
 	{
-	public:
 		explicit alert_manager(int queue_limit
 			, alert_category_t alert_mask = alert::error_notification);
 

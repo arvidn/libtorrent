@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-	class peer_connection;
+	struct torrent;
+	struct peer_connection;
 
 	// returns false if the piece picker was not invoked, because
 	// of an early exit condition. In this case, the stats counter

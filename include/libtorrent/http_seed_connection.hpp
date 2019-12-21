@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
+	struct torrent;
 	struct peer_request;
 
 	class TORRENT_EXTRA_EXPORT http_seed_connection

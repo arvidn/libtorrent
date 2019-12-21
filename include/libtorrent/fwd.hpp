@@ -44,7 +44,7 @@ struct add_torrent_params;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/alert.hpp
-class alert;
+struct alert;
 
 // include/libtorrent/alert_types.hpp
 struct dht_routing_bucket;
