@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	class alert_manager;
 	struct socks5;
 
 	using udp_send_flags_t = flags::bitfield_flag<std::uint8_t, struct udp_send_flags_tag>;
@@ -95,7 +96,7 @@ namespace libtorrent {
 		void close();
 		int local_port() const { return m_bind_port; }
 
-		void set_proxy_settings(aux::proxy_settings const& ps);
+		void set_proxy_settings(aux::proxy_settings const& ps, alert_manager& alerts);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }

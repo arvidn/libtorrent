@@ -139,6 +139,7 @@ struct session_stats_header_alert;
 struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
+struct socks5_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/announce_entry.hpp
@@ -279,6 +280,9 @@ TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;
+
+// include/libtorrent/fingerprint.hpp
+struct fingerprint;
 
 // include/libtorrent/lazy_entry.hpp
 struct pascal_string;

@@ -236,6 +236,7 @@ namespace boost
 	POLY(block_uploaded_alert)
 	POLY(alerts_dropped_alert)
 	POLY(session_stats_alert)
+	POLY(socks5_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -1027,6 +1028,13 @@ void bind_alert()
     class_<alerts_dropped_alert, bases<alert>, noncopyable>(
        "alerts_dropped_alert", no_init)
         .add_property("dropped_alerts", &get_dropped_alerts)
+        ;
+
+    class_<socks5_alert, bases<alert>, noncopyable>(
+       "socks5_alert", no_init)
+        .def_readonly("error", &socks5_alert::error)
+        .def_readonly("op", &socks5_alert::op)
+        .add_property("ip", make_getter(&socks5_alert::ip, by_value()))
         ;
 
 }

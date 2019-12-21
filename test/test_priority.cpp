@@ -489,7 +489,6 @@ TORRENT_TEST(file_priority_multiple_calls)
 	settings_pack pack = settings();
 	lt::session ses(pack);
 
-	error_code ec;
 	auto t = ::generate_torrent(true);
 
 	add_torrent_params addp;

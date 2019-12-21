@@ -83,7 +83,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 96;
+	constexpr int num_alert_types = 97;
 
 	// internal
 	enum alert_priority
@@ -2945,6 +2945,28 @@ TORRENT_VERSION_NAMESPACE_2
 		// alert type ID, where bit 0 represents whether any alert of type 0 has
 		// been dropped, and so on.
 		std::bitset<num_alert_types> dropped_alerts;
+	};
+
+	// this alert is posted with SOCKS5 related errors, when a SOCKS5 proxy is
+	// configured. It's enabled with the error_notification alert category.
+	struct TORRENT_EXPORT socks5_alert final : alert
+	{
+		// internal
+		explicit socks5_alert(aux::stack_allocator& alloc
+			, tcp::endpoint const& ep, operation_t operation, error_code const& ec);
+		TORRENT_DEFINE_ALERT(socks5_alert, 96)
+
+		static constexpr alert_category_t static_category = alert::error_notification;
+		std::string message() const override;
+
+		// the error
+		error_code error;
+
+		// the operation that failed
+		operation_t op;
+
+		// the endpoint configured as the proxy
+		aux::noexcept_movable<tcp::endpoint> ip;
 	};
 
 TORRENT_VERSION_NAMESPACE_2_END
