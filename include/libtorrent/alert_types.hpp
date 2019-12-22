@@ -2040,7 +2040,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, add_torrent_params p, error_code const& ec;
+			, add_torrent_params p, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67, alert_priority::critical)
 
