@@ -61,6 +61,8 @@ namespace aux {
 		using receive_buffer_size = typename first_socket::receive_buffer_size;
 		using send_buffer_size = typename first_socket::send_buffer_size;
 
+		using executor_type = typename first_socket::executor_type;
+
 		template <typename S>
 		explicit polymorphic_socket(S s) : boost::variant<Sockets...>(std::move(s))
 		{
