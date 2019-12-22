@@ -111,8 +111,8 @@ TORRENT_VERSION_NAMESPACE_3_END
 	struct upnp;
 	struct natpmp;
 	class lsd;
-	class torrent;
-	class alert;
+	struct torrent;
+	struct alert;
 	struct torrent_handle;
 
 namespace dht {

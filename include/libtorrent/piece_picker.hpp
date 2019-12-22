@@ -64,8 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-	class peer_connection;
+	struct torrent;
+	struct peer_connection;
 	template <typename Index>
 	struct typed_bitfield;
 	struct counters;
@@ -87,7 +87,7 @@ namespace libtorrent {
 		bool last_piece;
 	};
 
-	class TORRENT_EXTRA_EXPORT piece_picker
+	struct TORRENT_EXTRA_EXPORT piece_picker
 	{
 		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
 		// unit tests

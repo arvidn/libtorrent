@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
+	struct torrent;
 
 #if TORRENT_ABI_VERSION == 1
 	struct session_status;

@@ -77,7 +77,7 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 	struct peer_list_entry;
 #endif
-	class torrent;
+	struct torrent;
 	struct client_data_t;
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -236,7 +236,7 @@ namespace aux {
 	{
 		friend struct aux::session_impl;
 		friend struct session_handle;
-		friend class torrent;
+		friend struct torrent;
 		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.

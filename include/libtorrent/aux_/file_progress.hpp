@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-class piece_picker;
+struct piece_picker;
 class file_storage;
 
 namespace aux {

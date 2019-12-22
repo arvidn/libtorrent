@@ -43,7 +43,7 @@ namespace libtorrent {
 namespace aux {
 	struct session_settings;
 }
-	class peer_connection;
+	struct peer_connection;
 
 	// sorts the vector of peers in-place. When returning, the top unchoke slots
 	// elements are the peers we should unchoke. This is similar to a partial

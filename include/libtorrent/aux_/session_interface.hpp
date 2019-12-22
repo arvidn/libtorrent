@@ -66,15 +66,15 @@ namespace ssl {
 
 namespace libtorrent {
 
-	class peer_connection;
-	class torrent;
+	struct peer_connection;
+	struct torrent;
 	struct peer_class_set;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
 	struct peer_class_pool;
 	struct disk_observer;
 	struct torrent_peer;
-	class alert_manager;
+	struct alert_manager;
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
