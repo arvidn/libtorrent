@@ -146,7 +146,7 @@ namespace aux {
 		incoming_utp_callback_t m_cb;
 
 		// replace with a hash-map
-		using socket_map_t = std::multimap<std::uint16_t, utp_socket_impl*>;
+		using socket_map_t = std::multimap<std::uint16_t, std::unique_ptr<utp_socket_impl>>;
 		socket_map_t m_utp_sockets;
 
 		using socket_vector_t = std::vector<utp_socket_impl*>;

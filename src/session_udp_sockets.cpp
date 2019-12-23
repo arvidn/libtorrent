@@ -102,8 +102,8 @@ namespace libtorrent { namespace aux {
 				continue;
 			}
 
-			utp_init_socket(impl, sockets[idx]);
-			auto udp_ep = sockets[idx]->local_endpoint();
+			impl->m_sock = sockets[idx];
+			auto const udp_ep = sockets[idx]->local_endpoint();
 			return {udp_ep.address(), udp_ep.port()};
 		}
 

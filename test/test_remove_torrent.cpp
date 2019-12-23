@@ -118,6 +118,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 		print_alerts(ses2, "ses2", true, true);
 
 		st1 = tor1.status();
+		std::cout << "st1.total_payload_upload: " << st1.total_payload_upload << '\n';
 		st2 = tor2.status();
 
 		if (test == mid_download && st2.num_pieces > num_pieces / 2)

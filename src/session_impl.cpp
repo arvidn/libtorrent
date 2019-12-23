@@ -2515,10 +2515,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			error_code err;
 			int const num_packets = s->sock.read(p, err);
 
-			for (int i = 0; i < num_packets; ++i)
+			for (udp_socket::packet& packet : span<udp_socket::packet>(p).first(num_packets))
 			{
-				udp_socket::packet& packet = p[i];
-
 				if (packet.error)
 				{
 					// TODO: 3 it would be neat if the utp socket manager would
