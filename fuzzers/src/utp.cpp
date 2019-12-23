@@ -52,20 +52,19 @@ aux::utp_socket_manager man(
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	aux::utp_socket_impl* sock = nullptr;
+	std::unique_ptr<aux::utp_socket_impl> sock;
 	{
 		aux::utp_stream str(ios);
-		sock = construct_utp_impl(1, 0, &str, man);
-		str.set_impl(sock);
+		sock = std::make_unique<aux::utp_socket_impl>(1, 0, &str, man);
+		str.set_impl(sock.get());
 		udp::endpoint ep;
 		time_point ts(seconds(100));
 		span<char const> buf(reinterpret_cast<char const*>(data), size);
-		utp_incoming_packet(sock, buf, ep, ts);
+		sock->incoming_packet(buf, ep, ts);
 
 		// clear any deferred acks
 		man.socket_drained();
 	}
-	delete_utp_impl(sock);
 	return 0;
 }
 
