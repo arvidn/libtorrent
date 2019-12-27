@@ -23,7 +23,7 @@ matrix:
     - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=test_debug tests=1 mmap=off toolset=gcc
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
-    - env: variant=test_debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
+#    - env: variant=test_debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
