@@ -81,6 +81,10 @@ namespace libtorrent {
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		error_code ec;
@@ -100,6 +104,10 @@ namespace libtorrent {
 	void socks5_stream::connected(error_code const& e, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connected");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
@@ -137,6 +145,10 @@ namespace libtorrent {
 	void socks5_stream::handshake1(error_code const& e, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake1");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake2");
@@ -148,6 +160,10 @@ namespace libtorrent {
 	void socks5_stream::handshake2(error_code const& e, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake2");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
@@ -200,6 +216,10 @@ namespace libtorrent {
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake3");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake4");
@@ -212,6 +232,10 @@ namespace libtorrent {
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake4");
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
+
 		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
@@ -239,6 +263,9 @@ namespace libtorrent {
 	void socks5_stream::socks_connect(handler_type h)
 	{
 		using namespace libtorrent::detail;
+
+		TORRENT_ASSERT(m_remote_endpoint.address() != address()
+			|| (!m_dst_name.empty() && m_version == 5));
 
 		if (m_version == 5)
 		{

@@ -55,6 +55,7 @@ namespace libtorrent {
 	{
 	public:
 		explicit udp_socket(io_service& ios);
+		~udp_socket();
 
 		static constexpr udp_send_flags_t peer_connection = 0_bit;
 		static constexpr udp_send_flags_t tracker_connection = 1_bit;
@@ -153,11 +154,6 @@ namespace libtorrent {
 		std::shared_ptr<socks5> m_socks5_connection;
 
 		bool m_abort:1;
-
-#if TORRENT_USE_ASSERTS
-		bool m_started;
-		int m_magic;
-#endif
 	};
 }
 

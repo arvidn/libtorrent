@@ -69,14 +69,13 @@ std::size_t const max_header_size = 255;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : std::enable_shared_from_this<socks5>
 {
-	explicit socks5(io_service& ios, alert_manager& alerts)
+	explicit socks5(io_service& ios, alert_manager& alerts, address const addr)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
 		, m_retry_timer(ios)
 		, m_alerts(alerts)
-		, m_abort(false)
-		, m_active(false)
+		, m_bound_addr(addr)
 	{}
 
 	void start(aux::proxy_settings const& ps);
@@ -107,6 +106,7 @@ private:
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
 	alert_manager& m_alerts;
+	address m_bound_addr;
 	std::array<char, tmp_buffer_size> m_tmp_buf;
 
 	aux::proxy_settings m_proxy_settings;
@@ -123,10 +123,10 @@ private:
 	udp::endpoint m_udp_proxy_addr;
 
 	// set to true when we've been asked to shut down
-	bool m_abort;
+	bool m_abort = false;
 
 	// set to true once the tunnel is established
-	bool m_active;
+	bool m_active = false;
 };
 
 #ifdef TORRENT_HAS_DONT_FRAGMENT
@@ -165,6 +165,8 @@ udp_socket::udp_socket(io_service& ios)
 	, m_bind_port(0)
 	, m_abort(true)
 {}
+
+udp_socket::~udp_socket() = default;
 
 int udp_socket::read(span<packet> pkts, error_code& ec)
 {
@@ -495,7 +497,9 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
 		|| ps.type == settings_pack::socks5_pw)
 	{
 		// connect to socks5 server and open up the UDP tunnel
-		m_socks5_connection = std::make_shared<socks5>(lt::get_io_service(m_socket), alerts);
+		error_code err;
+		m_socks5_connection = std::make_shared<socks5>(lt::get_io_service(m_socket)
+			, alerts, m_socket.local_endpoint(err).address());
 		m_socks5_connection->start(ps);
 	}
 }
@@ -526,6 +530,29 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::hostname_lookup, e);
 		return;
+	}
+
+	// only set up a SOCKS5 tunnel for sockets with the same address family
+	// as the proxy
+	// this is a hack to mitigate excessive SOCKS5 tunnels, until this can get
+	// fixed properly.
+	for (;;)
+	{
+		if (i == tcp::resolver::iterator{})
+		{
+			if (m_alerts.should_post<socks5_alert>())
+				m_alerts.emplace_alert<socks5_alert>(tcp::endpoint(m_bound_addr, 0)
+					, operation_t::hostname_lookup
+					, error_code(boost::system::errc::address_family_not_supported, generic_category()));
+			return;
+		}
+
+		if (i->endpoint().address().is_v4() == m_bound_addr.is_v4())
+		{
+			// we found a match
+			break;
+		}
+		++i;
 	}
 
 	m_proxy_addr = i->endpoint();
