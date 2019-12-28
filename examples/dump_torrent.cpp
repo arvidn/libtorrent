@@ -44,19 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 
-std::vector<char> load_file(char const* filename)
-{
-	std::fstream in;
-	in.exceptions(std::ifstream::failbit);
-	in.open(filename, std::ios_base::in | std::ios_base::binary);
-	in.seekg(0, std::ios_base::end);
-	size_t const size = size_t(in.tellg());
-	in.seekg(0, std::ios_base::beg);
-	std::vector<char> ret(size);
-	in.read(ret.data(), size);
-	return ret;
-}
-
 void print_usage()
 {
 	std::cerr << R"(usage: dump_torrent torrent-file [options]
@@ -117,28 +104,22 @@ int main(int argc, char const* argv[]) try
 		}
 	}
 
-	std::vector<char> buf = load_file(filename);
-	int pos = -1;
-	lt::error_code ec;
-	lt::bdecode_node const e = lt::bdecode(buf, ec, &pos, cfg.max_decode_depth
-		, cfg.max_decode_tokens);
-
-	if (ec) {
-		std::cerr << "failed to decode: '" << ec.message() << "' at character: " << pos<< "\n";
-		return 1;
-	}
-
-	lt::torrent_info const t(std::move(e), cfg);
-	buf.clear();
+	lt::torrent_info const t(filename, cfg);
 
 	// print info about torrent
-	std::printf("\n\n----- torrent file info -----\n\nnodes:\n");
-	for (auto const& i : t.nodes())
-		std::printf("%s: %d\n", i.first.c_str(), i.second);
+	if (!t.nodes().empty())
+	{
+		std::printf("nodes:\n");
+		for (auto const& i : t.nodes())
+			std::printf("%s: %d\n", i.first.c_str(), i.second);
+	}
 
-	puts("trackers:\n");
-	for (auto const& i : t.trackers())
-		std::printf("%2d: %s\n", i.tier, i.url.c_str());
+	if (!t.trackers().empty())
+	{
+		puts("trackers:\n");
+		for (auto const& i : t.trackers())
+			std::printf("%2d: %s\n", i.tier, i.url.c_str());
+	}
 
 	std::stringstream ih;
 	ih << t.info_hash().v1;
