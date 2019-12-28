@@ -128,12 +128,12 @@ namespace aux {
 */
 
 // internal: the different kinds of uTP packets
-enum utp_socket_state_t
+enum utp_socket_state_t : std::uint8_t
 { ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
 // internal: extension headers. 2 is skipped because there is a deprecated
 // extension with that number in the wild
-enum utp_extensions_t
+enum utp_extensions_t : std::uint8_t
 { utp_no_extension = 0, utp_sack = 1, utp_close_reason = 3 };
 
 struct utp_header
@@ -588,10 +588,47 @@ struct utp_socket_impl
 
 private:
 
+	// it's important that these match the enums in performance_counters for
+	// num_utp_idle etc.
+	enum class state_t {
+		// not yet connected
+		none,
+		// sent a syn packet, not received any acks
+		syn_sent,
+		// syn-ack received and in normal operation
+		// of sending and receiving data
+		connected,
+		// fin sent, but all packets up to the fin packet
+		// have not yet been acked. We might still be waiting
+		// for a FIN from the other end
+		fin_sent,
+
+		// ====== states beyond this point =====
+		// === are considered closing states ===
+		// === and will cause the socket to ====
+		// ============ be deleted =============
+
+		// the socket has been gracefully disconnected
+		// and is waiting for the client to make a
+		// socket call so that we can communicate this
+		// fact and actually delete all the state, or
+		// there is an error on this socket and we're
+		// waiting to communicate this to the client in
+		// a callback. The error in either case is stored
+		// in m_error. If the socket has gracefully shut
+		// down, the error is error::eof.
+		error_wait,
+
+		// there are no more references to this socket
+		// and we can delete it
+		deleting
+	};
+
 	packet_ptr acquire_packet(int const allocate);
 	void release_packet(packet_ptr p);
 
-	void set_state(int s);
+	void set_state(state_t s);
+	state_t state() const { return static_cast<state_t>(m_state); }
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_receive_buffers() const;
@@ -609,7 +646,7 @@ private:
 	// object. When it isn't, we'll never be able to
 	// signal anything back to the client, and in case
 	// of errors, we just have to delete ourselves
-	// i.e. transition to the UTP_STATE_DELETED state
+	// i.e. transition to the state_t::deleting state
 	utp_stream* m_userdata;
 
 	// This is a platform-independent replacement
@@ -652,7 +689,7 @@ private:
 	std::vector<packet_ptr> m_receive_buffer;
 
 	// this is the error on this socket. If m_state is
-	// set to UTP_STATE_ERROR_WAIT, this error should be
+	// set to state_t::error_wait, this error should be
 	// forwarded to the client as soon as we have a new
 	// async operation initiated
 	error_code m_error;
@@ -829,42 +866,6 @@ private:
 	// the number of packet timeouts we've seen in a row
 	// this affects the packet timeout time
 	std::uint8_t m_num_timeouts = 0;
-
-	// it's important that these match the enums in performance_counters for
-	// num_utp_idle etc.
-	enum state_t {
-		// not yet connected
-		UTP_STATE_NONE,
-		// sent a syn packet, not received any acks
-		UTP_STATE_SYN_SENT,
-		// syn-ack received and in normal operation
-		// of sending and receiving data
-		UTP_STATE_CONNECTED,
-		// fin sent, but all packets up to the fin packet
-		// have not yet been acked. We might still be waiting
-		// for a FIN from the other end
-		UTP_STATE_FIN_SENT,
-
-		// ====== states beyond this point =====
-		// === are considered closing states ===
-		// === and will cause the socket to ====
-		// ============ be deleted =============
-
-		// the socket has been gracefully disconnected
-		// and is waiting for the client to make a
-		// socket call so that we can communicate this
-		// fact and actually delete all the state, or
-		// there is an error on this socket and we're
-		// waiting to communicate this to the client in
-		// a callback. The error in either case is stored
-		// in m_error. If the socket has gracefully shut
-		// down, the error is error::eof.
-		UTP_STATE_ERROR_WAIT,
-
-		// there are no more references to this socket
-		// and we can delete it
-		UTP_STATE_DELETE
-	};
 
 	// this is the cursor into m_delay_sample_hist
 	std::uint8_t m_delay_sample_idx:2;
