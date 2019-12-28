@@ -165,7 +165,7 @@ utp_socket_impl::utp_socket_impl(std::uint16_t const recv_id
 	, m_send_id(send_id)
 	, m_recv_id(recv_id)
 	, m_delay_sample_idx(0)
-	, m_state(UTP_STATE_NONE)
+	, m_state(static_cast<std::uint8_t>(state_t::none))
 	, m_eof(false)
 	, m_attached(true)
 	, m_nagle(true)
@@ -186,7 +186,7 @@ utp_socket_impl::utp_socket_impl(std::uint16_t const recv_id
 
 tcp::endpoint utp_socket_impl::remote_endpoint(error_code& ec) const
 {
-	if (m_state == UTP_STATE_NONE)
+	if (state() == state_t::none)
 		ec = boost::asio::error::not_connected;
 	else
 		TORRENT_ASSERT(m_remote_address != address_v4::any());
@@ -206,7 +206,7 @@ void utp_socket_impl::release_packet(packet_ptr p)
 void utp_socket_impl::abort()
 {
 	m_error = boost::asio::error::connection_aborted;
-	set_state(utp_socket_impl::UTP_STATE_ERROR_WAIT);
+	set_state(utp_socket_impl::state_t::error_wait);
 	test_socket_state();
 }
 
@@ -716,7 +716,7 @@ bool utp_socket_impl::should_delete() const
 	// become writable again. We have to wait for that, so that
 	// the pointer is removed from that queue. Otherwise we would
 	// leave a dangling pointer in the socket manager
-	bool ret = (m_state >= UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_NONE)
+	bool ret = (m_state >= static_cast<std::uint8_t>(state_t::error_wait) || state() == state_t::none)
 		&& !m_attached && !m_stalled;
 
 	if (ret)
@@ -781,7 +781,7 @@ bool utp_socket_impl::destroy()
 
 	if (m_userdata == nullptr) return false;
 
-	if (m_state == UTP_STATE_CONNECTED)
+	if (state() == state_t::connected)
 		send_fin();
 
 	bool cancelled = cancel_handlers(boost::asio::error::operation_aborted, true);
@@ -794,11 +794,11 @@ bool utp_socket_impl::destroy()
 	m_write_buffer.clear();
 	m_write_buffer_size = 0;
 
-	if ((m_state == UTP_STATE_ERROR_WAIT
-		|| m_state == UTP_STATE_NONE
-		|| m_state == UTP_STATE_SYN_SENT) && cancelled)
+	if ((state() == state_t::error_wait
+		|| state() == state_t::none
+		|| state() == state_t::syn_sent) && cancelled)
 	{
-		set_state(UTP_STATE_DELETE);
+		set_state(state_t::deleting);
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
@@ -879,7 +879,7 @@ void utp_socket_impl::send_syn()
 	{
 		release_packet(std::move(p));
 		m_error = ec;
-		set_state(UTP_STATE_ERROR_WAIT);
+		set_state(state_t::error_wait);
 		test_socket_state();
 		return;
 	}
@@ -895,7 +895,7 @@ void utp_socket_impl::send_syn()
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
 	TORRENT_ASSERT(!m_error);
-	set_state(UTP_STATE_SYN_SENT);
+	set_state(state_t::syn_sent);
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
@@ -926,7 +926,7 @@ void utp_socket_impl::send_fin()
 	// unless there was an error, we're now
 	// in FIN-SENT state
 	if (!m_error)
-		set_state(UTP_STATE_FIN_SENT);
+		set_state(state_t::fin_sent);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
@@ -1263,7 +1263,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	bool const force = (flags & pkt_ack) || (flags & pkt_fin);
 
-//	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT || (flags & pkt_ack));
+//	TORRENT_ASSERT(state() != state_t::fin_sent || (flags & pkt_ack));
 
 	// first see if we need to resend any packets
 
@@ -1282,7 +1282,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			// we might as well return
 			if (!force) return false;
 			// resend_packet might have failed
-			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return false;
+			if (state() == state_t::error_wait || state() == state_t::deleting) return false;
 			break;
 		}
 
@@ -1602,7 +1602,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	else if (ec)
 	{
 		m_error = ec;
-		set_state(UTP_STATE_ERROR_WAIT);
+		set_state(state_t::error_wait);
 		test_socket_state();
 		release_packet(std::move(p));
 		return false;
@@ -1781,7 +1781,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	else if (ec)
 	{
 		m_error = ec;
-		set_state(UTP_STATE_ERROR_WAIT);
+		set_state(state_t::error_wait);
 		test_socket_state();
 		return false;
 	}
@@ -1836,12 +1836,12 @@ void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr, time_point co
 	}
 }
 
-void utp_socket_impl::set_state(int s)
+void utp_socket_impl::set_state(state_t const s)
 {
-	if (s == m_state) return;
+	if (s == state()) return;
 
 	m_sm.inc_stats_counter(counters::num_utp_idle + m_state, -1);
-	m_state = std::uint8_t(s);
+	m_state = static_cast<std::uint8_t>(s);
 	m_sm.inc_stats_counter(counters::num_utp_idle + m_state, 1);
 }
 
@@ -2146,7 +2146,7 @@ bool utp_socket_impl::test_socket_state()
 	// cancel any new handlers as well, even though we're already
 	// in the delete state
 	if (!m_error) return false;
-	TORRENT_ASSERT(m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE);
+	TORRENT_ASSERT(state() == state_t::error_wait || state() == state_t::deleting);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s error:%s\n"
@@ -2155,7 +2155,7 @@ bool utp_socket_impl::test_socket_state()
 
 	if (cancel_handlers(m_error, true))
 	{
-		set_state(UTP_STATE_DELETE);
+		set_state(state_t::deleting);
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
@@ -2235,13 +2235,13 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		return false;
 	}
 
-	if (m_state == UTP_STATE_NONE && ph->get_type() == ST_SYN)
+	if (state() == state_t::none && ph->get_type() == ST_SYN)
 	{
 		m_remote_address = ep.address();
 		m_port = ep.port();
 	}
 
-	if (m_state != UTP_STATE_NONE && ph->get_type() == ST_SYN)
+	if (state() != state_t::none && ph->get_type() == ST_SYN)
 	{
 		UTP_LOG("%8p: ERROR: incoming packet type:ST_SYN (ignored)\n"
 			, static_cast<void*>(this));
@@ -2293,10 +2293,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// If our state is state_none, this packet must be a syn packet
 	// and the ack_nr should be ignored
 	std::uint16_t const cmp_seq_nr =
-		(m_state == UTP_STATE_SYN_SENT && ph->get_type() == ST_STATE)
+		(state() == state_t::syn_sent && ph->get_type() == ST_STATE)
 		? m_seq_nr : (m_seq_nr - 1) & ACK_MASK;
 
-	if ((m_state != UTP_STATE_NONE || ph->get_type() != ST_SYN)
+	if ((state() != state_t::none || ph->get_type() != ST_SYN)
 		&& (compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK)
 			|| compare_less_wrap(ph->ack_nr, m_acked_seq_nr
 				- dup_ack_limit, ACK_MASK)))
@@ -2319,7 +2319,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// even if we've already received this packet, we need to
 	// send another ack to it, since it may be a resend caused by
 	// our ack getting dropped
-	if (m_state != UTP_STATE_SYN_SENT
+	if (state() != state_t::syn_sent
 		&& ph->get_type() == ST_DATA
 		&& !compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
 	{
@@ -2351,8 +2351,8 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	std::uint32_t const max_packets_reorder
 		= static_cast<std::uint32_t>(std::max(16, m_receive_buffer_capacity / 1100));
 
-	if (m_state != UTP_STATE_NONE
-		&& m_state != UTP_STATE_SYN_SENT
+	if (state() != state_t::none
+		&& state() != state_t::syn_sent
 		&& compare_less_wrap((m_ack_nr + max_packets_reorder) & ACK_MASK, ph->seq_nr, ACK_MASK))
 	{
 		// this is too far out to fit in our reorder buffer. Drop it
@@ -2376,7 +2376,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		}
 		UTP_LOGV("%8p: incoming packet type:RESET\n", static_cast<void*>(this));
 		m_error = boost::asio::error::connection_reset;
-		set_state(UTP_STATE_ERROR_WAIT);
+		set_state(state_t::error_wait);
 		test_socket_state();
 		return true;
 	}
@@ -2434,7 +2434,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// sequence number, it doesn't tell us anything.
 	// So, only act on it if the ACK is greater than the last acked
 	// sequence number
-	if (m_state != UTP_STATE_NONE && compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
+	if (state() != state_t::none && compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
 	{
 		int const next_ack_nr = ph->ack_nr;
 
@@ -2501,7 +2501,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 	// the send operation in parse_sack() may have set the socket to an error
 	// state, in which case we shouldn't continue
-	if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+	if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 
 	if (m_duplicate_acks >= dup_ack_limit
 		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_fast_resend_seq_nr)
@@ -2524,7 +2524,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// signal congestion
 			if (!p->mtu_probe) experienced_loss(m_fast_resend_seq_nr, receive_time);
 			resend_packet(p, true);
-			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+			if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 		}
 	}
 
@@ -2556,19 +2556,19 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 //			TORRENT_ASSERT(m_inbuf.size() == 0);
 			m_ack_nr = ph->seq_nr;
 
-			// Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
-			// to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
+			// Transition to state_t::fin_sent. The sent FIN is also an ack
+			// to the FIN we received. Once we're in state_t::fin_sent we
 			// just need to wait for our FIN to be acked.
 
-			if (m_state == UTP_STATE_FIN_SENT)
+			if (state() == state_t::fin_sent)
 			{
 				send_pkt(pkt_ack);
-				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 			}
 			else
 			{
 				send_fin();
-				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 			}
 		}
 
@@ -2583,15 +2583,15 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		// we will respond with a fin once we have received everything up to m_eof_seq_nr
 	}
 
-	switch (m_state)
+	switch (state())
 	{
-		case UTP_STATE_NONE:
+		case state_t::none:
 		{
 			if (ph->get_type() == ST_SYN)
 			{
 				// if we're in state_none, the only thing
 				// we accept are SYN packets.
-				set_state(UTP_STATE_CONNECTED);
+				set_state(state_t::connected);
 
 				m_remote_address = ep.address();
 				m_port = ep.port();
@@ -2627,7 +2627,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			}
 			break;
 		}
-		case UTP_STATE_SYN_SENT:
+		case state_t::syn_sent:
 		{
 			// just wait for an ack to our SYN, ignore everything else
 			if (ph->ack_nr != ((m_seq_nr - 1) & ACK_MASK))
@@ -2640,7 +2640,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			}
 
 			TORRENT_ASSERT(!m_error);
-			set_state(UTP_STATE_CONNECTED);
+			set_state(state_t::connected);
 #if TORRENT_UTP_LOG
 			UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
@@ -2663,7 +2663,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			BOOST_FALLTHROUGH;
 		}
 		// fall through
-		case UTP_STATE_CONNECTED:
+		case state_t::connected:
 		{
 			// the lowest seen RTT can be used to clamp the delay
 			// within reasonable bounds. The one-way delay is never
@@ -2718,7 +2718,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// of this round. Subscribe to that event
 			subscribe_drained();
 
-			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+			if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 
 			// Everything up to the FIN has been received, respond with a FIN
 			// from our side.
@@ -2726,9 +2726,9 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			{
 				UTP_LOGV("%8p: incoming stream consumed\n", static_cast<void*>(this));
 
-				// This transitions to the UTP_STATE_FIN_SENT state.
+				// This transitions to the state_t::fin_sent state.
 				send_fin();
-				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
+				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 			}
 
 			TORRENT_ASSERT(!compare_less_wrap(m_seq_nr, m_acked_seq_nr, ACK_MASK));
@@ -2818,7 +2818,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 			break;
 		}
-		case UTP_STATE_FIN_SENT:
+		case state_t::fin_sent:
 		{
 			// There are two ways we can end up in this state:
 			//
@@ -2894,22 +2894,22 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 					UTP_LOGV("%8p: close initiated here, delete socket\n"
 						, static_cast<void*>(this));
 					m_error = boost::asio::error::eof;
-					set_state(UTP_STATE_DELETE);
+					set_state(state_t::deleting);
 					test_socket_state();
 				}
 				else
 				{
 					UTP_LOGV("%8p: closing socket\n", static_cast<void*>(this));
 					m_error = boost::asio::error::eof;
-					set_state(UTP_STATE_ERROR_WAIT);
+					set_state(state_t::error_wait);
 					test_socket_state();
 				}
 			}
 
 			break;
 		}
-		case UTP_STATE_DELETE:
-		default:
+		case state_t::deleting:
+		case state_t::error_wait:
 		{
 			// respond with a reset
 			send_reset(ph);
@@ -3054,7 +3054,7 @@ int utp_socket_impl::packet_timeout() const
 
 	// SYN packets have a bit longer timeout, since we don't
 	// have an RTT estimate yet, make a conservative guess
-	if (m_state == UTP_STATE_NONE) return 3000;
+	if (state() == state_t::none) return 3000;
 
 	// avoid overflow by simply capping based on number of timeouts as well
 	if (m_num_timeouts >= 7) return 60000;
@@ -3082,7 +3082,7 @@ void utp_socket_impl::tick(time_point const now)
 	// if we're already in an error state, we're just waiting for the
 	// client to perform an operation so that we can communicate the
 	// error. No need to do anything else with this socket
-	if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
+	if (state() == state_t::error_wait || state() == state_t::deleting) return;
 
 	if (now > m_timeout)
 	{
@@ -3132,7 +3132,7 @@ void utp_socket_impl::tick(time_point const now)
 		{
 			// the connection is dead
 			m_error = boost::asio::error::timed_out;
-			set_state(UTP_STATE_ERROR_WAIT);
+			set_state(state_t::error_wait);
 			test_socket_state();
 			return;
 		}
@@ -3199,8 +3199,8 @@ void utp_socket_impl::tick(time_point const now)
 		if (p)
 		{
 			if (p->num_transmissions >= m_sm.num_resends()
-				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions >= m_sm.syn_resends())
-				|| (m_state == UTP_STATE_FIN_SENT && p->num_transmissions >= m_sm.fin_resends()))
+				|| (state() == state_t::syn_sent && p->num_transmissions >= m_sm.syn_resends())
+				|| (state() == state_t::fin_sent && p->num_transmissions >= m_sm.fin_resends()))
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: %d failed sends in a row. Socket timed out. state:%s\n"
@@ -3219,7 +3219,7 @@ void utp_socket_impl::tick(time_point const now)
 				}
 				// the connection is dead
 				m_error = boost::asio::error::timed_out;
-				set_state(UTP_STATE_ERROR_WAIT);
+				set_state(state_t::error_wait);
 				test_socket_state();
 				return;
 			}
@@ -3230,31 +3230,21 @@ void utp_socket_impl::tick(time_point const now)
 
 			// the packet timed out, resend it
 			resend_packet(p);
-			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
+			if (state() == state_t::error_wait || state() == state_t::deleting) return;
 		}
-		else if (m_state < UTP_STATE_FIN_SENT)
+		else if (m_state < static_cast<std::uint8_t>(state_t::fin_sent))
 		{
 			send_pkt();
-			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
+			if (state() == state_t::error_wait || state() == state_t::deleting) return;
 		}
-		else if (m_state == UTP_STATE_FIN_SENT)
+		else if (state() == state_t::fin_sent)
 		{
 			// the connection is dead
 			m_error = boost::asio::error::eof;
-			set_state(UTP_STATE_ERROR_WAIT);
+			set_state(state_t::error_wait);
 			test_socket_state();
 			return;
 		}
-	}
-
-	switch (m_state)
-	{
-		case UTP_STATE_NONE:
-		case UTP_STATE_DELETE:
-			return;
-//		case UTP_STATE_SYN_SENT:
-//
-//			break;
 	}
 }
 
