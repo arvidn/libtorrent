@@ -154,7 +154,7 @@ TORRENT_TEST(add_extension_while_transfer)
 		{
 			if (a->type() == peer_connect_alert::alert_type)
 			{
-				auto create_test_plugin = [p](torrent_handle const&, void*)
+				auto create_test_plugin = [p](torrent_handle const&, client_data_t)
 				{ return p; };
 
 				lt::torrent_handle th = alert_cast<peer_connect_alert>(a)->handle;

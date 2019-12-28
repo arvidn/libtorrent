@@ -646,7 +646,7 @@ namespace libtorrent {namespace {
 
 namespace libtorrent {
 
-	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, client_data_t)
 	{
 		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private

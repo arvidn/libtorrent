@@ -299,7 +299,7 @@ namespace libtorrent {
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, void* userdata = nullptr);
+			, client_data_t userdata = {});
 #endif // TORRENT_ABI_VERSION
 #endif
 
@@ -573,7 +573,7 @@ namespace libtorrent {
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
 		void add_extension(std::function<std::shared_ptr<torrent_plugin>(
-			torrent_handle const&, void*)> ext);
+			torrent_handle const&, client_data_t)> ext);
 		void add_extension(std::shared_ptr<plugin> ext);
 
 #if TORRENT_ABI_VERSION == 1

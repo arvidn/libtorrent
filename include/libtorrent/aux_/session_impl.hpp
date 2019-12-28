@@ -326,19 +326,19 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			using ext_function_t
-				= std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
+				= std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>;
 
 			struct session_plugin_wrapper : plugin
 			{
 				explicit session_plugin_wrapper(ext_function_t f) : m_f(std::move(f)) {}
 
-				std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
+				std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, client_data_t const user) override
 				{ return m_f(t, user); }
 				ext_function_t m_f;
 			};
 
 			void add_extension(std::function<std::shared_ptr<torrent_plugin>(
-				torrent_handle const&, void*)> ext);
+				torrent_handle const&, client_data_t)> ext);
 			void add_ses_extension(std::shared_ptr<plugin> ext);
 #endif
 #if TORRENT_USE_ASSERTS
@@ -553,7 +553,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extensions_to_torrent(
-				std::shared_ptr<torrent> const& torrent_ptr, void* userdata);
+				std::shared_ptr<torrent> const& torrent_ptr, client_data_t userdata);
 #endif
 
 			// the add_torrent_params object must be moved in

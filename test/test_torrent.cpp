@@ -364,7 +364,7 @@ struct plugin_creator
 	explicit plugin_creator(int& c) : m_called(c) {}
 
 	std::shared_ptr<lt::torrent_plugin>
-	operator()(torrent_handle const&, void*)
+	operator()(torrent_handle const&, client_data_t)
 	{
 		++m_called;
 		return std::make_shared<test_plugin>();

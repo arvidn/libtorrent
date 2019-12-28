@@ -101,7 +101,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // The signature of the function is::
 //
-// 	std::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
+// 	std::shared_ptr<torrent_plugin> (*)(torrent_handle const&, client_data_t);
 //
 // The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
@@ -217,13 +217,13 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// this is called by the session every time a new torrent is added.
 		// The ``torrent*`` points to the internal torrent object created
-		// for the new torrent. The ``void*`` is the userdata pointer as
+		// for the new torrent. The client_data_t is the userdata pointer as
 		// passed in via add_torrent_params.
 		//
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
+		virtual std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, client_data_t)
 		{ return std::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session

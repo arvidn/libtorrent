@@ -328,7 +328,7 @@ namespace {
 
 namespace libtorrent {
 
-	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{
 		torrent* t = th.native_handle().get();
 		return std::make_shared<smart_ban_plugin>(*t);

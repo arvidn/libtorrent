@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/pex_flags.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_v6
+#include "libtorrent/client_data.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -506,8 +507,8 @@ namespace aux {
 		// pointer. The function is expected to return a shared pointer to
 		// a torrent_plugin instance.
 		void add_extension(
-			std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-			, void* userdata = nullptr);
+			std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
+			, client_data_t userdata = client_data_t{});
 
 		// ``set_metadata`` expects the *info* section of metadata. i.e. The
 		// buffer passed in will be hashed and verified against the info-hash. If
@@ -1251,8 +1252,8 @@ namespace aux {
 		// be relied on as little as possible.
 		std::shared_ptr<torrent> native_handle() const;
 
-		// returns the clientdata pointer as set in add_torrent_params
-		client_data_t clientdata() const;
+		// returns the userdata pointer as set in add_torrent_params
+		client_data_t userdata() const;
 
 	private:
 

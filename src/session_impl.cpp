@@ -4784,7 +4784,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extensions_to_torrent(
-		std::shared_ptr<torrent> const& torrent_ptr, void* userdata)
+		std::shared_ptr<torrent> const& torrent_ptr, client_data_t const userdata)
 	{
 		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
@@ -5102,7 +5102,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!tptr) return;
 
 		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
-			, tptr->info_hash(), tptr->get_clientdata());
+			, tptr->info_hash(), tptr->get_userdata());
 
 		remove_torrent_impl(tptr, options);
 

@@ -487,7 +487,7 @@ namespace {
 		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
-		, void* userdata)
+		, client_data_t userdata)
 	{
 		TORRENT_ASSERT_PRECOND(!save_path.empty());
 
@@ -730,7 +730,7 @@ namespace {
 	}
 #endif // TORRENT_ABI_VERSION
 
-	void session_handle::add_extension(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext)
+	void session_handle::add_extension(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&session_impl::add_extension, ext);
