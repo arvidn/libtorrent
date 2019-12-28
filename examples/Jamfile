@@ -35,6 +35,7 @@ exe bt-get : bt-get.cpp ;
 exe bt-get2 : bt-get2.cpp ;
 exe stats_counters : stats_counters.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
+exe torrent2magnet : torrent2magnet.cpp ;
 exe dump_bdecode : dump_bdecode.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe connection_tester : connection_tester.cpp ;
