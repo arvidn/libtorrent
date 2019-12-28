@@ -45,6 +45,7 @@ namespace libtorrent {
 
 	struct torrent_plugin;
 	struct torrent_handle;
+	struct client_data_t;
 
 	// constructor function for the ut_metadata extension. The ut_metadata
 	// extension allows peers to request the .torrent file (or more
@@ -55,7 +56,7 @@ namespace libtorrent {
 	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, void*);
+	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, client_data_t);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

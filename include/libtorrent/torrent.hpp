@@ -372,8 +372,8 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(std::shared_ptr<torrent_plugin>);
 		void remove_extension(std::shared_ptr<torrent_plugin>);
-		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-			, void* userdata);
+		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
+			, client_data_t userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip
 			, peer_source_flags_t src, add_peer_flags_t flags);
 #endif
@@ -1179,7 +1179,7 @@ namespace libtorrent {
 		}
 		void add_suggest_piece(piece_index_t index);
 
-		client_data_t get_clientdata() const { return m_clientdata; }
+		client_data_t get_userdata() const { return m_userdata; }
 
 		static constexpr int no_gauge_state = 0xf;
 
@@ -1666,7 +1666,8 @@ namespace libtorrent {
 		// seconds since epoch.
 		time_point32 m_last_upload{seconds32(0)};
 
-		client_data_t m_clientdata;
+		// user data as passed in by add_torrent_params
+		client_data_t m_userdata;
 
 // ----
 

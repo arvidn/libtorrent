@@ -283,8 +283,8 @@ namespace libtorrent {
 	}
 
 	void torrent_handle::add_extension(
-		std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-		, void* userdata)
+		std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
+		, client_data_t userdata)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&torrent::add_extension_fun, ext, userdata);
@@ -856,10 +856,10 @@ namespace libtorrent {
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
 
-	client_data_t torrent_handle::clientdata() const
+	client_data_t torrent_handle::userdata() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return t ? t->get_clientdata() : client_data_t{};
+		return t ? t->get_userdata() : client_data_t{};
 	}
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value

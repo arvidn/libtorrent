@@ -229,7 +229,7 @@ bool is_downloading_state(int const st)
 		, m_deleted(false)
 		, m_last_download(seconds32(p.last_download))
 		, m_last_upload(seconds32(p.last_upload))
-		, m_clientdata(p.clientdata)
+		, m_userdata(p.userdata)
 		, m_auto_managed(p.flags & torrent_flags::auto_managed)
 		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
 		, m_moving_storage(false)
@@ -1325,8 +1325,8 @@ bool is_downloading_state(int const st)
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-		, void* userdata)
+	void torrent::add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
+		, client_data_t userdata)
 	{
 		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;

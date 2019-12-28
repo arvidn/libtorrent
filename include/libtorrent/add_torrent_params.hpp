@@ -177,13 +177,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
-		// (see torrent_handle::add_extension()).
-		void* userdata = nullptr;
-
-		// The ``clientdata`` parameter is optional and will be stored in the torrent
-		// as ``torrent_handle::clientdata()``. It can be used to associate this torrent
-		// with related data in the client application more efficiently than info_hash.
-		client_data_t clientdata;
+		// (see torrent_handle::add_extension()). It will also be stored in the
+		// torrent object and can be retrieved by calling userdata().
+		client_data_t userdata;
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
@@ -198,7 +194,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>>
+		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By
