@@ -182,6 +182,21 @@ a session_params object. The session_params object can be implicitly constructed
 from a settings_pack, to cover one of the now-deprecated constructors. However,
 to access this conversion `libtorrent/session_params.hpp` must be included.
 
+userdata is no longer a void\*
+==============================
+
+The ``userdata`` field in add_torrent_params is no longer a raw void pointer.
+Instead it is a type-safe client_data_t object. client_data_t is similar to
+``std::any``, it can hold a pointer of any type by assignment and can be cast
+back to that pointer via ``static_cast`` (explicit conversion). However, if the
+pointer type it is cast to is not identical to what was assigned, a ``nullptr``
+is returned. Note that the type has to be identical in CV-qualifiers as well.
+
+This userdata field affects the plugin APIs that has this field passed into it.
+
+Additionally, there's now a way to as a torrent_handle for the userdata, so it is
+associated with the torrent itself.
+
 Adding torrents by URL no longer supported
 ==========================================
 
