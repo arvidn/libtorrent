@@ -220,34 +220,18 @@ int generate_key(char const* filename)
 
 lt::session_params load_dht_state()
 {
-	lt::session_params ret;
-	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
+	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary);
+	f.unsetf(std::ios_base::skipws);
+	std::printf("load dht state from .dht\n");
+	std::vector<char> const state(std::istream_iterator<char>{f}
+		, std::istream_iterator<char>{});
 
-	auto const size = f.tellg();
-	if (static_cast<int>(size) <= 0) return ret;
-	f.seekg(0, std::ios_base::beg);
-
-	std::vector<char> state;
-	state.resize(static_cast<std::size_t>(size));
-
-	f.read(state.data(), size);
-	if (f.fail())
+	if (f.bad())
 	{
 		std::fprintf(stderr, "failed to read .dht\n");
-		return ret;
+		return {};
 	}
-
-	error_code ec;
-	bdecode_node e = bdecode(state, ec);
-	if (ec)
-	{
-		std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
-			, ec.value(), ec.message().c_str());
-		return ret;
-	}
-	std::printf("load dht state from .dht\n");
-	ret = read_session_params(state);
-	return ret;
+	return read_session_params(state);
 }
 
 } // anonymous namespace

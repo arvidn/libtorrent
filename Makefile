@@ -250,6 +250,7 @@ TOOLS_FILES= \
   CMakeLists.txt         \
   Jamfile                \
   dht_put.cpp            \
+  dht_sample.cpp         \
   parse_dht_log.py       \
   parse_dht_rtt.py       \
   parse_dht_stats.py     \
