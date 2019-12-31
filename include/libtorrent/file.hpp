@@ -99,7 +99,6 @@ namespace libtorrent {
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
-		int m_inode;
 		WIN32_FIND_DATAW m_fd;
 #else
 		DIR* m_handle;
