@@ -2940,6 +2940,12 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
+				if (!aep.enabled)
+				{
+					aep.next_announce = now + seconds(60);
+					continue;
+				}
+
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
 				if (aep_state_iter == listen_socket_states.end())
@@ -5319,7 +5325,6 @@ bool is_downloading_state(int const st)
 			{ return lhs.tier < rhs.tier; });
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
-		k->endpoints.clear();
 		if (k->source == 0) k->source = announce_entry::source_client;
 		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 		return true;
@@ -10983,6 +10988,9 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 					debug_log("*** increment tracker fail count [%d]", aep->fails);
 #endif
+					// don't try to announce from this endpoint again
+					if (ec == boost::system::errc::address_family_not_supported)
+						aep->enabled = false;
 				}
 				else if (r.outgoing_socket)
 				{

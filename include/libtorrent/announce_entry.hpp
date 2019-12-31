@@ -120,6 +120,9 @@ namespace libtorrent {
 		// internal
 		bool triggered_manually : 1;
 
+		// set to false to not announce from this endpoint
+		bool enabled : 1;
+
 		// reset announce counters and clears the started sent flag.
 		// The announce_endpoint will look like we've never talked to
 		// the tracker.
