@@ -65,6 +65,16 @@ namespace
 		return ipi;
 	}
 
+	ip_route rt(char const* ip, char const* device, char const* gateway)
+	{
+		ip_route ret;
+		ret.destination = address::from_string(ip);
+		ret.gateway = address::from_string(gateway);
+		std::strncpy(ret.name, device, sizeof(ret.name));
+		ret.name[sizeof(ret.name) - 1] = '\0';
+		return ret;
+	}
+
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, tp ssl = tp::plaintext
 		, std::string device = {})
@@ -227,6 +237,8 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 	TEST_EQUAL(eps.size(), 2);
 }
 
+//#error additional test cases for expand_unspecified_address
+
 TORRENT_TEST(expand_unspecified)
 {
 	std::vector<ip_interface> const ifs = {
@@ -235,46 +247,55 @@ TORRENT_TEST(expand_unspecified)
 		, ifc("24.172.48.90", "eth1")
 		, ifc("::1", "lo")
 		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0")
-		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
+		, ifc("2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
 	};
 
-	auto v4_nossl      = ep("0.0.0.0", 6881);
-	auto v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
-	auto v6_unsp_nossl = ep("::", 6883);
-	auto v6_unsp_ssl   = ep("::", 6884, tp::ssl);
-	auto v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
-	auto v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
-	auto v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
-	auto v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "1.2.3.4"),
+		rt("::", "eth0", "1234:5678::1"),
+	} ;
 
-	std::vector<aux::listen_endpoint_t> eps = {
-		v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
-	};
+	auto const v4_nossl      = ep("0.0.0.0", 6881);
+	auto const v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
+	auto const v6_unsp_nossl = ep("::", 6883);
+	auto const v6_unsp_ssl   = ep("::", 6884, tp::ssl);
+	auto const v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
+	auto const v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
+	auto const v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
+	auto const v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
 
-	aux::expand_unspecified_address(ifs, eps);
+	auto const v4_ll_nossl   = ep("192.168.1.2", 6881);
+	auto const v4_ll_ssl     = ep("192.168.1.2", 6882, tp::ssl);
 
-	TEST_EQUAL(eps.size(), 6);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
+	{
+		std::vector<aux::listen_endpoint_t> eps = {
+			v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
+		};
+
+		aux::expand_unspecified_address(ifs, routes, eps);
+
+		TEST_EQUAL(eps.size(), 4);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ll_nossl) == 1);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ll_ssl) == 1);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 0);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 0);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
+	}
 
 	// test that a user configured endpoint is not duplicated
-	auto v6_g_nossl_dev = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883, "eth0");
+	auto const v6_g_nossl_dev = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883, "eth0");
 
-	eps.clear();
-	eps.push_back(v6_unsp_nossl);
-	eps.push_back(v6_g_nossl_dev);
+	{
+		std::vector<aux::listen_endpoint_t> eps = { v6_unsp_nossl, v6_g_nossl_dev };
+		aux::expand_unspecified_address(ifs, routes, eps);
 
-	aux::expand_unspecified_address(ifs, eps);
-
-	TEST_EQUAL(eps.size(), 2);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
+		TEST_EQUAL(eps.size(), 2);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
+		TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
+	}
 }
 

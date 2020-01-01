@@ -242,39 +242,36 @@ namespace aux {
 	// are much less common and the presence of NAT means that we cannot
 	// automatically determine which interfaces should have DHT nodes started on
 	// them.
-	void expand_unspecified_address(std::vector<ip_interface> const& ifs
-		, std::vector<listen_endpoint_t>& eps)
+	void expand_unspecified_address(span<ip_interface const> ifs
+		, span<ip_route const> routes, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()
-			, [](listen_endpoint_t const& ep) { return !(ep.addr.is_v6() && ep.addr.is_unspecified()); });
+			, [](listen_endpoint_t const& ep) { return !ep.addr.is_unspecified(); });
 		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
 		eps.erase(unspecified_begin, eps.end());
 		for (auto const& uep : unspecified_eps)
 		{
-			for (auto const& ipface : ifs)
-			{
-				if (!ipface.preferred)
-					continue;
-				if (ipface.interface_address.is_v4())
-					continue;
-				if (ipface.interface_address.is_loopback())
-					continue;
-				if (!uep.device.empty() && uep.device != ipface.name)
-					continue;
-				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
+			// find the first default route (is_unspecified()) to the same
+			// address family as the eps address.
+			auto const it = std::find_if(routes.begin(), routes.end()
+				, [&](ip_route const& r)
 				{
-					// ignore device name because we don't want to create
-					// duplicates if the user explicitly configured an address
-					// without a device name
-					return e.addr == ipface.interface_address
-						&& e.port == uep.port
-						&& e.ssl == uep.ssl;
-				}))
-				{
-					continue;
-				}
+					return r.destination.is_unspecified()
+						&& r.destination.is_v4() == uep.addr.is_v4();
+				});
 
-				eps.emplace_back(ipface.interface_address, uep.port, uep.device, uep.ssl);
+			if (it != routes.end())
+			{
+				// now find the IP local address associated with this device and
+				// gateway
+				auto iface = std::find_if(ifs.begin(), ifs.end()
+					, [&](ip_interface const& ip)
+					{ return !it->gateway.is_unspecified() && strcmp(ip.name, it->name); });
+				if (iface != ifs.end())
+				{
+					eps.emplace_back(
+						iface->interface_address, uep.port, uep.device, uep.ssl);
+				}
 			}
 		}
 	}
@@ -1819,7 +1816,9 @@ namespace aux {
 		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
 		if (!ec)
 		{
-			expand_unspecified_address(ifs, eps);
+			std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
+			if (!ec)
+				expand_unspecified_address(ifs, routes, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use

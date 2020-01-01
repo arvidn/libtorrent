@@ -548,11 +548,11 @@ TORRENT_TEST(reopen_network_sockets)
 
 	lt::session s(p);
 
-	TEST_CHECK(count_alerts(s, 2, 4));
+	TEST_CHECK(count_alerts(s, 2, 2));
 
 	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
-	TEST_CHECK(count_alerts(s, 0, 4));
+	TEST_CHECK(count_alerts(s, 0, 2));
 
 	s.reopen_network_sockets({});
 
