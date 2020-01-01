@@ -542,7 +542,9 @@ void test_udpv6_support(char const* listen_interfaces
 TORRENT_TEST(ipv6_support)
 {
 	// null means default
-	test_ipv6_support(nullptr, 2, num_interfaces * 2);
+	// by default, we have one IPv4 and one IPv6 interface.
+	// we get one event=started and one event=stopped per interface
+	test_ipv6_support(nullptr, 2, 2);
 }
 
 TORRENT_TEST(announce_no_listen)
@@ -563,12 +565,12 @@ TORRENT_TEST(ipv6_support_bind_v4_v6_any)
 {
 	// 2 because there's one announce on startup and one when shutting down
 	// IPv6 will send announces for each interface
-	test_ipv6_support("0.0.0.0:6881,[::0]:6881", 2, num_interfaces * 2);
+	test_ipv6_support("0.0.0.0:6881,[::0]:6881", 2, 2);
 }
 
 TORRENT_TEST(ipv6_support_bind_v6_any)
 {
-	test_ipv6_support("[::0]:6881", 0, num_interfaces * 2);
+	test_ipv6_support("[::0]:6881", 0, 2);
 }
 
 TORRENT_TEST(ipv6_support_bind_v4)
