@@ -257,32 +257,7 @@ namespace aux {
 			})
 			, eps.end());
 	}
-/*
-	// To comply with BEP 45 multi homed clients must run separate DHT nodes
-	// on each interface they use to talk to the DHT. For IPv6 this is enforced
-	// by converting socket on an unspecified listen address into the
-	// corresponding main IP address.
-	boost::optional<ip::address> find_main_ip(span<ip_interface const> ifs
-		, span<ip_route const> routes, bool const v4)
-	{
-		auto const it = std::find_if(routes.begin(), routes.end()
-			, [&](ip_route const& r)
-			{
-				return r.destination.is_unspecified()
-					&& r.destination.is_v4() == v4;
-			});
-		if (it == routes.end()) return {};
 
-		// now find the IP local address associated with this device and
-		// gateway
-		auto iface = std::find_if(ifs.begin(), ifs.end()
-			, [&](ip_interface const& ip)
-			{ return !it->gateway.is_unspecified() && strcmp(ip.name, it->name); });
-		if (iface == ifs.end()) return {};
-
-		return iface->interface_address;
-	}
-*/
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class

@@ -249,18 +249,12 @@ namespace aux {
 
 		// partitions sockets based on whether they match one of the given endpoints
 		// all matched sockets are ordered before unmatched sockets
-		// matched endpoints are removed from the vector
+		// matched endpoints are removed from the eps vector
 		// returns an iterator to the first unmatched socket
 		TORRENT_EXTRA_EXPORT std::vector<std::shared_ptr<aux::listen_socket_t>>::iterator
 		partition_listen_sockets(
 			std::vector<listen_endpoint_t>& eps
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
-/*
-		// find the main IP address for the given protocol
-		TORRENT_EXTRA_EXPORT boost::optional<ip::address> find_main_ip(
-			span<ip_interface const> ifs, span<ip_route const> routes
-			, bool v4);
-*/
 
 		TORRENT_EXTRA_EXPORT void filter_unspecified_address(span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
