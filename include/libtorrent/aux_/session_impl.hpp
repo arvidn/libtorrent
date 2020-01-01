@@ -255,11 +255,14 @@ namespace aux {
 		partition_listen_sockets(
 			std::vector<listen_endpoint_t>& eps
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
-
-		// expand 0.0.0.0 and [::] to the interface with the default route for
-		// the respective address family, or nothing if no such route exists.
-		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
+/*
+		// find the main IP address for the given protocol
+		TORRENT_EXTRA_EXPORT boost::optional<ip::address> find_main_ip(
 			span<ip_interface const> ifs, span<ip_route const> routes
+			, bool v4);
+*/
+
+		TORRENT_EXTRA_EXPORT void filter_unspecified_address(span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the

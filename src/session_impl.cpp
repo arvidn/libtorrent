@@ -234,48 +234,55 @@ namespace aux {
 		});
 	}
 
+	// remove any endpoints that listen on an unspecified address, if we don't
+	// have any routes for that address family
+	// e.g. if we can't route IPv6 traffic, filter out any [::] listen endpoint.
+	TORRENT_EXTRA_EXPORT void filter_unspecified_address(
+		span<ip_route const> routes, std::vector<listen_endpoint_t>& eps)
+	{
+		bool const has_v4 = std::find_if(routes.begin(), routes.end()
+			, [](ip_route const& r)
+			{ return r.destination.is_unspecified() && r.destination.is_v4(); }) != routes.end();
+		bool const has_v6 = std::find_if(routes.begin(), routes.end()
+			, [](ip_route const& r)
+			{ return r.destination.is_unspecified() && r.destination.is_v6(); }) != routes.end();
+
+		eps.erase(std::remove_if(eps.begin(), eps.end()
+			, [&](listen_endpoint_t const& ep)
+			{
+				if (!ep.addr.is_unspecified()) return false;
+				if (ep.addr.is_v4() && !has_v4) return true;
+				if (ep.addr.is_v6() && !has_v6) return true;
+				return false;
+			})
+			, eps.end());
+	}
+/*
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
 	// on each interface they use to talk to the DHT. For IPv6 this is enforced
-	// by prohibiting creating a listen socket on [::]. Instead the list of
-	// interfaces is enumerated and sockets are created for each of them.
-	// This is not enforced for 0.0.0.0 because multi homed IPv4 configurations
-	// are much less common and the presence of NAT means that we cannot
-	// automatically determine which interfaces should have DHT nodes started on
-	// them.
-	void expand_unspecified_address(span<ip_interface const> ifs
-		, span<ip_route const> routes, std::vector<listen_endpoint_t>& eps)
+	// by converting socket on an unspecified listen address into the
+	// corresponding main IP address.
+	boost::optional<ip::address> find_main_ip(span<ip_interface const> ifs
+		, span<ip_route const> routes, bool const v4)
 	{
-		auto unspecified_begin = std::partition(eps.begin(), eps.end()
-			, [](listen_endpoint_t const& ep) { return !ep.addr.is_unspecified(); });
-		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
-		eps.erase(unspecified_begin, eps.end());
-		for (auto const& uep : unspecified_eps)
-		{
-			// find the first default route (is_unspecified()) to the same
-			// address family as the eps address.
-			auto const it = std::find_if(routes.begin(), routes.end()
-				, [&](ip_route const& r)
-				{
-					return r.destination.is_unspecified()
-						&& r.destination.is_v4() == uep.addr.is_v4();
-				});
-
-			if (it != routes.end())
+		auto const it = std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r)
 			{
-				// now find the IP local address associated with this device and
-				// gateway
-				auto iface = std::find_if(ifs.begin(), ifs.end()
-					, [&](ip_interface const& ip)
-					{ return !it->gateway.is_unspecified() && strcmp(ip.name, it->name); });
-				if (iface != ifs.end())
-				{
-					eps.emplace_back(
-						iface->interface_address, uep.port, uep.device, uep.ssl);
-				}
-			}
-		}
-	}
+				return r.destination.is_unspecified()
+					&& r.destination.is_v4() == v4;
+			});
+		if (it == routes.end()) return {};
 
+		// now find the IP local address associated with this device and
+		// gateway
+		auto iface = std::find_if(ifs.begin(), ifs.end()
+			, [&](ip_interface const& ip)
+			{ return !it->gateway.is_unspecified() && strcmp(ip.name, it->name); });
+		if (iface == ifs.end()) return {};
+
+		return iface->interface_address;
+	}
+*/
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -1813,13 +1820,8 @@ namespace aux {
 			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
-		if (!ec)
-		{
-			std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
-			if (!ec)
-				expand_unspecified_address(ifs, routes, eps);
-		}
+		std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
+		if (!ec) filter_unspecified_address(routes, eps);
 
 		// if no listen interfaces are specified, create sockets to use
 		// any interface
