@@ -102,7 +102,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	// pipelining of the tests) they actually need to use different ports
 	static int listen_port = 10000 + int(lt::random(50000));
 	char iface[200];
-	std::snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:%d", listen_port);
 	listen_port += lt::random(10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 

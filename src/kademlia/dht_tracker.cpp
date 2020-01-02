@@ -119,8 +119,13 @@ namespace libtorrent { namespace dht {
 		if (s.is_ssl()) return;
 
 		address const local_address = s.get_local_endpoint().address();
+
+		// don't start DHT nodes on loopback address
+		if (local_address.is_loopback()) return;
+
 		// don't try to start dht nodes on non-global IPv6 addresses
-		// with IPv4 the interface might be behind NAT so we can't skip them based on the scope of the local address
+		// with IPv4 the interface might be behind NAT so we can't skip them
+		// based on the scope of the local address
 		// and we might not have the external address yet
 		if (local_address.is_v6() && is_local(local_address))
 			return;

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/kademlia/dht_tracker.hpp"
 
 #include <numeric>
 #include <cstdarg>
@@ -4043,6 +4044,75 @@ TORRENT_TEST(all_in_same_bucket)
 		TEST_CHECK(all_in_same_bucket(b, to_hash("0005000000000000000000000000000000000000"), 13) == true);
 	}
 }
+
+namespace {
+int g_dht_packets = 0;
+
+void send_packet(aux::listen_socket_handle const&, udp::endpoint const&
+	, span<char const>, error_code&, udp_send_flags_t)
+{
+	++g_dht_packets;
+}
+
+int test_new_socket(char const* address)
+{
+	io_service ioc;
+	obs o;
+	counters cnt;
+	dht::dht_state state;
+	lt::dht::settings sett;
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(sett));
+
+	g_dht_packets = 0;
+	auto dht = std::make_shared<lt::dht::dht_tracker>(
+		&o, ioc, send_packet
+		, sett, cnt, *dht_storage, std::move(state));
+
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
+	ls->local_endpoint = tcp::endpoint(make_address(address), 8888);
+
+	dht->new_socket(ls);
+	dht->add_node(udp::endpoint(make_address("1.2.3.4"), 6881));
+	dht->add_node(udp::endpoint(make_address("1234:5678:9abc:def0::"), 6881));
+	dht->start({});
+
+	ioc.poll();
+
+	return g_dht_packets;
+}
+
+}
+
+TORRENT_TEST(new_socket_loopback)
+{
+	TEST_EQUAL(test_new_socket("127.0.0.1"), 0);
+}
+
+TORRENT_TEST(new_socket_loopback2)
+{
+	TEST_EQUAL(test_new_socket("127.0.0.2"), 0);
+}
+
+TORRENT_TEST(new_socket_ipv4)
+{
+	TEST_CHECK(test_new_socket("0.0.0.0") > 0);
+}
+
+TORRENT_TEST(new_socket_loopback_v6)
+{
+	if (supports_ipv6())
+	{
+		TEST_EQUAL(test_new_socket("::1"), 0);
+	}
+}
+TORRENT_TEST(new_socket_ipv6)
+{
+	if (supports_ipv6())
+	{
+		TEST_CHECK(test_new_socket("::") > 0);
+	}
+}
+
 
 // TODO: test obfuscated_get_peers
 

@@ -174,7 +174,7 @@ namespace aux {
 		// If there are active NAT mappings the return value will be
 		// the external port returned by the NAT router, otherwise the
 		// local listen port is returned
-		int tcp_external_port()
+		int tcp_external_port() const
 		{
 			for (auto const& m : tcp_port_mapping)
 			{
@@ -183,7 +183,7 @@ namespace aux {
 			return local_endpoint.port();
 		}
 
-		int udp_external_port()
+		int udp_external_port() const
 		{
 			for (auto const& m : udp_port_mapping)
 			{
