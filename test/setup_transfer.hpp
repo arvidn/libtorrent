@@ -104,7 +104,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, bool super_seeding = false
 	, lt::add_torrent_params const* p = nullptr
 	, bool stop_lsd = true, bool use_ssl_ports = false
-	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr);
+	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
+	, bool use_ipv6 = false);
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);

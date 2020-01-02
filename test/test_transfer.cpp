@@ -125,6 +125,7 @@ using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, struct transfer_
 constexpr transfer_flags_t disk_full = 1_bit;
 constexpr transfer_flags_t delete_files = 2_bit;
 constexpr transfer_flags_t move_storage = 3_bit;
+constexpr transfer_flags_t ipv6 = 4_bit;
 
 void test_transfer(int proxy_type, settings_pack const& sett
 	, transfer_flags_t flags = {}
@@ -132,11 +133,12 @@ void test_transfer(int proxy_type, settings_pack const& sett
 {
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	std::printf("\n\n  ==== TESTING %s proxy ==== disk-full: %s delete_files: %s move-storage: %s\n\n\n"
+	std::printf("\n\n  ==== TESTING %s proxy ==== disk-full: %s delete_files: %s move-storage: %s ipv6: %s\n\n\n"
 		, test_name[proxy_type]
 		, (flags & disk_full) ? "true": "false"
 		, (flags & delete_files) ? "true": "false"
 		, (flags & move_storage) ? "true": "false"
+		, (flags & ipv6) ? "true": "false"
 		);
 
 	// in case the previous run was terminated
@@ -153,7 +155,9 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	session_proxy p2;
 
 	settings_pack pack = settings();
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+
+	if (flags & ipv6) pack.set_str(settings_pack::listen_interfaces, "[::]:48075");
+	else pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
@@ -165,7 +169,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	if (flags & ipv6) pack.set_str(settings_pack::listen_interfaces, "[::]:49075");
+	else pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
 	lt::session ses2(pack);
 
 	int proxy_port = 0;
@@ -257,7 +262,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_transfer", 1024 * 1024, &t, false
-		, (flags & disk_full) ? &addp : &params);
+		, (flags & disk_full) ? &addp : &params, true, false, nullptr
+		, (flags & ipv6));
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
@@ -337,7 +343,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			// so we need to reconnect as well
 			std::printf("%s: reconnecting peer\n", time_now_string());
 			error_code ec2;
-			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec2)
+			char const* peer_ip = (flags & ipv6) ? "[::1]" : "127.0.0.1";
+			tor2.connect_peer(tcp::endpoint(address::from_string(peer_ip, ec2)
 				, ses1.listen_port()));
 
 			TEST_CHECK(tor2.status().is_finished == false);
@@ -520,3 +527,12 @@ TORRENT_TEST(allocate)
 	cleanup();
 }
 
+TORRENT_TEST(ipv6_listen)
+{
+	if (!supports_ipv6()) return;
+	using namespace libtorrent;
+	settings_pack p = settings_pack();
+	p.set_str(settings_pack::listen_interfaces, "[::]:45450");
+	test_transfer(0, p, ipv6);
+	cleanup();
+}

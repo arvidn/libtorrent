@@ -505,6 +505,15 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 } // <anonymous>
 
+	std::string find_default_device(span<ip_route const> routes, bool const v4)
+	{
+		auto const it = std::find_if(routes.begin(), routes.end()
+			, [=](ip_route const& r)
+			{ return r.destination.is_unspecified() && r.destination.is_v4() == v4; });
+		if (it == routes.end()) return {};
+		return it->name;
+	}
+
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
 	{

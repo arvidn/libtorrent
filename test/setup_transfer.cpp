@@ -855,7 +855,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, std::string suffix, int piece_size
 	, std::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2)
+	, std::shared_ptr<torrent_info>* torrent2, bool use_ipv6)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -991,7 +991,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 		std::printf("%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
-		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+		char const* peer_ip = use_ipv6 ? "::1" : "127.0.0.1";
+		tor1.connect_peer(tcp::endpoint(address::from_string(peer_ip, ec)
 			, std::uint16_t(port)));
 
 		if (ses3)
@@ -1014,10 +1015,10 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 			std::printf("ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec), std::uint16_t(port)));
+					address::from_string(peer_ip, ec), std::uint16_t(port)));
 			std::printf("ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec)
+					address::from_string(peer_ip, ec)
 					, std::uint16_t(port2)));
 		}
 	}

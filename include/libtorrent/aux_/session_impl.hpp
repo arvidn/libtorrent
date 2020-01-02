@@ -256,7 +256,10 @@ namespace aux {
 			std::vector<listen_endpoint_t>& eps
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
-		TORRENT_EXTRA_EXPORT void filter_unspecified_address(span<ip_route const> routes
+		// expand [::] to all IPv6 addresses associated with the device/NIC for
+		// the IPv6 default route, for BEP 45 compliance
+		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
+			span<ip_interface const> ifs, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the

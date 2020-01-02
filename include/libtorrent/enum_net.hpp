@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 
@@ -84,6 +85,9 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios
 		, error_code& ec);
+
+	TORRENT_EXTRA_EXPORT std::string find_default_device(
+		span<ip_route const> routes, bool const v4);
 
 	// return (a1 & mask) == (a2 & mask)
 	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1

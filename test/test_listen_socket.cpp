@@ -57,6 +57,14 @@ namespace
 		TEST_EQUAL(e1.device, dev);
 	}
 
+	ip_interface ifc(char const* ip, char const* device)
+	{
+		ip_interface ipi;
+		ipi.interface_address = address::from_string(ip);
+		strncpy(ipi.name, device, sizeof(ipi.name));
+		return ipi;
+	}
+
 	ip_route rt(char const* ip, char const* device, char const* gateway)
 	{
 		ip_route ret;
@@ -231,12 +239,14 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 
 namespace libtorrent {
 namespace aux {
+
 inline bool operator<(lt::aux::listen_endpoint_t const& lhs
-	, lt::aux::listen_endpoint_t const& rhs)
+       , lt::aux::listen_endpoint_t const& rhs)
 {
-	return std::tie(lhs.addr, lhs.port, lhs.device, lhs.ssl, lhs.incoming)
-		< std::tie(rhs.addr, rhs.port, rhs.device, rhs.ssl, rhs.incoming);
+       return std::tie(lhs.addr, lhs.port, lhs.device, lhs.ssl, lhs.incoming)
+               < std::tie(rhs.addr, rhs.port, rhs.device, rhs.ssl, rhs.incoming);
 }
+
 }
 }
 
@@ -255,61 +265,64 @@ std::vector<ip_route> const v6_routes = {
 	rt("::", "eth0", "1234:5678::1"),
 };
 
-auto const v4_unsp_nossl = ep("0.0.0.0", 6881);
-auto const v4_unsp_ssl   = ep("0.0.0.0", 6882, tp::ssl);
-auto const v4_g_nossl    = ep("1.2.3.4", 6881);
-auto const v4_g_ssl      = ep("1.2.3.4", 6882, tp::ssl);
-auto const v6_unsp_nossl = ep("::", 6883);
-auto const v6_unsp_ssl   = ep("::", 6884, tp::ssl);
-auto const v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
-auto const v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
-auto const v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
-auto const v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
-
-using lepv = std::vector<aux::listen_endpoint_t>;
-
-bool cmp(lepv lhs, lepv rhs)
+bool cmp(std::vector<aux::listen_endpoint_t> lhs
+	, std::vector<aux::listen_endpoint_t> rhs)
 {
 	std::sort(lhs.begin(), lhs.end());
 	std::sort(rhs.begin(), rhs.end());
 	return lhs == rhs;
 }
 
-} // anonymous namespace
-
-TORRENT_TEST(filter_unspecified_address_all_routes)
-{
-	lepv eps = { v4_unsp_nossl, v4_unsp_ssl, v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl };
-
-	aux::filter_unspecified_address(all_routes, eps);
-
-	TEST_CHECK(cmp(eps, { v4_unsp_nossl, v4_unsp_ssl, v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl }));
 }
 
-TORRENT_TEST(filter_unspecified_address_v4_routes)
+TORRENT_TEST(expand_unspecified)
 {
-	lepv eps = { v4_unsp_nossl, v4_unsp_ssl, v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl };
+	std::vector<ip_interface> const ifs = {
+		ifc("127.0.0.1", "lo")
+		, ifc("192.168.1.2", "eth0")
+		, ifc("24.172.48.90", "eth1")
+		, ifc("::1", "lo")
+		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0")
+		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
+	};
 
-	aux::filter_unspecified_address(v4_routes, eps);
+	auto v4_nossl      = ep("0.0.0.0", 6881);
+	auto v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
+	auto v6_unsp_nossl = ep("::", 6883);
+	auto v6_unsp_ssl   = ep("::", 6884, tp::ssl);
+	auto v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
+	auto v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
+	auto v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
+	auto v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
 
-	TEST_CHECK(cmp(eps, { v4_unsp_nossl, v4_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl }));
-}
+	std::vector<aux::listen_endpoint_t> eps = {
+		v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
+	};
 
-TORRENT_TEST(filter_unspecified_address_v6_routes)
-{
-	lepv eps = { v4_unsp_nossl, v4_unsp_ssl, v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl };
+	aux::expand_unspecified_address(ifs, all_routes, eps);
 
-	aux::filter_unspecified_address(v6_routes, eps);
+	TEST_EQUAL(eps.size(), 6);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
 
-	TEST_CHECK(cmp(eps, { v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl }));
-}
+	// test that a user configured endpoint is not duplicated
+	auto v6_g_nossl_dev = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883, "eth0");
 
-TORRENT_TEST(filter_unspecified_address_no_routes)
-{
-	lepv eps = { v4_unsp_nossl, v4_unsp_ssl, v6_unsp_nossl, v6_unsp_ssl, v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl };
+	eps.clear();
+	eps.push_back(v6_unsp_nossl);
+	eps.push_back(v6_g_nossl_dev);
 
-	aux::filter_unspecified_address({}, eps);
+	aux::expand_unspecified_address(ifs, all_routes, eps);
 
-	TEST_CHECK(cmp(eps, { v4_g_nossl, v4_g_ssl, v6_ll_ssl, v6_g_ssl }));
+	TEST_EQUAL(eps.size(), 2);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
 }
 
