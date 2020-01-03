@@ -234,6 +234,42 @@ namespace aux {
 		});
 	}
 
+	// remove any endpoints that listen on an unspecified address, if we don't
+	// have any routes for that address family
+	// e.g. if we can't route IPv6 traffic, filter out any [::] listen endpoint.
+	TORRENT_EXTRA_EXPORT void filter_unspecified_address(
+		span<ip_route const> routes, std::vector<listen_endpoint_t>& eps)
+	{
+		bool const has_v4 = std::find_if(routes.begin(), routes.end()
+			, [](ip_route const& r)
+			{ return r.destination.is_unspecified() && r.destination.is_v4(); }) != routes.end();
+		bool const has_v6 = std::find_if(routes.begin(), routes.end()
+			, [](ip_route const& r)
+			{ return r.destination.is_unspecified() && r.destination.is_v6(); }) != routes.end();
+
+		eps.erase(std::remove_if(eps.begin(), eps.end()
+			, [&](listen_endpoint_t const& ep)
+			{
+				if (!ep.addr.is_unspecified()) return false;
+				if (ep.addr.is_v4() && !has_v4) return true;
+				if (ep.addr.is_v6() && !has_v6) return true;
+				return false;
+			})
+			, eps.end());
+
+		// we need the device for the unspecified addresses. We treat them as a
+		// specific address (based on the default route) but we still bind to
+		// the unspecified address, to accept connectons over loopback
+		for (auto& e : eps)
+		{
+			if (e.addr.is_unspecified())
+			{
+				e.device = find_default_device(routes, e.addr.is_v4());
+				e.incoming = duplex::accept_incoming_and_loopback;
+			}
+		}
+	}
+
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
 	// on each interface they use to talk to the DHT. For IPv6 this is enforced
 	// by prohibiting creating a listen socket on [::]. Instead the list of
@@ -253,18 +289,17 @@ namespace aux {
 		// nothing to do
 		if (unspecified_eps.empty()) return;
 
-//		std::string const v4_device = find_default_device(routes, true);
+		std::string const v4_device = find_default_device(routes, true);
 		std::string const v6_device = find_default_device(routes, false);
 
 		for (auto const& uep : unspecified_eps)
 		{
-//			bool const v4 = uep.addr.is_v4();
+			bool const v4 = uep.addr.is_v4();
 			for (auto const& ipface : ifs)
 			{
 				if (!ipface.preferred) continue;
 				if (ipface.interface_address.is_loopback()) continue;
-//				if (ipface.interface_address.is_v4() != v4) continue;
-				if (ipface.interface_address.is_v4()) continue;
+				if (ipface.interface_address.is_v4() != v4) continue;
 
 				// if the user specified an interface, only expand those
 				// addresses. If not, only expand addresses from the "default"
@@ -272,8 +307,7 @@ namespace aux {
 				// in either case, we just want to expand from a single device,
 				// to avoid adding useless listen endpoints
 				if (!uep.device.empty() && uep.device != ipface.name) continue;
-//				if (uep.device.empty() && ipface.name != (v4 ? v4_device : v6_device)
-				if (uep.device.empty() && ipface.name != v6_device)
+				if (uep.device.empty() && ipface.name != (v4 ? v4_device : v6_device))
 					continue;
 				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
 				{
@@ -1374,7 +1408,8 @@ namespace aux {
 		// accept connections on our local machine in this case.
 		// TODO: 3 the logic in this if-block should be factored out into a
 		// separate function. At least most of it
-		if (ret->incoming == duplex::accept_incoming)
+		if (ret->incoming == duplex::accept_incoming
+			|| ret->incoming == duplex::accept_incoming_and_loopback)
 		{
 			ret->sock = std::make_shared<tcp::acceptor>(m_io_service);
 			ret->sock->open(bind_ep.protocol(), ec);
@@ -1522,6 +1557,7 @@ namespace aux {
 				ret->sock.reset();
 				return ret;
 			}
+
 			ret->local_endpoint = ret->sock->local_endpoint(ec);
 			last_op = operation_t::getname;
 			if (ec)
@@ -1657,11 +1693,25 @@ namespace aux {
 
 		// if we did not open a TCP listen socket, ret->local_endpoint was never
 		// initialized, so do that now, based on the UDP socket
-		if (ret->incoming != duplex::accept_incoming)
+		if (ret->incoming == duplex::only_outgoing)
 		{
 			auto const udp_ep = ret->udp_sock->local_endpoint();
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
+
+		// if we're listening to the unspecified address, we still pretend that
+		// it really is a single IP (based on the default route), to be able to
+		// filter incoming packets from unrelated devices but still accept
+		// connections over loopback.
+		if (ret->local_endpoint.address().is_unspecified())
+		{
+			error_code err;
+			auto const ifs = enum_net_interfaces(m_io_service, err);
+			ret->local_endpoint = tcp::endpoint(find_routable_ip(
+					ifs, ret->device, ret->local_endpoint.address().is_v4())
+				, ret->local_endpoint.port());
+		}
+
 
 		ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
 		ret->device = lep.device;
@@ -1830,12 +1880,8 @@ namespace aux {
 			interface_to_endpoints(device, port, ssl, incoming, eps);
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
-		if (!ec)
-		{
-			std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
-			expand_unspecified_address(ifs, routes, eps);
-		}
+		std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
+		if (!ec) filter_unspecified_address(routes, eps);
 
 		// if no listen interfaces are specified, create sockets to use
 		// any interface
@@ -1899,7 +1945,7 @@ namespace aux {
 #endif
 
 				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
-				if (s->sock) async_accept(s->sock, s->ssl);
+				if (s->sock) async_accept(s, s->ssl);
 			}
 		}
 #ifndef BOOST_NO_EXCEPTIONS
@@ -2528,7 +2574,7 @@ namespace aux {
 				, *this));
 	}
 
-	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener
+	void session_impl::async_accept(std::shared_ptr<listen_socket_t> const& listener
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
@@ -2558,14 +2604,14 @@ namespace aux {
 		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(*c));
 #endif
 
-		std::weak_ptr<tcp::acceptor> ls(listener);
+		std::weak_ptr<listen_socket_t> ls(listener);
 		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept);
-		listener->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
+		listener->sock->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
 			{ return this->wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
 	}
 
 	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
-		, std::weak_ptr<tcp::acceptor> listen_socket, error_code const& e
+		, std::weak_ptr<listen_socket_t> listen_socket, error_code const& e
 		, transport const ssl)
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
@@ -2573,7 +2619,7 @@ namespace aux {
 		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept, -1);
 
 		TORRENT_ASSERT(is_single_thread());
-		std::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
+		std::shared_ptr<listen_socket_t> listener = listen_socket.lock();
 		if (!listener) return;
 
 		if (e == boost::asio::error::operation_aborted) return;
@@ -2583,7 +2629,7 @@ namespace aux {
 		error_code ec;
 		if (e)
 		{
-			tcp::endpoint const ep = listener->local_endpoint(ec);
+			tcp::endpoint const ep = listener->sock->local_endpoint(ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
@@ -2655,7 +2701,7 @@ namespace aux {
 
 		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&listener](std::shared_ptr<listen_socket_t> const& l)
-		{ return l->sock == listener; });
+		{ return l->sock == listener->sock; });
 		if (listen != m_listen_sockets.end())
 			(*listen)->incoming_connection = true;
 

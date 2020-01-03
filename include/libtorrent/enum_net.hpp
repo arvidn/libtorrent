@@ -86,8 +86,13 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios
 		, error_code& ec);
 
+	// TODO: add tests
 	TORRENT_EXTRA_EXPORT std::string find_default_device(
 		span<ip_route const> routes, bool const v4);
+
+	// TODO: add tests
+	TORRENT_EXTRA_EXPORT address find_routable_ip(
+		span<ip_interface const> ifs, std::string device, bool ipv4);
 
 	// return (a1 & mask) == (a2 & mask)
 	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1

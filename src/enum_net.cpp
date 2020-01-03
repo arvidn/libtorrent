@@ -514,6 +514,19 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return it->name;
 	}
 
+	address find_routable_ip(span<ip_interface const> const ifs, std::string device, bool const ipv4)
+	{
+		auto it = std::find_if(ifs.begin(), ifs.end()
+			, [&](ip_interface const& i)
+		{
+			return i.name == device
+				&& i.interface_address.is_v4() == ipv4;
+		});
+		if (it != ifs.end()) return it->interface_address;
+		TORRENT_ASSERT(false && "this shouldn't really happen");
+		return {};
+	}
+
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
 	{

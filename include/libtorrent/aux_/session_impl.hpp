@@ -130,7 +130,8 @@ namespace aux {
 	enum class duplex : std::uint8_t
 	{
 		accept_incoming,
-		only_outgoing
+		accept_incoming_and_loopback,
+		only_outgoing,
 	};
 
 	struct listen_port_mapping
@@ -256,6 +257,9 @@ namespace aux {
 			std::vector<listen_endpoint_t>& eps
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
+		TORRENT_EXTRA_EXPORT void filter_unspecified_address(span<ip_route const> routes
+			, std::vector<listen_endpoint_t>& eps);
+
 		// expand [::] to all IPv6 addresses associated with the device/NIC for
 		// the IPv6 default route, for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
@@ -361,9 +365,9 @@ namespace aux {
 			// need the initial push to connect peers
 			void prioritize_connections(std::weak_ptr<torrent> t) override;
 
-			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, transport ssl);
+			void async_accept(std::shared_ptr<listen_socket_t> const& listener, transport ssl);
 			void on_accept_connection(std::shared_ptr<socket_type> const& s
-				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, transport ssl);
+				, std::weak_ptr<listen_socket_t> listener, error_code const& e, transport ssl);
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
