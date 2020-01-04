@@ -423,7 +423,6 @@ namespace {
 
 		static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
 		if_indextoname(addr_msg->ifa_index, ip_info->name);
-
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -480,9 +479,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
-		rv.name[sizeof(rv.name) - 1] = 0;
-		rv.friendly_name[0] = 0;
-		rv.description[0] = 0;
+		rv.name[sizeof(rv.name) - 1] = '\0';
 
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
@@ -658,9 +655,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
 				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name));
-				iface.name[sizeof(iface.name) - 1] = 0;
-				iface.friendly_name[0] = 0;
-				iface.description[0] = 0;
+				iface.name[sizeof(iface.name) - 1] = '\0';
 
 				ifreq req = {};
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
@@ -725,11 +720,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface r;
 				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-				r.name[sizeof(r.name) - 1] = 0;
+				r.name[sizeof(r.name) - 1] = '\0';
 				wcstombs(r.friendly_name, adapter->FriendlyName, sizeof(r.friendly_name));
-				r.friendly_name[sizeof(r.friendly_name) - 1] = 0;
+				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
 				wcstombs(r.description, adapter->Description, sizeof(r.description));
-				r.description[sizeof(r.description) - 1] = 0;
+				r.description[sizeof(r.description) - 1] = '\0';
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
@@ -766,16 +761,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		int n = size / sizeof(INTERFACE_INFO);
 
-		ip_interface iface;
 		for (int i = 0; i < n; ++i)
 		{
+			ip_interface iface;
 			iface.interface_address = sockaddr_to_address(&buffer[i].iiAddress.Address);
 			if (iface.interface_address == address_v4::any()) continue;
 			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address
 				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
 			ret.push_back(iface);
 		}
 
@@ -791,13 +783,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		udp::resolver r(ios);
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
 		if (ec) return ret;
-		ip_interface iface;
 		for (;i != udp::resolver::iterator(); ++i)
 		{
+			ip_interface iface;
 			iface.interface_address = i->endpoint().address();
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
 			if (iface.interface_address.is_v4())
 				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
 			ret.push_back(iface);
