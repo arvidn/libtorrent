@@ -117,14 +117,14 @@ namespace {
 
 
 #if !defined TORRENT_BUILD_SIMULATOR
-	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
+	address_v4 inaddr_to_address(void const* ina, int const len = 4)
 	{
 		boost::asio::ip::address_v4::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina, std::min(std::size_t(len), b.size()));
 		return address_v4(b);
 	}
 
-	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
+	address_v6 inaddr6_to_address(void const* ina6, int const len = 16)
 	{
 		boost::asio::ip::address_v6::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
@@ -280,6 +280,12 @@ namespace {
 		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
 	}
 
+	address to_address(int const address_family, void const* in)
+	{
+		if (address_family == AF_INET6) return inaddr6_to_address(in);
+		else return inaddr_to_address(in);
+	}
+
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
@@ -311,24 +317,10 @@ namespace {
 					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
 					break;
 				case RTA_GATEWAY:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->gateway = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->gateway = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->gateway = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 				case RTA_DST:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->destination = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->destination = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->destination = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 			}
 		}
@@ -413,14 +405,14 @@ namespace {
 			case IFA_LOCAL:
 				if (addr_msg->ifa_family == AF_INET6)
 				{
-					address_v6 addr = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
+					address_v6 addr = inaddr6_to_address(RTA_DATA(rt_attr));
 					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
 						addr.scope_id(addr_msg->ifa_index);
 					ip_info->interface_address = addr;
 				}
 				else
 				{
-					ip_info->interface_address = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
+					ip_info->interface_address = inaddr_to_address(RTA_DATA(rt_attr));
 				}
 				break;
 			}
@@ -1175,9 +1167,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			for (int i = 0; i < int(routes->dwNumEntries); ++i)
 			{
 				ip_route r;
-				r.destination = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardDest);
-				r.netmask = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardMask);
-				r.gateway = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardNextHop);
+				r.destination = inaddr_to_address(&routes->table[i].dwForwardDest);
+				r.netmask = inaddr_to_address(&routes->table[i].dwForwardMask);
+				r.gateway = inaddr_to_address(&routes->table[i].dwForwardNextHop);
 				MIB_IFROW ifentry;
 				ifentry.dwIndex = routes->table[i].dwForwardIfIndex;
 				if (GetIfEntry(&ifentry) == NO_ERROR)
