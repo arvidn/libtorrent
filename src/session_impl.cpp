@@ -243,12 +243,17 @@ namespace aux {
 	// automatically determine which interfaces should have DHT nodes started on
 	// them.
 	void expand_unspecified_address(std::vector<ip_interface> const& ifs
-		, std::vector<listen_endpoint_t>& eps)
+		, span<ip_route const> routes, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()
 			, [](listen_endpoint_t const& ep) { return !(ep.addr.is_v6() && ep.addr.is_unspecified()); });
 		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
 		eps.erase(unspecified_begin, eps.end());
+
+		if (unspecified_eps.empty()) return;
+
+		std::string const v6_device = find_default_device(routes, false);
+
 		for (auto const& uep : unspecified_eps)
 		{
 			for (auto const& ipface : ifs)
@@ -260,6 +265,8 @@ namespace aux {
 				if (ipface.interface_address.is_loopback())
 					continue;
 				if (!uep.device.empty() && uep.device != ipface.name)
+					continue;
+				if (uep.device.empty() && ipface.name != v6_device)
 					continue;
 				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
 				{
@@ -1819,7 +1826,8 @@ namespace aux {
 		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
 		if (!ec)
 		{
-			expand_unspecified_address(ifs, eps);
+			std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
+			if (!ec) expand_unspecified_address(ifs, routes, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use

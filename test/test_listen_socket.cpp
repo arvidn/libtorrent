@@ -65,6 +65,16 @@ namespace
 		return ipi;
 	}
 
+	ip_route rt(char const* ip, char const* device, char const* gateway)
+	{
+		ip_route ret;
+		ret.destination = address::from_string(ip);
+		ret.gateway = address::from_string(gateway);
+		std::strncpy(ret.name, device, sizeof(ret.name));
+		ret.name[sizeof(ret.name) - 1] = '\0';
+		return ret;
+	}
+
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, tp ssl = tp::plaintext
 		, std::string device = {})
@@ -238,6 +248,12 @@ TORRENT_TEST(expand_unspecified)
 		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
 	};
 
+	// this causes us to only expand IPv6 addresses on eth0
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "1.2.3.4"),
+		rt("::", "eth0", "1234:5678::1"),
+	};
+
 	auto v4_nossl      = ep("0.0.0.0", 6881);
 	auto v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
 	auto v6_unsp_nossl = ep("::", 6883);
@@ -251,7 +267,7 @@ TORRENT_TEST(expand_unspecified)
 		v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
 	};
 
-	aux::expand_unspecified_address(ifs, eps);
+	aux::expand_unspecified_address(ifs, routes, eps);
 
 	TEST_EQUAL(eps.size(), 6);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
@@ -270,7 +286,7 @@ TORRENT_TEST(expand_unspecified)
 	eps.push_back(v6_unsp_nossl);
 	eps.push_back(v6_g_nossl_dev);
 
-	aux::expand_unspecified_address(ifs, eps);
+	aux::expand_unspecified_address(ifs, routes, eps);
 
 	TEST_EQUAL(eps.size(), 2);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);

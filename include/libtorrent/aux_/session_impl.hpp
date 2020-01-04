@@ -257,8 +257,9 @@ namespace aux {
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
+
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
-			std::vector<ip_interface> const& ifs
+			std::vector<ip_interface> const& ifs, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the
