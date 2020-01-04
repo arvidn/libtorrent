@@ -60,9 +60,9 @@ namespace libtorrent {
 	{
 		address interface_address;
 		address netmask;
-		char name[64];
-		char friendly_name[128];
-		char description[128];
+		char name[64]{};
+		char friendly_name[128]{};
+		char description[128]{};
 		// an interface is preferred if its address is
 		// not tentative/duplicate/deprecated
 		bool preferred = true;
@@ -73,7 +73,7 @@ namespace libtorrent {
 		address destination;
 		address netmask;
 		address gateway;
-		char name[64];
+		char name[64]{};
 		int mtu;
 	};
 
