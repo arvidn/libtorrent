@@ -1884,7 +1884,7 @@ namespace aux {
 #endif
 
 				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
-				if (s->sock) async_accept(s->sock, s->ssl);
+				if (s->sock) async_accept(s, s->ssl);
 			}
 		}
 #ifndef BOOST_NO_EXCEPTIONS
@@ -2513,7 +2513,7 @@ namespace aux {
 				, *this));
 	}
 
-	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener
+	void session_impl::async_accept(std::shared_ptr<listen_socket_t> ls
 		, transport const ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
@@ -2543,14 +2543,17 @@ namespace aux {
 		TORRENT_ASSERT((ssl == transport::ssl) == is_ssl(*c));
 #endif
 
-		std::weak_ptr<tcp::acceptor> ls(listener);
+		std::weak_ptr<listen_socket_t> wls(ls);
 		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept);
-		listener->async_accept(*str, [this, c, ls, ssl] (error_code const& ec)
-			{ return this->wrap(&session_impl::on_accept_connection, c, ls, ec, ssl); });
+		ls->sock->async_accept(*str, [this, c, wls, ssl] (error_code const& ec)
+			{
+				return this->wrap(&session_impl::on_accept_connection, c
+					, std::move(wls), ec, ssl);
+			});
 	}
 
 	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
-		, std::weak_ptr<tcp::acceptor> listen_socket, error_code const& e
+		, std::weak_ptr<aux::listen_socket_t> listen_socket, error_code const& e
 		, transport const ssl)
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
@@ -2558,8 +2561,8 @@ namespace aux {
 		m_stats_counters.inc_stats_counter(counters::num_outstanding_accept, -1);
 
 		TORRENT_ASSERT(is_single_thread());
-		std::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
-		if (!listener) return;
+		auto ls = listen_socket.lock();
+		if (!ls) return;
 
 		if (e == boost::asio::error::operation_aborted) return;
 
@@ -2568,7 +2571,7 @@ namespace aux {
 		error_code ec;
 		if (e)
 		{
-			tcp::endpoint const ep = listener->local_endpoint(ec);
+			tcp::endpoint const ep = ls->sock->local_endpoint(ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
@@ -2581,7 +2584,7 @@ namespace aux {
 			// non-fatal and we have to do another async_accept.
 			if (e.value() == ERROR_SEM_TIMEOUT)
 			{
-				async_accept(listener, ssl);
+				async_accept(std::move(ls), ssl);
 				return;
 			}
 #endif
@@ -2590,7 +2593,7 @@ namespace aux {
 			// non-fatal and we have to do another async_accept.
 			if (e.value() == EINVAL)
 			{
-				async_accept(listener, ssl);
+				async_accept(std::move(ls), ssl);
 				return;
 			}
 #endif
@@ -2620,7 +2623,7 @@ namespace aux {
 						, std::max(10, int(m_connections.size())));
 				}
 				// try again, but still alert the user of the problem
-				async_accept(listener, ssl);
+				async_accept(std::move(ls), ssl);
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
@@ -2631,18 +2634,14 @@ namespace aux {
 			}
 			return;
 		}
-		async_accept(listener, ssl);
+		async_accept(ls, ssl);
 
 		// don't accept any connections from our local sockets if we're using a
 		// proxy
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
 			return;
 
-		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, [&listener](std::shared_ptr<listen_socket_t> const& l)
-		{ return l->sock == listener; });
-		if (listen != m_listen_sockets.end())
-			(*listen)->incoming_connection = true;
+		ls->incoming_connection = true;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl == transport::ssl)

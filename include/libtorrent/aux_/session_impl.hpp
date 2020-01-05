@@ -360,9 +360,9 @@ namespace aux {
 			// need the initial push to connect peers
 			void prioritize_connections(std::weak_ptr<torrent> t) override;
 
-			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, transport ssl);
+			void async_accept(std::shared_ptr<listen_socket_t> listener, transport ssl);
 			void on_accept_connection(std::shared_ptr<socket_type> const& s
-				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, transport ssl);
+				, std::weak_ptr<listen_socket_t> listener, error_code const& e, transport ssl);
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
