@@ -165,48 +165,6 @@ namespace {
 		);
 	}
 
-#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_NETLINK
-	address build_netmask(int bits, int const family)
-	{
-		if (family == AF_INET)
-		{
-			address_v4::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v4(b);
-		}
-		else if (family == AF_INET6)
-		{
-			address_v6::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v6(b);
-		}
-		else
-		{
-			return address();
-		}
-	}
-#endif
-
 #if TORRENT_USE_NETLINK
 
 	int read_nl_sock(int sock, span<char> buf, std::uint32_t const seq, std::uint32_t const pid)
@@ -353,36 +311,7 @@ namespace {
 			return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
-
-		if (addr_msg->ifa_family == AF_INET6)
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 128);
-			if (addr_msg->ifa_prefixlen > 0)
-			{
-				address_v6::bytes_type mask = {};
-				auto it = mask.begin();
-				if (addr_msg->ifa_prefixlen > 64)
-				{
-					detail::write_uint64(0xffffffffffffffffULL, it);
-					addr_msg->ifa_prefixlen -= 64;
-				}
-				if (addr_msg->ifa_prefixlen > 0)
-				{
-					std::uint64_t const m = ~((1ULL << (64 - addr_msg->ifa_prefixlen)) - 1);
-					detail::write_uint64(m, it);
-				}
-				ip_info->netmask = address_v6(mask);
-			}
-		}
-		else
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 32);
-			if (addr_msg->ifa_prefixlen != 0)
-			{
-				std::uint32_t const m = ~((1U << (32 - addr_msg->ifa_prefixlen)) - 1);
-				ip_info->netmask = address_v4(m);
-			}
-		}
+		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
@@ -492,7 +421,46 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
+	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
+	{
+		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
+		int i = 0;
+		while (prefix_bits >= 8)
+		{
+			mask[i] = 0xff;
+			prefix_bits -= 8;
+			++i;
+		}
+		if (i < mask.size())
+		{
+			mask[i] = (0xff << (8 - prefix_bits)) & 0xff;
+			++i;
+			while (i < mask.size())
+			{
+				mask[i] = 0;
+				++i;
+			}
+		}
+	}
+
 } // <anonymous>
+
+	address build_netmask(int prefix_bits, int const family)
+	{
+		if (family == AF_INET)
+		{
+			address_v4::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v4(b);
+		}
+		else if (family == AF_INET6)
+		{
+			address_v6::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v6(b);
+		}
+		return {};
+	}
 
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
