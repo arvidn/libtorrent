@@ -74,6 +74,15 @@ namespace libtorrent {
 	// internal
 	inline address_v6 make_address_v6(string_view str, boost::system::error_code& ec)
 	{ return address_v6::from_string(str.data(), ec); }
+	// internal
+	inline address make_address(string_view str)
+	{ return address::from_string(str.data()); }
+	// internal
+	inline address_v4 make_address_v4(string_view str)
+	{ return address_v4::from_string(str.data()); }
+	// internal
+	inline address_v6 make_address_v6(string_view str)
+	{ return address_v6::from_string(str.data()); }
 #endif
 }
 

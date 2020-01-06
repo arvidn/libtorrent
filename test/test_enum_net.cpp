@@ -104,3 +104,63 @@ TORRENT_TEST(is_ip_address)
 	TEST_EQUAL(is_ip_address("::1"), true);
 	TEST_EQUAL(is_ip_address("2001:db8:85a3:0:0:8a2e:370:7334"), true);
 }
+
+TORRENT_TEST(build_netmask_v4)
+{
+	TEST_CHECK(build_netmask(0, AF_INET)  == make_address("0.0.0.0"));
+	TEST_CHECK(build_netmask(1, AF_INET)  == make_address("128.0.0.0"));
+	TEST_CHECK(build_netmask(2, AF_INET)  == make_address("192.0.0.0"));
+	TEST_CHECK(build_netmask(3, AF_INET)  == make_address("224.0.0.0"));
+	TEST_CHECK(build_netmask(4, AF_INET)  == make_address("240.0.0.0"));
+	TEST_CHECK(build_netmask(5, AF_INET)  == make_address("248.0.0.0"));
+	TEST_CHECK(build_netmask(6, AF_INET)  == make_address("252.0.0.0"));
+	TEST_CHECK(build_netmask(7, AF_INET)  == make_address("254.0.0.0"));
+	TEST_CHECK(build_netmask(8, AF_INET)  == make_address("255.0.0.0"));
+	TEST_CHECK(build_netmask(9, AF_INET)  == make_address("255.128.0.0"));
+	TEST_CHECK(build_netmask(10, AF_INET) == make_address("255.192.0.0"));
+	TEST_CHECK(build_netmask(11, AF_INET) == make_address("255.224.0.0"));
+
+	TEST_CHECK(build_netmask(22, AF_INET) == make_address("255.255.252.0"));
+	TEST_CHECK(build_netmask(23, AF_INET) == make_address("255.255.254.0"));
+	TEST_CHECK(build_netmask(24, AF_INET) == make_address("255.255.255.0"));
+	TEST_CHECK(build_netmask(25, AF_INET) == make_address("255.255.255.128"));
+	TEST_CHECK(build_netmask(26, AF_INET) == make_address("255.255.255.192"));
+	TEST_CHECK(build_netmask(27, AF_INET) == make_address("255.255.255.224"));
+	TEST_CHECK(build_netmask(28, AF_INET) == make_address("255.255.255.240"));
+	TEST_CHECK(build_netmask(29, AF_INET) == make_address("255.255.255.248"));
+	TEST_CHECK(build_netmask(30, AF_INET) == make_address("255.255.255.252"));
+	TEST_CHECK(build_netmask(31, AF_INET) == make_address("255.255.255.254"));
+	TEST_CHECK(build_netmask(32, AF_INET) == make_address("255.255.255.255"));
+}
+
+TORRENT_TEST(build_netmask_v6)
+{
+	TEST_CHECK(build_netmask(0, AF_INET6)  == make_address("::"));
+	TEST_CHECK(build_netmask(1, AF_INET6)  == make_address("8000::"));
+	TEST_CHECK(build_netmask(2, AF_INET6)  == make_address("c000::"));
+	TEST_CHECK(build_netmask(3, AF_INET6)  == make_address("e000::"));
+	TEST_CHECK(build_netmask(4, AF_INET6)  == make_address("f000::"));
+	TEST_CHECK(build_netmask(5, AF_INET6)  == make_address("f800::"));
+	TEST_CHECK(build_netmask(6, AF_INET6)  == make_address("fc00::"));
+	TEST_CHECK(build_netmask(7, AF_INET6)  == make_address("fe00::"));
+	TEST_CHECK(build_netmask(8, AF_INET6)  == make_address("ff00::"));
+	TEST_CHECK(build_netmask(9, AF_INET6)  == make_address("ff80::"));
+	TEST_CHECK(build_netmask(10, AF_INET6) == make_address("ffc0::"));
+	TEST_CHECK(build_netmask(11, AF_INET6) == make_address("ffe0::"));
+
+	TEST_CHECK(build_netmask(119, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fe00"));
+	TEST_CHECK(build_netmask(120, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00"));
+	TEST_CHECK(build_netmask(121, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80"));
+	TEST_CHECK(build_netmask(122, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffc0"));
+	TEST_CHECK(build_netmask(123, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0"));
+	TEST_CHECK(build_netmask(124, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0"));
+	TEST_CHECK(build_netmask(125, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8"));
+	TEST_CHECK(build_netmask(126, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc"));
+	TEST_CHECK(build_netmask(127, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe"));
+	TEST_CHECK(build_netmask(128, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+}
+
+TORRENT_TEST(build_netmask_unknown)
+{
+	TEST_CHECK(build_netmask(0, -1) == address{});
+}
