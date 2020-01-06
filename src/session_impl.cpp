@@ -198,6 +198,9 @@ namespace libtorrent {
 
 namespace aux {
 
+	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
+	constexpr listen_socket_flags_t listen_socket_t::has_gateway;
+
 	constexpr ip_source_t session_interface::source_dht;
 	constexpr ip_source_t session_interface::source_peer;
 	constexpr ip_source_t session_interface::source_tracker;
@@ -274,7 +277,8 @@ namespace aux {
 					continue;
 				}
 
-				eps.emplace_back(ipface.interface_address, uep.port, uep.device, uep.ssl);
+				eps.emplace_back(ipface.interface_address, uep.port, uep.device
+					, uep.ssl, uep.flags);
 			}
 		}
 	}
@@ -1349,7 +1353,7 @@ namespace aux {
 		auto ret = std::make_shared<listen_socket_t>();
 		ret->ssl = lep.ssl;
 		ret->original_port = bind_ep.port();
-		ret->incoming = lep.incoming;
+		ret->flags = lep.flags;
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
 			= (lep.ssl == transport::ssl)
@@ -1360,7 +1364,7 @@ namespace aux {
 		// accept connections on our local machine in this case.
 		// TODO: 3 the logic in this if-block should be factored out into a
 		// separate function. At least most of it
-		if (ret->incoming == duplex::accept_incoming)
+		if (ret->flags & listen_socket_t::accept_incoming)
 		{
 			ret->sock = std::make_shared<tcp::acceptor>(m_io_service);
 			ret->sock->open(bind_ep.protocol(), ec);
@@ -1643,7 +1647,7 @@ namespace aux {
 
 		// if we did not open a TCP listen socket, ret->local_endpoint was never
 		// initialized, so do that now, based on the UDP socket
-		if (ret->incoming != duplex::accept_incoming)
+		if (!(ret->flags & listen_socket_t::accept_incoming))
 		{
 			auto const udp_ep = ret->udp_sock->local_endpoint();
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
@@ -1717,14 +1721,14 @@ namespace aux {
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
-		, transport const ssl, duplex const incoming, std::vector<listen_endpoint_t>& eps)
+		, transport const ssl, listen_socket_flags_t const flags, std::vector<listen_endpoint_t>& eps)
 	{
 		// First, check to see if it's an IP address
 		error_code err;
 		address const adr = make_address(device.c_str(), err);
 		if (!err)
 		{
-			eps.emplace_back(adr, port, std::string(), ssl, incoming);
+			eps.emplace_back(adr, port, std::string(), ssl, flags);
 		}
 		else
 		{
@@ -1757,7 +1761,7 @@ namespace aux {
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device, ssl, incoming);
+				eps.emplace_back(ipface.interface_address, port, device, ssl, flags);
 			}
 		}
 	}
@@ -1781,9 +1785,10 @@ namespace aux {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
-		duplex const incoming = m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			? duplex::only_outgoing
-			: duplex::accept_incoming;
+		listen_socket_flags_t const flags
+			= (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+			? listen_socket_flags_t{}
+			: listen_socket_t::accept_incoming;
 
 		for (auto const& iface : m_listen_interfaces)
 		{
@@ -1813,7 +1818,7 @@ namespace aux {
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(device, port, ssl, incoming, eps);
+			interface_to_endpoints(device, port, ssl, flags, eps);
 		}
 
 		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
@@ -1827,9 +1832,9 @@ namespace aux {
 		if (eps.empty())
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
+				, listen_socket_flags_t{});
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
+				, listen_socket_flags_t{});
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
@@ -1883,7 +1888,7 @@ namespace aux {
 					m_dht->new_socket(m_listen_sockets.back());
 #endif
 
-				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
+				TORRENT_ASSERT(bool(s->flags & listen_socket_t::accept_incoming) == bool(s->sock));
 				if (s->sock) async_accept(s->sock, s->ssl);
 			}
 		}
@@ -1994,9 +1999,9 @@ namespace aux {
 
 		for (auto const& iface : m_outgoing_interfaces)
 		{
-			interface_to_endpoints(iface, 0, transport::plaintext, duplex::accept_incoming, eps);
+			interface_to_endpoints(iface, 0, transport::plaintext, listen_socket_t::accept_incoming, eps);
 #ifdef TORRENT_USE_OPENSSL
-			interface_to_endpoints(iface, 0, transport::ssl, duplex::accept_incoming, eps);
+			interface_to_endpoints(iface, 0, transport::ssl, listen_socket_t::accept_incoming, eps);
 #endif
 		}
 
@@ -2004,11 +2009,11 @@ namespace aux {
 		// any interface
 		if (eps.empty())
 		{
-			eps.emplace_back(address_v4(), 0, "", transport::plaintext);
-			eps.emplace_back(address_v6(), 0, "", transport::plaintext);
+			eps.emplace_back(address_v4(), 0, "", transport::plaintext, listen_socket_flags_t{});
+			eps.emplace_back(address_v6(), 0, "", transport::plaintext, listen_socket_flags_t{});
 #ifdef TORRENT_USE_OPENSSL
-			eps.emplace_back(address_v4(), 0, "", transport::ssl);
-			eps.emplace_back(address_v6(), 0, "", transport::ssl);
+			eps.emplace_back(address_v4(), 0, "", transport::ssl, listen_socket_flags_t{});
+			eps.emplace_back(address_v6(), 0, "", transport::ssl, listen_socket_flags_t{});
 #endif
 		}
 
@@ -5055,7 +5060,7 @@ namespace aux {
 			{ return s->local_endpoint.address() == addr; });
 		return iter == m_listen_sockets.end()
 			? false
-			: (*iter)->incoming == duplex::accept_incoming;
+			: bool((*iter)->flags & listen_socket_t::accept_incoming);
 	}
 
 	// verify that the given local address satisfies the requirements of
