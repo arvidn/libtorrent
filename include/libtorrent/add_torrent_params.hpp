@@ -84,7 +84,7 @@ TORRENT_VERSION_NAMESPACE_2
 	//
 	// The ``add_torrent_params`` is also used when requesting resume data for a
 	// torrent. It can be saved to and restored from a file and added back to a
-	// new session. For serialization and deserialization of
+	// new session. For serialization and de-serialization of
 	// ``add_torrent_params`` objects, see read_resume_data() and
 	// write_resume_data().
 #include "libtorrent/aux_/disable_warnings_push.hpp"

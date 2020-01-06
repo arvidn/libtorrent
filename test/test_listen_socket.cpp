@@ -71,14 +71,16 @@ namespace
 		, tp ssl = tp::plaintext
 		, std::string device = {})
 	{
-		return aux::listen_endpoint_t(make_address(ip), port, device, ssl);
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl
+			, aux::listen_socket_t::accept_incoming);
 	}
 
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, std::string device
 		, tp ssl = tp::plaintext)
 	{
-		return aux::listen_endpoint_t(make_address(ip), port, device, ssl);
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl
+			, aux::listen_socket_t::accept_incoming);
 	}
 
 	std::shared_ptr<aux::listen_socket_t> sock(char const* ip, int const port

@@ -65,6 +65,7 @@ namespace libtorrent {
 		, start_sent(false)
 		, complete_sent(completed)
 #endif
+		, enabled(true)
 		, socket(s)
 	{
 		TORRENT_UNUSED(completed);
@@ -110,7 +111,9 @@ namespace libtorrent {
 
 	void announce_infohash::failed(int const backoff_ratio, seconds32 const retry_interval)
 	{
-		++fails;
+		// fails is only 7 bits
+		if (fails < (1 << 7) - 1) ++fails;
+
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250

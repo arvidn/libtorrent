@@ -500,6 +500,8 @@ namespace libtorrent {
 		// Both these functions are exposed for advanced custom use of the DHT.
 		// All torrents eligible to be announce to the DHT will be automatically,
 		// by libtorrent.
+		//
+		// For possible flags, see announce_flags_t.
 		void dht_get_peers(sha1_hash const& info_hash);
 		void dht_announce(sha1_hash const& info_hash, int port = 0, dht::announce_flags_t flags = {});
 

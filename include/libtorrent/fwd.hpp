@@ -140,6 +140,7 @@ struct session_stats_header_alert;
 struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
+struct socks5_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/announce_entry.hpp
@@ -154,6 +155,9 @@ struct bdecode_node;
 
 // include/libtorrent/bitfield.hpp
 struct bitfield;
+
+// include/libtorrent/client_data.hpp
+struct client_data_t;
 
 // include/libtorrent/create_torrent.hpp
 struct create_torrent;

@@ -93,7 +93,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 96;
+	constexpr int num_alert_types = 97;
 
 	// internal
 	enum class alert_priority : std::uint8_t
@@ -282,7 +282,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 		info_hash_t info_hash;
 
-		// `userdatadata` as set in `add_torrent_params` at torrent creation.
+		// '`userdata`` as set in add_torrent_params at torrent creation.
 		// This can be used to associate this torrent with related data
 		// in the client application more efficiently than info_hash.
 		client_data_t userdata;
@@ -457,9 +457,11 @@ TORRENT_VERSION_NAMESPACE_2
 			// or that our send buffer watermark is too small, because we can
 			// send it all before the disk gets back to us.
 			// The number of bytes that we keep outstanding, requested from the disk, is calculated
-			// as follows::
+			// as follows:
 			//
-			//   min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
+			// .. code:: C++
+			//
+			//    min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
 			//
 			// If you receive this alert, you might want to either increase your ``send_buffer_watermark``
 			// or ``send_buffer_watermark_factor``.
@@ -737,7 +739,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 	};
 
-	// This alert is generated when a peer is unsnubbed. Essentially when it was snubbed for stalling
+	// This alert is generated when a peer is un-snubbed. Essentially when it was snubbed for stalling
 	// sending data, and now it started sending data again.
 	struct TORRENT_EXPORT peer_unsnubbed_alert final : peer_alert
 	{
@@ -1349,7 +1351,9 @@ TORRENT_VERSION_NAMESPACE_2
 	//
 	// Typically, when receiving this alert, you would want to save the torrent file in order
 	// to load it back up again when the session is restarted. Here's an example snippet of
-	// code to do that::
+	// code to do that:
+	//
+	// .. code:: c++
 	//
 	//	torrent_handle h = alert->handle();
 	//	if (h.is_valid()) {
@@ -1682,8 +1686,8 @@ TORRENT_VERSION_NAMESPACE_2
 
 	};
 
-	// This alert is generated when a fastresume file has been passed to
-	// add_torrent() but the files on disk did not match the fastresume file.
+	// This alert is generated when a fast resume file has been passed to
+	// add_torrent() but the files on disk did not match the fast resume file.
 	// The error_code explains the reason why the resume file was rejected.
 	struct TORRENT_EXPORT fastresume_rejected_alert final : torrent_alert
 	{
@@ -2034,7 +2038,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// This alert is always posted when a torrent was attempted to be added
 	// and contains the return status of the add operation. The torrent handle of the new
-	// torrent can be found in the base class' ``handle`` member. If adding
+	// torrent can be found as the ``handle`` member in the base class. If adding
 	// the torrent failed, ``error`` contains the error code.
 	struct TORRENT_EXPORT add_torrent_alert final : torrent_alert
 	{
@@ -2910,6 +2914,28 @@ TORRENT_VERSION_NAMESPACE_2
 		// alert type ID, where bit 0 represents whether any alert of type 0 has
 		// been dropped, and so on.
 		std::bitset<num_alert_types> dropped_alerts;
+	};
+
+	// this alert is posted with SOCKS5 related errors, when a SOCKS5 proxy is
+	// configured. It's enabled with the error_notification alert category.
+	struct TORRENT_EXPORT socks5_alert final : alert
+	{
+		// internal
+		explicit socks5_alert(aux::stack_allocator& alloc
+			, tcp::endpoint const& ep, operation_t operation, error_code const& ec);
+		TORRENT_DEFINE_ALERT(socks5_alert, 96)
+
+		static constexpr alert_category_t static_category = alert::error_notification;
+		std::string message() const override;
+
+		// the error
+		error_code error;
+
+		// the operation that failed
+		operation_t op;
+
+		// the endpoint configured as the proxy
+		aux::noexcept_movable<tcp::endpoint> ip;
 	};
 
 TORRENT_VERSION_NAMESPACE_2_END

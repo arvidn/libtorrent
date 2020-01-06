@@ -110,10 +110,10 @@ namespace libtorrent { namespace aux {
 		return {};
 	}
 
-	void outgoing_sockets::update_proxy(proxy_settings const& settings)
+	void outgoing_sockets::update_proxy(proxy_settings const& settings, alert_manager& alerts)
 	{
 		for (auto const& i : sockets)
-			i->sock.set_proxy_settings(settings);
+			i->sock.set_proxy_settings(settings, alerts);
 	}
 
 	void outgoing_sockets::close()

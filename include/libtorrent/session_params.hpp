@@ -134,9 +134,9 @@ struct TORRENT_EXPORT session_params
 
 TORRENT_VERSION_NAMESPACE_3_END
 
-// These functions serialize and deserialize a ``session_params`` object to and
+// These functions serialize and de-serialize a ``session_params`` object to and
 // from bencoded form. The session_params object is used to initialize a new
-// session using the state from a previous one (or by programatically configure
+// session using the state from a previous one (or by programmatically configure
 // the session up-front).
 // The flags parameter can be used to only save and load certain aspects of the
 // session's state.

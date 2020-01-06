@@ -61,8 +61,8 @@ namespace torrent_flags {
 	// Setting ``seed_mode`` on a torrent without metadata (a
 	// .torrent file) is a no-op and will be ignored.
 	//
-	// It is not possible to *set* the `seed_mode` flag on a torrent after it has
-	// been added to as session. It is possible to *clear* it though.
+	// It is not possible to *set* the ``seed_mode`` flag on a torrent after it has
+	// been added to a session. It is possible to *clear* it though.
 	constexpr torrent_flags_t seed_mode = 0_bit;
 
 	// If ``upload_mode`` is set, the torrent will be initialized in
@@ -126,6 +126,10 @@ namespace torrent_flags {
 	// order is the order the torrents were added. They are all downloaded
 	// in that order. For more details, see queuing_.
 	constexpr torrent_flags_t auto_managed = 5_bit;
+
+	// used in add_torrent_params to indicate that it's an error to attempt
+	// to add a torrent that's already in the session. If it's not considered an
+	// error, a handle to the existing torrent is returned.
 	constexpr torrent_flags_t duplicate_is_error = 6_bit;
 
 	// on by default and means that this torrent will be part of state
@@ -185,7 +189,7 @@ namespace torrent_flags {
 	// added to the list of trackers used by the torrent.
 	// This flag is set by read_resume_data() if there are trackers present in
 	// the resume data file. This effectively makes the trackers saved in the
-	// resume data take presedence over the original trackers. This includes if
+	// resume data take precedence over the original trackers. This includes if
 	// there's an empty list of trackers, to support the case where they were
 	// explicitly removed in the previous session.
 	constexpr torrent_flags_t override_trackers = 11_bit;
@@ -196,7 +200,7 @@ namespace torrent_flags {
 	// list of web seeds used by the torrent.
 	// This flag is set by read_resume_data() if there are web seeds present in
 	// the resume data file. This effectively makes the web seeds saved in the
-	// resume data take presedence over the original ones. This includes if
+	// resume data take precedence over the original ones. This includes if
 	// there's an empty list of web seeds, to support the case where they were
 	// explicitly removed in the previous session.
 	constexpr torrent_flags_t override_web_seeds = 12_bit;
@@ -263,6 +267,8 @@ namespace torrent_flags {
 	// set this flag to disable peer exchange for this torrent.
 	constexpr torrent_flags_t disable_pex = 21_bit;
 
+	// all torrent flags combined. Can conveniently be used when creating masks
+	// for flags
 	constexpr torrent_flags_t all = torrent_flags_t::all();
 
 	// internal

@@ -62,9 +62,9 @@ namespace libtorrent {
 	{
 		address interface_address;
 		address netmask;
-		char name[64];
-		char friendly_name[128];
-		char description[128];
+		char name[64]{};
+		char friendly_name[128]{};
+		char description[128]{};
 		// an interface is preferred if its address is
 		// not tentative/duplicate/deprecated
 		bool preferred = true;
@@ -75,7 +75,7 @@ namespace libtorrent {
 		address destination;
 		address netmask;
 		address gateway;
-		char name[64];
+		char name[64]{};
 		int mtu;
 	};
 
@@ -90,6 +90,11 @@ namespace libtorrent {
 	// return (a1 & mask) == (a2 & mask)
 	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1
 		, address const& a2, address const& mask);
+
+	// return a netmask with the specified address family and the specified
+	// number of prefix bit set, of the most significant bits in the resulting
+	// netmask
+	TORRENT_EXTRA_EXPORT address build_netmask(int bits, int family);
 
 	// returns true if the specified address is on the same
 	// local network as us

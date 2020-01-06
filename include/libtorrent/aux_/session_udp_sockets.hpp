@@ -39,7 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/io_context.hpp>
 #include <vector>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+
+	struct alert_manager;
+
+namespace aux {
 
 	struct listen_endpoint_t;
 	struct proxy_settings;
@@ -92,7 +96,7 @@ namespace libtorrent { namespace aux {
 		tcp::endpoint bind(socket_type& s, address const& remote_address
 			, error_code& ec) const;
 
-		void update_proxy(proxy_settings const& settings);
+		void update_proxy(proxy_settings const& settings, alert_manager& alerts);
 
 		// close all sockets
 		void close();

@@ -56,6 +56,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
+	// internal
 	// TODO: refactor these out too
 	template <typename Endpoint>
 	bool is_v4(Endpoint const& ep)

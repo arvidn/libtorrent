@@ -121,14 +121,14 @@ namespace {
 
 
 #if !defined TORRENT_BUILD_SIMULATOR
-	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
+	address_v4 inaddr_to_address(void const* ina, int const len = 4)
 	{
 		boost::asio::ip::address_v4::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina, std::min(std::size_t(len), b.size()));
 		return address_v4(b);
 	}
 
-	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
+	address_v6 inaddr6_to_address(void const* ina6, int const len = 16)
 	{
 		boost::asio::ip::address_v6::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
@@ -168,48 +168,6 @@ namespace {
 			|| family == AF_INET6
 		);
 	}
-
-#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_NETLINK
-	address build_netmask(int bits, int const family)
-	{
-		if (family == AF_INET)
-		{
-			address_v4::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v4(b);
-		}
-		else if (family == AF_INET6)
-		{
-			address_v6::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v6(b);
-		}
-		else
-		{
-			return {};
-		}
-	}
-#endif
 
 #if TORRENT_USE_NETLINK
 
@@ -284,6 +242,12 @@ namespace {
 		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
 	}
 
+	address to_address(int const address_family, void const* in)
+	{
+		if (address_family == AF_INET6) return inaddr6_to_address(in);
+		else return inaddr_to_address(in);
+	}
+
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
 		auto* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
@@ -315,24 +279,10 @@ namespace {
 					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
 					break;
 				case RTA_GATEWAY:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->gateway = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->gateway = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->gateway = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 				case RTA_DST:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->destination = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->destination = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->destination = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 			}
 		}
@@ -365,36 +315,7 @@ namespace {
 			return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
-
-		if (addr_msg->ifa_family == AF_INET6)
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 128);
-			if (addr_msg->ifa_prefixlen > 0)
-			{
-				address_v6::bytes_type mask = {};
-				auto it = mask.begin();
-				if (addr_msg->ifa_prefixlen > 64)
-				{
-					aux::write_uint64(0xffffffffffffffffULL, it);
-					addr_msg->ifa_prefixlen -= 64;
-				}
-				if (addr_msg->ifa_prefixlen > 0)
-				{
-					std::uint64_t const m = ~((1ULL << (64 - addr_msg->ifa_prefixlen)) - 1);
-					aux::write_uint64(m, it);
-				}
-				ip_info->netmask = address_v6(mask);
-			}
-		}
-		else
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 32);
-			if (addr_msg->ifa_prefixlen != 0)
-			{
-				std::uint32_t const m = ~((1U << (32 - addr_msg->ifa_prefixlen)) - 1);
-				ip_info->netmask = address_v4(m);
-			}
-		}
+		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
@@ -417,14 +338,14 @@ namespace {
 			case IFA_LOCAL:
 				if (addr_msg->ifa_family == AF_INET6)
 				{
-					address_v6 addr = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
+					address_v6 addr = inaddr6_to_address(RTA_DATA(rt_attr));
 					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
 						addr.scope_id(addr_msg->ifa_index);
 					ip_info->interface_address = addr;
 				}
 				else
 				{
-					ip_info->interface_address = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
+					ip_info->interface_address = inaddr_to_address(RTA_DATA(rt_attr));
 				}
 				break;
 			}
@@ -435,7 +356,6 @@ namespace {
 
 		static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
 		if_indextoname(addr_msg->ifa_index, ip_info->name);
-
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -492,9 +412,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
-		rv.name[sizeof(rv.name) - 1] = 0;
-		rv.friendly_name[0] = 0;
-		rv.description[0] = 0;
+		rv.name[sizeof(rv.name) - 1] = '\0';
 
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
@@ -507,7 +425,46 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
+	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
+	{
+		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
+		int i = 0;
+		while (prefix_bits >= 8)
+		{
+			mask[i] = 0xff;
+			prefix_bits -= 8;
+			++i;
+		}
+		if (i < mask.size())
+		{
+			mask[i] = (0xff << (8 - prefix_bits)) & 0xff;
+			++i;
+			while (i < mask.size())
+			{
+				mask[i] = 0;
+				++i;
+			}
+		}
+	}
+
 } // <anonymous>
+
+	address build_netmask(int prefix_bits, int const family)
+	{
+		if (family == AF_INET)
+		{
+			address_v4::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v4(b);
+		}
+		else if (family == AF_INET6)
+		{
+			address_v6::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v6(b);
+		}
+		return {};
+	}
 
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
@@ -670,9 +627,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
 				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name));
-				iface.name[sizeof(iface.name) - 1] = 0;
-				iface.friendly_name[0] = 0;
-				iface.description[0] = 0;
+				iface.name[sizeof(iface.name) - 1] = '\0';
 
 				ifreq req = {};
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
@@ -737,11 +692,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface r;
 				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-				r.name[sizeof(r.name) - 1] = 0;
+				r.name[sizeof(r.name) - 1] = '\0';
 				wcstombs(r.friendly_name, adapter->FriendlyName, sizeof(r.friendly_name));
-				r.friendly_name[sizeof(r.friendly_name) - 1] = 0;
+				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
 				wcstombs(r.description, adapter->Description, sizeof(r.description));
-				r.description[sizeof(r.description) - 1] = 0;
+				r.description[sizeof(r.description) - 1] = '\0';
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
@@ -778,16 +733,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		int n = size / sizeof(INTERFACE_INFO);
 
-		ip_interface iface;
 		for (int i = 0; i < n; ++i)
 		{
+			ip_interface iface;
 			iface.interface_address = sockaddr_to_address(&buffer[i].iiAddress.Address);
 			if (iface.interface_address == address_v4::any()) continue;
 			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address
 				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
 			ret.push_back(iface);
 		}
 
@@ -803,13 +755,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		udp::resolver r(ios);
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
 		if (ec) return ret;
-		ip_interface iface;
 		for (;i != udp::resolver::iterator(); ++i)
 		{
+			ip_interface iface;
 			iface.interface_address = i->endpoint().address();
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
 //			if (iface.interface_address.is_v4())
 //				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
 			ret.push_back(iface);
@@ -1179,9 +1128,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			for (int i = 0; i < int(routes->dwNumEntries); ++i)
 			{
 				ip_route r;
-				r.destination = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardDest);
-				r.netmask = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardMask);
-				r.gateway = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardNextHop);
+				r.destination = inaddr_to_address(&routes->table[i].dwForwardDest);
+				r.netmask = inaddr_to_address(&routes->table[i].dwForwardMask);
+				r.gateway = inaddr_to_address(&routes->table[i].dwForwardNextHop);
 				MIB_IFROW ifentry;
 				ifentry.dwIndex = routes->table[i].dwForwardIfIndex;
 				if (GetIfEntry(&ifentry) == NO_ERROR)

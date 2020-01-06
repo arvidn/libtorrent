@@ -67,6 +67,7 @@ namespace libtorrent {
 struct http_connection;
 struct resolver_interface;
 
+// internal
 constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
 using http_handler = std::function<void(error_code const&

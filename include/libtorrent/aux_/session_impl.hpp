@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/io_context.hpp"
+#include "libtorrent/flags.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -145,11 +146,7 @@ namespace aux {
 		{ return lhs < rhs.get(); }
 	};
 
-	enum class duplex : std::uint8_t
-	{
-		accept_incoming,
-		only_outgoing
-	};
+	using listen_socket_flags_t = flags::bitfield_flag<std::uint8_t, struct listen_socket_flags_tag>;
 
 	struct listen_port_mapping
 	{
@@ -157,8 +154,11 @@ namespace aux {
 		int port = 0;
 	};
 
-	struct listen_socket_t
+	struct TORRENT_EXTRA_EXPORT listen_socket_t
 	{
+		static constexpr listen_socket_flags_t accept_incoming = 0_bit;
+		static constexpr listen_socket_flags_t has_gateway = 1_bit;
+
 		listen_socket_t() = default;
 
 		// listen_socket_t should not be copied or moved because
@@ -220,7 +220,7 @@ namespace aux {
 		// indicates whether this is an SSL listen socket or not
 		transport ssl = transport::plaintext;
 
-		duplex incoming = duplex::accept_incoming;
+		listen_socket_flags_t flags = accept_incoming;
 
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
@@ -250,8 +250,8 @@ namespace aux {
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
 			listen_endpoint_t(address const& adr, int p, std::string dev, transport s
-				, duplex d = duplex::accept_incoming)
-				: addr(adr), port(p), device(std::move(dev)), ssl(s), incoming(d) {}
+				, listen_socket_flags_t f)
+				: addr(adr), port(p), device(std::move(dev)), ssl(s), flags(f) {}
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
@@ -262,7 +262,7 @@ namespace aux {
 			int port;
 			std::string device;
 			transport ssl;
-			duplex incoming;
+			listen_socket_flags_t flags;
 		};
 
 		// partitions sockets based on whether they match one of the given endpoints
@@ -846,7 +846,7 @@ namespace aux {
 				, ip_source_t source_type, address const& source);
 
 			void interface_to_endpoints(std::string const& device, int port
-				, transport ssl, duplex incoming, std::vector<listen_endpoint_t>& eps);
+				, transport ssl, listen_socket_flags_t flags, std::vector<listen_endpoint_t>& eps);
 
 			counters m_stats_counters;
 

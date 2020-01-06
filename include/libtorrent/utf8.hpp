@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 namespace utf8_errors {
+	// internal
 	enum error_code_enum
 	{
 		// conversion successful
@@ -53,7 +54,7 @@ namespace utf8_errors {
 		// partial character in source, but hit end
 		source_exhausted,
 
-		// insuff. room in target for conversion
+		// insufficient room in target for conversion
 		target_exhausted,
 
 		// source sequence is illegal/malformed

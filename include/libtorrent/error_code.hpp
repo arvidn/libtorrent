@@ -73,7 +73,7 @@ namespace errors {
 		// The .torrent file's name entry is invalid
 		torrent_invalid_name,
 		// The length of a file, or of the whole .torrent file is invalid.
-		// Either negative, not an integer or too large.
+		// Either negative or not an integer
 		torrent_invalid_length,
 		// Failed to parse a file entry in the .torrent
 		torrent_file_parse_failed,
@@ -112,7 +112,7 @@ namespace errors {
 		unsupported_url_protocol,
 		// The URL did not conform to URL syntax and failed to be parsed
 		url_parse_error,
-		// The peer sent a 'piece' message of length 0
+		// The peer sent a piece message of length 0
 		peer_sent_empty_piece,
 		// A bencoded structure was corrupt and failed to be parsed
 		parse_failed,
@@ -130,7 +130,7 @@ namespace errors {
 		// The port is blocked by the port-filter, and prevented the
 		// connection
 		port_blocked,
-		// The IPv6 address was expected to end with ']'
+		// The IPv6 address was expected to end with "]"
 		expected_close_bracket_in_address,
 		// The torrent is being destructed, preventing the operation to
 		// succeed
@@ -216,9 +216,9 @@ namespace errors {
 		sync_hash_not_found,
 		// The encryption constant in the handshake is invalid
 		invalid_encryption_constant,
-		// The peer does not support plaintext, which is the selected mode
+		// The peer does not support plain text, which is the selected mode
 		no_plaintext_mode,
-		// The peer does not support rc4, which is the selected mode
+		// The peer does not support RC4, which is the selected mode
 		no_rc4_mode,
 		// The peer does not support any of the encryption modes that the
 		// client supports
@@ -353,11 +353,11 @@ namespace errors {
 #endif
 
 
-		// The resume data file is missing the 'file sizes' entry
+		// The resume data file is missing the ``file sizes`` entry
 		missing_file_sizes = 130,
-		// The resume data file 'file sizes' entry is empty
+		// The resume data file ``file sizes`` entry is empty
 		no_files_in_resume_data,
-		// The resume data file is missing the 'pieces' and 'slots' entry
+		// The resume data file is missing the ``pieces`` and ``slots`` entry
 		missing_pieces,
 		// The number of files in the resume data does not match the number
 		// of files in the torrent
@@ -370,16 +370,16 @@ namespace errors {
 		mismatching_file_timestamp,
 		// The resume data file is not a dictionary
 		not_a_dictionary,
-		// The 'blocks per piece' entry is invalid in the resume data file
+		// The ``blocks per piece`` entry is invalid in the resume data file
 		invalid_blocks_per_piece,
-		// The resume file is missing the 'slots' entry, which is required
+		// The resume file is missing the ``slots`` entry, which is required
 		// for torrents with compact allocation. *DEPRECATED*
 		missing_slots,
 		// The resume file contains more slots than the torrent
 		too_many_slots,
-		// The 'slot' entry is invalid in the resume data
+		// The ``slot`` entry is invalid in the resume data
 		invalid_slot_list,
-		// One index in the 'slot' list is invalid
+		// One index in the ``slot`` list is invalid
 		invalid_piece_index,
 		// The pieces on disk needs to be re-ordered for the specified
 		// allocation mode. This happens if you specify sparse allocation
@@ -390,7 +390,6 @@ namespace errors {
 		// specifying the flag to only save when there's anything new to save
 		// (torrent_handle::only_if_modified) and there wasn't anything changed.
 		resume_data_not_modified,
-
 
 
 		// The HTTP header was not correctly formatted
@@ -410,7 +409,6 @@ namespace errors {
 		no_i2p_endpoint = 161,
 
 
-
 		// The tracker URL doesn't support transforming it into a scrape
 		// URL. i.e. it doesn't contain "announce.
 		scrape_not_available = 170,
@@ -420,17 +418,17 @@ namespace errors {
 		invalid_peer_dict,
 		// tracker sent a failure message
 		tracker_failure,
-		// missing or invalid 'files' entry
+		// missing or invalid ``files`` entry
 		invalid_files_entry,
-		// missing or invalid 'hash' entry
+		// missing or invalid ``hash`` entry
 		invalid_hash_entry,
-		// missing or invalid 'peers' and 'peers6' entry
+		// missing or invalid ``peers`` and ``peers6`` entry
 		invalid_peers_entry,
-		// udp tracker response packet has invalid size
+		// UDP tracker response packet has invalid size
 		invalid_tracker_response_length,
-		// invalid transaction id in udp tracker response
+		// invalid transaction id in UDP tracker response
 		invalid_tracker_transaction_id,
-		// invalid action field in udp tracker response
+		// invalid action field in UDP tracker response
 		invalid_tracker_action,
 
 #if TORRENT_ABI_VERSION == 1
@@ -560,7 +558,7 @@ namespace errors {
 
 	public:
 
-		// A code from file_operation_t enum, indicating what
+		// A code from operation_t enum, indicating what
 		// kind of operation failed.
 		operation_t operation;
 

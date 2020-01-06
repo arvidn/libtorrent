@@ -191,6 +191,9 @@ TORRENT_VERSION_NAMESPACE_2
 		bool TORRENT_DEPRECATED_MEMBER complete_sent : 1;
 #endif
 
+		// set to false to not announce from this endpoint
+		bool enabled : 1;
+
 	private:
 		// internal
 		aux::listen_socket_handle socket;

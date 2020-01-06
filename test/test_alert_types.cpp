@@ -175,10 +175,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, alert_priority::normal, alert::dht_operation_notification);
 	TEST_ALERT_TYPE(block_uploaded_alert, 94, alert_priority::normal, PROGRESS_NOTIFICATION alert::upload_notification);
 	TEST_ALERT_TYPE(alerts_dropped_alert, 95, alert_priority::meta, alert::error_notification);
+	TEST_ALERT_TYPE(socks5_alert, 96, alert_priority::normal, alert::error_notification);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 96);
+	TEST_EQUAL(num_alert_types, 97);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 

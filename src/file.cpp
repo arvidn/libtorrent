@@ -254,7 +254,6 @@ namespace libtorrent {
 			if (err != ERROR_NO_MORE_FILES)
 				ec.assign(err, system_category());
 		}
-		++m_inode;
 #else
 		struct dirent* de;
 		errno = 0;

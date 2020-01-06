@@ -207,6 +207,9 @@ namespace libtorrent {
 
 namespace aux {
 
+	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
+	constexpr listen_socket_flags_t listen_socket_t::has_gateway;
+
 	constexpr ip_source_t session_interface::source_dht;
 	constexpr ip_source_t session_interface::source_peer;
 	constexpr ip_source_t session_interface::source_tracker;
@@ -324,7 +327,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					continue;
 				}
 
-				eps.emplace_back(ipface.interface_address, uep.port, uep.device, uep.ssl);
+				eps.emplace_back(ipface.interface_address, uep.port, uep.device
+					, uep.ssl, uep.flags);
 			}
 		}
 	}
@@ -773,7 +777,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (flags & session_handle::save_dht_settings)
 #endif
 		{
-			// Ths is here for backwards compatibility, to support loading state
+			// This is here for backwards compatibility, to support loading state
 			// files in the previous file format, where the DHT settings were in
 			// its own dictionary
 			settings = e->dict_find_dict("dht");
@@ -1462,7 +1466,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		auto ret = std::make_shared<listen_socket_t>();
 		ret->ssl = lep.ssl;
 		ret->original_port = bind_ep.port();
-		ret->incoming = lep.incoming;
+		ret->flags = lep.flags;
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
 			= (lep.ssl == transport::ssl)
@@ -1473,7 +1477,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// accept connections on our local machine in this case.
 		// TODO: 3 the logic in this if-block should be factored out into a
 		// separate function. At least most of it
-		if (ret->incoming == duplex::accept_incoming)
+		if (ret->flags & listen_socket_t::accept_incoming)
 		{
 			ret->sock = std::make_shared<tcp::acceptor>(m_io_context);
 			ret->sock->open(bind_ep.protocol(), ec);
@@ -1756,7 +1760,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		// if we did not open a TCP listen socket, ret->local_endpoint was never
 		// initialized, so do that now, based on the UDP socket
-		if (ret->incoming != duplex::accept_incoming)
+		if (!(ret->flags & listen_socket_t::accept_incoming))
 		{
 			auto const udp_ep = ret->udp_sock->local_endpoint();
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
@@ -1778,7 +1782,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// change after the session is up and listening, at no other point
 		// set_proxy_settings is called with the correct proxy configuration,
 		// internally, this method handle the SOCKS5's connection logic
-		ret->udp_sock->sock.set_proxy_settings(proxy());
+		ret->udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		ret->udp_sock->sock.async_read(aux::make_handler([this, ret](error_code const& e)
@@ -1830,14 +1834,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	}
 
 	void session_impl::interface_to_endpoints(std::string const& device, int const port
-		, transport const ssl, duplex const incoming, std::vector<listen_endpoint_t>& eps)
+		, transport const ssl, listen_socket_flags_t const flags, std::vector<listen_endpoint_t>& eps)
 	{
 		// First, check to see if it's an IP address
 		error_code err;
 		address const adr = make_address(device.c_str(), err);
 		if (!err)
 		{
-			eps.emplace_back(adr, port, std::string(), ssl, incoming);
+			eps.emplace_back(adr, port, std::string(), ssl, flags);
 		}
 		else
 		{
@@ -1870,7 +1874,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device, ssl, incoming);
+				eps.emplace_back(ipface.interface_address, port, device, ssl, flags);
 			}
 		}
 	}
@@ -1894,9 +1898,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
-		duplex const incoming = m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			? duplex::only_outgoing
-			: duplex::accept_incoming;
+		listen_socket_flags_t const flags
+			= (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+			? listen_socket_flags_t{}
+			: listen_socket_t::accept_incoming;
 
 		for (auto const& iface : m_listen_interfaces)
 		{
@@ -1926,7 +1931,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(device, port, ssl, incoming, eps);
+			interface_to_endpoints(device, port, ssl, flags, eps);
 		}
 
 		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
@@ -1940,9 +1945,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (eps.empty())
 		{
 			eps.emplace_back(address_v4(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
+				, listen_socket_flags_t{});
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext
-				, duplex::only_outgoing);
+				, listen_socket_flags_t{});
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
@@ -1995,7 +2000,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					m_dht->new_socket(m_listen_sockets.back());
 #endif
 
-				TORRENT_ASSERT((s->incoming == duplex::accept_incoming) == bool(s->sock));
+				TORRENT_ASSERT(bool(s->flags & listen_socket_t::accept_incoming) == bool(s->sock));
 				if (s->sock) async_accept(s->sock, s->ssl);
 			}
 		}
@@ -2105,9 +2110,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		for (auto const& iface : m_outgoing_interfaces)
 		{
-			interface_to_endpoints(iface, 0, transport::plaintext, duplex::accept_incoming, eps);
+			interface_to_endpoints(iface, 0, transport::plaintext, listen_socket_t::accept_incoming, eps);
 #ifdef TORRENT_SSL_PEERS
-			interface_to_endpoints(iface, 0, transport::ssl, duplex::accept_incoming, eps);
+			interface_to_endpoints(iface, 0, transport::ssl, listen_socket_t::accept_incoming, eps);
 #endif
 		}
 
@@ -2115,11 +2120,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// any interface
 		if (eps.empty())
 		{
-			eps.emplace_back(address_v4(), 0, "", transport::plaintext);
-			eps.emplace_back(address_v6(), 0, "", transport::plaintext);
+			eps.emplace_back(address_v4(), 0, "", transport::plaintext, listen_socket_flags_t{});
+			eps.emplace_back(address_v6(), 0, "", transport::plaintext, listen_socket_flags_t{});
 #ifdef TORRENT_SSL_PEERS
-			eps.emplace_back(address_v4(), 0, "", transport::ssl);
-			eps.emplace_back(address_v6(), 0, "", transport::ssl);
+			eps.emplace_back(address_v4(), 0, "", transport::ssl, listen_socket_flags_t{});
+			eps.emplace_back(address_v6(), 0, "", transport::ssl, listen_socket_flags_t{});
 #endif
 		}
 
@@ -2211,7 +2216,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// change after the session is up and listening, at no other point
 			// set_proxy_settings is called with the correct proxy configuration,
 			// internally, this method handle the SOCKS5's connection logic
-			udp_sock->sock.set_proxy_settings(proxy());
+			udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
 
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 			auto const ssl = ep.ssl;
@@ -5053,7 +5058,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			{ return s->local_endpoint.address() == addr; });
 		return iter == m_listen_sockets.end()
 			? false
-			: (*iter)->incoming == duplex::accept_incoming;
+			: bool((*iter)->flags & listen_socket_t::accept_incoming);
 	}
 
 	// verify that the given local address satisfies the requirements of
@@ -5242,8 +5247,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	void session_impl::update_proxy()
 	{
 		for (auto& i : m_listen_sockets)
-			i->udp_sock->sock.set_proxy_settings(proxy());
-		m_outgoing_sockets.update_proxy(proxy());
+			i->udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
+		m_outgoing_sockets.update_proxy(proxy(), m_alerts);
 	}
 
 	void session_impl::update_ip_notifier()

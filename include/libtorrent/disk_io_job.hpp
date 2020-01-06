@@ -58,6 +58,7 @@ namespace libtorrent {
 
 	struct mmap_storage;
 
+	// internal
 	enum class job_action_t : std::uint8_t
 	{
 		read

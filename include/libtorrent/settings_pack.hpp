@@ -770,7 +770,7 @@ namespace aux {
 			enable_dht,
 
 			// if the allowed encryption level is both, setting this to true will
-			// prefer rc4 if both methods are offered, plain text otherwise
+			// prefer RC4 if both methods are offered, plain text otherwise
 			prefer_rc4,
 
 			// if true, hostname lookups are done via the configured proxy (if
@@ -1935,7 +1935,7 @@ namespace aux {
 		{
 			// use only plain text encryption
 			pe_plaintext = 1,
-			// use only rc4 encryption
+			// use only RC4 encryption
 			pe_rc4 = 2,
 			// allow both
 			pe_both = 3

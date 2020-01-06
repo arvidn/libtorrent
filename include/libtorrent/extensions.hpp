@@ -99,7 +99,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // torrent has already been started and you want to hook in the extension at
 // run-time).
 //
-// The signature of the function is::
+// The signature of the function is:
+//
+// .. code:: c++
 //
 // 	std::shared_ptr<torrent_plugin> (*)(torrent_handle const&, client_data_t);
 //

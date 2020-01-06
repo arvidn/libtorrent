@@ -43,7 +43,7 @@ namespace libtorrent {
 // requiring the same type be requested out of it as was assigned to it.
 struct TORRENT_EXPORT client_data_t
 {
-	// contruct a nullptr client data
+	// construct a nullptr client data
 	client_data_t() = default;
 
 	// initialize the client data with the specified pointer

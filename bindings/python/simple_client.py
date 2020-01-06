@@ -31,4 +31,4 @@ while (not s.is_seeding):
 
     time.sleep(1)
 
-print(h.name(), 'complete')
+print(h.status().name, 'complete')

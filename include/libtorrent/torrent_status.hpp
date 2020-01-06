@@ -126,7 +126,7 @@ TORRENT_VERSION_NAMESPACE_2
 			// allocated.
 			allocating,
 
-			// The torrent is currently checking the fastresume data and
+			// The torrent is currently checking the fast resume data and
 			// comparing it to the files on disk. This is typically
 			// completed in a fraction of a second, but if you add a
 			// large number of torrents at once, they will queue up.

@@ -149,7 +149,6 @@ namespace libtorrent {
 #endif
 
 			// bittorrent message counters
-			// TODO: should keepalives be in here too?
 			// how about dont-have, share-mode, upload-only
 			num_incoming_choke,
 			num_incoming_unchoke,
@@ -397,7 +396,7 @@ namespace libtorrent {
 			num_peers_down_disk,
 
 			// the number of peers in end-game mode. End game mode is where there
-			// are no blocks that we have not sent any requests to download. In ths
+			// are no blocks that we have not sent any requests to download. In this
 			// mode, blocks are allowed to be requested from more than one peer at
 			// at time.
 			num_peers_end_game,

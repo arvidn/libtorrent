@@ -71,7 +71,7 @@ namespace upnp_errors {
 		// The source IP address cannot be wild-carded, but
 		// must be fully specified
 		source_ip_cannot_be_wildcarded = 715,
-		// The external port cannot be wildcarded, but must
+		// The external port cannot be a wildcard, but must
 		// be specified
 		external_port_cannot_be_wildcarded = 716,
 		// The port mapping entry specified conflicts with a
