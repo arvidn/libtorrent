@@ -104,7 +104,7 @@ TORRENT_TEST(dht_rate_limit)
 	asio::io_service dht_ios(sim, address_v4::from_string("40.30.20.10"));
 
 	// receiver (the DHT under test)
-	lt::udp_socket sock(dht_ios);
+	lt::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
 	obs o;
 	auto ls = std::make_shared<lt::aux::listen_socket_t>();
 	ls->external_address.cast_vote(address_v4::from_string("40.30.20.10")
@@ -230,7 +230,7 @@ TORRENT_TEST(dht_delete_socket)
 	sim::simulation sim(cfg);
 	sim::asio::io_service dht_ios(sim, lt::address_v4::from_string("40.30.20.10"));
 
-	lt::udp_socket sock(dht_ios);
+	lt::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
 	error_code ec;
 	sock.bind(udp::endpoint(address_v4::from_string("40.30.20.10"), 8888), ec);
 

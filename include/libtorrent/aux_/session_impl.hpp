@@ -154,12 +154,20 @@ namespace aux {
 		listen_socket_t& operator=(listen_socket_t const&) = delete;
 		listen_socket_t& operator=(listen_socket_t&&) = delete;
 
+		// returns true if this listen socket/interface can reach and be reached
+		// by the given address. This is useful to know whether it should be
+		// annoucned to a tracker (given the tracker's IP) or whether it should
+		// have a SOCKS5 UDP tunnel set up (given the IP of the socks proxy)
+		bool can_route(address const&) const;
+
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
 		ip_voter external_address;
 
 		// this is a cached local endpoint for the listen TCP socket
 		tcp::endpoint local_endpoint;
+
+		address netmask;
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device
@@ -229,8 +237,8 @@ namespace aux {
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
 			listen_endpoint_t(address const& adr, int p, std::string dev, transport s
-				, listen_socket_flags_t f)
-				: addr(adr), port(p), device(std::move(dev)), ssl(s), flags(f) {}
+				, listen_socket_flags_t f, address const& nmask = address{})
+				: addr(adr), netmask(nmask), port(p), device(std::move(dev)), ssl(s), flags(f) {}
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
@@ -238,6 +246,10 @@ namespace aux {
 			}
 
 			address addr;
+			// if this listen endpoint/interface doesn't have a gateway, we cannot
+			// route outside of our network, this netmask defines the range of our
+			// local network
+			address netmask;
 			int port;
 			std::string device;
 			transport ssl;
@@ -256,6 +268,10 @@ namespace aux {
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
 			span<ip_interface const> ifs
+			, std::vector<listen_endpoint_t>& eps);
+
+		TORRENT_EXTRA_EXPORT void expand_devices(span<ip_interface const>
+			, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the

@@ -138,10 +138,10 @@ struct udp_tracker
 					detail::write_uint32(0, ptr);
 					detail::write_uint32(0, ptr);
 					detail::write_uint32(0, ptr);
+					detail::write_uint8(0, ptr);
+					detail::write_uint8(0, ptr);
+					detail::write_uint8(0, ptr);
 					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
 					detail::write_uint16(1337, ptr);
 				}
 				else

@@ -57,12 +57,23 @@ namespace
 		TEST_EQUAL(e1.device, dev);
 	}
 
-	ip_interface ifc(char const* ip, char const* device)
+	ip_interface ifc(char const* ip, char const* device, char const* netmask = nullptr)
 	{
 		ip_interface ipi;
 		ipi.interface_address = address::from_string(ip);
+		if (netmask) ipi.netmask = address::from_string(netmask);
 		strncpy(ipi.name, device, sizeof(ipi.name));
 		return ipi;
+	}
+
+	ip_route rt(char const* ip, char const* device, char const* gateway)
+	{
+		ip_route ret;
+		ret.destination = address::from_string(ip);
+		ret.gateway = address::from_string(gateway);
+		std::strncpy(ret.name, device, sizeof(ret.name));
+		ret.name[sizeof(ret.name) - 1] = '\0';
+		return ret;
 	}
 
 	aux::listen_endpoint_t ep(char const* ip, int port
@@ -229,6 +240,59 @@ TORRENT_TEST(partition_listen_sockets_op_ports)
 	TEST_EQUAL(eps.size(), 2);
 }
 
+TORRENT_TEST(expand_devices)
+{
+
+	// this causes us to only expand IPv6 addresses on eth0
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "1.2.3.4"),
+		rt("::", "eth0", "1234:5678::1"),
+	};
+
+	std::vector<ip_interface> const ifs = {
+		ifc("127.0.0.1", "lo", "255.0.0.0")
+		, ifc("192.168.1.2", "eth0", "255.255.255.0")
+		, ifc("24.172.48.90", "eth1", "255.255.255.0")
+		, ifc("::1", "lo", "ffff:ffff:ffff:ffff::")
+		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0", "ffff:ffff:ffff:ffff::")
+		, ifc("2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0", "ffff:ffff:ffff:ffff::")
+	};
+
+	std::vector<aux::listen_endpoint_t> eps = {
+		{
+			address::from_string("127.0.0.1"),
+			6881, // port
+			"", // device
+			aux::transport::plaintext,
+			aux::listen_socket_flags_t{} },
+		{
+			address::from_string("192.168.1.2"),
+			6881, // port
+			"", // device
+			aux::transport::plaintext,
+			aux::listen_socket_flags_t{} }
+	};
+
+	expand_devices(ifs, routes, eps);
+
+	TEST_CHECK((eps == std::vector<aux::listen_endpoint_t>{
+		{
+			address::from_string("127.0.0.1"),
+			6881, // port
+			"lo", // device
+			aux::transport::plaintext,
+			aux::listen_socket_flags_t{},
+			address::from_string("255.0.0.0") },
+		{
+			address::from_string("192.168.1.2"),
+			6881, // port
+			"eth0", // device
+			aux::transport::plaintext,
+			aux::listen_socket_flags_t{},
+			address::from_string("255.255.255.0") },
+		}));
+}
+
 TORRENT_TEST(expand_unspecified)
 {
 	std::vector<ip_interface> const ifs = {
@@ -237,7 +301,7 @@ TORRENT_TEST(expand_unspecified)
 		, ifc("24.172.48.90", "eth1")
 		, ifc("::1", "lo")
 		, ifc("fe80::d250:99ff:fe0c:9b74", "eth0")
-		, ifc( "2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
+		, ifc("2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth0")
 	};
 
 	auto v4_nossl      = ep("0.0.0.0", 6881);

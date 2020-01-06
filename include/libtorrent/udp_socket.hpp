@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <array>
 #include <memory>
@@ -54,7 +55,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
-		explicit udp_socket(io_service& ios);
+		explicit udp_socket(io_service& ios, aux::listen_socket_handle ls);
 
 		static constexpr udp_send_flags_t peer_connection = 0_bit;
 		static constexpr udp_send_flags_t tracker_connection = 1_bit;
@@ -145,6 +146,7 @@ namespace libtorrent {
 
 		using receive_buffer = std::array<char, 1500>;
 		std::unique_ptr<receive_buffer> m_buf;
+		aux::listen_socket_handle m_listen_socket;
 
 		std::uint16_t m_bind_port;
 

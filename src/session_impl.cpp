@@ -283,6 +283,70 @@ namespace aux {
 		}
 	}
 
+	void expand_devices(span<ip_interface const> const ifs
+		, span<ip_route const> const routes
+		, std::vector<listen_endpoint_t>& eps)
+	{
+		for (auto& ep : eps)
+		{
+			auto const iface = ep.device.empty()
+				? std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipface)
+					{
+						return match_addr_mask(ipface.interface_address, ep.addr, ipface.netmask);
+					})
+				: std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipface)
+					{
+						return ipface.name == ep.device
+							&& match_addr_mask(ipface.interface_address, ep.addr, ipface.netmask);
+					});
+
+			if (iface == ifs.end())
+			{
+				// we can't find which device this is for, just assume we can't
+				// reach anything on it
+				ep.netmask = build_netmask(0, ep.addr.is_v4() ? AF_INET : AF_INET6);
+				continue;
+			}
+
+			ep.netmask = iface->netmask;
+
+			bool const v4 = iface->interface_address.is_v4();
+
+			// also record whether the device has a gateway associated with it
+			// (which indicates it can be used to reach the internet)
+			// only gateways inside the interface's network count
+			bool const has_gateway = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+				{
+					return r.destination.is_unspecified()
+						&& r.destination.is_v4() == v4
+						&& !r.gateway.is_unspecified()
+						&& match_addr_mask(r.gateway, iface->interface_address, iface->netmask)
+						&& strcmp(r.name, iface->name) == 0;
+				}) != routes.end();
+
+			if (has_gateway)
+				ep.flags |= listen_socket_t::has_gateway;
+
+			ep.device = iface->name;
+		}
+	}
+
+	bool listen_socket_t::can_route(address const& addr) const
+	{
+		if (local_endpoint.address().is_v4() != addr.is_v4()) return false;
+
+		if (local_endpoint.address().is_v6()
+			&& local_endpoint.address().to_v6().scope_id() != addr.to_v6().scope_id())
+			return false;
+
+		if (flags & has_gateway) return true;
+		if (local_endpoint.address() == addr) return true;
+		if (local_endpoint.address().is_unspecified()) return true;
+		if (match_addr_mask(addr, local_endpoint.address(), netmask)) return true;
+
+		return false;
+	}
+
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -1328,6 +1392,7 @@ namespace aux {
 		ret->ssl = lep.ssl;
 		ret->original_port = bind_ep.port();
 		ret->flags = lep.flags;
+		ret->netmask = lep.netmask;
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
 			= (lep.ssl == transport::ssl)
@@ -1535,7 +1600,7 @@ namespace aux {
 			: socket_type_t::udp;
 		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
-		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_service);
+		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_service, ret);
 		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 		if (ec)
 		{
@@ -1798,6 +1863,8 @@ namespace aux {
 		if (!ec)
 		{
 			expand_unspecified_address(ifs, eps);
+			auto const routes = enum_routes(m_io_service, ec);
+			if (!ec) expand_devices(ifs, routes, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use

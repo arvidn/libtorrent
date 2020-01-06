@@ -472,6 +472,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		if (a1.is_v6())
 		{
+			if (a1.to_v6().scope_id() != a2.to_v6().scope_id()) return false;
+
 			address_v6::bytes_type b1 = a1.to_v6().to_bytes();
 			address_v6::bytes_type b2 = a2.to_v6().to_bytes();
 			address_v6::bytes_type m = mask.to_v6().to_bytes();
