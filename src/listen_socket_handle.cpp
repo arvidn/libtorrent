@@ -64,4 +64,11 @@ namespace libtorrent { namespace aux {
 		return m_sock.lock().get();
 	}
 
+	bool listen_socket_handle::can_route(address const& a) const
+	{
+		auto s = m_sock.lock();
+		if (!s) return false;
+		return s->can_route(a);
+	}
+
 } }

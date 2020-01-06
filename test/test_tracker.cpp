@@ -345,7 +345,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
-	pack.set_str(settings_pack::listen_interfaces, iface + ":48875");
 
 	std::unique_ptr<lt::session> s(new lt::session(pack));
 
@@ -420,7 +419,10 @@ TORRENT_TEST(udp_tracker_v6)
 {
 	if (supports_ipv6())
 	{
-		test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+		// if the machine running the test doesn't have an actual IPv6 connection
+		// the test would fail with any other address than loopback (because it
+		// would be unreachable)
+		test_udp_tracker("[::1]", address_v6::any(), ep("::1", 1337));
 	}
 }
 

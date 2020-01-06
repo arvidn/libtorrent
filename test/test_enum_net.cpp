@@ -76,24 +76,36 @@ TORRENT_TEST(is_any)
 
 TORRENT_TEST(match_addr_mask)
 {
-	error_code ec;
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.176", ec),
-		address::from_string("10.0.1.176", ec),
-		address::from_string("255.255.255.0", ec)));
-	TEST_CHECK(!ec);
+		address::from_string("10.0.1.176"),
+		address::from_string("10.0.1.176"),
+		address::from_string("255.255.255.0")));
 
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.0.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
-	TEST_CHECK(!ec);
+		address::from_string("10.0.1.3"),
+		address::from_string("10.0.3.3"),
+		address::from_string("255.255.0.0")));
 
 	TEST_CHECK(!match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.1.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
-	TEST_CHECK(!ec);
+		address::from_string("10.0.1.3"),
+		address::from_string("10.1.3.3"),
+		address::from_string("255.255.0.0")));
+
+	TEST_CHECK(match_addr_mask(
+		address::from_string("ff00:1234::"),
+		address::from_string("ff00:5678::"),
+		address::from_string("ffff::")));
+
+	TEST_CHECK(!match_addr_mask(
+		address::from_string("ff00:1234::"),
+		address::from_string("ff00:5678::"),
+		address::from_string("ffff:f000::")));
+
+	// different scope IDs always means a mismatch
+	TEST_CHECK(!match_addr_mask(
+		address::from_string("ff00:1234::%1"),
+		address::from_string("ff00:1234::%2"),
+		address::from_string("ffff::")));
 }
 
 TORRENT_TEST(is_ip_address)

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/peer.hpp"
+#include "libtorrent/error_code.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -203,24 +204,20 @@ namespace libtorrent {
 			return;
 		}
 
-		auto bind_address = bind_interface();
+		auto const listen_socket = bind_socket();
 
-		// look for an address that has the same kind as the one
-		// we're listening on. To make sure the tracker get our
-		// correct listening address.
-		bool is_v4 = bind_address.is_v4();
-		auto scope = is_v4 ? 0 : bind_address.to_v6().scope_id();
+		// filter all endpoints we cannot reach from this listen socket, which may
+		// be all of them, in which case we should not announce this listen socket
+		// to this tracker
 		for (auto const& addr : addresses)
 		{
-			if (addr.is_v4() != is_v4) continue;
-			if (addr.is_v6() && addr.to_v6().scope_id() != scope)
-				continue;
+			if (!listen_socket.can_route(addr)) continue;
 			m_endpoints.emplace_back(addr, std::uint16_t(port));
 		}
 
 		if (m_endpoints.empty())
 		{
-			fail(error_code(boost::asio::error::address_family_not_supported));
+			fail(error_code(boost::system::errc::host_unreachable, generic_category()));
 			return;
 		}
 

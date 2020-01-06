@@ -58,6 +58,7 @@ namespace libtorrent { namespace aux {
 
 		address get_external_address() const;
 		tcp::endpoint get_local_endpoint() const;
+		bool can_route(address const&) const;
 
 		bool is_ssl() const;
 

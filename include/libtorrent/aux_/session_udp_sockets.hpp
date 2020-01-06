@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 #include <boost/asio/io_service.hpp>
 #include <vector>
 
@@ -47,13 +48,14 @@ namespace aux {
 
 	struct listen_endpoint_t;
 	struct proxy_settings;
+	struct listen_socket_t;
 
 	enum class transport : std::uint8_t { plaintext, ssl };
 
 	struct session_udp_socket : utp_socket_interface
 	{
-		explicit session_udp_socket(io_service& ios)
-			: sock(ios) {}
+		explicit session_udp_socket(io_service& ios, listen_socket_handle ls)
+			: sock(ios, std::move(ls)) {}
 
 		udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
 
@@ -73,7 +75,7 @@ namespace aux {
 	struct outgoing_udp_socket final : session_udp_socket
 	{
 		outgoing_udp_socket(io_service& ios, std::string const& dev, transport ssl_)
-			: session_udp_socket(ios), device(dev), ssl(ssl_) {}
+			: session_udp_socket(ios, listen_socket_handle{}), device(dev), ssl(ssl_) {}
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device

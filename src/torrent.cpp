@@ -10988,7 +10988,8 @@ bool is_downloading_state(int const st)
 					debug_log("*** increment tracker fail count [%d]", aep->fails);
 #endif
 					// don't try to announce from this endpoint again
-					if (ec == boost::system::errc::address_family_not_supported)
+					if (ec == boost::system::errc::address_family_not_supported
+						|| ec == boost::system::errc::host_unreachable)
 					{
 						aep->enabled = false;
 #ifndef TORRENT_DISABLE_LOGGING
