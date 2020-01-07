@@ -278,8 +278,6 @@ TORRENT_TEST(socks5_udp_retry)
 
 	// number of UDP ASSOCIATE commands invoked on the socks proxy
 	// We run for 60 seconds. The sokcks5 retry interval is expected to be 5
-	// seconds, meaning there should have been 12 connection attempts since we
-	// have an outgoing_udp_socket as well, it will also attempt to establish a
-	// SOCKS5 UDP tunnel, so it will bring it to 24 attempts
-	TEST_EQUAL(socks5.cmd_counts()[2], 24);
+	// seconds, meaning there should have been 12 connection attempts
+	TEST_EQUAL(socks5.cmd_counts()[2], 12);
 }
