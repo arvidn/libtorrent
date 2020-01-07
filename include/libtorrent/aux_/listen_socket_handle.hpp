@@ -77,6 +77,8 @@ namespace libtorrent { namespace aux {
 
 		listen_socket_t* get() const;
 
+		std::weak_ptr<listen_socket_t> get_ptr() const { return m_sock; }
+
 	private:
 		std::weak_ptr<listen_socket_t> m_sock;
 	};

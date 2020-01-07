@@ -52,7 +52,7 @@ namespace libtorrent {
 	// interface/handle to the underlying udp socket
 	struct TORRENT_EXTRA_EXPORT utp_socket_interface
 	{
-		virtual udp::endpoint local_endpoint() = 0;
+		virtual udp::endpoint get_local_endpoint() = 0;
 	protected:
 		virtual ~utp_socket_interface() = default;
 	};

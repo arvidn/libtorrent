@@ -821,7 +821,7 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 		return endpoint_type();
 	}
 
-	udp::endpoint ep = s->local_endpoint();
+	udp::endpoint ep = s->get_local_endpoint();
 	return endpoint_type(ep.address(), ep.port());
 }
 
