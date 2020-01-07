@@ -160,22 +160,25 @@ else:
     src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
     source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
 
-    if extra_cmd:
-        flags = flags_parser()
-        # ldflags parsed first to ensure the correct library search path order
-        extra_link = flags.parse(ldflags)
-        extra_compile = flags.parse(extra_cmd)
+    flags = flags_parser()
+    ext_extra = {}
 
-        ext = [Extension(
-            'libtorrent',
-            sources=sorted(source_list),
-            language='c++',
-            include_dirs=flags.include_dirs,
-            library_dirs=flags.library_dirs,
-            extra_link_args=extra_link + arch(),
-            extra_compile_args=extra_compile + arch() + target_specific(),
-            libraries=['torrent-rasterbar'] + flags.libraries)
-        ]
+    if ldflags:
+        # ldflags parsed first to ensure the correct library search path order
+        ext_extra["extra_link_args"] = flags.parse(ldflags) + arch()
+
+    if extra_cmd:
+        ext_extra["extra_compile_args"] = flags.parse(extra_cmd) + arch() + target_specific()
+
+    ext = [Extension(
+        'libtorrent',
+        sources=sorted(source_list),
+        language='c++',
+        include_dirs=flags.include_dirs,
+        library_dirs=flags.library_dirs,
+        libraries=['torrent-rasterbar'] + flags.libraries,
+        **ext_extra)
+    ]
 
 setup(
     name='python-libtorrent',
