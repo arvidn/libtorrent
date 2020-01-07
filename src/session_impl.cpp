@@ -245,7 +245,7 @@ namespace aux {
 	// are much less common and the presence of NAT means that we cannot
 	// automatically determine which interfaces should have DHT nodes started on
 	// them.
-	void expand_unspecified_address(std::vector<ip_interface> const& ifs
+	void expand_unspecified_address(span<ip_interface const> const ifs
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()

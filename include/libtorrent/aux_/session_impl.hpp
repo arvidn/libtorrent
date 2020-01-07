@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/span.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -258,7 +259,7 @@ namespace aux {
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
-			std::vector<ip_interface> const& ifs
+			span<ip_interface const> ifs
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the
