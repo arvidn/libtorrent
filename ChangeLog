@@ -1,3 +1,4 @@
+	* don't attempt sending event=stopped if event=start never succeeded
 	* make sure &key= stays consistent between different source IPs (as mandated by BEP7)
 	* fix binding sockets to outgoing interface
 	* add new socks5_alert to trouble shoot SOCKS5 proxies

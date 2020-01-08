@@ -2940,7 +2940,10 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
-				if (!aep.enabled) continue;
+				// if we haven't sent an event=start to the tracker, there's no
+				// point in sending an event=stopped
+				if (!aep.enabled || (!aep.start_sent && req.event == tracker_request::stopped))
+					continue;
 
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
