@@ -693,6 +693,67 @@ void announce_entry_test(Announce a, Test t, char const* url_path = "/announce")
 		, url_path);
 }
 
+// test that we correctly omit announcing an event=stopped to a tracker we never
+// managed to send an event=start to
+TORRENT_TEST(omit_stop_event)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	lt::session_proxy zombie;
+
+	asio::io_service ios(sim, { address_v4::from_string("123.0.0.3"), address_v6::from_string("ff::dead:beef")});
+	lt::settings_pack sett = settings();
+	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+
+	print_alerts(*ses);
+
+	lt::add_torrent_params p;
+	p.name = "test-torrent";
+	p.save_path = ".";
+	p.info_hash.assign("abababababababababab");
+	p.trackers.push_back("udp://tracker.com:8080/announce");
+	ses->async_add_torrent(p);
+
+	// run the test 5 seconds in
+	sim::timer t1(sim, lt::seconds(5)
+		, [&ses](boost::system::error_code const&)
+	{
+		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		torrent_handle h = torrents.front();
+	});
+
+	int stop_announces = 0;
+
+	sim::timer t2(sim, lt::seconds(1800)
+		, [&](boost::system::error_code const&)
+	{
+		// make sure we don't announce a stopped event when stopping
+		print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+			if (alert_cast<lt::tracker_announce_alert>(a))
+			++stop_announces;
+		});
+		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		torrent_handle h = torrents.front();
+		h.set_flags(torrent_flags::paused, torrent_flags::paused | torrent_flags::auto_managed);
+	});
+
+	// then shut down 10 seconds in
+	sim::timer t3(sim, lt::seconds(1810)
+		, [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_EQUAL(stop_announces, 0);
+}
+
 TORRENT_TEST(test_error)
 {
 	announce_entry_test(
