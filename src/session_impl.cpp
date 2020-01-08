@@ -260,8 +260,6 @@ namespace aux {
 					continue;
 				if (ipface.interface_address.is_v4())
 					continue;
-				if (ipface.interface_address.is_loopback())
-					continue;
 				if (!uep.device.empty() && uep.device != ipface.name)
 					continue;
 				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
