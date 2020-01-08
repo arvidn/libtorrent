@@ -312,6 +312,8 @@ TORRENT_TEST(expand_unspecified)
 	auto v6_ll_ssl     = ep("fe80::d250:99ff:fe0c:9b74", 6884, tp::ssl);
 	auto v6_g_nossl    = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883);
 	auto v6_g_ssl      = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6884, tp::ssl);
+	auto v6_loopb_ssl  = ep("::1", 6884, tp::ssl);
+	auto v6_loopb_nossl= ep("::1", 6883);
 
 	std::vector<aux::listen_endpoint_t> eps = {
 		v4_nossl, v4_ssl, v6_unsp_nossl, v6_unsp_ssl
@@ -319,13 +321,15 @@ TORRENT_TEST(expand_unspecified)
 
 	aux::expand_unspecified_address(ifs, eps);
 
-	TEST_EQUAL(eps.size(), 6);
+	TEST_EQUAL(eps.size(), 8);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
 
@@ -338,9 +342,10 @@ TORRENT_TEST(expand_unspecified)
 
 	aux::expand_unspecified_address(ifs, eps);
 
-	TEST_EQUAL(eps.size(), 2);
+	TEST_EQUAL(eps.size(), 3);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
 }
 
