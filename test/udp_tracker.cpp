@@ -146,10 +146,10 @@ struct udp_tracker
 				}
 				else
 				{
-					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
+					detail::write_uint8(127, ptr);
+					detail::write_uint8(0, ptr);
+					detail::write_uint8(0, ptr);
+					detail::write_uint8(2, ptr);
 					detail::write_uint16(1337, ptr);
 				}
 				m_socket.send_to(boost::asio::buffer(buffer

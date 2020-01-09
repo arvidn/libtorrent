@@ -306,6 +306,12 @@ TORRENT_TEST(expand_unspecified)
 
 	auto v4_nossl      = ep("0.0.0.0", 6881);
 	auto v4_ssl        = ep("0.0.0.0", 6882, tp::ssl);
+	auto v4_loopb_nossl= ep("127.0.0.1", 6881);
+	auto v4_loopb_ssl  = ep("127.0.0.1", 6882, tp::ssl);
+	auto v4_g1_nossl   = ep("192.168.1.2", 6881);
+	auto v4_g1_ssl     = ep("192.168.1.2", 6882, tp::ssl);
+	auto v4_g2_nossl   = ep("24.172.48.90", 6881);
+	auto v4_g2_ssl     = ep("24.172.48.90", 6882, tp::ssl);
 	auto v6_unsp_nossl = ep("::", 6883);
 	auto v6_unsp_ssl   = ep("::", 6884, tp::ssl);
 	auto v6_ll_nossl   = ep("fe80::d250:99ff:fe0c:9b74", 6883);
@@ -321,17 +327,23 @@ TORRENT_TEST(expand_unspecified)
 
 	aux::expand_unspecified_address(ifs, eps);
 
-	TEST_EQUAL(eps.size(), 8);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 1);
-	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 1);
+	TEST_EQUAL(eps.size(), 12);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_g1_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_g1_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_g2_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_g2_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_ll_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_ssl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_nossl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_loopb_ssl) == 1);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_loopb_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_nossl) == 0);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_unsp_ssl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_nossl) == 0);
+	TEST_CHECK(std::count(eps.begin(), eps.end(), v4_ssl) == 0);
 
 	// test that a user configured endpoint is not duplicated
 	auto v6_g_nossl_dev = ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 6883, "eth0");
