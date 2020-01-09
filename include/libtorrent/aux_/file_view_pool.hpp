@@ -71,12 +71,15 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t const);
 
 	// this is an internal cache of open file mappings.
-	struct TORRENT_EXTRA_EXPORT file_view_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT file_view_pool
 	{
 		// ``size`` specifies the number of allowed files handles
 		// to hold open at any given time.
 		explicit file_view_pool(int size = 40);
 		~file_view_pool();
+
+		file_view_pool(file_view_pool const&) = delete;
+		file_view_pool& operator=(file_view_pool const&) = delete;
 
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the

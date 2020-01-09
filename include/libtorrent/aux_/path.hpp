@@ -44,8 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/noncopyable.hpp>
-
 #ifdef TORRENT_WINDOWS
 // windows part
 #include "libtorrent/aux_/windows.hpp"
