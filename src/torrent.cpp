@@ -696,7 +696,7 @@ bool is_downloading_state(int const st)
 				, m_super_seeding ? "super-seeding " : ""
 				, m_sequential_download ? "sequential-download " : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
-					? "override-trackers"  : ""
+					? "override-trackers "  : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_web_seeds)
 					? "override-web-seeds " : ""
 				, m_save_path.c_str()
