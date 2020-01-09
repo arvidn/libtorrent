@@ -2940,11 +2940,7 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
-				if (!aep.enabled)
-				{
-					aep.next_announce = now + seconds(60);
-					continue;
-				}
+				if (!aep.enabled) continue;
 
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
@@ -7489,7 +7485,7 @@ bool is_downloading_state(int const st)
 		{
 			for (auto& aep : t.endpoints)
 			{
-				if (aep.complete_sent) continue;
+				if (aep.complete_sent || !aep.enabled) continue;
 				aep.next_announce = now;
 				aep.min_announce = now;
 			}
@@ -8881,6 +8877,7 @@ bool is_downloading_state(int const st)
 			if (t.tier > state.tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
 			if (aep.is_working()) { state.tier = t.tier; state.found_working = false; }
 			if (aep.fails >= t.fail_limit && t.fail_limit != 0) continue;
+			if (!aep.enabled) continue;
 			if (aep.updating)
 			{
 				state.found_working = true;
@@ -10990,12 +10987,19 @@ bool is_downloading_state(int const st)
 #endif
 					// don't try to announce from this endpoint again
 					if (ec == boost::system::errc::address_family_not_supported)
+					{
 						aep->enabled = false;
+#ifndef TORRENT_DISABLE_LOGGING
+						debug_log("*** disabling endpoint [%s] for tracker \"%s\""
+							, print_endpoint(aep->local_endpoint).c_str(), r.url.c_str());
+#endif
+					}
 				}
 				else if (r.outgoing_socket)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** no matching endpoint for request [%s, %s]", r.url.c_str(), print_endpoint(r.outgoing_socket.get_local_endpoint()).c_str());
+					debug_log("*** no matching endpoint for request [%s, %s]"
+						, r.url.c_str(), print_endpoint(r.outgoing_socket.get_local_endpoint()).c_str());
 #endif
 				}
 
