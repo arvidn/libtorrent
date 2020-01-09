@@ -67,7 +67,6 @@ namespace aux {
 	struct TORRENT_EXTRA_EXPORT mmap_storage
 		: std::enable_shared_from_this<mmap_storage>
 		, aux::disk_job_fence
-		, boost::noncopyable
 	{
 		// constructs the mmap_storage based on the give file_storage (fs).
 		// ``mapped`` is an optional argument (it may be nullptr). If non-nullptr it
@@ -84,6 +83,8 @@ namespace aux {
 
 		// hidden
 		~mmap_storage();
+		mmap_storage(mmap_storage const&) = delete;
+		mmap_storage& operator=(mmap_storage const&) = delete;
 
 		bool has_any_file(storage_error&);
 		void set_file_priority(settings_interface const&

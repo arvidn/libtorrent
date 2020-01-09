@@ -288,7 +288,6 @@ namespace aux {
 			, dht::dht_observer
 			, aux::portmap_callback
 			, aux::lsd_callback
-			, boost::noncopyable
 			, single_threaded
 			, aux::error_handler_interface
 			, std::enable_shared_from_this<session_impl>
@@ -312,6 +311,9 @@ namespace aux {
 
 			session_impl(io_context&, settings_pack const&, disk_io_constructor_type);
 			~session_impl() override;
+
+			session_impl(session_impl const&) = delete;
+			session_impl& operator=(session_impl const&) = delete;
 
 			void start_session();
 
