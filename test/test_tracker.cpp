@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/socket_io.hpp"
 
 #include <fstream>
 
@@ -396,6 +397,9 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
+	std::printf("peer_ep: %s expected: %s\n"
+		, lt::print_endpoint(peer_ep).c_str()
+		, lt::print_endpoint(expected_peer).c_str());
 	TEST_CHECK(peer_ep == expected_peer);
 	std::printf("destructing session\n");
 
@@ -412,7 +416,11 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 
 TORRENT_TEST(udp_tracker_v4)
 {
-	test_udp_tracker("127.0.0.1", address_v4::any(), ep("1.3.3.7", 1337));
+	// if the machine running the test doesn't have an actual IPv4 connection
+	// the test would fail with any other address than loopback (because it
+	// would be unreachable). This is true for some CI's, running containers
+	// without an internet connection
+	test_udp_tracker("127.0.0.1", address_v4::any(), ep("127.0.0.2", 1337));
 }
 
 TORRENT_TEST(udp_tracker_v6)
@@ -667,7 +675,7 @@ void test_stop_tracker_timeout(int const timeout)
 	settings_pack p = settings();
 	p.set_bool(settings_pack::announce_to_all_trackers, true);
 	p.set_bool(settings_pack::announce_to_all_tiers, true);
-	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	p.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881");
 	p.set_int(settings_pack::stop_tracker_timeout, timeout);
 
 	lt::session s(p);
