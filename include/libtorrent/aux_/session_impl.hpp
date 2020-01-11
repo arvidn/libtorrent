@@ -84,6 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/span.hpp"
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/session_settings.hpp"
@@ -238,10 +239,6 @@ namespace aux {
 
 		std::shared_ptr<natpmp> natpmp_mapper;
 
-		// the key is an id that is used to identify the
-		// client with the tracker only.
-		std::uint32_t tracker_key = 0;
-
 		// set to true when we receive an incoming connection from this listen
 		// socket
 		bool incoming_connection = false;
@@ -276,7 +273,7 @@ namespace aux {
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
-			std::vector<ip_interface> const& ifs
+			span<ip_interface const> ifs
 			, std::vector<listen_endpoint_t>& eps);
 
 		void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s);
@@ -652,8 +649,6 @@ namespace aux {
 			// used by peer connections, returns a TCP listen port
 			// or zero if no matching listen socket is found
 			int listen_port(transport ssl, address const& local_addr) override;
-
-			std::uint32_t get_tracker_key(address const& iface) const;
 
 			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) override
 			{

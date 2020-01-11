@@ -1126,8 +1126,8 @@ TORRENT_TEST(tracker_key_argument)
 		, [](torrent_handle h) {}
 		, [](torrent_handle h) {});
 
-	// make sure we got two separate keys, one for each listen socket interface
-	TEST_EQUAL(keys.size(), 2);
+	// make sure we got the same key for all listen socket interface
+	TEST_EQUAL(keys.size(), 1);
 }
 
 // make sure we do _not_ send our IPv6 address to trackers for non-private

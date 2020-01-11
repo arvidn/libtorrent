@@ -101,9 +101,11 @@ namespace libtorrent {
 
 	void peer_list::clear()
 	{
+		INVARIANT_CHECK;
 		for (auto const p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 		m_peers.clear();
+		m_num_connect_candidates = 0;
 	}
 
 	peer_list::~peer_list()
@@ -114,6 +116,7 @@ namespace libtorrent {
 
 	void peer_list::set_max_failcount(torrent_state* state)
 	{
+		INVARIANT_CHECK;
 		if (state->max_failcount == m_max_failcount) return;
 
 		recalculate_connect_candidates(state);
@@ -176,6 +179,7 @@ namespace libtorrent {
 
 	void peer_list::clear_peer_prio()
 	{
+		INVARIANT_CHECK;
 		for (auto& p : m_peers)
 			p->peer_rank = 0;
 	}
@@ -410,6 +414,7 @@ namespace libtorrent {
 
 	void peer_list::inc_failcount(torrent_peer* p)
 	{
+		INVARIANT_CHECK;
 		// failcount is a 5 bit value
 		if (p->failcount == 31) return;
 

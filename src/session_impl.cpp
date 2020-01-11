@@ -295,7 +295,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	// are much less common and the presence of NAT means that we cannot
 	// automatically determine which interfaces should have DHT nodes started on
 	// them.
-	void expand_unspecified_address(std::vector<ip_interface> const& ifs
+	void expand_unspecified_address(span<ip_interface const> const ifs
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()
@@ -1176,8 +1176,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		{
 			auto ls = req.outgoing_socket.get();
 
-			req.key ^= ls->tracker_key;
-
 			req.listen_port =
 #ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
@@ -1201,9 +1199,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 					listen_port(ls.get());
 
-				// we combine the per-torrent key with the per-interface key to make
-				// them consistent and unique per torrent and interface
-				socket_req.key ^= ls->tracker_key;
 				socket_req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_context(), std::move(socket_req), c);
 			}
@@ -1426,27 +1421,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		if (reopen_outgoing_port)
 			reopen_outgoing_sockets();
-	}
-
-	std::uint32_t session_impl::get_tracker_key(address const& iface) const
-	{
-		auto const ses = reinterpret_cast<uintptr_t>(this);
-		hasher h(reinterpret_cast<char const*>(&ses), sizeof(ses));
-		if (iface.is_v4())
-		{
-			auto const b = iface.to_v4().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data())
-				, std::ptrdiff_t(b.size())});
-		}
-		else
-		{
-			auto const b = iface.to_v6().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data())
-				, std::ptrdiff_t(b.size())});
-		}
-		sha1_hash const hash = h.final();
-		unsigned char const* ptr = &hash[0];
-		return aux::read_uint32(ptr);
 	}
 
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(
@@ -1766,7 +1740,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
 
-		ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
 		ret->device = lep.device;
 
 		error_code err;
@@ -5033,6 +5006,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			bind_ep.address(bind_socket_to_device(m_io_context, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
+			s.bind(bind_ep, ec);
 			return bind_ep;
 		}
 

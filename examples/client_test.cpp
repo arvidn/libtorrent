@@ -201,6 +201,7 @@ bool show_dht_status = false;
 bool sequential_download = false;
 
 bool print_ip = true;
+bool print_local_ip = false;
 bool print_timers = false;
 bool print_block = false;
 bool print_peer_rate = false;
@@ -328,6 +329,7 @@ int print_peer_info(std::string& out
 	using namespace lt;
 	int pos = 0;
 	if (print_ip) out += "IP                             ";
+	if (print_local_ip) out += "local IP                       ";
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb (recvb |alloc | wmrk ) q-bytes ";
@@ -354,6 +356,11 @@ int print_peer_info(std::string& out
 				(i->flags & peer_info::utp_socket ? " [uTP]" : "") +
 				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")
 				).c_str());
+			out += str;
+		}
+		if (print_local_ip)
+		{
+			std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
 
@@ -1602,6 +1609,7 @@ example alert_masks:
 				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
+				if (c == '8') print_local_ip = !print_local_ip;
 				if (c == 'h')
 				{
 					clear_screen();
@@ -1635,7 +1643,7 @@ COLUMN OPTIONS
 [1] toggle IP column                            [2] toggle show peer connection attempts
 [3] toggle timers column                        [4] toggle block progress column
 [5] toggle peer rate column                     [6] toggle failures column
-[7] toggle send buffers column
+[7] toggle send buffers column                  [8] toggle local IP column
 )");
 					int tmp;
 					while (sleep_and_input(&tmp, lt::milliseconds(500)) == false);

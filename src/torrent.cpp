@@ -546,7 +546,7 @@ bool is_downloading_state(int const st)
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
+			if (should_log() && !p.peers.empty())
 			{
 				std::string str;
 				for (auto const& peer : p.peers)
@@ -582,7 +582,7 @@ bool is_downloading_state(int const st)
 				, m_super_seeding ? "super-seeding " : ""
 				, m_sequential_download ? "sequential-download " : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
-					? "override-trackers"  : ""
+					? "override-trackers "  : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_web_seeds)
 					? "override-web-seeds " : ""
 				, m_save_path.c_str()
@@ -1914,7 +1914,7 @@ bool is_downloading_state(int const st)
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
+			if (should_log() && !m_add_torrent_params->peers.empty())
 			{
 				std::string str;
 				for (auto const& peer : m_add_torrent_params->peers)
@@ -2620,7 +2620,7 @@ bool is_downloading_state(int const st)
 			add_peer(p, peer_info::dht, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		if (should_log() && !peers.empty())
 		{
 			std::string str;
 			for (auto const& peer : peers)
@@ -2849,12 +2849,7 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
-				if (!aep.enabled)
-				{
-					for (auto& aih : aep.info_hashes)
-						aih.next_announce = now + seconds(60);
-					continue;
-				}
+				if (!aep.enabled) continue;
 
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
@@ -3332,7 +3327,7 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		if (should_log() && (!resp.peers4.empty() || !resp.peers6.empty()))
 		{
 			std::string str;
 			for (auto const& peer : resp.peers4)
@@ -3585,17 +3580,19 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		if (add_peer(host, peer_info::tracker, v == protocol_version::V2 ? pex_lt_v2: pex_flags_t(0)))
+		if (add_peer(host, peer_info::tracker, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0)))
+		{
 			state_updated();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
-		{
-			debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
-				, host.address().to_string().c_str()
-				, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
-		}
+			if (should_log())
+			{
+				debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
+					, host.address().to_string().c_str()
+					, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
+			}
 #endif
+		}
 		update_want_peers();
 	}
 	catch (...) { handle_exception(); }
@@ -7250,8 +7247,7 @@ bool is_downloading_state(int const st)
 			return false;
 		}
 
-		if (!is_downloading_state(m_state)
-			&& valid_metadata())
+		if (!is_downloading_state(m_state) && valid_metadata())
 		{
 			p->disconnect(errors::torrent_not_ready, operation_t::bittorrent);
 			return false;
@@ -7828,6 +7824,7 @@ bool is_downloading_state(int const st)
 		{
 			for (auto& aep : t.endpoints)
 			{
+				if (!aep.enabled) continue;
 				for (auto& a : aep.info_hashes)
 				{
 					if (a.complete_sent) continue;
@@ -9219,6 +9216,7 @@ bool is_downloading_state(int const st)
 				}
 				timer_state& ep_state = *aep_state_iter;
 
+				if (!aep.enabled) continue;
 				for (protocol_version const ih : all_versions)
 				{
 					if (!supports_protocol[ih]) continue;
@@ -11060,6 +11058,7 @@ bool is_downloading_state(int const st)
 		st->list_peers = m_peer_list ? m_peer_list->num_peers() : 0;
 		st->list_seeds = m_peer_list ? m_peer_list->num_seeds() : 0;
 		st->connect_candidates = m_peer_list ? m_peer_list->num_connect_candidates() : 0;
+		TORRENT_ASSERT(st->connect_candidates >= 0);
 		st->seed_rank = seed_rank(settings());
 
 		st->all_time_upload = m_total_uploaded;
@@ -11423,12 +11422,19 @@ bool is_downloading_state(int const st)
 #endif
 					// don't try to announce from this endpoint again
 					if (ec == boost::system::errc::address_family_not_supported)
+					{
 						aep->enabled = false;
+#ifndef TORRENT_DISABLE_LOGGING
+						debug_log("*** disabling endpoint [%s] for tracker \"%s\""
+							, print_endpoint(aep->local_endpoint).c_str(), r.url.c_str());
+#endif
+					}
 				}
 				else if (r.outgoing_socket)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** no matching endpoint for request [%s, %s]", r.url.c_str(), print_endpoint(r.outgoing_socket.get_local_endpoint()).c_str());
+					debug_log("*** no matching endpoint for request [%s, %s]"
+						, r.url.c_str(), print_endpoint(r.outgoing_socket.get_local_endpoint()).c_str());
 #endif
 				}
 

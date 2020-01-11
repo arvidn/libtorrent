@@ -262,13 +262,11 @@ TORRENT_TEST(socks5_udp_retry)
 	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
 
 	lt::settings_pack pack = settings();
-	pack.set_str(settings_pack::listen_interfaces, "50.50.50.50:6881");
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
+	print_alerts(*ses);
 	set_proxy(*ses, settings_pack::socks5);
 
-	// run for 60 seconds.The sokcks5 retry interval is expected to be 5 seconds,
-	// meaning there should have been 12 connection attempts
 	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
 		fprintf(stderr, "shutting down\n");
@@ -279,5 +277,9 @@ TORRENT_TEST(socks5_udp_retry)
 	sim.run();
 
 	// number of UDP ASSOCIATE commands invoked on the socks proxy
-	TEST_EQUAL(socks5.cmd_counts()[2], 12);
+	// We run for 60 seconds. The sokcks5 retry interval is expected to be 5
+	// seconds, meaning there should have been 12 connection attempts since we
+	// have an outgoing_udp_socket as well, it will also attempt to establish a
+	// SOCKS5 UDP tunnel, so it will bring it to 24 attempts
+	TEST_EQUAL(socks5.cmd_counts()[2], 24);
 }
