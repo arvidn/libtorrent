@@ -659,7 +659,7 @@ bool is_downloading_state(int const st)
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
+			if (should_log() && !p.peers.empty())
 			{
 				std::string str;
 				for (auto const& peer : p.peers)
@@ -2071,7 +2071,7 @@ bool is_downloading_state(int const st)
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
+			if (should_log() && !m_add_torrent_params->peers.empty())
 			{
 				error_code ec;
 				std::string str;
@@ -2728,7 +2728,7 @@ bool is_downloading_state(int const st)
 			add_peer(p, peer_info::dht);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		if (should_log() && !peers.empty())
 		{
 			error_code ec;
 			std::string str;
@@ -3356,7 +3356,7 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		if (should_log() && (!resp.peers4.empty() || !resp.peers6.empty()))
 		{
 			error_code ec;
 			std::string str;
@@ -3589,17 +3589,19 @@ bool is_downloading_state(int const st)
 		}
 
 		if (add_peer(host, peer_info::tracker))
+		{
 			state_updated();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
-		{
-			error_code ec;
-			debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
-				, host.address().to_string(ec).c_str()
-				, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
-		}
+			if (should_log())
+			{
+				error_code ec;
+				debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
+					, host.address().to_string(ec).c_str()
+					, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
+			}
 #endif
+		}
 		update_want_peers();
 	}
 	catch (...) { handle_exception(); }
@@ -6908,8 +6910,7 @@ bool is_downloading_state(int const st)
 			return false;
 		}
 
-		if (!is_downloading_state(m_state)
-			&& valid_metadata())
+		if (!is_downloading_state(m_state) && valid_metadata())
 		{
 			p->disconnect(errors::torrent_not_ready, operation_t::bittorrent);
 			return false;
@@ -10661,6 +10662,7 @@ bool is_downloading_state(int const st)
 		st->list_peers = m_peer_list ? m_peer_list->num_peers() : 0;
 		st->list_seeds = m_peer_list ? m_peer_list->num_seeds() : 0;
 		st->connect_candidates = m_peer_list ? m_peer_list->num_connect_candidates() : 0;
+		TORRENT_ASSERT(st->connect_candidates >= 0);
 		st->seed_rank = seed_rank(settings());
 
 		st->all_time_upload = m_total_uploaded;
