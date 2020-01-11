@@ -96,10 +96,8 @@ namespace libtorrent {
 	struct erase_peer_flags_tag;
 	using erase_peer_flags_t = flags::bitfield_flag<std::uint8_t, erase_peer_flags_tag>;
 
-	class TORRENT_EXTRA_EXPORT peer_list : single_threaded
+	struct TORRENT_EXTRA_EXPORT peer_list : single_threaded
 	{
-	public:
-
 		explicit peer_list(torrent_peer_allocator_interface& alloc);
 		~peer_list();
 
