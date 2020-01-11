@@ -1067,8 +1067,6 @@ namespace aux {
 		{
 			auto ls = req.outgoing_socket.get();
 
-			req.key ^= ls->tracker_key;
-
 			req.listen_port =
 #ifdef TORRENT_USE_OPENSSL
 			// SSL torrents use the SSL listen port
@@ -1092,9 +1090,6 @@ namespace aux {
 #endif
 					listen_port(ls.get());
 
-				// we combine the per-torrent key with the per-interface key to make
-				// them consistent and unique per torrent and interface
-				socket_req.key ^= ls->tracker_key;
 				socket_req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_io_service(), std::move(socket_req), c);
 			}
@@ -1313,27 +1308,6 @@ namespace aux {
 
 		if (reopen_outgoing_port)
 			reopen_outgoing_sockets();
-	}
-
-	std::uint32_t session_impl::get_tracker_key(address const& iface) const
-	{
-		auto const ses = reinterpret_cast<uintptr_t>(this);
-		hasher h(reinterpret_cast<char const*>(&ses), sizeof(ses));
-		if (iface.is_v4())
-		{
-			auto const b = iface.to_v4().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data())
-				, std::ptrdiff_t(b.size())});
-		}
-		else
-		{
-			auto const b = iface.to_v6().to_bytes();
-			h.update({reinterpret_cast<char const*>(b.data())
-				, std::ptrdiff_t(b.size())});
-		}
-		sha1_hash const hash = h.final();
-		unsigned char const* ptr = &hash[0];
-		return detail::read_uint32(ptr);
 	}
 
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(
@@ -1653,7 +1627,6 @@ namespace aux {
 			ret->local_endpoint = tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
 
-		ret->tracker_key = get_tracker_key(ret->local_endpoint.address());
 		ret->device = lep.device;
 
 		error_code err;

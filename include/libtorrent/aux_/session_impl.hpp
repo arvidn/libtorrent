@@ -221,10 +221,6 @@ namespace aux {
 
 		std::shared_ptr<natpmp> natpmp_mapper;
 
-		// the key is an id that is used to identify the
-		// client with the tracker only.
-		std::uint32_t tracker_key = 0;
-
 		// set to true when we receive an incoming connection from this listen
 		// socket
 		bool incoming_connection = false;
@@ -629,8 +625,6 @@ namespace aux {
 			// used by peer connections, returns a TCP listen port
 			// or zero if no matching listen socket is found
 			int listen_port(transport ssl, address const& local_addr) override;
-
-			std::uint32_t get_tracker_key(address const& iface) const;
 
 			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) override
 			{
