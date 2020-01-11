@@ -5470,7 +5470,7 @@ namespace aux {
 		if (is_v6(s.local_endpoint) && is_local(s.local_endpoint.address()))
 			return;
 
-		if (!s.natpmp_mapper)
+		if (!s.natpmp_mapper && (s.flags & listen_socket_t::has_gateway))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
