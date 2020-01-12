@@ -787,24 +787,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 #else
 
-#ifdef _MSC_VER
-#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" )
-#else
-#warning "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK"
-#endif
+#error "Don't know how to enumerate network interfaces on this platform"
 
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
-		if (ec) return ret;
-		for (;i != udp::resolver::iterator(); ++i)
-		{
-			ip_interface iface;
-			iface.interface_address = i->endpoint().address();
-			if (iface.interface_address.is_v4())
-				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
-			ret.push_back(iface);
-		}
 #endif
 		return ret;
 	}
@@ -1230,6 +1214,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 		::close(sock);
 
+#else
+#error "don't know how to enumerate network routes on this platform"
 #endif
 		return ret;
 	}
