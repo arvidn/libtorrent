@@ -556,9 +556,33 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	error_code ec;
 	m_socks5_sock.open(is_v4(m_proxy_addr) ? tcp::v4() : tcp::v6(), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_open, ec);
+		return;
+	}
 
 	// enable keepalives
 	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option, ec);
+		return;
+	}
+
+	tcp::endpoint const bind_ep(m_listen_socket.get_local_endpoint().address(), 0);
+	m_socks5_sock.bind(bind_ep, ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_bind, ec);
+		return;
+	}
+
+	// TODO: perhaps an attempt should be made to bind m_socks5_sock to the
+	// device of m_listen_socket
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connected");
 	m_socks5_sock.async_connect(m_proxy_addr

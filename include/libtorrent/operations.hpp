@@ -169,6 +169,9 @@ namespace libtorrent {
 
 		// handshake with a peer or server
 		handshake,
+
+		// set socket option
+		sock_option,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
