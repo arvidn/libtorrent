@@ -370,6 +370,8 @@ void bind_alert()
        .value("partfile_write", operation_t::partfile_write)
        .value("hostname_lookup", operation_t::hostname_lookup)
        .value("symlink", operation_t::symlink)
+       .value("handshake", operation_t::handshake)
+       .value("sock_option", operation_t::sock_option)
        ;
 
     def("operation_name", static_cast<char const*(*)(operation_t)>(&lt::operation_name));
