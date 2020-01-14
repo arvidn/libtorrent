@@ -227,6 +227,28 @@ namespace libtorrent {
 		++m_outstanding_operations;
 	}
 
+	void broadcast_socket::send_to(char const* buffer, int size
+		, udp::endpoint const& to, error_code& ec)
+	{
+		bool all_fail = true;
+		error_code e;
+		for (auto& s : m_sockets)
+		{
+			if (!s.socket) continue;
+			s.socket->send_to(boost::asio::buffer(buffer, std::size_t(size)), to, 0, e);
+			if (e)
+			{
+				s.socket->close(e);
+				s.socket.reset();
+			}
+			else
+			{
+				all_fail = false;
+			}
+		}
+		if (all_fail) ec = e;
+	}
+
 	void broadcast_socket::send(char const* buffer, int const size
 		, error_code& ec, int const flags)
 	{

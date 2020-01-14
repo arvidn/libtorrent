@@ -87,7 +87,7 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 
 	std::cout << "< incoming m-search from " << from << std::endl;
 
-	char msg[] = "HTTP/1.1 200 OK\r\n"
+	char const msg[] = "HTTP/1.1 200 OK\r\n"
 		"ST:upnp:rootdevice\r\n"
 		"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
 		"Location: http://127.0.0.1:%d/upnp.xml\r\n"
@@ -107,7 +107,9 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 #pragma clang diagnostic pop
 #endif
 	error_code ec;
-	sock->send(buf, len, ec);
+	sock->send_to(buf, len, from, ec);
+
+	std::cout << "> sending response to " << print_endpoint(from) << std::endl;
 
 	if (ec) std::cout << "*** error sending " << ec.message() << std::endl;
 }
