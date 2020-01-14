@@ -119,20 +119,11 @@ void upnp::start()
 		, lt::get_io_service(m_refresh_timer), ec);
 
 	m_mappings.reserve(10);
-}
-
-upnp::~upnp() = default;
-
-void upnp::discover_device()
-{
-	TORRENT_ASSERT(is_single_thread());
-#ifndef TORRENT_DISABLE_LOGGING
-	if (m_socket.num_send_sockets() == 0)
-		log("No network interfaces to broadcast to");
-#endif
 
 	discover_device_impl();
 }
+
+upnp::~upnp() = default;
 
 #ifndef TORRENT_DISABLE_LOGGING
 bool upnp::should_log() const
