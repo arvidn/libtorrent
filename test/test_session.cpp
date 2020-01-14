@@ -548,12 +548,14 @@ TORRENT_TEST(reopen_network_sockets)
 
 	lt::session s(p);
 
-	// NAT-PMP will be disabled when we only listen on loopback
-	TEST_CHECK(count_alerts(s, 2, 2));
+	// NAT-PMP nad UPnP will be disabled when we only listen on loopback
+	TEST_CHECK(count_alerts(s, 2, 0));
 
+	// this is a bit of a pointless test now, since neither UPnP nor NAT-PMP are
+	// enabled for loopback
 	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
-	TEST_CHECK(count_alerts(s, 0, 2));
+	TEST_CHECK(count_alerts(s, 0, 0));
 
 	s.reopen_network_sockets({});
 
