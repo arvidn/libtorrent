@@ -6709,8 +6709,7 @@ namespace aux {
 		m_upnp = std::make_shared<upnp>(m_io_service
 			, m_settings.get_bool(settings_pack::anonymous_mode)
 				? "" : m_settings.get_str(settings_pack::user_agent)
-			, *this
-			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
+			, *this);
 		m_upnp->start();
 
 		m_upnp->discover_device();
