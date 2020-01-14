@@ -95,13 +95,6 @@ namespace libtorrent {
 	// netmask
 	TORRENT_EXTRA_EXPORT address build_netmask(int bits, int family);
 
-	// returns true if the specified address is on the same
-	// local network as us
-	TORRENT_EXTRA_EXPORT bool in_local_network(io_service& ios, address const& addr
-		, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
-		, address const& addr);
-
 	// return the gateway for the given ip_interface, if there is one. Otherwise
 	// return nullopt.
 	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
