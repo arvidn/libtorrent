@@ -1985,6 +1985,12 @@ namespace aux {
 				start_natpmp(*s);
 		}
 
+		if (m_settings.get_bool(settings_pack::enable_upnp))
+		{
+			for (auto const& s : new_sockets)
+				start_upnp(*s);
+		}
+
 		if (map_ports)
 		{
 			for (auto const& s : m_listen_sockets)
@@ -2041,11 +2047,11 @@ namespace aux {
 			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
 				, s.udp_port_mapping[portmap_transport::natpmp].mapping);
 		}
-		if ((mask & remap_upnp) && m_upnp)
+		if ((mask & remap_upnp) && s.upnp_mapper)
 		{
-			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep
+			map_port(*s.upnp_mapper, portmap_protocol::tcp, tcp_ep
 				, s.tcp_port_mapping[portmap_transport::upnp].mapping);
-			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep)
+			map_port(*s.upnp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
 				, s.udp_port_mapping[portmap_transport::upnp].mapping);
 		}
 	}
@@ -6417,12 +6423,19 @@ namespace aux {
 	{
 		if (!m_settings.get_bool(settings_pack::anonymous_mode))
 		{
-			if (m_upnp)
-				m_upnp->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			for (auto& s : m_listen_sockets)
+			{
+				if (!s->upnp_mapper) continue;
+				s->upnp_mapper->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			}
 			return;
 		}
 
-		if (m_upnp) m_upnp->set_user_agent("");
+		for (auto& s : m_listen_sockets)
+		{
+			if (!s->upnp_mapper) continue;
+			s->upnp_mapper->set_user_agent("");
+		}
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -6640,24 +6653,39 @@ namespace aux {
 		}
 	}
 
-	upnp* session_impl::start_upnp()
+	void session_impl::start_upnp()
 	{
 		INVARIANT_CHECK;
-
-		if (m_upnp) return m_upnp.get();
-
-		// the upnp constructor may fail and call the callbacks
-		m_upnp = std::make_shared<upnp>(m_io_service
-			, m_settings.get_bool(settings_pack::anonymous_mode)
-				? "" : m_settings.get_str(settings_pack::user_agent)
-			, *this);
-		m_upnp->start();
-
 		for (auto& s : m_listen_sockets)
 		{
+			start_upnp(*s);
 			remap_ports(remap_upnp, *s);
 		}
-		return m_upnp.get();
+	}
+
+	void session_impl::start_upnp(aux::listen_socket_t& s)
+	{
+		// until we support SSDP over an IPv6 network (
+		// https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol )
+		// there's no point in starting upnp on one.
+		if (is_v6(s.local_endpoint))
+			return;
+
+		// there's no point in starting the UPnP mapper for a network that doesn't
+		// have a gateway. The whole point is to forward ports through the gateway
+		if (!(s.flags & listen_socket_t::has_gateway))
+			return;
+
+		if (!s.upnp_mapper)
+		{
+			// the upnp constructor may fail and call the callbacks
+			// into the session_impl.
+			s.upnp_mapper = std::make_shared<upnp>(m_io_service
+				, m_settings.get_bool(settings_pack::anonymous_mode)
+				? "" : m_settings.get_str(settings_pack::user_agent)
+				, *this, s.local_endpoint.address().to_v4(), s.netmask.to_v4(), s.device);
+			s.upnp_mapper->start();
+		}
 	}
 
 	std::vector<port_mapping_t> session_impl::add_port_mapping(portmap_protocol const t
@@ -6665,10 +6693,10 @@ namespace aux {
 		, int const local_port)
 	{
 		std::vector<port_mapping_t> ret;
-		if (m_upnp) ret.push_back(m_upnp->add_mapping(t, external_port
-			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 		for (auto& s : m_listen_sockets)
 		{
+			if (s->upnp_mapper) ret.push_back(s->upnp_mapper->add_mapping(t, external_port
+				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
 				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 		}
@@ -6677,9 +6705,9 @@ namespace aux {
 
 	void session_impl::delete_port_mapping(port_mapping_t handle)
 	{
-		if (m_upnp) m_upnp->delete_mapping(handle);
 		for (auto& s : m_listen_sockets)
 		{
+			if (s->upnp_mapper) s->upnp_mapper->delete_mapping(handle);
 			if (s->natpmp_mapper) s->natpmp_mapper->delete_mapping(handle);
 		}
 	}
@@ -6713,15 +6741,14 @@ namespace aux {
 
 	void session_impl::stop_upnp()
 	{
-		if (!m_upnp) return;
-
-		m_upnp->close();
 		for (auto& s : m_listen_sockets)
 		{
+			if (!s->upnp_mapper) continue;
 			s->tcp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
 			s->udp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
+			s->upnp_mapper->close();
+			s->upnp_mapper.reset();
 		}
-		m_upnp.reset();
 	}
 
 	external_ip session_impl::external_address() const

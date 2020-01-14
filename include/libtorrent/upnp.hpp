@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/resolver.hpp"
@@ -149,7 +148,10 @@ struct TORRENT_EXTRA_EXPORT upnp final
 {
 	upnp(io_service& ios
 		, std::string const& user_agent
-		, aux::portmap_callback& cb);
+		, aux::portmap_callback& cb
+		, address_v4 const& listen_address
+		, address_v4 const& netmask
+		, std::string listen_device);
 	~upnp();
 
 	void set_user_agent(std::string const& v) { m_user_agent = v; }
@@ -196,12 +198,15 @@ private:
 
 	std::shared_ptr<upnp> self() { return shared_from_this(); }
 
+	void open_multicast_socket(udp::socket& s, error_code& ec);
+	void open_unicast_socket(udp::socket& s, error_code& ec);
+
 	void map_timer(error_code const& ec);
 	void try_map_upnp();
 	void discover_device_impl();
 
 	void resend_request(error_code const& e);
-	void on_reply(udp::endpoint const& from, span<char const> buffer);
+	void on_reply(udp::socket& s, error_code const& ec);
 
 	struct rootdevice;
 	void next(rootdevice& d, port_mapping_t i);
@@ -329,7 +334,8 @@ private:
 
 	// the udp socket used to send and receive
 	// multicast messages on the network
-	broadcast_socket m_socket;
+	udp::socket m_multicast_socket;
+	udp::socket m_unicast_socket;
 
 	// used to resend udp packets in case
 	// they time out
@@ -350,9 +356,11 @@ private:
 
 	std::string m_model;
 
-	// cache of interfaces
-	mutable std::vector<ip_interface> m_interfaces;
-	mutable time_point m_last_if_update;
+	// the network this UPnP mapper is associated with. Don't talk to any other
+	// network
+	address_v4 m_listen_address;
+	address_v4 m_netmask;
+	std::string m_device;
 };
 
 }
