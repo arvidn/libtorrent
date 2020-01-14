@@ -198,7 +198,6 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	upnp_callback cb;
 	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb);
 	upnp_handler->start();
-	upnp_handler->discover_device();
 
 	for (int i = 0; i < 20; ++i)
 	{

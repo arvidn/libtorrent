@@ -182,7 +182,6 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	bool get_mapping(port_mapping_t mapping_index, tcp::endpoint& local_ep, int& external_port
 		, portmap_protocol& protocol) const;
 
-	void discover_device();
 	void close();
 
 	// This is only available for UPnP routers. If the model is advertised by

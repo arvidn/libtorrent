@@ -6657,8 +6657,6 @@ namespace aux {
 			, *this);
 		m_upnp->start();
 
-		m_upnp->discover_device();
-
 		for (auto& s : m_listen_sockets)
 		{
 			remap_ports(remap_upnp, *s);
