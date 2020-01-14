@@ -149,8 +149,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 {
 	upnp(io_service& ios
 		, std::string const& user_agent
-		, aux::portmap_callback& cb
-		, bool ignore_nonrouters);
+		, aux::portmap_callback& cb);
 	~upnp();
 
 	void set_user_agent(std::string const& v) { m_user_agent = v; }
@@ -199,7 +198,7 @@ private:
 	std::shared_ptr<upnp> self() { return shared_from_this(); }
 
 	void map_timer(error_code const& ec);
-	void try_map_upnp(bool timer = false);
+	void try_map_upnp();
 	void discover_device_impl();
 
 	void resend_request(error_code const& e);
@@ -297,13 +296,6 @@ private:
 
 		bool disabled = false;
 
-		// this is true if the IP of this device is not
-		// one of our default routes. i.e. it may be someone
-		// else's router, we just happen to have multicast
-		// enabled across networks
-		// this is only relevant if ignore_non_routers is set.
-		bool non_router = false;
-
 		mutable std::shared_ptr<http_connection> upnp_connection;
 
 #if TORRENT_USE_ASSERTS
@@ -330,7 +322,7 @@ private:
 	aux::portmap_callback& m_callback;
 
 	// current retry count
-	int m_retry_count;
+	int m_retry_count = 0;
 
 	io_service& m_io_service;
 
@@ -354,9 +346,8 @@ private:
 	// map them anyway.
 	deadline_timer m_map_timer;
 
-	bool m_disabled;
-	bool m_closing;
-	bool m_ignore_non_routers;
+	bool m_disabled = false;
+	bool m_closing = false;
 
 	std::string m_model;
 

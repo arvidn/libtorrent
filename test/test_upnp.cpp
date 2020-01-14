@@ -196,7 +196,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	std::string user_agent = "test agent";
 
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb, false);
+	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb);
 	upnp_handler->start();
 	upnp_handler->discover_device();
 
@@ -283,7 +283,7 @@ TORRENT_TEST(upnp_max_mappings)
 {
 	lt::io_service ios;
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb, false);
+	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb);
 
 	for (int i = 0; i < 50; ++i)
 	{

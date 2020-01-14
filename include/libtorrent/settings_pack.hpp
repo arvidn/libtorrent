@@ -309,11 +309,15 @@ namespace aux {
 			// trackers fail or not.
 			use_dht_as_fallback,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``upnp_ignore_nonrouters`` indicates whether or not the UPnP
 			// implementation should ignore any broadcast response from a device
 			// whose address is not the configured router for this machine. i.e.
 			// it's a way to not talk to other people's routers by mistake.
-			upnp_ignore_nonrouters,
+			upnp_ignore_nonrouters TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_upnp_ignore_nonrouters,
+#endif
 
 			// ``use_parole_mode`` specifies if parole mode should be used. Parole
 			// mode means that peers that participate in pieces that fail the hash
