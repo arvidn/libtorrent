@@ -6908,7 +6908,8 @@ namespace aux {
 		, ip_source_t const source_type, address const& source)
 	{
 		auto sock = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, [&](std::shared_ptr<listen_socket_t> const& v) { return v->local_endpoint == local_endpoint; });
+			, [&](std::shared_ptr<listen_socket_t> const& v)
+			{ return v->local_endpoint.address() == local_endpoint.address(); });
 
 		if (sock != m_listen_sockets.end())
 			set_external_address(*sock, ip, source_type, source);

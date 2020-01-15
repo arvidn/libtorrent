@@ -269,32 +269,37 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 		return;
 	}
 
-	const char y = *(y_ent.string_ptr());
+	char const y = *(y_ent.string_ptr());
 
-	bdecode_node ext_ip = m.message.dict_find_string("ip");
+	// we can only ascribe the external IP this node is saying we have to the
+	// listen socket the packet was received on
+	if (s == m_sock)
+	{
+		bdecode_node ext_ip = m.message.dict_find_string("ip");
 
-	// backwards compatibility
-	if (!ext_ip)
-	{
-		bdecode_node const r = m.message.dict_find_dict("r");
-		if (r)
-			ext_ip = r.dict_find_string("ip");
-	}
+		// backwards compatibility
+		if (!ext_ip)
+		{
+			bdecode_node const r = m.message.dict_find_dict("r");
+			if (r)
+				ext_ip = r.dict_find_string("ip");
+		}
 
-	if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v6())))
-	{
-		// this node claims we use the wrong node-ID!
-		char const* ptr = ext_ip.string_ptr();
-		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, detail::read_v6_address(ptr)
-				, m.addr.address());
-	}
-	else if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v4())))
-	{
-		char const* ptr = ext_ip.string_ptr();
-		if (m_observer != nullptr)
-			m_observer->set_external_address(m_sock, detail::read_v4_address(ptr)
-				, m.addr.address());
+		if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v6())))
+		{
+			// this node claims we use the wrong node-ID!
+			char const* ptr = ext_ip.string_ptr();
+			if (m_observer != nullptr)
+				m_observer->set_external_address(m_sock, detail::read_v6_address(ptr)
+					, m.addr.address());
+		}
+		else if (ext_ip && ext_ip.string_length() >= int(detail::address_size(udp::v4())))
+		{
+			char const* ptr = ext_ip.string_ptr();
+			if (m_observer != nullptr)
+				m_observer->set_external_address(m_sock, detail::read_v4_address(ptr)
+					, m.addr.address());
+		}
 	}
 
 	switch (y)
@@ -312,8 +317,9 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			// responds to 'query' messages that it receives.
 			if (m_settings.read_only) break;
 
-			// only respond to requests if they're addressed to this node
-			if (s != m_sock) break;
+			// ignore packets arriving on a different interface than the one we're
+			// associated with
+			if (s != m_sock) return;
 
 			if (!m_sock_man->has_quota())
 			{

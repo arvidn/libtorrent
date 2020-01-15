@@ -1,3 +1,4 @@
+	* fix external IP voting for multi-homed DHT nodes
 	* deprecate broadcast_lsd setting. Just use multicast
 	* deprecate upnp_ignore_nonrouters setting
 	* don't attempt sending event=stopped if event=start never succeeded
