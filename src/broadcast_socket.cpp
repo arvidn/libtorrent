@@ -210,8 +210,6 @@ namespace libtorrent {
 		std::shared_ptr<udp::socket> s = std::make_shared<udp::socket>(ios);
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
-		s->bind(udp::endpoint(addr, 0), ec);
-		if (ec) return;
 
 		m_unicast_sockets.emplace_back(s, mask);
 		socket_entry& se = m_unicast_sockets.back();

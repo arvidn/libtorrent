@@ -208,7 +208,6 @@ bool is_downloading_state(int const st)
 		, m_max_uploads((1 << 24) - 1)
 		, m_save_resume_flags()
 		, m_num_uploads(0)
-		, m_lsd_seq(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
@@ -2603,9 +2602,7 @@ bool is_downloading_state(int const st)
 #endif
 
 		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file->info_hash(), port
-			, settings().get_bool(settings_pack::broadcast_lsd) && m_lsd_seq == 0);
-		++m_lsd_seq;
+		m_ses.announce_lsd(m_torrent_file->info_hash(), port);
 	}
 
 #ifndef TORRENT_DISABLE_DHT

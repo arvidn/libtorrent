@@ -108,7 +108,7 @@ namespace libtorrent {
 	struct plugin;
 	struct upnp;
 	struct natpmp;
-	class lsd;
+	struct lsd;
 	class torrent;
 	class alert;
 	struct torrent_handle;
@@ -642,7 +642,7 @@ namespace aux {
 
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
-			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) override;
+			void announce_lsd(sha1_hash const& ih, int port) override;
 
 			void save_state(entry* e, save_state_flags_t flags) const;
 			void load_state(bdecode_node const* e, save_state_flags_t flags);
