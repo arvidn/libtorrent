@@ -147,8 +147,6 @@ namespace aux {
 		static constexpr ip_source_t source_tracker = 3_bit;
 		static constexpr ip_source_t source_router = 4_bit;
 
-		virtual void set_external_address(address const& ip
-			, ip_source_t source_type, address const& source) = 0;
 		virtual void set_external_address(tcp::endpoint const& local_endpoint
 			, address const& ip
 			, ip_source_t source_type, address const& source) = 0;

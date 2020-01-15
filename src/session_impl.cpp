@@ -6904,21 +6904,6 @@ namespace aux {
 		return false;
 	}
 
-	void session_impl::set_external_address(address const& ip
-		, ip_source_t const source_type, address const& source)
-	{
-		// for now, just pick the first socket with a matching address family
-		// TODO: remove this function once all callers are updated to specify a listen socket
-		for (auto& i : m_listen_sockets)
-		{
-			if (is_v4(i->local_endpoint) != ip.is_v4())
-				continue;
-
-			set_external_address(i, ip, source_type, source);
-			break;
-		}
-	}
-
 	void session_impl::set_external_address(
 		tcp::endpoint const& local_endpoint, address const& ip
 		, ip_source_t const source_type, address const& source)
