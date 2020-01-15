@@ -237,6 +237,8 @@ namespace aux {
 		std::shared_ptr<natpmp> natpmp_mapper;
 		std::shared_ptr<upnp> upnp_mapper;
 
+		std::shared_ptr<struct lsd> lsd;
+
 		// set to true when we receive an incoming connection from this listen
 		// socket
 		bool incoming_connection = false;
@@ -751,7 +753,7 @@ namespace aux {
 			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
-			bool has_lsd() const override { return m_lsd.get() != nullptr; }
+			bool has_lsd() const override;
 
 			std::vector<block_info>& block_info_storage() override { return m_block_info_storage; }
 
@@ -1194,8 +1196,6 @@ namespace aux {
 			// connections that have been made this second
 			// this is deducted from the connect speed
 			int m_boost_connections = 0;
-
-			std::shared_ptr<lsd> m_lsd;
 
 #if TORRENT_ABI_VERSION == 1
 			struct work_thread_t

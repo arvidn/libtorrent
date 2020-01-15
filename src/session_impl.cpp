@@ -2004,6 +2004,8 @@ namespace aux {
 				remap_ports(remap_natpmp_and_upnp, *s);
 		}
 
+		update_lsd();
+
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
 #endif
@@ -5022,6 +5024,12 @@ namespace aux {
 			, [&device](std::string const& s) { return s == device; });
 	}
 
+	bool session_impl::has_lsd() const
+	{
+		return std::any_of(m_listen_sockets.begin(), m_listen_sockets.end()
+			, [](std::shared_ptr<listen_socket_t> const& s) { return bool(s->lsd); });
+	}
+
 	void session_impl::remove_torrent(const torrent_handle& h
 		, remove_flags_t const options)
 	{
@@ -5425,8 +5433,10 @@ namespace aux {
 	void session_impl::announce_lsd(sha1_hash const& ih, int port)
 	{
 		// use internal listen port for local peers
-		if (m_lsd)
-			m_lsd->announce(ih, port);
+		for (auto const& s : m_listen_sockets)
+		{
+			if (s->lsd) s->lsd->announce(ih, port);
+		}
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih)
@@ -6638,13 +6648,20 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		if (m_lsd) return;
-
-		m_lsd = std::make_shared<lsd>(m_io_service, *this);
-		error_code ec;
-		m_lsd->start(ec);
-		if (ec && m_alerts.should_post<lsd_error_alert>())
-			m_alerts.emplace_alert<lsd_error_alert>(ec);
+		for (auto& s : m_listen_sockets)
+		{
+			if (s->lsd) continue;
+			s->lsd = std::make_shared<lsd>(m_io_service, *this, s->local_endpoint.address()
+				, s->netmask);
+			error_code ec;
+			s->lsd->start(ec);
+			if (ec)
+			{
+				if (m_alerts.should_post<lsd_error_alert>())
+					m_alerts.emplace_alert<lsd_error_alert>(ec);
+				s->lsd.reset();
+			}
+		}
 	}
 
 	void session_impl::start_natpmp()
@@ -6726,9 +6743,12 @@ namespace aux {
 
 	void session_impl::stop_lsd()
 	{
-		if (m_lsd)
-			m_lsd->close();
-		m_lsd.reset();
+		for (auto& s : m_listen_sockets)
+		{
+			if (!s->lsd) continue;
+			s->lsd->close();
+			s->lsd.reset();
+		}
 	}
 
 	void session_impl::stop_natpmp()

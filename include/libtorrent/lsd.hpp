@@ -43,7 +43,8 @@ namespace libtorrent {
 
 struct lsd : std::enable_shared_from_this<lsd>
 {
-	lsd(io_service& ios, aux::lsd_callback& cb);
+	lsd(io_service& ios, aux::lsd_callback& cb
+		, address const& listen_address, address const& netmask);
 	~lsd();
 
 	void start(error_code& ec);
@@ -55,18 +56,18 @@ private:
 
 	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
-	void announce_impl(sha1_hash const& ih, int listen_port
-		, int retry_count);
+	void announce_impl(sha1_hash const& ih, int listen_port, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& ih
 		, int listen_port, int retry_count);
-	void on_announce(udp::endpoint const& from, span<char const> buffer);
+	void on_announce(error_code const& ec);
 
 	aux::lsd_callback& m_callback;
 
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-	broadcast_socket m_socket6;
+	address m_listen_address;
+	address m_netmask;
+
+	udp::socket m_socket;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
 	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
@@ -84,7 +85,6 @@ private:
 	int m_cookie;
 
 	bool m_disabled = false;
-	bool m_disabled6 = false;
 };
 
 }
