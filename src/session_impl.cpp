@@ -5475,11 +5475,11 @@ namespace aux {
 		return 0;
 	}
 
-	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
+	void session_impl::announce_lsd(sha1_hash const& ih, int port)
 	{
 		// use internal listen port for local peers
 		if (m_lsd)
-			m_lsd->announce(ih, port, broadcast);
+			m_lsd->announce(ih, port);
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih)

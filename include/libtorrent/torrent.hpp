@@ -1590,9 +1590,7 @@ namespace libtorrent {
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// rotating sequence number for LSD announces sent out.
-		// used to only use IP broadcast for every 8th lsd announce
-		std::uint8_t m_lsd_seq:3;
+		// 3 unused bits
 
 		// when this is true, this torrent supports peer exchange
 		bool m_enable_pex:1;

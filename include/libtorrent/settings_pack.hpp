@@ -490,13 +490,17 @@ namespace aux {
 			// requested from another peer already.
 			strict_end_game_mode,
 
+#if TORRENT_ABI_VERSION == 1
 			// if ``broadcast_lsd`` is set to true, the local peer discovery (or
 			// Local Service Discovery) will not only use IP multicast, but also
 			// broadcast its messages. This can be useful when running on networks
 			// that don't support multicast. Since broadcast messages might be
 			// expensive and disruptive on networks, only every 8th announce uses
 			// broadcast.
-			broadcast_lsd,
+			broadcast_lsd TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_broadcast_lsd,
+#endif
 
 			// when set to true, libtorrent will try to make outgoing utp
 			// connections controls whether libtorrent will accept incoming

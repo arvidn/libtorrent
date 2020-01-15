@@ -170,7 +170,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(incoming_starts_queued_torrents, false, nullptr),
 		SET(report_true_downloaded, false, nullptr),
 		SET(strict_end_game_mode, true, nullptr),
-		SET(broadcast_lsd, true, nullptr),
+		DEPRECATED_SET(broadcast_lsd, true, nullptr),
 		SET(enable_outgoing_utp, true, nullptr),
 		SET(enable_incoming_utp, true, nullptr),
 		SET(enable_outgoing_tcp, true, nullptr),
