@@ -42,15 +42,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-class lsd final : public std::enable_shared_from_this<lsd>
+struct lsd : std::enable_shared_from_this<lsd>
 {
-public:
 	lsd(io_context& ios, aux::lsd_callback& cb);
 	~lsd();
 
 	void start(error_code& ec);
 
-	void announce(sha1_hash const& ih, int listen_port, bool broadcast = false);
+	void announce(sha1_hash const& ih, int listen_port);
 	void close();
 
 private:
@@ -58,7 +57,7 @@ private:
 	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port
-		, bool broadcast, int retry_count);
+		, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& info_hash
 		, int listen_port, int retry_count);
 	void on_announce(udp::endpoint const& from, span<char const> buffer);
@@ -87,8 +86,8 @@ private:
 	// as a peer
 	int m_cookie;
 
-	bool m_disabled;
-	bool m_disabled6;
+	bool m_disabled = false;
+	bool m_disabled6 = false;
 };
 
 }

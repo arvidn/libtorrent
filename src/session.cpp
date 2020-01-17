@@ -141,10 +141,6 @@ namespace {
 		// socket until the disk write is complete
 		set.set_int(settings_pack::max_queued_disk_bytes, 1);
 
-		// don't keep track of all upnp devices, keep
-		// the device list small
-		set.set_bool(settings_pack::upnp_ignore_nonrouters, true);
-
 		// never keep more than one 16kB block in
 		// the send buffer
 		set.set_int(settings_pack::send_buffer_watermark, 9);

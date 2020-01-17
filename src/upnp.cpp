@@ -103,11 +103,9 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 // interface by default
 upnp::upnp(io_context& ios
 	, std::string user_agent
-	, aux::portmap_callback& cb
-	, bool ignore_nonrouters)
+	, aux::portmap_callback& cb)
 	: m_user_agent(std::move(user_agent))
 	, m_callback(cb)
-	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_resolver(ios)
 	, m_socket(udp::endpoint(make_address_v4("239.255.255.250"
@@ -116,9 +114,6 @@ upnp::upnp(io_context& ios
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
 	, m_ioc(ios)
-	, m_disabled(false)
-	, m_closing(false)
-	, m_ignore_non_routers(ignore_nonrouters)
 	, m_last_if_update(min_time())
 {
 }
@@ -159,7 +154,7 @@ void upnp::log(char const* fmt, ...) const
 	if (!should_log()) return;
 	va_list v;
 	va_start(v, fmt);
-	char msg[500];
+	char msg[1024];
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
 	m_callback.log_portmap(portmap_transport::upnp, msg);
@@ -448,50 +443,6 @@ void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 		return;
 	}
 
-	bool non_router = false;
-	if (m_ignore_non_routers)
-	{
-		auto const routes = enum_routes(m_io_service, ec);
-		if (std::none_of(routes.begin(), routes.end()
-			, [from] (ip_route const& rt) { return rt.gateway == from.address(); }))
-		{
-			// this upnp device is filtered because it's not in the
-			// list of configured routers
-			if (ec)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					log("failed to enumerate routes when "
-						"receiving response from: %s: %s"
-						, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
-				}
-#endif
-			}
-			else
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					char msg[400];
-					int num_chars = std::snprintf(msg, sizeof(msg), "SSDP response from: "
-						"%s: IP is not a router. "
-						, print_endpoint(from).c_str());
-					for (auto const& route : routes)
-					{
-						num_chars += std::snprintf(msg + num_chars, sizeof(msg) - std::size_t(num_chars), "(%s,%s) "
-							, print_address(route.gateway).c_str()
-							, print_address(route.netmask).c_str());
-						if (num_chars >= int(sizeof(msg))) break;
-					}
-					log("%s", msg);
-				}
-#endif
-				non_router = true;
-			}
-		}
-	}
-
 	http_parser p;
 	bool error = false;
 	p.incoming(buffer, error);
@@ -623,7 +574,6 @@ void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 #endif
 			return;
 		}
-		d.non_router = non_router;
 
 		TORRENT_ASSERT(d.mapping.empty());
 		for (auto const& j : m_mappings)
@@ -642,15 +592,12 @@ void upnp::on_reply(udp::endpoint const& from, span<char const> buffer)
 	// iterate over the devices we know and connect and issue the mappings
 	try_map_upnp();
 
-	if (m_ignore_non_routers)
-	{
-		ADD_OUTSTANDING_ASYNC("upnp::map_timer");
-		// check back in a little bit to see if we have seen any
-		// devices at one of our default routes. If not, we want to override
-		// ignoring them and use them instead (better than not working).
-		m_map_timer.expires_after(seconds(1));
-		m_map_timer.async_wait(std::bind(&upnp::map_timer, self(), _1));
-	}
+	// check back in a little bit to see if we have seen any
+	// devices at one of our default routes. If not, we want to override
+	// ignoring them and use them instead (better than not working).
+	m_map_timer.expires_after(seconds(1));
+	ADD_OUTSTANDING_ASYNC("upnp::map_timer");
+	m_map_timer.async_wait(std::bind(&upnp::map_timer, self(), _1));
 }
 
 void upnp::map_timer(error_code const& ec)
@@ -660,40 +607,16 @@ void upnp::map_timer(error_code const& ec)
 	if (ec) return;
 	if (m_closing) return;
 
-	try_map_upnp(true);
+	try_map_upnp();
 }
 
-void upnp::try_map_upnp(bool const timer)
+void upnp::try_map_upnp()
 {
 	TORRENT_ASSERT(is_single_thread());
 	if (m_devices.empty()) return;
 
-	bool override_ignore_non_routers = false;
-	if (m_ignore_non_routers && timer)
-	{
-		// if we don't have any devices that match our default route, we
-		// should try to map with the ones we did hear from anyway,
-		// regardless of if they are not running at our gateway.
-		override_ignore_non_routers = std::none_of(m_devices.begin()
-			, m_devices.end(), [](rootdevice const& d) { return !d.non_router; });
-#ifndef TORRENT_DISABLE_LOGGING
-		if (override_ignore_non_routers)
-		{
-			log("overriding ignore non-routers");
-		}
-#endif
-	}
-
 	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
 	{
-		// if we're ignoring non-routers, skip them. If on_timer is
-		// set, we expect to have received all responses and if we don't
-		// have any devices at our default route, then issue requests
-		// to any device we found.
-		if (m_ignore_non_routers && i->non_router
-			&& !override_ignore_non_routers)
-			continue;
-
 		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,

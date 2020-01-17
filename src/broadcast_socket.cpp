@@ -212,8 +212,6 @@ namespace libtorrent {
 		std::shared_ptr<udp::socket> s = std::make_shared<udp::socket>(ios);
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
-		s->bind(udp::endpoint(addr, 0), ec);
-		if (ec) return;
 
 		m_unicast_sockets.emplace_back(s, mask);
 		socket_entry& se = m_unicast_sockets.back();
@@ -227,6 +225,28 @@ namespace libtorrent {
 		s->async_receive_from(boost::asio::buffer(se.buffer)
 			, se.remote, std::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
+	}
+
+	void broadcast_socket::send_to(char const* buffer, int size
+		, udp::endpoint const& to, error_code& ec)
+	{
+		bool all_fail = true;
+		error_code e;
+		for (auto& s : m_sockets)
+		{
+			if (!s.socket) continue;
+			s.socket->send_to(boost::asio::buffer(buffer, std::size_t(size)), to, 0, e);
+			if (e)
+			{
+				s.socket->close(e);
+				s.socket.reset();
+			}
+			else
+			{
+				all_fail = false;
+			}
+		}
+		if (all_fail) ec = e;
 	}
 
 	void broadcast_socket::send(char const* buffer, int const size

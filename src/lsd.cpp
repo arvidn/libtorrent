@@ -75,8 +75,6 @@ lsd::lsd(io_context& ios, aux::lsd_callback& cb)
 	, m_broadcast_timer(ios)
 	, m_ioc(ios)
 	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
-	, m_disabled(false)
-	, m_disabled6(false)
 {
 }
 
@@ -110,13 +108,13 @@ void lsd::start(error_code& ec)
 
 lsd::~lsd() = default;
 
-void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
+void lsd::announce(sha1_hash const& ih, int listen_port)
 {
-	announce_impl(ih, listen_port, broadcast, 0);
+	announce_impl(ih, listen_port, 0);
 }
 
 void lsd::announce_impl(sha1_hash const& ih, int const listen_port
-	, bool const broadcast, int retry_count)
+	, int retry_count)
 {
 	if (m_disabled && m_disabled6) return;
 
@@ -131,7 +129,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	{
 		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
 			, m_cookie, "239.192.152.143");
-		m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
+		m_socket.send(msg, msg_len, ec);
 		if (ec)
 		{
 			m_disabled = true;
@@ -149,7 +147,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	{
 		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
 			, m_cookie, "[ff15::efc0:988f]");
-		m_socket6.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
+		m_socket6.send(msg, msg_len, ec);
 		if (ec)
 		{
 			m_disabled6 = true;
@@ -180,7 +178,7 @@ void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	COMPLETE_ASYNC("lsd::resend_announce");
 	if (e) return;
 
-	announce_impl(info_hash, listen_port, false, retry_count);
+	announce_impl(info_hash, listen_port, retry_count);
 }
 
 void lsd::on_announce(udp::endpoint const& from, span<char const> buf)

@@ -5421,11 +5421,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return 0;
 	}
 
-	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
+	void session_impl::announce_lsd(sha1_hash const& ih, int port)
 	{
 		// use internal listen port for local peers
 		if (m_lsd)
-			m_lsd->announce(ih, port, broadcast);
+			m_lsd->announce(ih, port);
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih)
@@ -6653,8 +6653,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_upnp = std::make_shared<upnp>(m_io_context
 			, m_settings.get_bool(settings_pack::anonymous_mode)
 				? std::string{} : m_settings.get_str(settings_pack::user_agent)
-			, *this
-			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
+			, *this);
 		m_upnp->start();
 
 		m_upnp->discover_device();
@@ -6848,27 +6847,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return false;
 	}
 
-	void session_impl::set_external_address(address const& ip
-		, ip_source_t const source_type, address const& source)
-	{
-		// for now, just pick the first socket with a matching address family
-		// TODO: remove this function once all callers are updated to specify a listen socket
-		for (auto& i : m_listen_sockets)
-		{
-			if (is_v4(i->local_endpoint) != ip.is_v4())
-				continue;
-
-			set_external_address(i, ip, source_type, source);
-			break;
-		}
-	}
-
 	void session_impl::set_external_address(
 		tcp::endpoint const& local_endpoint, address const& ip
 		, ip_source_t const source_type, address const& source)
 	{
 		auto sock = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, [&](std::shared_ptr<listen_socket_t> const& v) { return v->local_endpoint == local_endpoint; });
+			, [&](std::shared_ptr<listen_socket_t> const& v)
+			{ return v->local_endpoint.address() == local_endpoint.address(); });
 
 		if (sock != m_listen_sockets.end())
 			set_external_address(*sock, ip, source_type, source);

@@ -1738,7 +1738,29 @@ COLUMN OPTIONS
 				h.get_peer_info(peers);
 
 			if (print_peers && !peers.empty())
+			{
+				using lt::peer_info;
+				// sort connecting towards the bottom of the list, and by peer_id
+				// otherwise, to keep the list as stable as possible
+				std::sort(peers.begin(), peers.end()
+					, [](peer_info const& lhs, peer_info const& rhs)
+					{
+						{
+							bool const l = bool(lhs.flags & peer_info::connecting);
+							bool const r = bool(rhs.flags & peer_info::connecting);
+							if (l != r) return l < r;
+						}
+
+						{
+							bool const l = bool(lhs.flags & peer_info::handshake);
+							bool const r = bool(rhs.flags & peer_info::handshake);
+							if (l != r) return l < r;
+						}
+
+						return lhs.pid < rhs.pid;
+					});
 				pos += print_peer_info(out, peers, terminal_height - pos - 2);
+			}
 
 			if (print_trackers)
 			{

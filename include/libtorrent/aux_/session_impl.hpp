@@ -112,7 +112,7 @@ TORRENT_VERSION_NAMESPACE_3_END
 
 	struct upnp;
 	struct natpmp;
-	class lsd;
+	struct lsd;
 	struct torrent;
 	struct alert;
 	struct torrent_handle;
@@ -666,7 +666,7 @@ namespace aux {
 
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
-			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) override;
+			void announce_lsd(sha1_hash const& ih, int port) override;
 
 #if TORRENT_ABI_VERSION <= 2
 			void save_state(entry* e, save_state_flags_t flags) const;
@@ -736,8 +736,6 @@ namespace aux {
 			bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
 
-			void set_external_address(address const& ip
-				, ip_source_t source_type, address const& source) override;
 			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip
 				, ip_source_t source_type, address const& source) override;

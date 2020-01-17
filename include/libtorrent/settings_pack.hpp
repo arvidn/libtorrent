@@ -351,11 +351,15 @@ namespace aux {
 			// trackers fail or not.
 			use_dht_as_fallback,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``upnp_ignore_nonrouters`` indicates whether or not the UPnP
 			// implementation should ignore any broadcast response from a device
 			// whose address is not the configured router for this machine. i.e.
 			// it's a way to not talk to other people's routers by mistake.
-			upnp_ignore_nonrouters,
+			upnp_ignore_nonrouters TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_upnp_ignore_nonrouters,
+#endif
 
 			// ``use_parole_mode`` specifies if parole mode should be used. Parole
 			// mode means that peers that participate in pieces that fail the hash
@@ -531,13 +535,17 @@ namespace aux {
 			// requested from another peer already.
 			strict_end_game_mode,
 
+#if TORRENT_ABI_VERSION == 1
 			// if ``broadcast_lsd`` is set to true, the local peer discovery (or
 			// Local Service Discovery) will not only use IP multicast, but also
 			// broadcast its messages. This can be useful when running on networks
 			// that don't support multicast. Since broadcast messages might be
 			// expensive and disruptive on networks, only every 8th announce uses
 			// broadcast.
-			broadcast_lsd,
+			broadcast_lsd TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_broadcast_lsd,
+#endif
 
 			// when set to true, libtorrent will try to make outgoing utp
 			// connections controls whether libtorrent will accept incoming

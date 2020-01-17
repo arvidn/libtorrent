@@ -87,6 +87,7 @@ namespace libtorrent {
 
 		enum flags_t { flag_broadcast = 1 };
 		void send(char const* buffer, int size, error_code& ec, int flags = 0);
+		void send_to(char const* buffer, int size, udp::endpoint const& to, error_code& ec);
 
 		void close();
 		int num_send_sockets() const { return int(m_unicast_sockets.size()); }

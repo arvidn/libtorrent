@@ -90,7 +90,7 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 
 	std::cout << "< incoming m-search from " << from << std::endl;
 
-	char msg[] = "HTTP/1.1 200 OK\r\n"
+	char const msg[] = "HTTP/1.1 200 OK\r\n"
 		"ST:upnp:rootdevice\r\n"
 		"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
 		"Location: http://127.0.0.1:%d/upnp.xml\r\n"
@@ -110,7 +110,9 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 #pragma clang diagnostic pop
 #endif
 	error_code ec;
-	sock->send(buf, len, ec);
+	sock->send_to(buf, len, from, ec);
+
+	std::cout << "> sending response to " << print_endpoint(from) << std::endl;
 
 	if (ec) std::cout << "*** error sending " << ec.message() << std::endl;
 }
@@ -196,7 +198,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	std::string user_agent = "test agent";
 
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb, false);
+	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb);
 	upnp_handler->start();
 	upnp_handler->discover_device();
 
@@ -265,7 +267,7 @@ TORRENT_TEST(upnp_max_mappings)
 {
 	lt::io_context ios;
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb, false);
+	auto upnp_handler = std::make_shared<upnp>(ios, "test agent", cb);
 
 	for (int i = 0; i < 50; ++i)
 	{

@@ -21,6 +21,10 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+	* fix external IP voting for multi-homed DHT nodes
+	* deprecate broadcast_lsd setting. Just use multicast
+	* deprecate upnp_ignore_nonrouters setting
+	* don't attempt sending event=stopped if event=start never succeeded
 	* make sure &key= stays consistent between different source IPs (as mandated by BEP7)
 	* fix binding sockets to outgoing interface
 	* add new socks5_alert to trouble shoot SOCKS5 proxies

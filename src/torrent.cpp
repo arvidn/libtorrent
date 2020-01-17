@@ -217,7 +217,6 @@ bool is_downloading_state(int const st)
 		, m_max_uploads((1 << 24) - 1)
 		, m_save_resume_flags()
 		, m_num_uploads(0)
-		, m_lsd_seq(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
@@ -2496,10 +2495,8 @@ bool is_downloading_state(int const st)
 		// announce with the local discovery service
 		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
 		{
-			m_ses.announce_lsd(ih, port
-				, settings().get_bool(settings_pack::broadcast_lsd) && m_lsd_seq == 0);
+			m_ses.announce_lsd(ih, port);
 		});
-		++m_lsd_seq;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -2866,6 +2863,11 @@ bool is_downloading_state(int const st)
 
 					auto& state = ep_state.state[ih];
 					auto& a = aep.info_hashes[ih];
+
+					// if we haven't sent an event=start to the tracker, there's no
+					// point in sending an event=stopped
+					if (!a.start_sent && req.event == event_t::stopped)
+						continue;
 
 					if (state.done) continue;
 
