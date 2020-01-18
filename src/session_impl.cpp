@@ -305,21 +305,10 @@ namespace aux {
 
 			ep.netmask = iface->netmask;
 
-			bool const v4 = iface->interface_address.is_v4();
-
 			// also record whether the device has a gateway associated with it
 			// (which indicates it can be used to reach the internet)
 			// only gateways inside the interface's network count
-			bool const has_gateway = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
-				{
-					return r.destination.is_unspecified()
-						&& r.destination.is_v4() == v4
-						&& !r.gateway.is_unspecified()
-						&& match_addr_mask(r.gateway, iface->interface_address, iface->netmask)
-						&& strcmp(r.name, iface->name) == 0;
-				}) != routes.end();
-
-			if (has_gateway)
+			if(get_gateway(*iface, routes))
 				ep.flags |= listen_socket_t::has_gateway;
 
 			ep.device = iface->name;
