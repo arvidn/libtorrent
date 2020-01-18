@@ -107,13 +107,6 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
 		ip_interface const& iface, span<ip_route const> routes);
 
-	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_service& ios
-		, string_view device, bool v6, error_code& ec);
-
-	// returns the first default gateway found if device is empty
-	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
-		, string_view device, bool v6, error_code& ec);
-
 	// attempt to bind socket to the device with the specified name. For systems
 	// that don't support SO_BINDTODEVICE the socket will be bound to one of the
 	// IP addresses of the specified device. In this case it is necessary to
