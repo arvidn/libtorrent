@@ -428,6 +428,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
 	{
 		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
+		TORRENT_ASSERT(prefix_bits >= 0);
 		int i = 0;
 		while (prefix_bits >= 8)
 		{
@@ -708,25 +709,45 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 						continue;
 					r.preferred = unicast->DadState == IpDadStatePreferred;
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
-					// OnLinkPrefixLength is only present on Vista and newer
 					int const max_prefix_len = family == AF_INET ? 32 : 128;
-					if (unicast->Length >= 64 && unicast->OnLinkPrefixLength <= max_prefix_len)
+
+					if (unicast->Length <= offsetof(IP_ADAPTER_UNICAST_ADDRESS, OnLinkPrefixLength))
 					{
-						r.netmask = build_netmask(unicast->OnLinkPrefixLength, family);
+						// OnLinkPrefixLength is only present on Vista and newer. If
+						// we're running on XP, we don't have the netmask.
+						r.netmask = (family == AF_INET)
+							? address(address_v4())
+							: address(address_v6());
+						ret.push_back(r);
+						continue;
 					}
 
-					if (family == AF_INET6 && (unicast->PrefixOrigin == IpPrefixOriginDhcp
-						|| unicast->SuffixOrigin == IpSuffixOriginRandom))
+					if (family == AF_INET6
+						&& unicast->OnLinkPrefixLength == 128
+						&& (unicast->PrefixOrigin == IpPrefixOriginDhcp
+							|| unicast->SuffixOrigin == IpSuffixOriginRandom))
 					{
 						// DHCPv6 does not specify a subnet mask (it should be taken from the RA)
 						// but apparently MS didn't get the memo and incorrectly reports a
 						// prefix length of 128 for DHCPv6 assigned addresses
 						// 128 is also reported for privacy addresses despite claiming to
-						// have gotten the prifix length from the RA *shrug*
+						// have gotten the prefix length from the RA *shrug*
 						// use a 64 bit prefix in these cases since that is likely to be
 						// the correct value, or at least less wrong than 128
 						r.netmask = build_netmask(64, family);
 					}
+					else if (unicast->OnLinkPrefixLength <= max_prefix_len)
+					{
+						r.netmask = build_netmask(unicast->OnLinkPrefixLength, family);
+					}
+					else
+					{
+						// we don't know what the netmask is
+						r.netmask = (family == AF_INET)
+							? address(address_v4())
+							: address(address_v6());
+					}
+
 					ret.push_back(r);
 				}
 			}

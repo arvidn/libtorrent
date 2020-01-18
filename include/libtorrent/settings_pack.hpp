@@ -315,9 +315,10 @@ namespace aux {
 			// determines if connections from the same IP address as existing
 			// connections should be rejected or not. Rejecting multiple connections
 			// from the same IP address will prevent abusive
-			// behavior by peers. It may be useful to allow such connections in
-			// cases where simulations are run on the same machine, and all peers
-			// in a swarm has the same IP address.
+			// behavior by peers. The logic for determining whether connections are
+			// to the same peer is more complicated with this enabled, and more
+			// likely to fail in some edge cases. It is not recommended to enable
+			// this feature.
 			allow_multiple_connections_per_ip = bool_type_base,
 
 #if TORRENT_ABI_VERSION == 1
