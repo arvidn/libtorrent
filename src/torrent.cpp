@@ -3345,13 +3345,13 @@ bool is_downloading_state(int const st)
 		bool need_update = false;
 		for (auto const& i : resp.peers4)
 		{
-			tcp::endpoint a(address_v4(i.ip), i.port);
+			tcp::endpoint const a(address_v4(i.ip), i.port);
 			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
 
 		for (auto const& i : resp.peers6)
 		{
-			tcp::endpoint a(address_v6(i.ip), i.port);
+			tcp::endpoint const a(address_v6(i.ip), i.port);
 			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
 
