@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/span.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/win_util.hpp"
 #endif
@@ -791,6 +792,29 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 #endif
 		return ret;
+	}
+
+	boost::optional<address> get_gateway(ip_interface const& iface, span<ip_route const> routes)
+	{
+		bool const v4 = iface.interface_address.is_v4();
+
+		// local IPv6 addresses can never be used to reach the internet
+		if (!v4 && is_local(iface.interface_address)) return {};
+
+		auto const it = std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				return r.destination.is_unspecified()
+					&& r.destination.is_v4() == iface.interface_address.is_v4()
+					&& !r.gateway.is_unspecified()
+					// IPv6 gateways aren't addressed in the same network as the
+					// interface, but they are addressed by the local network address
+					// space. So this check only works for IPv4.
+					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, iface.netmask))
+					&& strcmp(r.name, iface.name) == 0;
+			});
+		if (it != routes.end()) return it->gateway;
+		return {};
 	}
 
 	boost::optional<ip_route> get_default_route(io_service& ios

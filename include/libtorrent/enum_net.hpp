@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
+#include "libtorrent/span.hpp"
 
 #include <vector>
 
@@ -100,6 +101,11 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
 		, address const& addr);
+
+	// return the gateway for the given ip_interface, if there is one. Otherwise
+	// return nullopt.
+	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
+		ip_interface const& iface, span<ip_route const> routes);
 
 	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_service& ios
 		, string_view device, bool v6, error_code& ec);
