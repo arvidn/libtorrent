@@ -723,6 +723,127 @@ setting.
 
 *TODO: piece priorities*
 
+Multi-homed hosts
+=================
+
+libtorrent has solid support for multi-homed hosts, starting with version 1.2.4.
+the settings_pack::listen_interfaces setting is used to specify which interfaces/IP addresses
+to listen on, and accept incoming connections via.
+
+Each entry in ``listen_interfaces`` is an IP address or a device name, followed
+by a listen port number. Each entry (called ``listen_socket_t``) will have the
+following objects associated with it:
+
+* a listen socket accepting incoming TCP connections
+* a UDP socket:
+  1. to accept incoming uTP connections
+  2. to run a DHT instance on
+  3. to announce to UDP trackers from
+  4. a SOCKS5 UDP tunnel (if applicable)
+* a listen address and netmask, describing the network the sockets are bound to
+* a Local service discovery object, broadcasting to the specified subnet
+* a NAT-PMP/PCP port mapper (if applicable), to map ports on the gateway
+  for the specified subnet.
+* a UPnP port mapper (if applicable), to map ports on any
+* ``InternetGatewayDevice`` found on the specified local subnet.
+
+The NAT-PMP/PCP and UPnP port mapper objects are only created for networks that
+have a gateway configured. This typically means the network that's connected to
+the internet. If there are multiple subnets connected to the internet, they will
+each have a separate gateway, and separate port mappings.
+
+Networks that are not connected to the internet, like loopback, won't have a
+gateway configured and will hence not have any port-mappers associated with
+them. They will still be able to accept incoming connections from within the
+local network.
+
+gateways
+--------
+
+The logic for IPv4 and IPv6 are slightly different. An IPv4 network is
+considered having a gateway if:
+
+* there is a default route with a matching egress network device name
+* the gateway configured for the route is inside the local network.
+* if the route has a source-hint, it matches the network's address
+
+For example, if there are two ``listen_socket_t`` entries associated with the
+following networks::
+
+   1: 192.168.0.10/16 eth0
+   2: 10.0.0.10/8     eth0
+
+And these two entries in the routing table::
+
+  0.0.0.0 eth0  gateway: 192.168.0.1
+  0.0.0.0 eth0  gateway: 10.0.0.1
+
+Network (1) will be associated with gateway 192.168.0.1 and network (2) will be
+associated with gateway 10.0.0.1.
+
+An IPv6 network is considered having a gateway if:
+
+* there is a default route with a matching egress network device name
+* the IPv6 network address is not a local IPv6 address
+* if the route has a source-hint, it matches the network's address
+
+For example, if there are two ``listen_socket_t`` entries associated with the
+following networks::
+
+	1. 2a00:5678:::2/64 eth0
+	2. 2b00:1234:::3/64 eth1
+
+And these two routes::
+
+	::  eth0  gateway: fe80::1%eth0
+	::  eth1  gateway: fe80::2%eth1
+
+Network (1) will be associated with ``fe80::1%eth0``, and network (2) will be
+associated with ``fe80::2%eth1``, because of the interface name matching.
+
+routing
+-------
+
+A ``listen_socket_t`` entry can route to a destination address if any of these
+hold:
+
+* the destination address falls inside its subnet (i.e. interface address masked
+  by netmask is the same as the destination address masked by the netmask).
+* the ``listen_socket_t`` has a gateway associated with it, and the address
+  family matches the destination address.
+
+The ability to route to an address is used when determining whether to announce
+to a tracker from a ``listen_socket_t`` and whether to open a SOCKS5 UDP tunnel
+for a ``listen_socket_t``.
+
+tracker announces
+-----------------
+
+Trackers are announced to from all network interfaces listening for incoming
+connections. However, interfaces that cannot be used to reach the tracker, such
+as loopback, are not used as the source address for announces. A
+``listen_socket_t`` entry that can route to at least one of the tracker IP
+addresses will be used as the source address for an announce. Each such entry
+will also have an announce_endpoint entry associated with it, in the tracker
+list.
+
+If a tracker can be reached on a loopback address, then the loopback interface
+*will* be used to announce to that tracker. But under normal circumstances,
+loopback will not be used for announcing to trackers.
+
+For more details, see `BEP 7`_.
+
+.. _`BEP 7`: https://bittorrent.org/beps/bep_0007.html
+
+SOCKS5 UDP tunnels
+------------------
+
+When using a SOCKS5 proxy, each interface that can route to one of the SOCKS5
+proxy's addresses will be used to open a UDP tunnel, via that proxy. For
+example, if a client has both IPv4 and IPv6 connectivity, but the socks5 proxy
+only resolves to IPv4, only the IPv4 entry will have a UDP tunnel. In that case,
+the IPv6 connection will not be used, since it cannot use the proxy.
+
 predictive piece announce
 =========================
 

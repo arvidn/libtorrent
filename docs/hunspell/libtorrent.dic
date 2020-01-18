@@ -551,3 +551,6 @@ iocontrol
 getname
 getpeername
 fastresume
+InternetGatewayDevice
+netmask
+fe80
