@@ -53,8 +53,12 @@ void test_lsd()
 	session_proxy p2;
 
 	settings_pack pack;
-	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
-	pack.set_int(settings_pack::alert_mask, alert::error_notification | alert::session_log_notification | alert::status_notification);
+	pack.set_int(settings_pack::alert_mask, alert::error_notification
+		| alert::session_log_notification
+		| alert::torrent_log_notification
+		| alert::peer_log_notification
+		| alert::ip_block_notification
+		| alert::status_notification);
 	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_bool(settings_pack::enable_lsd, true);
 	pack.set_bool(settings_pack::enable_upnp, false);
