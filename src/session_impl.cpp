@@ -5464,7 +5464,11 @@ namespace aux {
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
 			s.natpmp_mapper = std::make_shared<natpmp>(m_io_service, *this);
-			s.natpmp_mapper->start(s.local_endpoint.address(), s.device);
+			ip_interface ip;
+			ip.interface_address = s.local_endpoint.address();
+			ip.netmask = s.netmask;
+			std::strncpy(ip.name, s.device.c_str(), sizeof(ip.name));
+			s.natpmp_mapper->start(ip);
 		}
 	}
 

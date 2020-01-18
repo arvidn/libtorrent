@@ -817,28 +817,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return {};
 	}
 
-	boost::optional<ip_route> get_default_route(io_service& ios
-		, string_view const device, bool const v6, error_code& ec)
-	{
-		std::vector<ip_route> const ret = enum_routes(ios, ec);
-		auto const i = std::find_if(ret.begin(), ret.end()
-			, [device,v6](ip_route const& r)
-		{
-			return r.destination.is_unspecified()
-				&& r.destination.is_v6() == v6
-				&& (device.empty() || r.name == device);
-		});
-		if (i == ret.end()) return boost::none;
-		return *i;
-	}
-
-	address get_default_gateway(io_service& ios
-		, string_view const device, bool const v6, error_code& ec)
-	{
-		auto const default_route = get_default_route(ios, device, v6, ec);
-		return default_route ? default_route->gateway : address();
-	}
-
 	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
