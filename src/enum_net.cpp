@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/span.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/win_util.hpp"
 #endif
@@ -476,6 +477,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		if (a1.is_v6())
 		{
+			if (a1.to_v6().scope_id() != a2.to_v6().scope_id()) return false;
+
 			address_v6::bytes_type b1 = a1.to_v6().to_bytes();
 			address_v6::bytes_type b2 = a2.to_v6().to_bytes();
 			address_v6::bytes_type m = mask.to_v6().to_bytes();
@@ -789,26 +792,33 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 #else
 
-#ifdef _MSC_VER
-#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" )
-#else
-#warning "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK"
-#endif
+#error "Don't know how to enumerate network interfaces on this platform"
 
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
-		if (ec) return ret;
-		for (;i != udp::resolver::iterator(); ++i)
-		{
-			ip_interface iface;
-			iface.interface_address = i->endpoint().address();
-//			if (iface.interface_address.is_v4())
-//				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
-			ret.push_back(iface);
-		}
 #endif
 		return ret;
+	}
+
+	boost::optional<address> get_gateway(ip_interface const& iface, span<ip_route const> routes)
+	{
+		bool const v4 = iface.interface_address.is_v4();
+
+		// local IPv6 addresses can never be used to reach the internet
+		if (!v4 && is_local(iface.interface_address)) return {};
+
+		auto const it = std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				return r.destination.is_unspecified()
+					&& r.destination.is_v4() == iface.interface_address.is_v4()
+					&& !r.gateway.is_unspecified()
+					// IPv6 gateways aren't addressed in the same network as the
+					// interface, but they are addressed by the local network address
+					// space. So this check only works for IPv4.
+					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, iface.netmask))
+					&& strcmp(r.name, iface.name) == 0;
+			});
+		if (it != routes.end()) return it->gateway;
+		return {};
 	}
 
 	boost::optional<ip_route> get_default_route(io_context& ios
@@ -1232,6 +1242,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 		::close(sock);
 
+#else
+#error "don't know how to enumerate network routes on this platform"
 #endif
 		return ret;
 	}

@@ -349,7 +349,6 @@ set(sources
 	session_handle
 	session_impl
 	session_settings
-	session_udp_sockets
 	proxy_settings
 	session_stats
 	settings_pack

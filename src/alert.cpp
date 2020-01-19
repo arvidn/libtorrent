@@ -909,6 +909,7 @@ namespace {
 			case o::hostname_lookup: return -1;
 			case o::symlink: return -1;
 			case o::handshake: return -1;
+			case o::sock_option: return -1;
 			case o::file_seek: return -1;
 		}
 		return -1;
@@ -1573,8 +1574,9 @@ namespace {
 			"partfile_read",
 			"partfile_write",
 			"hostname_lookup",
-			"symlink"
-			"handshake"
+			"symlink",
+			"handshake",
+			"sock_option"
 			"file_seek"
 		};
 

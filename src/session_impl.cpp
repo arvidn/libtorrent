@@ -288,29 +288,24 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	}
 
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
-	// on each interface they use to talk to the DHT. For IPv6 this is enforced
-	// by prohibiting creating a listen socket on [::]. Instead the list of
+	// on each interface they use to talk to the DHT. This is enforced
+	// by prohibiting creating a listen socket on [::] and 0.0.0.0. Instead the list of
 	// interfaces is enumerated and sockets are created for each of them.
-	// This is not enforced for 0.0.0.0 because multi homed IPv4 configurations
-	// are much less common and the presence of NAT means that we cannot
-	// automatically determine which interfaces should have DHT nodes started on
-	// them.
 	void expand_unspecified_address(span<ip_interface const> const ifs
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()
-			, [](listen_endpoint_t const& ep) { return !(ep.addr.is_v6() && ep.addr.is_unspecified()); });
+			, [](listen_endpoint_t const& ep) { return !ep.addr.is_unspecified(); });
 		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
 		eps.erase(unspecified_begin, eps.end());
 		for (auto const& uep : unspecified_eps)
 		{
+			bool const v4 = uep.addr.is_v4();
 			for (auto const& ipface : ifs)
 			{
 				if (!ipface.preferred)
 					continue;
-				if (ipface.interface_address.is_v4())
-					continue;
-				if (ipface.interface_address.is_loopback())
+				if (ipface.interface_address.is_v4() != v4)
 					continue;
 				if (!uep.device.empty() && uep.device != ipface.name)
 					continue;
@@ -331,6 +326,59 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					, uep.ssl, uep.flags);
 			}
 		}
+	}
+
+	void expand_devices(span<ip_interface const> const ifs
+		, span<ip_route const> const routes
+		, std::vector<listen_endpoint_t>& eps)
+	{
+		for (auto& ep : eps)
+		{
+			auto const iface = ep.device.empty()
+				? std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipface)
+					{
+						return match_addr_mask(ipface.interface_address, ep.addr, ipface.netmask);
+					})
+				: std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipface)
+					{
+						return ipface.name == ep.device
+							&& match_addr_mask(ipface.interface_address, ep.addr, ipface.netmask);
+					});
+
+			if (iface == ifs.end())
+			{
+				// we can't find which device this is for, just assume we can't
+				// reach anything on it
+				ep.netmask = build_netmask(0, ep.addr.is_v4() ? AF_INET : AF_INET6);
+				continue;
+			}
+
+			ep.netmask = iface->netmask;
+
+			// also record whether the device has a gateway associated with it
+			// (which indicates it can be used to reach the internet)
+			// only gateways inside the interface's network count
+			if(get_gateway(*iface, routes))
+				ep.flags |= listen_socket_t::has_gateway;
+
+			ep.device = iface->name;
+		}
+	}
+
+	bool listen_socket_t::can_route(address const& addr) const
+	{
+		if (is_v4(local_endpoint) != addr.is_v4()) return false;
+
+		if (local_endpoint.address().is_v6()
+			&& local_endpoint.address().to_v6().scope_id() != addr.to_v6().scope_id())
+			return false;
+
+		if (flags & has_gateway) return true;
+		if (local_endpoint.address() == addr) return true;
+		if (local_endpoint.address().is_unspecified()) return true;
+		if (match_addr_mask(addr, local_endpoint.address(), netmask)) return true;
+
+		return false;
 	}
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
@@ -635,7 +683,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		// apply all m_settings to this session
 		run_all_updates(*this);
 		reopen_listen_sockets(false);
-		reopen_outgoing_sockets();
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
@@ -1023,8 +1070,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			}
 		}
 
-		m_outgoing_sockets.close();
-
 		// we need to give all the sockets an opportunity to actually have their handlers
 		// called and cancelled before we continue the shutdown. This is a bit
 		// complicated, if there are no "undead" peers, it's safe to resume the
@@ -1394,11 +1439,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
-		bool const reopen_outgoing_port =
-			(pack.has_val(settings_pack::outgoing_interfaces)
-				&& pack.get_str(settings_pack::outgoing_interfaces)
-					!= m_settings.get_str(settings_pack::outgoing_interfaces));
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("applying settings pack, reopen_listen_port=%s"
 			, reopen_listen_port ? "true" : "false");
@@ -1418,9 +1458,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		{
 			reopen_listen_sockets();
 		}
-
-		if (reopen_outgoing_port)
-			reopen_outgoing_sockets();
 	}
 
 	std::shared_ptr<listen_socket_t> session_impl::setup_listener(
@@ -1441,6 +1478,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		ret->ssl = lep.ssl;
 		ret->original_port = bind_ep.port();
 		ret->flags = lep.flags;
+		ret->netmask = lep.netmask;
 		operation_t last_op = operation_t::unknown;
 		socket_type_t const sock_type
 			= (lep.ssl == transport::ssl)
@@ -1648,7 +1686,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			: socket_type_t::utp;
 		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
-		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context);
+		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context, ret);
 		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 		if (ec)
 		{
@@ -1911,6 +1949,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (!ec)
 		{
 			expand_unspecified_address(ifs, eps);
+			auto const routes = enum_routes(m_io_context, ec);
+			if (!ec) expand_devices(ifs, routes, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use
@@ -2074,140 +2114,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 	}
 
-	void session_impl::reopen_outgoing_sockets()
-	{
-		// first build a list of endpoints we should be listening on
-		// we need to remove any unneeded sockets first to avoid the possibility
-		// of a new socket failing to bind due to a conflict with a stale socket
-		std::vector<listen_endpoint_t> eps;
-
-		for (auto const& iface : m_outgoing_interfaces)
-		{
-			interface_to_endpoints(iface, 0, transport::plaintext, listen_socket_t::accept_incoming, eps);
-#ifdef TORRENT_SSL_PEERS
-			interface_to_endpoints(iface, 0, transport::ssl, listen_socket_t::accept_incoming, eps);
-#endif
-		}
-
-		// if no outgoing interfaces are specified, create sockets to use
-		// any interface
-		if (eps.empty())
-		{
-			eps.emplace_back(address_v4(), 0, "", transport::plaintext, listen_socket_flags_t{});
-			eps.emplace_back(address_v6(), 0, "", transport::plaintext, listen_socket_flags_t{});
-#ifdef TORRENT_SSL_PEERS
-			eps.emplace_back(address_v4(), 0, "", transport::ssl, listen_socket_flags_t{});
-			eps.emplace_back(address_v6(), 0, "", transport::ssl, listen_socket_flags_t{});
-#endif
-		}
-
-		auto remove_iter = m_outgoing_sockets.partition_outgoing_sockets(eps);
-
-		for (auto i = remove_iter; i != m_outgoing_sockets.sockets.end(); ++i)
-		{
-			auto& remove_sock = *i;
-			m_utp_socket_manager.remove_udp_socket(remove_sock);
-
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				session_log("Closing outgoing UDP socket for %s on device \"%s\""
-					, print_endpoint(remove_sock->local_endpoint()).c_str()
-					, remove_sock->device.c_str());
-			}
-#endif
-			remove_sock->sock.close();
-		}
-
-		m_outgoing_sockets.sockets.erase(remove_iter, m_outgoing_sockets.sockets.end());
-
-		// open new sockets on any endpoints that didn't match with
-		// an existing socket
-		for (auto const& ep : eps)
-		{
-			error_code ec;
-			udp::endpoint const udp_bind_ep(ep.addr, 0);
-
-			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_context, ep.device, ep.ssl);
-			udp_sock->sock.open(udp_bind_ep.protocol(), ec);
-			if (ec)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					session_log("failed to open UDP socket: %s: %s"
-						, ep.device.c_str(), ec.message().c_str());
-				}
-#endif
-				if (m_alerts.should_post<udp_error_alert>())
-					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep
-						, operation_t::sock_open, ec);
-				continue;
-			}
-
-#if TORRENT_HAS_BINDTODEVICE
-			if (!ep.device.empty())
-			{
-				udp_sock->sock.set_option(bind_to_device(ep.device.c_str()), ec);
-#ifndef TORRENT_DISABLE_LOGGING
-				if (ec && should_log())
-				{
-					session_log("bind to device failed (device: %s): %s"
-						, ep.device.c_str(), ec.message().c_str());
-				}
-#endif // TORRENT_DISABLE_LOGGING
-				ec.clear();
-			}
-#endif
-			udp_sock->sock.bind(udp_bind_ep, ec);
-
-			if (ec)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					session_log("failed to bind UDP socket: %s: %s"
-						, ep.device.c_str(), ec.message().c_str());
-				}
-#endif
-				if (m_alerts.should_post<udp_error_alert>())
-					m_alerts.emplace_alert<udp_error_alert>(udp_bind_ep
-						, operation_t::sock_bind, ec);
-				continue;
-			}
-
-			error_code err;
-			set_socket_buffer_size(udp_sock->sock, m_settings, err);
-			if (err)
-			{
-				if (m_alerts.should_post<udp_error_alert>())
-					m_alerts.emplace_alert<udp_error_alert>(udp_sock->sock.local_endpoint(ec)
-						, operation_t::alloc_recvbuf, err);
-			}
-
-			// this call is necessary here because, unless the settings actually
-			// change after the session is up and listening, at no other point
-			// set_proxy_settings is called with the correct proxy configuration,
-			// internally, this method handle the SOCKS5's connection logic
-			udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
-
-			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-			auto const ssl = ep.ssl;
-			udp_sock->sock.async_read(aux::make_handler([this, udp_sock, ssl](error_code const& e)
-				{ this->on_udp_packet(udp_sock, std::weak_ptr<listen_socket_t>(), ssl, e); }
-					, udp_sock->udp_handler_storage, *this));
-
-			if (!ec && udp_sock)
-			{
-				m_outgoing_sockets.sockets.push_back(udp_sock);
-			}
-		}
-	}
-
 	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
 	{
 		reopen_listen_sockets(bool(options & session_handle::reopen_map_ports));
-		reopen_outgoing_sockets();
 	}
 
 	namespace {
@@ -2374,7 +2283,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			return;
 		}
 
-		auto s = std::static_pointer_cast<session_udp_socket>(si);
+		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
 
 		s->sock.send_hostname(hostname, port, p, ec, flags);
 
@@ -2401,7 +2310,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			return;
 		}
 
-		auto s = std::static_pointer_cast<session_udp_socket>(si);
+		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
 
 		TORRENT_ASSERT(s->sock.is_closed() || s->sock.local_endpoint().protocol() == ep.protocol());
 
@@ -2513,7 +2422,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 				// give the uTP socket manager first dibs on the packet. Presumably
 				// the majority of packets are uTP packets.
-				if (!mgr.incoming_packet(socket, packet.from, buf))
+				if (!mgr.incoming_packet(ls, packet.from, buf))
 				{
 					// if it wasn't a uTP packet, try the other users of the UDP
 					// socket
@@ -4962,13 +4871,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 	}
 
-	bool session_impl::has_udp_outgoing_sockets() const
-	{
-		return !m_outgoing_sockets.sockets.empty();
-	}
-
-	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
-		const& remote_address, error_code& ec) const
+	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s
+		, address const& remote_address, error_code& ec) const
 	{
 		tcp::endpoint bind_ep(address_v4(), 0);
 		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
@@ -4991,9 +4895,46 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		if (is_utp(s))
 		{
-			auto const ep = m_outgoing_sockets.bind(s, remote_address, ec);
-			if (ep.port() != 0 || ec)
-				return ep;
+			// TODO: factor out this logic into a separate function for unit
+			// testing
+
+			utp_socket_impl* impl = nullptr;
+			transport ssl = transport::plaintext;
+#ifdef TORRENT_USE_OPENSSL
+			if (boost::get<ssl_stream<utp_stream>>(&s) != nullptr)
+			{
+				impl = boost::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
+				ssl = transport::ssl;
+			}
+			else
+#endif
+				impl = boost::get<utp_stream>(s).get_impl();
+
+			std::vector<std::shared_ptr<listen_socket_t>> with_gateways;
+			std::shared_ptr<listen_socket_t> match;
+			for (auto& ls : m_listen_sockets)
+			{
+				if (is_v4(ls->local_endpoint) != remote_address.is_v4()) continue;
+				if (ls->ssl != ssl) continue;
+				if (ls->flags & listen_socket_t::has_gateway)
+					with_gateways.push_back(ls);
+
+				if (match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
+				{
+					// is this better than the previous match?
+					match = ls;
+				}
+			}
+			if (!match && !with_gateways.empty())
+				match = with_gateways[random(std::uint32_t(with_gateways.size() - 1))];
+
+			if (match)
+			{
+				impl->m_sock = match;
+				return match->local_endpoint;
+			}
+			ec.assign(boost::system::errc::not_supported, generic_category());
+			return {};
 		}
 
 		if (!m_outgoing_interfaces.empty())
@@ -5222,7 +5163,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	{
 		for (auto& i : m_listen_sockets)
 			i->udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
-		m_outgoing_sockets.update_proxy(proxy(), m_alerts);
 	}
 
 	void session_impl::update_ip_notifier()
@@ -5465,7 +5405,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (is_v6(s.local_endpoint) && is_local(s.local_endpoint.address()))
 			return;
 
-		if (!s.natpmp_mapper)
+		if (!s.natpmp_mapper && (s.flags & listen_socket_t::has_gateway))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.

@@ -73,14 +73,14 @@ std::size_t const max_header_size = 255;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : std::enable_shared_from_this<socks5>
 {
-	explicit socks5(io_context& ios, alert_manager& alerts)
+	explicit socks5(io_context& ios, aux::listen_socket_handle ls
+		, alert_manager& alerts)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
 		, m_retry_timer(ios)
 		, m_alerts(alerts)
-		, m_abort(false)
-		, m_active(false)
+		, m_listen_socket(std::move(ls))
 	{}
 
 	void start(aux::proxy_settings const& ps);
@@ -111,6 +111,7 @@ private:
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
 	alert_manager& m_alerts;
+	aux::listen_socket_handle m_listen_socket;
 	std::array<char, tmp_buffer_size> m_tmp_buf;
 
 	aux::proxy_settings m_proxy_settings;
@@ -127,10 +128,10 @@ private:
 	udp::endpoint m_udp_proxy_addr;
 
 	// set to true when we've been asked to shut down
-	bool m_abort;
+	bool m_abort = false;
 
 	// set to true once the tunnel is established
-	bool m_active;
+	bool m_active = false;
 };
 
 #ifdef TORRENT_HAS_DONT_FRAGMENT
@@ -163,10 +164,11 @@ struct set_dont_frag
 { set_dont_frag(udp::socket&, int) {} };
 #endif
 
-udp_socket::udp_socket(io_context& ios)
+udp_socket::udp_socket(io_context& ios, aux::listen_socket_handle ls)
 	: m_socket(ios)
 	, m_ioc(ios)
 	, m_buf(new receive_buffer())
+	, m_listen_socket(std::move(ls))
 	, m_bind_port(0)
 	, m_abort(true)
 {}
@@ -501,7 +503,8 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = std::make_shared<socks5>(m_ioc, alerts);
+		m_socks5_connection = std::make_shared<socks5>(m_ioc
+			, m_listen_socket, alerts);
 		m_socks5_connection->start(ps);
 	}
 }
@@ -534,13 +537,58 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::results_type ips
 	}
 
 	auto i = ips.begin();
+	// only set up a SOCKS5 tunnel for sockets with the same address family
+	// as the proxy
+	// this is a hack to mitigate excessive SOCKS5 tunnels, until this can get
+	// fixed properly.
+	for (;;)
+	{
+		if (i == ips.end())
+		{
+			if (m_alerts.should_post<socks5_alert>())
+				m_alerts.emplace_alert<socks5_alert>(tcp::endpoint()
+					, operation_t::hostname_lookup
+					, error_code(boost::system::errc::host_unreachable, generic_category()));
+			return;
+		}
+
+		// we found a match
+		if (m_listen_socket.can_route(i->endpoint().address()))
+			break;
+		++i;
+	}
+
 	m_proxy_addr = i->endpoint();
 
 	error_code ec;
 	m_socks5_sock.open(is_v4(m_proxy_addr) ? tcp::v4() : tcp::v6(), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_open, ec);
+		return;
+	}
 
 	// enable keep-alives
 	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option, ec);
+		return;
+	}
+
+	tcp::endpoint const bind_ep(m_listen_socket.get_local_endpoint().address(), 0);
+	m_socks5_sock.bind(bind_ep, ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_bind, ec);
+		return;
+	}
+
+	// TODO: perhaps an attempt should be made to bind m_socks5_sock to the
+	// device of m_listen_socket
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connected");
 	m_socks5_sock.async_connect(m_proxy_addr

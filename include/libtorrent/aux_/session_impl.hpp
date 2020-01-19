@@ -155,7 +155,7 @@ namespace aux {
 		int port = 0;
 	};
 
-	struct TORRENT_EXTRA_EXPORT listen_socket_t
+	struct TORRENT_EXTRA_EXPORT listen_socket_t : utp_socket_interface
 	{
 		static constexpr listen_socket_flags_t accept_incoming = 0_bit;
 		static constexpr listen_socket_flags_t has_gateway = 1_bit;
@@ -172,12 +172,27 @@ namespace aux {
 		listen_socket_t& operator=(listen_socket_t const&) = delete;
 		listen_socket_t& operator=(listen_socket_t&&) = delete;
 
+		udp::endpoint get_local_endpoint() override
+		{
+			error_code ec;
+			if (udp_sock) return udp_sock->sock.local_endpoint(ec);
+			return {local_endpoint.address(), local_endpoint.port()};
+		}
+
+		// returns true if this listen socket/interface can reach and be reached
+		// by the given address. This is useful to know whether it should be
+		// annoucned to a tracker (given the tracker's IP) or whether it should
+		// have a SOCKS5 UDP tunnel set up (given the IP of the socks proxy)
+		bool can_route(address const&) const;
+
 		// this may be empty but can be set
 		// to the WAN IP address of a NAT router
 		ip_voter external_address;
 
 		// this is a cached local endpoint for the listen TCP socket
 		tcp::endpoint local_endpoint;
+
+		address netmask;
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device
@@ -247,8 +262,8 @@ namespace aux {
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
 		{
 			listen_endpoint_t(address const& adr, int p, std::string dev, transport s
-				, listen_socket_flags_t f)
-				: addr(adr), port(p), device(std::move(dev)), ssl(s), flags(f) {}
+				, listen_socket_flags_t f, address const& nmask = address{})
+				: addr(adr), netmask(nmask), port(p), device(std::move(dev)), ssl(s), flags(f) {}
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
@@ -256,6 +271,10 @@ namespace aux {
 			}
 
 			address addr;
+			// if this listen endpoint/interface doesn't have a gateway, we cannot
+			// route outside of our network, this netmask defines the range of our
+			// local network
+			address netmask;
 			int port;
 			std::string device;
 			transport ssl;
@@ -277,6 +296,10 @@ namespace aux {
 			, std::vector<listen_endpoint_t>& eps);
 
 		void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s);
+
+		TORRENT_EXTRA_EXPORT void expand_devices(span<ip_interface const>
+			, span<ip_route const> routes
+			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
@@ -747,9 +770,8 @@ namespace aux {
 			mutable std::condition_variable cond;
 
 			// implements session_interface
-			bool has_udp_outgoing_sockets() const override;
-			tcp::endpoint bind_outgoing_socket(socket_type& s, address
-				const& remote_address, error_code& ec) const override;
+			tcp::endpoint bind_outgoing_socket(socket_type& s
+				, address const& remote_address, error_code& ec) const override;
 			bool verify_incoming_interface(address const& addr);
 			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
@@ -982,8 +1004,6 @@ namespace aux {
 			// we might need more than one listen socket
 			std::vector<std::shared_ptr<listen_socket_t>> m_listen_sockets;
 
-			outgoing_sockets m_outgoing_sockets;
-
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
 			boost::optional<socket_type> m_i2p_listen_socket;
@@ -1146,7 +1166,7 @@ namespace aux {
 					ec = boost::asio::error::bad_descriptor;
 					return;
 				}
-				send_udp_packet_hostname(s->udp_sock, hostname, port, p, ec, flags);
+				send_udp_packet_hostname(sock.get_ptr(), hostname, port, p, ec, flags);
 			}
 
 			void send_udp_packet(std::weak_ptr<utp_socket_interface> sock
@@ -1167,7 +1187,7 @@ namespace aux {
 					ec = boost::asio::error::bad_descriptor;
 					return;
 				}
-				send_udp_packet(s->udp_sock, ep, p, ec, flags);
+				send_udp_packet(sock.get_ptr(), ep, p, ec, flags);
 			}
 
 			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);

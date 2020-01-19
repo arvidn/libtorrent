@@ -140,18 +140,18 @@ struct udp_tracker
 					aux::write_uint32(0, ptr);
 					aux::write_uint32(0, ptr);
 					aux::write_uint32(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
 					aux::write_uint8(1, ptr);
-					aux::write_uint8(3, ptr);
-					aux::write_uint8(3, ptr);
-					aux::write_uint8(7, ptr);
 					aux::write_uint16(1337, ptr);
 				}
 				else
 				{
-					aux::write_uint8(1, ptr);
-					aux::write_uint8(3, ptr);
-					aux::write_uint8(3, ptr);
-					aux::write_uint8(7, ptr);
+					aux::write_uint8(127, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(2, ptr);
 					aux::write_uint16(1337, ptr);
 				}
 				m_socket.send_to(boost::asio::buffer(buffer

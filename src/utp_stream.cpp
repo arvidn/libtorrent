@@ -333,7 +333,7 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 		return {};
 	}
 
-	udp::endpoint ep = s->local_endpoint();
+	udp::endpoint ep = s->get_local_endpoint();
 	return {ep.address(), ep.port()};
 }
 

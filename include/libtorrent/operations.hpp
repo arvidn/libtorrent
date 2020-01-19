@@ -171,6 +171,9 @@ namespace libtorrent {
 		// handshake with a peer or server
 		handshake,
 
+		// set socket option
+		sock_option,
+
 		file_seek,
 	};
 

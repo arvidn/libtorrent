@@ -36,8 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+#include <cstring>
 
 using namespace lt;
+using boost::none;
 
 TORRENT_TEST(is_local)
 {
@@ -77,24 +79,36 @@ TORRENT_TEST(is_any)
 
 TORRENT_TEST(match_addr_mask)
 {
-	error_code ec;
 	TEST_CHECK(match_addr_mask(
-		make_address("10.0.1.176", ec),
-		make_address("10.0.1.176", ec),
-		make_address("255.255.255.0", ec)));
-	TEST_CHECK(!ec);
+		make_address("10.0.1.176"),
+		make_address("10.0.1.176"),
+		make_address("255.255.255.0")));
 
 	TEST_CHECK(match_addr_mask(
-		make_address("10.0.1.3", ec),
-		make_address("10.0.3.3", ec),
-		make_address("255.255.0.0", ec)));
-	TEST_CHECK(!ec);
+		make_address("10.0.1.3"),
+		make_address("10.0.3.3"),
+		make_address("255.255.0.0")));
 
 	TEST_CHECK(!match_addr_mask(
-		make_address("10.0.1.3", ec),
-		make_address("10.1.3.3", ec),
-		make_address("255.255.0.0", ec)));
-	TEST_CHECK(!ec);
+		make_address("10.0.1.3"),
+		make_address("10.1.3.3"),
+		make_address("255.255.0.0")));
+
+	TEST_CHECK(match_addr_mask(
+		make_address("ff00:1234::"),
+		make_address("ff00:5678::"),
+		make_address("ffff::")));
+
+	TEST_CHECK(!match_addr_mask(
+		make_address("ff00:1234::"),
+		make_address("ff00:5678::"),
+		make_address("ffff:f000::")));
+
+	// different scope IDs always means a mismatch
+	TEST_CHECK(!match_addr_mask(
+		make_address("ff00:1234::%1"),
+		make_address("ff00:1234::%2"),
+		make_address("ffff::")));
 }
 
 TORRENT_TEST(is_ip_address)
@@ -164,4 +178,96 @@ TORRENT_TEST(build_netmask_v6)
 TORRENT_TEST(build_netmask_unknown)
 {
 	TEST_CHECK(build_netmask(0, -1) == address{});
+}
+
+namespace {
+	ip_route rt(char const* ip, char const* device, char const* gateway)
+	{
+		ip_route ret;
+		ret.destination = make_address(ip);
+		ret.gateway = make_address(gateway);
+		std::strncpy(ret.name, device, sizeof(ret.name));
+		ret.name[sizeof(ret.name) - 1] = '\0';
+		return ret;
+	}
+
+	ip_interface ip(char const* addr, char const* mask, char const* name)
+	{
+		ip_interface ret;
+		ret.interface_address = make_address(addr);
+		ret.netmask = make_address(mask);
+		std::strncpy(ret.name, name, sizeof(ret.name));
+		return ret;
+	}
+}
+
+TORRENT_TEST(get_gateway_basic)
+{
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "192.168.0.1"),
+		rt("::", "eth0", "2a02::1234")
+	};
+
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "255.255.0.0", "eth0"), routes) == make_address("192.168.0.1"));
+	TEST_CHECK(get_gateway(ip("2a02::4567", "ffff::", "eth0"), routes) == make_address("2a02::1234"));
+
+	// the device name does not match the route
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "255.255.0.0", "eth1"), routes) == none);
+	TEST_CHECK(get_gateway(ip("2a02::4567", "ffff::", "eth1"), routes) == none);
+
+	// the gateway for the route is outside of this local network, it cannot be
+	// used for this network
+	TEST_CHECK(get_gateway(ip("192.168.1.130", "255.255.255.0", "eth0"), routes) == none);
+
+	// for IPv6, the address family and device name matches, so it's a match
+	TEST_CHECK(get_gateway(ip("2a02:8000::0123:4567", "ffff:ffff::", "eth0"), routes) == make_address("2a02::1234"));
+}
+
+TORRENT_TEST(get_gateway_no_default_route)
+{
+	std::vector<ip_route> const routes = {
+		rt("192.168.0.0", "eth0", "0.0.0.0"),
+		rt("2a02::", "eth0", "::")
+	};
+
+	// no default route
+	TEST_CHECK(get_gateway(ip("192.168.1.130", "255.255.0.0", "eth0"), routes) == none);
+	TEST_CHECK(get_gateway(ip("2a02::1234", "ffff::", "eth0"), routes) == none);
+}
+
+TORRENT_TEST(get_gateway_local_v6)
+{
+	std::vector<ip_route> const routes = {
+		rt("2a02::", "eth0", "::")
+	};
+
+	// local IPv6 addresses never have a gateway
+	TEST_CHECK(get_gateway(ip("fe80::1234", "ffff::", "eth0"), routes) == none);
+}
+
+// an odd, imaginary setup, where the loopback network has a gateway
+TORRENT_TEST(get_gateway_loopback)
+{
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "192.168.0.1"),
+		rt("0.0.0.0", "lo", "127.1.1.1"),
+		rt("::", "eth0", "fec0::1234"),
+		rt("::", "lo", "::2")
+	};
+
+	TEST_CHECK(get_gateway(ip("127.0.0.1", "255.0.0.0", "lo"), routes) == make_address("127.1.1.1"));
+
+	// with IPv6, there are no gateways for local or loopback addresses
+	TEST_CHECK(get_gateway(ip("::1", "ffff:ffff:ffff:ffff::", "lo"), routes) == none);
+}
+
+TORRENT_TEST(get_gateway_multi_homed)
+{
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "192.168.0.1"),
+		rt("0.0.0.0", "eth0", "10.0.0.1")
+	};
+
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "255.255.0.0", "eth0"), routes) == make_address("192.168.0.1"));
+	TEST_CHECK(get_gateway(ip("10.0.1.130", "255.0.0.0", "eth0"), routes) == make_address("10.0.0.1"));
 }

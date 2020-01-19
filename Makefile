@@ -374,7 +374,6 @@ SOURCES = \
   session_params.cpp              \
   session_settings.cpp            \
   session_stats.cpp               \
-  session_udp_sockets.cpp         \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \

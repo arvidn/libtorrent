@@ -443,18 +443,19 @@ TORRENT_TEST(reopen_network_sockets)
 
 	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, alert::all_categories);
-	p.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	p.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881");
 
 	p.set_bool(settings_pack::enable_upnp, true);
 	p.set_bool(settings_pack::enable_natpmp, true);
 
 	lt::session s(p);
 
-	TEST_CHECK(count_alerts(s, 2, 4));
+	// NAT-PMP will be disabled when we only listen on loopback
+	TEST_CHECK(count_alerts(s, 2, 2));
 
 	s.reopen_network_sockets(session_handle::reopen_map_ports);
 
-	TEST_CHECK(count_alerts(s, 0, 4));
+	TEST_CHECK(count_alerts(s, 0, 2));
 
 	s.reopen_network_sockets({});
 

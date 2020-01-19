@@ -68,7 +68,7 @@ int main()
 		std::printf("%-18s%-18s%-35s%-7d%s\n"
 			, r.destination.to_string().c_str()
 			, r.netmask.to_string().c_str()
-			, r.gateway.to_string().c_str()
+			, r.gateway.is_unspecified() ? "-" : r.gateway.to_string().c_str()
 			, r.mtu
 			, r.name);
 	}
@@ -82,11 +82,11 @@ int main()
 		return 1;
 	}
 
-	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "default gateway");
+	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "gateway");
 
 	for (auto const& i : net)
 	{
-		address const iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
+		boost::optional<address> const gateway = get_gateway(i, routes);
 		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
 			, i.interface_address.to_string().c_str()
 			, i.netmask.to_string().c_str()
@@ -94,7 +94,7 @@ int main()
 			, (i.interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i.interface_address)?"local ":"")
 			, (is_loopback(i.interface_address)?"loopback ":"")
-			, iface_def_gw.to_string().c_str()
+			, gateway ? gateway->to_string().c_str() : "-"
 			, i.friendly_name, i.description);
 	}
 }

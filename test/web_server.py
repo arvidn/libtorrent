@@ -42,7 +42,7 @@ class http_handler(BaseHTTPRequestHandler):
 
     def do_GET(s):
 
-        print('INCOMING-REQUEST: ', s.requestline)
+        print('INCOMING-REQUEST [from: {}]: {}'.format(s.request.getsockname(), s.requestline))
         print(s.headers)
         sys.stdout.flush()
 
@@ -55,8 +55,6 @@ class http_handler(BaseHTTPRequestHandler):
             s.path = s.path[s.path.find('/'):]
 
         file_path = os.path.normpath(s.path)
-        print(file_path)
-        print(s.path)
         sys.stdout.flush()
 
         if s.path == '/password_protected':

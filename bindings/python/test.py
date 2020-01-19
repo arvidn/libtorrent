@@ -169,10 +169,16 @@ class test_torrent_handle(unittest.TestCase):
         # wait a bit until the endpoints list gets populated
         while len(self.h.trackers()[0]['endpoints']) == 0:
             time.sleep(0.1)
-        pickled_trackers = pickle.dumps(self.h.trackers())
+
+        trackers = self.h.trackers()
+        self.assertEqual(trackers[0]['url'], 'udp://tracker1.com')
+        # this is not necessarily 0, it could also be (EHOSTUNREACH) if the
+        # local machine doesn't support the address family
+        expect_value = trackers[0]['endpoints'][0]['info_hashes'][0]['last_error']['value']
+        pickled_trackers = pickle.dumps(trackers)
         unpickled_trackers = pickle.loads(pickled_trackers)
         self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
-        self.assertEqual(unpickled_trackers[0]['endpoints'][0]['info_hashes'][0]['last_error']['value'], 0)
+        self.assertEqual(unpickled_trackers[0]['endpoints'][0]['info_hashes'][0]['last_error']['value'], expect_value)
 
     def test_file_status(self):
         self.setup()
