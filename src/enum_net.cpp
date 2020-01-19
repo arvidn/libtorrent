@@ -281,6 +281,9 @@ namespace {
 				case RTA_DST:
 					rt_info->destination = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
+				case RTA_PREFSRC:
+					rt_info->source_hint = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
+					break;
 			}
 		}
 #ifdef __clang__
@@ -396,6 +399,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		rt_info->netmask = sockaddr_to_address(rti_info[RTAX_NETMASK]
 			, rt_info->destination.is_v4() ? AF_INET : AF_INET6);
 		if_indextoname(rtm->rtm_index, rt_info->name);
+		if (rti_info[RTAX_IFA]) rt_info->source_hint = sockaddr_to_address(rti_info[RTAX_IFA]);
 		return true;
 	}
 #endif
@@ -798,6 +802,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					// interface, but they are addressed by the local network address
 					// space. So this check only works for IPv4.
 					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, iface.netmask))
+					// in case there are multiple networks on the same networking
+					// device, the source hint may be the only thing telling them
+					// apart
+					&& (r.source_hint.is_unspecified() || r.source_hint == iface.interface_address)
 					&& strcmp(r.name, iface.name) == 0;
 			});
 		if (it != routes.end()) return it->gateway;
