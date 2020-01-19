@@ -6696,9 +6696,9 @@ namespace aux {
 		for (auto& s : m_listen_sockets)
 		{
 			if (s->upnp_mapper) ret.push_back(s->upnp_mapper->add_mapping(t, external_port
-				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
+				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
 			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
-				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
+				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
 		}
 		return ret;
 	}
