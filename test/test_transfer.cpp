@@ -287,7 +287,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			print_ses_rate(i / 10.f, &st1, &st2);
 		}
 
-		std::cout << "progress: " << st2.progress << "\n";
+		std::cout << "st1-progress: " << st1.progress << " " << st1.state << "\n";
+		std::cout << "st2-progress: " << st2.progress << " " << st2.state << "\n";
 		if ((flags & move_storage) && st2.progress > 0.1f)
 		{
 			flags &= ~move_storage;
