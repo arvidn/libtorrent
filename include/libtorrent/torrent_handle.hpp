@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/fwd.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
 #include "libtorrent/span.hpp"
 #include "libtorrent/sha1_hash.hpp"
@@ -67,7 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/pex_flags.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_v6
 #include "libtorrent/client_data.hpp"
 
 namespace libtorrent {

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #include <iostream>
 
@@ -506,7 +507,7 @@ void test_udpv6_support(char const* listen_interfaces
 						a->message().c_str());
 					if (auto tr = alert_cast<tracker_announce_alert>(a))
 					{
-						if (is_v4(tr->local_endpoint))
+						if (lt::aux::is_v4(tr->local_endpoint))
 							++v4_announces;
 						else
 							++v6_announces;

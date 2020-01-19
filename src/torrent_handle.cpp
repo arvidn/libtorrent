@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/pex_flags.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
@@ -84,7 +85,7 @@ namespace libtorrent {
 
 	void block_info::set_peer(tcp::endpoint const& ep)
 	{
-		is_v6_addr = is_v6(ep);
+		is_v6_addr = aux::is_v6(ep);
 		if (is_v6_addr)
 			addr.v6 = ep.address().to_v6().to_bytes();
 		else

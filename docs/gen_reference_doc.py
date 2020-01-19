@@ -104,7 +104,6 @@ category_mapping = {
     'time.hpp': 'Time',
     'escape_string.hpp': 'Utility',
     'enum_net.hpp': 'Network',
-    'broadcast_socket.hpp': 'Network',
     'socket.hpp': 'Network',
     'address.hpp': 'Network',
     'socket_io.hpp': 'Network',

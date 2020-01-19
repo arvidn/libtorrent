@@ -36,10 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/win_util.hpp"
 #endif
@@ -794,7 +794,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		bool const v4 = iface.interface_address.is_v4();
 
 		// local IPv6 addresses can never be used to reach the internet
-		if (!v4 && is_local(iface.interface_address)) return {};
+		if (!v4 && aux::is_local(iface.interface_address)) return {};
 
 		auto const it = std::find_if(routes.begin(), routes.end()
 			, [&](ip_route const& r) -> bool

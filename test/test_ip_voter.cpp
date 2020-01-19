@@ -39,8 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
-#include "setup_transfer.hpp" // for rand_v4
+#include "setup_transfer.hpp" // for rand_v4, supports_ipv6
 
 using namespace lt;
 

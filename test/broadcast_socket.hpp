@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
+#include "test.hpp"
 
 #include <memory>
 #include <list>
@@ -49,34 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// TODO: 2 factor these functions out
-	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
-	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
-	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
-	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
-	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
-
-	// internal
-	// TODO: refactor these out too
-	template <typename Endpoint>
-	bool is_v4(Endpoint const& ep)
-	{
-		return ep.protocol() == Endpoint::protocol_type::v4();
-	}
-	template <typename Endpoint>
-	bool is_v6(Endpoint const& ep)
-	{
-		return ep.protocol() == Endpoint::protocol_type::v6();
-	}
-
-	// determines if the operating system supports IPv6
-	TORRENT_EXTRA_EXPORT bool supports_ipv6();
-	address ensure_v6(address const& a);
-
 	using receive_handler_t = std::function<void(udp::endpoint const& from
 		, span<char const> buffer)>;
 
-	class TORRENT_EXTRA_EXPORT broadcast_socket
+	class EXPORT broadcast_socket
 	{
 	public:
 		explicit broadcast_socket(udp::endpoint multicast_endpoint);
@@ -117,7 +95,7 @@ namespace libtorrent {
 				error_code ec;
 				return broadcast
 					&& netmask != address_v4()
-					&& is_v4(socket->local_endpoint(ec));
+					&& aux::is_v4(socket->local_endpoint(ec));
 			}
 			address_v4 broadcast_address() const
 			{

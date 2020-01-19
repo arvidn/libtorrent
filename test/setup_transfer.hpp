@@ -59,6 +59,9 @@ EXPORT lt::address rand_v6();
 EXPORT lt::tcp::endpoint rand_tcp_ep(lt::address(&rand_addr)() = rand_v4);
 EXPORT lt::udp::endpoint rand_udp_ep(lt::address(&rand_addr)() = rand_v4);
 
+// determines if the operating system supports IPv6
+EXPORT bool supports_ipv6();
+
 EXPORT lt::sha1_hash rand_hash();
 EXPORT lt::sha1_hash to_hash(char const* s);
 

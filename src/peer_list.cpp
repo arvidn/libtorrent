@@ -46,14 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/ip_voter.hpp" // for external_ip
-#include "libtorrent/broadcast_socket.hpp" // for is_v6
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/socket_io.hpp" // for print_endpoint
@@ -712,7 +711,7 @@ namespace libtorrent {
 				);
 			}
 
-			bool const is_v6 = lt::is_v6(c.remote());
+			bool const is_v6 = lt::aux::is_v6(c.remote());
 			torrent_peer* p = m_peer_allocator.allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
@@ -1316,8 +1315,8 @@ namespace libtorrent {
 			return lhs->failcount < rhs->failcount;
 
 		// Local peers should always be tried first
-		bool const lhs_local = is_local(lhs->address());
-		bool const rhs_local = is_local(rhs->address());
+		bool const lhs_local = aux::is_local(lhs->address());
+		bool const rhs_local = aux::is_local(rhs->address());
 		if (lhs_local != rhs_local) return int(lhs_local) > int(rhs_local);
 
 		if (lhs->last_connected != rhs->last_connected)

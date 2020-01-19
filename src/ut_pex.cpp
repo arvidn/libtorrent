@@ -41,13 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for is_utp
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
@@ -179,7 +179,7 @@ namespace libtorrent { namespace {
 					flags |= p->supports_holepunch() ? pex_holepunch : pex_flags_t{};
 
 					// i->first was added since the last time
-					if (is_v4(remote))
+					if (aux::is_v4(remote))
 					{
 						aux::write_endpoint(remote, pla_out);
 						aux::write_uint8(static_cast<std::uint8_t>(flags), plf_out);
@@ -202,7 +202,7 @@ namespace libtorrent { namespace {
 
 			for (auto const& i : dropped)
 			{
-				if (is_v4(i))
+				if (aux::is_v4(i))
 					aux::write_endpoint(i, pld_out);
 				else
 					aux::write_endpoint(i, pld6_out);
@@ -346,7 +346,7 @@ namespace libtorrent { namespace {
 						break;
 
 					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
+					if (aux::is_local(adr.address()) && !aux::is_local(m_pc.remote().address())) continue;
 
 					peers4_t::value_type const v(adr.address().to_v4().to_bytes(), adr.port());
 					auto const j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
@@ -396,7 +396,7 @@ namespace libtorrent { namespace {
 						flags |= pex_lt_v2;
 
 					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
+					if (aux::is_local(adr.address()) && !aux::is_local(m_pc.remote().address())) continue;
 					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
 
@@ -580,7 +580,7 @@ namespace libtorrent { namespace {
 				}
 
 				// i->first was added since the last time
-				if (is_v4(remote))
+				if (aux::is_v4(remote))
 				{
 					aux::write_endpoint(remote, pla_out);
 					aux::write_uint8(flags, plf_out);

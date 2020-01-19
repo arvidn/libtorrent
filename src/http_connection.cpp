@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 #include <functional>
 #include <string>
@@ -534,7 +535,7 @@ void http_connection::on_resolve(error_code const& e
 	if (m_bind_addr)
 	{
 		auto const new_end = std::remove_if(m_endpoints.begin(), m_endpoints.end()
-			, [&](tcp::endpoint const& ep) { return is_v4(ep) != m_bind_addr->is_v4(); });
+			, [&](tcp::endpoint const& ep) { return aux::is_v4(ep) != m_bind_addr->is_v4(); });
 
 		m_endpoints.erase(new_end, m_endpoints.end());
 		if (m_endpoints.empty())

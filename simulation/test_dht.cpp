@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 using lt::settings_pack;
 
@@ -60,16 +60,16 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 	{
 		// bootstrap off of 8 of the nodes
 		auto router_nodes = dht->router_nodes();
-		if (lt::is_v6(router_nodes.front()))
+		if (lt::aux::is_v6(router_nodes.front()))
 			state.nodes6 = router_nodes;
 		else
 			state.nodes = router_nodes;
 	}
 
 	ses.set_dht_state(std::move(state));
-	lt::settings_pack pack;
-	pack.set_bool(lt::settings_pack::enable_dht, true);
-	pack.set_int(lt::settings_pack::alert_mask, lt::alert::all_categories);
+	settings_pack pack;
+	pack.set_bool(settings_pack::enable_dht, true);
+	pack.set_int(settings_pack::alert_mask, lt::alert::all_categories);
 	pack.set_bool(settings_pack::dht_ignore_dark_internet, false);
 	pack.set_bool(settings_pack::dht_restrict_routing_ips, false);
 	ses.apply_settings(pack);
@@ -89,7 +89,7 @@ TORRENT_TEST(dht_bootstrap)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack&) {}
+		, [](::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
@@ -166,8 +166,8 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 				for (lt::tcp::endpoint const& peer : peers)
 				{
 					// TODO: verify that the endpoint matches the session's
-					got_peer_v4 |= lt::is_v4(peer);
-					got_peer_v6 |= lt::is_v6(peer);
+					got_peer_v4 |= lt::aux::is_v4(peer);
+					got_peer_v6 |= lt::aux::is_v6(peer);
 				}
 			}
 		}

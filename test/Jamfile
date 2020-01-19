@@ -7,6 +7,7 @@ lib libtorrent_test
 	: # sources
 	main.cpp
 	test.cpp
+	broadcast_socket.cpp
 	setup_transfer.cpp
 	dht_server.cpp
 	udp_tracker.cpp

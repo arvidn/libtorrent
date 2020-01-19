@@ -14,6 +14,7 @@ list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper fi
 
 add_library(test_common STATIC main.cpp test.cpp setup_transfer.cpp dht_server.cpp udp_tracker.cpp
 	peer_server.cpp web_seed_suite.cpp swarm_suite.cpp test_utils.cpp make_torrent.cpp settings.cpp
+	broadcast_socket.cpp
 )
 target_link_libraries(test_common PUBLIC torrent-rasterbar)
 if (MSVC)

@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
@@ -131,7 +130,7 @@ namespace {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
 	{
-		if (is_v4(ep))
+		if (aux::is_v4(ep))
 		{
 			peers4_t::value_type const v(ep.address().to_v4().to_bytes(), ep.port());
 			auto const i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
@@ -1665,7 +1664,7 @@ namespace {
 		char buf[35];
 		char* ptr = buf + 6;
 		aux::write_uint8(type, ptr);
-		if (is_v4(ep)) aux::write_uint8(0, ptr);
+		if (aux::is_v4(ep)) aux::write_uint8(0, ptr);
 		else aux::write_uint8(1, ptr);
 		aux::write_endpoint(ep, ptr);
 

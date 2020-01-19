@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/performance_counters.hpp> // for counters
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/session_status.hpp>
-#include <libtorrent/broadcast_socket.hpp> // for is_local
+#include <libtorrent/aux_/ip_helpers.hpp> // for is_v6
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
@@ -171,7 +171,7 @@ namespace libtorrent { namespace dht {
 			n.second.connection_timer.expires_after(seconds(1));
 			n.second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), n.first, _1));
-			if (is_v6(n.first.get_local_endpoint()))
+			if (aux::is_v6(n.first.get_local_endpoint()))
 				n.second.dht.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
 			else
 				n.second.dht.bootstrap(concat(m_state.nodes, m_state.nodes6), f);
@@ -502,10 +502,10 @@ namespace libtorrent { namespace dht {
 		m_counters.inc_stats_counter(counters::dht_bytes_in, buf_size);
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
-			, is_v6(ep) ? 48 : 28);
+			, aux::is_v6(ep) ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_in);
 
-		if (m_settings.get_bool(settings_pack::dht_ignore_dark_internet) && is_v4(ep))
+		if (m_settings.get_bool(settings_pack::dht_ignore_dark_internet) && aux::is_v4(ep))
 		{
 			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
 
@@ -693,7 +693,7 @@ namespace {
 		m_counters.inc_stats_counter(counters::dht_bytes_out, int(m_send_buf.size()));
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-			, is_v6(addr) ? 48 : 28);
+			, aux::is_v6(addr) ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log_packet(dht_logger::outgoing_message, m_send_buf, addr);

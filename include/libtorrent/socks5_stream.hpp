@@ -37,7 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_ip_address
+#include "libtorrent/address.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/string_util.hpp" // for to_string
@@ -129,7 +130,7 @@ public:
 		// if this assert trips, set_dst_name() is called wth an IP address rather
 		// than a hostname. Instead, resolve the IP into an address and pass it to
 		// async_connect instead
-		TORRENT_ASSERT(!is_ip_address(host));
+		TORRENT_ASSERT(!aux::is_ip_address(host));
 		m_dst_name = host;
 		if (m_dst_name.size() > 255)
 			m_dst_name.resize(255);
@@ -361,7 +362,7 @@ private:
 			// send SOCKS5 connect command
 			m_buffer.resize(6 + (!m_dst_name.empty()
 				? m_dst_name.size() + 1
-				:(is_v4(m_remote_endpoint) ? 4 : 16)));
+				:(aux::is_v4(m_remote_endpoint) ? 4 : 16)));
 			char* p = &m_buffer[0];
 			write_uint8(5, p); // SOCKS VERSION 5
 			write_uint8(std::uint8_t(m_command), p); // CONNECT command
@@ -379,7 +380,7 @@ private:
 				// we either need a hostname or a valid endpoint
 				TORRENT_ASSERT(m_remote_endpoint.address() != address());
 
-				write_uint8(is_v4(m_remote_endpoint) ? 1 : 4, p); // address type
+				write_uint8(aux::is_v4(m_remote_endpoint) ? 1 : 4, p); // address type
 				write_address(m_remote_endpoint.address(), p);
 			}
 			write_uint16(m_remote_endpoint.port(), p);
@@ -387,7 +388,7 @@ private:
 		else if (m_version == 4)
 		{
 			// SOCKS4 only supports IPv4
-			if (!is_v4(m_remote_endpoint))
+			if (!aux::is_v4(m_remote_endpoint))
 			{
 				std::move(h)(error_code(boost::asio::error::address_family_not_supported));
 				return;

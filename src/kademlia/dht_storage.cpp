@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/random.hpp>
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>
-#include <libtorrent/broadcast_socket.hpp> // for ip_v4
+#include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
 #include <libtorrent/bdecode.hpp>
 
 namespace libtorrent { namespace dht {
@@ -332,7 +332,7 @@ namespace {
 				v->name = name.substr(0, 100).to_string();
 			}
 
-			auto& peersv = is_v4(endp) ? v->peers4 : v->peers6;
+			auto& peersv = aux::is_v4(endp) ? v->peers4 : v->peers6;
 
 			peer_entry peer;
 			peer.addr = endp;

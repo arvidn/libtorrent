@@ -89,7 +89,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/http_connection.hpp"
@@ -106,7 +105,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_ip_address
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/range.hpp"
@@ -2778,15 +2777,15 @@ bool is_downloading_state(int const st)
 			{
 				if (s.is_ssl() != is_ssl_torrent()) return;
 				tcp::endpoint const ep = s.get_local_endpoint();
-				if (is_any(ep.address())) return;
-				if (is_v6(ep))
+				if (aux::is_any(ep.address())) return;
+				if (aux::is_v6(ep))
 				{
-					if (!is_local(ep.address()) && !is_loopback(ep.address()))
+					if (!aux::is_local(ep.address()) && !aux::is_loopback(ep.address()))
 						req.ipv6.push_back(ep.address().to_v6());
 				}
 				else
 				{
-					if (!is_local(ep.address()) && !is_loopback(ep.address()))
+					if (!aux::is_local(ep.address()) && !aux::is_loopback(ep.address()))
 						req.ipv4.push_back(ep.address().to_v4());
 				}
 			});
@@ -3168,7 +3167,7 @@ bool is_downloading_state(int const st)
 		// if the tracker told us what our external IP address is, record it with
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
-		if (resp.external_ip != address() && !is_any(tracker_ip))
+		if (resp.external_ip != address() && !aux::is_any(tracker_ip))
 			m_ses.set_external_address(r.outgoing_socket.get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
@@ -6146,7 +6145,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(!web->resolving);
 		TORRENT_ASSERT(web->peer_info.connection == nullptr);
 
-		if (is_v4(a))
+		if (aux::is_v4(a))
 		{
 			web->peer_info.addr = a.address().to_v4();
 			web->peer_info.port = a.port();
@@ -6195,7 +6194,7 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		bool const is_ip = is_ip_address(hostname);
+		bool const is_ip = aux::is_ip_address(hostname);
 		if (is_ip) a.address(make_address(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;

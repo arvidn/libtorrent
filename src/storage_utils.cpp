@@ -612,7 +612,7 @@ namespace libtorrent { namespace aux {
 		for (auto buf : bufs)
 		{
 			ret += static_cast<int>(buf.size());
-			std::fill(buf.begin(), buf.end(), 0);
+			std::fill(buf.begin(), buf.end(), '\0');
 		}
 		return ret;
 	}
