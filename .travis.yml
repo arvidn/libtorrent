@@ -83,7 +83,7 @@ before_install:
   # on linux, pull down a recent version of boost and build boost-build
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     cd ..;
-    wget --quiet https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.zip;
+    wget --no-verbose https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.zip;
     unzip -qq boost_1_71_0.zip;
     export BOOST_ROOT=$PWD/boost_1_71_0;
     cd boost_1_71_0/;
@@ -193,8 +193,8 @@ install:
       python3 -m flake8 --version;
     fi'
   - 'if [ $sonar_scan == "1" ]; then
-      wget --quiet https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip;
-      wget --quiet https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip;
+      wget --no-verbose https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip;
+      wget --no-verbose https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip;
       unzip sonar-scanner-cli-4.2.0.1873-linux.zip;
       unzip build-wrapper-linux-x86.zip;
       export PATH=$PWD/sonar-scanner-4.2.0.1873-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
@@ -206,12 +206,12 @@ install:
 
   - 'if [[ "$arch" == "arm" ]]; then
       cd $TRAVIS_BUILD_DIR/test;
-      wget --quiet -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/armv8l-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      wget --no-verbose -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/armv8l-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
       travis_retry sudo apt-get install -y qemu-user-static;
-      wget --quiet -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
+      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
@@ -224,7 +224,7 @@ install:
     fi
 
   - if [[ "$crypto" == "wolfssl" ]]; then
-      wget --quiet -O wolfssl-4.2.0-stable.zip https://github.com/wolfSSL/wolfssl/archive/v4.2.0-stable.zip;
+      wget --no-verbose -O wolfssl-4.2.0-stable.zip https://github.com/wolfSSL/wolfssl/archive/v4.2.0-stable.zip;
       unzip wolfssl-4.2.0-stable.zip;
       cd wolfssl-4.2.0-stable;
       ./autogen.sh && ./configure --enable-asio --enable-sni --enable-nginx && make && sudo make install;
