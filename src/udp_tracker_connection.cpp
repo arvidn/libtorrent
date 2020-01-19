@@ -41,13 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/hex.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_any
 #include "libtorrent/peer.hpp"
 #include "libtorrent/error_code.hpp"
 
@@ -342,7 +342,7 @@ namespace libtorrent {
 		// if m_target is inaddr_any, it suggests that we
 		// sent the packet through a proxy only knowing
 		// the hostname, in which case this packet might be for us
-		if (!is_any(m_target.address()) && m_target != ep)
+		if (!aux::is_any(m_target.address()) && m_target != ep)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (cb && cb->should_log())
@@ -583,7 +583,7 @@ namespace libtorrent {
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);
 
-		int const ip_stride = is_v6(m_target) ? 18 : 6;
+		int const ip_stride = aux::is_v6(m_target) ? 18 : 6;
 		auto const num_peers = buf.size() / ip_stride;
 		if (buf.size() % ip_stride != 0)
 		{
@@ -605,7 +605,7 @@ namespace libtorrent {
 			return true;
 		}
 
-		if (is_v6(m_target))
+		if (aux::is_v6(m_target))
 		{
 			resp.peers6.reserve(static_cast<std::size_t>(num_peers));
 			for (int i = 0; i < num_peers; ++i)

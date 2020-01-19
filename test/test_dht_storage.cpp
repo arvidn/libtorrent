@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"

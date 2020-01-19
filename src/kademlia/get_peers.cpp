@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
-#include <libtorrent/broadcast_socket.hpp> // for is_v4
+#include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
@@ -67,7 +67,7 @@ void get_peers_observer::reply(msg const& m)
 	{
 		std::vector<tcp::endpoint> peer_list;
 		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t
-			&& is_v4(m.addr))
+			&& aux::is_v4(m.addr))
 		{
 			// assume it's mainline format
 			char const* peers = n.list_at(0).string_ptr();

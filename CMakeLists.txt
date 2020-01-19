@@ -30,7 +30,6 @@ set(libtorrent_include_files
 	bencode
 	bitfield
 	bloom_filter
-	broadcast_socket
 	bt_peer_connection
 	choker
 	client_data
@@ -225,6 +224,7 @@ set(libtorrent_aux_include_files
 	invariant_check
 	instantiate_connection
 	io
+	ip_helpers
 	ip_notifier
 	listen_socket_handle
 	lsd
@@ -315,6 +315,7 @@ set(sources
 	i2p_stream
 	identify_client
 	ip_filter
+	ip_helpers
 	ip_notifier
 	ip_voter
 	listen_socket_handle
@@ -384,7 +385,6 @@ set(sources
 	disk_io_thread_pool
 	disabled_disk_io
 	enum_net
-	broadcast_socket
 	magnet_uri
 	parse_url
 	ConvertUTF

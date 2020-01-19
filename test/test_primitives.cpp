@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/entry.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // from_hex
@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/client_data.hpp"
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
+#include "setup_transfer.hpp"  // for supports_ipv6
 
 using namespace lt;
 

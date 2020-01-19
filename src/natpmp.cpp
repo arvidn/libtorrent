@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_local
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_local
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
@@ -489,7 +489,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 				? make_address_v6(v4_mapped, m.external_address.to_v4())
 				: m.external_address.to_v6();
 		}
-		else if (is_local(local_addr))
+		else if (aux::is_local(local_addr))
 		{
 			external_addr = local_addr.is_v4()
 				? make_address_v6(v4_mapped, address_v4())
@@ -657,7 +657,7 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 		log("unsupported version");
 #endif
-		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint()))
+		if (m_version == version_pcp && !aux::is_v6(m_socket.local_endpoint()))
 		{
 			m_version = version_natpmp;
 			resend_request(m_currently_mapping);

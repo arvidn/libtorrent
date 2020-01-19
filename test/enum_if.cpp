@@ -33,9 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdio>
-#include <libtorrent/enum_net.hpp>
-#include <libtorrent/socket.hpp>
-#include <libtorrent/broadcast_socket.hpp>
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 using namespace lt;
 
@@ -83,8 +83,8 @@ int main()
 			, i.netmask.to_string().c_str()
 			, i.name
 			, (i.interface_address.is_multicast()?"multicast ":"")
-			, (is_local(i.interface_address)?"local ":"")
-			, (is_loopback(i.interface_address)?"loopback ":"")
+			, (aux::is_local(i.interface_address)?"local ":"")
+			, (aux::is_loopback(i.interface_address)?"loopback ":"")
 			, gateway ? gateway->to_string().c_str() : "-"
 			, i.friendly_name, i.description);
 	}

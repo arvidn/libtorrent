@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/write_resume_data.hpp"
@@ -2119,7 +2120,7 @@ namespace {
 	{
 		for (auto const& endp : peers)
 		{
-			if (is_v4(endp))
+			if (aux::is_v4(endp))
 				m_v4_num_peers++;
 			else
 				m_v6_num_peers++;
@@ -2132,7 +2133,7 @@ namespace {
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
 		for (auto const& endp : peers)
 		{
-			if (is_v4(endp))
+			if (aux::is_v4(endp))
 				aux::write_endpoint(endp, v4_ptr);
 			else
 				aux::write_endpoint(endp, v6_ptr);
@@ -2346,7 +2347,7 @@ namespace {
 
 		for (auto const& n : nodes)
 		{
-			if (is_v4(n.second))
+			if (aux::is_v4(n.second))
 				v4_num_nodes++;
 			else
 				v6_num_nodes++;
@@ -2360,7 +2361,7 @@ namespace {
 		for (auto const& n : nodes)
 		{
 			udp::endpoint const& endp = n.second;
-			if (is_v4(endp))
+			if (aux::is_v4(endp))
 			{
 				aux::write_string(n.first.to_string(), v4_ptr);
 				aux::write_endpoint(endp, v4_ptr);

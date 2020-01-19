@@ -292,7 +292,6 @@ SOURCES = \
   bdecode.cpp                     \
   bitfield.cpp                    \
   bloom_filter.cpp                \
-  broadcast_socket.cpp            \
   bt_peer_connection.cpp          \
   chained_buffer.cpp              \
   choker.cpp                      \
@@ -331,6 +330,7 @@ SOURCES = \
   identify_client.cpp             \
   instantiate_connection.cpp      \
   ip_filter.cpp                   \
+  ip_helpers.cpp                  \
   ip_notifier.cpp                 \
   ip_voter.cpp                    \
   lazy_bdecode.cpp                \
@@ -427,7 +427,6 @@ HEADERS = \
   bencode.hpp                  \
   bitfield.hpp                 \
   bloom_filter.hpp             \
-  broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   choker.hpp                   \
   client_data.hpp              \
@@ -594,6 +593,7 @@ HEADERS = \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \
+  aux_/ip_helpers.hpp               \
   aux_/ip_notifier.hpp              \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
@@ -881,6 +881,8 @@ TEST_SOURCES = \
   test_xml.cpp \
   \
   main.cpp \
+  broadcast_socket.cpp \
+  broadcast_socket.hpp \
   test.cpp \
   setup_transfer.cpp \
   dht_server.cpp \

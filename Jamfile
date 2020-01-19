@@ -723,6 +723,7 @@ SOURCES =
 	http_parser
 	identify_client
 	ip_filter
+	ip_helpers
 	ip_notifier
 	ip_voter
 	listen_socket_handle
@@ -781,7 +782,6 @@ SOURCES =
 	file_view_pool
 	lsd
 	enum_net
-	broadcast_socket
 	magnet_uri
 	parse_url
 	ConvertUTF

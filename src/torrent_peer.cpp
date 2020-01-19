@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/io.hpp" // for write_uint16
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 namespace libtorrent {
 
@@ -75,7 +76,7 @@ namespace libtorrent {
 	// * all IP addresses are in network byte order when hashed
 	std::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2)
 	{
-		TORRENT_ASSERT(is_v4(e1) == is_v4(e2));
+		TORRENT_ASSERT(aux::is_v4(e1) == aux::is_v4(e2));
 
 		using std::swap;
 
@@ -90,7 +91,7 @@ namespace libtorrent {
 			aux::write_uint16(e2.port(), ptr);
 			ret = crc32c_32(p);
 		}
-		else if (is_v6(e1))
+		else if (aux::is_v6(e1))
 		{
 			static const std::uint8_t v6mask[][8] = {
 				{ 0xff, 0xff, 0xff, 0xff, 0x55, 0x55, 0x55, 0x55 },

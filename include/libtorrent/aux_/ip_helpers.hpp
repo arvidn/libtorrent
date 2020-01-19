@@ -1,7 +1,8 @@
 /*
 
-Copyright (c) 2007, 2009, 2011-2012, 2014-2015, 2017-2019, Arvid Norberg
-Copyright (c) 2016, Alden Torres
+Copyright (c) 2007-2019, Arvid Norberg
+Copyright (c) 2015-2017, Steven Siloti
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,65 +32,37 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_IP_HELPERS_HPP_INCLUDED
+#define TORRENT_IP_HELPERS_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/aux_/lsd.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/io_context.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
+namespace aux {
 
-struct lsd : std::enable_shared_from_this<lsd>
-{
-	lsd(io_context& ios, aux::lsd_callback& cb
-		, address const& listen_address, address const& netmask);
-	~lsd();
+	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
+	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
-	void start(error_code& ec);
+	// internal
+	template <typename Endpoint>
+	bool is_v4(Endpoint const& ep)
+	{
+		return ep.protocol() == Endpoint::protocol_type::v4();
+	}
+	template <typename Endpoint>
+	bool is_v6(Endpoint const& ep)
+	{
+		return ep.protocol() == Endpoint::protocol_type::v6();
+	}
 
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
+	TORRENT_EXTRA_EXPORT address ensure_v6(address const& a);
 
-private:
-
-	std::shared_ptr<lsd> self() { return shared_from_this(); }
-
-	void announce_impl(sha1_hash const& ih, int listen_port, int retry_count);
-	void resend_announce(error_code const& e, sha1_hash const& ih
-		, int listen_port, int retry_count);
-	void on_announce(error_code const& ec);
-
-	aux::lsd_callback& m_callback;
-
-	address m_listen_address;
-	address m_netmask;
-
-	udp::socket m_socket;
-
-#ifndef TORRENT_DISABLE_LOGGING
-	bool should_log() const;
-	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
-#endif
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	// this is a random (presumably unique)
-	// ID for this LSD node. It is used to
-	// ignore our own broadcast messages.
-	// There's no point in adding ourselves
-	// as a peer
-	int m_cookie;
-
-	bool m_disabled = false;
-};
-
+}
 }
 
 #endif

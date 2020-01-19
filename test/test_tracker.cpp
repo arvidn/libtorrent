@@ -36,12 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
+#include "setup_transfer.hpp"  // for supports_ipv6
 #include "udp_tracker.hpp"
 #include "settings.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"

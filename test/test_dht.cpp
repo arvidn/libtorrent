@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
@@ -1022,7 +1022,7 @@ void test_id_enforcement(address(&rand_addr)())
 	t.sett.set_bool(settings_pack::dht_enforce_node_id, true);
 
 	node_id nid;
-	if (is_v4(t.source))
+	if (aux::is_v4(t.source))
 	{
 		// this is one of the test vectors from:
 		// http://libtorrent.org/dht_sec.html
@@ -1073,7 +1073,7 @@ void test_id_enforcement(address(&rand_addr)())
 	TEST_EQUAL(std::get<1>(t.dht_node.size()), nodes_num);
 
 	// now the node-id is valid.
-	if (is_v4(t.source))
+	if (aux::is_v4(t.source))
 		nid[0] = 0x5f;
 	else
 		nid[0] = 0x0a;
@@ -1567,7 +1567,7 @@ void test_routing_table(address(&rand_addr)())
 
 	address node_addr;
 	address node_near_addr;
-	if (is_v6(t.source))
+	if (aux::is_v6(t.source))
 	{
 		node_addr = addr6("2001:1111:1111:1111:1111:1111:1111:1111");
 		node_near_addr = addr6("2001:1111:1111:1111:eeee:eeee:eeee:eeee");
@@ -1825,7 +1825,7 @@ void test_bootstrap(address(&rand_addr)())
 	std::vector<node_entry> nodes;
 	nodes.push_back(node_entry{found_node});
 	g_sent_packets.clear();
-	if (is_v4(initial_node))
+	if (aux::is_v4(initial_node))
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes(nodes));
 	else
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes6(nodes));
@@ -1896,7 +1896,7 @@ void test_bootstrap_want(address(&rand_addr)())
 	g_sent_packets.clear();
 
 	std::vector<udp::endpoint> nodesv;
-	if (is_v4(t.source))
+	if (aux::is_v4(t.source))
 		nodesv.push_back(rand_udp_ep(rand_v6));
 	else
 		nodesv.push_back(rand_udp_ep(rand_v4));
@@ -1915,7 +1915,7 @@ void test_bootstrap_want(address(&rand_addr)())
 			|| find_node_keys[2].string_value() == "get_peers");
 
 		TEST_EQUAL(find_node_keys[7].list_size(), 1);
-		if (is_v4(t.source))
+		if (aux::is_v4(t.source))
 		{
 			TEST_EQUAL(find_node_keys[7].list_string_value_at(0), "n4");
 		}
@@ -2002,7 +2002,7 @@ void test_short_nodes(address(&rand_addr)())
 	g_sent_packets.clear();
 	msg_args args;
 	// chop one byte off of the nodes string
-	if (is_v4(initial_node))
+	if (aux::is_v4(initial_node))
 	{
 		args.nodes(nodes);
 		args.a["nodes"] = args.a["nodes"].string().substr(1);
@@ -2094,7 +2094,7 @@ void test_get_peers(address(&rand_addr)())
 	nodes.push_back(node_entry{next_node});
 
 	g_sent_packets.clear();
-	if (is_v4(initial_node))
+	if (aux::is_v4(initial_node))
 	{
 		send_dht_response(t.dht_node, response, initial_node
 			, msg_args().nodes(nodes).token("10").port(1234).peers(peers[0]));

@@ -73,6 +73,7 @@ namespace libtorrent {
 	using boost::asio::ip::make_address_v4;
 	using boost::asio::ip::make_address_v6;
 #endif
+
 }
 
 #endif

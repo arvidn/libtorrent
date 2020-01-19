@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/socket.hpp" // for TORRENT_HAS_DONT_FRAGMENT
-#include "libtorrent/broadcast_socket.hpp" // for is_teredo
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
@@ -89,16 +89,16 @@ namespace aux {
 	std::pair<int, int> utp_socket_manager::mtu_for_dest(address const& addr)
 	{
 		int mtu = 0;
-		if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+		if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 		else mtu = TORRENT_ETHERNET_MTU;
 
 #if defined __APPLE__
 		// apple has a very strange loopback. It appears you can't
 		// send messages of the reported MTU size, and you don't get
 		// EWOULDBLOCK either.
-		if (is_loopback(addr))
+		if (aux::is_loopback(addr))
 		{
-			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+			if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 			else mtu = TORRENT_ETHERNET_MTU;
 		}
 #endif

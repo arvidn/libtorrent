@@ -51,13 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -134,7 +134,7 @@ address rand_v4()
 	{
 		g_addr += 0x3080ca;
 		ret = address_v4(g_addr);
-	} while (is_any(ret) || is_local(ret) || is_loopback(ret));
+	} while (aux::is_any(ret) || aux::is_local(ret) || aux::is_loopback(ret));
 	return ret;
 }
 
@@ -173,6 +173,28 @@ udp::endpoint rand_udp_ep(lt::address(&rand_addr)())
 {
 	g_port = (g_port + 1) % 14037;
 	return udp::endpoint(rand_addr(), g_port + 1024);
+}
+
+bool supports_ipv6()
+{
+#if defined TORRENT_BUILD_SIMULATOR
+	return true;
+#elif defined TORRENT_WINDOWS
+	TORRENT_TRY {
+		error_code ec;
+		make_address("::1", ec);
+		return !ec;
+	} TORRENT_CATCH(std::exception const&) { return false; }
+#else
+	io_context ios;
+	tcp::socket test(ios);
+	error_code ec;
+	test.open(tcp::v6(), ec);
+	if (ec) return false;
+	error_code ignore;
+	test.bind(tcp::endpoint(make_address_v6("::1", ignore), 0), ec);
+	return !bool(ec);
+#endif
 }
 
 std::map<std::string, std::int64_t> get_counters(lt::session& s)
