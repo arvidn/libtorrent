@@ -527,7 +527,8 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	if (e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
-			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::hostname_lookup, e);
+			m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
+				, operation_t::hostname_lookup, e);
 		return;
 	}
 
@@ -540,7 +541,7 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 		if (i == tcp::resolver::iterator{})
 		{
 			if (m_alerts.should_post<socks5_alert>())
-				m_alerts.emplace_alert<socks5_alert>(tcp::endpoint()
+				m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
 					, operation_t::hostname_lookup
 					, error_code(boost::system::errc::host_unreachable, generic_category()));
 			return;
