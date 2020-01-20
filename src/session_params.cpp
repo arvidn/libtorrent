@@ -164,6 +164,47 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 	}
 #endif
 
+	if (flags & session_handle::save_ip_filter)
+	{
+		auto const v4 = e.dict_find_list("ip_filter4");
+		ip_filter load;
+		if (v4)
+		{
+			int const count = v4.list_size();
+			for (int i = 0; i < count; ++i)
+			{
+				auto const str = v4.list_string_value_at(i);
+				if (str.size() < 4 + 4 + 4) continue;
+				char const* ptr = str.data();
+				auto const first = aux::read_v4_address(ptr);
+				auto const last = aux::read_v4_address(ptr);
+				auto const f = aux::read_uint32(ptr);
+				load.add_rule(first, last, f);
+			}
+		}
+
+		auto const v6 = e.dict_find_list("ip_filter6");
+		if (v6)
+		{
+			int const count = v6.list_size();
+			for (int i = 0; i < count; ++i)
+			{
+				auto const str = v6.list_string_value_at(i);
+				if (str.size() < 16 + 16 + 4) continue;
+				char const* ptr = str.data();
+				auto const first = aux::read_v6_address(ptr);
+				auto const last = aux::read_v6_address(ptr);
+				auto const f = aux::read_uint32(ptr);
+				load.add_rule(first, last, f);
+			}
+		}
+
+		if (!load.empty())
+		{
+			params.ip_filter = std::move(load);
+		}
+	}
+
 	return params;
 }
 
@@ -203,6 +244,37 @@ entry write_session_params(session_params const& sp, save_state_flags_t const fl
 		for (auto const& val : sp.ext_state) ext[val.first] = val.second;
 	}
 #endif
+
+	if (flags & session_handle::save_ip_filter)
+	{
+		std::vector<ip_range<address_v4>> v4;
+		std::vector<ip_range<address_v6>> v6;
+		std::tie(v4, v6) = sp.ip_filter.export_filter();
+		if (!v4.empty())
+		{
+			auto& v4_list = e["ip_filter4"].list();
+			for (auto const& ent : v4)
+			{
+				v4_list.emplace_back();
+				auto ptr = std::back_inserter(v4_list.back().string());
+				aux::write_address(ent.first, ptr);
+				aux::write_address(ent.last, ptr);
+				aux::write_uint32(ent.flags, ptr);
+			}
+		}
+		if (!v6.empty())
+		{
+			auto& v6_list = e["ip_filter6"].list();
+			for (auto const& ent : v6)
+			{
+				v6_list.emplace_back();
+				auto ptr = std::back_inserter(v6_list.back().string());
+				aux::write_address(ent.first, ptr);
+				aux::write_address(ent.last, ptr);
+				aux::write_uint32(ent.flags, ptr);
+			}
+		}
+	}
 
 	return e;
 }
