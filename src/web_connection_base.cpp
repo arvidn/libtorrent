@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 

@@ -470,7 +470,6 @@ HEADERS = \
   identify_client.hpp          \
   index_range.hpp              \
   info_hash.hpp                \
-  invariant_check.hpp          \
   io.hpp                       \
   io_context.hpp               \
   io_service.hpp               \
@@ -593,6 +592,7 @@ HEADERS = \
   aux_/hasher512.hpp                \
   aux_/heterogeneous_queue.hpp      \
   aux_/instantiate_connection.hpp   \
+  aux_/invariant_check.hpp          \
   aux_/io.hpp                       \
   aux_/ip_notifier.hpp              \
   aux_/listen_socket_handle.hpp     \

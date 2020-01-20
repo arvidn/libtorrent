@@ -22,6 +22,8 @@ namespace libtorrent {
 		}
 	};
 
+namespace aux {
+
 	template <typename T>
 	void check_invariant(T const& x)
 	{
@@ -71,9 +73,10 @@ namespace libtorrent {
 		return invariant_checker_impl<T>(x);
 	}
 }
+}
 
 #define INVARIANT_CHECK \
-	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
+	aux::invariant_checker const& _invariant_check = aux::make_invariant_checker(*this); \
 	(void)_invariant_check
 #else
 #define INVARIANT_CHECK do {} TORRENT_WHILE_0

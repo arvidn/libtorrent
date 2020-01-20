@@ -43,11 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/bitfield.hpp"
 #endif
 
@@ -83,7 +83,7 @@ namespace aux {
 		vector<std::int64_t, file_index_t> m_file_progress;
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		friend class libtorrent::invariant_access;
+		friend struct libtorrent::invariant_access;
 		void check_invariant() const;
 
 		// this is used to assert we never add the same piece twice

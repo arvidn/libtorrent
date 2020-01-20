@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm> // for std::swap
 #include <cstdint>
 
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/throw.hpp"

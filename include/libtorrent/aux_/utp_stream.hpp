@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/timestamp_history.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 #include <functional>
 
@@ -499,7 +499,7 @@ private:
 struct utp_socket_impl
 {
 #if TORRENT_USE_INVARIANT_CHECKS
-	friend class ::libtorrent::invariant_access;
+	friend struct ::libtorrent::invariant_access;
 #endif
 
 	utp_socket_impl(std::uint16_t recv_id, std::uint16_t send_id

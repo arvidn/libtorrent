@@ -72,7 +72,6 @@ set(libtorrent_include_files
 	i2p_stream
 	identify_client
 	index_range
-	invariant_check
 	io
 	io_service
 	ip_filter
@@ -223,6 +222,7 @@ set(libtorrent_aux_include_files
 	file_view_pool
 	has_block
 	heterogeneous_queue
+	invariant_check
 	instantiate_connection
 	io
 	ip_notifier

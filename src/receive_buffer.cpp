@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/receive_buffer.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/span.hpp"
 

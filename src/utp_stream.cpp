@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/io_context.hpp"
 #include <cstdint>
