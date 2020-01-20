@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*
 #include "libtorrent/aux_/throw.hpp"

@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/config.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/random.hpp>
-#include <libtorrent/invariant_check.hpp>
+#include <libtorrent/aux_/invariant_check.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/find_data.hpp>

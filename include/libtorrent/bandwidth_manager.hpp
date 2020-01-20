@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <vector>
 
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"

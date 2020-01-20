@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"

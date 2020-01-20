@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/mmap_storage.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"

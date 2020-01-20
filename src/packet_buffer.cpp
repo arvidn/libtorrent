@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 namespace libtorrent {
 namespace aux {

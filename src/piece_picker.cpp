@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer.hpp"
 #endif
 
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 // this is really only useful for debugging unit tests
 //#define TORRENT_PICKER_LOG

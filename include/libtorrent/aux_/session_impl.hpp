@@ -78,7 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/announce_flags.hpp"
 #include "libtorrent/resolver.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
@@ -325,7 +325,7 @@ namespace aux {
 			void wrap(Fun f, Args&&... a);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-			friend class libtorrent::invariant_access;
+			friend struct libtorrent::invariant_access;
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 
