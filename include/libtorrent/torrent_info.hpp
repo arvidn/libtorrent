@@ -598,9 +598,9 @@ namespace aux {
 		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file);
 
 		// internal
-		void internal_set_creator(string_view const);
+		void internal_set_creator(string_view);
 		void internal_set_creation_date(std::time_t);
-		void internal_set_comment(string_view const);
+		void internal_set_comment(string_view);
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
