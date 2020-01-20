@@ -139,8 +139,16 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT listen_socket_t : utp_socket_interface
 	{
+		// we accept incoming connections on this interface
 		static constexpr listen_socket_flags_t accept_incoming = 0_bit;
+
+		// this interface has a gateway associated with it, and can
+		// route to the internet (of the same address family)
 		static constexpr listen_socket_flags_t has_gateway = 1_bit;
+
+		// this interface was expanded from the user requesting to
+		// listen on an unspecified address (either IPv4 or IPv6)
+		static constexpr listen_socket_flags_t was_expanded = 2_bit;
 
 		listen_socket_t() = default;
 
