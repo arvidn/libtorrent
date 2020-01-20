@@ -51,7 +51,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT http_seed_connection
 		: public web_connection_base
 	{
-	friend class invariant_access;
+	friend struct invariant_access;
 	public:
 
 		// this is the constructor where the we are the active part.

@@ -637,7 +637,7 @@ namespace aux {
 		void resolve_duplicate_filenames_slow();
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		friend class invariant_access;
+		friend struct invariant_access;
 		void check_invariant() const;
 #endif
 

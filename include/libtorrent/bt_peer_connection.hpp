@@ -87,7 +87,7 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT bt_peer_connection
 		: peer_connection
 	{
-	friend class invariant_access;
+	friend struct invariant_access;
 
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the

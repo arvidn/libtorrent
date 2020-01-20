@@ -286,7 +286,7 @@ namespace aux {
 		, peer_connection_interface
 		, std::enable_shared_from_this<peer_connection>
 	{
-	friend class invariant_access;
+	friend struct invariant_access;
 	friend struct torrent;
 	friend struct cork;
 

@@ -13,17 +13,16 @@
 
 namespace libtorrent {
 
-	class invariant_access
+	struct invariant_access
 	{
-	public:
-		template<class T>
+		template <typename T>
 		static void check_invariant(T const& self)
 		{
 			self.check_invariant();
 		}
 	};
 
-	template<class T>
+	template <typename T>
 	void check_invariant(T const& x)
 	{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -47,29 +46,26 @@ namespace libtorrent {
 
 	struct invariant_checker {};
 
-	template<class T>
+	template <typename T>
 	struct invariant_checker_impl : invariant_checker
 	{
-		explicit invariant_checker_impl(T const& self_)
-			: self(self_)
-		{
-			check_invariant(self);
-		}
+		explicit invariant_checker_impl(T const& self_) : self(self_)
+		{ check_invariant(self); }
 
-		invariant_checker_impl(invariant_checker_impl const& rhs)
-			: self(rhs.self) {}
+		invariant_checker_impl(invariant_checker_impl&& rhs)
+			: self(rhs.self), armed(rhs.armed)
+		{ rhs.armed = false; }
 
+		invariant_checker_impl(invariant_checker_impl const& rhs) = delete;
 		invariant_checker_impl& operator=(invariant_checker_impl const&) = delete;
 
-		~invariant_checker_impl()
-		{
-			check_invariant(self);
-		}
+		~invariant_checker_impl() { if (armed) check_invariant(self); }
 
 		T const& self;
+		bool armed = true;
 	};
 
-	template<class T>
+	template <typename T>
 	invariant_checker_impl<T> make_invariant_checker(T const& x)
 	{
 		return invariant_checker_impl<T>(x);

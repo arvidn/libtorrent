@@ -49,7 +49,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection
 	{
-	friend class invariant_access;
+	friend struct invariant_access;
 	public:
 
 		// this is the constructor where the we are the active part.
