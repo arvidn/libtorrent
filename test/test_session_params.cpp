@@ -183,6 +183,14 @@ dht::dht_state test_state()
 	return ret;
 }
 
+ip_filter test_ip_filter()
+{
+	ip_filter ret;
+	ret.add_rule(make_address("fe80::"), make_address("fe81::"), 1);
+	ret.add_rule(make_address("127.0.0.1"), make_address("127.255.255.255"), 1);
+	return ret;
+}
+
 session_params test_params()
 {
 	session_params ret;
@@ -190,6 +198,7 @@ session_params test_params()
 	ret.dht_state = test_state();
 	for (int i = 0; i < 100; ++i)
 		ret.ext_state[std::to_string(i)] = std::string(std::to_string(i));
+	ret.ip_filter = test_ip_filter();
 	return ret;
 }
 
@@ -212,7 +221,35 @@ bool operator==(lt::settings_pack const& lhs, lt::settings_pack const& rhs)
 	return true;
 }
 
+void test_ip_filter(ip_filter const& f)
+{
+	TEST_EQUAL(f.access(make_address("fe7f::1")), 0);
+	TEST_EQUAL(f.access(make_address("fe80::1")), 1);
+	TEST_EQUAL(f.access(make_address("fe81::1")), 0);
+	TEST_EQUAL(f.access(make_address("127.0.0.0")), 0);
+	TEST_EQUAL(f.access(make_address("127.0.0.1")), 1);
+	TEST_EQUAL(f.access(make_address("127.255.0.1")), 1);
+	TEST_EQUAL(f.access(make_address("128.0.0.0")), 0);
+}
+
 } // anonymous namespace
+
+TORRENT_TEST(session_params_ip_filter)
+{
+	session_params input;
+	input.ip_filter = test_ip_filter();
+
+	test_ip_filter(input.ip_filter);
+
+	std::vector<char> const buf = write_session_params_buf(input);
+	{
+		std::ofstream f("../session_state.test");
+		f.write(buf.data(), static_cast<std::streamsize>(buf.size()));
+	}
+	session_params const output = read_session_params(buf);
+
+	test_ip_filter(output.ip_filter);
+}
 
 TORRENT_TEST(session_params_round_trip)
 {
@@ -228,6 +265,7 @@ TORRENT_TEST(session_params_round_trip)
 	TEST_CHECK(input.settings == output.settings);
 	TEST_CHECK(input.dht_state == output.dht_state);
 	TEST_CHECK(input.ext_state == output.ext_state);
+	TEST_CHECK(input.ip_filter.export_filter() == output.ip_filter.export_filter());
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
