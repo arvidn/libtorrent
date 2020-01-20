@@ -5971,7 +5971,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				alerts.emplace_alert<dht_get_peers_reply_alert>(info_hash, peers);
 		}
 
-		void on_direct_response(alert_manager& alerts, void* userdata, dht::msg const& msg)
+		void on_direct_response(alert_manager& alerts, client_data_t userdata, dht::msg const& msg)
 		{
 			if (msg.message.type() == bdecode_node::none_t)
 				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr);
@@ -6030,7 +6030,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		});
 	}
 
-	void session_impl::dht_direct_request(udp::endpoint const& ep, entry& e, void* userdata)
+	void session_impl::dht_direct_request(udp::endpoint const& ep, entry& e, client_data_t userdata)
 	{
 		if (!m_dht) return;
 		m_dht->direct_request(ep, e, std::bind(&on_direct_response, std::ref(m_alerts), userdata, _1));
