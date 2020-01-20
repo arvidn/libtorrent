@@ -43,15 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*
-#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
