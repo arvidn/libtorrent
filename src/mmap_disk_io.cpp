@@ -64,6 +64,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 
+#ifdef _WIN32
+#include "libtorrent/aux_/windows.hpp"
+#include "libtorrent/aux_/win_util.hpp"
+#endif
+
 #include <functional>
 #include <condition_variable>
 
@@ -1374,10 +1379,26 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return false;
 	}
 
-	void mmap_disk_io::thread_fun(job_queue& queue
-		, disk_io_thread_pool& pool)
+	void mmap_disk_io::thread_fun(job_queue& queue, disk_io_thread_pool& pool)
 	{
 		std::thread::id const thread_id = std::this_thread::get_id();
+
+#ifdef _WIN32
+		using SetThreadInformation_t = BOOL (WINAPI*)(HANDLE, THREAD_INFORMATION_CLASS, LPVOID, DWORD);
+		auto SetThreadInformation =
+			aux::get_library_procedure<aux::kernel32, SetThreadInformation_t>("SetThreadInformation");
+		if (SetThreadInformation) {
+			typedef struct _MEMORY_PRIORITY_INFORMATION {
+				ULONG MemoryPriority;
+			} MEMORY_PRIORITY_INFORMATION;
+#ifndef MEMORY_PRIORITY_BELOW_NORMAL
+			ULONG const MEMORY_PRIORITY_BELOW_NORMAL = 4;
+#endif
+			MEMORY_PRIORITY_INFORMATION info{MEMORY_PRIORITY_BELOW_NORMAL};
+			SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority
+				, &info, sizeof(info));
+		}
+#endif
 
 		DLOG("started disk thread\n");
 
