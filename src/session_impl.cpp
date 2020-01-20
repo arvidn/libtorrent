@@ -200,6 +200,7 @@ namespace aux {
 
 	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
 	constexpr listen_socket_flags_t listen_socket_t::has_gateway;
+	constexpr listen_socket_flags_t listen_socket_t::was_expanded;
 
 	constexpr ip_source_t session_interface::source_dht;
 	constexpr ip_source_t session_interface::source_peer;
@@ -273,7 +274,7 @@ namespace aux {
 				}
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
-					, uep.ssl, uep.flags);
+					, uep.ssl, uep.flags | listen_socket_t::was_expanded);
 			}
 		}
 	}
@@ -1897,8 +1898,18 @@ namespace aux {
 				m_listen_sockets.emplace_back(s);
 
 #ifndef TORRENT_DISABLE_DHT
-				if (m_dht)
+				// addresses that we expanded from an
+				// unspecified address don't get a DHT running
+				// on them, unless they have a gateway (in
+				// which case we believe they can reach the
+				// internet)
+				if (m_dht
+					&& s->ssl != transport::ssl
+					&& ((s->flags & listen_socket_t::has_gateway)
+						|| !(s->flags & listen_socket_t::was_expanded)))
+				{
 					m_dht->new_socket(m_listen_sockets.back());
+				}
 #endif
 
 				TORRENT_ASSERT(bool(s->flags & listen_socket_t::accept_incoming) == bool(s->sock));
@@ -5745,7 +5756,14 @@ namespace aux {
 			, std::move(m_dht_state));
 
 		for (auto& s : m_listen_sockets)
-			m_dht->new_socket(s);
+		{
+			if (s->ssl != transport::ssl
+				&& ((s->flags & listen_socket_t::has_gateway)
+					|| !(s->flags & listen_socket_t::was_expanded)))
+			{
+				m_dht->new_socket(s);
+			}
+		}
 
 		for (auto const& n : m_dht_router_nodes)
 		{
