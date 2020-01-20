@@ -698,7 +698,8 @@ namespace {
 #endif
 	}
 
-	void session_handle::dht_direct_request(udp::endpoint const& ep, entry const& e, void* userdata)
+	void session_handle::dht_direct_request(udp::endpoint const& ep, entry const& e
+		, client_data_t userdata)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		entry copy = e;

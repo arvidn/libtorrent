@@ -526,7 +526,7 @@ namespace libtorrent {
 		// with the response (if any) and the userdata pointer passed in here.
 		// Since this alert is a response to an explicit call, it will always be
 		// posted, regardless of the alert mask.
-		void dht_direct_request(udp::endpoint const& ep, entry const& e, void* userdata = nullptr);
+		void dht_direct_request(udp::endpoint const& ep, entry const& e, client_data_t userdata = {});
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 0.15

@@ -2667,12 +2667,12 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT dht_direct_response_alert final : alert
 	{
 		// internal
-		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, client_data_t userdata
 			, udp::endpoint const& addr, bdecode_node const& response);
 
 		// internal
 		// for when there was a timeout so we don't have a response
-		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+		TORRENT_UNEXPORT dht_direct_response_alert(aux::stack_allocator& alloc, client_data_t userdata
 			, udp::endpoint const& addr);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_direct_response_alert, 88, alert_priority::critical)
@@ -2680,7 +2680,7 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::dht_notification;
 		std::string message() const override;
 
-		void const* userdata;
+		client_data_t userdata;
 		aux::noexcept_movable<udp::endpoint> endpoint;
 
 		bdecode_node response() const;

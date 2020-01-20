@@ -2176,7 +2176,7 @@ namespace {
 	}
 
 	dht_direct_response_alert::dht_direct_response_alert(
-		aux::stack_allocator& alloc, void* userdata_
+		aux::stack_allocator& alloc, client_data_t userdata_
 		, udp::endpoint const& addr_, bdecode_node const& response)
 		: userdata(userdata_), endpoint(addr_)
 		, m_alloc(alloc)
@@ -2189,7 +2189,7 @@ namespace {
 
 	dht_direct_response_alert::dht_direct_response_alert(
 		aux::stack_allocator& alloc
-		, void* userdata_
+		, client_data_t userdata_
 		, udp::endpoint const& addr_)
 		: userdata(userdata_), endpoint(addr_)
 		, m_alloc(alloc)

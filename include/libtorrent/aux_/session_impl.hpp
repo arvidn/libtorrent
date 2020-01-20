@@ -503,8 +503,7 @@ namespace aux {
 			void dht_live_nodes(sha1_hash const& nid);
 			void dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target);
 
-			void dht_direct_request(udp::endpoint const& ep, entry& e
-				, void* userdata = nullptr);
+			void dht_direct_request(udp::endpoint const& ep, entry& e, client_data_t userdata);
 
 #if TORRENT_ABI_VERSION == 1
 			TORRENT_DEPRECATED
