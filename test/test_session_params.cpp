@@ -122,6 +122,8 @@ TORRENT_TEST(dht_state)
 	session_params params(p);
 	params.dht_state = s;
 
+	params.settings.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881");
+
 	lt::session ses1(params);
 	TEST_CHECK(ses1.is_dht_running() == true);
 	session_params const params1 = ses1.session_state();
@@ -136,11 +138,10 @@ TORRENT_TEST(dht_state)
 	TEST_EQUAL(params2.settings.get_int(settings_pack::dht_max_dht_items), 10000);
 	TEST_EQUAL(params2.settings.get_int(settings_pack::dht_max_peers), 20000);
 
+	TEST_EQUAL(params2.dht_state.nids.size(), 1);
+
 	// not a chance the nid will be the fake initial ones
 	TEST_CHECK(params2.dht_state.nids[0].second != s.nids[0].second);
-	// the host machine may not have IPv6 support in which case there will only be one entry
-	if (params2.dht_state.nids.size() > 1)
-		TEST_CHECK(params2.dht_state.nids[1].second != s.nids[1].second);
 }
 #endif
 

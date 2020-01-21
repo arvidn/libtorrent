@@ -209,6 +209,7 @@ namespace aux {
 
 	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
 	constexpr listen_socket_flags_t listen_socket_t::has_gateway;
+	constexpr listen_socket_flags_t listen_socket_t::was_expanded;
 
 	constexpr ip_source_t session_interface::source_dht;
 	constexpr ip_source_t session_interface::source_peer;
@@ -323,7 +324,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				}
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
-					, uep.ssl, uep.flags);
+					, uep.ssl, uep.flags | listen_socket_t::was_expanded);
 			}
 		}
 	}
@@ -2009,8 +2010,18 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				m_listen_sockets.emplace_back(s);
 
 #ifndef TORRENT_DISABLE_DHT
-				if (m_dht)
+				// addresses that we expanded from an
+				// unspecified address don't get a DHT running
+				// on them, unless they have a gateway (in
+				// which case we believe they can reach the
+				// internet)
+				if (m_dht
+					&& s->ssl != transport::ssl
+					&& ((s->flags & listen_socket_t::has_gateway)
+						|| !(s->flags & listen_socket_t::was_expanded)))
+				{
 					m_dht->new_socket(m_listen_sockets.back());
+				}
 #endif
 
 				TORRENT_ASSERT(bool(s->flags & listen_socket_t::accept_incoming) == bool(s->sock));
@@ -2096,6 +2107,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				start_natpmp(*s);
 		}
 
+		if (m_settings.get_bool(settings_pack::enable_upnp))
+		{
+			for (auto const& s : new_sockets)
+				start_upnp(*s);
+		}
+
 		if (map_ports)
 		{
 			for (auto const& s : m_listen_sockets)
@@ -2108,6 +2125,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			for (auto const& s : new_sockets)
 				remap_ports(remap_natpmp_and_upnp, *s);
 		}
+
+		update_lsd();
 
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
@@ -2152,11 +2171,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
 				, s.udp_port_mapping[portmap_transport::natpmp].mapping);
 		}
-		if ((mask & remap_upnp) && m_upnp)
+		if ((mask & remap_upnp) && s.upnp_mapper)
 		{
-			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep
+			map_port(*s.upnp_mapper, portmap_protocol::tcp, tcp_ep
 				, s.tcp_port_mapping[portmap_transport::upnp].mapping);
-			map_port(*m_upnp, portmap_protocol::udp, make_tcp(udp_ep)
+			map_port(*s.upnp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
 				, s.udp_port_mapping[portmap_transport::upnp].mapping);
 		}
 	}
@@ -5013,6 +5032,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			, [&device](std::string const& s) { return s == device; });
 	}
 
+	bool session_impl::has_lsd() const
+	{
+		return std::any_of(m_listen_sockets.begin(), m_listen_sockets.end()
+			, [](std::shared_ptr<listen_socket_t> const& s) { return bool(s->lsd); });
+	}
+
 	void session_impl::remove_torrent(const torrent_handle& h
 		, remove_flags_t const options)
 	{
@@ -5364,8 +5389,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	void session_impl::announce_lsd(sha1_hash const& ih, int port)
 	{
 		// use internal listen port for local peers
-		if (m_lsd)
-			m_lsd->announce(ih, port);
+		for (auto const& s : m_listen_sockets)
+		{
+			if (s->lsd) s->lsd->announce(ih, port);
+		}
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih)
@@ -5410,7 +5437,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
 			s.natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this);
-			s.natpmp_mapper->start(s.local_endpoint.address(), s.device);
+			ip_interface ip;
+			ip.interface_address = s.local_endpoint.address();
+			ip.netmask = s.netmask;
+			std::strncpy(ip.name, s.device.c_str(), sizeof(ip.name));
+			s.natpmp_mapper->start(ip);
 		}
 	}
 
@@ -5652,7 +5683,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			, std::move(m_dht_state));
 
 		for (auto& s : m_listen_sockets)
-			m_dht->new_socket(s);
+		{
+			if (s->ssl != transport::ssl
+				&& ((s->flags & listen_socket_t::has_gateway)
+					|| !(s->flags & listen_socket_t::was_expanded)))
+			{
+				m_dht->new_socket(s);
+			}
+		}
 
 		for (auto const& n : m_dht_router_nodes)
 		{
@@ -6360,12 +6398,19 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	{
 		if (!m_settings.get_bool(settings_pack::anonymous_mode))
 		{
-			if (m_upnp)
-				m_upnp->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			for (auto& s : m_listen_sockets)
+			{
+				if (!s->upnp_mapper) continue;
+				s->upnp_mapper->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			}
 			return;
 		}
 
-		if (m_upnp) m_upnp->set_user_agent("");
+		for (auto& s : m_listen_sockets)
+		{
+			if (!s->upnp_mapper) continue;
+			s->upnp_mapper->set_user_agent("");
+		}
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -6564,13 +6609,20 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	{
 		INVARIANT_CHECK;
 
-		if (m_lsd) return;
-
-		m_lsd = std::make_shared<lsd>(m_io_context, *this);
-		error_code ec;
-		m_lsd->start(ec);
-		if (ec && m_alerts.should_post<lsd_error_alert>())
-			m_alerts.emplace_alert<lsd_error_alert>(ec);
+		for (auto& s : m_listen_sockets)
+		{
+			if (s->lsd) continue;
+			s->lsd = std::make_shared<lsd>(m_io_context, *this, s->local_endpoint.address()
+				, s->netmask);
+			error_code ec;
+			s->lsd->start(ec);
+			if (ec)
+			{
+				if (m_alerts.should_post<lsd_error_alert>())
+					m_alerts.emplace_alert<lsd_error_alert>(ec);
+				s->lsd.reset();
+			}
+		}
 	}
 
 	void session_impl::start_natpmp()
@@ -6583,26 +6635,39 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
-	upnp* session_impl::start_upnp()
+	void session_impl::start_upnp()
 	{
 		INVARIANT_CHECK;
-
-		if (m_upnp) return m_upnp.get();
-
-		// the upnp constructor may fail and call the callbacks
-		m_upnp = std::make_shared<upnp>(m_io_context
-			, m_settings.get_bool(settings_pack::anonymous_mode)
-				? std::string{} : m_settings.get_str(settings_pack::user_agent)
-			, *this);
-		m_upnp->start();
-
-		m_upnp->discover_device();
-
 		for (auto& s : m_listen_sockets)
 		{
+			start_upnp(*s);
 			remap_ports(remap_upnp, *s);
 		}
-		return m_upnp.get();
+	}
+
+	void session_impl::start_upnp(aux::listen_socket_t& s)
+	{
+		// until we support SSDP over an IPv6 network (
+		// https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol )
+		// there's no point in starting upnp on one.
+		if (is_v6(s.local_endpoint))
+			return;
+
+		// there's no point in starting the UPnP mapper for a network that doesn't
+		// have a gateway. The whole point is to forward ports through the gateway
+		if (!(s.flags & listen_socket_t::has_gateway))
+			return;
+
+		if (!s.upnp_mapper)
+		{
+			// the upnp constructor may fail and call the callbacks
+			// into the session_impl.
+			s.upnp_mapper = std::make_shared<upnp>(m_io_context
+				, m_settings.get_bool(settings_pack::anonymous_mode)
+				? "" : m_settings.get_str(settings_pack::user_agent)
+				, *this, s.local_endpoint.address().to_v4(), s.netmask.to_v4(), s.device);
+			s.upnp_mapper->start();
+		}
 	}
 
 	std::vector<port_mapping_t> session_impl::add_port_mapping(portmap_protocol const t
@@ -6610,21 +6675,21 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, int const local_port)
 	{
 		std::vector<port_mapping_t> ret;
-		if (m_upnp) ret.push_back(m_upnp->add_mapping(t, external_port
-			, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
 		for (auto& s : m_listen_sockets)
 		{
+			if (s->upnp_mapper) ret.push_back(s->upnp_mapper->add_mapping(t, external_port
+				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
 			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
-				, tcp::endpoint({}, static_cast<std::uint16_t>(local_port))));
+				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
 		}
 		return ret;
 	}
 
 	void session_impl::delete_port_mapping(port_mapping_t handle)
 	{
-		if (m_upnp) m_upnp->delete_mapping(handle);
 		for (auto& s : m_listen_sockets)
 		{
+			if (s->upnp_mapper) s->upnp_mapper->delete_mapping(handle);
 			if (s->natpmp_mapper) s->natpmp_mapper->delete_mapping(handle);
 		}
 	}
@@ -6639,9 +6704,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 	void session_impl::stop_lsd()
 	{
-		if (m_lsd)
-			m_lsd->close();
-		m_lsd.reset();
+		for (auto& s : m_listen_sockets)
+		{
+			if (!s->lsd) continue;
+			s->lsd->close();
+			s->lsd.reset();
+		}
 	}
 
 	void session_impl::stop_natpmp()
@@ -6658,15 +6726,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 	void session_impl::stop_upnp()
 	{
-		if (!m_upnp) return;
-
-		m_upnp->close();
 		for (auto& s : m_listen_sockets)
 		{
+			if (!s->upnp_mapper) continue;
 			s->tcp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
 			s->udp_port_mapping[portmap_transport::upnp] = listen_port_mapping();
+			s->upnp_mapper->close();
+			s->upnp_mapper.reset();
 		}
-		m_upnp.reset();
 	}
 
 	external_ip session_impl::external_address() const

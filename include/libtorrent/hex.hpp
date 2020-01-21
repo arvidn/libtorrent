@@ -71,7 +71,6 @@ namespace aux {
 
 #undef TORRENT_CONDITIONAL_EXPORT
 
-
 } // namespace aux
 
 #if TORRENT_ABI_VERSION == 1

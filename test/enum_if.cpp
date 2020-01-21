@@ -44,15 +44,6 @@ int main()
 	io_context ios;
 	error_code ec;
 
-	address def_gw = get_default_gateway(ios, "", false, ec);
-	if (ec)
-	{
-		std::printf("%s\n", ec.message().c_str());
-		return 1;
-	}
-
-	std::printf("Default gateway: %s\n", def_gw.to_string().c_str());
-
 	std::printf("=========== Routes ===========\n");
 	auto const routes = enum_routes(ios, ec);
 	if (ec)

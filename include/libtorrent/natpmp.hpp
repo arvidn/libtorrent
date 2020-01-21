@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/enum_net.hpp" // for ip_interface
 
 namespace libtorrent {
 
@@ -89,7 +90,7 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 {
 	natpmp(io_context& ios, aux::portmap_callback& cb);
 
-	void start(address local_address, std::string device);
+	void start(ip_interface const& ip);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped

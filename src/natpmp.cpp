@@ -150,27 +150,31 @@ natpmp::natpmp(io_context& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start(address local_address, std::string device)
+void natpmp::start(ip_interface const& ip)
 {
 	TORRENT_ASSERT(is_single_thread());
-
-	error_code ec;
 
 	// assume servers support PCP and fall back to NAT-PMP
 	// if necessary
 	m_version = version_pcp;
 
-	// we really want a device name to get the right default gateway
-	// try to find one even if the listen socket isn't bound to a device
-	if (device.empty())
+	address const& local_address = ip.interface_address;
+
+	error_code ec;
+	auto const routes = enum_routes(m_ioc, ec);
+	if (ec)
 	{
-		device = device_for_address(local_address, m_ioc, ec);
-		// if this fails fall back to using the first default gateway in the
-		// routing table
-		ec.clear();
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			log("failed to enumerate routes: %s"
+				, convert_from_native(ec.message()).c_str());
+		}
+#endif
+		disable(ec);
 	}
 
-	auto const route = get_default_route(m_ioc, device, local_address.is_v6(), ec);
+	auto const route = get_gateway(ip, routes);
 
 	if (!route)
 	{
@@ -178,7 +182,7 @@ void natpmp::start(address local_address, std::string device)
 		if (should_log())
 		{
 			log("failed to find default route for \"%s\" %s: %s"
-				, device.c_str(), local_address.to_string().c_str()
+				, ip.name, local_address.to_string().c_str()
 				, convert_from_native(ec.message()).c_str());
 		}
 #endif
@@ -186,64 +190,16 @@ void natpmp::start(address local_address, std::string device)
 		return;
 	}
 
-	if (device.empty()) device = route->name;
-
-	TORRENT_ASSERT(!device.empty());
-
-	// PCP requires reporting the source address at the application
-	// layer so the socket MUST be bound to a specific address
-	// if the caller didn't specify one then get the first suitable
-	// address from the OS
-	if (local_address.is_unspecified())
-	{
-		std::vector<ip_interface> const net = enum_net_interfaces(m_ioc, ec);
-
-		auto const it = std::find_if(net.begin(), net.end(), [&](ip_interface const& i)
-		{
-			return i.interface_address.is_v4() == local_address.is_v4()
-				&& (i.interface_address.is_v4() || !is_local(i.interface_address))
-				&& i.name == device;
-		});
-
-		if (it != net.end())
-		{
-			local_address = it->interface_address;
-		}
-		else
-		{
-			// if we can't get a specific address to bind to we'll have
-			// to fall back to NAT-PMP
-			// but NAT-PMP doesn't support IPv6 so if that's what is being
-			// requested we can't do anything
-			if (local_address.is_v6())
-			{
-				if (!ec) ec = boost::asio::error::address_family_not_supported;
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					log("cannot map IPv6 without a local address, %s"
-						, convert_from_native(ec.message()).c_str());
-				}
-#endif
-				disable(ec);
-				return;
-			}
-
-			m_version = version_natpmp;
-			ec.clear();
-		}
-	}
-
 	m_disabled = false;
 
-	udp::endpoint const nat_endpoint(route->gateway, 5351);
+	udp::endpoint const nat_endpoint(*route, 5351);
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (should_log())
 	{
-		log("found router at: %s"
+		log("found gateway at: %s"
 			, print_address(m_nat_endpoint.address()).c_str());
 	}
 #endif

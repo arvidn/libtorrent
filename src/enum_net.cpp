@@ -493,19 +493,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			== (a2.to_v4().to_uint() & mask.to_v4().to_uint());
 	}
 
-	bool in_local_network(io_context& ios, address const& addr, error_code& ec)
-	{
-		std::vector<ip_interface> net = enum_net_interfaces(ios, ec);
-		if (ec) return false;
-		return in_local_network(net, addr);
-	}
-
-	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
-	{
-		return std::any_of(net.begin(), net.end(), [&addr](ip_interface const& i)
-			{ return match_addr_mask(addr, i.interface_address, i.netmask); });
-	}
-
 	std::vector<ip_interface> enum_net_interfaces(io_context& ios, error_code& ec)
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
@@ -819,28 +806,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			});
 		if (it != routes.end()) return it->gateway;
 		return {};
-	}
-
-	boost::optional<ip_route> get_default_route(io_context& ios
-		, string_view const device, bool const v6, error_code& ec)
-	{
-		std::vector<ip_route> const ret = enum_routes(ios, ec);
-		auto const i = std::find_if(ret.begin(), ret.end()
-			, [device,v6](ip_route const& r)
-		{
-			return r.destination.is_unspecified()
-				&& r.destination.is_v6() == v6
-				&& (device.empty() || r.name == device);
-		});
-		if (i == ret.end()) return boost::none;
-		return *i;
-	}
-
-	address get_default_gateway(io_context& ios
-		, string_view const device, bool const v6, error_code& ec)
-	{
-		auto const default_route = get_default_route(ios, device, v6, ec);
-		return default_route ? default_route->gateway : address();
 	}
 
 	std::vector<ip_route> enum_routes(io_context& ios, error_code& ec)

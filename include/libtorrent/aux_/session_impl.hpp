@@ -157,8 +157,16 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT listen_socket_t : utp_socket_interface
 	{
+		// we accept incoming connections on this interface
 		static constexpr listen_socket_flags_t accept_incoming = 0_bit;
+
+		// this interface has a gateway associated with it, and can
+		// route to the internet (of the same address family)
 		static constexpr listen_socket_flags_t has_gateway = 1_bit;
+
+		// this interface was expanded from the user requesting to
+		// listen on an unspecified address (either IPv4 or IPv6)
+		static constexpr listen_socket_flags_t was_expanded = 2_bit;
 
 		listen_socket_t() = default;
 
@@ -253,6 +261,9 @@ namespace aux {
 		aux::handler_storage<aux::udp_handler_max_size, aux::udp_handler> udp_handler_storage;
 
 		std::shared_ptr<natpmp> natpmp_mapper;
+		std::shared_ptr<upnp> upnp_mapper;
+
+		std::shared_ptr<struct lsd> lsd;
 
 		// set to true when we receive an incoming connection from this listen
 		// socket
@@ -719,7 +730,7 @@ namespace aux {
 			void start_ip_notifier();
 			void start_lsd();
 			void start_natpmp();
-			upnp* start_upnp();
+			void start_upnp();
 
 			void stop_ip_notifier();
 			void stop_lsd();
@@ -776,7 +787,7 @@ namespace aux {
 			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
-			bool has_lsd() const override { return m_lsd.get() != nullptr; }
+			bool has_lsd() const override;
 
 			std::vector<block_info>& block_info_storage() override { return m_block_info_storage; }
 
@@ -858,6 +869,7 @@ namespace aux {
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 
 			void start_natpmp(aux::listen_socket_t& s);
+			void start_upnp(aux::listen_socket_t& s);
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t source_type, address const& source);
@@ -1207,9 +1219,6 @@ namespace aux {
 			// connections that have been made this second
 			// this is deducted from the connect speed
 			int m_boost_connections = 0;
-
-			std::shared_ptr<upnp> m_upnp;
-			std::shared_ptr<lsd> m_lsd;
 
 			// mask is a bitmask of which protocols to remap on:
 			enum remap_port_mask_t

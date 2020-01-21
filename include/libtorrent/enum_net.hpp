@@ -97,24 +97,10 @@ namespace libtorrent {
 	// netmask
 	TORRENT_EXTRA_EXPORT address build_netmask(int bits, int family);
 
-	// returns true if the specified address is on the same
-	// local network as us
-	TORRENT_EXTRA_EXPORT bool in_local_network(io_context& ios, address const& addr
-		, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
-		, address const& addr);
-
 	// return the gateway for the given ip_interface, if there is one. Otherwise
 	// return nullopt.
 	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
 		ip_interface const& iface, span<ip_route const> routes);
-
-	TORRENT_EXTRA_EXPORT boost::optional<ip_route> get_default_route(io_context& ios
-		, string_view device, bool v6, error_code& ec);
-
-	// returns the first default gateway found if device is empty
-	TORRENT_EXTRA_EXPORT address get_default_gateway(io_context& ios
-		, string_view device, bool v6, error_code& ec);
 
 	// attempt to bind socket to the device with the specified name. For systems
 	// that don't support SO_BINDTODEVICE the socket will be bound to one of the
