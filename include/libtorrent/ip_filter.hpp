@@ -41,20 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <cstdint>
 #include <tuple>
-#include <iterator> // for next
 #include <limits>
 
 #include "libtorrent/address.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
-
-// hidden
-inline bool operator<=(address const& lhs
-	, address const& rhs)
-{
-	return lhs < rhs || lhs == rhs;
-}
 
 template <typename Addr>
 struct ip_range
@@ -108,7 +99,7 @@ namespace aux {
 
 		filter_impl();
 		bool empty() const;
-		void add_rule(Addr first, Addr last, std::uint32_t const flags);
+		void add_rule(Addr first, Addr last, std::uint32_t flags);
 		std::uint32_t access(Addr const& addr) const;
 		template <typename ExternalAddressType>
 		std::vector<ip_range<ExternalAddressType>> export_filter() const;
@@ -199,8 +190,6 @@ struct TORRENT_EXPORT ip_filter
 	// The return value is a tuple containing two range-lists. One for IPv4 addresses
 	// and one for IPv6 addresses.
 	filter_tuple_t export_filter() const;
-
-//	void print() const;
 
 private:
 

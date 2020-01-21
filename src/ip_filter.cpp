@@ -31,7 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <iterator> // for next
+
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 
