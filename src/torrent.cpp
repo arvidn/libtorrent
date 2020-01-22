@@ -6199,6 +6199,7 @@ bool is_downloading_state(int const st)
 		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
 		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
 		if (m_auto_managed ) ret.flags |= torrent_flags::auto_managed;
+		if (m_stop_when_ready) ret.flags |= torrent_flags::stop_when_ready;
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;
