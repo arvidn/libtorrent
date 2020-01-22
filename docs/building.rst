@@ -483,7 +483,7 @@ If you enabled test in the configuration step, to run them, run::
 
 building with VCPKG
 
-You can download and install libtorrent  using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
+You can download and install libtorrent using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
 
     git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg
