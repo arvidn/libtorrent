@@ -272,6 +272,10 @@ namespace aux {
 			// GUID must be uppercased string embraced in curly brackets.
 			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}::7777`` - will accept
 			// connections on port 7777 on adapter with this GUID.
+			//
+			// For more information, see the `Multi-homed hosts`_ section.
+			//
+			// .. _`Multi-homed hosts`: manual-ref.html#multi-homed-hosts
 			listen_interfaces,
 
 			// when using a proxy, this is the hostname where the proxy is running

@@ -558,6 +558,9 @@ iocontrol
 getname
 getpeername
 fastresume
+InternetGatewayDevice
+netmask
+fe80
 destructors
 fclose
 fopen

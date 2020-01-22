@@ -76,6 +76,7 @@ namespace libtorrent {
 		address destination;
 		address netmask;
 		address gateway;
+		address source_hint;
 		char name[64]{};
 		int mtu;
 	};

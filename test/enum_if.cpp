@@ -52,15 +52,16 @@ int main()
 		return 1;
 	}
 
-	std::printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
+	std::printf("%-18s%-18s%-35s%-7s%-18sinterface\n", "destination", "network", "gateway", "mtu", "source-hint");
 
 	for (auto const& r : routes)
 	{
-		std::printf("%-18s%-18s%-35s%-7d%s\n"
+		std::printf("%-18s%-18s%-35s%-7d%-18s%s\n"
 			, r.destination.to_string().c_str()
 			, r.netmask.to_string().c_str()
 			, r.gateway.is_unspecified() ? "-" : r.gateway.to_string().c_str()
 			, r.mtu
+			, r.source_hint.is_unspecified() ? "-" : r.source_hint.to_string().c_str()
 			, r.name);
 	}
 

@@ -206,9 +206,9 @@ namespace aux {
 		// if the socket is not bound to a device
 		std::string device;
 
-		// this is the port that was originally specified to listen on
-		// it may be different from local_endpoint.port() if we could
-		// had to retry binding with a higher port
+		// this is the port that was originally specified to listen on it may be
+		// different from local_endpoint.port() if we had to retry binding with a
+		// higher port
 		int original_port = 0;
 
 		// tcp_external_port and udp_external_port return the port which
