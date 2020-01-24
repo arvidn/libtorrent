@@ -103,7 +103,8 @@ upnp::upnp(io_context& ios
 	, aux::portmap_callback& cb
 	, address_v4 const& listen_address
 	, address_v4 const& netmask
-	, std::string listen_device)
+	, std::string listen_device
+	, listen_socket_handle ls)
 	: m_user_agent(std::move(user_agent))
 	, m_callback(cb)
 	, m_io_service(ios)
@@ -116,6 +117,7 @@ upnp::upnp(io_context& ios
 	, m_listen_address(listen_address)
 	, m_netmask(netmask)
 	, m_device(std::move(listen_device))
+	, m_listen_handle(std::move(ls))
 {
 }
 
@@ -210,7 +212,7 @@ void upnp::log(char const* fmt, ...) const
 	char msg[1024];
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(portmap_transport::upnp, msg);
+	m_callback.log_portmap(portmap_transport::upnp, msg, m_listen_handle);
 }
 #endif
 
@@ -1085,8 +1087,8 @@ void upnp::disable(error_code const& ec)
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
 		i->protocol = portmap_protocol::none;
-		m_callback.on_port_mapping(port_mapping_t(static_cast<int>(i - m_mappings.begin())), address(), 0, proto, ec
-			, portmap_transport::upnp);
+		m_callback.on_port_mapping(port_mapping_t(static_cast<int>(i - m_mappings.begin()))
+			, address(), 0, proto, ec, portmap_transport::upnp, m_listen_handle);
 	}
 
 	// we cannot clear the devices since there
@@ -1418,7 +1420,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == -1)
 	{
 		m_callback.on_port_mapping(mapping, d.external_ip, m.external_port, m.protocol, error_code()
-			, portmap_transport::upnp);
+			, portmap_transport::upnp, m_listen_handle);
 		if (d.lease_duration > 0)
 		{
 			m.expires = aux::time_now()
@@ -1461,7 +1463,7 @@ void upnp::return_error(port_mapping_t const mapping, int const code)
 	}
 	portmap_protocol const proto = m_mappings[mapping].protocol;
 	m_callback.on_port_mapping(mapping, address(), 0, proto, error_code(code, upnp_category())
-		, portmap_transport::upnp);
+		, portmap_transport::upnp, m_listen_handle);
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
@@ -1529,7 +1531,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	m_callback.on_port_mapping(mapping, address(), 0, proto, p.status_code() != 200
 		? error_code(p.status_code(), http_category())
 		: error_code(s.error_code, upnp_category())
-		, portmap_transport::upnp);
+		, portmap_transport::upnp, m_listen_handle);
 
 	d.mapping[mapping].protocol = portmap_protocol::none;
 

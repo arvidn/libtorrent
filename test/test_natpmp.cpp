@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -50,7 +51,7 @@ namespace
 		void on_port_mapping(port_mapping_t const mapping
 			, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
-			, portmap_transport) override
+			, portmap_transport, aux::listen_socket_handle const&) override
 		{
 			std::cout
 				<< "mapping: " << mapping
@@ -65,7 +66,7 @@ namespace
 			return true;
 		}
 
-		virtual void log_portmap(portmap_transport, char const* msg) const override
+		virtual void log_portmap(portmap_transport, char const* msg, aux::listen_socket_handle const&) const override
 		{
 			std::cout << msg << std::endl;
 		}
@@ -84,8 +85,37 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	error_code ec;
+	std::vector<ip_route> const routes = enum_routes(ios, ec);
+	if (ec)
+	{
+		std::cerr << "failed to enumerate routes: " << ec.message() << '\n';
+		return -1;
+	}
+	std::vector<ip_interface> const ifs = enum_net_interfaces(ios, ec);
+	if (ec)
+	{
+		std::cerr << "failed to enumerate network interfaces: " << ec.message() << '\n';
+		return -1;
+	}
+	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
+		{
+			if (!face.interface_address.is_v4()) return false;
+			if (aux::is_loopback(face.interface_address)) return false;
+			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+				{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
+			if (route == routes.end()) return false;
+			return true;
+		});
+	if (iface == ifs.end())
+	{
+		std::cerr << "could not find an IPv4 interface to run NAT-PMP test over!\n";
+		return -1;
+	}
+
 	natpmp_callback cb;
-	auto natpmp_handler = std::make_shared<natpmp>(ios, cb);
+	auto natpmp_handler = std::make_shared<natpmp>(ios, cb, aux::listen_socket_handle{});
+	natpmp_handler->start(*iface);
 
 	deadline_timer timer(ios);
 

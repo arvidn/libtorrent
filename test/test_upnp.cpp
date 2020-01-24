@@ -135,7 +135,7 @@ std::list<callback_info> callbacks;
 		void on_port_mapping(port_mapping_t const mapping
 			, address const& ip, int port
 			, portmap_protocol const protocol, error_code const& err
-			, portmap_transport) override
+			, portmap_transport, aux::listen_socket_handle const&) override
 		{
 			callback_info info = {mapping, port, err};
 			callbacks.push_back(info);
@@ -150,7 +150,8 @@ std::list<callback_info> callbacks;
 			return true;
 		}
 
-		void log_portmap(portmap_transport, char const* msg) const override
+		void log_portmap(portmap_transport, char const* msg
+			, aux::listen_socket_handle const&) const override
 		{
 			std::cout << "UPnP: " << msg << std::endl;
 			//TODO: store the log and verify that some key messages are there
@@ -242,7 +243,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	upnp_callback cb;
 	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb
-		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name);
+		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name, aux::listen_socket_handle());
 	upnp_handler->start();
 
 	for (int i = 0; i < 20; ++i)
@@ -315,7 +316,7 @@ TORRENT_TEST(upnp_max_mappings)
 
 	upnp_callback cb;
 	auto upnp_handler = std::make_shared<upnp>(ios, "", cb
-		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name);
+		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name, aux::listen_socket_handle());
 
 	for (int i = 0; i < 50; ++i)
 	{

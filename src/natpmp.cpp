@@ -137,12 +137,14 @@ using namespace aux;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_context& ios
-	, aux::portmap_callback& cb)
+	, aux::portmap_callback& cb
+	, listen_socket_handle ls)
 	: m_callback(cb)
 	, m_socket(ios)
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
 	, m_ioc(ios)
+	, m_listen_handle(std::move(ls))
 {
 	// unfortunately async operations rely on the storage
 	// for this array not to be reallocated, by passing
@@ -303,7 +305,7 @@ void natpmp::log(char const* fmt, ...) const
 	va_start(v, fmt);
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(portmap_transport::natpmp, msg);
+	m_callback.log_portmap(portmap_transport::natpmp, msg, m_listen_handle);
 }
 #endif
 
@@ -319,7 +321,7 @@ void natpmp::disable(error_code const& ec)
 		i->protocol = portmap_protocol::none;
 		port_mapping_t const index(static_cast<int>(i - m_mappings.begin()));
 		m_callback.on_port_mapping(index, address(), 0, proto, ec
-			, portmap_transport::natpmp);
+			, portmap_transport::natpmp, m_listen_handle);
 	}
 	close_impl();
 }
@@ -794,14 +796,14 @@ void natpmp::on_reply(error_code const& e
 		m->expires = aux::time_now() + hours(2);
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(port_mapping_t{index}, address(), 0, proto
-			, from_result_code(version, result), portmap_transport::natpmp);
+			, from_result_code(version, result), portmap_transport::natpmp, m_listen_handle);
 	}
 	else if (m->act == portmap_action::add)
 	{
 		portmap_protocol const proto = m->protocol;
 		address const ext_ip = version == version_pcp ? m->external_address : m_external_ip;
 		m_callback.on_port_mapping(port_mapping_t{index}, ext_ip, m->external_port, proto
-			, errors::pcp_success, portmap_transport::natpmp);
+			, errors::pcp_success, portmap_transport::natpmp, m_listen_handle);
 	}
 
 	m_currently_mapping = port_mapping_t{-1};

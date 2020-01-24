@@ -540,7 +540,7 @@ namespace aux {
 			// a failure to map a port
 			void on_port_mapping(port_mapping_t mapping, address const& ip, int port
 				, portmap_protocol proto, error_code const& ec
-				, portmap_transport transport) override;
+				, portmap_transport transport, listen_socket_handle const&) override;
 
 			bool is_aborted() const override { return m_abort; }
 			bool is_paused() const { return m_paused; }
@@ -760,7 +760,8 @@ namespace aux {
 				, udp::endpoint const& node) override;
 
 			bool should_log_portmap(portmap_transport transport) const override;
-			void log_portmap(portmap_transport transport, char const* msg) const override;
+			void log_portmap(portmap_transport transport, char const* msg
+				, listen_socket_handle const&) const override;
 
 			bool should_log_lsd() const override;
 			void log_lsd(char const* msg) const override;
@@ -867,8 +868,8 @@ namespace aux {
 
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 
-			void start_natpmp(aux::listen_socket_t& s);
-			void start_upnp(aux::listen_socket_t& s);
+			void start_natpmp(std::shared_ptr<aux::listen_socket_t> const&  s);
+			void start_upnp(std::shared_ptr<aux::listen_socket_t> const& s);
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t source_type, address const& source);
