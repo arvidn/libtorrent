@@ -1100,9 +1100,11 @@ namespace {
 	}
 
 	portmap_error_alert::portmap_error_alert(aux::stack_allocator&
-		, port_mapping_t const i, portmap_transport const t, error_code const& e)
+		, port_mapping_t const i, portmap_transport const t, error_code const& e
+		, address const& local)
 		: mapping(i)
 		, map_transport(t)
+		, local_address(local)
 		, error(e)
 #if TORRENT_ABI_VERSION == 1
 		, map_type(static_cast<int>(t))
@@ -1114,17 +1116,18 @@ namespace {
 	{
 		return std::string("could not map port using ")
 			+ nat_type_str[static_cast<int>(map_transport)]
-			+ ": " + convert_from_native(error.message());
+			+ "[" + local_address.to_string() + "]: "
+			+ convert_from_native(error.message());
 	}
 
 	portmap_alert::portmap_alert(aux::stack_allocator&, port_mapping_t const i
-		, int port
-		, portmap_transport const t
-		, portmap_protocol const proto)
+		, int const port, portmap_transport const t, portmap_protocol const proto
+		, address const& local)
 		: mapping(i)
 		, external_port(port)
 		, map_protocol(proto)
 		, map_transport(t)
+		, local_address(local)
 #if TORRENT_ABI_VERSION == 1
 		, protocol(static_cast<int>(proto))
 		, map_type(static_cast<int>(t))
@@ -1134,15 +1137,17 @@ namespace {
 	std::string portmap_alert::message() const
 	{
 		char ret[200];
-		std::snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %s/%d"
+		std::snprintf(ret, sizeof(ret), "successfully mapped port using %s. local: %s external port: %s/%d"
 			, nat_type_str[static_cast<int>(map_transport)]
+			, local_address.to_string().c_str()
 			, protocol_str[static_cast<int>(map_protocol)], external_port);
 		return ret;
 	}
 
 	portmap_log_alert::portmap_log_alert(aux::stack_allocator& alloc
-		, portmap_transport const t, const char* m)
+		, portmap_transport const t, const char* m, address const& local)
 		: map_transport(t)
+		, local_address(local)
 		, m_alloc(alloc)
 		, m_log_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
@@ -1159,8 +1164,9 @@ namespace {
 	std::string portmap_log_alert::message() const
 	{
 		char ret[600];
-		std::snprintf(ret, sizeof(ret), "%s: %s"
+		std::snprintf(ret, sizeof(ret), "%s [%s]: %s"
 			, nat_type_str[static_cast<int>(map_transport)]
+			, local_address.to_string().c_str()
 			, log_message());
 		return ret;
 	}
@@ -1866,14 +1872,17 @@ namespace {
 			+ mode[direction] + " " + event_type + " [ " + log_message() + " ]";
 	}
 
-	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec)
+	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec
+		, address const& local)
 		: alert()
+		, local_address(local)
 		, error(ec)
 	{}
 
 	std::string lsd_error_alert::message() const
 	{
-		return "Local Service Discovery error: " + convert_from_native(error.message());
+		return "Local Service Discovery error [" + local_address.to_string() + "]: "
+			+ convert_from_native(error.message());
 	}
 
 #if TORRENT_ABI_VERSION == 1

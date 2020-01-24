@@ -1585,8 +1585,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT portmap_error_alert(aux::stack_allocator& alloc, port_mapping_t i
-			, portmap_transport t
-			, error_code const& e);
+			, portmap_transport t, error_code const& e, address const& local);
 
 		TORRENT_DEFINE_ALERT(portmap_error_alert, 50)
 
@@ -1600,6 +1599,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// UPnP or NAT-PMP
 		portmap_transport map_transport;
+
+		// the local network the port mapper is running on
+		aux::noexcept_movable<address> local_address;
 
 		// tells you what failed.
 		error_code const error;
@@ -1619,7 +1621,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT portmap_alert(aux::stack_allocator& alloc, port_mapping_t i, int port
-			, portmap_transport t, portmap_protocol protocol);
+			, portmap_transport t, portmap_protocol protocol, address const& local);
 
 		TORRENT_DEFINE_ALERT(portmap_alert, 51)
 
@@ -1636,6 +1638,9 @@ TORRENT_VERSION_NAMESPACE_2
 		portmap_protocol const map_protocol;
 
 		portmap_transport const map_transport;
+
+		// the local network the port mapper is running on
+		aux::noexcept_movable<address> local_address;
 
 #if TORRENT_ABI_VERSION == 1
 		enum TORRENT_DEPRECATED_ENUM protocol_t
@@ -1661,7 +1666,8 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT portmap_log_alert final : alert
 	{
 		// internal
-		TORRENT_UNEXPORT portmap_log_alert(aux::stack_allocator& alloc, portmap_transport t, const char* m);
+		TORRENT_UNEXPORT portmap_log_alert(aux::stack_allocator& alloc, portmap_transport t
+			, const char* m, address const& local);
 
 		TORRENT_DEFINE_ALERT(portmap_log_alert, 52)
 
@@ -1669,6 +1675,9 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 
 		portmap_transport const map_transport;
+
+		// the local network the port mapper is running on
+		aux::noexcept_movable<address> local_address;
 
 		// the message associated with this log line
 		char const* log_message() const;
@@ -2450,12 +2459,17 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT lsd_error_alert final : alert
 	{
 		// internal
-		TORRENT_UNEXPORT lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec);
+		TORRENT_UNEXPORT lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec
+			, address const& local);
 
 		TORRENT_DEFINE_ALERT(lsd_error_alert, 82)
 
 		static constexpr alert_category_t static_category = alert::error_notification;
 		std::string message() const override;
+
+		// the local network the corresponding local service discovery is running
+		// on
+		aux::noexcept_movable<address> local_address;
 
 		// The error code
 		error_code error;

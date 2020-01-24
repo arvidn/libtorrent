@@ -2104,13 +2104,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (m_settings.get_bool(settings_pack::enable_natpmp))
 		{
 			for (auto const& s : new_sockets)
-				start_natpmp(*s);
+				start_natpmp(s);
 		}
 
 		if (m_settings.get_bool(settings_pack::enable_upnp))
 		{
 			for (auto const& s : new_sockets)
-				start_upnp(*s);
+				start_upnp(s);
 		}
 
 		if (map_ports)
@@ -5425,46 +5425,35 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
-	void session_impl::start_natpmp(aux::listen_socket_t& s)
+	void session_impl::start_natpmp(std::shared_ptr<aux::listen_socket_t> const& s)
 	{
 		// don't create mappings for local IPv6 addresses
 		// they can't be reached from outside of the local network anyways
-		if (is_v6(s.local_endpoint) && is_local(s.local_endpoint.address()))
+		if (is_v6(s->local_endpoint) && is_local(s->local_endpoint.address()))
 			return;
 
-		if (!s.natpmp_mapper && (s.flags & listen_socket_t::has_gateway))
+		if (!s->natpmp_mapper && (s->flags & listen_socket_t::has_gateway))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
-			s.natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this);
+			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this, listen_socket_handle(s));
 			ip_interface ip;
-			ip.interface_address = s.local_endpoint.address();
-			ip.netmask = s.netmask;
-			std::strncpy(ip.name, s.device.c_str(), sizeof(ip.name));
-			s.natpmp_mapper->start(ip);
-		}
-	}
-
-	namespace {
-		bool find_tcp_port_mapping(portmap_transport const transport
-			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
-		{
-			return ls->tcp_port_mapping[transport].mapping == mapping;
-		}
-
-		bool find_udp_port_mapping(portmap_transport const transport
-			, port_mapping_t mapping, std::shared_ptr<listen_socket_t> const& ls)
-		{
-			return ls->udp_port_mapping[transport].mapping == mapping;
+			ip.interface_address = s->local_endpoint.address();
+			ip.netmask = s->netmask;
+			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name));
+			s->natpmp_mapper->start(ip);
 		}
 	}
 
 	void session_impl::on_port_mapping(port_mapping_t const mapping
-		, address const& ip, int port
+		, address const& external_ip, int port
 		, portmap_protocol const proto, error_code const& ec
-		, portmap_transport const transport)
+		, portmap_transport const transport
+		, listen_socket_handle const& ls)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		listen_socket_t* listen_socket = ls.get();
 
 		// NOTE: don't assume that if ec != 0, the rest of the logic
 		// is not necessary, the ports still need to be set, in other
@@ -5473,41 +5462,25 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (ec && m_alerts.should_post<portmap_error_alert>())
 		{
 			m_alerts.emplace_alert<portmap_error_alert>(mapping
-				, transport, ec);
+				, transport, ec, listen_socket ? listen_socket->local_endpoint.address() : address());
 		}
 
-		// look through our listen sockets to see if this mapping is for one of
-		// them (it could also be a user mapping)
+		if (!listen_socket) return;
 
-		auto ls
-			= std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, std::bind(find_tcp_port_mapping, transport, mapping, _1));
-
-		bool tcp = true;
-		if (ls == m_listen_sockets.end())
+		if (!ec && !external_ip.is_unspecified())
 		{
-			ls = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-				, std::bind(find_udp_port_mapping, transport, mapping, _1));
-			tcp = false;
+			// TODO: 1 report the proper address of the router as the source IP of
+			// this vote of our external address, instead of the empty address
+			listen_socket->external_address.cast_vote(external_ip, source_router, address());
 		}
 
-		if (ls != m_listen_sockets.end())
-		{
-			if (!ec && ip != address())
-			{
-				// TODO: 1 report the proper address of the router as the source IP of
-				// this vote of our external address, instead of the empty address
-				(*ls)->external_address.cast_vote(ip, source_router, address());
-			}
-
-			if (tcp) (*ls)->tcp_port_mapping[transport].port = port;
-			else (*ls)->udp_port_mapping[transport].port = port;
-		}
+		if (proto == portmap_protocol::tcp) listen_socket->tcp_port_mapping[transport].port = port;
+		else if (proto == portmap_protocol::udp) listen_socket->udp_port_mapping[transport].port = port;
 
 		if (!ec && m_alerts.should_post<portmap_alert>())
 		{
 			m_alerts.emplace_alert<portmap_alert>(mapping, port
-				, transport, proto);
+				, transport, proto, listen_socket->local_endpoint.address());
 		}
 	}
 
@@ -6619,7 +6592,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			if (ec)
 			{
 				if (m_alerts.should_post<lsd_error_alert>())
-					m_alerts.emplace_alert<lsd_error_alert>(ec);
+					m_alerts.emplace_alert<lsd_error_alert>(ec, s->local_endpoint.address());
 				s->lsd.reset();
 			}
 		}
@@ -6630,7 +6603,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		INVARIANT_CHECK;
 		for (auto& s : m_listen_sockets)
 		{
-			start_natpmp(*s);
+			start_natpmp(s);
 			remap_ports(remap_natpmp, *s);
 		}
 	}
@@ -6638,35 +6611,36 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	void session_impl::start_upnp()
 	{
 		INVARIANT_CHECK;
-		for (auto& s : m_listen_sockets)
+		for (auto const& s : m_listen_sockets)
 		{
-			start_upnp(*s);
+			start_upnp(s);
 			remap_ports(remap_upnp, *s);
 		}
 	}
 
-	void session_impl::start_upnp(aux::listen_socket_t& s)
+	void session_impl::start_upnp(std::shared_ptr<aux::listen_socket_t> const& s)
 	{
 		// until we support SSDP over an IPv6 network (
 		// https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol )
 		// there's no point in starting upnp on one.
-		if (is_v6(s.local_endpoint))
+		if (is_v6(s->local_endpoint))
 			return;
 
 		// there's no point in starting the UPnP mapper for a network that doesn't
 		// have a gateway. The whole point is to forward ports through the gateway
-		if (!(s.flags & listen_socket_t::has_gateway))
+		if (!(s->flags & listen_socket_t::has_gateway))
 			return;
 
-		if (!s.upnp_mapper)
+		if (!s->upnp_mapper)
 		{
 			// the upnp constructor may fail and call the callbacks
 			// into the session_impl.
-			s.upnp_mapper = std::make_shared<upnp>(m_io_context
+			s->upnp_mapper = std::make_shared<upnp>(m_io_context
 				, m_settings.get_bool(settings_pack::anonymous_mode)
 				? "" : m_settings.get_str(settings_pack::user_agent)
-				, *this, s.local_endpoint.address().to_v4(), s.netmask.to_v4(), s.device);
-			s.upnp_mapper->start();
+				, *this, s->local_endpoint.address().to_v4(), s->netmask.to_v4(), s->device
+				, listen_socket_handle(s));
+			s->upnp_mapper->start();
 		}
 	}
 
@@ -6818,10 +6792,13 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return m_alerts.should_post<portmap_log_alert>();
 	}
 
-	void session_impl::log_portmap(portmap_transport transport, char const* msg) const
+	void session_impl::log_portmap(portmap_transport transport, char const* msg
+		, listen_socket_handle const& ls) const
 	{
+		listen_socket_t const* listen_socket = ls.get();
 		if (m_alerts.should_post<portmap_log_alert>())
-			m_alerts.emplace_alert<portmap_log_alert>(transport, msg);
+			m_alerts.emplace_alert<portmap_log_alert>(transport, msg
+				, listen_socket ? listen_socket->local_endpoint.address() : address());
 	}
 
 	bool session_impl::should_log_lsd() const

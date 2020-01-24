@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <memory>
 #include <functional>
@@ -153,7 +154,8 @@ struct TORRENT_EXTRA_EXPORT upnp final
 		, aux::portmap_callback& cb
 		, address_v4 const& listen_address
 		, address_v4 const& netmask
-		, std::string listen_device);
+		, std::string listen_device
+		, aux::listen_socket_handle ls);
 	~upnp();
 
 	void set_user_agent(std::string const& v) { m_user_agent = v; }
@@ -363,6 +365,8 @@ private:
 	address_v4 m_listen_address;
 	address_v4 m_netmask;
 	std::string m_device;
+
+	aux::listen_socket_handle m_listen_handle;
 };
 
 } // namespace libtorrent

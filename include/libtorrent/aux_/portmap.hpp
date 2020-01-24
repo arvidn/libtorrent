@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -56,10 +57,12 @@ namespace aux {
 		// error_code: error, an empty error means success
 		// int: transport is 0 for NAT-PMP and 1 for UPnP
 		virtual void on_port_mapping(port_mapping_t mapping, address const& ip, int port
-			, portmap_protocol proto, error_code const& ec, portmap_transport transport) = 0;
+			, portmap_protocol proto, error_code const& ec, portmap_transport transport
+			, listen_socket_handle const& ls) = 0;
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log_portmap(portmap_transport transport) const = 0;
-		virtual void log_portmap(portmap_transport transport, char const* msg) const = 0;
+		virtual void log_portmap(portmap_transport transport, char const* msg
+			, listen_socket_handle const&) const = 0;
 #endif
 
 	protected:
