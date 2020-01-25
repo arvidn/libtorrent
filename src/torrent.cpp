@@ -2937,10 +2937,11 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
-				// if we haven't sent an event=start to the tracker, there's no
-				// point in sending an event=stopped
-				if (!aep.enabled || (!aep.start_sent && req.event == tracker_request::stopped))
-					continue;
+				// do not add code which continues to the next endpoint here!
+				// listen_socket_states needs to be populated even if none of the endpoints
+				// will be announcing for this tracker
+				// otherwise the early bail out when neither announce_to_all_trackers
+				// nor announce_to_all_tiers is set may be triggered prematurely
 
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
@@ -2952,6 +2953,11 @@ bool is_downloading_state(int const st)
 				announce_state& state = *aep_state_iter;
 
 				if (state.done) continue;
+
+				// if we haven't sent an event=start to the tracker, there's no
+				// point in sending an event=stopped
+				if (!aep.enabled || (!aep.start_sent && req.event == tracker_request::stopped))
+					continue;
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
