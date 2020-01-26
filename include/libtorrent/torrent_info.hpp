@@ -592,7 +592,7 @@ namespace libtorrent {
 		// returns whether or not this is a merkle torrent.
 		// see `BEP 30`__.
 		//
-		// __ http://bittorrent.org/beps/bep_0030.html
+		// __ https://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
