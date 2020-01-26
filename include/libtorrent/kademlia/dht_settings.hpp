@@ -169,7 +169,7 @@ namespace dht {
 	struct settings : dht_settings
 	{
 		// when this is true, nodes whose IDs are derived from their source IP
-		// according to BEP 42 (http://bittorrent.org/beps/bep_0042.html) are
+		// according to BEP 42 (https://bittorrent.org/beps/bep_0042.html) are
 		// preferred in the routing table.
 		bool prefer_verified_node_ids = true;
 	};

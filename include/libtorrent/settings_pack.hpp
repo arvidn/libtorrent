@@ -767,7 +767,7 @@ namespace aux {
 			enable_ip_notifier,
 
 			// when this is true, nodes whose IDs are derived from their source IP
-			// according to BEP 42 (http://bittorrent.org/beps/bep_0042.html) are
+			// according to BEP 42 (https://bittorrent.org/beps/bep_0042.html) are
 			// preferred in the routing table.
 			dht_prefer_verified_node_ids,
 
