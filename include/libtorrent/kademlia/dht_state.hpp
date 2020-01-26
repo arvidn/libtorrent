@@ -55,7 +55,7 @@ namespace libtorrent { namespace dht {
 	// At this moment the library is only a dual stack
 	// implementation of the DHT. See `BEP 32`_
 	//
-	// .. _`BEP 32`: https://bittorrent.org/beps/bep_0032.html
+	// .. _`BEP 32`: https://www.bittorrent.org/beps/bep_0032.html
 	struct TORRENT_EXPORT dht_state
 	{
 		node_ids_t nids;

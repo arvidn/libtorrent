@@ -608,8 +608,8 @@ There is limited support for HTTP redirects. In case some files are redirected
 to *different hosts*, the files must be piece aligned or padded to be piece
 aligned.
 
-.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
+.. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html
 
 piece picker
 ============
@@ -833,7 +833,7 @@ loopback will not be used for announcing to trackers.
 
 For more details, see `BEP 7`_.
 
-.. _`BEP 7`: https://bittorrent.org/beps/bep_0007.html
+.. _`BEP 7`: https://www.bittorrent.org/beps/bep_0007.html
 
 SOCKS5 UDP tunnels
 ------------------
