@@ -66,9 +66,9 @@ symbols = \
 
 static_links = \
     {
-        ".. _`BEP 3`: https://bittorrent.org/beps/bep_0003.html",
-        ".. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html",
-        ".. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html"
+        ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
+        ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
+        ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html"
     }
 
 anon_index = 0

@@ -82,7 +82,7 @@ libtorrent
 .. _`DHT store extension`: dht_store.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
-.. _multi-tracker: https://bittorrent.org/beps/bep_0012.html
+.. _multi-tracker: https://www.bittorrent.org/beps/bep_0012.html
 .. _mailing list: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/
 .. _`who's using libtorrent?`: projects.html
@@ -131,14 +131,14 @@ See the contribute_ page for other ways to help out.
 	<img src="bitcoin.png" style="display:inline"><br/>
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
 	</span>
-	
+
 	<span style="display:block;text-align:center;margin-top:1em">
 	<span style="display:inline-block">
 	<a class="FlattrButton" style="display:none;" href="https://libtorrent.org"></a>
 	<noscript><a href="https://flattr.com/thing/95662/libtorrent" target="_blank">
 	<img src="https://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
 	</span>
-	
+
 	<span style="display:inline-block">
 	<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
 	<input type="hidden" name="cmd" value="_donations">
