@@ -1297,6 +1297,8 @@ bool is_downloading_state(int const st)
 			, blocks_in_last_piece
 			, m_torrent_file->num_pieces()));
 
+		if (m_have_all) pp->we_have_all();
+
 		// initialize the file progress too
 		if (m_file_progress.empty())
 			m_file_progress.init(*pp, m_torrent_file->files());

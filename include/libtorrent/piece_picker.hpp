@@ -228,6 +228,10 @@ namespace libtorrent {
 		void inc_refcount_all(const torrent_peer* peer);
 		void dec_refcount_all(const torrent_peer* peer);
 
+		// we have every piece. This is used when creating a piece picker for a
+		// seed
+		void we_have_all();
+
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
 		// we are not interested in this piece anymore
@@ -592,7 +596,7 @@ namespace libtorrent {
 			// (availability)
 			std::uint32_t peer_count : 26;
 
-			// one of the enums from state_t. This indicates whether this piece
+			// one of the download_queue_t values. This indicates whether this piece
 			// is currently being downloaded or not, and what state it's in if
 			// it is. Specifically, as an optimization, pieces that have all blocks
 			// requested from them are separated out into separate lists to make

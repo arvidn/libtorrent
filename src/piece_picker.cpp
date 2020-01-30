@@ -1702,6 +1702,37 @@ namespace libtorrent {
 		TORRENT_ASSERT(p.priority(this) == -1);
 	}
 
+	void piece_picker::we_have_all()
+	{
+		INVARIANT_CHECK;
+#ifdef TORRENT_PICKER_LOG
+		std::cerr << "[" << this << "] " << "piece_picker::we_have_all()\n";
+#endif
+
+		m_priority_boundaries.clear();
+		m_priority_boundaries.resize(1, prio_index_t(0));
+		m_block_info.clear();
+		m_free_block_infos.clear();
+		m_pieces.clear();
+
+		m_dirty = false;
+		m_num_have_filtered += m_num_filtered;
+		m_num_filtered = 0;
+		m_have_filtered_pad_blocks += m_filtered_pad_blocks;
+		m_filtered_pad_blocks = 0;
+		m_cursor = m_piece_map.end_index();
+		m_reverse_cursor = piece_index_t{0};
+		m_num_passed = num_pieces();
+		m_num_have = num_pieces();
+
+		for (auto& queue : m_downloads) queue.clear();
+		for (auto& p : m_piece_map)
+		{
+			p.set_have();
+			p.state(piece_pos::piece_open);
+		}
+	}
+
 	bool piece_picker::set_piece_priority(piece_index_t const index
 		, download_priority_t const new_piece_priority)
 	{
