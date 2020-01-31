@@ -618,7 +618,7 @@ namespace aux {
 		// returns whether or not this is a merkle torrent.
 		// see `BEP 30`__.
 		//
-		// __ http://bittorrent.org/beps/bep_0030.html
+		// __ https://www.bittorrent.org/beps/bep_0030.html
 		TORRENT_DEPRECATED
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif

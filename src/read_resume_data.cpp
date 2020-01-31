@@ -197,6 +197,7 @@ namespace {
 		apply_flag(ret.flags, rd, "auto_managed", torrent_flags::auto_managed);
 		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
 		apply_flag(ret.flags, rd, "paused", torrent_flags::paused);
+		apply_flag(ret.flags, rd, "stop_when_ready", torrent_flags::stop_when_ready);
 
 		ret.save_path = rd.dict_find_string_value("save_path").to_string();
 

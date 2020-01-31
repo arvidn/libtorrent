@@ -239,6 +239,7 @@ namespace libtorrent {
 		ret["max_uploads"] = atp.upload_limit;
 		ret["paused"] = bool(atp.flags & torrent_flags::paused);
 		ret["auto_managed"] = bool(atp.flags & torrent_flags::auto_managed);
+		ret["stop_when_ready"] = bool(atp.flags & torrent_flags::stop_when_ready);
 
 		if (!atp.file_priorities.empty())
 		{

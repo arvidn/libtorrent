@@ -2811,7 +2811,7 @@ bool is_downloading_state(int const st)
 
 		time_point32 const now = aux::time_now32();
 
-		// each listen socket gets it's own announce state
+		// each listen socket gets its own announce state
 		// so that each one should get at least one announce
 		std::vector<announce_state> listen_socket_states;
 
@@ -2845,7 +2845,11 @@ bool is_downloading_state(int const st)
 
 			for (auto& aep : ae.endpoints)
 			{
-				if (!aep.enabled) continue;
+				// do not add code which continues to the next endpoint here!
+				// listen_socket_states needs to be populated even if none of the endpoints
+				// will be announcing for this tracker
+				// otherwise the early bail out when neither announce_to_all_trackers
+				// nor announce_to_all_tiers is set may be triggered prematurely
 
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
 					, [&](announce_state const& s) { return s.socket == aep.socket; });
@@ -2855,6 +2859,8 @@ bool is_downloading_state(int const st)
 					aep_state_iter = listen_socket_states.end() - 1;
 				}
 				announce_state& ep_state = *aep_state_iter;
+
+				if (!aep.enabled) continue;
 
 				for (protocol_version const ih : all_versions)
 				{
@@ -6468,6 +6474,7 @@ bool is_downloading_state(int const st)
 		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
 		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
 		if (m_auto_managed ) ret.flags |= torrent_flags::auto_managed;
+		if (m_stop_when_ready) ret.flags |= torrent_flags::stop_when_ready;
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;
