@@ -531,7 +531,18 @@ namespace {
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-		return mmap_disk_io_constructor(ios, sett, cnt);
+		// TODO: In C++17. use if constexpr instead
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4127) // conditional expression is constant
+#endif
+		if (sizeof(void*) == 8)
+			return mmap_disk_io_constructor(ios, sett, cnt);
+		else
+			return posix_disk_io_constructor(ios, sett, cnt);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #else
 		return posix_disk_io_constructor(ios, sett, cnt);
 #endif

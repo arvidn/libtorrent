@@ -526,7 +526,7 @@ feature picker-debugging : off on : composite propagated link-incompatible ;
 feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
 
 feature mmap-disk-io : on off : composite propagated ;
-feature.compose <mmap-disk-io>off : <define>TORRENT_HAVE_MMAP=0 ;
+feature.compose <mmap-disk-io>off : <define>TORRENT_HAVE_MMAP=0 <define>TORRENT_HAVE_MAP_VIEW_OF_FILE=0 ;
 
 feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
