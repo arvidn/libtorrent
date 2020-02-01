@@ -121,6 +121,7 @@ DOCS_PAGES = \
   docs/extension_protocol.rst     \
   docs/features.rst               \
   docs/index.rst                  \
+  docs/manual.rst                 \
   docs/manual-ref.rst             \
   docs/projects.rst               \
   docs/python_binding.rst         \
@@ -130,8 +131,9 @@ DOCS_PAGES = \
   docs/utp.rst                    \
   docs/streaming.rst              \
   docs/tutorial.rst               \
+  docs/tutorial-ref.rst           \
   docs/header.rst                 \
-  docs/tutorial.html              \
+  docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
   docs/reference-Alerts.html      \
   docs/reference-Bdecoding.html   \
@@ -227,6 +229,7 @@ EXAMPLE_FILES= \
   Jamfile \
   bt-get.cpp \
   bt-get2.cpp \
+  bt-get3.cpp \
   client_test.cpp \
   cmake/FindLibtorrentRasterbar.cmake \
   connection_tester.cpp \

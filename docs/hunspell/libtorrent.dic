@@ -571,3 +571,4 @@ wolfSSL
 wolfssl
 sni
 nginx
+SIGINT

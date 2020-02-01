@@ -33,6 +33,7 @@ exe simple_client : simple_client.cpp ;
 exe custom_storage : custom_storage.cpp ;
 exe bt-get : bt-get.cpp ;
 exe bt-get2 : bt-get2.cpp ;
+exe bt-get3 : bt-get3.cpp ;
 exe stats_counters : stats_counters.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe torrent2magnet : torrent2magnet.cpp ;
