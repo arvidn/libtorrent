@@ -64,7 +64,7 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	constexpr static int max_bandwidth_channels = 10;
+	static constexpr int max_bandwidth_channels = 10;
 	// we don't actually support more than 10 channels per peer
 	aux::array<bandwidth_channel*, max_bandwidth_channels> channel{};
 };
