@@ -1058,8 +1058,8 @@ namespace libtorrent {
 #endif
 
 		// protocols used by add_port_mapping()
-		constexpr static portmap_protocol udp = portmap_protocol::udp;
-		constexpr static portmap_protocol tcp = portmap_protocol::tcp;
+		static constexpr portmap_protocol udp = portmap_protocol::udp;
+		static constexpr portmap_protocol tcp = portmap_protocol::tcp;
 
 		// add_port_mapping adds one or more port forwards on UPnP and/or NAT-PMP,
 		// whichever is enabled. A mapping is created for each listen socket
