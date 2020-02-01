@@ -237,7 +237,7 @@ struct peer_request;
 struct counters;
 
 // include/libtorrent/session.hpp
-class session_proxy;
+struct session_proxy;
 struct session;
 
 // include/libtorrent/session_handle.hpp
