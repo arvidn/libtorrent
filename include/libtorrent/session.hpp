@@ -111,10 +111,9 @@ namespace aux {
 	// may outlive session, causing the session destructor to not block. The
 	// session_proxy destructor will block however, until the underlying session
 	// is done shutting down.
-	class TORRENT_EXPORT session_proxy
+	struct TORRENT_EXPORT session_proxy
 	{
 		friend struct session;
-	public:
 		// default constructor, does not refer to any session
 		// implementation object.
 		session_proxy();
@@ -289,12 +288,7 @@ namespace aux {
 		// the session is being closed down, no operations are allowed on it).
 		// The only valid operation is calling the destructor::
 		//
-		// 	class session_proxy
-		// 	{
-		// 	public:
-		// 		session_proxy();
-		// 		~session_proxy()
-		// 	};
+		// 	struct session_proxy {};
 		session_proxy abort();
 
 	private:
