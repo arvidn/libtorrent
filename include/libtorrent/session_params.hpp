@@ -92,8 +92,10 @@ struct TORRENT_EXPORT session_params
 	session_params& operator=(session_params const&) &;
 	session_params& operator=(session_params&&) &;
 
+	// The settings to configure the session with
 	settings_pack settings;
 
+	// the plugins to add to the session as it is constructed
 	std::vector<std::shared_ptr<plugin>> extensions;
 
 #if TORRENT_ABI_VERSION <= 2
@@ -116,10 +118,14 @@ struct TORRENT_EXPORT session_params
 
 #endif
 
+	// DHT node ID and node addresses to bootstrap the DHT with.
 	dht::dht_state dht_state;
 
+	// function object to construct the storage object for DHT items.
 	dht::dht_storage_constructor_type dht_storage_constructor;
 
+	// function object to create the disk I/O subsystem. Defaults to
+	// default_disk_io_constructor.
 	disk_io_constructor_type disk_io_constructor;
 
 	// this container can be used by extensions/plugins to store settings. It's

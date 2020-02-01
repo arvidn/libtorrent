@@ -43,6 +43,7 @@ global orphaned_export
 preprocess_rst = \
     {
         'manual.rst': 'manual-ref.rst',
+        'tutorial.rst': 'tutorial-ref.rst',
         'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
         'upgrade_to_2.0.rst': 'upgrade_to_2.0-ref.rst',
         'settings.rst': 'settings-ref.rst'

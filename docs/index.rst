@@ -62,7 +62,7 @@ libtorrent
 
 .. _download: https://github.com/arvidn/libtorrent/releases
 .. _features: features.html
-.. _tutorial: tutorial.html
+.. _tutorial: tutorial-ref.html
 .. _contributing: contributing.html
 .. _building: building.html
 .. _examples: examples.html

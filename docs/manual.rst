@@ -40,7 +40,7 @@ The basic usage is as follows:
 Each class and function is described in this manual, you may want to have a
 look at the tutorial_ as well.
 
-.. _tutorial: tutorial.html
+.. _tutorial: tutorial-ref.html
 
 For a description on how to create torrent files, see create_torrent.
 
