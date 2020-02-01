@@ -561,6 +561,7 @@ fastresume
 InternetGatewayDevice
 netmask
 fe80
+vcpkg
 destructors
 fclose
 fopen

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/socks5_stream.hpp" // for socks_error
+#include "libtorrent/aux_/keepalive.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -53,6 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/v6_only.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#ifdef _WIN32
+// for SIO_KEEPALIVE_VALS
+#include <mstcpip.h>
+#endif
 
 namespace libtorrent {
 
@@ -576,8 +582,45 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::results_type ips
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option, ec);
-		return;
+		ec.clear();
 	}
+
+#if defined _WIN32 && !defined TORRENT_BUILD_SIMULATOR
+	SOCKET sock = m_socks5_sock.native_handle();
+	DWORD bytes = 0;
+	tcp_keepalive timeout{};
+	timeout.onoff = TRUE;
+	timeout.keepalivetime = 30;
+	timeout.keepaliveinterval = 30;
+	auto const ret = WSAIoctl(sock, SIO_KEEPALIVE_VALS, &timeout, sizeof(timeout)
+		, nullptr, 0, &bytes, nullptr, nullptr);
+	if (ret != 0)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option
+				, error_code(WSAGetLastError(), system_category()));
+	}
+#else
+#if defined TORRENT_HAS_KEEPALIVE_IDLE
+	// set keepalive timeouts
+	m_socks5_sock.set_option(aux::tcp_keepalive_idle(30), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option, ec);
+		ec.clear();
+	}
+#endif
+#ifdef TORRENT_HAS_KEEPALIVE_INTERVAL
+	m_socks5_sock.set_option(aux::tcp_keepalive_interval(1), ec);
+	if (ec)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_option, ec);
+		ec.clear();
+	}
+#endif
+#endif
 
 	tcp::endpoint const bind_ep(m_listen_socket.get_local_endpoint().address(), 0);
 	m_socks5_sock.bind(bind_ep, ec);

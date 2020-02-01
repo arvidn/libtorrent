@@ -1628,8 +1628,9 @@ namespace libtorrent {
 		{
 			if (request_a_block(*t, *this))
 				m_counters.inc_stats_counter(counters::reject_piece_picks);
-			send_block_requests();
 		}
+
+		send_block_requests();
 	}
 
 	// -----------------------------

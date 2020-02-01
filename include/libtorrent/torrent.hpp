@@ -631,7 +631,7 @@ namespace libtorrent {
 // --------------------------------------------
 		// PEER MANAGEMENT
 
-		constexpr static web_seed_flag_t ephemeral = 0_bit;
+		static constexpr web_seed_flag_t ephemeral = 0_bit;
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry

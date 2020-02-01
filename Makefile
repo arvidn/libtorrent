@@ -598,6 +598,7 @@ HEADERS = \
   aux_/io.hpp                       \
   aux_/ip_helpers.hpp               \
   aux_/ip_notifier.hpp              \
+  aux_/keepalive.hpp                \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
   aux_/merkle.hpp                   \

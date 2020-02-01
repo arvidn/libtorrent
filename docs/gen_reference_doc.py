@@ -501,6 +501,10 @@ def parse_class(lno, lines, filename):
             continue
 
         if looks_like_variable(line):
+            if 'constexpr static' in line:
+                print('ERROR: found "constexpr static", use "static constexpr" instead for consistency!\n%s:%d\n%s'
+                      % (filename, lno, line))
+                sys.exit(1)
             if verbose:
                 print('var     %s' % line)
             if not is_visible(context):
@@ -843,6 +847,10 @@ for filename in files:
             continue
 
         if looks_like_constant(line):
+            if 'constexpr static' in line:
+                print('ERROR: found "constexpr static", use "static constexpr" instead for consistency!\n%s:%d\n%s'
+                      % (filename, lno, line))
+                sys.exit(1)
             current_constant, lno = parse_constant(lno - 1, lines, filename)
             if current_constant is not None and is_visible(context):
                 if 'TODO: ' in context:

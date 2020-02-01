@@ -202,6 +202,7 @@ set(libtorrent_aux_include_files
 	array
 	bind_to_device
 	buffer
+	keepalive
 	byteswap
 	chained_buffer
 	cppint_import_export

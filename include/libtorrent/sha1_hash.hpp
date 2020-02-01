@@ -68,7 +68,7 @@ namespace libtorrent {
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
 		static constexpr std::ptrdiff_t number_size = N / 32;
-		constexpr static int bits_in_byte = 8;
+		static constexpr int bits_in_byte = 8;
 	public:
 
 		using difference_type = std::ptrdiff_t;

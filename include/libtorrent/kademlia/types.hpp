@@ -48,7 +48,7 @@ namespace dht {
 		{ std::copy(b, b + len, bytes.begin()); }
 		bool operator==(public_key const& rhs) const
 		{ return bytes == rhs.bytes; }
-		constexpr static int len = 32;
+		static constexpr int len = 32;
 		std::array<char, len> bytes;
 	};
 
@@ -59,7 +59,7 @@ namespace dht {
 		{ std::copy(b, b + len, bytes.begin()); }
 		bool operator==(secret_key const& rhs) const
 		{ return bytes == rhs.bytes; }
-		constexpr static int len = 64;
+		static constexpr int len = 64;
 		std::array<char, len> bytes;
 	};
 
@@ -70,7 +70,7 @@ namespace dht {
 		{ std::copy(b, b + len, bytes.begin()); }
 		bool operator==(signature const& rhs) const
 		{ return bytes == rhs.bytes; }
-		constexpr static int len = 64;
+		static constexpr int len = 64;
 		std::array<char, len> bytes;
 	};
 
