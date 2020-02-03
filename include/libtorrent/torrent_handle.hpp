@@ -334,7 +334,7 @@ namespace aux {
 		// filter them out.
 		//
 		// By default everything is included. The flags you can use to decide
-		// what to *include* are defined in the status_flags_t enum.
+		// what to *include* are defined in this class.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
 
 		// ``get_download_queue()`` returns a vector with information about pieces

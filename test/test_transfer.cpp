@@ -366,3 +366,12 @@ TORRENT_TEST(allocate)
 	cleanup();
 }
 
+TORRENT_TEST(suggest)
+{
+	using namespace lt;
+	settings_pack p;
+	p.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+	test_transfer(0, p);
+
+	cleanup();
+}

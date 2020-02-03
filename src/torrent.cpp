@@ -1132,6 +1132,8 @@ bool is_downloading_state(int const st)
 			, blocks_in_last_piece
 			, m_torrent_file->num_pieces());
 
+		if (m_have_all) pp->we_have_all();
+
 		// initialize the file progress too
 		if (m_file_progress.empty())
 			m_file_progress.init(*pp, m_torrent_file->files());
@@ -2815,8 +2817,22 @@ bool is_downloading_state(int const st)
 		// so that each one should get at least one announce
 		std::vector<announce_state> listen_socket_states;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		int idx = -1;
+		if (should_log())
+		{
+			debug_log("*** announce: "
+				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
+				, settings().get_bool(settings_pack::announce_to_all_tiers)
+				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, int(m_trackers.size()));
+		}
+#endif
 		for (auto& ae : m_trackers)
 		{
+#ifndef TORRENT_DISABLE_LOGGING
+			++idx;
+#endif
 			// update the endpoint list by adding entries for new listen sockets
 			// and removing entries for non-existent ones
 			std::size_t valid_endpoints = 0;
@@ -2879,14 +2895,11 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
 					{
-						debug_log("*** tracker: \"%s\" "
-							"[ tiers: %d trackers: %d"
-							" i->tier: %d tier: %d"
-							" working: %d limit: %d"
+						debug_log("*** tracker:  (%d) [ep: %s ] \"%s\" [ "
+							" i->tier: %d tier: %d working: %d limit: %d"
 							" can: %d sent: %d ]"
-							, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-							, settings().get_bool(settings_pack::announce_to_all_trackers)
-							, ae.tier, state.tier, a.is_working(), ae.fail_limit
+							, idx, print_endpoint(aep.local_endpoint).c_str()
+							, ae.url.c_str(), ae.tier, state.tier, a.is_working(), ae.fail_limit
 							, a.can_announce(now, is_seed(), ae.fail_limit), state.sent_announce);
 					}
 #endif
@@ -2942,7 +2955,7 @@ bool is_downloading_state(int const st)
 					if (should_log())
 					{
 						debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
-							"port: %d ssl-port: %d fails: %d upd: %d"
+							"port: %d ssl-port: %d fails: %d upd: %d ep: %s"
 							, req.url.c_str()
 							, (req.event == event_t::stopped ? "stopped"
 								: req.event == event_t::started ? "started" : "")
@@ -2955,7 +2968,8 @@ bool is_downloading_state(int const st)
 							, m_ses.listen_port()
 							, m_ses.ssl_listen_port()
 							, a.fails
-							, a.updating);
+							, a.updating
+							, print_endpoint(aep.local_endpoint).c_str());
 					}
 
 					// if we're not logging session logs, don't bother creating an
@@ -9210,8 +9224,22 @@ bool is_downloading_state(int const st)
 
 		std::vector<timer_state> listen_socket_states;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		int idx = -1;
+		if (should_log())
+		{
+			debug_log("*** update_tracker_timer: "
+				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
+				, settings().get_bool(settings_pack::announce_to_all_tiers)
+				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, int(m_trackers.size()));
+		}
+#endif
 		for (auto const& t : m_trackers)
 		{
+#ifndef TORRENT_DISABLE_LOGGING
+			++idx;
+#endif
 			for (auto const& aep : t.endpoints)
 			{
 				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
@@ -9236,14 +9264,12 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
 					{
-						debug_log("*** tracker: \"%s\" "
-							"[ tiers: %d trackers: %d"
+						debug_log("*** tracker: (%d) [ep: %s ] \"%s\" [ "
 							" found: %d i->tier: %d tier: %d"
 							" working: %d fails: %d limit: %d upd: %d ]"
-							, t.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-							, settings().get_bool(settings_pack::announce_to_all_trackers), state.found_working
-							, t.tier, state.tier, a.is_working(), a.fails, t.fail_limit
-							, a.updating);
+							, idx, print_endpoint(aep.local_endpoint).c_str(), t.url.c_str()
+							, state.found_working, t.tier, state.tier, a.is_working()
+							, a.fails, t.fail_limit, a.updating);
 					}
 #endif
 
@@ -9293,7 +9319,7 @@ bool is_downloading_state(int const st)
 		debug_log("*** update tracker timer: next_announce < now %d"
 			" m_waiting_tracker: %d next_announce_in: %d"
 			, next_announce <= now, m_waiting_tracker
-			, int(total_seconds(now - next_announce)));
+			, int(total_seconds(next_announce - now)));
 #endif
 
 		// don't re-issue the timer if it's the same expiration time as last time
@@ -11429,7 +11455,8 @@ bool is_downloading_state(int const st)
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** increment tracker fail count [%d]", a.fails);
+					debug_log("*** increment tracker fail count [ep: %s url: %s %d]"
+						, print_endpoint(aep->local_endpoint).c_str(), r.url.c_str(), a.fails);
 #endif
 					// don't try to announce from this endpoint again
 					if (ec == boost::system::errc::address_family_not_supported
@@ -11437,7 +11464,7 @@ bool is_downloading_state(int const st)
 					{
 						aep->enabled = false;
 #ifndef TORRENT_DISABLE_LOGGING
-						debug_log("*** disabling endpoint [%s] for tracker \"%s\""
+						debug_log("*** disabling endpoint [ep: %s url: %s ]"
 							, print_endpoint(aep->local_endpoint).c_str(), r.url.c_str());
 #endif
 					}

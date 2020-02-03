@@ -1310,13 +1310,12 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 // the trackers at random and announces to it. Since both trackers are working,
 // it should not announce to the tracker it did not initially pick.
 
-// #error parameterize this test over adding the trackers into different tiers
-// and setting "announce_to_all_tiers"
-
-TORRENT_TEST(tracker_tiers)
+template <typename TestFun>
+void test_tracker_tiers(lt::settings_pack pack, TestFun test)
 {
 	using namespace libtorrent;
 
+	pack.set_int(settings_pack::alert_mask, alert::error_notification | alert::torrent_log_notification);
 	char const* peer0_ip = "50.0.0.1";
 	char const* peer1_ip = "50.0.0.2";
 
@@ -1332,32 +1331,31 @@ TORRENT_TEST(tracker_tiers)
 
 	sim::asio::io_context tracker1(sim, make_address_v4("3.0.0.1"));
 	sim::asio::io_context tracker2(sim, make_address_v4("3.0.0.2"));
+	sim::asio::io_context tracker3(sim, make_address_v4("3.0.0.3"));
+	sim::asio::io_context tracker4(sim, make_address_v4("3.0.0.4"));
 	sim::http_server http1(tracker1, 8080);
 	sim::http_server http2(tracker2, 8080);
+	sim::http_server http3(tracker3, 8080);
+	sim::http_server http4(tracker4, 8080);
 
-	bool received_announce[2] = {false, false};
-	http1.register_handler("/announce"
-		, [&](std::string method, std::string req
-		, std::map<std::string, std::string>&)
+	bool received_announce[4] = {false, false, false, false};
+
+	auto const return_no_peers = [&](std::string method, std::string req
+		, std::map<std::string, std::string>&, int const tracker_index)
 	{
-		received_announce[0] = true;
+		received_announce[tracker_index] = true;
 		std::string const ret = "d8:intervali60e5:peers0:e";
 		return sim::send_response(200, "OK", static_cast<int>(ret.size())) + ret;
-	});
+	};
 
-	http2.register_handler("/announce"
-		, [&](std::string method, std::string req
-		, std::map<std::string, std::string>&)
-	{
-		received_announce[1] = true;
-		std::string const ret = "d8:intervali60e5:peers0:e";
-		return sim::send_response(200, "OK", static_cast<int>(ret.size())) + ret;
-	});
+	using namespace std::placeholders;
+	http1.register_handler("/announce", std::bind(return_no_peers, _1, _2, _3, 0));
+	http2.register_handler("/announce", std::bind(return_no_peers, _1, _2, _3, 1));
+	http3.register_handler("/announce", std::bind(return_no_peers, _1, _2, _3, 2));
+	http4.register_handler("/announce", std::bind(return_no_peers, _1, _2, _3, 3));
 
 	lt::session_proxy zombie[2];
 
-	// setup settings pack to use for the session (customization point)
-	lt::settings_pack pack = settings();
 	// create session
 	std::shared_ptr<lt::session> ses[2];
 	pack.set_str(settings_pack::listen_interfaces, peer0_ip + std::string(":6881"));
@@ -1386,6 +1384,8 @@ TORRENT_TEST(tracker_tiers)
 	// random and stick to it, never announce to the other one.
 	params.ti->add_tracker("http://3.0.0.1:8080/announce", 0);
 	params.ti->add_tracker("http://3.0.0.2:8080/announce", 0);
+	params.ti->add_tracker("http://3.0.0.3:8080/announce", 1);
+	params.ti->add_tracker("http://3.0.0.4:8080/announce", 1);
 	params.save_path = save_path(0);
 	ses[0]->async_add_torrent(params);
 
@@ -1393,9 +1393,9 @@ TORRENT_TEST(tracker_tiers)
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
 
-	sim::timer t(sim, lt::minutes(30), [&](boost::system::error_code const&)
+	sim::timer t(sim, lt::seconds(30), [&](boost::system::error_code const&)
 	{
-		TEST_CHECK(received_announce[0] != received_announce[1]);
+		test(received_announce);
 		TEST_CHECK(ses[0]->get_torrents()[0].status().is_seeding);
 		TEST_CHECK(ses[1]->get_torrents()[0].status().is_seeding);
 
@@ -1410,6 +1410,59 @@ TORRENT_TEST(tracker_tiers)
 
 	sim.run();
 }
+
+TORRENT_TEST(tracker_tiers)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_bool(settings_pack::announce_to_all_trackers, false);
+	// setup settings pack to use for the session (customization point)
+	test_tracker_tiers(pack, [](bool (&received_announce)[4]) {
+		TEST_CHECK(received_announce[0] != received_announce[1]);
+		TEST_EQUAL(received_announce[2], false);
+		TEST_EQUAL(received_announce[3], false);
+	});
+}
+
+TORRENT_TEST(tracker_tiers_all_trackers)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	// setup settings pack to use for the session (customization point)
+	test_tracker_tiers(pack, [](bool (&received_announce)[4]) {
+		TEST_EQUAL(received_announce[0], true);
+		TEST_EQUAL(received_announce[1], true);
+		TEST_EQUAL(received_announce[2], false);
+		TEST_EQUAL(received_announce[3], false);
+	});
+}
+
+TORRENT_TEST(tracker_tiers_all_tiers)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_bool(settings_pack::announce_to_all_trackers, false);
+	// setup settings pack to use for the session (customization point)
+	test_tracker_tiers(pack, [](bool (&received_announce)[4]) {
+		TEST_CHECK(received_announce[0] != received_announce[1]);
+		TEST_CHECK(received_announce[2] != received_announce[3]);
+	});
+}
+TORRENT_TEST(tracker_tiers_all_trackers_and_tiers)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	// setup settings pack to use for the session (customization point)
+	test_tracker_tiers(pack, [](bool (&received_announce)[4]) {
+		TEST_EQUAL(received_announce[0], true);
+		TEST_EQUAL(received_announce[1], true);
+		TEST_EQUAL(received_announce[2], true);
+		TEST_EQUAL(received_announce[3], true);
+	});
+}
+
 
 // TODO: test external IP
 // TODO: test with different queuing settings

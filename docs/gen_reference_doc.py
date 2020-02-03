@@ -205,6 +205,27 @@ def highlight_signature(s):
     return '('.join(name)
 
 
+def highlight_name(s):
+    print('highlight: %s' % s)
+    if '=' in s:
+        splitter = ' = '
+    elif '{' in s:
+        splitter = '{'
+    else:
+        return s
+
+    name = s.split(splitter, 1)
+    print('split: ', name)
+    name2 = name[0].split(' ')
+    print('split2: ', name2)
+    if len(name2[-1]) == 0:
+        return s
+
+    name2[-1] = '**' + name2[-1] + '** '
+    name[0] = ' '.join(name2)
+    return splitter.join(name)
+
+
 def html_sanitize(s):
     ret = ''
     for i in s:
@@ -1349,7 +1370,7 @@ __ reference.html
 
         for f in c['fields']:
             for s in f['signatures']:
-                block += '   %s\n' % s
+                block += '   %s\n' % highlight_name(s)
 
         block += '};'
 

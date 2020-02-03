@@ -77,7 +77,8 @@ namespace libtorrent {
 	// this class provides a non-owning handle to a session and a subset of the
 	// interface of the session class. If the underlying session is destructed
 	// any handle to it will no longer be valid. is_valid() will return false and
-	// any operation on it will throw an invalid_session_handle.
+	// any operation on it will throw a system_error exception, with error code
+	// invalid_session_handle.
 	struct TORRENT_EXPORT session_handle
 	{
 		friend struct session;
@@ -172,7 +173,7 @@ namespace libtorrent {
 		// which determines if a torrent should be included in the returned set
 		// or not. Returning true means it should be included and false means
 		// excluded. The ``flags`` argument is the same as to
-		// ``torrent_handle::status()``. Since ``pred`` is guaranteed to be
+		// torrent_handle::status(). Since ``pred`` is guaranteed to be
 		// called for every torrent, it may be used to count the number of
 		// torrents of different categories as well.
 		//
@@ -212,7 +213,7 @@ namespace libtorrent {
 		// Only torrents who has the state subscription flag set will be
 		// included. This flag is on by default. See add_torrent_params.
 		// the ``flags`` argument is the same as for torrent_handle::status().
-		// see torrent_handle::status_flags_t.
+		// see status_flags_t in torrent_handle.
 		void post_torrent_updates(status_flags_t flags = status_flags_t::all());
 
 		// This function will post a session_stats_alert object, containing a

@@ -56,7 +56,7 @@ struct suggest_piece
 		int ret = 0;
 
 		// the highest priority pieces are at the end of m_priority_pieces.
-		// is we add any piece to the result (p), the farther back the better.
+		// if we add any piece to the result (p), the farther back the better.
 		// the prioritization in p is the same, which means we have to first push
 		// back and then reverse the items we put there.
 		for (int i = int(m_priority_pieces.size()) - 1; i >= 0; --i)

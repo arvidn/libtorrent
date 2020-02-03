@@ -397,8 +397,9 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr bandwidth_state_flags_t bw_disk = 4_bit;
 
 		// bitmasks indicating what state this peer
-		// is in with regards to sending and receiving data. The states are declared in the
-		// bw_state enum.
+		// is in with regards to sending and receiving data. The states are
+		// defined as independent flags of type bandwidth_state_flags_t, in this
+		// class.
 		bandwidth_state_flags_t read_state;
 		bandwidth_state_flags_t write_state;
 

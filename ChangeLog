@@ -21,6 +21,7 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+	* fix suggest_read_cache setting
 	* back-off tracker hostname looksups resulting in NXDOMAIN
 	* lower SOCKS5 UDP keepalive timeout
 	* fix external IP voting for multi-homed DHT nodes
