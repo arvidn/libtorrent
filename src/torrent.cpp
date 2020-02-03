@@ -2999,7 +2999,15 @@ bool is_downloading_state(int const st)
 				if (!aep.can_announce(now, is_seed(), ae.fail_limit))
 				{
 					// this counts
-					if (aep.is_working()) state.sent_announce = true;
+					if (aep.is_working())
+					{
+						state.sent_announce = true;
+						if (!settings().get_bool(settings_pack::announce_to_all_trackers)
+							&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+						{
+							state.done = true;
+						}
+					}
 					continue;
 				}
 
@@ -3274,7 +3282,7 @@ bool is_downloading_state(int const st)
 				aep->last_error.clear();
 				aep->message = !resp.warning_message.empty() ? resp.warning_message : std::string();
 				int tracker_index = int(ae - m_trackers.data());
-				m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
+				m_last_working_tracker = std::int8_t(tracker_index);
 
 				if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
 				{
@@ -7513,28 +7521,6 @@ bool is_downloading_state(int const st)
 		announce_with_tracker();
 	}
 
-	// this will move the tracker with the given index
-	// to a prioritized position in the list (move it towards
-	// the beginning) and return the new index to the tracker.
-	int torrent::prioritize_tracker(int index)
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < int(m_trackers.size()));
-		if (index >= int(m_trackers.size())) return -1;
-
-		while (index > 0 && m_trackers[index].tier == m_trackers[index - 1].tier)
-		{
-			using std::swap;
-			swap(m_trackers[index], m_trackers[index - 1]);
-			if (m_last_working_tracker == index) --m_last_working_tracker;
-			else if (m_last_working_tracker == index - 1) ++m_last_working_tracker;
-			--index;
-		}
-		return index;
-	}
-
 	int torrent::deprioritize_tracker(int index)
 	{
 		INVARIANT_CHECK;
@@ -11047,7 +11033,13 @@ bool is_downloading_state(int const st)
 				// never talk to this tracker again
 				if (ec == error_code(410, http_category())) ae->fail_limit = 1;
 
-				deprioritize_tracker(tracker_index);
+				// if all endpoints fail, then we de-prioritize the tracker and try
+				// the next one in the tier
+				if (std::all_of(ae->endpoints.begin(), ae->endpoints.end()
+					, [](announce_endpoint const& ep) { return ep.fails > 0; }))
+				{
+					deprioritize_tracker(tracker_index);
+				}
 			}
 			if (m_ses.alerts().should_post<tracker_error_alert>()
 				|| r.triggered_manually)
