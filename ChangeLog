@@ -1,5 +1,6 @@
 1.2.4 release
 
+	* fix announce_to_all_trackers and announce_to_all_tiers behavior
 	* fix suggest_read_cache setting
 	* back-off tracker hostname looksups resulting in NXDOMAIN
 	* lower SOCKS5 UDP keepalive timeout
