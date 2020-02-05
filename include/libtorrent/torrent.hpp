@@ -1221,7 +1221,6 @@ namespace libtorrent {
 		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;
 
-		int prioritize_tracker(int tracker_index);
 		int deprioritize_tracker(int tracker_index);
 
 		void update_peer_interest(bool was_finished);

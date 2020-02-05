@@ -123,7 +123,8 @@ OPTIONS:
               the specified url
 -t url        adds the specified tracker to the
               torrent. For multiple trackers, specify more
-              -t options
+              -t options. Specify a dash character "-" as a tracker to indicate
+              the following trackers should be in a higher tier.
 -c comment    sets the comment to the specified string
 -C creator    sets the created-by field to the specified string
 -s bytes      specifies a piece size for the torrent
@@ -270,8 +271,8 @@ int main(int argc_, char const* argv_[]) try
 	lt::create_torrent t(fs, piece_size, flags);
 	int tier = 0;
 	for (std::string const& tr : trackers) {
-		t.add_tracker(tr, tier);
-		++tier;
+		if (tr == "-") ++tier;
+		else t.add_tracker(tr, tier);
 	}
 
 	for (std::string const& ws : web_seeds)

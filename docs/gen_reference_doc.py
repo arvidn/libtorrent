@@ -206,7 +206,6 @@ def highlight_signature(s):
 
 
 def highlight_name(s):
-    print('highlight: %s' % s)
     if '=' in s:
         splitter = ' = '
     elif '{' in s:
@@ -215,9 +214,7 @@ def highlight_name(s):
         return s
 
     name = s.split(splitter, 1)
-    print('split: ', name)
     name2 = name[0].split(' ')
-    print('split2: ', name2)
     if len(name2[-1]) == 0:
         return s
 
