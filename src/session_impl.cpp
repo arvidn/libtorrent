@@ -1549,6 +1549,8 @@ namespace aux {
 			TORRENT_ASSERT(ret->local_endpoint.port() == bind_ep.port()
 				|| bind_ep.port() == 0);
 
+			if (bind_ep.port() == 0) bind_ep = ret->local_endpoint;
+
 			ret->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
 			last_op = operation_t::sock_listen;
 
