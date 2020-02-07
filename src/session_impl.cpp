@@ -1206,6 +1206,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	void session_impl::queue_tracker_request(tracker_request req
 		, std::weak_ptr<request_callback> c)
 	{
+		req.listen_port = 0;
 #if TORRENT_USE_I2P
 		if (!m_settings.get_str(settings_pack::i2p_hostname).empty())
 		{
@@ -1234,6 +1235,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		{
 			for (auto& ls : m_listen_sockets)
 			{
+				if (!(ls->flags & listen_socket_t::accept_incoming)) continue;
 #ifdef TORRENT_SSL_PEERS
 				if ((ls->ssl == transport::ssl) != use_ssl) continue;
 #endif
@@ -1660,6 +1662,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			TORRENT_ASSERT(ret->local_endpoint.port() == bind_ep.port()
 				|| bind_ep.port() == 0);
 
+			if (bind_ep.port() == 0) bind_ep = ret->local_endpoint;
+
 			ret->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
 			last_op = operation_t::sock_listen;
 
@@ -1946,14 +1950,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			interface_to_endpoints(device, port, ssl, flags, eps);
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
-		if (!ec)
-		{
-			expand_unspecified_address(ifs, eps);
-			auto const routes = enum_routes(m_io_context, ec);
-			if (!ec) expand_devices(ifs, routes, eps);
-		}
-
 		// if no listen interfaces are specified, create sockets to use
 		// any interface
 		if (eps.empty())
@@ -1962,6 +1958,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				, listen_socket_flags_t{});
 			eps.emplace_back(address_v6(), 0, "", transport::plaintext
 				, listen_socket_flags_t{});
+		}
+
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
+		if (!ec)
+		{
+			expand_unspecified_address(ifs, eps);
+			auto const routes = enum_routes(m_io_context, ec);
+			if (!ec) expand_devices(ifs, routes, eps);
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
@@ -5286,6 +5290,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (m_listen_sockets.empty()) return 0;
 		if (sock)
 		{
+			if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
 			// if we're using a proxy, we won't be able to accept any TCP
 			// connections. We may be able to accept uTP connections though, so
 			// announce the UDP port instead
@@ -5298,6 +5303,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #ifdef TORRENT_SSL_PEERS
 		for (auto const& s : m_listen_sockets)
 		{
+			if (!(s->flags & listen_socket_t::accept_incoming)) continue;
 			if (s->ssl == transport::plaintext)
 			{
 				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
@@ -5308,7 +5314,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 		return 0;
 #else
-		return std::uint16_t(m_listen_sockets.front()->tcp_external_port());
+		sock = m_listen_sockets.front().get();
+		if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
+		return std::uint16_t(sock->tcp_external_port());
 #endif
 	}
 
@@ -5322,9 +5330,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	std::uint16_t session_impl::ssl_listen_port(listen_socket_t* sock) const
 	{
 #ifdef TORRENT_SSL_PEERS
-
 		if (sock)
 		{
+			if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
+
 			// if we're using a proxy, we won't be able to accept any TCP
 			// connections. We may be able to accept uTP connections though, so
 			// announce the UDP port instead
@@ -5339,6 +5348,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		for (auto const& s : m_listen_sockets)
 		{
+			if (!(s->flags & listen_socket_t::accept_incoming)) continue;
 			if (s->ssl == transport::ssl)
 			{
 				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
@@ -5376,6 +5386,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		auto socket = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&](std::shared_ptr<listen_socket_t> const& e)
 		{
+			if (!(e->flags & listen_socket_t::accept_incoming)) return false;
 			auto const& listen_addr = e->external_address.external_address();
 			return e->ssl == ssl
 				&& (listen_addr == local_addr
