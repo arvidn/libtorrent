@@ -568,6 +568,7 @@ HEADERS = \
   aux_/aligned_union.hpp            \
   aux_/alloca.hpp                   \
   aux_/allocating_handler.hpp       \
+  aux_/announce_entry.hpp           \
   aux_/array.hpp                    \
   aux_/bind_to_device.hpp           \
   aux_/buffer.hpp                   \

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-#include "libtorrent/announce_entry.hpp"
+#include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/client_data.hpp"
@@ -48,7 +48,7 @@ TORRENT_TEST(retry_interval)
 {
 	// make sure the retry interval keeps growing
 	// on failing announces
-	announce_entry ae("dummy");
+	aux::announce_entry ae("dummy");
 	ae.endpoints.emplace_back(aux::listen_socket_handle(), false);
 	int last = 0;
 	auto const tracker_backoff = 250;

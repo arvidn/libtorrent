@@ -1751,7 +1751,7 @@ namespace {
 				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
 					announce_entry e(tier.list_string_value_at(k).to_string());
-					e.trim();
+					ltrim(e.url);
 					if (e.url.empty()) continue;
 					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
@@ -1778,7 +1778,7 @@ namespace {
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
-			e.trim();
+			ltrim(e.url);
 #if TORRENT_USE_I2P
 			if (is_i2p_url(e.url)) m_flags |= i2p;
 #endif

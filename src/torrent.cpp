@@ -114,6 +114,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
+#include "libtorrent/aux_/announce_entry.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -315,15 +316,16 @@ bool is_downloading_state(int const st)
 		// if override trackers flag is set, don't load trackers from torrent file
 		if (!(p.flags & torrent_flags::override_trackers))
 		{
-			auto const& trackers = m_torrent_file->trackers();
-			m_trackers = {trackers.begin(), trackers.end()};
+			m_trackers.clear();
+			for (auto const& ae : m_torrent_file->trackers())
+				m_trackers.emplace_back(ae);
 		}
 
 		int tier = 0;
 		auto tier_iter = p.tracker_tiers.begin();
 		for (auto const& url : p.trackers)
 		{
-			announce_entry e(url);
+			aux::announce_entry e(url);
 			if (tier_iter != p.tracker_tiers.end())
 				tier = *tier_iter++;
 
@@ -342,7 +344,7 @@ bool is_downloading_state(int const st)
 		}
 
 		std::sort(m_trackers.begin(), m_trackers.end()
-			, [] (announce_entry const& lhs, announce_entry const& rhs)
+			, [] (aux::announce_entry const& lhs, aux::announce_entry const& rhs)
 			{ return lhs.tier < rhs.tier; });
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
@@ -653,7 +655,7 @@ bool is_downloading_state(int const st)
 		if (!settings().get_bool(settings_pack::use_dht_as_fallback)) return true;
 
 		return std::none_of(m_trackers.begin(), m_trackers.end()
-			, [](announce_entry const& tr) { return bool(tr.verified); });
+			, [](aux::announce_entry const& tr) { return bool(tr.verified); });
 	}
 
 #endif
@@ -2539,7 +2541,7 @@ bool is_downloading_state(int const st)
 				{
 					int const verified_trackers = static_cast<int>(std::count_if(
 						m_trackers.begin(), m_trackers.end()
-						, [](announce_entry const& t) { return t.verified; }));
+						, [](aux::announce_entry const& t) { return t.verified; }));
 
 					if (verified_trackers > 0)
 						debug_log("DHT: only using DHT as fallback, and there are %d working trackers", verified_trackers);
@@ -3068,7 +3070,7 @@ bool is_downloading_state(int const st)
 		protocol_version const hash_version = req.info_hash == m_info_hash.v1
 			? protocol_version::V1 : protocol_version::V2;
 
-		announce_entry* ae = find_tracker(req.url);
+		aux::announce_entry* ae = find_tracker(req.url);
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
@@ -3077,12 +3079,6 @@ bool is_downloading_state(int const st)
 				if (aep.socket != req.outgoing_socket) continue;
 				local_endpoint = aep.local_endpoint;
 				aep.info_hashes[hash_version].message = msg;
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				if (hash_version == protocol_version::V1)
-					aep.message = msg;
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 				break;
 			}
 		}
@@ -3103,11 +3099,11 @@ bool is_downloading_state(int const st)
 		protocol_version const hash_version = req.info_hash == m_info_hash.v1
 			? protocol_version::V1 : protocol_version::V2;
 
-		announce_entry* ae = find_tracker(req.url);
+		aux::announce_entry* ae = find_tracker(req.url);
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
-			announce_endpoint* aep = ae->find_endpoint(req.outgoing_socket);
+			auto* aep = ae->find_endpoint(req.outgoing_socket);
 			if (aep)
 			{
 				local_endpoint = aep->local_endpoint;
@@ -3115,16 +3111,6 @@ bool is_downloading_state(int const st)
 				if (complete >= 0) aep->info_hashes[hash_version].scrape_complete = complete;
 				if (downloaded >= 0) aep->info_hashes[hash_version].scrape_downloaded = downloaded;
 
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				if (hash_version == protocol_version::V1)
-				{
-					if (incomplete >= 0) aep->scrape_incomplete = incomplete;
-					if (complete >= 0) aep->scrape_complete = complete;
-					if (downloaded >= 0) aep->scrape_downloaded = downloaded;
-				}
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 				update_scrape_state();
 			}
 		}
@@ -3208,15 +3194,11 @@ bool is_downloading_state(int const st)
 		auto const interval = std::max(resp.interval, seconds32(
 			settings().get_int(settings_pack::min_announce_interval)));
 
-		announce_entry* ae = find_tracker(r.url);
+		aux::announce_entry* ae = find_tracker(r.url);
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
-#if TORRENT_ABI_VERSION == 1
-			if (!ae->complete_sent && r.event == event_t::completed)
-				ae->complete_sent = true;
-#endif
-			announce_endpoint* aep = ae->find_endpoint(r.outgoing_socket);
+			auto* aep = ae->find_endpoint(r.outgoing_socket);
 			if (aep)
 			{
 				auto& a = aep->info_hashes[v];
@@ -3242,16 +3224,6 @@ bool is_downloading_state(int const st)
 				a.fails = 0;
 				a.last_error.clear();
 				a.message = !resp.warning_message.empty() ? resp.warning_message : std::string();
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				if (v == protocol_version::V1)
-				{
-					aep->last_error.clear();
-					aep->message = a.message;
-					aep->fails = 0;
-				}
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 				int const tracker_index = int(ae - m_trackers.data());
 				m_last_working_tracker = std::int8_t(tracker_index);
 
@@ -3504,14 +3476,6 @@ bool is_downloading_state(int const st)
 						a.min_announce = a.next_announce;
 						a.triggered_manually = true;
 					}
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-					aep.next_announce = (flags & torrent_handle::ignore_min_interval)
-						? time_point_cast<seconds32>(t) + seconds32(1)
-						: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
-					aep.min_announce = aep.next_announce;
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 				}
 			}
 		}
@@ -3519,7 +3483,7 @@ bool is_downloading_state(int const st)
 		{
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
-			announce_entry& e = m_trackers[tracker_idx];
+			aux::announce_entry& e = m_trackers[tracker_idx];
 			for (auto& aep : e.endpoints)
 			{
 				for (auto& a : aep.info_hashes)
@@ -3530,14 +3494,6 @@ bool is_downloading_state(int const st)
 					a.min_announce = a.next_announce;
 					a.triggered_manually = true;
 				}
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				aep.next_announce = (flags & torrent_handle::ignore_min_interval)
-					? time_point_cast<seconds32>(t) + seconds32(1)
-					: std::max(time_point_cast<seconds32>(t), aep.min_announce) + seconds32(1);
-				aep.min_announce = aep.next_announce;
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 			}
 		}
 		update_tracker_timer(aux::time_now32());
@@ -5417,31 +5373,79 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
+	std::vector<announce_entry> torrent::trackers() const
 	{
-		m_trackers.clear();
-		std::remove_copy_if(urls.begin(), urls.end(), back_inserter(m_trackers)
-			, [](announce_entry const& e) { return e.url.empty(); });
-
-		m_last_working_tracker = -1;
-		for (auto& t : m_trackers)
+		std::vector<announce_entry> ret;
+		ret.reserve(m_trackers.size());
+		for (auto const& t : m_trackers)
 		{
-			t.endpoints.clear();
-			if (t.source == 0) t.source = announce_entry::source_client;
-#if TORRENT_ABI_VERSION == 1
-			t.complete_sent = m_complete_sent;
-#endif
-			for (auto& aep : t.endpoints)
+			ret.emplace_back(t.url);
+			auto& tr = ret.back();
+			tr.source = t.source;
+			tr.trackerid = t.trackerid;
+			tr.verified = t.verified;
+			tr.tier = t.tier;
+			tr.fail_limit = t.fail_limit;
+			tr.endpoints.reserve(t.endpoints.size());
+			for (auto const& ep : t.endpoints)
 			{
-				for (auto& a : aep.info_hashes)
-					a.complete_sent = m_complete_sent;
+				tr.endpoints.emplace_back();
+				auto& aep = tr.endpoints.back();
+				aep.local_endpoint = ep.local_endpoint;
+				aep.enabled = ep.enabled;
+
+				for (protocol_version v : {protocol_version::V1, protocol_version::V2})
+				{
+					aep.info_hashes[v].message = ep.info_hashes[v].message;
+					aep.info_hashes[v].last_error = ep.info_hashes[v].last_error;
+					aep.info_hashes[v].next_announce = ep.info_hashes[v].next_announce;
+					aep.info_hashes[v].min_announce = ep.info_hashes[v].min_announce;
+					aep.info_hashes[v].scrape_incomplete = ep.info_hashes[v].scrape_incomplete;
+					aep.info_hashes[v].scrape_complete = ep.info_hashes[v].scrape_complete;
+					aep.info_hashes[v].scrape_downloaded = ep.info_hashes[v].scrape_downloaded;
+					aep.info_hashes[v].fails = ep.info_hashes[v].fails;
+					aep.info_hashes[v].updating = ep.info_hashes[v].updating;
+					aep.info_hashes[v].start_sent = ep.info_hashes[v].start_sent;
+					aep.info_hashes[v].complete_sent = ep.info_hashes[v].complete_sent;
+					aep.info_hashes[v].triggered_manually = ep.info_hashes[v].triggered_manually;
+#if TORRENT_ABI_VERSION == 1
+					tr.complete_sent |= ep.info_hashes[v].complete_sent;
+#endif
+				}
 #if TORRENT_ABI_VERSION <= 2
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-				aep.complete_sent = m_complete_sent;
+				aep.message = aep.info_hashes[protocol_version::V1].message;
+				aep.scrape_incomplete = ep.info_hashes[protocol_version::V1].scrape_incomplete;
+				aep.scrape_complete = ep.info_hashes[protocol_version::V1].scrape_complete;
+				aep.scrape_downloaded = ep.info_hashes[protocol_version::V1].scrape_downloaded;
+				aep.complete_sent = ep.info_hashes[protocol_version::V1].complete_sent;
+				aep.last_error = ep.info_hashes[protocol_version::V1].last_error;
+				aep.fails = ep.info_hashes[protocol_version::V1].fails;
+				aep.next_announce = ep.info_hashes[protocol_version::V1].next_announce;
+				aep.min_announce = ep.info_hashes[protocol_version::V1].min_announce;
+				aep.updating = ep.info_hashes[protocol_version::V1].updating;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 			}
 		}
+		return ret;
+	}
+
+	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
+	{
+		m_trackers.clear();
+		for (auto const& t : urls)
+		{
+			if (t.url.empty()) continue;
+			m_trackers.emplace_back(t);
+		}
+
+		// make sure the trackers are correctly ordered by tier
+		std::sort(m_trackers.begin(), m_trackers.end()
+			, [](aux::announce_entry const& lhs, aux::announce_entry const& rhs)
+			{ return lhs.tier < rhs.tier; });
+
+		m_last_working_tracker = -1;
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
@@ -5488,12 +5492,15 @@ bool is_downloading_state(int const st)
 			k->source |= url.source;
 			return false;
 		}
-		auto k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
-			, [] (announce_entry const& lhs, announce_entry const& rhs)
-			{ return lhs.tier < rhs.tier; });
+		auto k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url.tier
+			, [] (int tier, aux::announce_entry const& v) { return tier < v.tier; });
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
-		k = m_trackers.insert(k, url);
-		if (k->source == 0) k->source = announce_entry::source_client;
+		k = m_trackers.insert(k, aux::announce_entry(url.url));
+		if (url.source == 0) k->source = announce_entry::source_client;
+		else k->source = url.source;
+		k->trackerid = url.trackerid;
+		k->tier = url.tier;
+		k->fail_limit = url.fail_limit;
 		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 		return true;
 	}
@@ -7860,15 +7867,6 @@ bool is_downloading_state(int const st)
 					a.next_announce = now;
 					a.min_announce = now;
 				}
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				if (!aep.complete_sent)
-				{
-					aep.next_announce = now;
-					aep.min_announce = now;
-				}
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 			}
 		}
 		announce_with_tracker();
@@ -7939,18 +7937,10 @@ bool is_downloading_state(int const st)
 			m_complete_sent = true;
 			for (auto& t : m_trackers)
 			{
-#if TORRENT_ABI_VERSION == 1
-				t.complete_sent = true;
-#endif
 				for (auto& aep : t.endpoints)
 				{
 					for (auto& a : aep.info_hashes)
 						a.complete_sent = true;
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-					aep.complete_sent = true;
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 				}
 			}
 
@@ -9391,12 +9381,6 @@ bool is_downloading_state(int const st)
 					a.next_announce = now;
 					a.min_announce = now;
 				}
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-				aep.next_announce = now;
-				aep.min_announce = now;
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 			}
 		}
 		announce_with_tracker(event_t::stopped);
@@ -10663,10 +10647,10 @@ bool is_downloading_state(int const st)
 		m_picker->started_hash_job(piece);
 	}
 
-	announce_entry* torrent::find_tracker(std::string const& url)
+	aux::announce_entry* torrent::find_tracker(std::string const& url)
 	{
 		auto i = std::find_if(m_trackers.begin(), m_trackers.end()
-			, [&url](announce_entry const& ae) { return ae.url == url; });
+			, [&url](aux::announce_entry const& ae) { return ae.url == url; });
 		if (i == m_trackers.end()) return nullptr;
 		return &*i;
 	}
@@ -11180,7 +11164,7 @@ bool is_downloading_state(int const st)
 			for (auto const& t : m_trackers)
 			{
 				if (std::any_of(t.endpoints.begin(), t.endpoints.end()
-					, [supports_protocol](announce_endpoint const& aep) {
+					, [supports_protocol](aux::announce_endpoint const& aep) {
 						for (protocol_version const ih : all_versions)
 						{
 							if (supports_protocol[ih] && aep.info_hashes[ih].updating)
@@ -11417,13 +11401,13 @@ bool is_downloading_state(int const st)
 		if (!(r.kind & tracker_request::scrape_request))
 		{
 			// announce request
-			announce_entry* ae = find_tracker(r.url);
+			aux::announce_entry* ae = find_tracker(r.url);
 			int fails = 0;
 			tcp::endpoint local_endpoint;
 			if (ae)
 			{
 				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
-					, [&](announce_endpoint const& e) { return e.socket == r.outgoing_socket; });
+					, [&](aux::announce_endpoint const& e) { return e.socket == r.outgoing_socket; });
 
 				if (aep != ae->endpoints.end())
 				{
@@ -11440,19 +11424,6 @@ bool is_downloading_state(int const st)
 					a.last_error = ec;
 					a.message = msg;
 					fails = a.fails;
-
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-					if (hash_version == protocol_version::V1)
-					{
-						aep->fails = a.fails;
-						aep->next_announce = a.next_announce;
-						aep->updating = a.updating;
-						aep->last_error = ec;
-						aep->message = msg;
-					}
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 					debug_log("*** increment tracker fail count [ep: %s url: %s %d]"
@@ -11485,7 +11456,7 @@ bool is_downloading_state(int const st)
 				// if all endpoints fail, then we de-prioritize the tracker and try
 				// the next one in the tier
 				if (std::all_of(ae->endpoints.begin(), ae->endpoints.end()
-					, [&](announce_endpoint const& ep)
+					, [&](aux::announce_endpoint const& ep)
 					{
 						for (protocol_version const ih : all_versions)
 							if (supports_protocol[ih] && ep.info_hashes[ih].is_working())
@@ -11505,7 +11476,7 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			announce_entry* ae = find_tracker(r.url);
+			aux::announce_entry* ae = find_tracker(r.url);
 
 			// scrape request
 			if (ec == error_code(410, http_category()))
@@ -11523,7 +11494,7 @@ bool is_downloading_state(int const st)
 				tcp::endpoint local_endpoint;
 				if (ae != nullptr)
 				{
-					auto aep = ae->find_endpoint(r.outgoing_socket);
+					auto* aep = ae->find_endpoint(r.outgoing_socket);
 					if (aep != nullptr) local_endpoint = aep->local_endpoint;
 				}
 

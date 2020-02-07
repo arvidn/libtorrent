@@ -86,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/deferred_handler.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
+#include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
 
 #ifdef TORRENT_SSL_PEERS
@@ -774,7 +775,7 @@ namespace libtorrent {
 		void set_tracker_login(std::string const& name, std::string const& pw);
 #endif
 
-		announce_entry* find_tracker(std::string const& url);
+		aux::announce_entry* find_tracker(std::string const& url);
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
@@ -1035,8 +1036,7 @@ namespace libtorrent {
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
-		std::vector<announce_entry> const& trackers() const
-		{ return m_trackers; }
+		std::vector<announce_entry> trackers() const;
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
 
@@ -1309,7 +1309,7 @@ namespace libtorrent {
 		// us.
 		aux::suggest_piece m_suggest_pieces;
 
-		aux::vector<announce_entry> m_trackers;
+		aux::vector<aux::announce_entry> m_trackers;
 
 		// this list is sorted by time_critical_piece::deadline
 		std::vector<time_critical_piece> m_time_critical_pieces;

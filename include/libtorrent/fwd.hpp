@@ -144,8 +144,8 @@ struct socks5_alert;
 TORRENT_VERSION_NAMESPACE_2_END
 
 // include/libtorrent/announce_entry.hpp
-struct announce_infohash;
 TORRENT_VERSION_NAMESPACE_2
+struct announce_infohash;
 struct announce_endpoint;
 struct announce_entry;
 TORRENT_VERSION_NAMESPACE_2_END
