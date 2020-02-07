@@ -379,8 +379,10 @@ void bind_torrent_info()
         .def("can_announce", &can_announce)
         .def("is_working", &is_working)
 #endif
+#if TORRENT_ABI_VERSION <= 2
         .def("reset", &announce_entry::reset)
         .def("trim", &announce_entry::trim)
+#endif
         ;
 
     implicitly_convertible<std::shared_ptr<torrent_info>, std::shared_ptr<const torrent_info>>();

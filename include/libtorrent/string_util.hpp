@@ -132,6 +132,9 @@ namespace libtorrent {
 	// return value is an empty string_view.
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string(string_view last, char sep);
 
+	// removes whitespaces at the beginning of the string, in-place
+	TORRENT_EXTRA_EXPORT void ltrim(std::string& s);
+
 #if TORRENT_USE_I2P
 
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);

@@ -789,7 +789,6 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "test");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(errors::tracker_failure));
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 1);
@@ -815,7 +814,6 @@ TORRENT_TEST(test_warning)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "test2");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
@@ -842,7 +840,6 @@ TORRENT_TEST(test_scrape_data_in_announce)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
@@ -902,7 +899,6 @@ TORRENT_TEST(test_http_status)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "Not A Tracker");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(410, http_category()));
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 1);
@@ -928,7 +924,6 @@ TORRENT_TEST(test_interval)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), true);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
@@ -956,7 +951,6 @@ TORRENT_TEST(test_invalid_bencoding)
 			TEST_EQUAL(ae.endpoints.size(), 2);
 			for (auto const& aep : ae.endpoints)
 			{
-				TEST_EQUAL(aep.info_hashes[protocol_version::V1].is_working(), false);
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
 				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code(bdecode_errors::expected_value
 					, bdecode_category()));

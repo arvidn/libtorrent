@@ -380,6 +380,12 @@ namespace libtorrent {
 		return {last.substr(0, pos), last.substr(pos + found_sep)};
 	}
 
+	void ltrim(std::string& s)
+	{
+		while (!s.empty() && is_space(s.front()))
+			s.erase(s.begin());
+	}
+
 #if TORRENT_USE_I2P
 
 	bool is_i2p_url(std::string const& url)

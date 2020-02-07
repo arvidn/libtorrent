@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
-#define TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
+#ifndef TORRENT_AUX_ANNOUNCE_ENTRY_HPP_INCLUDED
+#define TORRENT_AUX_ANNOUNCE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
@@ -50,15 +50,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 namespace libtorrent {
-
 	struct torrent;
+namespace aux {
 
-TORRENT_VERSION_NAMESPACE_2
-
-	struct TORRENT_EXPORT announce_infohash
+	struct TORRENT_EXTRA_EXPORT announce_infohash
 	{
-		// internal
-		TORRENT_UNEXPORT announce_infohash();
+		announce_infohash();
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -111,40 +108,38 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		bool triggered_manually : 1;
 
-#if TORRENT_ABI_VERSION <= 2
 		// reset announce counters and clears the started sent flag.
 		// The announce_endpoint will look like we've never talked to
 		// the tracker.
-		TORRENT_DEPRECATED void reset();
+		void reset();
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		TORRENT_DEPRECATED void failed(int backoff_ratio, seconds32 retry_interval = seconds32(0));
+		void failed(int backoff_ratio, seconds32 retry_interval = seconds32(0));
 
 		// returns true if we can announce to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
 		// argument is necessary because once we become a seed, we
 		// need to announce right away, even if the re-announce timer
 		// hasn't expired yet.
-		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
+		bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
 
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.
-		TORRENT_DEPRECATED bool is_working() const { return fails == 0; }
-#endif
+		bool is_working() const { return fails == 0; }
 	};
+
+	struct announce_entry;
 
 	// announces are sent to each tracker using every listen socket
 	// this class holds information about one listen socket for one tracker
-#if TORRENT_ABI_VERSION <= 2
-	// this is to suppress deprecation warnings from implicit move constructor
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#endif
-	struct TORRENT_EXPORT announce_endpoint
+	struct TORRENT_EXTRA_EXPORT announce_endpoint
 	{
-#if TORRENT_ABI_VERSION <= 2
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
+		friend struct lt::torrent;
+		friend struct announce_entry;
+
+		// internal
+		announce_endpoint(aux::listen_socket_handle const& s, bool completed);
 
 		// the local endpoint of the listen interface associated with this endpoint
 		tcp::endpoint local_endpoint;
@@ -156,49 +151,28 @@ TORRENT_VERSION_NAMESPACE_2
 		// info_hashes[1] is the v2 info hash (truncated SHA-256)
 		aux::array<announce_infohash, num_protocols, protocol_version> info_hashes;
 
-#if TORRENT_ABI_VERSION <= 2
 		// reset announce counters and clears the started sent flag.
 		// The announce_endpoint will look like we've never talked to
 		// the tracker.
-		TORRENT_DEPRECATED void reset();
-
-		// deprecated in 2.0, use announce_infohash::can_announce
-		// returns true if we can announce to this tracker now.
-		// The current time is passed in as ``now``. The ``is_seed``
-		// argument is necessary because once we become a seed, we
-		// need to announce right away, even if the re-announce timer
-		// hasn't expired yet.
-		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const;
-
-		// deprecated in 2.0, use announce_infohash::is_working
-		// returns true if the last time we tried to announce to this
-		// tracker succeeded, or if we haven't tried yet.
-		TORRENT_DEPRECATED bool is_working() const;
-
-		// for backwards compatibility
-		time_point32 TORRENT_DEPRECATED_MEMBER next_announce = (time_point32::min)();
-		time_point32 TORRENT_DEPRECATED_MEMBER min_announce = (time_point32::min)();
-		std::string TORRENT_DEPRECATED_MEMBER message;
-		error_code TORRENT_DEPRECATED_MEMBER last_error;
-		int TORRENT_DEPRECATED_MEMBER scrape_incomplete = -1;
-		int TORRENT_DEPRECATED_MEMBER scrape_complete = -1;
-		int TORRENT_DEPRECATED_MEMBER scrape_downloaded = -1;
-		std::uint8_t TORRENT_DEPRECATED_MEMBER fails : 7;
-		bool TORRENT_DEPRECATED_MEMBER updating : 1;
-		bool TORRENT_DEPRECATED_MEMBER start_sent : 1;
-		bool TORRENT_DEPRECATED_MEMBER complete_sent : 1;
-#endif
+		void reset();
 
 		// set to false to not announce from this endpoint
 		bool enabled : 1;
+
+	private:
+		// internal
+		aux::listen_socket_handle socket;
 	};
 
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.
-	struct TORRENT_EXPORT announce_entry
+	struct TORRENT_EXTRA_EXPORT announce_entry
 	{
 		// constructs a tracker announce entry with ``u`` as the URL.
 		explicit announce_entry(string_view u);
+
+		// constructs the internal announce entry from the user facing one
+		explicit announce_entry(lt::announce_entry const&);
 		announce_entry();
 		~announce_entry();
 		announce_entry(announce_entry const&);
@@ -223,20 +197,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// a row, before this tracker is not used anymore. 0 means unlimited
 		std::uint8_t fail_limit = 0;
 
-		// flags for the source bitmask, each indicating where
-		// we heard about this tracker
-		enum tracker_source
-		{
-			// the tracker was part of the .torrent file
-			source_torrent = 1,
-			// the tracker was added programmatically via the add_tracker() function
-			source_client = 2,
-			// the tracker was part of a magnet link
-			source_magnet_link = 4,
-			// the tracker was received from the swarm via tracker exchange
-			source_tex = 8
-		};
-
 		// a bitmask specifying which sources we got this tracker from.
 		std::uint8_t source:4;
 
@@ -244,47 +204,17 @@ TORRENT_VERSION_NAMESPACE_2
 		// from this tracker.
 		bool verified:1;
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2
-		// all of these will be set to false or 0
-		// use the corresponding members in announce_endpoint
-		std::uint8_t TORRENT_DEPRECATED_MEMBER fails:7;
-		bool TORRENT_DEPRECATED_MEMBER send_stats:1;
-		bool TORRENT_DEPRECATED_MEMBER start_sent:1;
-		bool TORRENT_DEPRECATED_MEMBER complete_sent:1;
-		// internal
-		bool TORRENT_DEPRECATED_MEMBER triggered_manually:1;
-		bool TORRENT_DEPRECATED_MEMBER updating:1;
-#endif
-
-#if TORRENT_ABI_VERSION <= 2
 		// reset announce counters and clears the started sent flag.
 		// The announce_entry will look like we've never talked to
 		// the tracker.
-		TORRENT_DEPRECATED void reset();
+		void reset();
 
-		// trims whitespace characters from the beginning of the URL.
-		TORRENT_DEPRECATED void trim();
-#endif
-
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.2, use announce_endpoint::can_announce
-		// returns true if we can announce to this tracker now.
-		// The current time is passed in as ``now``. The ``is_seed``
-		// argument is necessary because once we become a seed, we
-		// need to announce right away, even if the re-announce timer
-		// hasn't expired yet.
-		TORRENT_DEPRECATED bool can_announce(time_point now, bool is_seed) const;
-
-		// deprecated in 1.2, use announce_endpoint::is_working
-		// returns true if the last time we tried to announce to this
-		// tracker succeeded, or if we haven't tried yet.
-		TORRENT_DEPRECATED bool is_working() const;
-#endif
+		// internal
+		announce_endpoint* find_endpoint(aux::listen_socket_handle const& s);
 	};
 
-TORRENT_VERSION_NAMESPACE_2_END
-
+}
 }
 
 #endif
+
