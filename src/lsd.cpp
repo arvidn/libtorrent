@@ -69,8 +69,6 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 }
 } // anonymous namespace
 
-static error_code dummy;
-
 lsd::lsd(io_service& ios, aux::lsd_callback& cb
 	, address const& listen_address, address const& netmask)
 	: m_callback(cb)

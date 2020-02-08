@@ -1714,11 +1714,11 @@ namespace aux {
 			max_int_setting_internal
 		};
 
-		enum settings_counts_t : std::uint8_t
+		enum settings_counts_t : int
 		{
-			num_string_settings = max_string_setting_internal - string_type_base,
-			num_bool_settings = max_bool_setting_internal - bool_type_base,
-			num_int_settings = max_int_setting_internal - int_type_base
+			num_string_settings = int(max_string_setting_internal) - int(string_type_base),
+			num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base),
+			num_int_settings = int(max_int_setting_internal) - int(int_type_base)
 		};
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
