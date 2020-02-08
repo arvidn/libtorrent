@@ -215,6 +215,9 @@ rule warnings ( properties * )
 
 		result += <cflags>-Wno-return-std-move-in-c++11 ;
 		result += <cflags>-Wno-unknown-warning-option ;
+
+# libtorrent uses alloca() carefully
+		result += <cflags>-Wno-alloca ;
 	}
 
 	if <toolset>gcc in $(properties)
