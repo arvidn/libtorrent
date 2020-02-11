@@ -4918,7 +4918,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			utp_socket_impl* impl = nullptr;
 			transport ssl = transport::plaintext;
 #ifdef TORRENT_USE_OPENSSL
-			if (std::get<ssl_stream<utp_stream>>(&s) != nullptr)
+			if (std::get<ssl_stream<utp_stream>>(&s.var()) != nullptr)
 			{
 				impl = std::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
 				ssl = transport::ssl;
