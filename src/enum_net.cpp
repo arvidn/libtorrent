@@ -798,10 +798,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				return r.destination.is_unspecified()
 					&& r.destination.is_v4() == iface.interface_address.is_v4()
 					&& !r.gateway.is_unspecified()
-					// IPv6 gateways aren't addressed in the same network as the
-					// interface, but they are addressed by the local network address
-					// space. So this check only works for IPv4.
-					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, r.netmask))
 					// in case there are multiple networks on the same networking
 					// device, the source hint may be the only thing telling them
 					// apart
