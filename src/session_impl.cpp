@@ -5505,7 +5505,8 @@ namespace aux {
 			ip_interface ip;
 			ip.interface_address = s.local_endpoint.address();
 			ip.netmask = s.netmask;
-			std::strncpy(ip.name, s.device.c_str(), sizeof(ip.name));
+			std::strncpy(ip.name, s.device.c_str(), sizeof(ip.name) - 1);
+			ip.name[sizeof(ip.name) - 1] = '\0';
 			s.natpmp_mapper->start(ip);
 		}
 	}
