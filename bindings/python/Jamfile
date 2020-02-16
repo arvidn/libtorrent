@@ -80,10 +80,10 @@ else
 		<include>/usr/sfw/include
 	;
 
-	# the names are decorated in MacPorts
+	# the names are decorated in brew
 	lib boost_python : : <target-os>darwin <name>boost_python27-mt
 		: : $(boost-include-path) ;
-	lib boost_python3 : : <target-os>darwin <name>boost_python3-mt
+	lib boost_python3 : : <target-os>darwin <name>boost_python37-mt
 		: : $(boost-include-path) ;
 
 	lib boost_python : : <name>boost_python
