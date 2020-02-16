@@ -1,15 +1,15 @@
 language: cpp
-dist: xenial
+dist: bionic
 
 matrix:
   fast_finish: true
   include:
     - if: repo = arvidn/libtorrent
       env: variant=release sonar_scan=1 toolset=gcc check_headers=1
-    - env: variant=test_debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
+    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
-    - env: variant=test_debug crypto=openssl docs=1 python=1 toolset=darwin ios=1
+    - env: variant=test_debug crypto=openssl python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
@@ -17,8 +17,8 @@ matrix:
         apt:
           packages:
           - python3-pip
-          - libboost1.58-all-dev
-          - libboost1.58-tools-dev
+          - libboost-all-dev
+          - libboost-tools-dev
     - env: variant=test_debug tests=1 toolset=gcc-sanitizer fuzzers=1
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
@@ -48,9 +48,9 @@ cache:
 addons:
   apt:
     packages:
-    - libboost1.58-all-dev
-    - libboost1.58-tools-dev
-    - python2.7-dev
+    - libboost-all-dev
+    - libboost-tools-dev
+    - python3.7-dev
     - g++-5
     - ninja-build
 
@@ -66,8 +66,12 @@ before_install:
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      travis_retry brew install boost-python python2;
-      brew link --overwrite python@2;
+      brew unlink python@2;
+      travis_retry brew install boost-python3 python;
+    fi'
+  - 'if [[ "$python" == "1" ]]; then
+       which python3;
+       python3 --version;
     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
       export B2=bjam;
@@ -145,13 +149,13 @@ install:
        <linkflags>-mios-version-min=7
        <linkflags>\"-arch armv7\"
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam'
-  - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
+  - 'echo "using python : : $(which python3) : /usr/local/Frameworks/Python.framework/Headers : : <target-os>darwin ;" >> ~/user-config.jam'
+  - 'echo "using python : : $(which python3) : : : <target-os>linux ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
   - 'if [ "$pylint" == "1" ]; then
-      sudo pip install flake8;
-      flake8 --version;
       sudo pip3 install flake8;
+      flake8 --version;
       python3 -m flake8 --version;
     fi'
   - 'if [ $sonar_scan == "1" ]; then
@@ -270,9 +274,9 @@ script:
   - 'if [[ "$python" == "1" ]]; then
       ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-        DYLD_LIBRARY_PATH=./dependencies python2 test.py -b;
+        DYLD_LIBRARY_PATH=./dependencies python3 test.py -b;
       else
-        LD_LIBRARY_PATH=./dependencies python test.py -b;
+        LD_LIBRARY_PATH=./dependencies python3 test.py -b;
       fi;
     fi'
   - cd ../..;
