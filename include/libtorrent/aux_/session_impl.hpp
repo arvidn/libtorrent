@@ -142,9 +142,10 @@ namespace aux {
 		// we accept incoming connections on this interface
 		static constexpr listen_socket_flags_t accept_incoming = 0_bit;
 
-		// this interface has a gateway associated with it, and can
-		// route to the internet (of the same address family)
-		static constexpr listen_socket_flags_t has_gateway = 1_bit;
+		// this interface was specified to be just the local network. If this flag
+		// is not set, this interface is assumed to have a path to the internet
+		// (i.e. have a gateway configured)
+		static constexpr listen_socket_flags_t local_network = 1_bit;
 
 		// this interface was expanded from the user requesting to
 		// listen on an unspecified address (either IPv4 or IPv6)
@@ -260,7 +261,11 @@ namespace aux {
 
 			bool operator==(listen_endpoint_t const& o) const
 			{
-				return addr == o.addr && port == o.port && device == o.device && ssl == o.ssl;
+				return addr == o.addr
+					&& port == o.port
+					&& device == o.device
+					&& ssl == o.ssl
+					&& flags == o.flags;
 			}
 
 			address addr;
@@ -283,13 +288,20 @@ namespace aux {
 			std::vector<listen_endpoint_t>& eps
 			, std::vector<std::shared_ptr<aux::listen_socket_t>>& sockets);
 
+		TORRENT_EXTRA_EXPORT void interface_to_endpoints(
+			listen_interface_t const& iface
+			, listen_socket_flags_t flags
+			, span<ip_interface const> const ifs
+			, span<ip_route const> const routes
+			, std::vector<listen_endpoint_t>& eps);
+
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance
 		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
 			span<ip_interface const> ifs
+			, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		TORRENT_EXTRA_EXPORT void expand_devices(span<ip_interface const>
-			, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		// this is the link between the main thread and the
@@ -850,9 +862,6 @@ namespace aux {
 
 			void set_external_address(std::shared_ptr<listen_socket_t> const& sock, address const& ip
 				, ip_source_t source_type, address const& source);
-
-			void interface_to_endpoints(std::string const& device, int port
-				, transport ssl, listen_socket_flags_t flags, std::vector<listen_endpoint_t>& eps);
 
 			counters m_stats_counters;
 

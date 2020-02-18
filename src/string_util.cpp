@@ -174,6 +174,7 @@ namespace libtorrent {
 			ret += ':';
 			ret += to_string(i.port).data();
 			if (i.ssl) ret += 's';
+			if (i.local) ret += 'l';
 		}
 
 		return ret;
@@ -211,6 +212,7 @@ namespace libtorrent {
 
 			listen_interface_t iface;
 			iface.ssl = false;
+			iface.local = false;
 
 			string_view port;
 			if (element.front() == '[')
@@ -268,6 +270,7 @@ namespace libtorrent {
 				switch (c)
 				{
 					case 's': iface.ssl = true; break;
+					case 'l': iface.local = true; break;
 				}
 			}
 
