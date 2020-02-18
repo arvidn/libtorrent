@@ -578,7 +578,7 @@ TORRENT_TEST(reopen_network_sockets)
 
 	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, alert::all_categories);
-	p.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881");
+	p.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881l");
 
 	p.set_bool(settings_pack::enable_upnp, true);
 	p.set_bool(settings_pack::enable_natpmp, true);

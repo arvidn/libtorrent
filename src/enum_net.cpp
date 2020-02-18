@@ -249,8 +249,7 @@ namespace {
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
-		if (!valid_addr_family(rt_msg->rtm_family) || (rt_msg->rtm_table != RT_TABLE_MAIN
-			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
+		if (!valid_addr_family(rt_msg->rtm_family))
 			return false;
 
 		// make sure the defaults have the right address family
@@ -450,6 +449,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 
 } // <anonymous>
+
+	int family(address const& a) { return a.is_v4() ? AF_INET : AF_INET6; }
 
 	address build_netmask(int prefix_bits, int const family)
 	{
@@ -798,25 +799,32 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				return r.destination.is_unspecified()
 					&& r.destination.is_v4() == iface.interface_address.is_v4()
 					&& !r.gateway.is_unspecified()
-					// IPv6 gateways aren't addressed in the same network as the
-					// interface, but they are addressed by the local network address
-					// space. So this check only works for IPv4.
-					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, r.netmask))
 					// in case there are multiple networks on the same networking
 					// device, the source hint may be the only thing telling them
 					// apart
 					&& (r.source_hint.is_unspecified() || r.source_hint == iface.interface_address)
-					&& strcmp(r.name, iface.name) == 0;
+					&& std::strcmp(r.name, iface.name) == 0;
 			});
 		if (it != routes.end()) return it->gateway;
 		return {};
+	}
+
+	bool has_default_route(char const* device, int const fam, span<ip_route const> routes)
+	{
+		return std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				return r.destination.is_unspecified()
+					&& family(r.destination) == fam
+					&& std::strcmp(r.name, device) == 0;
+			}) != routes.end();
 	}
 
 	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
-		TORRENT_UNUSED(ec);
+		ec.clear();
 
 #ifdef TORRENT_BUILD_SIMULATOR
 

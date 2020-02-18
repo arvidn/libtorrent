@@ -84,11 +84,13 @@ namespace libtorrent {
 		std::string device;
 		int port;
 		bool ssl;
+		bool local;
 		friend bool operator==(listen_interface_t const& lhs, listen_interface_t const& rhs)
 		{
 			return lhs.device == rhs.device
 				&& lhs.port == rhs.port
-				&& lhs.ssl == rhs.ssl;
+				&& lhs.ssl == rhs.ssl
+				&& lhs.local == rhs.local;
 		}
 	};
 
