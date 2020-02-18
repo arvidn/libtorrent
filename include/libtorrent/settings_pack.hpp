@@ -206,6 +206,14 @@ namespace aux {
 			// multiple ports. Binding to port 0 will make the operating system
 			// pick the port.
 			//
+			// .. note::
+			//    There are reasons to stick to the same port across sessions,
+			//    which would mean only using port 0 on the first start, and
+			//    recording the port that was picked for subsequent startups.
+			//    Trackers, the DHT and other peers will remember the port they see
+			//    you use and hand that port out to other peers trying to connect
+			//    to you, as well as trying to connect to you themselves.
+			//
 			// a port that has an "s" suffix will accept SSL connections. (note
 			// that SSL sockets are not enabled by default).
 			//
