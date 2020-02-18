@@ -297,7 +297,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),
 		DEPRECATED_SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
 		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
-		DEPRECATED_SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
+		SET(dht_upload_rate_limit, 8000, &session_impl::update_dht_upload_rate_limit),
 		SET(unchoke_slots_limit, 8, &session_impl::update_unchoke_limit),
 		DEPRECATED_SET(half_open_limit, 0, nullptr),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),

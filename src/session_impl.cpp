@@ -5816,6 +5816,9 @@ namespace aux {
 	void session_impl::set_dht_settings(dht::dht_settings const& settings)
 	{
 		static_cast<dht::dht_settings&>(m_dht_settings) = settings;
+		if (m_dht_settings.upload_rate_limit > std::numeric_limits<int>::max() / 3)
+			m_dht_settings.upload_rate_limit = std::numeric_limits<int>::max() / 3;
+		m_settings.set_int(settings_pack::dht_upload_rate_limit, m_dht_settings.upload_rate_limit);
 	}
 
 	void session_impl::set_dht_state(dht::dht_state&& state)
@@ -6332,15 +6335,17 @@ namespace aux {
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
-#if TORRENT_ABI_VERSION == 1
 	void session_impl::update_dht_upload_rate_limit()
 	{
 #ifndef TORRENT_DISABLE_DHT
-		m_dht_settings.upload_rate_limit
-			= m_settings.get_int(settings_pack::dht_upload_rate_limit);
+		m_dht_settings.upload_rate_limit = m_settings.get_int(settings_pack::dht_upload_rate_limit);
+		if (m_dht_settings.upload_rate_limit > std::numeric_limits<int>::max() / 3)
+		{
+			m_settings.set_int(settings_pack::dht_upload_rate_limit, std::numeric_limits<int>::max() / 3);
+			m_dht_settings.upload_rate_limit = std::numeric_limits<int>::max() / 3;
+		}
 #endif
 	}
-#endif
 
 	void session_impl::update_disk_threads()
 	{

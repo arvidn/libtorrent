@@ -1362,15 +1362,11 @@ namespace aux {
 			deprecated_local_download_rate_limit,
 #endif
 
-#if TORRENT_ABI_VERSION == 1
 			// ``dht_upload_rate_limit`` sets the rate limit on the DHT. This is
 			// specified in bytes per second. For busy boxes
 			// with lots of torrents that requires more DHT traffic, this should
 			// be raised.
-			dht_upload_rate_limit TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated_dht_upload_rate_limit,
-#endif
+			dht_upload_rate_limit,
 
 			// ``unchoke_slots_limit`` is the max number of unchoked peers in the
 			// session. The number of unchoke slots may be ignored depending on

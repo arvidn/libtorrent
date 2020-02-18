@@ -783,13 +783,13 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 			void update_ssl_listen();
-			void update_dht_upload_rate_limit();
 			void update_local_download_rate();
 			void update_local_upload_rate();
 			void update_rate_limit_utp();
 			void update_ignore_rate_limits_on_local_network();
 #endif
 
+			void update_dht_upload_rate_limit();
 			void update_proxy();
 			void update_i2p_bridge();
 			void update_peer_tos();
