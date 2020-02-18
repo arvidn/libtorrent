@@ -337,6 +337,9 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
+		if (params.settings.has_val(settings_pack::dht_upload_rate_limit))
+			params.dht_settings.upload_rate_limit = params.settings.get_int(settings_pack::dht_upload_rate_limit);
+
 		m_impl->set_dht_settings(std::move(params.dht_settings));
 		m_impl->set_dht_state(std::move(params.dht_state));
 
