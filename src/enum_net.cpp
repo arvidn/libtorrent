@@ -249,8 +249,7 @@ namespace {
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
-		if (!valid_addr_family(rt_msg->rtm_family) || (rt_msg->rtm_table != RT_TABLE_MAIN
-			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
+		if (!valid_addr_family(rt_msg->rtm_family))
 			return false;
 
 		// make sure the defaults have the right address family
@@ -798,10 +797,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				return r.destination.is_unspecified()
 					&& r.destination.is_v4() == iface.interface_address.is_v4()
 					&& !r.gateway.is_unspecified()
-					// IPv6 gateways aren't addressed in the same network as the
-					// interface, but they are addressed by the local network address
-					// space. So this check only works for IPv4.
-					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, r.netmask))
 					// in case there are multiple networks on the same networking
 					// device, the source hint may be the only thing telling them
 					// apart
@@ -816,7 +811,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
-		TORRENT_UNUSED(ec);
+		ec.clear();
 
 #ifdef TORRENT_BUILD_SIMULATOR
 

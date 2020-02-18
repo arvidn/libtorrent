@@ -215,10 +215,6 @@ TORRENT_TEST(get_gateway_basic)
 	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth1"), routes) == none);
 	TEST_CHECK(get_gateway(ip("2a02::4567", "eth1"), routes) == none);
 
-	// the gateway for the route is outside of this local network, it cannot be
-	// used for this network
-	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == none);
-
 	// for IPv6, the address family and device name matches, so it's a match
 	TEST_CHECK(get_gateway(ip("2a02:8000::0123:4567", "eth0"), routes) == address::from_string("2a02::1234"));
 }
@@ -261,24 +257,13 @@ TORRENT_TEST(get_gateway_loopback)
 	TEST_CHECK(get_gateway(ip("::1", "lo"), routes) == none);
 }
 
-TORRENT_TEST(get_gateway_netmask)
-{
-	std::vector<ip_route> const routes = {
-		rt("0.0.0.0", "eth0", "192.168.1.1", "255.255.255.0"),
-		rt("0.0.0.0", "eth0", "192.168.2.1", "0.0.0.0")
-	};
-
-	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == address::from_string("192.168.2.1"));
-	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == address::from_string("192.168.1.1"));
-}
-
 TORRENT_TEST(get_gateway_multi_homed)
 {
 	std::vector<ip_route> const routes = {
 		rt("0.0.0.0", "eth0", "192.168.0.1", "255.255.0.0"),
-		rt("0.0.0.0", "eth0", "10.0.0.1", "255.0.0.0")
+		rt("0.0.0.0", "eth1", "10.0.0.1", "255.0.0.0")
 	};
 
 	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == address::from_string("192.168.0.1"));
-	TEST_CHECK(get_gateway(ip("10.0.1.130", "eth0"), routes) == address::from_string("10.0.0.1"));
+	TEST_CHECK(get_gateway(ip("10.0.1.130", "eth1"), routes) == address::from_string("10.0.0.1"));
 }
