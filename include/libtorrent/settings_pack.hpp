@@ -54,6 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // that will be sent to the tracker. The user-agent will also be used to identify the
 // client with other peers.
 //
+// Each configuration option is named with an enum value inside the
+// settings_pack class. These are the available settings:
+//
+// .. include:: settings-ref.rst
+//
 namespace libtorrent {
 
 namespace aux {
@@ -86,11 +91,6 @@ namespace aux {
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
 	// change.
-	//
-	// These are the available settings:
-	//
-	// .. include:: settings-ref.rst
-	//
 	struct TORRENT_EXPORT settings_pack
 	{
 		friend TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const*
@@ -144,8 +144,7 @@ namespace aux {
 			index_mask =       0x3fff
 		};
 
-		// enumeration values naming string settings in the pack. To be used with
-		// get_str() and set_str().
+		// hidden
 		enum string_types
 		{
 			// this is the client identification to the tracker. The recommended
@@ -158,6 +157,12 @@ namespace aux {
 			// ``announce_ip`` is the ip address passed along to trackers as the
 			// ``&ip=`` parameter. If left as the default, that parameter is
 			// omitted.
+			//
+			// .. note::
+			//    This setting is only meant for very special cases where a seed is
+			//    running on the same host as the tracker, and the tracker accepts
+			//    the IP parameter (which normal trackers don't). Do not set this
+			//    option unless you also control the tracker.
 			announce_ip,
 
 #if TORRENT_ABI_VERSION == 1
@@ -278,8 +283,7 @@ namespace aux {
 			max_string_setting_internal
 		};
 
-		// enumeration values naming boolean settings in the pack. To be used with
-		// get_bool() and set_bool().
+		// hidden
 		enum bool_types
 		{
 			// determines if connections from the same IP address as existing
@@ -788,8 +792,7 @@ namespace aux {
 			max_bool_setting_internal
 		};
 
-		// enumeration values naming integer settings in the pack. To be used with
-		// get_int() and set_int().
+		// hidden
 		enum int_types
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker
@@ -1718,6 +1721,7 @@ namespace aux {
 			max_int_setting_internal
 		};
 
+		// hidden
 		enum settings_counts_t : int
 		{
 			num_string_settings = int(max_string_setting_internal) - int(string_type_base),
