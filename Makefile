@@ -55,7 +55,6 @@ DOCS_IMAGES = \
   docs/delays.png                 \
   docs/delays_thumb.png           \
   docs/hacking.html               \
-  docs/merkle_tree.png            \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
   docs/read_disk_buffers.png      \
