@@ -2610,7 +2610,7 @@ TORRENT_TEST(traversal_done)
 			TEST_ERROR(t.error_string);
 			continue;
 		}
-		char tok[10];
+		char tok[11];
 		std::snprintf(tok, sizeof(tok), "%02d", i);
 
 		msg_args args;
