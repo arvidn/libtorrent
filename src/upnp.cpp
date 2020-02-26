@@ -1424,7 +1424,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		if (d.lease_duration > 0)
 		{
 			m.expires = aux::time_now()
-				+ seconds(int(d.lease_duration * 0.75f));
+				+ seconds(int(d.lease_duration * 3 / 4));
 			time_point next_expire = m_refresh_timer.expiry();
 			if (next_expire < aux::time_now()
 				|| next_expire > m.expires)

@@ -416,7 +416,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return false;
 		}
 
-		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
+		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
 		rv.name[sizeof(rv.name) - 1] = '\0';
 
 		// determine address
@@ -624,7 +624,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name));
+				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
 				iface.name[sizeof(iface.name) - 1] = '\0';
 
 				ifreq req = {};
@@ -689,7 +689,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				adapter != 0; adapter = adapter->Next)
 			{
 				ip_interface r;
-				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
 				r.name[sizeof(r.name) - 1] = '\0';
 				wcstombs(r.friendly_name, adapter->FriendlyName, sizeof(r.friendly_name));
 				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
@@ -805,7 +805,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					// IPv6 gateways aren't addressed in the same network as the
 					// interface, but they are addressed by the local network address
 					// space. So this check only works for IPv4.
-					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, iface.netmask))
+					&& (!v4 || match_addr_mask(r.gateway, iface.interface_address, r.netmask))
 					// in case there are multiple networks on the same networking
 					// device, the source hint may be the only thing telling them
 					// apart
@@ -1049,7 +1049,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				r.destination = make_address(adapter->IpAddressList.IpAddress.String, ec);
 				r.gateway = make_address(adapter->GatewayList.IpAddress.String, ec);
 				r.netmask = make_address(adapter->IpAddressList.IpMask.String, ec);
-				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
+				r.name[sizeof(r.name) - 1] = '\0';
 
 				if (ec)
 				{
@@ -1113,8 +1114,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 						{
 							name += wcslen(L"\\DEVICE\\TCPIP_");
 						}
-						wcstombs(r.name, name, sizeof(r.name));
-						r.name[sizeof(r.name) - 1] = 0;
+						wcstombs(r.name, name, sizeof(r.name) - 1);
+						r.name[sizeof(r.name) - 1] = '\0';
 						r.mtu = ifentry.dwMtu;
 						ret.push_back(r);
 					}
@@ -1162,8 +1163,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				ifentry.dwIndex = routes->table[i].dwForwardIfIndex;
 				if (GetIfEntry(&ifentry) == NO_ERROR)
 				{
-					wcstombs(r.name, ifentry.wszName, sizeof(r.name));
-					r.name[sizeof(r.name) - 1] = 0;
+					wcstombs(r.name, ifentry.wszName, sizeof(r.name) - 1);
+					r.name[sizeof(r.name) - 1] = '\0';
 					r.mtu = ifentry.dwMtu;
 					ret.push_back(r);
 				}

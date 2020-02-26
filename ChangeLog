@@ -21,6 +21,8 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+	* undeprecate settings_pack::dht_upload_rate_limit
+
 1.2.4 release
 
 	* fix binding TCP and UDP sockets to the same port, when specifying port 0

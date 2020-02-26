@@ -5451,7 +5451,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			ip_interface ip;
 			ip.interface_address = s->local_endpoint.address();
 			ip.netmask = s->netmask;
-			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name));
+			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
+			ip.name[sizeof(ip.name) - 1] = '\0';
 			s->natpmp_mapper->start(ip);
 		}
 	}
@@ -5743,6 +5744,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		SET_INT(max_infohashes_sample_count);
 #undef SET_BOOL
 #undef SET_INT
+		update_dht_upload_rate_limit();
 #endif
 	}
 
@@ -6268,6 +6270,16 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return m_stats_counters[counters::num_peers_up_unchoked]
 			< m_stats_counters[counters::num_unchoke_slots]
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
+	}
+
+	void session_impl::update_dht_upload_rate_limit()
+	{
+#ifndef TORRENT_DISABLE_DHT
+		if (m_settings.get_int(settings_pack::dht_upload_rate_limit) > std::numeric_limits<int>::max() / 3)
+		{
+			m_settings.set_int(settings_pack::dht_upload_rate_limit, std::numeric_limits<int>::max() / 3);
+		}
+#endif
 	}
 
 	void session_impl::update_disk_threads()

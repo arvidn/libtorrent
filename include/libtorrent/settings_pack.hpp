@@ -59,6 +59,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // that will be sent to the tracker. The user-agent will also be used to identify the
 // client with other peers.
 //
+// Each configuration option is named with an enum value inside the
+// settings_pack class. These are the available settings:
+//
+// .. include:: settings-ref.rst
+//
 namespace libtorrent {
 
 namespace aux {
@@ -119,11 +124,6 @@ namespace aux {
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
 	// change.
-	//
-	// These are the available settings:
-	//
-	// .. include:: settings-ref.rst
-	//
 	struct TORRENT_EXPORT settings_pack final : settings_interface
 	{
 		friend TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const*
@@ -186,8 +186,7 @@ namespace aux {
 			for (auto const& b : m_bools) f(b.first, b.second);
 		}
 
-		// enumeration values naming string settings in the pack. To be used with
-		// get_str() and set_str().
+		// hidden
 		enum string_types
 		{
 			// this is the client identification to the tracker. The recommended
@@ -200,6 +199,12 @@ namespace aux {
 			// ``announce_ip`` is the ip address passed along to trackers as the
 			// ``&ip=`` parameter. If left as the default, that parameter is
 			// omitted.
+			//
+			// .. note::
+			//    This setting is only meant for very special cases where a seed is
+			//    running on the same host as the tracker, and the tracker accepts
+			//    the IP parameter (which normal trackers don't). Do not set this
+			//    option unless you also control the tracker.
 			announce_ip,
 
 #if TORRENT_ABI_VERSION == 1
@@ -247,6 +252,14 @@ namespace aux {
 			// TCP connections. It is possible to listen on multiple interfaces and
 			// multiple ports. Binding to port 0 will make the operating system
 			// pick the port.
+			//
+			// .. note::
+			//    There are reasons to stick to the same port across sessions,
+			//    which would mean only using port 0 on the first start, and
+			//    recording the port that was picked for subsequent startups.
+			//    Trackers, the DHT and other peers will remember the port they see
+			//    you use and hand that port out to other peers trying to connect
+			//    to you, as well as trying to connect to you themselves.
 			//
 			// a port that has an "s" suffix will accept SSL connections. (note
 			// that SSL sockets are not enabled by default).
@@ -312,8 +325,7 @@ namespace aux {
 			max_string_setting_internal
 		};
 
-		// enumeration values naming boolean settings in the pack. To be used with
-		// get_bool() and set_bool().
+		// hidden
 		enum bool_types
 		{
 			// determines if connections from the same IP address as existing
@@ -882,8 +894,7 @@ namespace aux {
 			max_bool_setting_internal
 		};
 
-		// enumeration values naming integer settings in the pack. To be used with
-		// get_int() and set_int().
+		// hidden
 		enum int_types
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker
@@ -1879,11 +1890,12 @@ namespace aux {
 			max_int_setting_internal
 		};
 
-		enum settings_counts_t : std::uint8_t
+		// hidden
+		enum settings_counts_t : int
 		{
-			num_string_settings = max_string_setting_internal - string_type_base,
-			num_bool_settings = max_bool_setting_internal - bool_type_base,
-			num_int_settings = max_int_setting_internal - int_type_base
+			num_string_settings = int(max_string_setting_internal) - int(string_type_base),
+			num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base),
+			num_int_settings = int(max_int_setting_internal) - int(int_type_base)
 		};
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };

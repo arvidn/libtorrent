@@ -815,6 +815,7 @@ namespace aux {
 			void update_ignore_rate_limits_on_local_network();
 #endif
 
+			void update_dht_upload_rate_limit();
 			void update_proxy();
 			void update_i2p_bridge();
 			void update_peer_tos();

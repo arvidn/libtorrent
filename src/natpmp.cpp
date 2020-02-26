@@ -785,7 +785,7 @@ void natpmp::on_reply(error_code const& e
 	}
 	else
 	{
-		m->expires = aux::time_now() + seconds(int(lifetime * 0.7f));
+		m->expires = aux::time_now() + seconds(lifetime * 3 / 4);
 		m->external_port = public_port;
 		if (!external_addr.is_unspecified())
 			m->external_address = external_addr;
