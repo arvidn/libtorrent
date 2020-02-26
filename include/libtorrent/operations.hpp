@@ -172,6 +172,9 @@ namespace libtorrent {
 
 		// set socket option
 		sock_option,
+
+		// enumeration network routes
+		enum_route,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)

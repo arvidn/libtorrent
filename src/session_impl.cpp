@@ -1359,8 +1359,12 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log("attempting to open listen socket to: %s on device: %s ssl: %x"
-				, print_endpoint(bind_ep).c_str(), lep.device.c_str(), static_cast<int>(lep.ssl));
+			session_log("attempting to open listen socket to: %s on device: %s %s%s%s%s"
+				, print_endpoint(bind_ep).c_str(), lep.device.c_str()
+				, (lep.ssl == transport::ssl) ? "ssl " : ""
+				, (lep.flags & listen_socket_t::has_gateway) ? "has-gateway " : ""
+				, (lep.flags & listen_socket_t::accept_incoming) ? "accept-incoming " : "no-incoming "
+				, (lep.flags & listen_socket_t::was_expanded) ? "expanded-ip " : "");
 		}
 #endif
 
@@ -1806,6 +1810,20 @@ namespace aux {
 			? listen_socket_flags_t{}
 			: listen_socket_t::accept_incoming;
 
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
+		{
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_if, ec, socket_type_t::tcp);
+		}
+		auto const routes = enum_routes(m_io_service, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
+		{
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_route, ec, socket_type_t::tcp);
+		}
+
+		// expand device names and populate eps
 		for (auto const& iface : m_listen_interfaces)
 		{
 			std::string const& device = iface.device;
@@ -1847,13 +1865,8 @@ namespace aux {
 				, listen_socket_flags_t{});
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
-		if (!ec)
-		{
-			expand_unspecified_address(ifs, eps);
-			auto const routes = enum_routes(m_io_service, ec);
-			if (!ec) expand_devices(ifs, routes, eps);
-		}
+		expand_unspecified_address(ifs, eps);
+		expand_devices(ifs, routes, eps);
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
