@@ -19,8 +19,6 @@ matrix:
           - ubuntu-toolchain-r-test
           packages:
           - python3-pip
-          - libboost-all-dev
-          - libboost-tools-dev
           - g++-6
     - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=test_debug tests=1 mmap=off toolset=gcc
@@ -74,8 +72,6 @@ addons:
     - ubuntu-toolchain-r-test
     packages:
     - g++-6
-    - libboost-all-dev
-    - libboost-tools-dev
     - python3.7-dev
 
 before_install:
@@ -190,6 +186,7 @@ install:
       echo "installing boost.build";
       sudo ./b2 install --prefix=/usr/;
       sudo ln -s /usr/local/lib/libboost_python37.so /usr/local/lib/libboost_python.so;
+      sudo ln -s /usr/local/lib/libboost_python36.so /usr/local/lib/libboost_python3.so;
       cd $TRAVIS_BUILD_DIR;
     fi;'
   - cat ~/user-config.jam

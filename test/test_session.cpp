@@ -417,6 +417,7 @@ TORRENT_TEST(dht_upload_rate_overflow_pack)
 	TEST_EQUAL(count, 1);
 }
 
+#if TORRENT_ABI_VERSION <= 2
 TORRENT_TEST(dht_upload_rate_overflow)
 {
 	settings_pack p = settings();
@@ -436,6 +437,7 @@ TORRENT_TEST(dht_upload_rate_overflow)
 	int const count = count_dht_inits(s);
 	TEST_EQUAL(count, 1);
 }
+#endif
 
 #endif // TORRENT_DISABLE_DHT
 

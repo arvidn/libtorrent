@@ -212,7 +212,7 @@ TORRENT_TEST(get_gateway_basic)
 	};
 
 	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == make_address("192.168.0.1"));
-	TEST_CHECK(get_gateway(ip("2a02::4567", "ffff::", "eth0"), routes) == make_address("2a02::1234"));
+	TEST_CHECK(get_gateway(ip("2a02::4567", "eth0"), routes) == make_address("2a02::1234"));
 
 	// the device name does not match the route
 	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth1"), routes) == none);
@@ -271,8 +271,8 @@ TORRENT_TEST(get_gateway_netmask)
 		rt("0.0.0.0", "eth0", "192.168.2.1", "0.0.0.0")
 	};
 
-	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == address::from_string("192.168.2.1"));
-	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == address::from_string("192.168.1.1"));
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == make_address("192.168.2.1"));
+	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == make_address("192.168.1.1"));
 }
 
 TORRENT_TEST(get_gateway_multi_homed)

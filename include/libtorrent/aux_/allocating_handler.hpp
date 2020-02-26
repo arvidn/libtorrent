@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp" // for TORRENT_ASSERT
 
 #include <type_traits>
+#include <memory> // for shared_ptr
 
 #ifdef TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
