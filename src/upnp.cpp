@@ -84,7 +84,7 @@ namespace upnp_errors
 
 static error_code ignore_error;
 
-upnp::rootdevice::rootdevice() {}
+upnp::rootdevice::rootdevice() = default;
 upnp::rootdevice::~rootdevice()
 {
 	TORRENT_ASSERT(magic == 1337);
@@ -95,7 +95,7 @@ upnp::rootdevice::~rootdevice()
 
 upnp::rootdevice::rootdevice(rootdevice const&) = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) & = default;
-upnp::rootdevice::rootdevice(rootdevice&&) = default;
+upnp::rootdevice::rootdevice(rootdevice&&) noexcept = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 
 upnp::upnp(io_context& ios

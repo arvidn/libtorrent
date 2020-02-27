@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/noexcept_movable.hpp"
 
 #include <memory>
 #include <functional>
@@ -270,7 +271,7 @@ private:
 		~rootdevice();
 		rootdevice(rootdevice const&);
 		rootdevice& operator=(rootdevice const&) &;
-		rootdevice(rootdevice&&);
+		rootdevice(rootdevice&&) noexcept;
 		rootdevice& operator=(rootdevice&&) &;
 
 		// the interface url, through which the list of
@@ -282,7 +283,7 @@ private:
 		// either the WANIP namespace or the WANPPP namespace
 		std::string service_namespace;
 
-		aux::vector<mapping_t, port_mapping_t> mapping;
+		aux::noexcept_movable<aux::vector<mapping_t, port_mapping_t>> mapping;
 
 		// this is the hostname, port and path
 		// component of the url or the control_url
@@ -290,7 +291,7 @@ private:
 		std::string hostname;
 		int port = 0;
 		std::string path;
-		address external_ip;
+		aux::noexcept_movable<address> external_ip;
 
 		// there are routers that's don't support timed
 		// port maps, without returning error 725. It seems
