@@ -292,13 +292,6 @@ namespace aux {
 			listen_interface_t const& iface
 			, listen_socket_flags_t flags
 			, span<ip_interface const> const ifs
-			, span<ip_route const> const routes
-			, std::vector<listen_endpoint_t>& eps);
-
-		// expand [::] to all IPv6 interfaces for BEP 45 compliance
-		TORRENT_EXTRA_EXPORT void expand_unspecified_address(
-			span<ip_interface const> ifs
-			, span<ip_route const> routes
 			, std::vector<listen_endpoint_t>& eps);
 
 		TORRENT_EXTRA_EXPORT void expand_devices(span<ip_interface const>

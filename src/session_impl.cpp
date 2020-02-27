@@ -238,62 +238,24 @@ namespace aux {
 		});
 	}
 
-	// To comply with BEP 45 multi homed clients must run separate DHT nodes
-	// on each interface they use to talk to the DHT. This is enforced
-	// by prohibiting creating a listen socket on [::] and 0.0.0.0. Instead the list of
-	// interfaces is enumerated and sockets are created for each of them.
-	void expand_unspecified_address(span<ip_interface const> const ifs
-		, span<ip_route const> const routes
-		, std::vector<listen_endpoint_t>& eps)
-	{
-		auto unspecified_begin = std::partition(eps.begin(), eps.end()
-			, [](listen_endpoint_t const& ep) { return !ep.addr.is_unspecified(); });
-		std::vector<listen_endpoint_t> unspecified_eps(unspecified_begin, eps.end());
-		eps.erase(unspecified_begin, eps.end());
-		for (auto const& uep : unspecified_eps)
-		{
-			bool const v4 = uep.addr.is_v4();
-			for (auto const& ipface : ifs)
-			{
-				if (!ipface.preferred)
-					continue;
-				if (ipface.interface_address.is_v4() != v4)
-					continue;
-				if (!uep.device.empty() && uep.device != ipface.name)
-					continue;
-				if (std::any_of(eps.begin(), eps.end(), [&](listen_endpoint_t const& e)
-				{
-					// ignore device name because we don't want to create
-					// duplicates if the user explicitly configured an address
-					// without a device name
-					return e.addr == ipface.interface_address
-						&& e.port == uep.port
-						&& e.ssl == uep.ssl;
-				}))
-				{
-					continue;
-				}
-
-				// record whether the device has a gateway associated with it
-				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
-				bool const local = ipface.interface_address.is_loopback()
-					|| is_link_local(ipface.interface_address)
-					|| (!is_global(ipface.interface_address) && !get_gateway(ipface, routes));
-
-				eps.emplace_back(ipface.interface_address, uep.port, uep.device
-					, uep.ssl, uep.flags | listen_socket_t::was_expanded
-					| (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
-			}
-		}
-	}
-
 	void expand_devices(span<ip_interface const> const ifs
+		, span<ip_route const> routes
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		for (auto& ep : eps)
 		{
+			if (ep.addr.is_unspecified())
+			{
+				// find the default route
+				auto const r = std::find_if(routes.begin(), routes.end(), [&ep](ip_route const& r)
+					{ return r.destination.is_v4() == ep.addr.is_v4() && r.destination.is_unspecified(); });
+				if (r == routes.end())
+				{
+					ep.netmask = build_netmask(0, ep.addr.is_v4() ? AF_INET : AF_INET6);
+					continue;
+				}
+				ep.device = r->name;
+			}
 			auto const iface = ep.device.empty()
 				? std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipface)
 					{
@@ -1746,7 +1708,6 @@ namespace aux {
 	void interface_to_endpoints(listen_interface_t const& iface
 		, listen_socket_flags_t flags
 		, span<ip_interface const> const ifs
-		, span<ip_route const> const routes
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		flags |= iface.local ? listen_socket_t::local_network : listen_socket_flags_t{};
@@ -1774,12 +1735,9 @@ namespace aux {
 
 				// record whether the device has a gateway associated with it
 				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
-					|| is_link_local(ipface.interface_address)
-					|| (!is_global(ipface.interface_address) && !get_gateway(ipface, routes));
+					|| is_link_local(ipface.interface_address);
 
 				eps.emplace_back(ipface.interface_address, iface.port, iface.device
 					, ssl, flags | (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
@@ -1823,7 +1781,6 @@ namespace aux {
 			m_alerts.emplace_alert<listen_failed_alert>(""
 				, operation_t::enum_route, ec, socket_type_t::tcp);
 		}
-
 		// expand device names and populate eps
 		for (auto const& iface : m_listen_interfaces)
 		{
@@ -1849,7 +1806,7 @@ namespace aux {
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(iface, flags, ifs, routes, eps);
+			interface_to_endpoints(iface, flags, ifs, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use
@@ -1862,8 +1819,7 @@ namespace aux {
 				, listen_socket_flags_t{});
 		}
 
-		expand_unspecified_address(ifs, routes, eps);
-		expand_devices(ifs, eps);
+		expand_devices(ifs, routes, eps);
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
