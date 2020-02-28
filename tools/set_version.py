@@ -26,7 +26,18 @@ def substitute_file(name):
     subst = ''
     f = open(name)
     for line in f:
-        if '#define LIBTORRENT_VERSION_MAJOR' in line and name.endswith('.hpp'):
+        if 'constexpr int version_major = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_major = %d;\n' % version[0]
+        elif 'constexpr int version_minor = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_minor = %d;\n' % version[1]
+        elif 'constexpr int version_tiny = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_tiny = %d;\n' % version[2]
+        elif 'constexpr std::uint64_t version_revision = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr std::uint64_t version_revision = 0x%s;\n' % revision
+        elif 'constexpr char const* version_str = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr char const* version_str = "%d.%d.%d.%d";\n' \
+                % (version[0], version[1], version[2], version[3])
+        elif '#define LIBTORRENT_VERSION_MAJOR' in line and name.endswith('.hpp'):
             line = '#define LIBTORRENT_VERSION_MAJOR %d\n' % version[0]
         elif '#define LIBTORRENT_VERSION_MINOR' in line and name.endswith('.hpp'):
             line = '#define LIBTORRENT_VERSION_MINOR %d\n' % version[1]

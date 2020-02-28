@@ -649,11 +649,11 @@ namespace {
 	{
 		TORRENT_ASSERT(m_nodes.find(s) != m_nodes.end());
 
-		static_assert(LIBTORRENT_VERSION_MINOR < 16, "version number not supported by DHT");
-		static_assert(LIBTORRENT_VERSION_TINY < 16, "version number not supported by DHT");
-		static char const version_str[] = {'L', 'T'
-			, LIBTORRENT_VERSION_MAJOR, (LIBTORRENT_VERSION_MINOR << 4) | LIBTORRENT_VERSION_TINY};
-		e["v"] = std::string(version_str, version_str + 4);
+		static_assert(lt::version_minor < 16, "version number not supported by DHT");
+		static_assert(lt::version_tiny < 16, "version number not supported by DHT");
+		static char const ver[] = {'L', 'T'
+			, lt::version_major, (lt::version_minor << 4) | lt::version_tiny};
+		e["v"] = std::string(ver, ver+ 4);
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
