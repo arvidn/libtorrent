@@ -2781,7 +2781,7 @@ bool is_downloading_state(int const st)
 			{
 				if (s.is_ssl() != is_ssl_torrent()) return;
 				tcp::endpoint const ep = s.get_local_endpoint();
-				if (aux::is_any(ep.address())) return;
+				if (ep.address().is_unspecified()) return;
 				if (aux::is_v6(ep))
 				{
 					if (!aux::is_local(ep.address()) && !aux::is_loopback(ep.address()))
@@ -3181,7 +3181,7 @@ bool is_downloading_state(int const st)
 		// if the tracker told us what our external IP address is, record it with
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
-		if (resp.external_ip != address() && !aux::is_any(tracker_ip))
+		if (resp.external_ip != address() && !tracker_ip.is_unspecified())
 			m_ses.set_external_address(r.outgoing_socket.get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);

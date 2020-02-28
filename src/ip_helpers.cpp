@@ -86,18 +86,6 @@ namespace aux {
 		} TORRENT_CATCH(std::exception const&) { return false; }
 	}
 
-	bool is_any(address const& addr)
-	{
-		TORRENT_TRY {
-		if (addr.is_v4())
-			return addr.to_v4() == address_v4::any();
-		else if (addr.to_v6().is_v4_mapped())
-			return (make_address_v4(v4_mapped, addr.to_v6()) == address_v4::any());
-		else
-			return addr.to_v6() == address_v6::any();
-		} TORRENT_CATCH(std::exception const&) { return false; }
-	}
-
 	bool is_teredo(address const& addr)
 	{
 		TORRENT_TRY {

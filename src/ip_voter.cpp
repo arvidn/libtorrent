@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random()
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
-#include "libtorrent/aux_/ip_helpers.hpp" // for is_any() etc.
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_local() etc.
 
 namespace libtorrent {
 
@@ -101,7 +101,7 @@ namespace libtorrent {
 	bool ip_voter::cast_vote(address const& ip
 		, aux::ip_source_t const source_type, address const& source)
 	{
-		if (aux::is_any(ip)) return false;
+		if (ip.is_unspecified()) return false;
 		if (aux::is_local(ip)) return false;
 		if (aux::is_loopback(ip)) return false;
 
