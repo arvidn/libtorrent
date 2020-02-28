@@ -66,19 +66,6 @@ TORRENT_TEST(is_loopback)
 	}
 }
 
-TORRENT_TEST(is_any)
-{
-	TEST_CHECK(is_any(address_v4::any()));
-	error_code ec;
-	TEST_CHECK(!is_any(make_address("31.53.21.64", ec)));
-	TEST_CHECK(!ec);
-	if (supports_ipv6())
-	{
-		TEST_CHECK(is_any(address_v6::any()));
-		TEST_CHECK(!ec);
-	}
-}
-
 TORRENT_TEST(match_addr_mask)
 {
 	TEST_CHECK(match_addr_mask(

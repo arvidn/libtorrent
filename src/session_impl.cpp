@@ -4976,7 +4976,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 		// if we're not binding to a specific interface, bind
 		// to the same protocol family as the target endpoint
-		if (is_any(bind_ep.address()))
+		if (bind_ep.address().is_unspecified())
 		{
 			if (remote_address.is_v6())
 				bind_ep.address(address_v6::any());

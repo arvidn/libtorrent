@@ -134,7 +134,7 @@ address rand_v4()
 	{
 		g_addr += 0x3080ca;
 		ret = address_v4(g_addr);
-	} while (aux::is_any(ret) || aux::is_local(ret) || aux::is_loopback(ret));
+	} while (ret.is_unspecified() || aux::is_local(ret) || aux::is_loopback(ret));
 	return ret;
 }
 
