@@ -4471,7 +4471,7 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return aux::is_local(m_remote.address())
-			|| aux::is_loopback(m_remote.address());
+			|| m_remote.address().is_loopback();
 	}
 
 	int peer_connection::request_timeout() const

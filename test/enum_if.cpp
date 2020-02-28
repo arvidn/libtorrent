@@ -85,7 +85,7 @@ int main()
 			, i.name
 			, (i.interface_address.is_multicast()?"multicast ":"")
 			, (aux::is_local(i.interface_address)?"local ":"")
-			, (aux::is_loopback(i.interface_address)?"loopback ":"")
+			, (i.interface_address.is_loopback()?"loopback ":"")
 			, gateway ? gateway->to_string().c_str() : "-"
 			, i.friendly_name, i.description);
 	}

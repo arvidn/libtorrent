@@ -2784,12 +2784,12 @@ bool is_downloading_state(int const st)
 				if (ep.address().is_unspecified()) return;
 				if (aux::is_v6(ep))
 				{
-					if (!aux::is_local(ep.address()) && !aux::is_loopback(ep.address()))
+					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
 						req.ipv6.push_back(ep.address().to_v6());
 				}
 				else
 				{
-					if (!aux::is_local(ep.address()) && !aux::is_loopback(ep.address()))
+					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
 						req.ipv4.push_back(ep.address().to_v4());
 				}
 			});

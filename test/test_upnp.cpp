@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/aux_/ip_helpers.hpp" // for is_loopback
 #include "broadcast_socket.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -183,7 +182,7 @@ ip_interface pick_upnp_interface()
 			std::cerr << " - " << idx << ' ' << face.interface_address.to_string() << ' ' << face.name << '\n';
 			++idx;
 			if (!face.interface_address.is_v4()) return false;
-			if (aux::is_loopback(face.interface_address)) return false;
+			if (face.interface_address.is_loopback()) return false;
 			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
 				{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
 			if (route == routes.end()) return false;

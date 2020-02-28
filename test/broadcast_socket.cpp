@@ -76,7 +76,7 @@ namespace libtorrent {
 			// only multicast on compatible networks
 			if (i.interface_address.is_v4() != aux::is_v4(m_multicast_endpoint)) continue;
 			// ignore any loopback interface
-			if (!loopback && aux::is_loopback(i.interface_address)) continue;
+			if (!loopback && i.interface_address.is_loopback()) continue;
 
 			ec = error_code();
 

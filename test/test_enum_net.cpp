@@ -54,18 +54,6 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 }
 
-TORRENT_TEST(is_loopback)
-{
-	error_code ec;
-	TEST_CHECK(is_loopback(make_address("127.0.0.1", ec)));
-	TEST_CHECK(!ec);
-	if (supports_ipv6())
-	{
-		TEST_CHECK(is_loopback(make_address("::1", ec)));
-		TEST_CHECK(!ec);
-	}
-}
-
 TORRENT_TEST(match_addr_mask)
 {
 	TEST_CHECK(match_addr_mask(

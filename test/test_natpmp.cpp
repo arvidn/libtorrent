@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
 		{
 			if (!face.interface_address.is_v4()) return false;
-			if (aux::is_loopback(face.interface_address)) return false;
+			if (face.interface_address.is_loopback()) return false;
 			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
 				{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
 			if (route == routes.end()) return false;

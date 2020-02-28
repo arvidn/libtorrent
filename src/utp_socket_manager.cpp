@@ -96,7 +96,7 @@ namespace aux {
 		// apple has a very strange loopback. It appears you can't
 		// send messages of the reported MTU size, and you don't get
 		// EWOULDBLOCK either.
-		if (aux::is_loopback(addr))
+		if (addr.is_loopback())
 		{
 			if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 			else mtu = TORRENT_ETHERNET_MTU;
