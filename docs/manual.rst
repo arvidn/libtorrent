@@ -776,7 +776,10 @@ unless the following conditions are met:
 * the IP address is not in a known loopback range
 * the item the IP address was expanded from was not marked local (``l``)
 * the IP address is in a globally reachable IP address range OR the routing
-  table contains a default route with a gateway for the corresponding network
+  table contains a default route with a gateway for the corresponding network.
+  This bullet only applies when expanding from an unspecified IP address. When
+  explicitly specifying a device, we don't need to find a route to treat it as
+  external.
 
 The NAT-PMP/PCP and UPnP port mapper objects are only created for networks that
 are expected to be externally available (i.e. not "local network"). If there are

@@ -391,11 +391,10 @@ TORRENT_TEST(expand_unspecified)
 
 namespace {
 std::vector<aux::listen_endpoint_t> to_endpoint(listen_interface_t const& iface
-	, span<ip_interface const> const ifs
-	, span<ip_route const> const routes)
+	, span<ip_interface const> const ifs)
 {
 	std::vector<aux::listen_endpoint_t> ret;
-	interface_to_endpoints(iface, aux::listen_socket_t::accept_incoming, ifs, routes, ret);
+	interface_to_endpoints(iface, aux::listen_socket_t::accept_incoming, ifs, ret);
 	return ret;
 }
 
@@ -411,7 +410,7 @@ using ls = aux::listen_socket_t;
 
 TORRENT_TEST(interface_to_endpoint)
 {
-	TEST_CHECK(to_endpoint(ift("10.0.1.1", 6881), {}, {}) == eps{ep("10.0.1.1", 6881)});
+	TEST_CHECK(to_endpoint(ift("10.0.1.1", 6881), {}) == eps{ep("10.0.1.1", 6881)});
 
 
 	std::vector<ip_interface> const ifs = {
@@ -423,25 +422,19 @@ TORRENT_TEST(interface_to_endpoint)
 		, ifc("2601:646:c600:a3:d250:99ff:fe0c:9b74", "eth1")
 	};
 
-	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs, {})
+	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs)
 		== eps{ep("185.0.1.2", 1234, "eth0", ls::was_expanded | ls::accept_incoming)
 		, ep("fe80::d250:99ff:fe0c:9b74", 1234, "eth0", ls::was_expanded | ls::accept_incoming | ls::local_network)}));
 
-	TEST_CHECK((to_endpoint(ift("eth1", 1234), ifs, {})
-		== eps{ep("192.168.2.2", 1234, "eth1", ls::was_expanded | ls::accept_incoming | ls::local_network)
+	TEST_CHECK((to_endpoint(ift("eth1", 1234), ifs)
+		== eps{ep("192.168.2.2", 1234, "eth1", ls::was_expanded | ls::accept_incoming)
 		, ep("2601:646:c600:a3:d250:99ff:fe0c:9b74", 1234, "eth1", ls::was_expanded | ls::accept_incoming)}));
-
-	std::vector<ip_route> const routes = {
-		rt("0.0.0.0", "eth1", "3.4.5.6"),
-		rt("0.0.0.0", "eth0", "1.2.3.4"),
-		rt("::", "eth0", "1234:5678::1"),
-	};
 
 	std::vector<ip_interface> const ifs2 = {
 		ifc("10.0.1.1", "eth0")
 	};
 
-	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs2, routes)
+	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs2)
 		== eps{ep("10.0.1.1", 1234, "eth0", ls::was_expanded | ls::accept_incoming)}));
 }
 
