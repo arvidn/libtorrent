@@ -1747,7 +1747,6 @@ namespace aux {
 	void interface_to_endpoints(listen_interface_t const& iface
 		, listen_socket_flags_t flags
 		, span<ip_interface const> const ifs
-		, span<ip_route const> const routes
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		flags |= iface.local ? listen_socket_t::local_network : listen_socket_flags_t{};
@@ -1779,9 +1778,7 @@ namespace aux {
 				// bother looking for the gateway
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
-					|| is_link_local(ipface.interface_address)
-					|| (!is_global(ipface.interface_address)
-						&& !has_default_route(ipface.name, family(ipface.interface_address), routes));
+					|| is_link_local(ipface.interface_address);
 
 				eps.emplace_back(ipface.interface_address, iface.port, iface.device
 					, ssl, flags | (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
@@ -1851,7 +1848,7 @@ namespace aux {
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(iface, flags, ifs, routes, eps);
+			interface_to_endpoints(iface, flags, ifs, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use
