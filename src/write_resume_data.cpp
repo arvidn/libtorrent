@@ -52,7 +52,7 @@ namespace libtorrent {
 		using namespace libtorrent::aux; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
-		ret["libtorrent-version"] = LIBTORRENT_VERSION;
+		ret["libtorrent-version"] = lt::version_str;
 		ret["allocation"] = atp.storage_mode == storage_mode_allocate
 			? "allocate" : "sparse";
 

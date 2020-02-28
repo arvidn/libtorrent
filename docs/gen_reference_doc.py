@@ -590,7 +590,7 @@ def parse_constant(lno, lines, filename):
         line = line.split('constexpr')[1]
     if '{' in line and '}' in line:
         line = line.split('{')[0]
-    t, name = line.strip().split(' ')
+    t, name = line.strip().rsplit(' ', 1)
     return [{'file': filename[11:], 'type': t, 'name': name}, lno + 1]
 
 
@@ -847,6 +847,7 @@ for filename in files:
                 line == 'namespace libtorrent { namespace aux {') \
                 and not internal:
             lno = consume_block(lno - 1, lines)
+            context = ''
             continue
 
         if 'namespace aux' in line and \
