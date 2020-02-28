@@ -103,7 +103,7 @@ namespace libtorrent {
 	{
 		if (ip.is_unspecified()) return false;
 		if (aux::is_local(ip)) return false;
-		if (aux::is_loopback(ip)) return false;
+		if (ip.is_loopback()) return false;
 
 		// don't trust source that aren't connected to us
 		// on a different address family than the external

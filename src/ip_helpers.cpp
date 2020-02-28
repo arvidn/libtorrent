@@ -76,16 +76,6 @@ namespace aux {
 		} TORRENT_CATCH(std::exception const&) { return false; }
 	}
 
-	bool is_loopback(address const& addr)
-	{
-		TORRENT_TRY {
-			if (addr.is_v4())
-				return addr.to_v4() == address_v4::loopback();
-			else
-				return addr.to_v6() == address_v6::loopback();
-		} TORRENT_CATCH(std::exception const&) { return false; }
-	}
-
 	bool is_teredo(address const& addr)
 	{
 		TORRENT_TRY {

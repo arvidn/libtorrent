@@ -43,7 +43,6 @@ namespace libtorrent {
 namespace aux {
 
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
-	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
