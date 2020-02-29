@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/aux_/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
-#include "libtorrent/alert_types.hpp" // for num_alert_types
+#include "libtorrent/alert_types.hpp" // for abi_alert_count
 #include "libtorrent/aux_/array.hpp"
 
 #include <functional>
@@ -142,7 +142,7 @@ namespace libtorrent {
 		// an alert (because the queue is full or of some other error) we set the
 		// corresponding bit in this mask, to communicate to the client that it
 		// may have missed an update.
-		std::bitset<num_alert_types> m_dropped;
+		std::bitset<abi_alert_count> m_dropped;
 
 		// this function (if set) is called whenever the number of alerts in
 		// the alert queue goes from 0 to 1. The client is expected to wake up
