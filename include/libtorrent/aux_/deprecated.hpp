@@ -33,13 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEPRECATED_HPP_INCLUDED
 #define TORRENT_DEPRECATED_HPP_INCLUDED
 
+#if !defined TORRENT_BUILDING_LIBRARY
+# define TORRENT_DEPRECATED [[deprecated]]
+#else
+# define TORRENT_DEPRECATED
+#endif
+
 #if defined __clang__
 
 // ====== CLANG ========
 
 # if !defined TORRENT_BUILDING_LIBRARY
 // TODO: figure out which version of clang this is supported in
-#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
 #  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
@@ -51,30 +56,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // deprecation markup is only enabled when libtorrent
 // headers are included by clients, not while building
 // libtorrent itself
-# if __GNUC__ >= 3 && !defined TORRENT_BUILDING_LIBRARY
-#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
-# endif
-
 # if __GNUC__ >= 6 && !defined TORRENT_BUILDING_LIBRARY
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
 #  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
 
-#elif defined _MSC_VER
-
-// ======= MSVC =========
-
-// deprecation markup is only enabled when libtorrent
-// headers are included by clients, not while building
-// libtorrent itself
-#if !defined TORRENT_BUILDING_LIBRARY
-# define TORRENT_DEPRECATED __declspec(deprecated)
-#endif
-
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
 #endif
 
 #ifndef TORRENT_DEPRECATED_ENUM

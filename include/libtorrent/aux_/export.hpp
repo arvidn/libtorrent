@@ -128,10 +128,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // only export this type if deprecated functions are enabled
-#if TORRENT_ABI_VERSION >= 2
-# define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT TORRENT_DEPRECATED
+// mingw doesn't link combinging C++11 attributes with __attribute__ apparently
+#if defined __MINGW64__ || defined __MINGW32__
+
+# if TORRENT_ABI_VERSION >= 2
+#  define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
+# else
+#  define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
+# endif
+
 #else
-# define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT TORRENT_DEPRECATED
+
+# if TORRENT_ABI_VERSION >= 2
+#  define TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED TORRENT_EXTRA_EXPORT
+# else
+#  define TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED TORRENT_EXPORT
+# endif
+
 #endif
 
 #endif
