@@ -75,6 +75,7 @@ namespace
 		ret.gateway = make_address(gateway);
 		std::strncpy(ret.name, device, sizeof(ret.name));
 		ret.name[sizeof(ret.name) - 1] = '\0';
+		ret.mtu = 1500;
 		return ret;
 	}
 

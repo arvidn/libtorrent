@@ -15,11 +15,8 @@ matrix:
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
         apt:
-          sources:
-          - ubuntu-toolchain-r-test
           packages:
           - python3-pip
-          - g++-6
     - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=test_debug tests=1 mmap=off toolset=gcc
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
@@ -28,23 +25,17 @@ matrix:
     - env: dist=1 toolset=gcc install_boost=1
       addons:
         apt:
-          sources:
-          - ubuntu-toolchain-r-test
           packages:
           - python-docutils
           - python-pygments
           - python-pil
           - python-aafigure
           - graphviz
-          - g++-6
     - env: cmake=1 toolset=gcc install_boost=1
       addons:
         apt:
-          sources:
-          - ubuntu-toolchain-r-test
           packages:
           - ninja-build
-          - g++-6
     - env: arch=arm toolset=gcc-arm
 
 notifications:
@@ -63,15 +54,13 @@ branches:
 cache:
   directories:
     - $HOME/.ccache
+    - $HOME/boost
 
 # sources  list: https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json,
 # packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
     packages:
-    - g++-6
     - python3.7-dev
 
 before_install:
@@ -81,19 +70,23 @@ before_install:
     fi'
 
   # on linux, pull down a recent version of boost and build boost-build
+
   - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-    cd ..;
-    wget --no-verbose https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.zip;
-    unzip -qq boost_1_71_0.zip;
-    export BOOST_ROOT=$PWD/boost_1_71_0;
-    cd boost_1_71_0/;
-    ./bootstrap.sh;
-    export PATH=$BOOST_ROOT/tools/build/src/engine/:$PATH;
+    cd $HOME;
+    git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
+    export BOOST_ROOT=$PWD/boost &&
+    echo ${BOOST_ROOT} &&
+    cd boost &&
+    git submodule init &&
+    git submodule update --depth=1 &&
+    ./bootstrap.sh &&
+    ./b2 headers &&
+    export PATH=$BOOST_ROOT/tools/build/src/engine/:$PATH &&
     export PATH=$BOOST_ROOT:$PATH;
     fi'
 
   - cd $TRAVIS_BUILD_DIR;
-  - git submodule update --init --recursive
+  - git submodule update --depth=1 --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
@@ -136,11 +129,11 @@ before_install:
 install:
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
-      g++-6 --version;
-      echo "using gcc : : ccache g++-6 : <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
+      g++ --version;
+      echo "using gcc : : ccache g++ : <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
-      echo "using gcc : coverage : ccache g++-6 --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
+      echo "using gcc : coverage : ccache g++ --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
       echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
@@ -337,8 +330,8 @@ script:
   - cd $TRAVIS_BUILD_DIR;
   - mkdir build && cd build
   - if [[ "$cmake" == "1" ]]; then
-      export CXX=g++-6 &&
-      export CC=gcc-6 &&
+      export CXX=g++ &&
+      export CC=gcc &&
       BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . --parallel 2;
     fi
