@@ -730,6 +730,8 @@ namespace {
 	{
 	}
 
+TORRENT_VERSION_NAMESPACE_3
+
 	torrent_info::torrent_info(torrent_info const& t)
 		: m_files(t.m_files)
 		, m_orig_files(t.m_orig_files)
@@ -737,11 +739,11 @@ namespace {
 		, m_web_seeds(t.m_web_seeds)
 		, m_nodes(t.m_nodes)
 		, m_merkle_trees(t.m_merkle_trees)
-		, m_piece_hashes(t.m_piece_hashes)
 		, m_comment(t.m_comment)
 		, m_created_by(t.m_created_by)
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
+		, m_piece_hashes(t.m_piece_hashes)
 		, m_info_section_size(t.m_info_section_size)
 		, m_flags(t.m_flags)
 	{
@@ -749,7 +751,8 @@ namespace {
 		t.check_invariant();
 #endif
 		if (m_info_section_size == 0) return;
-		TORRENT_ASSERT(m_piece_hashes);
+		TORRENT_ASSERT(m_piece_hashes > 0);
+		TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
 
 		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
@@ -774,10 +777,6 @@ namespace {
 			// buffer
 			m_info_dict.switch_underlying_buffer(m_info_section.get());
 		}
-
-		m_piece_hashes = new_base + (m_piece_hashes - current_base);
-		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 	}
 
 	void torrent_info::resolve_duplicate_filenames()
@@ -1519,9 +1518,12 @@ namespace {
 				return false;
 			}
 
-			m_piece_hashes = m_info_section.get() + (pieces.string_offset() - info_offset);
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			std::ptrdiff_t const hash_offset = pieces.string_offset() - info_offset;
+			TORRENT_ASSERT(hash_offset < std::numeric_limits<std::int32_t>::max());
+			TORRENT_ASSERT(hash_offset >= 0);
+			m_piece_hashes = static_cast<std::int32_t>(hash_offset);
+			TORRENT_ASSERT(m_piece_hashes > 0);
+			TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
 		}
 
 		m_flags |= (info.dict_find_int_value("private", 0) != 0)
@@ -2009,12 +2011,10 @@ namespace {
 			}
 		}
 
-		if (m_piece_hashes != nullptr)
-		{
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-		}
+		TORRENT_ASSERT(m_piece_hashes <= m_info_section_size);
 	}
 #endif
+
+TORRENT_VERSION_NAMESPACE_3_END
 
 }
