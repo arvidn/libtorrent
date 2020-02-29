@@ -152,7 +152,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	for (int i = 0; tor2.is_valid() || tor1.is_valid(); ++i)
 	{
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		if (++i > 40)
+		if (++i > 400)
 		{
 			std::cerr << "torrent handle(s) still valid: "
 				<< (tor1.is_valid() ? "tor1 " : "")
