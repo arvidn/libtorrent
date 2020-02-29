@@ -260,7 +260,7 @@ struct bdecode_token
 struct TORRENT_EXPORT bdecode_node
 {
 #if TORRENT_ABI_VERSION == 1
-	TORRENT_DEPRECATED_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
+	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);
 #endif
