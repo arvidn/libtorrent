@@ -3,25 +3,24 @@
   "targets": {
     "x86_64": {
       "buildenv": "xenial-amd64",
-      "builddeps": ["build-essential", "libssl-dev", "curl", "clang-3.8"],
+      "builddeps": ["build-essential", "libssl-dev", "curl", "clang-3.8", "git"],
       "buildcmd": [
         "clang++-3.8 --version",
-        "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
-        "(cd boost_1_68_0 && ./bootstrap.sh)",
-        "",
+        "git clone --depth=1 --recurse-submodules --branch=boost-1.72.0 https://github.com/boostorg/boost.git",
+        "(cd boost && ./bootstrap.sh && ./b2 headers)",
         "echo \"using clang : : clang++-3.8 ;\" > ~/user-config.jam",
         "cd simulation",
-        "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
+        "BOOST_ROOT=${PWD}/../boost ../boost/b2 --hash -j${PARALLEL}"
       ]
     },
     "macOS": {
       "buildenv": "osx",
       "buildcmd": [
-        "curl -Ls https://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz | tar xz",
-        "(cd boost_1_68_0 && ./bootstrap.sh)",
+        "git clone --depth=1 --recurse-submodules --branch=boost-1.72.0 https://github.com/boostorg/boost.git",
+        "(cd boost && ./bootstrap.sh && ./b2 headers)",
         "echo \"using darwin : : clang++ ;\" > ~/user-config.jam",
         "cd simulation",
-        "BOOST_ROOT=${PWD}/../boost_1_68_0 ../boost_1_68_0/bjam --hash -j${PARALLEL}"
+        "BOOST_ROOT=${PWD}/../boost ../boost/b2 --hash -j${PARALLEL}"
       ]
     }
   }
