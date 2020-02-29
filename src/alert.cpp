@@ -2542,7 +2542,7 @@ namespace {
 	}
 
 	alerts_dropped_alert::alerts_dropped_alert(aux::stack_allocator&
-		, std::bitset<num_alert_types> const& dropped)
+		, std::bitset<abi_alert_count> const& dropped)
 		: dropped_alerts(dropped)
 	{}
 
@@ -2607,7 +2607,7 @@ namespace {
 	{
 		std::string ret = "dropped alerts: ";
 
-		TORRENT_ASSERT(int(dropped_alerts.size()) == num_alert_types);
+		TORRENT_ASSERT(int(dropped_alerts.size()) >= num_alert_types);
 		for (int idx = 0; idx < num_alert_types; ++idx)
 		{
 			if (!dropped_alerts.test(std::size_t(idx))) continue;

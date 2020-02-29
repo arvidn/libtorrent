@@ -96,6 +96,9 @@ namespace libtorrent {
 	constexpr int num_alert_types = 97;
 
 	// internal
+	constexpr int abi_alert_count = 128;
+
+	// internal
 	enum class alert_priority : std::uint8_t
 	{
 		// the order matters here. Lower value means lower priority, and will
@@ -2918,7 +2921,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		explicit TORRENT_UNEXPORT alerts_dropped_alert(aux::stack_allocator& alloc
-			, std::bitset<num_alert_types> const&);
+			, std::bitset<abi_alert_count> const&);
 		TORRENT_DEFINE_ALERT_PRIO(alerts_dropped_alert, 95, alert_priority::meta)
 
 		static constexpr alert_category_t static_category = alert::error_notification;
@@ -2927,7 +2930,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// a bitmask indicating which alerts were dropped. Each bit represents the
 		// alert type ID, where bit 0 represents whether any alert of type 0 has
 		// been dropped, and so on.
-		std::bitset<num_alert_types> dropped_alerts;
+		std::bitset<abi_alert_count> dropped_alerts;
+		static_assert(num_alert_types <= abi_alert_count, "need to increase bitset. This is an ABI break");
 	};
 
 	// this alert is posted with SOCKS5 related errors, when a SOCKS5 proxy is
