@@ -556,7 +556,7 @@ namespace aux {
 #ifdef TORRENT_WINDOWS
 				f = _wfopen(utf8_wchar(fn).c_str(), L"wb+");
 #else
-				f = _wfopen(fn.c_str(), "wb+");
+				f = fopen(fn.c_str(), "wb+");
 #endif
 				if (f == nullptr)
 				{
