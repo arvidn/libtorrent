@@ -266,7 +266,9 @@ struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
 struct web_seed_entry;
+TORRENT_VERSION_NAMESPACE_3
 class torrent_info;
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/torrent_status.hpp
 TORRENT_VERSION_NAMESPACE_2

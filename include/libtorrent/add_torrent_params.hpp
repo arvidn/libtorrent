@@ -53,12 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/client_data.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent {
-
-	class torrent_info;
-	struct torrent_plugin;
-	struct torrent_handle;
 
 TORRENT_VERSION_NAMESPACE_2
 

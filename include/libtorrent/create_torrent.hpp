@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path etc.
+#include "libtorrent/fwd.hpp"
 
 #include <vector>
 #include <string>
@@ -91,8 +92,6 @@ POSSIBILITY OF SUCH DAMAGE.
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
 namespace libtorrent {
-
-	class torrent_info;
 
 	// hidden
 	using create_flags_t = flags::bitfield_flag<std::uint32_t, struct create_flags_tag>;

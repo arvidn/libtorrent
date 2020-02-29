@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct lazy_entry;
+	struct invariant_access;
 
 namespace aux {
 
@@ -138,6 +139,8 @@ namespace aux {
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
+
+TORRENT_VERSION_NAMESPACE_3
 
 	// the torrent_info class holds the information found in a .torrent file.
 	class TORRENT_EXPORT torrent_info
@@ -509,11 +512,10 @@ namespace aux {
 			TORRENT_ASSERT_PRECOND(index < m_files.end_piece());
 			TORRENT_ASSERT(is_loaded());
 			int const idx = static_cast<int>(index);
-			TORRENT_ASSERT(m_piece_hashes);
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-			TORRENT_ASSERT(idx < int(m_info_section_size / 20));
-			return &m_piece_hashes[idx * 20];
+			TORRENT_ASSERT(m_piece_hashes > 0);
+			TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
+			TORRENT_ASSERT(idx < int((m_info_section_size - m_piece_hashes) / 20));
+			return &m_info_section[std::ptrdiff_t(m_piece_hashes) + idx * 20];
 		}
 
 		bool is_loaded() const { return m_files.num_files() > 0; }
@@ -637,7 +639,7 @@ namespace aux {
 		void resolve_duplicate_filenames_slow();
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		friend struct invariant_access;
+		friend struct ::lt::invariant_access;
 		void check_invariant() const;
 #endif
 
@@ -687,8 +689,6 @@ namespace aux {
 		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
 		// hashes
 		aux::vector<sha1_hash> m_merkle_tree;
-#else
-		aux::vector<sha1_hash> deprecated1;
 #endif
 
 		// v2 merkle tree for each file
@@ -711,10 +711,6 @@ namespace aux {
 		// TODO: change the type to std::shared_ptr in C++17
 		boost::shared_array<char> m_info_section;
 
-		// this is a pointer into the m_info_section buffer
-		// pointing to the first byte of the first SHA-1 hash
-		char const* m_piece_hashes = nullptr;
-
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
@@ -735,6 +731,10 @@ namespace aux {
 		// the hash(es) that identify this torrent
 		info_hash_t m_info_hash;
 
+		// this is the offset into the m_info_section buffer to the first byte of
+		// the first SHA-1 hash
+		std::int32_t m_piece_hashes = 0;
+
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;
 
@@ -742,8 +742,6 @@ namespace aux {
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
 		std::int32_t m_merkle_first_leaf = 0;
-#else
-		std::int32_t deprecated2 = 0;
 #endif
 
 		// this is used when creating a torrent. If there's
@@ -772,6 +770,8 @@ namespace aux {
 
 		torrent_info_flags_t m_flags{};
 	};
+
+TORRENT_VERSION_NAMESPACE_3_END
 
 }
 

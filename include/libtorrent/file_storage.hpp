@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent {
 
@@ -120,9 +121,6 @@ namespace libtorrent {
 
 #endif // TORRENT_ABI_VERSION
 
-class file_storage;
-class torrent_info;
-
 namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
@@ -133,7 +131,7 @@ namespace aux {
 		friend class ::lt::file_storage;
 #if TORRENT_USE_INVARIANT_CHECKS
 		// for torrent_info::invariant_check
-		friend class ::lt::torrent_info;
+//		friend class ::lt::torrent_info;
 #endif
 
 		file_entry();
