@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/torrent_status.hpp"
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/utf8.hpp"
+#endif
 
 #if TORRENT_HAS_SYMLINK
 #include <unistd.h> // for symlink()
@@ -512,10 +515,18 @@ namespace aux {
 	{
 		std::string const fn = files().file_path(idx, m_save_path);
 
-		char const* mode_str = (mode & open_mode::write)
+		const auto mode_str = (mode & open_mode::write)
+#ifdef TORRENT_WINDOWS
+			? L"rb+" : L"rb";
+#else
 			? "rb+" : "rb";
+#endif
 
+#ifdef TORRENT_WINDOWS
+		FILE* f = _wfopen(utf8_wchar(fn).c_str(), mode_str);
+#else
 		FILE* f = fopen(fn.c_str(), mode_str);
+#endif		
 		if (f == nullptr)
 		{
 			ec.ec.assign(errno, generic_category());
@@ -542,7 +553,11 @@ namespace aux {
 				// and make sure we create the file this time ("r+") opens for
 				// reading and writing, but doesn't create the file. "w+" creates
 				// the file and truncates it
-				f = fopen(fn.c_str(), "wb+");
+#ifdef TORRENT_WINDOWS
+				f = _wfopen(utf8_wchar(fn).c_str(), L"wb+");
+#else
+				f = _wfopen(fn.c_str(), "wb+");
+#endif
 				if (f == nullptr)
 				{
 					ec.ec.assign(errno, generic_category());
