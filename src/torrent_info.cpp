@@ -763,14 +763,6 @@ TORRENT_VERSION_NAMESPACE_3
 		if (m_orig_files)
 			const_cast<file_storage&>(*m_orig_files).rebase_pointers(current_base, new_base);
 
-#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		for (auto& c : m_collections)
-			c.first = new_base + (c.first - current_base);
-
-		for (auto& st : m_similar_torrents)
-			st = new_base + (st - current_base);
-#endif
-
 		if (m_info_dict)
 		{
 			// make this decoded object point to our copy of the info section
@@ -1540,9 +1532,8 @@ namespace {
 
 				if (similar.list_at(i).string_length() != 20)
 					continue;
-
-				m_similar_torrents.push_back(m_info_section.get()
-					+ (similar.list_at(i).string_offset() - info_offset));
+				m_similar_torrents.push_back(static_cast<std::int32_t>(
+					similar.list_at(i).string_offset() - info_offset));
 			}
 		}
 
@@ -1555,8 +1546,7 @@ namespace {
 
 				if (str.type() != bdecode_node::string_t) continue;
 
-				m_collections.emplace_back(m_info_section.get() + (str.string_offset()
-					- info_offset), str.string_length());
+				m_collections.emplace_back(str.string_offset() - info_offset, str.string_length());
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -1966,7 +1956,7 @@ namespace {
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
 		for (auto const& st : m_similar_torrents)
-			ret.emplace_back(st);
+			ret.emplace_back(m_info_section.get() + st);
 
 		for (auto const& st : m_owned_similar_torrents)
 			ret.push_back(st);
@@ -1982,7 +1972,7 @@ namespace {
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
 		for (auto const& c : m_collections)
-			ret.emplace_back(c.first, aux::numeric_cast<std::size_t>(c.second));
+			ret.emplace_back(m_info_section.get() + c.first, aux::numeric_cast<std::size_t>(c.second));
 
 		for (auto const& c : m_owned_collections)
 			ret.push_back(c);

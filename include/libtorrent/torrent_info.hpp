@@ -663,10 +663,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
 
-		// the info-hashes (20 bytes each) in the "similar" key. The pointers
-		// point directly into the info_section. When copied, these pointers must
-		// be corrected to point into the copied-to buffer
-		std::vector<char const*> m_similar_torrents;
+		// the info-hashes (20 bytes each) in the "similar" key. These are offsets
+		// into the info dict buffer.
+		std::vector<std::int32_t> m_similar_torrents;
 
 		// these are similar torrents from outside of the info-dict. We can't
 		// have non-owning pointers to those, as we only keep the info-dict
@@ -674,10 +673,9 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<sha1_hash> m_owned_similar_torrents;
 
 		// these or strings of the "collections" key from the torrent file. The
-		// pointers point directly into the info_section buffer and when copied,
-		// these pointers must be corrected to point into the new buffer. The
-		// int is the length of the string. Strings are not 0-terminated.
-		std::vector<std::pair<char const*, int>> m_collections;
+		// first value is the offset into the metadata where the string is, the
+		// second value is the length of the string. Strings are not 0-terminated.
+		std::vector<std::pair<std::int32_t, int>> m_collections;
 
 		// these are the collections from outside of the info-dict. These are
 		// owning strings, since we only keep the info-section around, these
