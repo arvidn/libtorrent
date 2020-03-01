@@ -132,7 +132,7 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_UNEXPORT torrent_alert(torrent_alert&&) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
-		static int const TORRENT_DEPRECATED_MEMBER alert_type = 0;
+		TORRENT_DEPRECATED static int const alert_type = 0;
 #endif
 
 		// returns the message associated with this alert
@@ -150,7 +150,7 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_name_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		std::string TORRENT_DEPRECATED_MEMBER name;
+		TORRENT_DEPRECATED std::string name;
 #endif
 	};
 
@@ -164,7 +164,7 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_UNEXPORT peer_alert(peer_alert&& rhs) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
-		static const int TORRENT_DEPRECATED_MEMBER alert_type = 1;
+		TORRENT_DEPRECATED static int const alert_type = 1;
 #endif
 
 		std::string message() const override;
@@ -177,7 +177,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 		// The peer's IP address and port.
-		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER ip;
+		TORRENT_DEPRECATED aux::noexcept_movable<tcp::endpoint> ip;
 #endif
 	};
 
@@ -191,7 +191,7 @@ TORRENT_VERSION_NAMESPACE_2
 			, tcp::endpoint const& ep, string_view u);
 
 #if TORRENT_ABI_VERSION == 1
-		static const int TORRENT_DEPRECATED_MEMBER alert_type = 2;
+		TORRENT_DEPRECATED static int const alert_type = 2;
 #endif
 
 		std::string message() const override;
@@ -207,7 +207,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// The tracker URL
-		std::string TORRENT_DEPRECATED_MEMBER url;
+		TORRENT_DEPRECATED std::string url;
 #endif
 	};
 
@@ -318,7 +318,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int const size;
 
 #if TORRENT_ABI_VERSION == 1
-		error_code TORRENT_DEPRECATED_MEMBER ec;
+		TORRENT_DEPRECATED error_code ec;
 #endif
 	};
 
@@ -379,7 +379,7 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 
 	public:
-		std::string TORRENT_DEPRECATED_MEMBER name;
+		TORRENT_DEPRECATED std::string name;
 
 #if defined __clang__
 #pragma clang diagnostic pop
@@ -560,8 +560,8 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_msg_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		int const TORRENT_DEPRECATED_MEMBER status_code;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED int const status_code;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -588,7 +588,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// contains the warning message from the tracker.
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -643,7 +643,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// contains a message describing the error.
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -792,8 +792,8 @@ TORRENT_VERSION_NAMESPACE_2
 		error_code const error;
 
 #if TORRENT_ABI_VERSION == 1
-		int const TORRENT_DEPRECATED_MEMBER operation;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED int const operation;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -841,8 +841,8 @@ TORRENT_VERSION_NAMESPACE_2
 		close_reason_t const reason;
 
 #if TORRENT_ABI_VERSION == 1
-		int const TORRENT_DEPRECATED_MEMBER operation;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED int const operation;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1032,7 +1032,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int const block_index;
 		piece_index_t const piece_index;
 #if TORRENT_ABI_VERSION == 1
-		char const* TORRENT_DEPRECATED_MEMBER peer_speedmsg;
+		TORRENT_DEPRECATED char const* peer_speedmsg;
 #endif
 	};
 
@@ -1079,7 +1079,7 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_old_path_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		std::string TORRENT_DEPRECATED_MEMBER path;
+		TORRENT_DEPRECATED std::string path;
 #endif
 	};
 
@@ -1108,9 +1108,9 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_file_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		char const* TORRENT_DEPRECATED_MEMBER operation;
+		TORRENT_DEPRECATED char const* operation;
 		// If the error happened for a specific file, ``file`` is its path.
-		std::string TORRENT_DEPRECATED_MEMBER file;
+		TORRENT_DEPRECATED std::string file;
 #endif
 	};
 
@@ -1158,7 +1158,7 @@ TORRENT_VERSION_NAMESPACE_2
 		info_hash_t info_hash;
 
 #if TORRENT_ABI_VERSION == 1
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1186,7 +1186,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 		// points to the resume data.
-		std::shared_ptr<entry> TORRENT_DEPRECATED_MEMBER resume_data;
+		TORRENT_DEPRECATED std::shared_ptr<entry> resume_data;
 #endif
 	};
 
@@ -1208,7 +1208,7 @@ TORRENT_VERSION_NAMESPACE_2
 		error_code const error;
 
 #if TORRENT_ABI_VERSION == 1
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1283,10 +1283,10 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// the HTTP seed that failed
-		std::string TORRENT_DEPRECATED_MEMBER url;
+		TORRENT_DEPRECATED std::string url;
 
 		// the error message, potentially from the server
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 
 	};
@@ -1319,10 +1319,10 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_file_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		char const* TORRENT_DEPRECATED_MEMBER operation;
+		TORRENT_DEPRECATED char const* operation;
 		// the path to the file that was accessed when the error occurred.
-		std::string TORRENT_DEPRECATED_MEMBER file;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string file;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1514,13 +1514,13 @@ TORRENT_VERSION_NAMESPACE_2
 		};
 
 		// the specific low level operation that failed. See op_t.
-		int const TORRENT_DEPRECATED_MEMBER operation;
+		TORRENT_DEPRECATED int const operation;
 
 		// the address and port libtorrent attempted to listen on
-		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER endpoint;
+		TORRENT_DEPRECATED aux::noexcept_movable<tcp::endpoint> endpoint;
 
 		// the type of listen socket this alert refers to.
-		socket_type_t TORRENT_DEPRECATED_MEMBER sock_type;
+		TORRENT_DEPRECATED socket_type_t sock_type;
 #endif
 	};
 
@@ -1571,10 +1571,10 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
-		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER endpoint;
+		TORRENT_DEPRECATED aux::noexcept_movable<tcp::endpoint> endpoint;
 
 		// the type of listen socket this alert refers to.
-		socket_type_t TORRENT_DEPRECATED_MEMBER sock_type;
+		TORRENT_DEPRECATED socket_type_t sock_type;
 #endif
 	};
 
@@ -1610,9 +1610,9 @@ TORRENT_VERSION_NAMESPACE_2
 		error_code const error;
 #if TORRENT_ABI_VERSION == 1
 		// is 0 for NAT-PMP and 1 for UPnP.
-		int const TORRENT_DEPRECATED_MEMBER map_type;
+		TORRENT_DEPRECATED int const map_type;
 
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1653,10 +1653,10 @@ TORRENT_VERSION_NAMESPACE_2
 		};
 
 		// the protocol this mapping was for. one of protocol_t enums
-		int const TORRENT_DEPRECATED_MEMBER protocol;
+		TORRENT_DEPRECATED int const protocol;
 
 		// 0 for NAT-PMP and 1 for UPnP.
-		int const TORRENT_DEPRECATED_MEMBER map_type;
+		TORRENT_DEPRECATED int const map_type;
 #endif
 	};
 
@@ -1692,8 +1692,8 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_log_idx;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		int const TORRENT_DEPRECATED_MEMBER map_type;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED int const map_type;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 
 	};
@@ -1728,11 +1728,11 @@ TORRENT_VERSION_NAMESPACE_2
 	public:
 		// If the error happened in a disk operation. a 0-terminated string of
 		// the name of that operation. ``operation`` is nullptr otherwise.
-		char const* TORRENT_DEPRECATED_MEMBER operation;
+		TORRENT_DEPRECATED char const* operation;
 
 		// If the error happened to a specific file, ``file`` is the path to it.
-		std::string TORRENT_DEPRECATED_MEMBER file;
-		std::string TORRENT_DEPRECATED_MEMBER msg;
+		TORRENT_DEPRECATED std::string file;
+		TORRENT_DEPRECATED std::string msg;
 #endif
 	};
 
@@ -1956,7 +1956,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// The tracker ID returned by the tracker
-		std::string TORRENT_DEPRECATED_MEMBER trackerid;
+		TORRENT_DEPRECATED std::string trackerid;
 #endif
 	};
 
@@ -1995,7 +1995,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 	public:
 		// the filename (or object) the error occurred on.
-		std::string TORRENT_DEPRECATED_MEMBER error_file;
+		TORRENT_DEPRECATED std::string error_file;
 #endif
 
 	};
@@ -2015,7 +2015,7 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert::status_notification;
 		std::string message() const override;
 #if TORRENT_ABI_VERSION == 1
-		error_code const TORRENT_DEPRECATED_MEMBER error;
+		TORRENT_DEPRECATED error_code const error;
 #endif
 	};
 
@@ -2044,7 +2044,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 		// is the IP address and port the connection came from.
-		aux::noexcept_movable<tcp::endpoint> TORRENT_DEPRECATED_MEMBER ip;
+		TORRENT_DEPRECATED aux::noexcept_movable<tcp::endpoint> ip;
 #endif
 	};
 
@@ -2174,7 +2174,7 @@ TORRENT_VERSION_NAMESPACE_2
 		span<std::int64_t const> counters() const;
 
 #if TORRENT_ABI_VERSION == 1
-		std::array<std::int64_t, counters::num_counters> const TORRENT_DEPRECATED_MEMBER values;
+		TORRENT_DEPRECATED std::array<std::int64_t, counters::num_counters> const values;
 #else
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
@@ -2209,7 +2209,7 @@ TORRENT_VERSION_NAMESPACE_2
 		};
 
 		// the operation that failed
-		op_t const TORRENT_DEPRECATED_MEMBER operation;
+		TORRENT_DEPRECATED op_t const operation;
 #endif
 	};
 
@@ -2349,7 +2349,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 		// the endpoint we're sending this query to
-		aux::noexcept_movable<udp::endpoint> TORRENT_DEPRECATED_MEMBER ip;
+		TORRENT_DEPRECATED aux::noexcept_movable<udp::endpoint> ip;
 #endif
 	};
 
@@ -2643,7 +2643,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int const m_size;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		direction_t TORRENT_DEPRECATED_MEMBER dir;
+		TORRENT_DEPRECATED direction_t dir;
 #endif
 
 	};
@@ -2708,7 +2708,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int const m_response_size;
 #if TORRENT_ABI_VERSION == 1
 	public:
-		aux::noexcept_movable<udp::endpoint> TORRENT_DEPRECATED_MEMBER addr;
+		TORRENT_DEPRECATED aux::noexcept_movable<udp::endpoint> addr;
 #endif
 	};
 

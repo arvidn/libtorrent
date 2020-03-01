@@ -198,7 +198,7 @@ namespace aux {
 		// downloaded pieces down. Pieces set to ``none`` can be converted into
 		// any of ``fast``, ``medium`` or ``slow`` as soon as a peer want to
 		// download from it.
-		state_t TORRENT_DEPRECATED_MEMBER piece_state;
+		TORRENT_DEPRECATED state_t piece_state;
 #endif
 	};
 

@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # if !defined TORRENT_BUILDING_LIBRARY
 // TODO: figure out which version of clang this is supported in
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
 
 #elif defined __GNUC__
@@ -58,17 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // libtorrent itself
 # if __GNUC__ >= 6 && !defined TORRENT_BUILDING_LIBRARY
 #  define TORRENT_DEPRECATED_ENUM __attribute__ ((deprecated))
-#  define TORRENT_DEPRECATED_MEMBER __attribute__ ((deprecated))
 # endif
 
 #endif
 
 #ifndef TORRENT_DEPRECATED_ENUM
 #define TORRENT_DEPRECATED_ENUM
-#endif
-
-#ifndef TORRENT_DEPRECATED_MEMBER
-#define TORRENT_DEPRECATED_MEMBER
 #endif
 
 #endif

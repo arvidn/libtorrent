@@ -128,7 +128,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // only export this type if deprecated functions are enabled
-// mingw doesn't link combinging C++11 attributes with __attribute__ apparently
+// mingw doesn't like combining C++11 attributes with __attribute__ apparently
 #if defined __MINGW64__ || defined __MINGW32__
 
 # if TORRENT_ABI_VERSION >= 2
