@@ -87,12 +87,11 @@ TORRENT_VERSION_NAMESPACE_2
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
-		// The constructor can be used to initialize the storage constructor,
-		// which determines the storage mechanism for the downloaded or seeding
-		// data for the torrent. For more information, see the ``storage`` field.
+		// hidden
 		add_torrent_params();
+		~add_torrent_params();
 		add_torrent_params(add_torrent_params&&) noexcept;
-		add_torrent_params& operator=(add_torrent_params&&) & = default;
+		add_torrent_params& operator=(add_torrent_params&&) &;
 		add_torrent_params(add_torrent_params const&);
 		add_torrent_params& operator=(add_torrent_params const&) &;
 
@@ -103,7 +102,7 @@ TORRENT_VERSION_NAMESPACE_2
 		using flags_t = torrent_flags_t;
 
 #define DECL_FLAG(name) \
-		static constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER flag_##name = torrent_flags::name
+		TORRENT_DEPRECATED static constexpr torrent_flags_t flag_##name = torrent_flags::name
 
 			DECL_FLAG(seed_mode);
 			DECL_FLAG(upload_mode);
@@ -323,7 +322,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the
 		// first entry. See torrent_info::set_merkle_tree() for more info.
-		aux::noexcept_movable<std::vector<sha1_hash>> TORRENT_DEPRECATED_MEMBER merkle_tree;
+		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<sha1_hash>> merkle_tree;
 #endif
 
 		// v2 hashes, if known
@@ -357,7 +356,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// until the .torrent file has been downloaded. If there is any error
 		// while downloading, the torrent will be stopped and the torrent error
 		// state (``torrent_status::error``) will indicate what went wrong.
-		std::string TORRENT_DEPRECATED_MEMBER url;
+		TORRENT_DEPRECATED std::string url;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
@@ -365,7 +364,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		aux::noexcept_movable<std::vector<char>> TORRENT_DEPRECATED_MEMBER resume_data;
+		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<char>> resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is

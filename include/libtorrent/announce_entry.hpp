@@ -176,17 +176,17 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEPRECATED bool is_working() const;
 
 		// for backwards compatibility
-		time_point32 TORRENT_DEPRECATED_MEMBER next_announce = (time_point32::min)();
-		time_point32 TORRENT_DEPRECATED_MEMBER min_announce = (time_point32::min)();
-		std::string TORRENT_DEPRECATED_MEMBER message;
-		error_code TORRENT_DEPRECATED_MEMBER last_error;
-		int TORRENT_DEPRECATED_MEMBER scrape_incomplete = -1;
-		int TORRENT_DEPRECATED_MEMBER scrape_complete = -1;
-		int TORRENT_DEPRECATED_MEMBER scrape_downloaded = -1;
-		std::uint8_t TORRENT_DEPRECATED_MEMBER fails : 7;
-		bool TORRENT_DEPRECATED_MEMBER updating : 1;
-		bool TORRENT_DEPRECATED_MEMBER start_sent : 1;
-		bool TORRENT_DEPRECATED_MEMBER complete_sent : 1;
+		TORRENT_DEPRECATED time_point32 next_announce = (time_point32::min)();
+		TORRENT_DEPRECATED time_point32 min_announce = (time_point32::min)();
+		TORRENT_DEPRECATED std::string message;
+		TORRENT_DEPRECATED error_code last_error;
+		TORRENT_DEPRECATED int scrape_incomplete = -1;
+		TORRENT_DEPRECATED int scrape_complete = -1;
+		TORRENT_DEPRECATED int scrape_downloaded = -1;
+		TORRENT_DEPRECATED std::uint8_t fails : 7;
+		TORRENT_DEPRECATED bool updating : 1;
+		TORRENT_DEPRECATED bool start_sent : 1;
+		TORRENT_DEPRECATED bool complete_sent : 1;
 #endif
 
 		// set to false to not announce from this endpoint
@@ -248,13 +248,13 @@ TORRENT_VERSION_NAMESPACE_2
 		// deprecated in 1.2
 		// all of these will be set to false or 0
 		// use the corresponding members in announce_endpoint
-		std::uint8_t TORRENT_DEPRECATED_MEMBER fails:7;
-		bool TORRENT_DEPRECATED_MEMBER send_stats:1;
-		bool TORRENT_DEPRECATED_MEMBER start_sent:1;
-		bool TORRENT_DEPRECATED_MEMBER complete_sent:1;
+		TORRENT_DEPRECATED std::uint8_t fails:7;
+		TORRENT_DEPRECATED bool send_stats:1;
+		TORRENT_DEPRECATED bool start_sent:1;
+		TORRENT_DEPRECATED bool complete_sent:1;
 		// internal
-		bool TORRENT_DEPRECATED_MEMBER triggered_manually:1;
-		bool TORRENT_DEPRECATED_MEMBER updating:1;
+		TORRENT_DEPRECATED bool triggered_manually:1;
+		TORRENT_DEPRECATED bool updating:1;
 #endif
 
 #if TORRENT_ABI_VERSION <= 2

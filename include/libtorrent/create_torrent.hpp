@@ -112,11 +112,11 @@ namespace libtorrent {
 		// files, to keep the impact down for clients that don't support
 		// them.
 		// incompatible with v2 metadata, ignored
-		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize_alignment = 0_bit;
+		TORRENT_DEPRECATED static constexpr create_flags_t optimize_alignment = 0_bit;
 #endif
 #if TORRENT_ABI_VERSION == 1
 		// same as optimize_alignment, for backwards compatibility
-		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER optimize = 0_bit;
+		TORRENT_DEPRECATED static constexpr create_flags_t optimize = 0_bit;
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
@@ -129,7 +129,7 @@ namespace libtorrent {
 		// and should be saved off separately. It is accessed through the
 		// create_torrent::merkle_tree() function.
 		// support for BEP 30 merkle torrents has been removed
-		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER merkle = 1_bit;
+		TORRENT_DEPRECATED static constexpr create_flags_t merkle = 1_bit;
 #endif
 
 		// This will include the file modification time as part of the torrent.
@@ -154,7 +154,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION <= 2
 		// BEP 52 requires files to be piece aligned so all torrents are now compatible
 		// with BEP 38
-		static constexpr create_flags_t TORRENT_DEPRECATED_MEMBER mutable_torrent_support = 4_bit;
+		TORRENT_DEPRECATED static constexpr create_flags_t mutable_torrent_support = 4_bit;
 #endif
 
 		// Do not generate v1 metadata. The resulting torrent will only be usable by

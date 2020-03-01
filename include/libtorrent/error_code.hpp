@@ -566,7 +566,8 @@ namespace errors {
 		// Returns a string literal representing the file operation
 		// that failed. If there were no failure, it returns
 		// an empty string.
-		char const* operation_str() const TORRENT_DEPRECATED_MEMBER
+		TORRENT_DEPRECATED
+		char const* operation_str() const
 		{ return operation_name(operation); }
 #endif
 	};
