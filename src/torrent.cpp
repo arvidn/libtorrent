@@ -10727,7 +10727,7 @@ bool is_downloading_state(int const st)
 		if (is_seed()) return;
 
 		aux::vector<std::int64_t, file_index_t> progress;
-		file_progress(progress);
+		file_progress(progress, {});
 		file_storage const& fs = m_torrent_file->files();
 		for (auto const i : fs.file_range())
 		{
@@ -10739,7 +10739,7 @@ bool is_downloading_state(int const st)
 #endif
 #endif // TORRENT_ABI_VERSION
 
-	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, int const flags)
+	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())
