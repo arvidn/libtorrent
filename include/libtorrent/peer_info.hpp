@@ -61,6 +61,8 @@ namespace libtorrent {
 	// direction
 	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, struct bandwidth_state_flags_tag>;
 
+	using connection_type_t = flags::bitfield_flag<std::uint8_t, struct connection_type_tag>;
+
 TORRENT_VERSION_NAMESPACE_2
 
 	// holds information and statistics about one peer
@@ -309,21 +311,20 @@ TORRENT_VERSION_NAMESPACE_2
 		int downloading_progress;
 		int downloading_total;
 
-		// the kind of connection this is. Used for the connection_type field.
-		enum connection_type_t
-		{
-			// Regular bittorrent connection
-			standard_bittorrent = 0,
+#if TORRENT_ABI_VERSION <= 2
+		using connection_type_t = libtorrent::connection_type_t;
+#endif
+		// Regular bittorrent connection
+		static constexpr connection_type_t standard_bittorrent = 0_bit;
 
 			// HTTP connection using the `BEP 19`_ protocol
-			web_seed = 1,
+		static constexpr connection_type_t web_seed = 1_bit;
 
 			// HTTP connection using the `BEP 17`_ protocol
-			http_seed = 2
-		};
+		static constexpr connection_type_t http_seed = 2_bit;
 
 		// the kind of connection this peer uses. See connection_type_t.
-		int connection_type;
+		connection_type_t connection_type;
 
 #if TORRENT_ABI_VERSION == 1
 		// an estimate of the rate this peer is downloading at, in

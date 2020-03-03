@@ -133,8 +133,9 @@ void bind_peer_info()
 #endif
 
     // connection_type
-    pi.attr("standard_bittorrent") = (int)peer_info::standard_bittorrent;
-    pi.attr("web_seed") = (int)peer_info::web_seed;
+    pi.attr("standard_bittorrent") = peer_info::standard_bittorrent;
+    pi.attr("web_seed") = peer_info::web_seed;
+    pi.attr("http_seed") = peer_info::http_seed;
 
     // source
     pi.attr("tracker") = peer_info::tracker;
