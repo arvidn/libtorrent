@@ -76,4 +76,7 @@ namespace libtorrent {
 	constexpr bandwidth_state_flags_t peer_info::bw_global;
 #endif
 
+	constexpr connection_type_t peer_info::standard_bittorrent;
+	constexpr connection_type_t peer_info::web_seed;
+	constexpr connection_type_t peer_info::http_seed;
 }
