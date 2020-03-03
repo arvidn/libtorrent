@@ -42,6 +42,14 @@ namespace aux {
 	template <class Socket>
 	void set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
 	{
+#ifdef TCP_NOTSENT_LOWAT
+		int const not_sent_low_watermark = sett.get_int(settings_pack::send_not_sent_low_watermark);
+		if (not_sent_low_watermark)
+		{
+			error_code ignore;
+			s.set_option(tcp_notsent_lowat(not_sent_low_watermark), ignore);
+		}
+#endif
 		int const snd_size = sett.get_int(settings_pack::send_socket_buffer_size);
 		if (snd_size)
 		{

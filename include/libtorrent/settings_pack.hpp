@@ -1729,6 +1729,11 @@ namespace aux {
 			// as zero.
 			resolver_cache_timeout,
 
+			// specify the not-sent low watermark for socket send buffers. This
+			// corresponds to the, Linux-specific, ``TCP_NOTSENT_LOWAT`` TCP socket
+			// option.
+			send_not_sent_low_watermark,
+
 			max_int_setting_internal
 		};
 
