@@ -911,6 +911,7 @@ namespace {
 			case o::symlink: return -1;
 			case o::handshake: return -1;
 			case o::sock_option: return -1;
+			case o::enum_route: return -1;
 			case o::file_seek: return -1;
 		}
 		return -1;
@@ -1583,7 +1584,8 @@ namespace {
 			"hostname_lookup",
 			"symlink",
 			"handshake",
-			"sock_option"
+			"sock_option",
+			"enum_route",
 			"file_seek"
 		};
 

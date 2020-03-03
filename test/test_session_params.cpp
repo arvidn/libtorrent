@@ -140,8 +140,11 @@ TORRENT_TEST(dht_state)
 
 	TEST_EQUAL(params2.dht_state.nids.size(), 1);
 
-	// not a chance the nid will be the fake initial ones
-	TEST_CHECK(params2.dht_state.nids[0].second != s.nids[0].second);
+	if (params2.dht_state.nids.size() >= 1)
+	{
+		// not a chance the nid will be the fake initial ones
+		TEST_CHECK(params2.dht_state.nids[0].second != s.nids[0].second);
+	}
 }
 #endif
 

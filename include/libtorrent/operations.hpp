@@ -174,6 +174,9 @@ namespace libtorrent {
 		// set socket option
 		sock_option,
 
+		// enumeration network routes
+		enum_route,
+
 		file_seek,
 	};
 

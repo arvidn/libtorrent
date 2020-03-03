@@ -48,7 +48,7 @@ int main()
 	auto const routes = enum_routes(ios, ec);
 	if (ec)
 	{
-		std::printf("%s\n", ec.message().c_str());
+		std::printf("enum_routes: %s\n", ec.message().c_str());
 		return 1;
 	}
 
@@ -70,7 +70,7 @@ int main()
 	auto const net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
-		std::printf("%s\n", ec.message().c_str());
+		std::printf("enum_ifs: %s\n", ec.message().c_str());
 		return 1;
 	}
 

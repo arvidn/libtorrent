@@ -264,6 +264,11 @@ namespace aux {
 			// a port that has an "s" suffix will accept SSL connections. (note
 			// that SSL sockets are not enabled by default).
 			//
+			// a port that has an "l" suffix will be considered a local network.
+			// i.e. it's assumed to only be able to reach hosts in the same local
+			// network as the IP address (based on the netmask associated with the
+			// IP, queried from the operating system).
+			//
 			// if binding fails, the listen_failed_alert is posted. If or once a
 			// socket binding succeeds, the listen_succeeded_alert is posted. There
 			// may be multiple failures before a success.
@@ -278,7 +283,13 @@ namespace aux {
 			// ``[::]:0s`` - will accept SSL connections on a port chosen by the
 			// OS. And not accept non-SSL connections at all.
 			//
-			// ``0.0.0.0:6881,[::]:6881`` - binds to all interfaces on port 6881
+			// ``0.0.0.0:6881,[::]:6881`` - binds to all interfaces on port 6881.
+			//
+			// ``10.0.1.13:6881l`` - binds to the local IP address, port 6881, but
+			// only allow talking to peers on the same local network. The netmask
+			// is queried from the operating system. Interfaces marked ``l`` are
+			// not announced to trackers, unless the tracker is also on the same
+			// local network.
 			//
 			// Windows OS network adapter device name can be specified with GUID.
 			// It can be obtained from "netsh lan show interfaces" command output.

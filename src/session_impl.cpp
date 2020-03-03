@@ -208,7 +208,7 @@ namespace libtorrent {
 namespace aux {
 
 	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
-	constexpr listen_socket_flags_t listen_socket_t::has_gateway;
+	constexpr listen_socket_flags_t listen_socket_t::local_network;
 	constexpr listen_socket_flags_t listen_socket_t::was_expanded;
 
 	constexpr ip_source_t session_interface::source_dht;
@@ -293,6 +293,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	// by prohibiting creating a listen socket on [::] and 0.0.0.0. Instead the list of
 	// interfaces is enumerated and sockets are created for each of them.
 	void expand_unspecified_address(span<ip_interface const> const ifs
+		, span<ip_route const> const routes
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		auto unspecified_begin = std::partition(eps.begin(), eps.end()
@@ -323,14 +324,23 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					continue;
 				}
 
+				// record whether the device has a gateway associated with it
+				// (which indicates it can be used to reach the internet)
+				// if the IP address tell us it's loopback or link-local, don't
+				// bother looking for the gateway
+				bool const local = ipface.interface_address.is_loopback()
+					|| is_link_local(ipface.interface_address)
+					|| (!is_global(ipface.interface_address)
+						&& !has_default_route(ipface.name, family(ipface.interface_address), routes));
+
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
-					, uep.ssl, uep.flags | listen_socket_t::was_expanded);
+					, uep.ssl, uep.flags | listen_socket_t::was_expanded
+					| (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
 			}
 		}
 	}
 
 	void expand_devices(span<ip_interface const> const ifs
-		, span<ip_route const> const routes
 		, std::vector<listen_endpoint_t>& eps)
 	{
 		for (auto& ep : eps)
@@ -355,13 +365,6 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			}
 
 			ep.netmask = iface->netmask;
-
-			// also record whether the device has a gateway associated with it
-			// (which indicates it can be used to reach the internet)
-			// only gateways inside the interface's network count
-			if(get_gateway(*iface, routes))
-				ep.flags |= listen_socket_t::has_gateway;
-
 			ep.device = iface->name;
 		}
 	}
@@ -374,12 +377,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			&& local_endpoint.address().to_v6().scope_id() != addr.to_v6().scope_id())
 			return false;
 
-		if (flags & has_gateway) return true;
 		if (local_endpoint.address() == addr) return true;
 		if (local_endpoint.address().is_unspecified()) return true;
 		if (match_addr_mask(addr, local_endpoint.address(), netmask)) return true;
-
-		return false;
+		return !(flags & local_network);
 	}
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
@@ -1472,8 +1473,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log("attempting to open listen socket to: %s on device: %s ssl: %x"
-				, print_endpoint(bind_ep).c_str(), lep.device.c_str(), static_cast<int>(lep.ssl));
+			session_log("attempting to open listen socket to: %s on device: %s %s%s%s%s"
+				, print_endpoint(bind_ep).c_str(), lep.device.c_str()
+				, (lep.ssl == transport::ssl) ? "ssl " : ""
+				, (lep.flags & listen_socket_t::local_network) ? "local-network " : ""
+				, (lep.flags & listen_socket_t::accept_incoming) ? "accept-incoming " : "no-incoming "
+				, (lep.flags & listen_socket_t::was_expanded) ? "expanded-ip " : "");
 		}
 #endif
 
@@ -1849,48 +1854,47 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		reopen_network_sockets({});
 	}
 
-	void session_impl::interface_to_endpoints(std::string const& device, int const port
-		, transport const ssl, listen_socket_flags_t const flags, std::vector<listen_endpoint_t>& eps)
+	// TODO: could this function be merged with expand_unspecified_addresses?
+	// right now both listen_endpoint_t and listen_interface_t are almost
+	// identical, maybe the latter could be removed too
+	void interface_to_endpoints(listen_interface_t const& iface
+		, listen_socket_flags_t flags
+		, span<ip_interface const> const ifs
+		, std::vector<listen_endpoint_t>& eps)
 	{
+		flags |= iface.local ? listen_socket_t::local_network : listen_socket_flags_t{};
+		transport const ssl = iface.ssl ? transport::ssl : transport::plaintext;
+
 		// First, check to see if it's an IP address
 		error_code err;
-		address const adr = make_address(device.c_str(), err);
+		address const adr = make_address(iface.device.c_str(), err);
 		if (!err)
 		{
-			eps.emplace_back(adr, port, std::string(), ssl, flags);
+			eps.emplace_back(adr, iface.port, std::string{}, ssl, flags);
 		}
 		else
 		{
+			flags |= listen_socket_t::was_expanded;
+
 			// this is the case where device names a network device. We need to
 			// enumerate all IPs associated with this device
-
-			// TODO: 3 only run this once in the caller
-			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, err);
-			if (err)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					session_log("failed to enumerate IPs on device: \"%s\": %s"
-						, device.c_str(), err.message().c_str());
-				}
-#endif
-				if (m_alerts.should_post<listen_failed_alert>())
-				{
-					m_alerts.emplace_alert<listen_failed_alert>(device
-						, operation_t::enum_if, err
-						, socket_type_t::tcp);
-				}
-				return;
-			}
-
 			for (auto const& ipface : ifs)
 			{
 				// we're looking for a specific interface, and its address
 				// (which must be of the same family as the address we're
 				// connecting to)
-				if (device != ipface.name) continue;
-				eps.emplace_back(ipface.interface_address, port, device, ssl, flags);
+				if (iface.device != ipface.name) continue;
+
+				// record whether the device has a gateway associated with it
+				// (which indicates it can be used to reach the internet)
+				// if the IP address tell us it's loopback or link-local, don't
+				// bother looking for the gateway
+				bool const local = iface.local
+					|| ipface.interface_address.is_loopback()
+					|| is_link_local(ipface.interface_address);
+
+				eps.emplace_back(ipface.interface_address, iface.port, iface.device
+					, ssl, flags | (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
 			}
 		}
 	}
@@ -1919,22 +1923,32 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			? listen_socket_flags_t{}
 			: listen_socket_t::accept_incoming;
 
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
+		{
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_if, ec, socket_type_t::tcp);
+		}
+		auto const routes = enum_routes(m_io_context, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
+		{
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_route, ec, socket_type_t::tcp);
+		}
+
+		// expand device names and populate eps
 		for (auto const& iface : m_listen_interfaces)
 		{
-			std::string const& device = iface.device;
-			int const port = iface.port;
-			transport const ssl = iface.ssl ? transport::ssl : transport::plaintext;
-
-#ifndef TORRENT_SSL_PEERS
-			if (ssl == transport::ssl)
+#ifndef TORRENT_USE_OPENSSL
+			if (iface.ssl)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("attempted to listen ssl with no library support on device: \"%s\""
-					, device.c_str());
+					, iface.device.c_str());
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
-					m_alerts.emplace_alert<listen_failed_alert>(device
+					m_alerts.emplace_alert<listen_failed_alert>(iface.device
 						, operation_t::sock_open
 						, boost::asio::error::operation_not_supported
 						, socket_type_t::tcp_ssl);
@@ -1947,7 +1961,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			interface_to_endpoints(device, port, ssl, flags, eps);
+			interface_to_endpoints(iface, flags, ifs, eps);
 		}
 
 		// if no listen interfaces are specified, create sockets to use
@@ -1960,13 +1974,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				, listen_socket_flags_t{});
 		}
 
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
-		if (!ec)
-		{
-			expand_unspecified_address(ifs, eps);
-			auto const routes = enum_routes(m_io_context, ec);
-			if (!ec) expand_devices(ifs, routes, eps);
-		}
+		expand_unspecified_address(ifs, routes, eps);
+		expand_devices(ifs, eps);
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
@@ -2014,15 +2023,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				m_listen_sockets.emplace_back(s);
 
 #ifndef TORRENT_DISABLE_DHT
-				// addresses that we expanded from an
-				// unspecified address don't get a DHT running
-				// on them, unless they have a gateway (in
-				// which case we believe they can reach the
-				// internet)
 				if (m_dht
 					&& s->ssl != transport::ssl
-					&& ((s->flags & listen_socket_t::has_gateway)
-						|| !(s->flags & listen_socket_t::was_expanded)))
+					&& !(s->flags & listen_socket_t::local_network))
 				{
 					m_dht->new_socket(m_listen_sockets.back());
 				}
@@ -4939,7 +4942,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			{
 				if (is_v4(ls->local_endpoint) != remote_address.is_v4()) continue;
 				if (ls->ssl != ssl) continue;
-				if (ls->flags & listen_socket_t::has_gateway)
+				if (!(ls->flags & listen_socket_t::local_network))
 					with_gateways.push_back(ls);
 
 				if (match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
@@ -5443,7 +5446,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (is_v6(s->local_endpoint) && is_local(s->local_endpoint.address()))
 			return;
 
-		if (!s->natpmp_mapper && (s->flags & listen_socket_t::has_gateway))
+		if (!s->natpmp_mapper && !(s->flags & listen_socket_t::local_network))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -5670,8 +5673,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		for (auto& s : m_listen_sockets)
 		{
 			if (s->ssl != transport::ssl
-				&& ((s->flags & listen_socket_t::has_gateway)
-					|| !(s->flags & listen_socket_t::was_expanded)))
+				&& !(s->flags & listen_socket_t::local_network))
 			{
 				m_dht->new_socket(s);
 			}
@@ -6649,9 +6651,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (is_v6(s->local_endpoint))
 			return;
 
-		// there's no point in starting the UPnP mapper for a network that doesn't
-		// have a gateway. The whole point is to forward ports through the gateway
-		if (!(s->flags & listen_socket_t::has_gateway))
+		// there's no point in starting the UPnP mapper for a network that isn't
+		// connected to the internet. The whole point is to forward ports through
+		// the gateway
+		if (s->flags & listen_socket_t::local_network)
 			return;
 
 		if (!s->upnp_mapper)

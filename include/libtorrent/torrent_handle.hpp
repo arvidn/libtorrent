@@ -248,6 +248,15 @@ namespace aux {
 		torrent_handle& operator=(torrent_handle const&) & = default;
 		torrent_handle& operator=(torrent_handle&&) & noexcept = default;
 
+
+#if TORRENT_ABI_VERSION == 1
+		using flags_t = add_piece_flags_t;
+		using status_flags_t = libtorrent::status_flags_t;
+		using pause_flags_t = libtorrent::pause_flags_t;
+		using save_resume_flags_t = libtorrent::resume_data_flags_t;
+		using reannounce_flags_t = libtorrent::reannounce_flags_t;
+#endif
+
 		// instruct libtorrent to overwrite any data that may already have been
 		// downloaded with the data of the new piece being added.
 		static constexpr add_piece_flags_t overwrite_existing = 0_bit;

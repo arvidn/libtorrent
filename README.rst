@@ -55,6 +55,10 @@ directory.
 See `building.html`__ for more details on how to build and which configuration
 options are available. For python bindings, see `the python docs`__.
 
+libtorrent `ABI report`_.
+
+.. _`ABI report`: https://abi-laboratory.pro/index.php?view=timeline&l=libtorrent
+
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
 

@@ -47,6 +47,34 @@ namespace aux {
 		return !ec;
 	}
 
+	bool is_global(address const& a)
+	{
+		if (a.is_v6())
+		{
+			// https://www.iana.org/assignments/ipv6-address-space/ipv6-address-space.xhtml
+			address_v6 const a6 = a.to_v6();
+			return (a6.to_bytes()[0] & 0xe0) == 0x20;
+		}
+		else
+		{
+			address_v4 const a4 = a.to_v4();
+			return !(a4.is_multicast() || a4.is_unspecified() || is_local(a));
+		}
+	}
+
+	bool is_link_local(address const& a)
+	{
+		if (a.is_v6())
+		{
+			address_v6 const a6 = a.to_v6();
+			return a6.is_link_local()
+				|| a6.is_multicast_link_local();
+		}
+		address_v4 const a4 = a.to_v4();
+		std::uint32_t ip = a4.to_uint();
+		return (ip & 0xffff0000) == 0xa9fe0000; // 169.254.x.x
+	}
+
 	bool is_local(address const& a)
 	{
 		TORRENT_TRY {

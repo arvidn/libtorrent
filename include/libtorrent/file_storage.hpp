@@ -250,6 +250,7 @@ namespace aux {
 		bool is_valid() const { return m_piece_length > 0; }
 
 #if TORRENT_ABI_VERSION == 1
+		using flags_t = file_flags_t;
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER pad_file = 0_bit;
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_hidden = 1_bit;
 		static constexpr file_flags_t TORRENT_DEPRECATED_MEMBER attribute_executable = 2_bit;

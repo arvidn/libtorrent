@@ -160,7 +160,12 @@ namespace std {
 	{
 		using base = std::hash<UnderlyingType>;
 		using argument_type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
+#if __cplusplus < 201402
+		// this was deprecated in C++17
 		using result_type = typename base::result_type;
+#else
+		using result_type = std::size_t;
+#endif
 		result_type operator()(argument_type const& s) const
 		{ return this->base::operator()(static_cast<UnderlyingType>(s)); }
 	};

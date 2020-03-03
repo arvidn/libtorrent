@@ -366,26 +366,30 @@ TORRENT_TEST(parse_list)
 TORRENT_TEST(parse_interface)
 {
 	test_parse_interface("  a:4,b:35, c : 1000s, d: 351 ,e \t:42,foobar:1337s\n\r,[2001::1]:6881"
-		, {{"a", 4, false}, {"b", 35, false}, {"c", 1000, true}, {"d", 351, false}
-			, {"e", 42, false}, {"foobar", 1337, true}, {"2001::1", 6881, false}}
+		, {{"a", 4, false, false}, {"b", 35, false, false}
+		, {"c", 1000, true, false}
+		, {"d", 351, false, false}
+		, {"e", 42, false, false}
+		, {"foobar", 1337, true, false}
+		, {"2001::1", 6881, false, false}}
 		, {}
 		, "a:4,b:35,c:1000s,d:351,e:42,foobar:1337s,[2001::1]:6881");
 
 	// IPv6 address
 	test_parse_interface("[2001:ffff::1]:6882s"
-		, {{"2001:ffff::1", 6882, true}}
+		, {{"2001:ffff::1", 6882, true, false}}
 		, {}
 		, "[2001:ffff::1]:6882s");
 
 	// IPv4 address
 	test_parse_interface("127.0.0.1:6882"
-		, {{"127.0.0.1", 6882, false}}
+		, {{"127.0.0.1", 6882, false, false}}
 		, {}
 		, "127.0.0.1:6882");
 
 	// maximum padding
 	test_parse_interface("  nic\r\n:\t 12\r s "
-		, {{"nic", 12, true}}
+		, {{"nic", 12, true, false}}
 		, {}
 		, "nic:12s");
 
@@ -398,7 +402,19 @@ TORRENT_TEST(parse_interface)
 	test_parse_interface("nic s", {}, {"nic s"}, "");
 
 	// parse interface with port 0
-	test_parse_interface("127.0.0.1:0", {{"127.0.0.1", 0, false}}, {}, "127.0.0.1:0");
+	test_parse_interface("127.0.0.1:0", {{"127.0.0.1", 0, false, false}}
+		, {}, "127.0.0.1:0");
+
+	// SSL flag
+	test_parse_interface("127.0.0.1:1234s", {{"127.0.0.1", 1234, true, false}}
+		, {}, "127.0.0.1:1234s");
+	// local flag
+	test_parse_interface("127.0.0.1:1234l", {{"127.0.0.1", 1234, false, true}}
+		, {}, "127.0.0.1:1234l");
+
+	// both
+	test_parse_interface("127.0.0.1:1234ls", {{"127.0.0.1", 1234, true, true}}
+		, {}, "127.0.0.1:1234sl");
 
 	// IPv6 error
 	test_parse_interface("[aaaa::1", {}, {"[aaaa::1"}, "");
@@ -406,10 +422,10 @@ TORRENT_TEST(parse_interface)
 	test_parse_interface("[aaaa::1]:", {}, {"[aaaa::1]:"}, "");
 	test_parse_interface("[aaaa::1]:s", {}, {"[aaaa::1]:s"}, "");
 	test_parse_interface("[aaaa::1] :6881", {}, {"[aaaa::1] :6881"}, "");
-	test_parse_interface("[aaaa::1]:6881", {{"aaaa::1", 6881, false}}, {}, "[aaaa::1]:6881");
+	test_parse_interface("[aaaa::1]:6881", {{"aaaa::1", 6881, false, false}}, {}, "[aaaa::1]:6881");
 
 	// unterminated [
-	test_parse_interface("[aaaa::1,foobar:0", {{"foobar", 0, false}}, {"[aaaa::1"}, "foobar:0");
+	test_parse_interface("[aaaa::1,foobar:0", {{"foobar", 0, false, false}}, {"[aaaa::1"}, "foobar:0");
 
 	// multiple errors
 	test_parse_interface("foo:,bar", {}, {"foo:", "bar"}, "");
@@ -421,7 +437,7 @@ TORRENT_TEST(parse_interface)
 	test_parse_interface("\"", {}, {"\""}, "");
 
 	// multiple errors and one correct
-	test_parse_interface("foo,bar,0.0.0.0:6881", {{"0.0.0.0", 6881, false}}, {"foo", "bar"}, "0.0.0.0:6881");
+	test_parse_interface("foo,bar,0.0.0.0:6881", {{"0.0.0.0", 6881, false, false}}, {"foo", "bar"}, "0.0.0.0:6881");
 }
 
 TORRENT_TEST(split_string)

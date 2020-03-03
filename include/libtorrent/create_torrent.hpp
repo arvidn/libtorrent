@@ -102,6 +102,10 @@ namespace libtorrent {
 	// .torrent file using bencode().
 	struct TORRENT_EXPORT create_torrent
 	{
+#if TORRENT_ABI_VERSION == 1
+		using flags_t = create_flags_t;
+#endif
+
 #if TORRENT_ABI_VERSION <= 2
 		// This will insert pad files to align the files to piece boundaries, for
 		// optimized disk-I/O. This will minimize the number of bytes of pad-
@@ -173,7 +177,7 @@ namespace libtorrent {
 		// have any affect.
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
-		// be any combination of the flags defined by create_torrent::flags_t.
+		// be any combination of the flags defined by create_flags_t.
 		explicit create_torrent(file_storage& fs, int piece_size = 0
 			, create_flags_t flags = {});
 		explicit create_torrent(torrent_info const& ti);

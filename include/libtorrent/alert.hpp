@@ -95,6 +95,8 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		// only here for backwards compatibility
 		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
+
+		using category_t = alert_category_t;
 #endif
 
 		// Enables alerts that report an error. This includes:

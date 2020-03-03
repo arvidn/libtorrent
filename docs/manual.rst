@@ -734,12 +734,11 @@ setting.
 Multi-homed hosts
 =================
 
-libtorrent has solid support for multi-homed hosts, starting with version 1.2.4.
-the settings_pack::listen_interfaces setting is used to specify which interfaces/IP addresses
+The settings_pack::listen_interfaces setting is used to specify which interfaces/IP addresses
 to listen on, and accept incoming connections via.
 
-Each entry in ``listen_interfaces`` is an IP address or a device name, followed
-by a listen port number. Each entry (called ``listen_socket_t``) will have the
+Each item in ``listen_interfaces`` is an IP address or a device name, followed
+by a listen port number. Each item (called ``listen_socket_t``) will have the
 following objects associated with it:
 
 * a listen socket accepting incoming TCP connections
@@ -755,70 +754,61 @@ following objects associated with it:
 * a UPnP port mapper (if applicable), to map ports on any
 * ``InternetGatewayDevice`` found on the specified local subnet.
 
+A ``listen_socket_t`` item may be specified to only be a local network (with
+the ``l`` suffix). Such listen socket will only be used to talk to peers and
+trackers within the same local network. The netmask defining the network is
+queried from the operating system by enumerating network interfaces.
+
+An item that's considered to be "local network" will not be used to announce to
+trackers outside of that network. For example, ``10.0.0.2:6881l`` is marked as "local
+network" and it will only be used as the source address announcing to a tracker
+if the tracker is also within the same local network (e.g. ``10.0.0.0/8``).
+
+If an IP address is the *unspecified* address (i.e. ``0.0.0.0`` or ``::``),
+libtorrent will enumerate all addresses it can find for the corresponding
+address family. If a device name is specified instead of an IP, it will expand
+to all IP addresses associated with that device.
+
+Listen IP addresses that are automatically expanded by libtorrent have some
+special rules. They are all assumed to be restricted to be "local network"
+unless the following conditions are met:
+
+* the IP address is not in a known link-local range
+* the IP address is not in a known loopback range
+* the item the IP address was expanded from was not marked local (``l``)
+* the IP address is in a globally reachable IP address range OR the routing
+  table contains a default route with a gateway for the corresponding network.
+  This bullet only applies when expanding from an unspecified IP address. When
+  explicitly specifying a device, we don't need to find a route to treat it as
+  external.
+
 The NAT-PMP/PCP and UPnP port mapper objects are only created for networks that
-have a gateway configured. This typically means the network that's connected to
-the internet. If there are multiple subnets connected to the internet, they will
-each have a separate gateway, and separate port mappings.
+are expected to be externally available (i.e. not "local network"). If there are
+multiple subnets connected to the internet, they will each have a separate
+gateway, and separate port mappings.
 
-Networks that are not connected to the internet, like loopback, won't have a
-gateway configured and will hence not have any port-mappers associated with
-them. They will still be able to accept incoming connections from within the
-local network.
 
-gateways
---------
+default routes
+--------------
 
-The logic for IPv4 and IPv6 are slightly different. An IPv4 network is
-considered having a gateway if:
+This section describes the logic for determining whether an address has a
+default route associated with it or not. This is only used for listen addresses that
+are *expanded* from either an unspecified listen address (``0.0.0.0`` or ``::``)
+or from a device name (e.g. ``eth0``).
 
-* there is a default route with a matching egress network device name
-* the gateway configured for the route is inside the local network.
-* if the route has a source-hint, it matches the network's address
-
-For example, if there are two ``listen_socket_t`` entries associated with the
-following networks::
-
-   1: 192.168.0.10/16 eth0
-   2: 10.0.0.10/8     eth0
-
-And these two entries in the routing table::
-
-  0.0.0.0 eth0  gateway: 192.168.0.1
-  0.0.0.0 eth0  gateway: 10.0.0.1
-
-Network (1) will be associated with gateway 192.168.0.1 and network (2) will be
-associated with gateway 10.0.0.1.
-
-An IPv6 network is considered having a gateway if:
-
-* there is a default route with a matching egress network device name
-* the IPv6 network address is not a local IPv6 address
-* if the route has a source-hint, it matches the network's address
-
-For example, if there are two ``listen_socket_t`` entries associated with the
-following networks::
-
-	1. 2a00:5678:::2/64 eth0
-	2. 2b00:1234:::3/64 eth1
-
-And these two routes::
-
-	::  eth0  gateway: fe80::1%eth0
-	::  eth1  gateway: fe80::2%eth1
-
-Network (1) will be associated with ``fe80::1%eth0``, and network (2) will be
-associated with ``fe80::2%eth1``, because of the interface name matching.
+A network is considered having a default route if there is a default route with
+a matching egress network device name and address family.
 
 routing
 -------
 
-A ``listen_socket_t`` entry can route to a destination address if any of these
+A ``listen_socket_t`` item can route to a destination address if any of these
 hold:
 
 * the destination address falls inside its subnet (i.e. interface address masked
   by netmask is the same as the destination address masked by the netmask).
-* the ``listen_socket_t`` has a gateway associated with it, and the address
-  family matches the destination address.
+* the ``listen_socket_t`` does not have the "local network" flag set, and the
+  address family matches the destination address.
 
 The ability to route to an address is used when determining whether to announce
 to a tracker from a ``listen_socket_t`` and whether to open a SOCKS5 UDP tunnel
@@ -830,9 +820,9 @@ tracker announces
 Trackers are announced to from all network interfaces listening for incoming
 connections. However, interfaces that cannot be used to reach the tracker, such
 as loopback, are not used as the source address for announces. A
-``listen_socket_t`` entry that can route to at least one of the tracker IP
-addresses will be used as the source address for an announce. Each such entry
-will also have an announce_endpoint entry associated with it, in the tracker
+``listen_socket_t`` item that can route to at least one of the tracker IP
+addresses will be used as the source address for an announce. Each such item
+will also have an announce_endpoint item associated with it, in the tracker
 list.
 
 If a tracker can be reached on a loopback address, then the loopback interface
@@ -849,7 +839,7 @@ SOCKS5 UDP tunnels
 When using a SOCKS5 proxy, each interface that can route to one of the SOCKS5
 proxy's addresses will be used to open a UDP tunnel, via that proxy. For
 example, if a client has both IPv4 and IPv6 connectivity, but the socks5 proxy
-only resolves to IPv4, only the IPv4 entry will have a UDP tunnel. In that case,
+only resolves to IPv4, only the IPv4 address will have a UDP tunnel. In that case,
 the IPv6 connection will not be used, since it cannot use the proxy.
 
 predictive piece announce
