@@ -83,6 +83,11 @@ namespace libtorrent {
 		session_handle& operator=(session_handle const&) = default;
 		session_handle& operator=(session_handle&&) noexcept = default;
 
+#if TORRENT_ABI_VERSION == 1
+		using save_state_flags_t = libtorrent::save_state_flags_t;
+		using session_flags_t = libtorrent::session_flags_t;
+#endif
+
 		// returns true if this handle refers to a valid session object. If the
 		// session has been destroyed, all session_handle objects will expire and
 		// not be valid.

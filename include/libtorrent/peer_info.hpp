@@ -90,6 +90,11 @@ TORRENT_VERSION_NAMESPACE_2
 		// the time until all blocks in the request queue will be downloaded
 		time_duration download_queue_time;
 
+#if TORRENT_ABI_VERSION == 1
+		using peer_flags_t = libtorrent::peer_flags_t;
+		using peer_source_flags = libtorrent::peer_source_flags_t;
+#endif
+
 		// **we** are interested in pieces from this peer.
 		static constexpr peer_flags_t interesting = 0_bit;
 
