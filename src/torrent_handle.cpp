@@ -73,6 +73,7 @@ namespace libtorrent {
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
 	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
+	constexpr file_progress_flags_t torrent_handle::piece_granularity;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
 	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
@@ -454,7 +455,7 @@ namespace libtorrent {
 	}
 #endif
 
-	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
+	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags) const
 	{
 		auto& arg = static_cast<aux::vector<std::int64_t, file_index_t>&>(progress);
 		sync_call(&torrent::file_progress, std::ref(arg), flags);

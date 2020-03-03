@@ -86,7 +86,7 @@ namespace
 
 } // namespace unnamed
 
-list file_progress(torrent_handle& handle, int flags)
+list file_progress(torrent_handle& handle, file_progress_flags_t const flags)
 {
     std::vector<std::int64_t> p;
 
@@ -429,6 +429,7 @@ class dummy6 {};
 class dummy7 {};
 class dummy8 {};
 class dummy15 {};
+class dummy16 {};
 
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
@@ -481,7 +482,7 @@ void bind_torrent_handle()
         .def("get_peer_info", get_peer_info)
         .def("status", _(&torrent_handle::status), arg("flags") = 0xffffffff)
         .def("get_download_queue", get_download_queue)
-        .def("file_progress", file_progress, arg("flags") = 0)
+        .def("file_progress", file_progress, arg("flags") = file_progress_flags_t{})
         .def("trackers", trackers)
         .def("replace_trackers", replace_trackers)
         .def("add_tracker", add_tracker)
@@ -581,7 +582,7 @@ void bind_torrent_handle()
 
     s.attr("ignore_min_interval") = torrent_handle::ignore_min_interval;
     s.attr("overwrite_existing") = torrent_handle::overwrite_existing;
-    s.attr("piece_granularity") = int(torrent_handle::piece_granularity);
+    s.attr("piece_granularity") = torrent_handle::piece_granularity;
     s.attr("graceful_pause") = torrent_handle::graceful_pause;
     s.attr("flush_disk_cache") = torrent_handle::flush_disk_cache;
     s.attr("save_info_dict") = torrent_handle::save_info_dict;
@@ -614,9 +615,10 @@ void bind_torrent_handle()
 #endif
     }
 
-    enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
-        .value("piece_granularity", torrent_handle::piece_granularity)
-    ;
+    {
+    scope s = class_<dummy16>("file_progress_flags_t");
+    s.attr("piece_granularity") = torrent_handle::piece_granularity;
+    }
 
     {
     scope s = class_<dummy6>("add_piece_flags_t");

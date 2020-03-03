@@ -90,6 +90,7 @@ namespace aux {
 	using resume_data_flags_t = flags::bitfield_flag<std::uint8_t, struct resume_data_flags_tag>;
 	using reannounce_flags_t = flags::bitfield_flag<std::uint8_t, struct reannounce_flags_tag>;
 	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;
+	using file_progress_flags_t = flags::bitfield_flag<std::uint8_t, struct file_progress_flags_tag>;
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
@@ -421,15 +422,14 @@ namespace aux {
 		void file_status(std::vector<open_file_state>& status) const;
 #endif
 
-		// flags to be passed in file_progress().
-		enum file_progress_flags_t
-		{
-			// only calculate file progress at piece granularity. This makes
-			// the file_progress() call cheaper and also only takes bytes that
-			// have passed the hash check into account, so progress cannot
-			// regress in this mode.
-			piece_granularity = 1
-		};
+#if TORRENT_ABI_VERSION <= 2
+		using file_progress_flags_t = libtorrent::file_progress_flags_t;
+#endif
+		// only calculate file progress at piece granularity. This makes
+		// the file_progress() call cheaper and also only takes bytes that
+		// have passed the hash check into account, so progress cannot
+		// regress in this mode.
+		static constexpr file_progress_flags_t piece_granularity = 0_bit;
 
 		// This function fills in the supplied vector with the number of
 		// bytes downloaded of each file in this torrent. The progress values are
@@ -446,7 +446,7 @@ namespace aux {
 		// fully downloaded and passed the hash check count. When specifying
 		// piece granularity, the operation is a lot cheaper, since libtorrent
 		// already keeps track of this internally and no calculation is required.
-		void file_progress(std::vector<std::int64_t>& progress, int flags = 0) const;
+		void file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags = {}) const;
 
 		// This function returns a vector with status about files
 		// that are open for this torrent. Any file that is not open

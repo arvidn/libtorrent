@@ -600,7 +600,7 @@ namespace libtorrent {
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, int flags = 0);
+		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t flags);
 
 #if TORRENT_ABI_VERSION == 1
 		void use_interface(std::string net_interface);
