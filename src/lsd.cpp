@@ -103,8 +103,8 @@ void lsd::debug_log(char const* fmt, ...) const
 #endif
 
 namespace {
-	address const lsd_multicast_addr4 = make_address_v4("239.192.152.143");
-	address const lsd_multicast_addr6 = make_address_v6("ff15::efc0:988f");
+	address_v4 const lsd_multicast_addr4 = make_address_v4("239.192.152.143");
+	address_v6 const lsd_multicast_addr6 = make_address_v6("ff15::efc0:988f");
 	int const lsd_port = 6771;
 }
 
@@ -120,7 +120,10 @@ void lsd::start(error_code& ec)
 
 	m_socket.bind(udp::endpoint(address_v4::any(), lsd_port), ec);
 	if (ec) return;
-	m_socket.set_option(join_group(v4 ? lsd_multicast_addr4 : lsd_multicast_addr6), ec);
+	if (v4)
+		m_socket.set_option(join_group(lsd_multicast_addr4, m_listen_address.to_v4()), ec);
+	else
+		m_socket.set_option(join_group(lsd_multicast_addr6, m_listen_address.to_v6().scope_id()), ec);
 	if (ec) return;
 	m_socket.set_option(hops(32), ec);
 	if (ec) return;
@@ -161,7 +164,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
 			, m_cookie, v4 ? v4_address : v6_address);
 
-		udp::endpoint const to(v4 ? lsd_multicast_addr4 : lsd_multicast_addr6
+		udp::endpoint const to(v4 ? address(lsd_multicast_addr4) : address(lsd_multicast_addr6)
 			, lsd_port);
 
 #ifndef TORRENT_DISABLE_LOGGING

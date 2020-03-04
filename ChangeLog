@@ -21,6 +21,8 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+	* support TCP_NOTSENT_LOWAT on Linux
+	* fix correct interface binding of local service discovery multicast
 	* fix issue with knowing which interfaces to announce to trackers and DHT
 	* undeprecate settings_pack::dht_upload_rate_limit
 

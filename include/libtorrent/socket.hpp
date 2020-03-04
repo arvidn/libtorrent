@@ -261,6 +261,22 @@ struct udp : boost::asio::ip::udp {
 		int m_value;
 	};
 #endif // TORRENT_USE_NETLINK
+
+#ifdef TCP_NOTSENT_LOWAT
+	struct tcp_notsent_lowat
+	{
+		explicit tcp_notsent_lowat(int val) : m_value(val) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return IPPROTO_TCP; }
+		template<class Protocol>
+		int name(Protocol const&) const { return TCP_NOTSENT_LOWAT; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		std::size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

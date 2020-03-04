@@ -564,6 +564,8 @@ fe80
 vcpkg
 leecher
 6881l
+NOTSENT
+LOWAT
 destructors
 fclose
 fopen

@@ -345,6 +345,7 @@ namespace libtorrent {
 		SET(utp_cwnd_reduce_timer, 100, nullptr),
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
+		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(dht_max_peers_reply, 100, nullptr),
 		SET(dht_search_branching, 5, nullptr),
 		SET(dht_max_fail_count, 20, nullptr),
@@ -357,7 +358,6 @@ namespace libtorrent {
 		SET(dht_item_lifetime, 0, nullptr),
 		SET(dht_sample_infohashes_interval, 21600, nullptr),
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
-
 	}});
 
 #undef SET
