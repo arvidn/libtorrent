@@ -9101,9 +9101,9 @@ bool is_downloading_state(int const st)
 			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 				state_updated();
 			m_stat.second_tick(tick_interval_ms);
-			// if the rate is 0, there's no update because of network transfers
-			if (!(m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0))
-				update_want_tick();
+
+			// the low pass transfer rate may just have dropped to 0
+			update_want_tick();
 
 			return;
 		}
@@ -9214,6 +9214,8 @@ bool is_downloading_state(int const st)
 			}
 		}
 
+		// want_tick depends on whether the low pass transfer rates are non-zero
+		// or not. They may just have turned zero in this last tick.
 		update_want_tick();
 	}
 
