@@ -1443,6 +1443,16 @@ example alert_masks:
 					else ses.pause();
 				}
 
+				if (c == '[' && h.is_valid())
+				{
+					h.queue_position_up();
+				}
+
+				if (c == ']' && h.is_valid())
+				{
+					h.queue_position_down();
+				}
+
 				// add magnet link
 				if (c == 'm')
 				{
@@ -1637,6 +1647,8 @@ TORRENT ACTIONS
 [r] force reannounce                            [R] save resume data for all torrents
 [o] set piece deadlines (sequential dl)         [P] toggle auto-managed
 [k] toggle force-started                        [W] remove all web seeds
+ [  move queue position closer to beginning
+ ]  move queue position closer to end
 
 DISPLAY OPTIONS
 left/right arrow keys: select torrent filter
