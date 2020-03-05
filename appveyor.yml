@@ -4,7 +4,7 @@ branches:
     - master
     - RC_1_2
     - RC_1_1
-image: Visual Studio 2019
+image: Visual Studio 2017
 clone_depth: 1
 environment:
   matrix:
@@ -48,7 +48,7 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 16 ;`nusing gcc ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc : 15 ;`nusing gcc ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\msys64\mingw32\bin;%PATH%
