@@ -2027,6 +2027,16 @@ namespace aux {
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
 #endif
+
+		// trackers that were not reachable, may have become reachable now.
+		// so clear the "disabled" flags to let them be tried one more time
+		// TODO: it would probably be better to do this by having a
+		// listen-socket "version" number that gets bumped. And instead of
+		// setting a bool to disable a tracker, we set the version number that
+		// it was disabled at. This change would affect the ABI in 1.2, so
+		// should be done in 2.0 or later
+		for (auto& t : m_torrents)
+			t.second->enable_all_trackers();
 	}
 
 	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)

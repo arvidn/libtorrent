@@ -6201,6 +6201,13 @@ bool is_downloading_state(int const st)
 		return m_torrent_file;
 	}
 
+	void torrent::enable_all_trackers()
+	{
+		for (announce_entry& ae : m_trackers)
+			for (announce_endpoint& aep : ae.endpoints)
+				aep.enabled = true;
+	}
+
 	void torrent::write_resume_data(add_torrent_params& ret) const
 	{
 		ret.version = LIBTORRENT_VERSION_NUM;
