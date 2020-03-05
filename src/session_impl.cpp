@@ -4343,13 +4343,14 @@ namespace aux {
 			{
 				m_download_queue.push_back(me);
 				me->set_queue_position_impl(last);
-				return;
 			}
-
-			m_download_queue.insert(m_download_queue.begin() + static_cast<int>(p), me);
-			for (queue_position_t i = p; i < m_download_queue.end_index(); ++i)
+			else
 			{
-				m_download_queue[i]->set_queue_position_impl(i);
+				m_download_queue.insert(m_download_queue.begin() + static_cast<int>(p), me);
+				for (queue_position_t i = p; i < m_download_queue.end_index(); ++i)
+				{
+					m_download_queue[i]->set_queue_position_impl(i);
+				}
 			}
 		}
 		else if (p < queue_position_t{})
