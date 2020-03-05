@@ -107,7 +107,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION <= 2
 		// saves dht_settings. All DHT settings are now part of the main
 		// settings_pack, and saved by setting the save_settings flag
-		TORRENT_DEPRECATED_MEMBER static inline constexpr save_state_flags_t save_dht_settings = 1_bit;
+		TORRENT_DEPRECATED static inline constexpr save_state_flags_t save_dht_settings = 1_bit;
 #endif
 
 		// saves dht state such as nodes and node-id, possibly accelerating
