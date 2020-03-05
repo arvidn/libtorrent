@@ -333,7 +333,7 @@ script:
   - if [[ "$cmake" == "1" ]]; then
       export CXX=g++ &&
       export CC=gcc &&
-      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
+      BOOST_LIBRARYDIR=/usr/local/lib cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . --parallel 2;
     fi
 
