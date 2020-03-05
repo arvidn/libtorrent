@@ -299,7 +299,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// this is a map of partially downloaded piece. The key is the piece index
 		// and the value is a bitfield where each bit represents a 16 kiB block.
 		// A set bit means we have that block.
-		std::map<piece_index_t, bitfield> unfinished_pieces;
+		aux::noexcept_movable<std::map<piece_index_t, bitfield>> unfinished_pieces;
 
 		// this is a bitfield indicating which pieces we already have of this
 		// torrent.
