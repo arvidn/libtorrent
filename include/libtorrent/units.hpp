@@ -159,15 +159,7 @@ namespace std {
 	struct hash<libtorrent::aux::strong_typedef<UnderlyingType, Tag>> : std::hash<UnderlyingType>
 	{
 		using base = std::hash<UnderlyingType>;
-#if __cplusplus < 201703
-		using argument_type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
-#endif
-#if __cplusplus < 201402
-		// this was deprecated in C++17
-		using result_type = typename base::result_type;
-#else
 		using result_type = std::size_t;
-#endif
 		result_type operator()(libtorrent::aux::strong_typedef<UnderlyingType, Tag> const& s) const
 		{ return this->base::operator()(static_cast<UnderlyingType>(s)); }
 	};
