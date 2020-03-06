@@ -52,19 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // in warning about deprecated use in any of the tests.
 // the unreachable code warnings are disabled since the test macros may
 // sometimes have conditions that are known at compile time
-#if defined __clang__
-#pragma clang diagnostic ignored "-Wdeprecated"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wunreachable-code"
-
-#elif defined __GNUC__
-#pragma GCC diagnostic ignored "-Wdeprecated"
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wunreachable-code"
-
-#elif defined _MSC_VER
-#pragma warning(disable : 4996)
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 #if defined TORRENT_BUILDING_TEST_SHARED
 #define EXPORT BOOST_SYMBOL_EXPORT

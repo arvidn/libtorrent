@@ -73,10 +73,7 @@ namespace libtorrent {
 	// hidden
 	using alert_category_t = flags::bitfield_flag<std::uint32_t, struct alert_category_tag>;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
@@ -84,9 +81,8 @@ namespace libtorrent {
 	// under session_handle::pop_alerts())
 	struct TORRENT_EXPORT alert
 	{
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		// hidden
 		TORRENT_UNEXPORT alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
