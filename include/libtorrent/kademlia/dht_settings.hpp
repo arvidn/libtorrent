@@ -158,14 +158,7 @@ namespace dht {
 		int max_infohashes_sample_count = 20;
 	};
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 	// internal
 	struct settings : dht_settings
@@ -179,12 +172,7 @@ namespace dht {
 TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
 TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
 

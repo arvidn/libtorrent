@@ -75,15 +75,7 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 	// deprecated in 1.2
 	TORRENT_DEPRECATED
@@ -96,12 +88,7 @@ namespace aux {
 	inline bool from_hex(char const *in, int len, char* out)
 	{ return aux::from_hex({in, len}, out); }
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
 } // namespace libtorrent

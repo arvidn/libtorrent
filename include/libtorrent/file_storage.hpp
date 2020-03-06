@@ -60,10 +60,7 @@ namespace libtorrent {
 	// information about a file in a file_storage
 	struct TORRENT_DEPRECATED_EXPORT file_entry
 	{
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		// hidden
 		file_entry();
 		// hidden
@@ -73,9 +70,7 @@ namespace libtorrent {
 		file_entry(file_entry&&) noexcept = default;
 		file_entry& operator=(file_entry&&) & = default;
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.
@@ -326,14 +321,8 @@ namespace aux {
 		void rename_file(file_index_t index, std::string const& new_filename);
 
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable: 4996)
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 		TORRENT_DEPRECATED
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
@@ -389,12 +378,7 @@ namespace aux {
 		iterator file_at_offset_deprecated(std::int64_t offset) const;
 		file_entry at_deprecated(int index) const;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // TORRENT_ABI_VERSION
 
 		// returns a list of file_slice objects representing the portions of

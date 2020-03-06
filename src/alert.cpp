@@ -858,15 +858,7 @@ namespace {
 		using lfo = listen_failed_alert::op_t;
 
 		// we have to use deprecated enum values here. suppress the warnings
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		switch (op)
 		{
 			case o::bittorrent: return -1;
@@ -916,12 +908,7 @@ namespace {
 		}
 		return -1;
 	}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif // TORRENT_ABI_VERSION
 

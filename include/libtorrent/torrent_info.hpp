@@ -412,25 +412,12 @@ TORRENT_VERSION_NAMESPACE_3
 		file_iterator file_at_offset(std::int64_t offset) const
 		{ return m_files.file_at_offset_deprecated(offset); }
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		TORRENT_DEPRECATED
 		file_entry file_at(int index) const { return m_files.at_deprecated(index); }
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif // TORRENT_ABI_VERSION
 
