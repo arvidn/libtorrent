@@ -85,7 +85,7 @@ namespace {
 	void cpuid(std::uint32_t* info, int type) noexcept
 	{
 #if defined _MSC_VER
-		__cpuid((int*)info, type);
+		__cpuid(reinterpret_cast<int*>(info), type);
 
 #elif defined __GNUC__
 		__get_cpuid(std::uint32_t(type), &info[0], &info[1], &info[2], &info[3]);

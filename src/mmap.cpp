@@ -115,7 +115,7 @@ file_handle::file_handle(string_view name, std::int64_t
 		&& (mode & aux::open_mode::write))
 	{
 		DWORD temp;
-		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, 0, 0, 0, 0, &temp, nullptr);
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
 	}
 }
 
@@ -264,7 +264,7 @@ void file_handle::close()
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
 		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
-			, 0, 0, &temp, nullptr);
+			, nullptr, 0, &temp, nullptr);
 	}
 #endif
 

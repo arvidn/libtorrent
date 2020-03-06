@@ -41,7 +41,7 @@ namespace libtorrent { namespace aux {
 	HMODULE get_library_handle()
 	{
 		static bool handle_checked = false;
-		static HMODULE handle = 0;
+		static HMODULE handle = nullptr;
 
 		if (!handle_checked)
 		{
