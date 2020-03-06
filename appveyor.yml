@@ -4,10 +4,17 @@ branches:
     - master
     - RC_1_2
     - RC_1_1
+    - cxx-17
 image: Visual Studio 2017
 clone_depth: 1
 environment:
   matrix:
+    - variant: release
+      compiler: clang
+      model: 32
+      linking: static
+      crypto: openssl
+      bjam: 1
     - cmake: 1
     - variant: test_debug
       compiler: msvc-14.1
@@ -22,12 +29,6 @@ environment:
       model: 64
       python: 1
       python_dist: 1
-      crypto: openssl
-      bjam: 1
-    - variant: release
-      compiler: gcc
-      model: 32
-      linking: static
       crypto: openssl
       bjam: 1
 
@@ -48,11 +49,12 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 14.1 ;`nusing gcc ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
-  - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
+  - ps: '"using msvc : 14.1 ;`nusing clang ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+#  - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
-  - set PATH=c:\msys64\mingw32\bin;%PATH%
-  - g++ --version
+#  - set PATH=c:\msys64\mingw32\bin;%PATH%
+#  - g++ --version
+  - clang++ --version
   - set PATH=c:\Python27-x64;%PATH%
   - set PYTHON_INTERPRETER=c:\Python27-x64\python.exe
   - python --version
