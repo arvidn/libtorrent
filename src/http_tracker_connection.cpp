@@ -121,7 +121,7 @@ namespace libtorrent {
 				, escape_string({tracker_req().pid.data(), 20}).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
-				, i2p ? 1 : tracker_req().listen_port
+				, tracker_req().listen_port == 0 ? 1 : tracker_req().listen_port
 				, tracker_req().uploaded
 				, tracker_req().downloaded
 				, tracker_req().left
