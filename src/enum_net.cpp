@@ -687,7 +687,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}
 
 			for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
-				adapter != 0; adapter = adapter->Next)
+				adapter != nullptr; adapter = adapter->Next)
 			{
 				ip_interface r;
 				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
@@ -761,8 +761,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		INTERFACE_INFO buffer[30];
 		DWORD size;
 
-		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
-			sizeof(buffer), &size, 0, 0) != 0)
+		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, nullptr, 0, buffer,
+			sizeof(buffer), &size, nullptr, nullptr) != 0)
 		{
 			ec = error_code(WSAGetLastError(), system_category());
 			closesocket(s);
