@@ -331,7 +331,7 @@ namespace libtorrent {
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
 			, FILE_SHARE_READ | FILE_SHARE_WRITE
-			, 0, m.create_mode, flags, 0);
+			, nullptr, m.create_mode, flags, nullptr);
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
@@ -348,8 +348,8 @@ namespace libtorrent {
 			&& (mode & aux::open_mode::write))
 		{
 			DWORD temp;
-			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
-				, 0, 0, &temp, nullptr);
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, nullptr, 0
+				, nullptr, 0, &temp, nullptr);
 		}
 #else // TORRENT_WINDOWS
 
@@ -471,7 +471,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		FILE_ALLOCATED_RANGE_BUFFER out[2];
 
 		DWORD returned_bytes = 0;
-		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
+		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, static_cast<void*>(&in), sizeof(in)
 			, out, sizeof(out), &returned_bytes, nullptr);
 
 		if (ret == FALSE)
@@ -512,7 +512,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			FILE_SET_SPARSE_BUFFER b;
 			b.SetSparse = FALSE;
 			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
-				, 0, 0, &temp, nullptr);
+				, nullptr, 0, &temp, nullptr);
 		}
 
 		CloseHandle(native_handle());

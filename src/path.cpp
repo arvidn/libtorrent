@@ -302,7 +302,7 @@ namespace {
 
 		native_path_string n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
-		if (CreateDirectoryW(n.c_str(), 0) == 0
+		if (CreateDirectoryW(n.c_str(), nullptr) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
 #else
@@ -628,7 +628,7 @@ namespace {
 		char const* sep = std::strrchr(first, '/');
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		char const* altsep = std::strrchr(first, '\\');
-		if (sep == 0 || altsep > sep) sep = altsep;
+		if (sep == nullptr || altsep > sep) sep = altsep;
 #endif
 		if (sep == nullptr) return f;
 
