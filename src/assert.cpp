@@ -105,8 +105,8 @@ std::string demangle(char const* name)
 }
 #elif defined _WIN32
 
-#include "windows.h"
-#include "dbghelp.h"
+#include "libtorrent/aux_/windows.hpp"
+#include <DbgHelp.h>
 
 namespace libtorrent {
 std::string demangle(char const* name)
@@ -154,12 +154,12 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 #elif defined _WIN32
 
-#include "windows.h"
+#include "libtorrent/aux_/windows.hpp"
 #include "libtorrent/utf8.hpp"
 #include <mutex>
 
-#include "winbase.h"
-#include "dbghelp.h"
+#include <WinBase.h>
+#include <DbgHelp.h>
 
 namespace libtorrent {
 
