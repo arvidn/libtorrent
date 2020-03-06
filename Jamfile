@@ -879,8 +879,8 @@ local usage-requirements =
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"
 
 	# disable bogus deprecation warnings on msvc8
-	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
-	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+	<target-os>windows:<define>_SCL_SECURE_NO_DEPRECATE
+	<target-os>windows:<define>_CRT_SECURE_NO_DEPRECATE
 
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
 	<define>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
