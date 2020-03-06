@@ -10,7 +10,7 @@ clone_depth: 1
 environment:
   matrix:
     - variant: release
-      compiler: clang
+      compiler: clang-win
       model: 32
       linking: static
       crypto: openssl
