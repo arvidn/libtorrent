@@ -476,6 +476,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SYMLINK 0
 #endif
 
+#ifndef TORRENT_USE_IFCONF
+#define TORRENT_USE_IFCONF 0
+#endif
+
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.
