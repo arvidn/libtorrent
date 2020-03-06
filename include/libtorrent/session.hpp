@@ -180,14 +180,9 @@ namespace aux {
 		session& operator=(session const&) = delete;
 
 #if TORRENT_ABI_VERSION <= 2
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
 		// disk cache, ip filter etc.). In order to avoid a race condition between
@@ -225,27 +220,8 @@ namespace aux {
 		session(settings_pack const&, io_context&, session_flags_t);
 		session(settings_pack&& pack, io_context& ios) : session(std::move(pack), ios, add_default_plugins) {}
 		session(settings_pack const& pack, io_context& ios) : session(pack, ios, add_default_plugins) {}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#endif
 
-#if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable: 4996)
-#endif
+
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, session_flags_t const flags = start_default_features | add_default_plugins
@@ -257,15 +233,9 @@ namespace aux {
 			, char const* listen_interface = "0.0.0.0"
 			, session_flags_t const flags = start_default_features | add_default_plugins
 			, alert_category_t const alert_mask = alert::error_notification);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #endif // TORRENT_ABI_VERSION
 
 		// The destructor of session will notify all trackers that our torrents

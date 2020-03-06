@@ -410,18 +410,7 @@ namespace {
 #endif
 
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable: 4996)
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 	session::session(fingerprint const& print, session_flags_t const flags
 		, alert_category_t const alert_mask)
 	{
@@ -465,15 +454,7 @@ namespace {
 		}
 		start(flags, std::move(pack), nullptr);
 	}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // TORRENT_ABI_VERSION
 	session& session::operator=(session&&) & = default;
 
@@ -531,17 +512,12 @@ namespace {
 	{
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 		// TODO: In C++17. use if constexpr instead
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable: 4127) // conditional expression is constant
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		if (sizeof(void*) == 8)
 			return mmap_disk_io_constructor(ios, sett, cnt);
 		else
 			return posix_disk_io_constructor(ios, sett, cnt);
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #else
 		return posix_disk_io_constructor(ios, sett, cnt);
 #endif

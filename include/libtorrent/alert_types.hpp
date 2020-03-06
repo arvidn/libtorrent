@@ -227,15 +227,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
@@ -253,12 +245,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string message() const override;
 	};
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
 
@@ -332,17 +319,14 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT_PRIO(file_completed_alert, 6, alert_priority::normal)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 		static constexpr alert_category_t static_category =
 			alert::file_progress_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		std::string message() const override;
 
 		// refers to the index of the file that completed.
@@ -373,17 +357,13 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::allocation_slot m_old_name_idx;
 #if TORRENT_ABI_VERSION == 1
 
-#if defined __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Weverything"
-#endif
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 	public:
 		TORRENT_DEPRECATED std::string name;
 
-#if defined __clang__
-#pragma clang diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #endif
 	};
 
@@ -906,17 +886,14 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 		static constexpr alert_category_t static_category =
 			alert::piece_progress_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		std::string message() const override;
 
 		// the index of the piece that finished
@@ -933,18 +910,14 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		static constexpr alert_category_t static_category =
 			alert::block_progress_notification
 			| alert::peer_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		std::string message() const override;
 
 		int const block_index;
@@ -961,18 +934,14 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		static constexpr alert_category_t static_category =
 			alert::block_progress_notification
 			| alert::peer_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		std::string message() const override;
 
 		int const block_index;
@@ -989,17 +958,13 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		static constexpr alert_category_t static_category =
 			alert::block_progress_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 		std::string message() const override;
 
 		int const block_index;
@@ -1016,17 +981,12 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		static constexpr alert_category_t static_category =
 			alert::block_progress_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		std::string message() const override;
 
 		int const block_index;
@@ -1873,15 +1833,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 #if TORRENT_ABI_VERSION == 1
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 	// This alert is posted when a bittorrent feature is blocked because of the
 	// anonymous mode. For instance, if the tracker proxy is not set up, no
@@ -1911,12 +1863,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::string str;
 	};
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif // TORRENT_ABI_VERSION
 
@@ -2096,15 +2043,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 #if TORRENT_ABI_VERSION == 1
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-// warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 	struct TORRENT_DEPRECATED_EXPORT mmap_cache_alert final : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
@@ -2116,12 +2055,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 		error_code const error;
 	};
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // TORRENT_ABI_VERSION
 
 	// The session_stats_alert is posted when the user requests session statistics by
@@ -2140,23 +2074,13 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_UNEXPORT session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
 
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 #endif
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#endif
+
 		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70, alert_priority::critical)
+
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 		static constexpr alert_category_t static_category = alert::stats_notification;
@@ -2896,17 +2820,12 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		static constexpr alert_category_t static_category =
 			alert::upload_notification
 			PROGRESS_NOTIFICATION
 		;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		std::string message() const override;
 
 		int const block_index;

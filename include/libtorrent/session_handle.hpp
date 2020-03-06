@@ -370,26 +370,16 @@ namespace libtorrent {
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		// ``set_dht_settings`` sets some parameters available to the dht node.
 		// See dht_settings for more information.
 		//
 		// ``get_dht_settings()`` returns the current settings
 		void set_dht_settings(dht::dht_settings const& settings);
 		dht::dht_settings get_dht_settings() const;
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
 
@@ -860,14 +850,7 @@ namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning( disable : 4996 ) // warning C4996: X: was declared deprecated
-#endif
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		// deprecated in libtorrent 1.1. use settings_pack instead
 		TORRENT_DEPRECATED
@@ -875,12 +858,7 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		pe_settings get_pe_settings() const;
 
-#if defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistent
 		// connection to it. The only used fields in the proxy settings structs

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019, Arvid Norberg
+Copyright (c) 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdint.h>
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if __GNUC__ >= 9
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
+#endif
 
-extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
-{
-	lt::error_code ec;
-	int pos;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-
-	lt::lazy_entry ret;
-	lazy_bdecode(reinterpret_cast<char const*>(data), reinterpret_cast<char const*>(data) + size, ret, ec, &pos);
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-	return 0;
-}
-
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif

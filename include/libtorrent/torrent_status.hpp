@@ -52,10 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 #endif
 
 TORRENT_VERSION_NAMESPACE_2
@@ -65,9 +62,7 @@ TORRENT_VERSION_NAMESPACE_2
 	struct TORRENT_EXPORT torrent_status
 	{
 #if TORRENT_ABI_VERSION == 1
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 		// hidden
 		torrent_status() noexcept;
