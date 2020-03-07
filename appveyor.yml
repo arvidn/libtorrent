@@ -37,7 +37,7 @@ install:
   - if not defined linking ( set linking="shared" )
   - if not defined crypto ( set crypto=built-in )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_69_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_71_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
