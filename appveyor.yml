@@ -10,15 +10,15 @@ environment:
   matrix:
     - cmake: 1
     - variant: test_debug
-      compiler: msvc-14.24
+      compiler: msvc
       model: 64
       sim: 1
     - variant: test_debug
-      compiler: msvc-14.24
+      compiler: msvc
       model: 32
       bjam: 1
     - variant: test_release
-      compiler: msvc-14.24
+      compiler: msvc
       model: 64
       python: 1
       python_dist: 1
@@ -42,7 +42,7 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 14.24 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\Python27-x64;%PATH%
@@ -95,7 +95,7 @@ build_script:
   # and stage it for cmake to pick up
   - if defined cmake (
     cd %BOOST_ROOT% &&
-    bjam cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
+    b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
     mkdir build &&
     cd build &&
