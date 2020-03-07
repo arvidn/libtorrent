@@ -1879,7 +1879,7 @@ namespace {
 
 	std::string lsd_error_alert::message() const
 	{
-		return "Local Service Discovery error: " + convert_from_native(error.message());
+		return "Local Service Discovery startup error: " + convert_from_native(error.message());
 	}
 
 #if TORRENT_ABI_VERSION == 1
