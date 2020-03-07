@@ -3271,7 +3271,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	disk_io_thread::job_queue& disk_io_thread::queue_for_job(disk_io_job* j)
 	{
-		if (m_hash_threads.max_threads() > 0 && j->action == job_action_t::hash)
+		if (m_hash_threads.max_threads() > 0
+			&& j->action == job_action_t::hash
+			&& j->action == job_action_t::move_storage)
 			return m_hash_io_jobs;
 		else
 			return m_generic_io_jobs;
@@ -3279,7 +3281,9 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	disk_io_thread_pool& disk_io_thread::pool_for_job(disk_io_job* j)
 	{
-		if (m_hash_threads.max_threads() > 0 && j->action == job_action_t::hash)
+		if (m_hash_threads.max_threads() > 0
+			&& j->action == job_action_t::hash
+			&& j->action == job_action_t::move_storage)
 			return m_hash_threads;
 		else
 			return m_generic_threads;
