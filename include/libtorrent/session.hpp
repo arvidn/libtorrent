@@ -180,7 +180,6 @@ namespace aux {
 		session& operator=(session const&) = delete;
 
 #if TORRENT_ABI_VERSION <= 2
-
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		// Constructs the session objects which acts as the container of torrents.
@@ -221,6 +220,11 @@ namespace aux {
 		session(settings_pack&& pack, io_context& ios) : session(std::move(pack), ios, add_default_plugins) {}
 		session(settings_pack const& pack, io_context& ios) : session(pack, ios, add_default_plugins) {}
 
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // TORRENT_ABI_VERSION
+
+#if TORRENT_ABI_VERSION == 1
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
@@ -235,7 +239,6 @@ namespace aux {
 			, alert_category_t const alert_mask = alert::error_notification);
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #endif // TORRENT_ABI_VERSION
 
 		// The destructor of session will notify all trackers that our torrents
