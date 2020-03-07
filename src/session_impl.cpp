@@ -1095,6 +1095,12 @@ namespace aux {
 		return ret;
 	}
 
+namespace {
+
+	std::uint16_t make_announce_port(std::uint16_t const p)
+	{ return p == 0 ? 1 : p; }
+}
+
 	void session_impl::queue_tracker_request(tracker_request&& req
 		, std::weak_ptr<request_callback> c)
 	{
@@ -1116,11 +1122,14 @@ namespace aux {
 			auto ls = req.outgoing_socket.get();
 
 			req.listen_port =
+#if TORRENT_USE_I2P
+				(req.kind == tracker_request::i2p) ? 1 :
+#endif
 #ifdef TORRENT_USE_OPENSSL
 			// SSL torrents use the SSL listen port
-				use_ssl ? ssl_listen_port(ls) :
+				use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
-				listen_port(ls);
+				make_announce_port(listen_port(ls));
 			m_tracker_manager.queue_request(get_io_service(), std::move(req), c);
 		}
 		else
@@ -1133,11 +1142,14 @@ namespace aux {
 #endif
 				tracker_request socket_req(req);
 				socket_req.listen_port =
+#if TORRENT_USE_I2P
+					(req.kind == tracker_request::i2p) ? 1 :
+#endif
 #ifdef TORRENT_USE_OPENSSL
 				// SSL torrents use the SSL listen port
-					use_ssl ? ssl_listen_port(ls.get()) :
+					use_ssl ? make_announce_port(ssl_listen_port(ls.get())) :
 #endif
-					listen_port(ls.get());
+					make_announce_port(listen_port(ls.get()));
 
 				socket_req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_io_service(), std::move(socket_req), c);
