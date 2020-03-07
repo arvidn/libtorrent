@@ -116,7 +116,7 @@ void lsd::start(error_code& ec)
 	m_socket.set_option(udp::socket::reuse_address(true), ec);
 	if (ec) return;
 
-	m_socket.bind(udp::endpoint(address_v4::any(), lsd_port), ec);
+	m_socket.bind(udp::endpoint(v4 ? address(address_v4::any()) : address(address_v6::any()), lsd_port), ec);
 	if (ec) return;
 	if (v4)
 		m_socket.set_option(join_group(lsd_multicast_addr4, m_listen_address.to_v4()), ec);

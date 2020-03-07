@@ -1884,6 +1884,8 @@ namespace aux {
 			if ((*remove_iter)->sock) (*remove_iter)->sock->close(ec);
 			if ((*remove_iter)->udp_sock) (*remove_iter)->udp_sock->sock.close();
 			if ((*remove_iter)->natpmp_mapper) (*remove_iter)->natpmp_mapper->close();
+			if ((*remove_iter)->upnp_mapper) (*remove_iter)->upnp_mapper->close();
+			if ((*remove_iter)->lsd) (*remove_iter)->lsd->close();
 			remove_iter = m_listen_sockets.erase(remove_iter);
 		}
 
