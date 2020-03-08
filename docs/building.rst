@@ -380,7 +380,7 @@ Build features:
 |                          |   protocol.                                        |
 |                          | * ``off`` - disable bittorrent extensions.         |
 +--------------------------+----------------------------------------------------+
-| ``pic``                  | * ``off`` - default. Build without specifying      |
+| ``fpic``                 | * ``off`` - default. Build without specifying      |
 |                          |   ``-fPIC``.                                       |
 |                          | * ``on`` - Force build with ``-fPIC`` (useful for  |
 |                          |   building a static library to be linked into a    |
