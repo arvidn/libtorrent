@@ -77,14 +77,16 @@ namespace upnp_errors
 
 static error_code ignore_error;
 
-upnp::rootdevice::rootdevice() {}
+upnp::rootdevice::rootdevice() = default;
+#if TORRENT_USE_ASSERTS
 upnp::rootdevice::~rootdevice()
 {
 	TORRENT_ASSERT(magic == 1337);
-#if TORRENT_USE_ASSERTS
 	magic = 0;
-#endif
 }
+#else
+upnp::rootdevice::~rootdevice() = default;
+#endif
 
 upnp::rootdevice::rootdevice(rootdevice const&) = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) = default;
@@ -95,12 +97,12 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) = default;
 // bind to, since the broadcast socket opens one socket per local
 // interface by default
 upnp::upnp(io_service& ios
-	, std::string const& user_agent
+	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
 	, address_v4 const& listen_address
 	, address_v4 const& netmask
 	, std::string listen_device)
-	: m_user_agent(user_agent)
+	: m_settings(settings)
 	, m_callback(cb)
 	, m_io_service(ios)
 	, m_resolver(ios)
@@ -557,6 +559,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	rootdevice d;
 	d.url = url;
+	d.lease_duration = m_settings.get_int(settings_pack::upnp_lease_duration);
 
 	auto i = m_devices.find(d);
 
@@ -742,7 +745,8 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 		, to_string(d.mapping[i].protocol)
 		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
-		, m_user_agent.c_str()
+		, m_settings.get_bool(settings_pack::anonymous_mode)
+			? "" : m_settings.get_str(settings_pack::user_agent).c_str()
 		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action);

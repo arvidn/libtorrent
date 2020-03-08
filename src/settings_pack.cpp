@@ -177,7 +177,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(enable_incoming_tcp, true, nullptr),
 		SET(ignore_resume_timestamps, false, nullptr),
 		SET(no_recheck_incomplete_resume, false, nullptr),
-		SET(anonymous_mode, false, &session_impl::update_anonymous_mode),
+		SET(anonymous_mode, false, nullptr),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		DEPRECATED_SET(rate_limit_utp, true, &session_impl::update_rate_limit_utp),
 		DEPRECATED_SET(announce_double_nat, false, nullptr),
@@ -349,6 +349,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 		SET(send_not_sent_low_watermark, 16384, nullptr),
+		SET(upnp_lease_duration, 3600, nullptr),
 	}});
 
 #undef SET

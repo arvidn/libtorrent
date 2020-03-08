@@ -231,13 +231,13 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	sock->open(&incoming_msearch, ios, ec);
 
-	std::string user_agent = "test agent";
+	aux::session_settings sett;
 
 	// pick an appropriate interface to run this test on
 	auto const ipf = pick_upnp_interface();
 
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb
+	auto upnp_handler = std::make_shared<upnp>(ios, sett, cb
 		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name);
 	upnp_handler->start();
 
@@ -326,9 +326,10 @@ TORRENT_TEST(upnp_max_mappings)
 	lt::io_service ios;
 
 	auto const ipf = pick_upnp_interface();
+	aux::session_settings sett;
 
 	upnp_callback cb;
-	auto upnp_handler = std::make_shared<upnp>(ios, "", cb
+	auto upnp_handler = std::make_shared<upnp>(ios, sett, cb
 		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name);
 
 	for (int i = 0; i < 50; ++i)

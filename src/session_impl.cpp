@@ -6500,25 +6500,6 @@ namespace {
 #endif
 	}
 
-	void session_impl::update_anonymous_mode()
-	{
-		if (!m_settings.get_bool(settings_pack::anonymous_mode))
-		{
-			for (auto& s : m_listen_sockets)
-			{
-				if (!s->upnp_mapper) continue;
-				s->upnp_mapper->set_user_agent(m_settings.get_str(settings_pack::user_agent));
-			}
-			return;
-		}
-
-		for (auto& s : m_listen_sockets)
-		{
-			if (!s->upnp_mapper) continue;
-			s->upnp_mapper->set_user_agent("");
-		}
-	}
-
 #if TORRENT_ABI_VERSION == 1
 	void session_impl::update_local_download_rate()
 	{
@@ -6769,9 +6750,7 @@ namespace {
 		{
 			// the upnp constructor may fail and call the callbacks
 			// into the session_impl.
-			s.upnp_mapper = std::make_shared<upnp>(m_io_service
-				, m_settings.get_bool(settings_pack::anonymous_mode)
-				? "" : m_settings.get_str(settings_pack::user_agent)
+			s.upnp_mapper = std::make_shared<upnp>(m_io_service, m_settings
 				, *this, s.local_endpoint.address().to_v4(), s.netmask.to_v4(), s.device);
 			s.upnp_mapper->start();
 		}
