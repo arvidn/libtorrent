@@ -1735,6 +1735,13 @@ namespace aux {
 			// option.
 			send_not_sent_low_watermark,
 
+			// The expiration time of UPnP port-mappings, specified in seconds. 0
+			// means permanent lease. Some routers do not support expiration times
+			// on port-maps (nor correctly returning an error indicating lack of
+			// support). In those cases, set this to 0. Otherwise, don't set it any
+			// lower than 5 minutes.
+			upnp_lease_duration,
+
 			max_int_setting_internal
 		};
 
