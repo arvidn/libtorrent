@@ -1,3 +1,5 @@
+1.2.5 release
+
 	* announce port=1 instead of port=0, when there is no listen port
 	* fix LSD over IPv6
 	* support TCP_NOTSENT_LOWAT on Linux
