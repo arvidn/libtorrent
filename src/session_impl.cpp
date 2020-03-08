@@ -1204,6 +1204,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		return ret;
 	}
 
+namespace {
+
+	std::uint16_t make_announce_port(std::uint16_t const p)
+	{ return p == 0 ? 1 : p; }
+}
+
 	void session_impl::queue_tracker_request(tracker_request req
 		, std::weak_ptr<request_callback> c)
 	{
@@ -1225,11 +1231,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			auto ls = req.outgoing_socket.get();
 
 			req.listen_port =
+#if TORRENT_USE_I2P
+				(req.kind == tracker_request::i2p) ? 1 :
+#endif
 #ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
-				use_ssl ? ssl_listen_port(ls) :
+				use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
-				listen_port(ls);
+				make_announce_port(listen_port(ls));
 			m_tracker_manager.queue_request(get_context(), std::move(req), c);
 		}
 		else
@@ -1242,11 +1251,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #endif
 				tracker_request socket_req(req);
 				socket_req.listen_port =
+#if TORRENT_USE_I2P
+					(req.kind == tracker_request::i2p) ? 1 :
+#endif
 #ifdef TORRENT_SSL_PEERS
 				// SSL torrents use the SSL listen port
-					use_ssl ? ssl_listen_port(ls.get()) :
+					use_ssl ? make_announce_port(ssl_listen_port(ls.get())) :
 #endif
-					listen_port(ls.get());
+					make_announce_port(listen_port(ls.get()));
 
 				socket_req.outgoing_socket = ls;
 				m_tracker_manager.queue_request(get_context(), std::move(socket_req), c);
@@ -1997,6 +2009,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			if ((*remove_iter)->sock) (*remove_iter)->sock->close(ec);
 			if ((*remove_iter)->udp_sock) (*remove_iter)->udp_sock->sock.close();
 			if ((*remove_iter)->natpmp_mapper) (*remove_iter)->natpmp_mapper->close();
+			if ((*remove_iter)->upnp_mapper) (*remove_iter)->upnp_mapper->close();
+			if ((*remove_iter)->lsd) (*remove_iter)->lsd->close();
 			remove_iter = m_listen_sockets.erase(remove_iter);
 		}
 
@@ -2138,6 +2152,16 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
 #endif
+
+		// trackers that were not reachable, may have become reachable now.
+		// so clear the "disabled" flags to let them be tried one more time
+		// TODO: it would probably be better to do this by having a
+		// listen-socket "version" number that gets bumped. And instead of
+		// setting a bool to disable a tracker, we set the version number that
+		// it was disabled at. This change would affect the ABI in 1.2, so
+		// should be done in 2.0 or later
+		for (auto& t : m_torrents)
+			t->enable_all_trackers();
 	}
 
 	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
@@ -4424,13 +4448,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			{
 				m_download_queue.push_back(me);
 				me->set_queue_position_impl(last);
-				return;
 			}
-
-			m_download_queue.insert(m_download_queue.begin() + static_cast<int>(p), me);
-			for (queue_position_t i = p; i < m_download_queue.end_index(); ++i)
+			else
 			{
-				m_download_queue[i]->set_queue_position_impl(i);
+				m_download_queue.insert(m_download_queue.begin() + static_cast<int>(p), me);
+				for (queue_position_t i = p; i < m_download_queue.end_index(); ++i)
+				{
+					m_download_queue[i]->set_queue_position_impl(i);
+				}
 			}
 		}
 		else if (p < queue_position_t{})

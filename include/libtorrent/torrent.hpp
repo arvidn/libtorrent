@@ -1038,6 +1038,10 @@ namespace libtorrent {
 
 		std::vector<announce_entry> trackers() const;
 
+		// this sets all the "enabled" states on all trackers, giving them
+		// all one more chance of being tried
+		void enable_all_trackers();
+
 		void replace_trackers(std::vector<announce_entry> const& urls);
 
 		// returns true if the tracker was added, and false if it was already

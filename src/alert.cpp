@@ -1870,7 +1870,7 @@ namespace {
 
 	std::string lsd_error_alert::message() const
 	{
-		return "Local Service Discovery error [" + local_address.to_string() + "]: "
+		return "Local Service Discovery startup error [" + local_address.to_string() + "]: "
 			+ convert_from_native(error.message());
 	}
 
