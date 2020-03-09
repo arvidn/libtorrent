@@ -11412,7 +11412,7 @@ namespace {
 	}
 
 	void torrent::tracker_request_error(tracker_request const& r
-		, error_code const& ec, std::string const& msg
+		, error_code const& ec, operation_t const op, std::string const& msg
 		, seconds32 const retry_interval)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -11436,8 +11436,8 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			debug_log("*** tracker error: (%d) %s %s", ec.value()
-				, ec.message().c_str(), msg.c_str());
+			debug_log("*** tracker error: (%d) %s [%s] %s", ec.value()
+				, ec.message().c_str(), operation_name(op), msg.c_str());
 		}
 #endif
 		if (!(r.kind & tracker_request::scrape_request))
@@ -11513,7 +11513,7 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, local_endpoint, fails, r.url, ec, msg);
+					, local_endpoint, fails, r.url, op, ec, msg);
 			}
 		}
 		else

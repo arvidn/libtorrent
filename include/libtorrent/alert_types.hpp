@@ -526,8 +526,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// internal
 		TORRENT_UNEXPORT tracker_error_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int times, string_view u
-			, error_code const& e, string_view m);
+			, int times, string_view u, operation_t op, error_code const& e, string_view m);
 
 		TORRENT_DEFINE_ALERT_PRIO(tracker_error_alert, 11, alert_priority::high)
 
@@ -536,6 +535,8 @@ TORRENT_VERSION_NAMESPACE_2
 
 		int const times_in_row;
 		error_code const error;
+
+		operation_t op;
 
 		// the message associated with this error
 		char const* error_message() const;

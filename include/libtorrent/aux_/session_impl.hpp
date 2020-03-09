@@ -1354,7 +1354,7 @@ namespace aux {
 				, std::list<address> const& tracker_ips
 				, struct tracker_response const& resp) override;
 			void tracker_request_error(tracker_request const& r
-				, error_code const& ec, const std::string& str
+				, error_code const& ec, operation_t op, const std::string& str
 				, seconds32 retry_interval) override;
 			bool should_log() const override;
 			void debug_log(const char* fmt, ...) const noexcept override TORRENT_FORMAT(2,3);

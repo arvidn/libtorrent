@@ -90,7 +90,7 @@ namespace libtorrent {
 
 		if (ec)
 		{
-			tracker_connection::fail(ec);
+			tracker_connection::fail(ec, operation_t::parse_address);
 			return;
 		}
 
@@ -132,7 +132,7 @@ namespace libtorrent {
 			, settings.get_int(settings_pack::tracker_receive_timeout));
 	}
 
-	void udp_tracker_connection::fail(error_code const& ec
+	void udp_tracker_connection::fail(error_code const& ec, operation_t const op
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
@@ -145,7 +145,7 @@ namespace libtorrent {
 		// fail the whole announce
 		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
-			tracker_connection::fail(ec, msg, interval, min_interval);
+			tracker_connection::fail(ec, op, msg, interval, min_interval);
 			return;
 		}
 
@@ -186,7 +186,7 @@ namespace libtorrent {
 		if (error == boost::asio::error::operation_aborted) return;
 		if (error || addresses.empty())
 		{
-			fail(error);
+			fail(error, operation_t::hostname_lookup);
 			return;
 		}
 
@@ -196,7 +196,7 @@ namespace libtorrent {
 #endif
 		if (cancelled())
 		{
-			fail(error_code(errors::torrent_aborted));
+			fail(error_code(errors::torrent_aborted), operation_t::hostname_lookup);
 			return;
 		}
 
@@ -204,7 +204,7 @@ namespace libtorrent {
 
 		if (!tracker_req().outgoing_socket)
 		{
-			fail(error_code(errors::invalid_listen_socket));
+			fail(error_code(errors::invalid_listen_socket), operation_t::hostname_lookup);
 			return;
 		}
 
@@ -221,7 +221,8 @@ namespace libtorrent {
 
 		if (m_endpoints.empty())
 		{
-			fail(error_code(boost::system::errc::host_unreachable, generic_category()));
+			fail(error_code(boost::system::errc::host_unreachable, generic_category())
+				, operation_t::hostname_lookup);
 			return;
 		}
 
@@ -249,7 +250,7 @@ namespace libtorrent {
 		// if all endpoints were filtered by the IP filter, we can't connect
 		if (m_endpoints.empty())
 		{
-			fail(error_code(errors::banned_by_ip_filter));
+			fail(error_code(errors::banned_by_ip_filter), operation_t::hostname_lookup);
 			return;
 		}
 
@@ -286,7 +287,7 @@ namespace libtorrent {
 	{
 		if (ec)
 		{
-			fail(ec);
+			fail(ec, operation_t::timer);
 			return;
 		}
 
@@ -294,7 +295,7 @@ namespace libtorrent {
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
-		fail(error_code(errors::timed_out));
+		fail(error_code(errors::timed_out), operation_t::timer);
 	}
 
 	void udp_tracker_connection::close()
@@ -385,7 +386,7 @@ namespace libtorrent {
 
 		if (action == action_t::error)
 		{
-			fail(error_code(errors::tracker_failure)
+			fail(error_code(errors::tracker_failure), operation_t::bittorrent
 				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
 			return true;
 		}
@@ -507,7 +508,7 @@ namespace libtorrent {
 					, ec.message().c_str());
 			}
 #endif
-			fail(ec);
+			fail(ec, operation_t::sock_write);
 			return;
 		}
 
@@ -564,7 +565,7 @@ namespace libtorrent {
 		++m_attempts;
 		if (ec)
 		{
-			fail(ec);
+			fail(ec, operation_t::sock_write);
 			return;
 		}
 	}
@@ -587,7 +588,7 @@ namespace libtorrent {
 		auto const num_peers = buf.size() / ip_stride;
 		if (buf.size() % ip_stride != 0)
 		{
-			fail(error_code(errors::invalid_tracker_response_length));
+			fail(error_code(errors::invalid_tracker_response_length), operation_t::bittorrent);
 			return false;
 		}
 
@@ -649,26 +650,26 @@ namespace libtorrent {
 
 		if (transaction != m_transaction_id)
 		{
-			fail(error_code(errors::invalid_tracker_transaction_id));
+			fail(error_code(errors::invalid_tracker_transaction_id), operation_t::bittorrent);
 			return false;
 		}
 
 		if (action == action_t::error)
 		{
-			fail(error_code(errors::tracker_failure)
+			fail(error_code(errors::tracker_failure), operation_t::bittorrent
 				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
 			return true;
 		}
 
 		if (action != action_t::scrape)
 		{
-			fail(error_code(errors::invalid_tracker_action));
+			fail(error_code(errors::invalid_tracker_action), operation_t::bittorrent);
 			return true;
 		}
 
 		if (buf.size() < 12)
 		{
-			fail(error_code(errors::invalid_tracker_response_length));
+			fail(error_code(errors::invalid_tracker_response_length), operation_t::bittorrent);
 			return true;
 		}
 
@@ -772,7 +773,7 @@ namespace libtorrent {
 		++m_attempts;
 		if (ec)
 		{
-			fail(ec);
+			fail(ec, operation_t::sock_write);
 			return;
 		}
 	}

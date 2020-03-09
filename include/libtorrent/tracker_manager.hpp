@@ -222,6 +222,7 @@ enum class event_t : std::uint8_t
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, error_code const& ec
+			, operation_t op
 			, const std::string& msg
 			, seconds32 retry_interval) = 0;
 
@@ -286,7 +287,7 @@ enum class event_t : std::uint8_t
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail(error_code const& ec, char const* msg = ""
+		void fail(error_code const& ec, operation_t op, char const* msg = ""
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 		virtual void start() = 0;
 		virtual void close() = 0;
@@ -307,7 +308,7 @@ enum class event_t : std::uint8_t
 
 	protected:
 
-		void fail_impl(error_code const& ec, std::string msg = std::string()
+		void fail_impl(error_code const& ec, operation_t op, std::string msg = std::string()
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 
 		std::weak_ptr<request_callback> m_requester;

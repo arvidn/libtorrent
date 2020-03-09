@@ -83,7 +83,7 @@ namespace libtorrent {
 			std::size_t pos = url.find("announce");
 			if (pos == std::string::npos)
 			{
-				tracker_connection::fail(errors::scrape_not_available);
+				fail(errors::scrape_not_available, operation_t::bittorrent);
 				return;
 			}
 			url.replace(pos, 8, "scrape");
@@ -160,7 +160,8 @@ namespace libtorrent {
 			{
 				if (tracker_req().i2pconn->local_endpoint().empty())
 				{
-					fail(errors::no_i2p_endpoint, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
+					fail(errors::no_i2p_endpoint, operation_t::bittorrent
+						, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
 					return;
 				}
 				else
@@ -201,7 +202,8 @@ namespace libtorrent {
 
 		if (!tracker_req().outgoing_socket)
 		{
-			fail(errors::invalid_listen_socket, "outgoing socket was closed");
+			fail(errors::invalid_listen_socket, operation_t::get_interface
+				, "outgoing socket was closed");
 			return;
 		}
 
@@ -286,7 +288,8 @@ namespace libtorrent {
 
 		if (endpoints.empty())
 		{
-			fail(error_code(boost::system::errc::host_unreachable, system_category()));
+			fail(error_code(boost::system::errc::host_unreachable, system_category())
+				, operation_t::get_interface);
 			return;
 		}
 
@@ -310,7 +313,7 @@ namespace libtorrent {
 		}
 #endif
 		if (endpoints.empty())
-			fail(errors::banned_by_ip_filter);
+			fail(errors::banned_by_ip_filter, operation_t::bittorrent);
 	}
 
 	void http_tracker_connection::on_connect(http_connection& c)
@@ -328,19 +331,20 @@ namespace libtorrent {
 
 		if (ec && ec != boost::asio::error::eof)
 		{
-			fail(ec);
+			fail(ec, operation_t::sock_read);
 			return;
 		}
 
 		if (!parser.header_finished())
 		{
-			fail(boost::asio::error::eof);
+			fail(boost::asio::error::eof, operation_t::sock_read);
 			return;
 		}
 
 		if (parser.status_code() != 200)
 		{
 			fail(error_code(parser.status_code(), http_category())
+				, operation_t::bittorrent
 				, parser.message().c_str());
 			return;
 		}
@@ -365,7 +369,8 @@ namespace libtorrent {
 
 		if (ecode)
 		{
-			fail(ecode, resp.failure_reason.c_str()
+			fail(ecode, operation_t::bittorrent
+				, resp.failure_reason.c_str()
 				, resp.interval, resp.min_interval);
 			close();
 			return;

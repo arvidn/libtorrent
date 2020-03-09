@@ -739,7 +739,7 @@ namespace libtorrent {
 			, std::list<address> const& tracker_ips
 			, struct tracker_response const& resp) override;
 		void tracker_request_error(tracker_request const& r
-			, error_code const& ec, const std::string& msg
+			, error_code const& ec, operation_t op, const std::string& msg
 			, seconds32 retry_interval) override;
 		void tracker_warning(tracker_request const& req
 			, std::string const& msg) override;
