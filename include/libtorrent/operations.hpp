@@ -174,10 +174,14 @@ namespace libtorrent {
 		// set socket option
 		sock_option,
 
-		// enumeration network routes
+		// enumeration of network routes
 		enum_route,
 
+		// moving read/write position in a file, operation_t::hostname_lookup
 		file_seek,
+
+		// an async wait operation on a timer
+		timer,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)

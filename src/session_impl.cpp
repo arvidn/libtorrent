@@ -7104,12 +7104,12 @@ namespace {
 		}
 
 		void tracker_logger::tracker_request_error(tracker_request const&
-			, error_code const& ec, std::string const& str
+			, error_code const& ec, operation_t const op, std::string const& str
 			, seconds32 const retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
-			debug_log("*** tracker error: %s %s"
-				, ec.message().c_str(), str.c_str());
+			debug_log("*** tracker error: [%s] %s %s"
+				, operation_name(op), ec.message().c_str(), str.c_str());
 		}
 
 		bool tracker_logger::should_log() const

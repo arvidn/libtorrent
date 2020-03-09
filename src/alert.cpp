@@ -339,10 +339,12 @@ namespace libtorrent {
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, int times
-		, string_view u, error_code const& e, string_view m)
+		, string_view u, operation_t const operation, error_code const& e
+		, string_view m)
 		: tracker_alert(alloc, h, ep, u)
 		, times_in_row(times)
 		, error(e)
+		, op(operation)
 		, m_msg_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
 		, status_code(e && e.category() == http_category() ? e.value() : -1)
@@ -905,6 +907,7 @@ namespace {
 			case o::sock_option: return -1;
 			case o::enum_route: return -1;
 			case o::file_seek: return -1;
+			case o::timer: return -1;
 		}
 		return -1;
 	}
@@ -1573,7 +1576,8 @@ namespace {
 			"handshake",
 			"sock_option",
 			"enum_route",
-			"file_seek"
+			"file_seek",
+			"timer",
 		};
 
 		int const idx = static_cast<int>(op);

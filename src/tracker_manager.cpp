@@ -156,19 +156,19 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		return m_requester.lock();
 	}
 
-	void tracker_connection::fail(error_code const& ec
+	void tracker_connection::fail(error_code const& ec, operation_t const op
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
 		post(get_executor(), std::bind(&tracker_connection::fail_impl
-			, shared_from_this(), ec, std::string(msg), interval, min_interval));
+			, shared_from_this(), ec, op, std::string(msg), interval, min_interval));
 	}
 
-	void tracker_connection::fail_impl(error_code const& ec
+	void tracker_connection::fail_impl(error_code const& ec, operation_t const op
 		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		std::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, ec, msg
+		if (cb) cb->tracker_request_error(m_req, ec, op, msg
 			, interval.count() == 0 ? min_interval : interval);
 		close();
 	}
@@ -290,7 +290,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())
 			post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
-				, errors::unsupported_url_protocol
+				, errors::unsupported_url_protocol, operation_t::parse_address
 				, "", seconds32(0)));
 	}
 
