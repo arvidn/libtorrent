@@ -1226,44 +1226,19 @@ namespace {
 		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
 #endif
 
-		if (req.outgoing_socket)
-		{
+		TORRENT_ASSERT(req.outgoing_socket);
 			auto ls = req.outgoing_socket.get();
 
-			req.listen_port =
+		req.listen_port =
 #if TORRENT_USE_I2P
-				(req.kind == tracker_request::i2p) ? 1 :
+			(req.kind == tracker_request::i2p) ? 1 :
 #endif
 #ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
-				use_ssl ? make_announce_port(ssl_listen_port(ls)) :
+			use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
-				make_announce_port(listen_port(ls));
-			m_tracker_manager.queue_request(get_context(), std::move(req), c);
-		}
-		else
-		{
-			for (auto& ls : m_listen_sockets)
-			{
-				if (!(ls->flags & listen_socket_t::accept_incoming)) continue;
-#ifdef TORRENT_SSL_PEERS
-				if ((ls->ssl == transport::ssl) != use_ssl) continue;
-#endif
-				tracker_request socket_req(req);
-				socket_req.listen_port =
-#if TORRENT_USE_I2P
-					(req.kind == tracker_request::i2p) ? 1 :
-#endif
-#ifdef TORRENT_SSL_PEERS
-				// SSL torrents use the SSL listen port
-					use_ssl ? make_announce_port(ssl_listen_port(ls.get())) :
-#endif
-					make_announce_port(listen_port(ls.get()));
-
-				socket_req.outgoing_socket = ls;
-				m_tracker_manager.queue_request(get_context(), std::move(socket_req), c);
-			}
-		}
+			make_announce_port(listen_port(ls));
+		m_tracker_manager.queue_request(get_context(), std::move(req), c);
 	}
 
 	void session_impl::set_peer_class(peer_class_t const cid, peer_class_info const& pci)

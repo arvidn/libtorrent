@@ -135,9 +135,6 @@ namespace aux {
 	// this class holds information about one listen socket for one tracker
 	struct TORRENT_EXTRA_EXPORT announce_endpoint
 	{
-		friend struct lt::torrent;
-		friend struct announce_entry;
-
 		// internal
 		announce_endpoint(aux::listen_socket_handle const& s, bool completed);
 
@@ -159,7 +156,6 @@ namespace aux {
 		// set to false to not announce from this endpoint
 		bool enabled : 1;
 
-	private:
 		// internal
 		aux::listen_socket_handle socket;
 	};

@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/info_hash.hpp"
 

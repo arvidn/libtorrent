@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/pex_flags.hpp"
 #include "libtorrent/client_data.hpp"
+#include "libtorrent/address.hpp" // for address_v4 and address_v6
 
 namespace libtorrent {
 namespace aux {
