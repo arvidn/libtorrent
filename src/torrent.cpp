@@ -2642,6 +2642,35 @@ bool is_downloading_state(int const st)
 
 #endif
 
+namespace {
+	void refresh_endpoint_list(aux::session_interface& ses
+		, bool const is_ssl, bool const complete_sent
+		, std::vector<aux::announce_endpoint>& aeps)
+	{
+		// update the endpoint list by adding entries for new listen sockets
+		// and removing entries for non-existent ones
+		std::size_t valid_endpoints = 0;
+		ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
+			if (s.is_ssl() != is_ssl)
+				return;
+			for (auto& aep : aeps)
+			{
+				if (aep.socket != s) continue;
+				std::swap(aeps[valid_endpoints], aep);
+				valid_endpoints++;
+				return;
+			}
+
+			aeps.emplace_back(s, complete_sent);
+			std::swap(aeps[valid_endpoints], aeps.back());
+			valid_endpoints++;
+		});
+
+		TORRENT_ASSERT(valid_endpoints <= aeps.size());
+		aeps.erase(aeps.begin() + int(valid_endpoints), aeps.end());
+	}
+}
+
 	namespace
 	{
 		struct announce_protocol_state
@@ -2835,27 +2864,7 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			// update the endpoint list by adding entries for new listen sockets
-			// and removing entries for non-existent ones
-			std::size_t valid_endpoints = 0;
-			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
-				if (s.is_ssl() != is_ssl_torrent())
-					return;
-				for (auto& aep : ae.endpoints)
-				{
-					if (aep.socket != s) continue;
-					std::swap(ae.endpoints[valid_endpoints], aep);
-					valid_endpoints++;
-					return;
-				}
-
-				ae.endpoints.emplace_back(s, bool(m_complete_sent));
-				std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
-				valid_endpoints++;
-			});
-
-			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
-			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
+			refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3047,18 +3056,25 @@ bool is_downloading_state(int const st)
 			req.filter = m_ip_filter;
 
 		req.kind |= tracker_request::scrape_request;
-		req.url = m_trackers[idx].url;
+		auto& ae = m_trackers[idx];
+		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
+		req.url = ae.url;
 		req.private_torrent = m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
 		req.key = tracker_key();
 		req.triggered_manually = user_triggered;
-		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		for (aux::announce_endpoint const& aep : ae.endpoints)
 		{
-			req.info_hash = ih;
-			m_ses.queue_tracker_request(req, shared_from_this());
-		});
+			if (!aep.enabled) continue;
+			req.outgoing_socket = aep.socket;
+			m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+			{
+				req.info_hash = ih;
+				m_ses.queue_tracker_request(req, shared_from_this());
+			});
+		}
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
