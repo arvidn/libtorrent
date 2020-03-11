@@ -6,7 +6,8 @@
       "builddeps": ["build-essential", "libssl-dev", "wget", "clang-5.0", "git"],
       "buildcmd": [
         "clang++-5.0 --version",
-        "git clone --depth=1 --recurse-submodules --branch=boost-1.72.0 -c http.sslVerify=false https://github.com/boostorg/boost.git",
+        "git config --global http.sslVerify false",
+        "git clone --depth=1 --recurse-submodules --branch=boost-1.72.0 https://github.com/boostorg/boost.git",
         "(cd boost && ./bootstrap.sh && ./b2 headers)",
         "echo \"using clang : : clang++-5.0 ;\" > ~/user-config.jam",
         "cd simulation",
