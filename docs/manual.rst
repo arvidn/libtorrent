@@ -997,11 +997,13 @@ torrent to connect to. This is required for the client accepting the connection
 to know which certificate to present.
 
 SSL connections are accepted on a separate socket from normal bittorrent
-connections. To pick which port the SSL socket should bind to, set
-settings_pack::ssl_listen to a different port. It defaults to port 4433.
-This setting is only taken into account when the normal listen socket is opened
-(i.e. just changing this setting won't necessarily close and re-open the SSL
-socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
+connections. To enable support for SSL torrents, add a listen interface to the
+settings_pack::listen_interfaces setting with the ``s`` suffix. For example::
+
+	0.0.0.0:6881,0.0.0.0:6882s
+
+That will listen for normal bittorrent connections on port 6881 and for SSL
+torrent connections on port 6882.
 
 This feature is only available if libtorrent is build with openssl support
 (``TORRENT_USE_OPENSSL``) and requires at least OpenSSL version 1.0, since it
