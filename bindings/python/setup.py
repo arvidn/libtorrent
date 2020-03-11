@@ -15,6 +15,8 @@ def bjam_build():
 
     if platform.system() == 'Windows':
         file_ext = '.pyd'
+        # https://packaging.python.org/guides/packaging-binary-extensions/#binary-extensions-for-windows
+        #
         # See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
         # used for each python version
         # Specify the full version number for 9.0 and 10.0 because apparently
@@ -28,7 +30,7 @@ def bjam_build():
         elif sys.version_info[0:2] in ((3, 3), (3, 4)):
             toolset = ' toolset=msvc-10.0'
         elif sys.version_info[0:2] in ((3, 5), (3, 6)):
-            toolset = ' toolset=msvc-14.1'  # libtorrent requires VS 2017 or newer
+            toolset = ' toolset=msvc-14.2'  # libtorrent requires VS 2017 or newer
         else:
             # unknown python version, lets hope the user has the right version of msvc configured
             toolset = ' toolset=msvc'
