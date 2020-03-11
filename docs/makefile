@@ -6,7 +6,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 endif
 
 ifndef RST2HTML
-RST2HTML:=rst2html
+RST2HTML:=rst2html.py
 endif
 
 ifndef AAFIGURE
