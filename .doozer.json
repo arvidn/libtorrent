@@ -8,8 +8,8 @@
         "clang++-5.0 --version",
         "git config --global http.sslVerify false",
         "git clone --depth=1 --recurse-submodules --branch=boost-1.72.0 https://github.com/boostorg/boost.git",
-        "(cd boost && ./bootstrap.sh && ./b2 headers)",
         "echo \"using clang : : clang++-5.0 ;\" > ~/user-config.jam",
+        "(cd boost && ./bootstrap.sh && ./b2 headers)",
         "cd simulation",
         "BOOST_ROOT=${PWD}/../boost ../boost/b2 --hash -j${PARALLEL}"
       ]
