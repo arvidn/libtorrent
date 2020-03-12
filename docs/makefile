@@ -15,6 +15,7 @@ endif
 
 REFERENCE_TARGETS = \
 	manual-ref \
+	tuning-ref \
 	upgrade_to_1.2-ref \
 	reference \
 	reference-Core \
@@ -49,7 +50,6 @@ MANUAL_TARGETS = index \
 	python_binding \
 	projects \
 	utp \
-	tuning \
 	hacking \
 	streaming \
 	tutorial \
@@ -103,7 +103,7 @@ ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst settings.rst stats_counters.rst hunspell/settings.dic
 	python gen_reference_doc.py --plain-output
 
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst

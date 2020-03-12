@@ -363,7 +363,7 @@ settings_pack::active_dht_limit and settings_pack::active_lsd_limit
 respectively.
 
 Specifically, announcing to a tracker is typically cheaper than
-announcing to the DHT. ``active_dht_limit`` will limit the number of
+announcing to the DHT. settings_pack::active_dht_limit will limit the number of
 torrents that are allowed to announce to the DHT. The highest priority ones
 will, and the lower priority ones won't. The will still be considered started
 though, and any incoming peers will still be accepted.
