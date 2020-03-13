@@ -320,6 +320,7 @@ set(sources
 	instantiate_connection
 	merkle
 	natpmp
+	openssl
 	part_file
 	packet_buffer
 	piece_picker

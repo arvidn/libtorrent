@@ -350,6 +350,11 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
+#if TORRENT_USE_TLS13
+		SET(ssl_version, settings_pack::tls13, nullptr),
+#else
+		SET(ssl_version, settings_pack::tls12, nullptr),
+#endif
 	}});
 
 #undef SET

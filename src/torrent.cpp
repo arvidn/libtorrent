@@ -1625,7 +1625,8 @@ bool is_downloading_state(int const st)
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		std::shared_ptr<context> ctx = std::make_shared<context>(context::sslv23);
+		std::shared_ptr<context> ctx = std::make_shared<context>(
+			aux::ssl_version(settings().get_int(settings_pack::ssl_version)));
 
 		if (!ctx)
 		{

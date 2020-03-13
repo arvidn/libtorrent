@@ -454,7 +454,8 @@ namespace aux {
 		: m_settings(pack)
 		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
+		, m_ssl_ctx(ssl_version(pack.get_int(settings_pack::ssl_version)))
+		, m_peer_ssl_ctx(ssl_version(pack.get_int(settings_pack::ssl_version)))
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
@@ -495,7 +496,7 @@ namespace aux {
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
 			, m_io_service
 			, m_settings, m_stats_counters
-			, &m_ssl_ctx)
+			, &m_peer_ssl_ctx)
 #endif
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
@@ -537,10 +538,11 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
-		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
+		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
 			, servername_callback);
-		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
+		aux::openssl_set_tlsext_servername_arg(m_peer_ssl_ctx.native_handle(), this);
 #endif // OPENSSL_VERSION_NUMBER
 #endif
 
@@ -2461,11 +2463,11 @@ namespace {
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl == transport::ssl)
 		{
-			// accept connections initializing the SSL connection to
-			// use the generic m_ssl_ctx context. However, since it has
-			// the servername callback set on it, we will switch away from
-			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<tcp::socket>>(m_io_service, &m_ssl_ctx);
+			// accept connections initializing the SSL connection to use the peer
+			// ssl context. Since it has the servername callback set on it, we will
+			// switch away from this context into a specific torrent once we start
+			// handshaking
+			c->instantiate<ssl_stream<tcp::socket>>(m_io_service, &m_peer_ssl_ctx);
 			str = &c->get<ssl_stream<tcp::socket>>()->next_layer();
 		}
 		else

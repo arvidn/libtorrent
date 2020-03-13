@@ -74,7 +74,6 @@ http_connection::http_connection(io_service& ios
 	, m_sock(ios)
 #ifdef TORRENT_USE_OPENSSL
 	, m_ssl_ctx(ssl_ctx)
-	, m_own_ssl_context(false)
 #endif
 #if TORRENT_USE_I2P
 	, m_i2p_conn(nullptr)
@@ -107,12 +106,7 @@ http_connection::http_connection(io_service& ios
 	TORRENT_ASSERT(m_handler);
 }
 
-http_connection::~http_connection()
-{
-#ifdef TORRENT_USE_OPENSSL
-	if (m_own_ssl_context) delete m_ssl_ctx;
-#endif
-}
+http_connection::~http_connection() = default;
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
@@ -256,6 +250,10 @@ void http_connection::start(std::string const& hostname, int port
 	m_read_pos = 0;
 	m_priority = prio;
 
+#ifdef TORRENT_USE_OPENSSL
+	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
+#endif
+
 	if (ec)
 	{
 		lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
@@ -323,21 +321,7 @@ void http_connection::start(std::string const& hostname, int port
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
 		{
-			if (m_ssl_ctx == nullptr)
-			{
-				m_ssl_ctx = new (std::nothrow) ssl::context(ssl::context::sslv23_client);
-				if (m_ssl_ctx)
-				{
-					m_own_ssl_context = true;
-					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
-					if (ec)
-					{
-						lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
-							, me, ec, span<char>{}));
-						return;
-					}
-				}
-			}
+			TORRENT_ASSERT(m_ssl_ctx != nullptr);
 			userdata = m_ssl_ctx;
 		}
 #endif

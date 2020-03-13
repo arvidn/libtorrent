@@ -876,9 +876,14 @@ namespace aux {
 			io_service& m_io_service;
 
 #ifdef TORRENT_USE_OPENSSL
-			// this is a generic SSL context used when talking to
-			// unauthenticated HTTPS servers
+			// this is a generic SSL context used when talking to HTTPS servers
 			ssl::context m_ssl_ctx;
+
+			// this is the SSL context used for SSL listen sockets. It doesn't
+			// verify peers, but it has the servername callback set on it. Once it
+			// knows which torrent a peer is connecting to, it will switch the
+			// socket over to the torrent specific context, which does verify peers
+			ssl::context m_peer_ssl_ctx;
 #endif
 
 			// handles delayed alerts

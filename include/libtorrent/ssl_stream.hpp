@@ -42,27 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl.hpp>
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent {
-
-	namespace ssl {
-
-#if defined TORRENT_BUILD_SIMULATOR
-	using sim::asio::ssl::context;
-	using sim::asio::ssl::stream_base;
-	using sim::asio::ssl::stream;
-#else
-	using boost::asio::ssl::context;
-	using boost::asio::ssl::stream_base;
-	using boost::asio::ssl::stream;
-#endif
-	}
 
 template <class Stream>
 class ssl_stream
