@@ -192,12 +192,8 @@ namespace {
 	bool upload_rate_compare(peer_connection const* lhs
 		, peer_connection const* rhs)
 	{
-		// take torrent priority into account
-		std::int64_t const c1 = lhs->uploaded_in_last_round()
-			* lhs->get_priority(peer_connection::upload_channel);
-		std::int64_t const c2 = rhs->uploaded_in_last_round()
-			* rhs->get_priority(peer_connection::upload_channel);
-
+		std::int64_t const c1 = lhs->uploaded_in_last_round();
+		std::int64_t const c2 = rhs->uploaded_in_last_round();
 		return c1 > c2;
 	}
 
@@ -226,8 +222,8 @@ namespace {
 		// intention is to not spread upload bandwidth too thin, but also to not
 		// unchoke few enough peers to not be able to saturate the up-link.
 		// this is done by traversing the peers sorted by our upload rate to
-		// them in decreasing rates. For each peer we increase the threshold by
-		// 2 kiB/s. The first peer we get to whom we upload slower than
+		// them in decreasing rates. For each peer we double the threshold
+		// The first peer we get to whom we upload slower than
 		// the threshold, we stop and that's the number of unchoke slots we have.
 		if (sett.get_int(settings_pack::choking_algorithm)
 			== settings_pack::rate_based_choker)
@@ -238,23 +234,20 @@ namespace {
 
 			int rate_threshold = sett.get_int(settings_pack::rate_choker_initial_threshold);
 
-			std::sort(peers.begin(), peers.end()
-				, [](peer_connection const* lhs, peer_connection const* rhs)
-				{ return upload_rate_compare(lhs, rhs); });
+			std::sort(peers.begin(), peers.end(), std::bind(&upload_rate_compare, _1, _2));
 
 			for (auto const* p : peers)
 			{
 				int const rate = int(p->uploaded_in_last_round()
 					* 1000 / total_milliseconds(unchoke_interval));
 
-				// always have at least 1 unchoke slot
 				if (rate < rate_threshold) break;
 
 				++upload_slots;
 
-				// TODO: make configurable
-				rate_threshold += 2048;
+				rate_threshold += rate_threshold / 2;
 			}
+			// always have at least 1 unchoke slot
 			++upload_slots;
 		}
 

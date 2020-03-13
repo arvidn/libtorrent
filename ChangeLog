@@ -1,3 +1,5 @@
+	* improve rate-based choker
+
 2.0.9 released
 
 	* fix issue with web seed connections when they close and re-open

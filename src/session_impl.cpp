@@ -3203,6 +3203,17 @@ namespace {
 		// make sure the next disk peer round-robin cursor stays valid
 		if (i != m_connections.end())
 		{
+			// if peer is unchoked, we're about to open up an unchoke slot,
+			// re-trigger unchoke calculation
+			if (!p->is_choked())
+				m_unchoke_time_scaler = 0;
+
+			// if the peer is optimistically unchoked, we're about to open that
+			// slot up. re-trigger optimistic unchoke recalculation
+			auto const* pi = p->peer_info_struct();
+			if (pi && pi->optimistically_unchoked)
+				m_optimistic_unchoke_time_scaler = 0;
+
 			m_connections.erase(i);
 
 			TORRENT_ASSERT(std::find(m_undead_peers.begin()
