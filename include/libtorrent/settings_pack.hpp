@@ -804,6 +804,12 @@ namespace aux {
 			// small piece sizes
 			piece_extent_affinity,
 
+			// when set to true, the certificate of HTTPS trackers will be
+			// validated against the system's certificate store (as defined by
+			// OpenSSL). If the system does not have one, enabling this may cause
+			// HTTPS trackers to fail.
+			validate_https_trackers,
+
 			max_bool_setting_internal
 		};
 
