@@ -538,6 +538,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+		m_ssl_ctx.set_default_verify_paths(ec);
 		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
@@ -6604,6 +6605,20 @@ namespace {
 	{
 		m_alerts.set_alert_mask(alert_category_t(
 			static_cast<std::uint32_t>(m_settings.get_int(settings_pack::alert_mask))));
+	}
+
+	void session_impl::update_validate_https()
+	{
+#ifdef TORRENT_USE_OPENSSL
+		using boost::asio::ssl::context;
+		auto const flags = m_settings.get_bool(settings_pack::validate_https_trackers)
+			? context::verify_peer
+				| context::verify_fail_if_no_peer_cert
+				| context::verify_client_once
+			: context::verify_none;
+		error_code ec;
+		m_ssl_ctx.set_verify_mode(flags, ec);
+#endif
 	}
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)
