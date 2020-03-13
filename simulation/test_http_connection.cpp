@@ -131,6 +131,11 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 {
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
+#ifdef TORRENT_USE_OPENSSL
+	ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl_ctx.set_verify_mode(ssl::context::verify_none);
+#endif
+
 	auto h = std::make_shared<http_connection>(ios
 		, res
 		, [=](error_code const& ec, http_parser const& parser
@@ -177,7 +182,12 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 			++*connect_handler_called;
 			TEST_CHECK(c.socket().is_open());
 			std::printf("CONNECTED: %s\n", url.c_str());
-		});
+		}
+		, lt::http_filter_handler()
+#ifdef TORRENT_USE_OPENSSL
+		, &ssl_ctx
+#endif
+		);
 
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::none
 		, resolver_flags{}, auth);
@@ -630,14 +640,25 @@ TORRENT_TEST(http_connection_ssl_proxy)
 			return sim::send_response(403, "Not supported", 1337);
 		});
 
+#ifdef TORRENT_USE_OPENSSL
+	lt::ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl_ctx.set_verify_mode(ssl::context::verify_none);
+#endif
+
 	auto h = std::make_shared<http_connection>(client_ios
 		, res
 		, [&client_counter](error_code const& ec, http_parser const&
-		, span<char const>, http_connection&)
+			, span<char const>, http_connection&)
 		{
 			client_counter++;
 			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);
-		});
+		}
+		, true, 1024*1024, lt::http_connect_handler()
+		, http_filter_handler()
+#ifdef TORRENT_USE_OPENSSL
+		, &ssl_ctx
+#endif
+		);
 
 	h->start("10.0.0.2", 8080, seconds(1), 0, &ps, true /*ssl*/);
 

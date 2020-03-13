@@ -121,8 +121,18 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
+#ifdef TORRENT_USE_OPENSSL
+	ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl_ctx.set_verify_mode(ssl::context::verify_none);
+#endif
+
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
-		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test);
+		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
+		, http_filter_handler()
+#ifdef TORRENT_USE_OPENSSL
+		, &ssl_ctx
+#endif
+		);
 	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, resolver_flags{}, auth);
 	ios.reset();
 	error_code e;

@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 
-// all of OpenSSL causes warnings, so we just have to disable them
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef TORRENT_WINDOWS
@@ -63,43 +62,50 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
-namespace libtorrent { namespace aux {
-inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
-{
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
-	SSL_set_tlsext_host_name(s, name);
+#include <boost/asio/ssl.hpp>
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
 #endif
-}
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+namespace libtorrent {
+
+namespace ssl {
+
+#if defined TORRENT_BUILD_SIMULATOR
+	using sim::asio::ssl::context;
+	using sim::asio::ssl::stream_base;
+	using sim::asio::ssl::stream;
+#else
+	using boost::asio::ssl::context;
+	using boost::asio::ssl::stream_base;
+	using boost::asio::ssl::stream;
+#endif
+} // ssl
+
+namespace aux {
+
+TORRENT_EXTRA_EXPORT void openssl_set_tlsext_hostname(SSL* s, char const* name);
 
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 
-inline void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
-	, int (*servername_callback)(SSL*, int*, void*))
-{
-	SSL_CTX_set_tlsext_servername_callback(ctx, servername_callback);
-}
+TORRENT_EXTRA_EXPORT void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
+	, int (*servername_callback)(SSL*, int*, void*));
 
-inline void openssl_set_tlsext_servername_arg(SSL_CTX* ctx, void* userdata)
-{
-	SSL_CTX_set_tlsext_servername_arg(ctx, userdata);
-}
+TORRENT_EXTRA_EXPORT void openssl_set_tlsext_servername_arg(SSL_CTX* ctx, void* userdata);
 
-inline int openssl_num_general_names(GENERAL_NAMES* gens)
-{
-	return sk_GENERAL_NAME_num(gens);
-}
+TORRENT_EXTRA_EXPORT int openssl_num_general_names(GENERAL_NAMES* gens);
 
-inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
-{
-	return sk_GENERAL_NAME_value(gens, i);
-}
+TORRENT_EXTRA_EXPORT GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i);
 
 #endif // OPENSSL_VERSION_NUMBER
 
-}
-}
+// converts setting_pack::ssl_version_t enum into asio version
+ssl::context::method ssl_version(int const v);
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+} // aux
+} // libtorrent
 
 #endif // TORRENT_USE_OPENSSL
 
