@@ -1258,7 +1258,7 @@ namespace libtorrent {
 		storage_holder m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
-		std::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
+		std::unique_ptr<boost::asio::ssl::context> m_ssl_ctx;
 
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
 
