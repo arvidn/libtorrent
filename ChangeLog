@@ -1,5 +1,7 @@
 2.0 release
 
+	* fix issues when configured to use a non-default choking algorithm
+	* improve rate-based choker
 	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
