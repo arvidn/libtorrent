@@ -599,6 +599,8 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME loggin
 	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutable-torrents DEFAULT ON
 	DESCRIPTION "Enables mutable torrent support" DISABLED TORRENT_DISABLE_MUTABLE_TORRENTS)
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME streaming DEFAULT ON
+	DESCRIPTION "Enables support for piece deadline" DISABLED TORRENT_DISABLE_STREAMING)
 
 find_public_dependency(Iconv)
 if(MSVC)

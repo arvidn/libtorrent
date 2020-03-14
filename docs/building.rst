@@ -530,6 +530,9 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_STREAMING``          | Disables set_piece_deadline() and associated    |
+|                                        | functionality.                                  |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |
 |                                        | will be tagged with ``__declspec(dllimport)``   |
