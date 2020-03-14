@@ -1,3 +1,5 @@
+	* add build option to disable streaming
+
 1.2.5 release
 
 	* announce port=1 instead of port=0, when there is no listen port
