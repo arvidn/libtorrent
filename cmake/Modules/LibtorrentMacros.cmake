@@ -107,7 +107,7 @@ function(read_version _verFile _outVarMajor _outVarMinor _outVarTiny)
 	# the verFileContents variable contains something like the following:
 	# #define LIBTORRENT_VERSION_MAJOR 1;#define LIBTORRENT_VERSION_MINOR 2;#define LIBTORRENT_VERSION_TINY 0
 	set(_regex ".+_MAJOR +([0-9]+);.+_MINOR +([0-9]+);.+_TINY +([0-9]+)")
-	 # note quotes around _regex, they are needed because the variable contains semicolons
+	# note quotes around _regex, they are needed because the variable contains semicolons
 	string(REGEX MATCH "${_regex}" _tmp "${verFileContents}")
 	if (NOT _tmp)
 		message(FATAL_ERROR "Could not detect project version number from ${_verFile}")
@@ -118,4 +118,21 @@ function(read_version _verFile _outVarMajor _outVarMinor _outVarTiny)
 	set(${_outVarMajor} ${CMAKE_MATCH_1} PARENT_SCOPE)
 	set(${_outVarMinor} ${CMAKE_MATCH_2} PARENT_SCOPE)
 	set(${_outVarTiny} ${CMAKE_MATCH_3} PARENT_SCOPE)
+endfunction()
+
+# Set a default build type if none was specified
+function(set_default_build_type)
+	set(default_build_type "Release")
+	if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+		set(default_build_type "Debug")
+	endif()
+
+	if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+		message(STATUS "Setting build type to '${default_build_type}' as none was specified")
+		set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+			"Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel ..." FORCE)
+		# Set the possible values of build type for cmake-gui
+		set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+			"Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+	endif()
 endfunction()

@@ -11,6 +11,8 @@ project(libtorrent
 )
 set (SOVERSION "10")
 
+set_default_build_type()
+
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
 
