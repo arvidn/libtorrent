@@ -1095,7 +1095,8 @@ namespace aux {
 				std::int64_t const ret = total_seconds(aux::time_now()
 					- m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
-				TORRENT_ASSERT(ret <= (std::numeric_limits<std::uint16_t>::max)());
+				if (ret > (std::numeric_limits<std::uint16_t>::max)())
+					return (std::numeric_limits<std::uint16_t>::max)();
 				return static_cast<std::uint16_t>(ret);
 			}
 			time_point session_start_time() const override
