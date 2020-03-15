@@ -652,8 +652,10 @@ namespace aux {
 			}
 
 #if TORRENT_ABI_VERSION == 1
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 			session_status status() const;
 			peer_id deprecated_get_peer_id() const;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
