@@ -1,3 +1,4 @@
+	* deprecate the bittyrant choking algorithm
 	* add build option to disable streaming
 
 1.2.5 release

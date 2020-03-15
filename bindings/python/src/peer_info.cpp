@@ -104,7 +104,9 @@ void bind_peer_info()
         .def_readonly("upload_rate_peak", &peer_info::upload_rate_peak)
         .def_readonly("progress", &peer_info::progress)
         .def_readonly("progress_ppm", &peer_info::progress_ppm)
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("estimated_reciprocation_rate", &peer_info::estimated_reciprocation_rate)
+#endif
         .add_property("local_endpoint", get_local_endpoint)
         ;
 
