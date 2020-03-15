@@ -167,7 +167,9 @@ namespace libtorrent {
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
+#ifndef TORRENT_DISABLE_BITTYRANT
 		m_est_reciprocation_rate = m_settings.get_int(settings_pack::default_est_reciprocation_rate);
+#endif
 
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 		m_channel_state[download_channel] = peer_info::bw_idle;
@@ -268,6 +270,7 @@ namespace libtorrent {
 		disconnect(ec, operation_t::unknown, peer_error);
 	}
 
+#ifndef TORRENT_DISABLE_BITTYRANT
 	void peer_connection::increase_est_reciprocation_rate()
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -281,6 +284,7 @@ namespace libtorrent {
 		m_est_reciprocation_rate -= m_est_reciprocation_rate
 			* m_settings.get_int(settings_pack::decrease_est_reciprocation_rate) / 100;
 	}
+#endif // TORRENT_DISABLE_BITTYRANT
 
 	int peer_connection::get_priority(int const channel) const
 	{
@@ -4590,7 +4594,11 @@ namespace libtorrent {
 			p.progress_ppm = int(std::int64_t(p.pieces.count()) * 1000000 / p.pieces.size());
 		}
 
+#ifndef TORRENT_DISABLE_BITTYRANT
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
+#else
+		p.estimated_reciprocation_rate = 0;
+#endif
 
 		error_code ec;
 		p.local_endpoint = get_socket()->local_endpoint(ec);

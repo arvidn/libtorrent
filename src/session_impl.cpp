@@ -4170,6 +4170,7 @@ namespace {
 			peers.push_back(p.get());
 		}
 
+#ifndef TORRENT_DISABLE_BITTYRANT
 		// the unchoker wants an estimate of our upload rate capacity
 		// (used by bittyrant)
 		int max_upload_rate = upload_rate_limit(m_global_class);
@@ -4185,6 +4186,9 @@ namespace {
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
 					, performance_alert::bittyrant_with_no_uplimit);
 		}
+#else
+		int const max_upload_rate = 0;
+#endif // TORRENT_DISABLE_BITTYRANT
 
 		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);

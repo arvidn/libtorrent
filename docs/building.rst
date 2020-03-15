@@ -533,6 +533,9 @@ defines you can use to control the build.
 | ``TORRENT_DISABLE_STREAMING``          | Disables set_piece_deadline() and associated    |
 |                                        | functionality.                                  |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_BITTYRANT``          | Disables support for the bittyrant choking      |
+|                                        | algorithm.                                      |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |
 |                                        | will be tagged with ``__declspec(dllimport)``   |
