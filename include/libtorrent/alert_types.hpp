@@ -458,7 +458,11 @@ TORRENT_VERSION_NAMESPACE_2
 			too_high_disk_queue_limit,
 
 			aio_limit_reached,
-			bittyrant_with_no_uplimit,
+#if TORRENT_ABI_VERSION == 1
+			bittyrant_with_no_uplimit TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_bittyrant_with_no_uplimit,
+#endif
 
 			// This is generated if outgoing peer connections are failing because of *address in use*
 			// errors, indicating that ``settings_pack::outgoing_ports`` is set and is too small of

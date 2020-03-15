@@ -195,7 +195,6 @@ bool print_ip = true;
 bool print_local_ip = false;
 bool print_timers = false;
 bool print_block = false;
-bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
 bool print_disk_stats = false;
@@ -322,7 +321,6 @@ int print_peer_info(std::string& out
 	if (print_timers) out += "inactive wait timeout q-time ";
 	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
-	if (print_peer_rate) out += "est.rec.rate ";
 	out += "client \x1b[K\n";
 	++pos;
 
@@ -453,14 +451,6 @@ int print_peer_info(std::string& out
 			}
 		}
 
-		if (print_peer_rate)
-		{
-			bool const unchoked = !(i->flags & lt::peer_info::choked);
-
-			std::snprintf(str, sizeof(str), " %s"
-				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
-			out += str;
-		}
 		out += " ";
 
 		if (i->flags & lt::peer_info::handshake)
@@ -1617,7 +1607,6 @@ example alert_masks:
 				if (c == '2') print_connecting_peers = !print_connecting_peers;
 				if (c == '3') print_timers = !print_timers;
 				if (c == '4') print_block = !print_block;
-				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
 				if (c == '8') print_local_ip = !print_local_ip;
@@ -1662,7 +1651,7 @@ up/down arrow keys: select torrent
 COLUMN OPTIONS
 [1] toggle IP column                            [2] toggle show peer connection attempts
 [3] toggle timers column                        [4] toggle block progress column
-[5] toggle peer rate column                     [6] toggle failures column
+                                                [6] toggle failures column
 [7] toggle send buffers column                  [8] toggle local IP column
 )");
 					int tmp;

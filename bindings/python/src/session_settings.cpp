@@ -17,7 +17,9 @@ void bind_session_settings()
         .value("auto_expand_choker", settings_pack::rate_based_choker)
 #endif
         .value("rate_based_choker", settings_pack::rate_based_choker)
+#if TORRENT_ABI_VERSION == 1
         .value("bittyrant_choker", settings_pack::bittyrant_choker)
+#endif
     ;
 
     enum_<settings_pack::seed_choking_algorithm_t>("seed_choking_algorithm_t")

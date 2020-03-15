@@ -842,7 +842,9 @@ void bind_alert()
         .value("download_limit_too_low", performance_alert::download_limit_too_low)
         .value("send_buffer_watermark_too_low", performance_alert::send_buffer_watermark_too_low)
         .value("too_many_optimistic_unchoke_slots", performance_alert::too_many_optimistic_unchoke_slots)
+#if TORRENT_ABI_VERSION == 1
         .value("bittyrant_with_no_uplimit", performance_alert::bittyrant_with_no_uplimit)
+#endif
         .value("too_high_disk_queue_limit", performance_alert::too_high_disk_queue_limit)
         .value("too_few_outgoing_ports", performance_alert::too_few_outgoing_ports)
         .value("too_few_file_descriptors", performance_alert::too_few_file_descriptors)

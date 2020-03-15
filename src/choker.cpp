@@ -197,6 +197,7 @@ namespace {
 		return c1 > c2;
 	}
 
+#if TORRENT_ABI_VERSION == 1
 	bool bittyrant_unchoke_compare(peer_connection const* lhs
 		, peer_connection const* rhs)
 	{
@@ -219,6 +220,7 @@ namespace {
 		// prioritize the one that has waited the longest to be unchoked
 		return lhs->time_of_last_unchoke() < rhs->time_of_last_unchoke();
 	}
+#endif
 
 	} // anonymous namespace
 
@@ -235,6 +237,7 @@ namespace {
 		}
 #endif
 
+#if TORRENT_ABI_VERSION == 1
 		// ==== BitTyrant ====
 		//
 		// if we're using the bittyrant unchoker, go through all peers that
@@ -289,6 +292,9 @@ namespace {
 
 			return upload_slots;
 		}
+#else
+		TORRENT_UNUSED(max_upload_rate);
+#endif
 
 		int upload_slots = sett.get_int(settings_pack::unchoke_slots_limit);
 		if (upload_slots < 0)
