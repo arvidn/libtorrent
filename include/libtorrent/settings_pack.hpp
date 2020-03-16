@@ -1106,7 +1106,9 @@ namespace aux {
 			send_buffer_watermark_factor,
 
 			// ``choking_algorithm`` specifies which algorithm to use to determine
-			// which peers to unchoke.
+			// how many peers to unchoke. The unchoking algorithm for
+			// downloading torrents is always "tit-for-tat", i.e. the peers we
+			// download the fastest from are unchoked.
 			//
 			// The options for choking algorithms are:
 			//
@@ -1118,20 +1120,10 @@ namespace aux {
 			//   rate achieved to peers. The more slots that are opened, the
 			//   marginal upload rate required to open up another slot increases.
 			//
-			// * ``bittyrant_choker`` attempts to optimize download rate by
-			//   finding the reciprocation rate of each peer individually and
-			//   prefers peers that gives the highest *return on investment*. It
-			//   still allocates all upload capacity, but shuffles it around to
-			//   the best peers first. For this choker to be efficient, you need
-			//   to set a global upload rate limit
-			//   (``settings_pack::upload_rate_limit``). For more information
-			//   about this choker, see the paper_. This choker is not fully
-			//   implemented nor tested.
-			//
-			// .. _paper: http://bittyrant.cs.washington.edu/#papers
-			//
 			// ``seed_choking_algorithm`` controls the seeding unchoke behavior.
-			// The available options are:
+			// i.e. How we select which peers to unchoke for seeding torrents.
+			// Since a seeding torrent isn't downloading anything, the
+			// tit-for-tat mechanism cannot be used. The available options are:
 			//
 			// * ``round_robin`` which round-robins the peers that are unchoked
 			//   when seeding. This distributes the upload bandwidth uniformly and
@@ -1145,6 +1137,9 @@ namespace aux {
 			// * ``anti_leech`` prioritizes peers who have just started or are
 			//   just about to finish the download. The intention is to force
 			//   peers in the middle of the download to trade with each other.
+			//   This does not just take into account the pieces a peer is
+			//   reporting having downloaded, but also the pieces we have sent
+			//   to it.
 			choking_algorithm,
 			seed_choking_algorithm,
 
@@ -1432,6 +1427,7 @@ namespace aux {
 			// allowed upload slots as optimistic unchoke slots.
 			num_optimistic_unchoke_slots,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``default_est_reciprocation_rate`` is the assumed reciprocation
 			// rate from peers when using the BitTyrant choker. If set too high,
 			// you will over-estimate your peers and be
@@ -1448,9 +1444,14 @@ namespace aux {
 			// estimated reciprocation rate should be decreased by each unchoke
 			// interval a peer unchokes us. This only applies
 			// to the BitTyrant choker.
-			default_est_reciprocation_rate,
-			increase_est_reciprocation_rate,
-			decrease_est_reciprocation_rate,
+			default_est_reciprocation_rate TORRENT_DEPRECATED_ENUM,
+			increase_est_reciprocation_rate TORRENT_DEPRECATED_ENUM,
+			decrease_est_reciprocation_rate TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_default_est_reciprocation_rate,
+			deprecated_increase_est_reciprocation_rate,
+			deprecated_decrease_est_reciprocation_rate,
+#endif
 
 			// the max number of peers we accept from pex messages from a single
 			// peer. this limits the number of concurrent peers any of our peers
@@ -1920,7 +1921,11 @@ namespace aux {
 		{
 			fixed_slots_choker = 0,
 			rate_based_choker = 2,
-			bittyrant_choker = 3
+#if TORRENT_ABI_VERSION == 1
+			bittyrant_choker TORRENT_DEPRECATED_ENUM = 3
+#else
+			deprecated_bittyrant_choker = 3
+#endif
 		};
 
 		enum seed_choking_algorithm_t : std::uint8_t

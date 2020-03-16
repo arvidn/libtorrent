@@ -554,9 +554,11 @@ namespace aux {
 		// returns true if the connection was disconnected
 		bool disconnect_if_redundant();
 
+#if TORRENT_ABI_VERSION == 1
 		void increase_est_reciprocation_rate();
 		void decrease_est_reciprocation_rate();
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		bool should_log(peer_log_alert::direction_t direction) const final;
@@ -1074,11 +1076,13 @@ namespace aux {
 		int m_download_rate_peak = 0;
 		int m_upload_rate_peak = 0;
 
+#if TORRENT_ABI_VERSION == 1
 		// when using the BitTyrant choker, this is our
 		// estimated reciprocation rate. i.e. the rate
 		// we need to send to this peer for it to unchoke
 		// us
 		int m_est_reciprocation_rate;
+#endif
 
 		// stop sending data after this many bytes, INT_MAX = inf
 		int m_send_barrier = INT_MAX;

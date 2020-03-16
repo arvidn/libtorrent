@@ -128,6 +128,7 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT std::int64_t calc_bytes(file_storage const& fs, piece_count const& pc);
 
+#ifndef TORRENT_DISABLE_STREAMING
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -150,6 +151,7 @@ namespace libtorrent {
 		bool operator<(time_critical_piece const& rhs) const
 		{ return deadline < rhs.deadline; }
 	};
+#endif // TORRENT_DISABLE_STREAMING
 
 	// this is the internal representation of web seeds
 	struct web_seed_t : web_seed_entry
@@ -587,10 +589,13 @@ namespace libtorrent {
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
 
+#ifndef TORRENT_DISABLE_STREAMING
 		void cancel_non_critical();
 		void set_piece_deadline(piece_index_t piece, int t, deadline_flags_t flags);
 		void reset_piece_deadline(piece_index_t piece);
 		void clear_time_critical();
+#endif // TORRENT_DISABLE_STREAMING
+
 		void update_piece_priorities(
 			aux::vector<download_priority_t, file_index_t> const& file_prios);
 
@@ -1174,7 +1179,13 @@ namespace libtorrent {
 #endif
 
 		int num_time_critical_pieces() const
-		{ return int(m_time_critical_pieces.size()); }
+		{
+#ifndef TORRENT_DISABLE_STREAMING
+			return int(m_time_critical_pieces.size());
+#else
+			return 0;
+#endif
+		}
 
 		int get_suggest_pieces(std::vector<piece_index_t>& p
 			, typed_bitfield<piece_index_t> const& bits
@@ -1241,9 +1252,11 @@ namespace libtorrent {
 		bool should_announce_dht() const;
 #endif
 
+#ifndef TORRENT_DISABLE_STREAMING
 		void remove_time_critical_piece(piece_index_t piece, bool finished = false);
 		void remove_time_critical_pieces(aux::vector<download_priority_t, piece_index_t> const& priority);
 		void request_time_critical_pieces();
+#endif // TORRENT_DISABLE_STREAMING
 
 		void need_peer_list();
 
@@ -1315,8 +1328,10 @@ namespace libtorrent {
 
 		aux::vector<aux::announce_entry> m_trackers;
 
+#ifndef TORRENT_DISABLE_STREAMING
 		// this list is sorted by time_critical_piece::deadline
 		std::vector<time_critical_piece> m_time_critical_pieces;
+#endif
 
 		std::string m_trackerid;
 #if TORRENT_ABI_VERSION == 1

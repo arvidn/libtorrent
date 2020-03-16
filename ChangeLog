@@ -21,6 +21,10 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+
+	* deprecate the bittyrant choking algorithm
+	* add build option to disable streaming
+
 1.2.5 release
 
 	* announce port=1 instead of port=0, when there is no listen port

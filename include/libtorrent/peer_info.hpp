@@ -69,6 +69,13 @@ TORRENT_VERSION_NAMESPACE_2
 	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info
 	{
+		// hidden
+		peer_info();
+		~peer_info();
+		peer_info(peer_info const&);
+		peer_info(peer_info&&);
+		peer_info& operator=(peer_info const&);
+
 		// a string describing the software at the other end of the connection.
 		// In some cases this information is not available, then it will contain
 		// a string that may give away something about which software is running
@@ -138,7 +145,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// The connection is currently queued for a connection
 		// attempt. This may happen if there is a limit set on
 		// the number of half-open TCP connections.
-		static constexpr peer_flags_t queued = 8_bit;
+		TORRENT_DEPRECATED_MEMBER static constexpr peer_flags_t queued = 8_bit;
 #endif
 
 		// The peer has participated in a piece that failed the
@@ -329,7 +336,7 @@ TORRENT_VERSION_NAMESPACE_2
 #if TORRENT_ABI_VERSION == 1
 		// an estimate of the rate this peer is downloading at, in
 		// bytes per second.
-		int remote_dl_rate;
+		TORRENT_DEPRECATED_MEMBER int remote_dl_rate;
 #endif
 
 		// the number of bytes this peer has pending in the disk-io thread.
@@ -368,11 +375,15 @@ TORRENT_VERSION_NAMESPACE_2
 		// (parts per million).
 		int progress_ppm;
 
+#if TORRENT_ABI_VERSION == 1
 		// this is an estimation of the upload rate, to this peer, where it will
 		// unchoke us. This is a coarse estimation based on the rate at which
 		// we sent right before we were choked. This is primarily used for the
 		// bittyrant choking algorithm.
-		int estimated_reciprocation_rate;
+		TORRENT_DEPRECATED_MEMBER int estimated_reciprocation_rate;
+#else
+		int deprecated_estimated_reciprocation_rate;
+#endif
 
 		// the IP-address to this peer. The type is an asio endpoint. For
 		// more info, see the asio_ documentation.
@@ -410,21 +421,21 @@ TORRENT_VERSION_NAMESPACE_2
 		bandwidth_state_flags_t write_state;
 
 #if TORRENT_ABI_VERSION == 1
-		static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
-		static constexpr bandwidth_state_flags_t bw_global = bw_limit;
+		TORRENT_DEPRECATED_MEMBER static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
+		TORRENT_DEPRECATED_MEMBER static constexpr bandwidth_state_flags_t bw_global = bw_limit;
 
 		// the number of bytes per second we are allowed to send to or receive
 		// from this peer. It may be -1 if there's no local limit on the peer.
 		// The global limit and the torrent limit may also be enforced.
-		int upload_limit;
-		int download_limit;
+		TORRENT_DEPRECATED_MEMBER int upload_limit;
+		TORRENT_DEPRECATED_MEMBER int download_limit;
 
 		// a measurement of the balancing of free download (that we get) and free
 		// upload that we give. Every peer gets a certain amount of free upload,
 		// but this member says how much *extra* free upload this peer has got.
 		// If it is a negative number it means that this was a peer from which we
 		// have got this amount of free download.
-		std::int64_t load_balancing;
+		TORRENT_DEPRECATED_MEMBER std::int64_t load_balancing;
 #endif
 	};
 

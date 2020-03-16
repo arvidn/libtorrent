@@ -653,8 +653,6 @@ namespace aux {
 			// ``num_peers_half_open`` instead.
 			int num_connections() const override { return int(m_connections.size()); }
 
-			int peak_up_rate() const { return m_peak_up_rate; }
-
 			void trigger_unchoke() noexcept override
 			{
 				TORRENT_ASSERT(is_single_thread());
@@ -1077,8 +1075,9 @@ namespace aux {
 			void sent_syn(bool ipv6) override;
 			void received_synack(bool ipv6) override;
 
+#if TORRENT_ABI_VERSION == 1
 			int m_peak_up_rate = 0;
-			int m_peak_down_rate = 0;
+#endif
 
 			void on_tick(error_code const& e);
 
@@ -1101,7 +1100,8 @@ namespace aux {
 				std::int64_t const ret = total_seconds(aux::time_now()
 					- m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
-				TORRENT_ASSERT(ret <= (std::numeric_limits<std::uint16_t>::max)());
+				if (ret > (std::numeric_limits<std::uint16_t>::max)())
+					return (std::numeric_limits<std::uint16_t>::max)();
 				return static_cast<std::uint16_t>(ret);
 			}
 			time_point session_start_time() const override

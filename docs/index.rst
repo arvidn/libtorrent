@@ -71,7 +71,7 @@ libtorrent
 .. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
 .. _`libtorrent 2.0`: upgrade_to_2.0-ref.html
 .. _troubleshooting: troubleshooting.html
-.. _`tuning`: tuning.html
+.. _`tuning`: tuning-ref.html
 .. _fuzzing: fuzzing.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html

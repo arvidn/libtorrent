@@ -43,6 +43,7 @@ global orphaned_export
 preprocess_rst = \
     {
         'manual.rst': 'manual-ref.rst',
+        'tuning.rst': 'tuning-ref.rst',
         'tutorial.rst': 'tutorial-ref.rst',
         'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
         'upgrade_to_2.0.rst': 'upgrade_to_2.0-ref.rst',
@@ -65,6 +66,17 @@ symbols = \
         "session-statistics_": "manual-ref.html#session-statistics",
         "peer-classes_": "manual-ref.html#peer-classes"
     }
+
+# parse out names of settings, and add them to the symbols list, to get cross
+# references working
+with open('../src/settings_pack.cpp') as f:
+    for line in f:
+        line = line.strip()
+        if not line.startswith('SET('):
+            continue
+
+        name = line.split('(')[1].split(',')[0]
+        symbols['settings_pack::' + name] = 'reference-Settings.html#' + name
 
 static_links = \
     {
