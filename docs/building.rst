@@ -297,9 +297,9 @@ Build features:
 |                          |   This also enables HTTPS-tracker support and      |
 |                          |   support for bittorrent over SSL.                 |
 |                          | * ``libcrypto`` - links against libcrypto          |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 |                          | * ``gcrypt`` - links against libgcrypt             |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |
@@ -586,6 +586,15 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_OPENSSL``                | Link against ``libssl`` for SSL support. Must   |
+|                                        | be combined with ``TORRENT_USE_LIBCRYPTO``      |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBCRYPTO``              | Link against ``libcrypto`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBGCRYPT``              | Link against ``libgcrypt`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
 +----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html
