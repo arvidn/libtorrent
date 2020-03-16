@@ -6,7 +6,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 endif
 
 ifndef RST2HTML
-RST2HTML:=rst2html
+RST2HTML:=rst2html.py
 endif
 
 ifndef AAFIGURE
@@ -16,6 +16,7 @@ endif
 REFERENCE_TARGETS = \
 	manual-ref \
 	tutorial-ref \
+	tuning-ref \
 	upgrade_to_1.2-ref \
 	upgrade_to_2.0-ref \
 	reference \
@@ -51,7 +52,6 @@ MANUAL_TARGETS = index \
 	python_binding \
 	projects \
 	utp \
-	tuning \
 	hacking \
 	streaming \
 	fuzzing
@@ -104,18 +104,20 @@ ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tutorial.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst settings.rst stats_counters.rst hunspell/settings.dic
 	python gen_reference_doc.py --plain-output
 
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst
 	python filter-rst.py manual.rst >manual-plain.txt
 	python filter-rst.py tutorial.rst >tutorial-plain.txt
+	python filter-rst.py tuning.rst >tuning-plain.txt
 	python filter-rst.py settings.rst >settings-plain.txt
 	python filter-rst.py upgrade_to_1.2.rst >upgrade-1_2-plain.txt
 	python filter-rst.py upgrade_to_2.0.rst >upgrade-2_0-plain.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l manual-plain.txt >>hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l tutorial-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l tuning-plain.txt >>hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-1_2-plain.txt >>hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_0-plain.txt >>hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/settings.dic -l settings-plain.txt >>hunspell-report.txt

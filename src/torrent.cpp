@@ -3934,7 +3934,9 @@ namespace {
 				}
 			});
 
+#ifndef TORRENT_DISABLE_STREAMING
 		remove_time_critical_piece(index, true);
+#endif
 
 		if (is_downloading_state(m_state))
 		{
@@ -4050,7 +4052,9 @@ namespace {
 
 		inc_stats_counter(counters::num_piece_passed);
 
+#ifndef TORRENT_DISABLE_STREAMING
 		remove_time_critical_piece(index, true);
+#endif
 
 		if (settings().get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)
@@ -4710,6 +4714,7 @@ namespace {
 		return aux::read_uint32(ptr);
 	}
 
+#ifndef TORRENT_DISABLE_STREAMING
 	void torrent::cancel_non_critical()
 	{
 		std::set<piece_index_t> time_critical;
@@ -4937,6 +4942,7 @@ namespace {
 			++i;
 		}
 	}
+#endif // TORRENT_DISABLE_STREAMING
 
 	void torrent::piece_availability(aux::vector<int, piece_index_t>& avail) const
 	{
@@ -4983,7 +4989,9 @@ namespace {
 		if (filter_updated)
 		{
 			update_peer_interest(was_finished);
+#ifndef TORRENT_DISABLE_STREAMING
 			if (priority == dont_download) remove_time_critical_piece(index);
+#endif // TORRENT_DISABLE_STREAMING
 		}
 
 	}
@@ -5087,7 +5095,9 @@ namespace {
 			set_need_save_resume();
 
 			update_peer_interest(was_finished);
+#ifndef TORRENT_DISABLE_STREAMING
 			remove_time_critical_pieces(pieces);
+#endif
 		}
 
 		state_updated();
@@ -8196,11 +8206,13 @@ namespace {
 		TORRENT_ASSERT(m_sequence_number == no_pos
 			|| m_ses.verify_queue_position(this, m_sequence_number));
 
+#ifndef TORRENT_DISABLE_STREAMING
 		for (auto const& i : m_time_critical_pieces)
 		{
 			TORRENT_ASSERT(!is_seed());
 			TORRENT_ASSERT(!has_picker() || !m_picker->have_piece(i.piece));
 		}
+#endif
 
 		switch (current_stats_state())
 		{
@@ -9512,6 +9524,7 @@ namespace {
 			}
 		}
 
+#ifndef TORRENT_DISABLE_STREAMING
 		// ---- TIME CRITICAL PIECES ----
 
 #if TORRENT_DEBUG_STREAMING > 0
@@ -9541,6 +9554,7 @@ namespace {
 		{
 			request_time_critical_pieces();
 		}
+#endif // TORRENT_DISABLE_STREAMING
 
 		// ---- WEB SEEDS ----
 
@@ -9837,6 +9851,8 @@ namespace {
 		m_stat.received_synack(ipv6);
 		m_ses.received_synack(ipv6);
 	}
+
+#ifndef TORRENT_DISABLE_STREAMING
 
 #if TORRENT_DEBUG_STREAMING > 0
 	char const* esc(char const* code)
@@ -10365,6 +10381,7 @@ namespace {
 			p->send_block_requests();
 		}
 	}
+#endif // TORRENT_DISABLE_STREAMING
 
 	std::set<std::string> torrent::web_seeds(web_seed_entry::type_t const type) const
 	{

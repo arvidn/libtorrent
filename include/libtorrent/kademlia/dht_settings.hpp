@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DHT_SETTINGS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/entry.hpp"
 

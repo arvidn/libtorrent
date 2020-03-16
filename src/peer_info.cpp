@@ -34,6 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	peer_info::peer_info() = default;
+	peer_info::~peer_info() = default;
+	peer_info::peer_info(peer_info const&) = default;
+	peer_info::peer_info(peer_info&&) = default;
+	peer_info& peer_info::operator=(peer_info const&) = default;
+
 	// This will no longer be necessary with C++17
 	constexpr peer_flags_t peer_info::interesting;
 	constexpr peer_flags_t peer_info::choked;

@@ -387,7 +387,7 @@ Build features:
 |                          |   protocol.                                        |
 |                          | * ``off`` - disable bittorrent extensions.         |
 +--------------------------+----------------------------------------------------+
-| ``pic``                  | * ``off`` - default. Build without specifying      |
+| ``fpic``                 | * ``off`` - default. Build without specifying      |
 |                          |   ``-fPIC``.                                       |
 |                          | * ``on`` - Force build with ``-fPIC`` (useful for  |
 |                          |   building a static library to be linked into a    |
@@ -541,6 +541,9 @@ defines you can use to control the build.
 |                                        | cannot enable those alerts.                     |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_STREAMING``          | Disables set_piece_deadline() and associated    |
+|                                        | functionality.                                  |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |

@@ -833,17 +833,29 @@ namespace libtorrent {
 	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline
 		, deadline_flags_t const flags) const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::set_piece_deadline, index, deadline, flags);
+#else
+		TORRENT_UNUSED(deadline);
+		if (flags & alert_when_available)
+			async_call(&torrent::read_piece, index);
+#endif
 	}
 
 	void torrent_handle::reset_piece_deadline(piece_index_t index) const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::reset_piece_deadline, index);
+#else
+		TORRENT_UNUSED(index);
+#endif
 	}
 
 	void torrent_handle::clear_piece_deadlines() const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::clear_time_critical);
+#endif
 	}
 
 	std::shared_ptr<torrent> torrent_handle::native_handle() const

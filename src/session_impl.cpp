@@ -3436,8 +3436,9 @@ namespace {
 			}
 		}
 
+#if TORRENT_ABI_VERSION == 1
 		m_peak_up_rate = std::max(m_stat.upload_rate(), m_peak_up_rate);
-		m_peak_down_rate = std::max(m_stat.download_rate(), m_peak_down_rate);
+#endif
 
 		m_stat.second_tick(tick_interval_ms);
 
@@ -4266,6 +4267,7 @@ namespace {
 			peers.push_back(p.get());
 		}
 
+#if TORRENT_ABI_VERSION == 1
 		// the unchoker wants an estimate of our upload rate capacity
 		// (used by bittyrant)
 		int max_upload_rate = upload_rate_limit(m_global_class);
@@ -4281,6 +4283,9 @@ namespace {
 				m_alerts.emplace_alert<performance_alert>(torrent_handle()
 					, performance_alert::bittyrant_with_no_uplimit);
 		}
+#else
+		int const max_upload_rate = 0;
+#endif
 
 		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);

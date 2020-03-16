@@ -12,7 +12,7 @@ tuning libtorrent
 =================
 
 libtorrent expose most parameters used in the bittorrent engine for
-customization through the ``settings_pack``. This makes it possible to
+customization through the settings_pack. This makes it possible to
 test and tweak the parameters for certain algorithms to make a client
 that fits a wide range of needs. From low memory embedded devices to
 servers seeding thousands of torrents. The default settings in libtorrent
@@ -45,20 +45,20 @@ Then print alerts to a file::
 If you want to separate generic alerts from session stats, you can filter on the
 alert category in the alert, ``alert::category()``.
 
-The alerts with data will have the type ``session_stats_alert`` and there is one
-``session_log_alert`` that will be posted on startup containing the column names
+The alerts with data will have the type session_stats_alert and there is one
+session_log_alert that will be posted on startup containing the column names
 for all metrics. Logging this line will greatly simplify interpreting the output.
 
 The python scrip in ``tools/parse_session_stats.py`` can parse the resulting
-file and produce graphs of relevant stats. It requires gnuplot__.
+file and produce graphs of relevant stats. It requires gnuplot_.
 
-__ http://www.gnuplot.info
+.. _gnuplot: http://www.gnuplot.info
 
 reducing memory footprint
 =========================
 
 These are things you can do to reduce the memory footprint of libtorrent. You get
-some of this by basing your default ``settings_pack`` on the ``min_memory_usage()``
+some of this by basing your default settings_pack on the min_memory_usage()
 setting preset function.
 
 Keep in mind that lowering memory usage will affect performance, always profile
@@ -101,8 +101,8 @@ connection, and might be worth considering if you have a very large number of
 peer connections. This memory will not be visible in your process, this sets
 the amount of kernel memory is used for your sockets.
 
-Change this by setting ``settings_pack::recv_socket_buffer_size`` and
-``settings_pack::send_socket_buffer_size``.
+Change this by setting settings_pack::recv_socket_buffer_size and
+settings_pack::send_socket_buffer_size.
 
 peer list size
 --------------
@@ -116,7 +116,7 @@ large number of paused torrents (that are popular) it will be even more
 significant.
 
 If you're short of memory, you should consider lowering the limit. 500 is probably
-enough. You can do this by setting ``settings_pack::max_peerlist_size`` to
+enough. You can do this by setting settings_pack::max_peerlist_size to
 the max number of peers you want in a torrent's peer list. This limit applies per
 torrent. For 5 torrents, the total number of peers in peer lists will be 5 times
 the setting.
@@ -124,7 +124,7 @@ the setting.
 You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
 for the tracker and DHT to give you fresh ones. The max peer list size for paused
-torrents is set by ``settings_pack::max_paused_peerlist_size``.
+torrents is set by settings_pack::max_paused_peerlist_size.
 
 The drawback of lowering this number is that if you end up in a position where
 the tracker is down for an extended period of time, your only hope of finding live
@@ -139,7 +139,7 @@ The send buffer watermark controls when libtorrent will ask the disk I/O thread
 to read blocks from disk, and append it to a peer's send buffer.
 
 When the send buffer has fewer than or equal number of bytes as
-``settings_pack::send_buffer_watermark``, the peer will ask the disk I/O thread
+settings_pack::send_buffer_watermark, the peer will ask the disk I/O thread
 for more data to send. The trade-off here is between wasting memory by having too
 much data in the send buffer, and hurting send rate by starving out the socket,
 waiting for the disk read operation to complete.
@@ -193,7 +193,7 @@ software that does that will significantly increase the cost of opening and
 closing files. However, for a high performance seed, the file open/close might
 be so frequent that it becomes a significant cost. It might therefore be a good
 idea to allow a large file descriptor cache. Adjust this though
-``settings_pack::file_pool_size``.
+settings_pack::file_pool_size.
 
 Don't forget to set a high rlimit for file descriptors in your process as well. This limit
 must be high enough to keep all connections and files open.
@@ -208,7 +208,7 @@ throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth 
 between the two protocols. When running on a network where the bandwidth is in such an
 abundance that it's virtually infinite, this algorithm is no longer necessary, and might
 even be harmful to throughput. It is advised to experiment with the
-``session_setting::mixed_mode_algorithm``, setting it to ``settings_pack::prefer_tcp``.
+settings_pack::mixed_mode_algorithm, setting it to settings_pack::prefer_tcp.
 This setting entirely disables the balancing and un-throttles all connections. On a typical
 home connection, this would mean that none of the benefits of uTP would be preserved
 (the modem's send buffer would be full at all times) and uTP connections would for the most
@@ -227,36 +227,36 @@ enough to not draining the socket's send buffer before the disk operation comple
 The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-``settings_pack::send_buffer_watermark``.
+settings_pack::send_buffer_watermark.
 
 peers
 -----
 
 First of all, in order to allow many connections, set the global connection limit
-high, ``settings_pack::connections_limit``. Also set the upload rate limit to
-infinite, ``settings_pack::upload_rate_limit``, 0 means infinite.
+high, settings_pack::connections_limit. Also set the upload rate limit to
+infinite, settings_pack::upload_rate_limit, 0 means infinite.
 
 When dealing with a large number of peers, it might be a good idea to have slightly
 stricter timeouts, to get rid of lingering connections as soon as possible.
 
-There are a couple of relevant settings: ``settings_pack::request_timeout``,
-``settings_pack::peer_timeout`` and ``settings_pack::inactivity_timeout``.
+There are a couple of relevant settings: settings_pack::request_timeout,
+settings_pack::peer_timeout and settings_pack::inactivity_timeout.
 
 For seeds that are critical for a delivery system, you most likely want to allow
 multiple connections from the same IP. That way two people from behind the same NAT
 can use the service simultaneously. This is controlled by
-``settings_pack::allow_multiple_connections_per_ip``.
+settings_pack::allow_multiple_connections_per_ip.
 
 In order to always unchoke peers, turn off automatic unchoke by setting
-``settings_pack::choking_algorithm`` to ``fixed_slot_choker`` and set the number
-of upload slots to a large number via ``settings_pack::unchoke_slots_limit``,
+settings_pack::choking_algorithm to settings_pack::fixed_slot_choker and set the number
+of upload slots to a large number via settings_pack::unchoke_slots_limit,
 or use -1 (which means infinite).
 
 torrent limits
 --------------
 
-To seed thousands of torrents, you need to increase the ``settings_pack::active_limit``
-and ``settings_pack::active_seeds``.
+To seed thousands of torrents, you need to increase the settings_pack::active_limit
+and settings_pack::active_seeds.
 
 SHA-1 hashing
 -------------
@@ -264,7 +264,7 @@ SHA-1 hashing
 When downloading at very high rates, it is possible to have the CPU be the
 bottleneck for passing every downloaded byte through SHA-1. In order to enable
 calculating SHA-1 hashes in parallel, on multi-core systems, set
-``settings_pack::aio_threads`` to the number of threads libtorrent should
+settings_pack::aio_threads to the number of threads libtorrent should
 perform I/O and do SHA-1 hashing in. Only if that thread is close to saturating
 one core does it make sense to increase the number of threads.
 
@@ -284,7 +284,7 @@ This will actually loop through all torrents and run a provided predicate functi
 determine whether or not to include it in the returned vector.
 
 To use ``session::post_torrent_updates()`` torrents need to have the ``flag_update_subscribe``
-flag set. When post_torrent_updates() is called, a ``state_update_alert`` alert
+flag set. When post_torrent_updates() is called, a state_update_alert alert
 is posted, with all the torrents that have updated since the last time this
 function was called. The client have to keep its own state of all torrents, and
 update it based on this alert.

@@ -339,7 +339,7 @@ script:
 # run through building a tarball and make sure it works
   - cd $TRAVIS_BUILD_DIR;
   - if [[ "$dist" == "1" ]]; then
-      make dist &&
+      RST2HTML=rst2html make dist &&
       cd libtorrent-rasterbar-2.0.0 &&
       make &&
       make python-binding tools examples;

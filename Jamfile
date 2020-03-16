@@ -501,6 +501,9 @@ feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 feature test-coverage : off on : composite propagated link-incompatible ;
 feature.compose <test-coverage>on : <cflags>--coverage <linkflags>--coverage ;
 
+feature streaming : on off : composite propagated ;
+feature.compose <streaming>off : <define>TORRENT_DISABLE_STREAMING ;
+
 feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
 feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
