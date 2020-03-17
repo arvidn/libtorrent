@@ -687,6 +687,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
+	TORRENT_ASSERT(!d.disabled);
 
 	char header[2048];
 	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
@@ -775,6 +776,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < d.mapping.end_index());
 	TORRENT_ASSERT(d.mapping.size() == m_mappings.size());
+	TORRENT_ASSERT(!d.disabled);
 
 	if (d.upnp_connection) return;
 
@@ -835,6 +837,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	}
 
 	m.act = portmap_action::none;
+	m.expires = aux::time_now() + seconds(30);
 }
 
 void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
@@ -1422,11 +1425,11 @@ void upnp::on_upnp_map_response(error_code const& e
 			, portmap_transport::upnp);
 		if (d.lease_duration > 0)
 		{
-			m.expires = aux::time_now()
+			time_point const now = aux::time_now();
+			m.expires = now
 				+ seconds(d.lease_duration * 3 / 4);
 			time_point next_expire = m_refresh_timer.expires_at();
-			if (next_expire < aux::time_now()
-				|| next_expire > m.expires)
+			if (next_expire < now || next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 				error_code ec;
@@ -1561,17 +1564,18 @@ void upnp::on_expire(error_code const& ec)
 	{
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
+		if (d.disabled) continue;
 		for (port_mapping_t m{0}; m < m_mappings.end_index(); ++m)
 		{
-			if (d.mapping[m].expires != max_time())
+			if (d.mapping[m].expires == max_time())
 				continue;
 
-			if (d.mapping[m].expires < now)
+			if (d.mapping[m].expires <= now)
 			{
-				d.mapping[m].expires = max_time();
+				d.mapping[m].act = portmap_action::add;
 				update_map(d, m);
 			}
-			else if (d.mapping[m].expires < next_expire)
+			if (d.mapping[m].expires < next_expire)
 			{
 				next_expire = d.mapping[m].expires;
 			}
