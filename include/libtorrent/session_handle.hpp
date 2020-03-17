@@ -346,11 +346,15 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		void set_load_function(user_load_function_t fun);
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		// deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
 		TORRENT_DEPRECATED
 		session_status status() const;
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// deprecated in 1.2
 		TORRENT_DEPRECATED

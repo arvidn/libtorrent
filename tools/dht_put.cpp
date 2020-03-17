@@ -113,10 +113,12 @@ void usage()
 		"                            the specified file\n"
 		"dump-key <key-file>       - dump ed25519 keypair from the specified key\n"
 		"                            file.\n"
-		"mput <key-file> <string>  - puts the specified string as a mutable\n"
-		"                            object under the public key in key-file\n"
-		"mget <public-key>         - get a mutable object under the specified\n"
-		"                            public key\n"
+		"mput <key-file> <string> [salt]\n"
+		"                          - puts the specified string as a mutable\n"
+		"                            object under the public key in key-file,\n"
+		"                            and optionally specified salt\n"
+		"mget <public-key> [salt]  - get a mutable object under the specified\n"
+		"                            public key, and salt (optional)\n"
 		);
 	exit(1);
 }
@@ -131,10 +133,9 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 
 		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (auto const a : alerts)
 		{
-			if ((*i)->type() != alert_type)
+			if (a->type() != alert_type)
 			{
 				static int spinner = 0;
 				static const char anim[] = {'-', '\\', '|', '/'};
@@ -144,7 +145,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 				//print some alerts?
 				continue;
 			}
-			ret = *i;
+			ret = a;
 			found = true;
 		}
 	}
@@ -349,12 +350,16 @@ int main(int argc, char* argv[])
 		public_key pk;
 		secret_key sk;
 		std::tie(pk, sk) = ed25519_create_keypair(seed);
+		std::string salt;
+
+		if (argc > 1) salt = argv[1];
 
 		bootstrap(s);
 		s.dht_put_item(pk.bytes, std::bind(&put_string, _1, _2, _3, _4
-			, pk.bytes, sk.bytes, argv[0]));
+			, pk.bytes, sk.bytes, argv[0]), salt);
 
-		std::printf("MPUT public key: %s\n", to_hex(pk.bytes).c_str());
+		std::printf("MPUT public key: %s [salt: %s]\n", to_hex(pk.bytes).c_str()
+			, salt.c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
@@ -379,9 +384,12 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
+		std::string salt;
+		if (argc > 1) salt = argv[1];
+
 		bootstrap(s);
-		s.dht_get_item(public_key);
-		std::printf("MGET %s\n", argv[0]);
+		s.dht_get_item(public_key, salt);
+		std::printf("MGET %s [salt: %s]\n", argv[0], salt.c_str());
 
 		bool authoritative = false;
 

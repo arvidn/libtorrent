@@ -304,9 +304,9 @@ Build features:
 |                          | * ``wolfssl`` - links against wolfssl to use it    |
 |                          |   for SHA-1 hashing and HTTPS tracker support.     |
 |                          | * ``libcrypto`` - links against libcrypto          |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 |                          | * ``gcrypt`` - links against libgcrypt             |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |
@@ -600,6 +600,19 @@ defines you can use to control the build.
 |                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_HAVE_MMAP``                  | Define as 0 to disable mmap support.            |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_OPENSSL``                | Link against ``libssl`` for SSL support. Must   |
+|                                        | be combined with ``TORRENT_USE_LIBCRYPTO``      |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBCRYPTO``              | Link against ``libcrypto`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBGCRYPT``              | Link against ``libgcrypt`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_SSL_PEERS``                  | Define to enable support for SSL torrents,      |
+|                                        | peers are connected over authenticated SSL      |
+|                                        | streams.                                        |
 +----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html

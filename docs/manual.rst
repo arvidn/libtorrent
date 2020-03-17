@@ -1062,8 +1062,7 @@ session statistics
 ==================
 
 libtorrent provides a mechanism to query performance and statistics counters
-from its internals. This is primarily useful for troubleshooting of production
-systems and performance tuning.
+from its internals.
 
 The statistics consists of two fundamental types. *counters* and *gauges*. A
 counter is a monotonically increasing value, incremented every time some event
