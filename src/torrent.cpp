@@ -3862,6 +3862,7 @@ bool is_downloading_state(int const st)
 		// (unless it has already been announced through predictive_piece_announce
 		// feature).
 		bool announce_piece = true;
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		auto const it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
@@ -3870,6 +3871,7 @@ bool is_downloading_state(int const st)
 			announce_piece = false;
 			m_predictive_pieces.erase(it);
 		}
+#endif
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
@@ -4043,6 +4045,7 @@ bool is_downloading_state(int const st)
 		we_have(index);
 	}
 
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 	// we believe we will complete this piece very soon
 	// announce it to peers ahead of time to eliminate the
 	// round-trip times involved in announcing it, requesting it
@@ -4068,6 +4071,7 @@ bool is_downloading_state(int const st)
 
 		m_predictive_pieces.insert(i, index);
 	}
+#endif
 
 	void torrent::piece_failed(piece_index_t const index)
 	{
@@ -4085,6 +4089,7 @@ bool is_downloading_state(int const st)
 
 		inc_stats_counter(counters::num_piece_failed);
 
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		auto const it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
@@ -4101,6 +4106,7 @@ bool is_downloading_state(int const st)
 			}
 			m_predictive_pieces.erase(it);
 		}
+#endif
 		// increase the total amount of failed bytes
 		add_failed_bytes(m_torrent_file->piece_size(index));
 

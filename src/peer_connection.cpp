@@ -2430,7 +2430,9 @@ namespace libtorrent {
 		if (r.piece < piece_index_t(0)
 			|| r.piece >= t->torrent_file().end_piece()
 			|| (!t->has_piece_passed(r.piece)
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
+#endif
 				&& !t->seed_mode())
 			|| r.start < 0
 			|| r.start >= ti.piece_size(r.piece)
@@ -2959,6 +2961,7 @@ namespace libtorrent {
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
 
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		if (m_settings.get_int(settings_pack::predictive_piece_announce))
 		{
 			piece_index_t const piece = block_finished.piece_index;
@@ -2994,6 +2997,7 @@ namespace libtorrent {
 				}
 			}
 		}
+#endif // TORRENT_DISABLE_PREDICTIVE_PIECES
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
@@ -5208,11 +5212,13 @@ namespace libtorrent {
 
 			if (!t->has_piece_passed(r.piece) && !seed_mode)
 			{
+#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				// we don't have this piece yet, but we anticipate to have
 				// it very soon, so we have told our peers we have it.
 				// hold off on sending it. If the piece fails later
 				// we will reject this request
 				if (t->is_predictive_piece(r.piece)) continue;
+#endif
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 					, "piece: %d s: %x l: %x piece not passed hash check"
