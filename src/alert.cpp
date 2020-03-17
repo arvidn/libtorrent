@@ -1146,7 +1146,7 @@ namespace {
 
 	std::string portmap_log_alert::message() const
 	{
-		char ret[600];
+		char ret[1024];
 		std::snprintf(ret, sizeof(ret), "%s: %s"
 			, nat_type_str[static_cast<int>(map_transport)]
 			, log_message());
