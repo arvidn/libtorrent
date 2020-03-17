@@ -67,12 +67,12 @@ toolset.flags clang_tidy.compile OPTIONS <rtti>off : -fno-rtti ;
 TOUCH = [ common.file-creation-command ] ;
 
 actions compile.c++ {
-  "$(CONFIG_COMMAND)" -header-filter=*. -warnings-as-errors=* "$(>)" -- -x c++ $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
+  "$(CONFIG_COMMAND)" -quiet -header-filter=* -warnings-as-errors=* "$(>)" -- -x c++ $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
     && $(TOUCH) "$(<)"
 }
 
 actions compile.c {
-  "$(CONFIG_COMMAND)" -header-filter=*. -warnings-as-errors=* "$(>)" -- -x c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
+  "$(CONFIG_COMMAND)" -quiet -header-filter=* -warnings-as-errors=* "$(>)" -- -x c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" \
     && $(TOUCH) "$(<)"
 }
 
