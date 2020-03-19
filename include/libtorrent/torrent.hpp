@@ -779,6 +779,7 @@ namespace libtorrent {
 
 		void recalc_share_mode();
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		bool super_seeding() const
 		{
 			// we're not super seeding if we're not a seed
@@ -787,6 +788,7 @@ namespace libtorrent {
 
 		void set_super_seeding(bool on);
 		piece_index_t get_piece_to_super_seed(typed_bitfield<piece_index_t> const&);
+#endif
 
 		// returns true if we have downloaded the given piece
 		bool have_piece(piece_index_t index) const
@@ -1573,9 +1575,11 @@ namespace libtorrent {
 		// haven't
 		bool m_seed_mode:1;
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// if this is true, we're currently super seeding this
 		// torrent.
 		bool m_super_seeding:1;
+#endif
 
 		// if this is set, whenever transitioning into a downloading/seeding state
 		// from a non-downloading/seeding state, the torrent is paused.

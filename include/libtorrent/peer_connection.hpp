@@ -367,6 +367,7 @@ namespace aux {
 		// it will let the peer know that we have the given piece
 		void announce_piece(piece_index_t index);
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
 		void superseed_piece(piece_index_t replace_piece, piece_index_t new_piece);
@@ -375,6 +376,7 @@ namespace aux {
 			return m_superseed_piece[0] == index
 				|| m_superseed_piece[1] == index;
 		}
+#endif
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -1016,12 +1018,14 @@ namespace aux {
 		// by sending choke, unchoke.
 		int m_num_invalid_requests = 0;
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// if [0] is -1, super-seeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
 		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
 		std::array<piece_index_t, 2> m_superseed_piece = {{piece_index_t(-1), piece_index_t(-1)}};
+#endif
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.

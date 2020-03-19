@@ -441,6 +441,9 @@ feature.compose <predictive-pieces>off : <define>TORRENT_DISABLE_PREDICTIVE_PIEC
 feature streaming : on off : composite propagated ;
 feature.compose <streaming>off : <define>TORRENT_DISABLE_STREAMING ;
 
+feature super-seeding : on off : composite propagated ;
+feature.compose <super-seeding>off : <define>TORRENT_DISABLE_SUPERSEEDING ;
+
 feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
 feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;

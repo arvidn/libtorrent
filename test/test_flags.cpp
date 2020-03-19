@@ -148,6 +148,7 @@ TORRENT_TEST(flag_auto_managed)
 	test_unset_after_add(torrent_flags::auto_managed);
 }
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 TORRENT_TEST(flag_super_seeding)
 {
 	// super-seeding
@@ -155,6 +156,7 @@ TORRENT_TEST(flag_super_seeding)
 	test_set_after_add(torrent_flags::super_seeding);
 	test_unset_after_add(torrent_flags::super_seeding);
 }
+#endif
 
 TORRENT_TEST(flag_sequential_download)
 {

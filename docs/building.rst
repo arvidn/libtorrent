@@ -384,6 +384,9 @@ Build features:
 |                          |   ``set_piece_deadline()``.                        |
 |                          | * ``off`` - disable streaming functionality.       |
 +--------------------------+----------------------------------------------------+
+| ``super-seeding``        | * ``on`` - enable super seeding feature            |
+|                          | * ``off`` - disable super seeding feature          |
++--------------------------+----------------------------------------------------+
 | ``predictive-pieces``    | * ``on`` - enable predictive piece announce        |
 |                          |   feature. i.e.                                    |
 |                          |   settings_pack::predictive_piece_announce         |
@@ -536,6 +539,10 @@ defines you can use to control the build.
 |                                        | alerts, like log_alert, torrent_log_alert and   |
 |                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_SUPERSEEDING``       | This macro will disable support for super       |
+|                                        | seeding. The settings will exist, but will not  |
+|                                        | have an effect, when this macro is defined.     |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
 +----------------------------------------+-------------------------------------------------+

@@ -300,7 +300,11 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		if (!t->share_mode())
 		{
-			bool const upload_only_enabled = t->is_upload_only() && !t->super_seeding();
+			bool const upload_only_enabled = t->is_upload_only()
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+				&& !t->super_seeding()
+#endif
+				;
 			send_upload_only(upload_only_enabled);
 		}
 
@@ -1968,6 +1972,7 @@ namespace {
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(t->valid_metadata());
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1986,7 +1991,9 @@ namespace {
 			if (piece >= piece_index_t(0)) superseed_piece(piece_index_t(-1), piece);
 			return;
 		}
-		else if (m_supports_fast && t->is_seed())
+		else
+#endif
+			if (m_supports_fast && t->is_seed())
 		{
 			write_have_all();
 			return;
@@ -2138,7 +2145,10 @@ namespace {
 		if (t->is_upload_only()
 			&& !t->share_mode()
 			&& t->valid_metadata()
-			&& !t->super_seeding())
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+			&& !t->super_seeding()
+#endif
+			)
 		{
 			handshake["upload_only"] = 1;
 		}
