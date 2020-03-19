@@ -10772,7 +10772,9 @@ bool is_downloading_state(int const st)
 		st->is_seeding = is_seed();
 		st->is_finished = is_finished();
 #if TORRENT_ABI_VERSION == 1
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		st->super_seeding = m_super_seeding;
+#endif
 #endif
 		st->has_metadata = valid_metadata();
 		bytes_done(*st, flags);

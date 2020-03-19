@@ -425,10 +425,14 @@ namespace aux {
 			// preference of one protocol over another.
 			prefer_udp_trackers,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``strict_super_seeding`` when this is set to true, a piece has to
 			// have been forwarded to a third peer before another one is handed
 			// out. This is the traditional definition of super seeding.
-			strict_super_seeding,
+			strict_super_seeding TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_strict_super_seeding,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// if this is set to true, the memory allocated for the disk cache
