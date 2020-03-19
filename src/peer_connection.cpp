@@ -632,6 +632,7 @@ namespace libtorrent {
 			return;
 		}
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -639,6 +640,7 @@ namespace libtorrent {
 #endif
 			return;
 		}
+#endif
 
 		if (upload_only())
 		{
@@ -1941,6 +1943,7 @@ namespace libtorrent {
 			return;
 		}
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding() && !m_settings.get_bool(settings_pack::strict_super_seeding))
 		{
 			// if we're super-seeding and the peer just told
@@ -1954,6 +1957,7 @@ namespace libtorrent {
 				superseed_piece(index, t->get_piece_to_super_seed(m_have_piece));
 			}
 		}
+#endif
 
 		if (m_have_piece[index])
 		{
@@ -2016,6 +2020,7 @@ namespace libtorrent {
 		disconnect_if_redundant();
 		if (is_disconnecting()) return;
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
 		// a new piece to that peer
@@ -2030,6 +2035,7 @@ namespace libtorrent {
 				p->superseed_piece(index, t->get_piece_to_super_seed(p->get_bitfield()));
 			}
 		}
+#endif
 	}
 
 	// -----------------------------
@@ -2315,6 +2321,7 @@ namespace libtorrent {
 			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
 #endif
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding()
 			&& !super_seeded_piece(r.piece))
 		{
@@ -2348,6 +2355,7 @@ namespace libtorrent {
 			}
 			return;
 		}
+#endif // TORRENT_DISABLE_SUPERSEEDING
 
 		// if we haven't received a bitfield, it was
 		// probably omitted, which is the same as 'have_none'
@@ -4606,6 +4614,7 @@ namespace libtorrent {
 		p.local_endpoint = get_socket()->local_endpoint(ec);
 	}
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 	// TODO: 3 new_piece should be an optional<piece_index_t>. piece index -1
 	// should not be allowed
 	void peer_connection::superseed_piece(piece_index_t const replace_piece
@@ -4654,6 +4663,7 @@ namespace libtorrent {
 		m_superseed_piece[1] = m_superseed_piece[0];
 		m_superseed_piece[0] = new_piece;
 	}
+#endif // TORRENT_DISABLE_SUPERSEEDING
 
 	void peer_connection::max_out_request_queue(int s)
 	{
@@ -4789,6 +4799,7 @@ namespace libtorrent {
 			send_block_requests();
 		}
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding()
 			&& t->ready_for_connections()
 			&& !m_peer_interested
@@ -4798,6 +4809,7 @@ namespace libtorrent {
 			// become interested in us then
 			superseed_piece(piece_index_t(-1), t->get_piece_to_super_seed(m_have_piece));
 		}
+#endif
 
 		on_tick();
 		if (is_disconnecting()) return;

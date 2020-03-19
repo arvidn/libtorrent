@@ -200,7 +200,9 @@ bool is_downloading_state(int const st)
 		, m_sequential_download(p.flags & torrent_flags::sequential_download)
 		, m_auto_sequential(false)
 		, m_seed_mode(false)
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		, m_super_seeding(p.flags & torrent_flags::super_seeding)
+#endif
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_need_save_resume_data(p.flags & torrent_flags::need_save_resume)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
@@ -692,7 +694,11 @@ bool is_downloading_state(int const st)
 				, m_paused ? "paused " : ""
 				, m_auto_managed ? "auto-managed " : ""
 				, m_state_subscription ? "update-subscribe " : ""
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 				, m_super_seeding ? "super-seeding " : ""
+#else
+				, ""
+#endif
 				, m_sequential_download ? "sequential-download " : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
 					? "override-trackers "  : ""
@@ -931,7 +937,9 @@ bool is_downloading_state(int const st)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (share_mode()) return;
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (super_seeding()) return;
+#endif
 
 		// if we send upload-only, the other end is very likely to disconnect
 		// us, at least if it's a seed. If we don't want to close redundant
@@ -943,7 +951,11 @@ bool is_downloading_state(int const st)
 		// only, since they might disconnect immediately when
 		// they have downloaded a single piece, although we'll
 		// make another piece available
-		bool const upload_only_enabled = is_upload_only() && !super_seeding();
+		bool const upload_only_enabled = is_upload_only()
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+			&& !super_seeding()
+#endif
+			;
 
 		for (auto p : m_connections)
 		{
@@ -970,8 +982,10 @@ bool is_downloading_state(int const st)
 			ret |= torrent_flags::paused;
 		if (m_auto_managed)
 			ret |= torrent_flags::auto_managed;
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (m_super_seeding)
 			ret |= torrent_flags::super_seeding;
+#endif
 		if (m_sequential_download)
 			ret |= torrent_flags::sequential_download;
 		if (m_stop_when_ready)
@@ -1008,8 +1022,10 @@ bool is_downloading_state(int const st)
 		}
 		if (mask & torrent_flags::auto_managed)
 			auto_managed(bool(flags & torrent_flags::auto_managed));
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (mask & torrent_flags::super_seeding)
 			set_super_seeding(bool(flags & torrent_flags::super_seeding));
+#endif
 		if (mask & torrent_flags::sequential_download)
 			set_sequential_download(bool(flags & torrent_flags::sequential_download));
 		if (mask & torrent_flags::stop_when_ready)
@@ -4484,6 +4500,7 @@ bool is_downloading_state(int const st)
 		m_num_connecting_seeds = 0;
 	}
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 	void torrent::set_super_seeding(bool on)
 	{
 		if (on == m_super_seeding) return;
@@ -4545,6 +4562,7 @@ bool is_downloading_state(int const st)
 		if (avail_vec.empty()) return piece_index_t(-1);
 		return avail_vec[random(std::uint32_t(avail_vec.size() - 1))];
 	}
+#endif
 
 	void torrent::on_files_deleted(storage_error const& error) try
 	{
@@ -6246,7 +6264,9 @@ bool is_downloading_state(int const st)
 		ret.flags = torrent_flags_t{};
 		if (m_sequential_download) ret.flags |= torrent_flags::sequential_download;
 		if (m_seed_mode ) ret.flags |= torrent_flags::seed_mode;
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
+#endif
 		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
 		if (m_auto_managed ) ret.flags |= torrent_flags::auto_managed;
 		if (m_stop_when_ready) ret.flags |= torrent_flags::stop_when_ready;
@@ -7590,6 +7610,7 @@ bool is_downloading_state(int const st)
 
 		if (!is_seed())
 		{
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 			// turn off super seeding if we're not a seed
 			if (m_super_seeding)
 			{
@@ -7597,6 +7618,7 @@ bool is_downloading_state(int const st)
 				set_need_save_resume();
 				state_updated();
 			}
+#endif
 
 			if (m_state != torrent_status::finished && is_finished())
 				finished();
