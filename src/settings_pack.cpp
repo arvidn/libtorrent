@@ -159,7 +159,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(announce_to_all_trackers, false, nullptr),
 		SET(announce_to_all_tiers, false, nullptr),
 		SET(prefer_udp_trackers, true, nullptr),
-		SET(strict_super_seeding, false, nullptr),
+		DEPRECATED_SET(strict_super_seeding, false, nullptr),
 		DEPRECATED_SET(lock_disk_cache, false, nullptr),
 		SET(disable_hash_checks, false, nullptr),
 		SET(allow_i2p_mixed, false, nullptr),

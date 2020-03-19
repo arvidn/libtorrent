@@ -1,3 +1,4 @@
+	* deprecate strict super seeding mode
 	* make UPnP port-mapping lease duration configurable
 	* deprecate the bittyrant choking algorithm
 	* add build option to disable streaming

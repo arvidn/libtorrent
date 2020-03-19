@@ -54,6 +54,7 @@ TORRENT_TEST(super_seeding)
 		{ return true; });
 }
 
+#if TORRENT_ABI_VERSION == 1
 TORRENT_TEST(strict_super_seeding)
 {
 	setup_swarm(5, swarm_test::upload
@@ -71,4 +72,7 @@ TORRENT_TEST(strict_super_seeding)
 		, [](int, lt::session&) -> bool
 		{ return true; });
 }
+#endif
+#else
+TORRENT_TEST(summy) {}
 #endif

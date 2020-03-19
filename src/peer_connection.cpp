@@ -1944,7 +1944,11 @@ namespace libtorrent {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding() && !m_settings.get_bool(settings_pack::strict_super_seeding))
+		if (t->super_seeding()
+#if TORRENT_ABI_VERSION == 1
+			&& !m_settings.get_bool(settings_pack::strict_super_seeding)
+#endif
+			)
 		{
 			// if we're super-seeding and the peer just told
 			// us that it completed the piece we're super-seeding
@@ -2021,6 +2025,7 @@ namespace libtorrent {
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
+#if TORRENT_ABI_VERSION == 1
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
 		// a new piece to that peer
@@ -2035,7 +2040,8 @@ namespace libtorrent {
 				p->superseed_piece(index, t->get_piece_to_super_seed(p->get_bitfield()));
 			}
 		}
-#endif
+#endif // TORRENT_ABI_VERSION
+#endif // TORRENT_DISABLE_SUPERSEEDING
 	}
 
 	// -----------------------------
