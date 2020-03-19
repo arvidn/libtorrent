@@ -641,6 +641,7 @@ namespace aux {
 		return ret;
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	void file_storage::add_file(std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, std::time_t const mtime, string_view const symlink_path
 		, char const* root_hash)
@@ -662,6 +663,7 @@ namespace aux {
 			, file_flags, filehash, mtime, symlink_path, root_hash);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
+#endif // BOOST_NO_EXCEPTIONS
 
 	void file_storage::add_file(error_code& ec, std::string const& path
 		, std::int64_t const file_size, file_flags_t const file_flags, std::time_t const mtime
