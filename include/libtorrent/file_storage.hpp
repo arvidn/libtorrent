@@ -297,6 +297,7 @@ namespace aux {
 		//
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
+#ifndef BOOST_NO_EXCEPTIONS
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
@@ -306,6 +307,7 @@ namespace aux {
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
+#endif // BOOST_NO_EXCEPTIONS
 		void add_file_borrow(error_code& ec, string_view filename
 			, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}, char const* filehash = nullptr
