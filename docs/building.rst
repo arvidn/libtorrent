@@ -280,7 +280,7 @@ Build features:
 |                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
 | ``encryption``           | * ``on`` - encrypted bittorrent connections        |
-|                          |   enabled. (Message Stream encryption).            |
+|                          |   enabled. (Message Stream encryption).(default)   |
 |                          | * ``off`` - turns off support for encrypted        |
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
@@ -356,7 +356,7 @@ Build features:
 |                          | * ``off`` - force not using iconv (disables locale |
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
-| ``i2p``                  | * ``on`` - build with I2P support                  |
+| ``i2p``                  | * ``on`` - default. build with I2P support         |
 |                          | * ``off`` - build without I2P support              |
 +--------------------------+----------------------------------------------------+
 | ``profile-calls``        | * ``off`` - default. No additional call profiling. |
@@ -371,25 +371,26 @@ Build features:
 |                          | * ``on`` - Print verbose uTP log, used to debug    |
 |                          |   the uTP implementation.                          |
 +--------------------------+----------------------------------------------------+
-| ``picker-debugging``     | * ``off`` - no extra invariant checks in piece     |
-|                          |   picker.                                          |
+| ``picker-debugging``     | * ``off`` - default. no extra invariant checks in  |
+|                          |   piece picker.                                    |
 |                          | * ``on`` - include additional invariant checks in  |
 |                          |   piece picker. Used for testing the piece picker. |
 +--------------------------+----------------------------------------------------+
 | ``extensions``           | * ``on`` - enable extensions to the bittorrent     |
-|                          |   protocol.                                        |
+|                          |   protocol.(default)                               |
 |                          | * ``off`` - disable bittorrent extensions.         |
 +--------------------------+----------------------------------------------------+
 | ``streaming``            | * ``on`` - enable streaming functionality. i.e.    |
-|                          |   ``set_piece_deadline()``.                        |
+|                          |   ``set_piece_deadline()``. (default)              |
 |                          | * ``off`` - disable streaming functionality.       |
 +--------------------------+----------------------------------------------------+
-| ``super-seeding``        | * ``on`` - enable super seeding feature            |
+| ``super-seeding``        | * ``on`` - enable super seeding feature. (default) |
 |                          | * ``off`` - disable super seeding feature          |
 +--------------------------+----------------------------------------------------+
 | ``predictive-pieces``    | * ``on`` - enable predictive piece announce        |
 |                          |   feature. i.e.                                    |
 |                          |   settings_pack::predictive_piece_announce         |
+|                          |   (default)                                        |
 |                          | * ``off`` - disable feature.                       |
 +--------------------------+----------------------------------------------------+
 | ``fpic``                 | * ``off`` - default. Build without specifying      |
