@@ -1212,6 +1212,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			, job_name(j->action)
 			, j->storage->num_outstanding_jobs());
 
+		TORRENT_ASSERT(j->storage);
 		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->action));
 
 		int ret = j->storage->raise_fence(j, m_stats_counters);
@@ -1550,16 +1551,16 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			disk_io_job* j = i.get();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			if (j->storage)
+			if (j->flags & disk_io_job::fence)
 			{
-				if (j->flags & disk_io_job::fence)
-				{
-					m_stats_counters.inc_stats_counter(
-						counters::num_fenced_read + static_cast<int>(j->action), -1);
-				}
-
-				ret += j->storage->job_complete(j, new_jobs);
+				m_stats_counters.inc_stats_counter(
+					counters::num_fenced_read + static_cast<int>(j->action), -1);
 			}
+
+			TORRENT_ASSERT(j->storage);
+			if (j->storage)
+				ret += j->storage->job_complete(j, new_jobs);
+
 			TORRENT_ASSERT(ret == new_jobs.size());
 			TORRENT_ASSERT(!(j->flags & disk_io_job::in_progress));
 #if TORRENT_USE_ASSERTS
