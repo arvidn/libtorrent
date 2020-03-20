@@ -7180,7 +7180,7 @@ bool is_downloading_state(int const st)
 	{
 		if (m_abort) return false;
 
-		if (num_peers() > 0) return true;
+		if (!m_connections.empty()) return true;
 
 		// we might want to connect web seeds
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
