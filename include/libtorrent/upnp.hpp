@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/openssl.hpp" // for ssl::context
 
 #include <memory>
 #include <functional>
@@ -362,6 +363,10 @@ private:
 	address_v4 m_listen_address;
 	address_v4 m_netmask;
 	std::string m_device;
+
+#ifdef TORRENT_USE_OPENSSL
+	ssl::context m_ssl_ctx;
+#endif
 
 	aux::listen_socket_handle m_listen_handle;
 };

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,80 +30,87 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_OPENSSL_HPP_INCLUDED
-#define TORRENT_OPENSSL_HPP_INCLUDED
-
-#ifdef TORRENT_USE_LIBCRYPTO
-
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/settings_pack.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#endif // TORRENT_USE_LIBCRYPTO
+namespace libtorrent {
+namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
-
-#if OPENSSL_VERSION_NUMBER < 0x1000000fL
-#error OpenSSL too old, use a recent version with SNI support
-#endif
 
 // all of OpenSSL causes warnings, so we just have to disable them
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#ifdef TORRENT_WINDOWS
-// because openssl includes winsock.h, we must include winsock2.h first
-#include <winsock2.h>
+void openssl_set_tlsext_hostname(SSL* s, char const* name)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
+	SSL_set_tlsext_host_name(s, name);
 #endif
+}
 
-#include <openssl/ssl.h>
-#include <openssl/x509v3.h> // for GENERAL_NAME
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
 
-#include <boost/asio/ssl.hpp>
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
+void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
+	, int (*servername_callback)(SSL*, int*, void*))
+{
+	SSL_CTX_set_tlsext_servername_callback(ctx, servername_callback);
+}
+
+void openssl_set_tlsext_servername_arg(SSL_CTX* ctx, void* userdata)
+{
+	SSL_CTX_set_tlsext_servername_arg(ctx, userdata);
+}
+
+int openssl_num_general_names(GENERAL_NAMES* gens)
+{
+	return sk_GENERAL_NAME_num(gens);
+}
+
+GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
+{
+	return sk_GENERAL_NAME_value(gens, i);
+}
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace ssl {
+#endif // OPENSSL_VERSION_NUMBER
 
-#if defined TORRENT_BUILD_SIMULATOR
-	using sim::asio::ssl::context;
-	using sim::asio::ssl::stream_base;
-	using sim::asio::ssl::stream;
+ssl::context::method ssl_client_version(int const v)
+{
+	switch (v)
+	{
+		case settings_pack::tls11: return ssl::context::tlsv11_client;
+		case settings_pack::tls12: return ssl::context::tlsv12_client;
+#if TORRENT_USE_TLS13
+		case settings_pack::tls13: return ssl::context::tlsv13_client;
+		default: return ssl::context::tlsv13_client;
 #else
-	using boost::asio::ssl::context;
-	using boost::asio::ssl::stream_base;
-	using boost::asio::ssl::stream;
+		default: return ssl::context::tlsv12_client;
 #endif
-} // ssl
+	};
+}
 
-namespace aux {
+#if defined TORRENT_SSL_PEERS
 
-TORRENT_EXTRA_EXPORT void openssl_set_tlsext_hostname(SSL* s, char const* name);
-
-TORRENT_EXTRA_EXPORT void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
-	, int (*servername_callback)(SSL*, int*, void*));
-
-TORRENT_EXTRA_EXPORT void openssl_set_tlsext_servername_arg(SSL_CTX* ctx, void* userdata);
-
-TORRENT_EXTRA_EXPORT int openssl_num_general_names(GENERAL_NAMES* gens);
-
-TORRENT_EXTRA_EXPORT GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i);
-
-// converts setting_pack::ssl_version_t enum into asio version
-ssl::context::method ssl_client_version(int const v);
-
-#ifdef TORRENT_SSL_PEERS
-ssl::context::method ssl_version(int const v);
+ssl::context::method ssl_version(int const v)
+{
+	switch (v)
+	{
+		case settings_pack::tls11: return ssl::context::tlsv11;
+		case settings_pack::tls12: return ssl::context::tlsv12;
+#if TORRENT_USE_TLS13
+		case settings_pack::tls13: return ssl::context::tlsv13;
+		default: return ssl::context::tlsv13;
+#else
+		default: return ssl::context::tlsv12;
 #endif
+	};
+}
 
-} // aux
-} // libtorrent
+#endif // TORRENT_SSL_PEERS
 
 #endif // TORRENT_USE_OPENSSL
 
-#endif // TORRENT_OPENSSL_HPP_INCLUDED
+}
+}

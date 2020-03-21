@@ -85,12 +85,12 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	http_connection(io_context& ios
 		, resolver_interface& resolver
 		, http_handler handler
-		, bool bottled = true
-		, int max_bottled_buffer_size = default_max_bottled_buffer_size
-		, http_connect_handler ch = http_connect_handler()
-		, http_filter_handler fh = http_filter_handler()
+		, bool bottled
+		, int max_bottled_buffer_size
+		, http_connect_handler ch
+		, http_filter_handler fh
 #ifdef TORRENT_USE_OPENSSL
-		, ssl::context* ssl_ctx = nullptr
+		, ssl::context* ssl_ctx
 #endif
 		);
 
@@ -169,7 +169,6 @@ private:
 
 #ifdef TORRENT_USE_OPENSSL
 	ssl::context* m_ssl_ctx;
-	bool m_own_ssl_context;
 #endif
 
 #if TORRENT_USE_I2P

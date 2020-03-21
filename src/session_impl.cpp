@@ -497,10 +497,11 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_context(ioc)
-#if defined TORRENT_SSL_PEERS
-		, m_ssl_ctx(boost::asio::ssl::context::sslv23)
-#elif defined TORRENT_USE_OPENSSL
-		, m_ssl_ctx(boost::asio::ssl::context::sslv23_client)
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl_ctx(ssl_client_version(pack.get_int(settings_pack::ssl_version)))
+#endif
+#ifdef TORRENT_SSL_PEERS
+		, m_peer_ssl_ctx(ssl_version(pack.get_int(settings_pack::ssl_version)))
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
@@ -542,7 +543,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
 			, m_io_context
 			, m_settings, m_stats_counters
-			, &m_ssl_ctx)
+			, &m_peer_ssl_ctx)
 #endif
 		, m_timer(m_io_context)
 		, m_lsd_announce_timer(m_io_context)
@@ -583,13 +584,14 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 #ifdef TORRENT_USE_OPENSSL
 		error_code ec;
-		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+		m_ssl_ctx.set_default_verify_paths(ec);
 #endif
 #ifdef TORRENT_SSL_PEERS
-		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
+		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
 			, servername_callback);
-		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
-#endif
+		aux::openssl_set_tlsext_servername_arg(m_peer_ssl_ctx.native_handle(), this);
+#endif // TORRENT_SSL_PEERS
 
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = 0;
@@ -2655,11 +2657,11 @@ namespace {
 #ifdef TORRENT_SSL_PEERS
 			if (ssl == transport::ssl)
 			{
-				// accept connections initializing the SSL connection to
-				// use the generic m_ssl_ctx context. However, since it has
-				// the servername callback set on it, we will switch away from
-				// this context into a specific torrent once we start handshaking
-				return socket_type(ssl_stream<tcp::socket>(tcp::socket(std::move(s)), m_ssl_ctx));
+				// accept connections initializing the SSL connection to use the peer
+				// ssl context. Since it has the servername callback set on it, we will
+				// switch away from this context into a specific torrent once we start
+				// handshaking
+				return socket_type(ssl_stream<tcp::socket>(tcp::socket(std::move(s)), m_peer_ssl_ctx));
 			}
 			else
 #endif
@@ -6499,6 +6501,20 @@ namespace {
 	{
 		m_alerts.set_alert_mask(alert_category_t(
 			static_cast<std::uint32_t>(m_settings.get_int(settings_pack::alert_mask))));
+	}
+
+	void session_impl::update_validate_https()
+	{
+#ifdef TORRENT_USE_OPENSSL
+		using boost::asio::ssl::context;
+		auto const flags = m_settings.get_bool(settings_pack::validate_https_trackers)
+			? context::verify_peer
+				| context::verify_fail_if_no_peer_cert
+				| context::verify_client_once
+			: context::verify_none;
+		error_code ec;
+		m_ssl_ctx.set_verify_mode(flags, ec);
+#endif
 	}
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)

@@ -751,6 +751,7 @@ SOURCES =
 	instantiate_connection
 	lazy_bdecode
 	natpmp
+	openssl
 	packet_buffer
 	piece_picker
 	peer_list

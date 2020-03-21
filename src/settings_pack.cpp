@@ -207,6 +207,7 @@ namespace libtorrent {
 		SET(dht_ignore_dark_internet, true, nullptr),
 		SET(dht_read_only, false, nullptr),
 		SET(piece_extent_affinity, false, nullptr),
+		SET(validate_https_trackers, false, &session_impl::update_validate_https),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
@@ -347,6 +348,11 @@ namespace libtorrent {
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
+#if TORRENT_USE_TLS13
+		SET(ssl_version, settings_pack::tls13, nullptr),
+#else
+		SET(ssl_version, settings_pack::tls12, nullptr),
+#endif
 		SET(dht_max_peers_reply, 100, nullptr),
 		SET(dht_search_branching, 5, nullptr),
 		SET(dht_max_fail_count, 20, nullptr),

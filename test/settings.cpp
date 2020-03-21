@@ -87,6 +87,9 @@ lt::settings_pack settings()
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
 
+	// to be compatible with python
+	pack.set_int(settings_pack::ssl_version, settings_pack::tls12);
+
 	return pack;
 }
 

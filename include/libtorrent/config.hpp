@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 
 #include <boost/config.hpp>
+#include <boost/version.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -571,6 +572,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define TORRENT_HAS_ARM_CRC32 0
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
+
+#ifndef TORRENT_USE_TLS13
+#if BOOST_VERSION >= 106900
+#define TORRENT_USE_TLS13 1
+#else
+#define TORRENT_USE_TLS13 0
+#endif
+#endif
 
 #if defined TORRENT_SSL_PEERS && !defined TORRENT_USE_OPENSSL
 #error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL
