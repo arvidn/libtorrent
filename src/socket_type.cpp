@@ -49,7 +49,7 @@ namespace libtorrent {
 
 	char const* socket_type_name(socket_type_t const s)
 	{
-		static aux::array<char const*, 9, socket_type_t> const names{{
+		static aux::array<char const*, 9, socket_type_t> const names{{{
 			"TCP",
 			"Socks5",
 			"HTTP",
@@ -67,7 +67,7 @@ namespace libtorrent {
 #else
 			"","","",""
 #endif
-		}};
+		}}};
 		return names[s];
 	}
 

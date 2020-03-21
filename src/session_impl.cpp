@@ -1280,7 +1280,7 @@ namespace {
 
 		using sock_t = peer_class_type_filter::socket_type_t;
 		// assign peer class based on socket type
-		static aux::array<sock_t, 9, socket_type_t> const mapping{{
+		static aux::array<sock_t, 9, socket_type_t> const mapping{{{
 			sock_t::tcp_socket
 			, sock_t::tcp_socket
 			, sock_t::tcp_socket
@@ -1290,7 +1290,7 @@ namespace {
 			, sock_t::ssl_tcp_socket
 			, sock_t::ssl_tcp_socket
 			, sock_t::ssl_utp_socket
-		}};
+		}}};
 		sock_t const socket_type = mapping[st];
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
