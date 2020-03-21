@@ -154,6 +154,7 @@ TORRENT_TEST(flag_auto_managed)
 // super seeding mode is automatically turned off if we're not a seed
 // since the posix_disk_io is not threaded, this will happen immediately
 #if TORRENT_HAVE_MMAP
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 TORRENT_TEST(flag_super_seeding)
 {
 	// super-seeding
@@ -161,6 +162,7 @@ TORRENT_TEST(flag_super_seeding)
 	test_unset_after_add(torrent_flags::super_seeding);
 	test_set_after_add(torrent_flags::super_seeding);
 }
+#endif
 #endif
 
 TORRENT_TEST(flag_sequential_download)

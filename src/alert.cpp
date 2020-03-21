@@ -609,7 +609,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -627,7 +627,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -645,7 +645,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -666,7 +666,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s requested block (piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -684,7 +684,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -1154,7 +1154,7 @@ namespace {
 
 	std::string portmap_log_alert::message() const
 	{
-		char ret[600];
+		char ret[1024];
 		std::snprintf(ret, sizeof(ret), "%s [%s]: %s"
 			, nat_type_str[static_cast<int>(map_transport)]
 			, local_address.to_string().c_str()
@@ -1861,7 +1861,7 @@ namespace {
 	{
 		static char const* const mode[] =
 		{ "<==", "==>", "<<<", ">>>", "***" };
-		return torrent_alert::message() + " [" + print_endpoint(endpoint) + "] "
+		return peer_alert::message() + " [" + print_endpoint(endpoint) + "] "
 			+ mode[direction] + " " + event_type + " [ " + log_message() + " ]";
 	}
 
@@ -2285,8 +2285,8 @@ namespace {
 			"reverse_sequential ",
 			"backup1 ",
 			"backup2 ",
-			"end_game "
-			"extent_affinity "
+			"end_game ",
+			"extent_affinity ",
 		};
 
 		std::string ret = peer_alert::message();
@@ -2530,7 +2530,7 @@ namespace {
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "%s block uploaded to a peer (piece: %d block: %d)"
-			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
+			, peer_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 

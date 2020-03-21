@@ -85,13 +85,16 @@ namespace upnp_errors
 static error_code ignore_error;
 
 upnp::rootdevice::rootdevice() = default;
+
+#if TORRENT_USE_ASSERTS
 upnp::rootdevice::~rootdevice()
 {
 	TORRENT_ASSERT(magic == 1337);
-#if TORRENT_USE_ASSERTS
 	magic = 0;
-#endif
 }
+#else
+upnp::rootdevice::~rootdevice() = default;
+#endif
 
 upnp::rootdevice::rootdevice(rootdevice const&) = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) & = default;
@@ -99,13 +102,13 @@ upnp::rootdevice::rootdevice(rootdevice&&) noexcept = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 
 upnp::upnp(io_context& ios
-	, std::string user_agent
+	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
 	, address_v4 const& listen_address
 	, address_v4 const& netmask
 	, std::string listen_device
 	, listen_socket_handle ls)
-	: m_user_agent(std::move(user_agent))
+	: m_settings(settings)
 	, m_callback(cb)
 	, m_io_service(ios)
 	, m_resolver(ios)
@@ -562,6 +565,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	rootdevice d;
 	d.url = url;
+	d.lease_duration = m_settings.get_int(settings_pack::upnp_lease_duration);
 
 	auto i = m_devices.find(d);
 
@@ -689,6 +693,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
+	TORRENT_ASSERT(!d.disabled);
 
 	char header[2048];
 	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
@@ -747,7 +752,8 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 		, to_string(d.mapping[i].protocol)
 		, d.mapping[i].local_ep.port()
 		, local_endpoint.c_str()
-		, m_user_agent.c_str()
+		, m_settings.get_bool(settings_pack::anonymous_mode)
+			? "" : m_settings.get_str(settings_pack::user_agent).c_str()
 		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action);
@@ -776,6 +782,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < d.mapping.end_index());
 	TORRENT_ASSERT(d.mapping.size() == m_mappings.size());
+	TORRENT_ASSERT(!d.disabled);
 
 	if (d.upnp_connection) return;
 
@@ -836,6 +843,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	}
 
 	m.act = portmap_action::none;
+	m.expires = aux::time_now() + seconds(30);
 }
 
 void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
@@ -1423,11 +1431,11 @@ void upnp::on_upnp_map_response(error_code const& e
 			, portmap_transport::upnp, m_listen_handle);
 		if (d.lease_duration > 0)
 		{
-			m.expires = aux::time_now()
+			time_point const now = aux::time_now();
+			m.expires = now
 				+ seconds(int(d.lease_duration * 3 / 4));
 			time_point next_expire = m_refresh_timer.expiry();
-			if (next_expire < aux::time_now()
-				|| next_expire > m.expires)
+			if (next_expire < now || next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 				m_refresh_timer.expires_at(m.expires);
@@ -1561,17 +1569,18 @@ void upnp::on_expire(error_code const& ec)
 	{
 		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
+		if (d.disabled) continue;
 		for (port_mapping_t m{0}; m < m_mappings.end_index(); ++m)
 		{
-			if (d.mapping[m].expires != max_time())
+			if (d.mapping[m].expires == max_time())
 				continue;
 
-			if (d.mapping[m].expires < now)
+			if (d.mapping[m].expires <= now)
 			{
-				d.mapping[m].expires = max_time();
+				d.mapping[m].act = portmap_action::add;
 				update_map(d, m);
 			}
-			else if (d.mapping[m].expires < next_expire)
+			if (d.mapping[m].expires < next_expire)
 			{
 				next_expire = d.mapping[m].expires;
 			}

@@ -136,28 +136,29 @@ namespace torrent_flags {
 	// updates when calling post_torrent_updates().
 	constexpr torrent_flags_t update_subscribe = 7_bit;
 
-	// sets the torrent into super seeding mode. If the torrent is not a
-	// seed, this flag has no effect. It has the same effect as calling
-	// ``torrent_handle::super_seeding(true)`` on the torrent handle
-	// immediately after adding it.
+	// sets the torrent into super seeding/initial seeding mode. If the torrent
+	// is not a seed, this flag has no effect.
 	constexpr torrent_flags_t super_seeding = 8_bit;
 
-	// sets the sequential download state for the torrent. It has the same
-	// effect as calling ``torrent_handle::sequential_download(true)`` on
-	// the torrent handle immediately after adding it.
+	// sets the sequential download state for the torrent. In this mode the
+	// piece picker will pick pieces with low index numbers before pieces with
+	// high indices. The actual pieces that are picked depend on other factors
+	// still, such as which pieces a peer has and whether it is in parole mode
+	// or "prefer whole pieces"-mode. Sequential mode is not ideal for streaming
+	// media. For that, see set_piece_deadline() instead.
 	constexpr torrent_flags_t sequential_download = 9_bit;
 
-	// When this flag is set, the
-	// torrent will *force stop* whenever it transitions from a
-	// non-data-transferring state into a data-transferring state (referred to
-	// as being ready to download or seed). This is useful for torrents that
-	// should not start downloading or seeding yet, but want to be made ready
-	// to do so. A torrent may need to have its files checked for instance, so
-	// it needs to be started and possibly queued for checking (auto-managed
-	// and started) but as soon as it's done, it should be stopped.
+	// When this flag is set, the torrent will *force stop* whenever it
+	// transitions from a non-data-transferring state into a data-transferring
+	// state (referred to as being ready to download or seed). This is useful
+	// for torrents that should not start downloading or seeding yet, but want
+	// to be made ready to do so. A torrent may need to have its files checked
+	// for instance, so it needs to be started and possibly queued for checking
+	// (auto-managed and started) but as soon as it's done, it should be
+	// stopped.
 	//
 	// *Force stopped* means auto-managed is set to false and it's paused. As
-	// if auto_manage(false) and pause() were called on the torrent.
+	// if the auto_manages flag is cleared and the paused flag is set on the torrent.
 	//
 	// Note that the torrent may transition into a downloading state while
 	// calling this function, and since the logic is edge triggered you may

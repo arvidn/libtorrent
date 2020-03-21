@@ -470,10 +470,14 @@ namespace aux {
 			// preference of one protocol over another.
 			prefer_udp_trackers,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``strict_super_seeding`` when this is set to true, a piece has to
 			// have been forwarded to a third peer before another one is handed
 			// out. This is the traditional definition of super seeding.
-			strict_super_seeding,
+			strict_super_seeding TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_strict_super_seeding,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// if this is set to true, the memory allocated for the disk cache
@@ -1849,6 +1853,13 @@ namespace aux {
 			// corresponds to the, Linux-specific, ``TCP_NOTSENT_LOWAT`` TCP socket
 			// option.
 			send_not_sent_low_watermark,
+
+			// The expiration time of UPnP port-mappings, specified in seconds. 0
+			// means permanent lease. Some routers do not support expiration times
+			// on port-maps (nor correctly returning an error indicating lack of
+			// support). In those cases, set this to 0. Otherwise, don't set it any
+			// lower than 5 minutes.
+			upnp_lease_duration,
 
 			// the maximum number of peers to send in a reply to ``get_peers``
 			dht_max_peers_reply,

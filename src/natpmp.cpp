@@ -291,7 +291,9 @@ void natpmp::mapping_log(char const* op, mapping_t const& m) const
 			, m.external_port
 			, m.local_port
 			, to_string(m.act)
-			, total_seconds(m.expires - aux::time_now()));
+			, (m.expires.time_since_epoch() != seconds(0))
+				? total_seconds(m.expires - aux::time_now())
+				: std::int64_t(0));
 	}
 }
 
