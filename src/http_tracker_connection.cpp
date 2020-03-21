@@ -111,7 +111,7 @@ namespace libtorrent {
 
 		if (!(tracker_req().kind & tracker_request::scrape_request))
 		{
-			static aux::array<const char*, 4> const event_string{{"completed", "started", "stopped", "paused"}};
+			static aux::array<const char*, 4> const event_string{{{"completed", "started", "stopped", "paused"}}};
 
 			char str[1024];
 			std::snprintf(str, sizeof(str)
