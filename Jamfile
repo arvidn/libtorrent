@@ -80,6 +80,10 @@ rule linking ( properties * )
 	else if <crypto>libcrypto in $(properties)
 	{
 		result += <library>crypto ;
+		if <target-os>linux in $(properties)
+		{
+			result += <library>dl ;
+		}
 	}
 
 	if <target-os>windows in $(properties)
