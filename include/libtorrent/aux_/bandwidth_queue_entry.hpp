@@ -36,11 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
@@ -70,6 +71,7 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	aux::array<bandwidth_channel*, max_bandwidth_channels> channel{};
 };
 
+}
 }
 
 #endif

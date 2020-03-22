@@ -44,12 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
@@ -280,7 +280,7 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT peer_connection
 		: peer_connection_hot_members
-		, bandwidth_socket
+		, aux::bandwidth_socket
 		, peer_class_set
 		, disk_observer
 		, peer_connection_interface

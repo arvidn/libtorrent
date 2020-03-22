@@ -421,10 +421,6 @@ HEADERS = \
   alert_types.hpp              \
   announce_entry.hpp           \
   assert.hpp                   \
-  bandwidth_limit.hpp          \
-  bandwidth_manager.hpp        \
-  bandwidth_queue_entry.hpp    \
-  bandwidth_socket.hpp         \
   bdecode.hpp                  \
   bencode.hpp                  \
   bitfield.hpp                 \
@@ -569,6 +565,10 @@ HEADERS = \
   aux_/allocating_handler.hpp       \
   aux_/announce_entry.hpp           \
   aux_/array.hpp                    \
+  aux_/bandwidth_limit.hpp          \
+  aux_/bandwidth_manager.hpp        \
+  aux_/bandwidth_queue_entry.hpp    \
+  aux_/bandwidth_socket.hpp         \
   aux_/bind_to_device.hpp           \
   aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \

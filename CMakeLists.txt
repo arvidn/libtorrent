@@ -22,10 +22,6 @@ set(libtorrent_include_files
 	alert_types
 	announce_entry
 	assert
-	bandwidth_limit
-	bandwidth_manager
-	bandwidth_queue_entry
-	bandwidth_socket
 	bdecode
 	bencode
 	bitfield
@@ -200,6 +196,10 @@ set(libtorrent_aux_include_files
 	alloca
 	allocating_handler
 	array
+	bandwidth_limit
+	bandwidth_manager
+	bandwidth_queue_entry
+	bandwidth_socket
 	bind_to_device
 	buffer
 	keepalive

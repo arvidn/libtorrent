@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
-#include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/aux_/bandwidth_manager.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_manager.hpp" // for alert_manager
@@ -633,7 +633,7 @@ namespace aux {
 			TORRENT_DEPRECATED int max_uploads() const;
 #endif
 
-			bandwidth_manager* get_bandwidth_manager(int channel) override;
+			aux::bandwidth_manager* get_bandwidth_manager(int channel) override;
 
 			int upload_rate_limit(peer_class_t c) const;
 			int download_rate_limit(peer_class_t c) const;
