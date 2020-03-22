@@ -69,8 +69,6 @@ namespace libtorrent {
 	struct peer_connection;
 	struct torrent;
 	struct peer_class_set;
-	struct bandwidth_channel;
-	struct bandwidth_manager;
 	struct peer_class_pool;
 	struct disk_observer;
 	struct torrent_peer;
@@ -83,7 +81,11 @@ namespace libtorrent {
 	struct counters;
 	struct resolver_interface;
 
-namespace aux { struct utp_socket_manager; }
+namespace aux {
+	struct utp_socket_manager;
+	struct bandwidth_channel;
+	struct bandwidth_manager;
+}
 
 	// hidden
 	using queue_position_t = aux::strong_typedef<int, struct queue_position_tag>;

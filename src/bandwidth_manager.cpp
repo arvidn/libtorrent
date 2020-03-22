@@ -32,13 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/aux_/bandwidth_manager.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <climits>
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 	bandwidth_manager::bandwidth_manager(int channel)
 		: m_queued_bytes(0)
@@ -220,4 +221,5 @@ namespace libtorrent {
 			queue.pop_back();
 		}
 	}
+}
 }

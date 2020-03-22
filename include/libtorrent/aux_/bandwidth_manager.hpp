@@ -39,12 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_queue_entry.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_queue_entry.hpp"
+#include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
@@ -87,6 +88,7 @@ private:
 	bool m_abort;
 };
 
+}
 }
 
 #endif

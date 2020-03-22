@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/aux_/bandwidth_manager.hpp"
 #include "libtorrent/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manager
@@ -5638,7 +5638,7 @@ namespace libtorrent {
 		int const priority = get_priority(channel);
 
 		int const max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
-		TORRENT_ALLOCA(channels, bandwidth_channel*, max_channels);
+		TORRENT_ALLOCA(channels, aux::bandwidth_channel*, max_channels);
 
 		// collect the pointers to all bandwidth channels
 		// that apply to this torrent
@@ -5654,7 +5654,7 @@ namespace libtorrent {
 
 #if TORRENT_USE_ASSERTS
 		// make sure we don't have duplicates
-		std::set<bandwidth_channel*> unique_classes;
+		std::set<aux::bandwidth_channel*> unique_classes;
 		for (int i = 0; i < c; ++i)
 		{
 			TORRENT_ASSERT(unique_classes.count(channels[i]) == 0);
@@ -5664,7 +5664,7 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(!(m_channel_state[channel] & peer_info::bw_limit));
 
-		bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
+		aux::bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
 
 		int const ret = manager->request_bandwidth(self()
 			, bytes, priority, channels.data(), c);

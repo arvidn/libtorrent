@@ -33,12 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdint>
-#include <cstring>
 #include <algorithm>
 
-#include "libtorrent/bandwidth_queue_entry.hpp"
+#include "libtorrent/aux_/bandwidth_queue_entry.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	bw_request::bw_request(std::shared_ptr<bandwidth_socket> pe
 		, int blk, int prio)
@@ -77,4 +77,5 @@ namespace libtorrent {
 		, "should be nothrow move constructible");
 	static_assert(std::is_nothrow_move_assignable<bw_request>::value
 		, "should be nothrow move assignable");
+}
 }

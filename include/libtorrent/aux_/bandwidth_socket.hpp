@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
@@ -44,6 +45,7 @@ namespace libtorrent {
 		virtual bool is_disconnecting() const = 0;
 		virtual ~bandwidth_socket() {}
 	};
+}
 }
 
 #endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
