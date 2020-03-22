@@ -287,8 +287,10 @@ namespace libtorrent {
 		// effectively paused as well.
 		bool m_session_paused:1;
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
+#endif
 
 		// this is true if we have all pieces. If it's false,
 		// it means we either don't have any pieces, or, if
@@ -411,11 +413,13 @@ namespace libtorrent {
 		void start_announcing();
 		void stop_announcing();
 
-		void send_share_mode();
 		void send_upload_only();
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		void send_share_mode();
 		void set_share_mode(bool s);
 		bool share_mode() const { return m_share_mode; }
+#endif
 
 		// TODO: make graceful pause also finish all sending blocks
 		// before disconnecting
@@ -777,7 +781,9 @@ namespace libtorrent {
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		void recalc_share_mode();
+#endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		bool super_seeding() const

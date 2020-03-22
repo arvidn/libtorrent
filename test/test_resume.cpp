@@ -602,6 +602,7 @@ TORRENT_TEST(file_priorities_override_resume_deprecated)
 	TEST_EQUAL(file_priorities[2], 3);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(file_priorities_resume_share_mode_deprecated)
 {
 	// in share mode file priorities should always be 0
@@ -627,6 +628,7 @@ TORRENT_TEST(file_priorities_share_mode_deprecated)
 	TEST_EQUAL(file_priorities[1], 0);
 	TEST_EQUAL(file_priorities[2], 0);
 }
+#endif
 
 TORRENT_TEST(resume_save_load_deprecated)
 {
@@ -815,6 +817,7 @@ TORRENT_TEST(upload_mode_deprecated)
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(share_mode_deprecated)
 {
 	lt::session ses(settings());
@@ -831,6 +834,7 @@ TORRENT_TEST(share_mode_deprecated)
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
 }
+#endif
 
 TORRENT_TEST(auto_managed_deprecated)
 {
@@ -924,6 +928,7 @@ TORRENT_TEST(file_priorities_default)
 	TEST_EQUAL(file_priorities[2], 4_pri);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(file_priorities_resume_share_mode)
 {
 	// in share mode file priorities should always be 0
@@ -949,6 +954,7 @@ TORRENT_TEST(file_priorities_share_mode)
 	TEST_EQUAL(file_priorities[1], 0_pri);
 	TEST_EQUAL(file_priorities[2], 0_pri);
 }
+#endif
 
 namespace {
 
@@ -1418,6 +1424,7 @@ TORRENT_TEST(upload_mode)
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(share_mode)
 {
 	lt::session ses(settings());
@@ -1433,6 +1440,7 @@ TORRENT_TEST(share_mode)
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
+#endif
 
 TORRENT_TEST(auto_managed)
 {
