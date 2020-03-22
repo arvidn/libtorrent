@@ -143,7 +143,9 @@ namespace libtorrent {
 		, m_failed(false)
 		, m_connected(pack.tor.expired())
 		, m_request_large_blocks(false)
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		, m_share_mode(false)
+#endif
 		, m_upload_only(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
@@ -2260,8 +2262,10 @@ namespace libtorrent {
 		// metadata from us
 		if (!t->valid_metadata() || !has_metadata()) return false;
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		// don't close connections in share mode, we don't know if we need them
 		if (t->share_mode()) return false;
+#endif
 
 		if (m_upload_only && t->is_upload_only()
 			&& can_disconnect(errors::upload_upload_connection))
@@ -5141,7 +5145,9 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 #endif
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		bool sent_a_piece = false;
+#endif
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || t->is_aborted() || m_requests.empty()) return;
 
@@ -5251,7 +5257,9 @@ namespace libtorrent {
 					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
 #endif
 				m_reading_bytes += r.length;
+#ifndef TORRENT_DISABLE_SHARE_MODE
 				sent_a_piece = true;
+#endif
 
 				// the callback function may be called immediately, instead of being posted
 
@@ -5273,8 +5281,10 @@ namespace libtorrent {
 			--i;
 		}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (t->share_mode() && sent_a_piece)
 			t->recalc_share_mode();
+#endif
 	}
 
 	// this is called when a previously unchecked piece has been
@@ -6419,7 +6429,10 @@ namespace libtorrent {
 
 		// in share mode we don't close redundant connections
 		if (m_settings.get_bool(settings_pack::close_redundant_connections)
-			&& !t->share_mode())
+#ifndef TORRENT_DISABLE_SHARE_MODE
+			&& !t->share_mode()
+#endif
+			)
 		{
 			bool const ok_to_disconnect =
 				can_disconnect(errors::upload_upload_connection)
@@ -6590,6 +6603,7 @@ namespace libtorrent {
 			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	void peer_connection::set_share_mode(bool u)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -6598,6 +6612,7 @@ namespace libtorrent {
 
 		m_share_mode = u;
 	}
+#endif
 
 	void peer_connection::set_upload_only(bool u)
 	{

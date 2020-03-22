@@ -310,7 +310,12 @@ namespace libtorrent {
 	{ async_call(&torrent::set_upload_mode, b); }
 
 	void torrent_handle::set_share_mode(bool b) const
-	{ async_call(&torrent::set_share_mode, b); }
+	{
+		TORRENT_UNUSED(b);
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		async_call(&torrent::set_share_mode, b);
+#endif
+	}
 
 	void torrent_handle::apply_ip_filter(bool b) const
 	{ async_call(&torrent::set_apply_ip_filter, b); }

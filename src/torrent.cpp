@@ -158,7 +158,9 @@ bool is_downloading_state(int const st)
 		, m_abort(false)
 		, m_paused(p.flags & torrent_flags::paused)
 		, m_session_paused(session_paused)
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		, m_share_mode(p.flags & torrent_flags::share_mode)
+#endif
 		, m_have_all(false)
 		, m_graceful_pause_mode(false)
 		, m_state_subscription(p.flags & torrent_flags::update_subscribe)
@@ -689,7 +691,11 @@ bool is_downloading_state(int const st)
 				, download_limit()
 				, m_seed_mode ? "seed-mode " : ""
 				, m_upload_mode ? "upload-mode " : ""
+#ifndef TORRENT_DISABLE_SHARE_MODE
 				, m_share_mode ? "share-mode " : ""
+#else
+				, ""
+#endif
 				, m_apply_ip_filter ? "apply-ip-filter " : ""
 				, m_paused ? "paused " : ""
 				, m_auto_managed ? "auto-managed " : ""
@@ -920,6 +926,7 @@ bool is_downloading_state(int const st)
 		m_ses.disk_thread().submit_jobs();
 	}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	void torrent::send_share_mode()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -932,11 +939,15 @@ bool is_downloading_state(int const st)
 		}
 #endif
 	}
+#endif // TORRENT_DISABLE_SHARE_MODE
 
 	void torrent::send_upload_only()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
+
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (share_mode()) return;
+#endif
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (super_seeding()) return;
 #endif
@@ -964,7 +975,7 @@ bool is_downloading_state(int const st)
 			p->send_not_interested();
 			p->send_upload_only(upload_only_enabled);
 		}
-#endif
+#endif // TORRENT_DISABLE_EXTENSIONS
 	}
 
 	torrent_flags_t torrent::flags() const
@@ -974,8 +985,10 @@ bool is_downloading_state(int const st)
 			ret |= torrent_flags::seed_mode;
 		if (m_upload_mode)
 			ret |= torrent_flags::upload_mode;
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_share_mode)
 			ret |= torrent_flags::share_mode;
+#endif
 		if (m_apply_ip_filter)
 			ret |= torrent_flags::apply_ip_filter;
 		if (is_torrent_paused())
@@ -1009,8 +1022,10 @@ bool is_downloading_state(int const st)
 		}
 		if (mask & torrent_flags::upload_mode)
 			set_upload_mode(bool(flags & torrent_flags::upload_mode));
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (mask & torrent_flags::share_mode)
 			set_share_mode(bool(flags & torrent_flags::share_mode));
+#endif
 		if (mask & torrent_flags::apply_ip_filter)
 			set_apply_ip_filter(bool(flags & torrent_flags::apply_ip_filter));
 		if (mask & torrent_flags::paused)
@@ -1038,6 +1053,7 @@ bool is_downloading_state(int const st)
 			m_enable_pex = !bool(flags & torrent_flags::disable_pex);
 	}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	void torrent::set_share_mode(bool s)
 	{
 		if (s == m_share_mode) return;
@@ -1056,6 +1072,7 @@ bool is_downloading_state(int const st)
 			prioritize_files(aux::vector<download_priority_t, file_index_t>(num_files, dont_download));
 		}
 	}
+#endif // TORRENT_DISABLE_SHARE_MODE
 
 	void torrent::set_upload_mode(bool b)
 	{
@@ -1819,12 +1836,14 @@ bool is_downloading_state(int const st)
 
 		construct_storage();
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_share_mode && valid_metadata())
 		{
 			// in share mode, all pieces have their priorities initialized to 0
 			m_file_priority.clear();
 			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
 		}
+#endif
 
 		// it's important to initialize the peers early, because this is what will
 		// fix up their have-bitmasks to have the correct size
@@ -3973,8 +3992,10 @@ bool is_downloading_state(int const st)
 
 			m_last_download = aux::time_now32();
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 			if (m_share_mode)
 				recalc_share_mode();
+#endif
 		}
 	}
 
@@ -5072,8 +5093,10 @@ bool is_downloading_state(int const st)
 		if (m_file_priority != prios)
 		{
 			m_file_priority = std::move(prios);
+#ifndef TORRENT_DISABLE_SHARE_MODE
 			if (m_share_mode)
 				recalc_share_mode();
+#endif
 		}
 
 		if (err)
@@ -6813,8 +6836,10 @@ bool is_downloading_state(int const st)
 			return false;
 		}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_share_mode)
 			recalc_share_mode();
+#endif
 
 		return peerinfo->connection != nullptr;
 	}
@@ -7137,8 +7162,10 @@ bool is_downloading_state(int const st)
 		if (m_peer_list) m_peer_list->check_invariant();
 #endif
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_share_mode)
 			recalc_share_mode();
+#endif
 
 		// once we add the peer to our m_connections list, we can't throw an
 		// exception. That will end up violating an invariant between the session,
@@ -9339,6 +9366,7 @@ bool is_downloading_state(int const st)
 		}
 	}
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	void torrent::recalc_share_mode()
 	{
 		TORRENT_ASSERT(share_mode());
@@ -9475,6 +9503,7 @@ bool is_downloading_state(int const st)
 		update_peer_interest(was_finished);
 		update_want_peers();
 	}
+#endif // TORRENT_DISABLE_SHARE_MODE
 
 	void torrent::sent_bytes(int const bytes_payload, int const bytes_protocol)
 	{
@@ -10720,7 +10749,11 @@ bool is_downloading_state(int const st)
 #endif
 
 #if TORRENT_ABI_VERSION == 1
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		st->share_mode = m_share_mode;
+#else
+		st->share_mode = false;
+#endif
 		st->upload_mode = m_upload_mode;
 #endif
 		st->up_bandwidth_queue = 0;

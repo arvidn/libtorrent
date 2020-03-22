@@ -442,6 +442,9 @@ feature.compose <test-coverage>on : <cflags>--coverage <linkflags>--coverage ;
 feature predictive-pieces : on off : composite propagated ;
 feature.compose <predictive-pieces>off : <define>TORRENT_DISABLE_PREDICTIVE_PIECES ;
 
+feature share-mode : on off : composite propagated ;
+feature.compose <share-mode>off : <define>TORRENT_DISABLE_SHARE_MODE ;
+
 feature streaming : on off : composite propagated ;
 feature.compose <streaming>off : <define>TORRENT_DISABLE_STREAMING ;
 

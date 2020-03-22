@@ -926,7 +926,9 @@ TORRENT_TEST(extension_handshake)
 
 	// these extensions are built-in
 	TEST_CHECK(extensions["m"]["lt_donthave"].integer() != 0);
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	TEST_CHECK(extensions["m"]["share_mode"].integer() != 0);
+#endif
 	TEST_CHECK(extensions["m"]["upload_only"].integer() != 0);
 	TEST_CHECK(extensions["m"]["ut_holepunch"].integer() != 0);
 
