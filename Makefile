@@ -511,8 +511,6 @@ HEADERS = \
   read_resume_data.hpp         \
   request_blocks.hpp           \
   resolve_links.hpp            \
-  resolver.hpp                 \
-  resolver_interface.hpp       \
   session.hpp                  \
   session_handle.hpp           \
   session_params.hpp           \
@@ -618,6 +616,8 @@ HEADERS = \
   aux_/proxy_settings.hpp           \
   aux_/range.hpp                    \
   aux_/receive_buffer.hpp           \
+  aux_/resolver.hpp                 \
+  aux_/resolver_interface.hpp       \
   aux_/route.h                      \
   aux_/scope_end.hpp                \
   aux_/session_call.hpp             \

@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/portmap.hpp"
@@ -332,7 +332,7 @@ private:
 
 	io_context& m_io_service;
 
-	resolver m_resolver;
+	aux::resolver m_resolver;
 
 	// the udp socket used to send and receive
 	// multicast messages on the network

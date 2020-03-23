@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
@@ -114,8 +114,8 @@ namespace libtorrent {
 			// don't want to get stuck on DNS lookups when shutting down
 			m_man.host_resolver().async_resolve(hostname
 				, (tracker_req().event == event_t::stopped
-					? resolver_interface::cache_only : resolver_flags{})
-					| resolver_interface::abort_on_shutdown
+					? aux::resolver_interface::cache_only : aux::resolver_flags{})
+					| aux::resolver_interface::abort_on_shutdown
 				, std::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 

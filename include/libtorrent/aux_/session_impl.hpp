@@ -77,7 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/announce_flags.hpp"
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"

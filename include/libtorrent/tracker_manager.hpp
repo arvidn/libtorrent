@@ -81,7 +81,6 @@ namespace libtorrent {
 	struct timeout_handler;
 	class udp_tracker_connection;
 	class http_tracker_connection;
-	struct resolver_interface;
 	struct counters;
 #if TORRENT_USE_I2P
 	class i2p_connection;
@@ -89,6 +88,7 @@ namespace libtorrent {
 namespace aux {
 	struct session_logger;
 	struct session_settings;
+	struct resolver_interface;
 }
 
 using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
@@ -333,7 +333,7 @@ enum class event_t : std::uint8_t
 		tracker_manager(send_fun_t send_fun
 			, send_fun_hostname_t send_fun_hostname
 			, counters& stats_counters
-			, resolver_interface& resolver
+			, aux::resolver_interface& resolver
 			, aux::session_settings const& sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, aux::session_logger& ses
@@ -379,7 +379,7 @@ enum class event_t : std::uint8_t
 			, std::uint32_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
-		resolver_interface& host_resolver() { return m_host_resolver; }
+		aux::resolver_interface& host_resolver() { return m_host_resolver; }
 
 		void send_hostname(aux::listen_socket_handle const& sock
 			, char const* hostname, int port, span<char const> p
@@ -400,7 +400,7 @@ enum class event_t : std::uint8_t
 
 		send_fun_t m_send_fun;
 		send_fun_hostname_t m_send_fun_hostname;
-		resolver_interface& m_host_resolver;
+		aux::resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;
 		bool m_abort = false;

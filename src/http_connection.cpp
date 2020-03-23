@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for async_shutdown
-#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/random.hpp"
@@ -69,7 +69,7 @@ using namespace std::placeholders;
 namespace libtorrent {
 
 http_connection::http_connection(io_context& ios
-	, resolver_interface& resolver
+	, aux::resolver_interface& resolver
 	, http_handler handler
 	, bool bottled
 	, int max_bottled_buffer_size
@@ -119,7 +119,7 @@ http_connection::~http_connection() = default;
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, boost::optional<address> const& bind_addr, resolver_flags const resolve_flags, std::string const& auth_
+	, boost::optional<address> const& bind_addr, aux::resolver_flags const resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -228,7 +228,7 @@ void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
 	, boost::optional<address> const& bind_addr
-	, resolver_flags const resolve_flags
+	, aux::resolver_flags const resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
