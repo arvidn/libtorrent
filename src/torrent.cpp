@@ -98,7 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
@@ -3331,7 +3331,7 @@ namespace {
 #endif
 			{
 				ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
-				m_ses.get_resolver().async_resolve(i.hostname, resolver_interface::abort_on_shutdown
+				m_ses.get_resolver().async_resolve(i.hostname, aux::resolver_interface::abort_on_shutdown
 					, std::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port, v));
 			}
 		}
@@ -6038,7 +6038,7 @@ namespace {
 
 			// use proxy
 			web->resolving = true;
-			m_ses.get_resolver().async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
+			m_ses.get_resolver().async_resolve(ps.hostname, aux::resolver_interface::abort_on_shutdown
 				, [self = shared_from_this(), web, proxy_port](error_code const& e, std::vector<address> const& addrs)
 				{ self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port); });
 		}
@@ -6058,7 +6058,7 @@ namespace {
 			auto self = shared_from_this();
 			web->resolving = true;
 
-			m_ses.get_resolver().async_resolve(hostname, resolver_interface::abort_on_shutdown
+			m_ses.get_resolver().async_resolve(hostname, aux::resolver_interface::abort_on_shutdown
 				, [self, web, port](error_code const& e, std::vector<address> const& addrs)
 				{
 					self->wrap(&torrent::on_name_lookup, e, addrs, port, web);
@@ -6143,7 +6143,7 @@ namespace {
 
 		auto self = shared_from_this();
 		web->resolving = true;
-		m_ses.get_resolver().async_resolve(hostname, resolver_interface::abort_on_shutdown
+		m_ses.get_resolver().async_resolve(hostname, aux::resolver_interface::abort_on_shutdown
 			, [self, web, port](error_code const& err, std::vector<address> const& addr)
 			{
 				self->wrap(&torrent::on_name_lookup, err, addr, port, web);

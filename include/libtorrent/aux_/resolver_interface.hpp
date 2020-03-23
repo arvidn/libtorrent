@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/flags.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 // hidden
 using resolver_flags = flags::bitfield_flag<std::uint8_t, struct resolver_flag_tag>;
@@ -72,6 +73,7 @@ protected:
 	~resolver_interface() {}
 };
 
+}
 }
 
 #endif

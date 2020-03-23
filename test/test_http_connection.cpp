@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/random.hpp"
@@ -55,7 +55,7 @@ using namespace lt;
 namespace {
 
 io_context ios;
-resolver res(ios);
+aux::resolver res(ios);
 
 int connect_handler_called = 0;
 int handler_called = 0;
@@ -139,7 +139,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		, &ssl_ctx
 #endif
 		);
-	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, resolver_flags{}, auth);
+	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, aux::resolver_flags{}, auth);
 	ios.restart();
 	ios.run();
 

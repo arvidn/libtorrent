@@ -108,8 +108,6 @@ set(libtorrent_include_files
 	read_resume_data
 	request_blocks
 	resolve_links
-	resolver
-	resolver_interface
 	session
 	session_handle
 	session_params
@@ -241,6 +239,8 @@ set(libtorrent_aux_include_files
 	proxy_settings
 	range
 	receive_buffer
+	resolver
+	resolver_interface
 	route
 	scope_end
 	session_call

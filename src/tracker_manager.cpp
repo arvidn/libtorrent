@@ -191,7 +191,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 	tracker_manager::tracker_manager(send_fun_t send_fun
 		, send_fun_hostname_t send_fun_hostname
 		, counters& stats_counters
-		, resolver_interface& resolver
+		, aux::resolver_interface& resolver
 		, aux::session_settings const& sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, aux::session_logger& ses

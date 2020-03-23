@@ -79,12 +79,12 @@ namespace libtorrent {
 	struct external_ip;
 	struct torrent_peer_allocator_interface;
 	struct counters;
-	struct resolver_interface;
 
 namespace aux {
 	struct utp_socket_manager;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
+	struct resolver_interface;
 }
 
 	// hidden
@@ -162,7 +162,7 @@ namespace aux {
 
 		virtual torrent_peer_allocator_interface& get_peer_allocator() = 0;
 		virtual io_context& get_context() = 0;
-		virtual resolver_interface& get_resolver() = 0;
+		virtual aux::resolver_interface& get_resolver() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(std::shared_ptr<peer_connection> const& c) = 0;

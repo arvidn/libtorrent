@@ -31,11 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 
 	constexpr resolver_flags resolver_interface::cache_only;
@@ -70,7 +71,7 @@ namespace libtorrent {
 		}
 
 		dns_cache_entry& ce = m_cache[hostname];
-		ce.last_seen = aux::time_now();
+		ce.last_seen = time_now();
 		ce.addresses.clear();
 		for (auto i : ips)
 			ce.addresses.push_back(i.endpoint().address());
@@ -112,7 +113,7 @@ namespace libtorrent {
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::cache_only)
-				|| i->second.last_seen + m_timeout >= aux::time_now())
+				|| i->second.last_seen + m_timeout >= time_now())
 			{
 				std::vector<address> ips = i->second.addresses;
 				post(m_ios, [=] { callback(h, ec, ips); });
@@ -156,4 +157,5 @@ namespace libtorrent {
 		else
 			m_timeout = seconds(0);
 	}
+}
 }

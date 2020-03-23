@@ -44,10 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
@@ -90,6 +91,7 @@ private:
 	time_duration m_timeout;
 };
 
+}
 }
 
 #endif

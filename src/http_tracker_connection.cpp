@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/array.hpp"
 
@@ -238,8 +238,8 @@ namespace libtorrent {
 			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, user_agent, bind_interface()
 			, (tracker_req().event == event_t::stopped
-				? resolver_interface::cache_only : resolver_flags{})
-				| resolver_interface::abort_on_shutdown
+				? aux::resolver_interface::cache_only : aux::resolver_flags{})
+				| aux::resolver_interface::abort_on_shutdown
 #if TORRENT_ABI_VERSION == 1
 			, tracker_req().auth
 #else
