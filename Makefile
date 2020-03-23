@@ -344,6 +344,7 @@ SOURCES = \
   mmap_disk_io.cpp                \
   mmap_storage.cpp                \
   natpmp.cpp                      \
+  openssl.cpp                     \
   packet_buffer.cpp               \
   parse_url.cpp                   \
   part_file.cpp                   \
