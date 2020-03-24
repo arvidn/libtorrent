@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/aux_/disk_io_job.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	namespace {
 		struct caller_visitor : boost::static_visitor<>
@@ -130,4 +131,5 @@ namespace libtorrent {
 	{
 		boost::apply_visitor(caller_visitor(*this), callback);
 	}
+}
 }

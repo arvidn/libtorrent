@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/disk_io_thread_pool.hpp"
+#include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <algorithm>
@@ -43,6 +43,7 @@ namespace {
 }
 
 namespace libtorrent {
+namespace aux {
 
 	disk_io_thread_pool::disk_io_thread_pool(pool_thread_interface& thread_iface
 		, io_context& ios)
@@ -204,4 +205,5 @@ namespace libtorrent {
 		m_thread_iface.notify_all();
 	}
 
+}
 } // namespace libtorrent

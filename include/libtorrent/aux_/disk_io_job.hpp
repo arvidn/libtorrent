@@ -58,6 +58,8 @@ namespace libtorrent {
 
 	struct mmap_storage;
 
+namespace aux {
+
 	// internal
 	enum class job_action_t : std::uint8_t
 	{
@@ -219,6 +221,7 @@ namespace libtorrent {
 #endif
 	};
 
+}
 }
 
 #endif // TORRENT_DISK_IO_JOB_HPP

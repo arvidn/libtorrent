@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/aux_/disk_io_job.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "test.hpp"
@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 using lt::aux::disk_job_fence;
+using lt::aux::disk_io_job;
 
 TORRENT_TEST(empty_fence)
 {

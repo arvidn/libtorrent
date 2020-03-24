@@ -32,18 +32,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "simulator/simulator.hpp"
-#include "libtorrent/disk_io_thread_pool.hpp"
+#include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/io_context.hpp"
 #include <condition_variable>
 
 using lt::io_context;
 
-struct test_threads : lt::pool_thread_interface
+struct test_threads : lt::aux::pool_thread_interface
 {
 	test_threads() {}
 
 	void notify_all() override { m_cond.notify_all(); }
-	void thread_fun(lt::disk_io_thread_pool&, lt::executor_work_guard<io_context::executor_type>) override
+	void thread_fun(lt::aux::disk_io_thread_pool&, lt::executor_work_guard<io_context::executor_type>) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		for (;;)
@@ -99,7 +99,7 @@ struct test_threads : lt::pool_thread_interface
 		});
 	}
 
-	lt::disk_io_thread_pool* m_pool;
+	lt::aux::disk_io_thread_pool* m_pool;
 	std::mutex m_mutex;
 	std::condition_variable m_cond;
 	std::condition_variable m_exit_cond;
@@ -117,7 +117,7 @@ TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 
 	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::disk_io_thread_pool pool(threads, ios);
+	lt::aux::disk_io_thread_pool pool(threads, ios);
 	threads.m_pool = &pool;
 	pool.set_max_threads(3);
 	pool.job_queued(3);
@@ -163,7 +163,7 @@ TORRENT_TEST(disk_io_thread_pool_abort_wait)
 
 	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::disk_io_thread_pool pool(threads, ios);
+	lt::aux::disk_io_thread_pool pool(threads, ios);
 	threads.m_pool = &pool;
 	pool.set_max_threads(3);
 	pool.job_queued(3);
@@ -182,7 +182,7 @@ TORRENT_TEST(disk_io_thread_pool_abort_no_wait)
 
 	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::disk_io_thread_pool pool(threads, ios);
+	lt::aux::disk_io_thread_pool pool(threads, ios);
 	threads.m_pool = &pool;
 	pool.set_max_threads(3);
 	pool.job_queued(3);
@@ -200,7 +200,7 @@ TORRENT_TEST(disk_io_thread_pool_max_threads)
 
 	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::disk_io_thread_pool pool(threads, ios);
+	lt::aux::disk_io_thread_pool pool(threads, ios);
 	threads.m_pool = &pool;
 	// first check that the thread limit is respected when adding jobs
 	pool.set_max_threads(3);

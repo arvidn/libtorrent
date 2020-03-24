@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 
 namespace libtorrent {
+namespace aux {
 
 	struct disk_io_thread_pool;
 
@@ -143,6 +144,7 @@ namespace libtorrent {
 
 		io_context& m_ioc;
 	};
+}
 } // namespace libtorrent
 
 #endif

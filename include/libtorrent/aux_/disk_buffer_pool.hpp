@@ -54,6 +54,8 @@ namespace libtorrent {
 	struct settings_interface;
 	struct disk_observer;
 
+namespace aux {
+
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
 	{
 		explicit disk_buffer_pool(io_context& ios);
@@ -122,6 +124,7 @@ namespace libtorrent {
 #endif
 	};
 
+}
 }
 
 #endif // TORRENT_DISK_BUFFER_POOL_HPP
