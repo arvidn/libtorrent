@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
+#include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -395,7 +395,7 @@ namespace {
 		settings_interface const& m_settings;
 
 		// disk cache
-		disk_buffer_pool m_buffer_pool;
+		aux::disk_buffer_pool m_buffer_pool;
 
 		counters& m_stats_counters;
 

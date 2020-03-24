@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/disk_io_job.hpp" // for job_action_t
+#include "libtorrent/aux_/disk_io_job.hpp" // for job_action_t
 #include <mutex>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	struct disk_io_job;
 
@@ -71,6 +72,7 @@ namespace libtorrent {
 		std::mutex m_job_mutex;
 		boost::pool<> m_job_pool;
 	};
+}
 }
 
 #endif // TORRENT_DISK_JOB_POOL

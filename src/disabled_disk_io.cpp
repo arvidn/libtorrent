@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/units.hpp"

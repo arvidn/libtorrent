@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT disk_observer
+	struct TORRENT_EXPORT disk_observer
 	{
 		// called when the disk cache size has dropped
 		// below the low watermark again and we can

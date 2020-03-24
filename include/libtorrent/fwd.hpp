@@ -171,6 +171,9 @@ struct open_file_state;
 struct disk_interface;
 struct storage_holder;
 
+// include/libtorrent/disk_observer.hpp
+struct disk_observer;
+
 // include/libtorrent/entry.hpp
 class entry;
 

@@ -41,10 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct disk_io_job;
 struct counters;
 
 namespace aux {
+
+	struct disk_io_job;
 
 	// implements the disk I/O job fence used by the default_storage
 	// to provide to the disk thread. Whenever a disk job needs

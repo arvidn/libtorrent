@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
+#include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/settings_pack.hpp" // for settings_interface
 #include "libtorrent/io_context.hpp"
@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	namespace {
 
@@ -231,4 +232,5 @@ namespace libtorrent {
 		--m_in_use;
 	}
 
+}
 }

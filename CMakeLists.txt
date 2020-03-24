@@ -38,11 +38,7 @@ set(libtorrent_include_files
 	deadline_timer
 	debug
 	disk_buffer_holder
-	disk_buffer_pool
 	disk_interface
-	disk_io_job
-	disk_io_thread_pool
-	disk_job_pool
 	disk_observer
 	download_priority
 	entry
@@ -211,7 +207,11 @@ set(libtorrent_aux_include_files
 	dev_random
 	disable_warnings_pop
 	disable_warnings_push
+	disk_buffer_pool
+	disk_io_job
+	disk_io_thread_pool
 	disk_job_fence
+	disk_job_pool
 	ed25519
 	escape_string
 	export

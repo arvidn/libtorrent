@@ -438,11 +438,7 @@ HEADERS = \
   debug.hpp                    \
   disabled_disk_io.hpp         \
   disk_buffer_holder.hpp       \
-  disk_buffer_pool.hpp         \
   disk_interface.hpp           \
-  disk_io_job.hpp              \
-  disk_io_thread_pool.hpp      \
-  disk_job_pool.hpp            \
   disk_observer.hpp            \
   download_priority.hpp        \
   entry.hpp                    \
@@ -582,7 +578,11 @@ HEADERS = \
   aux_/disable_deprecation_warnings_push.hpp \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
+  aux_/disk_buffer_pool.hpp         \
+  aux_/disk_io_job.hpp              \
+  aux_/disk_io_thread_pool.hpp      \
   aux_/disk_job_fence.hpp           \
+  aux_/disk_job_pool.hpp            \
   aux_/ed25519.hpp                  \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
