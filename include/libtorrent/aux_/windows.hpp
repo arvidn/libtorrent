@@ -42,7 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef STRICT
 #define STRICT
 #endif
+
+#if defined __MINGW32__ || defined __MINGW64__
+#include <windows.h>
+#else
 #include <Windows.h>
+#endif
 
 #endif // TORRENT_WINDOWS_HPP_INCLUDED
 
