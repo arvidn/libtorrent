@@ -76,21 +76,6 @@ GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 
 #endif // OPENSSL_VERSION_NUMBER
 
-ssl::context::method ssl_version(int const v)
-{
-	switch (v)
-	{
-		case settings_pack::tls11: return ssl::context::tlsv11;
-		case settings_pack::tls12: return ssl::context::tlsv12;
-#if TORRENT_USE_TLS13
-		case settings_pack::tls13: return ssl::context::tlsv13;
-		default: return ssl::context::tlsv13;
-#else
-		default: return ssl::context::tlsv12;
-#endif
-	};
-}
-
 #endif // TORRENT_USE_OPENSSL
 
 }
