@@ -103,7 +103,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/has_block.hpp"
-#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/download_priority.hpp"
@@ -8073,7 +8073,7 @@ namespace {
 		maybe_connect_web_seeds();
 	}
 
-	alert_manager& torrent::alerts() const
+	aux::alert_manager& torrent::alerts() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_ses.alerts();

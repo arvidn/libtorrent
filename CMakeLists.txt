@@ -18,7 +18,6 @@ set(libtorrent_include_files
 	add_torrent_params
 	address
 	alert
-	alert_manager
 	alert_types
 	announce_entry
 	assert
@@ -185,6 +184,7 @@ set(libtorrent_extensions_include_files
 	ut_pex)
 
 set(libtorrent_aux_include_files
+	alert_manager
 	aligned_storage
 	aligned_union
 	alloca
