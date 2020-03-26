@@ -101,9 +101,6 @@ TORRENT_EXTRA_EXPORT GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gen
 
 #endif // OPENSSL_VERSION_NUMBER
 
-// converts setting_pack::ssl_version_t enum into asio version
-ssl::context::method ssl_version(int const v);
-
 } // aux
 } // libtorrent
 

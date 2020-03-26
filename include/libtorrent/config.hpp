@@ -568,14 +568,6 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
-#ifndef TORRENT_USE_TLS13
-#if BOOST_VERSION >= 106900
-#define TORRENT_USE_TLS13 1
-#else
-#define TORRENT_USE_TLS13 0
-#endif
-#endif
-
 namespace libtorrent {}
 
 // create alias

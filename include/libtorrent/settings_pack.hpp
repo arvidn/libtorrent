@@ -1752,12 +1752,6 @@ namespace aux {
 			// lower than 5 minutes.
 			upnp_lease_duration,
 
-			// the SSL/TLS version to use for HTTPS trackers and SSL torrents. Set
-			// it to one of the ssl_version_t values. This setting only takes
-			// effect when passed in to the session constructor. It cannot be
-			// changed once the session has been constructed.
-			ssl_version,
-
 			max_int_setting_internal
 		};
 
@@ -1770,18 +1764,6 @@ namespace aux {
 		};
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
-
-		enum ssl_version_t : std::uint8_t
-		{
-			// TLS version 1.1
-			tls11,
-			// TLS version 1.2
-			tls12,
-#if TORRENT_USE_TLS13
-			// TLS version 1.3
-			tls13,
-#endif
-		};
 
 		enum choking_algorithm_t : std::uint8_t
 		{
