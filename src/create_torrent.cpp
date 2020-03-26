@@ -40,9 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*()
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor

@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/bandwidth_manager.hpp"
 #include "libtorrent/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/alert_manager.hpp" // for alert_manager
+#include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"

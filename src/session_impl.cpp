@@ -5928,13 +5928,13 @@ namespace {
 
 	namespace {
 
-		void on_dht_put_immutable_item(alert_manager& alerts, sha1_hash target, int num)
+		void on_dht_put_immutable_item(aux::alert_manager& alerts, sha1_hash target, int num)
 		{
 			if (alerts.should_post<dht_put_alert>())
 				alerts.emplace_alert<dht_put_alert>(target, num);
 		}
 
-		void on_dht_put_mutable_item(alert_manager& alerts, dht::item const& i, int num)
+		void on_dht_put_mutable_item(aux::alert_manager& alerts, dht::item const& i, int num)
 		{
 			if (alerts.should_post<dht_put_alert>())
 			{
@@ -5960,13 +5960,13 @@ namespace {
 			i.assign(std::move(value), salt, seq, pk, sig);
 		}
 
-		void on_dht_get_peers(alert_manager& alerts, sha1_hash info_hash, std::vector<tcp::endpoint> const& peers)
+		void on_dht_get_peers(aux::alert_manager& alerts, sha1_hash info_hash, std::vector<tcp::endpoint> const& peers)
 		{
 			if (alerts.should_post<dht_get_peers_reply_alert>())
 				alerts.emplace_alert<dht_get_peers_reply_alert>(info_hash, peers);
 		}
 
-		void on_direct_response(alert_manager& alerts, client_data_t userdata, dht::msg const& msg)
+		void on_direct_response(aux::alert_manager& alerts, client_data_t userdata, dht::msg const& msg)
 		{
 			if (msg.message.type() == bdecode_node::none_t)
 				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr);
@@ -6245,7 +6245,7 @@ namespace {
 
 		if (allowed_upload_slots == std::numeric_limits<int>::max())
 		{
-			// this means we're not aplpying upload slot limits, unchoke
+			// this means we're not applying upload slot limits, unchoke
 			// everyone
 			for (auto const& p : m_connections)
 			{

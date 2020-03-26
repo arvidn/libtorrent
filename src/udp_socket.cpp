@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
-#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/socks5_stream.hpp" // for socks_error
 #include "libtorrent/aux_/keepalive.hpp"
 
@@ -80,7 +80,7 @@ std::size_t const max_header_size = 255;
 struct socks5 : std::enable_shared_from_this<socks5>
 {
 	explicit socks5(io_context& ios, aux::listen_socket_handle ls
-		, alert_manager& alerts)
+		, aux::alert_manager& alerts)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
@@ -116,7 +116,7 @@ private:
 	tcp::resolver m_resolver;
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
-	alert_manager& m_alerts;
+	aux::alert_manager& m_alerts;
 	aux::listen_socket_handle m_listen_socket;
 	std::array<char, tmp_buffer_size> m_tmp_buf;
 
@@ -490,7 +490,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
-	, alert_manager& alerts)
+	, aux::alert_manager& alerts)
 {
 	TORRENT_ASSERT(is_single_thread());
 

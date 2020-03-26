@@ -418,7 +418,6 @@ HEADERS = \
   add_torrent_params.hpp       \
   address.hpp                  \
   alert.hpp                    \
-  alert_manager.hpp            \
   alert_types.hpp              \
   announce_entry.hpp           \
   assert.hpp                   \
@@ -554,6 +553,7 @@ HEADERS = \
   write_resume_data.hpp        \
   xml_parse.hpp                \
   \
+  aux_/alert_manager.hpp            \
   aux_/aligned_storage.hpp          \
   aux_/aligned_union.hpp            \
   aux_/alloca.hpp                   \

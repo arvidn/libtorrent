@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -185,7 +185,7 @@ TORRENT_TEST(alerts_types)
 
 TORRENT_TEST(dht_get_peers_reply_alert)
 {
-	alert_manager mgr(1, dht_get_peers_reply_alert::static_category);
+	aux::alert_manager mgr(1, dht_get_peers_reply_alert::static_category);
 
 	TEST_EQUAL(mgr.should_post<dht_get_peers_reply_alert>(), true);
 
@@ -213,7 +213,7 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 
 TORRENT_TEST(dht_live_nodes_alert)
 {
-	alert_manager mgr(1, dht_live_nodes_alert::static_category);
+	aux::alert_manager mgr(1, dht_live_nodes_alert::static_category);
 
 	TEST_EQUAL(mgr.should_post<dht_live_nodes_alert>(), true);
 
@@ -251,7 +251,7 @@ TORRENT_TEST(dht_live_nodes_alert)
 
 TORRENT_TEST(session_stats_alert)
 {
-	alert_manager mgr(1, alert::stats_notification);
+	aux::alert_manager mgr(1, alert::stats_notification);
 
 	std::vector<alert*> alerts;
 	counters cnt;
@@ -272,7 +272,7 @@ TORRENT_TEST(session_stats_alert)
 
 TORRENT_TEST(dht_sample_infohashes_alert)
 {
-	alert_manager mgr(1, dht_sample_infohashes_alert::static_category);
+	aux::alert_manager mgr(1, dht_sample_infohashes_alert::static_category);
 
 	TEST_EQUAL(mgr.should_post<dht_sample_infohashes_alert>(), true);
 

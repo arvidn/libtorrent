@@ -994,7 +994,7 @@ namespace libtorrent {
 		bool is_inactive() const;
 
 		std::string save_path() const;
-		alert_manager& alerts() const;
+		aux::alert_manager& alerts() const;
 		piece_picker& picker()
 		{
 			TORRENT_ASSERT(m_picker.get());

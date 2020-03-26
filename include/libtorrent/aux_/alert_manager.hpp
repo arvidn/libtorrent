@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT alert_manager
 	{
@@ -167,12 +168,13 @@ namespace libtorrent {
 
 		// this is a stack where alerts can allocate variable length content,
 		// such as strings, to go with the alerts.
-		aux::array<aux::stack_allocator, 2> m_allocations;
+		aux::array<stack_allocator, 2> m_allocations;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		std::list<std::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
+}
 }
 
 #endif

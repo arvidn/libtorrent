@@ -72,7 +72,6 @@ namespace libtorrent {
 	struct peer_class_pool;
 	struct disk_observer;
 	struct torrent_peer;
-	struct alert_manager;
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
@@ -85,6 +84,7 @@ namespace aux {
 	struct bandwidth_channel;
 	struct bandwidth_manager;
 	struct resolver_interface;
+	struct alert_manager;
 }
 
 	// hidden

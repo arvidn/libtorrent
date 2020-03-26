@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/alert_manager.hpp" // for alert_manager
+#include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
 #include "libtorrent/torrent.hpp"

@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/alert_manager.hpp" // for alert_manager
+#include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/string_util.hpp" // for search
 #include "libtorrent/aux_/generate_peer_id.hpp"
 
