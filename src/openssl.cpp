@@ -88,7 +88,7 @@ ssl::context::method ssl_client_version(int const v)
 #else
 		default: return ssl::context::tlsv12_client;
 #endif
-	};
+	}
 }
 
 #if defined TORRENT_SSL_PEERS
@@ -105,7 +105,7 @@ ssl::context::method ssl_version(int const v)
 #else
 		default: return ssl::context::tlsv12;
 #endif
-	};
+	}
 }
 
 #endif // TORRENT_SSL_PEERS
