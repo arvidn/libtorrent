@@ -118,6 +118,7 @@ TORRENT_TEST(flag_upload_mode)
 	test_unset_after_add(torrent_flags::upload_mode);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(flag_share_mode)
 {
 	// share-mode
@@ -125,6 +126,7 @@ TORRENT_TEST(flag_share_mode)
 	test_set_after_add(torrent_flags::share_mode);
 	test_unset_after_add(torrent_flags::share_mode);
 }
+#endif
 
 TORRENT_TEST(flag_apply_ip_filter)
 {

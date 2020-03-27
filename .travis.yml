@@ -103,21 +103,23 @@ before_install:
     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
       export B2=bjam;
+      export PIP=pip;
     else
       export B2=b2;
+      export PIP=pip3;
       sysctl hw.ncpu;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
   - 'if [ "$docs" = "1" ]; then
-    pip install docutils;
-    pip install Pygments;
+    ${PIP} install docutils;
+    ${PIP} install Pygments;
     travis_retry brew install graphviz hunspell;
     fi'
 
   - if [ "$coverage" == "1" ]; then
-    pip install --user codecov;
+    ${PIP} install --user codecov;
     fi
   - 'echo "toolset: " ${toolset}'
   - 'echo "variant: " ${variant}'

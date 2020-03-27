@@ -394,6 +394,9 @@ Build features:
 | ``super-seeding``        | * ``on`` - enable super seeding feature. (default) |
 |                          | * ``off`` - disable super seeding feature          |
 +--------------------------+----------------------------------------------------+
+| ``share-mode``           | * ``on`` - enable share-mode feature. (default)    |
+|                          | * ``off`` - disable share-mode feature             |
++--------------------------+----------------------------------------------------+
 | ``predictive-pieces``    | * ``on`` - enable predictive piece announce        |
 |                          |   feature. i.e.                                    |
 |                          |   settings_pack::predictive_piece_announce         |
@@ -556,6 +559,10 @@ defines you can use to control the build.
 | ``TORRENT_DISABLE_SUPERSEEDING``       | This macro will disable support for super       |
 |                                        | seeding. The settings will exist, but will not  |
 |                                        | have an effect, when this macro is defined.     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_SHARE_MODE``         | This macro will disable support for share-mode. |
+|                                        | i.e. the mode to maximize upload/download       |
+|                                        | ratio for a torrent.                            |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
 +----------------------------------------+-------------------------------------------------+

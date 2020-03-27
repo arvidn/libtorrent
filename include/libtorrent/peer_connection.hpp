@@ -421,8 +421,10 @@ namespace aux {
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		void set_share_mode(bool);
 		bool share_mode() const { return m_share_mode; }
+#endif
 
 		void set_upload_only(bool);
 		bool upload_only() const { return m_upload_only; }
@@ -1150,8 +1152,10 @@ namespace aux {
 		// at a time.
 		bool m_request_large_blocks:1;
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		// set to true if this peer is in share mode
 		bool m_share_mode:1;
+#endif
 
 		// set to true when this peer is only uploading
 		bool m_upload_only:1;
