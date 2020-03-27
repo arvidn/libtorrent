@@ -4269,27 +4269,7 @@ namespace {
 			peers.push_back(p.get());
 		}
 
-#if TORRENT_ABI_VERSION == 1
-		// the unchoker wants an estimate of our upload rate capacity
-		// (used by bittyrant)
-		int max_upload_rate = upload_rate_limit(m_global_class);
-		if (m_settings.get_int(settings_pack::choking_algorithm)
-			== settings_pack::bittyrant_choker
-			&& max_upload_rate == 0)
-		{
-			// we don't know at what rate we can upload. If we have a
-			// measurement of the peak, use that + 10kB/s, otherwise
-			// assume 20 kB/s
-			max_upload_rate = std::max(20000, m_peak_up_rate + 10000);
-			if (m_alerts.should_post<performance_alert>())
-				m_alerts.emplace_alert<performance_alert>(torrent_handle()
-					, performance_alert::bittyrant_with_no_uplimit);
-		}
-#else
-		int const max_upload_rate = 0;
-#endif
-
-		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+		int const allowed_upload_slots = unchoke_sort(peers
 			, unchoke_interval, m_settings);
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
@@ -4300,11 +4280,9 @@ namespace {
 		{
 			session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
 				"eligible-peers: %d"
-				" max_upload_rate: %d"
 				" allowed-slots: %d ]"
 				, int(m_connections.size())
 				, int(peers.size())
-				, max_upload_rate
 				, allowed_upload_slots);
 		}
 #endif
