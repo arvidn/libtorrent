@@ -154,8 +154,7 @@ using jobqueue_t = tailqueue<aux::disk_io_job>;
 // this is a singleton consisting of the thread and a queue
 // of disk io jobs
 struct TORRENT_EXTRA_EXPORT mmap_disk_io final
-	: aux::disk_job_pool
-	, disk_interface
+	: disk_interface
 	, buffer_allocator_interface
 {
 	mmap_disk_io(io_context& ios, settings_interface const&, counters& cnt);
@@ -300,6 +299,8 @@ private:
 	// shutting down. This last thread is responsible for cleanup
 	// must hold the job mutex to access
 	int m_num_running_threads = 0;
+
+	aux::disk_job_pool m_job_pool;
 
 	// std::mutex to protect the m_generic_io_jobs and m_hash_io_jobs lists
 	mutable std::mutex m_job_mutex;
@@ -708,7 +709,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return;
 		}
 
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::read);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::read);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
@@ -741,7 +742,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::write);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::write);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
@@ -773,7 +774,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, span<sha256_hash> const v2, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::hash);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::hash);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
 		j->d.h.block_hashes = v2;
@@ -786,7 +787,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, int const offset, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::hash2);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::hash2);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
 		j->d.io.offset = offset;
@@ -799,7 +800,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::string p, move_flags_t const flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::move_storage);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::move_storage);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = std::move(p);
 		j->callback = std::move(handler);
@@ -811,7 +812,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::async_release_files(storage_index_t const storage
 		, std::function<void()> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::release_files);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::release_files);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 
@@ -838,7 +839,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::function<void(storage_error const&)> handler)
 	{
 		abort_hash_jobs(storage);
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::delete_files);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::delete_files);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 		j->argument = options;
@@ -850,7 +851,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::check_fastresume);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::check_fastresume);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = resume_data;
 		j->callback = std::move(handler);
@@ -866,7 +867,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, file_index_t const index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::rename_file);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::rename_file);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->file_index = index;
 		j->argument = std::move(name);
@@ -880,7 +881,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto st = m_torrents[storage]->shared_from_this();
 		abort_hash_jobs(storage);
 
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::stop_torrent);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::stop_torrent);
 		j->storage = st;
 		j->callback = std::move(handler);
 		add_fence_job(j);
@@ -891,7 +892,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::function<void(storage_error const&
 			, aux::vector<download_priority_t, file_index_t>)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::file_priority);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::file_priority);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->argument = std::move(prios);
 		j->callback = std::move(handler);
@@ -902,7 +903,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::async_clear_piece(storage_index_t const storage
 		, piece_index_t const index, std::function<void(piece_index_t)> handler)
 	{
-		aux::disk_io_job* j = allocate_job(aux::job_action_t::clear_piece);
+		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::clear_piece);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = index;
 		j->callback = std::move(handler);
@@ -1164,9 +1165,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// a different thread
 		std::unique_lock<std::mutex> jl(m_job_mutex);
 
-		c.set_value(counters::num_read_jobs, read_jobs_in_use());
-		c.set_value(counters::num_write_jobs, write_jobs_in_use());
-		c.set_value(counters::num_jobs, jobs_in_use());
+		c.set_value(counters::num_read_jobs, m_job_pool.read_jobs_in_use());
+		c.set_value(counters::num_write_jobs, m_job_pool.write_jobs_in_use());
+		c.set_value(counters::num_jobs, m_job_pool.jobs_in_use());
 		c.set_value(counters::queued_disk_jobs, m_generic_io_jobs.m_queued_jobs.size()
 			+ m_hash_io_jobs.m_queued_jobs.size());
 
@@ -1631,11 +1632,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			if (cnt == int(to_delete.size()))
 			{
 				cnt = 0;
-				free_jobs(to_delete.data(), int(to_delete.size()));
+				m_job_pool.free_jobs(to_delete.data(), int(to_delete.size()));
 			}
 		}
 
-		if (cnt > 0) free_jobs(to_delete.data(), cnt);
+		if (cnt > 0) m_job_pool.free_jobs(to_delete.data(), cnt);
 	}
 }
 
