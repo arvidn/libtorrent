@@ -382,8 +382,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// we sent right before we were choked. This is primarily used for the
 		// bittyrant choking algorithm.
 		TORRENT_DEPRECATED int estimated_reciprocation_rate;
-#else
-		int deprecated_estimated_reciprocation_rate;
 #endif
 
 		// the IP-address to this peer. The type is an asio endpoint. For
