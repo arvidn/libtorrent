@@ -316,6 +316,7 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 	{
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
+		if (d.disabled) continue;
 
 		if (d.mapping.end_index() <= mapping_index)
 			d.mapping.resize(static_cast<int>(mapping_index) + 1);
@@ -355,6 +356,7 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 	{
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
+		if (d.disabled) continue;
 
 		TORRENT_ASSERT(mapping < d.mapping.end_index());
 		d.mapping[mapping].act = portmap_action::del;
@@ -771,6 +773,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 void upnp::next(rootdevice& d, port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
+	TORRENT_ASSERT(!d.disabled);
 	if (i < prev(m_mappings.end_index()))
 	{
 		update_map(d, lt::next(i));
@@ -1636,7 +1639,7 @@ void upnp::close()
 	{
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
-		if (d.control_url.empty()) continue;
+		if (d.disabled || d.control_url.empty()) continue;
 		for (auto& m : d.mapping)
 		{
 			if (m.protocol == portmap_protocol::none) continue;
