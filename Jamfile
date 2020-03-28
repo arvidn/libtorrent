@@ -272,6 +272,13 @@ rule building ( properties * )
 		result += <build>no ;
 	}
 
+	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
+	if ! $(VERSION) || $(VERSION) < 11
+	{
+		ECHO "libtorrent requires at least C++11. Specify <cxxstd>11 or higher" ;
+		result += <build>no ;
+	}
+
 	if <toolset>msvc in $(properties)
 	{
 		# allow larger .obj files (with more sections)

@@ -32,6 +32,7 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
+	<cxxstd>11
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
@@ -50,6 +51,7 @@ local default-build =
 	<picker-debugging>on
 	<logging>on
 	<variant>debug-mode
+	<cxxstd>11
 	;
 
 project

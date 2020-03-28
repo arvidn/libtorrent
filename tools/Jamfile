@@ -39,6 +39,7 @@ project tools
 	: default-build
 	<link>static
 	<variant>debug-mode
+	<cxxstd>11
    ;  
 
 exe dht : dht_put.cpp : <include>../ed25519/src ;
