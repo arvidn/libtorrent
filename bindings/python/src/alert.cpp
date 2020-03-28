@@ -28,6 +28,7 @@ bytes get_buffer(read_piece_alert const& rpa)
        : bytes();
 }
 
+#if TORRENT_ABI_VERSION <= 2
 list stats_alert_transferred(stats_alert const& alert)
 {
    list result;
@@ -36,6 +37,7 @@ list stats_alert_transferred(stats_alert const& alert)
    }
    return result;
 }
+#endif
 
 list get_status_from_update_alert(state_update_alert const& alert)
 {
@@ -216,7 +218,9 @@ namespace boost
 	POLY(torrent_delete_failed_alert)
 	POLY(save_resume_data_failed_alert)
 	POLY(performance_alert)
+#if TORRENT_ABI_VERSION <= 2
 	POLY(stats_alert)
+#endif
 	POLY(cache_flushed_alert)
 	POLY(incoming_connection_alert)
 	POLY(torrent_need_cert_alert)
@@ -312,7 +316,9 @@ void bind_alert()
         s.attr("ip_block_notification") = alert::ip_block_notification;
         s.attr("performance_warning") = alert::performance_warning;
         s.attr("dht_notification") = alert::dht_notification;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("stats_notification") = alert::stats_notification;
+#endif
         s.attr("session_log_notification") = alert::session_log_notification;
         s.attr("torrent_log_notification") = alert::torrent_log_notification;
         s.attr("peer_log_notification") = alert::peer_log_notification;
@@ -857,6 +863,7 @@ void bind_alert()
         .value("too_few_file_descriptors", performance_alert::too_few_file_descriptors)
     ;
 
+#if TORRENT_ABI_VERSION <= 2
     class_<stats_alert, bases<torrent_alert>, noncopyable>(
         "stats_alert", no_init)
         .add_property("transferred", &stats_alert_transferred)
@@ -879,6 +886,7 @@ void bind_alert()
         .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
 #endif
     ;
+#endif // TORRENT_ABI_VERSION
 
     class_<cache_flushed_alert, bases<torrent_alert>, noncopyable>(
         "cache_flushed_alert", no_init)

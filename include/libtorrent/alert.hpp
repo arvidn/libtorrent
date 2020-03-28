@@ -150,11 +150,14 @@ namespace libtorrent {
 		// bootstrapping being done etc.
 		static constexpr alert_category_t dht_notification = 10_bit;
 
+#if TORRENT_ABI_VERSION <= 2
 		// If you enable these alerts, you will receive a stats_alert
 		// approximately once every second, for every active torrent.
 		// These alerts contain all statistics counters for the interval since
 		// the lasts stats alert.
+		TORRENT_DEPRECATED
 		static constexpr alert_category_t stats_notification = 11_bit;
+#endif
 
 		// Enables debug logging alerts. These are available unless libtorrent
 		// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The

@@ -1769,12 +1769,15 @@ TORRENT_VERSION_NAMESPACE_2
 		sha1_hash info_hash;
 	};
 
+#if TORRENT_ABI_VERSION <= 2
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 	// This alert is posted approximately once every second, and it contains
 	// byte counters of most statistics that's tracked for torrents. Each active
 	// torrent posts these alerts regularly.
 	// This alert has been superseded by calling ``post_torrent_updates()``
 	// regularly on the session object. This alert will be removed
-	struct TORRENT_EXPORT stats_alert final : torrent_alert
+	struct TORRENT_DEPRECATED_EXPORT stats_alert final : torrent_alert
 	{
 		// internal
 		TORRENT_UNEXPORT stats_alert(aux::stack_allocator& alloc, torrent_handle const& h, int interval
@@ -1783,6 +1786,7 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEFINE_ALERT(stats_alert, 57)
 
 		static constexpr alert_category_t static_category = alert::stats_notification;
+
 		std::string message() const override;
 
 		enum stats_channel
@@ -1819,6 +1823,10 @@ TORRENT_VERSION_NAMESPACE_2
 		// higher than that.
 		int const interval;
 	};
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#endif // TORRENT_ABI_VERSION
 
 	// This alert is posted when the disk cache has been flushed for a specific
 	// torrent as a result of a call to torrent_handle::flush_cache(). This
@@ -2064,9 +2072,9 @@ TORRENT_VERSION_NAMESPACE_2
 #endif // TORRENT_ABI_VERSION
 
 	// The session_stats_alert is posted when the user requests session statistics by
-	// calling post_session_stats() on the session object. Its category is
-	// ``status_notification``, but it is not subject to filtering, since it's only
-	// manually posted anyway.
+	// calling post_session_stats() on the session object. This alert does not
+	// have a category, since it's only posted in response to an API call. It
+	// is not subject to the alert_mask filter.
 	//
 	// the ``message()`` member function returns a string representation of the values that
 	// properly match the line returned in ``session_stats_header_alert::message()``.
@@ -2088,7 +2096,7 @@ TORRENT_VERSION_NAMESPACE_2
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-		static constexpr alert_category_t static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = {};
 		std::string message() const override;
 
 		// An array are a mix of *counters* and *gauges*, which meanings can be
@@ -2466,7 +2474,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 
-		static constexpr alert_category_t static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = {};
 		std::string message() const override;
 
 		// a vector of the currently running DHT lookups.
@@ -2754,7 +2762,7 @@ TORRENT_VERSION_NAMESPACE_2
 		explicit TORRENT_UNEXPORT session_stats_header_alert(aux::stack_allocator& alloc);
 		TORRENT_DEFINE_ALERT(session_stats_header_alert, 92)
 
-		static constexpr alert_category_t static_category = alert::stats_notification;
+		static constexpr alert_category_t static_category = {};
 		std::string message() const override;
 	};
 

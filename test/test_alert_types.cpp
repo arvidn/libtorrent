@@ -128,7 +128,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(peer_blocked_alert, 54, alert_priority::normal, alert::ip_block_notification);
 	TEST_ALERT_TYPE(dht_announce_alert, 55, alert_priority::normal, alert::dht_notification);
 	TEST_ALERT_TYPE(dht_get_peers_alert, 56, alert_priority::normal, alert::dht_notification);
+#if TORRENT_ABI_VERSION <= 2
 	TEST_ALERT_TYPE(stats_alert, 57, alert_priority::normal, alert::stats_notification);
+#else
+	count_alert_types++;
+#endif
 	TEST_ALERT_TYPE(cache_flushed_alert, 58, alert_priority::high, alert::storage_notification);
 #if TORRENT_ABI_VERSION == 1
 	TEST_ALERT_TYPE(anonymous_mode_alert, 59, alert_priority::normal, alert::error_notification);
@@ -149,7 +153,7 @@ TORRENT_TEST(alerts_types)
 #else
 	count_alert_types++;
 #endif
-	TEST_ALERT_TYPE(session_stats_alert, 70, alert_priority::critical, alert::stats_notification);
+	TEST_ALERT_TYPE(session_stats_alert, 70, alert_priority::critical, alert_category_t{});
 	count_alert_types++;
 	count_alert_types++; // 72 is gone
 	TEST_ALERT_TYPE(dht_error_alert, 73, alert_priority::normal, alert::error_notification | alert::dht_notification);
@@ -162,7 +166,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(torrent_log_alert, 80, alert_priority::normal, alert::torrent_log_notification);
 	TEST_ALERT_TYPE(peer_log_alert, 81, alert_priority::normal, alert::peer_log_notification);
 	TEST_ALERT_TYPE(lsd_error_alert, 82, alert_priority::normal, alert::error_notification);
-	TEST_ALERT_TYPE(dht_stats_alert, 83, alert_priority::normal, alert::stats_notification);
+	TEST_ALERT_TYPE(dht_stats_alert, 83, alert_priority::normal, alert_category_t{});
 	TEST_ALERT_TYPE(incoming_request_alert, 84, alert_priority::normal, alert::incoming_request_notification);
 	TEST_ALERT_TYPE(dht_log_alert, 85, alert_priority::normal, alert::dht_log_notification);
 	TEST_ALERT_TYPE(dht_pkt_alert, 86, alert_priority::normal, alert::dht_log_notification);
@@ -171,7 +175,7 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(picker_log_alert, 89, alert_priority::normal, alert::picker_log_notification);
 	TEST_ALERT_TYPE(session_error_alert, 90, alert_priority::normal, alert::error_notification);
 	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, alert_priority::normal, alert::dht_notification);
-	TEST_ALERT_TYPE(session_stats_header_alert, 92, alert_priority::normal, alert::stats_notification);
+	TEST_ALERT_TYPE(session_stats_header_alert, 92, alert_priority::normal, alert_category_t{});
 	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, alert_priority::normal, alert::dht_operation_notification);
 	TEST_ALERT_TYPE(block_uploaded_alert, 94, alert_priority::normal, PROGRESS_NOTIFICATION alert::upload_notification);
 	TEST_ALERT_TYPE(alerts_dropped_alert, 95, alert_priority::meta, alert::error_notification);
@@ -251,7 +255,7 @@ TORRENT_TEST(dht_live_nodes_alert)
 
 TORRENT_TEST(session_stats_alert)
 {
-	aux::alert_manager mgr(1, alert::stats_notification);
+	aux::alert_manager mgr(1, {});
 
 	std::vector<alert*> alerts;
 	counters cnt;

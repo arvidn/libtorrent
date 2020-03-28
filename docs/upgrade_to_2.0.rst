@@ -155,6 +155,15 @@ constructor (see session_params). Instead of taking a `dht_settings` object, it
 is now passed the full `settings_pack`. This is considered a niche interface,
 so there is no backward compatibility option provided.
 
+stats_alert
+===========
+
+The stats_alert is deprecated. Instead, call session::post_torrent_updates().
+This will post a state_update_alert containing torrent_status of all torrents
+that have any updates since last time this function was called.
+
+The new mechanism scales a lot better.
+
 saving and restoring session state
 ==================================
 

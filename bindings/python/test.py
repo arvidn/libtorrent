@@ -563,8 +563,7 @@ class test_session(unittest.TestCase):
         self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
     def test_post_session_stats(self):
-        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification,
-                        'enable_dht': False})
+        s = lt.session({'alert_mask': 0, 'enable_dht': False})
         s.post_session_stats()
         alerts = []
         # first the stats headers log line. but not if logging is disabled
@@ -589,7 +588,7 @@ class test_session(unittest.TestCase):
         self.assertTrue(len(a.values) > 0)
 
     def test_post_dht_stats(self):
-        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+        s = lt.session({'alert_mask': 0, 'enable_dht': False})
         s.post_dht_stats()
         alerts = []
         cnt = 0
