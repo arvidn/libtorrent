@@ -9628,8 +9628,10 @@ namespace {
 			// resource requests
 			p->second_tick(tick_interval_ms);
 		}
+#if TORRENT_ABI_VERSION <= 2
 		if (m_ses.alerts().should_post<stats_alert>())
 			m_ses.alerts().emplace_alert<stats_alert>(get_handle(), tick_interval_ms, m_stat);
+#endif
 
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();

@@ -79,7 +79,9 @@ namespace libtorrent {
 	constexpr alert_category_t alert::ip_block_notification;
 	constexpr alert_category_t alert::performance_warning;
 	constexpr alert_category_t alert::dht_notification;
+#if TORRENT_ABI_VERSION <= 2
 	constexpr alert_category_t alert::stats_notification;
+#endif
 	constexpr alert_category_t alert::session_log_notification;
 	constexpr alert_category_t alert::torrent_log_notification;
 	constexpr alert_category_t alert::peer_log_notification;
@@ -1245,6 +1247,7 @@ namespace {
 		return msg;
 	}
 
+#if TORRENT_ABI_VERSION <= 2
 namespace {
 
 		std::array<int, stats_alert::num_channels> stat_to_array(stat const& s)
@@ -1304,6 +1307,7 @@ namespace {
 			);
 		return msg;
 	}
+#endif // TORRENT_ABI_VERSION
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h)
@@ -2680,7 +2684,9 @@ namespace {
 	constexpr alert_category_t peer_blocked_alert::static_category;
 	constexpr alert_category_t dht_announce_alert::static_category;
 	constexpr alert_category_t dht_get_peers_alert::static_category;
+#if TORRENT_ABI_VERSION <= 2
 	constexpr alert_category_t stats_alert::static_category;
+#endif
 	constexpr alert_category_t cache_flushed_alert::static_category;
 	constexpr alert_category_t lsd_peer_alert::static_category;
 	constexpr alert_category_t trackerid_alert::static_category;
