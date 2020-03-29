@@ -23,6 +23,7 @@
 	* libtorrent now requires C++14 to build
 
 
+	* fix issue with outgoing_interfaces setting, where bind() would be called twice
 	* add build option to disable share-mode
 	* support validation of HTTPS trackers
 	* deprecate strict super seeding mode

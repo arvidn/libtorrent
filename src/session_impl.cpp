@@ -498,10 +498,10 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		: m_settings(pack)
 		, m_io_context(ioc)
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(ssl_client_version(pack.get_int(settings_pack::ssl_version)))
+		, m_ssl_ctx(ssl::context::tls_client)
 #endif
 #ifdef TORRENT_SSL_PEERS
-		, m_peer_ssl_ctx(ssl_version(pack.get_int(settings_pack::ssl_version)))
+		, m_peer_ssl_ctx(ssl::context::tls)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
@@ -4958,7 +4958,6 @@ namespace {
 			bind_ep.address(bind_socket_to_device(m_io_context, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
-			s.bind(bind_ep, ec);
 			return bind_ep;
 		}
 

@@ -1767,25 +1767,39 @@ COLUMN OPTIONS
 				std::vector<lt::announce_entry> tr = h.trackers();
 				for (lt::announce_entry const& ae : h.trackers())
 				{
-					for (lt::announce_endpoint const& aep : ae.endpoints)
+					std::snprintf(str, sizeof(str), "%2d %-55s %s\x1b[K\n"
+						, ae.tier, ae.url.c_str(), ae.verified?"OK ":"-  ");
+					out += str;
+					pos += 1;
+					int idx = 0;
+					for (auto const& ep : ae.endpoints)
 					{
+						++idx;
+						if (pos + 1 >= terminal_height) break;
+						if (!ep.enabled) continue;
 						for (lt::protocol_version const v : {lt::protocol_version::V1, lt::protocol_version::V2})
 						{
-							if (pos + 1 >= terminal_height) break;
 							if (!s.info_hash.has(v)) continue;
-							std::snprintf(str, sizeof(str), "%2d %d %-20s %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
-								, ae.tier, int(v), trunc(print_endpoint(aep.local_endpoint), 20).c_str()
-								, ae.url.c_str()
-								, aep.info_hashes[v].fails
-								, ae.fail_limit, ae.verified ? "OK " : "-  "
-								, to_string(int(total_seconds(aep.info_hashes[v].next_announce - now)), 8).c_str()
-								, aep.info_hashes[v].min_announce > now ? int(total_seconds(aep.info_hashes[v].min_announce - now)) : 0
-								, aep.info_hashes[v].last_error ? aep.info_hashes[v].last_error.message().c_str() : ""
-								, aep.info_hashes[v].message.c_str());
+							auto const& av = ep.info_hashes[v];
+
+							std::snprintf(str, sizeof(str), "  [%2d] fails: %-3d (%-3d) %s %5d \"%s\" %s\x1b[K\n"
+								, idx
+								, av.fails, ae.fail_limit
+								, to_string(int(total_seconds(av.next_announce - now)), 8).c_str()
+								, av.min_announce > now ? int(total_seconds(av.min_announce - now)) : 0
+								, av.last_error ? av.last_error.message().c_str() : ""
+								, av.message.c_str());
 							out += str;
 							pos += 1;
+							// we only need to show this error once, not for every
+							// endpoint
+							if (av.last_error == boost::asio::error::host_not_found)
+								goto done;
 						}
 					}
+done:
+
+					if (pos + 1 >= terminal_height) break;
 				}
 			}
 

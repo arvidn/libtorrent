@@ -348,11 +348,6 @@ namespace libtorrent {
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
-#if TORRENT_USE_TLS13
-		SET(ssl_version, settings_pack::tls13, nullptr),
-#else
-		SET(ssl_version, settings_pack::tls12, nullptr),
-#endif
 		SET(dht_max_peers_reply, 100, nullptr),
 		SET(dht_search_branching, 5, nullptr),
 		SET(dht_max_fail_count, 20, nullptr),
