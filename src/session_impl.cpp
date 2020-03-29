@@ -5009,7 +5009,6 @@ namespace {
 			bind_ep.address(bind_socket_to_device(m_io_service, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
-			s.bind(bind_ep, ec);
 			return bind_ep;
 		}
 
