@@ -513,6 +513,123 @@ void print_settings(int const start, int const num
 	}
 }
 
+void assign_setting(lt::settings_pack& settings, std::string const& key, char const* value)
+{
+	int const sett_name = lt::setting_by_name(key);
+	if (sett_name < 0)
+	{
+		std::fprintf(stderr, "unknown setting: \"%s\"\n", key.c_str());
+		std::exit(1);
+	}
+
+	using lt::settings_pack;
+
+	switch (sett_name & settings_pack::type_mask)
+	{
+		case settings_pack::string_type_base:
+			settings.set_str(sett_name, value);
+			break;
+		case settings_pack::bool_type_base:
+			if (value == "1"_sv || value == "on"_sv || value == "true"_sv)
+			{
+				settings.set_bool(sett_name, true);
+			}
+			else if (value == "0"_sv || value == "off"_sv || value == "false"_sv)
+			{
+				settings.set_bool(sett_name, false);
+			}
+			else
+			{
+				std::fprintf(stderr, "invalid value for \"%s\". expected 0 or 1\n"
+					, key.c_str());
+				std::exit(1);
+			}
+			break;
+		case settings_pack::int_type_base:
+			using namespace libtorrent::literals;
+			static std::map<lt::string_view, int> const enums = {
+				{"no_piece_suggestions"_sv, settings_pack::no_piece_suggestions},
+				{"suggest_read_cache"_sv, settings_pack::suggest_read_cache},
+				{"fixed_slots_choker"_sv, settings_pack::fixed_slots_choker},
+				{"rate_based_choker"_sv, settings_pack::rate_based_choker},
+				{"round_robin"_sv, settings_pack::round_robin},
+				{"fastest_upload"_sv, settings_pack::fastest_upload},
+				{"anti_leech"_sv, settings_pack::anti_leech},
+				{"enable_os_cache"_sv, settings_pack::enable_os_cache},
+				{"disable_os_cache"_sv, settings_pack::disable_os_cache},
+				{"prefer_tcp"_sv, settings_pack::prefer_tcp},
+				{"peer_proportional"_sv, settings_pack::peer_proportional},
+				{"pe_forced"_sv, settings_pack::pe_forced},
+				{"pe_enabled"_sv, settings_pack::pe_enabled},
+				{"pe_disabled"_sv, settings_pack::pe_disabled},
+				{"pe_plaintext"_sv, settings_pack::pe_plaintext},
+				{"pe_rc4"_sv, settings_pack::pe_rc4},
+				{"pe_both"_sv, settings_pack::pe_both},
+				{"none"_sv, settings_pack::none},
+				{"socks4"_sv, settings_pack::socks4},
+				{"socks5"_sv, settings_pack::socks5},
+				{"socks5_pw"_sv, settings_pack::socks5_pw},
+				{"http"_sv, settings_pack::http},
+				{"http_pw"_sv, settings_pack::http_pw},
+				{"i2p_proxy"_sv, settings_pack::i2p_proxy},
+			};
+
+			auto const it = enums.find(lt::string_view(value));
+			if (it != enums.end())
+			{
+				settings.set_int(sett_name, it->second);
+				break;
+			}
+
+			static std::map<lt::string_view, lt::alert_category_t> const alert_categories = {
+				{"error"_sv, alert::error_notification},
+				{"peer"_sv, alert::peer_notification},
+				{"port_mapping"_sv, alert::port_mapping_notification},
+				{"storage"_sv, alert::storage_notification},
+				{"tracker"_sv, alert::tracker_notification},
+				{"connect"_sv, alert::connect_notification},
+				{"status"_sv, alert::status_notification},
+				{"ip_block"_sv, alert::ip_block_notification},
+				{"performance_warning"_sv, alert::performance_warning},
+				{"dht"_sv, alert::dht_notification},
+				{"session_log"_sv, alert::session_log_notification},
+				{"torrent_log"_sv, alert::torrent_log_notification},
+				{"peer_log"_sv, alert::peer_log_notification},
+				{"incoming_request"_sv, alert::incoming_request_notification},
+				{"dht_log"_sv, alert::dht_log_notification},
+				{"dht_operation"_sv, alert::dht_operation_notification},
+				{"port_mapping_log"_sv, alert::port_mapping_log_notification},
+				{"picker_log"_sv, alert::picker_log_notification},
+				{"file_progress"_sv, alert::file_progress_notification},
+				{"piece_progress"_sv, alert::piece_progress_notification},
+				{"upload"_sv, alert::upload_notification},
+				{"block_progress"_sv, alert::block_progress_notification},
+				{"all"_sv, alert::all_categories},
+			};
+
+			std::stringstream flags(value);
+			std::string f;
+			lt::alert_category_t val;
+			while (std::getline(flags, f, ',')) try
+			{
+				auto const it = alert_categories.find(f);
+				if (it == alert_categories.end())
+					val |= lt::alert_category_t{unsigned(std::stoi(f))};
+				else
+					val |= it->second;
+			}
+			catch (std::invalid_argument const&)
+			{
+				std::fprintf(stderr, "invalid value for \"%s\". expected integer or enum value\n"
+					, key.c_str());
+				std::exit(1);
+			}
+
+			settings.set_int(sett_name, val);
+			break;
+	}
+}
+
 std::string resume_file(lt::sha1_hash const& info_hash)
 {
 	return path_append(save_path, path_append(".resume"
@@ -1055,12 +1172,17 @@ DISK OPTIONS
 TORRENT is a path to a .torrent file
 MAGNETURL is a magnet link
 
-example alert_masks:
-   dht | errors                   =  1025
-   peer-log | errors              = 32769
-   torrent-log | errors           = 16385
-   ses-log | errors               =  8193
-   ses-log | torrent-log | errors = 24578
+alert mask flags:
+	error peer port_mapping storage tracker connect status ip_block
+	performance_warning dht session_log torrent_log peer_log incoming_request
+	dht_log dht_operation port_mapping_log picker_log file_progress piece_progress
+	upload block_progress all
+
+examples:
+  --alert_mask=error,port_mapping,tracker,connect,session_log
+  --alert_mask=error,session_log,torrent_log,peer_log
+  --alert_mask=error,dht,dht_log,dht_operation
+  --alert_mask=all
 )") ;
 		return 0;
 	}
@@ -1150,34 +1272,7 @@ example alert_masks:
 			std::string const key(start, equal - start);
 			char const* value = equal + 1;
 
-			int const sett_name = lt::setting_by_name(key);
-			if (sett_name < 0)
-			{
-				std::fprintf(stderr, "unknown setting: \"%s\"\n", key.c_str());
-				return 1;
-			}
-
-			switch (sett_name & settings_pack::type_mask)
-			{
-				case settings_pack::string_type_base:
-					settings.set_str(sett_name, value);
-					break;
-				case settings_pack::bool_type_base:
-					if (value == "0"_sv || value == "1"_sv)
-					{
-						settings.set_bool(sett_name, atoi(value) != 0);
-					}
-					else
-					{
-						std::fprintf(stderr, "invalid value for \"%s\". expected 0 or 1\n"
-							, key.c_str());
-						return 1;
-					}
-					break;
-				case settings_pack::int_type_base:
-					settings.set_int(sett_name, atoi(value));
-					break;
-			}
+			assign_setting(settings, key, value);
 			continue;
 		}
 
