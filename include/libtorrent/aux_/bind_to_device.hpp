@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 
 #if TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 #include <sys/socket.h> // for SO_BINDTODEVICE
@@ -60,13 +61,19 @@ namespace libtorrent { namespace aux {
 		char const* m_value;
 	};
 
+	template <typename T>
+	void bind_device(T& sock, char const* device, error_code& ec)
+	{
+		sock.set_option(bind_to_device(device), ec);
+	}
+
 #define TORRENT_HAS_BINDTODEVICE 1
 
 #elif defined IP_BOUND_IF
 
 	struct bind_to_device
 	{
-		explicit bind_to_device(char const* device): m_value(if_nametoindex(device)) {}
+		explicit bind_to_device(unsigned int idx): m_value(idx) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -78,6 +85,18 @@ namespace libtorrent { namespace aux {
 	private:
 		unsigned int m_value;
 	};
+
+	template <typename T>
+	void bind_device(T& sock, char const* device, error_code& ec)
+	{
+		unsigned int const if_idx = if_nametoindex(device);
+		if (if_idx == 0)
+		{
+			ec.assign(errno, system_category());
+			return;
+		}
+		sock.set_option(bind_to_device(if_idx), ec);
+	}
 
 #define TORRENT_HAS_BINDTODEVICE 1
 
@@ -97,6 +116,12 @@ namespace libtorrent { namespace aux {
 	private:
 		char const* m_value;
 	};
+
+	template <typename T>
+	void bind_device(T& sock, char const* device, error_code& ec)
+	{
+		sock.set_option(bind_to_device(device), ec);
+	}
 
 #define TORRENT_HAS_BINDTODEVICE 1
 

@@ -1479,7 +1479,7 @@ namespace {
 				// we have an actual device we're interested in listening on, if we
 				// have SO_BINDTODEVICE functionality, use it now.
 #if TORRENT_HAS_BINDTODEVICE
-				ret->sock->set_option(bind_to_device(lep.device.c_str()), ec);
+				bind_device(*ret->sock, lep.device.c_str(), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (ec && should_log())
 				{
@@ -1488,7 +1488,7 @@ namespace {
 				}
 #endif // TORRENT_DISABLE_LOGGING
 				ec.clear();
-#endif
+#endif // TORRENT_HAS_BINDTODEVICE
 			}
 
 			ret->sock->bind(bind_ep, ec);
@@ -1621,7 +1621,7 @@ namespace {
 #if TORRENT_HAS_BINDTODEVICE
 		if (!lep.device.empty())
 		{
-			ret->udp_sock->sock.set_option(bind_to_device(lep.device.c_str()), ec);
+			bind_device(ret->udp_sock->sock, lep.device.c_str(), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
