@@ -388,7 +388,7 @@ TORRENT_TEST(alert_order)
 	setup_swarm(1, swarm_test::upload
 		// add session
 		, [](lt::settings_pack& sett) {
-			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+			sett.set_int(settings_pack::alert_mask, alert_category::all);
 		}
 		// add torrent
 		, [](lt::add_torrent_params ) {}

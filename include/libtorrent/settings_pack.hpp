@@ -801,9 +801,8 @@ namespace aux {
 			// changes are taken in consideration.
 			enable_ip_notifier,
 
-			// when this is true, nodes whose IDs are derived from their source IP
-			// according to BEP 42 (https://www.bittorrent.org/beps/bep_0042.html) are
-			// preferred in the routing table.
+			// when this is true, nodes whose IDs are derived from their source
+			// IP according to `BEP 42`_ are preferred in the routing table.
 			dht_prefer_verified_node_ids,
 
 			// when this is true, create an affinity for downloading 4 MiB extents
@@ -1650,7 +1649,7 @@ namespace aux {
 			// retry a failed port bind
 			max_retry_port_bind,
 
-			// a bitmask combining flags from alert::category_t defining which
+			// a bitmask combining flags from alert_category_t defining which
 			// kinds of alerts to receive
 			alert_mask,
 

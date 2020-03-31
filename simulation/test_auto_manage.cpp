@@ -656,7 +656,7 @@ TORRENT_TEST(resume_reject_when_paused)
 {
 	run_test(
 		[](settings_pack& sett) {
-			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+			sett.set_int(settings_pack::alert_mask, alert_category::all);
 		},
 
 		[](lt::session& ses) {
@@ -729,7 +729,7 @@ TORRENT_TEST(no_resume_when_paused)
 {
 	run_test(
 		[](settings_pack& sett) {
-			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+			sett.set_int(settings_pack::alert_mask, alert_category::all);
 		},
 
 		[](lt::session& ses) {
@@ -797,7 +797,7 @@ TORRENT_TEST(no_resume_when_started)
 {
 	run_test(
 		[](settings_pack& sett) {
-			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+			sett.set_int(settings_pack::alert_mask, alert_category::all);
 		},
 
 		[](lt::session& ses) {

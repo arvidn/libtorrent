@@ -78,7 +78,7 @@ TORRENT_TEST(ip_notifier_setting)
 		, [](lt::settings_pack& pack)
 		{
 			pack.set_int(settings_pack::tick_interval, 1000);
-			pack.set_int(settings_pack::alert_mask, alert::all_categories);
+			pack.set_int(settings_pack::alert_mask, alert_category::all);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -146,7 +146,7 @@ TORRENT_TEST(add_extension_while_transfer)
 		, [](lt::settings_pack& pack)
 		{
 			pack.set_int(settings_pack::tick_interval, 1000);
-			pack.set_int(settings_pack::alert_mask, alert::all_categories);
+			pack.set_int(settings_pack::alert_mask, alert_category::all);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -191,9 +191,9 @@ TORRENT_TEST(tie_listen_ports)
 	// create session
 	auto pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:0");
-	pack.set_int(settings_pack::alert_mask, alert::error_notification
-		| alert::status_notification
-		| alert::torrent_log_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::error
+		| alert_category::status
+		| alert_category::torrent_log);
 
 	auto ses = std::make_shared<lt::session>(pack, ios);
 
