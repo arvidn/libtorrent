@@ -582,29 +582,29 @@ void assign_setting(lt::settings_pack& settings, std::string const& key, char co
 			}
 
 			static std::map<lt::string_view, lt::alert_category_t> const alert_categories = {
-				{"error"_sv, alert::error_notification},
-				{"peer"_sv, alert::peer_notification},
-				{"port_mapping"_sv, alert::port_mapping_notification},
-				{"storage"_sv, alert::storage_notification},
-				{"tracker"_sv, alert::tracker_notification},
-				{"connect"_sv, alert::connect_notification},
-				{"status"_sv, alert::status_notification},
-				{"ip_block"_sv, alert::ip_block_notification},
-				{"performance_warning"_sv, alert::performance_warning},
-				{"dht"_sv, alert::dht_notification},
-				{"session_log"_sv, alert::session_log_notification},
-				{"torrent_log"_sv, alert::torrent_log_notification},
-				{"peer_log"_sv, alert::peer_log_notification},
-				{"incoming_request"_sv, alert::incoming_request_notification},
-				{"dht_log"_sv, alert::dht_log_notification},
-				{"dht_operation"_sv, alert::dht_operation_notification},
-				{"port_mapping_log"_sv, alert::port_mapping_log_notification},
-				{"picker_log"_sv, alert::picker_log_notification},
-				{"file_progress"_sv, alert::file_progress_notification},
-				{"piece_progress"_sv, alert::piece_progress_notification},
-				{"upload"_sv, alert::upload_notification},
-				{"block_progress"_sv, alert::block_progress_notification},
-				{"all"_sv, alert::all_categories},
+				{"error"_sv, lt::alert_category::error},
+				{"peer"_sv, lt::alert_category::peer},
+				{"port_mapping"_sv, lt::alert_category::port_mapping},
+				{"storage"_sv, lt::alert_category::storage},
+				{"tracker"_sv, lt::alert_category::tracker},
+				{"connect"_sv, lt::alert_category::connect},
+				{"status"_sv, lt::alert_category::status},
+				{"ip_block"_sv, lt::alert_category::ip_block},
+				{"performance_warning"_sv, lt::alert_category::performance_warning},
+				{"dht"_sv, lt::alert_category::dht},
+				{"session_log"_sv, lt::alert_category::session_log},
+				{"torrent_log"_sv, lt::alert_category::torrent_log},
+				{"peer_log"_sv, lt::alert_category::peer_log},
+				{"incoming_request"_sv, lt::alert_category::incoming_request},
+				{"dht_log"_sv, lt::alert_category::dht_log},
+				{"dht_operation"_sv, lt::alert_category::dht_operation},
+				{"port_mapping_log"_sv, lt::alert_category::port_mapping_log},
+				{"picker_log"_sv, lt::alert_category::picker_log},
+				{"file_progress"_sv, lt::alert_category::file_progress},
+				{"piece_progress"_sv, lt::alert_category::piece_progress},
+				{"upload"_sv, lt::alert_category::upload},
+				{"block_progress"_sv, lt::alert_category::block_progress},
+				{"all"_sv, lt::alert_category::all},
 			};
 
 			std::stringstream flags(value);
@@ -803,11 +803,11 @@ void print_alert(lt::alert const* a, std::string& str)
 {
 	using namespace lt;
 
-	if (a->category() & alert::error_notification)
+	if (a->category() & alert_category::error)
 	{
 		str += esc("31");
 	}
-	else if (a->category() & (alert::peer_notification | alert::storage_notification))
+	else if (a->category() & (alert_category::peer | alert_category::storage))
 	{
 		str += esc("33");
 	}
@@ -1213,20 +1213,20 @@ examples:
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask
-		, alert::error_notification
-		| alert::peer_notification
-		| alert::port_mapping_notification
-		| alert::storage_notification
-		| alert::tracker_notification
-		| alert::connect_notification
-		| alert::status_notification
-		| alert::ip_block_notification
-		| alert::performance_warning
-		| alert::dht_notification
-		| alert::incoming_request_notification
-		| alert::dht_operation_notification
-		| alert::port_mapping_log_notification
-		| alert::file_progress_notification);
+		, lt::alert_category::error
+		| lt::alert_category::peer
+		| lt::alert_category::port_mapping
+		| lt::alert_category::storage
+		| lt::alert_category::tracker
+		| lt::alert_category::connect
+		| lt::alert_category::status
+		| lt::alert_category::ip_block
+		| lt::alert_category::performance_warning
+		| lt::alert_category::dht
+		| lt::alert_category::incoming_request
+		| lt::alert_category::dht_operation
+		| lt::alert_category::port_mapping_log
+		| lt::alert_category::file_progress);
 
 	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;

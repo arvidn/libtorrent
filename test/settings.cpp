@@ -39,24 +39,24 @@ using namespace lt;
 lt::settings_pack settings()
 {
 	alert_category_t const mask =
-		alert::error_notification
-		| alert::peer_notification
-		| alert::port_mapping_notification
-		| alert::storage_notification
-		| alert::tracker_notification
-		| alert::connect_notification
-		| alert::status_notification
-		| alert::ip_block_notification
-		| alert::dht_notification
-		| alert::session_log_notification
-		| alert::torrent_log_notification
-		| alert::peer_log_notification
-		| alert::incoming_request_notification
-		| alert::dht_log_notification
-		| alert::dht_operation_notification
-		| alert::port_mapping_log_notification
-		| alert::file_progress_notification
-		| alert::piece_progress_notification;
+		alert_category::error
+		| alert_category::peer
+		| alert_category::port_mapping
+		| alert_category::storage
+		| alert_category::tracker
+		| alert_category::connect
+		| alert_category::status
+		| alert_category::ip_block
+		| alert_category::dht
+		| alert_category::session_log
+		| alert_category::torrent_log
+		| alert_category::peer_log
+		| alert_category::incoming_request
+		| alert_category::dht_log
+		| alert_category::dht_operation
+		| alert_category::port_mapping_log
+		| alert_category::file_progress
+		| alert_category::piece_progress;
 
 	settings_pack pack;
 	pack.set_bool(settings_pack::enable_lsd, false);

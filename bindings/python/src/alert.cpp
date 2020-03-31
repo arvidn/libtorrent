@@ -256,6 +256,7 @@ namespace boost
 }
 
 struct dummy3 {};
+struct dummy12 {};
 
 bytes get_pkt_buf(dht_pkt_alert const& alert)
 {
@@ -327,6 +328,34 @@ void bind_alert()
         s.attr("upload_notification") = alert::upload_notification;
         s.attr("block_progress_notification") = alert::block_progress_notification;
         s.attr("all_categories") = alert::all_categories;
+    }
+
+    {
+        scope s = class_<dummy12>("alert_category");
+        s.attr("error") = alert_category::error;
+        s.attr("peer") = alert_category::peer;
+        s.attr("port_mapping") = alert_category::port_mapping;
+        s.attr("storage") = alert_category::storage;
+        s.attr("tracker") = alert_category::tracker;
+        s.attr("connect") = alert_category::connect;
+        s.attr("status") = alert_category::status;
+        s.attr("ip_block") = alert_category::ip_block;
+        s.attr("performance_warning") = alert_category::performance_warning;
+        s.attr("dht") = alert_category::dht;
+        s.attr("stats") = alert_category::stats;
+        s.attr("session_log") = alert_category::session_log;
+        s.attr("torrent_log") = alert_category::torrent_log;
+        s.attr("peer_log") = alert_category::peer_log;
+        s.attr("incoming_request") = alert_category::incoming_request;
+        s.attr("dht_log") = alert_category::dht_log;
+        s.attr("dht_operation") = alert_category::dht_operation;
+        s.attr("port_mapping_log") = alert_category::port_mapping_log;
+        s.attr("picker_log") = alert_category::picker_log;
+        s.attr("file_progress") = alert_category::file_progress;
+        s.attr("piece_progress") = alert_category::piece_progress;
+        s.attr("upload") = alert_category::upload;
+        s.attr("block_progress") = alert_category::block_progress;
+        s.attr("all") = alert_category::all;
     }
 
     enum_<operation_t>("operation_t")

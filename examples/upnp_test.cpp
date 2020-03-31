@@ -73,7 +73,7 @@ int main(int argc, char*[])
 	}
 
 	settings_pack p;
-	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
+	p.set_int(settings_pack::alert_mask, alert_category::port_mapping);
 	lt::session s(p);
 
 	for (;;)

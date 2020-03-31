@@ -47,8 +47,8 @@ int main(int argc, char const* argv[]) try
 		return 1;
 	}
 	lt::settings_pack p;
-	p.set_int(lt::settings_pack::alert_mask, lt::alert::status_notification
-		| lt::alert::error_notification);
+	p.set_int(lt::settings_pack::alert_mask, lt::alert_category::status
+		| lt::alert_category::error);
 	lt::session ses(p);
 
 	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1]);

@@ -44,7 +44,7 @@ using namespace lt;
 
 TORRENT_TEST(limit)
 {
-	alert_manager mgr(500, alert::all_categories);
+	alert_manager mgr(500, alert_category::all);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 500);
 	TEST_EQUAL(mgr.pending(), false);
@@ -83,7 +83,7 @@ TORRENT_TEST(limit)
 TORRENT_TEST(limit_int_max)
 {
 	int const inf = std::numeric_limits<int>::max();
-	alert_manager mgr(inf, alert::all_categories);
+	alert_manager mgr(inf, alert_category::all);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), inf);
 
@@ -101,7 +101,7 @@ TORRENT_TEST(limit_int_max)
 
 TORRENT_TEST(priority_limit)
 {
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 
@@ -132,7 +132,7 @@ void test_notify_fun(int& cnt)
 TORRENT_TEST(notify_function)
 {
 	int cnt = 0;
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 	TEST_EQUAL(mgr.pending(), false);
@@ -191,7 +191,7 @@ TORRENT_TEST(extensions)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	memset(plugin_alerts, 0, sizeof(plugin_alerts));
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 
 	mgr.add_extension(std::make_shared<test_plugin>(0));
 	mgr.add_extension(std::make_shared<test_plugin>(1));
@@ -228,7 +228,7 @@ void post_torrent_added(alert_manager* mgr)
 
 TORRENT_TEST(wait_for_alert)
 {
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 
 	time_point start = clock_type::now();
 
@@ -270,7 +270,7 @@ TORRENT_TEST(wait_for_alert)
 
 TORRENT_TEST(alert_mask)
 {
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 
 	TEST_CHECK(mgr.should_post<add_torrent_alert>());
 	TEST_CHECK(mgr.should_post<torrent_paused_alert>());
@@ -283,7 +283,7 @@ TORRENT_TEST(alert_mask)
 
 TORRENT_TEST(dropped_alerts)
 {
-	alert_manager mgr(1, alert::all_categories);
+	alert_manager mgr(1, alert_category::all);
 
 	// nothing has dropped yet
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
@@ -302,7 +302,7 @@ TORRENT_TEST(dropped_alerts)
 
 TORRENT_TEST(alerts_dropped_alert)
 {
-	alert_manager mgr(1, alert::all_categories);
+	alert_manager mgr(1, alert_category::all);
 
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 	mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
@@ -333,7 +333,7 @@ struct post_plugin : lt::plugin
 // plugin handler
 TORRENT_TEST(recursive_alerts)
 {
-	alert_manager mgr(100, alert::all_categories);
+	alert_manager mgr(100, alert_category::all);
 	auto pl = std::make_shared<post_plugin>(mgr);
 	mgr.add_extension(pl);
 
