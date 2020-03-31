@@ -898,7 +898,7 @@ namespace aux {
 
 			// number of seconds until a new retry of a url-seed takes place.
 			// Default retry value for http-seeds that don't provide
-                        // a valid ``retry-after`` header.
+			// a valid ``retry-after`` header.
 			urlseed_wait_retry,
 
 			// sets the upper limit on the total number of files this session will
@@ -910,12 +910,12 @@ namespace aux {
 			// of file descriptors a process may have open.
 			file_pool_size,
 
-                        // ``max_failcount`` is the maximum times we try to
-                        // connect to a peer before stop connecting again. If a
-                        // peer succeeds, the failure counter is reset. If a
-                        // peer is retrieved from a peer source (other than DHT)
-                        // the failcount is decremented by one, allowing another
-                        // try.
+			// ``max_failcount`` is the maximum times we try to
+			// connect to a peer before stop connecting again. If a
+			// peer succeeds, the failure counter is reset. If a
+			// peer is retrieved from a peer source (other than DHT)
+			// the failcount is decremented by one, allowing another
+			// try.
 			max_failcount,
 
 			// the number of seconds to wait to reconnect to a peer. this time is
