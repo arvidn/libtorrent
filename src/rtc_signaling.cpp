@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/rtc_signaling.hpp"
 #include "libtorrent/aux_/rtc_stream.hpp"
 #include "libtorrent/aux_/session_interface.hpp"

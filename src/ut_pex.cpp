@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -80,7 +80,7 @@ namespace libtorrent { namespace {
 		// to evenly spread it out across all torrents
 		// the more torrents we have, the longer we can
 		// delay the rebuilding
-		explicit ut_pex_plugin(torrent& t)
+		explicit ut_pex_plugin(aux::torrent& t)
 			: m_torrent(t)
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
@@ -217,7 +217,7 @@ namespace libtorrent { namespace {
 		}
 
 	private:
-		torrent& m_torrent;
+		aux::torrent& m_torrent;
 
 		std::set<tcp::endpoint> m_old_peers;
 		time_point m_last_msg;
@@ -228,7 +228,7 @@ namespace libtorrent { namespace {
 	struct ut_pex_peer_plugin final
 		: ut_pex_peer_store, peer_plugin
 	{
-		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
+		ut_pex_peer_plugin(aux::torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
@@ -616,7 +616,7 @@ namespace libtorrent { namespace {
 #endif
 		}
 
-		torrent& m_torrent;
+		aux::torrent& m_torrent;
 		peer_connection& m_pc;
 		ut_pex_plugin& m_tp;
 
@@ -654,7 +654,7 @@ namespace libtorrent {
 
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, client_data_t)
 	{
-		torrent* t = th.native_handle().get();
+		aux::torrent* t = th.native_handle().get();
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{

@@ -64,7 +64,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+namespace aux {
 	struct torrent;
+}
 	struct peer_connection;
 	template <typename Index>
 	struct typed_bitfield;
@@ -499,7 +501,7 @@ namespace libtorrent {
 
 		void check_peer_invariant(typed_bitfield<piece_index_t> const& have
 			, torrent_peer const* p) const;
-		void check_invariant(const torrent* t = nullptr) const;
+		void check_invariant(const aux::torrent* t = nullptr) const;
 #endif
 
 		// functor that compares indices on downloading_pieces

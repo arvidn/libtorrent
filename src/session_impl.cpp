@@ -94,7 +94,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/choker.hpp"
+#include "libtorrent/aux_/choker.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/platform_util.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"

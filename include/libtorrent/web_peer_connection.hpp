@@ -59,7 +59,7 @@ namespace libtorrent {
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		web_peer_connection(peer_connection_args& pack
-			, web_seed_t& web);
+			, aux::web_seed_t& web);
 
 		void on_connected() override;
 
@@ -111,7 +111,7 @@ namespace libtorrent {
 
 		std::string m_url;
 
-		web_seed_t* m_web;
+		aux::web_seed_t* m_web;
 
 		// this is used for intermediate storage of pieces to be delivered to the
 		// bittorrent engine

@@ -71,13 +71,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 namespace aux {
+	struct torrent;
 	struct session_impl;
 }
 
 #if TORRENT_ABI_VERSION == 1
 	struct peer_list_entry;
 #endif
-	struct torrent;
 	struct client_data_t;
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -237,7 +237,7 @@ namespace aux {
 	{
 		friend struct aux::session_impl;
 		friend struct session_handle;
-		friend struct torrent;
+		friend struct aux::torrent;
 		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.
@@ -1258,13 +1258,14 @@ namespace aux {
 		// be relied on as little as possible. Accessing the handle returned by
 		// this function is not thread safe outside of libtorrent's internal
 		// thread (which is used to invoke plugin callbacks).
-		// The ``torrent`` class is not only eligible for changing ABI across
+		//
+		// The ``aux::torrent`` class is not only eligible for changing ABI across
 		// minor versions of libtorrent, its layout is also dependent on build
 		// configuration. This adds additional requirements on a client to be
 		// built with the exact same build configuration as libtorrent itself.
 		// i.e. the ``TORRENT_`` macros must match between libtorrent and the
 		// client builds.
-		std::shared_ptr<torrent> native_handle() const;
+		std::shared_ptr<aux::torrent> native_handle() const;
 
 		// returns the userdata pointer as set in add_torrent_params
 		client_data_t userdata() const;
@@ -1280,10 +1281,10 @@ namespace aux {
 		template<typename Ret, typename Fun, typename... Args>
 		Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
 
-		explicit torrent_handle(std::weak_ptr<torrent> const& t)
+		explicit torrent_handle(std::weak_ptr<aux::torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
 
-		std::weak_ptr<torrent> m_torrent;
+		std::weak_ptr<aux::torrent> m_torrent;
 	};
 }
 

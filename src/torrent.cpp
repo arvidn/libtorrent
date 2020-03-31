@@ -61,7 +61,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <functional>
 
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
+
+#ifdef TORRENT_SSL_PEERS
+#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/verify_context.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // TORRENT_SSL_PEERS
+
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -111,10 +120,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/ssl.hpp"
 
-#ifdef TORRENT_SSL_PEERS
-#include "libtorrent/ssl_stream.hpp"
-#endif // TORRENT_SSL_PEERS
-
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
 #endif
@@ -124,6 +129,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace libtorrent {
+namespace aux {
 namespace {
 
 bool is_downloading_state(int const st)
@@ -326,7 +332,7 @@ bool is_downloading_state(int const st)
 				tier = *tier_iter++;
 
 			e.fail_limit = 0;
-			e.source = announce_entry::source_magnet_link;
+			e.source = lt::announce_entry::source_magnet_link;
 			e.tier = std::uint8_t(tier);
 			if (!find_tracker(e.url))
 			{
@@ -336,7 +342,7 @@ bool is_downloading_state(int const st)
 				// will be preserved via create_torrent() when passing in just the
 				// torrent_info object.
 				if (!m_torrent_file->is_valid())
-					m_torrent_file->add_tracker(e.url, e.tier, announce_entry::tracker_source(e.source));
+					m_torrent_file->add_tracker(e.url, e.tier, lt::announce_entry::tracker_source(e.source));
 			}
 		}
 
@@ -5520,9 +5526,9 @@ namespace {
 		}
 	}
 
-	std::vector<announce_entry> torrent::trackers() const
+	std::vector<lt::announce_entry> torrent::trackers() const
 	{
-		std::vector<announce_entry> ret;
+		std::vector<lt::announce_entry> ret;
 		ret.reserve(m_trackers.size());
 		for (auto const& t : m_trackers)
 		{
@@ -5578,7 +5584,7 @@ namespace {
 		return ret;
 	}
 
-	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
+	void torrent::replace_trackers(std::vector<lt::announce_entry> const& urls)
 	{
 		m_trackers.clear();
 		for (auto const& t : urls)
@@ -5632,7 +5638,7 @@ namespace {
 		}
 	}
 
-	bool torrent::add_tracker(announce_entry const& url)
+	bool torrent::add_tracker(lt::announce_entry const& url)
 	{
 		if (url.url.empty()) return false;
 		if (auto* k = find_tracker(url.url))
@@ -5644,7 +5650,7 @@ namespace {
 			, [] (int tier, aux::announce_entry const& v) { return tier < v.tier; });
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, aux::announce_entry(url.url));
-		if (url.source == 0) k->source = announce_entry::source_client;
+		if (url.source == 0) k->source = lt::announce_entry::source_client;
 		else k->source = url.source;
 		k->trackerid = url.trackerid;
 		k->tier = url.tier;
@@ -11723,4 +11729,5 @@ namespace {
 	catch (std::exception const&) {}
 #endif
 
+}
 }

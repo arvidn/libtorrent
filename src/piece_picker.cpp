@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #endif
 
@@ -432,7 +432,7 @@ namespace libtorrent {
 #endif
 	}
 
-	void piece_picker::check_invariant(torrent const* t) const
+	void piece_picker::check_invariant(aux::torrent const* t) const
 	{
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);

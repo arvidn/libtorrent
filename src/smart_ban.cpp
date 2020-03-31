@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
@@ -62,7 +62,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-struct torrent;
+namespace aux { struct torrent; }
 
 namespace {
 
@@ -71,7 +71,7 @@ namespace {
 		: torrent_plugin
 		, std::enable_shared_from_this<smart_ban_plugin>
 	{
-		explicit smart_ban_plugin(torrent& t)
+		explicit smart_ban_plugin(aux::torrent& t)
 			: m_torrent(t)
 			, m_salt(random(0xffffffff))
 		{}
@@ -310,7 +310,7 @@ namespace {
 				errors::peer_banned, operation_t::bittorrent);
 		}
 
-		torrent& m_torrent;
+		aux::torrent& m_torrent;
 
 		// This table maps a piece_block (piece and block index
 		// pair) to a peer and the block CRC. The CRC is calculated
@@ -330,7 +330,7 @@ namespace libtorrent {
 
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{
-		torrent* t = th.native_handle().get();
+		aux::torrent* t = th.native_handle().get();
 		return std::make_shared<smart_ban_plugin>(*t);
 	}
 }

@@ -26,7 +26,6 @@ set(libtorrent_include_files
 	bitfield
 	bloom_filter
 	bt_peer_connection
-	choker
 	client_data
 	close_reason
 	config
@@ -128,7 +127,6 @@ set(libtorrent_include_files
 	string_view
 	tailqueue
 	time
-	torrent
 	torrent_flags
 	torrent_handle
 	torrent_info
@@ -199,6 +197,7 @@ set(libtorrent_aux_include_files
 	keepalive
 	byteswap
 	chained_buffer
+	choker
 	cppint_import_export
 	cpuid
 	deferred_handler
@@ -257,6 +256,7 @@ set(libtorrent_aux_include_files
 	throw
 	time
 	timestamp_history
+	torrent
 	torrent_impl
 	torrent_list
 	unique_ptr

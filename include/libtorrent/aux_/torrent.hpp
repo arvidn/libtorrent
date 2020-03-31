@@ -110,6 +110,8 @@ namespace libtorrent {
 	struct tracker_request;
 	struct bt_peer_connection;
 
+namespace aux {
+
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
 
 	// internal
@@ -1058,18 +1060,18 @@ namespace libtorrent {
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
-		std::vector<announce_entry> trackers() const;
+		std::vector<lt::announce_entry> trackers() const;
 
 		// this sets all the "enabled" states on all trackers, giving them
 		// all one more chance of being tried
 		void enable_all_trackers();
 
-		void replace_trackers(std::vector<announce_entry> const& urls);
+		void replace_trackers(std::vector<lt::announce_entry> const& urls);
 
 		// returns true if the tracker was added, and false if it was already
 		// in the tracker list (in which case the source was added to the
 		// entry in the list)
-		bool add_tracker(announce_entry const& url);
+		bool add_tracker(lt::announce_entry const& url);
 
 		torrent_handle get_handle();
 
@@ -1774,6 +1776,7 @@ namespace libtorrent {
 		std::shared_ptr<aux::rtc_signaling> m_rtc_signaling;
 #endif
 	};
+}
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED

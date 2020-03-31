@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/piece_block.hpp"
@@ -74,7 +74,7 @@ namespace libtorrent {
 		: handle(h)
 		, m_alloc(alloc)
 	{
-		std::shared_ptr<torrent> t = h.native_handle();
+		auto t = h.native_handle();
 		if (t)
 		{
 			std::string name_str = t->name();

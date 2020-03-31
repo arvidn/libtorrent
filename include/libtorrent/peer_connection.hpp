@@ -83,7 +83,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct torrent;
 	struct torrent_peer;
 	struct disk_interface;
 
@@ -94,6 +93,7 @@ namespace libtorrent {
 namespace aux {
 
 	struct session_interface;
+	struct torrent;
 
 	struct min_value_t {};
 	static const min_value_t min_value{};
@@ -175,7 +175,7 @@ namespace aux {
 		counters* stats_counters;
 		disk_interface* disk_thread;
 		io_context* ios;
-		std::weak_ptr<torrent> tor;
+		std::weak_ptr<aux::torrent> tor;
 		aux::socket_type s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
@@ -186,7 +186,7 @@ namespace aux {
 	{
 		// if tor is set, this is an outgoing connection
 		peer_connection_hot_members(
-			std::weak_ptr<torrent> t
+			std::weak_ptr<aux::torrent> t
 			, aux::session_interface& ses
 			, aux::session_settings const& sett)
 			: m_torrent(std::move(t))
@@ -219,7 +219,7 @@ namespace aux {
 		// the first cache line) and make the constructor
 		// take a raw pointer. torrent objects should always
 		// outlive their peers
-		std::weak_ptr<torrent> m_torrent;
+		std::weak_ptr<aux::torrent> m_torrent;
 
 	public:
 
@@ -287,7 +287,7 @@ namespace aux {
 		, std::enable_shared_from_this<peer_connection>
 	{
 	friend struct invariant_access;
-	friend struct torrent;
+	friend struct aux::torrent;
 	friend struct cork;
 
 		// explicitly disallow assignment, to silence msvc warning
@@ -468,7 +468,7 @@ namespace aux {
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		std::weak_ptr<torrent> associated_torrent() const
+		std::weak_ptr<aux::torrent> associated_torrent() const
 		{ return m_torrent; }
 
 		// get the info hash associated with this peer
@@ -792,7 +792,7 @@ namespace aux {
 		void on_disk_read_complete(disk_buffer_holder buffer
 			, storage_error const& error, peer_request const&, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request const&, std::shared_ptr<torrent>);
+			, peer_request const&, std::shared_ptr<aux::torrent>);
 		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
 			, storage_error const& error);

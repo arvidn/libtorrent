@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct torrent;
+namespace aux { struct torrent; }
 
 TORRENT_VERSION_NAMESPACE_2
 

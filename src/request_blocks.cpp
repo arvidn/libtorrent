@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/request_blocks.hpp"
@@ -60,7 +60,7 @@ namespace libtorrent {
 	// infinite loop, fighting to request the same blocks.
 	// returns false if the function is aborted by an early-exit
 	// condition.
-	bool request_a_block(torrent& t, peer_connection& c)
+	bool request_a_block(aux::torrent& t, peer_connection& c)
 	{
 		if (t.is_seed()) return false;
 		if (c.no_download()) return false;
