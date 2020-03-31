@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/websocket_tracker_connection.hpp" // for parse_websocket_tracker_response
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/socket_io.hpp"
 

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct torrent;
+namespace aux { struct torrent; }
 	struct peer_request;
 
 	class TORRENT_EXTRA_EXPORT http_seed_connection
@@ -58,7 +58,7 @@ namespace libtorrent {
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		http_seed_connection(peer_connection_args& pack
-			, web_seed_t& web);
+			, aux::web_seed_t& web);
 
 		connection_type type() const override
 		{ return connection_type::http_seed; }
@@ -91,7 +91,7 @@ namespace libtorrent {
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;
 
-		web_seed_t* m_web;
+		aux::web_seed_t* m_web;
 
 		// the number of bytes left to receive of the response we're
 		// currently parsing

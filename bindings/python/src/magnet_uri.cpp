@@ -5,7 +5,7 @@
 #include "boost_python.hpp"
 #include "bytes.hpp"
 #include <libtorrent/session.hpp>
-#include <libtorrent/torrent.hpp>
+#include <libtorrent/aux_/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include "gil.hpp"
 #include "bytes.hpp"

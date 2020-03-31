@@ -50,8 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 namespace libtorrent {
-	struct torrent;
 namespace aux {
+
+	struct torrent;
 
 	struct TORRENT_EXTRA_EXPORT announce_infohash
 	{

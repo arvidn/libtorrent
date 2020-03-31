@@ -430,7 +430,6 @@ HEADERS = \
   bitfield.hpp                 \
   bloom_filter.hpp             \
   bt_peer_connection.hpp       \
-  choker.hpp                   \
   client_data.hpp              \
   close_reason.hpp             \
   config.hpp                   \
@@ -537,7 +536,6 @@ HEADERS = \
   string_view.hpp              \
   tailqueue.hpp                \
   time.hpp                     \
-  torrent.hpp                  \
   torrent_flags.hpp            \
   torrent_handle.hpp           \
   torrent_info.hpp             \
@@ -574,6 +572,7 @@ HEADERS = \
   aux_/byteswap.hpp                 \
   aux_/container_wrapper.hpp        \
   aux_/chained_buffer.hpp           \
+  aux_/choker.hpp                   \
   aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
   aux_/deferred_handler.hpp         \
@@ -641,6 +640,7 @@ HEADERS = \
   aux_/throw.hpp                    \
   aux_/time.hpp                     \
   aux_/timestamp_history.hpp        \
+  aux_/torrent.hpp                  \
   aux_/torrent_impl.hpp             \
   aux_/torrent_list.hpp             \
   aux_/unique_ptr.hpp               \

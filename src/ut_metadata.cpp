@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -98,7 +98,7 @@ namespace {
 	struct ut_metadata_plugin final
 		: torrent_plugin
 	{
-		explicit ut_metadata_plugin(torrent& t) : m_torrent(t) {}
+		explicit ut_metadata_plugin(aux::torrent& t) : m_torrent(t) {}
 
 		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
@@ -154,7 +154,7 @@ namespace {
 		ut_metadata_plugin& operator=(ut_metadata_plugin const&) = delete;
 
 	private:
-		torrent& m_torrent;
+		aux::torrent& m_torrent;
 
 		// this buffer is filled with the info-section of
 		// the metadata file while downloading it from
@@ -184,7 +184,7 @@ namespace {
 	{
 		friend struct ut_metadata_plugin;
 
-		ut_metadata_peer_plugin(torrent& t, bt_peer_connection& pc
+		ut_metadata_peer_plugin(aux::torrent& t, bt_peer_connection& pc
 			, ut_metadata_plugin& tp)
 			: m_message_index(0)
 			, m_request_limit(min_time())
@@ -467,7 +467,7 @@ namespace {
 		std::vector<int> m_sent_requests;
 		std::vector<int> m_incoming_requests;
 
-		torrent& m_torrent;
+		aux::torrent& m_torrent;
 		bt_peer_connection& m_pc;
 		ut_metadata_plugin& m_tp;
 	};
@@ -525,7 +525,7 @@ namespace {
 			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
 				, "already have metadata");
 #endif
-			m_torrent.add_redundant_bytes(static_cast<int>(buf.size()), waste_reason::piece_unknown);
+			m_torrent.add_redundant_bytes(static_cast<int>(buf.size()), aux::waste_reason::piece_unknown);
 			return false;
 		}
 
@@ -625,7 +625,7 @@ namespace libtorrent {
 
 	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, client_data_t)
 	{
-		torrent* t = th.native_handle().get();
+		aux::torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
 		if (t->valid_metadata() && t->torrent_file().priv()) return {};
 		return std::make_shared<ut_metadata_plugin>(*t);

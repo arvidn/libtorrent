@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"

@@ -40,10 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace aux {
-	struct session_settings;
-}
 	struct peer_connection;
+
+namespace aux {
+
+	struct session_settings;
 
 	// sorts the vector of peers in-place. When returning, the top unchoke slots
 	// elements are the peers we should unchoke. This is similar to a partial
@@ -55,6 +56,7 @@ namespace aux {
 		, time_duration unchoke_interval
 		, aux::session_settings const& sett);
 
+}
 }
 
 #endif // TORRENT_CHOKER_INCLUDED

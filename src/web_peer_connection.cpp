@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent {
@@ -65,7 +65,7 @@ constexpr int request_size_overhead = 5000;
 std::string escape_file_path(file_storage const& storage, file_index_t index);
 
 web_peer_connection::web_peer_connection(peer_connection_args& pack
-	, web_seed_t& web)
+	, aux::web_seed_t& web)
 	: web_connection_base(pack, web)
 	, m_url(web.url)
 	, m_web(&web)
@@ -79,7 +79,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
-	std::shared_ptr<torrent> tor = pack.tor.lock();
+	auto tor = pack.tor.lock();
 	TORRENT_ASSERT(tor);
 
 	// if the web server is known not to support keep-alive. request 4MiB
@@ -93,7 +93,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 
 	prefer_contiguous_blocks(preferred_size / tor->block_size());
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	bool const single_file_request = t->torrent_file().num_files() == 1;
 
 	if (!single_file_request)
@@ -154,7 +154,7 @@ void web_peer_connection::on_connected()
 	}
 	else
 	{
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 
 		// only advertise pieces that are contained within the files we have as
 		// indicated by m_web->have_files AND padfiles!
@@ -251,7 +251,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		TORRENT_ASSERT(m_web->retry > aux::time_now32());
 	}
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 
 	if (!m_requests.empty() && !m_file_requests.empty()
 		&& !m_piece.empty() && m_web)
@@ -271,7 +271,7 @@ void web_peer_connection::disconnect(error_code const& ec
 			// we're about to replace a different restart piece
 			// buffer. So it was wasted download
 			if (t) t->add_redundant_bytes(int(m_web->restart_piece.size())
-				, waste_reason::piece_closing);
+				, aux::waste_reason::piece_closing);
 		}
 		m_web->restart_piece.swap(m_piece);
 
@@ -286,7 +286,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
 		if (t) post(get_context()
-			, std::bind(&torrent::maybe_connect_web_seeds, t));
+			, std::bind(&aux::torrent::maybe_connect_web_seeds, t));
 	}
 
 	if (error >= failure)
@@ -303,7 +303,7 @@ piece_block_progress web_peer_connection::downloading_piece_progress() const
 {
 	if (m_requests.empty()) return {};
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	piece_block_progress ret;
@@ -332,7 +332,7 @@ void web_peer_connection::write_request(peer_request const& r)
 {
 	INVARIANT_CHECK;
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	TORRENT_ASSERT(t->valid_metadata());
@@ -577,7 +577,7 @@ bool web_peer_connection::received_invalid_data(piece_index_t const index, bool 
 	// 3. if it's a single file torrent, just ban it right away
 	// this handles the case where web seeds may have some files updated but not other
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	file_storage const& fs = t->torrent_file().files();
 
 	// single file torrent
@@ -614,7 +614,7 @@ void web_peer_connection::on_receive_padfile()
 
 void web_peer_connection::handle_error(int const bytes_left)
 {
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	// TODO: 2 just make this peer not have the pieces
@@ -642,7 +642,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	std::string location = m_parser.header("location");
 	received_bytes(0, bytes_left);
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	if (location.empty())
@@ -692,8 +692,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
-		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
-			, m_external_auth, m_extra_headers, torrent::ephemeral);
+		aux::web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
+			, m_external_auth, m_extra_headers, aux::torrent::ephemeral);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -739,7 +739,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
 		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth
-			, m_extra_headers, torrent::ephemeral);
+			, m_extra_headers, aux::torrent::ephemeral);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
@@ -768,7 +768,7 @@ void web_peer_connection::on_receive(error_code const& error
 		return;
 	}
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	// in case the first file on this series of requests is a padfile
@@ -1106,7 +1106,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		TORRENT_ASSERT(front_request.length >= piece_size);
 		if (int(m_piece.size()) == front_request.length)
 		{
-			std::shared_ptr<torrent> t = associated_torrent().lock();
+			auto t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1165,7 +1165,7 @@ void web_peer_connection::maybe_harvest_piece()
 	TORRENT_ASSERT(front_request.length >= int(m_piece.size()));
 	if (int(m_piece.size()) != front_request.length) return;
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1192,7 +1192,7 @@ void web_peer_connection::handle_padfile()
 	if (m_file_requests.empty()) return;
 	if (m_requests.empty()) return;
 
-	std::shared_ptr<torrent> t = associated_torrent().lock();
+	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 	torrent_info const& info = t->torrent_file();
 

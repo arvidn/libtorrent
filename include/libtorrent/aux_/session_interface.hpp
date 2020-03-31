@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct peer_connection;
-	struct torrent;
 	struct peer_class_set;
 	struct peer_class_pool;
 	struct disk_observer;
@@ -75,6 +74,7 @@ namespace aux {
 	struct bandwidth_manager;
 	struct resolver_interface;
 	struct alert_manager;
+	struct torrent;
 }
 
 	// hidden

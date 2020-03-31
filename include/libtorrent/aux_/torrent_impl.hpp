@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // function from more than one translation unit. But it's still internal
 
 namespace libtorrent {
+namespace aux {
 
 	template <typename Fun, typename... Args>
 	void torrent::wrap(Fun f, Args&&... a)
@@ -75,6 +76,6 @@ namespace libtorrent {
 #endif
 
 }
+}
 
 #endif
-

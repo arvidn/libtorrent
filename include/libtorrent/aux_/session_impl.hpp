@@ -113,7 +113,6 @@ TORRENT_VERSION_NAMESPACE_3_END
 	struct upnp;
 	struct natpmp;
 	struct lsd;
-	struct torrent;
 	struct alert;
 	struct torrent_handle;
 
@@ -128,6 +127,7 @@ namespace aux {
 
 	struct session_impl;
 	struct session_settings;
+	struct torrent;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	struct tracker_logger;

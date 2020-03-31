@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
@@ -56,7 +56,7 @@ namespace libtorrent {
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		web_connection_base(peer_connection_args& pack
-			, web_seed_t const& web);
+			, aux::web_seed_t const& web);
 
 		int timeout() const override;
 		void start() override;

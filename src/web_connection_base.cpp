@@ -47,7 +47,7 @@ namespace libtorrent {
 
 	web_connection_base::web_connection_base(
 		peer_connection_args& pack
-		, web_seed_t const& web)
+		, aux::web_seed_t const& web)
 		: peer_connection(pack)
 		, m_first_request(true)
 		, m_ssl(false)
@@ -117,7 +117,7 @@ namespace libtorrent {
 
 	void web_connection_base::on_connected()
 	{
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		// it is always possible to request pieces

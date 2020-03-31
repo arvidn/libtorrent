@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	http_seed_connection::http_seed_connection(peer_connection_args& pack
-		, web_seed_t& web)
+		, aux::web_seed_t& web)
 		: web_connection_base(pack, web)
 		, m_url(web.url)
 		, m_web(&web)
@@ -61,7 +61,7 @@ namespace libtorrent {
 		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
-		std::shared_ptr<torrent> tor = pack.tor.lock();
+		auto tor = pack.tor.lock();
 		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
 
@@ -96,7 +96,7 @@ namespace libtorrent {
 			m_web->endpoints.erase(m_web->endpoints.begin());
 		}
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 		peer_connection::disconnect(ec, op, error);
 		if (t) t->disconnect_web_seed(this);
 	}
@@ -105,7 +105,7 @@ namespace libtorrent {
 	{
 		if (m_requests.empty()) return {};
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		piece_block_progress ret;
@@ -140,7 +140,7 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		TORRENT_ASSERT(t->valid_metadata());
@@ -221,7 +221,7 @@ namespace libtorrent {
 			return;
 		}
 
-		std::shared_ptr<torrent> t = associated_torrent().lock();
+		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		for (;;)
