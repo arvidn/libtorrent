@@ -970,10 +970,8 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	else if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
 	{
 		--num_outstanding_resume_data;
-		torrent_handle h = p->handle;
 		auto const buf = write_resume_data_buf(p->params);
-		torrent_status st = h.status(torrent_handle::query_save_path);
-		save_file(resume_file(st.info_hash), buf);
+		save_file(resume_file(p->params.info_hash), buf);
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
