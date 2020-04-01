@@ -192,17 +192,24 @@ namespace aux {
 			// used instead
 			handshake_client_version,
 
-			// sets the network interface this session will use when it opens
-			// outgoing connections. An empty string binds outgoing connections to
-			// INADDR_ANY and port 0 (i.e. let the OS decide). The parameter must
-			// be a string containing one or more, comma separated, adapter names.
-			// Adapter names on Unix systems are of the form "eth0", "eth1",
-			// "tun0", etc. When specifying multiple interfaces, they will be
-			// assigned in round-robin order. This may be useful for clients that
-			// are multi-homed. Binding an outgoing connection to a local IP does
-			// not necessarily make the connection via the associated NIC/Adapter.
-			// Setting this to an empty string will disable binding of outgoing
-			// connections.
+			// This controls which IP address outgoing TCP connections are bound
+			// to, in addition to controlling whether such connections are also
+			// bound to a specific network interface/adapter (*bind-to-device*).
+			// This string is a comma-separated list of IP addresses and
+			// interface names. An empty string will not bind TCP sockets to a
+			// device, and let the network stack assign the local address. A
+			// list of names will be used to bind outgoing TCP sockets in a
+			// round-robin fashion. An IP address will simply be used to `bind()`
+			// the socket. An interface name will attempt to bind the socket to
+			// that interface. If that fails, or is unsupported, one of the IP
+			// addresses configured for that interface is used to `bind()` the
+			// socket to. If the interface or adapter doesn't exist, the
+			// outgoing connection will failed with an error message suggesting
+			// the device cannot be found. Adapter names on Unix systems are of
+			// the form "eth0", "eth1", "tun0", etc. This may be useful for
+			// clients that are multi-homed. Binding an outgoing connection to a
+			// local IP does not necessarily make the connection via the
+			// associated NIC/Adapter.
 			outgoing_interfaces,
 
 			// a comma-separated list of (IP or device name, port) pairs. These are
