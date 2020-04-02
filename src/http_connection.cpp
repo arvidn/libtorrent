@@ -444,11 +444,51 @@ void http_connection::close(bool force)
 
 	error_code ec;
 	if (force)
+	{
 		m_sock.close(ec);
+		m_timer.cancel(ec);
+	}
 	else
-		async_shutdown(m_sock, shared_from_this());
+	{
+#ifdef TORRENT_USE_OPENSSL
+		auto self = shared_from_this();
+	// for SSL connections, first do an async_shutdown, before closing the socket
+#if defined TORRENT_ASIO_DEBUGGING
+#define MAYBE_ASIO_DEBUGGING add_outstanding_async("on_close_socket");
+#else
+#define MAYBE_ASIO_DEBUGGING
+#endif
 
-	m_timer.cancel(ec);
+		auto handler = [=](error_code const&) {
+			COMPLETE_ASYNC("on_close_socket");
+			error_code e;
+			self->m_timer.cancel(e);
+			self->m_sock.close(e);
+		};
+
+#define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
+	MAYBE_ASIO_DEBUGGING \
+	m_sock.get<ssl_stream<t>>()->async_shutdown(std::move(handler)); \
+	break;
+
+		switch (m_sock.type())
+		{
+			CASE(tcp::socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+			default:
+				m_sock.close(ec);
+				m_timer.cancel(ec);
+				break;
+		}
+#undef CASE
+#else
+		m_sock.close(ec);
+		m_timer.cancel(ec);
+#endif // TORRENT_USE_OPENSSL
+	}
+
 	m_limiter_timer.cancel(ec);
 
 	m_hostname.clear();
