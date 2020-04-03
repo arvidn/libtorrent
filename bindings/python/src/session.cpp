@@ -152,19 +152,23 @@ namespace
 		for (int i = settings_pack::string_type_base;
 			i < settings_pack::max_string_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_str(i);
+			// deprecated settings are still here, they just have empty names
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_str(i);
 		}
 
 		for (int i = settings_pack::int_type_base;
 			i < settings_pack::max_int_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_int(i);
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_int(i);
 		}
 
 		for (int i = settings_pack::bool_type_base;
 			i < settings_pack::max_bool_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_bool(i);
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_bool(i);
 		}
 		return ret;
 	}

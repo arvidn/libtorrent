@@ -705,6 +705,7 @@ class test_example_client(unittest.TestCase):
     def test_default_settings(self):
 
         default = lt.default_settings()
+        self.assertNotIn('', default)
         print(default)
 
 
