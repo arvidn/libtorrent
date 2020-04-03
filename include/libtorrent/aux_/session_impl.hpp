@@ -151,6 +151,10 @@ namespace aux {
 		// listen on an unspecified address (either IPv4 or IPv6)
 		static constexpr listen_socket_flags_t was_expanded = 2_bit;
 
+		// there's a proxy configured, and this is the only one interface
+		// representing that one proxy
+		static constexpr listen_socket_flags_t proxy = 3_bit;
+
 		listen_socket_t() = default;
 
 		// listen_socket_t should not be copied or moved because
