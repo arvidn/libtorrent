@@ -201,6 +201,7 @@ namespace aux {
 	constexpr listen_socket_flags_t listen_socket_t::accept_incoming;
 	constexpr listen_socket_flags_t listen_socket_t::local_network;
 	constexpr listen_socket_flags_t listen_socket_t::was_expanded;
+	constexpr listen_socket_flags_t listen_socket_t::proxy;
 
 	constexpr ip_source_t session_interface::source_dht;
 	constexpr ip_source_t session_interface::source_peer;
@@ -321,6 +322,9 @@ namespace aux {
 
 	bool listen_socket_t::can_route(address const& addr) const
 	{
+		// if this is a proxy, we assume it can reach everything
+		if (flags & proxy) return true;
+
 		if (is_v4(local_endpoint) != addr.is_v4()) return false;
 
 		if (local_endpoint.address().is_v6()
@@ -1348,7 +1352,11 @@ namespace {
 #endif
 			(pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
-					!= m_settings.get_str(settings_pack::listen_interfaces));
+					!= m_settings.get_str(settings_pack::listen_interfaces))
+			|| (pack.has_val(settings_pack::proxy_type)
+				&& pack.get_int(settings_pack::proxy_type)
+					!= m_settings.get_int(settings_pack::proxy_type))
+			;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("applying settings pack, reopen_listen_port=%s"
@@ -1380,12 +1388,13 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log("attempting to open listen socket to: %s on device: %s %s%s%s%s"
+			session_log("attempting to open listen socket to: %s on device: %s %s%s%s%s%s"
 				, print_endpoint(bind_ep).c_str(), lep.device.c_str()
 				, (lep.ssl == transport::ssl) ? "ssl " : ""
 				, (lep.flags & listen_socket_t::local_network) ? "local-network " : ""
 				, (lep.flags & listen_socket_t::accept_incoming) ? "accept-incoming " : "no-incoming "
-				, (lep.flags & listen_socket_t::was_expanded) ? "expanded-ip " : "");
+				, (lep.flags & listen_socket_t::was_expanded) ? "expanded-ip " : ""
+				, (lep.flags & listen_socket_t::proxy) ? "proxy " : "");
 		}
 #endif
 
@@ -1825,61 +1834,78 @@ namespace {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
-		listen_socket_flags_t const flags
-			= (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-			? listen_socket_flags_t{}
-			: listen_socket_t::accept_incoming;
-
-		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
-		if (ec && m_alerts.should_post<listen_failed_alert>())
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
 		{
-			m_alerts.emplace_alert<listen_failed_alert>(""
-				, operation_t::enum_if, ec, socket_type_t::tcp);
+			// we will be able to accept incoming connections over UDP. so use
+			// one of the ports the user specified to use a constistent port
+			// across sessions. If the user did not specify any ports, pick one
+			// at random
+			int const port = m_listen_interfaces.empty()
+				? int(random(63000) + 2000)
+				: m_listen_interfaces.front().port;
+			listen_endpoint_t ep(address_v4::any(), port, {}
+				, transport::plaintext, listen_socket_t::proxy);
+			eps.emplace_back(ep);
 		}
-		auto const routes = enum_routes(m_io_service, ec);
-		if (ec && m_alerts.should_post<listen_failed_alert>())
+		else
 		{
-			m_alerts.emplace_alert<listen_failed_alert>(""
-				, operation_t::enum_route, ec, socket_type_t::tcp);
-		}
 
-		// expand device names and populate eps
-		for (auto const& iface : m_listen_interfaces)
-		{
+			listen_socket_flags_t const flags
+				= (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+				? listen_socket_flags_t{}
+				: listen_socket_t::accept_incoming;
+
+			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
+			if (ec && m_alerts.should_post<listen_failed_alert>())
+			{
+				m_alerts.emplace_alert<listen_failed_alert>(""
+					, operation_t::enum_if, ec, socket_type_t::tcp);
+			}
+			auto const routes = enum_routes(m_io_service, ec);
+			if (ec && m_alerts.should_post<listen_failed_alert>())
+			{
+				m_alerts.emplace_alert<listen_failed_alert>(""
+					, operation_t::enum_route, ec, socket_type_t::tcp);
+			}
+
+			// expand device names and populate eps
+			for (auto const& iface : m_listen_interfaces)
+			{
 #ifndef TORRENT_USE_OPENSSL
-			if (iface.ssl)
+				if (iface.ssl)
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					session_log("attempted to listen ssl with no library support on device: \"%s\""
+						, iface.device.c_str());
+#endif
+					if (m_alerts.should_post<listen_failed_alert>())
+					{
+						m_alerts.emplace_alert<listen_failed_alert>(iface.device
+							, operation_t::sock_open
+							, boost::asio::error::operation_not_supported
+							, socket_type_t::tcp_ssl);
+					}
+					continue;
+				}
+#endif
+
+				// now we have a device to bind to. This device may actually just be an
+				// IP address or a device name. In case it's a device name, we want to
+				// (potentially) end up binding a socket for each IP address associated
+				// with that device.
+				interface_to_endpoints(iface, flags, ifs, eps);
+			}
+
+			if (eps.empty())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("attempted to listen ssl with no library support on device: \"%s\""
-					, iface.device.c_str());
+				session_log("no listen sockets");
 #endif
-				if (m_alerts.should_post<listen_failed_alert>())
-				{
-					m_alerts.emplace_alert<listen_failed_alert>(iface.device
-						, operation_t::sock_open
-						, boost::asio::error::operation_not_supported
-						, socket_type_t::tcp_ssl);
-				}
-				continue;
 			}
-#endif
 
-			// now we have a device to bind to. This device may actually just be an
-			// IP address or a device name. In case it's a device name, we want to
-			// (potentially) end up binding a socket for each IP address associated
-			// with that device.
-			interface_to_endpoints(iface, flags, ifs, eps);
+			expand_unspecified_address(ifs, routes, eps);
+			expand_devices(ifs, eps);
 		}
-
-		if (eps.empty())
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("no listen sockets");
-#endif
-		}
-
-		expand_unspecified_address(ifs, routes, eps);
-		expand_devices(ifs, eps);
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
@@ -5391,14 +5417,16 @@ namespace {
 		if (m_listen_sockets.empty()) return 0;
 		if (sock)
 		{
-			if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
 			// if we're using a proxy, we won't be able to accept any TCP
 			// connections. We may be able to accept uTP connections though, so
 			// announce the UDP port instead
-			if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+			if (sock->flags & listen_socket_t::proxy)
 				return std::uint16_t(sock->udp_external_port());
-			else
-				return std::uint16_t(sock->tcp_external_port());
+
+			if (!(sock->flags & listen_socket_t::accept_incoming))
+				return 0;
+
+			return std::uint16_t(sock->tcp_external_port());
 		}
 
 #ifdef TORRENT_USE_OPENSSL
@@ -5406,12 +5434,7 @@ namespace {
 		{
 			if (!(s->flags & listen_socket_t::accept_incoming)) continue;
 			if (s->ssl == transport::plaintext)
-			{
-				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-					return std::uint16_t(s->udp_external_port());
-				else
-					return std::uint16_t(s->tcp_external_port());
-			}
+				return std::uint16_t(s->tcp_external_port());
 		}
 		return 0;
 #else
@@ -5434,14 +5457,7 @@ namespace {
 		if (sock)
 		{
 			if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
-
-			// if we're using a proxy, we won't be able to accept any TCP
-			// connections. We may be able to accept uTP connections though, so
-			// announce the UDP port instead
-			if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-				return std::uint16_t(sock->udp_external_port());
-			else
-				return std::uint16_t(sock->tcp_external_port());
+			return std::uint16_t(sock->tcp_external_port());
 		}
 
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
@@ -5451,12 +5467,7 @@ namespace {
 		{
 			if (!(s->flags & listen_socket_t::accept_incoming)) continue;
 			if (s->ssl == transport::ssl)
-			{
-				if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-					return std::uint16_t(s->udp_external_port());
-				else
-					return std::uint16_t(s->tcp_external_port());
-			}
+				return std::uint16_t(s->tcp_external_port());
 		}
 #else
 		TORRENT_UNUSED(sock);
@@ -5543,7 +5554,9 @@ namespace {
 		if (is_v6(s.local_endpoint) && is_local(s.local_endpoint.address()))
 			return;
 
-		if (!s.natpmp_mapper && !(s.flags & listen_socket_t::local_network))
+		if (!s.natpmp_mapper
+			&& !(s.flags & listen_socket_t::local_network)
+			&& !(s.flags & listen_socket_t::proxy))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -6730,6 +6743,9 @@ namespace {
 
 		for (auto& s : m_listen_sockets)
 		{
+			// we're not looking for local peers when we're using a proxy. We
+			// want all traffic to go through the proxy
+			if (s->flags & listen_socket_t::proxy) continue;
 			if (s->lsd) continue;
 			s->lsd = std::make_shared<lsd>(m_io_service, *this, s->local_endpoint.address()
 				, s->netmask);
@@ -6775,7 +6791,8 @@ namespace {
 		// there's no point in starting the UPnP mapper for a network that isn't
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
-		if (s.flags & listen_socket_t::local_network)
+		if ((s.flags & listen_socket_t::local_network)
+			|| (s.flags & listen_socket_t::proxy))
 			return;
 
 		if (!s.upnp_mapper)
