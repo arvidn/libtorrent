@@ -215,7 +215,10 @@ namespace aux {
 
 			// a comma-separated list of (IP or device name, port) pairs. These are
 			// the listen ports that will be opened for accepting incoming uTP and
-			// TCP connections. It is possible to listen on multiple interfaces and
+			// TCP connections. These are also used for *outgoing* uTP and UDP
+			// tracker connections and DHT nodes.
+			//
+			// It is possible to listen on multiple interfaces and
 			// multiple ports. Binding to port 0 will make the operating system
 			// pick the port.
 			//
@@ -227,17 +230,29 @@ namespace aux {
 			//    you use and hand that port out to other peers trying to connect
 			//    to you, as well as trying to connect to you themselves.
 			//
-			// a port that has an "s" suffix will accept SSL connections. (note
+			// A port that has an "s" suffix will accept SSL connections. (note
 			// that SSL sockets are not enabled by default).
 			//
-			// a port that has an "l" suffix will be considered a local network.
+			// A port that has an "l" suffix will be considered a local network.
 			// i.e. it's assumed to only be able to reach hosts in the same local
 			// network as the IP address (based on the netmask associated with the
 			// IP, queried from the operating system).
 			//
-			// if binding fails, the listen_failed_alert is posted. If or once a
-			// socket binding succeeds, the listen_succeeded_alert is posted. There
-			// may be multiple failures before a success.
+			// if binding fails, the listen_failed_alert is posted. Once a
+			// socket binding succeeds (if it does), the listen_succeeded_alert
+			// is posted. There may be multiple failures before a success.
+			//
+			// If a device name that does not exist is configured, no listen
+			// socket will be opened for that interface. If this is the only
+			// interface configured, it will be as if no listen ports are
+			// configured.
+			//
+			// If no listen ports are configured (e.g. listen_interfaces is an
+			// empty string), networking will be disabled. No DHT will start, no
+			// outgoing uTP or tracker connections will be made. No incoming TCP
+			// or uTP connections will be accepted. (outgoing TCP connections
+			// will still be possible, depending on
+			// settings_pack::outgoing_interfaces).
 			//
 			// For example:
 			// ``[::1]:8888`` - will only accept connections on the IPv6 loopback
@@ -257,7 +272,7 @@ namespace aux {
 			// not announced to trackers, unless the tracker is also on the same
 			// local network.
 			//
-			// Windows OS network adapter device name can be specified with GUID.
+			// Windows OS network adapter device name must be specified with GUID.
 			// It can be obtained from "netsh lan show interfaces" command output.
 			// GUID must be uppercased string embraced in curly brackets.
 			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}::7777`` - will accept
