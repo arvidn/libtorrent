@@ -132,6 +132,8 @@ namespace libtorrent {
 			m_socket.get_option(opt, ec);
 		}
 
+		bool active_socks5() const;
+
 	private:
 
 		// non-copyable
