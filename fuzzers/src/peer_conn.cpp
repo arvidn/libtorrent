@@ -66,10 +66,10 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 #ifdef DEBUG_LOGGING
 	pack.set_int(settings_pack::alert_mask, 0xffffff);
 #else
-	pack.set_int(settings_pack::alert_mask, alert::connect_notification
-		| alert::error_notification
-		| alert::status_notification
-		| alert::peer_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::connect
+		| alert_category::error
+		| alert_category::status
+		| alert_category::peer);
 #endif
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);

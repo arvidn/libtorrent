@@ -591,7 +591,7 @@ TORRENT_TEST(torrent_completed_alert)
 		// add session
 		, [](lt::settings_pack& pack)
 		{
-			pack.set_int(lt::settings_pack::alert_mask, alert::file_progress_notification);
+			pack.set_int(lt::settings_pack::alert_mask, alert_category::file_progress);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -629,7 +629,7 @@ TORRENT_TEST(block_uploaded_alert)
 		, [](lt::settings_pack& pack)
 		{
 			pack.set_int(lt::settings_pack::alert_mask,
-				alert::upload_notification | alert::status_notification);
+				alert_category::upload | alert_category::status);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}

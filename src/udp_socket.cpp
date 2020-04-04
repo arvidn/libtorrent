@@ -218,7 +218,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 			p.data = {m_buf->data(), len};
 
 			// support packets coming from the SOCKS5 proxy
-			if (m_socks5_connection && m_socks5_connection->active())
+			if (active_socks5())
 			{
 				// if the source IP doesn't match the proxy's, ignore the packet
 				if (p.from != m_socks5_connection->target()) continue;
@@ -252,6 +252,11 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 	return ret;
 }
 
+bool udp_socket::active_socks5() const
+{
+	return (m_socks5_connection && m_socks5_connection->active());
+}
+
 void udp_socket::send_hostname(char const* hostname, int const port
 	, span<char const> p, error_code& ec, udp_send_flags_t const flags)
 {
@@ -272,7 +277,7 @@ void udp_socket::send_hostname(char const* hostname, int const port
 
 	if (use_proxy && m_proxy_settings.type != settings_pack::none)
 	{
-		if (m_socks5_connection && m_socks5_connection->active())
+		if (active_socks5())
 		{
 			// send udp packets through SOCKS5 server
 			wrap(hostname, port, p, ec, flags);
@@ -310,7 +315,7 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 
 	if (use_proxy && m_proxy_settings.type != settings_pack::none)
 	{
-		if (m_socks5_connection && m_socks5_connection->active())
+		if (active_socks5())
 		{
 			// send udp packets through SOCKS5 server
 			wrap(ep, p, ec, flags);

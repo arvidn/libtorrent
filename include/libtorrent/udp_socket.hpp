@@ -138,6 +138,8 @@ namespace aux { struct alert_manager; }
 			m_socket.get_option(opt, ec);
 		}
 
+		bool active_socks5() const;
+
 	private:
 
 		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, udp_send_flags_t flags);

@@ -84,7 +84,7 @@ bool prioritize_files(torrent_handle const& h, aux::vector<download_priority_t, 
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::piece_progress_notification | alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::piece_progress | alert_category::storage);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -236,7 +236,7 @@ TORRENT_TEST(total_wanted)
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::storage);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -739,7 +739,7 @@ TORRENT_TEST(symlinks_restore)
 	p.flags &= ~lt::torrent_flags::paused;
 	p.save_path = work_dir;
 	settings_pack pack = settings();
-	pack.set_int(libtorrent::settings_pack::alert_mask, libtorrent::alert::status_notification | libtorrent::alert::error_notification);
+	pack.set_int(libtorrent::settings_pack::alert_mask, libtorrent::alert_category::status | libtorrent::alert_category::error);
 	lt::session ses(std::move(pack));
 	ses.add_torrent(p);
 

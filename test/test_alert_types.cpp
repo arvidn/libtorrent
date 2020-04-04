@@ -52,7 +52,7 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(torrent_alert::alert_type, 0);
 	TEST_EQUAL(peer_alert::alert_type, 1);
 	TEST_EQUAL(tracker_alert::alert_type, 2);
-	TEST_EQUAL(alert::debug_notification, alert::connect_notification);
+	TEST_EQUAL(alert::debug_notification, alert_category::connect);
 #endif
 
 #define TEST_ALERT_TYPE(name, seq, prio, cat) \
@@ -64,7 +64,7 @@ TORRENT_TEST(alerts_types)
 	count_alert_types++
 
 #if TORRENT_ABI_VERSION == 1
-	TEST_ALERT_TYPE(torrent_added_alert, 3, alert_priority::normal, alert::status_notification);
+	TEST_ALERT_TYPE(torrent_added_alert, 3, alert_priority::normal, alert_category::status);
 #else
 	++count_alert_types;
 #endif
@@ -75,111 +75,111 @@ TORRENT_TEST(alerts_types)
 #define PROGRESS_NOTIFICATION
 #endif
 
-	TEST_ALERT_TYPE(torrent_removed_alert, 4, alert_priority::critical, alert::status_notification);
-	TEST_ALERT_TYPE(read_piece_alert, 5, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(file_completed_alert, 6, alert_priority::normal, PROGRESS_NOTIFICATION alert::file_progress_notification);
-	TEST_ALERT_TYPE(file_renamed_alert, 7, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(file_rename_failed_alert, 8, alert_priority::critical, alert::storage_notification);
+	TEST_ALERT_TYPE(torrent_removed_alert, 4, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(read_piece_alert, 5, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(file_completed_alert, 6, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::file_progress);
+	TEST_ALERT_TYPE(file_renamed_alert, 7, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(file_rename_failed_alert, 8, alert_priority::critical, alert_category::storage);
 	TEST_ALERT_TYPE(performance_alert, 9, alert_priority::normal, alert::performance_warning);
-	TEST_ALERT_TYPE(state_changed_alert, 10, alert_priority::high, alert::status_notification);
-	TEST_ALERT_TYPE(tracker_error_alert, 11, alert_priority::high, alert::tracker_notification | alert::error_notification);
-	TEST_ALERT_TYPE(tracker_warning_alert, 12, alert_priority::normal, alert::tracker_notification | alert::error_notification);
-	TEST_ALERT_TYPE(scrape_reply_alert, 13, alert_priority::critical, alert::tracker_notification);
-	TEST_ALERT_TYPE(scrape_failed_alert, 14, alert_priority::critical, alert::tracker_notification | alert::error_notification);
-	TEST_ALERT_TYPE(tracker_reply_alert, 15, alert_priority::normal, alert::tracker_notification);
-	TEST_ALERT_TYPE(dht_reply_alert, 16, alert_priority::normal, alert::dht_notification | alert::tracker_notification);
-	TEST_ALERT_TYPE(tracker_announce_alert, 17, alert_priority::normal, alert::tracker_notification);
-	TEST_ALERT_TYPE(hash_failed_alert, 18, alert_priority::normal, alert::status_notification);
-	TEST_ALERT_TYPE(peer_ban_alert, 19, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(peer_unsnubbed_alert, 20, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(peer_snubbed_alert, 21, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(peer_error_alert, 22, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(peer_connect_alert, 23, alert_priority::normal, alert::connect_notification);
-	TEST_ALERT_TYPE(peer_disconnected_alert, 24, alert_priority::normal, alert::connect_notification);
-	TEST_ALERT_TYPE(invalid_request_alert, 25, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(torrent_finished_alert, 26, alert_priority::high, alert::status_notification);
-	TEST_ALERT_TYPE(piece_finished_alert, 27, alert_priority::normal, PROGRESS_NOTIFICATION alert::piece_progress_notification);
-	TEST_ALERT_TYPE(request_dropped_alert, 28, alert_priority::normal, PROGRESS_NOTIFICATION alert::block_progress_notification | alert::peer_notification);
-	TEST_ALERT_TYPE(block_timeout_alert, 29, alert_priority::normal, PROGRESS_NOTIFICATION alert::block_progress_notification | alert::peer_notification);
-	TEST_ALERT_TYPE(block_finished_alert, 30, alert_priority::normal, PROGRESS_NOTIFICATION alert::block_progress_notification);
-	TEST_ALERT_TYPE(block_downloading_alert, 31, alert_priority::normal, PROGRESS_NOTIFICATION alert::block_progress_notification);
-	TEST_ALERT_TYPE(unwanted_block_alert, 32, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(storage_moved_alert, 33, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(storage_moved_failed_alert, 34, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(torrent_deleted_alert, 35, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(torrent_delete_failed_alert, 36, alert_priority::critical, alert::storage_notification | alert::error_notification);
-	TEST_ALERT_TYPE(save_resume_data_alert, 37, alert_priority::critical, alert::storage_notification);
-	TEST_ALERT_TYPE(save_resume_data_failed_alert, 38, alert_priority::critical, alert::storage_notification | alert::error_notification);
-	TEST_ALERT_TYPE(torrent_paused_alert, 39, alert_priority::high, alert::status_notification);
-	TEST_ALERT_TYPE(torrent_resumed_alert, 40, alert_priority::high, alert::status_notification);
-	TEST_ALERT_TYPE(torrent_checked_alert, 41, alert_priority::high, alert::status_notification);
-	TEST_ALERT_TYPE(url_seed_alert, 42, alert_priority::normal, alert::peer_notification | alert::error_notification);
-	TEST_ALERT_TYPE(file_error_alert, 43, alert_priority::high, alert::status_notification | alert::error_notification | alert::storage_notification);
-	TEST_ALERT_TYPE(metadata_failed_alert, 44, alert_priority::normal, alert::error_notification);
-	TEST_ALERT_TYPE(metadata_received_alert, 45, alert_priority::normal, alert::status_notification);
-	TEST_ALERT_TYPE(udp_error_alert, 46, alert_priority::normal, alert::error_notification);
-	TEST_ALERT_TYPE(external_ip_alert, 47, alert_priority::normal, alert::status_notification);
-	TEST_ALERT_TYPE(listen_failed_alert, 48, alert_priority::critical, alert::status_notification | alert::error_notification);
-	TEST_ALERT_TYPE(listen_succeeded_alert, 49, alert_priority::critical, alert::status_notification);
-	TEST_ALERT_TYPE(portmap_error_alert, 50, alert_priority::normal, alert::port_mapping_notification | alert::error_notification);
-	TEST_ALERT_TYPE(portmap_alert, 51, alert_priority::normal, alert::port_mapping_notification);
-	TEST_ALERT_TYPE(portmap_log_alert, 52, alert_priority::normal, alert::port_mapping_log_notification);
-	TEST_ALERT_TYPE(fastresume_rejected_alert, 53, alert_priority::critical, alert::status_notification | alert::error_notification);
-	TEST_ALERT_TYPE(peer_blocked_alert, 54, alert_priority::normal, alert::ip_block_notification);
-	TEST_ALERT_TYPE(dht_announce_alert, 55, alert_priority::normal, alert::dht_notification);
-	TEST_ALERT_TYPE(dht_get_peers_alert, 56, alert_priority::normal, alert::dht_notification);
+	TEST_ALERT_TYPE(state_changed_alert, 10, alert_priority::high, alert_category::status);
+	TEST_ALERT_TYPE(tracker_error_alert, 11, alert_priority::high, alert_category::tracker | alert_category::error);
+	TEST_ALERT_TYPE(tracker_warning_alert, 12, alert_priority::normal, alert_category::tracker | alert_category::error);
+	TEST_ALERT_TYPE(scrape_reply_alert, 13, alert_priority::critical, alert_category::tracker);
+	TEST_ALERT_TYPE(scrape_failed_alert, 14, alert_priority::critical, alert_category::tracker | alert_category::error);
+	TEST_ALERT_TYPE(tracker_reply_alert, 15, alert_priority::normal, alert_category::tracker);
+	TEST_ALERT_TYPE(dht_reply_alert, 16, alert_priority::normal, alert_category::dht | alert_category::tracker);
+	TEST_ALERT_TYPE(tracker_announce_alert, 17, alert_priority::normal, alert_category::tracker);
+	TEST_ALERT_TYPE(hash_failed_alert, 18, alert_priority::normal, alert_category::status);
+	TEST_ALERT_TYPE(peer_ban_alert, 19, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(peer_unsnubbed_alert, 20, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(peer_snubbed_alert, 21, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(peer_error_alert, 22, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(peer_connect_alert, 23, alert_priority::normal, alert_category::connect);
+	TEST_ALERT_TYPE(peer_disconnected_alert, 24, alert_priority::normal, alert_category::connect);
+	TEST_ALERT_TYPE(invalid_request_alert, 25, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(torrent_finished_alert, 26, alert_priority::high, alert_category::status);
+	TEST_ALERT_TYPE(piece_finished_alert, 27, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::piece_progress);
+	TEST_ALERT_TYPE(request_dropped_alert, 28, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::block_progress | alert_category::peer);
+	TEST_ALERT_TYPE(block_timeout_alert, 29, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::block_progress | alert_category::peer);
+	TEST_ALERT_TYPE(block_finished_alert, 30, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::block_progress);
+	TEST_ALERT_TYPE(block_downloading_alert, 31, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::block_progress);
+	TEST_ALERT_TYPE(unwanted_block_alert, 32, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(storage_moved_alert, 33, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(storage_moved_failed_alert, 34, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(torrent_deleted_alert, 35, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(torrent_delete_failed_alert, 36, alert_priority::critical, alert_category::storage | alert_category::error);
+	TEST_ALERT_TYPE(save_resume_data_alert, 37, alert_priority::critical, alert_category::storage);
+	TEST_ALERT_TYPE(save_resume_data_failed_alert, 38, alert_priority::critical, alert_category::storage | alert_category::error);
+	TEST_ALERT_TYPE(torrent_paused_alert, 39, alert_priority::high, alert_category::status);
+	TEST_ALERT_TYPE(torrent_resumed_alert, 40, alert_priority::high, alert_category::status);
+	TEST_ALERT_TYPE(torrent_checked_alert, 41, alert_priority::high, alert_category::status);
+	TEST_ALERT_TYPE(url_seed_alert, 42, alert_priority::normal, alert_category::peer | alert_category::error);
+	TEST_ALERT_TYPE(file_error_alert, 43, alert_priority::high, alert_category::status | alert_category::error | alert_category::storage);
+	TEST_ALERT_TYPE(metadata_failed_alert, 44, alert_priority::normal, alert_category::error);
+	TEST_ALERT_TYPE(metadata_received_alert, 45, alert_priority::normal, alert_category::status);
+	TEST_ALERT_TYPE(udp_error_alert, 46, alert_priority::normal, alert_category::error);
+	TEST_ALERT_TYPE(external_ip_alert, 47, alert_priority::normal, alert_category::status);
+	TEST_ALERT_TYPE(listen_failed_alert, 48, alert_priority::critical, alert_category::status | alert_category::error);
+	TEST_ALERT_TYPE(listen_succeeded_alert, 49, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(portmap_error_alert, 50, alert_priority::normal, alert_category::port_mapping | alert_category::error);
+	TEST_ALERT_TYPE(portmap_alert, 51, alert_priority::normal, alert_category::port_mapping);
+	TEST_ALERT_TYPE(portmap_log_alert, 52, alert_priority::normal, alert_category::port_mapping_log);
+	TEST_ALERT_TYPE(fastresume_rejected_alert, 53, alert_priority::critical, alert_category::status | alert_category::error);
+	TEST_ALERT_TYPE(peer_blocked_alert, 54, alert_priority::normal, alert_category::ip_block);
+	TEST_ALERT_TYPE(dht_announce_alert, 55, alert_priority::normal, alert_category::dht);
+	TEST_ALERT_TYPE(dht_get_peers_alert, 56, alert_priority::normal, alert_category::dht);
 #if TORRENT_ABI_VERSION <= 2
-	TEST_ALERT_TYPE(stats_alert, 57, alert_priority::normal, alert::stats_notification);
+	TEST_ALERT_TYPE(stats_alert, 57, alert_priority::normal, alert_category::stats);
 #else
 	count_alert_types++;
 #endif
-	TEST_ALERT_TYPE(cache_flushed_alert, 58, alert_priority::high, alert::storage_notification);
+	TEST_ALERT_TYPE(cache_flushed_alert, 58, alert_priority::high, alert_category::storage);
 #if TORRENT_ABI_VERSION == 1
-	TEST_ALERT_TYPE(anonymous_mode_alert, 59, alert_priority::normal, alert::error_notification);
+	TEST_ALERT_TYPE(anonymous_mode_alert, 59, alert_priority::normal, alert_category::error);
 #else
 	count_alert_types++;
 #endif
-	TEST_ALERT_TYPE(lsd_peer_alert, 60, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(trackerid_alert, 61, alert_priority::normal, alert::status_notification);
-	TEST_ALERT_TYPE(dht_bootstrap_alert, 62, alert_priority::normal, alert::dht_notification);
+	TEST_ALERT_TYPE(lsd_peer_alert, 60, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(trackerid_alert, 61, alert_priority::normal, alert_category::status);
+	TEST_ALERT_TYPE(dht_bootstrap_alert, 62, alert_priority::normal, alert_category::dht);
 	count_alert_types++; // 63 is gone
-	TEST_ALERT_TYPE(torrent_error_alert, 64, alert_priority::high, alert::error_notification | alert::status_notification);
-	TEST_ALERT_TYPE(torrent_need_cert_alert, 65, alert_priority::critical, alert::status_notification);
-	TEST_ALERT_TYPE(incoming_connection_alert, 66, alert_priority::normal, alert::peer_notification);
-	TEST_ALERT_TYPE(add_torrent_alert, 67, alert_priority::critical, alert::status_notification);
-	TEST_ALERT_TYPE(state_update_alert, 68, alert_priority::high, alert::status_notification);
+	TEST_ALERT_TYPE(torrent_error_alert, 64, alert_priority::high, alert_category::error | alert_category::status);
+	TEST_ALERT_TYPE(torrent_need_cert_alert, 65, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(incoming_connection_alert, 66, alert_priority::normal, alert_category::peer);
+	TEST_ALERT_TYPE(add_torrent_alert, 67, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(state_update_alert, 68, alert_priority::high, alert_category::status);
 #if TORRENT_ABI_VERSION == 1
-	TEST_ALERT_TYPE(mmap_cache_alert, 69, alert_priority::normal, alert::error_notification);
+	TEST_ALERT_TYPE(mmap_cache_alert, 69, alert_priority::normal, alert_category::error);
 #else
 	count_alert_types++;
 #endif
 	TEST_ALERT_TYPE(session_stats_alert, 70, alert_priority::critical, alert_category_t{});
 	count_alert_types++;
 	count_alert_types++; // 72 is gone
-	TEST_ALERT_TYPE(dht_error_alert, 73, alert_priority::normal, alert::error_notification | alert::dht_notification);
-	TEST_ALERT_TYPE(dht_immutable_item_alert, 74, alert_priority::critical, alert::dht_notification);
-	TEST_ALERT_TYPE(dht_mutable_item_alert, 75, alert_priority::critical, alert::dht_notification);
-	TEST_ALERT_TYPE(dht_put_alert, 76, alert_priority::normal, alert::dht_notification);
-	TEST_ALERT_TYPE(i2p_alert, 77, alert_priority::normal, alert::error_notification);
-	TEST_ALERT_TYPE(dht_outgoing_get_peers_alert, 78, alert_priority::normal, alert::dht_notification);
-	TEST_ALERT_TYPE(log_alert, 79, alert_priority::normal, alert::session_log_notification);
-	TEST_ALERT_TYPE(torrent_log_alert, 80, alert_priority::normal, alert::torrent_log_notification);
-	TEST_ALERT_TYPE(peer_log_alert, 81, alert_priority::normal, alert::peer_log_notification);
-	TEST_ALERT_TYPE(lsd_error_alert, 82, alert_priority::normal, alert::error_notification);
+	TEST_ALERT_TYPE(dht_error_alert, 73, alert_priority::normal, alert_category::error | alert_category::dht);
+	TEST_ALERT_TYPE(dht_immutable_item_alert, 74, alert_priority::critical, alert_category::dht);
+	TEST_ALERT_TYPE(dht_mutable_item_alert, 75, alert_priority::critical, alert_category::dht);
+	TEST_ALERT_TYPE(dht_put_alert, 76, alert_priority::normal, alert_category::dht);
+	TEST_ALERT_TYPE(i2p_alert, 77, alert_priority::normal, alert_category::error);
+	TEST_ALERT_TYPE(dht_outgoing_get_peers_alert, 78, alert_priority::normal, alert_category::dht);
+	TEST_ALERT_TYPE(log_alert, 79, alert_priority::normal, alert_category::session_log);
+	TEST_ALERT_TYPE(torrent_log_alert, 80, alert_priority::normal, alert_category::torrent_log);
+	TEST_ALERT_TYPE(peer_log_alert, 81, alert_priority::normal, alert_category::peer_log);
+	TEST_ALERT_TYPE(lsd_error_alert, 82, alert_priority::normal, alert_category::error);
 	TEST_ALERT_TYPE(dht_stats_alert, 83, alert_priority::normal, alert_category_t{});
-	TEST_ALERT_TYPE(incoming_request_alert, 84, alert_priority::normal, alert::incoming_request_notification);
-	TEST_ALERT_TYPE(dht_log_alert, 85, alert_priority::normal, alert::dht_log_notification);
-	TEST_ALERT_TYPE(dht_pkt_alert, 86, alert_priority::normal, alert::dht_log_notification);
-	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, alert_priority::normal, alert::dht_operation_notification);
-	TEST_ALERT_TYPE(dht_direct_response_alert, 88, alert_priority::critical, alert::dht_notification);
-	TEST_ALERT_TYPE(picker_log_alert, 89, alert_priority::normal, alert::picker_log_notification);
-	TEST_ALERT_TYPE(session_error_alert, 90, alert_priority::normal, alert::error_notification);
-	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, alert_priority::normal, alert::dht_notification);
+	TEST_ALERT_TYPE(incoming_request_alert, 84, alert_priority::normal, alert_category::incoming_request);
+	TEST_ALERT_TYPE(dht_log_alert, 85, alert_priority::normal, alert_category::dht_log);
+	TEST_ALERT_TYPE(dht_pkt_alert, 86, alert_priority::normal, alert_category::dht_log);
+	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, alert_priority::normal, alert_category::dht_operation);
+	TEST_ALERT_TYPE(dht_direct_response_alert, 88, alert_priority::critical, alert_category::dht);
+	TEST_ALERT_TYPE(picker_log_alert, 89, alert_priority::normal, alert_category::picker_log);
+	TEST_ALERT_TYPE(session_error_alert, 90, alert_priority::normal, alert_category::error);
+	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, alert_priority::normal, alert_category::dht);
 	TEST_ALERT_TYPE(session_stats_header_alert, 92, alert_priority::normal, alert_category_t{});
-	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, alert_priority::normal, alert::dht_operation_notification);
-	TEST_ALERT_TYPE(block_uploaded_alert, 94, alert_priority::normal, PROGRESS_NOTIFICATION alert::upload_notification);
-	TEST_ALERT_TYPE(alerts_dropped_alert, 95, alert_priority::meta, alert::error_notification);
-	TEST_ALERT_TYPE(socks5_alert, 96, alert_priority::normal, alert::error_notification);
+	TEST_ALERT_TYPE(dht_sample_infohashes_alert, 93, alert_priority::normal, alert_category::dht_operation);
+	TEST_ALERT_TYPE(block_uploaded_alert, 94, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::upload);
+	TEST_ALERT_TYPE(alerts_dropped_alert, 95, alert_priority::meta, alert_category::error);
+	TEST_ALERT_TYPE(socks5_alert, 96, alert_priority::normal, alert_category::error);
 
 #undef TEST_ALERT_TYPE
 

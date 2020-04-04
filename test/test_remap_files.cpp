@@ -77,9 +77,9 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	t->remap_files(fs);
 
-	auto const alert_mask = alert::all_categories
+	auto const alert_mask = alert_category::all
 #if TORRENT_ABI_VERSION <= 2
-		& ~alert::stats_notification
+		& ~alert_category::stats
 #endif
 	;
 

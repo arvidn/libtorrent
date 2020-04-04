@@ -69,7 +69,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 	ses.set_dht_state(std::move(state));
 	settings_pack pack;
 	pack.set_bool(settings_pack::enable_dht, true);
-	pack.set_int(settings_pack::alert_mask, lt::alert::all_categories);
+	pack.set_int(settings_pack::alert_mask, lt::alert_category::all);
 	pack.set_bool(settings_pack::dht_ignore_dark_internet, false);
 	pack.set_bool(settings_pack::dht_restrict_routing_ips, false);
 	ses.apply_settings(pack);

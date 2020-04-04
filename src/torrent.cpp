@@ -1736,6 +1736,7 @@ bool is_downloading_state(int const st)
 			m_have_all = true;
 			update_gauge();
 			update_state_list();
+			update_want_tick();
 		}
 		else
 		{
@@ -1858,6 +1859,7 @@ bool is_downloading_state(int const st)
 #endif
 
 		update_want_peers();
+		update_want_tick();
 
 		// this will remove the piece picker, if we're done with it
 		maybe_done_flushing();
@@ -4142,6 +4144,7 @@ namespace {
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
+		update_want_tick();
 	}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -7254,6 +7257,7 @@ namespace {
 		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
 
 		update_gauge();
+		update_want_tick();
 
 		if (m_ses.alerts().should_post<metadata_received_alert>())
 		{
@@ -9116,6 +9120,7 @@ namespace {
 		if (it != m_web_seeds.end()) return &*it;
 		m_web_seeds.push_back(ent);
 		set_need_save_resume();
+		update_want_tick();
 		return &m_web_seeds.back();
 	}
 
@@ -11044,6 +11049,7 @@ namespace {
 
 		update_gauge();
 		update_want_peers();
+		update_want_tick();
 		update_state_list();
 
 		state_updated();

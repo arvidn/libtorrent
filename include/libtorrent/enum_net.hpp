@@ -142,7 +142,7 @@ namespace libtorrent {
 #if TORRENT_HAS_BINDTODEVICE
 		// try to use SO_BINDTODEVICE here, if that exists. If it fails,
 		// fall back to the mechanism we have below
-		sock.set_option(aux::bind_to_device(device_name), ec);
+		aux::bind_device(sock, device_name, ec);
 		if (ec)
 #endif
 		{

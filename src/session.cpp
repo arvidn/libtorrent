@@ -460,8 +460,9 @@ namespace {
 
 	session::~session()
 	{
+		if (!m_impl) return;
+
 		aux::dump_call_profile();
-		TORRENT_ASSERT(m_impl);
 
 		// capture the shared_ptr in the dispatched function
 		// to keep the session_impl alive

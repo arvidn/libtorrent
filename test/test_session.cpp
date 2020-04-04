@@ -362,7 +362,7 @@ TORRENT_TEST(init_dht_default_bootstrap)
 {
 	settings_pack p = settings();
 	p.set_bool(settings_pack::enable_dht, true);
-	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_int(settings_pack::alert_mask, alert_category::all);
 	// default value
 	p.set_str(settings_pack::dht_bootstrap_nodes, "dht.libtorrent.org:25401");
 
@@ -376,7 +376,7 @@ TORRENT_TEST(init_dht_invalid_bootstrap)
 {
 	settings_pack p = settings();
 	p.set_bool(settings_pack::enable_dht, true);
-	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_int(settings_pack::alert_mask, alert_category::all);
 	// no default value
 	p.set_str(settings_pack::dht_bootstrap_nodes, "test.libtorrent.org:25401:8888");
 
@@ -390,7 +390,7 @@ TORRENT_TEST(init_dht_empty_bootstrap)
 {
 	settings_pack p = settings();
 	p.set_bool(settings_pack::enable_dht, true);
-	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_int(settings_pack::alert_mask, alert_category::all);
 	// empty value
 	p.set_str(settings_pack::dht_bootstrap_nodes, "");
 
@@ -406,7 +406,7 @@ TORRENT_TEST(dht_upload_rate_overflow_pack)
 	// make sure this doesn't cause an overflow
 	p.set_int(settings_pack::dht_upload_rate_limit, std::numeric_limits<int>::max());
 	p.set_int(settings_pack::alert_mask, alert_category_t(std::uint32_t(p.get_int(settings_pack::alert_mask)))
-		| alert::dht_log_notification);
+		| alert_category::dht_log);
 	p.set_bool(settings_pack::enable_dht, true);
 	lt::session s(p);
 
@@ -423,7 +423,7 @@ TORRENT_TEST(dht_upload_rate_overflow)
 	settings_pack p = settings();
 	p.set_bool(settings_pack::enable_dht, true);
 	p.set_int(settings_pack::alert_mask, alert_category_t(std::uint32_t(p.get_int(settings_pack::alert_mask)))
-		| alert::dht_log_notification);
+		| alert_category::dht_log);
 	lt::session s(p);
 
 	// make sure this doesn't cause an overflow
@@ -481,7 +481,7 @@ TORRENT_TEST(reopen_network_sockets)
 	};
 
 	settings_pack p = settings();
-	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	p.set_int(settings_pack::alert_mask, alert_category::all);
 	p.set_str(settings_pack::listen_interfaces, "127.0.0.1:6881l");
 
 	p.set_bool(settings_pack::enable_upnp, true);

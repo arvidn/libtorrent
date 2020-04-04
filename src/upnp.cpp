@@ -1578,7 +1578,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 	// free the slot in global mappings
 	auto pred = [mapping](rootdevice const& rd)
-		{ return rd.mapping[mapping].protocol == portmap_protocol::none; };
+		{ return rd.mapping.end_index() <= mapping || rd.mapping[mapping].protocol == portmap_protocol::none; };
 	if (std::all_of(m_devices.begin(), m_devices.end(), pred))
 	{
 		m_mappings[mapping].protocol = portmap_protocol::none;

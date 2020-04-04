@@ -234,17 +234,24 @@ namespace aux {
 			// used instead
 			handshake_client_version,
 
-			// sets the network interface this session will use when it opens
-			// outgoing connections. An empty string binds outgoing connections to
-			// INADDR_ANY and port 0 (i.e. let the OS decide). The parameter must
-			// be a string containing one or more, comma separated, adapter names.
-			// Adapter names on Unix systems are of the form "eth0", "eth1",
-			// "tun0", etc. When specifying multiple interfaces, they will be
-			// assigned in round-robin order. This may be useful for clients that
-			// are multi-homed. Binding an outgoing connection to a local IP does
-			// not necessarily make the connection via the associated NIC/Adapter.
-			// Setting this to an empty string will disable binding of outgoing
-			// connections.
+			// This controls which IP address outgoing TCP connections are bound
+			// to, in addition to controlling whether such connections are also
+			// bound to a specific network interface/adapter (*bind-to-device*).
+			// This string is a comma-separated list of IP addresses and
+			// interface names. An empty string will not bind TCP sockets to a
+			// device, and let the network stack assign the local address. A
+			// list of names will be used to bind outgoing TCP sockets in a
+			// round-robin fashion. An IP address will simply be used to `bind()`
+			// the socket. An interface name will attempt to bind the socket to
+			// that interface. If that fails, or is unsupported, one of the IP
+			// addresses configured for that interface is used to `bind()` the
+			// socket to. If the interface or adapter doesn't exist, the
+			// outgoing connection will failed with an error message suggesting
+			// the device cannot be found. Adapter names on Unix systems are of
+			// the form "eth0", "eth1", "tun0", etc. This may be useful for
+			// clients that are multi-homed. Binding an outgoing connection to a
+			// local IP does not necessarily make the connection via the
+			// associated NIC/Adapter.
 			outgoing_interfaces,
 
 			// a comma-separated list of (IP or device name, port) pairs. These are
@@ -844,9 +851,8 @@ namespace aux {
 			// changes are taken in consideration.
 			enable_ip_notifier,
 
-			// when this is true, nodes whose IDs are derived from their source IP
-			// according to BEP 42 (https://www.bittorrent.org/beps/bep_0042.html) are
-			// preferred in the routing table.
+			// when this is true, nodes whose IDs are derived from their source
+			// IP according to `BEP 42`_ are preferred in the routing table.
 			dht_prefer_verified_node_ids,
 
 			// determines if the routing table entries should restrict entries to one
@@ -1000,7 +1006,7 @@ namespace aux {
 
 			// number of seconds until a new retry of a url-seed takes place.
 			// Default retry value for http-seeds that don't provide
-                        // a valid ``retry-after`` header.
+			// a valid ``retry-after`` header.
 			urlseed_wait_retry,
 
 			// sets the upper limit on the total number of files this session will
@@ -1012,12 +1018,12 @@ namespace aux {
 			// of file descriptors a process may have open.
 			file_pool_size,
 
-                        // ``max_failcount`` is the maximum times we try to
-                        // connect to a peer before stop connecting again. If a
-                        // peer succeeds, the failure counter is reset. If a
-                        // peer is retrieved from a peer source (other than DHT)
-                        // the failcount is decremented by one, allowing another
-                        // try.
+			// ``max_failcount`` is the maximum times we try to
+			// connect to a peer before stop connecting again. If a
+			// peer succeeds, the failure counter is reset. If a
+			// peer is retrieved from a peer source (other than DHT)
+			// the failcount is decremented by one, allowing another
+			// try.
 			max_failcount,
 
 			// the number of seconds to wait to reconnect to a peer. this time is
@@ -1753,7 +1759,7 @@ namespace aux {
 			// retry a failed port bind
 			max_retry_port_bind,
 
-			// a bitmask combining flags from alert::category_t defining which
+			// a bitmask combining flags from alert_category_t defining which
 			// kinds of alerts to receive
 			alert_mask,
 

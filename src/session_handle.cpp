@@ -1191,14 +1191,14 @@ namespace {
 		alert_category_t m = {};
 		switch (s)
 		{
-			case alert::debug: m = alert::all_categories; break;
-			case alert::info: m = alert::all_categories & ~(alert::debug_notification
-				| alert::progress_notification | alert::dht_notification); break;
-			case alert::warning: m = alert::all_categories & ~(alert::debug_notification
-				| alert::status_notification | alert::progress_notification
-				| alert::dht_notification); break;
-			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
-			case alert::fatal: m = alert::error_notification; break;
+			case alert::debug: m = alert_category::all; break;
+			case alert::info: m = alert_category::all & ~(alert::debug_notification
+				| alert::progress_notification | alert_category::dht); break;
+			case alert::warning: m = alert_category::all & ~(alert::debug_notification
+				| alert_category::status | alert::progress_notification
+				| alert_category::dht); break;
+			case alert::critical: m = alert_category::error | alert_category::storage; break;
+			case alert::fatal: m = alert_category::error; break;
 			case alert::none: m = {}; break;
 		}
 

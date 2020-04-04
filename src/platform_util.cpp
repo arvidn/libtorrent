@@ -113,7 +113,7 @@ namespace libtorrent {
 		MEMORYSTATUSEX ms;
 		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
-			ret = int(ms.ullTotalPhys);
+			ret = ms.ullTotalPhys;
 		else
 			ret = 0;
 #elif defined TORRENT_LINUX

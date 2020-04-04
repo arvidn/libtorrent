@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+// TODO: replace this by the standard string_view in C++17
+
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
 #include <cstring> // for strchr

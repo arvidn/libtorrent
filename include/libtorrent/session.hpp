@@ -229,14 +229,14 @@ namespace aux {
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, session_flags_t const flags = start_default_features | add_default_plugins
-			, alert_category_t const alert_mask = alert::error_notification);
+			, alert_category_t const alert_mask = alert_category::error);
 
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, session_flags_t const flags = start_default_features | add_default_plugins
-			, alert_category_t const alert_mask = alert::error_notification);
+			, alert_category_t const alert_mask = alert_category::error);
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // TORRENT_ABI_VERSION

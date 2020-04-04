@@ -82,7 +82,8 @@ static_links = \
     {
         ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
         ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
-        ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html"
+        ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
+        ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html"
     }
 
 anon_index = 0
@@ -1105,6 +1106,7 @@ def linkify_symbols(string):
     ret = []
     in_literal = False
     lno = 0
+    return_string = ''
     for line in lines:
         lno += 1
         # don't touch headlines, i.e. lines whose
@@ -1113,6 +1115,12 @@ def linkify_symbols(string):
             next_line = lines[lno]
         else:
             next_line = ''
+
+        if '.. include:: ' in line:
+            return_string += '\n'.join(ret)
+            ret = [line]
+            return_string += dump_link_targets() + '\n'
+            continue
 
         if len(next_line) > 0 and lines[lno].replace('=', ''). \
                 replace('-', '').replace('.', '') == '':
@@ -1178,7 +1186,8 @@ def linkify_symbols(string):
                 # print('  found %s -> %s' % (w, link_name))
                 words[i] = leading + print_link(link_name, symbols[w]) + trailing
         ret.append(' '.join(words))
-    return '\n'.join(ret)
+    return_string += '\n'.join(ret)
+    return return_string
 
 
 link_targets = []

@@ -1318,9 +1318,9 @@ void test_tracker_tiers(lt::settings_pack pack
 {
 	using namespace libtorrent;
 
-	pack.set_int(settings_pack::alert_mask, alert::error_notification
-		| alert::status_notification
-		| alert::torrent_log_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::error
+		| alert_category::status
+		| alert_category::torrent_log);
 
 	// setup the simulation
 	struct sim_config : sim::default_config
