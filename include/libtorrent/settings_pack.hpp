@@ -78,6 +78,7 @@ namespace aux {
 		, aux::session_settings_single_thread& sett
 		, std::vector<void(aux::session_impl::*)()>* callbacks = nullptr);
 	TORRENT_EXTRA_EXPORT void run_all_updates(aux::session_impl& ses);
+	TORRENT_EXTRA_EXPORT int default_int_value(int const name);
 
 	// converts a setting integer (from the enums string_types, int_types or
 	// bool_types) to a string, and vice versa.

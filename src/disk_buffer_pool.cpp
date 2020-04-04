@@ -292,7 +292,7 @@ namespace libtorrent {
 		if (cache_size < 0)
 		{
 			std::int64_t phys_ram = total_physical_ram();
-			if (phys_ram == 0) m_max_use = 1024;
+			if (phys_ram == 0) m_max_use = default_int_value(settings_pack::cache_size);
 			else
 			{
 				// this is the logic to calculate the automatic disk cache size
