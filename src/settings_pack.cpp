@@ -531,6 +531,12 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		return ret;
 	}
 
+	int default_int_value(int const name)
+	{
+		TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack::int_type_base);
+		return int_settings[name - settings_pack::int_type_base].default_value;
+	}
+
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett
 		, aux::session_impl* ses)
 	{
