@@ -95,7 +95,7 @@ before_install:
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
       brew unlink python@2;
-      travis_retry brew install boost-python3 python;
+      travis_retry brew install boost-python3 python@3.8;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
