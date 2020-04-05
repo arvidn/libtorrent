@@ -9,7 +9,7 @@ matrix:
     - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
-    - env: variant=test_debug crypto=openssl python=1 toolset=darwin ios=1
+    - env: variant=test_debug crypto=openssl install_boost=1 python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
@@ -71,7 +71,7 @@ before_install:
 
   # on linux, pull down a recent version of boost and build boost-build
 
-  - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+  - 'if [[ $TRAVIS_OS_NAME == "linux" || "$install_boost" = "1" ]]; then
     cd $HOME;
     git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
     export BOOST_ROOT=$PWD/boost &&
@@ -94,8 +94,7 @@ before_install:
     travis_retry brew update > /dev/null && brew install ccache boost-build;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      brew unlink python@2;
-      travis_retry brew install boost-python3 python@3.8;
+      travis_retry brew install python@3.8;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
