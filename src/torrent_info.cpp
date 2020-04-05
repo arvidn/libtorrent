@@ -748,7 +748,7 @@ TORRENT_VERSION_NAMESPACE_3
 		TORRENT_ASSERT(m_piece_hashes > 0);
 		TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
 
-		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
+		m_info_section = std::shared_ptr<char[]>(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
 
 		char const* current_base = t.m_info_section.get();

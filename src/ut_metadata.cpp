@@ -175,7 +175,7 @@ namespace libtorrent {namespace {
 		// the metadata file while downloading it from
 		// peers, and while sending it.
 		// it is mutable because it's generated lazily
-		mutable boost::shared_array<char> m_metadata;
+		mutable std::shared_ptr<char[]> m_metadata;
 
 		mutable int m_metadata_size = 0;
 

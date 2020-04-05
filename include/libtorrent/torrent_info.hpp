@@ -580,7 +580,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``metadata()`` returns a the raw info section of the torrent file. The size
 		// of the metadata is returned by ``metadata_size()``.
 		int metadata_size() const { return m_info_section_size; }
-		boost::shared_array<char> metadata() const
+		std::shared_ptr<char[]> metadata() const
 		{ return m_info_section; }
 
 		aux::vector<aux::vector<sha256_hash>, file_index_t>& merkle_trees();
@@ -693,8 +693,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
-		// TODO: change the type to std::shared_ptr in C++17
-		boost::shared_array<char> m_info_section;
+		std::shared_ptr<char[]> m_info_section;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
