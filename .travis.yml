@@ -69,40 +69,36 @@ before_install:
       export sonar_scan=0;
     fi'
 
-  # on linux, pull down a recent version of boost and build boost-build
-
-  - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-    cd $HOME;
-    git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
-    export BOOST_ROOT=$PWD/boost &&
-    echo ${BOOST_ROOT} &&
-    cd boost &&
-    git submodule init &&
-    git submodule update --depth=1 &&
-    ./bootstrap.sh &&
-    ./b2 headers &&
-    export PATH=$BOOST_ROOT/tools/build/src/engine/:$PATH &&
-    export PATH=$BOOST_ROOT:$PATH;
+  # pull down a recent version of boost and build boost-build
+  - cd $HOME;
+  - 'if [[ ! -d boost ]]; then
+      git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
     fi'
+  - export BOOST_ROOT=$PWD/boost
+  - echo ${BOOST_ROOT}
+  - cd boost
+  - git submodule update --init --depth=1
+  - ./bootstrap.sh
+  - ./b2 headers
+  - export PATH=$BOOST_ROOT:$PATH
 
   - cd $TRAVIS_BUILD_DIR;
   - git submodule update --depth=1 --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" || "$check_headers" == "1" ) ]]; then
-    travis_retry brew update > /dev/null && brew install ccache boost-build;
-    fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+      travis_retry brew update > /dev/null && brew install ccache;
+     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      brew unlink python@2;
-      travis_retry brew install boost-python3 python;
+      travis_retry brew install python@3.8;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
        python3 --version;
     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-      export B2=bjam;
+      export B2=b2;
       export PIP=pip;
     else
       export B2=b2;
