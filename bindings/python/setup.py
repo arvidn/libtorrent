@@ -47,7 +47,7 @@ def bjam_build():
     os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
     # build libtorrent using bjam and build the installer with distutils
-    cmdline = ('bjam release optimization=space stage_module --hash' +
+    cmdline = ('b2 release optimization=space stage_module --hash' +
                address_model + toolset + parallel_builds)
     print(cmdline)
     if os.system(cmdline) != 0:

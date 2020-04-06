@@ -18,25 +18,25 @@ PREFIX=/usr/local/
 endif
 
 ALL: FORCE
-	BOOST_ROOT="" bjam ${BUILD_CONFIG}
+	BOOST_ROOT="" b2 ${BUILD_CONFIG}
 
 python-binding: FORCE
-	(cd bindings/python; BOOST_ROOT="" bjam ${BUILD_CONFIG} stage_module stage_dependencies)
+	(cd bindings/python; BOOST_ROOT="" b2 ${BUILD_CONFIG} stage_module stage_dependencies)
 
 examples: FORCE
-	(cd examples; BOOST_ROOT="" bjam ${BUILD_CONFIG} stage_client_test stage_connection_tester)
+	(cd examples; BOOST_ROOT="" b2 ${BUILD_CONFIG} stage_client_test stage_connection_tester)
 
 tools: FORCE
-	(cd tools; BOOST_ROOT="" bjam ${BUILD_CONFIG})
+	(cd tools; BOOST_ROOT="" b2 ${BUILD_CONFIG})
 
 install: FORCE
-	BOOST_ROOT="" bjam ${BUILD_CONFIG} install --prefix=${PREFIX}
+	BOOST_ROOT="" b2 ${BUILD_CONFIG} install --prefix=${PREFIX}
 
 sim: FORCE
-	(cd simulation; BOOST_ROOT="" bjam $(filter-out crypto=openssl,${BUILD_CONFIG}) crypto=built-in)
+	(cd simulation; BOOST_ROOT="" b2 $(filter-out crypto=openssl,${BUILD_CONFIG}) crypto=built-in)
 
 check: FORCE
-	(cd test; BOOST_ROOT="" bjam crypto=openssl warnings=off -j${NCORES})
+	(cd test; BOOST_ROOT="" b2 crypto=openssl warnings=off -j${NCORES})
 
 clean: FORCE
 	rm -rf \
