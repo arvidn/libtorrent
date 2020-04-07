@@ -11090,13 +11090,9 @@ bool is_downloading_state(int const st)
 
 				if (aep != ae->endpoints.end())
 				{
-					// if we can't find the hostname, the tracker is probably
-					// out of service. Wait a while before trying it again
-					seconds32 const extra_delay = (ec == boost::asio::error::host_not_found)
-						? hours(6) : hours(0);
 					local_endpoint = aep->local_endpoint;
 					aep->failed(settings().get_int(settings_pack::tracker_backoff)
-						, std::max(retry_interval, extra_delay));
+						, retry_interval);
 					aep->last_error = ec;
 					aep->message = msg;
 					fails = aep->fails;
