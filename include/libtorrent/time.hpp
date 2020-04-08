@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 
 #if defined TORRENT_BUILD_SIMULATOR
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include "simulator/simulator.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 namespace libtorrent {
