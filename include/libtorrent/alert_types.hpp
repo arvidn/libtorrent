@@ -2771,6 +2771,7 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		TORRENT_UNEXPORT dht_sample_infohashes_alert(aux::stack_allocator& alloc
+			, sha1_hash const& nid
 			, udp::endpoint const& endp
 			, time_duration interval
 			, int num
@@ -2781,6 +2782,9 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEFINE_ALERT(dht_sample_infohashes_alert, 93)
 
 		std::string message() const override;
+
+		// id of the node the request was sent to (and this response was received from)
+		sha1_hash node_id;
 
 		// the node the request was sent to (and this response was received from)
 		aux::noexcept_movable<udp::endpoint> endpoint;

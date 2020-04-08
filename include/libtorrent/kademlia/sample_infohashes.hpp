@@ -46,7 +46,8 @@ class sample_infohashes final : public traversal_algorithm
 {
 public:
 
-	using data_callback = std::function<void(time_duration
+	using data_callback = std::function<void(sha1_hash
+		, time_duration
 		, int, std::vector<sha1_hash>
 		, std::vector<std::pair<sha1_hash, udp::endpoint>>)>;
 
@@ -56,7 +57,8 @@ public:
 
 	char const* name() const override;
 
-	void got_samples(time_duration interval
+	void got_samples(sha1_hash const& nid
+		, time_duration interval
 		, int num, std::vector<sha1_hash> samples
 		, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes);
 

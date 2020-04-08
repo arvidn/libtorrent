@@ -2463,12 +2463,14 @@ namespace {
 	}
 
 	dht_sample_infohashes_alert::dht_sample_infohashes_alert(aux::stack_allocator& alloc
+		, sha1_hash const& nid
 		, udp::endpoint const& endp
 		, time_duration _interval
 		, int _num
 		, std::vector<sha1_hash> const& samples
 		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
-		: endpoint(endp)
+		: node_id(nid)
+		, endpoint(endp)
 		, interval(_interval)
 		, num_infohashes(_num)
 		, m_alloc(alloc)
