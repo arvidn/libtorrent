@@ -76,7 +76,7 @@ namespace libtorrent {
 		address gateway;
 		address source_hint;
 		char name[64]{};
-		int mtu;
+		int mtu = 0;
 	};
 
 	// returns a list of the configured IP interfaces

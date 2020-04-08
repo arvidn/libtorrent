@@ -19,7 +19,6 @@ test_programs = \
   test_receive_buffer        \
   test_resume                \
   test_read_resume           \
-  test_ssl                   \
   test_stack_allocator       \
   test_storage               \
   test_time_critical         \
@@ -249,7 +248,6 @@ test_time_critical_SOURCES = test_time_critical.cpp
 test_resume_SOURCES = test_resume.cpp
 test_read_resume_SOURCES = test_read_resume.cpp
 test_stack_allocator_SOURCES = test_stack_allocator.cpp
-test_ssl_SOURCES = test_ssl.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_transfer_SOURCES = test_transfer.cpp

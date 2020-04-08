@@ -5,7 +5,8 @@ matrix:
   fast_finish: true
   include:
     - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc check_headers=1
+      env: variant=release sonar_scan=1 toolset=gcc
+    - env: variant=release toolset=gcc check_headers=1 python=1
     - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
@@ -17,14 +18,16 @@ matrix:
         apt:
           packages:
           - python3-pip
-          - libboost-all-dev
-          - libboost-tools-dev
     - env: variant=test_debug tests=1 toolset=gcc-sanitizer fuzzers=1
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
-    - env: autotools=1 toolset=gcc
-    - env: cmake=1 toolset=gcc
+    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage
+    - env: autotools=1 toolset=gcc install_boost=1
+    - env: cmake=1 toolset=gcc install_boost=1
     - env: arch=arm toolset=gcc-arm
+      addons:
+        apt:
+          packages:
+          - libboost-tools-dev
 
 notifications:
   email: false
@@ -42,16 +45,14 @@ branches:
 cache:
   directories:
     - $HOME/.ccache
+    - $HOME/boost
 
 # sources  list: https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json,
 # packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
 addons:
   apt:
     packages:
-    - libboost-all-dev
-    - libboost-tools-dev
     - python3.7-dev
-    - g++-5
     - ninja-build
 
 before_install:
@@ -60,21 +61,46 @@ before_install:
       export sonar_scan=0;
     fi'
 
+  # pull down a recent version of boost and build boost-build
+  - 'if [[ "$arch" != "arm" ]]; then
+      cd $HOME;
+      if [[ ! -d boost/.git ]]; then
+        git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
+      fi;
+      export BOOST_ROOT=$PWD/boost;
+      echo ${BOOST_ROOT};
+      cd boost;
+      git submodule update --init --depth=1;
+      ./bootstrap.sh;
+      ./b2 headers;
+      if [[ "$install_boost" = "1" ]]; then
+        sudo ./b2 cxxstd=11 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
+        cd tools/build;
+        ./bootstrap.sh;
+        echo "installing boost.build";
+        sudo ./b2 install --prefix=/usr/;
+        sudo ln -s /usr/local/lib/libboost_python37.so /usr/local/lib/libboost_python.so;
+        sudo ln -s /usr/local/lib/libboost_python36.so /usr/local/lib/libboost_python3.so;
+      fi;
+    fi'
+  - export PATH=$BOOST_ROOT:$PATH
+
+  - cd $TRAVIS_BUILD_DIR
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" || "$check_headers" == "1" ) ]]; then
-    travis_retry brew update > /dev/null && brew install ccache boost-build;
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+    travis_retry brew update > /dev/null && brew install ccache;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
       brew unlink python@2;
-      travis_retry brew install boost-python3 python;
+      travis_retry brew install python;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
        python3 --version;
     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
-      export B2=bjam;
+      export B2=b2;
       export PIP=pip;
     else
       export B2=b2;
@@ -101,13 +127,14 @@ before_install:
   - ulimit -a
 
 install:
+
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
-      g++-5 --version;
-      echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
+      g++ --version;
+      echo "using gcc : : ccache g++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++-5 :
+      echo "using gcc : sanitizer : ccache g++ :
         <cxxflags>-std=c++11
         <compileflags>-fstack-protector-all
         <compileflags>-fstack-check
@@ -118,7 +145,7 @@ install:
         <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
-      echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
+      echo "using gcc : coverage : ccache g++ --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-arm" ]]; then
       echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ :
@@ -272,9 +299,10 @@ script:
 
 # a binary built with sanitizer does not interact well with python
 # on OSX we need to use the brew version of python, for reasons explained above
+# boost.python cannot be built with warnings-as-errors=on
   - cd bindings/python
   - 'if [[ "$python" == "1" ]]; then
-      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
+      ${B2} -j2 warnings-as-errors=off warnings=all ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
         DYLD_LIBRARY_PATH=./dependencies python3 test.py -b;
       else
@@ -293,8 +321,8 @@ script:
 # minimal support for cmake build
   - mkdir build && cd build
   - if [[ "$cmake" == "1" ]]; then
-      export CXX=g++-5 &&
-      export CC=gcc-5 &&
+      export CXX=g++ &&
+      export CC=gcc &&
       cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=11 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=ON -G Ninja .. &&
       cmake --build . --parallel 2;
     fi
@@ -303,8 +331,8 @@ script:
 # run through autotools and ./configure to make sure it works
   - if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
-      export CXX=g++-5 &&
-      export CC=gcc-5 &&
+      export CXX=g++ &&
+      export CC=gcc &&
       export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
       ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
       make -j2 check;
@@ -313,8 +341,7 @@ script:
   - ccache --show-stats
 
   - cd test
-  - 'if [[ "$arch" == "arm" ]];
-    then
+  - 'if [[ "$arch" == "arm" ]]; then
       ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..

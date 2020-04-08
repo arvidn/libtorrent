@@ -1331,7 +1331,7 @@ examples:
 					rate_limit_locals = true;
 					break;
 				}
-			case '0': disable_storage = true; --i;
+			case '0': disable_storage = true; --i; break;
 			case 'e':
 				{
 					loop_limit = atoi(arg);
