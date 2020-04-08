@@ -50,13 +50,14 @@ sample_infohashes::sample_infohashes(node& dht_node
 
 char const* sample_infohashes::name() const { return "sample_infohashes"; }
 
-void sample_infohashes::got_samples(time_duration interval
+void sample_infohashes::got_samples(sha1_hash const& nid
+	, time_duration interval
 	, int num, std::vector<sha1_hash> samples
 	, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes)
 {
 	if (m_data_callback)
 	{
-		m_data_callback(interval, num, std::move(samples), std::move(nodes));
+		m_data_callback(nid, interval, num, std::move(samples), std::move(nodes));
 		m_data_callback = nullptr;
 		done();
 	}
@@ -98,6 +99,17 @@ void sample_infohashes_observer::reply(msg const& m)
 		}
 	}
 
+	bdecode_node const id = r.dict_find_string("id");
+	if (!id || id.string_length() != 20)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		get_observer()->log(dht_logger::traversal, "[%u] wrong or missing id value"
+			, algorithm()->id());
+#endif
+		timeout();
+		return;
+	}
+
 	std::int64_t const interval = r.dict_find_int_value("interval", -1);
 	if (interval < 0 || interval > 21600) // TODO: put constant in a common place
 	{
@@ -127,7 +139,7 @@ void sample_infohashes_observer::reply(msg const& m)
 		std::memcpy(v.data(), samples.string_ptr(), v.size() * 20);
 
 		static_cast<sample_infohashes*>(algorithm())->got_samples(
-			seconds(interval), int(num), std::move(v), std::move(nodes));
+			node_id(id.string_ptr()), seconds(interval), int(num), std::move(v), std::move(nodes));
 	}
 	else
 	{

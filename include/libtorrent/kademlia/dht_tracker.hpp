@@ -117,7 +117,8 @@ namespace dht {
 			, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 		void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
-			, std::function<void(time_duration
+			, std::function<void(node_id
+				, time_duration
 				, int, std::vector<sha1_hash>
 				, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
 

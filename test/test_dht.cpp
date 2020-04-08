@@ -3687,6 +3687,7 @@ TORRENT_TEST(sample_infohashes)
 
 	g_sent_packets.clear();
 
+	node_id nid = generate_random_id();
 	udp::endpoint initial_node = rand_udp_ep();
 	t.dht_node.m_table.add_node(node_entry{initial_node});
 
@@ -3697,10 +3698,13 @@ TORRENT_TEST(sample_infohashes)
 	udp::endpoint const ep2 = rand_udp_ep(rand_v4);
 
 	t.dht_node.sample_infohashes(initial_node, items[0].target,
-		[h1, ep1, h2, ep2](time_duration interval, int num
+		[nid, h1, ep1, h2, ep2](node_id const& node_id
+			, time_duration interval
+			, int num
 			, std::vector<sha1_hash> samples
 			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
 	{
+		TEST_EQUAL(node_id, nid);
 		TEST_EQUAL(total_seconds(interval), 10);
 		TEST_EQUAL(num, 2);
 		TEST_EQUAL(samples.size(), 1);
@@ -3740,6 +3744,7 @@ TORRENT_TEST(sample_infohashes)
 	g_sent_packets.clear();
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
+			.nid(nid)
 			.interval(seconds(10))
 			.num(2)
 			.samples({to_hash("1000000000000000000000000000000000000001")})

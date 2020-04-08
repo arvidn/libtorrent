@@ -280,6 +280,7 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 
 	TEST_EQUAL(mgr.should_post<dht_sample_infohashes_alert>(), true);
 
+	sha1_hash const node_id = rand_hash();
 	udp::endpoint const endpoint = rand_udp_ep();
 	time_duration const interval = seconds(10);
 	int const num = 100;
@@ -308,11 +309,12 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 	nv.emplace_back(nh4, nep4);
 	nv.emplace_back(nh5, nep5);
 
-	mgr.emplace_alert<dht_sample_infohashes_alert>(endpoint, interval, num, v, nv);
+	mgr.emplace_alert<dht_sample_infohashes_alert>(node_id, endpoint, interval, num, v, nv);
 
 	auto const* a = alert_cast<dht_sample_infohashes_alert>(mgr.wait_for_alert(seconds(0)));
 	TEST_CHECK(a != nullptr);
 
+	TEST_EQUAL(a->node_id, node_id);
 	TEST_EQUAL(a->endpoint, endpoint);
 	TEST_CHECK(a->interval == interval);
 	TEST_EQUAL(a->num_infohashes, num);

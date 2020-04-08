@@ -5993,12 +5993,13 @@ namespace {
 	void session_impl::dht_sample_infohashes(udp::endpoint const& ep, sha1_hash const& target)
 	{
 		if (!m_dht) return;
-		m_dht->sample_infohashes(ep, target, [this, ep](time_duration const interval
+		m_dht->sample_infohashes(ep, target, [this, ep](sha1_hash const& nid
+			, time_duration const interval
 			, int const num, std::vector<sha1_hash> samples
 			, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes)
 		{
-			m_alerts.emplace_alert<dht_sample_infohashes_alert>(ep
-				, interval, num, std::move(samples), std::move(nodes));
+			m_alerts.emplace_alert<dht_sample_infohashes_alert>(nid
+				, ep, interval, num, std::move(samples), std::move(nodes));
 		});
 	}
 
