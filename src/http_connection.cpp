@@ -101,6 +101,7 @@ http_connection::http_connection(io_service& ios
 	, m_limiter_timer_active(false)
 	, m_ssl(false)
 	, m_abort(false)
+	, m_closing(false)
 	, m_connecting(false)
 {
 	TORRENT_ASSERT(m_handler);
@@ -242,8 +243,7 @@ void http_connection::start(std::string const& hostname, int port
 	m_timer.expires_from_now(std::min(
 		m_read_timeout, m_completion_timeout), ec);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-	m_timer.async_wait(std::bind(&http_connection::on_timeout
-		, std::weak_ptr<http_connection>(me), _1));
+	m_timer.async_wait(std::bind(&http_connection::on_timeout, me, _1));
 	m_called = false;
 	m_parser.reset();
 	m_recvbuffer.clear();
@@ -388,70 +388,57 @@ void http_connection::start(std::string const& hostname, int port
 	}
 }
 
-void http_connection::on_timeout(std::weak_ptr<http_connection> p
-	, error_code const& e)
+void http_connection::on_timeout(error_code const& e)
 {
 	COMPLETE_ASYNC("http_connection::on_timeout");
-	std::shared_ptr<http_connection> c = p.lock();
-	if (!c) return;
 
 	if (e == boost::asio::error::operation_aborted) return;
 
-	if (c->m_abort) return;
+	if (m_abort) return;
 
 	time_point const now = clock_type::now();
 
-	if (c->m_start_time + c->m_completion_timeout <= now
-		|| c->m_last_receive + c->m_read_timeout <= now)
+	if (m_start_time + m_completion_timeout <= now
+		|| m_last_receive + m_read_timeout <= now)
 	{
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
 		// endpoint in the list.
-		if (c->m_next_ep < int(c->m_endpoints.size()))
+		if (m_next_ep < int(m_endpoints.size()))
 		{
 			error_code ec;
-			c->m_sock.close(ec);
-			if (!c->m_connecting) c->connect();
-			c->m_last_receive = now;
-			c->m_start_time = c->m_last_receive;
+			m_sock.close(ec);
+			if (!m_connecting) connect();
+			m_last_receive = now;
+			m_start_time = m_last_receive;
 		}
 		else
 		{
 			// the socket may have an outstanding operation, that keeps the
 			// http_connection object alive. We want to cancel all that.
-			error_code ec;
-			c->m_sock.close(ec);
-			c->callback(boost::asio::error::timed_out);
+			callback(boost::asio::error::timed_out);
+			close(true);
 			return;
 		}
-	}
-	else
-	{
-		if (!c->m_sock.is_open()) return;
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	error_code ec;
-	c->m_timer.expires_at(std::min(
-		c->m_last_receive + c->m_read_timeout
-		, c->m_start_time + c->m_completion_timeout), ec);
-	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
+	m_timer.expires_at(std::min(
+		m_last_receive + m_read_timeout
+		, m_start_time + m_completion_timeout), ec);
+	m_timer.async_wait(std::bind(&http_connection::on_timeout, shared_from_this(), _1));
 }
 
 void http_connection::close(bool force)
 {
-	if (m_abort) return;
+	if (m_closing || m_abort) return;
+
+	m_closing = true;
 
 	error_code ec;
-	if (force)
-	{
-		m_sock.close(ec);
-		m_timer.cancel(ec);
-	}
-	else
-	{
-#ifdef TORRENT_USE_OPENSSL
-		auto self = shared_from_this();
+
+	auto self = shared_from_this();
 	// for SSL connections, first do an async_shutdown, before closing the socket
 #if defined TORRENT_ASIO_DEBUGGING
 #define MAYBE_ASIO_DEBUGGING add_outstanding_async("on_close_socket");
@@ -459,17 +446,31 @@ void http_connection::close(bool force)
 #define MAYBE_ASIO_DEBUGGING
 #endif
 
-		auto handler = [=](error_code const&) {
-			COMPLETE_ASYNC("on_close_socket");
-			error_code e;
-			self->m_timer.cancel(e);
-			self->m_sock.close(e);
-		};
+	auto handler = [=](error_code const&) {
+		COMPLETE_ASYNC("on_close_socket");
+		error_code e;
+		self->m_timer.cancel(e);
+		self->m_sock.close(e);
+		self->m_limiter_timer.cancel(e);
+		self->m_hostname.clear();
+		self->m_port = 0;
+		self->m_handler = nullptr;
+		self->m_abort = true;
+	};
 
+	if (force)
+	{
+		MAYBE_ASIO_DEBUGGING
+		handler(error_code{});
+	}
+	else
+	{
+#ifdef TORRENT_USE_OPENSSL
 #define CASE(t) case aux::socket_type_int_impl<ssl_stream<t>>::value: \
 	MAYBE_ASIO_DEBUGGING \
 	m_sock.get<ssl_stream<t>>()->async_shutdown(std::move(handler)); \
 	break;
+
 
 		switch (m_sock.type())
 		{
@@ -478,23 +479,17 @@ void http_connection::close(bool force)
 			CASE(http_stream)
 			CASE(utp_stream)
 			default:
-				m_sock.close(ec);
-				m_timer.cancel(ec);
+				MAYBE_ASIO_DEBUGGING
+				handler(error_code{});
 				break;
 		}
 #undef CASE
 #else
-		m_sock.close(ec);
-		m_timer.cancel(ec);
+		MAYBE_ASIO_DEBUGGING
+		handler(error_code{});
 #endif // TORRENT_USE_OPENSSL
 	}
 
-	m_limiter_timer.cancel(ec);
-
-	m_hostname.clear();
-	m_port = 0;
-	m_handler = nullptr;
-	m_abort = true;
 }
 
 #if TORRENT_USE_I2P
@@ -679,8 +674,6 @@ void http_connection::callback(error_code e, span<char> data)
 		if (m_parser.finished()) e.clear();
 	}
 	m_called = true;
-	error_code ec;
-	m_timer.cancel(ec);
 	if (m_handler) m_handler(e, m_parser, data, *this);
 }
 
@@ -829,8 +822,6 @@ void http_connection::on_read(error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
-			error_code ec;
-			m_timer.cancel(ec);
 			callback(e, span<char>(m_recvbuffer)
 				.first(m_read_pos)
 				.subspan(m_parser.body_start()));

@@ -143,8 +143,7 @@ private:
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
-	static void on_timeout(std::weak_ptr<http_connection> p
-		, error_code const& e);
+	void on_timeout(error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
 	void callback(error_code e, span<char> data = {});
@@ -241,6 +240,9 @@ private:
 	bool m_ssl;
 
 	bool m_abort;
+
+	// we're waiting to shut down
+	bool m_closing;
 
 	// true while waiting for an async_connect
 	bool m_connecting;
