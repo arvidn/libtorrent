@@ -11527,13 +11527,9 @@ namespace {
 					protocol_version const hash_version = r.info_hash == m_info_hash.v1
 						? protocol_version::V1 : protocol_version::V2;
 					auto& a = aep->info_hashes[hash_version];
-					// if we can't find the hostname, the tracker is probably
-					// out of service. Wait a while before trying it again
-					seconds32 const extra_delay = (ec == boost::asio::error::host_not_found)
-						? hours(6) : hours(0);
 					local_endpoint = aep->local_endpoint;
 					a.failed(settings().get_int(settings_pack::tracker_backoff)
-						, std::max(retry_interval, extra_delay));
+						, retry_interval);
 					a.last_error = ec;
 					a.message = msg;
 					fails = a.fails;

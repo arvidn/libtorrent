@@ -137,6 +137,34 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
+list dht_live_nodes_nodes(dht_live_nodes_alert const& alert)
+{
+    list result;
+    std::vector<std::pair<sha1_hash, udp::endpoint>> const nodes = alert.nodes();
+    for (std::pair<sha1_hash, udp::endpoint> const& node : nodes)
+    {
+        dict d;
+        d["nid"] = node.first;
+        d["endpoint"] = node.second;
+        result.append(d);
+    }
+    return result;
+}
+
+list dht_sample_infohashes_nodes(dht_sample_infohashes_alert const& alert)
+{
+    list result;
+    std::vector<std::pair<sha1_hash, udp::endpoint>> const nodes = alert.nodes();
+    for (std::pair<sha1_hash, udp::endpoint> const& node : nodes)
+    {
+        dict d;
+        d["nid"] = node.first;
+        d["endpoint"] = node.second;
+        result.append(d);
+    }
+    return result;
+}
+
 #if TORRENT_ABI_VERSION == 1
 entry const& get_resume_data_entry(save_resume_data_alert const& self)
 {
@@ -1075,6 +1103,30 @@ void bind_alert()
         .def_readonly("error", &socks5_alert::error)
         .def_readonly("op", &socks5_alert::op)
         .add_property("ip", make_getter(&socks5_alert::ip, by_value()))
+        ;
+
+    class_<dht_live_nodes_alert, bases<alert>, noncopyable>(
+       "dht_live_nodes_alert", no_init)
+        .add_property("node_id", &dht_live_nodes_alert::node_id)
+        .add_property("num_nodes", &dht_live_nodes_alert::num_nodes)
+        .add_property("nodes", &dht_live_nodes_nodes)
+        ;
+
+    std::vector<sha1_hash> (dht_sample_infohashes_alert::*samples)() const = &dht_sample_infohashes_alert::samples;
+
+    class_<dht_sample_infohashes_alert, bases<alert>, noncopyable>(
+       "dht_sample_infohashes_alert", no_init)
+        .add_property("endpoint", make_getter(&dht_sample_infohashes_alert::endpoint, by_value()))
+        .add_property("interval", make_getter(&dht_sample_infohashes_alert::interval, by_value()))
+        .add_property("num_infohashes", &dht_sample_infohashes_alert::num_infohashes)
+        .add_property("num_samples", &dht_sample_infohashes_alert::num_samples)
+        .add_property("samples", samples)
+        .add_property("num_nodes", &dht_sample_infohashes_alert::num_nodes)
+        .add_property("nodes", &dht_sample_infohashes_nodes)
+        ;
+
+    class_<dht_bootstrap_alert, bases<alert>, noncopyable>(
+        "dht_bootstrap_alert", no_init)
         ;
 
 }

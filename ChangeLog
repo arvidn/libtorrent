@@ -24,6 +24,8 @@
 	* libtorrent now requires C++14 to build
 
 
+	* revert NXDOMAIN change from 1.2.4
+	* don't open any listen sockets if listen_interfaces is empty or misconfigured
 	* fix bug in auto disk cache size logic
 	* fix issue with outgoing_interfaces setting, where bind() would be called twice
 	* add build option to disable share-mode

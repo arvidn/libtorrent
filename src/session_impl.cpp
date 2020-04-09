@@ -1953,14 +1953,11 @@ namespace {
 			interface_to_endpoints(iface, flags, ifs, eps);
 		}
 
-		// if no listen interfaces are specified, create sockets to use
-		// any interface
 		if (eps.empty())
 		{
-			eps.emplace_back(address_v4(), 0, "", transport::plaintext
-				, listen_socket_flags_t{});
-			eps.emplace_back(address_v6(), 0, "", transport::plaintext
-				, listen_socket_flags_t{});
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("no listen sockets");
+#endif
 		}
 
 		expand_unspecified_address(ifs, routes, eps);
@@ -4952,8 +4949,6 @@ namespace {
 		{
 			if (m_interface_index >= m_outgoing_interfaces.size()) m_interface_index = 0;
 			std::string const& ifname = m_outgoing_interfaces[m_interface_index++];
-
-			if (ec) return bind_ep;
 
 			bind_ep.address(bind_socket_to_device(m_io_context, s
 				, remote_address.is_v4() ? tcp::v4() : tcp::v6()

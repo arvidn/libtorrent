@@ -5,7 +5,8 @@ matrix:
   fast_finish: true
   include:
     - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc check_headers=1
+      env: variant=release sonar_scan=1 toolset=gcc
+    - env: variant=release toolset=gcc check_headers=1 python=1
     - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
@@ -71,7 +72,7 @@ before_install:
 
   # pull down a recent version of boost and build boost-build
   - cd $HOME;
-  - 'if [[ ! -d boost ]]; then
+  - 'if [[ ! -d boost/.git ]]; then
       git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
     fi'
   - export BOOST_ROOT=$PWD/boost
@@ -91,7 +92,7 @@ before_install:
       travis_retry brew update > /dev/null && brew install ccache;
      fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      travis_retry brew install python@3.8;
+      travis_retry brew install python;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
@@ -125,6 +126,7 @@ before_install:
   - ulimit -a
 
 install:
+
   - touch ~/user-config.jam
   - 'if [[ $toolset == "gcc" ]]; then
       g++ --version;

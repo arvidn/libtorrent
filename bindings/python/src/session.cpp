@@ -955,6 +955,8 @@ void bind_session()
         .def("dht_put_mutable_item", &dht_put_mutable_item)
         .def("dht_get_peers", allow_threads(&lt::session::dht_get_peers))
         .def("dht_announce", allow_threads(&lt::session::dht_announce))
+        .def("dht_live_nodes", allow_threads(&lt::session::dht_live_nodes))
+        .def("dht_sample_infohashes", allow_threads(&lt::session::dht_sample_infohashes))
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
