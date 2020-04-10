@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -139,18 +140,32 @@ namespace aux {
 	}
 
 #ifdef TORRENT_USE_OPENSSL
-	namespace {
 
-	void nop(std::shared_ptr<void>) {}
-
-	void on_close_socket(socket_type* s, std::shared_ptr<void>)
+	struct socket_closer
 	{
-		COMPLETE_ASYNC("on_close_socket");
-		error_code ec;
-		s->close(ec);
-	}
+		socket_closer(io_service& e
+			, std::shared_ptr<void> holder
+			, socket_type* s)
+			: h(std::move(holder))
+			, t(std::make_shared<deadline_timer>(e))
+			, sock(s)
+		{
+			t->expires_after(seconds(3));
+			t->async_wait(*this);
+		}
 
-	} // anonymous namespace
+		void operator()(error_code const&)
+		{
+			COMPLETE_ASYNC("on_close_socket");
+			error_code ec;
+			sock->close(ec);
+			t->cancel();
+		}
+
+		std::shared_ptr<void> h;
+		std::shared_ptr<deadline_timer> t;
+		socket_type* sock;
+	};
 #endif
 
 	// the second argument is a shared pointer to an object that
@@ -167,16 +182,13 @@ namespace aux {
 #define MAYBE_ASIO_DEBUGGING
 #endif
 
-	static char const buffer[] = "";
-	// chasing the async_shutdown by a write is a trick to close the socket as
-	// soon as we've sent the close_notify, without having to wait to receive a
-	// response from the other end
-	// https://stackoverflow.com/questions/32046034/what-is-the-proper-way-to-securely-disconnect-an-asio-ssl-socket
-
+// we call ASIO_DEBUGGING twice, because the socket_closer callback will be
+// called twice
 #define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
 	MAYBE_ASIO_DEBUGGING \
-	s.get<ssl_stream<t>>()->async_shutdown(std::bind(&nop, holder)); \
-	s.get<ssl_stream<t>>()->async_write_some(boost::asio::buffer(buffer), std::bind(&on_close_socket, &s, holder)); \
+	MAYBE_ASIO_DEBUGGING \
+	s.get<ssl_stream<t>>()->async_shutdown( \
+		socket_closer(s.get_io_service(), std::move(holder), &s)); \
 	break;
 
 		switch (s.type())
