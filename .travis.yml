@@ -18,8 +18,8 @@ matrix:
         apt:
           packages:
           - python3-pip
-    - env: variant=test_debug tests=1 toolset=gcc-sanitizer fuzzers=1
-    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc-sanitizer
+    - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
+    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage
     - env: autotools=1 toolset=gcc install_boost=1
     - env: cmake=1 toolset=gcc install_boost=1
@@ -88,6 +88,7 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
+  - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
     travis_retry brew update > /dev/null && brew install ccache;
     fi'
@@ -132,17 +133,6 @@ install:
   - 'if [[ $toolset == "gcc" ]]; then
       g++ --version;
       echo "using gcc : : ccache g++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
-    fi'
-  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++ :
-        <cxxflags>-std=c++11
-        <compileflags>-fstack-protector-all
-        <compileflags>-fstack-check
-        <compileflags>-fsanitize=address,undefined
-        <compileflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fsanitize=address,undefined
-        <linkflags>-fno-sanitize-recover=address,undefined
-        <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++ --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
@@ -250,6 +240,9 @@ script:
   # the common boost-build command line arguments. It's important they are all
   # the same, in order for builds to be reused between invocations
   - export B2_ARGS="crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant"
+  - 'if [[ $sanitizer == "on" ]]; then
+      export B2_ARGS="${B2_ARGS} address-sanitizer=norecover undefined-sanitizer=norecover";
+    fi'
 
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$crypto" == "openssl" ]]; then
     export B2_ARGS="${B2_ARGS} openssl-lib=/usr/local/opt/openssl@1.1/lib openssl-include=/usr/local/opt/openssl@1.1/include" ;
@@ -278,7 +271,7 @@ script:
   # rebuilding libtorrent itself.
   - cd ../fuzzers
   - 'if [ "$fuzzers" == "1" ]; then
-      ${B2} -j2 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant sanitize=off fuzz=off link=shared stage;
+      ${B2} -j2 warnings-as-errors=on warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant fuzz=off link=shared stage;
     fi'
 
   - cd ../examples
