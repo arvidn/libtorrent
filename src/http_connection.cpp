@@ -52,17 +52,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
+#include "libtorrent/ssl.hpp"
 
 #include <functional>
 #include <string>
 #include <algorithm>
 #include <sstream>
-
-#if TORRENT_USE_SSL
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 
 using namespace std::placeholders;
 

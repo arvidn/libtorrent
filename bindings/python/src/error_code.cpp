@@ -49,7 +49,7 @@ namespace boost
 
 #include <boost/asio/error.hpp>
 #if TORRENT_USE_SSL
-#include <boost/asio/ssl.hpp>
+#include <libtorrent/ssl.hpp>
 #endif
 #if TORRENT_USE_I2P
 #include <libtorrent/i2p_stream.hpp>

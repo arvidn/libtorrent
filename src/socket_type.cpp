@@ -34,15 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
-#include "libtorrent/aux_/openssl.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/deadline_timer.hpp"
-
-#if TORRENT_USE_SSL
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/ssl/rfc2818_verification.hpp>
-
-#endif
+#include "libtorrent/ssl.hpp"
 
 #include "libtorrent/debug.hpp"
 
@@ -170,17 +164,17 @@ namespace aux {
 		template <typename T>
 		void operator()(ssl_stream<T>& s)
 		{
-			s.set_verify_callback(boost::asio::ssl::rfc2818_verification(hostname_), *ec_);
-			ssl_ = s.native_handle();
-			ctx_ = SSL_get_SSL_CTX(ssl_);
+			s.set_verify_callback(ssl::rfc2818_verification(hostname_), *ec_);
+			ssl_ = s.handle();
+			ctx_ = s.context_handle();
 		}
 		template <typename T>
 		void operator()(T&) {}
 
 		char const* hostname_;
 		error_code* ec_;
-		SSL* ssl_ = nullptr;
-		SSL_CTX* ctx_ = nullptr;
+		ssl::stream_handle_type ssl_ = nullptr;
+		ssl::context_handle_type ctx_ = nullptr;
 	};
 #endif
 
@@ -194,16 +188,10 @@ namespace aux {
 		boost::apply_visitor(visitor, s);
 
 		if (visitor.ctx_)
-		{
-			aux::openssl_set_tlsext_servername_callback(visitor.ctx_, nullptr);
-			aux::openssl_set_tlsext_servername_arg(visitor.ctx_, nullptr);
-		}
+			ssl::set_server_name_callback(visitor.ctx_, nullptr, nullptr, ec);
 
 		if (visitor.ssl_)
-		{
-			aux::openssl_set_tlsext_hostname(visitor.ssl_, hostname.c_str());
-		}
-
+			ssl::set_host_name(visitor.ssl_, hostname, ec);
 #else
 		TORRENT_UNUSED(ec);
 		TORRENT_UNUSED(hostname);

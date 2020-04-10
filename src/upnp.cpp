@@ -48,18 +48,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/ssl.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
 #endif
-#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#if TORRENT_USE_SSL
-#include <boost/asio/ssl/context.hpp>
-#endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdlib>

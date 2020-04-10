@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/openssl.hpp"
 
 namespace libtorrent {
 

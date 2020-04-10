@@ -49,20 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/link.hpp" // for torrent_list_index_t
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/ssl.hpp"
 
 #include <functional>
 #include <memory>
-
-#ifdef TORRENT_SSL_PEERS
-// there is no forward declaration header for asio
-namespace boost {
-namespace asio {
-namespace ssl {
-	class context;
-}
-}
-}
-#endif
 
 namespace libtorrent {
 
@@ -291,7 +281,7 @@ namespace aux {
 		virtual libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
 #endif
 #if TORRENT_USE_SSL
-		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
+		virtual ssl::context* ssl_ctx() = 0 ;
 #endif
 
 #if !defined TORRENT_DISABLE_ENCRYPTION

@@ -36,19 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include "libtorrent/config.hpp" // for TORRENT_USE_SSL
-
-#if TORRENT_USE_SSL
-// there is no forward declaration header for asio
-namespace boost {
-namespace asio {
-namespace ssl {
-	class context;
-}
-}
-}
-#endif
-
 #include <functional>
 #include <vector>
 #include <string>
@@ -63,6 +50,7 @@ namespace ssl {
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/optional.hpp"
+#include "libtorrent/ssl.hpp"
 
 namespace libtorrent {
 
