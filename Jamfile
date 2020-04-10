@@ -379,62 +379,8 @@ rule openssl-include-path ( properties * )
 	return $(result) ;
 }
 
-path-constant blacklist-file : tools/sanitizer-blacklist.txt ;
-
-rule sanitizer-options ( properties * )
-{
-	local result ;
-	if <sanitize>on in $(properties)
-	{
-		local sanitizers ;
-		local extra ;
-		local flags ;
-   
-		# sanitize is a clang and GCC feature
-		if <toolset>clang in $(properties)
-		{
-			local version = [ feature.get-values <toolset-clang:version> : $(properties) ] ;
-			# implicit-conversion sanitizer was added in clang-7
-			if $(version) >= 7.0 {
-				sanitizers += address,undefined,leak,implicit-conversion ;
-			}
-			else {
-				sanitizers += address,undefined,leak ;
-			}
-			extra = <cflags>-fsanitize-blacklist=$(blacklist-file) ;
-			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
-		}
-		# sanitizers are not available on windows (mingw)
-		else if <toolset>gcc in $(properties) && ! <target-os>windows in $(properties)
-		{
-			local version = [ feature.get-values <toolset-gcc:version> : $(properties) ] ;
-			if $(version) >= 7.0 {
-				extra = <cflags>-fsanitize-address-use-after-scope ;
-			}
-			if $(version) >= 5.0 {
-				sanitizers = address,undefined,leak ;
-				flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
-			}
-		}
-		else if <toolset>darwin in $(properties)
-		{
-			# apple's compiler is typically an old version of clang
-			sanitizers = address,undefined ;
-			flags = -fsanitize=$(sanitizers) -fno-sanitize-recover=all ;
-		}
-
-		result = <cflags>$(flags) <linkflags>$(flags) $(extra) ;
-	}
-	return $(result) ;
-}
-
 feature openssl-lib : : free path ;
 feature openssl-include : : free path ;
-
-feature sanitize : off rtc on : composite propagated link-incompatible ;
-
-# RTC (runtime check) is an msvc feature
-feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
 feature test-coverage : off on : composite propagated link-incompatible ;
 feature.compose <test-coverage>on : <cflags>--coverage <linkflags>--coverage ;
@@ -791,7 +737,6 @@ local usage-requirements =
 # make sure asio uses std::chrono
 	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<conditional>@linking
-	<conditional>@sanitizer-options
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"
