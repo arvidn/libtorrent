@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/aux_/openssl.hpp" // for ssl::context
+#include "libtorrent/ssl.hpp"
 
 #include <memory>
 #include <functional>

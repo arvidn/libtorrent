@@ -39,20 +39,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/time.hpp"
-#include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/ssl.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 
+#if TORRENT_USE_SSL
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/asio/connect.hpp>
-
-#ifdef TORRENT_SSL_PEERS
-#include <boost/asio/ssl.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
@@ -104,8 +101,8 @@ bool on_alert(alert const* a)
 	{
 		++peer_disconnects;
 		string_view const cat = e->error.category().name();
-		if (cat == boost::asio::error::get_ssl_category().name()
-			|| cat == boost::asio::ssl::error::get_stream_category().name())
+		if (cat == ssl::error::get_ssl_category().name()
+			|| cat == ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -118,8 +115,8 @@ bool on_alert(alert const* a)
 		++peer_errors;
 
 		string_view const cat = e->error.category().name();
-		if (cat == boost::asio::error::get_ssl_category().name()
-			|| cat == boost::asio::ssl::error::get_stream_category().name())
+		if (cat == ssl::error::get_ssl_category().name()
+			|| cat == ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -309,13 +306,6 @@ void test_ssl(int const test_idx, bool const use_utp)
 	p2 = ses2.abort();
 }
 
-std::string password_callback(std::size_t /*length*/, boost::asio::ssl::context::password_purpose p
-	, std::string pw)
-{
-	if (p != boost::asio::ssl::context::for_reading) return "";
-	return pw;
-}
-
 struct attack_t
 {
 	// flags controlling the connection attempt
@@ -355,7 +345,7 @@ const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 bool try_connect(lt::session& ses1, int port
 	, std::shared_ptr<torrent_info> const& t, std::uint32_t flags)
 {
-	using boost::asio::ssl::context;
+	using ssl::context;
 
 	std::printf("\nMALICIOUS PEER TEST: ");
 	if (flags & invalid_certificate) std::printf("invalid-certificate ");
@@ -377,11 +367,12 @@ bool try_connect(lt::session& ses1, int port
 	// create the SSL context for this torrent. We need to
 	// inject the root certificate, and no other, to
 	// verify other peers against
-	context ctx(context::sslv23);
+	context ctx(context::tls);
 
 	ctx.set_options(context::default_workarounds
-		| boost::asio::ssl::context::no_sslv2
-		| boost::asio::ssl::context::single_dh_use);
+		| context::no_sslv2
+		| context::no_sslv3
+		| context::single_dh_use);
 
 	// we're a malicious peer, we don't have any interest
 	// in verifying peers
@@ -409,10 +400,12 @@ bool try_connect(lt::session& ses1, int port
 	if (flags & (valid_certificate | invalid_certificate))
 	{
 		std::printf("set_password_callback\n");
-		ctx.set_password_callback(std::bind(&password_callback, _1, _2, "test"), ec);
+		ctx.set_password_callback(
+			[](std::size_t, context::password_purpose) { return "test"; }
+			, ec);
 		if (ec)
 		{
-			std::printf("Failed to set certificate password callback: %s\n"
+			std::printf("Failed to set certificate passphrase: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(!ec);
 			return false;
@@ -446,7 +439,7 @@ bool try_connect(lt::session& ses1, int port
 		}
 	}
 
-	boost::asio::ssl::stream<tcp::socket> ssl_sock(ios, ctx);
+	ssl::stream<tcp::socket> ssl_sock(ios, ctx);
 
 	std::printf("connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
@@ -465,7 +458,8 @@ bool try_connect(lt::session& ses1, int port
 	{
 		std::string name = aux::to_hex(t->info_hash().v1);
 		std::printf("SNI: %s\n", name.c_str());
-		aux::openssl_set_tlsext_hostname(ssl_sock.native_handle(), name.c_str());
+		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
+		TEST_CHECK(!ec);
 	}
 	else if (flags & invalid_sni_hash)
 	{
@@ -476,11 +470,12 @@ bool try_connect(lt::session& ses1, int port
 			name += hex_alphabet[rand() % 16];
 
 		std::printf("SNI: %s\n", name.c_str());
-		aux::openssl_set_tlsext_hostname(ssl_sock.native_handle(), name.c_str());
+		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
+		TEST_CHECK(!ec);
 	}
 
 	std::printf("SSL handshake\n");
-	ssl_sock.handshake(boost::asio::ssl::stream_base::client, ec);
+	ssl_sock.handshake(ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, &on_alert);
 	if (ec)

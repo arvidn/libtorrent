@@ -575,14 +575,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
-#if defined TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL || defined TORRENT_USE_GNUTLS
 #define TORRENT_USE_SSL 1
 #else
 #define TORRENT_USE_SSL 0
 #endif
 
 #if defined TORRENT_SSL_PEERS && !TORRENT_USE_SSL
-#error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL
+#error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL or TORRENT_USE_GNUTLS
 #endif
 
 #include "libtorrent/aux_/export.hpp"

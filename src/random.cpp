@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/aux_/openssl.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
 #if defined BOOST_NO_CXX11_THREAD_LOCAL

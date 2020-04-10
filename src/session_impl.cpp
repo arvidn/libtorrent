@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ts/executor.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/aux_/openssl.hpp"
+#include "libtorrent/ssl.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -155,28 +155,6 @@ namespace {
 }
 
 #endif // TORRENT_USE_LIBGCRYPT
-
-#if TORRENT_USE_SSL
-
-#include <openssl/crypto.h>
-
-// by openssl changelog at https://www.openssl.org/news/changelog.html
-// Changes between 1.0.2h and 1.1.0  [25 Aug 2016]
-// - Most global cleanup functions are no longer required because they are handled
-//   via auto-deinit. Affected function CRYPTO_cleanup_all_ex_data()
-#if !defined(OPENSSL_API_COMPAT) || OPENSSL_API_COMPAT < 0x10100000L
-namespace {
-
-	// openssl requires this to clean up internal
-	// structures it allocates
-	struct openssl_cleanup
-	{
-		~openssl_cleanup() { CRYPTO_cleanup_all_ex_data(); }
-	} openssl_global_destructor;
-}
-#endif
-
-#endif // TORRENT_USE_SSL
 
 #ifdef TORRENT_WINDOWS
 // for ERROR_SEM_TIMEOUT
@@ -452,67 +430,72 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
-#if defined TORRENT_SSL_PEERS
+#ifdef TORRENT_SSL_PEERS
 	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
 	// be the hex encoded info-hash
-	int servername_callback(SSL* s, int*, void* arg)
+	bool ssl_server_name_callback_impl(ssl::stream_handle_type stream_handle, std::string const& name, session_impl* si)
 	{
-		auto* ses = reinterpret_cast<session_impl*>(arg);
-		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
-
-		if (!servername || std::strlen(servername) < 40)
-			return SSL_TLSEXT_ERR_ALERT_FATAL;
+		if (name.size() < 40)
+			return false;
 
 		info_hash_t info_hash;
-		bool valid = aux::from_hex({servername, 40}, info_hash.v1.data());
+		bool valid = aux::from_hex({name.c_str(), 40}, info_hash.v1.data());
 
 		// the server name is not a valid hex-encoded info-hash
 		if (!valid)
-			return SSL_TLSEXT_ERR_ALERT_FATAL;
+			return false;
 
 		// see if there is a torrent with this info-hash
-		std::shared_ptr<torrent> t = ses->find_torrent(info_hash).lock();
+		std::shared_ptr<torrent> t = si ? si->find_torrent(info_hash).lock() : nullptr;
 
 		// if there isn't, fail
-		if (!t) return SSL_TLSEXT_ERR_ALERT_FATAL;
+		if (!t) return false;
 
 		// if the torrent we found isn't an SSL torrent, also fail.
-		if (!t->is_ssl_torrent()) return SSL_TLSEXT_ERR_ALERT_FATAL;
+		if (!t->is_ssl_torrent()) return false;
 
 		// if the torrent doesn't have an SSL context and should not allow
 		// incoming SSL connections
-		if (!t->ssl_ctx()) return SSL_TLSEXT_ERR_ALERT_FATAL;
+		auto* torrent_ctx = t->ssl_ctx();
+		if (!torrent_ctx) return false;
 
 		// use this torrent's certificate
-		SSL_CTX *torrent_context = t->ssl_ctx()->native_handle();
-
-		SSL_set_SSL_CTX(s, torrent_context);
-		SSL_set_verify(s, SSL_CTX_get_verify_mode(torrent_context)
-			, SSL_CTX_get_verify_callback(torrent_context));
-
-		return SSL_TLSEXT_ERR_OK;
+		ssl::set_context(stream_handle, ssl::get_handle(*torrent_ctx));
+		return true;
 	}
-	} // anonymous namespace
+
+#if defined TORRENT_USE_OPENSSL
+int ssl_server_name_callback(SSL* s, int*, void* arg)
+{
+	char const* name = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
+	session_impl* si = reinterpret_cast<session_impl*>(arg);
+	return ssl_server_name_callback_impl(s, name ? std::string(name) : "", si)
+			? SSL_TLSEXT_ERR_OK
+			: SSL_TLSEXT_ERR_ALERT_FATAL;
+}
+#elif defined TORRENT_USE_GNUTLS
+bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string const& name, void* arg)
+{
+	session_impl* si = reinterpret_cast<session_impl*>(arg);
+	return ssl_server_name_callback_impl(stream_handle, name, si);
+}
 #endif
+	} // anonymous namespace
+#endif // TORRENT_SSL_PEERS
 
 	session_impl::session_impl(io_context& ioc, settings_pack const& pack
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_context(ioc)
 #if TORRENT_USE_SSL
-#if BOOST_VERSION >= 106400
 		, m_ssl_ctx(ssl::context::tls_client)
-#endif
 #ifdef TORRENT_SSL_PEERS
 		, m_peer_ssl_ctx(ssl::context::tls)
-#else
-		, m_ssl_ctx(ssl::context::tlsv12_client)
-		, m_peer_ssl_ctx(ssl::context::tlsv12)
 #endif
-#endif
+#endif // TORRENT_USE_SSL
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
 		, m_disk_thread((disk_io_constructor ? disk_io_constructor : default_disk_io_constructor)
@@ -597,10 +580,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		m_ssl_ctx.set_default_verify_paths(ec);
 #endif
 #ifdef TORRENT_SSL_PEERS
-		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
-		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
-			, servername_callback);
-		aux::openssl_set_tlsext_servername_arg(m_peer_ssl_ctx.native_handle(), this);
+		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
+		ssl::set_server_name_callback(ssl::get_handle(m_peer_ssl_ctx), ssl_server_name_callback, this, ec);
 #endif // TORRENT_SSL_PEERS
 
 #ifndef TORRENT_DISABLE_DHT
@@ -6519,12 +6500,11 @@ namespace {
 	void session_impl::update_validate_https()
 	{
 #if TORRENT_USE_SSL
-		using boost::asio::ssl::context;
 		auto const flags = m_settings.get_bool(settings_pack::validate_https_trackers)
-			? context::verify_peer
-				| context::verify_fail_if_no_peer_cert
-				| context::verify_client_once
-			: context::verify_none;
+			? ssl::context::verify_peer
+				| ssl::context::verify_fail_if_no_peer_cert
+				| ssl::context::verify_client_once
+			: ssl::context::verify_none;
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(flags, ec);
 #endif

@@ -60,11 +60,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #ifdef TORRENT_SSL_PEERS
+#include "libtorrent/ssl.hpp"
 #include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/ssl/verify_context.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // TORRENT_SSL_PEERS
 
 #include "libtorrent/torrent.hpp"
@@ -115,6 +112,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
+#include "libtorrent/ssl.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -1384,16 +1382,25 @@ bool is_downloading_state(int const st)
 #endif
 
 #ifdef TORRENT_SSL_PEERS
-
-	bool torrent::verify_peer_cert(bool const preverified, boost::asio::ssl::verify_context& ctx)
+	bool torrent::verify_peer_cert(std::string const& expected, bool preverified, ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
 		if (!preverified) return false;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		std::string names;
+		bool match = false;
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
 		// we're only interested in checking the certificate at the end of the chain.
-		// TODO: is verify_peer_cert called once per certificate in the chain, and
-		// this function just tells us which depth we're at right now? If so, the comment
-		// makes sense.
 		// any certificate that isn't the leaf (i.e. the one presented by the peer)
 		// should be accepted automatically, given preverified is true. The leaf certificate
 		// need to be verified to make sure its DN matches the info-hash
@@ -1406,13 +1413,9 @@ bool is_downloading_state(int const st)
 		auto* gens = static_cast<GENERAL_NAMES*>(
 			X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
 
-#ifndef TORRENT_DISABLE_LOGGING
-		std::string names;
-		bool match = false;
-#endif
-		for (int i = 0; i < aux::openssl_num_general_names(gens); ++i)
+		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
 		{
-			GENERAL_NAME* gen = aux::openssl_general_name_value(gens, i);
+			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
@@ -1424,7 +1427,7 @@ bool is_downloading_state(int const st)
 			names.append(torrent_name, name_length);
 #endif
 			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				match = true;
@@ -1456,9 +1459,64 @@ bool is_downloading_state(int const st)
 			if (!names.empty()) names += " | n: ";
 			names.append(torrent_name, name_length);
 #endif
-
 			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
+			{
+#ifdef TORRENT_DISABLE_LOGGING
+				return true;
+#else
+				match = true;
+#endif
+
+			}
+		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#elif defined TORRENT_USE_GNUTLS
+		gnutls_x509_crt_t cert = ctx.native_handle();
+
+		// We don't use gnutls_x509_crt_check_hostname()
+		// as it doesn't handle wildcards the way we need here
+
+		char buf[256];
+		unsigned int seq = 0;
+		while(true) {
+			size_t len = sizeof(buf);
+			int ret = gnutls_x509_crt_get_subject_alt_name(cert, seq, buf, &len, nullptr);
+			if(ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) break;
+			if(ret == GNUTLS_E_SUCCESS)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (!names.empty()) names += " | n: ";
+				names.append(buf, len);
+#endif
+				if (std::strncmp(buf, "*", len) == 0
+					|| std::strncmp(buf, expected.c_str(), len) == 0)
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					match = true;
+					continue;
+#else
+					return true;
+#endif
+				}
+			}
+			++seq;
+		}
+
+		// no match in the alternate names, so try the common name
+		size_t len = sizeof(buf);
+		int ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
+		if(ret == GNUTLS_E_SUCCESS)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (!names.empty()) names += " | n: ";
+			names.append(buf, len);
+#endif
+			if (std::strncmp(buf, "*", len) == 0
+				|| std::strncmp(buf, expected.c_str(), len) == 0)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;
@@ -1467,6 +1525,7 @@ bool is_downloading_state(int const st)
 #endif
 			}
 		}
+#endif // TORRENT_USE_GNUTLS
 
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("<== incoming SSL CONNECTION [ n: %s | match: %s ]"
@@ -1479,37 +1538,20 @@ bool is_downloading_state(int const st)
 
 	void torrent::init_ssl(string_view cert)
 	{
-		using boost::asio::ssl::context;
-
-		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
-#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
-		OpenSSL_add_all_algorithms();
-#else
-		OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, nullptr);
-#endif
-
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		std::unique_ptr<context> ctx(std::make_unique<context>(context::tls));
+		std::unique_ptr<ssl::context> ctx(std::make_unique<ssl::context>(ssl::context::tls));
 
-		if (!ctx)
-		{
-			error_code ec(int(::ERR_get_error()),
-				boost::asio::error::get_ssl_category());
-			set_error(ec, torrent_status::error_file_ssl_ctx);
-			pause();
-			return;
-		}
-
-		ctx->set_options(context::default_workarounds
-			| context::no_sslv2
-			| context::single_dh_use);
+		ctx->set_options(ssl::context::default_workarounds
+			| ssl::context::no_sslv2
+			| ssl::context::no_sslv3
+			| ssl::context::single_dh_use);
 
 		error_code ec;
-		ctx->set_verify_mode(context::verify_peer
-			| context::verify_fail_if_no_peer_cert
-			| context::verify_client_once, ec);
+		ctx->set_verify_mode(ssl::context::verify_peer
+			| ssl::context::verify_fail_if_no_peer_cert
+			| ssl::context::verify_client_once, ec);
 		if (ec)
 		{
 			set_error(ec, torrent_status::error_file_ssl_ctx);
@@ -1520,7 +1562,9 @@ bool is_downloading_state(int const st)
 		// the verification function verifies the distinguished name
 		// of a peer certificate to make sure it matches the info-hash
 		// of the torrent, or that it's a "star-cert"
-		ctx->set_verify_callback(std::bind(&torrent::verify_peer_cert, this, _1, _2), ec);
+		ctx->set_verify_callback(
+				std::bind(&torrent::verify_peer_cert, this, m_torrent_file->name(), _1, _2)
+				, ec);
 		if (ec)
 		{
 			set_error(ec, torrent_status::error_file_ssl_ctx);
@@ -1528,46 +1572,15 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		SSL_CTX* ssl_ctx = ctx->native_handle();
-		// create a new x.509 certificate store
-		X509_STORE* cert_store = X509_STORE_new();
-		if (!cert_store)
+		// set the root certificate as trust
+		ssl::set_trust_certificate(ctx->native_handle(), cert, ec);
+		if (ec)
 		{
-			ec.assign(int(::ERR_get_error()),
-				boost::asio::error::get_ssl_category());
 			set_error(ec, torrent_status::error_file_ssl_ctx);
 			pause();
 			return;
 		}
 
-		// wrap the PEM certificate in a BIO, for openssl to read
-		BIO* bp = BIO_new_mem_buf(
-			const_cast<void*>(static_cast<void const*>(cert.data()))
-			, int(cert.size()));
-
-		// parse the certificate into OpenSSL's internal
-		// representation
-		X509* certificate = PEM_read_bio_X509_AUX(bp, nullptr, nullptr, nullptr);
-
-		BIO_free(bp);
-
-		if (!certificate)
-		{
-			ec.assign(int(::ERR_get_error()),
-				boost::asio::error::get_ssl_category());
-			X509_STORE_free(cert_store);
-			set_error(ec, torrent_status::error_file_ssl_ctx);
-			pause();
-			return;
-		}
-
-		// add cert to cert_store
-		X509_STORE_add_cert(cert_store, certificate);
-
-		X509_free(certificate);
-
-		// and lastly, replace the default cert store with ours
-		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
 #if 0
 		char filename[100];
 		std::snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
@@ -1576,6 +1589,7 @@ bool is_downloading_state(int const st)
 		fclose(f);
 		ctx->load_verify_file(filename);
 #endif
+
 		// if all went well, set the torrent ssl context to this one
 		m_ssl_ctx = std::move(ctx);
 		// tell the client we need a cert for this torrent
@@ -5641,17 +5655,6 @@ namespace {
 	}
 
 #ifdef TORRENT_SSL_PEERS
-	namespace {
-		std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
-			, std::string pw)
-		{
-			TORRENT_UNUSED(length);
-
-			if (p != boost::asio::ssl::context::for_reading) return "";
-			return pw;
-		}
-	}
-
 	// certificate is a filename to a .pem file which is our
 	// certificate. The certificate must be signed by the root
 	// cert of the torrent file. any peer we connect to or that
@@ -5670,15 +5673,19 @@ namespace {
 			return;
 		}
 
-		using boost::asio::ssl::context;
 		error_code ec;
-		m_ssl_ctx->set_password_callback(std::bind(&password_callback, _1, _2, passphrase), ec);
+		m_ssl_ctx->set_password_callback(
+				[passphrase](std::size_t, ssl::context::password_purpose purpose)
+				{
+					return purpose == ssl::context::for_reading ? passphrase : "";
+				}
+				, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, "");
 		}
-		m_ssl_ctx->use_certificate_file(certificate, context::pem, ec);
+		m_ssl_ctx->use_certificate_file(certificate, ssl::context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
@@ -5688,7 +5695,7 @@ namespace {
 		if (should_log())
 			debug_log("*** use certificate file: %s", ec.message().c_str());
 #endif
-		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
+		m_ssl_ctx->use_private_key_file(private_key, ssl::context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
@@ -5718,9 +5725,8 @@ namespace {
 
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
-		using boost::asio::ssl::context;
 		error_code ec;
-		m_ssl_ctx->use_certificate(certificate_buf, context::pem, ec);
+		m_ssl_ctx->use_certificate(certificate_buf, ssl::context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
@@ -5728,7 +5734,7 @@ namespace {
 		}
 
 		boost::asio::const_buffer private_key_buf(private_key.c_str(), private_key.size());
-		m_ssl_ctx->use_private_key(private_key_buf, context::pem, ec);
+		m_ssl_ctx->use_private_key(private_key_buf, ssl::context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
@@ -6966,12 +6972,15 @@ namespace {
 		std::string const& hostname_;
 	};
 
-	struct ssl_native_handle_visitor
+	struct ssl_handle_visitor
 	{
 		template <typename T>
-		SSL* operator()(T&) { return nullptr; }
+		ssl::stream_handle_type operator()(T&)
+		{ return nullptr; }
+
 		template <typename T>
-		SSL* operator()(ssl_stream<T>& s) { return s.native_handle(); }
+		ssl::stream_handle_type operator()(ssl_stream<T>& s)
+		{ return s.handle(); }
 	};
 #endif
 
@@ -7327,9 +7336,9 @@ namespace {
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			aux::socket_type& s = p->get_socket();
 
-			SSL* const ssl_conn = boost::apply_visitor(ssl_native_handle_visitor{}, s);
+			auto stream_handle = boost::apply_visitor(ssl_handle_visitor{}, s);
 
-			if (ssl_conn == nullptr)
+			if (!stream_handle)
 			{
 				// don't allow non SSL peers on SSL torrents
 				p->disconnect(errors::requires_ssl_connection, operation_t::bittorrent);
@@ -7343,9 +7352,9 @@ namespace {
 				return false;
 			}
 
-			if (SSL_get_SSL_CTX(ssl_conn) != m_ssl_ctx->native_handle())
+			if (!ssl::has_context(stream_handle, ssl::get_handle(*m_ssl_ctx)))
 			{
-				// if the SSL_CTX associated with this connection is
+				// if the SSL context associated with this connection is
 				// not the one belonging to this torrent, the SSL handshake
 				// connected to one torrent, and the BitTorrent protocol
 				// to a different one. This is probably an attempt to circumvent

@@ -148,7 +148,9 @@ set(libtorrent_include_files
 	web_connection_base
 	web_peer_connection
 	write_resume_data
-	xml_parse)
+	xml_parse
+	ssl/context
+	ssl/stream)
 
 set(libtorrent_kademlia_include_files
 	announce_flags
@@ -230,7 +232,7 @@ set(libtorrent_aux_include_files
 	merkle
 	noexcept_movable
 	numeric_cast
-	openssl
+	ssl
 	packet_buffer
 	packet_pool
 	path
@@ -331,7 +333,6 @@ set(sources
 	instantiate_connection
 	merkle
 	natpmp
-	openssl
 	part_file
 	packet_buffer
 	piece_picker
@@ -401,6 +402,7 @@ set(sources
 	mmap_storage
 	posix_disk_io
 	posix_storage
+	ssl
 
 # -- extensions --
 	ut_pex

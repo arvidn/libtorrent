@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/ssl.hpp"
 
 using namespace std::placeholders;
 

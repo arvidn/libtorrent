@@ -48,17 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <unordered_map>
 
-#if TORRENT_USE_SSL
-// there is no forward declaration header for asio
-namespace boost {
-namespace asio {
-namespace ssl {
-	class context;
-}
-}
-}
-#endif
-
 #include "libtorrent/flags.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/fwd.hpp"
@@ -74,6 +63,7 @@ namespace ssl {
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/udp_socket.hpp"
+#include "libtorrent/ssl.hpp"
 
 namespace libtorrent {
 
@@ -147,7 +137,7 @@ enum class event_t : std::uint8_t
 		bool triggered_manually = false;
 
 #if TORRENT_USE_SSL
-		boost::asio::ssl::context* ssl_ctx = nullptr;
+		ssl::context* ssl_ctx = nullptr;
 #endif
 #if TORRENT_USE_I2P
 		i2p_connection* i2pconn = nullptr;
