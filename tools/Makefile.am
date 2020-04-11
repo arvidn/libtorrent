@@ -22,8 +22,9 @@ dht_put_SOURCES = dht_put.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
+AM_CPPFLAGS = -ftemplate-depth-50 @DEBUGFLAGS@
 
 AM_LDFLAGS = @BOOST_SYSTEM_LIB@
 #AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 #AM_LDFLAGS = @OPENSSL_LDFLAGS@
+DEFAULT_INCLUDES = -I$(top_srcdir)/include
