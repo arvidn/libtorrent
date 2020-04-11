@@ -757,7 +757,6 @@ lib torrent
 	src/$(SOURCES).cpp
 
 	: # requirements
-	<include>./ed25519/src
 	<threading>multi
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED

@@ -669,7 +669,6 @@ if (dht)
 		src/hasher512
 		src/sha512
 	)
-	target_include_directories(torrent-rasterbar PRIVATE ed25519/src)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()
