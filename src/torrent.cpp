@@ -1873,6 +1873,9 @@ bool is_downloading_state(int const st)
 		if (m_add_torrent_params)
 		{
 			piece_index_t idx(0);
+			if (m_add_torrent_params->piece_priorities.size() > std::size_t(m_torrent_file->num_pieces()))
+				m_add_torrent_params->piece_priorities.resize(std::size_t(m_torrent_file->num_pieces()));
+
 			for (auto prio : m_add_torrent_params->piece_priorities)
 			{
 				if (has_picker() || prio != default_priority)
@@ -5054,7 +5057,12 @@ bool is_downloading_state(int const st)
 		INVARIANT_CHECK;
 
 		// this call is only valid on torrents with metadata
-		TORRENT_ASSERT(valid_metadata());
+		if (!valid_metadata())
+		{
+			pieces->clear();
+			return;
+		}
+
 		if (!has_picker())
 		{
 			pieces->clear();

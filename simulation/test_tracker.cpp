@@ -1116,6 +1116,7 @@ TORRENT_TEST(tracker_ipv6_argument)
 			pack.set_str(settings_pack::listen_interfaces, "123.0.0.3:0,[ffff::1337]:0");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1154,6 +1155,7 @@ TORRENT_TEST(tracker_key_argument)
 		[](lt::add_torrent_params& p, lt::session&)
 		{
 			p.ti = make_torrent(true);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string, std::string req
@@ -1184,6 +1186,7 @@ TORRENT_TEST(tracker_ipv6_argument_non_private)
 			pack.set_bool(settings_pack::anonymous_mode, false);
 			ses.apply_settings(pack);
 			p.ti = make_torrent(false);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1212,6 +1215,7 @@ TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
 			pack.set_bool(settings_pack::anonymous_mode, true);
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1240,6 +1244,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_public_torrent)
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(false);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1267,6 +1272,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
+			p.info_hash.clear();
 			return 60;
 		},
 		[&](std::string method, std::string req
