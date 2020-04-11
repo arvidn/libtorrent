@@ -4829,6 +4829,14 @@ namespace {
 			return std::make_pair(ptr_t(), false);
 		}
 
+		if (params.ti
+			&& !params.info_hash.is_all_zeros()
+			&& params.info_hash != params.ti->info_hash())
+		{
+			ec = errors::mismatching_info_hash;
+			return std::make_pair(ptr_t(), false);
+		}
+
 #ifndef TORRENT_DISABLE_DHT
 		// add params.dht_nodes to the DHT, if enabled
 		for (auto const& n : params.dht_nodes)
