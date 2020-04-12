@@ -6122,6 +6122,7 @@ namespace {
 // TODO: asserts that no outstanding async operations are still in flight
 
 		// this can happen if we end the io_service run loop with an exception
+		m_connections.clear();
 		for (auto& t : m_torrents)
 		{
 			t.second->panic();

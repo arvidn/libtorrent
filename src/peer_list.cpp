@@ -96,7 +96,6 @@ namespace libtorrent {
 
 	void peer_list::clear()
 	{
-		INVARIANT_CHECK;
 		for (auto const p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 		m_peers.clear();
