@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -211,32 +212,47 @@ namespace aux {
 	}
 
 #ifdef TORRENT_USE_OPENSSL
-	namespace {
 
-	void nop(std::shared_ptr<void>) {}
-
-	void on_close_socket(socket_type* s, std::shared_ptr<void>)
+	struct socket_closer
 	{
-		COMPLETE_ASYNC("on_close_socket");
-		error_code ec;
-		s->close(ec);
-	}
+		socket_closer(io_context& ioc
+			, std::shared_ptr<void> holder
+			, socket_type* s)
+			: h(std::move(holder))
+			, t(std::make_shared<deadline_timer>(ioc))
+			, sock(s)
+		{
+			t->expires_after(seconds(3));
+			t->async_wait(*this);
+		}
 
-	} // anonymous namespace
-#endif
+		void operator()(error_code const&)
+		{
+			COMPLETE_ASYNC("on_close_socket");
+			error_code ec;
+			sock->close(ec);
+			t->cancel();
+		}
 
-#ifdef TORRENT_USE_OPENSSL
+		std::shared_ptr<void> h;
+		std::shared_ptr<deadline_timer> t;
+		socket_type* sock;
+	};
+
 	struct issue_async_shutdown_visitor
 	{
-		issue_async_shutdown_visitor(socket_type* s, std::shared_ptr<void>* h, boost::asio::const_buffer b)
-			: holder_(h), sock_type_(s), buffer_(b) {}
+		issue_async_shutdown_visitor(socket_type* s, std::shared_ptr<void> h)
+			: holder_(std::move(h)), sock_type_(s) {}
 
 		template <typename T>
 		void operator()(ssl_stream<T>& s)
 		{
+			// we do this twice, because the socket_closer callback will be
+			// called twice
 			ADD_OUTSTANDING_ASYNC("on_close_socket");
-			s.async_shutdown(std::bind(&nop, *holder_));
-			s.async_write_some(buffer_, std::bind(&on_close_socket, sock_type_, *holder_));
+			ADD_OUTSTANDING_ASYNC("on_close_socket");
+			s.async_shutdown(socket_closer(static_cast<io_context&>(s.get_executor().context())
+				, std::move(holder_), sock_type_));
 		}
 		template <typename T>
 		void operator()(T& s)
@@ -244,9 +260,8 @@ namespace aux {
 			error_code e;
 			s.close(e);
 		}
-		std::shared_ptr<void>* holder_;
+		std::shared_ptr<void> holder_;
 		socket_type* sock_type_;
-		boost::asio::const_buffer buffer_;
 	};
 #endif
 
@@ -255,15 +270,7 @@ namespace aux {
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder)
 	{
 #ifdef TORRENT_USE_OPENSSL
-		// for SSL connections, first do an async_shutdown, before closing the socket
-
-		static char const buffer[] = "";
-		// chasing the async_shutdown by a write is a trick to close the socket as
-		// soon as we've sent the close_notify, without having to wait to receive a
-		// response from the other end
-		// https://stackoverflow.com/questions/32046034/what-is-the-proper-way-to-securely-disconnect-an-asio-ssl-socket
-
-		boost::apply_visitor(issue_async_shutdown_visitor{&s, &holder, boost::asio::buffer(buffer)}, s);
+		boost::apply_visitor(issue_async_shutdown_visitor{&s, std::move(holder)}, s);
 #else
 		TORRENT_UNUSED(holder);
 		error_code e;

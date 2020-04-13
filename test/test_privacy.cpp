@@ -161,7 +161,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	std::vector<std::string> accepted_trackers;
 
-	const int timeout = 30;
+	int const timeout = 30;
+	std::size_t const expected_trackers
+		= ((flags & expect_http_connection) ? 2 : 0)
+		+ ((flags & expect_udp_connection) ? 2 : 0);
 
 	for (int i = 0; i < timeout; ++i)
 	{
@@ -179,7 +182,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 		if (num_udp_announces() >= prev_udp_announces + 1
 			&& num_peer_hits() > 0
-			&& accepted_trackers.size() >= 2)
+			&& accepted_trackers.size() >= expected_trackers)
 		{
 			break;
 		}
@@ -209,22 +212,26 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	if (flags & expect_http_connection)
 	{
+		std::printf("expecting: %s\n", http_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, http_tracker_url) != accepted_trackers.end());
 	}
 	else
 	{
+		std::printf("NOT expecting: %s\n", http_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, http_tracker_url) == accepted_trackers.end());
 	}
 
 	if (flags & expect_udp_connection)
 	{
+		std::printf("expecting: %s\n", udp_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, udp_tracker_url) != accepted_trackers.end());
 	}
 	else
 	{
+		std::printf("NOT expecting: %s\n", udp_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, udp_tracker_url) == accepted_trackers.end());
 	}

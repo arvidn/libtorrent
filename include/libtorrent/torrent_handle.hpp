@@ -1243,10 +1243,16 @@ namespace aux {
 		}
 
 		// This function is intended only for use by plugins and the alert
-		// dispatch function. This type does not have a stable API and should
+		// dispatch function. This type does not have a stable ABI and should
 		// be relied on as little as possible. Accessing the handle returned by
 		// this function is not thread safe outside of libtorrent's internal
 		// thread (which is used to invoke plugin callbacks).
+		// The ``torrent`` class is not only eligible for changing ABI across
+		// minor versions of libtorrent, its layout is also dependent on build
+		// configuration. This adds additional requirements on a client to be
+		// built with the exact same build configuration as libtorrent itself.
+		// i.e. the ``TORRENT_`` macros must match between libtorrent and the
+		// client builds.
 		std::shared_ptr<torrent> native_handle() const;
 
 		// returns the userdata pointer as set in add_torrent_params

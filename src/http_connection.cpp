@@ -439,32 +439,6 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
 
-struct close_visitor
-{
-	explicit close_visitor(std::shared_ptr<http_connection> s) : self(std::move(s)) {}
-	template <typename T>
-	void operator()(T&)
-	{
-		error_code ec;
-		self->m_sock->close(ec);
-		self->m_timer.cancel();
-	}
-#ifdef TORRENT_USE_OPENSSL
-	template <typename T>
-	void operator()(ssl_stream<T>& s)
-	{
-		ADD_OUTSTANDING_ASYNC("on_close_socket");
-		s.async_shutdown([=](error_code const&) {
-			COMPLETE_ASYNC("on_close_socket");
-			error_code e;
-			self->m_timer.cancel();
-			self->m_sock->close(e);
-		});
-	}
-#endif
-	std::shared_ptr<http_connection> self;
-};
-
 void http_connection::close(bool force)
 {
 	if (m_abort) return;
@@ -479,13 +453,7 @@ void http_connection::close(bool force)
 		}
 		else
 		{
-#ifdef TORRENT_USE_OPENSSL
-			auto self = shared_from_this();
-			boost::apply_visitor(close_visitor{self}, *m_sock);
-#else
-			m_sock->close(ec);
-			m_timer.cancel();
-#endif // TORRENT_USE_OPENSSL
+			async_shutdown(*m_sock, shared_from_this());
 		}
 	}
 	else

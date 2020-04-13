@@ -700,7 +700,6 @@ if (dht)
 		${ed25519_sources}
 		${libtorrent_kademlia_include_files}
 	)
-	target_include_directories(torrent-rasterbar PRIVATE ed25519/src)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()

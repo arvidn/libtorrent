@@ -4812,6 +4812,15 @@ namespace {
 			return std::make_pair(ptr_t(), false);
 		}
 
+		if (params.ti
+			&& ((params.info_hash.has_v1() && params.info_hash.v1 != params.ti->info_hash().v1)
+				|| (params.info_hash.has_v2() && params.info_hash.v2 != params.ti->info_hash().v2)
+			))
+		{
+			ec = errors::mismatching_info_hash;
+			return std::make_pair(ptr_t(), false);
+		}
+
 #ifndef TORRENT_DISABLE_DHT
 		// add params.dht_nodes to the DHT, if enabled
 		for (auto const& n : params.dht_nodes)
@@ -6022,6 +6031,7 @@ namespace {
 // TODO: asserts that no outstanding async operations are still in flight
 
 		// this can happen if we end the io_context run loop with an exception
+		m_connections.clear();
 		for (auto& t : m_torrents)
 		{
 			t->panic();

@@ -166,9 +166,9 @@ libtorrent_rasterbar_la_SOURCES = \
   \
   $(KADEMLIA_SOURCES)
 
-AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
-AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY @DEBUGFLAGS@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
+DEFAULT_INCLUDES = -I$(top_srcdir)/include @OPENSSL_INCLUDES@
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LIBADD = @OPENSSL_LIBS@
@@ -182,5 +182,3 @@ if HAVE_WINDOWS
 libtorrent_rasterbar_la_LIBADD += -liphlpapi -lws2_32 -lwsock32
 libtorrent_rasterbar_la_CPPFLAGS += -DWIN32_LEAN_AND_MEAN -D__USE_W32_SOCKETS -DWIN32 -D_WIN32
 endif
-
-

@@ -110,6 +110,7 @@ struct test_threads : lt::aux::pool_thread_interface
 	int m_target_active_threads = 0;
 };
 
+/*
 TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 {
 	sim::default_config cfg;
@@ -155,6 +156,7 @@ TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 	});
 	sim.run();
 }
+*/
 
 TORRENT_TEST(disk_io_thread_pool_abort_wait)
 {

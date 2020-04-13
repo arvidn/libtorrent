@@ -11,6 +11,9 @@ use-project /torrent : .. ;
 feature fuzz : off external on : composite propagated link-incompatible ;
 feature.compose <fuzz>on : <cflags>-fsanitize=fuzzer <linkflags>-fsanitize=fuzzer ;
 
+feature sanitize : off on : composite propagated link-incompatible ;
+feature.compose <sanitize>on : <address-sanitizer>norecover <undefined-sanitizer>norecover ;
+
 # this is a build configuration that only does limited validation (i.e. no
 # sanitizers, invariant-checks, asserts etc.). The purpose is to quickly iterate
 # on inputs to build code coverage
