@@ -1837,7 +1837,7 @@ namespace {
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
 		{
 			// we will be able to accept incoming connections over UDP. so use
-			// one of the ports the user specified to use a constistent port
+			// one of the ports the user specified to use a consistent port
 			// across sessions. If the user did not specify any ports, pick one
 			// at random
 			int const port = m_listen_interfaces.empty()

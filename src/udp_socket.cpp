@@ -922,6 +922,8 @@ void socks5::hung_up(error_code const& e)
 void socks5::retry_socks_connect(error_code const& e)
 {
 	if (e) return;
+	error_code ignore;
+	m_socks5_sock.close(ignore);
 	start(m_proxy_settings);
 }
 
