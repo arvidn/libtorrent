@@ -868,7 +868,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 #ifndef TORRENT_DISABLE_DHT
 #if TORRENT_ABI_VERSION <= 2
-	if (flags & session_handle::save_dht_settings)
+	if ((flags & session_handle::save_settings)
+		|| (flags & session_handle::save_dht_settings))
 	{
 		ret.dht_settings = get_dht_settings();
 	}
