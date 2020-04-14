@@ -3849,7 +3849,9 @@ namespace {
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
 		// if we unchoke everyone, skip this logic
-		if (settings().get_int(settings_pack::unchoke_slots_limit) < 0) return;
+		if (settings().get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker
+			&& settings().get_int(settings_pack::unchoke_slots_limit) < 0)
+			return;
 
 		std::vector<opt_unchoke_candidate> opt_unchoke;
 
@@ -4117,7 +4119,8 @@ namespace {
 		m_last_choke = now;
 
 		// if we unchoke everyone, skip this logic
-		if (settings().get_int(settings_pack::unchoke_slots_limit) < 0)
+		if (settings().get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker
+			&& settings().get_int(settings_pack::unchoke_slots_limit) < 0)
 		{
 			m_stats_counters.set_value(counters::num_unchoke_slots, std::numeric_limits<int>::max());
 			return;
@@ -6323,6 +6326,9 @@ namespace {
 					, performance_alert::too_many_optimistic_unchoke_slots);
 		}
 
+		if (settings().get_int(settings_pack::choking_algorithm) != settings_pack::fixed_slots_choker)
+			return;
+
 		if (allowed_upload_slots == std::numeric_limits<int>::max())
 		{
 			// this means we're not aplpying upload slot limits, unchoke
@@ -6369,6 +6375,7 @@ namespace {
 
 	bool session_impl::preemptive_unchoke() const
 	{
+		if (settings().get_int(settings_pack::choking_algorithm) != settings_pack::fixed_slots_choker) return false;
 		return m_stats_counters[counters::num_peers_up_unchoked]
 			< m_stats_counters[counters::num_unchoke_slots]
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
