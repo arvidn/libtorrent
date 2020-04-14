@@ -454,8 +454,13 @@ namespace aux {
 		: m_settings(pack)
 		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
+#if BOOST_VERSION >= 106400
 		, m_ssl_ctx(ssl::context::tls_client)
 		, m_peer_ssl_ctx(ssl::context::tls)
+#else
+		, m_ssl_ctx(ssl::context::tlsv12_client)
+		, m_peer_ssl_ctx(ssl::context::tlsv12)
+#endif
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
