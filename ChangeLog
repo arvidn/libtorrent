@@ -1,3 +1,5 @@
+	* fix IPv6 address change detection on Windows
+
 1.2.6 released
 
 	* fix peer timeout logic
