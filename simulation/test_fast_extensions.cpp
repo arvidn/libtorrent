@@ -91,6 +91,103 @@ void run_fake_peer_test(
 	sim.run();
 }
 
+
+struct idle_peer
+{
+	idle_peer(simulation& sim, char const* ip)
+		: m_ios(sim, lt::make_address(ip))
+	{
+		boost::system::error_code ec;
+		m_acceptor.open(asio::ip::tcp::v4(), ec);
+		TEST_CHECK(!ec);
+		m_acceptor.bind(asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 6881), ec);
+		TEST_CHECK(!ec);
+		m_acceptor.listen(10, ec);
+		TEST_CHECK(!ec);
+
+		m_acceptor.async_accept(m_socket, [&] (boost::system::error_code const& ec)
+		{ m_accepted = true; });
+	}
+
+	void close()
+	{
+		m_acceptor.close();
+		m_socket.close();
+	}
+
+
+	bool accepted() const { return m_accepted; }
+
+	asio::io_context m_ios;
+	asio::ip::tcp::acceptor m_acceptor{m_ios};
+	asio::ip::tcp::socket m_socket{m_ios};
+
+	bool m_accepted = false;
+};
+
+TORRENT_TEST(peer_timeout)
+{
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+
+	sim::asio::io_context ios(sim, lt::make_address_v4("50.0.0.1"));
+	lt::session_proxy zombie;
+
+	// setup settings pack to use for the session (customization point)
+	lt::settings_pack pack = settings();
+	pack.set_str(lt::settings_pack::listen_interfaces, "0.0.0.0:6881");
+	pack.set_bool(lt::settings_pack::enable_outgoing_utp, false);
+	pack.set_bool(lt::settings_pack::enable_incoming_utp, false);
+	pack.set_int(lt::settings_pack::alert_mask, lt::alert_category::error
+		| lt::alert_category::connect
+		| lt::alert_category::peer_log);
+
+	// create session
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
+
+	// just a listen socket that accepts connections, but never responds
+	idle_peer peer(sim, "60.0.0.0");
+
+	int const num_pieces = 5;
+	lt::add_torrent_params params = create_torrent(0, false, num_pieces);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	ses->async_add_torrent(params);
+
+	lt::time_point peer_timeout_timestamp{};
+
+	// the alert notification function is called from within libtorrent's
+	// context. It's not OK to talk to libtorrent in there, post it back out and
+	// then ask for alerts.
+	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {
+
+		if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
+		{
+			lt::torrent_handle h = at->handle;
+			h.connect_peer(ep("60.0.0.0", 6881));
+		}
+		else if (auto pe = lt::alert_cast<lt::peer_disconnected_alert>(a))
+		{
+			if (peer_timeout_timestamp == lt::time_point{})
+				peer_timeout_timestamp = pe->timestamp();
+		}
+
+	});
+
+	sim::timer t(sim, lt::seconds(300)
+		, [&](boost::system::error_code const&)
+	{
+		// shut down
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(peer_timeout_timestamp != lt::time_point{});
+	TEST_CHECK(peer_timeout_timestamp < lt::time_point(lt::seconds(122)));
+}
+
 #ifndef TORRENT_DISABLE_LOGGING
 // make sure we consistently send the same allow-fast pieces, regardless
 // of which pieces the peer has.

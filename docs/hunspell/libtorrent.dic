@@ -565,9 +565,8 @@ leecher
 6881l
 NOTSENT
 LOWAT
-tls11
-tls12
-tls13
+Dstatic
+DOPENSSL
 destructors
 fclose
 fopen

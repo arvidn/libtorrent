@@ -661,6 +661,12 @@ set_package_properties(OpenSSL
 )
 
 if(OPENSSL_FOUND)
+
+	# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
+	if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
+		target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
+	endif()
+
 	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
 	target_compile_definitions(torrent-rasterbar
 		PUBLIC

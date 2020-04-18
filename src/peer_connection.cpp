@@ -4848,7 +4848,7 @@ namespace libtorrent {
 
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
-		time_duration d = std::min(now - m_last_receive.get(m_connect), now - m_last_sent.get(m_connect));
+		time_duration d = now - m_last_receive.get(m_connect);
 
 		if (m_connecting)
 		{

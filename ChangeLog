@@ -24,6 +24,9 @@
 	* libtorrent now requires C++14 to build
 
 
+	* fix peer timeout logic
+	* simplify proxy handling. A proxy now overrides listen_interfaces
+	* fix issues when configured to use a non-default choking algorithm
 	* fix issue in reading resume data
 	* revert NXDOMAIN change from 1.2.4
 	* don't open any listen sockets if listen_interfaces is empty or misconfigured

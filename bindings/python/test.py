@@ -87,6 +87,12 @@ class test_torrent_handle(unittest.TestCase):
             'ti': self.ti, 'save_path': os.getcwd(),
             'flags': lt.torrent_flags.default_flags})
 
+    def test_add_torrent_error(self):
+        self.ses = lt.session(settings)
+        self.ti = lt.torrent_info('url_seed_multi.torrent')
+        with self.assertRaises(RuntimeError):
+            self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'info_hash': b'abababababababababab'})
+
     def test_torrent_handle(self):
         self.setup()
         self.assertEqual(self.h.get_file_priorities(), [4, 4])

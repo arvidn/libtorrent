@@ -79,6 +79,7 @@ TORRENT_TEST(optimistic_unchoke)
 	// only allow an optimistic unchoke slot
 	pack.set_int(settings_pack::unchoke_slots_limit, 1);
 	pack.set_int(settings_pack::num_optimistic_unchoke_slots, 1);
+	pack.set_int(settings_pack::peer_timeout, 9999);
 
 	std::vector<choke_state> peer_choke_state(num_nodes);
 
