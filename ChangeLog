@@ -1,3 +1,5 @@
+1.2.6 released
+
 	* fix peer timeout logic
 	* simplify proxy handling. A proxy now overrides listen_interfaces
 	* fix issues when configured to use a non-default choking algorithm
