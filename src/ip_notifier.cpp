@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined TORRENT_WINDOWS
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/windows/object_handle.hpp>
 #include <iphlpapi.h>
+#include <mutex>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
@@ -348,52 +348,72 @@ private:
 struct ip_change_notifier_impl final : ip_change_notifier
 {
 	explicit ip_change_notifier_impl(io_service& ios)
-		: m_hnd(ios, WSACreateEvent())
+		: m_ios(ios)
 	{
-		if (!m_hnd.is_open()) aux::throw_ex<system_error>(WSAGetLastError(), system_category());
-		m_ovl.hEvent = m_hnd.native_handle();
+		NotifyUnicastIpAddressChange(AF_UNSPEC, address_change_cb, this, false, &m_hnd);
 	}
 
 	// non-copyable
 	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
 	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 
+	// non-moveable
+	ip_change_notifier_impl(ip_change_notifier_impl&&) = delete;
+	ip_change_notifier_impl& operator=(ip_change_notifier_impl&&) = delete;
+
 	~ip_change_notifier_impl() override
 	{
-		cancel();
-		// the reason to call close() here is because the
-		// object_handle destructor doesn't close the handle
-		m_hnd.close();
+		if (m_hnd != nullptr)
+		{
+			CancelMibChangeNotify2(m_hnd);
+			m_hnd = nullptr;
+		}
 	}
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		HANDLE hnd;
-		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
-		if (err == ERROR_IO_PENDING)
+		if (m_hnd == nullptr)
 		{
-			m_hnd.async_wait([cb](error_code const& ec)
-			{
-				// call CancelIPChangeNotify here?
-				cb(ec);
-			});
+			cb(make_error_code(boost::system::errc::not_supported));
+			return;
 		}
-		else
-		{
-			lt::get_io_service(m_hnd).post([cb, err]()
-			{ cb(error_code(err, system_category())); });
-		}
+
+		std::lock_guard<std::mutex> l(m_cb_mutex);
+		m_cb.emplace_back(std::move(cb));
 	}
 
 	void cancel() override
 	{
-		CancelIPChangeNotify(&m_ovl);
-		m_hnd.cancel();
+		std::vector<std::function<void(error_code const&)>> cbs;
+		{
+			std::lock_guard<std::mutex> l(m_cb_mutex);
+			cbs = std::move(m_cb);
+		}
+		for (auto& cb : cbs) cb(make_error_code(boost::asio::error::operation_aborted));
 	}
 
 private:
-	OVERLAPPED m_ovl = {};
-	boost::asio::windows::object_handle m_hnd;
+	static void WINAPI address_change_cb(void* ctx, MIB_UNICASTIPADDRESS_ROW*, MIB_NOTIFICATION_TYPE)
+	{
+		ip_change_notifier_impl* impl = static_cast<ip_change_notifier_impl*>(ctx);
+		std::vector<std::function<void(error_code const&)>> cbs;
+		{
+			std::lock_guard<std::mutex> l(impl->m_cb_mutex);
+			cbs = std::move(impl->m_cb);
+		}
+		// TODO move cbs into the lambda with C++14
+		impl->m_ios.post([cbs]()
+		{
+			for (auto& cb : cbs) cb(error_code());
+		});
+	}
+
+	io_service& m_ios;
+	HANDLE m_hnd = nullptr;
+	// address_change_cb gets invoked from a separate worker thread so the callbacks
+	// vector must be protected by a mutex
+	std::mutex m_cb_mutex;
+	std::vector<std::function<void(error_code const&)>> m_cb;
 };
 #else
 struct ip_change_notifier_impl final : ip_change_notifier
