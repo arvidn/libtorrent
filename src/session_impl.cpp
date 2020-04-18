@@ -221,6 +221,7 @@ namespace aux {
 				return ep.ssl == sock->ssl
 					&& ep.port == sock->original_port
 					&& ep.device == sock->device
+					&& ep.flags == sock->flags
 					&& ep.addr == sock->local_endpoint.address();
 			});
 
