@@ -1,4 +1,4 @@
-include(@_variables_file_name@)
+include("@_variables_file_name@")
 
 function (cmake_list_to_pkg_config _result _list _prefix)
 	set(_tmp_list "${_list}")
