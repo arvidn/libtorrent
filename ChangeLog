@@ -23,6 +23,7 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+1.2.6 released
 
 	* fix peer timeout logic
 	* simplify proxy handling. A proxy now overrides listen_interfaces
