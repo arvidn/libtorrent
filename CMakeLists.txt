@@ -149,8 +149,7 @@ set(libtorrent_include_files
 	web_peer_connection
 	write_resume_data
 	xml_parse
-	ssl/context
-	ssl/stream)
+	ssl)
 
 set(libtorrent_kademlia_include_files
 	announce_flags
@@ -232,7 +231,6 @@ set(libtorrent_aux_include_files
 	merkle
 	noexcept_movable
 	numeric_cast
-	ssl
 	packet_buffer
 	packet_pool
 	path
@@ -622,6 +620,7 @@ if(NOT build_tests) # tests require deprecated symbols
 endif()
 feature_option(encryption "Enables encryption in libtorrent" ON)
 feature_option(exceptions "build with exception support" ON)
+feature_option(gnutls "build using GnuTLS instead of OpenSSL" OFF)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extensions DEFAULT ON
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
@@ -653,35 +652,57 @@ if(Iconv_FOUND)
 	target_link_libraries(torrent-rasterbar PRIVATE Iconv::Iconv)
 endif()
 
-find_public_dependency(OpenSSL)
-set_package_properties(OpenSSL
-	PROPERTIES
-		URL "https://www.openssl.org/"
-		DESCRIPTION "Full-strength general purpose cryptography library"
-		TYPE RECOMMENDED
-		PURPOSE "Provides HTTPS support to libtorrent"
-)
+if(NOT gnutls)
+	find_public_dependency(OpenSSL)
+	set_package_properties(OpenSSL
+		PROPERTIES
+			URL "https://www.openssl.org/"
+			DESCRIPTION "Full-strength general purpose cryptography library"
+			TYPE RECOMMENDED
+			PURPOSE "Provides HTTPS support to libtorrent"
+	)
+	if(OPENSSL_FOUND)
+		# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
+		if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
+			target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
+		endif()
 
-if(OPENSSL_FOUND)
-
-	# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
-	if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
-		target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
+		target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
+		target_compile_definitions(torrent-rasterbar
+			PUBLIC
+				TORRENT_USE_OPENSSL
+				TORRENT_SSL_PEERS
+				OPENSSL_NO_SSL2)
 	endif()
+endif()
 
-	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
-	target_compile_definitions(torrent-rasterbar
-		PUBLIC
-			TORRENT_USE_LIBCRYPTO
-			TORRENT_USE_OPENSSL
-			TORRENT_SSL_PEERS
-			OPENSSL_NO_SSL2)
-	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
+if(gnutls OR NOT OPENSSL_FOUND)
+	find_public_dependency(GnuTLS)
+	set_package_properties(GnuTLS
+		PROPERTIES
+			URL "https://www.gnutls.org/"
+			DESCRIPTION "GnuTLS is a free software implementation of the TLS and DTLS protocols"
+			TYPE RECOMMENDED
+			PURPOSE "Provides HTTPS support to libtorrent"
+	)
+	if(GNUTLS_FOUND)
+		target_link_libraries(torrent-rasterbar PUBLIC GnuTLS::GnuTLS)
+		target_compile_definitions(torrent-rasterbar
+			PUBLIC
+				TORRENT_USE_GNUTLS
+				TORRENT_SSL_PEERS)
+		target_include_directories(torrent-rasterbar PUBLIC
+			$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/deps/asio-gnutls/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+		install(DIRECTORY deps/asio-gnutls/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	elseif(gnutls)
+		message(FATAL_ERROR "GnuTLS library not found")
+	endif()
 endif()
 
 if(OPENSSL_FOUND)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
-else(OPENSSL_FOUND)
+else()
 	find_public_dependency(LibGcrypt)
 	set_package_properties(LibGcrypt
 		PROPERTIES
@@ -694,7 +715,7 @@ else(OPENSSL_FOUND)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
 		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
 	endif()
-endif(OPENSSL_FOUND)
+endif()
 
 if (encryption)
 	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
@@ -715,7 +736,6 @@ endif()
 # Boost
 find_public_dependency(Boost REQUIRED COMPONENTS system)
 target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
-target_include_directories(torrent-rasterbar PUBLIC deps/asio-gnutls/include)
 target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
 
 if (exceptions)
