@@ -79,6 +79,11 @@ rule linking ( properties * )
 			result += <library>dl ;
 		}
 	}
+	else if <crypto>gnutls in $(properties)
+	{
+		result += <library>./deps/asio-gnutls//asio-gnutls ;
+		result += <library>gnutls ;
+	}
 	else if <crypto>libcrypto in $(properties)
 	{
 		result += <library>crypto ;
@@ -407,6 +412,42 @@ rule openssl-include-path ( properties * )
 	return $(result) ;
 }
 
+# the search path to pick up the gnutls libraries from. This is the <search>
+# property of those libraries
+rule gnutls-lib-path ( properties * )
+{
+	local GNUTLS_LIB = [ feature.get-values <gnutls-lib> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(GNUTLS_LIB) = ""
+	{
+		# on macOS, default to pick up gnutls from the homebrew installation
+		# brew install gnutls
+		GNUTLS_LIB = /usr/local/opt/gnutls/lib ;
+	}
+
+	local result ;
+	result += <search>$(GNUTLS_LIB) ;
+	return $(result) ;
+}
+
+# the include path to pick up gnutls headers from. This is the
+# usage-requirement for the gnutls-related libraries
+rule gnutls-include-path ( properties * )
+{
+	local GNUTLS_INCLUDE = [ feature.get-values <gnutls-include> : $(properties) ] ;
+
+	if <target-os>darwin in $(properties) && $(GNUTLS_INCLUDE) = ""
+	{
+		# on macOS, default to pick up gnutls from the homebrew installation
+		# brew install gnutls
+		GNUTLS_INCLUDE = /usr/local/opt/gnutls/include ;
+	}
+
+	local result ;
+	result += <include>$(GNUTLS_INCLUDE) ;
+	return $(result) ;
+}
+
 # the search path to pick up the wolfssl libraries from. This is the <search>
 # property of those libraries
 rule wolfssl-lib-path ( properties * )
@@ -446,6 +487,9 @@ path-constant blacklist-file : tools/sanitizer-blacklist.txt ;
 
 feature openssl-lib : : free path ;
 feature openssl-include : : free path ;
+
+feature gnutls-lib : : free path ;
+feature gnutls-include : : free path ;
 
 feature wolfssl-lib : : free path ;
 feature wolfssl-include : : free path ;
@@ -520,7 +564,7 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl wolfssl libcrypto gcrypt : composite propagated ;
+feature crypto : built-in openssl wolfssl gnutls libcrypto gcrypt : composite propagated ;
 feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
@@ -536,6 +580,9 @@ feature.compose <crypto>wolfssl
 	<define>WOLFSSL_SHA512
 	<define>WOLFSSL_NGINX
 	<define>WC_NO_HARDEN ;
+feature.compose <crypto>gnutls
+	: <define>TORRENT_USE_GNUTLS
+	<define>TORRENT_SSL_PEERS ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
@@ -624,6 +671,9 @@ lib crypto : : <name>crypto <use>z <conditional>@openssl-lib-path : :
 lib ssl : : <name>ssl <use>crypto <conditional>@openssl-lib-path : :
 	<conditional>@openssl-include-path ;
 
+lib gnutls : : <name>gnutls <conditional>@gnutls-lib-path : :
+	<conditional>@gnutls-include-path ;
+
 lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
 	<conditional>@wolfssl-include-path ;
 
@@ -706,7 +756,6 @@ SOURCES =
 	instantiate_connection
 	lazy_bdecode
 	natpmp
-	openssl
 	packet_buffer
 	piece_picker
 	peer_list
@@ -776,6 +825,7 @@ SOURCES =
 	mmap_storage
 	posix_disk_io
 	posix_storage
+	ssl
 
 # -- extensions --
 	ut_pex

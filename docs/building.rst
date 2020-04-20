@@ -638,6 +638,8 @@ defines you can use to control the build.
 | ``TORRENT_USE_OPENSSL``                | Link against ``libssl`` for SSL support. Must   |
 |                                        | be combined with ``TORRENT_USE_LIBCRYPTO``      |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_GNUTLS``                 | Link against ``libgnutls`` for SSL support.     |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_LIBCRYPTO``              | Link against ``libcrypto`` for SHA-1 support    |
 |                                        | and other hashing algorithms.                   |
 +----------------------------------------+-------------------------------------------------+
