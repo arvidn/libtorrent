@@ -212,6 +212,8 @@ private:
 	void next(rootdevice& d, port_mapping_t i);
 	void update_map(rootdevice& d, port_mapping_t i);
 
+	int lease_duration(rootdevice const& d) const;
+
 	void connect(rootdevice& d);
 
 	void on_upnp_xml(error_code const& e
@@ -288,8 +290,8 @@ private:
 		std::string path;
 		address external_ip;
 
-		// default lease duration for a port map.
-		int lease_duration = 3600;
+		// set to false if the router doesn't support lease durations
+		bool use_lease_duration = true;
 
 		// true if the device supports specifying a
 		// specific external port, false if it doesn't
