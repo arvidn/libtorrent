@@ -34,12 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TEST_UTILS_HPP
 
 #include "test.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/download_priority.hpp"
 
 namespace libtorrent
 {
 	EXPORT char const* time_now_string();
-
+	EXPORT char const* time_to_string(lt::time_point const tp);
 }
 
 inline lt::download_priority_t operator "" _pri(unsigned long long const p)

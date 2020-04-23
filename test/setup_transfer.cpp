@@ -357,7 +357,8 @@ bool print_alerts(lt::session& ses, char const* name
 	{
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, a->what()
+			std::printf("%s: %s: [%s] (%s): %s\n", time_to_string(a->timestamp())
+				, name, a->what()
 				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
 		}
 		else if (a->type() == invalid_request_alert::alert_type)

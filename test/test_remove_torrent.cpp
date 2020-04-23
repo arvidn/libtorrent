@@ -115,10 +115,11 @@ void test_remove_torrent(remove_flags_t const remove_options
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true);
-		print_alerts(ses2, "ses2", true, true);
+//		print_alerts(ses2, "ses2", true, true);
 
 		st1 = tor1.status();
 		std::cout << "st1.total_payload_upload: " << st1.total_payload_upload << '\n';
+		std::cout << "st2.num_pieces: " << st2.num_pieces << '\n';
 		st2 = tor2.status();
 
 		if (test == mid_download && st2.num_pieces > num_pieces / 2)
@@ -134,8 +135,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		// if nothing is being transferred after 3 seconds, we're failing the test
-		if (st1.total_payload_upload == 0 && i > 30)
+		// if nothing is being transferred after 4 seconds, we're failing the test
+		if (st1.total_payload_upload == 0 && i > 40)
 		{
 			TEST_ERROR("no transfer");
 			return;
