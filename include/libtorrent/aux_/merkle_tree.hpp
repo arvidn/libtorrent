@@ -36,10 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/sha1_hash.hpp" // for sha256_hash
-
-#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/export.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -79,6 +78,8 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	void fill(int piece_layer_size);
 	void fill(int piece_layer_size, int level_start);
 	void clear(int num_leafs, int level_start);
+
+	bool load_piece_layer(span<char const> piece_layer);
 
 private:
 	char const* m_root = nullptr;
