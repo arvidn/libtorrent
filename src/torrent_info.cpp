@@ -1551,8 +1551,6 @@ namespace {
 			if (orig_files().file_size(i) <= orig_files().piece_length())
 				continue;
 
-			auto& tree = m_merkle_trees[i];
-
 			auto const piece_layer = piece_layers.find(orig_files().root(i));
 			if (piece_layer == piece_layers.end())
 			{
@@ -1561,10 +1559,6 @@ namespace {
 			}
 
 			int const num_pieces = orig_files().file_num_pieces(i);
-			int const num_blocks = orig_files().file_num_blocks(i);
-			int const piece_layer_size = merkle_num_leafs(num_pieces);
-			int const num_leafs = merkle_num_leafs(num_blocks);
-			int const first_piece_node = merkle_num_nodes(piece_layer_size) - piece_layer_size;
 
 			if (ptrdiff_t(piece_layer->second.size()) != num_pieces * sha256_hash::size())
 			{
@@ -1572,17 +1566,7 @@ namespace {
 				return false;
 			}
 
-			TORRENT_ASSERT(int(tree.size()) == merkle_num_nodes(merkle_num_leafs(orig_files().file_num_blocks(i))));
-			sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
-
-			for (int n = 0; n < num_pieces; ++n)
-				tree[first_piece_node + n].assign(piece_layer->second.data() + n * sha256_hash::size());
-			for (int n = num_pieces; n < piece_layer_size; ++n)
-				tree[first_piece_node + n] = pad_hash;
-
-			tree.fill(piece_layer_size);
-
-			if (tree[0] != orig_files().root(i))
+			if (!m_merkle_trees[i].load_piece_layer(piece_layer->second))
 			{
 				ec = errors::torrent_invalid_piece_layer;
 				return false;

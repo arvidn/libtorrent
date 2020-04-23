@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/merkle_tree.hpp"
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent {
@@ -57,6 +58,34 @@ namespace aux {
 		// otherwise, if t has a complete piece layer, just store that
 
 		m_tree.assign(t.begin(), t.end());
+	}
+
+	// returns false if the piece layer fails to validate against the root hash
+	bool merkle_tree::load_piece_layer(span<char const> piece_layer)
+	{
+		int const num_pieces = static_cast<int>(piece_layer.size() / sha256_hash::size());
+		int const piece_layer_size = merkle_num_leafs(num_pieces);
+		int const first_piece_node = merkle_num_nodes(piece_layer_size) - piece_layer_size;
+		auto const num_leafs = (m_tree.end_index() + 1) / 2;
+
+		auto const r = root();
+
+		sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
+
+		for (int n = 0; n < num_pieces; ++n)
+			m_tree[first_piece_node + n].assign(piece_layer.data() + n * sha256_hash::size());
+		for (int n = num_pieces; n < piece_layer_size; ++n)
+			m_tree[first_piece_node + n] = pad_hash;
+
+		fill(piece_layer_size);
+
+		if (m_tree[0] != r)
+		{
+			std::fill(m_tree.begin(), m_tree.end(), sha256_hash{});
+			m_tree[0] = r;
+			return false;
+		}
+		return true;
 	}
 
 	std::size_t merkle_tree::size() const
