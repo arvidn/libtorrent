@@ -1,3 +1,4 @@
+	* retry failed socks5 server connections
 	* allow UPnP lease duration to be changed after device discovery
 	* fix IPv6 address change detection on Windows
 

@@ -106,7 +106,9 @@ private:
 	void connect1(error_code const& e);
 	void connect2(error_code const& e);
 	void hung_up(error_code const& e);
-	void retry_socks_connect(error_code const& e);
+	void on_retry_socks_connect(error_code const& e);
+
+	void retry_connection();
 
 	tcp::socket m_socks5_sock;
 	tcp::resolver m_resolver;
@@ -128,6 +130,9 @@ private:
 	// are sent. The result from UDP ASSOCIATE is stored
 	// in here.
 	udp::endpoint m_udp_proxy_addr;
+
+	// count failures to increase the retry timer
+	int m_failures = 0;
 
 	// set to true when we've been asked to shut down
 	bool m_abort = false;
@@ -540,6 +545,8 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
 				, operation_t::hostname_lookup, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -555,6 +562,8 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 				m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
 					, operation_t::hostname_lookup
 					, error_code(boost::system::errc::host_unreachable, generic_category()));
+			++m_failures;
+			retry_connection();
 			return;
 		}
 
@@ -627,6 +636,8 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_bind, ec);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -656,6 +667,9 @@ void socks5::on_connect_timeout(error_code const& e)
 
 	error_code ignore;
 	m_socks5_sock.close(ignore);
+
+	++m_failures;
+	retry_connection();
 }
 
 void socks5::on_connected(error_code const& e)
@@ -673,6 +687,8 @@ void socks5::on_connected(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::connect, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -708,6 +724,8 @@ void socks5::handshake1(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -725,6 +743,8 @@ void socks5::handshake2(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -795,6 +815,8 @@ void socks5::handshake3(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -811,6 +833,8 @@ void socks5::handshake4(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -852,6 +876,8 @@ void socks5::connect1(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::connect, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -869,6 +895,8 @@ void socks5::connect2(error_code const& e)
 	{
 		if (m_alerts.should_post<socks5_alert>())
 			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
 		return;
 	}
 
@@ -897,6 +925,7 @@ void socks5::connect2(error_code const& e)
 
 	// we're done!
 	m_active = true;
+	m_failures = 0;
 
 	ADD_OUTSTANDING_ASYNC("socks5::hung_up");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
@@ -913,15 +942,22 @@ void socks5::hung_up(error_code const& e)
 	if (e && m_alerts.should_post<socks5_alert>())
 		m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::sock_read, e);
 
+	retry_connection();
+}
+
+void socks5::retry_connection()
+{
 	// the socks connection was closed, re-open it in a bit
-	m_retry_timer.expires_from_now(seconds(5));
-	m_retry_timer.async_wait(std::bind(&socks5::retry_socks_connect
+	// back off exponentially
+	if (m_failures > 200) m_failures = 200;
+	m_retry_timer.expires_from_now(seconds(std::min(120, m_failures * m_failures / 2) + 5));
+	m_retry_timer.async_wait(std::bind(&socks5::on_retry_socks_connect
 		, self(), _1));
 }
 
-void socks5::retry_socks_connect(error_code const& e)
+void socks5::on_retry_socks_connect(error_code const& e)
 {
-	if (e) return;
+	if (e || m_abort) return;
 	error_code ignore;
 	m_socks5_sock.close(ignore);
 	start(m_proxy_settings);
@@ -934,6 +970,7 @@ void socks5::close()
 	m_socks5_sock.close(ec);
 	m_resolver.cancel();
 	m_timer.cancel();
+	m_retry_timer.cancel();
 }
 
 constexpr udp_send_flags_t udp_socket::peer_connection;
