@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for ep()
 #include "simulator/utils.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/random.hpp"
 
 using namespace lt::literals;
 
@@ -91,7 +92,6 @@ void run_fake_peer_test(
 	sim.run();
 }
 
-
 struct idle_peer
 {
 	idle_peer(simulation& sim, char const* ip)
@@ -106,8 +106,32 @@ struct idle_peer
 		TEST_CHECK(!ec);
 
 		m_acceptor.async_accept(m_socket, [&] (boost::system::error_code const& ec)
-		{ m_accepted = true; });
+		{
+			m_accepted = true;
+
+			if (!m_handshake) return;
+
+			static char handshake_buffer[68];
+
+			asio::async_read(m_socket, asio::buffer(handshake_buffer, 68)
+				, [&](boost::system::error_code const& ec, std::size_t)
+			{
+				if (memcmp(handshake_buffer, "\x13" "BitTorrent protocol", 20) != 0)
+				{
+					std::printf("  invalid protocol specifier\n");
+					m_socket.close();
+					return;
+				}
+
+				// change the peer ID and echo back the handshake
+				lt::aux::random_bytes({handshake_buffer + 48, 20});
+				asio::async_write(m_socket, asio::buffer(handshake_buffer, 68)
+					, [](boost::system::error_code const& ec, size_t) { });
+			});
+		});
 	}
+
+	void enable_handshake() { m_handshake = true; }
 
 	void close()
 	{
@@ -123,13 +147,11 @@ struct idle_peer
 	asio::ip::tcp::socket m_socket{m_ios};
 
 	bool m_accepted = false;
+	bool m_handshake = false;
 };
 
-TORRENT_TEST(peer_timeout)
+lt::time_duration run_timeout_sim(sim::simulation& sim)
 {
-	sim::default_config cfg;
-	sim::simulation sim{cfg};
-
 	sim::asio::io_service ios(sim, lt::address_v4::from_string("50.0.0.1"));
 	lt::session_proxy zombie;
 
@@ -145,9 +167,6 @@ TORRENT_TEST(peer_timeout)
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
 
-	// just a listen socket that accepts connections, but never responds
-	idle_peer peer(sim, "60.0.0.0");
-
 	int const num_pieces = 5;
 	lt::add_torrent_params params = create_torrent(0, false, num_pieces);
 	params.flags &= ~lt::torrent_flags::auto_managed;
@@ -155,6 +174,7 @@ TORRENT_TEST(peer_timeout)
 	ses->async_add_torrent(params);
 
 	lt::time_point peer_timeout_timestamp{};
+	lt::time_point const start = lt::clock_type::now();
 
 	// the alert notification function is called from within libtorrent's
 	// context. It's not OK to talk to libtorrent in there, post it back out and
@@ -185,7 +205,41 @@ TORRENT_TEST(peer_timeout)
 	sim.run();
 
 	TEST_CHECK(peer_timeout_timestamp != lt::time_point{});
-	TEST_CHECK(peer_timeout_timestamp < lt::time_point(lt::seconds(122)));
+	return peer_timeout_timestamp - start;
+}
+
+TORRENT_TEST(peer_idle_timeout)
+{
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+
+	// just a listen socket that accepts connections, and just respond with a
+	// bittorrent handshake, but nothing more
+	idle_peer peer(sim, "60.0.0.0");
+	peer.enable_handshake();
+
+	auto peer_timeout_timestamp = run_timeout_sim(sim);
+
+	// the peer timeout defaults to 120 seconds
+	// settings_pack::peer_timeout
+	TEST_CHECK(peer_timeout_timestamp < lt::seconds(122));
+	TEST_CHECK(peer_timeout_timestamp > lt::seconds(120));
+}
+
+TORRENT_TEST(handshake_timeout)
+{
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+
+	// just a listen socket that accepts connections, but never responds
+	idle_peer peer(sim, "60.0.0.0");
+
+	auto peer_timeout_timestamp = run_timeout_sim(sim);
+
+	// the handshake timeout defaults to 10 seconds
+	// settings_pack::handshake_timeout
+	TEST_CHECK(peer_timeout_timestamp < lt::seconds(15));
+	TEST_CHECK(peer_timeout_timestamp > lt::seconds(9));
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
