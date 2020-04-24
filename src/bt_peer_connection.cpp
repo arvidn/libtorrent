@@ -466,7 +466,9 @@ namespace {
 
 	bool bt_peer_connection::in_handshake() const
 	{
-		return !m_sent_handshake;
+		// this returns true until we have received a handshake
+		// and until we have send our handshake
+		return !m_sent_handshake || m_state < state_t::read_packet_size;
 	}
 
 #if !defined TORRENT_DISABLE_ENCRYPTION

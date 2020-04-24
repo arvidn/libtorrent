@@ -2895,8 +2895,7 @@ namespace libtorrent {
 
 		// we received a request within the timeout, make sure this peer is
 		// not snubbed anymore
-		if (total_seconds(now - m_requested)
-			< request_timeout()
+		if (total_seconds(now - m_requested) < request_timeout()
 			&& m_snubbed)
 		{
 			m_snubbed = false;
