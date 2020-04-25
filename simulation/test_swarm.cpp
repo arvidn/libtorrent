@@ -791,7 +791,6 @@ TORRENT_TEST(download_rate_limit_negative)
 	);
 }
 
-
 TORRENT_TEST(unchoke_slots_limit)
 {
 	test_settings([](lt::settings_pack& pack) {
@@ -806,6 +805,62 @@ TORRENT_TEST(unchoke_slots_limit_negative)
 		pack.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 	});
 }
+
+TORRENT_TEST(settings_stress_test)
+{
+	std::array<int, 13> const settings{{
+		settings_pack::unchoke_slots_limit,
+		settings_pack::connections_limit,
+		settings_pack::predictive_piece_announce,
+		settings_pack::allow_multiple_connections_per_ip,
+		settings_pack::send_redundant_have,
+		settings_pack::coalesce_reads,
+		settings_pack::coalesce_writes,
+		settings_pack::rate_limit_ip_overhead,
+		settings_pack::rate_limit_ip_overhead,
+		settings_pack::anonymous_mode,
+//		settings_pack::enable_upnp,
+//		settings_pack::enable_natpmp,
+		settings_pack::enable_lsd,
+		settings_pack::enable_ip_notifier,
+		settings_pack::piece_extent_affinity,
+	}};
+	std::array<int, 4> const values{{-1, 0, 1, std::numeric_limits<int>::max()}};
+
+	for (auto t : { swarm_test::download, swarm_test::upload})
+	{
+		for (auto s1 : settings)
+		{
+			for (auto s2 : settings)
+			{
+				if (s1 == s2) continue;
+
+				setup_swarm(2, t
+					// add session
+					, [](lt::settings_pack& p) {
+					p.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
+					}
+					// add torrent
+					, [](lt::add_torrent_params& params) {}
+					// on alert
+					, [](lt::alert const*, lt::session&) {}
+					// terminate
+					, [&](int tick, lt::session& session) -> bool
+					{
+						int const s = (tick & 1) ? s2 : s1;
+						settings_pack p;
+						if ((s & settings_pack::type_mask) == settings_pack::bool_type_base)
+							p.set_bool(s, bool(tick & 2));
+						else
+							p.set_int(s, values[(tick >> 1) % values.size()]);
+						session.apply_settings(std::move(p));
+						return tick > int(settings.size() * values.size() * 2);
+					});
+			}
+		}
+	}
+}
+
 
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections
