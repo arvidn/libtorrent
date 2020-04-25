@@ -58,7 +58,7 @@ DOCS_PAGES = \
   docs/manual-ref.html            \
   docs/projects.html              \
   docs/python_binding.html        \
-  docs/tuning.html                \
+  docs/tuning-ref.html            \
   docs/fuzzing.html               \
   docs/settings.rst               \
   docs/stats_counters.rst         \
