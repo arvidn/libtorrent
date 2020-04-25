@@ -322,7 +322,12 @@ TORRENT_TEST(alerts_dropped_alert)
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);
 
+#ifndef TORRENT_DISABLE_ALERT_MSG
 	TEST_EQUAL(alerts.back()->message(), "dropped alerts: torrent_finished ");
+#endif
+	auto* a = lt::alert_cast<alerts_dropped_alert>(alerts.back());
+	TEST_CHECK(a);
+	TEST_CHECK(a->dropped_alerts[torrent_finished_alert::alert_type] == true);
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

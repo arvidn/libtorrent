@@ -441,6 +441,9 @@ feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 feature logging : on off : composite propagated link-incompatible ;
 feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
 
+feature alert-msg : on off : composite propagated link-incompatible ;
+feature.compose <alert-msg>off : <define>TORRENT_DISABLE_ALERT_MSG ;
+
 feature dht : on off : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
 

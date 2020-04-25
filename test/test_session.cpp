@@ -441,6 +441,7 @@ TORRENT_TEST(pop_alert_clear)
 }
 
 #if !defined TORRENT_DISABLE_LOGGING
+#if !defined TORRENT_DISABLE_ALERT_MSG
 
 #if !defined TORRENT_DISABLE_DHT
 
@@ -622,5 +623,6 @@ TORRENT_TEST(reopen_network_sockets)
 
 	TEST_CHECK(count_alerts(s, 0, 0));
 }
+#endif // TORRENT_DISABLE_ALERT_MSG
 #endif
 
