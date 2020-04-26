@@ -1462,7 +1462,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		m_callback.on_port_mapping(mapping, d.external_ip, m.external_port, m.protocol, error_code()
 			, portmap_transport::upnp);
-		if (d.use_lease_duration)
+		if (d.use_lease_duration && m_settings.get_int(settings_pack::upnp_lease_duration) != 0)
 		{
 			time_point const now = aux::time_now();
 			m.expires = now + seconds(
