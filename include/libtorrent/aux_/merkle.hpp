@@ -52,7 +52,7 @@ namespace libtorrent {
 
 	// takes the number of leaves and returns the height of the merkle tree.
 	// does not include the root node in the layer count. i.e. if there's only a
-	// root hash, there are 0 layerrs. Note that the number of leaves must be
+	// root hash, there are 0 layers. Note that the number of leaves must be
 	// valid, i.e. a power of 2.
 	TORRENT_EXTRA_EXPORT int merkle_num_layers(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
@@ -79,6 +79,11 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int merkle_get_layer(int idx);
 	// given a flat index, return the offset in the layer
 	TORRENT_EXTRA_EXPORT int merkle_get_layer_offset(int idx);
+
+	// given "leafs" number of leafs in the full tree (i.e. at the block level)
+	// and given "pieces" nodes in the piece layer, compute the pad hash for the
+	// piece layer
+	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int leafs, int pieces);
 }
 
 #endif

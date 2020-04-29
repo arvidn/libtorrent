@@ -619,8 +619,7 @@ namespace {
 
 		if (!m_file_piece_hash.empty())
 		{
-			sha256_hash const pad_hash = merkle_root(aux::vector<sha256_hash>(
-				m_files.piece_length() / default_block_size));
+			sha256_hash const pad_hash = merkle_pad(m_files.piece_length() / default_block_size, 1);
 			auto& file_pieces = dict["piece layers"].dict();
 
 			for (file_index_t fi(0); fi != m_files.end_file(); ++fi)

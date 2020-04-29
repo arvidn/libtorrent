@@ -472,3 +472,38 @@ TORRENT_TEST(merkle_clear_tree)
 	}
 }
 
+TORRENT_TEST(merkle_pad)
+{
+	// if the block layer is the same as the piece layer, the pad is always just
+	// zeroes
+	TEST_CHECK(merkle_pad(1, 1) == sha256_hash{});
+	TEST_CHECK(merkle_pad(2, 2) == sha256_hash{});
+	TEST_CHECK(merkle_pad(4, 4) == sha256_hash{});
+	TEST_CHECK(merkle_pad(8, 8) == sha256_hash{});
+	TEST_CHECK(merkle_pad(16, 16) == sha256_hash{});
+
+	// if the block layer is one step below the piece layer, the pad is always
+	// SHA256(0 .. 0). i.e. two zero hashes hashed.
+
+	auto const pad1 = [] {
+		hasher256 ctx;
+		ctx.update(sha256_hash{});
+		ctx.update(sha256_hash{});
+		return ctx.final();
+	}();
+	TEST_CHECK(merkle_pad(2, 1) == pad1);
+	TEST_CHECK(merkle_pad(4, 2) == pad1);
+	TEST_CHECK(merkle_pad(8, 4) == pad1);
+	TEST_CHECK(merkle_pad(16, 8) == pad1);
+
+	auto const pad2 = [&] {
+		hasher256 ctx;
+		ctx.update(pad1);
+		ctx.update(pad1);
+		return ctx.final();
+	}();
+	TEST_CHECK(merkle_pad(4, 1) == pad2);
+	TEST_CHECK(merkle_pad(8, 2) == pad2);
+	TEST_CHECK(merkle_pad(16, 4) == pad2);
+	TEST_CHECK(merkle_pad(32, 8) == pad2);
+}
