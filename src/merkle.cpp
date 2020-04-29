@@ -176,5 +176,23 @@ namespace libtorrent {
 	{
 		return idx - ((1 << merkle_get_layer(idx)) - 1);
 	}
+
+	// generates the pad hash for the tree level with "target" nodes, given the
+	// full tree has "leafs" number of leafs.
+	sha256_hash merkle_pad(int leafs, int target)
+	{
+		TORRENT_ASSERT(leafs >= target);
+		sha256_hash ret{};
+		while (target < leafs)
+		{
+			hasher256 h;
+			h.update(ret);
+			h.update(ret);
+			ret = h.final();
+			target *= 2;
+		}
+		return ret;
+	}
+
 }
 

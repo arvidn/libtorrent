@@ -1611,8 +1611,7 @@ namespace {
 			}
 
 			tree.resize(num_nodes);
-			sha256_hash pad_hash = merkle_root(std::vector<sha256_hash>(
-				static_cast<std::size_t>(orig_files().piece_length()) / default_block_size));
+			sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
 
 			for (int n = 0; n < num_pieces; ++n)
 				tree[first_piece_node + n].assign(piece_layer->second.data() + n * sha256_hash::size());
