@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wshift-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-negative"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #if __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
