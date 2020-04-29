@@ -578,3 +578,6 @@ wolfssl
 sni
 nginx
 SIGINT
+GNUTLS
+libgnutls
+
