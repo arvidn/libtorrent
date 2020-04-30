@@ -347,7 +347,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		int const root_layer_offset = req.index >> total_add_layers;
 		int const proof_root_idx = merkle_to_flat_index(base_layer_idx - total_add_layers
 			, root_layer_offset);
-		if (m_merkle_trees[req.file][proof_root_idx] != tree_root)
+		auto& dst_tree = m_merkle_trees[req.file];
+		if (dst_tree[proof_root_idx] != tree_root)
 		{
 			return add_hashes_result(false);
 		}
@@ -364,8 +365,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			for (int i = 0; i < layer_size; ++i)
 			{
-				if (!m_merkle_trees[req.file][dest_start_idx + i].is_all_zeros()
-					&& m_merkle_trees[req.file][dest_start_idx + i] != tree[source_start_idx + i])
+				if (!dst_tree[dest_start_idx + i].is_all_zeros()
+					&& dst_tree[dest_start_idx + i] != tree[source_start_idx + i])
 				{
 					// this must be a block hash because inner nodes are not filled in until
 					// they can be verified
@@ -376,7 +377,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					ret.hash_failed[piece_index_t{pos.quot}].push_back(pos.rem);
 				}
 
-				m_merkle_trees[req.file][dest_start_idx + i] = tree[source_start_idx + i];
+				dst_tree[dest_start_idx + i] = tree[source_start_idx + i];
 			}
 			if (layer_size == 1) break;
 			dest_start_idx = merkle_get_parent(dest_start_idx);
@@ -388,13 +389,13 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			if (dest_start_idx & 1)
 			{
-				m_merkle_trees[req.file][dest_start_idx] = proof.first;
-				m_merkle_trees[req.file][dest_start_idx + 1] = proof.second;
+				dst_tree[dest_start_idx] = proof.first;
+				dst_tree[dest_start_idx + 1] = proof.second;
 			}
 			else
 			{
-				m_merkle_trees[req.file][dest_start_idx - 1] = proof.first;
-				m_merkle_trees[req.file][dest_start_idx] = proof.second;
+				dst_tree[dest_start_idx - 1] = proof.first;
+				dst_tree[dest_start_idx] = proof.second;
 			}
 			dest_start_idx = merkle_get_parent(dest_start_idx);
 		}
@@ -418,8 +419,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = 0; i < req.count; ++i)
 			{
 				int const piece = req.index + i;
-				if (!m_merkle_trees[req.file][merkle_get_first_child(file_first_piece + piece)].is_all_zeros()
-					&& !m_merkle_trees[req.file][merkle_get_first_child(file_first_piece + piece) + 1].is_all_zeros())
+				if (!dst_tree[merkle_get_first_child(file_first_piece + piece)].is_all_zeros()
+					&& !dst_tree[merkle_get_first_child(file_first_piece + piece) + 1].is_all_zeros())
 				{
 					// this piece is already verified
 					continue;
@@ -431,7 +432,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				bool done = false;
 				for (int j = 0; j < std::min(num_leafs, file_num_blocks - first_leaf); ++j)
 				{
-					if (m_merkle_trees[req.file][file_first_leaf + first_leaf + j].is_all_zeros())
+					if (dst_tree[file_first_leaf + first_leaf + j].is_all_zeros())
 					{
 						done = true;
 						break;
@@ -439,11 +440,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				}
 				if (done) continue;
 
-				merkle_fill_tree(m_merkle_trees[req.file], num_leafs, file_first_leaf + first_leaf);
-				if (m_merkle_trees[req.file][merkle_to_flat_index(base_layer_index, req.index + i)] != hashes[i])
+				merkle_fill_tree(dst_tree, num_leafs, file_first_leaf + first_leaf);
+				if (dst_tree[merkle_to_flat_index(base_layer_index, req.index + i)] != hashes[i])
 				{
-					merkle_clear_tree(m_merkle_trees[req.file], num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
-					m_merkle_trees[req.file][merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
+					merkle_clear_tree(dst_tree, num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
+					dst_tree[merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
 					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
 					// TODO: add to failed hashes
