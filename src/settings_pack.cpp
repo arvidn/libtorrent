@@ -135,7 +135,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(send_redundant_have, true, nullptr),
 		DEPRECATED_SET(lazy_bitfields, false, nullptr),
 		SET(use_dht_as_fallback, false, nullptr),
-		DEPRECATED_SET(upnp_ignore_nonrouters, false, nullptr),
+		SET(upnp_ignore_nonrouters, false, nullptr),
 		SET(use_parole_mode, true, nullptr),
 		SET(use_read_cache, true, nullptr),
 		DEPRECATED_SET(use_write_cache, true, nullptr),

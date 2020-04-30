@@ -500,7 +500,8 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	if (err) return;
 
-	if (!match_addr_mask(m_listen_address, from.address(), m_netmask))
+	if (m_settings.get_bool(settings_pack::upnp_ignore_nonrouters)
+		&& !match_addr_mask(m_listen_address, from.address(), m_netmask))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
