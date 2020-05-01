@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
+#include <cstddef>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #define _FILE_OFFSET_BITS 64

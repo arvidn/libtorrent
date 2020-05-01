@@ -506,7 +506,8 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	if (err) return;
 
-	if (!match_addr_mask(m_listen_address, from.address(), m_netmask))
+	if (m_settings.get_bool(settings_pack::upnp_ignore_nonrouters)
+		&& !match_addr_mask(m_listen_address, from.address(), m_netmask))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -582,7 +583,6 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	rootdevice d;
 	d.url = url;
-	d.lease_duration = m_settings.get_int(settings_pack::upnp_lease_duration);
 
 	auto i = m_devices.find(d);
 
@@ -730,6 +730,13 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 #endif
 }
 
+int upnp::lease_duration(rootdevice const& d) const
+{
+	return d.use_lease_duration
+		? m_settings.get_int(settings_pack::upnp_lease_duration)
+		: 0;
+}
+
 void upnp::create_port_mapping(http_connection& c, rootdevice& d
 	, port_mapping_t const i)
 {
@@ -771,7 +778,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d
 		, local_endpoint.c_str()
 		, m_settings.get_bool(settings_pack::anonymous_mode)
 			? "" : m_settings.get_str(settings_pack::user_agent).c_str()
-		, d.lease_duration, soap_action);
+		, lease_duration(d), soap_action);
 
 	post(d, soap, soap_action);
 }
@@ -1424,7 +1431,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == 725)
 	{
 		// The gateway only supports permanent leases
-		d.lease_duration = 0;
+		d.use_lease_duration = false;
 		m.act = portmap_action::add;
 		++m.failcount;
 		update_map(d, mapping);
@@ -1462,11 +1469,11 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		m_callback.on_port_mapping(mapping, d.external_ip, m.external_port, m.protocol, error_code()
 			, portmap_transport::upnp, m_listen_handle);
-		if (d.lease_duration > 0)
+		if (d.use_lease_duration && m_settings.get_int(settings_pack::upnp_lease_duration) != 0)
 		{
 			time_point const now = aux::time_now();
-			m.expires = now
-				+ seconds(int(d.lease_duration * 3 / 4));
+			m.expires = now + seconds(
+				m_settings.get_int(settings_pack::upnp_lease_duration) * 3 / 4);
 			time_point next_expire = m_refresh_timer.expiry();
 			if (next_expire < now || next_expire > m.expires)
 			{

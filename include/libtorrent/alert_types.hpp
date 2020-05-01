@@ -87,7 +87,7 @@ namespace libtorrent {
 #endif
 
 	// internal
-	TORRENT_EXTRA_EXPORT char const* alert_name(int alert_type);
+	TORRENT_EXPORT char const* alert_name(int alert_type);
 
 	// user defined alerts should use IDs greater than this
 	constexpr int user_alert_id = 10000;

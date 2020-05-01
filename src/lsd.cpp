@@ -136,7 +136,7 @@ void lsd::start(error_code& ec)
 	}
 
 	ADD_OUTSTANDING_ASYNC("lsd::on_announce");
-	m_socket.async_receive(boost::asio::null_buffers{}
+	m_socket.async_wait(udp::socket::wait_read
 		, std::bind(&lsd::on_announce, self(), _1));
 }
 
@@ -219,7 +219,7 @@ void lsd::on_announce(error_code const& ec)
 		boost::asio::buffer(buffer), from, {}, err));
 
 	ADD_OUTSTANDING_ASYNC("lsd::on_announce");
-	m_socket.async_receive(boost::asio::null_buffers{}
+	m_socket.async_wait(udp::socket::wait_read
 		, std::bind(&lsd::on_announce, self(), _1));
 
 	if (!match_addr_mask(from.address(), m_listen_address, m_netmask))

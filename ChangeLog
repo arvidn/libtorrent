@@ -23,6 +23,13 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 
+
+	* undeprecate upnp_ignore_nonrouters (but refering to devices on our subnet)
+	* increase default tracker timeout
+	* retry failed socks5 server connections
+	* allow UPnP lease duration to be changed after device discovery
+	* fix IPv6 address change detection on Windows
+
 1.2.6 released
 
 	* fix peer timeout logic

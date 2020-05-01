@@ -186,7 +186,6 @@ private:
 	http_filter_handler m_filter_handler;
 	deadline_timer m_timer;
 
-	time_duration m_read_timeout;
 	time_duration m_completion_timeout;
 
 	// the timer fires every 250 millisecond as long

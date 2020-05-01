@@ -92,7 +92,6 @@ http_connection::http_connection(io_context& ios
 	, m_connect_handler(std::move(ch))
 	, m_filter_handler(std::move(fh))
 	, m_timer(ios)
-	, m_read_timeout(seconds(5))
 	, m_completion_timeout(seconds(5))
 	, m_limiter_timer(ios)
 	, m_last_receive(aux::time_now())
@@ -245,9 +244,7 @@ void http_connection::start(std::string const& hostname, int port
 	std::shared_ptr<http_connection> me(shared_from_this());
 
 	m_completion_timeout = timeout;
-	m_read_timeout = seconds(5);
-	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
-	m_timer.expires_after(std::min(m_read_timeout, m_completion_timeout));
+	m_timer.expires_after(m_completion_timeout);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	m_timer.async_wait(std::bind(&http_connection::on_timeout
 		, std::weak_ptr<http_connection>(me), _1));
@@ -290,7 +287,6 @@ void http_connection::start(std::string const& hostname, int port
 			// quadruple the timeout for i2p destinations
 			// because i2p is sloooooow
 			m_completion_timeout *= 4;
-			m_read_timeout *= 4;
 
 #if TORRENT_USE_I2P
 			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
@@ -403,8 +399,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	time_point const now = clock_type::now();
 
-	if (c->m_start_time + c->m_completion_timeout <= now
-		|| c->m_last_receive + c->m_read_timeout <= now)
+	if (c->m_start_time + c->m_completion_timeout <= now)
 	{
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
@@ -433,9 +428,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-	c->m_timer.expires_at(std::min(
-		c->m_last_receive + c->m_read_timeout
-		, c->m_start_time + c->m_completion_timeout));
+	c->m_timer.expires_at(c->m_start_time + c->m_completion_timeout);
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
 

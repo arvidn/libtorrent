@@ -6256,7 +6256,12 @@ namespace {
 			// everyone
 			for (auto const& p : m_connections)
 			{
-				if (p->is_disconnecting() || p->is_connecting())
+				if (p->is_disconnecting()
+					|| p->is_connecting()
+					|| !p->is_choked()
+					|| p->in_handshake()
+					|| p->ignore_unchoke_slots()
+					)
 					continue;
 
 				auto const t = p->associated_torrent().lock();
