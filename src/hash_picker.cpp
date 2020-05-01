@@ -144,19 +144,6 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		}
 	}
 
-	void hash_picker::set_verified(aux::vector<aux::vector<bool>, file_index_t> const& verified)
-	{
-		if (verified.empty()) return;
-		TORRENT_ASSERT(int(verified.size()) == m_files.num_files());
-		for (file_index_t f(0); f != m_files.end_file(); ++f)
-		{
-			auto& v = m_hash_verified[f];
-			auto& vi = verified[f];
-			TORRENT_ASSERT(v.size() == vi.size());
-			std::transform(v.begin(), v.end(), vi.begin(), v.begin(), [](bool v1, bool v2) { return v1 || v2; });
-		}
-	}
-
 	hash_request hash_picker::pick_hashes(typed_bitfield<piece_index_t> const& pieces)
 	{
 		auto now = aux::time_now();

@@ -135,8 +135,6 @@ namespace libtorrent
 			, aux::vector<aux::vector<bool>, file_index_t> verified = {}
 			, bool all_verified = false);
 
-		void set_verified(aux::vector<aux::vector<bool>, file_index_t> const& verified);
-
 		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces);
 
 		add_hashes_result add_hashes(hash_request const& req, span<sha256_hash const> hashes);

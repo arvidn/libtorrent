@@ -414,6 +414,7 @@ bool is_downloading_state(int const st)
 				verified.reserve(p.verified_leaf_hashes.size());
 				for (auto const& v : p.verified_leaf_hashes)
 					verified.emplace_back(v.begin(), v.end());
+				TORRENT_ASSERT(!m_hash_picker);
 				need_hash_picker(std::move(verified));
 			}
 		}
@@ -1189,10 +1190,9 @@ bool is_downloading_state(int const st)
 	{
 		if (m_hash_picker)
 		{
-			if (!verified.empty())
-			{
-				m_hash_picker->set_verified(verified);
-			}
+			// we only set this if we create the picker on torrent creation,
+			// which is the first time we construct the hash picker in that case
+			TORRENT_ASSERT(verified.empty());
 			return;
 		}
 
