@@ -141,7 +141,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					}
 					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][j])
 						|| (m_files.piece_length() > default_block_size
-							&& tree[piece_layer_start + j].is_all_zeros()))
+							&& !tree.has_node(piece_layer_start + j)))
 						break;
 				}
 			}
@@ -322,7 +322,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			for (int i = 0; i < layer_size; ++i)
 			{
-				if (!dst_tree[dest_start_idx + i].is_all_zeros()
+				if (dst_tree.has_node(dest_start_idx + i)
 					&& dst_tree[dest_start_idx + i] != tree[source_start_idx + i])
 				{
 					// this must be a block hash because inner nodes are not filled in until
@@ -377,8 +377,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = 0; i < req.count; ++i)
 			{
 				int const piece = req.index + i;
-				if (!dst_tree[merkle_get_first_child(file_first_piece + piece)].is_all_zeros()
-					&& !dst_tree[merkle_get_first_child(file_first_piece + piece) + 1].is_all_zeros())
+				if (dst_tree.has_node(merkle_get_first_child(file_first_piece + piece))
+					&& dst_tree.has_node(merkle_get_first_child(file_first_piece + piece) + 1))
 				{
 					// this piece is already verified
 					continue;
@@ -390,7 +390,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				bool done = false;
 				for (int j = 0; j < std::min(num_leafs, file_num_blocks - first_leaf); ++j)
 				{
-					if (dst_tree[file_first_leaf + first_leaf + j].is_all_zeros())
+					if (!dst_tree.has_node(file_first_leaf + first_leaf + j))
 					{
 						done = true;
 						break;
@@ -438,9 +438,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		// if this blocks's hash is already known, check the passed-in hash against it
 		if (m_hash_verified[f][block_index])
 		{
-			TORRENT_ASSERT(!merkle_tree[block_tree_index].is_all_zeros());
+			TORRENT_ASSERT(merkle_tree.has_node(block_tree_index));
 			if (block_tree_index > 0)
-				TORRENT_ASSERT(!merkle_tree[merkle_get_parent(block_tree_index)].is_all_zeros());
+				TORRENT_ASSERT(merkle_tree.has_node(merkle_get_parent(block_tree_index)));
 			return merkle_tree[block_tree_index] == h ? set_block_hash_result{offset / default_block_size, 1}
 				: set_block_hash_result::block_hash_failed();
 		}
@@ -466,7 +466,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			bool done = false;
 			for (int j = 0; j < std::min(leafs_size, file_num_blocks - first_check_index); ++j)
 			{
-				if (merkle_tree[first_block_index + first_check_index + j].is_all_zeros())
+				if (!merkle_tree.has_node(first_block_index + first_check_index + j))
 				{
 					done = true;
 					break;
@@ -479,7 +479,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			// if an inner node is known then its parent must be known too
 			// so if the root is known the next sibling subtree should already
 			// be computed if all of its leafs have valid hashes
-			if (!merkle_tree[root_index].is_all_zeros()) break;
+			if (merkle_tree.has_node(root_index)) break;
 			TORRENT_ASSERT(root_index != 0);
 			TORRENT_ASSERT(leafs_index >= 0);
 			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(file_num_blocks));
@@ -490,7 +490,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		TORRENT_ASSERT(leafs_index + leafs_size > block_index);
 
 		// if the root node is unknown the hashes cannot be verified yet
-		if (merkle_tree[root_index].is_all_zeros())
+		if (!merkle_tree.has_node(root_index))
 			return set_block_hash_result::unknown();
 
 		// save the root hash because merkle_fill_tree will overwrite it
@@ -568,7 +568,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		file_index_t const f = m_files.file_index_at_piece(index);
 		if (m_files.file_size(f) <= m_files.piece_length()) return true;
 		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
-		return !m_merkle_trees[f][m_files.file_first_piece_node(f) + int(index - file_first_piece)].is_all_zeros();
+		return m_merkle_trees[f].has_node(m_files.file_first_piece_node(f) + int(index - file_first_piece));
 	}
 
 	bool hash_picker::have_all(file_index_t const file) const
@@ -609,7 +609,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		for (;;)
 		{
 			idx.node = merkle_get_parent(idx.node);
-			if (!tree[idx.node].is_all_zeros()) break;
+			if (tree.has_node(idx.node)) break;
 			layers++;
 			if (layers == file_internal_layers) return layers;
 		}
