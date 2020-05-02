@@ -291,31 +291,9 @@ TORRENT_TEST(add_bad_hashes)
 
 	hash_picker picker(fs, trees);
 
-	std::vector<sha256_hash> hashes(2);
-	// hash count mis-match
-	auto result = picker.add_hashes(hash_request(0_file, 0, 0, 2, 1), hashes);
-	TEST_CHECK(!result.valid);
-	result = picker.add_hashes(hash_request(0_file, 0, 0, 4, 0), hashes);
-	TEST_CHECK(!result.valid);
-
-	// wrong piece hash count
-	hashes.resize(256);
-	result = picker.add_hashes(hash_request(0_file, 2, 0, 256, 0), hashes);
-	TEST_CHECK(!result.valid);
-
-	// wrong base layer
-	hashes.resize(512);
-	result = picker.add_hashes(hash_request(0_file, 1, 0, 512, 0), hashes);
-	TEST_CHECK(!result.valid);
-
-	// index out of range
-	hashes.resize(512);
-	result = picker.add_hashes(hash_request(0_file, 2, 512, 512, 0), hashes);
-	TEST_CHECK(!result.valid);
-
 	// totally bogus hashes
-	hashes.resize(512);
-	result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 0), hashes);
+	std::vector<sha256_hash> hashes(512);
+	auto result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// bad proof hash

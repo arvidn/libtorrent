@@ -124,6 +124,9 @@ namespace libtorrent
 		int proof_layers = 0;
 	};
 
+	// validates the hash_request, to ensure its invariant as well as matching
+	// the torrent's file_storage and the number of hashes accompanying the
+	// request
 	TORRENT_EXTRA_EXPORT
 	bool validate_hash_request(hash_request const& hr, file_storage const& fs);
 

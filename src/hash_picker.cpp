@@ -59,6 +59,11 @@ proof_layer  |    x                x
 
 bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 {
+	// limit the size of the base layer to something reasonable
+	// Blocks are requested for an entire piece so this limit
+	// effectivly caps the piece size we can handle. A limit of 8192
+	// corresponds to a piece size of 128MB.
+
 	if (hr.file < file_index_t{0}
 		|| hr.file >= fs.end_file()
 		|| hr.base < 0
@@ -241,26 +246,13 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash const> hashes)
 	{
-		// limit the size of the base layer to something reasonable
-		// Blocks are requested for an entire piece so this limit
-		// effectivly caps the piece size we can handle. A limit of 8192
-		// corresponds to a piece size of 128MB.
-		if (req.count > 8192)
-			return add_hashes_result(false);
-
-		int const num_layers = file_num_layers(req.file);
-
-		if (req.base >= num_layers || req.proof_layers >= num_layers)
-			return add_hashes_result(false);
-
-		if (req.index + req.count > (1 << (num_layers - req.base)))
-			return add_hashes_result(false);
+		TORRENT_ASSERT(validate_hash_request(req, m_files));
 
 		int const count = merkle_num_leafs(req.count);
 		int const base_num_layers = merkle_num_layers(count);
 		int const num_uncle_hashes = std::max(0, req.proof_layers - base_num_layers + 1);
 
-		if (req.count + num_uncle_hashes != int(hashes.size()))
+		if (req.count + num_uncle_hashes != hashes.size())
 			return add_hashes_result(false);
 
 		// for now we rely on only requesting piece hashes in 512 chunks
@@ -272,8 +264,6 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		// for now we only support receiving hashes at the piece and leaf layers
 		if (req.base != m_piece_layer && req.base != 0)
 			return add_hashes_result(false);
-
-		TORRENT_ASSERT(validate_hash_request(req, m_files));
 
 		// the incoming list of hashes is really two separate lists, the lowest
 		// layer of hashes we requested (typically the block- or piece layer).
@@ -299,7 +289,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		merkle_fill_tree(tree, count);
 
-		int const base_layer_idx = num_layers - req.base;
+		int const base_layer_idx = file_num_layers(req.file) - req.base;
 
 		if (base_layer_idx <= 0)
 			return add_hashes_result(false);
