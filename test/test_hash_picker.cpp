@@ -550,12 +550,12 @@ TORRENT_TEST(load_tree)
 		t.load_tree(f);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
-			TEST_CHECK(!t[i].is_all_zeros());
+			TEST_CHECK(t.has_node(i));
 			TEST_CHECK(t[i] == f[i]);
 		}
 		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
 		{
-			TEST_CHECK(t[i].is_all_zeros());
+			TEST_CHECK(!t.has_node(i));
 			TEST_CHECK(t[i] == f[i]);
 		}
 	}
@@ -565,18 +565,18 @@ TORRENT_TEST(load_tree)
 		sha256_hash const bad_root("01234567890123456789012345678901");
 		aux::merkle_tree t(260, bad_root.data());
 		t.load_tree(f);
-		TEST_CHECK(!t[0].is_all_zeros());
+		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
-			TEST_CHECK(t[i].is_all_zeros());
+			TEST_CHECK(!t.has_node(i));
 	}
 
 	// mismatching size
 	{
 		aux::merkle_tree t(260, f[0].data());
 		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1));
-		TEST_CHECK(!t[0].is_all_zeros());
+		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
-			TEST_CHECK(t[i].is_all_zeros());
+			TEST_CHECK(!t.has_node(i));
 	}
 }
 

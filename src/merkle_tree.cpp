@@ -93,6 +93,11 @@ namespace aux {
 		return static_cast<std::size_t>(merkle_num_nodes(merkle_num_leafs(m_num_blocks)));
 	}
 
+	bool merkle_tree::has_node(int const idx) const
+	{
+		return !m_tree[idx].is_all_zeros();
+	}
+
 	std::vector<sha256_hash> merkle_tree::build_vector() const
 	{
 		std::vector<sha256_hash> ret(m_tree.begin(), m_tree.end());
