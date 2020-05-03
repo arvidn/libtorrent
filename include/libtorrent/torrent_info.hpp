@@ -583,8 +583,8 @@ TORRENT_VERSION_NAMESPACE_3
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
 
-		aux::vector<aux::vector<sha256_hash>, file_index_t>& merkle_trees();
-		aux::vector<sha256_hash>& file_merkle_tree(file_index_t file);
+		// internal
+		aux::vector<aux::vector<sha256_hash>, file_index_t>& internal_merkle_trees();
 
 		// internal
 		void internal_set_creator(string_view);
@@ -693,7 +693,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
-		// TODO: change the type to std::shared_ptr in C++17
+		// TODO: change the type to std::shared_ptr<char const> in C++17
 		boost::shared_array<char> m_info_section;
 
 		// if a comment is found in the torrent file

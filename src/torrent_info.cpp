@@ -1199,7 +1199,7 @@ namespace {
 		swap(m_flags, ti.m_flags);
 	}
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t>& torrent_info::merkle_trees()
+	aux::vector<aux::vector<sha256_hash>, file_index_t>& torrent_info::internal_merkle_trees()
 	{
 		TORRENT_ASSERT(m_merkle_trees.end_index() <= orig_files().end_file());
 		if (m_merkle_trees.empty())
@@ -1218,22 +1218,6 @@ namespace {
 		}
 
 		return m_merkle_trees;
-	}
-
-	aux::vector<sha256_hash>& torrent_info::file_merkle_tree(file_index_t file)
-	{
-		TORRENT_ASSERT(m_merkle_trees.end_index() <= orig_files().end_file());
-		if (m_merkle_trees.empty())
-			m_merkle_trees.resize(orig_files().num_files());
-
-		if (m_merkle_trees[file].empty() && orig_files().file_size(file) > 0)
-		{
-			auto const leafs = merkle_num_leafs(orig_files().file_num_blocks(file));
-			m_merkle_trees[file].resize(merkle_num_nodes(leafs));
-			m_merkle_trees[file][0] = orig_files().root(file);
-		}
-
-		return m_merkle_trees[file];
 	}
 
 	string_view torrent_info::ssl_cert() const
