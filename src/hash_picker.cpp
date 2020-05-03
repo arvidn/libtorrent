@@ -305,57 +305,15 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		int const proof_root_idx = merkle_to_flat_index(base_layer_idx - total_add_layers
 			, root_layer_offset);
 		auto& dst_tree = m_merkle_trees[req.file];
-		if (dst_tree[proof_root_idx] != tree_root)
-		{
+
+		if (!dst_tree.compare_node(proof_root_idx, tree_root))
 			return add_hashes_result(false);
-		}
-
-		// The proof has been verrified, copy the hashes into the file's merkle tree
-
-		// first fill in the subtree of known hashes from the base layer
-		int dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
-		int source_start_idx = int(tree.size()) - count;
 
 		add_hashes_result ret(true);
 
-		for (int layer_size = count; layer_size != 0; layer_size /= 2)
-		{
-			for (int i = 0; i < layer_size; ++i)
-			{
-				if (dst_tree.has_node(dest_start_idx + i)
-					&& dst_tree[dest_start_idx + i] != tree[source_start_idx + i])
-				{
-					// this must be a block hash because inner nodes are not filled in until
-					// they can be verified
-					int const file_first_leaf = m_files.file_first_block_node(req.file);
-					TORRENT_ASSERT(dest_start_idx + i >= file_first_leaf);
-					std::div_t const pos = std::div(dest_start_idx + i - file_first_leaf
-						, m_files.piece_length() / default_block_size);
-					ret.hash_failed[piece_index_t{pos.quot}].push_back(pos.rem);
-				}
-
-				dst_tree[dest_start_idx + i] = tree[source_start_idx + i];
-			}
-			if (layer_size == 1) break;
-			dest_start_idx = merkle_get_parent(dest_start_idx);
-			source_start_idx = merkle_get_parent(source_start_idx);
-		}
-
-		// now copy the string of proof hashes
-		for (auto proof : proofs)
-		{
-			if (dest_start_idx & 1)
-			{
-				dst_tree[dest_start_idx] = proof.first;
-				dst_tree[dest_start_idx + 1] = proof.second;
-			}
-			else
-			{
-				dst_tree[dest_start_idx - 1] = proof.first;
-				dst_tree[dest_start_idx] = proof.second;
-			}
-			dest_start_idx = merkle_get_parent(dest_start_idx);
-		}
+		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
+		ret.hash_failed = dst_tree.add_hashes(dest_start_idx, m_files.piece_length() / default_block_size, tree);
+		dst_tree.add_proofs(dest_start_idx >> base_num_layers, proofs);
 
 		if (req.base == 0)
 		{

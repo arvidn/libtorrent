@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MERKLE_TREE_HPP_INCLUDED
 
 #include <cstdint>
+#include <map>
+#include <utility> // for pair
 
 #include "libtorrent/sha1_hash.hpp" // for sha256_hash
 #include "libtorrent/aux_/vector.hpp"
@@ -72,6 +74,8 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 	bool has_node(int idx) const;
 
+	bool compare_node(int idx, sha256_hash const& h) const;
+
 	sha256_hash& operator[](int const idx) { return m_tree[idx]; }
 	sha256_hash const& operator[](int const idx) const { return m_tree[idx]; }
 
@@ -82,6 +86,22 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	void clear(int num_leafs, int level_start);
 
 	bool load_piece_layer(span<char const> piece_layer);
+
+	// the leafs in "tree" must be block hashes (i.e. leaf hashes in the this
+	// tree). This function inserts those hashes as well as the nodes up the
+	// tree. The destination start index is the index, in this tree, to the first leaf
+	// where "tree" will be inserted.
+	// the "blocks_per_piece" parameter is used to map any hash failures to a
+	// piece index, for the returned vector
+	std::map<piece_index_t, std::vector<int>> add_hashes(
+		int dest_start_idx, int blocks_per_piece
+		, span<sha256_hash const> tree);
+
+	// inserts the nodes in "proofs" as a path up the tree starting at
+	// "dest_start_idx". The proofs are sibling hashes, as they are returned
+	// from add_hashes(). The hashes must be valid.
+	void add_proofs(int dest_start_idx
+		, span<std::pair<sha256_hash, sha256_hash> const> proofs);
 
 private:
 	char const* m_root = nullptr;

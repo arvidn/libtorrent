@@ -88,6 +88,68 @@ namespace aux {
 		return true;
 	}
 
+	std::map<piece_index_t, std::vector<int>> merkle_tree::add_hashes(
+		int dest_start_idx, int const blocks_per_piece
+		, span<sha256_hash const> tree)
+	{
+		std::map<piece_index_t, std::vector<int>> failed_blocks;
+
+		// first fill in the subtree of known hashes from the base layer
+
+		auto const num_leafs = (m_tree.end_index() + 1) / 2;
+		auto const first_leaf = m_tree.end_index() - num_leafs;
+
+		// the leaf nodes in the passed-in "tree"
+		int const count = int((tree.size() + 1) / 2);
+
+		// this is the start of the leaf layer of "tree". We'll use this
+		// variable to step upwards towards the root
+		int source_start_idx = int(tree.size()) - count;
+
+		// the tree is expected to be consistent
+		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count)) == tree[0]);
+
+		for (int layer_size = count; layer_size != 0; layer_size /= 2)
+		{
+			for (int i = 0; i < layer_size; ++i)
+			{
+				int const dst_idx = dest_start_idx + i;
+				int const src_idx = source_start_idx + i;
+				if (has_node(dst_idx) && m_tree[dst_idx] != tree[src_idx])
+				{
+					// this must be a block hash because inner nodes are not filled in until
+					// they can be verified. This assert ensures we're at the
+					// leaf layer of the file tree
+					TORRENT_ASSERT(dst_idx >= first_leaf);
+
+					// TODO: blocks_per_piece is guaranteed to be a power of 2,
+					// so this could just be a shift and AND
+					std::div_t const pos = std::div(dst_idx - first_leaf, blocks_per_piece);
+					failed_blocks[piece_index_t{pos.quot}].push_back(pos.rem);
+				}
+
+				m_tree[dst_idx] = tree[src_idx];
+			}
+			if (layer_size == 1) break;
+			dest_start_idx = merkle_get_parent(dest_start_idx);
+			source_start_idx = merkle_get_parent(source_start_idx);
+		}
+		return failed_blocks;
+	}
+
+	void merkle_tree::add_proofs(int dest_start_idx
+		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
+	{
+		// now copy the string of proof hashes
+		for (auto proof : proofs)
+		{
+			int const offset = dest_start_idx & 1;
+			m_tree[dest_start_idx + offset - 1] = proof.first;
+			m_tree[dest_start_idx + offset] = proof.second;
+			dest_start_idx = merkle_get_parent(dest_start_idx);
+		}
+	}
+
 	std::size_t merkle_tree::size() const
 	{
 		return static_cast<std::size_t>(merkle_num_nodes(merkle_num_leafs(m_num_blocks)));
@@ -96,6 +158,11 @@ namespace aux {
 	bool merkle_tree::has_node(int const idx) const
 	{
 		return !m_tree[idx].is_all_zeros();
+	}
+
+	bool merkle_tree::compare_node(int const idx, sha256_hash const& h) const
+	{
+		return m_tree[idx] == h;
 	}
 
 	std::vector<sha256_hash> merkle_tree::build_vector() const
