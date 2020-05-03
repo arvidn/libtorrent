@@ -148,8 +148,11 @@ namespace libtorrent {
 		TORRENT_ASSERT(level_size == 1);
 	}
 
+	// compute the merkle tree root, given the leaves and the has to use for
+	// padding
 	sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad)
 	{
+		// TODO this can be optimized to use at least half as much memory
 		int const num_blocks = int(leaves.size());
 		int const num_leafs = merkle_num_leafs(num_blocks);
 		int const num_nodes = merkle_num_nodes(num_leafs);
@@ -164,6 +167,9 @@ namespace libtorrent {
 		return merkle_tree[0];
 	}
 
+	// returns the layer the given offset into the tree falls into.
+	// Layer 0 is the root of the tree, layer 1 is the two hashes below the
+	// root, and so on.
 	int merkle_get_layer(int idx)
 	{
 		TORRENT_ASSERT(idx >= 0);
@@ -172,6 +178,7 @@ namespace libtorrent {
 		return layer - 1;
 	}
 
+	// returns the start of the layer, offset `idx` falls into.
 	int merkle_get_layer_offset(int idx)
 	{
 		return idx - ((1 << merkle_get_layer(idx)) - 1);

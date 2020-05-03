@@ -400,7 +400,7 @@ bool is_downloading_state(int const st)
 		{
 			if (!p.merkle_trees.empty())
 			{
-				auto& trees = m_torrent_file->merkle_trees();
+				auto& trees = m_torrent_file->internal_merkle_trees();
 				trees.clear();
 				trees.reserve(p.merkle_trees.size());
 				for (auto const& t : p.merkle_trees)
@@ -1202,7 +1202,7 @@ bool is_downloading_state(int const st)
 		//INVARIANT_CHECK;
 
 		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
-			, m_torrent_file->merkle_trees(), std::move(verified)
+			, m_torrent_file->internal_merkle_trees(), std::move(verified)
 			, m_torrent_file->v2_piece_hashes_verified()
 				&& m_torrent_file->piece_length() == default_block_size));
 	}
@@ -6442,7 +6442,7 @@ namespace {
 		if (!m_torrent_file->is_valid()) return {};
 		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
 
-		auto const& f = m_torrent_file->file_merkle_tree(req.file);
+		auto const& f = m_torrent_file->internal_merkle_trees()[req.file];
 
 		// given the full size of the tree, half of it, rounded up, are leaf nodes
 		int const base_layer_idx = merkle_num_layers(
@@ -6802,9 +6802,10 @@ namespace {
 		if (m_torrent_file->info_hash().has_v2())
 		{
 			ret.merkle_trees.clear();
-			ret.merkle_trees.reserve(m_torrent_file->merkle_trees().size());
-			for (auto const& t : m_torrent_file->merkle_trees())
+			ret.merkle_trees.reserve(m_torrent_file->internal_merkle_trees().size());
+			for (auto const& t : m_torrent_file->internal_merkle_trees())
 				ret.merkle_trees.emplace_back(t.begin(), t.end());
+
 			if (has_hash_picker())
 			{
 				auto const& leafs = get_hash_picker().verified_leafs();
@@ -7276,7 +7277,7 @@ namespace {
 		// for v2 torrents the root hashes need to be copied to the merkle trees
 		if (m_torrent_file->info_hash().has_v2())
 		{
-			auto& merkle_trees = m_torrent_file->merkle_trees();
+			auto& merkle_trees = m_torrent_file->internal_merkle_trees();
 			for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
 			{
 				merkle_trees[f][0] = m_torrent_file->files().root(f);
