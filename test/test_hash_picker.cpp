@@ -551,12 +551,12 @@ TORRENT_TEST(load_tree)
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
 			TEST_CHECK(t.has_node(i));
-			TEST_CHECK(t[i] == f[i]);
+			TEST_CHECK(t.compare_node(i, f[i]));
 		}
 		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
 		{
 			TEST_CHECK(!t.has_node(i));
-			TEST_CHECK(t[i] == f[i]);
+			TEST_CHECK(t.compare_node(i, f[i]));
 		}
 	}
 
@@ -578,5 +578,187 @@ TORRENT_TEST(load_tree)
 		for (int i = 1; i < num_nodes; ++i)
 			TEST_CHECK(!t.has_node(i));
 	}
+}
+
+// the top 4 layers of the tree:
+//                        0
+//             1                     2
+//       3          4            5         6
+//   7     8     9    10    11    12     13   14
+// 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+
+TORRENT_TEST(add_proofs_left_path)
+{
+	aux::merkle_tree t(260, f[0].data());
+
+	std::vector<std::pair<sha256_hash, sha256_hash>> const proofs{
+		{f[19], f[20]},
+		{f[9], f[10]},
+		{f[3], f[4]},
+		{f[1], f[2]}
+	};
+
+	t.add_proofs(19, proofs);
+
+	TEST_CHECK(t[19] == f[19]);
+	TEST_CHECK(t[20] == f[20]);
+	TEST_CHECK(t[9]  == f[9]);
+	TEST_CHECK(t[10] == f[10]);
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[4]  == f[4]);
+	TEST_CHECK(t[1]  == f[1]);
+	TEST_CHECK(t[2]  == f[2]);
+}
+
+TORRENT_TEST(add_proofs_right_path)
+{
+	aux::merkle_tree t(260, f[0].data());
+
+	std::vector<std::pair<sha256_hash, sha256_hash>> const proofs{
+		{f[19], f[20]},
+		{f[9], f[10]},
+		{f[3], f[4]},
+		{f[1], f[2]}
+	};
+
+	// the only difference is that we say index 20 is the start index,
+	// everything else is the same
+	t.add_proofs(20, proofs);
+
+	TEST_CHECK(t[19] == f[19]);
+	TEST_CHECK(t[20] == f[20]);
+	TEST_CHECK(t[9]  == f[9]);
+	TEST_CHECK(t[10] == f[10]);
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[4]  == f[4]);
+	TEST_CHECK(t[1]  == f[1]);
+	TEST_CHECK(t[2]  == f[2]);
+}
+
+TORRENT_TEST(add_proofs_far_left_path)
+{
+	aux::merkle_tree t(260, f[0].data());
+
+	std::vector<std::pair<sha256_hash, sha256_hash>> const proofs{
+		{f[15], f[16]},
+		{f[7], f[8]},
+		{f[3], f[4]},
+		{f[1], f[2]}
+	};
+
+	t.add_proofs(15, proofs);
+
+	TEST_CHECK(t[15] == f[15]);
+	TEST_CHECK(t[16] == f[16]);
+	TEST_CHECK(t[7]  == f[7]);
+	TEST_CHECK(t[8]  == f[8]);
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[4]  == f[4]);
+	TEST_CHECK(t[1]  == f[1]);
+	TEST_CHECK(t[2]  == f[2]);
+}
+
+TORRENT_TEST(add_proofs_far_right_path)
+{
+	aux::merkle_tree t(260, f[0].data());
+
+	std::vector<std::pair<sha256_hash, sha256_hash>> const proofs{
+		{f[29], f[30]},
+		{f[13], f[14]},
+		{f[5], f[6]},
+		{f[1], f[2]}
+	};
+
+	t.add_proofs(29, proofs);
+
+	TEST_CHECK(t[29] == f[29]);
+	TEST_CHECK(t[30] == f[30]);
+	TEST_CHECK(t[13] == f[13]);
+	TEST_CHECK(t[14] == f[14]);
+	TEST_CHECK(t[5]  == f[5]);
+	TEST_CHECK(t[6]  == f[6]);
+	TEST_CHECK(t[1]  == f[1]);
+	TEST_CHECK(t[2]  == f[2]);
+}
+
+TORRENT_TEST(add_hashes_pass)
+{
+	std::vector<sha256_hash> const subtree{
+		f[3],
+		f[7], f[8],
+		f[15], f[16], f[17], f[18],
+	};
+
+	aux::merkle_tree t(260, f[0].data());
+	auto const failed = t.add_hashes(15, 1, subtree);
+	TEST_CHECK(failed.empty());
+
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[7]  == f[7]);
+	TEST_CHECK(t[8]  == f[8]);
+	TEST_CHECK(t[15] == f[15]);
+	TEST_CHECK(t[16] == f[16]);
+	TEST_CHECK(t[17] == f[17]);
+	TEST_CHECK(t[18] == f[18]);
+}
+
+using p = std::map<piece_index_t, std::vector<int>>;
+
+// this is the full tree:
+//                        0
+//             1                     2
+//       3          4            5         6
+//   7     8     9    10    11    12     13   14
+// 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+TORRENT_TEST(add_hashes_fail1)
+{
+	std::vector<sha256_hash> const subtree{
+		f[3],
+		f[7], f[8],
+		f[15], f[16], f[17], f[18],
+	};
+
+	aux::merkle_tree t(13, f[0].data());
+
+	// this is an invalid hash
+	t[16] = sha256_hash("01234567890123456789012345678901");
+
+	auto const failed = t.add_hashes(15, 1, subtree);
+	TEST_CHECK((failed == p{{piece_index_t{1}, {0}}}));
+
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[7]  == f[7]);
+	TEST_CHECK(t[8]  == f[8]);
+	TEST_CHECK(t[15] == f[15]);
+	TEST_CHECK(t[16] == f[16]);
+	TEST_CHECK(t[17] == f[17]);
+	TEST_CHECK(t[18] == f[18]);
+}
+
+TORRENT_TEST(add_hashes_fail2)
+{
+	std::vector<sha256_hash> const subtree{
+		f[3],
+		f[7], f[8],
+		f[15], f[16], f[17], f[18],
+	};
+
+	aux::merkle_tree t(13, f[0].data());
+
+	// this is an invalid hash
+	t[16] = sha256_hash("01234567890123456789012345678901");
+	t[17] = sha256_hash("01234567890123456789012345678901");
+	t[18] = sha256_hash("01234567890123456789012345678901");
+
+	auto const failed = t.add_hashes(15, 2, subtree);
+	TEST_CHECK((failed == p{{piece_index_t{0}, {1}}, {piece_index_t{1}, {0, 1}}}));
+
+	TEST_CHECK(t[3]  == f[3]);
+	TEST_CHECK(t[7]  == f[7]);
+	TEST_CHECK(t[8]  == f[8]);
+	TEST_CHECK(t[15] == f[15]);
+	TEST_CHECK(t[16] == f[16]);
+	TEST_CHECK(t[17] == f[17]);
+	TEST_CHECK(t[18] == f[18]);
 }
 
