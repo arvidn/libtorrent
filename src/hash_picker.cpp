@@ -107,24 +107,22 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			if (m_files.pad_file_at(f)) continue;
 
+			auto const& tree = m_merkle_trees[f];
+
 			// TODO: allocate m_hash_verified lazily when a hash conflist occurs?
 			// would save memory in the common case of no hash failures
 			m_hash_verified[f].resize(m_files.file_num_blocks(f), all_verified);
 			if (m_hash_verified[f].size() == 1)
 			{
 				// the root hash comes from the metadata so it is always verified
-				TORRENT_ASSERT(!m_merkle_trees[f][0].is_all_zeros());
+				TORRENT_ASSERT(!tree[0].is_all_zeros());
 				m_hash_verified[f][0] = true;
 			}
 
-			if (m_files.file_size(f) > m_files.piece_length())
-			{
-				m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
-			}
-			else
-			{
+			if (m_files.file_size(f) <= m_files.piece_length())
 				continue;
-			}
+
+			m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
 
 			int const piece_layer_idx = merkle_num_layers(
 				merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
@@ -142,7 +140,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					}
 					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][j])
 						|| (m_files.piece_length() > default_block_size
-							&& m_merkle_trees[f][merkle_to_flat_index(piece_layer_idx, j)].is_all_zeros()))
+							&& tree[merkle_to_flat_index(piece_layer_idx, j)].is_all_zeros()))
 						break;
 				}
 			}
@@ -151,7 +149,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	hash_request hash_picker::pick_hashes(typed_bitfield<piece_index_t> const& pieces)
 	{
-		auto now = aux::time_now();
+		auto const now = aux::time_now();
 
 		// this is for a future per-block request feature
 #if 0
@@ -172,7 +170,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		if (!m_piece_block_requests.empty())
 		{
-			auto req = std::find_if(m_piece_block_requests.begin(), m_piece_block_requests.end()
+			auto const req = std::find_if(m_piece_block_requests.begin(), m_piece_block_requests.end()
 				, [now](piece_block_request const& e)
 					{ return e.last_request == min_time() || e.last_request - now > min_request_interval; });
 			if (req != m_piece_block_requests.end())
@@ -208,7 +206,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				++i;
 				if (r.have ||
 					(r.last_request != min_time()
-					 && aux::time_now() - r.last_request < min_request_interval))
+					 && now - r.last_request < min_request_interval))
 				{
 					continue;
 				}
@@ -436,7 +434,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return ret;
 	}
 
-	set_block_hash_result hash_picker::set_block_hash(piece_index_t piece, int offset, sha256_hash const& h)
+	set_block_hash_result hash_picker::set_block_hash(piece_index_t const piece
+		, int const offset, sha256_hash const& h)
 	{
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
@@ -567,7 +566,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 #endif
 	}
 
-	void hash_picker::verify_block_hashes(piece_index_t index)
+	void hash_picker::verify_block_hashes(piece_index_t const index)
 	{
 		file_index_t const fidx = m_files.file_index_at_piece(index);
 		piece_index_t::diff_type const piece = index - m_files.piece_index_at_file(fidx);
@@ -580,7 +579,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		m_piece_block_requests.insert(m_piece_block_requests.begin(), req);
 	}
 
-	bool hash_picker::have_hash(piece_index_t index) const
+	bool hash_picker::have_hash(piece_index_t const index) const
 	{
 		file_index_t const f = m_files.file_index_at_piece(index);
 		if (m_files.file_size(f) <= m_files.piece_length()) return true;
@@ -588,7 +587,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return !m_merkle_trees[f][m_files.file_first_piece_node(f) + int(index - file_first_piece)].is_all_zeros();
 	}
 
-	bool hash_picker::have_all(file_index_t file) const
+	bool hash_picker::have_all(file_index_t const file) const
 	{
 		return std::find(m_hash_verified[file].begin(), m_hash_verified[file].end(), false) == m_hash_verified[file].end();
 	}
@@ -600,10 +599,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return true;
 	}
 
-	bool hash_picker::piece_verified(piece_index_t piece) const
+	bool hash_picker::piece_verified(piece_index_t const piece) const
 	{
 		file_index_t const f = m_files.file_index_at_piece(piece);
-		piece_index_t file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
+		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
 		int const block_offset = static_cast<int>(piece - file_first_piece) * (m_files.piece_length() / default_block_size);
 		int const blocks_in_piece = m_files.blocks_in_piece2(piece);
 		auto const& file_leafs = m_hash_verified[f];
@@ -621,11 +620,12 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		int layers = 0;
 		int const file_internal_layers = merkle_num_layers(merkle_num_leafs(m_files.file_num_pieces(idx.file))) - 1;
+		auto const& tree = m_merkle_trees[idx.file];
 
 		for (;;)
 		{
 			idx.node = merkle_get_parent(idx.node);
-			if (!m_merkle_trees[idx.file][idx.node].is_all_zeros()) break;
+			if (!tree[idx.node].is_all_zeros()) break;
 			layers++;
 			if (layers == file_internal_layers) return layers;
 		}
@@ -633,7 +633,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return layers;
 	}
 
-	int hash_picker::file_num_layers(file_index_t idx) const
+	int hash_picker::file_num_layers(file_index_t const idx) const
 	{
 		return merkle_num_layers(merkle_num_leafs(m_files.file_num_blocks(idx)));
 	}
