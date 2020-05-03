@@ -1896,6 +1896,11 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		{
 			disk_io_job *j = i.get();
 			if (j->storage != st) continue;
+			// only cancel volatile-read jobs. This means only full checking
+			// jobs. These jobs are likely to have a pretty deep queue and
+			// really gain from being cancelled. They can also be restarted
+			// easily.
+			if (!(j->flags & disk_interface::volatile_read)) continue;
 			j->flags |= disk_io_job::aborted;
 		}
 	}
