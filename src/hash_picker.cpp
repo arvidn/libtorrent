@@ -323,53 +323,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		else
 		{
 			TORRENT_ASSERT(req.base == m_piece_layer);
-			int const file_num_blocks = m_files.file_num_blocks(req.file);
-			int const file_first_leaf = m_files.file_first_block_node(req.file);
-			int const file_first_piece = m_files.file_first_piece_node(req.file);
-			int const base_layer_index = merkle_num_layers(merkle_num_leafs(file_num_blocks)) - req.base;
 			int const file_piece_offset = int(m_files.file_offset(req.file) / m_files.piece_length());
-			int const base_layer_start = merkle_to_flat_index(base_layer_index, req.index);
 
-			// it may now be possible to verify the hashes of previously received blocks
-			// try to verify as many child nodes of the received hashes as possible
-			for (int i = 0; i < req.count; ++i)
-			{
-				int const piece = req.index + i;
-				if (dst_tree.has_node(merkle_get_first_child(file_first_piece + piece))
-					&& dst_tree.has_node(merkle_get_first_child(file_first_piece + piece) + 1))
-				{
-					// this piece is already verified
-					continue;
-				}
-
-				int const first_leaf = piece << req.base;
-				int const num_leafs = 1 << req.base;
-
-				bool done = false;
-				for (int j = 0; j < std::min(num_leafs, file_num_blocks - first_leaf); ++j)
-				{
-					if (!dst_tree.has_node(file_first_leaf + first_leaf + j))
-					{
-						done = true;
-						break;
-					}
-				}
-				if (done) continue;
-
-				dst_tree.fill(num_leafs, file_first_leaf + first_leaf);
-				if (dst_tree[base_layer_start + i] != hashes[i])
-				{
-					dst_tree.clear(num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
-					dst_tree[base_layer_start + i] = hashes[i];
-					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
-					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
-					// TODO: add to failed hashes
-				}
-				else
-				{
-					ret.hash_passed.push_back(piece_index_t{file_piece_offset + piece});
-				}
-			}
+			ret.hash_passed = dst_tree.check_pieces(req.base, req.index
+				, m_files.piece_length() / default_block_size, file_piece_offset, hashes);
 		}
 
 		return ret;

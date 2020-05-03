@@ -150,6 +150,66 @@ namespace aux {
 		}
 	}
 
+	std::vector<piece_index_t> merkle_tree::check_pieces(int const base
+		, int const index, int const blocks_per_piece, int const file_piece_offset
+		, span<sha256_hash const> hashes)
+	{
+		std::vector<piece_index_t> passed_pieces;
+
+		// blocks per piece must be a power of 2
+		TORRENT_ASSERT((blocks_per_piece & (blocks_per_piece - 1)) == 0);
+
+		int const count = static_cast<int>(hashes.size());
+		auto const file_num_leafs = (m_tree.end_index() + 1) / 2;
+		auto const file_first_leaf = m_tree.end_index() - file_num_leafs;
+		int const first_piece = file_first_leaf / blocks_per_piece;
+
+		int const base_layer_index = merkle_num_layers(file_num_leafs) - base;
+		int const base_layer_start = merkle_to_flat_index(base_layer_index, index);
+
+		// it may now be possible to verify the hashes of previously received blocks
+		// try to verify as many child nodes of the received hashes as possible
+		for (int i = 0; i < count; ++i)
+		{
+			int const piece = index + i;
+			if (!m_tree[merkle_get_first_child(first_piece + piece)].is_all_zeros()
+				&& !m_tree[merkle_get_first_child(first_piece + piece) + 1].is_all_zeros())
+			{
+				// this piece is already verified
+				continue;
+			}
+
+			int const first_leaf = piece << base;
+			int const num_leafs = 1 << base;
+
+			bool done = false;
+			for (int j = 0; j < std::min(num_leafs, m_num_blocks - first_leaf); ++j)
+			{
+				if (m_tree[file_first_leaf + first_leaf + j].is_all_zeros())
+				{
+					done = true;
+					break;
+				}
+			}
+			if (done) continue;
+
+			merkle_fill_tree(m_tree, num_leafs, file_first_leaf + first_leaf);
+			if (m_tree[base_layer_start + i] != hashes[i])
+			{
+				merkle_clear_tree(m_tree, num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
+				m_tree[base_layer_start + i] = hashes[i];
+				TORRENT_ASSERT(num_leafs == blocks_per_piece);
+				//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + index);
+				// TODO: add to failed hashes
+			}
+			else
+			{
+				passed_pieces.push_back(piece_index_t{file_piece_offset + piece});
+			}
+		}
+		return passed_pieces;
+	}
+
 	std::size_t merkle_tree::size() const
 	{
 		return static_cast<std::size_t>(merkle_num_nodes(merkle_num_leafs(m_num_blocks)));
