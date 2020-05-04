@@ -340,6 +340,7 @@ SOURCES = \
   lsd.cpp                         \
   magnet_uri.cpp                  \
   merkle.cpp                      \
+  merkle_tree.cpp                 \
   mmap.cpp                        \
   mmap_disk_io.cpp                \
   mmap_storage.cpp                \
@@ -602,6 +603,7 @@ HEADERS = \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
   aux_/merkle.hpp                   \
+  aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \

@@ -746,6 +746,7 @@ SOURCES =
 	ip_voter
 	listen_socket_handle
 	merkle
+	merkle_tree
 	peer_connection
 	platform_util
 	bt_peer_connection

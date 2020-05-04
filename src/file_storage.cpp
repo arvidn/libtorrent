@@ -834,6 +834,12 @@ namespace aux {
 		return sha256_hash(m_files[index].root);
 	}
 
+	char const* file_storage::root_ptr(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		return m_files[index].root;
+	}
+
 	std::string file_storage::symlink(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
