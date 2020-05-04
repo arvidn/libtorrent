@@ -5,6 +5,7 @@
 #include "boost_python.hpp"
 #include <boost/python/tuple.hpp>
 #include <boost/python/stl_iterator.hpp>
+#include "bytes.hpp"
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
@@ -405,10 +406,16 @@ std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 
 #endif // TORRENT_ABI_VERSION
 
-void add_piece(torrent_handle& th, piece_index_t piece, char const *data
+void add_piece_str(torrent_handle& th, piece_index_t piece, char const *data
     , add_piece_flags_t const flags)
 {
-   th.add_piece(piece, data, flags);
+    th.add_piece(piece, data, flags);
+}
+
+void add_piece_bytes(torrent_handle& th, piece_index_t piece, bytes data
+    , add_piece_flags_t const flags)
+{
+    th.add_piece(piece, data.arr.c_str(), flags);
 }
 
 class dummy5 {};
@@ -492,7 +499,8 @@ void bind_torrent_handle()
         .def("queue_position_top", _(&torrent_handle::queue_position_top))
         .def("queue_position_bottom", _(&torrent_handle::queue_position_bottom))
 
-        .def("add_piece", add_piece)
+        .def("add_piece", add_piece_str)
+        .def("add_piece", add_piece_bytes)
         .def("read_piece", _(&torrent_handle::read_piece))
         .def("have_piece", _(&torrent_handle::have_piece))
         .def("set_piece_deadline", _(&torrent_handle::set_piece_deadline)
