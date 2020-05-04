@@ -1078,7 +1078,7 @@ TORRENT_TEST(merkle_trees)
 	TEST_EQUAL(a->params.merkle_trees.size(), 3);
 	TEST_EQUAL(p.ti->internal_merkle_trees().size(), 3);
 	for (file_index_t const i : p.ti->files().file_range())
-		TEST_CHECK(a->params.merkle_trees[i] == p.ti->internal_merkle_trees()[i]);
+		TEST_CHECK(a->params.merkle_trees[i] == p.ti->internal_merkle_trees()[i].build_vector());
 }
 
 TORRENT_TEST(resume_info_dict)

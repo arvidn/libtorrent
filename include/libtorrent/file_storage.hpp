@@ -476,6 +476,10 @@ namespace aux {
 		//
 		// ``root()`` returns the SHA-256 merkle tree root of the specified file,
 		// in case this is a v2 torrent. Otherwise returns zeros.
+		// ``root_ptr()`` returns a pointer to the SHA-256 merkle tree root hash
+		// for the specified file. The pointer points into storage referred to
+		// when the file was added, it is not owned by this object. Torrents
+		// that are not v2 torrents return nullptr.
 		//
 		// The ``mtime()`` is the modification time is the posix
 		// time when a file was last modified when the torrent
@@ -497,6 +501,7 @@ namespace aux {
 		// index (given the piece size).
 		sha1_hash hash(file_index_t index) const;
 		sha256_hash root(file_index_t index) const;
+		char const* root_ptr(file_index_t const index) const;
 		std::string symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;

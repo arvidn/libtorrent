@@ -228,6 +228,7 @@ set(libtorrent_aux_include_files
 	listen_socket_handle
 	lsd
 	merkle
+	merkle_tree
 	noexcept_movable
 	numeric_cast
 	packet_buffer
@@ -328,6 +329,7 @@ set(sources
 	peer_connection_handle
 	instantiate_connection
 	merkle
+	merkle_tree
 	natpmp
 	part_file
 	packet_buffer

@@ -107,11 +107,11 @@ TORRENT_TEST(pick_piece_layer)
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 	fs.add_file("test/tmp2", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
+	aux::vector<aux::merkle_tree, file_index_t> trees;
 
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leafs(4 * 512))));
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leafs(4 * 512))));
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
 
 	hash_picker picker(fs, trees);
@@ -175,6 +175,15 @@ TORRENT_TEST(pick_piece_layer)
 }
 #endif
 
+namespace {
+sha256_hash from_hex(span<char const> str)
+{
+	sha256_hash ret;
+	aux::from_hex(str, ret.data());
+	return ret;
+}
+}
+
 TORRENT_TEST(reject_piece_request)
 {
 	file_storage fs;
@@ -182,9 +191,9 @@ TORRENT_TEST(reject_piece_request)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
-	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
+	trees.emplace_back(4 * 512, root.data());
 
 	hash_picker picker(fs, trees);
 
@@ -204,17 +213,16 @@ TORRENT_TEST(add_leaf_hashes)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
-
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 512);
-	trees.front()[0] = full_tree[0];
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 512);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 512, root.data());
 
 	hash_picker picker(fs, trees);
 
 	std::vector<sha256_hash> hashes;
-	auto leafs_start = full_tree.end() - merkle_num_leafs(4 * 512);
-	std::copy(leafs_start, leafs_start + 512, std::back_inserter(hashes));
+	auto const pieces_start = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	for (int i = 0; i < 512; ++i) hashes.push_back(full_tree[pieces_start + i]);
 	for (int i = 3; i > 0; i = merkle_get_parent(i))
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
@@ -228,7 +236,7 @@ TORRENT_TEST(add_leaf_hashes)
 	TEST_CHECK(result.valid);
 
 	hashes.clear();
-	std::copy(leafs_start + 1024, leafs_start + 1536, std::back_inserter(hashes));
+	for (int i = 1024; i < 1536; ++i) hashes.push_back(full_tree[pieces_start + i]);
 	for (int i = 5; i > 0; i = merkle_get_parent(i))
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
@@ -242,7 +250,7 @@ TORRENT_TEST(add_leaf_hashes)
 		, span<sha256_hash const>(full_tree).last(merkle_num_leafs(4 * 512) - 1536).first(512));
 	TEST_CHECK(result.valid);
 
-	TEST_CHECK(trees.front() == full_tree);
+	TEST_CHECK(trees.front().build_vector() == full_tree);
 }
 
 TORRENT_TEST(add_piece_hashes)
@@ -252,11 +260,10 @@ TORRENT_TEST(add_piece_hashes)
 
 	fs.add_file("test/tmp1", 4 * 1024 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 1024))));
-
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 1024);
-	trees.front()[0] = full_tree[0];
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 1024);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 1024, root.data());
 
 	hash_picker picker(fs, trees);
 
@@ -273,7 +280,8 @@ TORRENT_TEST(add_piece_hashes)
 	result = picker.add_hashes(hash_request(0_file, 2, 512, 512, 8), hashes);
 	TEST_CHECK(result.valid);
 
-	TEST_CHECK(std::equal(trees.front().begin(), trees.front().begin() + merkle_num_nodes(1024), full_tree.begin()));
+	auto const cmp = trees.front().build_vector();
+	TEST_CHECK(std::equal(cmp.begin(), cmp.begin() + merkle_num_nodes(1024), full_tree.begin()));
 }
 
 TORRENT_TEST(add_bad_hashes)
@@ -283,11 +291,10 @@ TORRENT_TEST(add_bad_hashes)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
-
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 512);
-	trees.front()[0] = full_tree[0];
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 512);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 512, root.data());
 
 	hash_picker picker(fs, trees);
 
@@ -298,8 +305,8 @@ TORRENT_TEST(add_bad_hashes)
 
 	// bad proof hash
 	hashes.clear();
-	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
-	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
+	auto const pieces_start = full_tree.end_index() - 512;
+	for (int i = 0; i < 512; ++i) hashes.push_back(full_tree[pieces_start + i]);
 	hashes.back()[1] ^= 0xaa;
 	result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
@@ -312,11 +319,10 @@ TORRENT_TEST(bad_block_hash)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	auto const full_tree = build_tree(4 * 512);
 
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 512);
-	trees.front()[0] = full_tree[0];
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	trees.emplace_back(4 * 512, full_tree[0].data());
 
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001"
 		, trees.front()[trees.front().end_index() - merkle_num_leafs(4 * 512) + 1].data());
@@ -349,11 +355,10 @@ TORRENT_TEST(set_block_hash)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
-
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 512);
-	trees.front() = full_tree;
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 512);
+	trees.emplace_back(4 * 512, full_tree[0].data());
+	trees.front().load_tree(full_tree);
 
 	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
 
@@ -372,9 +377,13 @@ TORRENT_TEST(set_block_hash)
 
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
-	trees.front()[merkle_get_parent(first_leaf + 12)].clear();
-	trees.front()[merkle_get_parent(first_leaf + 14)].clear();
-	trees.front()[first_leaf + 13].clear();
+	{
+		auto mutable_tree = trees.front().build_vector();
+		mutable_tree[merkle_get_parent(first_leaf + 12)].clear();
+		mutable_tree[merkle_get_parent(first_leaf + 14)].clear();
+		mutable_tree[first_leaf + 13].clear();
+		trees.front().load_tree(mutable_tree);
+	}
 
 	result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
 	TEST_CHECK(result.status == set_block_hash_result::result::piece_hash_failed);
@@ -390,11 +399,11 @@ TORRENT_TEST(pass_piece)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	auto const full_tree = build_tree(4 * 512);
 
-	aux::vector<sha256_hash> const full_tree = build_tree(4 * 512);
-	trees.front()[0] = full_tree[0];
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	sha256_hash root = full_tree[0];
+	trees.emplace_back(4 * 512, root.data());
 
 	hash_picker picker(fs, trees);
 
@@ -407,7 +416,7 @@ TORRENT_TEST(pass_piece)
 		TEST_CHECK(result.status == set_block_hash_result::result::unknown);
 	}
 
-	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
+	auto const pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
 
 	std::vector<sha256_hash> hashes;
 	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
@@ -427,9 +436,9 @@ TORRENT_TEST(only_pick_have_pieces)
 
 	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
 
-	aux::vector<aux::vector<sha256_hash>, file_index_t> trees;
-	trees.push_back(aux::vector<sha256_hash>(merkle_num_nodes(merkle_num_leafs(4 * 512))));
-	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	sha256_hash root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
+	trees.emplace_back(4 * 512, root.data());
 
 	hash_picker picker(fs, trees);
 
@@ -522,5 +531,52 @@ TORRENT_TEST(validate_hash_request)
 	// proof_layers in-range
 	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, num_layers - 1), fs));
 	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, num_layers - 2), fs));
+}
+
+namespace {
+
+auto const f = build_tree(260);
+int const num_leafs = merkle_num_leafs(260);
+int const num_nodes = merkle_num_nodes(num_leafs);
+int const num_pad_leafs = num_leafs - 260;
+
+}
+
+TORRENT_TEST(load_tree)
+{
+	// test with full tree and valid root
+	{
+		aux::merkle_tree t(260, f[0].data());
+		t.load_tree(f);
+		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
+		{
+			TEST_CHECK(!t[i].is_all_zeros());
+			TEST_CHECK(t[i] == f[i]);
+		}
+		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
+		{
+			TEST_CHECK(t[i].is_all_zeros());
+			TEST_CHECK(t[i] == f[i]);
+		}
+	}
+
+	// mismatching root hash
+	{
+		sha256_hash const bad_root("01234567890123456789012345678901");
+		aux::merkle_tree t(260, bad_root.data());
+		t.load_tree(f);
+		TEST_CHECK(!t[0].is_all_zeros());
+		for (int i = 1; i < num_nodes; ++i)
+			TEST_CHECK(t[i].is_all_zeros());
+	}
+
+	// mismatching size
+	{
+		aux::merkle_tree t(260, f[0].data());
+		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1));
+		TEST_CHECK(!t[0].is_all_zeros());
+		for (int i = 1; i < num_nodes; ++i)
+			TEST_CHECK(t[i].is_all_zeros());
+	}
 }
 

@@ -396,13 +396,7 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->is_valid() && m_torrent_file->info_hash().has_v2())
 		{
 			if (!p.merkle_trees.empty())
-			{
-				auto& trees = m_torrent_file->internal_merkle_trees();
-				trees.clear();
-				trees.reserve(p.merkle_trees.size());
-				for (auto const& t : p.merkle_trees)
-					trees.emplace_back(t.begin(), t.end());
-			}
+				m_torrent_file->internal_load_merkle_trees(p.merkle_trees);
 
 			if (!p.verified_leaf_hashes.empty())
 			{
@@ -6801,7 +6795,7 @@ namespace {
 			ret.merkle_trees.clear();
 			ret.merkle_trees.reserve(m_torrent_file->internal_merkle_trees().size());
 			for (auto const& t : m_torrent_file->internal_merkle_trees())
-				ret.merkle_trees.emplace_back(t.begin(), t.end());
+				ret.merkle_trees.emplace_back(t.build_vector());
 
 			if (has_hash_picker())
 			{
@@ -7272,16 +7266,6 @@ namespace {
 		{
 			m_ses.alerts().emplace_alert<metadata_received_alert>(
 				get_handle());
-		}
-
-		// for v2 torrents the root hashes need to be copied to the merkle trees
-		if (m_torrent_file->info_hash().has_v2())
-		{
-			auto& merkle_trees = m_torrent_file->internal_merkle_trees();
-			for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
-			{
-				merkle_trees[f][0] = m_torrent_file->files().root(f);
-			}
 		}
 
 		// we have to initialize the torrent before we start

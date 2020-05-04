@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -134,7 +135,7 @@ namespace libtorrent
 	{
 	public:
 		hash_picker(file_storage const& files
-			, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
+			, aux::vector<aux::merkle_tree, file_index_t>& trees
 			, aux::vector<aux::vector<bool>, file_index_t> verified = {}
 			, bool all_verified = false);
 
@@ -202,7 +203,7 @@ namespace libtorrent
 		};
 
 		file_storage const& m_files;
-		aux::vector<aux::vector<sha256_hash>, file_index_t>& m_merkle_trees;
+		aux::vector<aux::merkle_tree, file_index_t>& m_merkle_trees;
 		aux::vector<aux::vector<bool>, file_index_t> m_hash_verified;
 
 		// information about every 512-piece span of each file. We request hashes

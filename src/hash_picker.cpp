@@ -92,7 +92,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 }
 
 	hash_picker::hash_picker(file_storage const& files
-		, aux::vector<aux::vector<sha256_hash>, file_index_t>& trees
+		, aux::vector<aux::merkle_tree, file_index_t>& trees
 		, aux::vector<aux::vector<bool>, file_index_t> verified
 		, bool all_verified)
 		: m_files(files)
@@ -115,7 +115,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (m_hash_verified[f].size() == 1)
 			{
 				// the root hash comes from the metadata so it is always verified
-				TORRENT_ASSERT(!tree[0].is_all_zeros());
+				TORRENT_ASSERT(!tree.root().is_all_zeros());
 				m_hash_verified[f][0] = true;
 			}
 
@@ -398,10 +398,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				}
 				if (done) continue;
 
-				merkle_fill_tree(dst_tree, num_leafs, file_first_leaf + first_leaf);
+				dst_tree.fill(num_leafs, file_first_leaf + first_leaf);
 				if (dst_tree[base_layer_start + i] != hashes[i])
 				{
-					merkle_clear_tree(dst_tree, num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
+					dst_tree.clear(num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
 					dst_tree[base_layer_start + i] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
 					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
@@ -495,12 +495,12 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash root = merkle_tree[root_index];
-		merkle_fill_tree(merkle_tree, leafs_size, first_block_index + leafs_index);
+		merkle_tree.fill(leafs_size, first_block_index + leafs_index);
 
 		if (root != merkle_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
-			merkle_clear_tree(merkle_tree, leafs_size / 2, merkle_get_parent(first_block_index + leafs_index));
+			merkle_tree.clear(leafs_size / 2, merkle_get_parent(first_block_index + leafs_index));
 			merkle_tree[root_index] = root;
 			// If the hash failure was detected within a single piece then report a piece failure
 			// otherwise report unknown. The pieces will be checked once their hashes have been

@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/aux_/merkle_tree.hpp"
 
 namespace libtorrent {
 
@@ -575,7 +576,8 @@ TORRENT_VERSION_NAMESPACE_3
 		{ return m_info_section; }
 
 		// internal
-		aux::vector<aux::vector<sha256_hash>, file_index_t>& internal_merkle_trees();
+		aux::vector<aux::merkle_tree, file_index_t>& internal_merkle_trees();
+		void internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> const& t);
 
 		// internal
 		void internal_set_creator(string_view);
@@ -679,7 +681,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// once in torrent), or they would have to be moved out of torrent_info as
 		// the torrent is added. Storing it twice can use a lot of memory. Moving
 		// it out leaves a "one-time-use" API on torrent_info class.
-		aux::vector<aux::vector<sha256_hash>, file_index_t> m_merkle_trees;
+		aux::vector<aux::merkle_tree, file_index_t> m_merkle_trees;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
