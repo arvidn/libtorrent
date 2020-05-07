@@ -472,6 +472,11 @@ std::size_t utp_stream::read_some(bool const clear_buffers)
 	return m_impl->read_some(clear_buffers);
 }
 
+std::size_t utp_stream::write_some(bool const clear_buffers)
+{
+	return m_impl->write_some(clear_buffers);
+}
+
 // this is called when all user provided write buffers have been
 // added. Start trying to send packets with the payload immediately.
 void utp_stream::issue_write()
@@ -650,6 +655,22 @@ void utp_socket_impl::issue_write()
 	while (send_pkt());
 
 	maybe_trigger_send_callback();
+}
+
+std::size_t utp_socket_impl::write_some(bool const clear_buffers)
+{
+	m_written = 0;
+
+	// try to write if the congestion window allows it
+	while (send_pkt());
+
+	if (clear_buffers)
+	{
+		m_write_buffer_size = 0;
+		m_write_buffer.clear();
+	}
+
+	return std::size_t(m_written);
 }
 
 void utp_socket_impl::do_connect(tcp::endpoint const& ep)

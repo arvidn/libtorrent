@@ -250,6 +250,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	void add_write_buffer(void const* buf, std::size_t len);
 	void issue_write();
 	std::size_t read_some(bool clear_buffers);
+	std::size_t write_some(bool clear_buffers);
 
 	int send_delay() const;
 	int recv_delay() const;
@@ -365,11 +366,35 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& /* buffers */, error_code& /* ec */)
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
-		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: implement blocking write. Low priority since it's not used (yet)
-		return 0;
+		TORRENT_ASSERT(!m_write_handler);
+		if (m_impl == nullptr)
+		{
+			ec = boost::asio::error::not_connected;
+			return 0;
+		}
+
+#if TORRENT_USE_ASSERTS
+		size_t buf_size = 0;
+#endif
+
+		for (auto i = buffer_sequence_begin(buffers)
+			, end(buffer_sequence_end(buffers)); i != end; ++i)
+		{
+			add_write_buffer(i->data(), i->size());
+#if TORRENT_USE_ASSERTS
+			buf_size += i->size();
+#endif
+		}
+		std::size_t ret = write_some(true);
+		TORRENT_ASSERT(ret <= buf_size);
+		if(ret == 0)
+		{
+			ec = boost::asio::error::would_block;
+			return 0;
+		}
+		return ret;
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -609,6 +634,7 @@ struct utp_socket_impl
 	void do_connect(tcp::endpoint const& ep);
 
 	std::size_t read_some(bool const clear_buffers);
+	std::size_t write_some(bool const clear_buffers);
 	int receive_buffer_size() const { return m_receive_buffer_size; }
 
 	bool null_buffers() const { return m_null_buffers; }
