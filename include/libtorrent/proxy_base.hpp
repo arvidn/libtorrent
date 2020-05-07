@@ -123,6 +123,20 @@ struct proxy_base
 		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
+#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+	// Compatiblity with the async_wait method introduced in boost 1.66
+
+	static constexpr auto wait_read = tcp::socket::wait_read;
+	static constexpr auto wait_write = tcp::socket::wait_write;
+	static constexpr auto wait_error = tcp::socket::wait_error;
+
+	template <class Handler>
+	void async_wait(tcp::socket::wait_type type, Handler handler)
+	{
+		m_sock.async_wait(type, std::move(handler));
+	}
+#endif
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void non_blocking(bool b)
 	{

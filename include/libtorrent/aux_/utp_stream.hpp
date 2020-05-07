@@ -431,6 +431,33 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_write();
 	}
 
+#if BOOST_VERSION >= 106600
+	// Compatiblity with the async_wait method introduced in boost 1.66
+
+	enum wait_type { wait_read, wait_write, wait_error };
+
+	template <class Handler>
+	void async_wait(wait_type type, Handler handler) {
+		switch(type)
+		{
+		case wait_read:
+			async_read_some(boost::asio::null_buffers()
+					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			break;
+
+		case wait_write:
+			async_write_some(boost::asio::null_buffers()
+					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			break;
+
+		case wait_error:
+			post(m_io_service, std::bind<void>(std::move(handler)
+					, boost::asio::error::operation_not_supported));
+            break;
+		}
+	}
+#endif
+
 private:
 
 	void cancel_handlers(error_code const&);
