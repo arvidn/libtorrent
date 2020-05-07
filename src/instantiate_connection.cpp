@@ -48,13 +48,13 @@ namespace libtorrent { namespace aux {
 		, bool peer_connection
 		, bool tracker_connection)
 	{
-#ifndef TORRENT_USE_OPENSSL
+#if !TORRENT_USE_SSL
 		TORRENT_UNUSED(ssl_context);
 #endif
 
 		if (sm)
 		{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (ssl_context)
 			{
 				ssl_stream<utp_stream> s(ios, *static_cast<ssl::context*>(ssl_context));
@@ -83,7 +83,7 @@ namespace libtorrent { namespace aux {
 			|| (peer_connection && !ps.proxy_peer_connections)
 			|| (tracker_connection && !ps.proxy_tracker_connections))
 		{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (ssl_context)
 			{
 				return socket_type(ssl_stream<tcp::socket>(ios, *static_cast<ssl::context*>(ssl_context)));
@@ -97,7 +97,7 @@ namespace libtorrent { namespace aux {
 		else if (ps.type == settings_pack::http
 			|| ps.type == settings_pack::http_pw)
 		{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (ssl_context)
 			{
 				ssl_stream<http_stream> s(ios, *static_cast<ssl::context*>(ssl_context));
@@ -122,7 +122,7 @@ namespace libtorrent { namespace aux {
 			|| ps.type == settings_pack::socks5_pw
 			|| ps.type == settings_pack::socks4)
 		{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (ssl_context)
 			{
 				ssl_stream<socks5_stream> s(ios, *static_cast<ssl::context*>(ssl_context));

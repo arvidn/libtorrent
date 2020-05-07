@@ -40,7 +40,7 @@ const int proxy = lt::settings_pack::socks5;
 
 TORRENT_TEST(web_seed_socks5_no_peers_ssl)
 {
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	run_http_suite(proxy, "https", false, false, false, false, false, false);
 #endif
 }

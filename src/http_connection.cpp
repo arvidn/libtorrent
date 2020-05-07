@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <sstream>
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -75,13 +75,13 @@ http_connection::http_connection(io_context& ios
 	, int max_bottled_buffer_size
 	, http_connect_handler ch
 	, http_filter_handler fh
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	, ssl::context* ssl_ctx
 #endif
 	)
 	: m_ios(ios)
 	, m_next_ep(0)
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	, m_ssl_ctx(ssl_ctx)
 #endif
 #if TORRENT_USE_I2P
@@ -156,7 +156,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	}
 
 	if (protocol != "http"
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		&& protocol != "https"
 #endif
 		)
@@ -254,7 +254,7 @@ void http_connection::start(std::string const& hostname, int port
 	m_read_pos = 0;
 	m_priority = prio;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
 #endif
 
@@ -314,7 +314,7 @@ void http_connection::start(std::string const& hostname, int port
 		aux::proxy_settings null_proxy;
 
 		void* userdata = nullptr;
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (m_ssl)
 		{
 			TORRENT_ASSERT(m_ssl_ctx != nullptr);
@@ -464,7 +464,7 @@ void http_connection::close(bool force)
 void http_connection::connect_i2p_tracker(char const* destination)
 {
 	TORRENT_ASSERT(boost::get<i2p_stream>(m_sock.get_ptr()));
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	TORRENT_ASSERT(m_ssl == false);
 #endif
 	boost::get<i2p_stream>(*m_sock).set_destination(destination);
@@ -551,7 +551,7 @@ void http_connection::connect()
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (m_ssl)
 			{
 				TORRENT_ASSERT(boost::get<ssl_stream<socks5_stream>>(m_sock.get_ptr()));

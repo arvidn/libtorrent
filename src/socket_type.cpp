@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 
@@ -60,7 +60,7 @@ namespace libtorrent {
 #else
 			"",
 #endif
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			"SSL/TCP",
 			"SSL/Socks5",
 			"SSL/HTTP",
@@ -75,7 +75,7 @@ namespace libtorrent {
 namespace aux {
 
 	struct is_ssl_visitor {
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		template <typename T>
 		bool operator()(ssl_stream<T> const&) const { return true; }
 #endif
@@ -91,7 +91,7 @@ namespace aux {
 	bool is_utp(socket_type const& s)
 	{
 		return boost::get<utp_stream>(&s)
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			|| boost::get<ssl_stream<utp_stream>>(&s)
 #endif
 			;
@@ -112,7 +112,7 @@ namespace aux {
 #if TORRENT_USE_I2P
 		socket_type_t operator()(i2p_stream const&) { return socket_type_t::i2p; }
 #endif
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		socket_type_t operator()(ssl_stream<tcp::socket> const&) { return socket_type_t::tcp_ssl; }
 		socket_type_t operator()(ssl_stream<socks5_stream> const&) { return socket_type_t::socks5_ssl; }
 		socket_type_t operator()(ssl_stream<http_stream> const&) { return socket_type_t::http_ssl; }
@@ -132,7 +132,7 @@ namespace aux {
 
 	struct set_close_reason_visitor {
 		close_reason_t code_;
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		void operator()(ssl_stream<utp_stream>& s) const
 		{ s.next_layer().set_close_reason(code_); }
 #endif
@@ -148,7 +148,7 @@ namespace aux {
 	}
 
 	struct get_close_reason_visitor {
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		close_reason_t operator()(ssl_stream<utp_stream>& s) const
 		{ return s.next_layer().get_close_reason(); }
 #endif
@@ -163,7 +163,7 @@ namespace aux {
 		return boost::apply_visitor(get_close_reason_visitor{}, s);
 	}
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	struct set_ssl_hostname_visitor
 	{
 		set_ssl_hostname_visitor(char const* h, error_code& ec) : hostname_(h), ec_(&ec) {}
@@ -186,7 +186,7 @@ namespace aux {
 
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 
@@ -211,7 +211,7 @@ namespace aux {
 #endif
 	}
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 
 	struct socket_closer
 	{
@@ -269,13 +269,13 @@ namespace aux {
 	// will keep the socket (s) alive for the duration of the async operation
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		boost::apply_visitor(issue_async_shutdown_visitor{&s, std::move(holder)}, s);
 #else
 		TORRENT_UNUSED(holder);
 		error_code e;
 		s.close(e);
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_USE_SSL
 	}
 }
 }

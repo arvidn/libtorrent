@@ -79,7 +79,7 @@ namespace libtorrent {
 		if (m_port == -1 && protocol == "http")
 			m_port = 80;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (protocol == "https")
 		{
 			m_ssl = true;

@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <unordered_map>
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 // there is no forward declaration header for asio
 namespace boost {
 namespace asio {
@@ -146,7 +146,7 @@ enum class event_t : std::uint8_t
 		// scrape_tracker() or force_reannounce()
 		bool triggered_manually = false;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		boost::asio::ssl::context* ssl_ctx = nullptr;
 #endif
 #if TORRENT_USE_I2P

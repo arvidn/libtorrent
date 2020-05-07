@@ -892,7 +892,7 @@ namespace aux {
 
 			io_context& m_io_context;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			// this is a generic SSL context used when talking to HTTPS servers
 			ssl::context m_ssl_ctx;
 #endif
@@ -1029,7 +1029,7 @@ namespace aux {
 			boost::optional<socket_type> m_i2p_listen_socket;
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			ssl::context* ssl_ctx() override { return &m_ssl_ctx; }
 #endif
 #ifdef TORRENT_SSL_PEERS

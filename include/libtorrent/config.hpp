@@ -575,7 +575,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
-#if defined TORRENT_SSL_PEERS && !defined TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL
+#define TORRENT_USE_SSL 1
+#else
+#define TORRENT_USE_SSL 0
+#endif
+
+#if defined TORRENT_SSL_PEERS && !TORRENT_USE_SSL
 #error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL
 #endif
 

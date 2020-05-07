@@ -48,7 +48,7 @@ TORRENT_TEST(url_seed_http_pw)
 	run_http_suite(proxy, "http", true);
 }
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(web_seed_http_pw_ssl)
 {
 	run_http_suite(proxy, "https", false);

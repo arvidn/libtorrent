@@ -38,7 +38,7 @@ using namespace lt;
 
 const int proxy = lt::settings_pack::none;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(web_seed_ssl)
 {
 	run_http_suite(proxy, "https", 0, 1, 0);

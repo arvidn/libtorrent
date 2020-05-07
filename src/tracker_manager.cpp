@@ -268,7 +268,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (protocol == "http" || protocol == "https")
 #else
 		if (protocol == "http")

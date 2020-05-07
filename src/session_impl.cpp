@@ -156,7 +156,7 @@ namespace {
 
 #endif // TORRENT_USE_LIBGCRYPT
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 
 #include <openssl/crypto.h>
 
@@ -176,7 +176,7 @@ namespace {
 }
 #endif
 
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_USE_SSL
 
 #ifdef TORRENT_WINDOWS
 // for ERROR_SEM_TIMEOUT
@@ -502,7 +502,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_context(ioc)
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #if BOOST_VERSION >= 106400
 		, m_ssl_ctx(ssl::context::tls_client)
 #endif
@@ -592,7 +592,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		session_log("start session");
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		error_code ec;
 		m_ssl_ctx.set_default_verify_paths(ec);
 #endif
@@ -1958,7 +1958,7 @@ namespace {
 			// expand device names and populate eps
 			for (auto const& iface : m_listen_interfaces)
 			{
-#ifndef TORRENT_USE_OPENSSL
+#if !TORRENT_USE_SSL
 				if (iface.ssl)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4951,7 +4951,7 @@ namespace {
 
 			utp_socket_impl* impl = nullptr;
 			transport ssl = transport::plaintext;
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			if (boost::get<ssl_stream<utp_stream>>(&s) != nullptr)
 			{
 				impl = boost::get<ssl_stream<utp_stream>>(s).next_layer().get_impl();
@@ -6518,7 +6518,7 @@ namespace {
 
 	void session_impl::update_validate_https()
 	{
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		using boost::asio::ssl::context;
 		auto const flags = m_settings.get_bool(settings_pack::validate_https_trackers)
 			? context::verify_peer

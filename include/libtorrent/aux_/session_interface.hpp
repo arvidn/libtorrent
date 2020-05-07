@@ -290,7 +290,7 @@ namespace aux {
 #ifdef TORRENT_SSL_PEERS
 		virtual libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
 #endif
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 

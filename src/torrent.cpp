@@ -1581,7 +1581,7 @@ bool is_downloading_state(int const st)
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
 	}
-#endif // TORRENT_OPENSSL
+#endif // TORRENT_SSL_PEERS
 
 	void torrent::construct_storage()
 	{
@@ -6001,7 +6001,7 @@ namespace {
 			return;
 		}
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (protocol != "http" && protocol != "https")
 #else
 		if (protocol != "http")
@@ -6281,7 +6281,7 @@ namespace {
 			&& web->have_files.none_set()) return;
 
 		void* userdata = nullptr;
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		const bool ssl = string_begins_no_case("https://", web->url.c_str());
 		if (ssl)
 		{
@@ -6320,7 +6320,7 @@ namespace {
 
 		if (proxy_hostnames
 			&& (boost::get<socks5_stream>(&s)
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 				|| boost::get<ssl_stream<socks5_stream>>(&s)
 #endif
 				))
@@ -6328,7 +6328,7 @@ namespace {
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
 			socks5_stream& str =
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 				ssl ? boost::get<ssl_stream<socks5_stream>>(s).next_layer() :
 #endif
 			boost::get<socks5_stream>(s);
