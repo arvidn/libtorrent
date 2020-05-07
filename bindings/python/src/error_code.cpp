@@ -48,7 +48,7 @@ namespace boost
 }
 
 #include <boost/asio/error.hpp>
-#if defined TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #include <boost/asio/ssl.hpp>
 #endif
 #if TORRENT_USE_I2P
@@ -109,7 +109,7 @@ namespace {
 				ec.assign(value, boost::asio::error::get_misc_category());
 			else if (category == "asio.misc")
 				ec.assign(value, boost::asio::error::get_misc_category());
-#if defined TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			else if (category == "asio.ssl")
 				ec.assign(value, boost::asio::error::get_ssl_category());
 #endif

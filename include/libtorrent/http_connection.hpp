@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 // there is no forward declaration header for asio
 namespace boost {
 namespace asio {
@@ -93,7 +93,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, int max_bottled_buffer_size
 		, http_connect_handler ch
 		, http_filter_handler fh
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, ssl::context* ssl_ctx
 #endif
 		);
@@ -171,7 +171,7 @@ private:
 
 	boost::optional<aux::socket_type> m_sock;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	ssl::context* m_ssl_ctx;
 #endif
 

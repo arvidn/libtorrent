@@ -33,9 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_OPENSSL_HPP_INCLUDED
 #define TORRENT_OPENSSL_HPP_INCLUDED
 
-#ifdef TORRENT_USE_LIBCRYPTO
-
 #include "libtorrent/config.hpp"
+
+#ifdef TORRENT_USE_LIBCRYPTO
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif // TORRENT_USE_LIBCRYPTO
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 
 #if OPENSSL_VERSION_NUMBER < 0x1000000fL
 #error OpenSSL too old, use a recent version with SNI support
@@ -97,6 +97,6 @@ TORRENT_EXTRA_EXPORT GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gen
 } // aux
 } // libtorrent
 
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_USE_SSL
 
 #endif // TORRENT_OPENSSL_HPP_INCLUDED

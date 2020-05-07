@@ -129,7 +129,7 @@ std::shared_ptr<http_connection> test_request(io_context& ios
 {
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	ssl::context ssl_ctx(ssl::context::sslv23_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
@@ -182,7 +182,7 @@ std::shared_ptr<http_connection> test_request(io_context& ios
 			std::printf("CONNECTED: %s\n", url.c_str());
 		}
 		, lt::http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif
 		);
@@ -626,7 +626,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 			return sim::send_response(403, "Not supported", 1337);
 		});
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	lt::ssl::context ssl_ctx(ssl::context::sslv23_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
@@ -641,7 +641,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 		}
 		, true, 1024*1024, lt::http_connect_handler()
 		, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif
 		);

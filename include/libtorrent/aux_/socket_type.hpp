@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/polymorphic_socket.hpp"
 #include "libtorrent/socket_type.hpp"
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
 
@@ -59,7 +59,7 @@ namespace aux {
 #if TORRENT_USE_I2P
 		, i2p_stream
 #endif
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, ssl_stream<tcp::socket>
 		, ssl_stream<socks5_stream>
 		, ssl_stream<http_stream>

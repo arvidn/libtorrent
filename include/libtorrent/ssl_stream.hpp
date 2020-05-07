@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SSL_STREAM_HPP_INCLUDED
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
-#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/config.hpp" // for TORRENT_USE_SSL
+
+#if TORRENT_USE_SSL
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -324,6 +326,6 @@ private:
 
 }
 
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_USE_SSL
 
 #endif

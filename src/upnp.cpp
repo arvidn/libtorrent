@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 #include <boost/asio/ssl/context.hpp>
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -123,12 +123,12 @@ upnp::upnp(io_context& ios
 	, m_listen_address(listen_address)
 	, m_netmask(netmask)
 	, m_device(std::move(listen_device))
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	, m_ssl_ctx(ssl::context::sslv23_client)
 #endif
 	, m_listen_handle(std::move(ls))
 {
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	m_ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 }
@@ -440,7 +440,7 @@ void upnp::connect(rootdevice& d)
 				, std::ref(d), _4), true, default_max_bottled_buffer_size
 			, http_connect_handler()
 			, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			, &m_ssl_ctx
 #endif
 			);
@@ -852,7 +852,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i)
 			, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			, &m_ssl_ctx
 #endif
 			);
@@ -869,7 +869,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
 			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i)
 			, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			, &m_ssl_ctx
 #endif
 			);
@@ -1087,7 +1087,7 @@ void upnp::on_upnp_xml(error_code const& e
 			, std::ref(d), _4), true, default_max_bottled_buffer_size
 		, std::bind(&upnp::get_ip_address, self(), std::ref(d))
 		, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, &m_ssl_ctx
 #endif
 		);

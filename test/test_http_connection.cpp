@@ -127,7 +127,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	ssl::context ssl_ctx(ssl::context::sslv23_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
@@ -135,7 +135,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
 		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
 		, http_filter_handler()
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif
 		);
@@ -245,7 +245,7 @@ void run_suite(std::string const& protocol
 
 } // anonymous namespace
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
 TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }

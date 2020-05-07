@@ -366,7 +366,7 @@ private:
 	address_v4 m_netmask;
 	std::string m_device;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	ssl::context m_ssl_ctx;
 #endif
 

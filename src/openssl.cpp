@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace aux {
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 
 // all of OpenSSL causes warnings, so we just have to disable them
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -76,7 +76,7 @@ GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 
 #endif // OPENSSL_VERSION_NUMBER
 
-#endif // TORRENT_USE_OPENSSL
+#endif // TORRENT_USE_SSL
 
 }
 }

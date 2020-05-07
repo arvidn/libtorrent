@@ -38,7 +38,7 @@ using namespace lt;
 
 const int proxy = lt::settings_pack::socks5_pw;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(http_seed_ssl)
 {
 	run_http_suite(proxy, "https", 0);
