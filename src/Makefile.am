@@ -95,7 +95,6 @@ libtorrent_rasterbar_la_SOURCES = \
   magnet_uri.cpp                  \
   merkle.cpp                      \
   natpmp.cpp                      \
-  openssl.cpp                     \
   parse_url.cpp                   \
   part_file.cpp                   \
   pe_crypto.cpp                   \
@@ -129,6 +128,7 @@ libtorrent_rasterbar_la_SOURCES = \
   socket_io.cpp                   \
   socket_type.cpp                 \
   socks5_stream.cpp               \
+  ssl.cpp                         \
   stat.cpp                        \
   stat_cache.cpp                  \
   storage.cpp                     \

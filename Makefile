@@ -345,7 +345,6 @@ SOURCES = \
   mmap_disk_io.cpp                \
   mmap_storage.cpp                \
   natpmp.cpp                      \
-  openssl.cpp                     \
   packet_buffer.cpp               \
   parse_url.cpp                   \
   part_file.cpp                   \
@@ -386,6 +385,7 @@ SOURCES = \
   socket_io.cpp                   \
   socket_type.cpp                 \
   socks5_stream.cpp               \
+  ssl.cpp                         \
   stack_allocator.cpp             \
   stat.cpp                        \
   stat_cache.cpp                  \
@@ -524,6 +524,7 @@ HEADERS = \
   socket_type.hpp              \
   socks5_stream.hpp            \
   span.hpp                     \
+  ssl.hpp                      \
   ssl_stream.hpp               \
   stack_allocator.hpp          \
   stat.hpp                     \
@@ -607,7 +608,6 @@ HEADERS = \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \
   aux_/open_mode.hpp                \
-  aux_/openssl.hpp                  \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
@@ -689,6 +689,30 @@ TRY_SIGNAL = \
   README.rst \
   Jamfile \
   CMakeLists.txt
+
+ASIO_GNUTLS = \
+  LICENSE_1_0.txt \
+  Jamfile \
+  include/boost/asio/gnutls.hpp \
+  include/boost/asio/gnutls \
+  include/boost/asio/gnutls/rfc2818_verification.hpp \
+  include/boost/asio/gnutls/stream_base.hpp \
+  include/boost/asio/gnutls/error.hpp \
+  include/boost/asio/gnutls/host_name_verification.hpp \
+  include/boost/asio/gnutls/stream.hpp \
+  include/boost/asio/gnutls/context_base.hpp \
+  include/boost/asio/gnutls/verify_context.hpp \
+  include/boost/asio/gnutls/context.hpp \
+  README.md \
+  test/unit_test.hpp \
+  test/gnutls/context_base.cpp \
+  test/gnutls/stream_base.cpp \
+  test/gnutls/host_name_verification.cpp \
+  test/gnutls/error.cpp \
+  test/gnutls/Jamfile.v2 \
+  test/gnutls/context.cpp \
+  test/gnutls/rfc2818_verification.cpp \
+  test/gnutls/stream.cpp
 
 SIM_SOURCES = \
   Jamfile \
@@ -1047,6 +1071,7 @@ dist: FORCE
     $(addprefix test/,${TEST_EXTRA}) \
     $(addprefix simulation/,${SIM_SOURCES}) \
     $(addprefix deps/try_signal/,${TRY_SIGNAL}) \
+    $(addprefix deps/asio-gnutls/,${ASIO_GNUTLS}) \
     $(addprefix simulation/libsimulator/,${LIBSIM_EXTRA}) \
     $(addprefix simulation/libsimulator/test,${LIBSIM_TEST}) \
     $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) \
