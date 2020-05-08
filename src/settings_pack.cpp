@@ -352,6 +352,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(rate_choker_initial_threshold, 1024, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
+		SET(max_concurrent_http_announces, 50, nullptr),
 	}});
 
 #undef SET

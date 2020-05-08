@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <deque>
 
 #ifdef TORRENT_USE_OPENSSL
 // there is no forward declaration header for asio
@@ -70,6 +71,7 @@ namespace ssl {
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent {
 
@@ -359,11 +361,13 @@ namespace libtorrent {
 		void queue_request(
 			io_service& ios
 			, tracker_request&& r
+			, aux::session_settings const& sett
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>());
 		void queue_request(
 			io_service& ios
 			, tracker_request const& r
+			, aux::session_settings const& sett
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>()) = delete;
 		void abort_all_requests(bool all = false);
@@ -408,6 +412,7 @@ namespace libtorrent {
 		std::unordered_map<std::uint32_t, std::shared_ptr<udp_tracker_connection>> m_udp_conns;
 
 		std::vector<std::shared_ptr<http_tracker_connection>> m_http_conns;
+		std::deque<std::shared_ptr<http_tracker_connection>> m_queued;
 
 		send_fun_t m_send_fun;
 		send_fun_hostname_t m_send_fun_hostname;

@@ -1764,6 +1764,11 @@ namespace aux {
 			// lower than 5 minutes.
 			upnp_lease_duration,
 
+			// limits the number of concurrent HTTP tracker announces. Once the
+			// limit is hit, tracker requests are queued and issued when an
+			// outstanding announce completes.
+			max_concurrent_http_announces,
+
 			max_int_setting_internal
 		};
 
