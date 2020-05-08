@@ -37,12 +37,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	int merkle_layer_start(int const layer)
+	{
+		TORRENT_ASSERT(layer >= 0);
+		TORRENT_ASSERT(layer < int(sizeof(int) * 8));
+		return (1 << layer) - 1;
+	}
+
 	int merkle_to_flat_index(int const layer, int const offset)
 	{
 		TORRENT_ASSERT(layer >= 0);
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(layer < int(sizeof(int) * 8));
-		return (1 << layer) - 1 + offset;
+		return merkle_layer_start(layer) + offset;
 	}
 
 	int merkle_get_parent(int const tree_node)

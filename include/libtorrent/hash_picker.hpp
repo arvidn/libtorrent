@@ -225,7 +225,7 @@ namespace libtorrent
 		aux::vector<piece_block_request> m_piece_block_requests;
 
 		// this is the number of tree levels in a piece. if the piece size is 16
-		// kiB, this is 0, since there is not tree per piece. If the piece size is
+		// kiB, this is 0, since there is no tree per piece. If the piece size is
 		// 32 kiB, it's 1, and so on.
 		int const m_piece_layer;
 
