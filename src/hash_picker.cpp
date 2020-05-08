@@ -126,6 +126,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 			int const piece_layer_idx = merkle_num_layers(
 				merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
+			int const piece_layer_start = merkle_layer_start(piece_layer_idx);
 
 			// check for hashes we already have and flag entries in m_piece_hash_requested
 			// so that we don't request them again
@@ -140,7 +141,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					}
 					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][j])
 						|| (m_files.piece_length() > default_block_size
-							&& tree[merkle_to_flat_index(piece_layer_idx, j)].is_all_zeros()))
+							&& tree[piece_layer_start + j].is_all_zeros()))
 						break;
 				}
 			}
@@ -199,6 +200,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			int const file_first_piece = int(m_files.file_offset(fidx) / m_files.piece_length());
 			int const num_layers = file_num_layers(fidx);
 			int const piece_tree_root_layer = std::max(0, num_layers - m_piece_tree_root_layer);
+			int const piece_tree_root_start = merkle_layer_start(piece_tree_root_layer);
 
 			int i = -1;
 			for (auto& r : m_piece_hash_requested[fidx])
@@ -223,7 +225,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 				if (!have) continue;
 
-				int const piece_tree_root = merkle_to_flat_index(piece_tree_root_layer, i);
+				int const piece_tree_root = piece_tree_root_start + i;
 
 				++r.num_requests;
 				r.last_request = now;
@@ -388,6 +390,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			int const file_first_piece = m_files.file_first_piece_node(req.file);
 			int const base_layer_index = merkle_num_layers(merkle_num_leafs(file_num_blocks)) - req.base;
 			int const file_piece_offset = int(m_files.file_offset(req.file) / m_files.piece_length());
+			int const base_layer_start = merkle_to_flat_index(base_layer_index, req.index);
 
 			// it may now be possible to verify the hashes of previously received blocks
 			// try to verify as many child nodes of the received hashes as possible
@@ -416,10 +419,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				if (done) continue;
 
 				merkle_fill_tree(dst_tree, num_leafs, file_first_leaf + first_leaf);
-				if (dst_tree[merkle_to_flat_index(base_layer_index, req.index + i)] != hashes[i])
+				if (dst_tree[base_layer_start + i] != hashes[i])
 				{
 					merkle_clear_tree(dst_tree, num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
-					dst_tree[merkle_to_flat_index(base_layer_index, req.index + i)] = hashes[i];
+					dst_tree[base_layer_start + i] = hashes[i];
 					TORRENT_ASSERT(num_leafs == m_files.piece_length() / default_block_size);
 					//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + req.index);
 					// TODO: add to failed hashes

@@ -41,7 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// given layer and offset from the start of the layer, return the nodex
+	// index
 	TORRENT_EXTRA_EXPORT int merkle_to_flat_index(int layer, int offset);
+
+	// given layer, returns index to the layer's first node
+	TORRENT_EXTRA_EXPORT int merkle_layer_start(int layer);
 
 	// given the number of blocks, how many leaves do we need? this rounds up to
 	// an even power of 2
