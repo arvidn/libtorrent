@@ -337,10 +337,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	{
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
+		piece_index_t const file_first_piece = m_files.piece_index_at_file(f);
 		int const block_offset = static_cast<int>(static_cast<int>(piece) * std::int64_t(m_files.piece_length())
 			+ offset - m_files.file_offset(f));
 		int const block_index = block_offset / default_block_size;
-		int const file_num_blocks = m_files.file_num_blocks(f);
 		int const first_block_index = m_files.file_first_block_node(f);
 		int const block_tree_index = first_block_index + block_index;
 
@@ -365,58 +365,17 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			return set_block_hash_result::block_hash_failed();
 		}
 
-		merkle_tree[block_tree_index] = h;
+		// TODO: use structured bindings in C++17
+		aux::merkle_tree::set_block_result result;
+		int leafs_index;
+		int leafs_size;
+		std::tie(result, leafs_index, leafs_size) = merkle_tree.set_block(block_index, h);
 
-		// to avoid wasting a lot of time hashing nodes only to discover they
-		// cannot be verrified, check first to see if the root of the largest
-		// computable subtree is known
-
-		// find the largest block of leafs from a single subtree we know the hashes of
-		int leafs_index = block_index;
-		int leafs_size = 1;
-		int root_index = merkle_get_sibling(first_block_index + block_index);
-		for (int i = block_index;; i >>= 1)
-		{
-			int const first_check_index = leafs_index + ((i & 1) ? -leafs_size : leafs_size);
-			bool done = false;
-			for (int j = 0; j < std::min(leafs_size, file_num_blocks - first_check_index); ++j)
-			{
-				if (!merkle_tree.has_node(first_block_index + first_check_index + j))
-				{
-					done = true;
-					break;
-				}
-			}
-			if (done) break;
-			if (i & 1) leafs_index -= leafs_size;
-			leafs_size *= 2;
-			root_index = merkle_get_parent(root_index);
-			// if an inner node is known then its parent must be known too
-			// so if the root is known the next sibling subtree should already
-			// be computed if all of its leafs have valid hashes
-			if (merkle_tree.has_node(root_index)) break;
-			TORRENT_ASSERT(root_index != 0);
-			TORRENT_ASSERT(leafs_index >= 0);
-			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(file_num_blocks));
-		}
-
-		TORRENT_ASSERT(leafs_index >= 0);
-		TORRENT_ASSERT(leafs_index < merkle_num_leafs(m_files.file_num_blocks(f)));
-		TORRENT_ASSERT(leafs_index + leafs_size > block_index);
-
-		// if the root node is unknown the hashes cannot be verified yet
-		if (!merkle_tree.has_node(root_index))
+		if (result == aux::merkle_tree::set_block_result::unknown)
 			return set_block_hash_result::unknown();
 
-		// save the root hash because merkle_fill_tree will overwrite it
-		sha256_hash root = merkle_tree[root_index];
-		merkle_tree.fill(leafs_size, first_block_index + leafs_index);
-
-		if (root != merkle_tree[root_index])
+		if (result == aux::merkle_tree::set_block_result::hash_failed)
 		{
-			// hash failure, clear all the internal nodes
-			merkle_tree.clear(leafs_size / 2, merkle_get_parent(first_block_index + leafs_index));
-			merkle_tree[root_index] = root;
 			// If the hash failure was detected within a single piece then report a piece failure
 			// otherwise report unknown. The pieces will be checked once their hashes have been
 			// downloaded.
@@ -427,11 +386,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		}
 		else
 		{
+			int const file_num_blocks = m_files.file_num_blocks(f);
 			std::fill_n(m_hash_verified[f].begin() + leafs_index, std::min(leafs_size, file_num_blocks - leafs_index), true);
 		}
 
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
-		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
 		return { int(leafs_index - static_cast<int>(piece - file_first_piece) * blocks_per_piece)
 			, std::min(leafs_size, m_files.file_num_pieces(f) * blocks_per_piece - leafs_index) };
 	}
