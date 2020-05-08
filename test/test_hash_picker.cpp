@@ -324,8 +324,11 @@ TORRENT_TEST(bad_block_hash)
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	trees.emplace_back(4 * 512, full_tree[0].data());
 
+	sha256_hash hash;
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001"
-		, trees.front()[trees.front().end_index() - merkle_num_leafs(4 * 512) + 1].data());
+		, hash.data());
+
+	trees.front().set_block(1, hash);
 
 	hash_picker picker(fs, trees);
 
@@ -378,7 +381,7 @@ TORRENT_TEST(set_block_hash)
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
 	{
-		auto mutable_tree = trees.front().build_vector();
+		aux::vector<sha256_hash> mutable_tree(trees.front().build_vector());
 		mutable_tree[merkle_get_parent(first_leaf + 12)].clear();
 		mutable_tree[merkle_get_parent(first_leaf + 14)].clear();
 		mutable_tree[first_leaf + 13].clear();
@@ -721,7 +724,7 @@ TORRENT_TEST(add_hashes_fail1)
 	aux::merkle_tree t(13, f[0].data());
 
 	// this is an invalid hash
-	t[16] = sha256_hash("01234567890123456789012345678901");
+	t.set_block(1, sha256_hash("01234567890123456789012345678901"));
 
 	auto const failed = t.add_hashes(15, 1, subtree);
 	TEST_CHECK((failed == p{{piece_index_t{1}, {0}}}));
@@ -746,9 +749,9 @@ TORRENT_TEST(add_hashes_fail2)
 	aux::merkle_tree t(13, f[0].data());
 
 	// this is an invalid hash
-	t[16] = sha256_hash("01234567890123456789012345678901");
-	t[17] = sha256_hash("01234567890123456789012345678901");
-	t[18] = sha256_hash("01234567890123456789012345678901");
+	t.set_block(1, sha256_hash("01234567890123456789012345678901"));
+	t.set_block(2, sha256_hash("01234567890123456789012345678901"));
+	t.set_block(3, sha256_hash("01234567890123456789012345678901"));
 
 	auto const failed = t.add_hashes(15, 2, subtree);
 	TEST_CHECK((failed == p{{piece_index_t{0}, {1}}, {piece_index_t{1}, {0, 1}}}));

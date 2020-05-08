@@ -210,6 +210,70 @@ namespace aux {
 		return passed_pieces;
 	}
 
+	std::tuple<merkle_tree::set_block_result, int, int> merkle_tree::set_block(int const block_index
+		, sha256_hash const& h)
+	{
+		auto const num_leafs = (m_tree.end_index() + 1) / 2;
+		auto const file_first_leaf = m_tree.end_index() - num_leafs;
+		auto const block_tree_index = file_first_leaf + block_index;
+
+		m_tree[block_tree_index] = h;
+
+		// to avoid wasting a lot of time hashing nodes only to discover they
+		// cannot be verrified, check first to see if the root of the largest
+		// computable subtree is known
+
+		// find the largest block of leafs from a single subtree we know the hashes of
+		int leafs_index = block_index;
+		int leafs_size = 1;
+		int root_index = merkle_get_sibling(file_first_leaf + block_index);
+		for (int i = block_index;; i >>= 1)
+		{
+			int const first_check_index = leafs_index + ((i & 1) ? -leafs_size : leafs_size);
+			bool done = false;
+			for (int j = 0; j < std::min(leafs_size, m_num_blocks - first_check_index); ++j)
+			{
+				if (!has_node(file_first_leaf + first_check_index + j))
+				{
+					done = true;
+					break;
+				}
+			}
+			if (done) break;
+			if (i & 1) leafs_index -= leafs_size;
+			leafs_size *= 2;
+			root_index = merkle_get_parent(root_index);
+			// if an inner node is known then its parent must be known too
+			// so if the root is known the next sibling subtree should already
+			// be computed if all of its leafs have valid hashes
+			if (has_node(root_index)) break;
+			TORRENT_ASSERT(root_index != 0);
+			TORRENT_ASSERT(leafs_index >= 0);
+			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(m_num_blocks));
+		}
+
+		TORRENT_ASSERT(leafs_index >= 0);
+		TORRENT_ASSERT(leafs_index < merkle_num_leafs(m_num_blocks));
+		TORRENT_ASSERT(leafs_index + leafs_size > block_index);
+
+		// if the root node is unknown the hashes cannot be verified yet
+		if (!has_node(root_index))
+			return std::make_tuple(set_block_result::unknown, leafs_index, leafs_size);
+
+		// save the root hash because merkle_fill_tree will overwrite it
+		sha256_hash const root = m_tree[root_index];
+		fill(leafs_size, file_first_leaf + leafs_index);
+
+		if (root != m_tree[root_index])
+		{
+			// hash failure, clear all the internal nodes
+			clear(leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_index));
+			m_tree[root_index] = root;
+			return std::make_tuple(set_block_result::hash_failed, leafs_index, leafs_size);
+		}
+		return std::make_tuple(set_block_result::ok, leafs_index, leafs_size);
+	}
+
 	std::size_t merkle_tree::size() const
 	{
 		return static_cast<std::size_t>(merkle_num_nodes(merkle_num_leafs(m_num_blocks)));
