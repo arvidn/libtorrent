@@ -472,6 +472,8 @@ std::size_t utp_stream::read_some(bool const clear_buffers)
 	return m_impl->read_some(clear_buffers);
 }
 
+// Warning: this is always non-blocking, it only tries to send
+// immediately if there is some space in the congestion window.
 std::size_t utp_stream::write_some(bool const clear_buffers)
 {
 	return m_impl->write_some(clear_buffers);

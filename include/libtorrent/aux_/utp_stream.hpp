@@ -607,7 +607,7 @@ struct utp_socket_impl
 	void do_connect(tcp::endpoint const& ep);
 
 	std::size_t read_some(bool const clear_buffers);
-	std::size_t write_some(bool const clear_buffers);
+	std::size_t write_some(bool const clear_buffers); // Warning: non-blocking
 	int receive_buffer_size() const { return m_receive_buffer_size; }
 
 	bool null_buffers() const { return m_null_buffers; }
