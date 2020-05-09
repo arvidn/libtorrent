@@ -81,7 +81,8 @@ static_links = \
         ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
         ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
-        ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html"
+        ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
+        ".. _`rate based choking`: manual-ref.html#rate-based-choking",
     }
 
 anon_index = 0
