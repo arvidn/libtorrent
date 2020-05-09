@@ -115,10 +115,6 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 private:
 
-	void fill(int piece_layer_size);
-	void fill(int piece_layer_size, int level_start);
-	void clear(int num_leafs, int level_start);
-
 	char const* m_root = nullptr;
 	aux::vector<sha256_hash> m_tree;
 	int m_num_blocks = 0;
