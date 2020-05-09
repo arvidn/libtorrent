@@ -77,7 +77,7 @@ namespace aux {
 		for (int n = num_pieces; n < piece_layer_size; ++n)
 			m_tree[first_piece_node + n] = pad_hash;
 
-		fill(piece_layer_size);
+		merkle_fill_tree(m_tree, piece_layer_size);
 
 		if (m_tree[0] != r)
 		{
@@ -262,12 +262,12 @@ namespace aux {
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash const root = m_tree[root_index];
-		fill(leafs_size, file_first_leaf + leafs_index);
+		merkle_fill_tree(m_tree, leafs_size, file_first_leaf + leafs_index);
 
 		if (root != m_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
-			clear(leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_index));
+			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_index));
 			m_tree[root_index] = root;
 			return std::make_tuple(set_block_result::hash_failed, leafs_index, leafs_size);
 		}
@@ -293,21 +293,6 @@ namespace aux {
 	{
 		std::vector<sha256_hash> ret(m_tree.begin(), m_tree.end());
 		return ret;
-	}
-
-	void merkle_tree::fill(int const piece_layer_size)
-	{
-		merkle_fill_tree(m_tree, piece_layer_size);
-	}
-
-	void merkle_tree::fill(int const piece_layer_size, int const level_start)
-	{
-		merkle_fill_tree(m_tree, piece_layer_size, level_start);
-	}
-
-	void merkle_tree::clear(int num_leafs, int level_start)
-	{
-		merkle_clear_tree(m_tree, num_leafs, level_start);
 	}
 
 }
