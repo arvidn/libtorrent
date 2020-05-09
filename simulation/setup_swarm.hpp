@@ -33,22 +33,33 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/fwd.hpp"
+#include "libtorrent/flags.hpp"
 #include <functional>
 
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
 
-enum class swarm_test { download, upload, upload_no_auto_stop };
+using lt::operator""_bit;
+using swarm_test_t = lt::flags::bitfield_flag<std::uint64_t, struct swarm_test_type_tag>;
+
+struct swarm_test
+{
+	constexpr static swarm_test_t download = 0_bit;
+	constexpr static swarm_test_t upload = 1_bit;
+	constexpr static swarm_test_t no_auto_stop = 2_bit;
+	constexpr static swarm_test_t large_torrent = 3_bit;
+	constexpr static swarm_test_t no_storage = 4_bit;
+};
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, sim::simulation& sim
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
@@ -56,7 +67,7 @@ void setup_swarm(int num_nodes
 	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, sim::simulation& sim
 	, lt::settings_pack const& default_settings
 	, lt::add_torrent_params const& default_add_torrent
@@ -66,7 +77,7 @@ void setup_swarm(int num_nodes
 	, std::function<bool(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, sim::simulation& sim
 	, lt::settings_pack const& default_settings
 	, lt::add_torrent_params const& default_add_torrent

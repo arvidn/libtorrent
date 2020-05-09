@@ -350,6 +350,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
 		SET(send_not_sent_low_watermark, 16384, nullptr),
+		SET(rate_choker_initial_threshold, 1024, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
 	}});
 

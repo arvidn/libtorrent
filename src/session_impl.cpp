@@ -4237,11 +4237,9 @@ namespace {
 		{
 			session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
 				"eligible-peers: %d"
-				" max_upload_rate: %d"
 				" allowed-slots: %d ]"
 				, int(m_connections.size())
 				, int(peers.size())
-				, max_upload_rate
 				, allowed_upload_slots);
 		}
 #endif

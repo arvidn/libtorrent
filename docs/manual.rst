@@ -841,6 +841,31 @@ example, if a client has both IPv4 and IPv6 connectivity, but the socks5 proxy
 only resolves to IPv4, only the IPv4 address will have a UDP tunnel. In that case,
 the IPv6 connection will not be used, since it cannot use the proxy.
 
+rate based choking
+==================
+
+libtorrent supports a choking algorithm that automatically determines the number
+of upload slots (unchoke slots) based on the upload rate to peers. It is
+controlled by the settings_pack::choking_algorithm setting. The
+settings_pack::unchoke_slots_limit is ignored in this mode.
+
+The algorithm is designed to stay stable, and not oscillate the number of upload
+slots.
+
+The initial rate threshold is set to settings_pack::rate_choker_initial_threshold.
+
+It sorts all peers by on the rate at which we are uploading to them.
+
+1. Compare the fastest peer against the initial threshold.
+2. Increment the threshold by 2 kiB/s.
+3. The next fastest peer is compared against the threshold.
+   If the peer rate is higher than the threshold. goto 2
+4. Terminate. The number of peers visited is the number of unchoke slots, but
+   never less than 2.
+
+In other words, the more upload slots you have, the higher rate does the slowest
+unchoked peer upload at in order to open another slot.
+
 predictive piece announce
 =========================
 
