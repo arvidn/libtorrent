@@ -7903,6 +7903,12 @@ bool is_downloading_state(int const st)
 	{
 		TORRENT_ASSERT(m_connections.size() >= m_outgoing_pids.size());
 
+		if (m_peer_list)
+		{
+			TORRENT_ASSERT(num_seeds() <= m_peer_list->num_seeds());
+			TORRENT_ASSERT(num_peers() <= m_peer_list->num_peers());
+		}
+
 		// the piece picker and the file progress states are supposed to be
 		// created in sync
 		TORRENT_ASSERT(has_picker() == !m_file_progress.empty());
