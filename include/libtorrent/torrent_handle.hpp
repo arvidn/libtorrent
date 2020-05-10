@@ -608,6 +608,8 @@ namespace aux {
 		// checking queue, and will be checked (all the files will be read and
 		// compared to the piece hashes). Once the check is complete, the torrent
 		// will start connecting to peers again, as normal.
+		// The torrent will be placed last in queue, i.e. its queue position
+		// will be the highest of all torrents in the session.
 		void force_recheck() const;
 
 		// the disk cache will be flushed before creating the resume data.
