@@ -1,3 +1,4 @@
+	* fix queue position for force_rechecking a torrent that is not auto-managed
 	* improve rate-based choker documentation, and minor tweak
 	* undeprecate upnp_ignore_nonrouters (but refering to devices on our subnet)
 	* increase default tracker timeout

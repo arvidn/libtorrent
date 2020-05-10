@@ -2354,8 +2354,7 @@ bool is_downloading_state(int const st)
 		update_want_tick();
 		set_state(torrent_status::checking_resume_data);
 
-		if (m_auto_managed && !is_finished())
-			set_queue_position(last_pos);
+		set_queue_position(last_pos);
 
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
