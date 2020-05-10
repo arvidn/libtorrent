@@ -585,8 +585,9 @@ namespace aux {
 		// ``unset_flags`` clears the specified flags, while leaving
 		// any other flags unchanged.
 		//
-		// The `seed_mode` flag is special, it can only be cleared by the
-		// `set_flags()` function, not set.
+		// The `seed_mode` flag is special, it can only be cleared once the
+		// torrent has been added, and it can only be set as part of the
+		// add_torrent_params flags, when adding the torrent.
 		torrent_flags_t flags() const;
 		void set_flags(torrent_flags_t flags, torrent_flags_t mask) const;
 		void set_flags(torrent_flags_t flags) const;
@@ -851,7 +852,7 @@ namespace aux {
 		// ================ start deprecation ============
 
 		// deprecated in 1.2
-
+		// use set_flags() and unset_flags() instead
 		TORRENT_DEPRECATED
 		void stop_when_ready(bool b) const;
 		TORRENT_DEPRECATED
@@ -899,7 +900,9 @@ namespace aux {
 		TORRENT_DEPRECATED
 		void set_ratio(float up_down_ratio) const;
 
-		// deprecated in 0.16. use status() instead
+		// deprecated in 0.16. use status() instead, and inspect the
+		// torrent_status::flags field. Alternatively, call flags() directly on
+		// the torrent_handle
 		TORRENT_DEPRECATED
 		bool is_seed() const;
 		TORRENT_DEPRECATED

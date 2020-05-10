@@ -234,7 +234,7 @@ namespace libtorrent {
 			return m_orig_files ? *m_orig_files : m_files;
 		}
 
-		// Renames a the file with the specified index to the new name. The new
+		// Renames the file with the specified index to the new name. The new
 		// filename is reflected by the ``file_storage`` returned by ``files()``
 		// but not by the one returned by ``orig_files()``.
 		//
