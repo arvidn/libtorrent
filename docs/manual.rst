@@ -191,12 +191,7 @@ The format of the magnet URI is:
 **magnet:?xt=urn:btih:** *Base16 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
 
 In order to download *just* the metadata (.torrent file) from a magnet link, set
-file priorities to 0 in add_torrent_params::file_priorities. It's OK to set the
-priority for more files than what is in the torrent. It may not be trivial to
-know how many files a torrent has before the metadata has been downloaded.
-Additional file priorities will be ignored. By setting a large number of files
-to priority 0, chances are that they will all be set to 0 once the metadata is
-received (and we know how many files there are).
+the torrent_flags::upload_mode flag in add_torrent_params before adding the it.
 
 In this case, when the metadata is received from the swarm, the torrent will
 still be running, but it will disconnect the majority of peers (since connections
@@ -212,8 +207,8 @@ state the torrent is in (checking, downloading or seeding).
 
 To opt-out of the queuing logic, make sure your torrents are added with the
 torrent_flags::auto_managed bit *cleared* from ``add_torrent_params::flags``.
-Or call ``torrent_handle::unset_flags(torrent_flags::auto_managed)`` on the
-torrent handle.
+Or call torrent_handle::unset_flags() and pass in torrent_flags::auto_managed on
+the torrent handle.
 
 The overall purpose of the queuing logic is to improve performance under arbitrary
 torrent downloading and seeding load. For example, if you want to download 100
@@ -294,8 +289,7 @@ once it is ready to start downloading.
 This is conceptually the same as waiting for the ``torrent_checked_alert`` and
 then call::
 
-	h.auto_managed(false);
-	h.pause();
+	h.set_flags(torrent_flags::paused, torrent_flags::paused | torrent_flags::auto_managed);
 
 With the important distinction that it entirely avoids the brief window where
 the torrent is in downloading state.
