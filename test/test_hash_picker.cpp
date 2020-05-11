@@ -377,22 +377,48 @@ TORRENT_TEST(set_block_hash)
 	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, sha256_hash("01234567890123456789012345678901"));
 	TEST_CHECK(result.status == set_block_hash_result::result::block_hash_failed);
+}
+
+TORRENT_TEST(set_block_hash_fail)
+{
+	file_storage fs;
+	fs.set_piece_length(4 * 16 * 1024);
+
+	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto full_tree = build_tree(4 * 512);
+	trees.emplace_back(4 * 512, full_tree[0].data());
 
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
-	{
-		aux::vector<sha256_hash> mutable_tree(trees.front().build_vector());
-		mutable_tree[merkle_get_parent(first_leaf + 12)].clear();
-		mutable_tree[merkle_get_parent(first_leaf + 14)].clear();
-		mutable_tree[first_leaf + 13].clear();
-		trees.front().load_tree(mutable_tree);
-	}
 
-	result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
+	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
+
+	full_tree[merkle_get_parent(first_leaf + 12)].clear();
+	full_tree[merkle_get_parent(first_leaf + 14)].clear();
+	auto const orig_hash = full_tree[first_leaf + 13];
+	full_tree[first_leaf + 13].clear();
+
+	trees.front().load_tree(full_tree);
+
+	hash_picker picker(fs, trees);
+
+	TEST_CHECK(picker.set_block_hash(3_piece, 0, full_tree[first_leaf + 12]).status
+		== lt::set_block_hash_result::result::unknown);
+	TEST_CHECK(picker.set_block_hash(3_piece, 2 * default_block_size, full_tree[first_leaf + 14]).status
+		== lt::set_block_hash_result::result::unknown);
+	TEST_CHECK(picker.set_block_hash(3_piece, 3 * default_block_size, full_tree[first_leaf + 15]).status
+		== lt::set_block_hash_result::result::unknown);
+
+	auto result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
 	TEST_CHECK(result.status == set_block_hash_result::result::piece_hash_failed);
 
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 12)].is_all_zeros());
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 14)].is_all_zeros());
+
+	result = picker.set_block_hash(3_piece, default_block_size, orig_hash);
+	TEST_CHECK(result.status == set_block_hash_result::result::success);
 }
 
 TORRENT_TEST(pass_piece)

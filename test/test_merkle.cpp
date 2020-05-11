@@ -613,3 +613,99 @@ TORRENT_TEST(merkle_check_proofs_far_right)
 	TEST_CHECK(tree_root == ah);
 	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{g, h}, {ef, gh}, {ad, eh}}));
 }
+
+TORRENT_TEST(merkle_validate_node)
+{
+	TEST_CHECK(merkle_validate_node(a, b, ab));
+	TEST_CHECK(merkle_validate_node(c, d, cd));
+	TEST_CHECK(merkle_validate_node(e, f, ef));
+	TEST_CHECK(merkle_validate_node(g, h, gh));
+
+	TEST_CHECK(merkle_validate_node(ab, cd, ad));
+	TEST_CHECK(merkle_validate_node(ef, gh, eh));
+
+	TEST_CHECK(merkle_validate_node(ad, eh, ah));
+
+	TEST_CHECK(!merkle_validate_node(b, a, ab));
+	TEST_CHECK(!merkle_validate_node(d, c, cd));
+	TEST_CHECK(!merkle_validate_node(f, e, ef));
+	TEST_CHECK(!merkle_validate_node(h, g, gh));
+}
+
+TORRENT_TEST(merkle_validate_copy_full)
+{
+
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,e,f,g,h};
+
+	v empty_tree(15);
+
+	merkle_validate_copy(src, empty_tree, ah);
+
+	TEST_CHECK(empty_tree == src);
+}
+
+TORRENT_TEST(merkle_validate_copy_partial)
+{
+
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, o,
+	a,b,c,o,o,o,o,o};
+
+	v empty_tree(15);
+
+	merkle_validate_copy(src, empty_tree, ah);
+
+	v const expected{
+	       ah,
+	   ad,     eh,
+	 ab, cd,  o, o,
+	a,b,o,o,o,o,o,o};
+
+	TEST_CHECK(empty_tree == expected);
+}
+
+TORRENT_TEST(merkle_validate_copy_invalid_root)
+{
+
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, o,
+	a,b,c,o,o,o,o,o};
+
+	v empty_tree(15);
+
+	merkle_validate_copy(src, empty_tree, a);
+
+	v const expected(15);
+
+	TEST_CHECK(empty_tree == expected);
+}
+
+TORRENT_TEST(merkle_validate_copy_root_only)
+{
+
+	v const src{
+	       ah,
+	    o,      o,
+	  o,  o,  o, o,
+	o,o,o,o,o,o,o,o};
+
+	v empty_tree(15);
+
+	merkle_validate_copy(src, empty_tree, ah);
+
+	v const expected{
+	       ah,
+	    o,      o,
+	  o,  o,  o, o,
+	o,o,o,o,o,o,o,o};
+
+	TEST_CHECK(empty_tree == expected);
+}

@@ -57,7 +57,7 @@ namespace aux {
 		// TODO: If t has a complete block layer, just store that
 		// otherwise, if t has a complete piece layer, just store that
 
-		m_tree.assign(t.begin(), t.end());
+		merkle_validate_copy(t, m_tree, root());
 	}
 
 	// returns false if the piece layer fails to validate against the root hash

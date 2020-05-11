@@ -101,6 +101,19 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT
 	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
 	merkle_check_proofs(sha256_hash to_validate, span<sha256_hash const> hashes, int index);
+
+	TORRENT_EXTRA_EXPORT
+	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right
+		, sha256_hash const& paremt);
+
+	// validates hashes from src and copies the valid ones to dst given root as
+	// the expected root of the tree (i.e. index 0)
+	// src and dst must be the same size. dst is expected to be initialized
+	// cleared (or only have valid hashes set), this function will not clear
+	// hashes in dst that are invalid in src.
+	TORRENT_EXTRA_EXPORT
+	void merkle_validate_copy(span<sha256_hash const> src, span<sha256_hash> dst
+		, sha256_hash const& root);
 }
 
 #endif

@@ -238,5 +238,34 @@ namespace libtorrent {
 		return {std::move(ret), hash};
 	}
 
+	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right
+		, sha256_hash const& parent)
+	{
+		hasher256 h;
+		h.update(left);
+		h.update(right);
+		return (h.final() == parent);
+	}
+
+	void merkle_validate_copy(span<sha256_hash const> const src
+		, span<sha256_hash> const dst, sha256_hash const& root)
+	{
+		TORRENT_ASSERT(src.size() == dst.size());
+		int const num_leafs = int((dst.size() + 1) / 2);
+		if (src.empty()) return;
+		if (src[0] != root) return;
+		dst[0] = src[0];
+		for (int i = 0; i < src.size() - num_leafs; ++i)
+		{
+			if (dst[i].is_all_zeros()) continue;
+			int const left_child = merkle_get_first_child(i);
+			int const right_child = left_child + 1;
+			if (merkle_validate_node(src[left_child], src[right_child], dst[i]))
+			{
+				dst[left_child] = src[left_child];
+				dst[right_child] = src[right_child];
+			}
+		}
+	}
 }
 
