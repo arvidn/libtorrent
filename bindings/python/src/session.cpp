@@ -410,7 +410,9 @@ namespace
 
     void set_alert_notify(lt::session& s, object cb)
     {
-        s.set_alert_notify(std::bind(&alert_notify, cb));
+        auto function_object = std::bind(&alert_notify, cb);
+        allow_threading_guard guard;
+        s.set_alert_notify(std::move(function_object));
     }
 
     alert const*
