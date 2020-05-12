@@ -484,12 +484,6 @@ Other build options are:
 
 Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
 
-.. note::
-
-	If you are linking statically against OpenSSL on Windows and not using ``-Dstatic_runtime=ON``,
-	you should additionally use the option ``-DOPENSSL_USE_STATIC_LIBS=ON``.
-	If you use ``-Dstatic_runtime=ON``, ``-DOPENSSL_USE_STATIC_LIBS=ON`` is implied.
-
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
