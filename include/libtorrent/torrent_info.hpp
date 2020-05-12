@@ -246,7 +246,7 @@ TORRENT_VERSION_NAMESPACE_3
 		file_storage const& files() const { return m_files; }
 		file_storage const& orig_files() const;
 
-		// Renames a the file with the specified index to the new name. The new
+		// Renames the file with the specified index to the new name. The new
 		// filename is reflected by the ``file_storage`` returned by ``files()``
 		// but not by the one returned by ``orig_files()``.
 		//

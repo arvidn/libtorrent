@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 
@@ -14,6 +14,9 @@ import subprocess as sub
 import sys
 import pickle
 import threading
+import tempfile
+
+import dummy_data
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
@@ -305,6 +308,45 @@ class test_torrent_handle(unittest.TestCase):
         if HAVE_DEPRECATED_APIS:
             self.assertEqual(self.ti.merkle_tree(), [])
         self.assertEqual(self.st.verified_pieces, [])
+
+
+class TestAddPiece(unittest.TestCase):
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.session = lt.session(settings)
+        self.ti = lt.torrent_info(dummy_data.DICT)
+        self.atp = lt.add_torrent_params()
+        self.atp.ti = self.ti
+        self.atp.save_path = self.dir.name
+        self.handle = self.session.add_torrent(self.atp)
+
+    def wait_for(self, condition, msg="condition", timeout=5):
+        deadline = time.time() + timeout
+        while not condition():
+            self.assertLess(time.time(), deadline, msg="%s timed out" % msg)
+            time.sleep(0.1)
+
+    def wait_until_torrent_finished(self):
+        self.wait_for(lambda: self.handle.status().progress == 1.0, msg="progress")
+
+        def file_written():
+            with open(os.path.join(self.dir.name.encode(), dummy_data.NAME), mode="rb") as f:
+                return f.read() == dummy_data.DATA
+
+        self.wait_for(file_written, msg="file write")
+
+    def test_with_str(self):
+        for i, data in enumerate(dummy_data.PIECES):
+            self.handle.add_piece(i, data.decode(), 0)
+
+        self.wait_until_torrent_finished()
+
+    def test_with_bytes(self):
+        for i, data in enumerate(dummy_data.PIECES):
+            self.handle.add_piece(i, data, 0)
+
+        self.wait_until_torrent_finished()
 
 
 class test_torrent_info(unittest.TestCase):

@@ -1054,7 +1054,7 @@ TEST_EXTRA = Jamfile \
   utf8_test.txt \
   web_server.py \
   socks.py \
-  http.py
+  http_proxy.py
 
 dist: FORCE
 	(cd docs; make)

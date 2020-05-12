@@ -2207,8 +2207,7 @@ bool is_downloading_state(int const st)
 		update_want_tick();
 		set_state(torrent_status::checking_resume_data);
 
-		if (m_auto_managed && !is_finished())
-			set_queue_position(last_pos);
+		set_queue_position(last_pos);
 
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
@@ -6596,12 +6595,12 @@ namespace {
 
 		ret.flags = torrent_flags_t{};
 		if (m_sequential_download) ret.flags |= torrent_flags::sequential_download;
-		if (m_seed_mode ) ret.flags |= torrent_flags::seed_mode;
+		if (m_seed_mode) ret.flags |= torrent_flags::seed_mode;
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
 #endif
 		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
-		if (m_auto_managed ) ret.flags |= torrent_flags::auto_managed;
+		if (m_auto_managed) ret.flags |= torrent_flags::auto_managed;
 		if (m_stop_when_ready) ret.flags |= torrent_flags::stop_when_ready;
 
 		ret.added_time = m_added_time;

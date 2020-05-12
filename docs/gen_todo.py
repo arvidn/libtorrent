@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import glob
 import os
@@ -50,9 +50,9 @@ for f in files:
     line_no = 0
     context_lines = 0
 
-    for l in h:
+    for orig_line in h:
         line_no += 1
-        line = l.strip()
+        line = orig_line.strip()
         if 'TODO:' in line and line.startswith('//'):
             line = line.split('TODO:')[1].strip()
             state = 'todo'
@@ -73,7 +73,7 @@ for f in files:
             continue
 
         if state == '':
-            context.append(html_sanitize(l))
+            context.append(html_sanitize(orig_line))
             if len(context) > 20:
                 context.pop(0)
             continue
@@ -85,19 +85,19 @@ for f in files:
             else:
                 state = 'context'
                 items[-1]['context'] = ''.join(context) + \
-                    '<div style="background: #ffff00" width="100%">' + html_sanitize(l) + '</div>'
+                    '<div style="background: #ffff00" width="100%">' + html_sanitize(orig_line) + '</div>'
                 context_lines = 1
 
-                context.append(html_sanitize(l))
+                context.append(html_sanitize(orig_line))
                 if len(context) > 20:
                     context.pop(0)
             continue
 
         if state == 'context':
-            items[-1]['context'] += html_sanitize(l)
+            items[-1]['context'] += html_sanitize(orig_line)
             context_lines += 1
 
-            context.append(html_sanitize(l))
+            context.append(html_sanitize(orig_line))
             if len(context) > 20:
                 context.pop(0)
             if context_lines > 30:

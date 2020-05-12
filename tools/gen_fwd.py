@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
@@ -61,12 +61,12 @@ def print_classes(out, classes, keyword):
     current_file = ''
 
     # [(file, decl), ...]
-    classes = [(l.split(':')[0].strip(), ':'.join(l.split(':')[1:]).strip()) for l in classes]
+    classes = [(x.split(':')[0].strip(), ':'.join(x.split(':')[1:]).strip()) for x in classes]
 
     # we only care about header files
     # ignore the forward header itself, that's the one we're generating
     # also ignore any header in the aux_ directory, those are private
-    classes = [l for l in classes if l[0].endswith('.hpp') and not l[0].endswith('/fwd.hpp') and '/aux_/' not in l[0]]
+    classes = [x for x in classes if x[0].endswith('.hpp') and not x[0].endswith('/fwd.hpp') and '/aux_/' not in x[0]]
 
     namespaces = ['TORRENT_VERSION_NAMESPACE_3',
                   'TORRENT_VERSION_NAMESPACE_3_END',
@@ -77,10 +77,10 @@ def print_classes(out, classes, keyword):
 
     # only include classes with the right kind of export
     classes = [
-        l for l in classes if l[1] in namespaces or (
-            l[1].split(' ')[0] in [
+        x for x in classes if x[1] in namespaces or (
+            x[1].split(' ')[0] in [
                 'class',
-                'struct'] and l[1].split(' ')[1] == keyword)]
+                'struct'] and x[1].split(' ')[1] == keyword)]
 
     # collapse empty namespaces
     classes2 = []

@@ -51,6 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
+
+constexpr swarm_test_t swarm_test::download;
+constexpr swarm_test_t swarm_test::upload;
+constexpr swarm_test_t swarm_test::no_auto_stop;
+constexpr swarm_test_t swarm_test::large_torrent;
+constexpr swarm_test_t swarm_test::no_storage;
+
 namespace {
 
 	int transfer_rate(lt::address ip)
@@ -207,7 +214,7 @@ void enable_enc(lt::settings_pack& p)
 }
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
@@ -221,7 +228,7 @@ void setup_swarm(int num_nodes
 }
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, sim::simulation& sim
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
@@ -239,7 +246,7 @@ void setup_swarm(int num_nodes
 }
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t type
 	, sim::simulation& sim
 	, lt::settings_pack const& default_settings
 	, lt::add_torrent_params const& default_add_torrent
@@ -259,7 +266,7 @@ void setup_swarm(int num_nodes
 }
 
 void setup_swarm(int num_nodes
-	, swarm_test type
+	, swarm_test_t const type
 	, sim::simulation& sim
 	, lt::settings_pack const& default_settings
 	, lt::add_torrent_params const& default_add_torrent
@@ -280,12 +287,20 @@ void setup_swarm(int num_nodes
 	lt::error_code ec;
 	int const swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
+
+	// #error implement a storage-free version! no_storage flag
+
 	lt::create_directory(path, ec);
 	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, "temporary").c_str());
-	auto ti = ::create_torrent(&file, "temporary", 0x4000, 9, false);
+	auto ti = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
 	file.close();
+
+	if (bool(type & swarm_test::download) && bool(type & swarm_test::upload))
+	{
+		TEST_ERROR("can only use one of upload or download test type");
+	}
 
 	// session 0 is the one we're testing. The others provide the scaffolding
 	// it's either a downloader or a seed
@@ -323,7 +338,7 @@ void setup_swarm(int num_nodes
 		}
 
 		lt::add_torrent_params p = default_add_torrent;
-		if (type == swarm_test::download)
+		if (type & swarm_test::download)
 		{
 			// in download tests, session 0 is a downloader and every other session
 			// is a seed. save path 0 is where the files are, so that's for seeds
@@ -403,7 +418,7 @@ void setup_swarm(int num_nodes
 
 		bool shut_down = terminate(tick, *nodes[0]);
 
-		if (type == swarm_test::upload)
+		if ((type & swarm_test::upload) && !bool(type & swarm_test::no_auto_stop))
 		{
 			shut_down |= std::all_of(nodes.begin() + 1, nodes.end()
 				, [](std::shared_ptr<lt::session> const& s)

@@ -46,13 +46,13 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 14.1 ;`nusing gcc ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc : 14.1 ;`nusing gcc ;`nusing python : 3.6 : c:\\Python36-x64 : c:\\Python36-x64\\include : c:\\Python36-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\msys64\mingw32\bin;%PATH%
   - g++ --version
-  - set PATH=c:\Python27-x64;%PATH%
-  - set PYTHON_INTERPRETER=c:\Python27-x64\python.exe
+  - set PATH=c:\Python36-x64;%PATH%
+  - set PYTHON_INTERPRETER=c:\Python36-x64\python.exe
   - python --version
   - echo %ROOT_DIRECTORY%
   - cd %BOOST_BUILD_PATH%
@@ -119,7 +119,7 @@ test_script:
   # we use 64 bit python build
   - if defined python (
     copy dependencies\*.* .
-    & c:\Python35-x64\python.exe test.py -b
+    & c:\Python36-x64\python.exe test.py -b
     )
 
   - if defined cmake (

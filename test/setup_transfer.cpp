@@ -643,7 +643,7 @@ std::string get_python()
 		if (sz == buf.size() - 1) return buf.data();
 	}
 #endif
-	return "python";
+	return "python3";
 }
 
 }
@@ -696,12 +696,12 @@ int start_proxy(int proxy_type)
 			break;
 		case settings_pack::http:
 			type = "http";
-			cmd = "../http.py";
+			cmd = "../http_proxy.py";
 			break;
 		case settings_pack::http_pw:
 			type = "http";
-			auth = " --username testuser --password testpass";
-			cmd = "../http.py";
+			auth = " --basic-auth testuser:testpass";
+			cmd = "../http_proxy.py";
 			break;
 	}
 	std::string python_exe = get_python();

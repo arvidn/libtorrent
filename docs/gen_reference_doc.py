@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 from __future__ import print_function
 
-import urllib
+import urllib.parse
 import glob
 import os
 import sys
@@ -83,7 +83,8 @@ static_links = \
         ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
         ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
-        ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html"
+        ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
+        ".. _`rate based choking`: manual-ref.html#rate-based-choking",
     }
 
 anon_index = 0
@@ -1202,8 +1203,8 @@ def print_link(name, target):
 def dump_link_targets(indent=''):
     global link_targets
     ret = '\n'
-    for l in link_targets:
-        ret += '%s__ %s\n' % (indent, l)
+    for link in link_targets:
+        ret += '%s__ %s\n' % (indent, link)
     link_targets = []
     return ret
 
@@ -1306,8 +1307,8 @@ def dump_report_issue(h, out):
     print(('.. raw:: html\n\n\t<span style="float:right;">[<a style="color:blue;" ' +
            'href="http://github.com/arvidn/libtorrent/issues/new?title=docs:{0}&labels=' +
            'documentation&body={1}">report issue</a>]</span>\n\n').format(
-                urllib.quote_plus(h),
-                urllib.quote_plus('Documentation under heading "' + h + '" could be improved')), file=out)
+                urllib.parse.quote_plus(h),
+                urllib.parse.quote_plus('Documentation under heading "' + h + '" could be improved')), file=out)
 
 
 out = open('reference.rst', 'w+')

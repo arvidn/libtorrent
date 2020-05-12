@@ -830,6 +830,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			aux::disk_io_job* j = i.get();
 			if (j->storage != st) continue;
+			// only cancel volatile-read jobs. This means only full checking
+			// jobs. These jobs are likely to have a pretty deep queue and
+			// really gain from being cancelled. They can also be restarted
+			// easily.
+			if (!(j->flags & disk_interface::volatile_read)) continue;
 			j->flags |= aux::disk_io_job::aborted;
 		}
 	}

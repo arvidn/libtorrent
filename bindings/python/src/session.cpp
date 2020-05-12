@@ -1073,6 +1073,9 @@ void bind_session()
     s.attr("local_peer_class_id") = session::local_peer_class_id;
 
     s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
+
+    s.attr("delete_files") = lt::session::delete_files;
+    s.attr("delete_partfile") = lt::session::delete_partfile;
     }
 
 #if TORRENT_ABI_VERSION == 1

@@ -108,11 +108,10 @@ namespace torrent_flags {
 	// torrent for instance.
 	constexpr torrent_flags_t apply_ip_filter = 3_bit;
 
-	// specifies whether or not the torrent is to be started in a paused
-	// state. I.e. it won't connect to the tracker or any of the peers
-	// until it's resumed. This is typically a good way of avoiding race
-	// conditions when setting configuration options on torrents before
-	// starting them.
+	// specifies whether or not the torrent is paused. i.e. it won't connect to the tracker or any of the peers
+	// until it's resumed. Note that a paused torrent that also has the
+	// auto_managed flag set can be started at any time by libtorrent's queuing
+	// logic. See queuing_.
 	constexpr torrent_flags_t paused = 4_bit;
 
 	// If the torrent is auto-managed (``auto_managed``), the torrent
@@ -161,14 +160,14 @@ namespace torrent_flags {
 	// if the auto_manages flag is cleared and the paused flag is set on the torrent.
 	//
 	// Note that the torrent may transition into a downloading state while
-	// calling this function, and since the logic is edge triggered you may
+	// setting this flag, and since the logic is edge triggered you may
 	// miss the edge. To avoid this race, if the torrent already is in a
 	// downloading state when this call is made, it will trigger the
 	// stop-when-ready immediately.
 	//
 	// When the stop-when-ready logic fires, the flag is cleared. Any
 	// subsequent transitions between downloading and non-downloading states
-	// will not be affected, until this function is used to set it again.
+	// will not be affected, until this flag is set again.
 	//
 	// The behavior is more robust when setting this flag as part of adding
 	// the torrent. See add_torrent_params.

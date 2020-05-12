@@ -252,7 +252,7 @@ TORRENT_TEST(utp_only)
 		});
 }
 
-void test_stop_start_download(swarm_test type, bool graceful)
+void test_stop_start_download(swarm_test_t type, bool graceful)
 {
 	bool paused_once = false;
 	bool resumed = false;
@@ -289,7 +289,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			if (paused_once == false)
 			{
 				auto st = get_status(ses);
-				const bool limit_reached = (type == swarm_test::download)
+				const bool limit_reached = (type & swarm_test::download)
 					? st.total_wanted_done > st.total_wanted / 2
 					: st.total_payload_upload >= 3 * 16 * 1024;
 
@@ -304,13 +304,13 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 			std::printf("tick: %d\n", ticks);
 
-			const int timeout = type == swarm_test::download ? 22 : 100;
+			const int timeout = (type & swarm_test::download) ? 22 : 100;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");
 				return true;
 			}
-			if (type == swarm_test::upload) return false;
+			if (type & swarm_test::upload) return false;
 			if (!is_seed(ses)) return false;
 			std::printf("completed in %d ticks\n", ticks);
 			return true;

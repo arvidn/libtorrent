@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 from __future__ import print_function
@@ -20,12 +20,12 @@ if socket_filter is None:
 
     sockets = {}
 
-    for l in file:
-        if 'our_delay' not in l:
+    for line in file:
+        if 'our_delay' not in line:
             continue
 
         try:
-            a = l.strip().split(" ")
+            a = line.strip().split(" ")
             socket_index = a[1][:-1]
         except Exception:
             continue

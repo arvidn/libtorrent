@@ -192,12 +192,7 @@ The format of the magnet URI is:
 **magnet:?xt=urn:btih:** *Base16 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
 
 In order to download *just* the metadata (.torrent file) from a magnet link, set
-file priorities to 0 in add_torrent_params::file_priorities. It's OK to set the
-priority for more files than what is in the torrent. It may not be trivial to
-know how many files a torrent has before the metadata has been downloaded.
-Additional file priorities will be ignored. By setting a large number of files
-to priority 0, chances are that they will all be set to 0 once the metadata is
-received (and we know how many files there are).
+the torrent_flags::upload_mode flag in add_torrent_params before adding the it.
 
 In this case, when the metadata is received from the swarm, the torrent will
 still be running, but it will disconnect the majority of peers (since connections
@@ -213,8 +208,8 @@ state the torrent is in (checking, downloading or seeding).
 
 To opt-out of the queuing logic, make sure your torrents are added with the
 torrent_flags::auto_managed bit *cleared* from ``add_torrent_params::flags``.
-Or call ``torrent_handle::unset_flags(torrent_flags::auto_managed)`` on the
-torrent handle.
+Or call torrent_handle::unset_flags() and pass in torrent_flags::auto_managed on
+the torrent handle.
 
 The overall purpose of the queuing logic is to improve performance under arbitrary
 torrent downloading and seeding load. For example, if you want to download 100
@@ -295,8 +290,7 @@ once it is ready to start downloading.
 This is conceptually the same as waiting for the ``torrent_checked_alert`` and
 then call::
 
-	h.auto_managed(false);
-	h.pause();
+	h.set_flags(torrent_flags::paused, torrent_flags::paused | torrent_flags::auto_managed);
 
 With the important distinction that it entirely avoids the brief window where
 the torrent is in downloading state.
@@ -841,6 +835,31 @@ proxy's addresses will be used to open a UDP tunnel, via that proxy. For
 example, if a client has both IPv4 and IPv6 connectivity, but the socks5 proxy
 only resolves to IPv4, only the IPv4 address will have a UDP tunnel. In that case,
 the IPv6 connection will not be used, since it cannot use the proxy.
+
+rate based choking
+==================
+
+libtorrent supports a choking algorithm that automatically determines the number
+of upload slots (unchoke slots) based on the upload rate to peers. It is
+controlled by the settings_pack::choking_algorithm setting. The
+settings_pack::unchoke_slots_limit is ignored in this mode.
+
+The algorithm is designed to stay stable, and not oscillate the number of upload
+slots.
+
+The initial rate threshold is set to settings_pack::rate_choker_initial_threshold.
+
+It sorts all peers by on the rate at which we are uploading to them.
+
+1. Compare the fastest peer against the initial threshold.
+2. Increment the threshold by 2 kiB/s.
+3. The next fastest peer is compared against the threshold.
+   If the peer rate is higher than the threshold. goto 2
+4. Terminate. The number of peers visited is the number of unchoke slots, but
+   never less than 2.
+
+In other words, the more upload slots you have, the higher rate does the slowest
+unchoked peer upload at in order to open another slot.
 
 predictive piece announce
 =========================

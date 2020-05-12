@@ -274,7 +274,12 @@ namespace libtorrent {
 		// ``std::exception`` unless duplicate_is_error is set to false. In that
 		// case, add_torrent() will return the handle to the existing torrent.
 		//
-		// all torrent_handles must be destructed before the session is destructed!
+		// The add_torrent_params class has a flags field. It can be used to
+		// control what state the new torrent will be added in. Common flags to
+		// want to control are torrent_flags::paused and
+		// torrent_flags::auto_managed. In order to add a magnet link that will
+		// just download the metadata, but no payload, set the
+		// torrent_flags::upload_mode flag.
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params&& params);
 		torrent_handle add_torrent(add_torrent_params const& params);

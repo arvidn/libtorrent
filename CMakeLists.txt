@@ -512,12 +512,12 @@ if(static_runtime)
 	ucm_set_runtime(STATIC)
 	set(Boost_USE_MULTITHREADED ON)
 	set(Boost_USE_STATIC_RUNTIME ON)
-	set(OPENSSL_USE_STATIC_LIBS TRUE)
-	set(OPENSSL_MSVC_STATIC_RT TRUE)
+	set(OPENSSL_MSVC_STATIC_RT ON)
 endif()
 
 if (NOT BUILD_SHARED_LIBS)
 	set(Boost_USE_STATIC_LIBS ON)
+	set(OPENSSL_USE_STATIC_LIBS ON)
 endif()
 
 add_library(torrent-rasterbar
