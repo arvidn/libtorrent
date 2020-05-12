@@ -59,11 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <functional>
 
-#ifdef TORRENT_SSL_PEERS
-#include "libtorrent/ssl.hpp"
-#include "libtorrent/ssl_stream.hpp"
-#endif // TORRENT_SSL_PEERS
-
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -113,6 +108,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/ssl.hpp"
+
+#ifdef TORRENT_SSL_PEERS
+#include "libtorrent/ssl_stream.hpp"
+#endif // TORRENT_SSL_PEERS
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -1382,11 +1381,12 @@ bool is_downloading_state(int const st)
 #endif
 
 #ifdef TORRENT_SSL_PEERS
-	bool torrent::verify_peer_cert(std::string const& expected, bool preverified, ssl::verify_context& ctx)
+	bool torrent::verify_peer_cert(bool const preverified, ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
 		if (!preverified) return false;
 
+		std::string expected = m_torrent_file->name();
 #ifndef TORRENT_DISABLE_LOGGING
 		std::string names;
 		bool match = false;
@@ -1563,7 +1563,7 @@ bool is_downloading_state(int const st)
 		// of a peer certificate to make sure it matches the info-hash
 		// of the torrent, or that it's a "star-cert"
 		ctx->set_verify_callback(
-				std::bind(&torrent::verify_peer_cert, this, m_torrent_file->name(), _1, _2)
+				std::bind(&torrent::verify_peer_cert, this, _1, _2)
 				, ec);
 		if (ec)
 		{
