@@ -453,20 +453,36 @@ The file format is a bencoded dictionary containing the following fields:
 | ``max_uploads``          | integer. The max number of unchoked peers this torrent may   |
 |                          | have, if a limit is set.                                     |
 +--------------------------+--------------------------------------------------------------+
-| ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
-+--------------------------+--------------------------------------------------------------+
 | ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
 |                          | entry is the priority of the file with the same index.       |
 +--------------------------+--------------------------------------------------------------+
 | ``piece_priority``       | string of bytes. Each byte is interpreted as an integer and  |
 |                          | is the priority of that piece.                               |
 +--------------------------+--------------------------------------------------------------+
+| ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
++--------------------------+--------------------------------------------------------------+
+| ``upload_mode``          | integer. 1 if the torrent_flags::upload_mode is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``share_mode``           | integer. 1 if the torrent_flags::share_mode is set.          |
++--------------------------+--------------------------------------------------------------+
+| ``apply_ip_filter``      | integer. 1 if the torrent_flags::apply_ip_filter is set.     |
++--------------------------+--------------------------------------------------------------+
+| ``paused``               | integer. 1 if the torrent is paused, 0 otherwise.            |
++--------------------------+--------------------------------------------------------------+
 | ``auto_managed``         | integer. 1 if the torrent is auto managed, otherwise 0.      |
++--------------------------+--------------------------------------------------------------+
+| ``super_seeding``        | integer. 1 if the torrent_flags::super_seeding is set.       |
 +--------------------------+--------------------------------------------------------------+
 | ``sequential_download``  | integer. 1 if the torrent is in sequential download mode,    |
 |                          | 0 otherwise.                                                 |
 +--------------------------+--------------------------------------------------------------+
-| ``paused``               | integer. 1 if the torrent is paused, 0 otherwise.            |
+| ``stop_when_ready``      | integer. 1 if the torrent_flags::stop_when_ready is set.     |
++--------------------------+--------------------------------------------------------------+
+| ``disable_dht``          | integer. 1 if the torrent_flags::disable_dht is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``disable_lsd``          | integer. 1 if the torrent_flags::disable_lsd is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``disable_pex``          | integer. 1 if the torrent_flags::disable_pex is set.         |
 +--------------------------+--------------------------------------------------------------+
 | ``trackers``             | list of lists of strings. The top level list lists all       |
 |                          | tracker tiers. Each second level list is one tier of         |
