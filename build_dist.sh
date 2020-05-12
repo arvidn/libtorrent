@@ -3,7 +3,7 @@
 set -e
 set -x
 
-python tools/clean.py
+python3 tools/clean.py
 
 cd docs
 make

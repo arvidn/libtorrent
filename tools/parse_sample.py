@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import sys
@@ -32,11 +32,11 @@ except Exception:
 
 fun_samples = {}
 
-for l in f:
-    if 'Sort by top of stack' in l:
+for line in f:
+    if 'Sort by top of stack' in line:
         break
 
-    indentation, samples, fun = parse_line(l)
+    indentation, samples, fun = parse_line(line)
     if samples < sample_limit:
         continue
     if fold != -1 and indentation > fold:
