@@ -636,7 +636,7 @@ if(OPENSSL_FOUND)
 
 	# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
 	if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
-		target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
+		target_link_libraries(torrent-rasterbar PRIVATE crypt32)
 	endif()
 
 	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
