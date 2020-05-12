@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
@@ -113,7 +113,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
     except Exception:
         print('please install gprof2dot and dot:\nsudo pip install gprof2dot\nsudo apt install graphviz')
 
-    os.system('python parse_session_stats.py %s/events.log' % output_dir)
+    os.system('python3 parse_session_stats.py %s/events.log' % output_dir)
 
     try:
         shutil.move('session_stats_report', '%s/session_stats_report' % output_dir)
