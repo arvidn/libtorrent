@@ -671,6 +671,7 @@ if(NOT gnutls)
 		target_compile_definitions(torrent-rasterbar
 			PUBLIC
 				TORRENT_USE_OPENSSL
+				TORRENT_USE_LIBCRYPTO
 				TORRENT_SSL_PEERS
 				OPENSSL_NO_SSL2)
 	endif()
@@ -700,9 +701,7 @@ if(gnutls OR NOT OPENSSL_FOUND)
 	endif()
 endif()
 
-if(OPENSSL_FOUND)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
-else()
+if(NOT OPENSSL_FOUND)
 	find_public_dependency(LibGcrypt)
 	set_package_properties(LibGcrypt
 		PROPERTIES

@@ -1289,7 +1289,7 @@ namespace libtorrent {
 #ifdef TORRENT_SSL_PEERS
 		std::unique_ptr<ssl::context> m_ssl_ctx;
 
-		bool verify_peer_cert(std::string const& expected, bool preverified, ssl::verify_context& ctx);
+		bool verify_peer_cert(bool const preverified, ssl::verify_context& ctx);
 
 		void init_ssl(string_view cert);
 #endif
