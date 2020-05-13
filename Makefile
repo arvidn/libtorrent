@@ -974,6 +974,7 @@ TEST_TORRENTS = \
   no_creation_date.torrent \
   no_files.torrent \
   no_name.torrent \
+  overlapping_symlinks.torrent \
   pad_file.torrent \
   pad_file_no_path.torrent \
   parent_path.torrent \
@@ -1007,6 +1008,7 @@ TEST_TORRENTS = \
   v2_deep_recursion.torrent \
   v2_non_multiple_piece_layer.torrent \
   v2_piece_layer_invalid_file_hash.torrent \
+  v2_invalid_pad_file.torrent \
   v2_invalid_piece_layer.torrent \
   v2_invalid_piece_layer_size.torrent \
   v2_multiple_files.torrent \
