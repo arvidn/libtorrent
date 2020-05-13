@@ -1,85 +1,93 @@
 # - Try to find libtorrent-rasterbar
 #
-# This module tries to locate libtorrent-rasterbar Config.cmake files and uses pkg-config if available
-# and the config file could not be found.
+# This module tries to locate libtorrent-rasterbar Config.cmake files and fallbacks to pkg-config.
 # If that does not work, you can pre-set LibtorrentRasterbar_CUSTOM_DEFINITIONS
 # for definitions unrelated to Boost's separate compilation (which are already
 # decided by the LibtorrentRasterbar_USE_STATIC_LIBS variable).
 #
 # Once done this will define
 #  LibtorrentRasterbar_FOUND - System has libtorrent-rasterbar
-#  LibtorrentRasterbar_INCLUDE_DIRS - The libtorrent-rasterbar include directories
-#  LibtorrentRasterbar_LIBRARIES - The libraries needed to use libtorrent-rasterbar
-#  LibtorrentRasterbar_DEFINITIONS - Compiler switches required for using libtorrent-rasterbar
 #  LibtorrentRasterbar_OPENSSL_ENABLED - libtorrent-rasterbar uses and links against OpenSSL
 #  LibtorrentRasterbar::torrent-rasterbar imported target will be created
 
-# Let's begin with the config mode
-
-set(_exactKeyword "")
-if (${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION_EXACT})
-	set(_exactKeyword "EXACT")
-endif()
-
-find_package(LibtorrentRasterbar ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION} ${_exactKeyword} CONFIG)
-
-if (LibtorrentRasterbar_FOUND)
-	if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
-		message(STATUS "LibtorrentRasterbar package found in ${LibtorrentRasterbar_DIR}")
-		message(STATUS "LibtorrentRasterbar version: ${LibtorrentRasterbar_VERSION}")
+function(_try_config_mode)
+	set(_exactKeyword "")
+	if (${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION_EXACT})
+		set(_exactKeyword "EXACT")
 	endif()
-	# Extract target properties into this module variables
-	get_target_property(LibtorrentRasterbar_INCLUDE_DIRS LibtorrentRasterbar::torrent-rasterbar INTERFACE_INCLUDE_DIRECTORIES)
-	get_target_property(LibtorrentRasterbar_LIBRARIES LibtorrentRasterbar::torrent-rasterbar IMPORTED_LOCATION)
-	get_target_property(_iface_link_libs LibtorrentRasterbar::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
-	list(APPEND LibtorrentRasterbar_LIBRARIES ${_iface_link_libs})
-	get_target_property(LibtorrentRasterbar_DEFINITIONS LibtorrentRasterbar::torrent-rasterbar INTERFACE_COMPILE_DEFINITIONS)
-	get_target_property(_iface_compile_options LibtorrentRasterbar::torrent-rasterbar INTERFACE_COMPILE_OPTIONS)
-	list(APPEND LibtorrentRasterbar_DEFINITIONS ${_iface_compile_options})
-	list(FIND _iface_link_libs "OpenSSL::SSL" _openssl_lib_index)
-	if (_openssl_lib_index GREATER -1)
-		set(LibtorrentRasterbar_OPENSSL_ENABLED TRUE)
-	else()
-		set(LibtorrentRasterbar_OPENSSL_ENABLED FALSE)
-	endif()
-else()
-	find_package(Threads QUIET REQUIRED)
-	find_package(PkgConfig QUIET)
 
+	find_package(LibtorrentRasterbar ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION} ${_exactKeyword} CONFIG)
+
+	if (LibtorrentRasterbar_FOUND)
+		if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+			message(STATUS "${CMAKE_FIND_PACKAGE_NAME} package found in ${LibtorrentRasterbar_DIR}")
+			message(STATUS "${CMAKE_FIND_PACKAGE_NAME} version: ${LibtorrentRasterbar_VERSION}")
+		endif()
+		# Extract target properties into this module variables
+		get_target_property(_iface_link_libs LibtorrentRasterbar::torrent-rasterbar INTERFACE_LINK_LIBRARIES)
+		list(FIND _iface_link_libs "OpenSSL::SSL" _openssl_lib_index)
+		if (_openssl_lib_index GREATER -1)
+			set(LibtorrentRasterbar_OPENSSL_ENABLED TRUE PARENT_SCOPE)
+		else()
+			set(LibtorrentRasterbar_OPENSSL_ENABLED FALSE PARENT_SCOPE)
+		endif()
+	endif()
+endfunction()
+
+function(_try_pkgconfig_mode)
+	if (${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+		set(_quietKeyword "QUIET")
+	endif()
+	find_package(Threads ${_quietKeyword} REQUIRED)
+	find_package(PkgConfig ${_quietKeyword})
 	if(PKG_CONFIG_FOUND)
-		pkg_check_modules(PC_LIBTORRENT_RASTERBAR QUIET libtorrent-rasterbar)
-	endif()
+		set(_moduleSpec "libtorrent-rasterbar")
+		if (${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION)
+			if (${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION_EXACT)
+				set(_moduleSpec "${_moduleSpec}=${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION}")
+			else()
+				set(_moduleSpec "${_moduleSpec}>=${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION}")
+			endif()
+		endif()
 
+		pkg_check_modules(PC_LIBTORRENT_RASTERBAR ${_quietKeyword} IMPORTED_TARGET GLOBAL ${_moduleSpec})
+		if (PC_LIBTORRENT_RASTERBAR_FOUND)
+			add_library(LibtorrentRasterbar::torrent-rasterbar ALIAS PkgConfig::PC_LIBTORRENT_RASTERBAR)
+			list(FIND PC_LIBTORRENT_RASTERBAR_LIBRARIES "ssl" _openssl_lib_index)
+			if (_openssl_lib_index GREATER -1)
+				set(LibtorrentRasterbar_OPENSSL_ENABLED TRUE PARENT_SCOPE)
+			else()
+				set(LibtorrentRasterbar_OPENSSL_ENABLED FALSE PARENT_SCOPE)
+			endif()
+			set(LibtorrentRasterbar_FOUND TRUE PARENT_SCOPE)
+		else()
+			set(LibtorrentRasterbar_FOUND FALSE PARENT_SCOPE)
+		endif()
+	endif()
+endfunction()
+
+function(_try_generic_mode)
 	if(LibtorrentRasterbar_USE_STATIC_LIBS)
 		set(LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
 		set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
 	endif()
-
-	if(PC_LIBTORRENT_RASTERBAR_FOUND)
-		set(LibtorrentRasterbar_DEFINITIONS ${PC_LIBTORRENT_RASTERBAR_CFLAGS_OTHER})
+	if(LibtorrentRasterbar_CUSTOM_DEFINITIONS)
+		set(LibtorrentRasterbar_DEFINITIONS ${LibtorrentRasterbar_CUSTOM_DEFINITIONS})
 	else()
-		if(LibtorrentRasterbar_CUSTOM_DEFINITIONS)
-			set(LibtorrentRasterbar_DEFINITIONS ${LibtorrentRasterbar_CUSTOM_DEFINITIONS})
-		else()
-			# Without pkg-config, we can't possibly figure out the correct build flags.
-			# libtorrent is very picky about those. Let's take a set of defaults and
-			# hope that they apply. If not, you the user are on your own.
-			set(LibtorrentRasterbar_DEFINITIONS
-				-DTORRENT_USE_OPENSSL
-				-DTORRENT_DISABLE_GEO_IP
-				-DBOOST_ASIO_ENABLE_CANCELIO
-				-D_FILE_OFFSET_BITS=64)
-		endif()
-
-		if(NOT LibtorrentRasterbar_USE_STATIC_LIBS)
-			list(APPEND LibtorrentRasterbar_DEFINITIONS
-				-DTORRENT_LINKING_SHARED
-				-DBOOST_SYSTEM_DYN_LINK)
-		endif()
+		# Without pkg-config, we can't possibly figure out the correct build flags.
+		# libtorrent is very picky about those. Let's take a set of defaults and
+		# hope that they apply. If not, you the user are on your own.
+		set(LibtorrentRasterbar_DEFINITIONS
+			-DTORRENT_USE_OPENSSL
+			-DTORRENT_DISABLE_GEO_IP
+			-DBOOST_ASIO_ENABLE_CANCELIO
+			-D_FILE_OFFSET_BITS=64)
 	endif()
 
-	if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
-		message(STATUS "libtorrent definitions: ${LibtorrentRasterbar_DEFINITIONS}")
+	if(NOT LibtorrentRasterbar_USE_STATIC_LIBS)
+		list(APPEND LibtorrentRasterbar_DEFINITIONS
+			-DTORRENT_LINKING_SHARED
+			-DBOOST_SYSTEM_DYN_LINK)
 	endif()
 
 	find_path(LibtorrentRasterbar_INCLUDE_DIR libtorrent
@@ -93,40 +101,51 @@ else()
 		set(CMAKE_FIND_LIBRARY_SUFFIXES ${LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 	endif()
 
-	set(LibtorrentRasterbar_LIBRARIES ${LibtorrentRasterbar_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-	set(LibtorrentRasterbar_INCLUDE_DIRS ${LibtorrentRasterbar_INCLUDE_DIR})
+	if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+		message(STATUS "${CMAKE_FIND_PACKAGE_NAME} definitions: ${LibtorrentRasterbar_DEFINITIONS}")
+		if (LibtorrentRasterbar_INCLUDE_DIR)
+			message(STATUS "${CMAKE_FIND_PACKAGE_NAME} include dir: ${LibtorrentRasterbar_INCLUDE_DIR}")
+		endif()
+		if (LibtorrentRasterbar_LIBRARY)
+			message(STATUS "${CMAKE_FIND_PACKAGE_NAME} library: ${LibtorrentRasterbar_LIBRARY}")
+		endif()
+	endif()
+
+	mark_as_advanced(LibtorrentRasterbar_LIBRARY LibtorrentRasterbar_INCLUDE_DIR)
+
+	if(NOT LibtorrentRasterbar_LIBRARY OR NOT LibtorrentRasterbar_INCLUDE_DIR)
+		set(LibtorrentRasterbar_FOUND FALSE PARENT_SCOPE)
+		return()
+	endif()
 
 	if(NOT Boost_SYSTEM_FOUND)
 		find_package(Boost QUIET REQUIRED COMPONENTS system)
-		set(LibtorrentRasterbar_LIBRARIES
-			${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-		set(LibtorrentRasterbar_INCLUDE_DIRS
-			${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 	endif()
 
-	list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL LibtorrentRasterbar_ENCRYPTION_INDEX)
-	if(LibtorrentRasterbar_ENCRYPTION_INDEX GREATER -1)
+	set(LibtorrentRasterbar_LIBRARIES Boost::system ${CMAKE_THREAD_LIBS_INIT})
+
+	list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL _ENCRYPTION_INDEX)
+	if(_ENCRYPTION_INDEX GREATER -1)
 		find_package(OpenSSL QUIET REQUIRED)
-		set(LibtorrentRasterbar_LIBRARIES ${LibtorrentRasterbar_LIBRARIES} ${OPENSSL_LIBRARIES})
-		set(LibtorrentRasterbar_INCLUDE_DIRS ${LibtorrentRasterbar_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
-		set(LibtorrentRasterbar_OPENSSL_ENABLED ON)
+		list(APPEND LibtorrentRasterbar_LIBRARIES OpenSSL::SSL)
+		if (LibtorrentRasterbar_USE_STATIC_LIBS)
+			list(APPEND LibtorrentRasterbar_LIBRARIES OpenSSL::Crypto)
+		endif()
+		set(LibtorrentRasterbar_OPENSSL_ENABLED ON PARENT_SCOPE)
+	else()
+		set(LibtorrentRasterbar_OPENSSL_ENABLED OFF PARENT_SCOPE)
 	endif()
 
-	include(FindPackageHandleStandardArgs)
-	# handle the QUIETLY and REQUIRED arguments and set LibtorrentRasterbar_FOUND to TRUE
-	# if all listed variables are TRUE
-	find_package_handle_standard_args(LibtorrentRasterbar DEFAULT_MSG
-									LibtorrentRasterbar_LIBRARY
-									LibtorrentRasterbar_INCLUDE_DIR
-									Boost_SYSTEM_FOUND
-	)
+	set(LibtorrentRasterbar_FOUND TRUE PARENT_SCOPE)
 
-	mark_as_advanced(LibtorrentRasterbar_INCLUDE_DIR LibtorrentRasterbar_LIBRARY
-		LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES
-		LibtorrentRasterbar_ENCRYPTION_INDEX)
+	if (NOT TARGET LibtorrentRasterbar::torrent-rasterbar)
+		if (LibtorrentRasterbar_USE_STATIC_LIBS)
+			set(_libType "STATIC")
+		else()
+			set(_libType "SHARED")
+		endif()
 
-	if (LibtorrentRasterbar_FOUND AND NOT TARGET LibtorrentRasterbar::torrent-rasterbar)
-		add_library(LibtorrentRasterbar::torrent-rasterbar SHARED IMPORTED)
+		add_library(LibtorrentRasterbar::torrent-rasterbar ${_libType} IMPORTED)
 
 		# LibtorrentRasterbar_DEFINITIONS var contains a mix of -D, -f, and possible -std options
 		# let's split them into definitions and options (that are not definitions)
@@ -147,4 +166,21 @@ else()
 			INTERFACE_COMPILE_OPTIONS "${LibtorrentRasterbar_options}"
 		)
 	endif()
+endfunction()
+
+if (NOT LibtorrentRasterbar_FOUND)
+	_try_config_mode()
 endif()
+
+if (NOT LibtorrentRasterbar_FOUND)
+	_try_pkgconfig_mode()
+endif()
+
+if (NOT LibtorrentRasterbar_FOUND)
+	_try_generic_mode()
+endif()
+
+include(FindPackageHandleStandardArgs)
+# handle the QUIETLY and REQUIRED arguments and set LibtorrentRasterbar_FOUND to TRUE
+# if all listed variables are TRUE
+find_package_handle_standard_args(LibtorrentRasterbar DEFAULT_MSG LibtorrentRasterbar_FOUND)
