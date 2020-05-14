@@ -788,12 +788,21 @@ lib torrent
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
-package.install install
+package.install install-torrent-lib
 	: <install-source-root>libtorrent
 	:
 	: torrent
 	: $(headers)
 	;
+
+package.install-data install-cmake-module
+	: cmake/Modules
+	: examples/cmake/FindLibtorrentRasterbar.cmake
+	;
+
+alias install : install-torrent-lib install-cmake-module ;
+
+explicit install ;
 
 local header_targets ;
 for local target in $(headers)
