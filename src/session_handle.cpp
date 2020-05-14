@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/read_resume_data.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #endif
 
 using libtorrent::aux::session_impl;
@@ -776,25 +775,6 @@ namespace {
 		auto retp = &ret;
 		sync_call(&session_impl::save_state, retp, save_state_flags_t::all());
 		return ret;
-	}
-
-	void session_handle::load_state(lazy_entry const& ses_state
-		, save_state_flags_t const flags)
-	{
-		if (ses_state.type() == lazy_entry::none_t) return;
-		std::pair<char const*, int> buf = ses_state.data_section();
-		bdecode_node e;
-		error_code ec;
-#if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
-		int ret =
-#endif
-		bdecode(buf.first, buf.first + buf.second, e, ec);
-
-		TORRENT_ASSERT(ret == 0);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) aux::throw_ex<system_error>(ec);
-#endif
-		sync_call(&session_impl::load_state, &e, flags);
 	}
 #endif // TORRENT_ABI_VERSION
 

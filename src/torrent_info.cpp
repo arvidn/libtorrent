@@ -57,10 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
-#if TORRENT_ABI_VERSION == 1
-#include "libtorrent/lazy_entry.hpp"
-#endif
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -932,32 +928,6 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
-	{
-		std::pair<char const*, int> buf = torrent_file.data_section();
-		bdecode_node e;
-		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
-			return;
-		parse_torrent_file(e, ec);
-	}
-
-	torrent_info::torrent_info(lazy_entry const& torrent_file)
-	{
-		std::pair<char const*, int> buf = torrent_file.data_section();
-		bdecode_node e;
-		error_code ec;
-		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
-		{
-			aux::throw_ex<system_error>(ec);
-		}
-#ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec))
-			aux::throw_ex<system_error>(ec);
-#else
-		parse_torrent_file(e, ec);
-#endif
-	}
-
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
 	{
@@ -1876,15 +1846,15 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 namespace {
 
-		struct filter_web_seed_type
-		{
-			explicit filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}
-			void operator() (web_seed_entry const& w)
-			{ if (w.type == t) urls.push_back(w.url); }
-			std::vector<std::string> urls;
-			web_seed_entry::type_t t;
-		};
-	}
+	struct filter_web_seed_type
+	{
+		explicit filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}
+		void operator() (web_seed_entry const& w)
+		{ if (w.type == t) urls.push_back(w.url); }
+		std::vector<std::string> urls;
+		web_seed_entry::type_t t;
+	};
+}
 
 	std::vector<std::string> torrent_info::url_seeds() const
 	{
@@ -1897,18 +1867,6 @@ namespace {
 		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
 			, filter_web_seed_type(web_seed_entry::http_seed)).urls;
 	}
-
-	bool torrent_info::parse_info_section(lazy_entry const& le, error_code& ec)
-	{
-		if (le.type() == lazy_entry::none_t) return false;
-		std::pair<char const*, int> buf = le.data_section();
-		bdecode_node e;
-		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
-			return false;
-
-		return parse_info_section(e, ec);
-	}
-
 #endif // TORRENT_ABI_VERSION
 
 	void torrent_info::add_url_seed(std::string const& url

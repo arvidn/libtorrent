@@ -63,7 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct lazy_entry;
 	struct invariant_access;
 
 namespace aux {
@@ -214,10 +213,6 @@ TORRENT_VERSION_NAMESPACE_3
 		TORRENT_DEPRECATED
 		torrent_info(char const* buffer, int size, error_code& ec, int)
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
-		TORRENT_DEPRECATED
-		explicit torrent_info(lazy_entry const& torrent_file);
-		TORRENT_DEPRECATED
-		torrent_info(lazy_entry const& torrent_file, error_code& eca);
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED
@@ -319,10 +314,6 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<std::string> url_seeds() const;
 		TORRENT_DEPRECATED
 		std::vector<std::string> http_seeds() const;
-
-		// deprecated in 1.1
-		TORRENT_DEPRECATED
-		bool parse_info_section(lazy_entry const& e, error_code& ec);
 #endif // TORRENT_ABI_VERSION
 
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.

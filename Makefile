@@ -336,7 +336,6 @@ SOURCES = \
   ip_helpers.cpp                  \
   ip_notifier.cpp                 \
   ip_voter.cpp                    \
-  lazy_bdecode.cpp                \
   listen_socket_handle.cpp        \
   lsd.cpp                         \
   magnet_uri.cpp                  \
@@ -469,7 +468,6 @@ HEADERS = \
   io_service.hpp               \
   ip_filter.hpp                \
   ip_voter.hpp                 \
-  lazy_entry.hpp               \
   link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \

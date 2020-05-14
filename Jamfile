@@ -754,7 +754,6 @@ SOURCES =
 	peer_connection_handle
 	i2p_stream
 	instantiate_connection
-	lazy_bdecode
 	natpmp
 	packet_buffer
 	piece_picker

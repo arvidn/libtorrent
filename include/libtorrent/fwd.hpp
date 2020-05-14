@@ -105,7 +105,6 @@ struct fastresume_rejected_alert;
 struct peer_blocked_alert;
 struct dht_announce_alert;
 struct dht_get_peers_alert;
-struct stats_alert;
 struct cache_flushed_alert;
 struct lsd_peer_alert;
 struct trackerid_alert;
@@ -254,10 +253,6 @@ TORRENT_VERSION_NAMESPACE_3_END
 // include/libtorrent/session_stats.hpp
 struct stats_metric;
 
-// include/libtorrent/session_status.hpp
-struct utp_status;
-struct session_status;
-
 // include/libtorrent/settings_pack.hpp
 struct settings_interface;
 struct settings_pack;
@@ -283,6 +278,7 @@ TORRENT_VERSION_NAMESPACE_2_END
 // include/libtorrent/alert_types.hpp
 TORRENT_VERSION_NAMESPACE_2
 struct torrent_added_alert;
+struct stats_alert;
 struct anonymous_mode_alert;
 struct mmap_cache_alert;
 TORRENT_VERSION_NAMESPACE_2_END
@@ -298,12 +294,12 @@ namespace dht {
 struct dht_settings;
 }
 
-// include/libtorrent/lazy_entry.hpp
-struct pascal_string;
-struct lazy_entry;
-
 // include/libtorrent/session_settings.hpp
 struct pe_settings;
+
+// include/libtorrent/session_status.hpp
+struct utp_status;
+struct session_status;
 
 #endif // TORRENT_ABI_VERSION
 

@@ -35,9 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#if TORRENT_ABI_VERSION == 1
-#include "libtorrent/lazy_entry.hpp"
-#endif
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
@@ -456,46 +453,6 @@ namespace {
 		}
 		return *this;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	// convert a lazy_entry into an old school entry
-	entry& entry::operator=(lazy_entry const& e) &
-	{
-		destruct();
-		switch (e.type())
-		{
-			case lazy_entry::string_t:
-				this->string() = e.string_value();
-				break;
-			case lazy_entry::int_t:
-				this->integer() = e.int_value();
-				break;
-			case lazy_entry::dict_t:
-			{
-				dictionary_type& d = this->dict();
-				for (int i = 0; i < e.dict_size(); ++i)
-				{
-					std::pair<std::string, lazy_entry const*> elem = e.dict_at(i);
-					d[elem.first] = *elem.second;
-				}
-				break;
-			}
-			case lazy_entry::list_t:
-			{
-				list_type& l = this->list();
-				for (int i = 0; i < e.list_size(); ++i)
-				{
-					l.emplace_back();
-					l.back() = *e.list_at(i);
-				}
-				break;
-			}
-			case lazy_entry::none_t:
-				break;
-		}
-		return *this;
-	}
-#endif
 
 	entry& entry::operator=(preformatted_type v) &
 	{
