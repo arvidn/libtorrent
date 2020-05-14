@@ -750,15 +750,6 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	void session_handle::load_asnum_db(char const*) {}
-	void session_handle::load_country_db(char const*) {}
-
-	int session_handle::as_for_ip(address const&)
-	{ return 0; }
-
-	void session_handle::load_asnum_db(wchar_t const*) {}
-	void session_handle::load_country_db(wchar_t const*) {}
-
 	void session_handle::load_state(entry const& ses_state
 		, save_state_flags_t const flags)
 	{
