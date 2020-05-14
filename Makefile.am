@@ -140,3 +140,5 @@ EXTRA_DIST = \
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc
 
+cmakemoduledir = $(datarootdir)/cmake/Modules
+cmakemodule_DATA = examples/cmake/FindLibtorrentRasterbar.cmake
