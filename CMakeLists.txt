@@ -66,7 +66,6 @@ set(libtorrent_include_files
 	io_service
 	ip_filter
 	ip_voter
-	lazy_entry
 	link
 	lsd
 	magnet_uri
@@ -299,7 +298,6 @@ set(sources
 	file_storage
 	file_progress
 	generate_peer_id
-	lazy_bdecode
 	escape_string
 	string_util
 	file

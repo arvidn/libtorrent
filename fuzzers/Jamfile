@@ -53,7 +53,6 @@ rule fuzzer ( name )
 fuzzer torrent_info ;
 fuzzer parse_magnet_uri ;
 fuzzer bdecode_node ;
-fuzzer lazy_bdecode ;
 fuzzer parse_int ;
 fuzzer sanitize_path ;
 fuzzer escape_path ;
@@ -79,7 +78,6 @@ fuzzer session_params ;
 
 local LARGE_TARGETS =
 	torrent_info
-	lazy_bdecode
 	bdecode_node
 	http_parser
 	dht_node
