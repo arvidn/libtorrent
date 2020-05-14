@@ -584,34 +584,6 @@ namespace libtorrent {
 		void add_extension(std::shared_ptr<plugin> ext);
 
 #if TORRENT_ABI_VERSION == 1
-		// GeoIP support has been removed from libtorrent internals. If you
-		// still need to resolve peers, please do so on the client side, using
-		// libgeoip directly. This was removed in libtorrent 1.1
-
-		// These functions expects a path to the `MaxMind ASN database`_ and
-		// `MaxMind GeoIP database`_ respectively. This will be used to look up
-		// which AS and country peers belong to.
-		//
-		// ``as_for_ip`` returns the AS number for the IP address specified. If
-		// the IP is not in the database or the ASN database is not loaded, 0 is
-		// returned.
-		//
-		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
-		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		TORRENT_DEPRECATED
-		void load_asnum_db(char const* file);
-		TORRENT_DEPRECATED
-		void load_country_db(char const* file);
-		TORRENT_DEPRECATED
-		int as_for_ip(address const& addr);
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
-		TORRENT_DEPRECATED
-		void load_country_db(wchar_t const* file);
-		TORRENT_DEPRECATED
-		void load_asnum_db(wchar_t const* file);
-
 		// deprecated in 0.15
 		// use load_state and save_state instead
 		TORRENT_DEPRECATED
