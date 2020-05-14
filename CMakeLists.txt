@@ -632,8 +632,7 @@ set_package_properties(OpenSSL
 		PURPOSE "Provides HTTPS support to libtorrent"
 )
 
-if(OPENSSL_FOUND)
-
+if(TARGET OpenSSL::SSL)
 	# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
 	if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
 		target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
@@ -641,12 +640,12 @@ if(OPENSSL_FOUND)
 
 	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_OPENSSL)
-	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
 endif()
 
-if(OPENSSL_FOUND)
+if(TARGET OpenSSL::Crypto)
+	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::Crypto)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
-else(OPENSSL_FOUND)
+else()
 	find_public_dependency(LibGcrypt)
 	set_package_properties(LibGcrypt
 		PROPERTIES
@@ -659,7 +658,7 @@ else(OPENSSL_FOUND)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
 		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
 	endif()
-endif(OPENSSL_FOUND)
+endif()
 
 if (encryption)
 	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
