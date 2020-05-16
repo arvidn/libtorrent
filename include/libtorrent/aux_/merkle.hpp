@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/vector.hpp"
 #include <vector>
 #include <utility> // pair
 
@@ -89,6 +90,17 @@ namespace libtorrent {
 	// and given "pieces" nodes in the piece layer, compute the pad hash for the
 	// piece layer
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int leafs, int pieces);
+
+	// Computes the path of hashes starting with "to_validate" given sibling and
+	// uncle hashes in "hashes". "index" is the index to the hash we're
+	// validating in its layer. This is necessary to know of the sibling is to
+	// the left or right.
+	// The function returns the path of siblings going up, as well as the final
+	// hash above the last pair of sibling hashes returned. The caller needs to
+	// verify the returned hash against the known hash in the tree.
+	TORRENT_EXTRA_EXPORT
+	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
+	merkle_check_proofs(sha256_hash to_validate, span<sha256_hash const> hashes, int index);
 }
 
 #endif

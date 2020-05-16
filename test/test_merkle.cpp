@@ -521,3 +521,95 @@ TORRENT_TEST(merkle_pad)
 	TEST_CHECK(merkle_pad(16, 4) == pad2);
 	TEST_CHECK(merkle_pad(32, 8) == pad2);
 }
+
+TORRENT_TEST(merkle_check_proofs_right_left)
+{
+/*
+	       ah
+	   ad      eh
+	 ab  cd  ef  gh
+	a b c d  e f g h
+*/
+
+	// Prove that c is correct by providing its position in its layer (2) and
+	// all the uncle-hashes up. We then get the root hash back which we can
+	// verify against ah.
+	std::vector<sha256_hash> uncles{d, ab, eh};
+
+	// TODO: use strucutured bindings here in C++17
+	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
+	sha256_hash tree_root;
+	std::tie(proofs, tree_root) = merkle_check_proofs(c, uncles, 2);
+
+	TEST_CHECK(tree_root == ah);
+	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{c, d}, {ab, cd}, {ad, eh}}));
+}
+
+TORRENT_TEST(merkle_check_proofs_left_right)
+{
+/*
+	       ah
+	   ad      eh
+	 ab  cd  ef  gh
+	a b c d  e f g h
+*/
+
+	// Prove that d is correct by providing its position in its layer (3) and
+	// all the uncle-hashes up. We then get the root hash back which we can
+	// verify against ah.
+	std::vector<sha256_hash> uncles{c, ab, eh};
+
+	// TODO: use strucutured bindings here in C++17
+	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
+	sha256_hash tree_root;
+	std::tie(proofs, tree_root) = merkle_check_proofs(d, uncles, 3);
+
+	TEST_CHECK(tree_root == ah);
+	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{c, d}, {ab, cd}, {ad, eh}}));
+}
+
+TORRENT_TEST(merkle_check_proofs_far_left)
+{
+/*
+	       ah
+	   ad      eh
+	 ab  cd  ef  gh
+	a b c d  e f g h
+*/
+
+	// Prove that a is correct by providing its position in its layer (0) and
+	// all the uncle-hashes up. We then get the root hash back which we can
+	// verify against ah.
+	std::vector<sha256_hash> uncles{b, cd, eh};
+
+	// TODO: use strucutured bindings here in C++17
+	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
+	sha256_hash tree_root;
+	std::tie(proofs, tree_root) = merkle_check_proofs(a, uncles, 0);
+
+	TEST_CHECK(tree_root == ah);
+	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{a, b}, {ab, cd}, {ad, eh}}));
+}
+
+TORRENT_TEST(merkle_check_proofs_far_right)
+{
+/*
+	       ah
+	   ad      eh
+	 ab  cd  ef  gh
+	a b c d  e f g h
+*/
+
+	// Prove that h is correct by providing its position in its layer (7) and
+	// all the uncle-hashes up. We then get the root hash back which we can
+	// verify against ah.
+	std::vector<sha256_hash> uncles{g, ef, ad};
+
+	// TODO: use strucutured bindings here in C++17
+	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
+	sha256_hash tree_root;
+	std::tie(proofs, tree_root) = merkle_check_proofs(h, uncles, 7);
+
+	TEST_CHECK(tree_root == ah);
+	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{g, h}, {ef, gh}, {ad, eh}}));
+}

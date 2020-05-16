@@ -294,31 +294,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (base_layer_idx <= 0)
 			return add_hashes_result(false);
 
-		int proof_leafs = req.count;
-		aux::vector<std::pair<sha256_hash, sha256_hash>> proofs(
-			std::max(0, req.proof_layers - base_num_layers + 1));
-		auto proof_iter = proofs.begin();
-		sha256_hash tree_root = tree[0];
-		for (auto proof = uncle_hashes.begin(); proof != uncle_hashes.end(); ++proof)
-		{
-			proof_leafs *= 2;
-			bool proof_right = req.index % proof_leafs < proof_leafs / 2;
-			if (proof_right)
-			{
-				proof_iter->first = tree_root;
-				proof_iter->second = *proof;
-			}
-			else
-			{
-				proof_iter->first = *proof;
-				proof_iter->second = tree_root;
-			}
-			hasher256 h;
-			h.update(proof_iter->first);
-			h.update(proof_iter->second);
-			tree_root = h.final();
-			++proof_iter;
-		}
+		// TODO: use strucutured bindings here in C++17
+		aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
+		sha256_hash tree_root;
+		std::tie(proofs, tree_root) = merkle_check_proofs(
+			tree[0], uncle_hashes, req.index >> base_num_layers);
 
 		int const total_add_layers = std::max(req.proof_layers + 1, base_num_layers);
 		int const root_layer_offset = req.index >> total_add_layers;
