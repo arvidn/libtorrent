@@ -73,6 +73,17 @@ namespace libtorrent {
 				++m_total_allocations;
 				break;
 #endif
+#if TORRENT_USE_RTC
+            case torrent_peer_allocator_interface::rtc_peer_type:
+                p = static_cast<torrent_peer*>(m_rtc_peer_pool.malloc());
+                if (p == nullptr) return nullptr;
+                m_rtc_peer_pool.set_next_size(500);
+                m_total_bytes += sizeof(libtorrent::rtc_peer);
+                m_live_bytes += sizeof(libtorrent::rtc_peer);
+                ++m_live_allocations;
+                ++m_total_allocations;
+                break;
+#endif
 		}
 		return p;
 	}
@@ -104,6 +115,19 @@ namespace libtorrent {
 			--m_live_allocations;
 			return;
 		}
+#endif
+#if TORRENT_USE_RTC
+        if (p->is_rtc_addr)
+        {
+            TORRENT_ASSERT(m_rtc_peer_pool.is_from(static_cast<libtorrent::rtc_peer*>(p)));
+            static_cast<libtorrent::rtc_peer*>(p)->~rtc_peer();
+            m_rtc_peer_pool.free(p);
+            TORRENT_ASSERT(m_live_bytes >= int(sizeof(rtc_peer)));
+            m_live_bytes -= int(sizeof(rtc_peer));
+            TORRENT_ASSERT(m_live_allocations > 0);
+            --m_live_allocations;
+            return;
+        }
 #endif
 		TORRENT_ASSERT(m_ipv4_peer_pool.is_from(static_cast<libtorrent::ipv4_peer*>(p)));
 		static_cast<libtorrent::ipv4_peer*>(p)->~ipv4_peer();

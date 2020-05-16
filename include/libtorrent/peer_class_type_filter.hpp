@@ -63,6 +63,7 @@ namespace libtorrent {
 			ssl_tcp_socket,
 			ssl_utp_socket,
 			i2p_socket,
+			rtc_socket,
 			num_socket_types
 		};
 

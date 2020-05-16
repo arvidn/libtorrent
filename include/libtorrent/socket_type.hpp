@@ -45,6 +45,7 @@ enum class socket_type_t : std::uint8_t {
 	http,
 	utp,
 	i2p,
+	rtc,
 	tcp_ssl,
 	socks5_ssl,
 	http_ssl,

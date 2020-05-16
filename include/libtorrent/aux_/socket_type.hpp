@@ -33,14 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE
 #define TORRENT_SOCKET_TYPE
 
+#include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/aligned_union.hpp"
+#include "libtorrent/aux_/polymorphic_socket.hpp"
+#include "libtorrent/aux_/rtc_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
-#include "libtorrent/aux_/utp_stream.hpp"
-#include "libtorrent/aux_/polymorphic_socket.hpp"
+#include "libtorrent/io_context.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/socks5_stream.hpp"
 
 #if TORRENT_USE_SSL
 #include "libtorrent/ssl_stream.hpp"
@@ -58,6 +62,9 @@ namespace aux {
 		, utp_stream
 #if TORRENT_USE_I2P
 		, i2p_stream
+#endif
+#if TORRENT_USE_RTC
+		, rtc_stream
 #endif
 #if TORRENT_USE_SSL
 		, ssl_stream<tcp::socket>
@@ -84,6 +91,11 @@ namespace aux {
 #if TORRENT_USE_I2P
 	// returns true if this is an i2p socket
 	bool is_i2p(socket_type const& s);
+#endif
+
+#if TORRENT_USE_RTC
+	// returns true if this is a WebRTC socket
+	bool is_rtc(socket_type const& s);
 #endif
 
 	// assuming the socket_type s is an ssl socket, make sure it

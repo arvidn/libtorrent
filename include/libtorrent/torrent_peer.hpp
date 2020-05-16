@@ -182,6 +182,9 @@ namespace libtorrent {
 		// set if the i2p_destination is in use in the addr union
 		bool is_i2p_addr:1;
 #endif
+#if TORRENT_USE_RTC
+		bool is_rtc_addr:1;
+#endif
 
 		// if this is true, the torrent_peer has previously
 		// participated in a piece that failed the piece
@@ -235,6 +238,19 @@ namespace libtorrent {
 	};
 #endif
 
+#if TORRENT_USE_RTC
+	struct TORRENT_EXTRA_EXPORT rtc_peer : torrent_peer
+	{
+		rtc_peer(string_view pid_, peer_source_flags_t src);
+		rtc_peer(rtc_peer const&) = delete;
+		rtc_peer& operator=(rtc_peer const&) = delete;
+		rtc_peer(rtc_peer&&) = default;
+		rtc_peer& operator=(rtc_peer&&) = default;
+
+		aux::string_ptr pid;
+	};
+#endif
+
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
 		ipv6_peer(tcp::endpoint const& ep, bool connectable, peer_source_flags_t src);
@@ -255,7 +271,7 @@ namespace libtorrent {
 			return lhs < rhs->address();
 		}
 
-#if TORRENT_USE_I2P
+#if TORRENT_USE_I2P || TORRENT_USE_RTC
 		bool operator()(torrent_peer const* lhs, string_view rhs) const
 		{
 			return lhs->dest().compare(rhs) < 0;
@@ -269,7 +285,7 @@ namespace libtorrent {
 
 		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
-#if TORRENT_USE_I2P
+#if TORRENT_USE_I2P || TORRENT_USE_RTC
 			if (rhs->is_i2p_addr == lhs->is_i2p_addr)
 				return lhs->dest().compare(rhs->dest()) < 0;
 #endif

@@ -362,6 +362,9 @@ namespace aux {
 			// effect until the DHT is restarted.
 			dht_bootstrap_nodes,
 
+			// the STUN server used by WebTorrent to enable ICE NAT traversal for WebRTC
+			webtorrent_stun_server,
+
 			max_string_setting_internal
 		};
 
@@ -1930,6 +1933,15 @@ namespace aux {
 			// If this number is too big, expect the DHT storage implementations
 			// to clamp it in order to allow UDP packets go through
 			dht_max_infohashes_sample_count,
+
+			// this is the minimum allowed announce interval for a WebSocket
+			// tracker used by WebTorrent to signal WebRTC connections. This is
+			// specified in seconds and is used as a sanity check on what is
+			// returned from a tracker.
+			min_websocket_announce_interval,
+
+			// the WebRTC connection timeout used by WebTorrent (in seconds)
+			webtorrent_connection_timeout,
 
 			max_int_setting_internal
 		};

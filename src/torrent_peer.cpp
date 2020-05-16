@@ -163,6 +163,9 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		, is_i2p_addr(false)
 #endif
+#if TORRENT_USE_RTC
+		, is_rtc_addr(false)
+#endif
 		, on_parole(false)
 		, banned(false)
 		, supports_utp(true) // assume peers support utp
@@ -175,7 +178,7 @@ namespace libtorrent {
 	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
 		TORRENT_ASSERT(in_use);
-//TODO: how do we deal with our external address changing?
+		//TODO: how do we deal with our external address changing?
 		if (peer_rank == 0)
 			peer_rank = peer_priority(
 				tcp::endpoint(external.external_address(this->address()), std::uint16_t(external_port))
@@ -190,6 +193,9 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return dest().to_string();
 #endif // TORRENT_USE_I2P
+#if TORRENT_USE_RTC
+		if (is_rtc_addr) return dest().to_string();
+#endif // TORRENT_USE_RTC
 		return address().to_string();
 	}
 #endif
@@ -231,6 +237,9 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		is_i2p_addr = false;
 #endif
+#if TORRENT_USE_RTC
+		is_rtc_addr = false;
+#endif
 	}
 
 	ipv4_peer::ipv4_peer(ipv4_peer const&) = default;
@@ -244,8 +253,24 @@ namespace libtorrent {
 	{
 		is_v6_addr = false;
 		is_i2p_addr = true;
+#if TORRENT_USE_RTC
+        is_rtc_addr = false;
+#endif
 	}
 #endif // TORRENT_USE_I2P
+
+#if TORRENT_USE_RTC
+	rtc_peer::rtc_peer(string_view pid_, peer_source_flags_t src)
+		: torrent_peer(0, false, src)
+		, pid(pid_)
+	{
+        is_v6_addr = false;
+#if TORRENT_USE_I2P
+        is_i2p_addr = false;
+#endif
+        is_rtc_addr = true;
+	}
+#endif // TORRENT_USE_RTC
 
 	ipv6_peer::ipv6_peer(tcp::endpoint const& ep, bool c
 		, peer_source_flags_t const src)
@@ -256,15 +281,24 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		is_i2p_addr = false;
 #endif
+#if TORRENT_USE_RTC
+		is_rtc_addr = false;
+#endif
 	}
 
 	ipv6_peer::ipv6_peer(ipv6_peer const&) = default;
 
-#if TORRENT_USE_I2P
+#if TORRENT_USE_I2P || TORRENT_USE_RTC
 	string_view torrent_peer::dest() const
 	{
+#if TORRENT_USE_I2P
 		if (is_i2p_addr)
 			return *static_cast<i2p_peer const*>(this)->destination;
+#endif
+#if TORRENT_USE_RTC
+		if (is_rtc_addr)
+			return *static_cast<rtc_peer const*>(this)->pid;
+#endif
 		return "";
 	}
 #endif
@@ -278,6 +312,10 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return {};
 		else
+#endif
+#if TORRENT_USE_RTC
+        if (is_rtc_addr) return libtorrent::address();
+        else
 #endif
 		return static_cast<ipv4_peer const*>(this)->addr;
 	}

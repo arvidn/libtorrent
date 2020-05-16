@@ -143,7 +143,7 @@ namespace libtorrent {
 		// than we requested.
 #if TORRENT_USE_ASSERTS
 		error_code ec;
-		TORRENT_ASSERT(c.remote() == c.get_socket().remote_endpoint(ec) || ec);
+		TORRENT_ASSERT(c.remote() == c.get_socket().remote_endpoint(ec) || ec || is_rtc(c.get_socket()));
 #endif
 
 		aux::session_interface& ses = t.session();
