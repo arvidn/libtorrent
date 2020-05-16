@@ -208,5 +208,35 @@ namespace libtorrent {
 		return ret;
 	}
 
+	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
+	merkle_check_proofs(sha256_hash hash, span<sha256_hash const> hashes
+		, int index)
+	{
+		aux::vector<std::pair<sha256_hash, sha256_hash>> ret(int(hashes.size()));
+		auto ret_it = ret.begin();
+		for (auto const& proof : hashes)
+		{
+			bool const proof_right = (index & 1) == 0;
+			if (proof_right)
+			{
+				ret_it->first = hash;
+				ret_it->second = proof;
+			}
+			else
+			{
+				ret_it->first = proof;
+				ret_it->second = hash;
+			}
+			hasher256 h;
+			h.update(ret_it->first);
+			h.update(ret_it->second);
+			hash = h.final();
+			++ret_it;
+			index /= 2;
+		}
+		TORRENT_ASSERT(ret_it == ret.end());
+		return {std::move(ret), hash};
+	}
+
 }
 
