@@ -412,7 +412,11 @@ SOURCES = \
   web_connection_base.cpp         \
   web_peer_connection.cpp         \
   write_resume_data.cpp           \
-  xml_parse.cpp
+  xml_parse.cpp                   \
+  rtc_signaling.cpp               \
+  rtc_stream.cpp                  \
+  websocket_stream.cpp            \
+  websocket_tracker_connection.cpp
 
 HEADERS = \
   ConvertUTF.h                 \
@@ -554,6 +558,7 @@ HEADERS = \
   web_peer_connection.hpp      \
   write_resume_data.hpp        \
   xml_parse.hpp                \
+  websocket_tracker_connection.hpp  \
   \
   aux_/alert_manager.hpp            \
   aux_/aligned_storage.hpp          \
@@ -646,6 +651,9 @@ HEADERS = \
   aux_/vector.hpp                   \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
+  aux_/rtc_signaling.hpp            \
+  aux_/rtc_stream.hpp               \
+  aux_/websocket_stream.hpp         \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
