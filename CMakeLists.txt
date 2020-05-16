@@ -659,12 +659,12 @@ if(NOT gnutls)
 			TYPE RECOMMENDED
 			PURPOSE "Provides HTTPS support to libtorrent"
 	)
-	if(OPENSSL_FOUND)
+
+	if(TARGET OpenSSL::SSL)
 		# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
 		if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
-			target_link_libraries(OpenSSL::Crypto INTERFACE crypt32)
+			target_link_libraries(torrent-rasterbar PRIVATE crypt32)
 		endif()
-
 		target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
 		target_compile_definitions(torrent-rasterbar
 			PUBLIC
@@ -675,7 +675,7 @@ if(NOT gnutls)
 	endif()
 endif()
 
-if(gnutls OR NOT OPENSSL_FOUND)
+if(gnutls OR NOT TARGET OpenSSL::SSL)
 	find_public_dependency(GnuTLS)
 	set_package_properties(GnuTLS
 		PROPERTIES
@@ -699,18 +699,23 @@ if(gnutls OR NOT OPENSSL_FOUND)
 	endif()
 endif()
 
-if(NOT OPENSSL_FOUND)
-	find_public_dependency(LibGcrypt)
-	set_package_properties(LibGcrypt
-		PROPERTIES
-			URL "https://www.gnupg.org/software/libgcrypt/index.html"
-			DESCRIPTION "A general purpose cryptographic library"
-			TYPE RECOMMENDED
-			PURPOSE "Use GCrypt instead of the built-in functions for RC4 and SHA1"
-	)
-	if (LibGcrypt_FOUND)
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
-		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
+if (NOT GNUTLS_FOUND AND NOT TARGET OpenSSL::SSL)
+	if(TARGET OpenSSL::Crypto)
+		target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::Crypto)
+		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
+	else()
+		find_public_dependency(LibGcrypt)
+		set_package_properties(LibGcrypt
+			PROPERTIES
+				URL "https://www.gnupg.org/software/libgcrypt/index.html"
+				DESCRIPTION "A general purpose cryptographic library"
+				TYPE RECOMMENDED
+				PURPOSE "Use GCrypt instead of the built-in functions for RC4 and SHA1"
+		)
+		if (LibGcrypt_FOUND)
+			target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
+			target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
+		endif()
 	endif()
 endif()
 

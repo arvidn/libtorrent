@@ -349,6 +349,7 @@ namespace libtorrent {
 		SET(send_not_sent_low_watermark, 16384, nullptr),
 		SET(rate_choker_initial_threshold, 1024, nullptr),
 		SET(upnp_lease_duration, 3600, nullptr),
+		SET(max_concurrent_http_announces, 50, nullptr),
 		SET(dht_max_peers_reply, 100, nullptr),
 		SET(dht_search_branching, 5, nullptr),
 		SET(dht_max_fail_count, 20, nullptr),

@@ -6593,15 +6593,7 @@ namespace {
 		ret.num_incomplete = m_incomplete;
 		ret.num_downloaded = m_downloaded;
 
-		ret.flags = torrent_flags_t{};
-		if (m_sequential_download) ret.flags |= torrent_flags::sequential_download;
-		if (m_seed_mode) ret.flags |= torrent_flags::seed_mode;
-#ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (m_super_seeding ) ret.flags |= torrent_flags::super_seeding;
-#endif
-		if (is_torrent_paused()) ret.flags |= torrent_flags::paused;
-		if (m_auto_managed) ret.flags |= torrent_flags::auto_managed;
-		if (m_stop_when_ready) ret.flags |= torrent_flags::stop_when_ready;
+		ret.flags = flags();
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;

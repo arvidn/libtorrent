@@ -191,13 +191,23 @@ namespace {
 		ret.upload_limit = int(rd.dict_find_int_value("upload_rate_limit", -1));
 		ret.download_limit = int(rd.dict_find_int_value("download_rate_limit", -1));
 
-		// torrent state
+		// torrent flags
 		apply_flag(ret.flags, rd, "seed_mode", torrent_flags::seed_mode);
-		apply_flag(ret.flags, rd, "super_seeding", torrent_flags::super_seeding);
-		apply_flag(ret.flags, rd, "auto_managed", torrent_flags::auto_managed);
-		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
+		apply_flag(ret.flags, rd, "upload_mode", torrent_flags::upload_mode);
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		apply_flag(ret.flags, rd, "share_mode", torrent_flags::share_mode);
+#endif
+		apply_flag(ret.flags, rd, "apply_ip_filter", torrent_flags::apply_ip_filter);
 		apply_flag(ret.flags, rd, "paused", torrent_flags::paused);
+		apply_flag(ret.flags, rd, "auto_managed", torrent_flags::auto_managed);
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+		apply_flag(ret.flags, rd, "super_seeding", torrent_flags::super_seeding);
+#endif
+		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
 		apply_flag(ret.flags, rd, "stop_when_ready", torrent_flags::stop_when_ready);
+		apply_flag(ret.flags, rd, "disable_dht", torrent_flags::disable_dht);
+		apply_flag(ret.flags, rd, "disable_lsd", torrent_flags::disable_lsd);
+		apply_flag(ret.flags, rd, "disable_pex", torrent_flags::disable_pex);
 
 		ret.save_path = rd.dict_find_string_value("save_path").to_string();
 

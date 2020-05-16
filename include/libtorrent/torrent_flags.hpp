@@ -129,10 +129,13 @@ namespace torrent_flags {
 	// used in add_torrent_params to indicate that it's an error to attempt
 	// to add a torrent that's already in the session. If it's not considered an
 	// error, a handle to the existing torrent is returned.
+	// This flag is not saved by write_resume_data(), since it is only meant for
+	// adding torrents.
 	constexpr torrent_flags_t duplicate_is_error = 6_bit;
 
 	// on by default and means that this torrent will be part of state
 	// updates when calling post_torrent_updates().
+	// This flag is not saved by write_resume_data().
 	constexpr torrent_flags_t update_subscribe = 7_bit;
 
 	// sets the torrent into super seeding/initial seeding mode. If the torrent
@@ -192,6 +195,7 @@ namespace torrent_flags {
 	// resume data take precedence over the original trackers. This includes if
 	// there's an empty list of trackers, to support the case where they were
 	// explicitly removed in the previous session.
+	// This flag is not saved by write_resume_data()
 	constexpr torrent_flags_t override_trackers = 11_bit;
 
 	// If this flag is set, the web seeds from the add_torrent_params
@@ -203,12 +207,15 @@ namespace torrent_flags {
 	// resume data take precedence over the original ones. This includes if
 	// there's an empty list of web seeds, to support the case where they were
 	// explicitly removed in the previous session.
+	// This flag is not saved by write_resume_data()
 	constexpr torrent_flags_t override_web_seeds = 12_bit;
 
 	// if this flag is set (which it is by default) the torrent will be
 	// considered needing to save its resume data immediately as it's
 	// added. New torrents that don't have any resume data should do that.
 	// This flag is cleared by a successful call to save_resume_data()
+	// This flag is not saved by write_resume_data(), since it represents an
+	// ephemeral state of a running torrent.
 	constexpr torrent_flags_t need_save_resume = 13_bit;
 
 #if TORRENT_ABI_VERSION == 1

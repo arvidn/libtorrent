@@ -1231,7 +1231,7 @@ namespace {
 			use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
 			make_announce_port(listen_port(ls));
-		m_tracker_manager.queue_request(get_context(), std::move(req), c);
+		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c);
 	}
 
 	void session_impl::set_peer_class(peer_class_t const cid, peer_class_info const& pci)

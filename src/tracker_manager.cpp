@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/ssl.hpp"
@@ -233,6 +234,21 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
+			if (!m_queued.empty())
+			{
+				auto conn = std::move(m_queued.front());
+				m_queued.pop_front();
+				m_http_conns.push_back(std::move(conn));
+				m_http_conns.back()->start();
+			}
+			return;
+		}
+
+		auto const j = std::find_if(m_queued.begin(), m_queued.end()
+			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+		if (j != m_queued.end())
+		{
+			m_queued.erase(j);
 		}
 	}
 
@@ -254,6 +270,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 	void tracker_manager::queue_request(
 		io_context& ios
 		, tracker_request&& req
+		, aux::session_settings const& sett
 		, std::weak_ptr<request_callback> c)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -276,8 +293,15 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 #endif
 		{
 			auto con = std::make_shared<http_tracker_connection>(ios, *this, std::move(req), c);
-			m_http_conns.push_back(con);
-			con->start();
+			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
+			{
+				m_http_conns.push_back(std::move(con));
+				m_http_conns.back()->start();
+			}
+			else
+			{
+				m_queued.push_back(std::move(con));
+			}
 			return;
 		}
 		else if (protocol == "udp")

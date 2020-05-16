@@ -313,6 +313,36 @@ TORRENT_TEST(round_trip_trackers)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_flags)
+{
+	torrent_flags_t const flags[] = {
+		torrent_flags::seed_mode,
+		torrent_flags::upload_mode,
+		torrent_flags::share_mode,
+		torrent_flags::apply_ip_filter,
+		torrent_flags::paused,
+		torrent_flags::auto_managed,
+		torrent_flags::duplicate_is_error,
+		torrent_flags::update_subscribe,
+		torrent_flags::super_seeding,
+		torrent_flags::sequential_download,
+		torrent_flags::stop_when_ready,
+		torrent_flags::override_trackers,
+		torrent_flags::override_web_seeds,
+		torrent_flags::need_save_resume,
+		torrent_flags::disable_dht,
+		torrent_flags::disable_lsd,
+		torrent_flags::disable_pex,
+	};
+
+	for (auto const& f : flags)
+	{
+		add_torrent_params atp;
+		atp.flags = f;
+		test_roundtrip(atp);
+	}
+}
+
 TORRENT_TEST(round_trip_info_hash)
 {
 	add_torrent_params atp;
@@ -339,4 +369,3 @@ TORRENT_TEST(round_trip_verified_leaf_hashes)
 		{true, true, false, false}, {false, true, false, true}};
 	test_roundtrip(atp);
 }
-
