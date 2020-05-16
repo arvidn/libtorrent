@@ -579,7 +579,8 @@ namespace libtorrent {
 
 		tracker_response resp;
 
-		resp.interval = seconds32(aux::read_int32(buf));
+		resp.interval = std::max(seconds32(aux::read_int32(buf))
+				, seconds32(m_man.settings().get_int(settings_pack::min_announce_interval)));
 		resp.min_interval = seconds32(60);
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);

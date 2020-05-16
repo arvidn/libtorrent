@@ -364,6 +364,9 @@ namespace libtorrent {
 		tracker_response resp = parse_tracker_response(data, ecode
 			, tracker_req().kind, tracker_req().info_hash);
 
+		resp.interval = std::max(resp.interval
+				, seconds32{m_man.settings().get_int(settings_pack::min_announce_interval)});
+
 		if (!resp.warning_message.empty())
 			cb->tracker_warning(tracker_req(), resp.warning_message);
 

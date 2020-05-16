@@ -265,6 +265,72 @@ namespace {
 		return ret;
 	}
 
+	std::u32string utf8_utf32(std::string_view utf8, error_code& ec)
+	{
+		// allocate space for worst-case
+		std::u32string utf32;
+		utf32.resize(utf8.size());
+
+		auto src = reinterpret_cast<UTF8 const*>(utf8.data());
+		auto dst = reinterpret_cast<UTF32*>(utf32.data());
+		auto dst_begin = dst;
+		auto ret = static_cast<utf8_errors::error_code_enum>(ConvertUTF8toUTF32(
+					&src, src + utf8.size()
+					, &dst, dst + utf32.size()
+					, lenientConversion)
+				);
+		if (ret == utf8_errors::source_illegal)
+		{
+			// assume Latin-1
+			utf32.clear();
+			std::copy(utf8.begin()
+					, utf8.end()
+					, std::back_inserter(utf32));
+			return utf32;
+		}
+
+		utf32.resize(aux::numeric_cast<std::size_t>(dst - dst_begin));
+		if (ret != utf8_errors::error_code_enum::conversion_ok)
+			ec = make_error_code(ret);
+		return utf32;
+	}
+
+	std::u32string utf8_utf32(std::string_view utf8) {
+		error_code ec;
+		std::u32string ret = utf8_utf32(utf8, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
+		return ret;
+	}
+
+	std::string utf32_utf8(std::u32string_view utf32, error_code& ec)
+	{
+		// allocate space for worst-case
+		std::string utf8;
+		utf8.resize(utf32.size() * 6);
+		if (utf32.empty()) return {};
+
+		auto src = reinterpret_cast<UTF32 const*>(utf32.data());
+		auto dst = reinterpret_cast<UTF8*>(utf8.data());
+		auto dst_begin = dst;
+		auto ret = static_cast<utf8_errors::error_code_enum>(ConvertUTF32toUTF8(
+					&src, src+utf32.size()
+					, &dst, dst + utf8.size()
+					, lenientConversion)
+				);
+		utf8.resize(aux::numeric_cast<std::size_t>(dst - dst_begin));
+		if(ret != utf8_errors::error_code_enum::conversion_ok)
+			ec = make_error_code(ret);
+		return utf8;
+	}
+
+	std::string utf32_utf8(std::u32string_view utf32)
+	{
+		error_code ec;
+		std::string ret = utf32_utf8(utf32, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
+		return ret;
+	}
+
 	// returns the unicode codepoint and the number of bytes of the utf8 sequence
 	// that was parsed. The codepoint is -1 if it's invalid
 	std::pair<std::int32_t, int> parse_utf8_codepoint(string_view str)

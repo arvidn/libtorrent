@@ -63,7 +63,7 @@ namespace {
 	// return the string, unless it's null, in which case the empty string is
 	// returned
 	char const* ensure_string(char const* str)
-	{ return str == nullptr ? "" : str; }
+{ return str == nullptr ? "" : str; }
 }
 
 namespace libtorrent {
@@ -123,7 +123,8 @@ namespace libtorrent {
 		SET(proxy_password, "", &session_impl::update_proxy),
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT2000-", nullptr),
-		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
+		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
+		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr)
 	}});
 
 	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
@@ -362,6 +363,8 @@ namespace libtorrent {
 		SET(dht_item_lifetime, 0, nullptr),
 		SET(dht_sample_infohashes_interval, 21600, nullptr),
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
+		SET(min_websocket_announce_interval, 1 * 60, nullptr),
+		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});
 
 #undef SET
