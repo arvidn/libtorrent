@@ -422,7 +422,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	{
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
-		int const block_offset = int(static_cast<int>(piece) * std::int64_t(m_files.piece_length()) + offset - m_files.file_offset(f));
+		int const block_offset = static_cast<int>(static_cast<int>(piece) * std::int64_t(m_files.piece_length())
+			+ offset - m_files.file_offset(f));
 		int const block_index = block_offset / default_block_size;
 		int const file_num_blocks = m_files.file_num_blocks(f);
 		int const first_block_index = m_files.file_first_block_node(f);
