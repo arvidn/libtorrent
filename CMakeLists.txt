@@ -14,6 +14,10 @@ set (SOVERSION "10")
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
 
+option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
+option(USE_JUICE "Use libjuice instead of libnice for libdatachannel" ON)
+add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
+
 set(libtorrent_include_files
 	add_torrent_params
 	address
@@ -148,7 +152,8 @@ set(libtorrent_include_files
 	web_peer_connection
 	write_resume_data
 	xml_parse
-	ssl)
+	ssl
+	websocket_tracker_connection)
 
 set(libtorrent_kademlia_include_files
 	announce_flags
@@ -264,7 +269,10 @@ set(libtorrent_aux_include_files
 	utp_stream
 	vector
 	win_crypto_provider
-	win_util)
+	win_util
+	rtc_signaling
+	rtc_stream
+	websocket_stream)
 
 set(try_signal_include_files
 	try_signal
@@ -400,6 +408,10 @@ set(sources
 	posix_disk_io
 	posix_storage
 	ssl
+	rtc_signaling
+	rtc_stream
+	websocket_stream
+	websocket_tracker_connection
 
 # -- extensions --
 	ut_pex
@@ -483,10 +495,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wpedantic
 		-Wparentheses
 		-Wvla
+		-Wc++11-compat
 		-Wno-format-zero-length
 		-Wno-noexcept-type
-		$<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=512>
-		$<$<COMPILE_LANGUAGE:CXX>:-Wc++11-compat>)
+		-ftemplate-depth=512)
 elseif(MSVC)
 	add_compile_options(
 		/W4
@@ -625,6 +637,8 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extens
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
 	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME webtorrent DEFAULT ON
+	DESCRIPTION "build with WebTorrent support" DISABLED TORRENT_USE_RTC=0)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
 	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutable-torrents DEFAULT ON
@@ -810,9 +824,11 @@ include(CheckCXXCompilerFlag)
 
 add_subdirectory(bindings)
 
-# TODO: Option
-add_subdirectory(deps/libdatachannel)
+if(webtorrent)
 target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
+target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
+target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
+endif()
 
 install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

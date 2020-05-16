@@ -46,6 +46,7 @@ else
 }
 
 use-project /try_signal : ./deps/try_signal ;
+use-project /libdatachannel : ./deps/libdatachannel ;
 
 VERSION = 2.0.0 ;
 
@@ -210,10 +211,12 @@ rule linking ( properties * )
 	if <link>shared in $(properties)
 	{
 		result += <library>/try_signal//try_signal/<link>static/<fpic>on ;
+		result += <library>/libdatachannel//libdatachannel/<link>static/<fpic>on ;
 	}
 	else
 	{
 		result += <library>/try_signal//try_signal/<link>static ;
+		result += <library>/libdatachannel//libdatachannel/<link>static ;
 	}
 
 	return $(result) ;
@@ -519,6 +522,10 @@ feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
 feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
 
+feature webtorrent : auto on off : composite propagated ;
+feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 <crypto>openssl ;
+feature.compose <webtorrent>off : <define>TORRENT_USE_RTC=0 ;
+
 feature iconv : auto on off : composite propagated ;
 feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
 feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
@@ -805,6 +812,10 @@ SOURCES =
 	posix_disk_io
 	posix_storage
 	ssl
+	rtc_signaling
+	rtc_stream
+	websocket_stream
+	websocket_tracker_connection
 
 # -- extensions --
 	ut_pex
@@ -851,6 +862,7 @@ ED25519_SOURCES =
 local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
+	<include>./deps/json/include
 	<include>/usr/sfw/include
 # freebsd doesn't seem to include this automatically
 # and iconv.h is installed there
@@ -890,6 +902,7 @@ lib torrent
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
+    <define>BOOST_JSON_HEADER_ONLY
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614

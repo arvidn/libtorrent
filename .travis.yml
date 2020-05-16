@@ -243,7 +243,7 @@ script:
 
   - cd $TRAVIS_BUILD_DIR
   - 'if [ "$pylint" == "1" ]; then
-      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123;
+      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123 --exclude=deps/libdatachannel,deps/json;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
        build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=17 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
