@@ -14,10 +14,6 @@ set (SOVERSION "10")
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
 
-option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
-option(USE_JUICE "Use libjuice instead of libnice for libdatachannel" ON)
-add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
-
 set(libtorrent_include_files
 	add_torrent_params
 	address
@@ -478,27 +474,27 @@ feature_option(static_runtime "build libtorrent with static runtime" OFF)
 find_public_dependency(Threads REQUIRED)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	add_compile_options(
-		-Weverything
-		-Wno-documentation
-		-Wno-c++98-compat-pedantic
-		-Wno-padded
-		-Wno-global-constructors
-		-Wno-exit-time-destructors
-		-Wno-weak-vtables
-		-Wno-return-std-move-in-c++11
-		-Wno-unknown-warning-option)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+		-Weverything \
+		-Wno-documentation \
+		-Wno-c++98-compat-pedantic \
+		-Wno-padded \
+		-Wno-global-constructors \
+		-Wno-exit-time-destructors \
+		-Wno-weak-vtables \
+		-Wno-return-std-move-in-c++11 \
+		-Wno-unknown-warning-option")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-	add_compile_options(
-		-Wall
-		-Wextra
-		-Wpedantic
-		-Wparentheses
-		-Wvla
-		-Wc++11-compat
-		-Wno-format-zero-length
-		-Wno-noexcept-type
-		-ftemplate-depth=512)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+		-Wall \
+		-Wextra \
+		-Wpedantic \
+		-Wparentheses \
+		-Wvla \
+		-Wc++11-compat \
+		-Wno-format-zero-length \
+		-Wno-noexcept-type \
+		-ftemplate-depth=512")
 elseif(MSVC)
 	add_compile_options(
 		/W4
@@ -749,6 +745,25 @@ if (dht)
 	)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
+endif()
+
+if (webtorrent)
+	option(USE_JUICE "Use libjuice instead of libnice for libdatachannel" ON)
+	if(GNUTLS_FOUND)
+		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" ON)
+	else()
+		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
+	endif()
+	add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
+	if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
+		target_compile_options(datachannel-static PRIVATE
+			-Wno-pedantic
+			-Wno-unused-parameter)
+	endif()
+	if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+		target_compile_options(usrsctp-static PRIVATE
+			-Wno-format-truncation)
+	endif()
 endif()
 
 # Boost

@@ -43,12 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 
 #include <boost/asio/connect.hpp>
-#include <boost/asio/ssl/error.hpp>
 
 #include <algorithm>
 #include <tuple>
-
-#include <iostream>
 
 namespace {
 	template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -71,29 +68,30 @@ websocket_stream::websocket_stream(io_context& ios
     , m_ssl_context(ssl_ctx)
     , m_stream(std::in_place_type_t<stream_type>{}, ios)
 	, m_open(false)
-	, m_connecting(false)
 {
 
 }
 
 websocket_stream::~websocket_stream()
 {
-	close();
+
 }
 
 void websocket_stream::close()
 {
-	if(m_open || m_connecting) {
-		m_open = false;
-		m_connecting = false;
+	m_connect_handler = nullptr;
 
-		std::visit([&](auto &stream)
-		{
-			stream.async_close(websocket::close_code::none
-				, std::bind(&websocket_stream::on_close, shared_from_this(), _1)
-			);
-		}
-		, m_stream);
+	if(m_open)
+	{
+		m_open = false;
+
+		ADD_OUTSTANDING_ASYNC("websocket_stream::on_close");
+		std::visit([&](auto& stream)
+			{
+				stream.async_close(websocket::close_code::none
+					, std::bind(&websocket_stream::on_close, shared_from_this(), _1));
+			}
+			, m_stream);
 	}
 }
 
@@ -111,14 +109,11 @@ void websocket_stream::do_connect(std::string url)
 {
 	if(m_open)
 	{
-		post(m_io_service, std::bind(m_connect_handler, error::already_connected));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, error::already_connected));
 		return;
 	}
-	if(m_connecting)
-    {
-		post(m_io_service, std::bind(m_connect_handler, error::already_started));
-        return;
-    }
+
 	m_url = std::move(url);
 
 	std::string protocol, hostname;
@@ -127,7 +122,8 @@ void websocket_stream::do_connect(std::string url)
 	std::tie(protocol, std::ignore, hostname,  port, m_target) = parse_url_components(m_url, ec);
 	if(ec)
 	{
-		post(m_io_service, std::bind(m_connect_handler, ec));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, ec));
 		return;
 	}
 
@@ -140,14 +136,14 @@ void websocket_stream::do_connect(std::string url)
 		m_stream.emplace<ssl_stream_type>(m_io_service, *m_ssl_context);
 	}
 	else {
-		post(m_io_service, std::bind(m_connect_handler, error::no_protocol_option));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, error::no_protocol_option));
 		return;
 	}
 
 	if(port <= 0) port = 443;
 	if(m_target.empty()) m_target = "/";
 
-	m_connecting = true;
 	do_resolve(hostname, port);
 }
 
@@ -159,8 +155,7 @@ void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_resolve");
 	m_resolver.async_resolve(m_hostname
 		, resolver_interface::abort_on_shutdown
-        , std::bind(&websocket_stream::on_resolve, shared_from_this(), _1, _2)
-    );
+        , std::bind(&websocket_stream::on_resolve, shared_from_this(), _1, _2));
 }
 
 void websocket_stream::on_resolve(error_code const& ec, std::vector<address> const& addresses)
@@ -168,8 +163,8 @@ void websocket_stream::on_resolve(error_code const& ec, std::vector<address> con
 	COMPLETE_ASYNC("websocket_stream::on_resolve");
     if (ec)
     {
-    	m_connecting = false;
-    	post(m_io_service, std::bind(m_connect_handler, ec));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, ec));
         return;
     }
 
@@ -186,18 +181,18 @@ void websocket_stream::do_tcp_connect(std::vector<tcp::endpoint> endpoints)
 {
 	m_endpoints = std::move(endpoints);
 
-	ADD_OUTSTANDING_ASYNC("websocket_stream::on_tcp_connect");
-	auto tcp_stream = std::visit(overloaded {
-		[&](stream_type &stream) { return &stream.next_layer(); }
-		, [&](ssl_stream_type &stream) { return &stream.next_layer().next_layer(); }
-	}
-	, m_stream);
+	auto tcp_stream = std::visit(overloaded
+		{
+			[&](stream_type &stream) { return &stream.next_layer(); }
+			, [&](ssl_stream_type &stream) { return &stream.next_layer().next_layer(); }
+		}
+		, m_stream);
 
+	ADD_OUTSTANDING_ASYNC("websocket_stream::on_tcp_connect");
 	boost::asio::async_connect(*tcp_stream
 		, m_endpoints.rbegin()
 		, m_endpoints.rend()
-		, std::bind(&websocket_stream::on_tcp_connect, shared_from_this(), _1)
-	);
+		, std::bind(&websocket_stream::on_tcp_connect, shared_from_this(), _1));
 }
 
 void websocket_stream::on_tcp_connect(error_code const& ec)
@@ -205,8 +200,8 @@ void websocket_stream::on_tcp_connect(error_code const& ec)
 	COMPLETE_ASYNC("websocket_stream::on_tcp_connect");
 	if (ec)
     {
-    	m_connecting = false;
-        post(m_io_service, std::bind(m_connect_handler, ec));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, ec));
         return;
     }
 
@@ -222,9 +217,8 @@ void websocket_stream::do_ssl_handshake()
 	ssl::set_host_name(ssl::get_handle(ssl_stream), m_hostname, ec);
     if (ec)
     {
-    	m_connecting = false;
-        error_code ec{static_cast<int>(ERR_get_error()), error::get_ssl_category()};
-        post(m_io_service, std::bind(m_connect_handler, ec));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, ec));
         return;
     }
 
@@ -238,8 +232,8 @@ void websocket_stream::on_ssl_handshake(error_code const& ec)
 	COMPLETE_ASYNC("websocket_stream::on_ssl_handshake");
 	if (ec)
     {
-    	m_connecting = false;
-		post(m_io_service, std::bind(m_connect_handler, error::operation_aborted));
+		if(auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(handler, ec));
         return;
     }
 
@@ -248,27 +242,24 @@ void websocket_stream::on_ssl_handshake(error_code const& ec)
 
 void websocket_stream::do_handshake()
 {
-    ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
-
 	auto user_agent_handler = [user_agent = m_user_agent](websocket::request_type& req)
-    {
-		if(!user_agent.empty()) req.set(http::field::user_agent, user_agent);
-    };
+		{
+			if(!user_agent.empty()) req.set(http::field::user_agent, user_agent);
+		};
 
-	std::visit([&](auto &stream)
-	{
+    ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
+	std::visit([&](auto& stream)
+		{
 #if BOOST_VERSION >= 107000
-		stream.set_option(websocket::stream_base::decorator(user_agent_handler));
-		stream.async_handshake(m_hostname
-			, m_target
-			, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1)
-		);
+			stream.set_option(websocket::stream_base::decorator(user_agent_handler));
+			stream.async_handshake(m_hostname
+				, m_target
+				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));
 #else
-		stream.async_handshake_ex(m_hostname
-			, m_target
-			, user_agent_handler
-			, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1)
-		);
+			stream.async_handshake_ex(m_hostname
+				, m_target
+				, user_agent_handler
+				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));
 #endif
 	}
 	, m_stream);
@@ -277,45 +268,38 @@ void websocket_stream::do_handshake()
 void websocket_stream::on_handshake(error_code const& ec)
 {
 	COMPLETE_ASYNC("websocket_stream::on_handshake");
-
+	auto handler = std::exchange(m_connect_handler, nullptr);
 	if (ec)
     {
-    	m_connecting = false;
-		post(m_io_service, std::bind(m_connect_handler, ec));
+		if(handler) post(m_io_service, std::bind(handler, ec));
         return;
     }
 
-	if(!m_connecting)
-	{
-		post(m_io_service, std::bind(m_connect_handler, error::operation_aborted));
-		return;
-	}
-
-	m_connecting = false;
 	m_open = true;
-	post(m_io_service, std::bind(m_connect_handler, error_code{}));
+
+	if(handler) post(m_io_service, std::bind(handler, ec));
+	else close();
 }
 
-void websocket_stream::on_read(error_code const& ec, std::size_t bytes_read, read_handler handler)
+void websocket_stream::on_read(error_code ec, std::size_t bytes_read, read_handler handler)
 {
-	if(!m_open) return;
+	COMPLETE_ASYNC("websocket_stream::on_read");
 
-	// Clean close from remote
-	if (ec == websocket::error::closed) m_open = false;
+	if (ec) m_open = false;
 
 	post(m_io_service, std::bind(handler, ec, bytes_read));
 }
 
-void websocket_stream::on_write(error_code const& ec, std::size_t bytes_written, write_handler handler)
+void websocket_stream::on_write(error_code ec, std::size_t bytes_written, write_handler handler)
 {
-	if(!m_open) return;
+	COMPLETE_ASYNC("websocket_stream::on_write");
 
 	post(m_io_service, std::bind(handler, ec, bytes_written));
 }
 
-void websocket_stream::on_close(error_code const&)
+void websocket_stream::on_close(error_code)
 {
-
+	COMPLETE_ASYNC("websocket_stream::on_close");
 }
 
 }

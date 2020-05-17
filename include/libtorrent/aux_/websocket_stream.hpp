@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ssl.hpp"
 #include "libtorrent/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/debug.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
@@ -113,13 +114,19 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	close_reason_t get_close_reason();
 
 	bool is_open() const { return m_open; }
-	bool is_connecting() const { return m_connecting; }
+	bool is_connecting() const { return bool(m_connect_handler); }
 
 	void set_user_agent(std::string user_agent);
 
 	template <class Handler>
 	void async_connect(const std::string &url, Handler const& handler)
 	{
+		if (m_connect_handler)
+		{
+			post(m_io_service, std::bind(handler, boost::asio::error::already_started, std::size_t(0)));
+			return;
+		}
+
 		m_connect_handler = handler;
 		do_connect(url);
 	}
@@ -127,21 +134,21 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	template <class Mutable_Buffer, class Handler>
 	void async_read(Mutable_Buffer& buffer, Handler const& handler)
 	{
+		using namespace std::placeholders;
+
 		if (!m_open)
 		{
 			post(m_io_service, std::bind(handler, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
+		ADD_OUTSTANDING_ASYNC("websocket_stream::on_read");
 		std::visit([&](auto &stream)
 		{
-			using namespace std::placeholders;
-			stream.async_read(buffer, std::bind(&websocket_stream::on_read,
-					shared_from_this(),
-					_1,
-					_2,
-					read_handler(handler))
-			);
+			stream.async_read(buffer, std::bind(&websocket_stream::on_read
+					, shared_from_this()
+					, _1, _2
+					, read_handler(handler)));
 		}
 		, m_stream);
 	}
@@ -149,21 +156,21 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	template <class Const_Buffer, class Handler>
 	void async_write(Const_Buffer const& buffer, Handler const& handler)
 	{
+		using namespace std::placeholders;
+
 		if (!m_open)
 		{
 			post(m_io_service, std::bind(handler, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
+		ADD_OUTSTANDING_ASYNC("websocket_stream::on_write");
 		std::visit([&](auto &stream)
 		{
-			using namespace std::placeholders;
-			stream.async_write(buffer, std::bind(&websocket_stream::on_write,
-					shared_from_this(),
-					_1,
-					_2,
-					write_handler(handler))
-			);
+			stream.async_write(buffer, std::bind(&websocket_stream::on_write
+					, shared_from_this()
+					, _1 , _2
+					, write_handler(handler)));
 		}
 		, m_stream);
 	}
@@ -178,9 +185,9 @@ private:
 	void on_ssl_handshake(error_code const& ec);
 	void do_handshake();
 	void on_handshake(error_code const& ec);
-	void on_read(error_code const& ec, std::size_t bytes_read, read_handler handler);
-	void on_write(error_code const& ec, std::size_t bytes_written, write_handler handler);
-	void on_close(error_code const& ec);
+	void on_read(error_code ec, std::size_t bytes_read, read_handler handler);
+	void on_write(error_code ec, std::size_t bytes_written, write_handler handler);
+	void on_close(error_code ec);
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;
@@ -200,7 +207,6 @@ private:
 	connect_handler m_connect_handler;
 
 	bool m_open;
-	bool m_connecting;
 };
 
 }

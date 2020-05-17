@@ -105,13 +105,12 @@ websocket_tracker_connection::websocket_tracker_connection(io_context& ios
 	  , m_io_context(ios)
 	  , m_ssl_context(ssl::context::tlsv12_client)
 {
-	m_ssl_context.set_default_verify_paths();
 	queue_request(req, cb);
 }
 
 websocket_tracker_connection::~websocket_tracker_connection()
 {
-	close();
+
 }
 
 void websocket_tracker_connection::start()
@@ -135,7 +134,9 @@ void websocket_tracker_connection::start()
 		cb->debug_log("*** WEBSOCKET_TRACKER_CONNECT [ url: %s ]", req.url.c_str());
 #endif
 
-	m_websocket->async_connect(req.url, std::bind(&websocket_tracker_connection::on_connect, shared_from_this(), _1));
+	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_connect");
+	m_websocket->async_connect(req.url, std::bind(&websocket_tracker_connection::on_connect
+				, this, weak_from_this(), _1));
 }
 
 void websocket_tracker_connection::close()
@@ -163,6 +164,7 @@ void websocket_tracker_connection::close()
 	}
 
 	m_callbacks.clear();
+	m_man.remove_request(this);
 }
 
 bool websocket_tracker_connection::is_started() const
@@ -210,12 +212,13 @@ void websocket_tracker_connection::send_pending()
 
 			do_send(m);
 		}
-		, msg
-	);
+		, msg);
 }
 
 void websocket_tracker_connection::do_send(tracker_request const& req)
 {
+	if(!is_open()) return;
+
 	// Update request
 	m_req = req;
 
@@ -256,12 +259,15 @@ void websocket_tracker_connection::do_send(tracker_request const& req)
 		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %d, data: %s ]", int(data.size()), data.c_str());
 #endif
 
+	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
     m_websocket->async_write(boost::asio::const_buffer(data.data(), data.size())
-     		, std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
+     		, std::bind(&websocket_tracker_connection::on_write, this, weak_from_this(), _1, _2));
 }
 
 void websocket_tracker_connection::do_send(tracker_answer const& ans)
 {
+	if(!is_open()) return;
+
 	json::object payload;
     payload["action"] = "announce";
     payload["info_hash"] = from_latin1(ans.info_hash);
@@ -279,34 +285,26 @@ void websocket_tracker_connection::do_send(tracker_answer const& ans)
 		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %d, data: %s ]", int(data.size()), data.c_str());
 #endif
 
+	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
 	m_websocket->async_write(boost::asio::const_buffer(data.data(), data.size())
-			, std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
+			, std::bind(&websocket_tracker_connection::on_write, this, weak_from_this(), _1, _2));
 }
 
 void websocket_tracker_connection::do_read()
 {
+	if(!is_open()) return;
+
 	// Can be replaced by m_read_buffer.clear() with boost 1.70+
 	if(m_read_buffer.size() > 0) m_read_buffer.consume(m_read_buffer.size());
 
+	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_read");
 	m_websocket->async_read(m_read_buffer
             , std::bind(&websocket_tracker_connection::on_read, this, weak_from_this(), _1, _2));
 }
 
-void websocket_tracker_connection::on_connect(error_code const& ec)
-{
-	if(ec)
-	{
-		fail(operation_t::connect, ec);
-		close();
-		return;
-	}
-
-	send_pending();
-	do_read();
-}
-
 void websocket_tracker_connection::on_timeout(error_code const& ec)
 {
+	// No async
 	if(ec)
     {
 		fail(operation_t::sock_read, ec);
@@ -322,9 +320,28 @@ void websocket_tracker_connection::on_timeout(error_code const& ec)
 	close();
 }
 
+void websocket_tracker_connection::on_connect(std::weak_ptr<websocket_tracker_connection> weak_this
+		, error_code const& ec)
+{
+	COMPLETE_ASYNC("websocket_tracker_connection::on_connect");
+	auto locked = weak_this.lock();
+	if(!locked) return;
+
+	if(ec)
+	{
+		fail(operation_t::connect, ec);
+		close();
+		return;
+	}
+
+	send_pending();
+	do_read();
+}
+
 void websocket_tracker_connection::on_read(std::weak_ptr<websocket_tracker_connection> weak_this
 		, error_code const& ec, std::size_t /* bytes_read */)
 {
+	COMPLETE_ASYNC("websocket_tracker_connection::on_read");
 	auto locked = weak_this.lock();
 	if(!locked) return;
 
@@ -443,8 +460,13 @@ void websocket_tracker_connection::on_read(std::weak_ptr<websocket_tracker_conne
 	do_read();
 }
 
-void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /* bytes_written */)
+void websocket_tracker_connection::on_write(std::weak_ptr<websocket_tracker_connection> weak_this
+		, error_code const& ec, std::size_t /* bytes_written */)
 {
+	COMPLETE_ASYNC("websocket_tracker_connection::on_write");
+	auto locked = weak_this.lock();
+	if(!locked) return;
+
 	m_sending = false;
 	if(ec)
 	{
@@ -459,8 +481,7 @@ void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /*
 
 void websocket_tracker_connection::fail(operation_t op, error_code const& ec)
 {
-	if(auto cb = requester())
-		cb->tracker_request_error(tracker_req(), ec, op, ec.message(), seconds32(120));
+	tracker_connection::fail(ec, op, ec.message().c_str(), seconds32{120}, seconds32{120});
 }
 
 }
