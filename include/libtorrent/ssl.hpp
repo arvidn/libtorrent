@@ -97,7 +97,11 @@ using error_code = boost::system::error_code;
 	using boost::asio::ssl::stream;
 #endif
 using boost::asio::ssl::verify_context;
-using boost::asio::ssl::rfc2818_verification;
+#if BOOST_VERSION >= 107300
+using boost::asio::ssl::host_name_verification;
+#else
+using host_name_verification = boost::asio::ssl::rfc2818_verification;
+#endif
 
 using native_context_type = SSL_CTX*;
 using native_stream_type = SSL*;
@@ -111,7 +115,7 @@ using boost::asio::gnutls::context;
 using boost::asio::gnutls::stream_base;
 using boost::asio::gnutls::stream;
 using boost::asio::gnutls::verify_context;
-using boost::asio::gnutls::rfc2818_verification;
+using boost::asio::gnutls::host_name_verification;
 
 using native_context_type = context::native_handle_type;
 using native_stream_type = stream_base::native_handle_type;

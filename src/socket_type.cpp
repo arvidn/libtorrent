@@ -164,7 +164,7 @@ namespace aux {
 		template <typename T>
 		void operator()(ssl_stream<T>& s)
 		{
-			s.set_verify_callback(ssl::rfc2818_verification(hostname_), *ec_);
+			s.set_verify_callback(ssl::host_name_verification(hostname_), *ec_);
 			ssl_ = s.handle();
 			ctx_ = s.context_handle();
 		}
