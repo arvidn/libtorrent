@@ -140,6 +140,7 @@ namespace aux {
 	void merkle_tree::add_proofs(int dest_start_idx
 		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
 	{
+		TORRENT_ASSERT(merkle_validate_proofs(dest_start_idx, proofs));
 		// now copy the string of proof hashes
 		for (auto proof : proofs)
 		{

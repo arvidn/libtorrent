@@ -709,3 +709,19 @@ TORRENT_TEST(merkle_validate_copy_root_only)
 
 	TEST_CHECK(empty_tree == expected);
 }
+
+TORRENT_TEST(merkle_validate_proofs)
+{
+/*
+	       ah
+	   ad      eh
+	 ab  cd  ef  gh
+	a b c d  e f g h
+*/
+	using p = std::vector<std::pair<sha256_hash, sha256_hash>>;
+	TEST_CHECK(merkle_validate_proofs(5, p{{ef, gh},{ad, eh}}));
+	TEST_CHECK(merkle_validate_proofs(6, p{{ef, gh},{ad, eh}}));
+	TEST_CHECK(merkle_validate_proofs(9, p{{c, d}, {ab, cd}, {ad, eh}}));
+	TEST_CHECK(merkle_validate_proofs(7, p{{a, b}, {ab, cd}, {ad, eh}}));
+	TEST_CHECK(merkle_validate_proofs(8, p{{a, b}, {ab, cd}, {ad, eh}}));
+}

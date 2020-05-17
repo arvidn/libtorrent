@@ -217,25 +217,30 @@ namespace libtorrent {
 		for (auto const& proof : hashes)
 		{
 			bool const proof_right = (index & 1) == 0;
-			if (proof_right)
-			{
-				ret_it->first = hash;
-				ret_it->second = proof;
-			}
-			else
-			{
-				ret_it->first = proof;
-				ret_it->second = hash;
-			}
-			hasher256 h;
-			h.update(ret_it->first);
-			h.update(ret_it->second);
-			hash = h.final();
+			ret_it->first = proof_right ? hash : proof;
+			ret_it->second = proof_right ? proof : hash;
+			hash = hasher256().update(ret_it->first).update(ret_it->second).final();
 			++ret_it;
 			index /= 2;
 		}
 		TORRENT_ASSERT(ret_it == ret.end());
 		return {std::move(ret), hash};
+	}
+
+	bool merkle_validate_proofs(int start_idx
+		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
+	{
+		if (proofs.empty()) return true;
+		sha256_hash parent_hash = (start_idx & 1)
+			? proofs.front().first : proofs.front().second;
+		for (auto proof : proofs)
+		{
+			if (parent_hash != ((start_idx & 1) ? proof.first : proof.second))
+				return false;
+			parent_hash = hasher256().update(proof.first).update(proof.second).final();
+			start_idx = merkle_get_parent(start_idx);
+		}
+		return true;
 	}
 
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right

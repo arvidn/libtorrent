@@ -103,6 +103,10 @@ namespace libtorrent {
 	merkle_check_proofs(sha256_hash to_validate, span<sha256_hash const> hashes, int index);
 
 	TORRENT_EXTRA_EXPORT
+	bool merkle_validate_proofs(int start_idx
+		, span<std::pair<sha256_hash, sha256_hash> const> proofs);
+
+	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right
 		, sha256_hash const& paremt);
 
