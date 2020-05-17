@@ -37,7 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
+#if BOOST_VERSION >= 107300
+#include <boost/asio/ssl/host_name_verification.hpp>
+using boost::asio::ssl::host_name_verification;
+#else
 #include <boost/asio/ssl/rfc2818_verification.hpp>
+using host_name_verification = boost::asio::ssl::rfc2818_verification;
+#endif
 
 #endif
 
@@ -97,7 +103,7 @@ namespace aux {
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
 		s.get<ssl_stream<t>>()->set_verify_callback( \
-			boost::asio::ssl::rfc2818_verification(hostname), ec); \
+			host_name_verification(hostname), ec); \
 		ssl = s.get<ssl_stream<t>>()->native_handle(); \
 		ctx = SSL_get_SSL_CTX(ssl); \
 		break;
