@@ -335,11 +335,10 @@ void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
 	debug_log("*** RTC signaling generated offer");
 #endif
 	while(!m_offer_batches.empty() && m_offer_batches.front().is_complete())
-	{
 		m_offer_batches.pop();
-	}
 
-	if(!m_offer_batches.empty()) m_offer_batches.front().add(ec, std::forward<rtc_offer>(offer));
+	if(!m_offer_batches.empty())
+		m_offer_batches.front().add(ec, std::forward<rtc_offer>(offer));
 }
 
 void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer, rtc_offer offer)
@@ -364,22 +363,26 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	auto it = m_connections.find(offer_id);
     if(it == m_connections.end()) return;
 
-	if(ec)
+	auto conn = std::move(it->second);
+	m_connections.erase(it);
+
+	if(ec || !conn.pid)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** RTC negociation failed");
 #endif
-		m_connections.erase(it);
 		return;
 	}
+
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC data channel open");
 #endif
+
 	TORRENT_ASSERT(dc);
-	connection const& conn = it->second;
+	peer_id pid{std::move(*conn.pid)};
 	rtc_stream_init init{conn.peer_connection, dc};
-	m_rtc_stream_handler(conn.pid.value_or(peer_id{}), init);
-    m_connections.erase(it);
+
+	m_rtc_stream_handler(pid, init);
 }
 
 rtc_signaling::offer_batch::offer_batch(int count, rtc_signaling::offers_handler handler)

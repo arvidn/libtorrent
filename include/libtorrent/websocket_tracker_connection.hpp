@@ -99,11 +99,13 @@ private:
 	void do_send(tracker_request const& req);
 	void do_send(tracker_answer const& ans);
 	void do_read();
-	void on_connect(error_code const& ec);
 	void on_timeout(error_code const& ec) override;
+	void on_connect(std::weak_ptr<websocket_tracker_connection> weak_this
+			, error_code const& ec);
 	void on_read(std::weak_ptr<websocket_tracker_connection> weak_this
 			, error_code const& ec, std::size_t bytes_read);
-	void on_write(error_code const& ec, std::size_t bytes_written);
+	void on_write(std::weak_ptr<websocket_tracker_connection> weak_this
+			, error_code const& ec, std::size_t bytes_written);
 	void fail(operation_t op, error_code const& ec);
 
 	io_context& m_io_context;

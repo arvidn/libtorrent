@@ -95,18 +95,6 @@ POSSIBILITY OF SUCH DAMAGE.
     #include "libtorrent/aux_/rtc_stream.hpp"
 #endif
 
-#ifdef TORRENT_SSL_PEERS
-// there is no forward declaration header for asio
-namespace boost {
-namespace asio {
-namespace ssl {
-	class context;
-	class verify_context;
-}
-}
-}
-#endif
-
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
 #endif
