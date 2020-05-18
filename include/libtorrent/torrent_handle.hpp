@@ -1120,6 +1120,11 @@ namespace aux {
 		void connect_peer(tcp::endpoint const& adr, peer_source_flags_t source = {}
 			, pex_flags_t flags = pex_encryption | pex_utp | pex_holepunch) const;
 
+		// This will disconnect all peers and clear the peer list for this
+		// torrent. New peers will have to be acquired before resuming, from
+		// trackers, DHT or local service discovery, for example.
+		void clear_peers();
+
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be
 		// no limit. This defaults to infinite. The primary setting controlling
