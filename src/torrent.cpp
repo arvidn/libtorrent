@@ -1300,6 +1300,12 @@ bool is_downloading_state(int const st)
 	storage_mode_t torrent::storage_mode() const
 	{ return storage_mode_t(m_storage_mode); }
 
+	void torrent::clear_peers()
+	{
+		disconnect_all(error_code(), operation_t::unknown);
+		if (m_peer_list) m_peer_list->clear();
+	}
+
 	storage_interface* torrent::get_storage_impl() const
 	{
 		return m_ses.disk_thread().get_torrent(m_storage);
