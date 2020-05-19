@@ -231,7 +231,9 @@ namespace {
 		, {"UM", "uTorrent Mac"}
 		, {"UT", "uTorrent"}
 		, {"VG", "Vagaa"}
+		, {"WD", "WebTorrent Desktop"}
 		, {"WT", "BitLet"}
+		, {"WW", "WebTorrent"}
 		, {"WY", "FireTorrent"}
 		, {"XF", "Xfplay"}
 		, {"XL", "Xunlei"}

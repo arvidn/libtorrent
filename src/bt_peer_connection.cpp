@@ -3589,6 +3589,15 @@ namespace {
 					// in case it's interested.
 					maybe_unchoke_this_peer();
 				}
+#if TORRENT_USE_RTC
+				// WebTorrent JavaScript implementation might not send interested message at connection
+				peer_log(peer_log_alert::incoming_message, "PID", pid.data());
+				if(pid[0] == '-' && pid[1] == 'W' && (pid[2] == 'W' || pid[2] == 'D'))
+				{
+					// This is WebTorrent or WebTorrent Desktop, simulate INTERESTED message
+					incoming_interested();
+				}
+#endif
 			}
 
 			m_state = state_t::read_packet_size;
