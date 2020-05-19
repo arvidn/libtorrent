@@ -182,17 +182,20 @@ namespace {
 				auto const file_size = st->ct.files().file_size(current_file);
 				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
 				auto const piece_blocks = st->ct.files().blocks_in_piece2(piece);
+				int const num_leafs = merkle_num_leafs(file_blocks);
 				// If the file is smaller than one piece then the block hashes
 				// should be padded to the next power of two instead of the next
 				// piece boundary.
-				int const paded_leaves = file_size < st->ct.piece_length()
-					? merkle_num_leafs(file_blocks)
+				int const padded_leafs = file_size < st->ct.piece_length()
+					? num_leafs
 					: st->ct.piece_length() / default_block_size;
 
-				TORRENT_ASSERT(paded_leaves <= int(v2_blocks.size()));
-				for (auto i = piece_blocks; i < paded_leaves; ++i)
+				TORRENT_ASSERT(padded_leafs <= int(v2_blocks.size()));
+				for (auto i = piece_blocks; i < padded_leafs; ++i)
 					v2_blocks[i].clear();
-				sha256_hash piece_root = merkle_root(span<sha256_hash>(v2_blocks).first(paded_leaves));
+				sha256_hash const piece_root = merkle_root(
+					span<sha256_hash>(v2_blocks).first(padded_leafs)
+					, merkle_num_leafs(padded_leafs));
 				st->ct.set_hash2(current_file, file_piece_offset, piece_root);
 			}
 		}
@@ -629,7 +632,8 @@ namespace {
 				if (files().file_flags(fi) & file_storage::flag_pad_file) continue;
 				if (files().file_size(fi) == 0) continue;
 
-				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
+				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi]
+					, merkle_num_leafs(int(m_file_piece_hash[fi].size())), pad_hash);
 
 				if (m_file_piece_hash[fi].size() < 2) continue;
 				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();

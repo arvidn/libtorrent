@@ -84,6 +84,13 @@ namespace libtorrent {
 		return ((leafs - 1) << 1) + 1;
 	}
 
+	int merkle_first_leaf(int num_leafs)
+	{
+		// num_leafs must be a power of 2
+		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
+		return num_leafs - 1;
+	}
+
 	int merkle_num_leafs(int const blocks)
 	{
 		TORRENT_ASSERT(blocks > 0);
@@ -157,11 +164,13 @@ namespace libtorrent {
 
 	// compute the merkle tree root, given the leaves and the has to use for
 	// padding
-	sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad)
+	sha256_hash merkle_root(span<sha256_hash const> leaves, int const num_leafs
+		, sha256_hash const& pad)
 	{
+		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
+
 		// TODO this can be optimized to use at least half as much memory
 		int const num_blocks = int(leaves.size());
-		int const num_leafs = merkle_num_leafs(num_blocks);
 		int const num_nodes = merkle_num_nodes(num_leafs);
 		int const first_leaf = num_nodes - num_leafs;
 		aux::vector<sha256_hash> merkle_tree(num_nodes);
@@ -271,6 +280,25 @@ namespace libtorrent {
 				dst[right_child] = src[right_child];
 			}
 		}
+	}
+
+	bool merkle_validate_single_layer(span<sha256_hash const> tree)
+	{
+		if (tree.size() == 1) return true;
+		int const num_leafs = int((tree.size() + 1) / 2);
+		int const end = int(tree.size());
+		TORRENT_ASSERT((num_leafs & (num_leafs - 1)) == 0);
+
+		int idx = merkle_first_leaf(num_leafs);
+		TORRENT_ASSERT(idx >= 1);
+
+		while (idx < end)
+		{
+			if (!merkle_validate_node(tree[idx], tree[idx + 1], tree[merkle_get_parent(idx)]))
+				return false;
+			idx += 2;
+		}
+		return true;
 	}
 }
 

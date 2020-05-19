@@ -332,7 +332,11 @@ TORRENT_TEST(discrete_checking)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
-	printf("generated torrent: %s test_torrent_dir\n", aux::to_hex(ti->info_hash().v1.to_string()).c_str());
+	printf("generated torrent: %s test_torrent_dir result: %s\n"
+		, aux::to_hex(ti->info_hash().v1.to_string()).c_str()
+		, ec.message().c_str());
+
+	TEST_CHECK(ti->is_valid());
 
 	// we have two files, but there's a padfile now too
 	TEST_EQUAL(ti->num_files(), 3);
