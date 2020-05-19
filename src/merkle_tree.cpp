@@ -168,20 +168,17 @@ namespace aux {
 	}
 
 	std::vector<piece_index_t> merkle_tree::check_pieces(int const base
-		, int const index, int const blocks_per_piece, int const file_piece_offset
+		, int const index, int const file_piece_offset
 		, span<sha256_hash const> hashes)
 	{
 		std::vector<piece_index_t> passed_pieces;
 
 		allocate_full();
 
-		// blocks per piece must be a power of 2
-		TORRENT_ASSERT((blocks_per_piece & (blocks_per_piece - 1)) == 0);
-
 		int const count = static_cast<int>(hashes.size());
 		auto const file_num_leafs = merkle_num_leafs(m_num_blocks);
 		auto const file_first_leaf = merkle_first_leaf(file_num_leafs);
-		int const first_piece = file_first_leaf / blocks_per_piece;
+		int const first_piece = file_first_leaf >> m_blocks_per_piece_log;
 
 		int const base_layer_index = merkle_num_layers(file_num_leafs) - base;
 		int const base_layer_start = merkle_to_flat_index(base_layer_index, index);
@@ -217,7 +214,7 @@ namespace aux {
 			{
 				merkle_clear_tree(m_tree, num_leafs / 2, merkle_get_parent(file_first_leaf + first_leaf));
 				m_tree[base_layer_start + i] = hashes[i];
-				TORRENT_ASSERT(num_leafs == blocks_per_piece);
+				TORRENT_ASSERT(num_leafs == blocks_per_piece());
 				//verify_block_hashes(m_files.file_offset(req.file) / m_files.piece_length() + index);
 				// TODO: add to failed hashes
 			}
