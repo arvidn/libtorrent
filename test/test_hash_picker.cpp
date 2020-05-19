@@ -721,7 +721,7 @@ TORRENT_TEST(add_hashes_pass)
 	};
 
 	aux::merkle_tree t(260, 1, f[0].data());
-	auto const failed = t.add_hashes(15, 1, subtree);
+	auto const failed = t.add_hashes(15, subtree);
 	TEST_CHECK(failed.empty());
 
 	TEST_CHECK(t[3]  == f[3]);
@@ -754,7 +754,7 @@ TORRENT_TEST(add_hashes_fail1)
 	// this is an invalid hash
 	t.set_block(1, sha256_hash("01234567890123456789012345678901"));
 
-	auto const failed = t.add_hashes(15, 1, subtree);
+	auto const failed = t.add_hashes(15, subtree);
 	TEST_CHECK((failed == p{{piece_index_t{1}, {0}}}));
 
 	TEST_CHECK(t[3]  == f[3]);
@@ -781,7 +781,7 @@ TORRENT_TEST(add_hashes_fail2)
 	t.set_block(2, sha256_hash("01234567890123456789012345678901"));
 	t.set_block(3, sha256_hash("01234567890123456789012345678901"));
 
-	auto const failed = t.add_hashes(15, 2, subtree);
+	auto const failed = t.add_hashes(15, subtree);
 	TEST_CHECK((failed == p{{piece_index_t{0}, {1}}, {piece_index_t{1}, {0, 1}}}));
 
 	TEST_CHECK(t[3]  == f[3]);
