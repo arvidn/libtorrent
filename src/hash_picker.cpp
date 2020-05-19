@@ -312,7 +312,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		add_hashes_result ret(true);
 
 		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
-		ret.hash_failed = dst_tree.add_hashes(dest_start_idx, m_files.piece_length() / default_block_size, tree);
+		ret.hash_failed = dst_tree.add_hashes(dest_start_idx, tree);
 		dst_tree.add_proofs(dest_start_idx >> base_num_layers, proofs);
 
 		if (req.base == 0)

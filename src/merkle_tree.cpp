@@ -96,11 +96,8 @@ namespace aux {
 		return true;
 	}
 
-	// TODO: blocks_per_piece does not need to be passed in, we already know
-	// m_blocks_per_piece_log
 	std::map<piece_index_t, std::vector<int>> merkle_tree::add_hashes(
-		int dest_start_idx, int const blocks_per_piece
-		, span<sha256_hash const> tree)
+		int dest_start_idx, span<sha256_hash const> tree)
 	{
 		std::map<piece_index_t, std::vector<int>> failed_blocks;
 
@@ -137,10 +134,10 @@ namespace aux {
 					// leaf layer of the file tree
 					TORRENT_ASSERT(dst_idx >= first_leaf);
 
-					// TODO: blocks_per_piece is guaranteed to be a power of 2,
-					// so this could just be a shift and AND
-					std::div_t const pos = std::div(dst_idx - first_leaf, blocks_per_piece);
-					failed_blocks[piece_index_t{pos.quot}].push_back(pos.rem);
+					int const pos = dst_idx - first_leaf;
+					int const piece = pos >> m_blocks_per_piece_log;
+					int const block = pos & ((1 << m_blocks_per_piece_log) - 1);
+					failed_blocks[piece_index_t{piece}].push_back(block);
 				}
 
 				m_tree[dst_idx] = tree[src_idx];

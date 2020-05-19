@@ -87,11 +87,8 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	// tree). This function inserts those hashes as well as the nodes up the
 	// tree. The destination start index is the index, in this tree, to the first leaf
 	// where "tree" will be inserted.
-	// the "blocks_per_piece" parameter is used to map any hash failures to a
-	// piece index, for the returned vector
 	std::map<piece_index_t, std::vector<int>> add_hashes(
-		int dest_start_idx, int blocks_per_piece
-		, span<sha256_hash const> tree);
+		int dest_start_idx, span<sha256_hash const> tree);
 
 	// inserts the nodes in "proofs" as a path up the tree starting at
 	// "dest_start_idx". The proofs are sibling hashes, as they are returned
