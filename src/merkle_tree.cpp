@@ -33,17 +33,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
 namespace aux {
 
-	merkle_tree::merkle_tree(int const num_blocks, char const* r)
+	merkle_tree::merkle_tree(int const num_blocks, int const blocks_per_piece, char const* r)
 		: m_root(r)
-		, m_tree(merkle_num_nodes(merkle_num_leafs(num_blocks)))
 		, m_num_blocks(num_blocks)
+		, m_blocks_per_piece_log(numeric_cast<std::uint8_t>(
+			log2p1(numeric_cast<std::uint32_t>(blocks_per_piece))))
+		, m_mode(mode_t::empty_tree)
 	{
+		// blocks per piece must be an even power of 2
+		TORRENT_ASSERT(((blocks_per_piece - 1) & blocks_per_piece) == 0);
 		TORRENT_ASSERT(m_root != nullptr);
-		m_tree[0] = root();
+		TORRENT_ASSERT(this->blocks_per_piece() == blocks_per_piece);
 	}
 
 	sha256_hash merkle_tree::root() const { return sha256_hash(m_root); }
@@ -54,50 +60,59 @@ namespace aux {
 		if (root() != t[0]) return;
 		if (size() != static_cast<std::size_t>(t.size())) return;
 
-		// TODO: If t has a complete block layer, just store that
-		// otherwise, if t has a complete piece layer, just store that
+		allocate_full();
 
 		merkle_validate_copy(t, m_tree, root());
+
+		optimize_storage();
 	}
 
 	// returns false if the piece layer fails to validate against the root hash
 	bool merkle_tree::load_piece_layer(span<char const> piece_layer)
 	{
-		int const num_pieces = static_cast<int>(piece_layer.size() / sha256_hash::size());
-		int const piece_layer_size = merkle_num_leafs(num_pieces);
-		int const first_piece_node = merkle_num_nodes(piece_layer_size) - piece_layer_size;
-		auto const num_leafs = (m_tree.end_index() + 1) / 2;
+		if (m_mode == mode_t::block_layer) return true;
 
-		auto const r = root();
+		int const npieces = num_pieces();
+		if (piece_layer.size() != npieces * sha256_hash::size()) return false;
+
+		int const piece_layer_size = merkle_num_leafs(npieces);
+		auto const num_leafs = merkle_num_leafs(m_num_blocks);
 
 		sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
 
-		for (int n = 0; n < num_pieces; ++n)
-			m_tree[first_piece_node + n].assign(piece_layer.data() + n * sha256_hash::size());
-		for (int n = num_pieces; n < piece_layer_size; ++n)
-			m_tree[first_piece_node + n] = pad_hash;
+		aux::vector<sha256_hash> pieces(npieces);
+		for (int n = 0; n < npieces; ++n)
+			pieces[n].assign(piece_layer.data() + n * sha256_hash::size());
 
-		merkle_fill_tree(m_tree, piece_layer_size);
-
-		if (m_tree[0] != r)
-		{
-			std::fill(m_tree.begin(), m_tree.end(), sha256_hash{});
-			m_tree[0] = r;
+		if (merkle_root(pieces, piece_layer_size, pad_hash) != root())
 			return false;
-		}
+
+		// if there's only 1 block per piece, the piece layer is the same as the
+		// block layer, record that so we know there's no more work to do for
+		// this file
+		m_mode = m_blocks_per_piece_log == 0 ? mode_t::block_layer : mode_t::piece_layer;
+		m_tree = std::move(pieces);
+
 		return true;
 	}
 
+	// TODO: blocks_per_piece does not need to be passed in, we already know
+	// m_blocks_per_piece_log
 	std::map<piece_index_t, std::vector<int>> merkle_tree::add_hashes(
 		int dest_start_idx, int const blocks_per_piece
 		, span<sha256_hash const> tree)
 	{
 		std::map<piece_index_t, std::vector<int>> failed_blocks;
 
+		// we already have all hashes
+		if (m_mode == mode_t::block_layer) return failed_blocks;
+
+		allocate_full();
+
 		// first fill in the subtree of known hashes from the base layer
 
-		auto const num_leafs = (m_tree.end_index() + 1) / 2;
-		auto const first_leaf = m_tree.end_index() - num_leafs;
+		auto const num_leafs = merkle_num_leafs(m_num_blocks);
+		auto const first_leaf = merkle_first_leaf(num_leafs);
 
 		// the leaf nodes in the passed-in "tree"
 		int const count = int((tree.size() + 1) / 2);
@@ -107,7 +122,7 @@ namespace aux {
 		int source_start_idx = int(tree.size()) - count;
 
 		// the tree is expected to be consistent
-		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count)) == tree[0]);
+		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count), count) == tree[0]);
 
 		for (int layer_size = count; layer_size != 0; layer_size /= 2)
 		{
@@ -134,6 +149,7 @@ namespace aux {
 			dest_start_idx = merkle_get_parent(dest_start_idx);
 			source_start_idx = merkle_get_parent(source_start_idx);
 		}
+
 		return failed_blocks;
 	}
 
@@ -141,6 +157,9 @@ namespace aux {
 		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
 	{
 		TORRENT_ASSERT(merkle_validate_proofs(dest_start_idx, proofs));
+
+		allocate_full();
+
 		// now copy the string of proof hashes
 		for (auto proof : proofs)
 		{
@@ -157,12 +176,14 @@ namespace aux {
 	{
 		std::vector<piece_index_t> passed_pieces;
 
+		allocate_full();
+
 		// blocks per piece must be a power of 2
 		TORRENT_ASSERT((blocks_per_piece & (blocks_per_piece - 1)) == 0);
 
 		int const count = static_cast<int>(hashes.size());
-		auto const file_num_leafs = (m_tree.end_index() + 1) / 2;
-		auto const file_first_leaf = m_tree.end_index() - file_num_leafs;
+		auto const file_num_leafs = merkle_num_leafs(m_num_blocks);
+		auto const file_first_leaf = merkle_first_leaf(file_num_leafs);
 		int const first_piece = file_first_leaf / blocks_per_piece;
 
 		int const base_layer_index = merkle_num_layers(file_num_leafs) - base;
@@ -208,15 +229,22 @@ namespace aux {
 				passed_pieces.push_back(piece_index_t{file_piece_offset + piece});
 			}
 		}
+
+		optimize_storage();
+
 		return passed_pieces;
 	}
 
 	std::tuple<merkle_tree::set_block_result, int, int> merkle_tree::set_block(int const block_index
 		, sha256_hash const& h)
 	{
-		auto const num_leafs = (m_tree.end_index() + 1) / 2;
-		auto const file_first_leaf = m_tree.end_index() - num_leafs;
+		auto const num_leafs = merkle_num_leafs(m_num_blocks);
+		auto const file_first_leaf = merkle_first_leaf(num_leafs);
 		auto const block_tree_index = file_first_leaf + block_index;
+
+		// TODO: add a special case for m_mode == mode_t::block_layer
+
+		allocate_full();
 
 		m_tree[block_tree_index] = h;
 
@@ -272,6 +300,9 @@ namespace aux {
 			m_tree[root_index] = root;
 			return std::make_tuple(set_block_result::hash_failed, leafs_index, leafs_size);
 		}
+
+		optimize_storage();
+
 		return std::make_tuple(set_block_result::ok, leafs_index, leafs_size);
 	}
 
@@ -280,20 +311,187 @@ namespace aux {
 		return static_cast<std::size_t>(merkle_num_nodes(merkle_num_leafs(m_num_blocks)));
 	}
 
+	int merkle_tree::num_pieces() const
+	{
+		int const ps = blocks_per_piece();
+		return (m_num_blocks + ps - 1) >> m_blocks_per_piece_log;
+	}
+
+	int merkle_tree::block_layer_start() const
+	{
+		int const num_leafs = merkle_num_leafs(m_num_blocks);
+		return merkle_first_leaf(num_leafs);
+	}
+
+	int merkle_tree::piece_layer_start() const
+	{
+		int const piece_layer_size = merkle_num_leafs(m_num_blocks) >> m_blocks_per_piece_log;
+		return merkle_first_leaf(piece_layer_size);
+	}
+
 	bool merkle_tree::has_node(int const idx) const
 	{
-		return !m_tree[idx].is_all_zeros();
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree:
+				TORRENT_ASSERT_FAIL();
+				return false;
+			case mode_t::empty_tree: return idx == 0;
+			case mode_t::full_tree: return !m_tree[idx].is_all_zeros();
+			case mode_t::piece_layer: return idx < merkle_get_first_child(piece_layer_start());
+			case mode_t::block_layer: return idx < block_layer_start() + m_num_blocks;
+		};
+		TORRENT_ASSERT_FAIL();
+		return false;
 	}
 
 	bool merkle_tree::compare_node(int const idx, sha256_hash const& h) const
 	{
-		return m_tree[idx] == h;
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree:
+				TORRENT_ASSERT_FAIL();
+				return h.is_all_zeros();
+			case mode_t::empty_tree: return idx == 0 ? root() == h : h.is_all_zeros();
+			case mode_t::full_tree: return m_tree[idx] == h;
+			case mode_t::piece_layer: return idx < merkle_get_first_child(piece_layer_start());
+			case mode_t::block_layer: return true;
+		};
+		TORRENT_ASSERT_FAIL();
+		return false;
+	}
+
+	sha256_hash merkle_tree::operator[](int idx) const
+	{
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree:
+				TORRENT_ASSERT_FAIL();
+				return sha256_hash{};
+			case mode_t::empty_tree: return idx == 0 ? root() : sha256_hash{};
+			case mode_t::full_tree: return m_tree[idx];
+			case mode_t::piece_layer:
+			case mode_t::block_layer:
+			{
+				int const start = (m_mode == mode_t::piece_layer)
+					? piece_layer_start()
+					: block_layer_start();
+
+				if (idx >= merkle_get_first_child(start)) return sha256_hash{};
+
+				int layer_size = 1;
+				while (idx < start)
+				{
+					idx = merkle_get_first_child(idx);
+					layer_size *= 2;
+				}
+
+				idx -= start;
+				if (idx >= int(m_tree.size()))
+					return merkle_pad(layer_size, 1);
+
+				sha256_hash const pad_hash = (m_mode == mode_t::piece_layer)
+					? merkle_pad(1 << m_blocks_per_piece_log, 1)
+					: sha256_hash{};
+				auto const layer= span<sha256_hash const>(m_tree)
+					.subspan(idx, std::min(int(m_tree.size()) - idx, layer_size));
+
+				return merkle_root(layer, layer_size, pad_hash);
+			}
+		};
+		TORRENT_ASSERT_FAIL();
+		return sha256_hash{};
 	}
 
 	std::vector<sha256_hash> merkle_tree::build_vector() const
 	{
-		std::vector<sha256_hash> ret(m_tree.begin(), m_tree.end());
+		if (m_mode == mode_t::uninitialized_tree) return {};
+
+		std::vector<sha256_hash> ret(size());
+
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree: break;
+			case mode_t::empty_tree: break;
+			case mode_t::full_tree:
+				ret.assign(m_tree.begin(), m_tree.end());
+				break;
+			case mode_t::piece_layer:
+			{
+				int const num_leafs = merkle_num_leafs(m_num_blocks);
+				int const piece_layer_size = num_leafs >> m_blocks_per_piece_log;
+				sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
+				int const start = merkle_first_leaf(piece_layer_size);
+				TORRENT_ASSERT(int(m_tree.size()) <= piece_layer_size);
+				std::copy(m_tree.begin(), m_tree.end(), ret.begin() + start);
+				std::fill(ret.begin() + start + m_tree.end_index(), ret.begin() + start + piece_layer_size, pad_hash);
+				merkle_fill_tree(span<sha256_hash>(ret).subspan(0, merkle_num_nodes(piece_layer_size))
+					, piece_layer_size);
+				break;
+			}
+			case mode_t::block_layer:
+			{
+				int const num_leafs = merkle_num_leafs(m_num_blocks);
+				sha256_hash const pad_hash{};
+				int const start = merkle_first_leaf(num_leafs);
+				std::copy(m_tree.begin(), m_tree.end(), ret.begin() + start);
+				std::fill(ret.begin() + start + m_tree.end_index(), ret.begin() + start + num_leafs, sha256_hash{});
+				merkle_fill_tree(ret, num_leafs);
+				break;
+			}
+		};
+		ret[0] = root();
 		return ret;
+	}
+
+	void merkle_tree::allocate_full()
+	{
+		if (m_mode == mode_t::full_tree) return;
+		m_tree = aux::vector<sha256_hash>(build_vector());
+		m_mode = mode_t::full_tree;
+	}
+
+	void merkle_tree::optimize_storage()
+	{
+		if (m_mode != mode_t::full_tree) return;
+
+		if (m_num_blocks == 1)
+		{
+			// if this tree *just* has a root, no need to use any storage for
+			// nodes
+			m_tree.clear();
+			m_tree.shrink_to_fit();
+			m_mode = mode_t::empty_tree;
+			return;
+		}
+
+		if (merkle_validate_single_layer(m_tree))
+		{
+			int const start = block_layer_start();
+			aux::vector<sha256_hash> new_tree(m_tree.begin() + start, m_tree.begin() + start + m_num_blocks);
+
+			m_tree = std::move(new_tree);
+			m_mode = mode_t::block_layer;
+			return;
+		}
+
+		// TODO: this part is only really useful in load_tree()
+		// if we have *any* blocks, we can't transition into piece layer mode,
+		// since we would lose those hashes
+		int const num_leafs = merkle_num_leafs(m_num_blocks);
+		int const piece_layer_size = num_leafs >> m_blocks_per_piece_log;
+		if (m_blocks_per_piece_log > 0
+			&& merkle_validate_single_layer(span<sha256_hash const>(m_tree).subspan(0, merkle_num_nodes(piece_layer_size)))
+			&& std::all_of(m_tree.begin() + block_layer_start(), m_tree.end(), [](sha256_hash const& h) { return h.is_all_zeros(); })
+			)
+		{
+			int const start = piece_layer_start();
+			aux::vector<sha256_hash> new_tree(m_tree.begin() + start, m_tree.begin() + start + num_pieces());
+
+			m_tree = std::move(new_tree);
+			m_mode = mode_t::piece_layer;
+			return;
+		}
 	}
 
 }

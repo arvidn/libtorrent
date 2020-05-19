@@ -116,6 +116,21 @@ TORRENT_TEST(num_nodes)
 	TEST_EQUAL(merkle_num_nodes(16), 31);
 }
 
+TORRENT_TEST(first_leaf)
+{
+	// this is the structure:
+	//             0
+	//      1              2
+	//   3      4       5       6
+	//  7 8    9 10   11 12   13 14
+	// total number of nodes given the number of leaves
+	TEST_EQUAL(merkle_first_leaf(1), 0);
+	TEST_EQUAL(merkle_first_leaf(2), 1);
+	TEST_EQUAL(merkle_first_leaf(4), 3);
+	TEST_EQUAL(merkle_first_leaf(8), 7);
+	TEST_EQUAL(merkle_first_leaf(16), 15);
+}
+
 TORRENT_TEST(get_layer)
 {
 	// this is the structure:
@@ -359,13 +374,13 @@ TORRENT_TEST(merkle_fill_tree)
 TORRENT_TEST(merkle_root)
 {
 	// all leaves in the tree
-	TEST_CHECK(merkle_root(v{a,b,c,d,e,f,g,h}, o) == ah);
+	TEST_CHECK(merkle_root(v{a,b,c,d,e,f,g,h}, 8, o) == ah);
 
 	// not power-of-two number of leaves
-	TEST_CHECK(merkle_root(v{a,b,c,d,e,f}, o) == H(ad, H(ef, H(o, o))));
+	TEST_CHECK(merkle_root(v{a,b,c,d,e,f}, 8, o) == H(ad, H(ef, H(o, o))));
 
 	// very small tree
-	TEST_CHECK(merkle_root(v{a,b}, o) == ab);
+	TEST_CHECK(merkle_root(v{a,b}, 2, o) == ab);
 }
 
 namespace {
@@ -725,3 +740,48 @@ TORRENT_TEST(merkle_validate_proofs)
 	TEST_CHECK(merkle_validate_proofs(7, p{{a, b}, {ab, cd}, {ad, eh}}));
 	TEST_CHECK(merkle_validate_proofs(8, p{{a, b}, {ab, cd}, {ad, eh}}));
 }
+
+TORRENT_TEST(merkle_validate_single_leayer_fail_no_parents)
+{
+	v const src{
+	        o,
+	    o,      o,
+	  o,  o,  o, o,
+	a,b,c,d,e,f,g,h};
+
+	TEST_CHECK(!merkle_validate_single_layer(src));
+}
+
+TORRENT_TEST(merkle_validate_single_layer_missing_parent)
+{
+	v const src{
+	        o,
+	    o,      o,
+	  ab, cd,  o,gh,
+	a,b,c,d,e,f,g,h};
+
+	TEST_CHECK(!merkle_validate_single_layer(src));
+}
+
+TORRENT_TEST(merkle_validate_single_layer_missing_leaf)
+{
+	v const src{
+	        o,
+	    o,      o,
+	  ab, cd, ef,gh,
+	a,b,c,o,e,f,g,h};
+
+	TEST_CHECK(!merkle_validate_single_layer(src));
+}
+
+TORRENT_TEST(merkle_validate_single_layer)
+{
+	v const src{
+	        o,
+	    o,      o,
+	  ab, cd, ef,gh,
+	a,b,c,d,e,f,g,h};
+
+	TEST_CHECK(merkle_validate_single_layer(src));
+}
+

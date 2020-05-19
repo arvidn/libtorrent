@@ -64,7 +64,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	// also requires not constructing these for pad-files and small files as
 	// well. So, a sparse hash list in torrent_info
 	merkle_tree() = default;
-	merkle_tree(int num_blocks, char const* r);
+	merkle_tree(int num_blocks, int blocks_per_piece, char const* r);
 
 	sha256_hash root() const;
 
@@ -77,7 +77,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 	bool compare_node(int idx, sha256_hash const& h) const;
 
-	sha256_hash const& operator[](int const idx) const { return m_tree[idx]; }
+	sha256_hash operator[](int idx) const;
 
 	std::vector<sha256_hash> build_vector() const;
 
@@ -115,9 +115,55 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 private:
 
+	int blocks_per_piece() const { return 1 << m_blocks_per_piece_log; }
+
+	int block_layer_start() const;
+	int piece_layer_start() const;
+	int num_pieces() const;
+
+	void optimize_storage();
+	void allocate_full();
+
+	// a pointer to the root hash for this file.
 	char const* m_root = nullptr;
+
+	// this is either the full tree, or some sparse representation of it,
+	// depending on m_mode
+	// TODO: make this a std::unique_ptr<sha256_hash[]>
 	aux::vector<sha256_hash> m_tree;
+
+	// number of blocks in the file this tree represents. The number of leafs in
+	// the tree is rounded up to an even power of 2.
 	int m_num_blocks = 0;
+
+	// the number of blocks per piece, specified as how many steps to shift
+	// right 1 to get the number of blocks in one piece. This is a compact
+	// representation that's valid because pieces are always powers of 2.
+	// this is necessary to know which layer in the tree the piece layer is.
+	std::uint8_t m_blocks_per_piece_log = 0;
+
+	enum class mode_t : std::uint8_t
+	{
+		// a default constructed tree is truly empty. It does not even have a
+		// root hash
+		uninitialized_tree,
+
+		// we don't have any hashes in this tree. m_tree should be empty
+		// an empty tree still always have the root hash (available as root())
+		empty_tree,
+
+		// in this mode, m_tree represents the full tree, including padding.
+		full_tree,
+
+		// in this mode, m_tree represents the piece layer only, no padding
+		// and all piece layer hashes are stored and valid
+		piece_layer,
+
+		// in this mode, m_tree represents the block (leaf) layer only, no padding
+		// and all block layer hashes are stored and valid
+		block_layer
+	};
+	mode_t m_mode = mode_t::uninitialized_tree;
 };
 
 }

@@ -1477,7 +1477,8 @@ namespace {
 				if (files.pad_file_at(i) || files.file_size(i) == 0)
 					m_merkle_trees.emplace_back();
 				else
-					m_merkle_trees.emplace_back(files.file_num_blocks(i), files.root_ptr(i));
+					m_merkle_trees.emplace_back(files.file_num_blocks(i)
+						, files.piece_length() / default_block_size, files.root_ptr(i));
 			}
 		}
 
