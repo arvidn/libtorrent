@@ -785,3 +785,74 @@ TORRENT_TEST(merkle_validate_single_layer)
 	TEST_CHECK(merkle_validate_single_layer(src));
 }
 
+TORRENT_TEST(is_subtree_known_full)
+{
+	v const src{
+	        ah,
+	    ad,     eh,
+	  ab, cd, ef,gh,
+	a,b,c,d,e,f,g,h};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 2, 3));
+}
+
+TORRENT_TEST(is_subtree_known_two_levels)
+{
+	v const src{
+	        ah,
+	    ad,     eh,
+	  o, o, ef,gh,
+	a,b,c,d,e,f,g,h};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 4, 1));
+}
+
+TORRENT_TEST(is_subtree_known_unknown)
+{
+	v const src{
+	        ah,
+	    ad,     eh,
+	  o, o, ef,gh,
+	a,b,o,d,e,f,g,h};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 2, 3));
+}
+
+TORRENT_TEST(is_subtree_known_padding)
+{
+	// the last leaf is padding, it should be assumed to be correct despite
+	// being zero
+	v const src{
+	        ah,
+	    ad,     eh,
+	  o, o, ef,gh,
+	a,b,o,d,e,f,g,o};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 6, 7) == std::make_tuple(6, 2, 6));
+}
+
+TORRENT_TEST(is_subtree_known_padding_two_levels)
+{
+	// the last leaf is padding, it should be assumed to be correct despite
+	// being zero
+	v const src{
+	        ah,
+	    ad,     eh,
+	  o, o,  o, o,
+	a,b,o,d,e,f,g,o};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 6, 7) == std::make_tuple(4, 4, 2));
+}
+
+TORRENT_TEST(is_subtree_known_more_padding_two_levels)
+{
+	// the last two leafs are padding, they should be assumed to be correct despite
+	// being zero
+	v const src{
+	        ah,
+	    ad,     eh,
+	  o, o,  o, o,
+	a,b,o,d,e,f,o,o};
+
+	TEST_CHECK(merkle_find_known_subtree(src, 5, 6) == std::make_tuple(4, 4, 2));
+}

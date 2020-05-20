@@ -300,5 +300,41 @@ namespace libtorrent {
 		}
 		return true;
 	}
+
+	std::tuple<int, int, int> merkle_find_known_subtree(span<sha256_hash const> const tree
+		, int const block_index, int const num_valid_leafs)
+	{
+		// find the largest block of leafs from a single subtree we know the hashes of
+		int leafs_start = block_index;
+		int leafs_size = 1;
+		int const first_leaf = int(tree.size() / 2);
+		int root_index = merkle_get_sibling(first_leaf + block_index);
+		for (int i = block_index;; i >>= 1)
+		{
+			int const first_check_index = leafs_start + ((i & 1) ? -leafs_size : leafs_size);
+			for (int j = 0; j < std::min(leafs_size, num_valid_leafs - first_check_index); ++j)
+			{
+				if (tree[first_leaf + first_check_index + j].is_all_zeros())
+					return std::make_tuple(leafs_start, leafs_size, root_index);
+			}
+			if (i & 1) leafs_start -= leafs_size;
+			leafs_size *= 2;
+			root_index = merkle_get_parent(root_index);
+			// if an inner node is known then its parent must be known too
+			// so if the root is known the next sibling subtree should already
+			// be computed if all of its leafs have valid hashes
+			if (!tree[root_index].is_all_zeros()) break;
+			TORRENT_ASSERT(root_index != 0);
+			TORRENT_ASSERT(leafs_start >= 0);
+			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(num_valid_leafs));
+		}
+
+		TORRENT_ASSERT(leafs_start >= 0);
+		TORRENT_ASSERT(leafs_start < merkle_num_leafs(num_valid_leafs));
+		TORRENT_ASSERT(leafs_start + leafs_size > block_index);
+
+		return std::make_tuple(leafs_start, leafs_size, root_index);
+	}
+
 }
 
