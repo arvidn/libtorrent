@@ -246,58 +246,32 @@ namespace aux {
 		// cannot be verrified, check first to see if the root of the largest
 		// computable subtree is known
 
-		// find the largest block of leafs from a single subtree we know the hashes of
-		int leafs_index = block_index;
-		int leafs_size = 1;
-		int root_index = merkle_get_sibling(file_first_leaf + block_index);
-		for (int i = block_index;; i >>= 1)
-		{
-			int const first_check_index = leafs_index + ((i & 1) ? -leafs_size : leafs_size);
-			bool done = false;
-			for (int j = 0; j < std::min(leafs_size, m_num_blocks - first_check_index); ++j)
-			{
-				if (!has_node(file_first_leaf + first_check_index + j))
-				{
-					done = true;
-					break;
-				}
-			}
-			if (done) break;
-			if (i & 1) leafs_index -= leafs_size;
-			leafs_size *= 2;
-			root_index = merkle_get_parent(root_index);
-			// if an inner node is known then its parent must be known too
-			// so if the root is known the next sibling subtree should already
-			// be computed if all of its leafs have valid hashes
-			if (has_node(root_index)) break;
-			TORRENT_ASSERT(root_index != 0);
-			TORRENT_ASSERT(leafs_index >= 0);
-			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(m_num_blocks));
-		}
-
-		TORRENT_ASSERT(leafs_index >= 0);
-		TORRENT_ASSERT(leafs_index < merkle_num_leafs(m_num_blocks));
-		TORRENT_ASSERT(leafs_index + leafs_size > block_index);
+		// TODO: use structured binding in C++17
+		int leafs_start;
+		int leafs_size;
+		int root_index;
+		std::tie(leafs_start, leafs_size, root_index) =
+			merkle_find_known_subtree(m_tree, block_index, m_num_blocks);
 
 		// if the root node is unknown the hashes cannot be verified yet
-		if (!has_node(root_index))
-			return std::make_tuple(set_block_result::unknown, leafs_index, leafs_size);
+		if (m_tree[root_index].is_all_zeros())
+			return std::make_tuple(set_block_result::unknown, leafs_start, leafs_size);
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash const root = m_tree[root_index];
-		merkle_fill_tree(m_tree, leafs_size, file_first_leaf + leafs_index);
+		merkle_fill_tree(m_tree, leafs_size, file_first_leaf + leafs_start);
 
 		if (root != m_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
-			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_index));
+			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_start));
 			m_tree[root_index] = root;
-			return std::make_tuple(set_block_result::hash_failed, leafs_index, leafs_size);
+			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
 		}
 
 		optimize_storage();
 
-		return std::make_tuple(set_block_result::ok, leafs_index, leafs_size);
+		return std::make_tuple(set_block_result::ok, leafs_start, leafs_size);
 	}
 
 	std::size_t merkle_tree::size() const
