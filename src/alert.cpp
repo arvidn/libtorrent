@@ -810,13 +810,14 @@ namespace {
 	{
 		// these numbers are the deprecated enum values in
 		// listen_succeeded_alert and listen_failed_alert
-		static aux::array<int, 9, socket_type_t> const mapping{{
+		static aux::array<int, 10, socket_type_t> const mapping{{
 			0, // tcp
 			4, // socks5,
 			0, // http,
 			2, // utp,
 			3, // i2p,
-			1, // tcp_ssl
+			0, // rtc,
+			1, // tcp_ssl,
 			4, // socks5_ssl,
 			1, // http_ssl,
 			5  // utp_ssl,

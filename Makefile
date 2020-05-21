@@ -558,7 +558,6 @@ HEADERS = \
   web_peer_connection.hpp      \
   write_resume_data.hpp        \
   xml_parse.hpp                \
-  websocket_tracker_connection.hpp  \
   \
   aux_/alert_manager.hpp            \
   aux_/aligned_storage.hpp          \
@@ -654,6 +653,7 @@ HEADERS = \
   aux_/rtc_signaling.hpp            \
   aux_/rtc_stream.hpp               \
   aux_/websocket_stream.hpp         \
+  aux_/websocket_tracker_connection.hpp \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
@@ -722,6 +722,8 @@ ASIO_GNUTLS = \
   test/gnutls/context.cpp \
   test/gnutls/rfc2818_verification.cpp \
   test/gnutls/stream.cpp
+
+DATACHANNEL = $(shell cd deps/libdatachannel && git ls-files)
 
 SIM_SOURCES = \
   Jamfile \
@@ -1065,6 +1067,7 @@ TEST_EXTRA = Jamfile \
   corrupt.gz \
   invalid1.gz \
   utf8_test.txt \
+  utf8_latin1_test.txt \
   web_server.py \
   socks.py \
   http_proxy.py \
@@ -1088,6 +1091,7 @@ dist: FORCE
     $(addprefix simulation/,${SIM_SOURCES}) \
     $(addprefix deps/try_signal/,${TRY_SIGNAL}) \
     $(addprefix deps/asio-gnutls/,${ASIO_GNUTLS}) \
+    $(addprefix deps/libdatachannel/,${DATACHANNEL}) \
     $(addprefix simulation/libsimulator/,${LIBSIM_EXTRA}) \
     $(addprefix simulation/libsimulator/test,${LIBSIM_TEST}) \
     $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) \

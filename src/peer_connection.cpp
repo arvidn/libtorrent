@@ -6286,6 +6286,7 @@ namespace {
 
 		if (m_remote == m_socket.local_endpoint(ec)
 #if TORRENT_USE_RTC
+			// WebRTC connections are independant from the socket (their endpoints are not reliable anyway)
 			&& !is_rtc(m_socket)
 #endif
 		)

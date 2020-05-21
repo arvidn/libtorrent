@@ -77,19 +77,18 @@ namespace libtorrent {
 	struct timeout_handler;
 	class udp_tracker_connection;
 	class http_tracker_connection;
-	class websocket_tracker_connection;
 	struct resolver_interface;
 	struct counters;
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
-#if TORRENT_USE_RTC
-	class websocket_tracker_connection;
-#endif
 namespace aux {
 	struct session_logger;
 	struct session_settings;
 	struct resolver_interface;
+#if TORRENT_USE_RTC
+	struct websocket_tracker_connection;
+#endif
 }
 
 using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
@@ -230,13 +229,10 @@ enum class event_t : std::uint8_t
 			, const std::string& msg
 			, seconds32 retry_interval) = 0;
 #if TORRENT_USE_RTC
-		virtual void generate_rtc_offers(int /*count*/
-			, std::function<void(error_code const&, std::vector<aux::rtc_offer> const&)> handler)
-		{
-			handler(boost::asio::error::operation_not_supported, {});
-		}
-		virtual void on_rtc_offer(aux::rtc_offer const&) {}
-		virtual void on_rtc_answer(aux::rtc_answer const&) {}
+		virtual void generate_rtc_offers(int count
+			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) = 0;
+		virtual void on_rtc_offer(aux::rtc_offer const&) = 0;
+		virtual void on_rtc_answer(aux::rtc_answer const&) = 0;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log() const = 0;
@@ -370,7 +366,9 @@ enum class event_t : std::uint8_t
 
 		void remove_request(http_tracker_connection const* c);
 		void remove_request(udp_tracker_connection const* c);
-		void remove_request(websocket_tracker_connection const* c);
+#if TORRENT_USE_RTC
+		void remove_request(aux::websocket_tracker_connection const* c);
+#endif
 		bool empty() const;
 		int num_requests() const;
 
@@ -413,7 +411,7 @@ enum class event_t : std::uint8_t
 
 #if TORRENT_USE_RTC
 		// websocket connections by URL
-		std::unordered_map<std::string, std::shared_ptr<websocket_tracker_connection>> m_websocket_conns;
+		std::unordered_map<std::string, std::shared_ptr<aux::websocket_tracker_connection>> m_websocket_conns;
 #endif
 
 		send_fun_t m_send_fun;

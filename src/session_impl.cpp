@@ -1263,12 +1263,13 @@ namespace {
 
 		using sock_t = peer_class_type_filter::socket_type_t;
 		// assign peer class based on socket type
-		static aux::array<sock_t, 9, socket_type_t> const mapping{{{
+		static aux::array<sock_t, 10, socket_type_t> const mapping{{{
 			sock_t::tcp_socket
 			, sock_t::tcp_socket
 			, sock_t::tcp_socket
 			, sock_t::utp_socket
 			, sock_t::i2p_socket
+			, sock_t::rtc_socket
 			, sock_t::ssl_tcp_socket
 			, sock_t::ssl_tcp_socket
 			, sock_t::ssl_tcp_socket

@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WEBSOCKET_STREAM_HPP_INCLUDED
 #define TORRENT_WEBSOCKET_STREAM_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
+#if TORRENT_USE_RTC
+
 #include "libtorrent/assert.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/error_code.hpp"
@@ -61,21 +65,17 @@ namespace websocket {
 // to use beast::websocket::stream with libtorrent::ssl::stream
 
 template<class Stream>
-void
-teardown(
-	role_type
-    , libtorrent::ssl::stream<Stream>& stream
-    , error_code& ec)
+void teardown(role_type
+	, libtorrent::ssl::stream<Stream>& stream
+	, error_code& ec)
 {
     stream.shutdown(ec);
 }
 
 template<class Stream, class Handler>
-void
-async_teardown(
-    role_type
-    , libtorrent::ssl::stream<Stream>& stream
-    , Handler&& handler)
+void async_teardown(role_type
+	, libtorrent::ssl::stream<Stream>& stream
+	, Handler&& handler)
 {
     stream.async_shutdown(std::forward<Handler>(handler));
 }
@@ -103,7 +103,7 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 		, ssl::context* ssl_ctx
 	);
 
-	~websocket_stream();
+	~websocket_stream() = default;
 	websocket_stream& operator=(websocket_stream const&) = delete;
 	websocket_stream(websocket_stream const&) = delete;
 	websocket_stream& operator=(websocket_stream&&) noexcept = delete;
@@ -119,26 +119,29 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	void set_user_agent(std::string user_agent);
 
 	template <class Handler>
-	void async_connect(const std::string &url, Handler const& handler)
+	void async_connect(const std::string &url, Handler&& handler)
 	{
 		if (m_connect_handler)
 		{
-			post(m_io_service, std::bind(handler, boost::asio::error::already_started, std::size_t(0)));
+			post(m_io_service, std::bind(std::forward<Handler>(handler)
+						, boost::asio::error::already_started));
 			return;
 		}
 
-		m_connect_handler = handler;
+		m_connect_handler = std::forward<Handler>(handler);
 		do_connect(url);
 	}
 
 	template <class Mutable_Buffer, class Handler>
-	void async_read(Mutable_Buffer& buffer, Handler const& handler)
+	void async_read(Mutable_Buffer& buffer, Handler&& handler)
 	{
 		using namespace std::placeholders;
 
 		if (!m_open)
 		{
-			post(m_io_service, std::bind(handler, boost::asio::error::not_connected, std::size_t(0)));
+			post(m_io_service, std::bind(std::forward<Handler>(handler)
+						, boost::asio::error::not_connected
+						, std::size_t(0)));
 			return;
 		}
 
@@ -148,19 +151,21 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 			stream.async_read(buffer, std::bind(&websocket_stream::on_read
 					, shared_from_this()
 					, _1, _2
-					, read_handler(handler)));
+					, read_handler(std::forward<Handler>(handler))));
 		}
 		, m_stream);
 	}
 
 	template <class Const_Buffer, class Handler>
-	void async_write(Const_Buffer const& buffer, Handler const& handler)
+	void async_write(Const_Buffer const& buffer, Handler&& handler)
 	{
 		using namespace std::placeholders;
 
 		if (!m_open)
 		{
-			post(m_io_service, std::bind(handler, boost::asio::error::not_connected, std::size_t(0)));
+			post(m_io_service, std::bind(std::forward<Handler>(handler)
+						, boost::asio::error::not_connected
+						, std::size_t(0)));
 			return;
 		}
 
@@ -170,7 +175,7 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 			stream.async_write(buffer, std::bind(&websocket_stream::on_write
 					, shared_from_this()
 					, _1 , _2
-					, write_handler(handler)));
+					, write_handler(std::forward<Handler>(handler))));
 		}
 		, m_stream);
 	}
@@ -212,4 +217,7 @@ private:
 }
 }
 
-#endif
+#endif // TORRENT_USE_RTC
+
+#endif // TORRENT_WEBSOCKET_STREAM_HPP_INCLUDED
+

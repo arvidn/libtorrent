@@ -1007,27 +1007,27 @@ namespace libtorrent {
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_RTC
-    torrent_peer* peer_list::add_rtc_peer(string_view const peer_id
-        , peer_source_flags_t const src, pex_flags_t const flags
-        , torrent_state* state)
-    {
+	torrent_peer* peer_list::add_rtc_peer(string_view const peer_id
+		, peer_source_flags_t const src, pex_flags_t const flags
+		, torrent_state* state)
+	{
 		TORRENT_ASSERT(is_single_thread());
-        INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
-		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
-              , peer_id, peer_address_compare());
+		iterator const iter = std::lower_bound(m_peers.begin(), m_peers.end()
+				, peer_id, peer_address_compare());
 
 		torrent_peer* p = m_peer_allocator.allocate_peer_entry(
-            torrent_peer_allocator_interface::rtc_peer_type);
-        if (p == nullptr) return nullptr;
+				torrent_peer_allocator_interface::rtc_peer_type);
+		if (p == nullptr) return nullptr;
 		p = new (p) rtc_peer(peer_id, src);
 
-        if (!insert_peer(p, iter, flags, state))
-        {
-            m_peer_allocator.free_peer_entry(p);
-            return nullptr;
-        }
-        return p;
+		if (!insert_peer(p, iter, flags, state))
+		{
+			m_peer_allocator.free_peer_entry(p);
+			return nullptr;
+		}
+		return p;
     }
 #endif // TORRENT_USE_RTC
 

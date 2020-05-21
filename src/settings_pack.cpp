@@ -63,7 +63,7 @@ namespace {
 	// return the string, unless it's null, in which case the empty string is
 	// returned
 	char const* ensure_string(char const* str)
-{ return str == nullptr ? "" : str; }
+	{ return str == nullptr ? "" : str; }
 }
 
 namespace libtorrent {

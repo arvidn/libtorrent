@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RTC_STREAM_HPP_INCLUDED
 #define TORRENT_RTC_STREAM_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
+#if TORRENT_USE_RTC
+
 #include "libtorrent/aux_/packet_buffer.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/close_reason.hpp"
@@ -40,7 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/span.hpp"
 
 #include <functional>
 #include <memory>
@@ -66,14 +71,13 @@ struct TORRENT_EXTRA_EXPORT rtc_stream_init
 	std::shared_ptr<rtc::DataChannel> data_channel;
 };
 
-class rtc_stream_impl : public std::enable_shared_from_this<rtc_stream_impl>
+struct TORRENT_EXTRA_EXPORT rtc_stream_impl : std::enable_shared_from_this<rtc_stream_impl>
 {
-public:
 	using endpoint_type = tcp::socket::endpoint_type;
 	using protocol_type = tcp::socket::protocol_type;
 
-	explicit rtc_stream_impl(io_context& ioc, rtc_stream_init const& init);
-	~rtc_stream_impl();
+	rtc_stream_impl(io_context& ioc, rtc_stream_init init);
+	~rtc_stream_impl() = default;
 	rtc_stream_impl& operator=(rtc_stream_impl const&) = delete;
 	rtc_stream_impl(rtc_stream_impl const&) = delete;
 	rtc_stream_impl& operator=(rtc_stream_impl&&) noexcept = delete;
@@ -90,12 +94,12 @@ public:
 
 	void cancel_handlers(error_code const& ec);
 
-	bool has_read_handler() const { return m_read_handler ? true : false; }
-	bool has_write_handler() const { return m_write_handler ? true : false; }
+	bool has_read_handler() const { return bool(m_read_handler); }
+	bool has_write_handler() const { return bool(m_write_handler); }
 	template <class Handler>
-	void set_read_handler(Handler const& handler) { m_read_handler = handler; }
+	void set_read_handler(Handler handler) { m_read_handler = std::move(handler); }
 	template <class Handler>
-	void set_write_handler(Handler const& handler) { m_write_handler = handler; }
+	void set_write_handler(Handler handler) { m_write_handler = std::move(handler); }
 
 	template <class Mutable_Buffer>
 	std::size_t add_read_buffer(Mutable_Buffer const& buffer) {
@@ -116,15 +120,19 @@ public:
 	void issue_read();
 	void issue_write();
 	std::size_t read_some(error_code& ec);
+	std::size_t write_some(error_code& ec);
 	void clear_read_buffers();
+	void clear_write_buffers();
 
 private:
 	void on_available(error_code const& ec);
 	void on_buffered_low(error_code const& ec);
 	bool ensure_open();
 
-	std::size_t read_data(char const *data, std::size_t size);
-	std::size_t write_data(std::size_t size, bool &is_buffered);
+	static endpoint_type parse_endpoint(std::string const& addr, error_code& ec);
+
+	std::size_t incoming_data(span<char const> data);
+	std::pair<std::size_t, bool> write_data(std::size_t size);
 
 	io_context& m_io_context;
 	std::shared_ptr<rtc::PeerConnection> m_peer_connection;
@@ -150,12 +158,12 @@ struct TORRENT_EXTRA_EXPORT rtc_stream
 	using executor_type = tcp::socket::executor_type;
 	executor_type get_executor() { return m_io_context.get_executor(); }
 
-	explicit rtc_stream(io_context& ioc, rtc_stream_init const& init);
+	rtc_stream(io_context& ioc, rtc_stream_init init);
 	~rtc_stream();
 	rtc_stream& operator=(rtc_stream const&) = delete;
 	rtc_stream(rtc_stream const&) = delete;
 	rtc_stream& operator=(rtc_stream&&) noexcept = delete;
-	rtc_stream(rtc_stream&&) noexcept;
+	rtc_stream(rtc_stream&&) noexcept = default;
 
 	lowest_layer_type& lowest_layer() { return *this; }
 
@@ -323,16 +331,29 @@ struct TORRENT_EXTRA_EXPORT rtc_stream
 
 		std::size_t ret = m_impl->read_some(ec);
 		m_impl->clear_read_buffers();
-		TORRENT_ASSERT(ec || ret > 0);
 		return ret;
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& /* buffers */, error_code& /* ec */)
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
-		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: implement blocking write (same as utp_stream)
-		return 0;
+		if (!is_open())
+		{
+			ec = boost::asio::error::not_connected;
+			return 0;
+		}
+
+		TORRENT_ASSERT(!m_impl->has_write_handler());
+
+		for (auto i = buffer_sequence_begin(buffers)
+			, end(buffer_sequence_end(buffers)); i != end; ++i)
+		{
+			m_impl->add_write_buffer(i->data(), i->size());
+		}
+
+		std::size_t ret = m_impl->write_some(ec);
+		m_impl->clear_read_buffers();
+		return ret;
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -364,5 +385,7 @@ private:
 
 }
 }
+
+#endif // TORRENT_USE_RTC
 
 #endif

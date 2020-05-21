@@ -27,6 +27,7 @@ matrix:
           packages:
           - gnutls-dev
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
+    - env: variant=debug tests=1 crypto=openssl webtorrent=on toolset=gcc sanitizer=on
     - env: variant=release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
@@ -243,7 +244,7 @@ script:
 
   - cd $TRAVIS_BUILD_DIR
   - 'if [ "$pylint" == "1" ]; then
-      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123 --exclude=deps/libdatachannel,deps/json;
+      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123,E402 --exclude=deps/libdatachannel,deps/json;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
        build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=17 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&

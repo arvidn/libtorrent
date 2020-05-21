@@ -611,6 +611,7 @@ namespace libtorrent {
 
 		void connect_to_url_seed(std::list<web_seed_t>::iterator);
 		bool connect_to_peer(torrent_peer*, bool ignore_limit = false);
+		bool create_peer_connection(torrent_peer* peerinfo, aux::socket_type socket, tcp::endpoint endpoint);
 
 		int priority() const;
 #if TORRENT_ABI_VERSION == 1
@@ -724,10 +725,10 @@ namespace libtorrent {
 	private:
 #if TORRENT_USE_RTC
 		void generate_rtc_offers(int count
-			, std::function<void(error_code const&, std::vector<aux::rtc_offer> const&)> handler) override;
+			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override;
 		void on_rtc_offer(aux::rtc_offer const& offer) override;
 		void on_rtc_answer(aux::rtc_answer const& answer) override;
-        void on_rtc_stream(peer_id const& pid, aux::rtc_stream_init& stream_init);
+		void on_rtc_stream(peer_id const& pid, aux::rtc_stream_init stream_init);
 #endif
 		void remove_connection(peer_connection const* p);
 	public:

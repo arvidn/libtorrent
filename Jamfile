@@ -211,12 +211,18 @@ rule linking ( properties * )
 	if <link>shared in $(properties)
 	{
 		result += <library>/try_signal//try_signal/<link>static/<fpic>on ;
-		result += <library>/libdatachannel//libdatachannel/<link>static/<fpic>on ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>/libdatachannel//libdatachannel/<link>static/<fpic>on ;
+		}
 	}
 	else
 	{
 		result += <library>/try_signal//try_signal/<link>static ;
-		result += <library>/libdatachannel//libdatachannel/<link>static ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>/libdatachannel//libdatachannel/<link>static ;
+		}
 	}
 
 	return $(result) ;
@@ -522,8 +528,8 @@ feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
 feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
 
-feature webtorrent : auto on off : composite propagated ;
-feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 <crypto>openssl ;
+feature webtorrent : off on : composite propagated ;
+feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 ;
 feature.compose <webtorrent>off : <define>TORRENT_USE_RTC=0 ;
 
 feature iconv : auto on off : composite propagated ;
@@ -583,7 +589,8 @@ feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
-	<define>OPENSSL_NO_SSL2 ;
+	<define>OPENSSL_NO_SSL2
+	<gnutls>off ;
 feature.compose <crypto>wolfssl
 	: <define>TORRENT_USE_WOLFSSL
 	<define>TORRENT_USE_LIBCRYPTO
@@ -593,10 +600,12 @@ feature.compose <crypto>wolfssl
 	<define>OPENSSL_ALL
 	<define>WOLFSSL_SHA512
 	<define>WOLFSSL_NGINX
-	<define>WC_NO_HARDEN ;
+	<define>WC_NO_HARDEN
+	<gnutls>off ;
 feature.compose <crypto>gnutls
 	: <define>TORRENT_USE_GNUTLS
-	<define>TORRENT_SSL_PEERS ;
+	<define>TORRENT_SSL_PEERS
+	<gnutls>on ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
@@ -862,7 +871,6 @@ ED25519_SOURCES =
 local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
-	<include>./deps/json/include
 	<include>/usr/sfw/include
 # freebsd doesn't seem to include this automatically
 # and iconv.h is installed there
@@ -902,7 +910,8 @@ lib torrent
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
-    <define>BOOST_JSON_HEADER_ONLY
+	<include>./deps/json/include
+	<define>BOOST_JSON_HEADER_ONLY
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614

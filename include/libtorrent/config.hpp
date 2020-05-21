@@ -477,11 +477,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef TORRENT_USE_RTC
-#if defined TORRENT_USE_OPENSSL || defined TORRENT_USE_GNUTLS
 #define TORRENT_USE_RTC 1
-#else
-#define TORRENT_USE_RTC 0
-#endif
 #endif
 
 #ifndef TORRENT_HAS_SYMLINK
@@ -592,6 +588,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_SSL_PEERS && !TORRENT_USE_SSL
 #error compiling with TORRENT_SSL_PEERS requires TORRENT_USE_OPENSSL or TORRENT_USE_GNUTLS
+#endif
+
+#if TORRENT_USE_RTC && !TORRENT_USE_SSL
+#error compiling with TORRENT_USE_RTC requires TORRENT_USE_OPENSSL or TORRENT_USE_GNUTLS
 #endif
 
 #include "libtorrent/aux_/export.hpp"
