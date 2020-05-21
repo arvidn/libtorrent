@@ -166,7 +166,9 @@ namespace {
 			st->iothread.abort(true);
 			return;
 		}
-		st->ct.set_hash(piece, piece_hash);
+
+		if (!st->ct.is_v2_only())
+			st->ct.set_hash(piece, piece_hash);
 
 		if (!st->ct.is_v1_only())
 		{
@@ -880,6 +882,7 @@ namespace {
 
 	void create_torrent::set_hash(piece_index_t index, sha1_hash const& h)
 	{
+		TORRENT_ASSERT(!m_v2_only);
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < m_piece_hash.end_index());
 		m_piece_hash[index] = h;
