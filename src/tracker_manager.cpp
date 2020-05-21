@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_tracker_connection.hpp"
 
 #if TORRENT_USE_RTC
-#include "libtorrent/websocket_tracker_connection.hpp"
+#include "libtorrent/aux_/websocket_tracker_connection.hpp"
 #endif
 
 using namespace std::placeholders;
@@ -259,12 +259,14 @@ namespace libtorrent {
 		m_udp_conns.erase(c->transaction_id());
 	}
 
-	void tracker_manager::remove_request(websocket_tracker_connection const* c)
+#if TORRENT_USE_RTC
+	void tracker_manager::remove_request(aux::websocket_tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		tracker_request const& req = c->tracker_req();
 		m_websocket_conns.erase(req.url);
 	}
+#endif
 
 	void tracker_manager::update_transaction_id(
 		std::shared_ptr<udp_tracker_connection> c
@@ -324,19 +326,22 @@ namespace libtorrent {
         {
 			std::shared_ptr<request_callback> cb = c.lock();
 			if(!cb) return;
+
+			// TODO: introduce a setting for max_offers
 			const int max_offers = 10;
 			req.num_want = std::min(req.num_want, max_offers);
 			cb->generate_rtc_offers(req.num_want
 				, [this, &ios, req = std::move(req), c](error_code const& ec
-					, std::vector<aux::rtc_offer> const& offers) mutable
+					, std::vector<aux::rtc_offer> offers) mutable
 			{
-				if(!ec) req.offers = offers;
+				if(!ec) req.offers = std::move(offers);
 
 				auto it = m_websocket_conns.find(req.url);
 				if (it != m_websocket_conns.end() && it->second->is_started()) {
 					it->second->queue_request(std::move(req), c);
 				} else {
-					auto con = std::make_shared<websocket_tracker_connection>(ios, *this, std::move(req), c);
+					auto con = std::make_shared<aux::websocket_tracker_connection>(
+							ios, *this, std::move(req), c);
 					con->start();
 					m_websocket_conns[req.url] = con;
 				}
@@ -461,8 +466,6 @@ namespace libtorrent {
 		m_abort = true;
 		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
-		std::vector<std::shared_ptr<websocket_tracker_connection>> close_websocket_connections;
-
 		for (auto const& c : m_http_conns)
 		{
 			tracker_request const& req = c->tracker_req();
@@ -491,20 +494,19 @@ namespace libtorrent {
 #endif
 		}
 
-        for (auto const& p : m_websocket_conns)
-        {
+#if TORRENT_USE_RTC
+		std::vector<std::shared_ptr<aux::websocket_tracker_connection>> close_websocket_connections;
+		for (auto const& p : m_websocket_conns)
+		{
 			auto const& c = p.second;
-			tracker_request const& req = c->tracker_req();
-			if (req.event == event_t::stopped && !all)
-				continue;
-
 			close_websocket_connections.push_back(c);
 
 #ifndef TORRENT_DISABLE_LOGGING
-            std::shared_ptr<request_callback> rc = c->requester();
-            if (rc) rc->debug_log("aborting: %s", req.url.c_str());
+			std::shared_ptr<request_callback> rc = c->requester();
+			if (rc) rc->debug_log("aborting: %s", c->tracker_req().url.c_str());
 #endif
-        }
+		}
+#endif
 
 		for (auto const& c : close_http_connections)
 			c->close();
@@ -512,20 +514,30 @@ namespace libtorrent {
 		for (auto const& c : close_udp_connections)
 			c->close();
 
+#if TORRENT_USE_RTC
 		for (auto const& c : close_websocket_connections)
 			c->close();
+#endif
 	}
 
 	bool tracker_manager::empty() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		return m_http_conns.empty() && m_udp_conns.empty() && m_websocket_conns.empty();
+		return m_http_conns.empty() && m_udp_conns.empty()
+#if TORRENT_USE_RTC
+			&& m_websocket_conns.empty()
+#endif
+			;
 	}
 
 	int tracker_manager::num_requests() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		return int(m_http_conns.size() + m_udp_conns.size() + m_websocket_conns.empty());
+		return int(m_http_conns.size() + m_udp_conns.size()
+#if TORRENT_USE_RTC
+			+ m_websocket_conns.empty()
+#endif
+			);
 	}
 }
 

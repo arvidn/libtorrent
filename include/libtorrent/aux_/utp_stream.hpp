@@ -375,21 +375,17 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return 0;
 		}
 
-#if TORRENT_USE_ASSERTS
 		size_t buf_size = 0;
-#endif
 
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
 		{
 			add_write_buffer(i->data(), i->size());
-#if TORRENT_USE_ASSERTS
 			buf_size += i->size();
-#endif
 		}
 		std::size_t ret = write_some(true);
 		TORRENT_ASSERT(ret <= buf_size);
-		if(ret == 0)
+		if(ret == 0 && buf_size > 0)
 		{
 			ec = boost::asio::error::would_block;
 			return 0;

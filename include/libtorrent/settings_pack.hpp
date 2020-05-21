@@ -362,7 +362,8 @@ namespace aux {
 			// effect until the DHT is restarted.
 			dht_bootstrap_nodes,
 
-			// the STUN server used by WebTorrent to enable ICE NAT traversal for WebRTC
+			// This is the STUN server used by WebTorrent to enable ICE NAT
+			// traversal for WebRTC. It must have the format ``hostname:port``.
 			webtorrent_stun_server,
 
 			max_string_setting_internal

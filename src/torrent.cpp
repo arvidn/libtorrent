@@ -415,12 +415,6 @@ bool is_downloading_state(int const st)
 			inc_stats_counter(counters::num_total_pieces_added
 				, m_torrent_file->num_pieces());
 		}
-
-#if TORRENT_USE_RTC
-		m_rtc_signaling = std::make_shared<aux::rtc_signaling>(m_ses.get_context()
-			, this
-			, std::bind(&torrent::on_rtc_stream, this, _1, _2));
-#endif
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -702,10 +696,6 @@ bool is_downloading_state(int const st)
 		// just in case, make sure the session accounting is kept right
 		for (auto p : m_connections)
 			m_ses.close_connection(p);
-
-#if TORRENT_USE_RTC
-		m_rtc_signaling->close();
-#endif
 	}
 
 	void torrent::read_piece(piece_index_t const piece)
@@ -2707,7 +2697,7 @@ bool is_downloading_state(int const st)
 namespace {
 	void refresh_endpoint_list(aux::session_interface& ses
 		, bool const is_ssl, bool const complete_sent
-		, std::string const &url
+		, string_view url
 		, std::vector<aux::announce_endpoint>& aeps)
 	{
 		// update the endpoint list by adding entries for new listen sockets
@@ -2730,12 +2720,17 @@ namespace {
 		});
 
 #if TORRENT_USE_RTC
-		std::string const protocol = url.substr(0, url.find(':'));
-		if (protocol == "ws" || protocol == "wss")
+		if(auto pos = url.find(':'); pos != string_view::npos)
 		{
-			// WebSocket trackers will ignore the endpoint anyway
-			valid_endpoints = std::min(valid_endpoints, std::size_t(1));
+			string_view const protocol = url.substr(0, pos);
+			if (protocol == "ws" || protocol == "wss")
+			{
+				// WebSocket trackers will ignore the endpoint anyway
+				valid_endpoints = std::min(valid_endpoints, std::size_t(1));
+			}
 		}
+#else
+		TORRENT_UNUSED(url);
 #endif
 
 		TORRENT_ASSERT(valid_endpoints <= aeps.size());
@@ -4671,6 +4666,11 @@ namespace {
 		}
 		// don't re-add this torrent to the state-update list
 		m_state_subscription = false;
+
+#if TORRENT_USE_RTC
+		if(m_rtc_signaling)
+			m_rtc_signaling->close();
+#endif
 	}
 
 	// this is called when we're destructing non-gracefully. i.e. we're _just_
@@ -5810,22 +5810,32 @@ namespace {
 
 #if TORRENT_USE_RTC
 	void torrent::generate_rtc_offers(int count
-			, std::function<void(error_code const&, std::vector<aux::rtc_offer> const&)> handler)
+			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
 	{
+		// rtc_signaling is created lazily
+		if(!m_rtc_signaling)
+		{
+			m_rtc_signaling = std::make_shared<aux::rtc_signaling>(m_ses.get_context()
+				, this
+				, std::bind(&torrent::on_rtc_stream, this, _1, _2));
+		}
+
 		m_rtc_signaling->generate_offers(count, std::move(handler));
 	}
 
 	void torrent::on_rtc_offer(aux::rtc_offer const& offer)
 	{
-		m_rtc_signaling->process_offer(offer);
+		TORRENT_ASSERT(m_rtc_signaling);
+		if(m_rtc_signaling) m_rtc_signaling->process_offer(offer);
 	}
 
 	void torrent::on_rtc_answer(aux::rtc_answer const& answer)
 	{
-		m_rtc_signaling->process_answer(answer);
+		TORRENT_ASSERT(m_rtc_signaling);
+		if(m_rtc_signaling) m_rtc_signaling->process_answer(answer);
 	}
 
-	void torrent::on_rtc_stream(peer_id const& pid, aux::rtc_stream_init& stream_init)
+	void torrent::on_rtc_stream(peer_id const& pid, aux::rtc_stream_init stream_init)
 	{
 		aux::socket_type s(aux::rtc_stream(m_ses.get_context(), stream_init));
 
@@ -5834,77 +5844,11 @@ namespace {
 		torrent_peer* peerinfo = m_peer_list->add_rtc_peer(pid.to_string(), peer_source_flags_t{}, {}, &st);
 
 		error_code ec;
-		auto remote_endpoint = s.remote_endpoint(ec);
+		auto endpoint = s.remote_endpoint(ec);
+		TORRENT_ASSERT(!ec);
+		if(ec) return;
 
-		peer_id const our_pid = aux::generate_peer_id(settings());
-		peer_connection_args pack{
-			&m_ses
-			, &settings()
-			, &m_ses.stats_counters()
-			, &m_ses.disk_thread()
-			, &m_ses.get_context()
-			, shared_from_this()
-			, std::move(s)
-			, remote_endpoint
-			, peerinfo
-			, our_pid
-		};
-
-		auto c = std::make_shared<bt_peer_connection>(pack);
-
-#if TORRENT_USE_ASSERTS
-		c->m_in_constructor = false;
-#endif
-
-		c->add_stat(std::int64_t(peerinfo->prev_amount_download) << 10
-			, std::int64_t(peerinfo->prev_amount_upload) << 10);
-		peerinfo->prev_amount_download = 0;
-		peerinfo->prev_amount_upload = 0;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& ext : m_extensions)
-		{
-			std::shared_ptr<peer_plugin> pp(ext->new_connection(
-					peer_connection_handle(c->self())));
-			if (pp) c->add_extension(pp);
-		}
-#endif
-
-		// add the newly connected peer to this torrent's peer list
-		TORRENT_ASSERT(m_iterating_connections == 0);
-
-		// we don't want to have to allocate memory to disconnect this peer, so
-		// make sure there's enough memory allocated in the deferred_disconnect
-		// list up-front
-		m_peers_to_disconnect.reserve(m_connections.size() + 1);
-
-		sorted_insert(m_connections, c.get());
-		TORRENT_TRY
-		{
-			m_outgoing_pids.insert(our_pid);
-			m_ses.insert_peer(c);
-			need_peer_list();
-			m_peer_list->set_connection(peerinfo, c.get());
-			if (peerinfo->seed)
-			{
-				TORRENT_ASSERT(m_num_seeds < 0xffff);
-				++m_num_seeds;
-			}
-			update_want_peers();
-			update_want_tick();
-			c->start();
-
-			if (c->is_disconnecting()) return;
-		}
-		TORRENT_CATCH (std::exception const&)
-		{
-			TORRENT_ASSERT(m_iterating_connections == 0);
-			c->disconnect(errors::no_error, operation_t::bittorrent, peer_connection_interface::failure);
-			return;
-		}
-
-		if (m_share_mode)
-			recalc_share_mode();
+		create_peer_connection(peerinfo, std::move(s), std::move(endpoint));
 	}
 #endif
 
@@ -7105,11 +7049,12 @@ namespace {
 			// this asserts that we don't have duplicates in the peer_list's peer list
 			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
 				, [peerinfo] (peer_connection const* p)
-				{ return
+				{
+					return !p->is_disconnecting() && p->remote() == peerinfo->ip()
 #if TORRENT_USE_RTC
-					!(p->peer_info_struct() && p->peer_info_struct()->is_rtc_addr) &&
+						&& p->peer_info_struct() && !p->peer_info_struct()->is_rtc_addr
 #endif
-					!p->is_disconnecting() && p->remote() == peerinfo->ip();
+						;
 				});
 
 			TORRENT_ASSERT(i_ == m_connections.end()
@@ -7146,12 +7091,13 @@ namespace {
 		else
 #endif
 #if TORRENT_USE_RTC
-        if (peerinfo->is_rtc_addr)
-        {
+		if (peerinfo->is_rtc_addr)
+		{
 			// unsollicited connection is not possible
+			TORRENT_ASSERT_FAIL();
 			return false;
-        }
-        else
+		}
+		else
 #endif
 		{
 			if (settings().get_bool(settings_pack::enable_outgoing_utp)
@@ -7226,6 +7172,14 @@ namespace {
 		}
 		}();
 
+		if(!create_peer_connection(peerinfo, std::move(s), std::move(a)))
+			return false;
+
+		return peerinfo->connection != nullptr;
+	}
+
+	bool torrent::create_peer_connection(torrent_peer* peerinfo, aux::socket_type socket, tcp::endpoint endpoint)
+	{
 		peer_id const our_pid = aux::generate_peer_id(settings());
 		peer_connection_args pack{
 			&m_ses
@@ -7234,8 +7188,8 @@ namespace {
 			, &m_ses.disk_thread()
 			, &m_ses.get_context()
 			, shared_from_this()
-			, std::move(s)
-			, a
+			, std::move(socket)
+			, std::move(endpoint)
 			, peerinfo
 			, our_pid
 		};
@@ -7297,8 +7251,7 @@ namespace {
 		if (m_share_mode)
 			recalc_share_mode();
 #endif
-
-		return peerinfo->connection != nullptr;
+		return true;
 	}
 
 	bool torrent::set_metadata(span<char const> metadata_buf)

@@ -295,7 +295,8 @@ namespace {
 		return utf32;
 	}
 
-	std::u32string utf8_utf32(std::string_view utf8) {
+	std::u32string utf8_utf32(std::string_view utf8)
+	{
 		error_code ec;
 		std::u32string ret = utf8_utf32(utf8, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
@@ -329,6 +330,31 @@ namespace {
 		std::string ret = utf32_utf8(utf32, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
+	}
+
+	// Converts ISO-8859-1 (aka latin1) input to UTF-8
+	std::string latin1_utf8(span<char const> s)
+	{
+		std::u32string u32;
+		u32.reserve(std::size_t(s.size()));
+		for (char const c : s)
+			u32.push_back(char32_t(static_cast<unsigned char>(c)));
+		return utf32_utf8(u32);
+	}
+
+	// Converts UTF-8 input to ISO-8859-1 (aka latin1)
+	// Throws an invalid_argument exception if it finds an unrepresentable character.
+	std::string utf8_latin1(std::string_view sv)
+	{
+		std::u32string u32 = utf8_utf32(sv);
+		std::string out;
+		for (char32_t cp : u32)
+		{
+			if (cp > 0xFF)
+				throw std::invalid_argument("code point out of latin1 range: " + std::to_string(cp));
+			out.push_back(char(static_cast<unsigned char>(cp)));
+		}
+		return out;
 	}
 
 	// returns the unicode codepoint and the number of bytes of the utf8 sequence

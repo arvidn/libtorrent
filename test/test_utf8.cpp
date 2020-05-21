@@ -182,6 +182,13 @@ TORRENT_TEST(utf8)
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 
+	std::vector<char> utf8_latin1_source;
+	load_file(combine_path("..", "utf8_latin1_test.txt"), utf8_latin1_source, ec, 1000000);
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
+		, ec.message().c_str());
+	TEST_CHECK(!ec);
+
+
 	// test lower level conversions
 
 	verify_transforms(&utf8_source[0], int(utf8_source.size()));
@@ -249,9 +256,23 @@ TORRENT_TEST(utf8)
 	std::copy(utf8_source.begin(), utf8_source.end(), std::back_inserter(utf8));
 
 	std::wstring const wide = utf8_wchar(utf8);
-	std::string const identity = wchar_utf8(wide);
+	std::string const identity1 = wchar_utf8(wide);
 
-	TEST_EQUAL(utf8, identity);
+	TEST_EQUAL(utf8, identity1);
+
+	std::u32string const utf32 = utf8_utf32(utf8);
+	std::string const identity2 = utf32_utf8(utf32);
+
+	TEST_EQUAL(utf8, identity2);
+
+	utf8.clear();
+	std::copy(utf8_latin1_source.begin(), utf8_latin1_source.end(), std::back_inserter(utf8));
+
+	std::string const latin1 = utf8_latin1(utf8);
+	std::string const identity3 = latin1_utf8(latin1);
+
+	TEST_EQUAL(utf8, identity3);
+
 }
 
 TORRENT_TEST(invalid_encoding)

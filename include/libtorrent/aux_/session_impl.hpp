@@ -1370,6 +1370,17 @@ namespace aux {
 			bool should_log() const override;
 			void debug_log(const char* fmt, ...) const noexcept override TORRENT_FORMAT(2,3);
 			session_interface& m_ses;
+
+#if TORRENT_USE_RTC
+			void generate_rtc_offers(int /*count*/
+				, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
+			{
+				handler(boost::asio::error::operation_not_supported, {});
+			}
+			void on_rtc_offer(aux::rtc_offer const&) override {}
+			void on_rtc_answer(aux::rtc_answer const&) override {}
+#endif
+
 		private:
 			// explicitly disallow assignment, to silence msvc warning
 			tracker_logger& operator=(tracker_logger const&);

@@ -40,9 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
-#include <boost/asio/basic_waitable_timer.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
 #include <memory>
@@ -50,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <queue>
 #include <vector>
 #include <chrono>
+#include <unordered_map>
 
 namespace rtc {
 	class PeerConnection;
@@ -58,50 +61,41 @@ namespace rtc {
 
 namespace libtorrent {
 
-class alert_manager;
-class torrent;
+struct alert_manager;
+struct torrent;
 
 namespace aux {
 
 struct rtc_stream_init;
 
-const int RTC_OFFER_ID_LEN = 16;
+constexpr int RTC_OFFER_ID_LEN = 16;
 
-struct rtc_offer_id : std::vector<char> {
+struct rtc_offer_id : std::vector<char>
+{
 	rtc_offer_id() : std::vector<char>(RTC_OFFER_ID_LEN, '\0') {}
 	explicit rtc_offer_id(span<char const> s) : std::vector<char>(s.begin(), s.end()) {}
-};
-
-struct rtc_offer_id_hash
-{
-	std::size_t operator()(rtc_offer_id const& id) const
-	{
-        return boost::hash<std::vector<char>>{}(id);
-    }
 };
 
 struct rtc_answer
 {
 	rtc_offer_id offer_id;
 	peer_id pid;
-	std::string sdp;
+	std::string sdp; // session description in SDP format
 };
 
 struct rtc_offer
 {
 	rtc_offer_id id;
 	peer_id pid;
-	std::string sdp;
-	std::function<void(peer_id const &pid, rtc_answer const&)> answer_callback;
+	std::string sdp; // session description in SDP format
+	std::function<void(peer_id const& pid, rtc_answer const& answer)> answer_callback;
 };
 
 // This class handles client signaling for WebRTC DataChannels
-class TORRENT_EXTRA_EXPORT rtc_signaling final : public std::enable_shared_from_this<rtc_signaling>
+struct TORRENT_EXTRA_EXPORT rtc_signaling final : std::enable_shared_from_this<rtc_signaling>
 {
-public:
 	using offers_handler = std::function<void(error_code const&, std::vector<rtc_offer> const&)>;
-	using description_handler = std::function<void(error_code const&, std::string const& description)>;
-	using rtc_stream_handler = std::function<void(peer_id const &pid, rtc_stream_init&)>;
+	using rtc_stream_handler = std::function<void(peer_id const &pid, rtc_stream_init)>;
 
 	explicit rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler);
 	~rtc_signaling();
@@ -117,14 +111,14 @@ public:
 	void process_offer(rtc_offer const& offer);
 	void process_answer(rtc_answer const& answer);
 
-	// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
 	void debug_log(const char* fmt, ...) const noexcept TORRENT_FORMAT(2,3);
 #endif
 
 private:
-	using waitable_timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
+	using description_handler = std::function<void(error_code const&, std::string const& description)>;
+
 	struct connection
 	{
 		explicit connection(io_context& ioc) : timer(ioc) {}
@@ -133,7 +127,7 @@ private:
 		std::shared_ptr<rtc::DataChannel> data_channel;
 		std::optional<peer_id> pid;
 
-		waitable_timer timer;
+		deadline_timer timer;
 	};
 
 	rtc_offer_id generate_offer_id() const;
@@ -145,22 +139,21 @@ private:
 
 	io_context& m_io_context;
 	torrent* m_torrent;
-	const rtc_stream_handler m_rtc_stream_handler;
+	rtc_stream_handler m_rtc_stream_handler;
 
-	std::unordered_map<rtc_offer_id, connection, rtc_offer_id_hash> m_connections;
+	std::unordered_map<rtc_offer_id, connection, boost::hash<std::vector<char>>> m_connections;
 	std::queue<rtc_offer_id> m_queue;
 
-	class offer_batch
+	struct offer_batch
 	{
-	public:
 		offer_batch(int count, offers_handler handler);
 
-		void add(error_code const& ec, rtc_offer &&offer);
+		void add(error_code const& ec, rtc_offer offer);
 		bool is_complete() const;
 
 	private:
 		int m_count;
-		offers_handler const m_handler;
+		offers_handler m_handler;
 		std::vector<rtc_offer> m_offers;
 	};
 

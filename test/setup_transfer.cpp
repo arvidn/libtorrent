@@ -1140,6 +1140,53 @@ void stop_web_server()
 	web_server_pid = 0;
 }
 
+namespace {
+pid_type websocket_server_pid = 0;
+}
+
+int start_websocket_server(bool ssl, int min_interval)
+{
+	int port = 2000 + static_cast<int>(lt::random(6000));
+	error_code ec;
+	io_context ios;
+
+	// make sure the port we pick is free
+	do {
+		++port;
+		tcp::socket s(ios);
+		s.open(tcp::v4(), ec);
+		if (ec) break;
+		s.bind(tcp::endpoint(make_address("127.0.0.1")
+			, std::uint16_t(port)), ec);
+	} while (ec);
+
+	std::string python_exe = get_python();
+
+	char buf[200];
+	std::snprintf(buf, sizeof(buf), "%s ../websocket_server.py %d %d %d"
+		, python_exe.c_str(), port, ssl, min_interval);
+
+	std::printf("%s starting websocket server on port %d...\n", time_now_string(), port);
+
+	std::printf("%s\n", buf);
+	pid_type r = async_run(buf);
+	if (r == 0) abort();
+	websocket_server_pid = r;
+	std::printf("%s launched\n", time_now_string());
+	std::this_thread::sleep_for(lt::milliseconds(1000));
+	wait_for_port(port);
+	return port;
+}
+
+void stop_websocket_server()
+{
+	if (websocket_server_pid == 0) return;
+	std::printf("stopping websocket server\n");
+	stop_process(websocket_server_pid);
+	websocket_server_pid = 0;
+}
+
+
 tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;

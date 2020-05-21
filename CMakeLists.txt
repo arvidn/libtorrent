@@ -148,8 +148,7 @@ set(libtorrent_include_files
 	web_peer_connection
 	write_resume_data
 	xml_parse
-	ssl
-	websocket_tracker_connection)
+	ssl)
 
 set(libtorrent_kademlia_include_files
 	announce_flags
@@ -268,7 +267,8 @@ set(libtorrent_aux_include_files
 	win_util
 	rtc_signaling
 	rtc_stream
-	websocket_stream)
+	websocket_stream
+	websocket_tracker_connection)
 
 set(try_signal_include_files
 	try_signal
@@ -633,7 +633,7 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extens
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
 	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME webtorrent DEFAULT ON
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME webtorrent DEFAULT OFF
 	DESCRIPTION "build with WebTorrent support" DISABLED TORRENT_USE_RTC=0)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
 	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
@@ -749,6 +749,7 @@ endif()
 
 if (webtorrent)
 	option(USE_JUICE "Use libjuice instead of libnice for libdatachannel" ON)
+	option(RTC_ENABLE_WEBSOCKET "Enable WebSocket support in libdatachannel" OFF)
 	if(GNUTLS_FOUND)
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" ON)
 	else()
@@ -758,7 +759,9 @@ if (webtorrent)
 	if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
 		target_compile_options(datachannel-static PRIVATE
 			-Wno-pedantic
-			-Wno-unused-parameter)
+			-Wno-unused-parameter
+			-Wno-unused-variable
+			-Wno-format-nonliteral)
 	endif()
 	if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		target_compile_options(usrsctp-static PRIVATE

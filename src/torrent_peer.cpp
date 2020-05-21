@@ -264,11 +264,11 @@ namespace libtorrent {
 		: torrent_peer(0, false, src)
 		, pid(pid_)
 	{
-        is_v6_addr = false;
+		is_v6_addr = false;
 #if TORRENT_USE_I2P
-        is_i2p_addr = false;
+		is_i2p_addr = false;
 #endif
-        is_rtc_addr = true;
+		is_rtc_addr = true;
 	}
 #endif // TORRENT_USE_RTC
 
@@ -314,8 +314,8 @@ namespace libtorrent {
 		else
 #endif
 #if TORRENT_USE_RTC
-        if (is_rtc_addr) return libtorrent::address();
-        else
+		if (is_rtc_addr) return {};
+		else
 #endif
 		return static_cast<ipv4_peer const*>(this)->addr;
 	}

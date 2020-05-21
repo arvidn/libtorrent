@@ -44,7 +44,7 @@ English (en)
 Spanish (es)
 ------------
 
-  El pingüino Wenceslao hizo kilómetros bajo exhaustiva lluvia y 
+  El pingüino Wenceslao hizo kilómetros bajo exhaustiva lluvia y
   frío, añoraba a su querido cachorro.
   (Contains every letter and every accent, but not every combination
   of vowel + acute.)
@@ -56,7 +56,7 @@ French (fr)
   côté de l'alcôve ovoïde, où les bûches se consument dans l'âtre, ce
   qui lui permet de penser à la cænogenèse de l'être dont il est question
   dans la cause ambiguë entendue à Moÿ, dans un capharnaüm qui,
-  pense-t-il, diminue çà et là la qualité de son œuvre. 
+  pense-t-il, diminue çà et là la qualité de son œuvre.
 
   l'île exiguë
   Où l'obèse jury mûr
@@ -119,7 +119,7 @@ Russian (ru)
   (= Would a citrus live in the bushes of south? Yes, but only a fake one!)
 
   Съешь же ещё этих мягких французских булок да выпей чаю
-  (= Eat some more of these fresh French loafs and have some tea) 
+  (= Eat some more of these fresh French loafs and have some tea)
 
 Thai (th)
 ---------

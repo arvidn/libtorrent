@@ -116,8 +116,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);
-
 EXPORT void stop_web_server();
+
+EXPORT int start_websocket_server(bool ssl = false, int min_interval = 30);
+EXPORT void stop_websocket_server();
+
 EXPORT int start_proxy(int type);
 EXPORT void stop_proxy(int port);
 EXPORT void stop_all_proxies();

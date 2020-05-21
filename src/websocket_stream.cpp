@@ -7,14 +7,14 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
 
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the distribution.
-    * Neither the name of the author nor the names of its
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in
+	  the documentation and/or other materials provided with the distribution.
+	* Neither the name of the author nor the names of its
+	  contributors may be used to endorse or promote products derived
+	  from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -35,22 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_RTC
 
 #include "libtorrent/aux_/websocket_stream.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/random.hpp"
 
+#include "rtc/rtc.hpp" // for overloaded
+
 #include <boost/asio/connect.hpp>
 
 #include <algorithm>
 #include <tuple>
-
-namespace {
-	template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-	template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-}
 
 namespace libtorrent {
 namespace aux {
@@ -60,28 +56,24 @@ namespace error = boost::asio::error;
 using namespace std::placeholders;
 
 websocket_stream::websocket_stream(io_context& ios
-        , resolver_interface& resolver
-        , ssl::context* ssl_ctx
-        )
-    : m_io_service(ios)
-    , m_resolver(resolver)
-    , m_ssl_context(ssl_ctx)
-    , m_stream(std::in_place_type_t<stream_type>{}, ios)
-	, m_open(false)
-{
-
-}
-
-websocket_stream::~websocket_stream()
+		, resolver_interface& resolver
+		, ssl::context* ssl_ctx
+		)
+	: m_io_service(ios)
+	, m_resolver(resolver)
+	, m_ssl_context(ssl_ctx)
+	, m_stream(std::in_place_type_t<stream_type>{}, ios)
+ 	, m_open(false)
 {
 
 }
 
 void websocket_stream::close()
 {
-	m_connect_handler = nullptr;
+	if (auto handler = std::exchange(m_connect_handler, nullptr))
+		post(m_io_service, std::bind(std::move(handler), error::operation_aborted));
 
-	if(m_open)
+	if (m_open)
 	{
 		m_open = false;
 
@@ -107,42 +99,43 @@ void websocket_stream::set_user_agent(std::string user_agent)
 
 void websocket_stream::do_connect(std::string url)
 {
-	if(m_open)
+	if (m_open)
 	{
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, error::already_connected));
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), error::already_connected));
 		return;
 	}
 
 	m_url = std::move(url);
 
-	std::string protocol, hostname;
-	int port;
 	error_code ec;
-	std::tie(protocol, std::ignore, hostname,  port, m_target) = parse_url_components(m_url, ec);
-	if(ec)
+	auto [protocol, _ignored, hostname,  port, target] = parse_url_components(m_url, ec);
+	TORRENT_UNUSED(_ignored);
+	if (ec)
 	{
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, ec));
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
 		return;
 	}
 
-	if(protocol == "ws")
+	if (protocol == "ws")
 	{
 		m_stream.emplace<stream_type>(m_io_service);
 	}
-	else if(protocol == "wss" && m_ssl_context)
+	else if (protocol == "wss" && m_ssl_context)
 	{
 		m_stream.emplace<ssl_stream_type>(m_io_service, *m_ssl_context);
 	}
 	else {
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, error::no_protocol_option));
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), error::no_protocol_option));
 		return;
 	}
 
-	if(port <= 0) port = 443;
-	if(m_target.empty()) m_target = "/";
+	if (port <= 0) port = protocol == "ws" ? 80 : 443;
+
+	if (!target.empty()) m_target = std::move(target);
+	else m_target = "/";
 
 	do_resolve(hostname, port);
 }
@@ -155,23 +148,23 @@ void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_resolve");
 	m_resolver.async_resolve(m_hostname
 		, resolver_interface::abort_on_shutdown
-        , std::bind(&websocket_stream::on_resolve, shared_from_this(), _1, _2));
+		, std::bind(&websocket_stream::on_resolve, shared_from_this(), _1, _2));
 }
 
 void websocket_stream::on_resolve(error_code const& ec, std::vector<address> const& addresses)
 {
 	COMPLETE_ASYNC("websocket_stream::on_resolve");
-    if (ec)
-    {
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, ec));
-        return;
-    }
+	if (ec)
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
 
-    TORRENT_ASSERT(!addresses.empty());
+	TORRENT_ASSERT(!addresses.empty());
 
 	std::vector<tcp::endpoint> endpoints;
-    for (auto const& addr : addresses)
+	for (auto const& addr : addresses)
 		endpoints.emplace_back(addr, m_port);
 
 	do_tcp_connect(std::move(endpoints));
@@ -181,7 +174,7 @@ void websocket_stream::do_tcp_connect(std::vector<tcp::endpoint> endpoints)
 {
 	m_endpoints = std::move(endpoints);
 
-	auto tcp_stream = std::visit(overloaded
+	auto* tcp_stream = std::visit(rtc::overloaded
 		{
 			[&](stream_type &stream) { return &stream.next_layer(); }
 			, [&](ssl_stream_type &stream) { return &stream.next_layer().next_layer(); }
@@ -199,11 +192,11 @@ void websocket_stream::on_tcp_connect(error_code const& ec)
 {
 	COMPLETE_ASYNC("websocket_stream::on_tcp_connect");
 	if (ec)
-    {
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, ec));
-        return;
-    }
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
 
 	if (std::holds_alternative<ssl_stream_type>(m_stream)) do_ssl_handshake();
 	else do_handshake();
@@ -215,12 +208,12 @@ void websocket_stream::do_ssl_handshake()
 
 	error_code ec;
 	ssl::set_host_name(ssl::get_handle(ssl_stream), m_hostname, ec);
-    if (ec)
-    {
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, ec));
-        return;
-    }
+	if (ec)
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_ssl_handshake");
 	ssl_stream.async_handshake(ssl::stream_base::client
@@ -231,11 +224,11 @@ void websocket_stream::on_ssl_handshake(error_code const& ec)
 {
 	COMPLETE_ASYNC("websocket_stream::on_ssl_handshake");
 	if (ec)
-    {
-		if(auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(handler, ec));
-        return;
-    }
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
 
 	do_handshake();
 }
@@ -244,10 +237,14 @@ void websocket_stream::do_handshake()
 {
 	auto user_agent_handler = [user_agent = m_user_agent](websocket::request_type& req)
 		{
-			if(!user_agent.empty()) req.set(http::field::user_agent, user_agent);
+			if (!user_agent.empty()) req.set(http::field::user_agent, user_agent);
 		};
 
-    ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
+	std::string host = m_hostname;
+	if(m_port != 80 && m_port != 443)
+		host += std::string(":") + std::to_string(m_port);
+
+	ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
 	std::visit([&](auto& stream)
 		{
 #if BOOST_VERSION >= 107000
@@ -270,14 +267,14 @@ void websocket_stream::on_handshake(error_code const& ec)
 	COMPLETE_ASYNC("websocket_stream::on_handshake");
 	auto handler = std::exchange(m_connect_handler, nullptr);
 	if (ec)
-    {
-		if(handler) post(m_io_service, std::bind(handler, ec));
-        return;
-    }
+	{
+		if (handler) post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
 
 	m_open = true;
 
-	if(handler) post(m_io_service, std::bind(handler, ec));
+	if (handler) post(m_io_service, std::bind(std::move(handler), ec));
 	else close();
 }
 
@@ -287,14 +284,14 @@ void websocket_stream::on_read(error_code ec, std::size_t bytes_read, read_handl
 
 	if (ec) m_open = false;
 
-	post(m_io_service, std::bind(handler, ec, bytes_read));
+	post(m_io_service, std::bind(std::move(handler), ec, bytes_read));
 }
 
 void websocket_stream::on_write(error_code ec, std::size_t bytes_written, write_handler handler)
 {
 	COMPLETE_ASYNC("websocket_stream::on_write");
 
-	post(m_io_service, std::bind(handler, ec, bytes_written));
+	post(m_io_service, std::bind(std::move(handler), ec, bytes_written));
 }
 
 void websocket_stream::on_close(error_code)

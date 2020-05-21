@@ -245,7 +245,7 @@ namespace libtorrent {
 		rtc_peer(rtc_peer const&) = delete;
 		rtc_peer& operator=(rtc_peer const&) = delete;
 		rtc_peer(rtc_peer&&) = default;
-		rtc_peer& operator=(rtc_peer&&) = default;
+		rtc_peer& operator=(rtc_peer&&) & = default;
 
 		aux::string_ptr pid;
 	};
@@ -286,7 +286,14 @@ namespace libtorrent {
 		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
 #if TORRENT_USE_I2P || TORRENT_USE_RTC
-			if (rhs->is_i2p_addr == lhs->is_i2p_addr)
+			if (	true
+#if TORRENT_USE_I2P
+					&& rhs->is_i2p_addr == lhs->is_i2p_addr
+#endif
+#if TORRENT_USE_RTC
+					&& rhs->is_rtc_addr == lhs->is_rtc_addr
+#endif
+			)
 				return lhs->dest().compare(rhs->dest()) < 0;
 #endif
 			return lhs->address() < rhs->address();
