@@ -50,40 +50,18 @@ namespace libtorrent
 using lt::exists;
 using lt::remove;
 
-std::vector<char> load_file(std::string const& filename, error_code& ec
-	, int limit)
+std::vector<char> load_file(char const* filename)
 {
-	ec.clear();
-	std::vector<char> ret;
-	file f;
-	f.open(filename, open_mode::read_only, ec);
-	if (ec) return ret;
-	std::int64_t s = f.get_size(ec);
-	if (ec) return ret;
-	if (s > limit)
-	{
-		ec = error_code(errors::metadata_too_large, libtorrent_category());
-		return ret;
-	}
-	ret.resize(s);
-	if (s == 0) return ret;
-	iovec_t b = {ret.data(), s };
-	std::int64_t const read = f.readv(0, b, ec);
-	if (read != s) return ret;
-	return ret;
+	std::ifstream ifs(filename, std::ios_base::binary);
+	ifs.unsetf(std::ios_base::skipws);
+	return {std::istream_iterator<char>(ifs), std::istream_iterator<char>()};
 }
 
-int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
+int save_file(std::string const& filename, std::vector<char> const& v)
 {
-	file f;
-	ec.clear();
-	if (!f.open(filename, open_mode::write_only, ec)) return -1;
-	if (ec) return -1;
-	iovec_t b = {&v[0], int(v.size())};
-	std::int64_t written = f.writev(0, b, ec);
-	if (written != int(v.size())) return -3;
-	if (ec) return -3;
-	return 0;
+	std::fstream f(filename, std::ios_base::trunc | std::ios_base::out | std::ios_base::binary);
+	f.write(v.data(), v.size());
+	return !f.fail();
 }
 
 save_settings::save_settings(session& s, settings_pack const& sett
@@ -145,7 +123,7 @@ void save_settings::save(error_code& ec) const
 	}
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), sett);
-	save_file(m_settings_file, buf, ec);
+	save_file(m_settings_file, buf);
 }
 
 namespace {
@@ -153,8 +131,7 @@ void load_settings_impl(session_params& params, std::string const& filename
 	, error_code& ec)
 {
 	ec.clear();
-	std::vector<char> buf = load_file(filename, ec);
-	if (ec) return;
+	std::vector<char> buf = load_file(filename.c_str());
 
 	bdecode_node sett = bdecode(buf, ec);
 	if (ec) return;

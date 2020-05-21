@@ -120,8 +120,8 @@ auto_load::auto_load(session& s, save_settings_interface* sett)
 
 	if (m_settings)
 	{
-		int interval = m_settings->get_int("autoload_interval", -1);
-		if (interval != -1) set_scan_interval(interval);
+		int const interval = m_settings->get_int("autoload_interval", -1);
+		if (interval != -1) set_scan_interval(std::chrono::seconds(interval));
 		std::string path = m_settings->get_str("autoload_dir", "");
 		if (!path.empty()) set_auto_load_dir(path);
 		int remove_files = m_settings->get_int("autoload_remove", -1);
@@ -172,30 +172,27 @@ void auto_load::set_auto_load_dir(std::string const& dir)
 	l.unlock();
 
 	// reset the timeout to use the new interval
-	error_code ec;
-	m_timer.expires_from_now(seconds(0), ec);
+	m_timer.expires_after(seconds(0));
 	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 
-void auto_load::set_scan_interval(int s)
+void auto_load::set_scan_interval(std::chrono::seconds s)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 	if (m_scan_interval == s) return;
 	m_scan_interval = s;
-	if (m_settings) m_settings->set_int("autoload_interval", s);
+	if (m_settings) m_settings->set_int("autoload_interval", s.count());
 	l.unlock();
 
 	// interval of 0 means disabled
-	if (m_scan_interval == 0)
+	if (m_scan_interval == std::chrono::seconds(0))
 	{
-		error_code ec;
-		m_timer.cancel(ec);
+		m_timer.cancel();
 		return;
 	}
 
 	// reset the timeout to use the new interval
-	error_code ec;
-	m_timer.expires_from_now(seconds(m_scan_interval), ec);
+	m_timer.expires_after(seconds(m_scan_interval));
 	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 
@@ -204,16 +201,14 @@ void auto_load::thread_fun()
 	// the std::mutex must be held while inspecting m_abort
 	std::unique_lock<std::mutex> l(m_mutex);
 
-	error_code ec;
-	m_timer.expires_from_now(seconds(1), ec);
+	m_timer.expires_after(seconds(1));
 	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 
 	while (!m_abort)
 	{
 		l.unlock();
-		m_ios.reset();
-		error_code ec;
-		m_ios.run(ec);
+		m_ios.restart();
+		m_ios.run();
 		l.lock();
 	}
 }
@@ -225,7 +220,7 @@ void auto_load::on_scan(error_code const& e)
 	if (m_abort) return;
 
 	// interval of 0 means disabled
-	if (m_scan_interval == 0) return;
+	if (m_scan_interval == std::chrono::seconds(0)) return;
 	
 	std::string path = m_dir;
 	bool remove_files = m_remove_files;
@@ -270,13 +265,13 @@ void auto_load::on_scan(error_code const& e)
 	}
 
 	l.lock();
-	int interval = m_scan_interval;
+	std::chrono::seconds interval = m_scan_interval;
 	l.unlock();
 
 	// interval of 0 means disabled
-	if (interval == 0) return;
+	if (interval == std::chrono::seconds(0)) return;
 
-	m_timer.expires_from_now(seconds(interval), ec);
+	m_timer.expires_after(interval);
 	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 

@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace std::placeholders;
 
-namespace io = libtorrent::detail;
+namespace io = libtorrent::aux;
 
 enum rpc_type_t
 {
@@ -657,7 +657,7 @@ void deluge::handle_get_torrents_status(conn_state* st)
 		MAYBE_ADD(out.append_int(i->download_payload_rate > 0
 			? (i->total_wanted - i->total_wanted_done) / i->download_payload_rate : -1));
 		MAYBE_ADD(out.append_list(0)); // TODO: support file_priorities
-		MAYBE_ADD(out.append_string(i->info_hash.to_string()));
+		MAYBE_ADD(out.append_string(i->info_hash.get_best().to_string()));
 		MAYBE_ADD(out.append_bool(i->auto_managed));
 		MAYBE_ADD(out.append_bool(i->is_finished));
 
@@ -1168,7 +1168,7 @@ void deluge::do_stop()
 
 void deluge::stop()
 {
-	m_ios.post(std::bind(&deluge::do_stop, this));
+	post(m_ios, std::bind(&deluge::do_stop, this));
 
 	m_accept_thread->join();
 	m_accept_thread.reset();

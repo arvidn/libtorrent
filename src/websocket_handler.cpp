@@ -41,7 +41,7 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		namespace io = libtorrent::detail;
+		namespace io = libtorrent::aux;
 
 		auto i = m_open_sockets.find(conn);
 		if (i == m_open_sockets.end())

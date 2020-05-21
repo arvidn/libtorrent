@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/alert_types.hpp"
 

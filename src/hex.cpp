@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/span.hpp"
+#include "hex.hpp"
 #include <string>
 
 namespace libtorrent {

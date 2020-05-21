@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/io_service.hpp"
 #include <mutex>
 #include "libtorrent/error_code.hpp"
 
@@ -78,8 +77,8 @@ namespace libtorrent
 	void load_settings(session_params& params, std::string const& filename
 		, error_code& ec);
 
-	std::vector<char> load_file(std::string const& filename, error_code& ec, int limit = 8000000);
-	int save_file(std::string const& filename, std::vector<char>& v, error_code& ec);
+	std::vector<char> load_file(char const* filename);
+	int save_file(std::string const& filename, std::vector<char> const& v);
 
 }
 

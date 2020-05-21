@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent_webui.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace {
 
-	namespace io = libtorrent::detail;
+	namespace io = libtorrent::aux;
 
 	struct rpc_entry
 	{
@@ -249,7 +249,8 @@ namespace {
 
 			++num_torrents;
 			// first write the info-hash
-			std::copy(i->status.info_hash.begin(), i->status.info_hash.end(), ptr);
+			auto const ih = i->status.info_hash.get_best();
+			std::copy(ih.begin(), ih.end(), ptr);
 			// then 64 bits of bitmask, indicating which fields
 			// are included in the update for this torrent
 			io::write_uint64(bitmask, ptr);
@@ -933,7 +934,7 @@ namespace {
 
 	bool libtorrent_webui::call_rpc(mg_connection* conn, int function, char const* data, int len)
 	{
-		buffer buf(len + 3);
+		lt::aux::buffer buf(len + 3);
 		char* ptr = &buf[0];
 		TORRENT_ASSERT(function >= 0 && function < 128);
 

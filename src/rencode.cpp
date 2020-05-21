@@ -107,7 +107,7 @@ std::int64_t rtok_t::integer(char const* buffer) const
 
 	char const* cursor = &buffer[m_offset + 1];
 
-	namespace io = libtorrent::detail;
+	namespace io = libtorrent::aux;
 
 	if (m_typecode == CHR_INT1)
 		return io::read_int8(cursor);
@@ -154,7 +154,7 @@ double rtok_t::floating_point(char const* buffer) const
 
 	TORRENT_ASSERT(type() == type_float);
 
-	namespace io = libtorrent::detail;
+	namespace io = libtorrent::aux;
 
 	char const* cursor = &buffer[m_offset];
 	if (m_typecode == CHR_FLOAT32)
@@ -186,7 +186,7 @@ int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len)
 // return the number of slots used in the tokens array
 int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int num_tokens)
 {
-	namespace io = libtorrent::detail;
+	namespace io = libtorrent::aux;
 
 	if (num_tokens == 0) return -1;
 

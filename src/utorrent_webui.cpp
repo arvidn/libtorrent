@@ -62,6 +62,7 @@ extern "C" {
 #include "libtorrent/string_util.hpp" // for string_begins_no_case
 #include "libtorrent/span.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/io.hpp"
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
@@ -72,7 +73,7 @@ extern "C" {
 namespace libtorrent
 {
 
-	namespace io = detail;
+	namespace io = aux;
 
 utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	, auto_load* al, torrent_history* hist
@@ -577,7 +578,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 			",[\"dir_autoload_flag\",1,\"%s\",{\"access\":\"%c\"}]" + first
 			, escape_json(m_al->auto_load_dir()).c_str()
 			, p->allow_set_settings(-1) ? 'Y' : 'R'
-			, m_al->scan_interval() ? "true" : "false"
+			, m_al->scan_interval().count() != 0 ? "true" : "false"
 			, p->allow_set_settings(-1) ? 'Y' : 'R');
 		first = 0;
 	}
@@ -748,7 +749,7 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		else if (key == "dir_autoload_flag" && m_al)
 		{
 			if (!p->allow_set_settings(-1)) continue;
-			m_al->set_scan_interval(to_bool(value) ? 0 : 20);
+			m_al->set_scan_interval(std::chrono::seconds(to_bool(value) ? 0 : 20));
 		}
 		else if (key == "dir_active_download")
 		{

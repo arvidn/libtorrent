@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <condition_variable>
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/settings_pack.hpp"
 
 #include <boost/asio/ssl.hpp>
@@ -106,7 +106,7 @@ namespace libtorrent
 		session& m_ses;
 		auth_interface const* m_auth;
 		add_torrent_params m_params_model;
-		io_service m_ios;
+		io_context m_ios;
 		tcp::acceptor* m_listen_socket;
 		std::unique_ptr<std::thread> m_accept_thread;
 		std::vector<std::thread> m_threads;
