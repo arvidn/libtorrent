@@ -129,8 +129,10 @@ void run_test(
 
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
+	int const num_pieces = (flags & tx::large_torrent) ? 1027 : 9;
+
 	// the first peer is a downloader, the second peer is a seed
-	lt::add_torrent_params params = ::create_torrent(1, true, 9
+	lt::add_torrent_params params = ::create_torrent(1, true, num_pieces
 		, (flags & tx::v2_only) ? create_torrent::v2_only
 		: (flags & tx::v1_only) ? create_torrent::v1_only
 		: create_flags_t{});
@@ -148,8 +150,9 @@ void run_test(
 	}
 	ses[0]->async_add_torrent(params);
 
+	auto const timeout = (flags & tx::large_torrent) ? lt::seconds(150) : lt::seconds(60);
 
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
+	sim::timer t(sim, timeout, [&](boost::system::error_code const&)
 	{
 		test(ses);
 
@@ -377,9 +380,11 @@ TORRENT_TEST(v2_only_magnet)
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
 		}
-		, tx::v2_only | tx::magnet_download
+		// if the torrent isn't large enough, the hash picker won't have the
+		// most interesting paths exercised
+		, tx::v2_only | tx::magnet_download | tx::large_torrent
 	);
-	TEST_EQUAL(passed.size(), 10);
+	TEST_EQUAL(passed.size(), 1028);
 }
 
 TORRENT_TEST(v1_only)
