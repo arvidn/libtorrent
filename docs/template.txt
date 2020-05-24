@@ -1,17 +1,6 @@
 %(head_prefix)s
 %(head)s
 <meta name=viewport content="width=device-width, initial-scale=1">
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'https://api.flattr.com/js/0.6/load.js?mode=auto';
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 %(stylesheet)s
 <link rel="stylesheet" type="text/css" href="rst.css" />
 <style type="text/css">

@@ -2,7 +2,7 @@
 # (python-docutils) as well as aafigure (python-aafigure)
 
 ifneq ($(STAGE),)
-WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
+WEB_PATH = ~/web/products/libtorrent
 endif
 
 ifndef RST2HTML
