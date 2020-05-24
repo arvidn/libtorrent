@@ -6443,48 +6443,7 @@ namespace {
 
 		auto const& f = m_torrent_file->internal_merkle_trees()[req.file];
 
-		// given the full size of the tree, half of it, rounded up, are leaf nodes
-		int const base_layer_idx = merkle_num_layers(
-			aux::numeric_cast<int>((f.size() + 1) / 2))
-			- req.base;
-		int const base_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
-
-		int layer_start_idx = base_start_idx;
-
-		std::vector<sha256_hash> ret;
-
-		for (int i = 0; i < req.count; ++i)
-		{
-			if (!f.has_node(layer_start_idx + i))
-				return {};
-			ret.push_back(f[layer_start_idx + i]);
-		}
-
-		// the number of layers up the tree which can be computed from the base layer hashes
-		// subtract one because the base layer doesn't count
-		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(req.count)) - 1;
-		int const proof_layers = req.proof_layers;
-
-		for (int i = 0; i < proof_layers; ++i)
-		{
-			layer_start_idx = merkle_get_parent(layer_start_idx);
-
-			// if this assert fire, the requester set proof_layers too high
-			// and it wasn't correctly validated
-			TORRENT_ASSERT(layer_start_idx > 0);
-
-			if (i >= base_tree_layers)
-			{
-				int const sibling = merkle_get_sibling(layer_start_idx);
-
-				if (!f.has_node(layer_start_idx) || !f.has_node(sibling))
-					return {};
-
-				ret.push_back(f[sibling]);
-			}
-		}
-
-		return ret;
+		return f.get_hashes(req.base, req.index, req.count, req.proof_layers);
 	}
 
 	bool torrent::add_hashes(hash_request const& req, span<sha256_hash> hashes)

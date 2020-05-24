@@ -297,6 +297,11 @@ namespace aux {
 		return merkle_first_leaf(piece_layer_size);
 	}
 
+	int merkle_tree::num_leafs() const
+	{
+		return merkle_num_leafs(m_num_blocks);
+	}
+
 	bool merkle_tree::has_node(int const idx) const
 	{
 		switch (m_mode)
@@ -460,6 +465,50 @@ namespace aux {
 			m_mode = mode_t::piece_layer;
 			return;
 		}
+	}
+
+	std::vector<sha256_hash> merkle_tree::get_hashes(int const base
+		, int const index, int const count, int const proof_layers) const
+	{
+		// given the full size of the tree, half of it, rounded up, are leaf nodes
+		int const base_layer_idx = merkle_num_layers(num_leafs()) - base;
+		int const base_start_idx = merkle_to_flat_index(base_layer_idx, index);
+
+		int layer_start_idx = base_start_idx;
+
+		std::vector<sha256_hash> ret;
+
+		for (int i = 0; i < count; ++i)
+		{
+			if (!has_node(layer_start_idx + i))
+				return {};
+			ret.push_back((*this)[layer_start_idx + i]);
+		}
+
+		// the number of layers up the tree which can be computed from the base layer hashes
+		// subtract one because the base layer doesn't count
+		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(count)) - 1;
+
+		for (int i = 0; i < proof_layers; ++i)
+		{
+			layer_start_idx = merkle_get_parent(layer_start_idx);
+
+			// if this assert fire, the requester set proof_layers too high
+			// and it wasn't correctly validated
+			TORRENT_ASSERT(layer_start_idx > 0);
+
+			if (i >= base_tree_layers)
+			{
+				int const sibling = merkle_get_sibling(layer_start_idx);
+
+				if (!has_node(layer_start_idx) || !has_node(sibling))
+					return {};
+
+				ret.push_back((*this)[sibling]);
+			}
+		}
+
+		return ret;
 	}
 
 }

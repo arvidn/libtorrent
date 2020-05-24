@@ -110,6 +110,9 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	std::tuple<set_block_result, int, int> set_block(int block_index
 		, sha256_hash const& h);
 
+	std::vector<sha256_hash> get_hashes(int base
+		, int index, int count, int proof_layers) const;
+
 private:
 
 	int blocks_per_piece() const { return 1 << m_blocks_per_piece_log; }
@@ -117,6 +120,7 @@ private:
 	int block_layer_start() const;
 	int piece_layer_start() const;
 	int num_pieces() const;
+	int num_leafs() const;
 
 	void optimize_storage();
 	void allocate_full();
