@@ -413,6 +413,39 @@ namespace
         s.set_alert_notify(std::bind(&alert_notify, cb));
     }
 
+#ifdef TORRENT_WINDOWS
+    void alert_socket_notify(SOCKET const fd)
+    {
+        std::uint8_t dummy = 0;
+        ::send(fd, reinterpret_cast<char const*>(&dummy), 1, 0);
+    }
+#endif
+
+    void alert_fd_notify(int const fd)
+    {
+        std::uint8_t dummy = 0;
+        while (::write(fd, &dummy, 1) < 0 && errno == EINTR);
+    }
+
+    void set_alert_fd(lt::session& s, std::intptr_t const fd)
+    {
+#ifdef TORRENT_WINDOWS
+        auto const sock = static_cast<SOCKET>(fd);
+        int res;
+        int res_size = sizeof(res);
+        if (sock != INVALID_SOCKET
+            && ::getsockopt(sock, SOL_SOCKET, SO_ERROR,
+                (char *)&res, &res_size) == 0)
+        {
+            s.set_alert_notify(std::bind(&alert_socket_notify, sock));
+        }
+        else
+#endif
+        {
+            s.set_alert_notify(std::bind(&alert_fd_notify, fd));
+        }
+    }
+
     alert const*
     wait_for_alert(lt::session& s, int ms)
     {
@@ -1053,6 +1086,7 @@ void bind_session()
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("set_alert_notify", &set_alert_notify)
+        .def("set_alert_fd", &set_alert_fd)
         .def("add_extension", &add_extension)
 #if TORRENT_ABI_VERSION == 1
 #if TORRENT_USE_I2P

@@ -561,3 +561,6 @@ NOTSENT
 LOWAT
 Dstatic
 DOPENSSL
+fd
+socketpair
+fileno

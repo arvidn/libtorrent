@@ -15,6 +15,8 @@ import sys
 import pickle
 import threading
 import tempfile
+import socket
+import select
 
 import dummy_data
 
@@ -457,6 +459,22 @@ class test_alerts(unittest.TestCase):
         print(st.last_upload)
         print(st.last_download)
         self.assertEqual(st.save_path, os.getcwd())
+
+    def test_alert_fs(self):
+        ses = lt.session(settings)
+        s1, s2 = socket.socketpair()
+        ses.set_alert_fd(s2.fileno())
+
+        ses.pop_alerts()
+
+        # make sure there's an alert to wake us up
+        ses.post_session_stats()
+
+        read_sockets, write_sockets, error_sockets = select.select([s1], [], [])
+
+        self.assertEqual(len(read_sockets), 1)
+        for s in read_sockets:
+            s.recv(10)
 
     def test_pop_alerts(self):
         ses = lt.session(settings)
