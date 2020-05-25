@@ -374,13 +374,30 @@ TORRENT_TEST(merkle_fill_tree)
 TORRENT_TEST(merkle_root)
 {
 	// all leaves in the tree
-	TEST_CHECK(merkle_root(v{a,b,c,d,e,f,g,h}, 8, o) == ah);
+	TEST_CHECK(merkle_root(v{a,b,c,d,e,f,g,h}, o) == ah);
 
 	// not power-of-two number of leaves
-	TEST_CHECK(merkle_root(v{a,b,c,d,e,f}, 8, o) == H(ad, H(ef, H(o, o))));
+	TEST_CHECK(merkle_root(v{a,b,c,d,e,f}, o) == H(ad, H(ef, H(o, o))));
 
 	// very small tree
-	TEST_CHECK(merkle_root(v{a,b}, 2, o) == ab);
+	TEST_CHECK(merkle_root(v{a,b}, o) == ab);
+}
+
+TORRENT_TEST(merkle_root_scratch)
+{
+	std::vector<sha256_hash> buf;
+
+	// all leaves in the tree
+	TEST_CHECK(merkle_root_scratch(v{a,b,c,d,e,f,g,h}, 8, o, buf) == ah);
+
+	// not power-of-two number of leaves
+	TEST_CHECK(merkle_root_scratch(v{a,b,c,d,e,f}, 8, o, buf) == H(ad, H(ef, H(o, o))));
+
+	// very small tree
+	TEST_CHECK(merkle_root_scratch(v{a,b}, 2, o, buf) == ab);
+
+	// unaligned leaf layer
+	TEST_CHECK(merkle_root_scratch(v{a,b,c}, 8, o, buf) == H(H(ab, H(c, o)), H(H(o,o), H(o,o))));
 }
 
 namespace {
