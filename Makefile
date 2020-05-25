@@ -78,12 +78,11 @@ DOCS_IMAGES = \
   docs/bitcoin.png                \
   docs/style.css                  \
   docs/rst.css                    \
-  docs/img/bg.png                 \
   docs/img/blue_bottom.png        \
   docs/img/blue_top.png           \
   docs/img/dotline.gif            \
   docs/img/minus.gif              \
-  docs/img/orange.png             \
+  docs/img/logo-color-text.png    \
   docs/join_rst.py
 
 DOCS_PAGES = \

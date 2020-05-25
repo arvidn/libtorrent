@@ -10,10 +10,9 @@
 </style>
 %(body_prefix)s
     <div id="container">
-    <a href="index.html"><table id="header">
-    <tr><td id="orange"></td>
-    <td id="logo">libtorrent</td></tr>
-    </table></a>
+    <a href="index.html"><div id="logo">
+    <img src="img/logo-color-text.png"/>
+    </div></a>
     <div id="main">
 %(body_pre_docinfo)s
 %(docinfo)s

@@ -67,9 +67,11 @@ FIGURES = \
 	utp_stack \
 	storage \
 	troubleshooting \
-	screenshot_thumb
+	screenshot_thumb \
+	img/logo-color \
+	img/logo-bw
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico
 
 rst: $(TARGETS:=.rst) todo.html
 
@@ -77,7 +79,34 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.png)
 
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
-all: html pdf
+all: html pdf favicon.ico
+
+img/logo-color-text.png: img/logo-color-text.svg
+	convert -background transparent $? -resize 400 $@
+ifneq ($(STAGE),)
+	cp $@ $(WEB_PATH)/$@
+endif
+
+img/%.png: img/%.svg
+	convert -background transparent $? -resize 128x128 $@
+ifneq ($(STAGE),)
+	cp $@ $(WEB_PATH)/$@
+endif
+
+favicon.ico: favicon-16.png favicon-32.png favicon-64.png
+	icotool -o $@ -c favicon-16.png favicon-32.png favicon-64.png
+ifneq ($(STAGE),)
+	cp $@ $(WEB_PATH)/$@
+endif
+
+favicon-16.png: img/logo-color.svg
+	convert -background transparent $? -resize 16x16 $@
+
+favicon-32.png: img/logo-color.svg
+	convert -background transparent $? -resize 32x32 $@
+
+favicon-64.png: img/logo-color.svg
+	convert -background transparent $? -resize 64x64 $@
 
 single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
 	python3 join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
@@ -155,5 +184,5 @@ ifneq ($(STAGE),)
 endif
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
 

@@ -36,6 +36,7 @@ matrix:
           - python-pygments
           - python-pil
           - python-aafigure
+          - icoutils
           - graphviz
     - env: cmake=1 toolset=gcc install_boost=1
       addons:
@@ -112,7 +113,7 @@ before_install:
   # as the pip packages may break if the version of python they used gets pulled
   # from under them
   - 'if [ "$docs" = "1" ]; then
-       travis_retry brew install graphviz hunspell imagemagick;
+       travis_retry brew install graphviz hunspell imagemagick icoutils;
        ${PIP} install docutils;
        ${PIP} install Pygments;
        ${PIP} install aafigure;

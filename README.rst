@@ -1,5 +1,6 @@
-libtorrent
-----------
+.. image:: docs/img/logo-color-text.png
+
+|
 
 .. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
     :target: https://travis-ci.org/arvidn/libtorrent
