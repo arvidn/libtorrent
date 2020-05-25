@@ -84,29 +84,6 @@ div.section p, div.section ul, div.section dl {
     border: none;
 }
 
-#orange {
-    margin: 0;
-    padding: 0;
-    width: 159px;
-    height: 116px;
-    border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px;
-    background: url('img/orange.png') no-repeat top left;
-}
-
-#logo {
-    margin: 0;
-    padding: 0;
-    text-align: center;
-    color: white;
-    font-size: 50pt;
-    height: 116px;
-    font-family: Georgia;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-    background: url('img/bg.png');
-}
-
 #gradient {
     width: 100%;
     clear: both;
