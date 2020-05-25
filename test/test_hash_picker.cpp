@@ -286,6 +286,65 @@ TORRENT_TEST(add_piece_hashes)
 	TEST_CHECK(std::equal(cmp.begin(), cmp.begin() + merkle_num_nodes(1024), full_tree.begin()));
 }
 
+TORRENT_TEST(add_piece_hashes_padded)
+{
+	file_storage fs;
+	fs.set_piece_length(4 * 16 * 1024);
+
+	fs.add_file("test/tmp1", 4 * 1029 * 16 * 1024);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 1029);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 1029, 4, root.data());
+
+	hash_picker picker(fs, trees);
+
+	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
+
+	std::vector<sha256_hash> hashes;
+	// 5 hashes left after 1024 rounds up to 8, 1024 + 8 = 1032
+	std::copy(full_tree.begin() + pieces_start + 1024, full_tree.begin() + pieces_start + 1032
+		, std::back_inserter(hashes));
+	auto proof = merkle_get_parent(merkle_get_parent(merkle_get_parent(pieces_start + 1024)));
+	while (proof > 0)
+	{
+		hashes.push_back(full_tree[merkle_get_sibling(proof)]);
+		proof = merkle_get_parent(proof);
+	}
+	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 1024, 8, 10), hashes);
+	TEST_CHECK(result.valid);
+}
+
+TORRENT_TEST(add_piece_hashes_unpadded)
+{
+	file_storage fs;
+	fs.set_piece_length(4 * 16 * 1024);
+
+	fs.add_file("test/tmp1", 4 * 1029 * 16 * 1024);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 1029);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 1029, 4, root.data());
+
+	hash_picker picker(fs, trees);
+
+	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
+
+	std::vector<sha256_hash> hashes;
+	std::copy(full_tree.begin() + pieces_start + 1024, full_tree.begin() + pieces_start + 1029
+		, std::back_inserter(hashes));
+	auto proof = merkle_get_parent(merkle_get_parent(merkle_get_parent(pieces_start + 1024)));
+	while (proof > 0)
+	{
+		hashes.push_back(full_tree[merkle_get_sibling(proof)]);
+		proof = merkle_get_parent(proof);
+	}
+	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 1024, 5, 10), hashes);
+	TEST_CHECK(result.valid);
+}
+
 TORRENT_TEST(add_bad_hashes)
 {
 	file_storage fs;

@@ -236,7 +236,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				return hash_request(fidx
 					, m_piece_layer
 					, i * 512
-					, std::min(512, int(m_files.file_num_pieces(fidx) - i * 512))
+					, std::min(512, merkle_num_leafs(int(m_files.file_num_pieces(fidx) - i * 512)))
 					, layers_to_verify({ fidx, piece_tree_root }) + piece_tree_num_layers);
 			}
 		}
@@ -248,8 +248,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	{
 		TORRENT_ASSERT(validate_hash_request(req, m_files));
 
-		int const count = merkle_num_leafs(req.count);
-		int const base_num_layers = merkle_num_layers(count);
+		int const unpadded_count = std::min(req.count, m_files.file_num_pieces(req.file) - req.index);
+		int const leaf_count = merkle_num_leafs(req.count);
+		int const base_num_layers = merkle_num_layers(leaf_count);
 		int const num_uncle_hashes = std::max(0, req.proof_layers - base_num_layers + 1);
 
 		if (req.count + num_uncle_hashes != hashes.size())
@@ -258,7 +259,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		// for now we rely on only requesting piece hashes in 512 chunks
 		if (req.base == m_piece_layer
 			&& req.count != 512
-			&& req.count != m_files.file_num_pieces(req.file) - req.index)
+			&& (req.count > 512 || unpadded_count != m_files.file_num_pieces(req.file) - req.index))
 			return add_hashes_result(false);
 
 		// for now we only support receiving hashes at the piece and leaf layers
@@ -275,19 +276,19 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		TORRENT_ASSERT(uncle_hashes.size() == num_uncle_hashes);
 
-		aux::vector<sha256_hash> tree(merkle_num_nodes(count));
-		std::copy(hashes.begin(), hashes.end(), tree.end() - count);
+		aux::vector<sha256_hash> tree(merkle_num_nodes(leaf_count));
+		std::copy(hashes.begin(), hashes.end(), tree.end() - leaf_count);
 
 		// the end of a file is a special case, we may need to pad the leaf layer
-		if (req.base == m_piece_layer && count != req.count)
+		if (req.base == m_piece_layer && leaf_count != req.count)
 		{
 			sha256_hash const pad_hash = merkle_pad(
 				m_files.piece_length() / default_block_size, 1);
-			for (int i = req.count; i < count; ++i)
-				tree[tree.end_index() - count + i] = pad_hash;
+			for (int i = req.count; i < leaf_count; ++i)
+				tree[tree.end_index() - leaf_count + i] = pad_hash;
 		}
 
-		merkle_fill_tree(tree, count);
+		merkle_fill_tree(tree, leaf_count);
 
 		int const base_layer_idx = file_num_layers(req.file) - req.base;
 
@@ -317,7 +318,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		if (req.base == 0)
 		{
-			std::fill_n(m_hash_verified[req.file].begin() + req.index, req.count, true);
+			std::fill_n(m_hash_verified[req.file].begin() + req.index, unpadded_count, true);
 			// TODO: add passing pieces to ret.hash_passed
 		}
 		else
