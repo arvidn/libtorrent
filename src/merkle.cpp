@@ -173,23 +173,46 @@ namespace libtorrent {
 
 	// compute the merkle tree root, given the leaves and the has to use for
 	// padding
-	sha256_hash merkle_root_scratch(span<sha256_hash const> const leaves
-		, int const num_leafs, sha256_hash const& pad
+	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves
+		, int num_leafs, sha256_hash pad
 		, std::vector<sha256_hash>& scratch_space)
 	{
 		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
 
-		// TODO this can be optimized to use at least half as much memory
-		int const num_blocks = int(leaves.size());
-		int const num_nodes = merkle_num_nodes(num_leafs);
-		int const first_leaf = num_nodes - num_leafs;
-		scratch_space.resize(num_nodes);
-		for (int i = 0; i < num_blocks; ++i)
-			scratch_space[first_leaf + i] = leaves[i];
-		for (int i = num_blocks; i < num_leafs; ++i)
-			scratch_space[first_leaf + i] = pad;
+		scratch_space.resize(std::size_t(leaves.size() + 1) / 2);
+		TORRENT_ASSERT(num_leafs > 0);
 
-		merkle_fill_tree(scratch_space, num_leafs);
+		if (num_leafs == 1) return leaves[0];
+
+		while (num_leafs > 1)
+		{
+			int i = 0;
+			for (; i < int(leaves.size()) / 2; ++i)
+			{
+				scratch_space[std::size_t(i)] = hasher256()
+					.update(leaves[i * 2])
+					.update(leaves[i * 2 + 1])
+					.final();
+			}
+			if (leaves.size() & 1)
+			{
+				// if we have an odd number of leaves, compute the boundary hash
+				// here, that spans both a payload-hash and a pad hash
+				scratch_space[std::size_t(i)] = hasher256()
+					.update(leaves[i * 2])
+					.update(pad)
+					.final();
+				++i;
+			}
+			// we don't have to copy any pad hashes into memory, they are implied
+			// just keep track of the current layer's pad hash
+			pad = hasher256().update(pad).update(pad).final();
+
+			// step one level up
+			leaves = span<sha256_hash const>(scratch_space.data(), i);
+			num_leafs /= 2;
+		}
+
 		return scratch_space[0];
 	}
 

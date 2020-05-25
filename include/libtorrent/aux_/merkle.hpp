@@ -87,7 +87,7 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT
 	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves, int num_leafs
-		, sha256_hash const& pad, std::vector<sha256_hash>& scratch_space);
+		, sha256_hash pad, std::vector<sha256_hash>& scratch_space);
 
 	// given a flat index, return which layer the node is in
 	TORRENT_EXTRA_EXPORT int merkle_get_layer(int idx);

@@ -381,6 +381,9 @@ TORRENT_TEST(merkle_root)
 
 	// very small tree
 	TEST_CHECK(merkle_root(v{a,b}, o) == ab);
+
+	// single hash-tree
+	TEST_CHECK(merkle_root(v{a}) == a);
 }
 
 TORRENT_TEST(merkle_root_scratch)
