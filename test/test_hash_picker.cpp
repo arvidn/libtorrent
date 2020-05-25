@@ -812,3 +812,114 @@ TORRENT_TEST(sparse_merkle_tree_block_layer)
 		TEST_CHECK(t[i] == f[i]);
 	}
 }
+
+namespace {
+using s = span<sha256_hash const>;
+
+span<sha256_hash const> range(std::vector<sha256_hash> const& c, int first, int count)
+{
+	return s(c).subspan(first, count);
+}
+}
+
+TORRENT_TEST(merkle_tree_get_hashes)
+{
+	aux::merkle_tree t(260, 2, f[0].data());
+
+	t.load_tree(span<sha256_hash const>(f).first(int(t.size())));
+
+	// all nodes leaf layer
+	{
+		auto h = t.get_hashes(0, 0, 260, 0);
+		TEST_CHECK(s(h) == range(f, 511, 260));
+	}
+
+	// all nodes leaf layer but the first
+	{
+		auto h = t.get_hashes(0, 1, 259, 0);
+		TEST_CHECK(s(h) == range(f, 512, 259));
+	}
+
+	// all nodes leaf layer but the last
+	{
+		auto h = t.get_hashes(0, 0, 259, 0);
+		TEST_CHECK(s(h) == range(f, 511, 259));
+	}
+
+	// one layer up
+	{
+		auto h = t.get_hashes(1, 0, 256, 0);
+		TEST_CHECK(s(h) == range(f, 255, 256));
+	}
+
+	// one layer up + one layer proof
+	{
+		auto h = t.get_hashes(1, 0, 4, 2);
+		TEST_CHECK(s(h).first(4) == range(f, 255, 4));
+
+		// the proof is the sibling to the root of the tree we got back.
+		// the hashes are rooted at 255 / 2 / 2 = 63
+		std::vector<sha256_hash> const proofs{f[merkle_get_sibling(63)]};
+		TEST_CHECK(s(h).subspan(4) == s(proofs));
+	}
+
+	// one layer up, hashes 2 - 10, 5 proof layers
+	{
+		auto h = t.get_hashes(1, 2, 8, 5);
+		TEST_CHECK(s(h).first(8) == range(f, 255 + 2, 8));
+
+		// the proof is the sibling to the root of the tree we got back.
+		int const start_proofs = merkle_get_parent(merkle_get_parent(merkle_get_parent(257)));
+		std::vector<sha256_hash> const proofs{
+			f[merkle_get_sibling(start_proofs)]
+			, f[merkle_get_sibling(merkle_get_parent(start_proofs))]
+			, f[merkle_get_sibling(merkle_get_parent(merkle_get_parent(start_proofs)))]
+			};
+		TEST_CHECK(s(h).subspan(8) == s(proofs));
+	}
+
+	// full tree
+	{
+		auto h = t.get_hashes(0, 0, 512, 8);
+		TEST_CHECK(s(h) == range(f, 511, 512));
+		// there won't be any proofs, since we got the full tree
+	}
+
+	// second half of the tree
+	{
+		auto h = t.get_hashes(0, 256, 256, 8);
+		TEST_CHECK(s(h).first(256) == range(f, 511 + 256, 256));
+
+		// there just one proof hash
+		std::vector<sha256_hash> const proofs{ f[1] };
+		TEST_CHECK(s(h).subspan(256) == s(proofs));
+	}
+
+	// 3rd quarter of the tree
+	{
+		auto h = t.get_hashes(0, 256, 128, 8);
+		TEST_CHECK(s(h).first(128) == range(f, 511 + 256, 128));
+
+		// there just two proof hashes
+		std::vector<sha256_hash> const proofs{ f[6], f[1] };
+		TEST_CHECK(s(h).subspan(128) == s(proofs));
+	}
+
+	// 3rd quarter of the tree, starting one layer up
+	{
+		auto h = t.get_hashes(1, 128, 64, 7);
+		TEST_CHECK(s(h).first(64) == range(f, 255 + 128, 64));
+
+		// still just two proof hashes
+		std::vector<sha256_hash> const proofs{ f[6], f[1] };
+		TEST_CHECK(s(h).subspan(64) == s(proofs));
+	}
+
+	// 3rd quarter of the tree, starting one layer up
+	// request no proof hashes
+	{
+		auto h = t.get_hashes(1, 128, 64, 0);
+		TEST_CHECK(s(h) == range(f, 255 + 128, 64));
+	}
+}
+

@@ -474,34 +474,36 @@ namespace aux {
 		int const base_layer_idx = merkle_num_layers(num_leafs()) - base;
 		int const base_start_idx = merkle_to_flat_index(base_layer_idx, index);
 
-		int layer_start_idx = base_start_idx;
+		int const layer_start_idx = base_start_idx;
 
 		std::vector<sha256_hash> ret;
 
-		for (int i = 0; i < count; ++i)
+		for (int i = layer_start_idx; i < layer_start_idx + count; ++i)
 		{
-			if (!has_node(layer_start_idx + i))
+			if ((base != 0 || i < m_num_blocks + layer_start_idx - index)
+				&& !has_node(i))
 				return {};
-			ret.push_back((*this)[layer_start_idx + i]);
+			ret.push_back((*this)[i]);
 		}
 
 		// the number of layers up the tree which can be computed from the base layer hashes
 		// subtract one because the base layer doesn't count
 		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(count)) - 1;
 
+		int proof_idx = layer_start_idx;
 		for (int i = 0; i < proof_layers; ++i)
 		{
-			layer_start_idx = merkle_get_parent(layer_start_idx);
+			proof_idx = merkle_get_parent(proof_idx);
 
 			// if this assert fire, the requester set proof_layers too high
 			// and it wasn't correctly validated
-			TORRENT_ASSERT(layer_start_idx > 0);
+			TORRENT_ASSERT(proof_idx > 0);
 
 			if (i >= base_tree_layers)
 			{
-				int const sibling = merkle_get_sibling(layer_start_idx);
+				int const sibling = merkle_get_sibling(proof_idx);
 
-				if (!has_node(layer_start_idx) || !has_node(sibling))
+				if (!has_node(proof_idx) || !has_node(sibling))
 					return {};
 
 				ret.push_back((*this)[sibling]);
