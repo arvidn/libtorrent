@@ -164,8 +164,18 @@ namespace libtorrent {
 
 	// compute the merkle tree root, given the leaves and the has to use for
 	// padding
-	sha256_hash merkle_root(span<sha256_hash const> leaves, int const num_leafs
-		, sha256_hash const& pad)
+	sha256_hash merkle_root(span<sha256_hash const> const leaves, sha256_hash const& pad)
+	{
+		int const num_leafs = merkle_num_leafs(int(leaves.size()));
+		aux::vector<sha256_hash> merkle_tree;
+		return merkle_root_scratch(leaves, num_leafs, pad, merkle_tree);
+	}
+
+	// compute the merkle tree root, given the leaves and the has to use for
+	// padding
+	sha256_hash merkle_root_scratch(span<sha256_hash const> const leaves
+		, int const num_leafs, sha256_hash const& pad
+		, std::vector<sha256_hash>& scratch_space)
 	{
 		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
 
@@ -173,14 +183,14 @@ namespace libtorrent {
 		int const num_blocks = int(leaves.size());
 		int const num_nodes = merkle_num_nodes(num_leafs);
 		int const first_leaf = num_nodes - num_leafs;
-		aux::vector<sha256_hash> merkle_tree(num_nodes);
+		scratch_space.resize(num_nodes);
 		for (int i = 0; i < num_blocks; ++i)
-			merkle_tree[first_leaf + i] = leaves[i];
+			scratch_space[first_leaf + i] = leaves[i];
 		for (int i = num_blocks; i < num_leafs; ++i)
-			merkle_tree[first_leaf + i] = pad;
+			scratch_space[first_leaf + i] = pad;
 
-		merkle_fill_tree(merkle_tree, num_leafs);
-		return merkle_tree[0];
+		merkle_fill_tree(scratch_space, num_leafs);
+		return scratch_space[0];
 	}
 
 	// returns the layer the given offset into the tree falls into.

@@ -83,8 +83,11 @@ namespace libtorrent {
 	// given the leaf hashes, computes the merkle root hash. The pad is the hash
 	// to use for the right-side padding, in case the number of leaves is not a
 	// power of two.
-	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves
-		, int num_leafs, sha256_hash const& pad = {});
+	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});
+
+	TORRENT_EXTRA_EXPORT
+	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves, int num_leafs
+		, sha256_hash const& pad, std::vector<sha256_hash>& scratch_space);
 
 	// given a flat index, return which layer the node is in
 	TORRENT_EXTRA_EXPORT int merkle_get_layer(int idx);

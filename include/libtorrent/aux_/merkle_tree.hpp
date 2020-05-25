@@ -115,6 +115,8 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 private:
 
+	sha256_hash get_impl(int idx, std::vector<sha256_hash>& scratch_space) const;
+
 	int blocks_per_piece() const { return 1 << m_blocks_per_piece_log; }
 
 	int block_layer_start() const;

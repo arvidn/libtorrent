@@ -194,8 +194,7 @@ namespace {
 				for (auto i = piece_blocks; i < padded_leafs; ++i)
 					v2_blocks[i].clear();
 				sha256_hash const piece_root = merkle_root(
-					span<sha256_hash>(v2_blocks).first(padded_leafs)
-					, merkle_num_leafs(padded_leafs));
+					span<sha256_hash>(v2_blocks).first(padded_leafs));
 				st->ct.set_hash2(current_file, file_piece_offset, piece_root);
 			}
 		}
@@ -632,8 +631,7 @@ namespace {
 				if (files().file_flags(fi) & file_storage::flag_pad_file) continue;
 				if (files().file_size(fi) == 0) continue;
 
-				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi]
-					, merkle_num_leafs(int(m_file_piece_hash[fi].size())), pad_hash);
+				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
 
 				if (m_file_piece_hash[fi].size() < 2) continue;
 				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();

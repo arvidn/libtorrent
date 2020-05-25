@@ -84,7 +84,7 @@ namespace aux {
 		for (int n = 0; n < npieces; ++n)
 			pieces[n].assign(piece_layer.data() + n * sha256_hash::size());
 
-		if (merkle_root(pieces, piece_layer_size, pad_hash) != root())
+		if (merkle_root(pieces, pad_hash) != root())
 			return false;
 
 		// if there's only 1 block per piece, the piece layer is the same as the
@@ -119,7 +119,7 @@ namespace aux {
 		int source_start_idx = int(tree.size()) - count;
 
 		// the tree is expected to be consistent
-		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count), count) == tree[0]);
+		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count)) == tree[0]);
 
 		for (int layer_size = count; layer_size != 0; layer_size /= 2)
 		{
@@ -334,7 +334,13 @@ namespace aux {
 		return false;
 	}
 
-	sha256_hash merkle_tree::operator[](int idx) const
+	sha256_hash merkle_tree::operator[](int const idx) const
+	{
+		std::vector<sha256_hash> scratch;
+		return get_impl(idx, scratch);
+	}
+
+	sha256_hash merkle_tree::get_impl(int idx, std::vector<sha256_hash>& scratch_space) const
 	{
 		switch (m_mode)
 		{
@@ -369,7 +375,7 @@ namespace aux {
 				auto const layer= span<sha256_hash const>(m_tree)
 					.subspan(idx, std::min(int(m_tree.size()) - idx, layer_size));
 
-				return merkle_root(layer, layer_size, pad_hash);
+				return merkle_root_scratch(layer, layer_size, pad_hash, scratch_space);
 			}
 		};
 		TORRENT_ASSERT_FAIL();
@@ -477,13 +483,30 @@ namespace aux {
 		int const layer_start_idx = base_start_idx;
 
 		std::vector<sha256_hash> ret;
+		ret.reserve(std::size_t(count));
 
-		for (int i = layer_start_idx; i < layer_start_idx + count; ++i)
+		std::vector<sha256_hash> scratch_space;
+
+		if (base == 0 && m_mode == mode_t::block_layer)
 		{
-			if ((base != 0 || i < m_num_blocks + layer_start_idx - index)
-				&& !has_node(i))
-				return {};
-			ret.push_back((*this)[i]);
+			// this is an optimization
+			int const blocks_end = std::min(index + count, m_num_blocks);
+			for (int i = index; i < blocks_end; ++i)
+				ret.push_back(m_tree[i]);
+			// if fill the rest with padding
+			ret.resize(std::size_t(count));
+		}
+		else
+		{
+			for (int i = layer_start_idx; i < layer_start_idx + count; ++i)
+			{
+				// the pad hashes are expected to be zero, they should not fail
+				// the request
+				if ((base != 0 || i < m_num_blocks + layer_start_idx - index)
+					&& !has_node(i))
+					return {};
+				ret.push_back(get_impl(i, scratch_space));
+			}
 		}
 
 		// the number of layers up the tree which can be computed from the base layer hashes
@@ -502,11 +525,10 @@ namespace aux {
 			if (i >= base_tree_layers)
 			{
 				int const sibling = merkle_get_sibling(proof_idx);
-
 				if (!has_node(proof_idx) || !has_node(sibling))
 					return {};
 
-				ret.push_back((*this)[sibling]);
+				ret.push_back(get_impl(sibling, scratch_space));
 			}
 		}
 
