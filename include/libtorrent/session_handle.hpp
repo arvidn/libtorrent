@@ -995,13 +995,6 @@ namespace libtorrent {
 		void set_alert_notify(std::function<void()> const& fun);
 
 #if TORRENT_ABI_VERSION == 1
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-		TORRENT_DEPRECATED
-		void set_severity_level(alert::severity_t s);
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 		// use the setting instead
 		TORRENT_DEPRECATED
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
