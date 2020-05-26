@@ -8632,6 +8632,7 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		update_gauge();
 		for (auto& ext : m_extensions)
 		{
 			if (ext->on_pause()) return;
