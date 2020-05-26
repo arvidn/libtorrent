@@ -1177,12 +1177,6 @@ TORRENT_TEST(copy)
 
 	// copy the torrent_info object
 	std::shared_ptr<torrent_info> b = std::make_shared<torrent_info>(*a);
-
-	// clear out the  buffer for a, just to make sure b doesn't have any
-	// references into it by mistake
-	int s = a->metadata_size();
-	std::memset(a->metadata().get(), 0, std::size_t(s));
-
 	a.reset();
 
 	TEST_EQUAL(b->num_files(), 3);

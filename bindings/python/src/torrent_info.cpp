@@ -109,9 +109,18 @@ namespace
         return bytes(ti.hash_for_piece(i).to_string());
     }
 
+#if TORRENT_ABI_VERSION <= 2
     bytes metadata(torrent_info const& ti)
     {
-        return bytes(ti.metadata().get(), ti.metadata_size());
+        auto const s = ti.info_section();
+        return bytes(s.data(), s.size());
+    }
+#endif
+
+    bytes get_info_section(torrent_info const& ti)
+    {
+        auto const s = ti.info_section();
+        return bytes(s.data(), s.size());
     }
 
     list map_block(torrent_info& ti, piece_index_t piece, std::int64_t offset, int size)
@@ -331,8 +340,11 @@ void bind_torrent_info()
 
         .def("add_node", &add_node)
         .def("nodes", &nodes)
+#if TORRENT_ABI_VERSION <= 2
         .def("metadata", &metadata)
         .def("metadata_size", &torrent_info::metadata_size)
+#endif
+        .def("info_section", &get_info_section)
         .def("map_block", map_block)
         .def("map_file", &torrent_info::map_file)
         ;

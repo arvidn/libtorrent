@@ -1040,8 +1040,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hash().v1;
-	auto metainfo = ti->metadata();
-	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
+	rd["info"] = bdecode(ti->info_section());
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 
@@ -1091,8 +1090,7 @@ TORRENT_TEST(resume_info_dict)
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hash().v1;
-	auto metainfo = ti->metadata();
-	rd["info"] = bdecode({metainfo.get(), ti->metadata_size()});
+	rd["info"] = bdecode(ti->info_section());
 	std::vector<char> resume_data;
 	bencode(back_inserter(resume_data), rd);
 

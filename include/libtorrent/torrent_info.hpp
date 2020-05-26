@@ -225,6 +225,10 @@ TORRENT_VERSION_NAMESPACE_3
 		// frees all storage associated with this torrent_info object
 		~torrent_info();
 
+		// hidden
+		torrent_info& operator=(torrent_info const&) = delete;
+		torrent_info& operator=(torrent_info&&);
+
 		// The file_storage object contains the information on how to map the
 		// pieces to files. It is separated from the torrent_info object because
 		// when creating torrents a storage object needs to be created without
@@ -566,14 +570,20 @@ TORRENT_VERSION_NAMESPACE_3
 		// .torrent file. If the specified key cannot be found, it returns nullptr.
 		bdecode_node info(char const* key) const;
 
-		// swap the content of this and ``ti``.
-		void swap(torrent_info& ti);
+		// returns a the raw info section of the torrent file.
+		// The underlying buffer is still owned by the torrent_info object
+		span<char const> info_section() const
+		{ return span<char const>(m_info_section.get(), m_info_section_size); }
 
-		// ``metadata()`` returns a the raw info section of the torrent file. The size
-		// of the metadata is returned by ``metadata_size()``.
+#if TORRENT_ABI_VERSION <= 2
+		// swap the content of this and ``ti``.
+		TORRENT_DEPRECATED
+		void swap(torrent_info& ti);
+		TORRENT_DEPRECATED
 		int metadata_size() const { return m_info_section_size; }
-		boost::shared_array<char> metadata() const
-		{ return m_info_section; }
+		TORRENT_DEPRECATED
+		boost::shared_array<char> metadata() const;
+#endif
 
 		// internal
 		aux::vector<aux::merkle_tree, file_index_t>& internal_merkle_trees();
@@ -622,9 +632,6 @@ TORRENT_VERSION_NAMESPACE_3
 		friend struct ::lt::invariant_access;
 		void check_invariant() const;
 #endif
-
-		// not assignable
-		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
 
@@ -687,6 +694,8 @@ TORRENT_VERSION_NAMESPACE_3
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
 		// TODO: change the type to std::shared_ptr<char const> in C++17
+		// it is used as if immutable, it cannot be const for technical reasons
+		// right now.
 		boost::shared_array<char> m_info_section;
 
 		// if a comment is found in the torrent file
@@ -715,12 +724,6 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;
-
-#if TORRENT_ABI_VERSION <= 2
-		// the index to the first leaf. This is where the hash for the
-		// first piece is stored
-		std::int32_t m_merkle_first_leaf = 0;
-#endif
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible

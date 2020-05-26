@@ -728,44 +728,8 @@ namespace {
 
 TORRENT_VERSION_NAMESPACE_3
 
-	torrent_info::torrent_info(torrent_info const& t)
-		: m_files(t.m_files)
-		, m_orig_files(t.m_orig_files)
-		, m_urls(t.m_urls)
-		, m_web_seeds(t.m_web_seeds)
-		, m_nodes(t.m_nodes)
-		, m_merkle_trees(t.m_merkle_trees)
-		, m_comment(t.m_comment)
-		, m_created_by(t.m_created_by)
-		, m_creation_date(t.m_creation_date)
-		, m_info_hash(t.m_info_hash)
-		, m_piece_hashes(t.m_piece_hashes)
-		, m_info_section_size(t.m_info_section_size)
-		, m_flags(t.m_flags)
-	{
-#if TORRENT_USE_INVARIANT_CHECKS
-		t.check_invariant();
-#endif
-		if (m_info_section_size == 0) return;
-		TORRENT_ASSERT(m_piece_hashes > 0);
-		TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
-
-		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
-		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
-
-		char const* current_base = t.m_info_section.get();
-		char const* new_base = m_info_section.get();
-		m_files.rebase_pointers(current_base, new_base);
-		if (m_orig_files)
-			const_cast<file_storage&>(*m_orig_files).rebase_pointers(current_base, new_base);
-
-		if (m_info_dict)
-		{
-			// make this decoded object point to our copy of the info section
-			// buffer
-			m_info_dict.switch_underlying_buffer(m_info_section.get());
-		}
-	}
+	torrent_info::torrent_info(torrent_info const& t) = default;
+	torrent_info& torrent_info::operator=(torrent_info&& t) = default;
 
 	void torrent_info::resolve_duplicate_filenames()
 	{
@@ -1143,31 +1107,23 @@ namespace {
 		m_orig_files.reset(new file_storage(m_files));
 	}
 
+#if TORRENT_ABI_VERSION <= 2
 	void torrent_info::swap(torrent_info& ti)
 	{
 		INVARIANT_CHECK;
 
-		using std::swap;
-		m_urls.swap(ti.m_urls);
-		m_web_seeds.swap(ti.m_web_seeds);
-		m_files.swap(ti.m_files);
-		m_orig_files.swap(ti.m_orig_files);
-		m_nodes.swap(ti.m_nodes);
-		m_similar_torrents.swap(ti.m_similar_torrents);
-		m_owned_similar_torrents.swap(ti.m_owned_similar_torrents);
-		m_collections.swap(ti.m_collections);
-		m_owned_collections.swap(ti.m_owned_collections);
-		swap(m_info_hash, ti.m_info_hash);
-		swap(m_creation_date, ti.m_creation_date);
-		m_comment.swap(ti.m_comment);
-		m_created_by.swap(ti.m_created_by);
-		swap(m_info_section, ti.m_info_section);
-		m_merkle_trees.swap(ti.m_merkle_trees);
-		swap(m_piece_hashes, ti.m_piece_hashes);
-		m_info_dict.swap(ti.m_info_dict);
-		swap(m_info_section_size, ti.m_info_section_size);
-		swap(m_flags, ti.m_flags);
+		torrent_info tmp = std::move(ti);
+		ti = std::move(*this);
+		*this = std::move(tmp);
 	}
+
+	boost::shared_array<char> torrent_info::metadata() const
+	{
+		boost::shared_array<char> ret(new char[std::size_t(m_info_section_size)]);
+		std::memcpy(ret.get(), m_info_section.get(), std::size_t(m_info_section_size));
+		return ret;
+	}
+#endif
 
 	aux::vector<aux::merkle_tree, file_index_t>& torrent_info::internal_merkle_trees()
 	{
@@ -1228,12 +1184,16 @@ namespace {
 			return false;
 		}
 
+		if (section.empty() || section[0] != 'd' || section[section.size() - 1] != 'e')
+		{
+			ec = errors::invalid_bencoding;
+			return false;
+		}
+
 		// copy the info section
 		m_info_section_size = int(section.size());
 		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
 		std::memcpy(m_info_section.get(), section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
-		TORRENT_ASSERT(section[0] == 'd');
-		TORRENT_ASSERT(section[m_info_section_size - 1] == 'e');
 
 		// this is the offset from the start of the torrent file buffer to the
 		// info-dictionary (within the torrent file).

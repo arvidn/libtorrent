@@ -373,9 +373,18 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(info.info_hash().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
 
     def test_metadata(self):
+        if not HAVE_DEPRECATED_APIS:
+            return
+
         ti = lt.torrent_info('base.torrent')
 
         self.assertTrue(len(ti.metadata()) != 0)
+        self.assertTrue(len(ti.hash_for_piece(0)) != 0)
+
+    def test_info_section(self):
+        ti = lt.torrent_info('base.torrent')
+
+        self.assertTrue(len(ti.info_section()) != 0)
         self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
     def test_web_seeds(self):
