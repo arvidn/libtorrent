@@ -313,22 +313,8 @@ void bind_alert()
             .def("message", &alert::message)
             .def("what", &alert::what)
             .def("category", &alert::category)
-#if TORRENT_ABI_VERSION == 1
-            .def("severity", &alert::severity)
-#endif
             .def("__str__", &alert::message)
             ;
-
-#if TORRENT_ABI_VERSION == 1
-        enum_<alert::severity_t>("severity_levels")
-            .value("debug", alert::debug)
-            .value("info", alert::info)
-            .value("warning", alert::warning)
-            .value("critical", alert::critical)
-            .value("fatal", alert::fatal)
-            .value("none", alert::none)
-            ;
-#endif
 
         scope s = class_<dummy3>("category_t");
         s.attr("error_notification") = alert::error_notification;

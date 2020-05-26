@@ -1157,27 +1157,6 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	void session_handle::set_severity_level(alert::severity_t s)
-	{
-		alert_category_t m = {};
-		switch (s)
-		{
-			case alert::debug: m = alert_category::all; break;
-			case alert::info: m = alert_category::all & ~(alert::debug_notification
-				| alert::progress_notification | alert_category::dht); break;
-			case alert::warning: m = alert_category::all & ~(alert::debug_notification
-				| alert_category::status | alert::progress_notification
-				| alert_category::dht); break;
-			case alert::critical: m = alert_category::error | alert_category::storage; break;
-			case alert::fatal: m = alert_category::error; break;
-			case alert::none: m = {}; break;
-		}
-
-		settings_pack p;
-		p.set_int(settings_pack::alert_mask, m);
-		apply_settings(std::move(p));
-	}
-
 	size_t session_handle::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		return sync_call_ret<size_t>(&session_impl::set_alert_queue_size_limit, queue_size_limit_);

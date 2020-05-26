@@ -200,9 +200,6 @@ namespace alert_category {
 		alert(alert&& rhs) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
-		// only here for backwards compatibility
-		enum TORRENT_DEPRECATED_ENUM severity_t { debug, info, warning, critical, fatal, none };
-
 		using category_t = alert_category_t;
 #endif
 
@@ -302,27 +299,6 @@ namespace alert_category {
 
 		// returns a bitmask specifying which categories this alert belong to.
 		virtual alert_category_t category() const noexcept = 0;
-
-#if TORRENT_ABI_VERSION == 1
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-		// determines whether or not an alert is allowed to be discarded
-		// when the alert queue is full. There are a few alerts which may not be discarded,
-		// since they would break the user contract, such as save_resume_data_alert.
-		TORRENT_DEPRECATED
-		bool discardable() const { return discardable_impl(); }
-
-		TORRENT_DEPRECATED
-		severity_t severity() const { return warning; }
-
-	protected:
-
-		virtual bool discardable_impl() const { return true; }
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#endif // TORRENT_ABI_VERSION
 
 	private:
 		time_point const m_timestamp;
