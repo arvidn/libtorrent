@@ -103,9 +103,8 @@ namespace libtorrent {
 
 		if (atp.ti)
 		{
-			auto const info = atp.ti->metadata();
-			int const size = atp.ti->metadata_size();
-			ret["info"].preformatted().assign(&info[0], &info[0] + size);
+			auto const info = atp.ti->info_section();
+			ret["info"].preformatted().assign(info.data(), info.data() + info.size());
 			if (!atp.ti->comment().empty())
 				ret["comment"] = atp.ti->comment();
 			if (atp.ti->creation_date() != 0)

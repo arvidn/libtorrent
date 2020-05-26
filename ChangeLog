@@ -1,5 +1,6 @@
 2.0 release
 
+	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
 	* stats_alert deprecated
 	* remove bittyrant choking algorithm

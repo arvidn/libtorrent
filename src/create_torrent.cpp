@@ -533,9 +533,8 @@ namespace {
 				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
 		}
 
-		boost::shared_array<char> const info = ti.metadata();
-		int const size = ti.metadata_size();
-		m_info_dict.preformatted().assign(&info[0], &info[0] + size);
+		auto const info = ti.info_section();
+		m_info_dict.preformatted().assign(info.data(), info.data() + info.size());
 	}
 
 	entry create_torrent::generate() const
