@@ -760,6 +760,11 @@ namespace libtorrent {
 		async_call(&torrent::add_peer, adr, source, flags);
 	}
 
+	void torrent_handle::clear_peers()
+	{
+		async_call(&torrent::clear_peers);
+	}
+
 #if TORRENT_ABI_VERSION == 1
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const

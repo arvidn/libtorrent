@@ -25,6 +25,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* add function to clear the peer list for a torrent
 	* fix resume data functions to save/restore more torrent flags
 	* limit number of concurrent HTTP announces
 	* fix queue position for force_rechecking a torrent that is not auto-managed

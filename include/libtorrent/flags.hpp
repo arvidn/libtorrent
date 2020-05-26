@@ -82,19 +82,19 @@ struct bitfield_flag
 	bool constexpr operator!=(bitfield_flag const f) const noexcept
 	{ return m_val != f.m_val; }
 
-	bitfield_flag& operator|=(bitfield_flag const f) noexcept
+	bitfield_flag& operator|=(bitfield_flag const f) & noexcept
 	{
 		m_val |= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator&=(bitfield_flag const f) noexcept
+	bitfield_flag& operator&=(bitfield_flag const f) & noexcept
 	{
 		m_val &= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator^=(bitfield_flag const f) noexcept
+	bitfield_flag& operator^=(bitfield_flag const f) & noexcept
 	{
 		m_val ^= f.m_val;
 		return *this;
@@ -123,8 +123,8 @@ struct bitfield_flag
 		return bitfield_flag(static_cast<UnderlyingType>(~m_val));
 	}
 
-	bitfield_flag& operator=(bitfield_flag const& rhs) noexcept = default;
-	bitfield_flag& operator=(bitfield_flag&& rhs) noexcept = default;
+	bitfield_flag& operator=(bitfield_flag const& rhs) & noexcept = default;
+	bitfield_flag& operator=(bitfield_flag&& rhs) & noexcept = default;
 
 #if TORRENT_USE_IOSTREAM
 	friend std::ostream& operator<<(std::ostream& os, bitfield_flag val)

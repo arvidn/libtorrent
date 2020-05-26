@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/ssl.hpp"
-
 #include "libtorrent/debug.hpp"
 
 namespace libtorrent {
