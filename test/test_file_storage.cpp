@@ -205,24 +205,6 @@ TORRENT_TEST(pointer_offset)
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "test1"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "tmp"), combine_path("tmp"
 		, combine_path("test-torrent-1", "test1")));
-
-	// apply a pointer offset of 5 bytes. The name of the file should
-	// change to "fooba".
-
-	st.rebase_pointers(filename, filename + 5);
-
-	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "fooba"));
-	TEST_EQUAL(st.file_path(file_index_t{0}, "tmp"), combine_path("tmp"
-		, combine_path("test-torrent-1", "fooba")));
-
-	// test filename_ptr and filename_len
-#ifndef TORRENT_NO_DEPRECATE
-	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename + 5);
-	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
-#endif
-	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename + 5, 5));
-	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash + 5));
-	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash + 5));
 }
 
 TORRENT_TEST(invalid_path1)
