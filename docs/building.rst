@@ -30,7 +30,7 @@ you can usually get help in the ``#libtorrent`` IRC channel on
 
 	Always make sure that the same TORRENT_* and BOOST_* macros are defined when you
 	link against libtorrent as when you build it. The simplest way to see the full
-	list of macros defined is to build libtorrent with "--debug-configuration -d2+2"
+	list of macros defined is to build libtorrent with ``--debug-configuration -d2+2``
 	switches added to b2 command line, which output all compiler switches.
 
 	Boost-build supports propagating configuration options to dependencies.
@@ -661,6 +661,6 @@ Make sure you define the same at complile time for your code to avoid any runtim
 These might change in the future, so it's always best to verify these every time you upgrade to
 a new version of libtorrent. The simplest way to see the full list of macros defined is to build
 libtorrent with "--debug-configuration -d2+2" switches added to b2 command line, which output all
-compiler switches. Such as:
+compiler switches. Such as::
 
 b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release
