@@ -80,7 +80,10 @@ namespace libtorrent {
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const
-		{ return m_header_size + static_cast<int>(slot) * m_piece_size; }
+		{
+			return static_cast<int>(slot) * static_cast<std::int64_t>(m_piece_size)
+				+ m_header_size;
+		}
 
 		std::string m_path;
 		std::string const m_name;
