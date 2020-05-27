@@ -28,8 +28,10 @@ you can usually get help in the ``#libtorrent`` IRC channel on
 	libtorrent has some code in header files, that code will not be
 	compatible with the built library if they see different configurations.
 
-	Always make sure that the same TORRENT_* macros are defined when you
-	link against libtorrent as when you build it.
+	Always make sure that the same TORRENT_* and BOOST_* macros are defined when you
+	link against libtorrent as when you build it. The simplest way to see the full
+	list of macros defined is to build libtorrent with "--debug-configuration -d2+2"
+	switches added to b2 command line, which output all compiler switches.
 
 	Boost-build supports propagating configuration options to dependencies.
 	When building using the makefiles, this is handled by setting the
@@ -117,10 +119,10 @@ The last thing to do is to configure which compiler(s) to use. Create a file
 ``user-config.jam`` in your home directory. Depending on your platform and which
 compiler you're using, you should add a line for each compiler and compiler
 version you have installed on your system that you want to be able to use with
-BBv2. For example, if you're using Microsoft Visual Studio 12 (2013), just add a
+BBv2. For example, if you're using Microsoft Visual Studio 14.2 (2019), just add a
 line::
 
-  using msvc : 14.0 ;
+  using msvc : 14.2 ;
 
 If you use GCC, add the line::
 
@@ -158,7 +160,7 @@ Then the only thing left is simply to invoke ``b2``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the command line.
 For example::
 
-  b2 msvc-14.0
+  b2 msvc-14.2 (`Visual Studio 2019`: https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B#Internal_version_numbering)
   b2 gcc-7.0
   b2 darwin-4.0
 
@@ -182,7 +184,7 @@ can set the ``runtime-link`` feature on the command line, either to ``shared``
 or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
-  b2 msvc-14.0 link=static runtime-link=static
+  b2 msvc-14.2 link=static runtime-link=static debug-symbols=on
 
 .. note::
 
@@ -524,7 +526,8 @@ build configurations
 By default libtorrent is built In debug mode, and will have pretty expensive
 invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
-defines you can use to control the build.
+defines you can use to control the build. Make sure to define the same macros in your
+own code that compiles and links with bittorrent.
 
 +----------------------------------------+-------------------------------------------------+
 | macro                                  | description                                     |
@@ -647,3 +650,25 @@ in a command shell::
 
 This will also install the headers and library files in the visual studio directories to
 be picked up by libtorrent.
+
+list of macros
+--------------------
+
+The following is a list of defines that libtorrent is built with. Make sure you define the same
+at complile time for your code to avoid any runtime errors and other issues.
+
+BOOST_ALL_NO_LIB
+BOOST_ASIO_ENABLE_CANCELIO
+BOOST_ASIO_HAS_STD_CHRONO
+BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+BOOST_NO_DEPRECATED
+BOOST_SYSTEM_NO_DEPRECATED
+TORRENT_BUILDING_LIBRARY
+TORRENT_USE_I2P=1
+
+These might change in the future, so it's always best to verify these every time you upgrade to
+a new version of libtorrent. The simplest way to see the full list of macros defined is to build
+libtorrent with "--debug-configuration -d2+2" switches added to b2 command line, which output all
+compiler switches. Such as:
+
+b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release
