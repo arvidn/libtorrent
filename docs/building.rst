@@ -662,6 +662,6 @@ These might change in the future, so it's always best to verify these every time
 a new version of libtorrent. The simplest way to see the full list of macros defined is to build
 libtorrent with "--debug-configuration -d2+2" switches added to b2 command line::
 
-b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release
+``b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release``
 
 This will output all compiler switches, including defines (such as ``-DBOOST_ASIO_HAS_STD_CHRONO``).
