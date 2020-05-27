@@ -561,6 +561,8 @@ NOTSENT
 LOWAT
 Dstatic
 DOPENSSL
+DBOOST
+CANCELIO
 fd
 socketpair
 fileno
