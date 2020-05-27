@@ -365,23 +365,6 @@ namespace aux {
 
 } // aux namespace
 
-	void file_storage::rebase_pointers(char const* current_base, char const* new_base)
-	{
-		for (auto& f : m_files)
-		{
-			if (f.name_len != aux::file_entry::name_is_owned)
-				f.name = new_base + (f.name - current_base);
-			if (f.root != nullptr)
-				f.root = new_base + (f.root - current_base);
-		}
-
-		for (auto& h : m_file_hashes)
-		{
-			if (h == nullptr) continue;
-			h = new_base + (h - current_base);
-		}
-	}
-
 #if TORRENT_ABI_VERSION == 1
 
 	void file_storage::add_file_borrow(char const* filename, int filename_len

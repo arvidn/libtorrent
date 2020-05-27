@@ -617,10 +617,6 @@ namespace aux {
 		std::int64_t file_offset(aux::file_entry const& fe) const;
 #endif
 
-		// if the backing buffer changed for this storage, this is the pointer
-		// offset to add to any pointers to make them point into the new buffer
-		void rebase_pointers(char const* current_base, char const* new_base);
-
 		// validate any symlinks, to ensure they all point to
 		// other files or directories inside this storage. Any invalid symlinks
 		// are updated to point to themselves.
