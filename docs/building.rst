@@ -664,3 +664,4 @@ libtorrent with "--debug-configuration -d2+2" switches added to b2 command line,
 compiler switches. Such as::
 
 b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release
+
