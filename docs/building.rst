@@ -654,17 +654,9 @@ be picked up by libtorrent.
 list of macros
 --------------------
 
-The following is a list of defines that libtorrent is built with. Make sure you define the same
-at complile time for your code to avoid any runtime errors and other issues.
+The following is a list of defines that libtorrent is built with: ``BOOST_ALL_NO_LIB``, ``BOOST_ASIO_ENABLE_CANCELIO``, ``BOOST_ASIO_HAS_STD_CHRONO'', ``BOOST_MULTI_INDEX_DISABLE_SERIALIZATION'', ``BOOST_NO_DEPRECATED``, ``BOOST_SYSTEM_NO_DEPRECATED``, ``TORRENT_BUILDING_LIBRARY``, ``TORRENT_USE_I2P=1``
 
-BOOST_ALL_NO_LIB
-BOOST_ASIO_ENABLE_CANCELIO
-BOOST_ASIO_HAS_STD_CHRONO
-BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-BOOST_NO_DEPRECATED
-BOOST_SYSTEM_NO_DEPRECATED
-TORRENT_BUILDING_LIBRARY
-TORRENT_USE_I2P=1
+Make sure you define the same at complile time for your code to avoid any runtime errors and other issues.
 
 These might change in the future, so it's always best to verify these every time you upgrade to
 a new version of libtorrent. The simplest way to see the full list of macros defined is to build
