@@ -1,3 +1,4 @@
+	* fix bug in part files > 2 GiB
 	* add function to clear the peer list for a torrent
 	* fix resume data functions to save/restore more torrent flags
 	* limit number of concurrent HTTP announces
