@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Daniel Wallin
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/aux_/disk_job_fence.hpp"
-#include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/aux_/disk_io_job.hpp"
 #include "libtorrent/performance_counters.hpp"
 
 #define DEBUG_STORAGE 0
@@ -43,7 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG(...) do {} while (false)
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)
 	{
@@ -213,4 +216,5 @@ namespace libtorrent { namespace aux {
 		return fence_post_none;
 	}
 
-}}
+}
+}

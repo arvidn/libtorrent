@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2010, 2012-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,12 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include <tuple>
 #include <functional>
 
@@ -54,8 +55,8 @@ void test_transfer()
 {
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_utp", ec);
-	remove_all("./tmp2_utp", ec);
+	remove_all("tmp1_utp", ec);
+	remove_all("tmp2_utp", ec);
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -85,8 +86,14 @@ void test_transfer()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_utp", ec);
-	std::ofstream file("./tmp1_utp/temporary");
+	ec.clear();
+	create_directory("tmp1_utp", ec);
+	if (ec)
+	{
+		std::printf("ERROR: failed to create test directory \"tmp1_utp\": (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+	}
+	std::ofstream file("tmp1_utp/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
 	file.close();
 
@@ -136,12 +143,14 @@ TORRENT_TEST(utp)
 	test_transfer();
 
 	error_code ec;
-	remove_all("./tmp1_utp", ec);
-	remove_all("./tmp2_utp", ec);
+	remove_all("tmp1_utp", ec);
+	remove_all("tmp2_utp", ec);
 }
 
 TORRENT_TEST(compare_less_wrap)
 {
+	using lt::aux::compare_less_wrap;
+
 	TEST_CHECK(compare_less_wrap(1, 2, 0xffff));
 	TEST_CHECK(!compare_less_wrap(2, 1, 0xffff));
 	TEST_CHECK(compare_less_wrap(100, 200, 0xffff));

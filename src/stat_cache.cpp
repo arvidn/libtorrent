@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg, Daniel Wallin
+Copyright (c) 2010, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -78,6 +80,16 @@ namespace libtorrent {
 	std::int64_t stat_cache::get_filesize(file_index_t const i, file_storage const& fs
 		, std::string const& save_path, error_code& ec)
 	{
+		// always pretend symlinks don't exist, to trigger special logic for
+		// creating and possibly validating them. There's a risk we'll and up in a
+		// cycle of references here otherwise.
+		// Should stat_file() be changed to use lstat()?
+		if (fs.file_flags(i) & file_storage::flag_symlink)
+		{
+			ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::system_category());
+			return -1;
+		}
+
 		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(i < fs.end_file());
 		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1

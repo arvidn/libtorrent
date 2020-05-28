@@ -6,7 +6,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 endif
 
 ifndef RST2HTML
-RST2HTML:=rst2html
+RST2HTML:=rst2html.py
 endif
 
 ifndef AAFIGURE
@@ -15,13 +15,19 @@ endif
 
 REFERENCE_TARGETS = \
 	manual-ref \
+	tutorial-ref \
+	tuning-ref \
 	upgrade_to_1.2-ref \
+	upgrade_to_2.0-ref \
 	reference \
 	reference-Core \
+	reference-DHT \
+	reference-Session \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \
 	reference-Storage \
+	reference-Custom_Storage \
 	reference-Utility \
 	reference-Bencoding \
 	reference-Alerts \
@@ -46,10 +52,9 @@ MANUAL_TARGETS = index \
 	python_binding \
 	projects \
 	utp \
-	tuning \
 	hacking \
 	streaming \
-	tutorial
+	fuzzing
 
 TARGETS = single-page-ref \
 	$(MANUAL_TARGETS) \
@@ -75,13 +80,14 @@ epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 all: html pdf
 
 single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
-	python join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
+	python3 join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
 
-settings.rst: ../include/libtorrent/settings_pack.hpp
-	python gen_settings_doc.py || { rm $@; exit 1; }
+settings.rst hunspell/settings.dic: ../include/libtorrent/settings_pack.hpp hunspell/libtorrent.dic
+	python3 gen_settings_doc.py || { rm $@; exit 1; }
+	cat hunspell/libtorrent.dic >>hunspell/settings.dic
 
 stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_counters.hpp
-	python gen_stats_doc.py || { rm $@; exit 1; }
+	python3 gen_stats_doc.py || { rm $@; exit 1; }
 
 manual.rst: stats_counters.rst
 	touch manual.rst
@@ -93,16 +99,28 @@ manual.rst: stats_counters.rst
 #endif
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
-	python gen_todo.py
+	python3 gen_todo.py
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst
-	python gen_reference_doc.py --plain-output
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst settings.rst stats_counters.rst hunspell/settings.dic
+	python3 gen_reference_doc.py --plain-output
 
-spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html)
+spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst
+	python3 filter-rst.py manual.rst >manual-plain.txt
+	python3 filter-rst.py tutorial.rst >tutorial-plain.txt
+	python3 filter-rst.py tuning.rst >tuning-plain.txt
+	python3 filter-rst.py settings.rst >settings-plain.txt
+	python3 filter-rst.py upgrade_to_1.2.rst >upgrade-1_2-plain.txt
+	python3 filter-rst.py upgrade_to_2.0.rst >upgrade-2_0-plain.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l manual-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l tutorial-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l tuning-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-1_2-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_0-plain.txt >>hunspell-report.txt
+	hunspell -d hunspell/en_US -p hunspell/settings.dic -l settings-plain.txt >>hunspell-report.txt
 	hunspell -d hunspell/en_US -p hunspell/libtorrent.dic -H -l $(MANUAL_TARGETS:=.html) >>hunspell-report.txt
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
 
@@ -131,5 +149,5 @@ ifneq ($(STAGE),)
 endif
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic
 

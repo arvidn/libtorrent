@@ -81,6 +81,7 @@ namespace
         ti.set_web_seeds(web_seeds);
     }
 
+#if TORRENT_ABI_VERSION <= 2
     list get_merkle_tree(torrent_info const& ti)
     {
         std::vector<sha1_hash> const& mt = ti.merkle_tree();
@@ -101,6 +102,7 @@ namespace
 
         ti.set_merkle_tree(h);
     }
+#endif
 
     bytes hash_for_piece(torrent_info const& ti, piece_index_t i)
     {
@@ -126,18 +128,18 @@ namespace
 #if TORRENT_ABI_VERSION == 1
     // Create getters for announce_entry data members with non-trivial types which need converting.
     lt::time_point get_next_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce); }
+    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().info_hashes[protocol_version::V1].next_announce); }
     lt::time_point get_min_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().min_announce); }
+    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().info_hashes[protocol_version::V1].min_announce); }
     // announce_entry data member bit-fields.
     int get_fails(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().fails; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[protocol_version::V1].fails; }
     bool get_updating(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().updating; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[protocol_version::V1].updating; }
     bool get_start_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().start_sent; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[protocol_version::V1].start_sent; }
     bool get_complete_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().complete_sent; }
+    { return ae.endpoints.empty() ? false : ae.endpoints.front().info_hashes[protocol_version::V1].complete_sent; }
     // announce_entry method requires lt::time_point.
     bool can_announce(announce_entry const& ae, bool is_seed) {
         // an entry without endpoints implies it has never been announced so it can be now
@@ -153,15 +155,15 @@ namespace
 
 #if TORRENT_ABI_VERSION == 1
     std::string get_message(announce_entry const& ae)
-    { return ae.endpoints.empty() ? "" : ae.endpoints.front().message; }
+    { return ae.endpoints.empty() ? "" : ae.endpoints.front().info_hashes[protocol_version::V1].message; }
     error_code get_last_error(announce_entry const& ae)
-    { return ae.endpoints.empty() ? error_code() : ae.endpoints.front().last_error; }
+    { return ae.endpoints.empty() ? error_code() : ae.endpoints.front().info_hashes[protocol_version::V1].last_error; }
     int get_scrape_incomplete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_incomplete; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[protocol_version::V1].scrape_incomplete; }
     int get_scrape_complete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_complete; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[protocol_version::V1].scrape_complete; }
     int get_scrape_downloaded(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_downloaded; }
+    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().info_hashes[protocol_version::V1].scrape_downloaded; }
     int next_announce_in(announce_entry const&) { return 0; }
     int min_announce_in(announce_entry const&) { return 0; }
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
@@ -196,6 +198,13 @@ std::shared_ptr<torrent_info> file_constructor0(std::string const& filename)
 #endif
    return ret;
 }
+
+#if TORRENT_ABI_VERSION == 1
+std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
+{
+   return std::make_shared<torrent_info>(ih);
+}
+#endif
 
 std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
 {
@@ -234,18 +243,49 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
+    enum_<protocol_version>("protocol_version")
+        .value("V1", protocol_version::V1)
+        .value("V2", protocol_version::V2)
+        ;
+
+    class_<info_hash_t>("info_hash_t")
+        .def(init<sha1_hash const&>(arg("sha1_hash")))
+        .def(init<sha256_hash const&>(arg("sha256_hash")))
+        .def(init<sha1_hash const&, sha256_hash const&>((arg("sha1_hash"), arg("sha256_hash"))))
+        .def("has_v1", &info_hash_t::has_v1)
+        .def("has_v2", &info_hash_t::has_v2)
+        .def("has", &info_hash_t::has)
+        .def("get", &info_hash_t::get)
+        .def("get_best", &info_hash_t::get_best)
+        .add_property("v1", &info_hash_t::v1)
+        .add_property("v2", &info_hash_t::v2)
+        .def(self == self)
+        .def(self != self)
+        .def(self < self)
+        ;
+
+    enum_<announce_entry::tracker_source>("tracker_source")
+        .value("source_torrent", announce_entry::source_torrent)
+        .value("source_client", announce_entry::source_client)
+        .value("source_magnet_link", announce_entry::source_magnet_link)
+        .value("source_tex", announce_entry::source_tex)
+    ;
+
+    using add_tracker1 = void (torrent_info::*)(std::string const&, int, announce_entry::tracker_source);
+
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
-        .def(init<sha1_hash const&>(arg("info_hash")))
+        .def(init<info_hash_t const&>(arg("info_hash")))
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&buffer_constructor0))
         .def("__init__", make_constructor(&file_constructor0))
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_ABI_VERSION == 1
+        .def("__init__", make_constructor(&sha1_constructor0))
         .def(init<std::wstring>((arg("file"))))
 #endif
 
-        .def("add_tracker", &torrent_info::add_tracker, arg("url"))
+        .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
         .def("add_url_seed", &torrent_info::add_url_seed)
         .def("add_http_seed", &torrent_info::add_http_seed)
         .def("web_seeds", get_web_seeds)
@@ -259,8 +299,10 @@ void bind_torrent_info()
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
         .def("hash_for_piece", &hash_for_piece)
+#if TORRENT_ABI_VERSION <= 2
         .def("merkle_tree", get_merkle_tree)
         .def("set_merkle_tree", set_merkle_tree)
+#endif
         .def("piece_size", &torrent_info::piece_size)
 
         .def("similar_torrents", &torrent_info::similar_torrents)
@@ -280,7 +322,9 @@ void bind_torrent_info()
         .def("is_valid", &torrent_info::is_valid)
         .def("priv", &torrent_info::priv)
         .def("is_i2p", &torrent_info::is_i2p)
+#if TORRENT_ABI_VERSION <= 2
         .def("is_merkle_torrent", &torrent_info::is_merkle_torrent)
+#endif
         .def("trackers", range(begin_trackers, end_trackers))
 
         .def("creation_date", &torrent_info::creation_date)
@@ -335,16 +379,11 @@ void bind_torrent_info()
         .def("can_announce", &can_announce)
         .def("is_working", &is_working)
 #endif
+#if TORRENT_ABI_VERSION <= 2
         .def("reset", &announce_entry::reset)
         .def("trim", &announce_entry::trim)
+#endif
         ;
-
-    enum_<announce_entry::tracker_source>("tracker_source")
-        .value("source_torrent", announce_entry::source_torrent)
-        .value("source_client", announce_entry::source_client)
-        .value("source_magnet_link", announce_entry::source_magnet_link)
-        .value("source_tex", announce_entry::source_tex)
-    ;
 
     implicitly_convertible<std::shared_ptr<torrent_info>, std::shared_ptr<const torrent_info>>();
     boost::python::register_ptr_to_python<std::shared_ptr<const torrent_info>>();

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2010, 2014-2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-	class peer_connection;
+	struct torrent;
+	struct peer_connection;
 
 	// returns false if the piece picker was not invoked, because
 	// of an early exit condition. In this case, the stats counter

@@ -1,25 +1,34 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import glob
-import datetime
-
-this_year = datetime.date.today().year
-print('current year: %d' % this_year)
+import copyright
 
 
 def update_file(name):
+    new_header = copyright.get_authors(name)
     subst = ''
     f = open(name)
+
+    substitution_state = 0
+    added = False
+    found = False
     for line in f:
-        if 'Copyright (c) ' in line and 'Arvid Norberg' in line:
-            year_idx = line.index('Copyright (c) ')
-            first_year = int(line[year_idx + 14: year_idx + 18])
-            if first_year != this_year:
-                if line[year_idx + 18] == '-':
-                    line = line[:year_idx + 19] + str(this_year) + line[year_idx + 23:]
-                else:
-                    line = line[:year_idx + 18] + '-' + str(this_year) + line[year_idx + 18:]
+        if line.strip() == '/*':
+            substitution_state += 1
+        elif substitution_state == 1:
+            if line.strip().lower().startswith('copyright'):
+                # remove the existing copyright
+                found = True
+                existing_author = line.split(',')[-1]
+                if existing_author in new_header or existing_author.strip() == 'Not Committed Yet':
+                    continue
+                print('preserving: %s' % line)
+            elif not added and found:
+                subst += new_header
+                added = True
+        elif line.strip() == '*/':
+            substitution_state += 1
 
         subst += line
 
@@ -32,5 +41,11 @@ for i in glob.glob('src/*.cpp') + \
         glob.glob('include/libtorrent/extensions/*.hpp') + \
         glob.glob('include/libtorrent/kademlia/*.hpp') + \
         glob.glob('src/kademlia/*.cpp') + \
-        ['COPYING', 'LICENSE', 'AUTHORS']:
+        glob.glob('examples/*.cpp') + \
+        glob.glob('examples/*.hpp') + \
+        glob.glob('tools/*.cpp') + \
+        glob.glob('test/*.cpp') + \
+        glob.glob('test/*.hpp') + \
+        glob.glob('fuzzers/src/*.cpp') + \
+        glob.glob('fuzzers/src/*.hpp'):
     update_file(i)

@@ -48,8 +48,8 @@ namespace boost
 }
 
 #include <boost/asio/error.hpp>
-#if defined TORRENT_USE_OPENSSL
-#include <boost/asio/ssl.hpp>
+#if TORRENT_USE_SSL
+#include <libtorrent/ssl.hpp>
 #endif
 #if TORRENT_USE_I2P
 #include <libtorrent/i2p_stream.hpp>
@@ -109,7 +109,7 @@ namespace {
 				ec.assign(value, boost::asio::error::get_misc_category());
 			else if (category == "asio.misc")
 				ec.assign(value, boost::asio::error::get_misc_category());
-#if defined TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 			else if (category == "asio.ssl")
 				ec.assign(value, boost::asio::error::get_ssl_category());
 #endif

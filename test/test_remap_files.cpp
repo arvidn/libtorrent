@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2015, Jakob Petsovits
+Copyright (c) 2016, Eugene Shalygin
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -61,19 +66,22 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	// create a torrent with 2 files, remap them into 3 files and make sure
 	// the file priorities don't break things
-	static std::array<const int, 2> const file_sizes{{100000, 100000}};
+	static std::array<const int, 2> const file_sizes{ {0x8000 * 2, 0x8000} };
 	int const piece_size = 0x8000;
 	auto t = make_torrent(file_sizes, piece_size);
 
-	static std::array<const int, 3> const remap_file_sizes
-		{{10000, 10000, int(t->total_size() - 20000)}};
+	static std::array<const int, 2> const remap_file_sizes
+		{{0x8000, 0x8000 * 2}};
 
 	file_storage fs = make_file_storage(remap_file_sizes, piece_size, "multifile-");
 
 	t->remap_files(fs);
 
-	auto const alert_mask = alert::all_categories
-		& ~alert::stats_notification;
+	auto const alert_mask = alert_category::all
+#if TORRENT_ABI_VERSION <= 2
+		& ~alert_category::stats
+#endif
+	;
 
 	session_proxy p1;
 

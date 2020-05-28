@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2017-2018, Alden Torres
+Copyright (c) 2018, Pavel Pimenov
+Copyright (c) 2019, Mike Tzou
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,7 +86,7 @@ namespace libtorrent { namespace aux {
 	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
-			std::fill(buf.begin(), buf.end(), 0);
+			std::fill(buf.begin(), buf.end(), char(0));
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -205,7 +209,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	std::pair<status_t, std::string> move_storage(file_storage const& f
-		, std::string const& save_path
+		, std::string save_path
 		, std::string const& destination_save_path
 		, part_file* pf
 		, move_flags_t const flags, storage_error& ec)
@@ -383,7 +387,7 @@ namespace libtorrent { namespace aux {
 			error_code err;
 			std::string subdir = combine_path(save_path, s);
 
-			while (!compare_path(subdir, save_path) && !err)
+			while (!path_equal(subdir, save_path) && !err)
 			{
 				remove(subdir, err);
 				subdir = parent_path(subdir);
@@ -475,6 +479,7 @@ namespace libtorrent { namespace aux {
 #ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
 		TORRENT_UNUSED(links);
 #else
+		// TODO: this should probably be moved to default_storage::initialize
 		if (!links.empty())
 		{
 			TORRENT_ASSERT(int(links.size()) == fs.num_files());
@@ -599,6 +604,17 @@ namespace libtorrent { namespace aux {
 			if (sz > 0) return true;
 		}
 		return false;
+	}
+
+	int read_zeroes(span<iovec_t const> bufs)
+	{
+		int ret = 0;
+		for (auto buf : bufs)
+		{
+			ret += static_cast<int>(buf.size());
+			std::fill(buf.begin(), buf.end(), '\0');
+		}
+		return ret;
 	}
 
 }}

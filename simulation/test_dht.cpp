@@ -37,59 +37,41 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "setup_swarm.hpp"
-#include "setup_dht.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
-#include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/kademlia/dht_state.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
+
+using lt::settings_pack;
 
 #ifndef TORRENT_DISABLE_DHT
 void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 {
-	lt::dht::dht_settings sett;
-	sett.ignore_dark_internet = false;
-	ses.set_dht_settings(sett);
-
-	lt::entry state;
+	lt::dht::dht_state state;
 
 	for (auto dht : networks)
 	{
 		// bootstrap off of 8 of the nodes
 		auto router_nodes = dht->router_nodes();
-
-		char const* nodes_key;
-
-		if (lt::is_v6(router_nodes.front()))
-			nodes_key = "nodes6";
+		if (lt::aux::is_v6(router_nodes.front()))
+			state.nodes6 = router_nodes;
 		else
-			nodes_key = "nodes";
-
-		lt::entry::list_type& nodes = state["dht state"][nodes_key].list();
-		for (auto const& n : router_nodes)
-		{
-			std::string node;
-			std::back_insert_iterator<std::string> out(node);
-			lt::detail::write_endpoint(n, out);
-			nodes.push_back(lt::entry(node));
-		}
+			state.nodes = router_nodes;
 	}
 
-	std::vector<char> buf;
-	lt::bencode(std::back_inserter(buf), state);
-	lt::bdecode_node e;
-	lt::error_code ec;
-	lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-
-	ses.load_state(e);
-	lt::settings_pack pack;
-	pack.set_bool(lt::settings_pack::enable_dht, true);
+	ses.set_dht_state(std::move(state));
+	settings_pack pack;
+	pack.set_bool(settings_pack::enable_dht, true);
+	pack.set_int(settings_pack::alert_mask, lt::alert_category::all);
+	pack.set_bool(settings_pack::dht_ignore_dark_internet, false);
+	pack.set_bool(settings_pack::dht_restrict_routing_ips, false);
 	ses.apply_settings(pack);
 }
 #endif // TORRENT_DISABLE_DHT
@@ -107,7 +89,7 @@ TORRENT_TEST(dht_bootstrap)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack&) {}
+		, [](::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
@@ -115,14 +97,14 @@ TORRENT_TEST(dht_bootstrap)
 		{
 			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
-				routing_table_depth = int(p->routing_table.size());
+				routing_table_depth = std::max(int(p->routing_table.size()), routing_table_depth);
 				int c = 0;
 				for (auto const& b : p->routing_table)
 				{
 					c += b.num_nodes;
 					c += b.num_replacements;
 				}
-				num_nodes = c;
+				num_nodes = std::max(c, num_nodes);
 				print_routing_table(p->routing_table);
 			}
 			else if (lt::session_stats_alert const* sa = lt::alert_cast<lt::session_stats_alert>(a))
@@ -184,8 +166,8 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 				for (lt::tcp::endpoint const& peer : peers)
 				{
 					// TODO: verify that the endpoint matches the session's
-					got_peer_v4 |= lt::is_v4(peer);
-					got_peer_v6 |= lt::is_v6(peer);
+					got_peer_v4 |= lt::aux::is_v4(peer);
+					got_peer_v6 |= lt::aux::is_v6(peer);
 				}
 			}
 		}

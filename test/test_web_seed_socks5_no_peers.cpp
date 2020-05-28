@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ const int proxy = lt::settings_pack::socks5;
 
 TORRENT_TEST(web_seed_socks5_no_peers_ssl)
 {
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 	run_http_suite(proxy, "https", false, false, false, false, false, false);
 #endif
 }
@@ -49,4 +49,3 @@ TORRENT_TEST(web_seed_socks5_no_peers)
 {
 	run_http_suite(proxy, "http", false, false, false, false, false, false);
 }
-

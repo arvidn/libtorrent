@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEFERRED_HANDLER_HPP
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -44,6 +44,7 @@ struct handler_wrapper
 	handler_wrapper(bool& in_flight, Handler&& h)
 		: m_handler(std::move(h))
 		, m_in_flight(in_flight) {}
+
 	template <typename... Args>
 	void operator()(Args&&... a)
 	{
@@ -52,18 +53,11 @@ struct handler_wrapper
 		m_handler(std::forward<Args>(a)...);
 	}
 
-	// forward asio handler allocator to the underlying handler's
-	friend void* asio_handler_allocate(
-		std::size_t size, handler_wrapper<Handler>* h)
-	{
-		return asio_handler_allocate(size, &h->m_handler);
-	}
+	// forward allocator to the underlying handler's
+	using allocator_type = typename Handler::allocator_type;
 
-	friend void asio_handler_deallocate(
-		void* ptr, std::size_t size, handler_wrapper<Handler>* h)
-	{
-		asio_handler_deallocate(ptr, size, &h->m_handler);
-	}
+	allocator_type get_allocator() const noexcept
+	{ return m_handler.get_allocator(); }
 
 private:
 	Handler m_handler;
@@ -73,11 +67,11 @@ private:
 struct deferred_handler
 {
 	template <typename Handler>
-	void post(io_service& ios, Handler&& h)
+	void post_deferred(lt::io_context& ios, Handler&& h)
 	{
 		if (m_in_flight) return;
 		m_in_flight = true;
-		ios.post(handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
+		post(ios, handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
 	}
 private:
 	bool m_in_flight = false;

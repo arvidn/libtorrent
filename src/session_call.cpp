@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2014-2019, Steven Siloti
+Copyright (c) 2014, 2016, 2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,7 +76,7 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 {
 	blocking_call();
 	std::unique_lock<std::mutex> l(ses.mut);
-	while (!done) { ses.cond.wait(l); };
+	while (!done) { ses.cond.wait(l); }
 }
 
 } } // namespace aux namespace libtorrent

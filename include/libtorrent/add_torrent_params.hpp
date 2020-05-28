@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2009-2018, Arvid Norberg
+Copyright (c) 2009-2019, Arvid Norberg
+Copyright (c) 2015, 2017-2018, Steven Siloti
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,14 +49,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/info_hash.hpp"
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/client_data.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent {
-
-	class torrent_info;
-	struct torrent_plugin;
-	struct torrent_handle;
 
 TORRENT_VERSION_NAMESPACE_2
 
@@ -80,20 +81,19 @@ TORRENT_VERSION_NAMESPACE_2
 	//
 	// The ``add_torrent_params`` is also used when requesting resume data for a
 	// torrent. It can be saved to and restored from a file and added back to a
-	// new session. For serialization and deserialization of
+	// new session. For serialization and de-serialization of
 	// ``add_torrent_params`` objects, see read_resume_data() and
 	// write_resume_data().
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
-		// The constructor can be used to initialize the storage constructor,
-		// which determines the storage mechanism for the downloaded or seeding
-		// data for the torrent. For more information, see the ``storage`` field.
+		// hidden
 		add_torrent_params();
+		~add_torrent_params();
 		add_torrent_params(add_torrent_params&&) noexcept;
-		add_torrent_params& operator=(add_torrent_params&&) = default;
+		add_torrent_params& operator=(add_torrent_params&&) &;
 		add_torrent_params(add_torrent_params const&);
-		add_torrent_params& operator=(add_torrent_params const&);
+		add_torrent_params& operator=(add_torrent_params const&) &;
 
 		// These are all deprecated. use torrent_flags_t instead (in
 		// libtorrent/torrent_flags.hpp)
@@ -102,7 +102,7 @@ TORRENT_VERSION_NAMESPACE_2
 		using flags_t = torrent_flags_t;
 
 #define DECL_FLAG(name) \
-		static constexpr torrent_flags_t TORRENT_DEPRECATED_MEMBER flag_##name = torrent_flags::name
+		TORRENT_DEPRECATED static constexpr torrent_flags_t flag_##name = torrent_flags::name
 
 			DECL_FLAG(seed_mode);
 			DECL_FLAG(upload_mode);
@@ -152,6 +152,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// to the session (if DHT is enabled). The hostname may be an IP address.
 		aux::noexcept_movable<std::vector<std::pair<std::string, int>>> dht_nodes;
 
+		// in case there's no other name in this torrent, this name will be used.
+		// The name out of the torrent_info object takes precedence if available.
 		std::string name;
 
 		// the path where the torrent is or will be stored.
@@ -171,8 +173,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
-		// (see torrent_handle::add_extension()).
-		void* userdata = nullptr;
+		// (see torrent_handle::add_extension()). It will also be stored in the
+		// torrent object and can be retrieved by calling userdata().
+		client_data_t userdata;
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
@@ -187,7 +190,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>>
+		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By
@@ -211,7 +214,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// .torrent file nor a magnet link.
 		// To add a magnet link, use parse_magnet_uri() to populate fields in the
 		// add_torrent_params object.
-		sha1_hash info_hash;
+		info_hash_t info_hash;
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``,
 		// ``download_limit`` correspond to the ``set_max_uploads()``,
@@ -228,6 +231,8 @@ TORRENT_VERSION_NAMESPACE_2
 		int max_uploads = -1;
 		int max_connections = -1;
 
+		// the upload and download rate limits for this torrent, specified in
+		// bytes per second. -1 means unlimited.
 		int upload_limit = -1;
 		int download_limit = -1;
 
@@ -269,7 +274,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// have not received any scrape data.
 		int num_complete = -1;
 		int num_incomplete = -1;
-
 		int num_downloaded = -1;
 
 		// URLs can be added to these two lists to specify additional web
@@ -312,15 +316,29 @@ TORRENT_VERSION_NAMESPACE_2
 		// precedence.
 		aux::noexcept_movable<std::vector<download_priority_t>> piece_priorities;
 
+#if TORRENT_ABI_VERSION <= 2
+		// support for BEP 30 merkle torrents has been removed
+
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the
 		// first entry. See torrent_info::set_merkle_tree() for more info.
-		aux::noexcept_movable<std::vector<sha1_hash>> merkle_tree;
+		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<sha1_hash>> merkle_tree;
+#endif
+
+		// v2 hashes, if known
+		aux::vector<std::vector<sha256_hash>, file_index_t> merkle_trees;
+
+		// bit-fields indicating which v2 leaf hashes have been verified
+		// against the root hash. If this vector is empty and merkle_trees is
+		// non-empty it implies that all hashes in merkle_trees are verified.
+		aux::vector<std::vector<bool>, file_index_t> verified_leaf_hashes;
 
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
 
+		// the posix time of the last time payload was received or sent for this
+		// torrent, respectively.
 		std::time_t last_download = 0;
 		std::time_t last_upload = 0;
 
@@ -338,13 +356,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// until the .torrent file has been downloaded. If there is any error
 		// while downloading, the torrent will be stopped and the torrent error
 		// state (``torrent_status::error``) will indicate what went wrong.
-		std::string TORRENT_DEPRECATED_MEMBER url;
-
-		// if ``uuid`` is specified, it is used to find duplicates. If another
-		// torrent is already running with the same UUID as the one being added,
-		// it will be considered a duplicate. This is mainly useful for RSS feed
-		// items which has UUIDs specified.
-		std::string TORRENT_DEPRECATED_MEMBER uuid;
+		TORRENT_DEPRECATED std::string url;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
@@ -352,7 +364,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		aux::noexcept_movable<std::vector<char>> TORRENT_DEPRECATED_MEMBER resume_data;
+		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<char>> resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is

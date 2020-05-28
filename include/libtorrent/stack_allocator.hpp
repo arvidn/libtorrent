@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg
+Copyright (c) 2012, 2015-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,15 +44,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 
 	struct allocation_slot
 	{
 		allocation_slot() noexcept : m_idx(-1) {}
 		allocation_slot(allocation_slot const&) noexcept = default;
 		allocation_slot(allocation_slot&&) noexcept = default;
-		allocation_slot& operator=(allocation_slot const&) = default;
-		allocation_slot& operator=(allocation_slot&&) noexcept = default;
+		allocation_slot& operator=(allocation_slot const&) & = default;
+		allocation_slot& operator=(allocation_slot&&) & noexcept = default;
 		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
 		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
 		friend struct stack_allocator;
@@ -69,7 +71,7 @@ namespace libtorrent { namespace aux {
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
 		stack_allocator(stack_allocator&&) = default;
-		stack_allocator& operator=(stack_allocator&&) = default;
+		stack_allocator& operator=(stack_allocator&&) & = default;
 
 		allocation_slot copy_string(string_view str);
 		allocation_slot copy_string(char const* str);
@@ -88,6 +90,7 @@ namespace libtorrent { namespace aux {
 		vector<char> m_storage;
 	};
 
-} }
+}
+}
 
 #endif

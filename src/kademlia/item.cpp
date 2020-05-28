@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2013, Steven Siloti
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2015-2016, Steven Siloti
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -129,19 +131,14 @@ signature sign_mutable_item(
 item::item(public_key const& pk, span<char const> salt)
 	: m_salt(salt.data(), static_cast<std::size_t>(salt.size()))
 	, m_pk(pk)
-	, m_seq(0)
 	, m_mutable(true)
 {}
 
 item::item(entry v)
 	: m_value(std::move(v))
-	, m_seq(0)
-	, m_mutable(false)
 {}
 
 item::item(bdecode_node const& v)
-	: m_seq(0)
-	, m_mutable(false)
 {
 	// TODO: implement ctor for entry from bdecode_node?
 	m_value = v;

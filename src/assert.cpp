@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2019, Arvid Norberg
+Copyright (c) 2008, Andrew Resch
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -105,8 +108,8 @@ std::string demangle(char const* name)
 }
 #elif defined _WIN32
 
-#include "windows.h"
-#include "dbghelp.h"
+#include "libtorrent/aux_/windows.hpp"
+#include <DbgHelp.h>
 
 namespace libtorrent {
 std::string demangle(char const* name)
@@ -154,12 +157,12 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 #elif defined _WIN32
 
-#include "windows.h"
+#include "libtorrent/aux_/windows.hpp"
 #include "libtorrent/utf8.hpp"
 #include <mutex>
 
-#include "winbase.h"
-#include "dbghelp.h"
+#include <WinBase.h>
+#include <DbgHelp.h>
 
 namespace libtorrent {
 

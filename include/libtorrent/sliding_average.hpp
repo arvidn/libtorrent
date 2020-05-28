@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2010-2018, Arvid Norberg
+Copyright (c) 2010, 2014, 2016-2019, Arvid Norberg
+Copyright (c) 2019, Amir Abrams
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for std::abs
 #include <limits>
+#include <type_traits> // for is_integral
 
 #include "libtorrent/assert.hpp"
 
@@ -65,7 +67,7 @@ struct sliding_average
 		m_mean += (s - m_mean) / m_num_samples;
 
 		if (m_num_samples > 1) {
-			// the the exact same thing for deviation off the mean except -1 on
+			// the exact same thing for deviation off the mean except -1 on
 			// the samples, because the number of deviation samples always lags
 			// behind by 1 (you need to actual samples to have a single deviation
 			// sample).

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright Arvid Norberg 2008. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -31,4 +31,4 @@ while (not s.is_seeding):
 
     time.sleep(1)
 
-print(h.name(), 'complete')
+print(h.status().name, 'complete')

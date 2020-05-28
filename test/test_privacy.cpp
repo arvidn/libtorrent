@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <fstream>
 
@@ -119,7 +122,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	sett.set_bool(settings_pack::proxy_tracker_connections, !(flags & dont_proxy_trackers));
 	sett.set_int(settings_pack::proxy_port, 4444);
 
-	std::unique_ptr<lt::session> s(new lt::session(sett));
+	auto s = std::make_unique<lt::session>(sett);
 
 	error_code ec;
 	remove_all("tmp1_privacy", ec);
@@ -154,11 +157,14 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	torrent_handle h = s->add_torrent(addp);
 
 	std::printf("connect_peer: 127.0.0.1:%d\n", peer_port);
-	h.connect_peer({address_v4::from_string("127.0.0.1"), std::uint16_t(peer_port)});
+	h.connect_peer({make_address_v4("127.0.0.1"), std::uint16_t(peer_port)});
 
 	std::vector<std::string> accepted_trackers;
 
-	const int timeout = 30;
+	int const timeout = 30;
+	std::size_t const expected_trackers
+		= ((flags & expect_http_connection) ? 2 : 0)
+		+ ((flags & expect_udp_connection) ? 2 : 0);
 
 	for (int i = 0; i < timeout; ++i)
 	{
@@ -166,20 +172,25 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 			, [&](lt::alert const* a)
 			{
 				if (auto const* ta = alert_cast<tracker_reply_alert>(a))
+				{
+					std::printf("accepted tracker: %s\n", ta->tracker_url());
 					accepted_trackers.push_back(ta->tracker_url());
+				}
 				return false;
 			});
 		std::this_thread::sleep_for(lt::milliseconds(100));
 
 		if (num_udp_announces() >= prev_udp_announces + 1
 			&& num_peer_hits() > 0
-			&& !accepted_trackers.empty())
+			&& accepted_trackers.size() >= expected_trackers)
+		{
 			break;
+		}
 	}
 
 	// we should have announced to the tracker by now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces
-		+ ((flags & expect_udp_connection) ? 1 : 0));
+		+ ((flags & expect_udp_connection) ? 2 : 0));
 
 	if (flags & expect_dht_msg)
 	{
@@ -201,22 +212,26 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	if (flags & expect_http_connection)
 	{
+		std::printf("expecting: %s\n", http_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, http_tracker_url) != accepted_trackers.end());
 	}
 	else
 	{
+		std::printf("NOT expecting: %s\n", http_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, http_tracker_url) == accepted_trackers.end());
 	}
 
 	if (flags & expect_udp_connection)
 	{
+		std::printf("expecting: %s\n", udp_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, udp_tracker_url) != accepted_trackers.end());
 	}
 	else
 	{
+		std::printf("NOT expecting: %s\n", udp_tracker_url);
 		TEST_CHECK(std::find(accepted_trackers.begin(), accepted_trackers.end()
 			, udp_tracker_url) == accepted_trackers.end());
 	}

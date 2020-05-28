@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,13 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/packet_buffer.hpp"
-#include "libtorrent/packet_pool.hpp"
+#include "libtorrent/aux_/packet_buffer.hpp"
+#include "libtorrent/aux_/packet_pool.hpp"
 
-using lt::packet_buffer;
-using lt::packet_ptr;
-using lt::packet_pool;
-using lt::packet;
+using lt::aux::packet_buffer;
+using lt::aux::packet_ptr;
+using lt::aux::packet_pool;
+using lt::aux::packet;
 
 namespace {
 

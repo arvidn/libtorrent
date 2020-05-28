@@ -1,6 +1,11 @@
 /*
 
-Copyright (c) 2008-2018, Arvid Norberg
+Copyright (c) 2008-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2016, 2018, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2017, Pavel Pimenov
+Copyright (c) 2018, TheOriginalWinCat
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_seed_connection.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
@@ -42,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	http_seed_connection::http_seed_connection(peer_connection_args const& pack
+	http_seed_connection::http_seed_connection(peer_connection_args& pack
 		, web_seed_t& web)
 		: web_connection_base(pack, web)
 		, m_url(web.url)
@@ -167,7 +172,7 @@ namespace libtorrent {
 		request += "GET ";
 		request += using_proxy ? m_url : m_path;
 		request += "?info_hash=";
-		request += escape_string({t->torrent_file().info_hash().data(), 20});
+		request += escape_string({associated_info_hash().data(), 20});
 		request += "&piece=";
 		request += to_string(r.piece);
 
@@ -191,7 +196,7 @@ namespace libtorrent {
 		peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-		send_buffer(request, message_type_request);
+		send_buffer(request);
 	}
 
 	// --------------------------

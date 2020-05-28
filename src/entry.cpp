@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2008, 2010-2011, 2014-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2019, Amir Abrams
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,9 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#if TORRENT_ABI_VERSION == 1
-#include "libtorrent/lazy_entry.hpp"
-#endif
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
@@ -43,34 +44,73 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-namespace detail {
+namespace aux {
 
-	string_view integer_to_str(span<char> buf
-		, entry::integer_type val)
+	string_view integer_to_str(std::array<char, 21>& buf, entry::integer_type val)
 	{
-		int sign = 0;
-		if (val < 0)
+		if (val >= 0)
 		{
-			sign = 1;
+			if (val < 10)
+			{
+				buf[0] = '0' + static_cast<char>(val);
+				return {buf.data(), std::size_t(1)};
+			}
+			if (val < 100)
+			{
+				buf[0] = '0' + (val / 10) % 10;
+				buf[1] = '0' + val % 10;
+				return {buf.data(), std::size_t(2)};
+			}
+			if (val < 1000)
+			{
+				buf[0] = '0' + (val / 100) % 10;
+				buf[1] = '0' + (val / 10) % 10;
+				buf[2] = '0' + val % 10;
+				return {buf.data(), std::size_t(3)};
+			}
+			if (val < 10000)
+			{
+				buf[0] = '0' + (val / 1000) % 10;
+				buf[1] = '0' + (val / 100) % 10;
+				buf[2] = '0' + (val / 10) % 10;
+				buf[3] = '0' + val % 10;
+				return {buf.data(), std::size_t(4)};
+			}
+			if (val < 100000)
+			{
+				buf[0] = '0' + (val / 10000) % 10;
+				buf[1] = '0' + (val / 1000) % 10;
+				buf[2] = '0' + (val / 100) % 10;
+				buf[3] = '0' + (val / 10) % 10;
+				buf[4] = '0' + val % 10;
+				return {buf.data(), std::size_t(5)};
+			}
+		}
+		// slow path
+		// convert positive values to negative, since the negative space is
+		// larger, so we can fit INT64_MIN
+		int sign = 1;
+		if (val >= 0)
+		{
+			sign = 0;
 			val = -val;
 		}
 		char* ptr = &buf.back();
-		*ptr-- = '\0';
 		if (val == 0) *ptr-- = '0';
-		while (ptr > buf.data() + sign && val != 0)
+		while (val != 0)
 		{
-			*ptr-- = '0' + char(val % 10);
+			*ptr-- = '0' - char(val % 10);
 			val /= 10;
 		}
 		if (sign) *ptr-- = '-';
 		++ptr;
-		return {ptr, static_cast<std::size_t>(&buf.back() - ptr)};
+		return {ptr, static_cast<std::size_t>(&buf.back() - ptr + 1)};
 	}
-} // detail
+} // aux
 
 namespace {
 
-	inline void TORRENT_NO_RETURN throw_error()
+	[[noreturn]] inline void throw_error()
 	{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 
 	template <class T>
@@ -83,7 +123,13 @@ namespace {
 
 	entry& entry::operator[](string_view key)
 	{
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i != dict().end()) return i->second;
 		auto const ret = dict().emplace(
 			std::piecewise_construct,
@@ -94,21 +140,35 @@ namespace {
 
 	const entry& entry::operator[](string_view key) const
 	{
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) throw_error();
 		return i->second;
 	}
 
 	entry* entry::find_key(string_view key)
 	{
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(string_view key) const
 	{
+#if ! defined _GLIBCXX_DEBUG
 		auto const i = dict().find(key);
+#else
+		auto const i = dict().find(std::string(key));
+#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
@@ -356,9 +416,10 @@ namespace {
 		m_type = preformatted_t;
 	}
 
-	// convert a bdecode_node into an old skool entry
+	// convert a bdecode_node into an old school entry
 	entry& entry::operator=(bdecode_node const& e) &
 	{
+		destruct();
 		switch (e.type())
 		{
 			case bdecode_node::string_t:
@@ -388,51 +449,10 @@ namespace {
 				break;
 			}
 			case bdecode_node::none_t:
-				destruct();
 				break;
 		}
 		return *this;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	// convert a lazy_entry into an old skool entry
-	entry& entry::operator=(lazy_entry const& e) &
-	{
-		switch (e.type())
-		{
-			case lazy_entry::string_t:
-				this->string() = e.string_value();
-				break;
-			case lazy_entry::int_t:
-				this->integer() = e.int_value();
-				break;
-			case lazy_entry::dict_t:
-			{
-				dictionary_type& d = this->dict();
-				for (int i = 0; i < e.dict_size(); ++i)
-				{
-					std::pair<std::string, lazy_entry const*> elem = e.dict_at(i);
-					d[elem.first] = *elem.second;
-				}
-				break;
-			}
-			case lazy_entry::list_t:
-			{
-				list_type& l = this->list();
-				for (int i = 0; i < e.list_size(); ++i)
-				{
-					l.emplace_back();
-					l.back() = *e.list_at(i);
-				}
-				break;
-			}
-			case lazy_entry::none_t:
-				destruct();
-				break;
-		}
-		return *this;
-	}
-#endif
 
 	entry& entry::operator=(preformatted_type v) &
 	{

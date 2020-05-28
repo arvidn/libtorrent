@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2010, 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,10 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
-#include <functional>
-
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for base64encode
+#include "libtorrent/socket_io.hpp" // for print_endpoint
 
 namespace libtorrent {
 
@@ -44,8 +46,8 @@ class http_stream : public proxy_base
 {
 public:
 
-	explicit http_stream(io_service& io_service)
-		: proxy_base(io_service)
+	explicit http_stream(io_context& io_context)
+		: proxy_base(io_context)
 		, m_no_connect(false)
 	{}
 
@@ -88,20 +90,128 @@ public:
 		// 3. send HTTP CONNECT method and possibly username+password
 		// 4. read CONNECT response
 
-		using std::placeholders::_1;
-		using std::placeholders::_2;
-		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, std::bind(
-			&http_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
+		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), wrap_allocator(
+				[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
+				name_lookup(ec, std::move(ips), std::move(hn));
+			}, std::move(handler)));
 	}
 
 private:
 
-	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, handler_type& h);
-	void connected(error_code const& e, handler_type& h);
-	void handshake1(error_code const& e, handler_type& h);
-	void handshake2(error_code const& e, handler_type& h);
+	template <typename Handler>
+	void name_lookup(error_code const& e, tcp::resolver::results_type ips
+		, Handler h)
+	{
+		if (handle_error(e, h)) return;
+
+		auto i = ips.begin();
+		m_sock.async_connect(i->endpoint(), wrap_allocator(
+			[this](error_code const& ec, Handler hn) {
+				connected(ec, std::move(hn));
+			}, std::move(h)));
+	}
+
+	template <typename Handler>
+	void connected(error_code const& e, Handler h)
+	{
+		if (handle_error(e, h)) return;
+
+		using namespace libtorrent::aux;
+
+		if (m_no_connect)
+		{
+			std::vector<char>().swap(m_buffer);
+			std::move(h)(e);
+			return;
+		}
+
+		// send CONNECT
+		std::back_insert_iterator<std::vector<char>> p(m_buffer);
+		std::string const endpoint = print_endpoint(m_remote_endpoint);
+		write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
+		if (!m_user.empty())
+		{
+			write_string("Proxy-Authorization: Basic " + base64encode(
+				m_user + ":" + m_password) + "\r\n", p);
+		}
+		write_string("\r\n", p);
+		async_write(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+			[this](error_code const& ec, std::size_t, Handler hn) {
+				handshake1(ec, std::move(hn));
+			}, std::move(h)));
+	}
+
+	template <typename Handler>
+	void handshake1(error_code const& e, Handler h)
+	{
+		if (handle_error(e, h)) return;
+
+		// read one byte from the socket
+		m_buffer.resize(1);
+		async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+			[this](error_code const& ec, std::size_t, Handler hn) {
+				handshake2(ec, std::move(hn));
+			}, std::move(h)));
+	}
+
+	template <typename Handler>
+	void handshake2(error_code const& e, Handler h)
+	{
+		if (handle_error(e, h)) return;
+
+		std::size_t const read_pos = m_buffer.size();
+		// look for \n\n and \r\n\r\n
+		// both of which means end of http response header
+		bool found_end = false;
+		if (m_buffer[read_pos - 1] == '\n' && read_pos > 2)
+		{
+			if (m_buffer[read_pos - 2] == '\n')
+			{
+				found_end = true;
+			}
+			else if (read_pos > 4
+				&& m_buffer[read_pos - 2] == '\r'
+				&& m_buffer[read_pos - 3] == '\n'
+				&& m_buffer[read_pos - 4] == '\r')
+			{
+				found_end = true;
+			}
+		}
+
+		if (found_end)
+		{
+			m_buffer.push_back(0);
+			char const* status = std::strchr(m_buffer.data(), ' ');
+			if (status == nullptr)
+			{
+				h(boost::asio::error::operation_not_supported);
+				error_code ec;
+				close(ec);
+				return;
+			}
+
+			status++;
+			int const code = std::atoi(status);
+			if (code != 200)
+			{
+				h(boost::asio::error::operation_not_supported);
+				error_code ec;
+				close(ec);
+				return;
+			}
+
+			h(e);
+			std::vector<char>().swap(m_buffer);
+			return;
+		}
+
+		// read another byte from the socket
+		m_buffer.resize(read_pos + 1);
+		async_read(m_sock, boost::asio::buffer(m_buffer.data() + read_pos, 1), wrap_allocator(
+			[this](error_code const& ec, std::size_t, Handler hn) {
+				handshake2(ec, std::move(hn));
+			}, std::move(h)));
+	}
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

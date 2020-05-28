@@ -45,9 +45,7 @@ namespace aux {
 
 	struct session_settings;
 
-	// The ``proxy_settings`` structs contains the information needed to
-	// direct certain traffic to a proxy.
-	struct TORRENT_DEPRECATED_EXPORT proxy_settings
+	struct TORRENT_EXPORT proxy_settings
 	{
 		// defaults constructs proxy settings, initializing it to the default
 		// settings.
@@ -88,7 +86,6 @@ namespace aux {
 		// if true, tracker connections are subject to the proxy settings
 		bool proxy_tracker_connections = true;
 	};
-
 
 }}
 

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2004, 2008-2010, 2013-2019, Arvid Norberg
+Copyright (c) 2016-2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,8 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/noncopyable.hpp>
-
 #ifdef TORRENT_WINDOWS
 // windows part
 #include "libtorrent/aux_/windows.hpp"
@@ -89,18 +88,24 @@ namespace libtorrent {
 	using handle_type = int;
 #endif
 
-	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
+#ifdef TORRENT_WINDOWS
+	bool is_sparse(HANDLE file);
+#endif
+
+	struct TORRENT_EXTRA_EXPORT directory
 	{
-	public:
 		directory(std::string const& path, error_code& ec);
 		~directory();
+
+		directory(directory const&) = delete;
+		directory& operator=(directory const&) = delete;
+
 		void next(error_code& ec);
 		std::string file() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
-		int m_inode;
 		WIN32_FIND_DATAW m_fd;
 #else
 		DIR* m_handle;
@@ -109,11 +114,14 @@ namespace libtorrent {
 		bool m_done;
 	};
 
-	struct TORRENT_EXTRA_EXPORT file : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT file
 	{
 		file();
 		file(std::string const& p, aux::open_mode_t m, error_code& ec);
 		~file();
+
+		file(file const&) = delete;
+		file& operator=(file const&) = delete;
 
 		bool open(std::string const& p, aux::open_mode_t m, error_code& ec);
 		bool is_open() const;

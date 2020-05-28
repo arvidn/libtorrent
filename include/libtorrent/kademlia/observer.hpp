@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2010, 2013-2019, Arvid Norberg
+Copyright (c) 2014, Steven Siloti
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
 #include <libtorrent/flags.hpp>
+#include <libtorrent/socket.hpp> // for udp
+#include <libtorrent/kademlia/node_id.hpp>
 
 namespace libtorrent {
 namespace dht {

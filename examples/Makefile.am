@@ -4,6 +4,7 @@ example_programs =  \
   dump_torrent      \
   make_torrent      \
   simple_client     \
+  custom_storage    \
   upnp_test         \
   bt_get            \
   bt_get2           \
@@ -23,12 +24,12 @@ bt_get2_SOURCES = bt-get2.cpp
 dump_torrent_SOURCES = dump_torrent.cpp
 make_torrent_SOURCES = make_torrent.cpp
 simple_client_SOURCES = simple_client.cpp
+custom_storage_SOURCES = custom_storage.cpp
 connection_tester_SOURCES = connection_tester.cpp
 upnp_test_SOURCES = upnp_test.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-
+AM_CPPFLAGS = -ftemplate-depth-50 @DEBUGFLAGS@
 AM_LDFLAGS = @BOOST_SYSTEM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
-
+DEFAULT_INCLUDES = -I$(top_srcdir)/include @OPENSSL_INCLUDES@

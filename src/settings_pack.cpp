@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 #include <algorithm>
 
@@ -101,12 +106,6 @@ namespace libtorrent {
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
 #endif
 
-#ifdef TORRENT_WINDOWS
-constexpr int CLOSE_FILE_INTERVAL = 120;
-#else
-constexpr int CLOSE_FILE_INTERVAL = 0;
-#endif
-
 	namespace {
 
 	using aux::session_impl;
@@ -123,7 +122,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(proxy_username, "", &session_impl::update_proxy),
 		SET(proxy_password, "", &session_impl::update_proxy),
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
-		SET(peer_fingerprint, "-LT1200-", nullptr),
+		SET(peer_fingerprint, "-LT2000-", nullptr),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
 	}});
 
@@ -149,7 +148,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(announce_to_all_trackers, false, nullptr),
 		SET(announce_to_all_tiers, false, nullptr),
 		SET(prefer_udp_trackers, true, nullptr),
-		SET(strict_super_seeding, false, nullptr),
+		DEPRECATED_SET(strict_super_seeding, false, nullptr),
 		DEPRECATED_SET(lock_disk_cache, false, nullptr),
 		SET(disable_hash_checks, false, nullptr),
 		SET(allow_i2p_mixed, false, nullptr),
@@ -160,14 +159,14 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(incoming_starts_queued_torrents, false, nullptr),
 		SET(report_true_downloaded, false, nullptr),
 		SET(strict_end_game_mode, true, nullptr),
-		SET(broadcast_lsd, true, nullptr),
+		DEPRECATED_SET(broadcast_lsd, true, nullptr),
 		SET(enable_outgoing_utp, true, nullptr),
 		SET(enable_incoming_utp, true, nullptr),
 		SET(enable_outgoing_tcp, true, nullptr),
 		SET(enable_incoming_tcp, true, nullptr),
 		SET(ignore_resume_timestamps, false, nullptr),
 		SET(no_recheck_incomplete_resume, false, nullptr),
-		SET(anonymous_mode, false, &session_impl::update_anonymous_mode),
+		SET(anonymous_mode, false, nullptr),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		DEPRECATED_SET(rate_limit_utp, true, &session_impl::update_rate_limit_utp),
 		DEPRECATED_SET(announce_double_nat, false, nullptr),
@@ -183,7 +182,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(allow_partial_disk_writes, true, nullptr),
 		DEPRECATED_SET(force_proxy, false, nullptr),
 		SET(support_share_mode, true, nullptr),
-		SET(support_merkle_torrents, true, nullptr),
+		DEPRECATED_SET(support_merkle_torrents, false, nullptr),
 		SET(report_redundant_bytes, true, nullptr),
 		SET(listen_system_port_fallback, true, nullptr),
 		DEPRECATED_SET(use_disk_cache_pool, false, nullptr),
@@ -198,6 +197,17 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
 		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
+		SET(dht_prefer_verified_node_ids, true, nullptr),
+		SET(dht_restrict_routing_ips, true, nullptr),
+		SET(dht_restrict_search_ips, true, nullptr),
+		SET(dht_extended_routing_table, true, nullptr),
+		SET(dht_aggressive_lookups, true, nullptr),
+		SET(dht_privacy_lookups, false, nullptr),
+		SET(dht_enforce_node_id, false, nullptr),
+		SET(dht_ignore_dark_internet, true, nullptr),
+		SET(dht_read_only, false, nullptr),
+		SET(piece_extent_affinity, false, nullptr),
+		SET(validate_https_trackers, false, &session_impl::update_validate_https),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
@@ -260,6 +270,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(min_announce_interval, 5 * 60, nullptr),
 		SET(auto_manage_startup, 60, nullptr),
 		SET(seeding_piece_quota, 20, nullptr),
+		// TODO: deprecate this
 		SET(max_rejects, 50, nullptr),
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
@@ -284,7 +295,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),
 		DEPRECATED_SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
 		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
-		DEPRECATED_SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
+		SET(dht_upload_rate_limit, 8000, &session_impl::update_dht_upload_rate_limit),
 		SET(unchoke_slots_limit, 8, &session_impl::update_unchoke_limit),
 		DEPRECATED_SET(half_open_limit, 0, nullptr),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),
@@ -301,7 +312,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(mixed_mode_algorithm, settings_pack::peer_proportional, nullptr),
 		SET(listen_queue_size, 5, nullptr),
 		SET(torrent_connect_boost, 30, nullptr),
-		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
+		SET(alert_queue_size, 2000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		DEPRECATED_SET(hashing_threads, 1, nullptr),
 		SET(checking_mem_usage, 1024, nullptr),
@@ -319,7 +330,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(connect_seed_every_n_download, 10, nullptr),
 		SET(max_http_recv_buffer_size, 4*1024*204, nullptr),
 		SET(max_retry_port_bind, 10, nullptr),
-		SET(alert_mask, int(static_cast<std::uint32_t>(alert::error_notification)), &session_impl::update_alert_mask),
+		SET(alert_mask, int(static_cast<std::uint32_t>(alert_category::error)), &session_impl::update_alert_mask),
 		SET(out_enc_policy, settings_pack::pe_enabled, nullptr),
 		SET(in_enc_policy, settings_pack::pe_enabled, nullptr),
 		SET(allowed_enc_level, settings_pack::pe_both, nullptr),
@@ -331,10 +342,26 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET(cache_size_volatile, 256, nullptr),
 		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, nullptr),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
-		SET(close_file_interval, CLOSE_FILE_INTERVAL, nullptr),
+		SET(close_file_interval, 0, nullptr),
 		SET(utp_cwnd_reduce_timer, 100, nullptr),
 		SET(max_web_seed_connections, 3, nullptr),
 		SET(resolver_cache_timeout, 1200, &session_impl::update_resolver_cache_timeout),
+		SET(send_not_sent_low_watermark, 16384, nullptr),
+		SET(rate_choker_initial_threshold, 1024, nullptr),
+		SET(upnp_lease_duration, 3600, nullptr),
+		SET(max_concurrent_http_announces, 50, nullptr),
+		SET(dht_max_peers_reply, 100, nullptr),
+		SET(dht_search_branching, 5, nullptr),
+		SET(dht_max_fail_count, 20, nullptr),
+		SET(dht_max_torrents, 2000, nullptr),
+		SET(dht_max_dht_items, 700, nullptr),
+		SET(dht_max_peers, 500, nullptr),
+		SET(dht_max_torrent_search_reply, 20, nullptr),
+		SET(dht_block_timeout, 5 * 60, nullptr),
+		SET(dht_block_ratelimit, 5, nullptr),
+		SET(dht_item_lifetime, 0, nullptr),
+		SET(dht_sample_infohashes_interval, 21600, nullptr),
+		SET(dht_max_infohashes_sample_count, 20, nullptr),
 	}});
 
 #undef SET
@@ -372,7 +399,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 				return int_settings[s - settings_pack::int_type_base].name;
 			case settings_pack::bool_type_base:
 				return bool_settings[s - settings_pack::bool_type_base].name;
-		};
+		}
 		return "";
 	}
 
@@ -396,7 +423,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 					for (int k = 0; k < int_settings.end_index(); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack.set_int(settings_pack::int_type_base + k, int(val.int_value()));
+						pack.set_int(settings_pack::int_type_base | k, int(val.int_value()));
 						found = true;
 						break;
 					}
@@ -404,7 +431,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 					for (int k = 0; k < bool_settings.end_index(); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base | k, val.int_value() != 0);
 						break;
 					}
 				}
@@ -424,26 +451,46 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		return pack;
 	}
 
-	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett)
+	settings_pack non_default_settings(aux::session_settings const& sett)
 	{
+		settings_pack ret;
+		sett.bulk_get([&ret](aux::session_settings_single_thread const& s)
+		{
 		// loop over all settings that differ from default
-		for (int i = 0; i < settings_pack::num_string_settings; ++i)
-		{
-			if (ensure_string(str_settings[i].default_value) == s.m_strings[std::size_t(i)]) continue;
-			sett[str_settings[i].name] = s.m_strings[std::size_t(i)];
-		}
+			for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
+			{
+				std::uint16_t const n = i | settings_pack::string_type_base;
+				if (ensure_string(str_settings[i].default_value) == s.get_str(n)) continue;
+				ret.set_str(n, s.get_str(n));
+			}
 
-		for (int i = 0; i < settings_pack::num_int_settings; ++i)
-		{
-			if (int_settings[i].default_value == s.m_ints[std::size_t(i)]) continue;
-			sett[int_settings[i].name] = s.m_ints[std::size_t(i)];
-		}
+			for (std::uint16_t i = 0; i < settings_pack::num_int_settings; ++i)
+			{
+				std::uint16_t const n = i | settings_pack::int_type_base;
+				if (int_settings[i].default_value == s.get_int(n)) continue;
+				ret.set_int(n, s.get_int(n));
+			}
 
-		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+			for (std::uint16_t i = 0; i < settings_pack::num_bool_settings; ++i)
+			{
+				std::uint16_t const n = i | settings_pack::bool_type_base;
+				if (bool_settings[i].default_value == s.get_bool(n)) continue;
+				ret.set_bool(n, s.get_bool(n));
+			}
+		});
+		return ret;
+	}
+
+	void save_settings_to_dict(settings_pack const& sett, entry::dictionary_type& out)
+	{
+		struct visitor
 		{
-			if (bool_settings[i].default_value == s.m_bools[std::size_t(i)]) continue;
-			sett[bool_settings[i].name] = s.m_bools[std::size_t(i)];
-		}
+			void operator()(std::uint16_t i, std::string const& str) { out[str_settings[i & settings_pack::index_mask].name] = str; }
+			void operator()(std::uint16_t i, int val) { out[int_settings[i & settings_pack::index_mask].name] = val; }
+			void operator()(std::uint16_t i, bool val) { out[bool_settings[i & settings_pack::index_mask].name] = val; }
+			entry::dictionary_type& out;
+		};
+		sett.for_each(visitor{out});
 	}
 
 	void run_all_updates(aux::session_impl& ses)
@@ -468,24 +515,24 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		}
 	}
 
-	void initialize_default_settings(aux::session_settings& s)
+	void initialize_default_settings(aux::session_settings_single_thread& s)
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
 			if (str_settings[i].default_value == nullptr) continue;
-			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+			s.set_str(settings_pack::string_type_base | i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
 
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
-			s.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+			s.set_int(settings_pack::int_type_base | i, int_settings[i].default_value);
 			TORRENT_ASSERT(s.get_int(settings_pack::int_type_base + i) == int_settings[i].default_value);
 		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 		{
-			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+			s.set_bool(settings_pack::bool_type_base | i, bool_settings[i].default_value);
 			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
 		}
 	}
@@ -518,6 +565,22 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		using fun_t = void (aux::session_impl::*)();
 		std::vector<fun_t> callbacks;
 
+		sett.bulk_set([&](aux::session_settings_single_thread& s)
+		{
+			apply_pack_impl(pack, s, ses ? &callbacks : nullptr);
+		});
+
+		// call the callbacks once all the settings have been applied, and
+		// only once per callback
+		for (auto const& f : callbacks)
+		{
+			(ses->*f)();
+		}
+	}
+
+	void apply_pack_impl(settings_pack const* pack, aux::session_settings_single_thread& sett
+		, std::vector<void(aux::session_impl::*)()>* callbacks)
+	{
 		for (auto const& p : pack->m_strings)
 		{
 			// disregard setting indices that are not string types
@@ -536,9 +599,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			sett.set_str(p.first, p.second);
 			str_setting_entry_t const& sa = str_settings[index];
 
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 
 		for (auto const& p : pack->m_ints)
@@ -558,9 +621,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 			sett.set_int(p.first, p.second);
 			int_setting_entry_t const& sa = int_settings[index];
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 
 		for (auto const& p : pack->m_bools)
@@ -580,16 +643,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 
 			sett.set_bool(p.first, p.second);
 			bool_setting_entry_t const& sa = bool_settings[index];
-			if (sa.fun && ses
-				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
-				callbacks.push_back(sa.fun);
-		}
-
-		// call the callbacks once all the settings have been applied, and
-		// only once per callback
-		for (auto const& f : callbacks)
-		{
-			(ses->*f)();
+			if (sa.fun && callbacks
+				&& std::find(callbacks->begin(), callbacks->end(), sa.fun) == callbacks->end())
+				callbacks->push_back(sa.fun);
 		}
 	}
 

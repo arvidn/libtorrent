@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2007-2009, 2012-2019, Arvid Norberg
+Copyright (c) 2017-2019, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,14 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/entry.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-#include "libtorrent/announce_entry.hpp"
+#include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/fingerprint.hpp"
+#include "libtorrent/client_data.hpp"
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
+#include "setup_transfer.hpp"  // for supports_ipv6
 
 using namespace lt;
 
@@ -46,14 +48,14 @@ TORRENT_TEST(retry_interval)
 {
 	// make sure the retry interval keeps growing
 	// on failing announces
-	announce_entry ae("dummy");
-	ae.endpoints.emplace_back(aux::listen_socket_handle());
+	aux::announce_entry ae("dummy");
+	ae.endpoints.emplace_back(aux::listen_socket_handle(), false);
 	int last = 0;
 	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)
 	{
-		ae.endpoints.front().failed(tracker_backoff, seconds32(5));
-		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().next_announce - clock_type::now()));
+		ae.endpoints.front().info_hashes[protocol_version::V1].failed(tracker_backoff, seconds32(5));
+		int const delay = static_cast<int>(total_seconds(ae.endpoints.front().info_hashes[protocol_version::V1].next_announce - clock_type::now()));
 		TEST_CHECK(delay > last);
 		last = delay;
 		std::printf("%d, ", delay);
@@ -73,6 +75,8 @@ TORRENT_TEST(error_code)
 	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
+
+	TEST_CHECK(error_code(errors::torrent_inconsistent_hashes).message() == "v1 and v2 hashes do not describe the same data");
 
 	TEST_CHECK(error_code(errors::unauthorized, http_category()).message()
 		== "401 Unauthorized");
@@ -104,14 +108,14 @@ TORRENT_TEST(address_to_from_string)
 	// make sure the assumption we use in peer list hold
 	std::multimap<address, int> peers;
 	std::multimap<address, int>::iterator i;
-	peers.insert(std::make_pair(address::from_string("::1", ec), 0));
-	peers.insert(std::make_pair(address::from_string("::2", ec), 3));
-	peers.insert(std::make_pair(address::from_string("::3", ec), 5));
-	i = peers.find(address::from_string("::2", ec));
+	peers.insert(std::make_pair(make_address("::1", ec), 0));
+	peers.insert(std::make_pair(make_address("::2", ec), 3));
+	peers.insert(std::make_pair(make_address("::3", ec), 5));
+	i = peers.find(make_address("::2", ec));
 	TEST_CHECK(i != peers.end());
 	if (i != peers.end())
 	{
-		TEST_CHECK(i->first == address::from_string("::2", ec));
+		TEST_CHECK(i->first == make_address("::2", ec));
 		TEST_CHECK(i->second == 3);
 	}
 }
@@ -148,7 +152,7 @@ TORRENT_TEST(printf_int64)
 	char buffer[100];
 	std::int64_t val = 345678901234567ll;
 	std::snprintf(buffer, sizeof(buffer), "%" PRId64 " %s", val, "end");
-	TEST_EQUAL(buffer, std::string("345678901234567 end"))
+	TEST_EQUAL(buffer, std::string("345678901234567 end"));
 }
 
 TORRENT_TEST(printf_uint64)
@@ -156,7 +160,7 @@ TORRENT_TEST(printf_uint64)
 	char buffer[100];
 	std::uint64_t val = 18446744073709551615ull;
 	std::snprintf(buffer, sizeof(buffer), "%" PRIu64 " %s", val, "end");
-	TEST_EQUAL(buffer, std::string("18446744073709551615 end"))
+	TEST_EQUAL(buffer, std::string("18446744073709551615 end"));
 }
 
 #if defined __GNUC__ && __GNUC__ >= 7
@@ -169,7 +173,7 @@ TORRENT_TEST(printf_trunc)
 	char buffer[4];
 	int val = 184;
 	std::snprintf(buffer, sizeof(buffer), "%d %s", val, "end");
-	TEST_EQUAL(buffer, std::string("184"))
+	TEST_EQUAL(buffer, std::string("184"));
 }
 
 #if defined __GNUC__ && __GNUC__ >= 7
@@ -187,3 +191,47 @@ TORRENT_TEST(error_condition)
 	TEST_CHECK(ec == boost::system::errc::no_such_file_or_directory);
 }
 
+TORRENT_TEST(client_data_assign)
+{
+	client_data_t v;
+	TEST_CHECK(v.get<int>() == nullptr);
+	int a = 1337;
+	v = &a;
+	TEST_CHECK(v.get<int>() == &a);
+	TEST_CHECK(*v.get<int>() == 1337);
+	TEST_CHECK(v.get<int const>() == nullptr);
+	TEST_CHECK(v.get<int volatile>() == nullptr);
+	TEST_CHECK(v.get<int const volatile>() == nullptr);
+	TEST_CHECK(v.get<float>() == nullptr);
+
+	TEST_CHECK(static_cast<int*>(v) == &a);
+	TEST_CHECK(*static_cast<int*>(v) == 1337);
+	TEST_CHECK(static_cast<int const*>(v) == nullptr);
+	TEST_CHECK(static_cast<int volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<int const volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<float*>(v) == nullptr);
+
+	float b = 42.f;
+	v = &b;
+	TEST_CHECK(v.get<float>() == &b);
+	TEST_CHECK(*v.get<float>() == 42.f);
+	TEST_CHECK(v.get<float const>() == nullptr);
+	TEST_CHECK(v.get<float volatile>() == nullptr);
+	TEST_CHECK(v.get<float const volatile>() == nullptr);
+	TEST_CHECK(v.get<int>() == nullptr);
+
+	TEST_CHECK(static_cast<float*>(v) == &b);
+	TEST_CHECK(*static_cast<float*>(v) == 42.f);
+	TEST_CHECK(static_cast<float const*>(v) == nullptr);
+	TEST_CHECK(static_cast<float volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<float const volatile*>(v) == nullptr);
+	TEST_CHECK(static_cast<int*>(v) == nullptr);
+}
+
+TORRENT_TEST(client_data_initialize)
+{
+	int a = 1337;
+	client_data_t v(&a);
+	TEST_CHECK(v.get<int>() == &a);
+	TEST_CHECK(*v.get<int>() == 1337);
+}

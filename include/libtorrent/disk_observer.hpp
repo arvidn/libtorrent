@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2010, 2013-2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT disk_observer
+	struct TORRENT_EXPORT disk_observer
 	{
 		// called when the disk cache size has dropped
 		// below the low watermark again and we can
@@ -49,4 +49,3 @@ namespace libtorrent {
 }
 
 #endif
-

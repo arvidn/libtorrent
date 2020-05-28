@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Daniel Wallin
+Copyright (c) 2006, 2008-2010, 2013-2019, Arvid Norberg
+Copyright (c) 2015, Steven Siloti
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2016-2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -131,6 +135,11 @@ private:
 	std::int8_t m_sorted_results = 0;
 	std::int16_t m_responses = 0;
 	std::int16_t m_timeouts = 0;
+
+	// set to true when done() is called, and will prevent adding new results, as
+	// they would never be serviced and the whole traversal algorithm would stall
+	// and leak
+	bool m_done = false;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	// this is a unique ID for this specific traversal_algorithm instance,

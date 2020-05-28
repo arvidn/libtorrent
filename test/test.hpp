@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2005, 2008-2010, 2013-2019, Arvid Norberg
+Copyright (c) 2015, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,19 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // in warning about deprecated use in any of the tests.
 // the unreachable code warnings are disabled since the test macros may
 // sometimes have conditions that are known at compile time
-#if defined __clang__
-#pragma clang diagnostic ignored "-Wdeprecated"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wunreachable-code"
-
-#elif defined __GNUC__
-#pragma GCC diagnostic ignored "-Wdeprecated"
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wunreachable-code"
-
-#elif defined _MSC_VER
-#pragma warning(disable : 4996)
-#endif
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 #if defined TORRENT_BUILDING_TEST_SHARED
 #define EXPORT BOOST_SYMBOL_EXPORT
@@ -114,23 +103,24 @@ extern int _g_test_idx;
 
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
-	if (!(x)) \
-		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__);
+	do if (!(x)) { \
+		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
+	} while (false)
 #define TEST_EQUAL(x, y) \
-	if ((x) != (y)) { \
+	do if ((x) != (y)) { \
 		std::stringstream s__; \
 		s__ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
-	}
+	} while (false)
 #define TEST_NE(x, y) \
-	if ((x) == (y)) { \
+	do if ((x) == (y)) { \
 		std::stringstream s__; \
 		s__ << "TEST_ERROR: not equal check failed:\n" #x ": " << (x) << "\nexpected not equal to: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
-	}
+	} while (false)
 #else
 #define TEST_CHECK(x) \
-	try \
+	do try \
 	{ \
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
@@ -142,10 +132,10 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 
 #define TEST_EQUAL(x, y) \
-	try { \
+	do try { \
 		if ((x) != (y)) { \
 			std::stringstream s__; \
 			s__ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
@@ -159,9 +149,9 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 #define TEST_NE(x, y) \
-	try { \
+	do try { \
 		if ((x) == (y)) { \
 			std::stringstream s__; \
 			s__ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
@@ -175,29 +165,29 @@ extern int _g_test_idx;
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 #endif
 
 #define TEST_ERROR(x) \
 	TEST_REPORT_AUX((std::string("TEST_ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
 
 #define TEST_NOTHROW(x) \
-	try \
+	do try \
 	{ \
 		x; \
 	} \
 	catch (...) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
-	}
+	} while (false)
 
 #define TEST_THROW(x) \
-	try \
+	do try \
 	{ \
 		x; \
 		TEST_ERROR("No exception thrown: " #x); \
 	} \
-	catch (...) {}
+	catch (...) {} while (false)
 
 #endif // TEST_HPP
 

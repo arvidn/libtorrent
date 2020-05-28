@@ -1,6 +1,11 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2015, 2017-2018, Steven Siloti
+Copyright (c) 2016, Falcosc
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,18 +39,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CONNECTION_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
@@ -54,8 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-#include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/io_context.hpp"
+#include "libtorrent/aux_/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
@@ -66,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for picker_options_t
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -78,7 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
+	struct torrent;
 	struct torrent_peer;
 	struct disk_interface;
 
@@ -88,9 +93,36 @@ namespace libtorrent {
 
 namespace aux {
 
-	struct socket_type;
 	struct session_interface;
 
+	struct min_value_t {};
+	static const min_value_t min_value{};
+
+	struct relative_time
+	{
+		relative_time() : m_time_diff(0) {}
+		explicit relative_time(min_value_t) : m_time_diff(std::numeric_limits<std::int32_t>::min()) {}
+		void set(time_point const reference, time_point const new_value) noexcept
+		{
+			m_time_diff = duration_cast<milliseconds32>(new_value - reference);
+		}
+
+		time_point get(time_point reference) const noexcept
+		{
+			return reference + m_time_diff;
+		}
+	private:
+		milliseconds32 m_time_diff;
+	};
+
+	template <typename T>
+	T clamp_assign(int const v)
+	{
+		auto const limit = std::numeric_limits<T>::max();
+		if (v < 0) return 0;
+		if (v > int(limit)) return limit;
+		return static_cast<T>(v);
+	}
 }
 
 	struct pending_block
@@ -142,9 +174,9 @@ namespace aux {
 		aux::session_settings const* sett;
 		counters* stats_counters;
 		disk_interface* disk_thread;
-		io_service* ios;
+		io_context* ios;
 		std::weak_ptr<torrent> tor;
-		std::shared_ptr<aux::socket_type> s;
+		aux::socket_type s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 		peer_id our_peer_id;
@@ -246,22 +278,23 @@ namespace aux {
 
 	using request_flags_t = flags::bitfield_flag<std::uint8_t, struct request_flags_tag>;
 
-	class TORRENT_EXTRA_EXPORT peer_connection
-		: public peer_connection_hot_members
-		, public bandwidth_socket
-		, public peer_class_set
-		, public disk_observer
-		, public peer_connection_interface
-		, public std::enable_shared_from_this<peer_connection>
-		, public aux::error_handler_interface
+	struct TORRENT_EXTRA_EXPORT peer_connection
+		: peer_connection_hot_members
+		, aux::bandwidth_socket
+		, peer_class_set
+		, disk_observer
+		, peer_connection_interface
+		, std::enable_shared_from_this<peer_connection>
 	{
-	friend class invariant_access;
-	friend class torrent;
+	friend struct invariant_access;
+	friend struct torrent;
 	friend struct cork;
-	public:
 
-		void on_exception(std::exception const& e) override;
-		void on_error(error_code const& ec) override;
+		// explicitly disallow assignment, to silence msvc warning
+		peer_connection& operator=(peer_connection const&) = delete;
+
+		void on_exception(std::exception const& e);
+		void on_error(error_code const& ec);
 
 		virtual connection_type type() const = 0;
 
@@ -272,7 +305,7 @@ namespace aux {
 			num_channels
 		};
 
-		explicit peer_connection(peer_connection_args const& pack);
+		explicit peer_connection(peer_connection_args& pack);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
@@ -329,15 +362,17 @@ namespace aux {
 		int prefer_contiguous_blocks() const
 		{
 			if (on_parole()) return 1;
-			return m_prefer_contiguous_blocks;
+			return int(m_prefer_contiguous_blocks);
 		}
 
 		bool on_parole() const;
 
 		picker_options_t picker_options() const;
 
-		void prefer_contiguous_blocks(int num)
-		{ m_prefer_contiguous_blocks = num; }
+		void prefer_contiguous_blocks(int const num)
+		{
+			m_prefer_contiguous_blocks = aux::clamp_assign<std::uint16_t>(num);
+		}
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }
@@ -367,6 +402,7 @@ namespace aux {
 		// it will let the peer know that we have the given piece
 		void announce_piece(piece_index_t index);
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
 		void superseed_piece(piece_index_t replace_piece, piece_index_t new_piece);
@@ -375,6 +411,7 @@ namespace aux {
 			return m_superseed_piece[0] == index
 				|| m_superseed_piece[1] == index;
 		}
+#endif
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -384,10 +421,12 @@ namespace aux {
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
 
-		void set_share_mode(bool m);
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		void set_share_mode(bool);
 		bool share_mode() const { return m_share_mode; }
+#endif
 
-		void set_upload_only(bool u);
+		void set_upload_only(bool);
 		bool upload_only() const { return m_upload_only; }
 
 		void set_holepunch_mode() override;
@@ -432,6 +471,11 @@ namespace aux {
 		std::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
+		// get the info hash associated with this peer
+		// this will be a sha1 hash or truncated sha256 hash depending
+		// on which protocol version this connection is using
+		sha1_hash associated_info_hash() const;
+
 		stat const& statistics() const override { return m_statistics; }
 		void add_stat(std::int64_t downloaded, std::int64_t uploaded) override;
 		void sent_bytes(int bytes_payload, int bytes_protocol);
@@ -443,7 +487,8 @@ namespace aux {
 		// is called once every second by the main loop
 		void second_tick(int tick_interval_ms);
 
-		std::shared_ptr<aux::socket_type> get_socket() const { return m_socket; }
+		aux::socket_type const& get_socket() const { return m_socket; }
+		aux::socket_type& get_socket() { return m_socket; }
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
@@ -452,7 +497,7 @@ namespace aux {
 		std::vector<piece_index_t> const& suggested_pieces() const { return m_suggested_pieces; }
 
 		time_point connected_time() const { return m_connect; }
-		time_point last_received() const { return m_last_receive; }
+		time_point last_received() const { return m_last_receive.get(m_connect); }
 
 		// this will cause this peer_connection to be disconnected.
 		void disconnect(error_code const& ec
@@ -512,10 +557,6 @@ namespace aux {
 		// interested in the other), disconnect it
 		// returns true if the connection was disconnected
 		bool disconnect_if_redundant();
-
-		void increase_est_reciprocation_rate();
-		void decrease_est_reciprocation_rate();
-		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
 		bool should_log(peer_log_alert::direction_t direction) const final;
@@ -617,8 +658,7 @@ namespace aux {
 		// value invalid (the default constructor).
 		virtual piece_block_progress downloading_piece_progress() const;
 
-		enum message_type_flags { message_type_request = 1 };
-		void send_buffer(span<char const> buf, std::uint32_t flags = 0);
+		void send_buffer(span<char const> buf);
 		void setup_send();
 
 		template <typename Holder>
@@ -657,7 +697,7 @@ namespace aux {
 
 		// the time we last unchoked this peer
 		time_point time_of_last_unchoke() const
-		{ return m_last_unchoke; }
+		{ return m_last_unchoke.get(m_connect); }
 
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
@@ -719,7 +759,7 @@ namespace aux {
 				, span<span<char const>>());
 		}
 
-		void attach_to_torrent(sha1_hash const& ih);
+		void attach_to_torrent(info_hash_t const& ih);
 
 		bool verify_piece(peer_request const& p) const;
 
@@ -735,7 +775,7 @@ namespace aux {
 
 		virtual int timeout() const;
 
-		io_service& get_io_service() { return m_ios; }
+		io_context& get_context() { return m_ios; }
 
 	private:
 
@@ -747,24 +787,28 @@ namespace aux {
 
 		void account_received_bytes(int bytes_transferred);
 
-		// explicitly disallow assignment, to silence msvc warning
-		peer_connection& operator=(peer_connection const&);
-
 		void do_update_interest();
 		void fill_send_buffer();
-		void on_disk_read_complete(disk_buffer_holder disk_block
-			, storage_error const& error, peer_request const& r, time_point issue_time);
+		void on_disk_read_complete(disk_buffer_holder buffer
+			, storage_error const& error, peer_request const&, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request const &r, std::shared_ptr<torrent> t);
+			, peer_request const&, std::shared_ptr<torrent>);
 		void on_seed_mode_hashed(piece_index_t piece
-			, sha1_hash const& piece_hash, storage_error const& error);
+			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
+			, storage_error const& error);
+
+		// this is for a future per-block request feature
+#if 0
+		void on_hash2_complete(storage_error const& error, peer_request const& r
+			, sha256_hash const& hash);
+#endif
 		int request_timeout() const;
 		void check_graceful_pause();
 
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);
 
-		std::shared_ptr<aux::socket_type> m_socket;
+		aux::socket_type m_socket;
 
 		// the queue of blocks we have requested
 		// from this peer
@@ -789,14 +833,13 @@ namespace aux {
 		// m_have_piece.end(), true)
 		int m_num_pieces;
 
-
 	public:
 		// upload and download channel state
 		// enum from peer_info::bw_state
 		bandwidth_state_flags_t m_channel_state[2];
 
 	protected:
-		receive_buffer m_recv_buffer;
+		aux::receive_buffer m_recv_buffer;
 
 		// number of bytes this peer can send and receive
 		int m_quota[2];
@@ -811,7 +854,7 @@ namespace aux {
 		// if the peer is known to require a smaller limit (like BitComet).
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.
-		int m_max_out_request_queue;
+		std::uint16_t m_max_out_request_queue;
 
 		// this is the peer we're actually talking to
 		// it may not necessarily be the peer we're
@@ -819,14 +862,14 @@ namespace aux {
 		tcp::endpoint m_remote;
 
 	public:
-		chained_buffer m_send_buffer;
+		aux::chained_buffer m_send_buffer;
 	private:
 
 		// the disk thread to use to issue disk jobs to
 		disk_interface& m_disk_thread;
 
 		// io service
-		io_service& m_ios;
+		io_context& m_ios;
 
 	protected:
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -840,39 +883,40 @@ namespace aux {
 		// receive a payload message after it has been requested.
 		sliding_average<int, 20> m_request_time;
 
-		// keep the io_service running as long as we
+		// keep the io_context running as long as we
 		// have peer connections
-		io_service::work m_work;
+		executor_work_guard<io_context::executor_type> m_work;
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		time_point m_last_piece = aux::time_now();
+		aux::relative_time m_last_piece;
 
 		// the time we sent a request to
 		// this peer the last time
-		time_point m_last_request = aux::time_now();
+		aux::relative_time m_last_request;
+
 		// the time we received the last
 		// piece request from the peer
-		time_point m_last_incoming_request = min_time();
+		aux::relative_time m_last_incoming_request{aux::min_value};
 
 		// the time when we unchoked this peer
-		time_point m_last_unchoke = aux::time_now();
+		aux::relative_time m_last_unchoke;
 
 		// if we're unchoked by this peer, this
 		// was the time
-		time_point m_last_unchoked = aux::time_now();
+		aux::relative_time m_last_unchoked;
 
 		// the time we last choked this peer. min_time() in
 		// case we never unchoked it
-		time_point m_last_choke = min_time();
+		aux::relative_time m_last_choke{aux::min_value};
 
 		// timeouts
-		time_point m_last_receive = aux::time_now();
-		time_point m_last_sent = aux::time_now();
+		aux::relative_time m_last_receive;
+		aux::relative_time m_last_sent;
 
 		// the last time we filled our send buffer with payload
 		// this is used for timeouts
-		time_point m_last_sent_payload = aux::time_now();
+		aux::relative_time m_last_sent_payload;
 
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
@@ -881,19 +925,19 @@ namespace aux {
 		// Once we get that response, we set it to the current time.
 		// for more information, see the blog post at:
 		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
-		time_point m_requested = aux::time_now();
+		aux::relative_time m_requested;
+
+		// the time when this peer sent us a not_interested message
+		// the last time.
+		aux::relative_time m_became_uninterested;
+
+		// the time when we sent a not_interested message to
+		// this peer the last time.
+		aux::relative_time m_became_uninteresting;
 
 		// the time when async_connect was called
 		// or when the incoming connection was established
 		time_point m_connect = aux::time_now();
-
-		// the time when this peer sent us a not_interested message
-		// the last time.
-		time_point m_became_uninterested = aux::time_now();
-
-		// the time when we sent a not_interested message to
-		// this peer the last time.
-		time_point m_became_uninteresting = aux::time_now();
 
 		// the total payload download bytes
 		// at the last unchoke round. This is used to
@@ -923,8 +967,8 @@ namespace aux {
 		// have sent to it
 		int m_outstanding_bytes = 0;
 
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
-		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+		aux::handler_storage<aux::read_handler_max_size, aux::read_handler> m_read_handler_storage;
+		aux::handler_storage<aux::write_handler_max_size, aux::write_handler> m_write_handler_storage;
 
 		// these are pieces we have recently sent suggests for to this peer.
 		// it just serves as a queue to remember what we've sent, to avoid
@@ -993,7 +1037,7 @@ namespace aux {
 		// requests and take the previous requests
 		// into account without submitting it all
 		// immediately
-		int m_queued_time_critical = 0;
+		std::uint16_t m_queued_time_critical = 0;
 
 		// the number of bytes we are currently reading
 		// from disk, that will be added to the send
@@ -1013,14 +1057,16 @@ namespace aux {
 		// peer is waiting for those pieces.
 		// we can then clear its download queue
 		// by sending choke, unchoke.
-		int m_num_invalid_requests = 0;
+		std::uint16_t m_num_invalid_requests = 0;
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		// if [0] is -1, super-seeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
 		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
 		std::array<piece_index_t, 2> m_superseed_piece = {{piece_index_t(-1), piece_index_t(-1)}};
+#endif
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.
@@ -1029,12 +1075,6 @@ namespace aux {
 		// max transfer rates seen on this peer
 		int m_download_rate_peak = 0;
 		int m_upload_rate_peak = 0;
-
-		// when using the BitTyrant choker, this is our
-		// estimated reciprocation rate. i.e. the rate
-		// we need to send to this peer for it to unchoke
-		// us
-		int m_est_reciprocation_rate;
 
 		// stop sending data after this many bytes, INT_MAX = inf
 		int m_send_barrier = INT_MAX;
@@ -1050,7 +1090,7 @@ namespace aux {
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		int m_prefer_contiguous_blocks = 0;
+		std::uint16_t m_prefer_contiguous_blocks = 0;
 
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
@@ -1098,8 +1138,10 @@ namespace aux {
 		// at a time.
 		bool m_request_large_blocks:1;
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 		// set to true if this peer is in share mode
 		bool m_share_mode:1;
+#endif
 
 		// set to true when this peer is only uploading
 		bool m_upload_only:1;

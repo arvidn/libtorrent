@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017-2019, Arvid Norberg
+Copyright (c) 2018, d-komarov
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/session_settings.hpp"
@@ -81,7 +85,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	create_directory("tmp1_remove", ec);
 	std::ofstream file("tmp1_remove/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
-		, 16 * 1024, num_pieces, false);
+		, 8 * 1024, num_pieces, false, create_torrent::v1_only);
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
@@ -89,7 +93,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr);
+		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr, true, false, nullptr
+		, create_torrent::v1_only);
 
 	if (test == partial_download)
 	{
@@ -110,9 +115,11 @@ void test_remove_torrent(remove_flags_t const remove_options
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true);
-		print_alerts(ses2, "ses2", true, true);
+//		print_alerts(ses2, "ses2", true, true);
 
 		st1 = tor1.status();
+		std::cout << "st1.total_payload_upload: " << st1.total_payload_upload << '\n';
+		std::cout << "st2.num_pieces: " << st2.num_pieces << '\n';
 		st2 = tor2.status();
 
 		if (test == mid_download && st2.num_pieces > num_pieces / 2)
@@ -128,8 +135,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		// if nothing is being transferred after 3 seconds, we're failing the test
-		if (st1.total_payload_upload == 0 && i > 30)
+		// if nothing is being transferred after 4 seconds, we're failing the test
+		if (st1.total_payload_upload == 0 && i > 40)
 		{
 			TEST_ERROR("no transfer");
 			return;
@@ -149,7 +156,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	for (int i = 0; tor2.is_valid() || tor1.is_valid(); ++i)
 	{
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		if (++i > 40)
+		if (++i > 400)
 		{
 			std::cerr << "torrent handle(s) still valid: "
 				<< (tor1.is_valid() ? "tor1 " : "")

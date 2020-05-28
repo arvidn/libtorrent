@@ -41,7 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/dht_settings.hpp"
 
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -62,16 +63,17 @@ using namespace std::placeholders;
 
 namespace
 {
-	dht::dht_settings test_settings() {
-		dht::dht_settings sett;
-		sett.max_torrents = 2;
-		sett.max_dht_items = 2;
-		sett.item_lifetime = int(seconds(120 * 60).count());
+	lt::aux::session_settings test_settings()
+	{
+		lt::aux::session_settings sett;
+		sett.set_int(settings_pack::dht_max_torrents, 2);
+		sett.set_int(settings_pack::dht_max_dht_items, 2);
+		sett.set_int(settings_pack::dht_item_lifetime, 120 * 60);
 		return sett;
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht::dht_settings const& sett)
+		settings_interface const& sett)
 	{
 		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 		TEST_CHECK(s.get() != nullptr);
@@ -100,19 +102,18 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 {
 	default_config cfg;
 	simulation sim(cfg);
-	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 
 	sim::asio::high_resolution_timer timer(ios);
-	timer.expires_from_now(expiry_time);
+	timer.expires_after(expiry_time);
 	timer.async_wait(std::bind(&timer_tick, s.get(), c, _1));
 
-	boost::system::error_code ec;
-	sim.run(ec);
+	sim.run();
 }
 
 TORRENT_TEST(dht_storage_counters)
 {
-	dht::dht_settings sett = test_settings();
+	auto sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	TEST_CHECK(s.get() != nullptr);
@@ -166,10 +167,10 @@ TORRENT_TEST(dht_storage_counters)
 
 TORRENT_TEST(dht_storage_infohashes_sample)
 {
-	dht::dht_settings sett = test_settings();
-	sett.max_torrents = 5;
-	sett.sample_infohashes_interval = 30;
-	sett.max_infohashes_sample_count = 2;
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_torrents, 5);
+	sett.set_int(settings_pack::dht_sample_infohashes_interval, 30);
+	sett.set_int(settings_pack::dht_max_infohashes_sample_count, 2);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	TEST_CHECK(s.get() != nullptr);
@@ -195,10 +196,10 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 
 	default_config cfg;
 	simulation sim(cfg);
-	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 
 	sim::asio::high_resolution_timer timer(ios);
-	timer.expires_from_now(hours(1)); // expiration of torrents
+	timer.expires_after(hours(1)); // expiration of torrents
 	timer.async_wait([&s](boost::system::error_code const&)
 	{
 		// tick here to trigger the torrents expiration
@@ -209,8 +210,7 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 		TEST_EQUAL(r, 0);
 	});
 
-	boost::system::error_code ec;
-	sim.run(ec);
+	sim.run();
 }
 #else
 TORRENT_TEST(disabled) {}

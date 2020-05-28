@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2011-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/deque.hpp"
 
@@ -116,7 +117,7 @@ namespace libtorrent {
 
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
-		bandwidth_channel channel[2];
+		aux::bandwidth_channel channel[2];
 
 		bool ignore_unchoke_slots;
 		int connection_limit_factor;

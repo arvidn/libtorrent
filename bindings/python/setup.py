@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 
-from distutils.core import setup
+from distutils.core import setup, Extension
 import os
 import platform
 import sys
@@ -9,51 +9,7 @@ import shutil
 import multiprocessing
 
 
-class flags_parser:
-    def __init__(self):
-        self.include_dirs = []
-        self.library_dirs = []
-        self.libraries = []
-
-    def parse(self, args):
-        """Parse out the -I -L -l directives
-
-        Returns:
-            list: All other arguments
-        """
-        ret = []
-        for token in args.split():
-            prefix = token[:2]
-            if prefix == '-I':
-                self.include_dirs.append(token[2:])
-            elif prefix == '-L':
-                self.library_dirs.append(token[2:])
-            elif prefix == '-l':
-                self.libraries.append(token[2:])
-            else:
-                ret.append(token)
-        return ret
-
-
-def arch():
-    if platform.system() == 'Darwin':
-        __, __, machine = platform.mac_ver()
-        if machine.startswith('ppc'):
-            return ['-arch', machine]
-    return []
-
-
-def target_specific():
-    if platform.system() == 'Darwin':
-        # On mavericks, clang will fail when unknown arguments are passed in.
-        # python distutils will pass in arguments it doesn't know about.
-        return ['-Wno-error=unused-command-line-argument-hard-error-in-future']
-    return []
-
-
-if '--help' not in sys.argv \
-        and '--help-commands' not in sys.argv:
-
+def bjam_build():
     toolset = ''
     file_ext = '.so'
 
@@ -72,7 +28,7 @@ if '--help' not in sys.argv \
         elif sys.version_info[0:2] in ((3, 3), (3, 4)):
             toolset = ' toolset=msvc-10.0'
         elif sys.version_info[0:2] in ((3, 5), (3, 6)):
-            toolset = ' toolset=msvc-14.0'
+            toolset = ' toolset=msvc-14.1'  # libtorrent requires VS 2017 or newer
         else:
             # unknown python version, lets hope the user has the right version of msvc configured
             toolset = ' toolset=msvc'
@@ -91,7 +47,7 @@ if '--help' not in sys.argv \
     os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
     # build libtorrent using bjam and build the installer with distutils
-    cmdline = ('bjam release optimization=space stage_module --hash' +
+    cmdline = ('b2 release optimization=space stage_module --hash' +
                address_model + toolset + parallel_builds)
     print(cmdline)
     if os.system(cmdline) != 0:
@@ -117,9 +73,41 @@ if '--help' not in sys.argv \
     shutil.copyfile('libtorrent' + file_ext,
                     'build/lib/libtorrent' + file_ext)
 
+    return None
+
+
+def distutils_build():
+
+    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+    source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
+
+    ext = [Extension(
+        'libtorrent',
+        sources=sorted(source_list),
+        language='c++',
+        include_dirs=['../../include'],
+        library_dirs=[],
+        libraries=['torrent-rasterbar'],
+        extra_compile_args=['-DTORRENT_USE_OPENSSL', '-DTORRENT_USE_LIBCRYPTO',
+                            '-DBOOST_ASIO_HAS_STD_CHRONO=1 -DBOOST_EXCEPTION_DISABLE',
+                            '-DBOOST_ASIO_ENABLE_CANCELIO', '-DTORRENT_LINKING_SHARED',
+                            '-DTORRENT_BUILDING_LIBRARY']
+        )
+    ]
+
+    return ext
+
+
+ext = None
+
+if '--help' not in sys.argv \
+        and '--help-commands' not in sys.argv:
+    ext = bjam_build()
+#    ext = distutils_build()
+
 setup(
     name='python-libtorrent',
-    version='1.2.0',
+    version='2.0.0',
     author='Arvid Norberg',
     author_email='arvid@libtorrent.org',
     description='Python bindings for libtorrent-rasterbar',
@@ -128,5 +116,5 @@ setup(
     platforms=[platform.system() + '-' + platform.machine()],
     license='BSD',
     packages=['libtorrent'],
-    ext_modules=None
+    ext_modules=ext
 )

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -126,8 +127,8 @@ TORRENT_TEST(session_peer_class_filter)
 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
 
 	ip_filter f;
-	f.add_rule(address_v4::from_string("200.1.1.0")
-		, address_v4::from_string("200.1.255.255")
+	f.add_rule(make_address_v4("200.1.1.0")
+		, make_address_v4("200.1.255.255")
 		, 1 << static_cast<std::uint32_t>(my_class));
 	ses.set_peer_class_filter(f);
 

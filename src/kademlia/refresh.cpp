@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Daniel Wallin
+Copyright (c) 2006, 2008-2010, 2013-2017, 2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +47,7 @@ observer_ptr bootstrap::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 bool bootstrap::invoke(observer_ptr o)

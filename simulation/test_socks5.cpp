@@ -62,10 +62,10 @@ void run_test(Setup const& setup
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
-	sim::asio::io_service proxy_ios{sim, addr("50.50.50.50") };
+	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 
@@ -111,7 +111,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			set_proxy(ses, settings_pack::socks5);
 
 			lt::add_torrent_params params;
-			params.info_hash = sha1_hash("abababababababababab");
+			params.info_hash.v1 = sha1_hash("abababababababababab");
 			params.trackers.push_back("http://2.2.2.2:8080/announce");
 			params.save_path = ".";
 			ses.async_add_torrent(params);
@@ -119,7 +119,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		[&alert_port](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
-				if (a->socket_type == socket_type_t::udp)
+				if (a->socket_type == socket_type_t::utp)
 				{
 					alert_port = a->port;
 				}
@@ -128,7 +128,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		[&tracker_port](sim::simulation& sim, lt::session&
 			, std::shared_ptr<lt::torrent_info> ti)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
 
@@ -175,7 +175,7 @@ TORRENT_TEST(udp_tracker)
 			ses.apply_settings(p);
 
 			lt::add_torrent_params params;
-			params.info_hash = sha1_hash("abababababababababab");
+			params.info_hash.v1 = sha1_hash("abababababababababab");
 			params.trackers.push_back("udp://2.2.2.2:8080/announce");
 			params.save_path = ".";
 			ses.async_add_torrent(params);
@@ -191,7 +191,7 @@ TORRENT_TEST(udp_tracker)
 			udp_server tracker(sim, "2.2.2.2", 8080,
 			[&](char const* msg, int size)
 			{
-				using namespace lt::detail;
+				using namespace lt::aux;
 				std::vector<char> ret;
 				TEST_CHECK(size >= 16);
 
@@ -254,21 +254,19 @@ TORRENT_TEST(socks5_udp_retry)
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
-	sim::asio::io_service proxy_ios{sim, addr("50.50.50.50") };
+	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
 	// close UDP associate connectons prematurely
 	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
 
 	lt::settings_pack pack = settings();
-	pack.set_str(settings_pack::listen_interfaces, "50.50.50.50:6881");
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
+	print_alerts(*ses);
 	set_proxy(*ses, settings_pack::socks5);
 
-	// run for 60 seconds.The sokcks5 retry interval is expected to be 5 seconds,
-	// meaning there should have been 12 connection attempts
 	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
 		fprintf(stderr, "shutting down\n");
@@ -279,5 +277,7 @@ TORRENT_TEST(socks5_udp_retry)
 	sim.run();
 
 	// number of UDP ASSOCIATE commands invoked on the socks proxy
+	// We run for 60 seconds. The sokcks5 retry interval is expected to be 5
+	// seconds, meaning there should have been 12 connection attempts
 	TEST_EQUAL(socks5.cmd_counts()[2], 12);
 }

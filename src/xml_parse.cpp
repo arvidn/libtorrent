@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -131,7 +132,7 @@ namespace libtorrent {
 				start = i;
 				// find end of attribute name
 				while (i != tag_end && *i != '=' && !is_space(*i)) ++i;
-				std::size_t const name_len = std::size_t(i - start);
+				auto const name_len = static_cast<std::size_t>(i - start);
 
 				// look for equality sign
 				for (; i != tag_end && *i != '='; ++i);

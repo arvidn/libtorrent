@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2012, 2014-2019, Arvid Norberg
+Copyright (c) 2015, Steven Siloti
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
-#include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -60,7 +62,7 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-class torrent;
+struct torrent;
 
 namespace {
 
@@ -136,8 +138,8 @@ namespace {
 			// a bunch of read operations on it
 			if (m_torrent.is_aborted()) return;
 
-			std::vector<torrent_peer*> downloaders;
-			m_torrent.picker().get_downloaders(downloaders, p);
+			std::vector<torrent_peer*> const downloaders
+				= m_torrent.picker().get_downloaders(p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, std::min(16*1024, size)};
@@ -184,7 +186,7 @@ namespace {
 			if (error) return;
 
 			hasher h;
-			h.update({buffer.get(), block_size});
+			h.update({buffer.data(), block_size});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
 			auto const range = m_torrent.find_peers(a);
@@ -265,7 +267,7 @@ namespace {
 			if (error) return;
 
 			hasher h;
-			h.update({buffer.get(), block_size});
+			h.update({buffer.data(), block_size});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 			sha1_hash const ok_digest = h.final();
 
@@ -326,7 +328,7 @@ namespace {
 
 namespace libtorrent {
 
-	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{
 		torrent* t = th.native_handle().get();
 		return std::make_shared<smart_ban_plugin>(*t);

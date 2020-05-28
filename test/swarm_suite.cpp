@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, Eugene Shalygin
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,10 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include <iostream>
 #include <tuple>
@@ -55,12 +59,14 @@ void test_swarm(test_flags_t const flags)
 {
 	using namespace lt;
 
-	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
+	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s%s%s ===\n\n\n"
 		, (flags & test_flags::super_seeding) ? "super-seeding ": ""
 		, (flags & test_flags::strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & test_flags::seed_mode) ? "seed-mode ": ""
 		, (flags & test_flags::time_critical) ? "time-critical ": ""
 		, (flags & test_flags::suggest) ? "suggest ": ""
+		, (flags & test_flags::v1_meta) ? "v1-meta ": ""
+		, (flags & test_flags::v2_meta) ? "v2-meta ": ""
 		);
 
 	// in case the previous run was terminated
@@ -79,8 +85,10 @@ void test_swarm(test_flags_t const flags)
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
+#if TORRENT_ABI_VERSION == 1
 	if (flags & test_flags::strict_super_seeding)
 		pack.set_bool(settings_pack::strict_super_seeding, true);
+#endif
 
 	if (flags & test_flags::suggest)
 		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
@@ -120,9 +128,14 @@ void test_swarm(test_flags_t const flags)
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	if (flags & test_flags::seed_mode) p.flags |= torrent_flags::seed_mode;
-	// test using piece sizes smaller than 16kB
+	// test v1 metadata using piece sizes smaller than 16kB
+	int const piece_size = (flags & test_flags::v1_meta) ? 8 * 1024 : 16 * 1024;
 	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, nullptr, bool(flags & test_flags::super_seeding), &p);
+		, false, true, "_swarm", piece_size, nullptr, bool(flags & test_flags::super_seeding), &p
+		, true, false, nullptr
+		, (flags & test_flags::v1_meta) ? create_torrent::v1_only
+		: (flags & test_flags::v2_meta) ? create_torrent::v2_only
+		: create_flags_t{});
 
 	if (flags & test_flags::time_critical)
 	{

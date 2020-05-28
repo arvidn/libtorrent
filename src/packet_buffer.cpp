@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2010-2018, Arvid Norberg
+Copyright (c) 2010-2012, 2014, 2016-2017, 2019, Arvid Norberg
+Copyright (c) 2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/packet_buffer.hpp"
+#include "libtorrent/aux_/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
 		, std::uint32_t mask);
@@ -189,4 +191,5 @@ namespace libtorrent {
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
+}
 }

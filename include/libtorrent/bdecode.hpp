@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg
+Copyright (c) 2015-2016, Alden Torres
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,8 +112,7 @@ inline boost::system::error_category& get_bdecode_category()
 { return bdecode_category(); }
 #endif
 
-namespace bdecode_errors
-{
+namespace bdecode_errors {
 	// libtorrent uses boost.system's ``error_code`` class to represent
 	// errors. libtorrent has its own error category bdecode_category()
 	// with the error codes defined by error_code_enum.
@@ -142,12 +144,14 @@ namespace bdecode_errors
 }
 } // namespace libtorrent
 
-namespace boost { namespace system {
+namespace boost {
+namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 
-} }
+}
+}
 
 namespace libtorrent {
 
@@ -157,7 +161,10 @@ TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 	, char const* end, char delimiter, std::int64_t& val
 	, bdecode_errors::error_code_enum& ec);
 
-namespace detail {
+namespace aux {
+
+// internal
+void escape_string(std::string& ret, char const* str, int len);
 
 // internal
 struct bdecode_token
@@ -253,11 +260,12 @@ struct bdecode_token
 struct TORRENT_EXPORT bdecode_node
 {
 #if TORRENT_ABI_VERSION == 1
-	TORRENT_DEPRECATED_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
+	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);
 #endif
 
+	// hidden
 	TORRENT_EXPORT friend bdecode_node bdecode(span<char const> buffer
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
 
@@ -267,9 +275,9 @@ struct TORRENT_EXPORT bdecode_node
 	// For owning nodes, the copy will create a copy of the tree, but the
 	// underlying buffer remains the same.
 	bdecode_node(bdecode_node const&);
-	bdecode_node& operator=(bdecode_node const&);
+	bdecode_node& operator=(bdecode_node const&) &;
 	bdecode_node(bdecode_node&&) noexcept;
-	bdecode_node& operator=(bdecode_node&&) = default;
+	bdecode_node& operator=(bdecode_node&&) & = default;
 
 	// the types of bdecoded nodes
 	enum type_t
@@ -301,7 +309,10 @@ struct TORRENT_EXPORT bdecode_node
 	// buffer where this node is defined. For a dictionary for instance, this
 	// starts with ``d`` and ends with ``e``, and has all the content of the
 	// dictionary in between.
+	// the ``data_offset()`` function returns the byte-offset to this node in,
+	// starting from the beginning of the buffer that was parsed.
 	span<char const> data_section() const noexcept;
+	std::ptrdiff_t data_offset() const noexcept;
 
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item
@@ -317,15 +328,21 @@ struct TORRENT_EXPORT bdecode_node
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
 	// contains a 0 byte, you cannot use the 0-terminated string overloads,
-	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
+	// but have to use ``string_view`` instead. ``dict_find_list`` will return a
 	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
 	//
 	// Functions with the ``_value`` suffix return the value of the node
 	// directly, rather than the nodes. In case the node is not found, or it has
 	// a different type, a default value is returned (which can be specified).
+	//
+	// ``dict_at()`` returns the (key, value)-pair at the specified index in a
+	// dictionary. Keys are only allowed to be strings. ``dict_at_node()`` also
+	// returns the (key, value)-pair, but the key is returned as a
+	// ``bdecode_node`` (and it will always be a string).
 	bdecode_node dict_find(string_view key) const;
 	std::pair<string_view, bdecode_node> dict_at(int i) const;
+	std::pair<bdecode_node, bdecode_node> dict_at_node(int i) const;
 	bdecode_node dict_find_dict(string_view key) const;
 	bdecode_node dict_find_list(string_view key) const;
 	bdecode_node dict_find_string(string_view key) const;
@@ -343,9 +360,12 @@ struct TORRENT_EXPORT bdecode_node
 	// these functions are only valid if ``type()`` == ``string_t``. They return
 	// the string values. Note that ``string_ptr()`` is *not* 0-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
+	// ``string_offset()`` returns the byte offset from the start of the parsed
+	// bencoded buffer this string can be found.
 	string_view string_value() const;
 	char const* string_ptr() const;
 	int string_length() const;
+	std::ptrdiff_t string_offset() const;
 
 	// resets the ``bdecoded_node`` to a default constructed state. If this is
 	// an owning node, the tree is freed and all child nodes are invalidated.
@@ -371,17 +391,17 @@ struct TORRENT_EXPORT bdecode_node
 	bool has_soft_error(span<char> error) const;
 
 private:
-	bdecode_node(detail::bdecode_token const* tokens, char const* buf
+	bdecode_node(aux::bdecode_token const* tokens, char const* buf
 		, int len, int idx);
 
 	// if this is the root node, that owns all the tokens, they live in this
 	// vector. If this is a sub-node, this field is not used, instead the
 	// m_root_tokens pointer points to the root node's token.
-	aux::noexcept_movable<std::vector<detail::bdecode_token>> m_tokens;
+	aux::noexcept_movable<std::vector<aux::bdecode_token>> m_tokens;
 
 	// this points to the root nodes token vector
 	// for the root node, this points to its own m_tokens member
-	detail::bdecode_token const* m_root_tokens = nullptr;
+	aux::bdecode_token const* m_root_tokens = nullptr;
 
 	// this points to the original buffer that was parsed
 	char const* m_buffer = nullptr;

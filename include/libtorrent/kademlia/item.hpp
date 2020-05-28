@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2013, Steven Siloti, Arvid Norberg
+Copyright (c) 2013-2019, Steven Siloti
+Copyright (c) 2013-2016, 2018-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 // calculate the target hash for an immutable item.
 TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> v);
@@ -121,6 +124,7 @@ private:
 	bool m_mutable = false;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // LIBTORRENT_ITEM_HPP

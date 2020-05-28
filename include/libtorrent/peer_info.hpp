@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2011, 2013-2019, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2019, Amir Abrams
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/aux_/deprecated.hpp"
 
 namespace libtorrent {
 
@@ -58,12 +62,21 @@ namespace libtorrent {
 	// direction
 	using bandwidth_state_flags_t = flags::bitfield_flag<std::uint8_t, struct bandwidth_state_flags_tag>;
 
+	using connection_type_t = flags::bitfield_flag<std::uint8_t, struct connection_type_tag>;
+
 TORRENT_VERSION_NAMESPACE_2
 
 	// holds information and statistics about one peer
 	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info
 	{
+		// hidden
+		peer_info();
+		~peer_info();
+		peer_info(peer_info const&);
+		peer_info(peer_info&&);
+		peer_info& operator=(peer_info const&);
+
 		// a string describing the software at the other end of the connection.
 		// In some cases this information is not available, then it will contain
 		// a string that may give away something about which software is running
@@ -89,6 +102,11 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// the time until all blocks in the request queue will be downloaded
 		time_duration download_queue_time;
+
+#if TORRENT_ABI_VERSION == 1
+		using peer_flags_t = libtorrent::peer_flags_t;
+		using peer_source_flags = libtorrent::peer_source_flags_t;
+#endif
 
 		// **we** are interested in pieces from this peer.
 		static constexpr peer_flags_t interesting = 0_bit;
@@ -128,7 +146,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// The connection is currently queued for a connection
 		// attempt. This may happen if there is a limit set on
 		// the number of half-open TCP connections.
-		static constexpr peer_flags_t queued = 8_bit;
+		TORRENT_DEPRECATED static constexpr peer_flags_t queued = 8_bit;
 #endif
 
 		// The peer has participated in a piece that failed the
@@ -232,6 +250,8 @@ TORRENT_VERSION_NAMESPACE_2
 		// which client the peer is using. See identify_client()_
 		peer_id pid;
 
+		// the number of bytes we have requested from this peer, but not yet
+		// received.
 		int queue_bytes;
 
 		// the number of seconds until the current front piece request will time
@@ -299,26 +319,25 @@ TORRENT_VERSION_NAMESPACE_2
 		int downloading_progress;
 		int downloading_total;
 
-		// the kind of connection this is. Used for the connection_type field.
-		enum connection_type_t
-		{
-			// Regular bittorrent connection
-			standard_bittorrent = 0,
+#if TORRENT_ABI_VERSION <= 2
+		using connection_type_t = libtorrent::connection_type_t;
+#endif
+		// Regular bittorrent connection
+		static constexpr connection_type_t standard_bittorrent = 0_bit;
 
 			// HTTP connection using the `BEP 19`_ protocol
-			web_seed = 1,
+		static constexpr connection_type_t web_seed = 1_bit;
 
 			// HTTP connection using the `BEP 17`_ protocol
-			http_seed = 2
-		};
+		static constexpr connection_type_t http_seed = 2_bit;
 
 		// the kind of connection this peer uses. See connection_type_t.
-		int connection_type;
+		connection_type_t connection_type;
 
 #if TORRENT_ABI_VERSION == 1
 		// an estimate of the rate this peer is downloading at, in
 		// bytes per second.
-		int remote_dl_rate;
+		TORRENT_DEPRECATED int remote_dl_rate;
 #endif
 
 		// the number of bytes this peer has pending in the disk-io thread.
@@ -337,7 +356,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int receive_quota;
 
 		// an estimated round trip time to this peer, in milliseconds. It is
-		// estimated by timing the the TCP ``connect()``. It may be 0 for
+		// estimated by timing the TCP ``connect()``. It may be 0 for
 		// incoming connections.
 		int rtt;
 
@@ -357,11 +376,13 @@ TORRENT_VERSION_NAMESPACE_2
 		// (parts per million).
 		int progress_ppm;
 
+#if TORRENT_ABI_VERSION == 1
 		// this is an estimation of the upload rate, to this peer, where it will
 		// unchoke us. This is a coarse estimation based on the rate at which
 		// we sent right before we were choked. This is primarily used for the
 		// bittyrant choking algorithm.
-		int estimated_reciprocation_rate;
+		TORRENT_DEPRECATED int estimated_reciprocation_rate;
+#endif
 
 		// the IP-address to this peer. The type is an asio endpoint. For
 		// more info, see the asio_ documentation.
@@ -392,27 +413,28 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr bandwidth_state_flags_t bw_disk = 4_bit;
 
 		// bitmasks indicating what state this peer
-		// is in with regards to sending and receiving data. The states are declared in the
-		// bw_state enum.
+		// is in with regards to sending and receiving data. The states are
+		// defined as independent flags of type bandwidth_state_flags_t, in this
+		// class.
 		bandwidth_state_flags_t read_state;
 		bandwidth_state_flags_t write_state;
 
 #if TORRENT_ABI_VERSION == 1
-		static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
-		static constexpr bandwidth_state_flags_t bw_global = bw_limit;
+		TORRENT_DEPRECATED static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;
+		TORRENT_DEPRECATED static constexpr bandwidth_state_flags_t bw_global = bw_limit;
 
 		// the number of bytes per second we are allowed to send to or receive
 		// from this peer. It may be -1 if there's no local limit on the peer.
 		// The global limit and the torrent limit may also be enforced.
-		int upload_limit;
-		int download_limit;
+		TORRENT_DEPRECATED int upload_limit;
+		TORRENT_DEPRECATED int download_limit;
 
 		// a measurement of the balancing of free download (that we get) and free
 		// upload that we give. Every peer gets a certain amount of free upload,
 		// but this member says how much *extra* free upload this peer has got.
 		// If it is a negative number it means that this was a peer from which we
 		// have got this amount of free download.
-		std::int64_t load_balancing;
+		TORRENT_DEPRECATED std::int64_t load_balancing;
 #endif
 	};
 

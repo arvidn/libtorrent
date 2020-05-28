@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Daniel Wallin
+Copyright (c) 2006, 2008-2010, 2013-2017, 2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,9 +84,9 @@ void find_data_observer::reply(msg const& m)
 find_data::find_data(
 	node& dht_node
 	, node_id const& target
-	, nodes_callback const& ncallback)
+	, nodes_callback ncallback)
 	: traversal_algorithm(dht_node, target)
-	, m_nodes_callback(ncallback)
+	, m_nodes_callback(std::move(ncallback))
 	, m_done(false)
 {
 }
@@ -93,8 +97,8 @@ void find_data::start()
 	// nodes from routing table.
 	if (m_results.empty())
 	{
-		std::vector<node_entry> nodes;
-		m_node.m_table.find_node(target(), nodes, routing_table::include_failed);
+		std::vector<node_entry> const nodes = m_node.m_table.find_node(
+			target(), routing_table::include_failed);
 
 		for (auto const& n : nodes)
 		{
@@ -127,7 +131,7 @@ observer_ptr find_data::new_observer(udp::endpoint const& ep
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
 #endif
-	return std::move(o);
+	return o;
 }
 
 char const* find_data::name() const { return "find_data"; }

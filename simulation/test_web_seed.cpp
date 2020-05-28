@@ -54,11 +54,10 @@ using namespace lt;
 
 int const piece_size = 0x4000;
 
-add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false)
+add_torrent_params create_torrent(file_storage& fs, bool const v1_only = false)
 {
 	lt::create_torrent t(fs, piece_size
-		, pad_files ? piece_size : -1
-		, pad_files ? create_torrent::optimize_alignment : create_flags_t{});
+		, v1_only ? create_torrent::v1_only : create_flags_t{});
 
 	std::vector<char> piece;
 	piece.reserve(fs.piece_length());
@@ -82,6 +81,12 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 		}
 
 		t.set_hash(i, hasher(piece).final());
+		if (!v1_only)
+		{
+			piece_index_t const file_first_piece(int(fs.file_offset(files[0].file_index) / fs.piece_length()));
+			t.set_hash2(files[0].file_index, i - file_first_piece
+				, hasher256(span<char>(piece).first(files[0].size)).final());
+		}
 		piece.clear();
 	}
 
@@ -110,7 +115,7 @@ void run_test(Setup const& setup
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
 	lt::settings_pack pack = settings();
@@ -156,7 +161,7 @@ TORRENT_TEST(single_file)
 		[](lt::session&, lt::alert const*) {},
 		[&expected](sim::simulation& sim, lt::session&)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
 
@@ -194,7 +199,7 @@ TORRENT_TEST(multi_file)
 		[](lt::session&, lt::alert const*) {},
 		[&expected](sim::simulation& sim, lt::session&)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
 
@@ -248,7 +253,7 @@ TORRENT_TEST(unaligned_file_redirect)
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	lt::add_torrent_params params = ::create_torrent(fs, true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	bool seeding = false;
@@ -266,14 +271,14 @@ TORRENT_TEST(unaligned_file_redirect)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
 			sim::http_server http1(web_server1, 8080);
 			// redirect file 1 and file 2 to the same servers
 			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
 			http1.register_redirect("/foo/2", "http://3.3.3.3:4444/bar/file2");
 
 			// server for serving the content
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
 			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 			serve_content_for(http2, "/bar/file2", fs, file_index_t(1));
@@ -293,7 +298,7 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 	fs_.add_file(combine_path("foo", "1"), 0xc030);
 	fs_.add_file(combine_path("foo", "2"), 0xc030);
 	// true means use padfiles
-	lt::add_torrent_params params = ::create_torrent(fs_, true);
+	lt::add_torrent_params params = ::create_torrent(fs_);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	// since the final torrent is different than what we built (because of pad
@@ -315,19 +320,19 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
 			sim::http_server http1(web_server1, 8080);
 			// redirect file 1 and file 2 to different servers
 			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
 			http1.register_redirect("/foo/2", "http://4.4.4.4:9999/bar/file2");
 
 			// server for file 1
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
 			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
-			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
+			sim::asio::io_context web_server3(sim, make_address_v4("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
 			serve_content_for(http3, "/bar/file2", fs, file_index_t(2));
 
@@ -363,19 +368,19 @@ TORRENT_TEST(multi_file_redirect)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
 			sim::http_server http1(web_server1, 8080);
 			// redirect file 1 and file 2 to different servers
 			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
 			http1.register_redirect("/foo/2", "http://4.4.4.4:9999/bar/file2");
 
 			// server for file 1
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
 			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
-			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
+			sim::asio::io_context web_server3(sim, make_address_v4("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
 			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
 
@@ -420,24 +425,24 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 		},
 		[&fs](sim::simulation& sim, lt::session&)
 		{
-			sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
+			sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
 			sim::http_proxy http_p(proxy_ios, 4445);
 
 			// http1 is the root web server that will just redirect requests to
 			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
 			sim::http_server http1(web_server1, 8080);
 			// redirect file 1 and file 2 to different servers
 			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
 			http1.register_redirect("/foo/2", "http://4.4.4.4:9999/bar/file2");
 
 			// server for file 1
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
 			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
-			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
+			sim::asio::io_context web_server3(sim, make_address_v4("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
 			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
 
@@ -456,7 +461,7 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	lt::add_torrent_params params = ::create_torrent(fs, true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	run_test(
@@ -472,19 +477,19 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 		{
 			// http1 is the root web server that will just redirect requests to
 			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
 			sim::http_server http1(web_server1, 8080);
 			// redirect file 1 and file 2 to different servers
 			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
 			http1.register_redirect("/foo/2", "http://4.4.4.4:9999/bar/file2");
 
 			// server for file 1
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
 			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
-			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
+			sim::asio::io_context web_server3(sim, make_address_v4("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
 			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
 
@@ -515,7 +520,7 @@ TORRENT_TEST(urlseed_timeout)
 		},
 		[](sim::simulation& sim, lt::session&)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
@@ -550,7 +555,7 @@ TORRENT_TEST(no_close_redudant_webseed)
 		[](lt::session&, lt::alert const*) {},
 		[&expected](sim::simulation& sim, lt::session&)
 		{
-			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
 			sim::http_server http(web_server, 8080);
 
@@ -598,11 +603,11 @@ TORRENT_TEST(web_seed_connection_limit)
 		[](lt::session&, lt::alert const*) {},
 		[&expected](sim::simulation& sim, lt::session&)
 		{
-			using ios = sim::asio::io_service;
-			ios web_server1{sim, address_v4::from_string("2.2.2.1")};
-			ios web_server2{sim, address_v4::from_string("2.2.2.2")};
-			ios web_server3{sim, address_v4::from_string("2.2.2.3")};
-			ios web_server4{sim, address_v4::from_string("2.2.2.4")};
+			using ios = sim::asio::io_context;
+			ios web_server1{sim, make_address_v4("2.2.2.1")};
+			ios web_server2{sim, make_address_v4("2.2.2.2")};
+			ios web_server3{sim, make_address_v4("2.2.2.3")};
+			ios web_server4{sim, make_address_v4("2.2.2.4")};
 
 			// listen on port 8080
 			using ws = sim::http_server;

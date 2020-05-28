@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
+Copyright (c) 2017-2019, Steven Siloti
+Copyright (c) 2019, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,12 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for load_file
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #include <iostream>
@@ -88,21 +95,43 @@ namespace {
 
 struct test_torrent_t
 {
+	test_torrent_t(char const* f, std::function<void(torrent_info const*)> t = {}) // NOLINT
+		: file(f), test(std::move(t)) {}
+
 	char const* file;
+	std::function<void(torrent_info const*)> test;
 };
 
 using namespace lt;
 
-static test_torrent_t test_torrents[] =
+#ifdef TORRENT_WINDOWS
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
+static test_torrent_t const test_torrents[] =
 {
-	{ "base.torrent" },
+	{ "base.torrent"},
 	{ "empty_path.torrent" },
 	{ "parent_path.torrent" },
 	{ "hidden_parent_path.torrent" },
 	{ "single_multi_file.torrent" },
-	{ "slash_path.torrent" },
-	{ "slash_path2.torrent" },
-	{ "slash_path3.torrent" },
+	{ "slash_path.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "bar");
+		}
+	},
+	{ "slash_path2.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "abc....def" SEPARATOR "bar");
+		}
+	},
+	{ "slash_path3.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp....abc");
+		}
+	},
 	{ "backslash_path.torrent" },
 	{ "url_list.torrent" },
 	{ "url_list2.torrent" },
@@ -110,29 +139,191 @@ static test_torrent_t test_torrents[] =
 	{ "httpseed.torrent" },
 	{ "empty_httpseed.torrent" },
 	{ "long_name.torrent" },
-	{ "whitespace_url.torrent" },
-	{ "duplicate_files.torrent" },
-	{ "pad_file.torrent" },
-	{ "creation_date.torrent" },
-	{ "no_creation_date.torrent" },
-	{ "url_seed.torrent" },
-	{ "url_seed_multi.torrent" },
-	{ "url_seed_multi_single_file.torrent" },
-	{ "url_seed_multi_space.torrent" },
-	{ "url_seed_multi_space_nolist.torrent" },
-	{ "root_hash.torrent" },
+	{ "whitespace_url.torrent", [](torrent_info const* ti) {
+			// make sure we trimmed the url
+			TEST_CHECK(ti->trackers().size() > 0);
+			if (ti->trackers().size() > 0)
+				TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
+		}
+	},
+	{ "duplicate_files.torrent", [](torrent_info const* ti) {
+			// make sure we disambiguated the files
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_CHECK(ti->files().file_path(file_index_t{0}) == combine_path(combine_path("temp", "foo"), "bar.txt"));
+			TEST_CHECK(ti->files().file_path(file_index_t{1}) == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
+		}
+	},
+	{ "pad_file.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{0}) & file_storage::flag_pad_file), false);
+			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{1}) & file_storage::flag_pad_file), true);
+		}
+	},
+	{ "creation_date.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->creation_date(), 1234567);
+		}
+	},
+	{ "no_creation_date.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(!ti->creation_date());
+		}
+	},
+	{ "url_seed.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
+#if TORRENT_ABI_VERSION == 1
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
+#endif
+		}
+	},
+	{ "url_seed_multi.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
+#if TORRENT_ABI_VERSION == 1
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
+#endif
+		}
+	},
+	{ "url_seed_multi_single_file.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/temp/foo/bar.txt");
+		}
+	},
+	{ "url_seed_multi_space.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
+#if TORRENT_ABI_VERSION == 1
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
+#endif
+		}
+	},
+	{ "url_seed_multi_space_nolist.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
+#if TORRENT_ABI_VERSION == 1
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
+#endif
+		}
+	},
 	{ "empty_path_multi.torrent" },
-	{ "duplicate_web_seeds.torrent" },
-	{ "invalid_name2.torrent" },
-	{ "invalid_name3.torrent" },
-	{ "symlink1.torrent" },
+	{ "duplicate_web_seeds.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->web_seeds().size(), 3);
+		}
+	},
+	{ "invalid_name2.torrent", [](torrent_info const* ti) {
+			// if, after all invalid characters are removed from the name, it ends up
+			// being empty, it's set to the info-hash. Some torrents also have an empty name
+			// in which case it's also set to the info-hash
+			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
+		}
+	},
+	{ "invalid_name3.torrent", [](torrent_info const* ti) {
+			// windows does not allow trailing spaces in filenames
+#ifdef TORRENT_WINDOWS
+			TEST_EQUAL(ti->name(), "foobar");
+#else
+			TEST_EQUAL(ti->name(), "foobar ");
+#endif
+		}
+	},
+	{ "symlink1.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().symlink(file_index_t{1}), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
+		}
+	},
+	{ "symlink2.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 5);
+			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "Some.framework" SEPARATOR "Versions" SEPARATOR "A" SEPARATOR "SDL2");
+			TEST_EQUAL(ti->files().symlink(file_index_t{4}), "Some.framework" SEPARATOR "Versions" SEPARATOR "A");
+		}
+	},
 	{ "unordered.torrent" },
-	{ "symlink_zero_size.torrent" },
-	{ "pad_file_no_path.torrent" },
+	{ "symlink_zero_size.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
+		}
+	},
+	{ "pad_file_no_path.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "2124"));
+		}
+	},
 	{ "large.torrent" },
-	{ "absolute_filename.torrent" },
-	{ "invalid_filename.torrent" },
-	{ "invalid_filename2.torrent" },
+	{ "absolute_filename.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), combine_path("temp", "abcde"));
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path("temp", "foobar"));
+		}
+	},
+	{ "invalid_filename.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+		}
+	},
+	{ "invalid_filename2.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 3);
+		}
+	},
+	{ "overlapping_symlinks.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->num_files() > 3);
+			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(file_index_t{1}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(file_index_t{2}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+		}
+	},
+	{ "v2.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test64K"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 65536);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "60aae9c7b428f87e0713e88229e18f0adf12cd7b22a0dd8a92bb2485eb7af242"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), true);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "597b180c1a170a585dfc5e85d834d69013ceda174b8f357d5bb1a0ca509faf0a"_sv);
+		}
+	},
+	{ "v2_multipiece_file.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), true);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "108ac2c3718ce722e6896edc56c4afa98f1d711ecaace7aad74fca418ebd03de"_sv);
+		}
+	},
+	{ "v2_only.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
+			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
+			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
+			TEST_EQUAL(ti->info_hash().has_v1(), false);
+			TEST_EQUAL(ti->info_hash().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "95e04d0c4bad94ab206efa884666fd89777dbe4f7bd9945af1829037a85c6192"_sv);
+		}
+	},
+	{ "v2_invalid_filename.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "_estMB"_sv);
+		}
+	},
+	{ "v2_multiple_files.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+			TEST_EQUAL(ti->num_files(), 4);
+		}
+	},
+	{ "v2_symlinks.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->num_files() > 3);
+			TEST_EQUAL(ti->files().symlink(file_index_t(0)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+		}
+	},
 };
 
 struct test_failing_torrent_t
@@ -157,29 +348,40 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "missing_path_list.torrent", errors::torrent_missing_name },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces },
-	{ "invalid_merkle.torrent", errors::no_files_in_torrent},
 	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
+	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
+	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
+	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
+	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
+	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
+	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
+	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
+	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
+	{ "v2_large_file.torrent", errors::torrent_invalid_length},
+	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
+	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
+	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
 };
 
 } // anonymous namespace
 
 // TODO: test remap_files
-// TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
 // TODO: torrent with 'h' (hidden) attribute
 // TODO: torrent with 'x' (executable) attribute
 // TODO: torrent with 'l' (symlink) attribute
-// TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we
 // shuffle them (how do you test shuffling?, load it multiple times and make
 // sure it's in different order at least once)
 // TODO: torrents with a zero-length name
-// TODO: torrents with a merkle tree and add_merkle_nodes
 // TODO: torrent with a non-dictionary info-section
 // TODO: torrents with DHT nodes
 // TODO: torrent with url-list as a single string
@@ -187,9 +389,23 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with a comment
 // TODO: torrent with an SSL cert
 // TODO: torrent with attributes (executable and hidden)
-// TODO: torrent_info::add_tracker
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
+
+TORRENT_TEST(add_tracker)
+{
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
+	TEST_EQUAL(ti.trackers().size(), 0);
+
+	ti.add_tracker("http://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	announce_entry ae = ti.trackers()[0];
+	TEST_EQUAL(ae.url, "http://test.com/announce");
+
+	ti.clear_trackers();
+	TEST_EQUAL(ti.trackers().size(), 0);
+}
 
 TORRENT_TEST(url_list_and_httpseeds)
 {
@@ -216,7 +432,7 @@ TORRENT_TEST(url_list_and_httpseeds)
 
 TORRENT_TEST(add_url_seed)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	ti.add_url_seed("http://test.com");
@@ -229,7 +445,7 @@ TORRENT_TEST(add_url_seed)
 
 TORRENT_TEST(add_http_seed)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	ti.add_http_seed("http://test.com");
@@ -242,7 +458,7 @@ TORRENT_TEST(add_http_seed)
 
 TORRENT_TEST(set_web_seeds)
 {
-	torrent_info ti(sha1_hash("                   "));
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	std::vector<web_seed_entry> seeds;
@@ -257,15 +473,11 @@ TORRENT_TEST(set_web_seeds)
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
 
-#ifdef TORRENT_WINDOWS
-#define SEPARATOR "\\"
-#else
-#define SEPARATOR "/"
-#endif
-
 TORRENT_TEST(sanitize_long_path)
 {
 	// test sanitize_append_path_element
+
+	using lt::aux::sanitize_append_path_element;
 
 	std::string path;
 	sanitize_append_path_element(path,
@@ -296,6 +508,7 @@ TORRENT_TEST(sanitize_long_path)
 TORRENT_TEST(sanitize_path_trailing_dots)
 {
 	std::string path;
+	using lt::aux::sanitize_append_path_element;
 	sanitize_append_path_element(path, "a");
 	sanitize_append_path_element(path, "abc...");
 	sanitize_append_path_element(path, "c");
@@ -333,6 +546,7 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 
 TORRENT_TEST(sanitize_path_trailing_spaces)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "a");
 	sanitize_append_path_element(path, "abc   ");
@@ -362,6 +576,7 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 
 TORRENT_TEST(sanitize_path)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "\0\0\xed\0\x80");
 	TEST_EQUAL(path, "_");
@@ -549,6 +764,7 @@ TORRENT_TEST(sanitize_path)
 
 TORRENT_TEST(sanitize_path_zeroes)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "\0foo");
 	TEST_EQUAL(path, "_");
@@ -560,6 +776,7 @@ TORRENT_TEST(sanitize_path_zeroes)
 
 TORRENT_TEST(sanitize_path_colon)
 {
+	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "foo:bar");
 #ifdef TORRENT_WINDOWS
@@ -571,6 +788,8 @@ TORRENT_TEST(sanitize_path_colon)
 
 TORRENT_TEST(verify_encoding)
 {
+	using aux::verify_encoding;
+
 	// verify_encoding
 	std::string test = "\b?filename=4";
 	TEST_CHECK(verify_encoding(test));
@@ -700,7 +919,7 @@ TORRENT_TEST(parse_torrents)
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
 	std::string root_dir = parent_path(current_working_directory());
-	for (auto const t : test_torrents)
+	for (auto const& t : test_torrents)
 	{
 		std::printf("loading %s\n", t.file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
@@ -711,132 +930,23 @@ TORRENT_TEST(parse_torrents)
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
 
-		if (t.file == "whitespace_url.torrent"_sv)
-		{
-			// make sure we trimmed the url
-			TEST_CHECK(ti->trackers().size() > 0);
-			if (ti->trackers().size() > 0)
-				TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
-		}
-		else if (t.file == "duplicate_files.torrent"_sv)
-		{
-			// make sure we disambiguated the files
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_CHECK(ti->files().file_path(file_index_t{0}) == combine_path(combine_path("temp", "foo"), "bar.txt"));
-			TEST_CHECK(ti->files().file_path(file_index_t{1}) == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
-		}
-		else if (t.file == "pad_file.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{0}) & file_storage::flag_pad_file), false);
-			TEST_EQUAL(bool(ti->files().file_flags(file_index_t{1}) & file_storage::flag_pad_file), true);
-		}
-		else if (t.file == "creation_date.torrent"_sv)
-		{
-			TEST_EQUAL(ti->creation_date(), 1234567);
-		}
-		else if (t.file == "duplicate_web_seeds.torrent"_sv)
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 3);
-		}
-		else if (t.file == "no_creation_date.torrent"_sv)
-		{
-			TEST_CHECK(!ti->creation_date());
-		}
-		else if (t.file == "url_seed.torrent"_sv)
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
-#if TORRENT_ABI_VERSION == 1
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
-#endif
-		}
-		else if (t.file == "url_seed_multi.torrent"_sv)
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
-#if TORRENT_ABI_VERSION == 1
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
-#endif
-		}
-		else if (t.file == "url_seed_multi_single_file.torrent"_sv)
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/temp/foo/bar.txt");
-		}
-		else if (t.file == "url_seed_multi_space.torrent"_sv
-			|| t.file == "url_seed_multi_space_nolist.torrent"_sv)
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
-#if TORRENT_ABI_VERSION == 1
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
-#endif
-		}
-		else if (t.file == "invalid_name2.torrent"_sv)
-		{
-			// if, after all invalid characters are removed from the name, it ends up
-			// being empty, it's set to the info-hash. Some torrents also have an empty name
-			// in which case it's also set to the info-hash
-			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
-		}
-		else if (t.file == "invalid_name3.torrent"_sv)
-		{
-			// windows does not allow trailing spaces in filenames
-#ifdef TORRENT_WINDOWS
-			TEST_EQUAL(ti->name(), "foobar");
-#else
-			TEST_EQUAL(ti->name(), "foobar ");
-#endif
-		}
-		else if (t.file == "slash_path.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "bar");
-		}
-		else if (t.file == "slash_path2.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "abc....def" SEPARATOR "bar");
-		}
-		else if (t.file == "slash_path3.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp....abc");
-		}
-		else if (t.file == "symlink_zero_size.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), combine_path("foo", "bar"));
-		}
-		else if (t.file == "pad_file_no_path.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path(".pad", "0"));
-		}
-		else if (t.file == "absolute_filename.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), combine_path("temp", "abcde"));
-			TEST_EQUAL(ti->files().file_path(file_index_t{1}), combine_path("temp", "foobar"));
-		}
-		else if (t.file == "invalid_filename.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 2);
-		}
-		else if (t.file == "invalid_filename2.torrent"_sv)
-		{
-			TEST_EQUAL(ti->num_files(), 3);
-		}
+		// construct a piece_picker to get some more test coverage. Perhaps
+		// loading the torrent is fine, but if we can't construct a piece_picker
+		// for it, it's still no good.
+		int const block_size = std::min(ti->piece_length(), default_block_size);
+		int const blocks_per_piece
+			= (ti->piece_length() + block_size - 1) / block_size;
+		int const blocks_in_last_piece
+			= ((ti->total_size() % ti->piece_length())
+			+ block_size - 1) / block_size;
+		piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
+
+		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
+
+		if (t.test) t.test(ti.get());
 
 		file_storage const& fs = ti->files();
-		for (file_index_t idx{0}; idx != file_index_t(fs.num_files()); ++idx)
+		for (file_index_t const idx : fs.file_range())
 		{
 			piece_index_t const first = ti->map_file(idx, 0, 0).piece;
 			piece_index_t const last = ti->map_file(idx, std::max(fs.file_size(idx)-1, std::int64_t(0)), 0).piece;
@@ -857,54 +967,130 @@ TORRENT_TEST(parse_torrents)
 		}
 	}
 
-	for (int i = 0; i < int(sizeof(test_error_torrents)/sizeof(test_error_torrents[0])); ++i)
+	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
-		std::printf("loading %s\n", test_error_torrents[i].file);
-		auto ti = std::make_shared<torrent_info>(combine_path(
-			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
+		std::printf("loading %s\n", e.file);
+		std::vector<char> data;
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
+			, e.file);
+		TEST_CHECK(load_file(filename, data, ec) == 0);
+		TEST_CHECK(!ec);
+
+		auto ti = std::make_shared<torrent_info>(bdecode(data, 1000), ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
-			, test_error_torrents[i].error.message().c_str());
-		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
+			, e.error.message().c_str());
+		TEST_EQUAL(ec.message(), e.error.message());
 		TEST_EQUAL(ti->is_valid(), false);
 	}
 }
 
 namespace {
 
-void test_resolve_duplicates(int test_case)
+struct file_t
+{
+	std::string filename;
+	int size;
+	file_flags_t flags;
+	string_view expected_filename;
+};
+
+std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
+{
+	{
+		{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
+		{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
+		{"test/TeMPorArY.txT", 0x4000, {}, "test/TeMPorArY.2.txT"},
+		// a file with the same name in a seprate directory is fine
+		{"test/test/TEMPORARY.TXT", 0x4000, {}, "test/test/TEMPORARY.TXT"},
+	},
+	{
+		{"test/b.exe", 0x4000, {}, "test/b.exe"},
+		// duplicate of b.exe
+		{"test/B.ExE", 0x4000, {}, "test/B.1.ExE"},
+		// duplicate of b.exe
+		{"test/B.exe", 0x4000, {}, "test/B.2.exe"},
+		{"test/filler", 0x4000, {}, "test/filler"},
+	},
+	{
+		{"test/a/b/c/d/e/f/g/h/i/j/k/l/m", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j/k/l/m"},
+		{"test/a", 0x4000, {}, "test/a.1"},
+		{"test/a/b", 0x4000, {}, "test/a/b.1"},
+		{"test/a/b/c", 0x4000, {}, "test/a/b/c.1"},
+		{"test/a/b/c/d", 0x4000, {}, "test/a/b/c/d.1"},
+		{"test/a/b/c/d/e", 0x4000, {}, "test/a/b/c/d/e.1"},
+		{"test/a/b/c/d/e/f", 0x4000, {}, "test/a/b/c/d/e/f.1"},
+		{"test/a/b/c/d/e/f/g", 0x4000, {}, "test/a/b/c/d/e/f/g.1"},
+		{"test/a/b/c/d/e/f/g/h", 0x4000, {}, "test/a/b/c/d/e/f/g/h.1"},
+		{"test/a/b/c/d/e/f/g/h/i", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i.1"},
+		{"test/a/b/c/d/e/f/g/h/i/j", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j.1"},
+	},
+	{
+		// it doesn't matter whether the file comes before the directory,
+		// directories take precedence
+		{"test/a", 0x4000, {}, "test/a.1"},
+		{"test/a/b", 0x4000, {}, "test/a/b"},
+	},
+	{
+		{"test/A/tmp", 0x4000, {}, "test/A/tmp"},
+		// a file may not have the same name as a directory
+		{"test/a", 0x4000, {}, "test/a.1"},
+		// duplicate of directory a
+		{"test/A", 0x4000, {}, "test/A.2"},
+		{"test/filler", 0x4000, {}, "test/filler"},
+	},
+	{
+		// a subset of this path collides with the next filename
+		{"test/long/path/name/that/collides", 0x4000, {}, "test/long/path/name/that/collides"},
+		// so this file needs to be renamed, to not collide with the path name
+		{"test/long/path", 0x4000, {}, "test/long/path.1"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are allowed to collide, as long as they have the same size
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files of different sizes are NOT allowed to collide
+		{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with normal files
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// normal files are NOT allowed to collide with pad files
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
+		{"test/filler-2", 0x4000, {}, "test/filler-2"},
+	},
+	{
+		// pad files are NOT allowed to collide with directories
+		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+		{"test/filler-1", 0x4000, {}, "test/filler-1"},
+		{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
+	},
+};
+
+void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 {
 	file_storage fs;
+	for (auto const& f : test) fs.add_file(f.filename, f.size, f.flags);
 
-	switch (test_case)
-	{
-		case 0:
-			fs.add_file("test/temporary.txt", 0x4000);
-			fs.add_file("test/Temporary.txt", 0x4000);
-			fs.add_file("test/TeMPorArY.txT", 0x4000);
-			fs.add_file("test/test/TEMPORARY.TXT", 0x4000);
-			break;
-		case 1:
-			fs.add_file("test/b.exe", 0x4000);
-			fs.add_file("test/B.ExE", 0x4000);
-			fs.add_file("test/B.exe", 0x4000);
-			fs.add_file("test/filler", 0x4000);
-			break;
-		case 2:
-			fs.add_file("test/A/tmp", 0x4000);
-			fs.add_file("test/a", 0x4000);
-			fs.add_file("test/A", 0x4000);
-			fs.add_file("test/filler", 0x4000);
-			break;
-		case 3:
-			fs.add_file("test/long/path/name/that/collides", 0x4000);
-			fs.add_file("test/long/path", 0x4000);
-			fs.add_file("test/filler-1", 0x4000);
-			fs.add_file("test/filler-2", 0x4000);
-			break;
-	}
-
-	lt::create_torrent t(fs, 0x4000);
+	// This test creates torrents with duplicate (identical) filenames, which
+	// isn't supported by v2 torrents, so we can only test this with v1 torrents
+	lt::create_torrent t(fs, 0x4000, create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	sha1_hash ph;
@@ -918,45 +1104,13 @@ void test_resolve_duplicates(int test_case)
 	bencode(out, tor);
 
 	torrent_info ti(tmp, from_span);
-
-	aux::vector<aux::vector<char const*, file_index_t>> const filenames
-	{
-		{ // case 0
-			"test/temporary.txt",
-			"test/Temporary.1.txt", // duplicate of temporary.txt
-			"test/TeMPorArY.2.txT", // duplicate of temporary.txt
-			// a file with the same name in a seprate directory is fine
-			"test/test/TEMPORARY.TXT",
-		},
-		{ // case 1
-			"test/b.exe",
-			"test/B.1.ExE", // duplicate of b.exe
-			"test/B.2.exe", // duplicate of b.exe
-			"test/filler",
-		},
-		{ // case 2
-			"test/A/tmp",
-			"test/a.1", // a file may not have the same name as a directory
-			"test/A.2", // duplicate of directory a
-			"test/filler",
-		},
-		{ // case 3
-			// a subset of this path collides with the next filename
-			"test/long/path/name/that/collides",
-			// so this file needs to be renamed, to not collide with the path name
-			"test/long/path.1",
-			"test/filler-1",
-			"test/filler-2",
-		}
-	};
-
 	for (auto const i : fs.file_range())
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
-		std::printf("%s == %s\n", p.c_str(), filenames[test_case][i]);
+		std::printf("%s == %s\n", p.c_str(), test[i].expected_filename.to_string().c_str());
 
-		TEST_EQUAL(p, filenames[test_case][i]);
+		TEST_EQUAL(p, test[i].expected_filename);
 	}
 }
 
@@ -964,8 +1118,8 @@ void test_resolve_duplicates(int test_case)
 
 TORRENT_TEST(resolve_duplicates)
 {
-	for (int i = 0; i < 4; ++i)
-		test_resolve_duplicates(i);
+	for (auto const& t : test_cases)
+		test_resolve_duplicates(t);
 }
 
 TORRENT_TEST(empty_file)

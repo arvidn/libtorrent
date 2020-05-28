@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg
+Copyright (c) 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, 2019, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 namespace libtorrent { namespace aux {
 

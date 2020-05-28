@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2008-2009, 2013-2019, Arvid Norberg
+Copyright (c) 2016, 2018-2019, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017, Falcosc
+Copyright (c) 2018, d-komarov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/session_params.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -78,7 +84,7 @@ bool prioritize_files(torrent_handle const& h, aux::vector<download_priority_t, 
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::piece_progress_notification | alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::piece_progress | alert_category::storage);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -104,7 +110,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	}
 
 	aux::vector<download_priority_t, file_index_t> ones(std::size_t(info->num_files()), 1_pri);
-	TEST_CHECK(prioritize_files(h, ones))
+	TEST_CHECK(prioritize_files(h, ones));
 
 	torrent_status st = h.status();
 
@@ -113,7 +119,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	aux::vector<download_priority_t, file_index_t> prio(std::size_t(info->num_files()), 1_pri);
 	prio[file_index_t(0)] = 0_pri;
-	TEST_CHECK(prioritize_files(h, prio))
+	TEST_CHECK(prioritize_files(h, prio));
 	st = h.status();
 
 	st = h.status();
@@ -124,7 +130,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	if (info->num_files() > 1)
 	{
 		prio[file_index_t{1}] = 0_pri;
-		TEST_CHECK(prioritize_files(h, prio))
+		TEST_CHECK(prioritize_files(h, prio));
 
 		st = h.status();
 		TEST_EQUAL(st.total_wanted, file_size);
@@ -166,11 +172,34 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_CHECK(h.get_file_priorities() == prio);
 }
 
+void test_large_piece_size(int const size)
+{
+	entry torrent;
+	entry& info = torrent["info"];
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["name"] = "test";
+	info["piece length"] = size;
+	info["length"] = size;
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	add_torrent_params atp;
+	atp.ti = std::make_shared<torrent_info>(buf, from_span);
+	atp.save_path = ".";
+
+	lt::session ses;
+	auto h = ses.add_torrent(atp);
+	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
+	h.clear_error();
+	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
+}
+
 } // anonymous namespace
 
 TORRENT_TEST(long_names)
 {
-	entry info;
+	entry torrent;
+	entry& info = torrent["info"];
 	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
 	info["name"] = "slightly shorter name, it's kind of sad that people started "
 		"the trend of incorrectly encoding the regular name field and then adding "
@@ -180,34 +209,34 @@ TORRENT_TEST(long_names)
 		"read this that particular bug should have been fixed";
 	info["piece length"] = 16 * 1024;
 	info["length"] = 3245;
-	entry torrent;
-	torrent["info"] = info;
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	error_code ec;
-	auto ti = std::make_shared<torrent_info>(buf, std::ref(ec), from_span);
-	TEST_CHECK(!ec);
+	auto ti = std::make_shared<torrent_info>(buf, from_span);
+}
+
+TORRENT_TEST(large_piece_size)
+{
+	test_large_piece_size(32768 * 16 * 1024);
+	test_large_piece_size(65535 * 16 * 1024);
 }
 
 TORRENT_TEST(total_wanted)
 {
 	file_storage fs;
 
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
-	fs.add_file("test_torrent_dir4/tmp2", 1024);
-	fs.add_file("test_torrent_dir4/tmp3", 1024);
-	fs.add_file("test_torrent_dir4/tmp4", 1024);
+	fs.add_file("test_torrent_dir4/tmp1", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp2", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp3", default_block_size);
+	fs.add_file("test_torrent_dir4/tmp4", default_block_size);
 
-	lt::create_torrent t(fs, 1024);
+	lt::create_torrent t(fs, default_block_size);
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	error_code ec;
-	auto info = std::make_shared<torrent_info>(
-		tmp, std::ref(ec), from_span);
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	settings_pack pack = settings();
-	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_int(settings_pack::alert_mask, alert_category::storage);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -217,23 +246,20 @@ TORRENT_TEST(total_wanted)
 	p.save_path = ".";
 
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
-	p.file_priorities.resize(4, 0_pri);
-	p.file_priorities[1] = 1_pri;
-
-	p.ti = info;
+	p.file_priorities.resize(8, 0_pri);
+	p.file_priorities[2] = 1_pri;
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 
 	torrent_status st = h.status();
-	TEST_EQUAL(st.total_wanted, 1024);
+	TEST_EQUAL(st.total_wanted, default_block_size);
 	TEST_EQUAL(st.total_wanted_done, 0);
 
 	// make sure that selecting and unseleting a file quickly still end up with
 	// the last set priority
-	h.file_priority(file_index_t{1}, default_priority);
-	h.file_priority(file_index_t{1}, dont_download);
-	TEST_EQUAL(h.status({}).total_wanted, 0);
-	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()))));
+	h.file_priority(file_index_t{2}, default_priority);
+	h.file_priority(file_index_t{2}, dont_download);
+	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()), dont_download)));
 	TEST_EQUAL(h.status({}).total_wanted, 0);
 }
 
@@ -246,9 +272,7 @@ TORRENT_TEST(added_peers)
 	lt::create_torrent t(fs, 1024);
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	error_code ec;
-	auto info = std::make_shared<torrent_info>(
-		tmp, std::ref(ec), from_span);
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
@@ -256,11 +280,10 @@ TORRENT_TEST(added_peers)
 	lt::session ses(pack);
 
 	add_torrent_params p = parse_magnet_uri(
-		"magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082"
-		, ec);
+		"magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082");
 	p.ti = info;
+	p.info_hash = info_hash_t{};
 	p.save_path = ".";
-	TEST_CHECK(!ec);
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 
@@ -271,6 +294,86 @@ TORRENT_TEST(added_peers)
 	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
 	TEST_CHECK(ra);
 	if (ra) TEST_EQUAL(ra->params.peers.size(), 2);
+}
+
+TORRENT_TEST(mismatching_info_hash)
+{
+	file_storage fs;
+	fs.add_file("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(fs, 1024);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
+
+	add_torrent_params p;
+	p.ti = std::move(info);
+
+	// this info-hash is definitely different from the one in `info`, this
+	// should trigger a failure
+	p.info_hash = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	error_code ec;
+	torrent_handle h = ses.add_torrent(std::move(p), ec);
+	TEST_CHECK(ec == lt::errors::mismatching_info_hash);
+	TEST_CHECK(!h.is_valid());
+}
+
+TORRENT_TEST(exceed_file_prio)
+{
+	file_storage fs;
+	fs.add_file("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(fs, 1024);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
+
+	add_torrent_params p;
+	p.ti = std::move(info);
+
+	p.file_priorities.resize(9999, lt::low_priority);
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(std::move(p));
+	auto const prios = h.get_file_priorities();
+	TEST_CHECK(prios.size() == 1);
+}
+
+TORRENT_TEST(exceed_piece_prio)
+{
+	file_storage fs;
+	fs.add_file("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(fs, 1024);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
+	std::size_t const num_pieces = std::size_t(info->num_pieces());
+
+	add_torrent_params p;
+	p.ti = std::move(info);
+
+	p.piece_priorities.resize(9999, lt::low_priority);
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(std::move(p));
+	auto const prios = h.get_piece_priorities();
+	TEST_CHECK(prios.size() == num_pieces);
+}
+
+TORRENT_TEST(exceed_piece_prio_magnet)
+{
+	add_torrent_params p;
+	p.info_hash = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
+	p.piece_priorities.resize(9999, lt::low_priority);
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(std::move(p));
+	auto const prios = h.get_piece_priorities();
+	TEST_CHECK(prios.empty());
 }
 
 TORRENT_TEST(torrent)
@@ -311,10 +414,10 @@ TORRENT_TEST(torrent)
 	{
 		file_storage fs;
 
-		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		lt::create_torrent t(fs, 1024, 6);
+		fs.add_file("test_torrent_dir2/tmp1", default_block_size);
+		lt::create_torrent t(fs, default_block_size);
 
-		std::vector<char> piece(1024);
+		std::vector<char> piece(default_block_size);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[std::size_t(i)] = (i % 26) + 'A';
 
@@ -324,12 +427,13 @@ TORRENT_TEST(torrent)
 		for (auto const i : fs.piece_range())
 			t.set_hash(i, ph);
 
+		t.set_hash2(file_index_t{ 0 }, piece_index_t::diff_type{ 0 }, lt::hasher256(piece).final());
+
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
-		error_code ec;
-		auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
-		test_running_torrent(info, 1024);
+		auto info = std::make_shared<torrent_info>(tmp, from_span);
+		test_running_torrent(info, default_block_size);
 	}
 }
 
@@ -341,7 +445,7 @@ struct plugin_creator
 	explicit plugin_creator(int& c) : m_called(c) {}
 
 	std::shared_ptr<lt::torrent_plugin>
-	operator()(torrent_handle const&, void*)
+	operator()(torrent_handle const&, client_data_t)
 	{
 		++m_called;
 		return std::make_shared<test_plugin>();
@@ -355,7 +459,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	file_storage fs;
 
 	fs.add_file("test_torrent_dir2/tmp1", 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -370,13 +474,12 @@ TORRENT_TEST(duplicate_is_not_error)
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, t.generate());
-	error_code ec;
 
 	int called = 0;
 	plugin_creator creator(called);
 
 	add_torrent_params p;
-	p.ti = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
+	p.ti = std::make_shared<torrent_info>(tmp, from_span);
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags &= ~torrent_flags::duplicate_is_error;
@@ -397,13 +500,12 @@ TORRENT_TEST(duplicate_is_not_error)
 TORRENT_TEST(torrent_total_size_zero)
 {
 	file_storage fs;
-	error_code ec;
 
 	fs.add_file("test_torrent_dir2/tmp1", 0);
 	TEST_CHECK(fs.num_files() == 1);
 	TEST_CHECK(fs.total_size() == 0);
 
-	ec.clear();
+	error_code ec;
 	lt::create_torrent t1(fs);
 	set_piece_hashes(t1, ".", ec);
 	TEST_CHECK(ec);
@@ -424,13 +526,12 @@ TORRENT_TEST(rename_file)
 
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, t.generate());
-	error_code ec;
-	auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
+	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), combine_path("test3","tmp1"));
 
@@ -440,39 +541,10 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), "tmp1");
 }
 
-#if TORRENT_ABI_VERSION == 1
-TORRENT_TEST(async_load_deprecated)
-{
-	settings_pack pack = settings();
-	lt::session ses(pack);
-
-	add_torrent_params p;
-	p.flags &= ~torrent_flags::paused;
-	p.flags &= ~torrent_flags::auto_managed;
-	std::string dir = parent_path(current_working_directory());
-
-	p.url = "file://" + combine_path(combine_path(dir, "test_torrents"), "base.torrent");
-	p.save_path = ".";
-	ses.async_add_torrent(std::move(p));
-
-	alert const* a = wait_for_alert(ses, add_torrent_alert::alert_type);
-	TEST_CHECK(a);
-	if (a == nullptr) return;
-	auto const* ta = alert_cast<add_torrent_alert const>(a);
-	TEST_CHECK(ta);
-	if (ta == nullptr) return;
-	TEST_CHECK(!ta->error);
-	TEST_CHECK(ta->params.ti->name() == "temp");
-}
-#endif
-
 TORRENT_TEST(torrent_status)
 {
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);
-#if TORRENT_ABI_VERSION == 1
-	TEST_EQUAL(static_cast<int>(torrent_status::error_file_url), -2);
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_metadata), -4);
-#endif
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_ssl_ctx), -3);
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_exception), -5);
 }
@@ -493,7 +565,7 @@ void test_queue(add_torrent_params)
 		std::stringstream file_path;
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
-		lt::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 128 * 1024);
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
@@ -608,8 +680,7 @@ TORRENT_TEST(queue_paused)
 TORRENT_TEST(test_move_storage_no_metadata)
 {
 	lt::session ses(settings());
-	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
@@ -623,8 +694,7 @@ TORRENT_TEST(test_move_storage_no_metadata)
 TORRENT_TEST(test_have_piece_no_metadata)
 {
 	lt::session ses(settings());
-	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
@@ -653,8 +723,7 @@ TORRENT_TEST(test_have_piece_out_of_range)
 TORRENT_TEST(test_read_piece_no_metadata)
 {
 	lt::session ses(settings());
-	error_code ec;
-	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab", ec);
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(p);
 
@@ -699,7 +768,7 @@ file_storage test_fs()
 	file_storage fs;
 	fs.set_piece_length(piece_size);
 	fs.add_file("temp", 99999999999);
-	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs;
 }
 }
@@ -739,3 +808,26 @@ TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
 	auto const fs = test_fs();
 	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
 }
+
+#if TORRENT_HAS_SYMLINK
+TORRENT_TEST(symlinks_restore)
+{
+	// downloading test torrent with symlinks
+	std::string const work_dir = current_working_directory();
+	lt::add_torrent_params p;
+	p.ti = std::make_shared<lt::torrent_info>(combine_path(
+		combine_path(parent_path(work_dir), "test_torrents"), "symlink2.torrent"));
+	p.flags &= ~lt::torrent_flags::paused;
+	p.save_path = work_dir;
+	settings_pack pack = settings();
+	pack.set_int(libtorrent::settings_pack::alert_mask, libtorrent::alert_category::status | libtorrent::alert_category::error);
+	lt::session ses(std::move(pack));
+	ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "torrent_checked_alert");
+
+	std::string const f = combine_path(combine_path(work_dir, "Some.framework"), "SDL2");
+	TEST_CHECK(aux::get_file_attributes(f) & file_storage::flag_symlink);
+	TEST_EQUAL(aux::get_symlink_path(f), "Versions/A/SDL2");
+}
+#endif

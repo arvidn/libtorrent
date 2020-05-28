@@ -252,7 +252,7 @@ TORRENT_TEST(utp_only)
 		});
 }
 
-void test_stop_start_download(swarm_test type, bool graceful)
+void test_stop_start_download(swarm_test_t type, bool graceful)
 {
 	bool paused_once = false;
 	bool resumed = false;
@@ -289,7 +289,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			if (paused_once == false)
 			{
 				auto st = get_status(ses);
-				const bool limit_reached = (type == swarm_test::download)
+				const bool limit_reached = (type & swarm_test::download)
 					? st.total_wanted_done > st.total_wanted / 2
 					: st.total_payload_upload >= 3 * 16 * 1024;
 
@@ -304,13 +304,13 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 			std::printf("tick: %d\n", ticks);
 
-			const int timeout = type == swarm_test::download ? 22 : 100;
+			const int timeout = (type & swarm_test::download) ? 22 : 100;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");
 				return true;
 			}
-			if (type == swarm_test::upload) return false;
+			if (type & swarm_test::upload) return false;
 			if (!is_seed(ses)) return false;
 			std::printf("completed in %d ticks\n", ticks);
 			return true;
@@ -412,7 +412,7 @@ struct timeout_config : sim::default_config
 		auto it = m_incoming.find(ip);
 		if (it != m_incoming.end()) return sim::route().append(it->second);
 		it = m_incoming.insert(it, std::make_pair(ip, std::make_shared<queue>(
-			std::ref(m_sim->get_io_service())
+			m_sim->get_io_context()
 			, 1000
 			, lt::duration_cast<lt::time_duration>(seconds(10))
 			, 1000, "packet-loss modem in")));
@@ -424,7 +424,7 @@ struct timeout_config : sim::default_config
 		auto it = m_outgoing.find(ip);
 		if (it != m_outgoing.end()) return sim::route().append(it->second);
 		it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
-			std::ref(m_sim->get_io_service()), 1000
+			m_sim->get_io_context(), 1000
 			, lt::duration_cast<lt::time_duration>(seconds(5)), 200 * 1000, "packet-loss out")));
 		return sim::route().append(it->second);
 	}
@@ -591,7 +591,7 @@ TORRENT_TEST(torrent_completed_alert)
 		// add session
 		, [](lt::settings_pack& pack)
 		{
-			pack.set_int(lt::settings_pack::alert_mask, alert::file_progress_notification);
+			pack.set_int(lt::settings_pack::alert_mask, alert_category::file_progress);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -629,7 +629,7 @@ TORRENT_TEST(block_uploaded_alert)
 		, [](lt::settings_pack& pack)
 		{
 			pack.set_int(lt::settings_pack::alert_mask,
-				alert::upload_notification | alert::status_notification);
+				alert_category::upload | alert_category::status);
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {}
@@ -795,7 +795,6 @@ TORRENT_TEST(download_rate_limit_negative)
 	);
 }
 
-
 TORRENT_TEST(unchoke_slots_limit)
 {
 	test_settings([](lt::settings_pack& pack) {
@@ -811,11 +810,65 @@ TORRENT_TEST(unchoke_slots_limit_negative)
 	});
 }
 
+TORRENT_TEST(settings_stress_test)
+{
+	std::array<int, 11> const settings{{
+		settings_pack::unchoke_slots_limit,
+		settings_pack::connections_limit,
+		settings_pack::predictive_piece_announce,
+		settings_pack::allow_multiple_connections_per_ip,
+		settings_pack::send_redundant_have,
+		settings_pack::rate_limit_ip_overhead,
+		settings_pack::rate_limit_ip_overhead,
+		settings_pack::anonymous_mode,
+//		settings_pack::enable_upnp,
+//		settings_pack::enable_natpmp,
+		settings_pack::enable_lsd,
+		settings_pack::enable_ip_notifier,
+		settings_pack::piece_extent_affinity,
+	}};
+	std::array<int, 4> const values{{-1, 0, 1, std::numeric_limits<int>::max()}};
+
+	for (auto t : { swarm_test::download, swarm_test::upload})
+	{
+		for (auto s1 : settings)
+		{
+			for (auto s2 : settings)
+			{
+				if (s1 == s2) continue;
+
+				setup_swarm(2, t
+					// add session
+					, [](lt::settings_pack& p) {
+					p.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
+					}
+					// add torrent
+					, [](lt::add_torrent_params& params) {}
+					// on alert
+					, [](lt::alert const*, lt::session&) {}
+					// terminate
+					, [&](int tick, lt::session& session) -> bool
+					{
+						int const s = (tick & 1) ? s2 : s1;
+						settings_pack p;
+						if ((s & settings_pack::type_mask) == settings_pack::bool_type_base)
+							p.set_bool(s, bool(tick & 2));
+						else
+							p.set_int(s, values[(tick >> 1) % values.size()]);
+						session.apply_settings(std::move(p));
+						return tick > int(settings.size() * values.size() * 2);
+					});
+			}
+		}
+	}
+}
+
+
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept
 // incoming connections
 // TODO: test the different storage allocation modes
-// TODO: test contiguous buffers
+// TODO: test contiguous buffer
 
 

@@ -1,6 +1,11 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2019, Arvid Norberg
+Copyright (c) 2009, Andrew Resch
+Copyright (c) 2015, 2018, Steven Siloti
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -52,6 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
+
+#if TORRENT_USE_ASSERTS
+#include "libtorrent/hasher.hpp"
+#endif
 
 namespace libtorrent {namespace {
 
@@ -119,8 +127,16 @@ namespace libtorrent {namespace {
 			{
 				m_metadata = m_torrent.torrent_file().metadata();
 				m_metadata_size = m_torrent.torrent_file().metadata_size();
-				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
-					== m_torrent.torrent_file().info_hash());
+				if (m_torrent.torrent_file().info_hash().has_v1())
+				{
+					TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
+						== m_torrent.torrent_file().info_hash().v1);
+				}
+				if (m_torrent.torrent_file().info_hash().has_v2())
+				{
+					TORRENT_ASSERT(hasher256(m_metadata.get(), m_metadata_size).final()
+						== m_torrent.torrent_file().info_hash().v2);
+				}
 			}
 			return {m_metadata.get(), m_metadata_size};
 		}
@@ -165,9 +181,9 @@ namespace libtorrent {namespace {
 
 		struct metadata_piece
 		{
-			metadata_piece(): num_requests(0), last_request(min_time()) {}
-			int num_requests;
-			time_point last_request;
+			metadata_piece() = default;
+			int num_requests = 0;
+			time_point last_request = min_time();
 			std::weak_ptr<ut_metadata_peer_plugin> source;
 			bool operator<(metadata_piece const& rhs) const
 			{ return num_requests < rhs.num_requests; }
@@ -273,7 +289,7 @@ namespace libtorrent {namespace {
 			char* p = &msg[6];
 			int const len = bencode(p, e);
 			int const total_size = 2 + len + metadata_piece_size;
-			namespace io = detail;
+			namespace io = aux;
 			io::write_uint32(total_size, header);
 			io::write_uint8(bt_peer_connection::msg_extended, header);
 			io::write_uint8(m_message_index, header);
@@ -466,7 +482,7 @@ namespace libtorrent {namespace {
 		// this is set to the next time we can request pieces
 		// again. It is updated every time we get a
 		// "I don't have metadata" message, but also when
-		// we receive metadata that fails the infohash check
+		// we receive metadata that fails the info hash check
 		time_point m_request_limit;
 
 		// request queues
@@ -630,7 +646,7 @@ namespace libtorrent {namespace {
 
 namespace libtorrent {
 
-	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, client_data_t)
 	{
 		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private

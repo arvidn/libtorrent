@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2006-2009, 2011, 2013-2019, Arvid Norberg
+Copyright (c) 2015, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2018, d-komarov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,12 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include "libtorrent/fwd.hpp"
 
-EXPORT std::shared_ptr<lt::torrent_info> generate_torrent();
+EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false);
 
 EXPORT int print_failures();
-EXPORT unsigned char random_byte();
 
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);
@@ -55,6 +58,9 @@ EXPORT lt::address rand_v4();
 EXPORT lt::address rand_v6();
 EXPORT lt::tcp::endpoint rand_tcp_ep(lt::address(&rand_addr)() = rand_v4);
 EXPORT lt::udp::endpoint rand_udp_ep(lt::address(&rand_addr)() = rand_v4);
+
+// determines if the operating system supports IPv6
+EXPORT bool supports_ipv6();
 
 EXPORT lt::sha1_hash rand_hash();
 EXPORT lt::sha1_hash to_hash(char const* s);
@@ -93,7 +99,7 @@ EXPORT void create_random_files(std::string const& path, lt::span<const int> fil
 
 EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
-	, bool add_tracker = true, std::string ssl_certificate = "");
+	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = "");
 
 EXPORT std::tuple<lt::torrent_handle
 	, lt::torrent_handle
@@ -105,7 +111,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, bool super_seeding = false
 	, lt::add_torrent_params const* p = nullptr
 	, bool stop_lsd = true, bool use_ssl_ports = false
-	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr);
+	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
+	, lt::create_flags_t flags = {});
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);

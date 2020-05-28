@@ -58,6 +58,7 @@ namespace libtorrent { namespace aux {
 
 		address get_external_address() const;
 		tcp::endpoint get_local_endpoint() const;
+		bool can_route(address const&) const;
 
 		bool is_ssl() const;
 
@@ -75,6 +76,8 @@ namespace libtorrent { namespace aux {
 		{ return m_sock.owner_before(o.m_sock); }
 
 		listen_socket_t* get() const;
+
+		std::weak_ptr<listen_socket_t> get_ptr() const { return m_sock; }
 
 	private:
 		std::weak_ptr<listen_socket_t> m_sock;

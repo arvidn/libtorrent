@@ -16,8 +16,9 @@ the ``session``, it contains the main loop that serves all torrents.
 
 The basic usage is as follows:
 
-* construct a session
-* load session state from settings file (see load_state())
+* construct a session, possibly passing in the state from a previous session.
+  use read_session_params() and pass in the resulting session_params object to
+  the session constructor.
 * start extensions (see add_extension()).
 * start DHT, LSD, UPnP, NAT-PMP etc (see start_dht(), start_lsd(), start_upnp()
   and start_natpmp()).
@@ -33,13 +34,13 @@ The basic usage is as follows:
 
 * save resume data for all torrent_handles (optional, see
   save_resume_data())
-* save session state (see save_state())
+* save session state (see session_state() and write_session_params())
 * destruct session object
 
 Each class and function is described in this manual, you may want to have a
 look at the tutorial_ as well.
 
-.. _tutorial: tutorial.html
+.. _tutorial: tutorial-ref.html
 
 For a description on how to create torrent files, see create_torrent.
 
@@ -84,6 +85,13 @@ troubleshooting_
 
 .. _troubleshooting: troubleshooting.html
 
+ABI considerations
+==================
+
+libtorrent maintains a stable ABI for versions with the same major and minor versions.
+
+e.g. libtorrent-1.2.0 is ABI compatible with libtorrent-1.2.1 but not with libtorrent-1.1
+
 network primitives
 ==================
 
@@ -127,7 +135,7 @@ The error_code::message() function will typically return a localized error strin
 for system errors. That is, errors that belong to the generic or system category.
 
 Errors that belong to the libtorrent error category are not localized however, they
-are only available in english. In order to translate libtorrent errors, compare the
+are only available in English. In order to translate libtorrent errors, compare the
 error category of the ``error_code`` object against ``lt::libtorrent_category()``,
 and if matches, you know the error code refers to the list above. You can provide
 your own mapping from error code to string, which is localized. In this case, you
@@ -184,12 +192,7 @@ The format of the magnet URI is:
 **magnet:?xt=urn:btih:** *Base16 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
 
 In order to download *just* the metadata (.torrent file) from a magnet link, set
-file priorities to 0 in add_torrent_params::file_priorities. It's OK to set the
-priority for more files than what is in the torrent. It may not be trivial to
-know how many files a torrent has before the metadata has been downloaded.
-Additional file priorities will be ignored. By setting a large number of files
-to priority 0, chances are that they will all be set to 0 once the metadata is
-received (and we know how many files there are).
+the torrent_flags::upload_mode flag in add_torrent_params before adding the it.
 
 In this case, when the metadata is received from the swarm, the torrent will
 still be running, but it will disconnect the majority of peers (since connections
@@ -204,8 +207,9 @@ resume torrents based on certain criteria. The criteria depends on the overall
 state the torrent is in (checking, downloading or seeding).
 
 To opt-out of the queuing logic, make sure your torrents are added with the
-add_torrent_params::flag_auto_managed bit *cleared*. Or call
-``torrent_handle::auto_managed(false)`` on the torrent handle.
+torrent_flags::auto_managed bit *cleared* from ``add_torrent_params::flags``.
+Or call torrent_handle::unset_flags() and pass in torrent_flags::auto_managed on
+the torrent handle.
 
 The overall purpose of the queuing logic is to improve performance under arbitrary
 torrent downloading and seeding load. For example, if you want to download 100
@@ -221,7 +225,7 @@ parallel. The benefits are:
 * your disk I/O load is likely to be more local which may improve I/O
   performance and decrease fragmentation.
 
-There are fundamentally 3 seaparate queues:
+There are fundamentally 3 separate queues:
 
 * checking torrents
 * downloading torrents
@@ -269,14 +273,14 @@ torrent_status::allocating state that are auto-managed.
 
 The checking queue will make sure that (of the torrents in its queue) no more than
 settings_pack::active_checking_limit torrents are started at any given time.
-Once a torrent completes checking and moves into a diffferent state, the next in
+Once a torrent completes checking and moves into a different state, the next in
 line will be started for checking.
 
 Any torrent added force-started or force-stopped (i.e. the auto managed flag is
 *not* set), will not be subject to this limit and they will all check
 independently and in parallel.
 
-Once a torrent completes the checking of its files, or fastresume data, it will
+Once a torrent completes the checking of its files, or resume data, it will
 be put in the queue for downloading and potentially start downloading immediately.
 In order to add a torrent and check its files without starting the download, it
 can be added in ``stop_when_ready`` mode.
@@ -286,8 +290,7 @@ once it is ready to start downloading.
 This is conceptually the same as waiting for the ``torrent_checked_alert`` and
 then call::
 
-	h.auto_managed(false);
-	h.pause();
+	h.set_flags(torrent_flags::paused, torrent_flags::paused | torrent_flags::auto_managed);
 
 With the important distinction that it entirely avoids the brief window where
 the torrent is in downloading state.
@@ -355,7 +358,7 @@ settings_pack::active_dht_limit and settings_pack::active_lsd_limit
 respectively.
 
 Specifically, announcing to a tracker is typically cheaper than
-announcing to the DHT. ``active_dht_limit`` will limit the number of
+announcing to the DHT. settings_pack::active_dht_limit will limit the number of
 torrents that are allowed to announce to the DHT. The highest priority ones
 will, and the lower priority ones won't. The will still be considered started
 though, and any incoming peers will still be accepted.
@@ -381,7 +384,7 @@ to true.
 
 Since it sometimes may take a few minutes for a newly started torrent to find
 peers and be unchoked, or find peers that are interested in requesting data,
-torrents are not considered inactive immadiately. There must be an extended
+torrents are not considered inactive immediately. There must be an extended
 period of no transfers before it is considered inactive and exempt from the
 queuing limits.
 
@@ -451,20 +454,36 @@ The file format is a bencoded dictionary containing the following fields:
 | ``max_uploads``          | integer. The max number of unchoked peers this torrent may   |
 |                          | have, if a limit is set.                                     |
 +--------------------------+--------------------------------------------------------------+
-| ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
-+--------------------------+--------------------------------------------------------------+
 | ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
 |                          | entry is the priority of the file with the same index.       |
 +--------------------------+--------------------------------------------------------------+
 | ``piece_priority``       | string of bytes. Each byte is interpreted as an integer and  |
 |                          | is the priority of that piece.                               |
 +--------------------------+--------------------------------------------------------------+
+| ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
++--------------------------+--------------------------------------------------------------+
+| ``upload_mode``          | integer. 1 if the torrent_flags::upload_mode is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``share_mode``           | integer. 1 if the torrent_flags::share_mode is set.          |
++--------------------------+--------------------------------------------------------------+
+| ``apply_ip_filter``      | integer. 1 if the torrent_flags::apply_ip_filter is set.     |
++--------------------------+--------------------------------------------------------------+
+| ``paused``               | integer. 1 if the torrent is paused, 0 otherwise.            |
++--------------------------+--------------------------------------------------------------+
 | ``auto_managed``         | integer. 1 if the torrent is auto managed, otherwise 0.      |
++--------------------------+--------------------------------------------------------------+
+| ``super_seeding``        | integer. 1 if the torrent_flags::super_seeding is set.       |
 +--------------------------+--------------------------------------------------------------+
 | ``sequential_download``  | integer. 1 if the torrent is in sequential download mode,    |
 |                          | 0 otherwise.                                                 |
 +--------------------------+--------------------------------------------------------------+
-| ``paused``               | integer. 1 if the torrent is paused, 0 otherwise.            |
+| ``stop_when_ready``      | integer. 1 if the torrent_flags::stop_when_ready is set.     |
++--------------------------+--------------------------------------------------------------+
+| ``disable_dht``          | integer. 1 if the torrent_flags::disable_dht is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``disable_lsd``          | integer. 1 if the torrent_flags::disable_lsd is set.         |
++--------------------------+--------------------------------------------------------------+
+| ``disable_pex``          | integer. 1 if the torrent_flags::disable_pex is set.         |
 +--------------------------+--------------------------------------------------------------+
 | ``trackers``             | list of lists of strings. The top level list lists all       |
 |                          | tracker tiers. Each second level list is one tier of         |
@@ -475,11 +494,11 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | In the same order as in the torrent file.                    |
 +--------------------------+--------------------------------------------------------------+
 | ``url-list``             | list of strings. List of url-seed URLs used by this torrent. |
-|                          | The urls are expected to be properly encoded and not contain |
+|                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
-| ``httpseeds``            | list of strings. List of httpseed URLs used by this torrent. |
-|                          | The urls are expected to be properly encoded and not contain |
+| ``httpseeds``            | list of strings. List of HTTP seed URLs used by this torrent.|
+|                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
 | ``merkle tree``          | string. In case this torrent is a merkle torrent, this is a  |
@@ -580,7 +599,7 @@ The benefits of this mode are:
 
  * Downloaded pieces are written directly to their final place in the files and
    the total number of disk operations will be fewer and may also play nicer to
-   filesystems' file allocation, and reduce fragmentation.
+   the filesystem file allocation, and reduce fragmentation.
 
  * No risk of a download failing because of a full disk during download, once
    all files have been created.
@@ -592,8 +611,8 @@ There are two kinds of HTTP seeding. One with that assumes a smart (and polite)
 client and one that assumes a smart server. These are specified in `BEP 19`_
 and `BEP 17`_ respectively.
 
-libtorrent supports both. In the libtorrent source code and API, BEP 19 urls
-are typically referred to as *url seeds* and BEP 17 urls are typically referred
+libtorrent supports both. In the libtorrent source code and API, BEP 19 URLs
+are typically referred to as *url seeds* and BEP 17 URLs are typically referred
 to as *HTTP seeds*.
 
 The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a
@@ -607,8 +626,8 @@ There is limited support for HTTP redirects. In case some files are redirected
 to *different hosts*, the files must be piece aligned or padded to be piece
 aligned.
 
-.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
+.. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html
 
 piece picker
 ============
@@ -630,7 +649,7 @@ internal representation
 
 It is optimized by, at all times, keeping a list of pieces ordered by rarity,
 randomly shuffled within each rarity class. This list is organized as a single
-vector of contigous memory in RAM, for optimal memory locality and to eliminate
+vector of contiguous memory in RAM, for optimal memory locality and to eliminate
 heap allocations and frees when updating rarity of pieces.
 
 Expensive events, like a peer joining or leaving, are evaluated lazily, since
@@ -669,7 +688,7 @@ request. The idea behind this is to make all snubbed peers more likely to be
 able to do download blocks from the same piece, concentrating slow peers on as
 few pieces as possible. The reverse order means that the most common pieces are
 picked, instead of the rarest pieces (or in the case of sequential download,
-the last pieces, intead of the first).
+the last pieces, instead of the first).
 
 parole mode
 -----------
@@ -721,6 +740,142 @@ This threshold is controlled by the settings_pack::whole_pieces_threshold
 setting.
 
 *TODO: piece priorities*
+
+Multi-homed hosts
+=================
+
+The settings_pack::listen_interfaces setting is used to specify which interfaces/IP addresses
+to listen on, and accept incoming connections via.
+
+Each item in ``listen_interfaces`` is an IP address or a device name, followed
+by a listen port number. Each item (called ``listen_socket_t``) will have the
+following objects associated with it:
+
+* a listen socket accepting incoming TCP connections
+* a UDP socket:
+  1. to accept incoming uTP connections
+  2. to run a DHT instance on
+  3. to announce to UDP trackers from
+  4. a SOCKS5 UDP tunnel (if applicable)
+* a listen address and netmask, describing the network the sockets are bound to
+* a Local service discovery object, broadcasting to the specified subnet
+* a NAT-PMP/PCP port mapper (if applicable), to map ports on the gateway
+  for the specified subnet.
+* a UPnP port mapper (if applicable), to map ports on any
+* ``InternetGatewayDevice`` found on the specified local subnet.
+
+A ``listen_socket_t`` item may be specified to only be a local network (with
+the ``l`` suffix). Such listen socket will only be used to talk to peers and
+trackers within the same local network. The netmask defining the network is
+queried from the operating system by enumerating network interfaces.
+
+An item that's considered to be "local network" will not be used to announce to
+trackers outside of that network. For example, ``10.0.0.2:6881l`` is marked as "local
+network" and it will only be used as the source address announcing to a tracker
+if the tracker is also within the same local network (e.g. ``10.0.0.0/8``).
+
+If an IP address is the *unspecified* address (i.e. ``0.0.0.0`` or ``::``),
+libtorrent will enumerate all addresses it can find for the corresponding
+address family. If a device name is specified instead of an IP, it will expand
+to all IP addresses associated with that device.
+
+Listen IP addresses that are automatically expanded by libtorrent have some
+special rules. They are all assumed to be restricted to be "local network"
+unless the following conditions are met:
+
+* the IP address is not in a known link-local range
+* the IP address is not in a known loopback range
+* the item the IP address was expanded from was not marked local (``l``)
+* the IP address is in a globally reachable IP address range OR the routing
+  table contains a default route with a gateway for the corresponding network.
+  This bullet only applies when expanding from an unspecified IP address. When
+  explicitly specifying a device, we don't need to find a route to treat it as
+  external.
+
+The NAT-PMP/PCP and UPnP port mapper objects are only created for networks that
+are expected to be externally available (i.e. not "local network"). If there are
+multiple subnets connected to the internet, they will each have a separate
+gateway, and separate port mappings.
+
+
+default routes
+--------------
+
+This section describes the logic for determining whether an address has a
+default route associated with it or not. This is only used for listen addresses that
+are *expanded* from either an unspecified listen address (``0.0.0.0`` or ``::``)
+or from a device name (e.g. ``eth0``).
+
+A network is considered having a default route if there is a default route with
+a matching egress network device name and address family.
+
+routing
+-------
+
+A ``listen_socket_t`` item can route to a destination address if any of these
+hold:
+
+* the destination address falls inside its subnet (i.e. interface address masked
+  by netmask is the same as the destination address masked by the netmask).
+* the ``listen_socket_t`` does not have the "local network" flag set, and the
+  address family matches the destination address.
+
+The ability to route to an address is used when determining whether to announce
+to a tracker from a ``listen_socket_t`` and whether to open a SOCKS5 UDP tunnel
+for a ``listen_socket_t``.
+
+tracker announces
+-----------------
+
+Trackers are announced to from all network interfaces listening for incoming
+connections. However, interfaces that cannot be used to reach the tracker, such
+as loopback, are not used as the source address for announces. A
+``listen_socket_t`` item that can route to at least one of the tracker IP
+addresses will be used as the source address for an announce. Each such item
+will also have an announce_endpoint item associated with it, in the tracker
+list.
+
+If a tracker can be reached on a loopback address, then the loopback interface
+*will* be used to announce to that tracker. But under normal circumstances,
+loopback will not be used for announcing to trackers.
+
+For more details, see `BEP 7`_.
+
+.. _`BEP 7`: https://www.bittorrent.org/beps/bep_0007.html
+
+SOCKS5 UDP tunnels
+------------------
+
+When using a SOCKS5 proxy, each interface that can route to one of the SOCKS5
+proxy's addresses will be used to open a UDP tunnel, via that proxy. For
+example, if a client has both IPv4 and IPv6 connectivity, but the socks5 proxy
+only resolves to IPv4, only the IPv4 address will have a UDP tunnel. In that case,
+the IPv6 connection will not be used, since it cannot use the proxy.
+
+rate based choking
+==================
+
+libtorrent supports a choking algorithm that automatically determines the number
+of upload slots (unchoke slots) based on the upload rate to peers. It is
+controlled by the settings_pack::choking_algorithm setting. The
+settings_pack::unchoke_slots_limit is ignored in this mode.
+
+The algorithm is designed to stay stable, and not oscillate the number of upload
+slots.
+
+The initial rate threshold is set to settings_pack::rate_choker_initial_threshold.
+
+It sorts all peers by on the rate at which we are uploading to them.
+
+1. Compare the fastest peer against the initial threshold.
+2. Increment the threshold by 2 kiB/s.
+3. The next fastest peer is compared against the threshold.
+   If the peer rate is higher than the threshold. goto 2
+4. Terminate. The number of peers visited is the number of unchoke slots, but
+   never less than 2.
+
+In other words, the more upload slots you have, the higher rate does the slowest
+unchoked peer upload at in order to open another slot.
 
 predictive piece announce
 =========================
@@ -786,7 +941,7 @@ preventing a client from reconfiguring the peer class ip- and type filters
 to disable or customize which peers they apply to. See set_peer_class_filter()
 and set_peer_class_type_filter().
 
-A peer class can be considered a more general form of *lables* that some
+A peer class can be considered a more general form of *labels* that some
 clients have. Peer classes however are not just applied to torrents, but
 ultimately the peers.
 
@@ -837,7 +992,7 @@ To make uTP sockets exempt from rate limiting:
 
 	ses.set_peer_class_type_filter(flt);
 
-To make all peers on the internal network unthrottled:
+To make all peers on the internal network not subject to throttling:
 
 .. code:: c++
 
@@ -862,7 +1017,7 @@ SSL. The protocols are layered like this:
 
 During the SSL handshake, both peers need to authenticate by providing a
 certificate that is signed by the CA certificate found in the .torrent file.
-These peer certificates are expected to be privided to peers through some other
+These peer certificates are expected to be provided to peers through some other
 means than bittorrent. Typically by a peer generating a certificate request
 which is sent to the publisher of the torrent, and the publisher returning a
 signed certificate.
@@ -878,22 +1033,24 @@ torrent to connect to. This is required for the client accepting the connection
 to know which certificate to present.
 
 SSL connections are accepted on a separate socket from normal bittorrent
-connections. To pick which port the SSL socket should bind to, set
-settings_pack::ssl_listen to a different port. It defaults to port 4433.
-This setting is only taken into account when the normal listen socket is opened
-(i.e. just changing this setting won't necessarily close and re-open the SSL
-socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
+connections. To enable support for SSL torrents, add a listen interface to the
+settings_pack::listen_interfaces setting with the ``s`` suffix. For example::
 
-This feature is only available if libtorrent is build with openssl support
-(``TORRENT_USE_OPENSSL``) and requires at least openSSL version 1.0, since it
+	0.0.0.0:6881,0.0.0.0:6882s
+
+That will listen for normal bittorrent connections on port 6881 and for SSL
+torrent connections on port 6882.
+
+This feature is only available if libtorrent is built with SSL torrent support
+(``TORRENT_SSL_PEERS``) and requires at least OpenSSL version 1.0, since it
 needs SNI support.
 
 Peer certificates must have at least one *SubjectAltName* field of type
-dNSName. At least one of the fields must *exactly* match the name of the
+DNSName. At least one of the fields must *exactly* match the name of the
 torrent. This is a byte-by-byte comparison, the UTF-8 encoding must be
 identical (i.e. there's no unicode normalization going on). This is the
 recommended way of verifying certificates for HTTPS servers according to `RFC
-2818`_. Note the difference that for torrents only *dNSName* fields are taken
+2818`_. Note the difference that for torrents only *DNSName* fields are taken
 into account (not IP address fields). The most specific (i.e. last) *Common
 Name* field is also taken into account if no *SubjectAltName* did not match.
 
@@ -923,7 +1080,7 @@ libtorrent's point of view, it doesn't matter what it is. libtorrent only makes
 sure the peer certificates are signed by the correct root certificate.
 
 One way to create the certificates is to use the ``CA.sh`` script that comes
-with openssl, like thisi (don't forget to enter a common Name for the
+with openssl, like this (don't forget to enter a common Name for the
 certificate)::
 
 	CA.sh -newca
@@ -940,8 +1097,7 @@ session statistics
 ==================
 
 libtorrent provides a mechanism to query performance and statistics counters
-from its internals. This is primarily useful for troubleshooting of production
-systems and performance tuning.
+from its internals.
 
 The statistics consists of two fundamental types. *counters* and *gauges*. A
 counter is a monotonically increasing value, incremented every time some event
@@ -952,7 +1108,7 @@ socket receives *n* bytes, a counter is incremented by *n*.
 *Counters* are the most flexible of metrics. It allows the program to sample
 the counter at any interval, and calculate average rates of increments to the
 counter. Some events may be rare and need to be sampled over a longer period in
-order to get userful rates, where other events may be more frequent and evenly
+order to get useful rates, where other events may be more frequent and evenly
 distributed that sampling it frequently yields useful values. Counters also
 provides accurate overall counts. For example, converting samples of a download
 rate into a total transfer count is not accurate and takes more samples.
@@ -960,7 +1116,7 @@ Converting an increasing counter into a rate is easy and flexible.
 
 *Gauges* measure the instantaneous state of some kind. This is used for metrics
 that are not counting events or flows, but states that can fluctuate. For
-example, the number of torrents that are currenly being downloaded.
+example, the number of torrents that are currently being downloaded.
 
 It's important to know whether a value is a counter or a gauge in order to
 interpret it correctly. In order to query libtorrent for which counters and
@@ -985,4 +1141,101 @@ if it's done dynamically).
 The available stats metrics are:
 
 .. include:: stats_counters.rst
+
+glossary
+========
+
+The libtorrent documentation use words that are bittorrent terms of art. This
+section defines some of these words. For an overview of what bittorrent is and
+how it works, see these slides_. For an introduction to the bittorrent DHT, see
+`this presentation`_.
+
+.. _slides: bittorrent.pdf
+.. _`this presentation`: https://vimeo.com/56044595
+
+announce
+	The act of telling a tracker or the DHT network about the existence of
+	oneself and how other peers can connect, by specifying port one is listening
+	on.
+
+block
+	A subset of a piece. Almost always 16 kiB of payload, unless the piece size is
+	smaller. This is the granularity file payload is requested from peers on the
+	network.
+
+DHT
+	The distributed hash table is a cross-swarm, world-wide network of bittorrent
+	peers. It's loosely connected, implementing the Kademlia protocol. Its purpose
+	is to act as a tracker. Peers can announce their presence to nodes on the DHT
+	and other peers can discover them to join the swarm.
+
+HTTP tracker
+	A tracker that uses the HTTP protocol for announces.
+
+info dictionary
+	The subset of a torrent file that describes piece hashes and file names. This
+	is the only mandatory part necessary to join the swarm (network of peers) for
+	the torrent.
+
+info hash
+	The hash of the info dictionary. This uniquely identifies a torrent and is
+	used by the protocol to ensure peers talking to each other agree on which swarm
+	they are participating in. Sometimes spelled info-hash.
+
+leecher
+	A peer that is still interested in downloading more pieces for the torrent.
+	It is not a seed.
+
+magnet link
+	A URI containing the info hash for a torrent, allowing peers to join its
+	swarm. May optionally contain a display name, trackers and web seeds.
+	Typically magnet links rely on peers joining the swarm via the DHT.
+
+metadata
+	Synonymous to a torrent file
+
+peer
+	A computer running bittorrent client software that participates in the network
+	for a particular torrent/set of files.
+
+piece
+	The smallest number of bytes that can be validated when downloading (no
+	longer the case in bittorrent V2). The smallest part of the files that can be
+	advertised to other peers. The size of a piece is determined by the info
+	dictionary inside the torrent file.
+
+seed
+	A computer running bittorrent client software that has the complete files for
+	a specific torrent, able to share any piece for that file with other peers in
+	the network
+
+swarm
+	The network of peers participating in sharing and downloading of a specific torrent.
+
+torrent
+	May refer to a torrent file or the swarm (network of peers) created around
+	the torrent file.
+
+torrent file
+	A file ending in .torrent describing the content of a set of files (but not
+	containing the content). Importantly, it contains hashes of all files, split
+	up into pieces. It may optionally contain references to trackers and nodes on
+	the DHT network to aid peers in joining the network of peers sharing
+	these files.
+
+tracker
+	A server peers can announce to and receive other peers back belonging to the
+	same swarm. Trackers are used to introduce peers to each other, within a swarm.
+	When announcing, the info hash of the torrent is included. Trackers can
+	introduce peers to any info-hash that's specified, given other peers also use
+	the same tracker. Some trackers restrict which info hashes they support based
+	on a white list.
+
+UDP tracker
+	A tracker that uses a UDP based protocol for announces.
+
+web seed
+	A web server that is acting a seed, providing access to all pieces of all
+	files over HTTP. This is an extension that client software may or may not
+	support.
 

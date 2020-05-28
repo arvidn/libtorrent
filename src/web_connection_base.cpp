@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2010, 2013-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, 2019, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,15 +39,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
 namespace libtorrent {
 
 	web_connection_base::web_connection_base(
-		peer_connection_args const& pack
-		, web_seed_t& web)
+		peer_connection_args& pack
+		, web_seed_t const& web)
 		: peer_connection(pack)
 		, m_first_request(true)
 		, m_ssl(false)
@@ -76,7 +79,7 @@ namespace libtorrent {
 		if (m_port == -1 && protocol == "http")
 			m_port = 80;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (protocol == "https")
 		{
 			m_ssl = true;
@@ -124,7 +127,7 @@ namespace libtorrent {
 	}
 
 	void web_connection_base::add_headers(std::string& request
-		, aux::session_settings const& sett, bool using_proxy) const
+		, aux::session_settings const& sett, bool const using_proxy) const
 	{
 		request += "Host: ";
 		request += m_host;

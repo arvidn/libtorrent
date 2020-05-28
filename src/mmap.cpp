@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2016, 2019, Arvid Norberg
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file.hpp" // for is_sparse
 #include <cstdint>
 
 #if TORRENT_HAVE_MMAP
@@ -113,7 +115,7 @@ file_handle::file_handle(string_view name, std::int64_t
 		&& (mode & aux::open_mode::write))
 	{
 		DWORD temp;
-		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, 0, 0, 0, 0, &temp, nullptr);
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
 	}
 }
 
@@ -238,45 +240,6 @@ file_handle::file_handle(string_view name, std::int64_t const size
 }
 #endif
 
-#ifdef TORRENT_WINDOWS
-namespace {
-	// returns true if the given file has any regions that are
-	// sparse, i.e. not allocated.
-	bool is_sparse(HANDLE file)
-	{
-		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(file, &file_size))
-			return false;
-
-#ifndef FSCTL_QUERY_ALLOCATED_RANGES
-typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
-	LARGE_INTEGER FileOffset;
-	LARGE_INTEGER Length;
-} FILE_ALLOCATED_RANGE_BUFFER;
-#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
-#endif
-		FILE_ALLOCATED_RANGE_BUFFER in;
-		in.FileOffset.QuadPart = 0;
-		in.Length.QuadPart = file_size.QuadPart;
-
-		FILE_ALLOCATED_RANGE_BUFFER out[2];
-
-		DWORD returned_bytes = 0;
-		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
-			, out, sizeof(out), &returned_bytes, nullptr);
-
-		if (ret == FALSE) return true;
-
-		// if we have more than one range in the file, we're sparse
-		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
-			return true;
-		}
-
-		return (in.Length.QuadPart != out[0].Length.QuadPart);
-	}
-} // anonymous namespace
-#endif
-
 void file_handle::close()
 {
 	if (m_fd == invalid_handle) return;
@@ -301,7 +264,7 @@ void file_handle::close()
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
 		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
-			, 0, 0, &temp, nullptr);
+			, nullptr, 0, &temp, nullptr);
 	}
 #endif
 
@@ -315,7 +278,7 @@ void file_handle::close()
 
 file_handle::~file_handle() { close(); }
 
-file_handle& file_handle::operator=(file_handle&& rhs)
+file_handle& file_handle::operator=(file_handle&& rhs) &
 {
 	if (&rhs == this) return *this;
 	close();
@@ -376,7 +339,7 @@ file_mapping_handle::file_mapping_handle(file_handle file, open_mode_t const mod
 		fm.m_mapping = INVALID_HANDLE_VALUE;
 	}
 
-	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm)
+	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm) &
 	{
 		if (&fm == this) return *this;
 		close();
@@ -443,9 +406,11 @@ DWORD map_access(open_mode_t const m)
 } // anonymous
 
 file_mapping::file_mapping(file_handle file, open_mode_t const mode
-	, std::int64_t const file_size)
+	, std::int64_t const file_size
+	, std::shared_ptr<std::mutex> open_unmap_lock)
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file), mode, m_size)
+	, m_open_unmap_lock(open_unmap_lock)
 	, m_mapping(MapViewOfFile(m_file.handle()
 		, map_access(mode), 0, 0, static_cast<std::size_t>(m_size)))
 {
@@ -461,6 +426,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 void file_mapping::close()
 {
 	if (m_mapping == nullptr) return;
+	std::lock_guard<std::mutex> l(*m_open_unmap_lock);
 	UnmapViewOfFile(m_mapping);
 	m_mapping = nullptr;
 }
@@ -475,7 +441,7 @@ file_mapping::file_mapping(file_mapping&& rhs)
 		rhs.m_mapping = nullptr;
 	}
 
-	file_mapping& file_mapping::operator=(file_mapping&& rhs)
+	file_mapping& file_mapping::operator=(file_mapping&& rhs) &
 	{
 		if (&rhs == this) return *this;
 		close();

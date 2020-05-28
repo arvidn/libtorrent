@@ -36,13 +36,15 @@ building from git
 -----------------
 
 To build libtorrent from git you need to clone the libtorrent repository from
-github. If you downloaded a release `tarball`__, you can skip this section.
+github. Note that the git repository depends on other git repositories via
+submodules, which also need to be initialized and updated. If you downloaded a
+release `tarball`__, you can skip this section.
 
 __ https://github.com/arvidn/libtorrent/releases/latest
 
 ::
 
-	git clone https://github.com/arvidn/libtorrent.git
+	git clone --recurse-submodules https://github.com/arvidn/libtorrent.git
 
 
 building with BBv2
@@ -76,7 +78,7 @@ __ https://www.boost.org/users/download/#live
 
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_69_0``. You'll
-need at least version 1.58 of the boost library in order to build libtorrent.
+need at least version 1.66 of the boost library in order to build libtorrent.
 
 
 Step 2: Setup BBv2
@@ -237,6 +239,13 @@ compiling in 64-bit.
 To customize the library path and include path for openssl, set the features
 ``openssl-lib`` and ``openssl-include`` respectively.
 
+The option to link with wolfSSL (by setting the ``crypto`` feature to
+``wolfssl``), requires a custom build of wolfSSL using the following
+options: ``--enable-asio --enable-sni --enable-nginx``.
+
+To customize the library path and include path for wolfSSL, set the features
+``wolfssl-lib`` and ``wolfssl-include`` respectively.
+
 Build features:
 
 +--------------------------+----------------------------------------------------+
@@ -276,7 +285,7 @@ Build features:
 |                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
 | ``encryption``           | * ``on`` - encrypted bittorrent connections        |
-|                          |   enabled. (Message Stream encryption).            |
+|                          |   enabled. (Message Stream encryption).(default)   |
 |                          | * ``off`` - turns off support for encrypted        |
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
@@ -292,10 +301,12 @@ Build features:
 |                          |   libcrypto to use for SHA-1 hashing.              |
 |                          |   This also enables HTTPS-tracker support and      |
 |                          |   support for bittorrent over SSL.                 |
+|                          | * ``wolfssl`` - links against wolfssl to use it    |
+|                          |   for SHA-1 hashing and HTTPS tracker support.     |
 |                          | * ``libcrypto`` - links against libcrypto          |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 |                          | * ``gcrypt`` - links against libgcrypt             |
-|                          |   to use the SHA-1 implementation.                 |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |
@@ -352,7 +363,7 @@ Build features:
 |                          | * ``off`` - force not using iconv (disables locale |
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
-| ``i2p``                  | * ``on`` - build with I2P support                  |
+| ``i2p``                  | * ``on`` - default. build with I2P support         |
 |                          | * ``off`` - build without I2P support              |
 +--------------------------+----------------------------------------------------+
 | ``profile-calls``        | * ``off`` - default. No additional call profiling. |
@@ -367,20 +378,41 @@ Build features:
 |                          | * ``on`` - Print verbose uTP log, used to debug    |
 |                          |   the uTP implementation.                          |
 +--------------------------+----------------------------------------------------+
-| ``picker-debugging``     | * ``off`` - no extra invariant checks in piece     |
-|                          |   picker.                                          |
+| ``picker-debugging``     | * ``off`` - default. no extra invariant checks in  |
+|                          |   piece picker.                                    |
 |                          | * ``on`` - include additional invariant checks in  |
 |                          |   piece picker. Used for testing the piece picker. |
 +--------------------------+----------------------------------------------------+
 | ``extensions``           | * ``on`` - enable extensions to the bittorrent     |
-|                          |   protocol.                                        |
+|                          |   protocol.(default)                               |
 |                          | * ``off`` - disable bittorrent extensions.         |
 +--------------------------+----------------------------------------------------+
-| ``pic``                  | * ``off`` - default. Build without specifying      |
+| ``streaming``            | * ``on`` - enable streaming functionality. i.e.    |
+|                          |   ``set_piece_deadline()``. (default)              |
+|                          | * ``off`` - disable streaming functionality.       |
++--------------------------+----------------------------------------------------+
+| ``super-seeding``        | * ``on`` - enable super seeding feature. (default) |
+|                          | * ``off`` - disable super seeding feature          |
++--------------------------+----------------------------------------------------+
+| ``share-mode``           | * ``on`` - enable share-mode feature. (default)    |
+|                          | * ``off`` - disable share-mode feature             |
++--------------------------+----------------------------------------------------+
+| ``predictive-pieces``    | * ``on`` - enable predictive piece announce        |
+|                          |   feature. i.e.                                    |
+|                          |   settings_pack::predictive_piece_announce         |
+|                          |   (default)                                        |
+|                          | * ``off`` - disable feature.                       |
++--------------------------+----------------------------------------------------+
+| ``fpic``                 | * ``off`` - default. Build without specifying      |
 |                          |   ``-fPIC``.                                       |
 |                          | * ``on`` - Force build with ``-fPIC`` (useful for  |
 |                          |   building a static library to be linked into a    |
 |                          |   shared library).                                 |
++--------------------------+----------------------------------------------------+
+| ``mmap-disk-io``         | * ``on`` - default. Enable mmap disk storage (if   |
+|                          |   available.                                       |
+|                          | * ``off`` - disable mmap storage, and fall back to |
+|                          |   single-threaded, portable file operations.       |
 +--------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
@@ -424,10 +456,10 @@ and ``cd`` there::
 
 Run ``cmake`` in the build directory, like this::
 
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=11 -G Ninja ..
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -G Ninja ..
 
-The ``CMAKE_CXX_STANDARD`` has to be at least 11, but you may want to raise it
-to ``14`` or ``17`` if your project use a newer version of the C++ standard.
+The ``CMAKE_CXX_STANDARD`` has to be at least 14, but you may want to raise it
+to ``17`` if your project use a newer version of the C++ standard.
 
 .. warning::
 
@@ -462,7 +494,7 @@ Other build options are:
 |                       | over TLS, and obfuscated bittorrent connections.  |
 +-----------------------+---------------------------------------------------+
 
-Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and and their current values.
+Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -476,6 +508,20 @@ in the build directory the number after ``-j`` specifies the number of parallel 
 If you enabled test in the configuration step, to run them, run::
 
 	ctest -j8
+
+building with VCPKG
+-------------------
+
+You can download and install libtorrent using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager::
+
+	git clone https://github.com/Microsoft/vcpkg.git
+	cd vcpkg
+	./bootstrap-vcpkg.sh
+	./vcpkg integrate install
+	./vcpkg install libtorrent
+
+The libtorrent port in vcpkg is kept up to date by Microsoft team members and community contributors.
+If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
 building with other build systems
 ---------------------------------
@@ -510,7 +556,22 @@ defines you can use to control the build.
 |                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_SUPERSEEDING``       | This macro will disable support for super       |
+|                                        | seeding. The settings will exist, but will not  |
+|                                        | have an effect, when this macro is defined.     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_SHARE_MODE``         | This macro will disable support for share-mode. |
+|                                        | i.e. the mode to maximize upload/download       |
+|                                        | ratio for a torrent.                            |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_STREAMING``          | Disables set_piece_deadline() and associated    |
+|                                        | functionality.                                  |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_PREDICTIVE_PIECES``  | Disables                                        |
+|                                        | settings_pack::predictive_piece_announce        |
+|                                        | feature.                                        |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |
@@ -566,6 +627,23 @@ defines you can use to control the build.
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_HAVE_MMAP``                  | Define as 0 to disable mmap support.            |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_OPENSSL``                | Link against ``libssl`` for SSL support. Must   |
+|                                        | be combined with ``TORRENT_USE_LIBCRYPTO``      |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_GNUTLS``                 | Link against ``libgnutls`` for SSL support.     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBCRYPTO``              | Link against ``libcrypto`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBGCRYPT``              | Link against ``libgcrypt`` for SHA-1 support    |
+|                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_SSL_PEERS``                  | Define to enable support for SSL torrents,      |
+|                                        | peers are connected over authenticated SSL      |
+|                                        | streams.                                        |
++----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html
 
@@ -589,4 +667,3 @@ in a command shell::
 
 This will also install the headers and library files in the visual studio directories to
 be picked up by libtorrent.
-

@@ -76,7 +76,7 @@ namespace aux {
 	// returns the status code and the new save_path.
 	TORRENT_EXTRA_EXPORT std::pair<status_t, std::string>
 	move_storage(file_storage const& f
-		, std::string const& save_path
+		, std::string save_path
 		, std::string const& destination_save_path
 		, part_file* pf
 		, move_flags_t flags, storage_error& ec);
@@ -101,8 +101,10 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT bool has_any_file(
 		file_storage const& fs
 		, std::string const& save_path
-		, stat_cache& stat
+		, stat_cache& cache
 		, storage_error& ec);
+
+	TORRENT_EXTRA_EXPORT int read_zeroes(span<iovec_t const> bufs);
 }}
 
 #endif

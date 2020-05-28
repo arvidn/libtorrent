@@ -68,8 +68,10 @@ std::string make_ep_string(char const* address, bool const is_v6
 	return ret;
 }
 
+int g_alloc_counter = 1000000;
+
 template <typename HandleAlerts, typename Test>
-void run_test(HandleAlerts const& on_alert, Test const& test)
+void run_test(int const round, HandleAlerts const& on_alert, Test const& test)
 {
 	using namespace lt;
 
@@ -80,8 +82,8 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios0 { sim, peer0 };
-	sim::asio::io_service ios1 { sim, peer1 };
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
 
 	lt::session_proxy zombie[2];
 
@@ -100,8 +102,9 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 
 	pack.set_str(settings_pack::listen_interfaces, peer0.to_string() + ":6881");
 
-	// create session
 	std::shared_ptr<lt::session> ses[2];
+
+	// create session
 	ses[0] = std::make_shared<lt::session>(pack, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, peer1.to_string() + ":6881");
@@ -142,10 +145,11 @@ void run_test(HandleAlerts const& on_alert, Test const& test)
 		}
 	});
 
+	// we're only interested in allocation failures after construction has
+	// completed
+	g_alloc_counter = round;
 	sim.run();
 }
-
-int g_alloc_counter = 1000000;
 
 void* operator new(std::size_t sz)
 {
@@ -163,7 +167,8 @@ void* operator new(std::size_t sz)
 		// to make the heterogeneous queue support throwing moves, nor to replace all
 		// standard types with variants that can move noexcept.
 		if (std::strstr(stack, " libtorrent::entry::operator= ") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<std::map<") != nullptr)
+			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<") != nullptr
+			|| std::strstr(stack, " libtorrent::aux::noexcept_move_only<") != nullptr)
 		{
 			++g_alloc_counter;
 			return std::malloc(sz);
@@ -176,6 +181,11 @@ void* operator new(std::size_t sz)
 }
 
 void operator delete(void* ptr) noexcept
+{
+	std::free(ptr);
+}
+
+void operator delete(void* ptr, std::size_t) noexcept
 {
 	std::free(ptr);
 }
@@ -196,9 +206,8 @@ TORRENT_TEST(error_handling)
 		std::printf("\n\n === ROUND %d ===\n\n", i);
 		try
 		{
-			g_alloc_counter = i;
 			using namespace lt;
-			run_test(
+			run_test(i,
 				[](lt::session&, lt::alert const*) {},
 				[](std::shared_ptr<lt::session>[2]) {}
 			);

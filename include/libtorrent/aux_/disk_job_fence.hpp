@@ -41,19 +41,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct disk_io_job;
 struct counters;
 
 namespace aux {
 
-	// implements the disk I/O job fence used by the storage_interface
+	struct disk_io_job;
+
+	// implements the disk I/O job fence used by the default_storage
 	// to provide to the disk thread. Whenever a disk job needs
 	// exclusive access to the storage for that torrent, it raises
 	// the fence, blocking all new jobs, until there are no longer
 	// any outstanding jobs on the torrent, then the fence is lowered
 	// and it can be performed, along with the backlog of jobs that
 	// accrued while the fence was up
-	struct TORRENT_EXPORT disk_job_fence
+	struct TORRENT_EXTRA_EXPORT disk_job_fence
 	{
 		disk_job_fence() = default;
 
@@ -70,19 +71,19 @@ namespace aux {
 		// storage, fence_post_fence is returned.
 		// fence_post_none if the fence job was queued.
 		enum { fence_post_fence = 0, fence_post_none = 1 };
-		int raise_fence(disk_io_job* fence_job, counters& cnt);
+		int raise_fence(disk_io_job*, counters&);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
 		// fence being lowered.
-		int job_complete(disk_io_job* j, tailqueue<disk_io_job>& job_queue);
+		int job_complete(disk_io_job*, tailqueue<disk_io_job>&);
 		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
 		// if there is a fence up, returns true and adds the job
 		// to the queue of blocked jobs
-		bool is_blocked(disk_io_job* j);
+		bool is_blocked(disk_io_job*);
 
 		// the number of blocked jobs
 		int num_blocked() const;

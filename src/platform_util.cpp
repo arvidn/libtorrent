@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2010, 2013-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,8 +75,8 @@ namespace libtorrent {
 			if (rl.rlim_cur == rlim_infinity)
 				return std::numeric_limits<int>::max();
 
-			return rl.rlim_cur <= std::numeric_limits<int>::max()
-				? int(rl.rlim_cur) : std::numeric_limits<int>::max();
+			return rl.rlim_cur <= static_cast<rlim_t>(std::numeric_limits<int>::max())
+				? static_cast<int>(rl.rlim_cur) : std::numeric_limits<int>::max();
 		}
 		return 1024;
 #else
@@ -112,7 +113,7 @@ namespace libtorrent {
 		MEMORYSTATUSEX ms;
 		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
-			ret = int(ms.ullTotalPhys);
+			ret = ms.ullTotalPhys;
 		else
 			ret = 0;
 #elif defined TORRENT_LINUX

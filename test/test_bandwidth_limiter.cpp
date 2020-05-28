@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2007-2009, 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,10 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-#include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/bandwidth_queue_entry.hpp"
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/aux_/bandwidth_manager.hpp"
+#include "libtorrent/aux_/bandwidth_queue_entry.hpp"
+#include "libtorrent/aux_/bandwidth_limit.hpp"
+#include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
@@ -58,12 +60,12 @@ const float sample_time = 20.f; // seconds
 
 //#define VERBOSE_LOGGING
 
-bandwidth_channel global_bwc;
+aux::bandwidth_channel global_bwc;
 
-struct peer_connection: bandwidth_socket, std::enable_shared_from_this<peer_connection>
+struct peer_connection: aux::bandwidth_socket, std::enable_shared_from_this<peer_connection>
 {
-	peer_connection(bandwidth_manager& bwm
-		, bandwidth_channel& torrent_bwc, int prio, bool ignore_limits, std::string name)
+	peer_connection(aux::bandwidth_manager& bwm
+		, aux::bandwidth_channel& torrent_bwc, int prio, bool ignore_limits, std::string name)
 		: m_bwm(bwm)
 		, m_torrent_bandwidth_channel(torrent_bwc)
 		, m_priority(prio)
@@ -79,10 +81,10 @@ struct peer_connection: bandwidth_socket, std::enable_shared_from_this<peer_conn
 
 	void start();
 
-	bandwidth_manager& m_bwm;
+	aux::bandwidth_manager& m_bwm;
 
-	bandwidth_channel m_bandwidth_channel;
-	bandwidth_channel& m_torrent_bandwidth_channel;
+	aux::bandwidth_channel m_bandwidth_channel;
+	aux::bandwidth_channel& m_torrent_bandwidth_channel;
 
 	int m_priority;
 	bool m_ignore_limits;
@@ -103,7 +105,7 @@ void peer_connection::assign_bandwidth(int /*channel*/, int amount)
 
 void peer_connection::start()
 {
-	bandwidth_channel* channels[] = {
+	aux::bandwidth_channel* channels[] = {
 		&m_bandwidth_channel
 		, &m_torrent_bandwidth_channel
 		, &global_bwc
@@ -115,7 +117,7 @@ void peer_connection::start()
 
 using connections_t = std::vector<std::shared_ptr<peer_connection>>;
 
-void do_change_rate(bandwidth_channel& t1, bandwidth_channel& t2, int limit)
+void do_change_rate(aux::bandwidth_channel& t1, aux::bandwidth_channel& t2, int limit)
 {
 	static int counter = 10;
 	--counter;
@@ -149,7 +151,7 @@ void do_change_peer_rate(connections_t& v, int limit)
 static void nop() {}
 
 void run_test(connections_t& v
-	, bandwidth_manager& manager
+	, aux::bandwidth_manager& manager
 	, std::function<void()> f = &nop)
 {
 	std::cout << "-------------" << std::endl;
@@ -172,8 +174,8 @@ bool close_to(float const val, float const comp, float const err)
 	return std::abs(val - comp) <= err;
 }
 
-void spawn_connections(connections_t& v, bandwidth_manager& bwm
-	, bandwidth_channel& bwc, int num, char const* prefix)
+void spawn_connections(connections_t& v, aux::bandwidth_manager& bwm
+	, aux::bandwidth_channel& bwc, int num, char const* prefix)
 {
 	for (int i = 0; i < num; ++i)
 	{
@@ -186,10 +188,10 @@ void spawn_connections(connections_t& v, bandwidth_manager& bwm
 void test_equal_connections(int num, int limit)
 {
 	std::cout << "\ntest equal connections " << num << " " << limit << std::endl;
-	bandwidth_manager manager(0);
+	aux::bandwidth_manager manager(0);
 	global_bwc.throttle(limit);
 
-	bandwidth_channel t1;
+	aux::bandwidth_channel t1;
 
 	connections_t v;
 	spawn_connections(v, manager, t1, num, "p");
@@ -218,10 +220,10 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 		<< " l: " << limit
 		<< " t: " << torrent_limit
 		<< std::endl;
-	bandwidth_manager manager(0);
+	aux::bandwidth_manager manager(0);
 	global_bwc.throttle(0);
 
-	bandwidth_channel t1;
+	aux::bandwidth_channel t1;
 	if (torrent_limit)
 		t1.throttle(torrent_limit);
 
@@ -256,8 +258,8 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 void test_single_peer(int limit, bool torrent_limit)
 {
 	std::cout << "\ntest single peer " << limit << " " << torrent_limit << std::endl;
-	bandwidth_manager manager(0);
-	bandwidth_channel t1;
+	aux::bandwidth_manager manager(0);
+	aux::bandwidth_channel t1;
 	global_bwc.throttle(0);
 
 	if (torrent_limit)
@@ -287,11 +289,11 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 		<< " l1: " << limit1
 		<< " l2: " << limit2
 		<< " g: " << global_limit << std::endl;
-	bandwidth_manager manager(0);
+	aux::bandwidth_manager manager(0);
 	global_bwc.throttle(global_limit);
 
-	bandwidth_channel t1;
-	bandwidth_channel t2;
+	aux::bandwidth_channel t1;
+	aux::bandwidth_channel t2;
 
 	t1.throttle(limit1);
 	t2.throttle(limit2);
@@ -338,11 +340,11 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	std::cout << "\ntest torrents variable rate" << num
 		<< " l: " << limit
 		<< " g: " << global_limit << std::endl;
-	bandwidth_manager manager(0);
+	aux::bandwidth_manager manager(0);
 	global_bwc.throttle(global_limit);
 
-	bandwidth_channel t1;
-	bandwidth_channel t2;
+	aux::bandwidth_channel t1;
+	aux::bandwidth_channel t2;
 
 	t1.throttle(limit);
 	t2.throttle(limit);
@@ -386,8 +388,8 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 void test_peer_priority(int limit, bool torrent_limit)
 {
 	std::cout << "\ntest peer priority " << limit << " " << torrent_limit << std::endl;
-	bandwidth_manager manager(0);
-	bandwidth_channel t1;
+	aux::bandwidth_manager manager(0);
+	aux::bandwidth_channel t1;
 	global_bwc.throttle(0);
 
 	if (torrent_limit)
@@ -423,9 +425,9 @@ void test_peer_priority(int limit, bool torrent_limit)
 void test_no_starvation(int limit)
 {
 	std::cout << "\ntest no starvation " << limit << std::endl;
-	bandwidth_manager manager(0);
-	bandwidth_channel t1;
-	bandwidth_channel t2;
+	aux::bandwidth_manager manager(0);
+	aux::bandwidth_channel t1;
+	aux::bandwidth_channel t2;
 
 	global_bwc.throttle(limit);
 

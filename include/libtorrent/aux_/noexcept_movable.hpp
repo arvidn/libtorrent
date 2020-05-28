@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NOEXCEPT_MOVABLE_HPP_INCLUDED
 
 #include <type_traits>
+#include <utility>
 
 namespace libtorrent {
 namespace aux {
@@ -55,6 +56,20 @@ namespace aux {
 		noexcept_movable& operator=(noexcept_movable&& rhs) = default;
 		using T::T;
 		using T::operator=;
+	};
+
+	template <typename T>
+	struct noexcept_move_only : T
+	{
+		noexcept_move_only(noexcept_move_only<T>&& rhs) noexcept
+			: T(std::forward<T>(rhs))
+		{}
+		noexcept_move_only(noexcept_move_only<T> const& rhs) = default;
+		noexcept_move_only(T&& rhs) noexcept : T(std::forward<T>(rhs)) {} // NOLINT
+		noexcept_move_only(T const& rhs) : T(rhs) {} // NOLINT
+		noexcept_move_only& operator=(noexcept_move_only const& rhs) = default;
+		noexcept_move_only& operator=(noexcept_move_only&& rhs) = default;
+		using T::T;
 	};
 
 }

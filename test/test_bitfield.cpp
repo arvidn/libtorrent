@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Falcosc
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -390,7 +393,8 @@ TORRENT_TEST(not_initialized)
 TORRENT_TEST(self_assign)
 {
 	bitfield test1(123, false);
-	test1 = test1;
+	bitfield* self_ptr = &test1;
+	test1 = *self_ptr;
 	TEST_EQUAL(test1.size(), 123);
 	TEST_EQUAL(test1.count(), 0);
 }

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2008-2015, Arvid Norberg
+Copyright (c) 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +51,7 @@ void report_failure(char const* err, char const* file, int line)
 {
 	char buf[500];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
-	std::fprintf(stderr, "\n%s\n", buf);
+	std::printf("\n%s\n", buf);
 	failure_strings.push_back(buf);
 	++_g_test_failures;
 }

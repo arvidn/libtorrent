@@ -1,0 +1,98 @@
+# to fuzz libtorrent, you need a recent version of clang.
+
+# if you have a favourite component to fuzz, you can run that specific binary
+# without specifying the "-runs=" argument, it's probably a good idea to seed
+# the fuzzing with the included corpus though
+
+import feature : feature ;
+
+use-project /torrent : .. ;
+
+feature fuzz : off external on : composite propagated link-incompatible ;
+feature.compose <fuzz>on : <cflags>-fsanitize=fuzzer <linkflags>-fsanitize=fuzzer ;
+
+feature sanitize : off on : composite propagated link-incompatible ;
+feature.compose <sanitize>on : <address-sanitizer>norecover <undefined-sanitizer>norecover ;
+
+# this is a build configuration that only does limited validation (i.e. no
+# sanitizers, invariant-checks, asserts etc.). The purpose is to quickly iterate
+# on inputs to build code coverage
+variant build_coverage : release : <sanitize>off <debug-symbols>on <asserts>off <invariant-checks>off ;
+
+project fuzzers
+	: requirements
+	<export-extra>on
+	<define>TORRENT_USE_ASSERTS=1
+	<define>TORRENT_USE_IPV6=1
+	<define>_SCL_SECURE=1
+	<define>_GLIBCXX_DEBUG
+	<cxxflags>-fno-omit-frame-pointer
+	<linkflags>-fno-omit-frame-pointer
+	<library>/torrent//torrent/
+	: default-build
+	<cxxstd>14
+	<fuzz>on
+	<sanitize>on
+	<link>static
+	<variant>release
+	<debug-symbols>on
+	<debug-iterators>on
+	<export-extra>on
+	<asserts>on
+	<debug-symbols>on
+	;
+
+local TARGETS ;
+
+rule fuzzer ( name )
+{
+	exe $(name) : src/$(name).cpp : <fuzz>off:<source>main.cpp ;
+	TARGETS += $(name) ;
+}
+
+fuzzer torrent_info ;
+fuzzer parse_magnet_uri ;
+fuzzer bdecode_node ;
+fuzzer parse_int ;
+fuzzer sanitize_path ;
+fuzzer escape_path ;
+fuzzer file_storage_add_file ;
+fuzzer base32decode ;
+fuzzer base32encode ;
+fuzzer base64encode ;
+fuzzer escape_string ;
+fuzzer gzip ;
+fuzzer verify_encoding ;
+fuzzer convert_to_native ;
+fuzzer convert_from_native ;
+fuzzer utf8_wchar ;
+fuzzer wchar_utf8 ;
+fuzzer utf8_codepoint ;
+fuzzer http_parser ;
+fuzzer upnp ;
+fuzzer dht_node ;
+fuzzer utp ;
+fuzzer resume_data ;
+fuzzer peer_conn ;
+fuzzer session_params ;
+
+local LARGE_TARGETS =
+	torrent_info
+	bdecode_node
+	http_parser
+	dht_node
+	utp
+	resume_data
+	file_storage_add_file
+	sanitize_path
+	upnp
+	peer_conn
+	session_params
+	;
+
+install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
+install stage-large : $(LARGE_TARGETS) : <install-type>EXE <location>fuzzers ;
+
+explicit stage ;
+explicit stage-large ;
+

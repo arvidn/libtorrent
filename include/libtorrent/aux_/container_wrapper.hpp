@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <type_traits>
 
@@ -52,24 +53,17 @@ namespace libtorrent { namespace aux {
 		container_wrapper() = default;
 		explicit container_wrapper(Base&& b) : Base(std::move(b)) {}
 
-		auto operator[](IndexType idx) const ->
-#if TORRENT_AUTO_RETURN_TYPES
-			decltype(auto)
-#else
-			decltype(this->Base::operator[](underlying_index()))
-#endif
+		explicit container_wrapper(IndexType const s)
+			: Base(numeric_cast<std::size_t>(static_cast<underlying_index>(s))) {}
+
+		decltype(auto) operator[](IndexType idx) const
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
 			return this->Base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
-		auto operator[](IndexType idx) ->
-#if TORRENT_AUTO_RETURN_TYPES
-			decltype(auto)
-#else
-			decltype(this->Base::operator[](underlying_index()))
-#endif
+		decltype(auto) operator[](IndexType idx)
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
@@ -79,7 +73,7 @@ namespace libtorrent { namespace aux {
 		IndexType end_index() const
 		{
 			TORRENT_ASSERT(this->size() <= std::size_t((std::numeric_limits<underlying_index>::max)()));
-			return IndexType(static_cast<underlying_index>(this->size()));
+			return IndexType(numeric_cast<underlying_index>(this->size()));
 		}
 
 		// returns an object that can be used in a range-for to iterate over all

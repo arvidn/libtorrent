@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,8 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 #include "settings.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/session_params.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/file.hpp"
 
 using namespace lt;
 
@@ -48,8 +54,8 @@ TORRENT_TEST(web_seed_redirect)
 	file_storage fs;
 	int piece_size = 0x4000;
 
-	char random_data[16000];
-	std::generate(random_data, random_data + sizeof(random_data), random_byte);
+	std::array<char, 16000> random_data;
+	aux::random_bytes(random_data);
 	file f("test_file", aux::open_mode::write, ec);
 	if (ec)
 	{
@@ -58,7 +64,7 @@ TORRENT_TEST(web_seed_redirect)
 		TEST_ERROR("failed to create file");
 		return;
 	}
-	iovec_t b = { random_data, size_t(16000)};
+	iovec_t b = random_data;
 	f.writev(0, b, ec);
 	fs.add_file("test_file", 16000);
 
@@ -66,7 +72,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
-	lt::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size);
 
 	char tmp[512];
 	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);

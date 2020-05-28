@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2007-2009, 2016-2019, Arvid Norberg
+Copyright (c) 2018, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,43 +33,35 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdio>
-#include <libtorrent/enum_net.hpp>
-#include <libtorrent/socket.hpp>
-#include <libtorrent/broadcast_socket.hpp>
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 using namespace lt;
 
 int main()
 {
-	io_service ios;
+	io_context ios;
 	error_code ec;
-
-	address def_gw = get_default_gateway(ios, "", false, ec);
-	if (ec)
-	{
-		std::printf("%s\n", ec.message().c_str());
-		return 1;
-	}
-
-	std::printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
 
 	std::printf("=========== Routes ===========\n");
 	auto const routes = enum_routes(ios, ec);
 	if (ec)
 	{
-		std::printf("%s\n", ec.message().c_str());
+		std::printf("enum_routes: %s\n", ec.message().c_str());
 		return 1;
 	}
 
-	std::printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
+	std::printf("%-18s%-18s%-35s%-7s%-18sinterface\n", "destination", "network", "gateway", "mtu", "source-hint");
 
 	for (auto const& r : routes)
 	{
-		std::printf("%-18s%-18s%-35s%-7d%s\n"
-			, r.destination.to_string(ec).c_str()
-			, r.netmask.to_string(ec).c_str()
-			, r.gateway.to_string(ec).c_str()
+		std::printf("%-18s%-18s%-35s%-7d%-18s%s\n"
+			, r.destination.to_string().c_str()
+			, r.netmask.to_string().c_str()
+			, r.gateway.is_unspecified() ? "-" : r.gateway.to_string().c_str()
 			, r.mtu
+			, r.source_hint.is_unspecified() ? "-" : r.source_hint.to_string().c_str()
 			, r.name);
 	}
 
@@ -76,23 +70,23 @@ int main()
 	auto const net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
-		std::printf("%s\n", ec.message().c_str());
+		std::printf("enum_ifs: %s\n", ec.message().c_str());
 		return 1;
 	}
 
-	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "default gateway");
+	std::printf("%-34s%-45s%-20s%-20s%-34sdescription\n", "address", "netmask", "name", "flags", "gateway");
 
 	for (auto const& i : net)
 	{
-		address const iface_def_gw = get_default_gateway(ios, i.name, i.interface_address.is_v6(), ec);
+		boost::optional<address> const gateway = get_gateway(i, routes);
 		std::printf("%-34s%-45s%-20s%s%s%-20s%-34s%s %s\n"
-			, i.interface_address.to_string(ec).c_str()
-			, i.netmask.to_string(ec).c_str()
+			, i.interface_address.to_string().c_str()
+			, i.netmask.to_string().c_str()
 			, i.name
 			, (i.interface_address.is_multicast()?"multicast ":"")
-			, (is_local(i.interface_address)?"local ":"")
-			, (is_loopback(i.interface_address)?"loopback ":"")
-			, iface_def_gw.to_string(ec).c_str()
+			, (aux::is_local(i.interface_address)?"local ":"")
+			, (i.interface_address.is_loopback()?"loopback ":"")
+			, gateway ? gateway->to_string().c_str() : "-"
 			, i.friendly_name, i.description);
 	}
 }

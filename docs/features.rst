@@ -17,11 +17,47 @@ desktops. It boasts a well documented library interface that is easy to
 use. It comes with a simple bittorrent client demonstrating the use of
 the library.
 
+BitTorrent v2 is supported as of libtorrent 2.0. This replaces the previous
+merkle hash tree extension.
+
 features
 ========
 
 libtorrent is an ongoing project under active development. Its
 current state supports and includes the following features:
+
+BitTorrent v2
+-------------
+
+Starting with version 2.0, libtorrent supports BitTorrent V2 (as specified in
+`BEP 52`_). BitTorrent V2 introduces a new format for .torrent files, which generally
+has a smaller info-dict than the original format. The .torrent files still contain
+piece hashes by default, but they can also be downloaded from peers.
+
+1. Files are organized in a directory structure, instead of listing full paths.
+   Torrents that have a lot of files in deep directory structures will use a lot
+   less space to represent that structure in a v2 torrent.
+
+2. Piece hashes are organized in a merkle hash trees per file, and only the
+   roots of the trees are included in the .torrent file. The actual hashes are
+   delivered by peers.
+
+The hash tree allows validating payload received from a peer immediately, down
+to 16 kiB blocks. In the original bittorrent protocol a whole piece would have
+to be downloaded before it could be validated against the hashes.
+
+The fact that each file has its own hash tree, and that its leaves are defined
+to be 16 kiB, means that files with identical content will always have the same
+merkle root. This enables finding matches of the same file across different
+torrents.
+
+The new format for torrent files is compatible with the original torrent file
+format, which enables *hybrid* torrents. Such torrents that can be used both as
+V1 and V2 and will have two swarms, one with V1 and V2 clients and one with only
+V2 clients.
+
+Another major feature of the BitTorrent V2 protocol is that the SHA-1 hash
+function has been replaced by SHA-256.
 
 extensions
 ----------
@@ -46,8 +82,6 @@ extensions
 * private torrents (`BEP 27`_).
 * upload-only extension (`BEP 21`_).
 * support for IPv6, including `BEP 7`_ and `BEP 24`_.
-* support for merkle hash tree torrents. This makes the size of torrent files
-  scale well with the size of the content.
 * share-mode. This is a special mode torrents can be put in to optimize share
   ratio rather than downloading the torrent.
 * supports the Magnet URI extension - Select specific file indices for
@@ -108,20 +142,21 @@ network
 
 
 .. _`DHT extensions`: dht_extensions.html
-.. _`BEP 5`: https://bittorrent.org/beps/bep_0005.html
-.. _`BEP 7`: https://bittorrent.org/beps/bep_0007.html
-.. _`BEP 9`: https://bittorrent.org/beps/bep_0009.html
-.. _`BEP 10`: https://bittorrent.org/beps/bep_0010.html
-.. _`BEP 12`: https://bittorrent.org/beps/bep_0012.html
-.. _`BEP 15`: https://bittorrent.org/beps/bep_0015.html
-.. _`BEP 16`: https://bittorrent.org/beps/bep_0016.html
-.. _`BEP 17`: https://bittorrent.org/beps/bep_0017.html
-.. _`BEP 19`: https://bittorrent.org/beps/bep_0019.html
-.. _`BEP 21`: https://bittorrent.org/beps/bep_0021.html
-.. _`BEP 24`: https://bittorrent.org/beps/bep_0024.html
-.. _`BEP 27`: https://bittorrent.org/beps/bep_0027.html
-.. _`BEP 29`: https://bittorrent.org/beps/bep_0029.html
-.. _`BEP 53`: https://bittorrent.org/beps/bep_0053.html
+.. _`BEP 5`: https://www.bittorrent.org/beps/bep_0005.html
+.. _`BEP 7`: https://www.bittorrent.org/beps/bep_0007.html
+.. _`BEP 9`: https://www.bittorrent.org/beps/bep_0009.html
+.. _`BEP 10`: https://www.bittorrent.org/beps/bep_0010.html
+.. _`BEP 12`: https://www.bittorrent.org/beps/bep_0012.html
+.. _`BEP 15`: https://www.bittorrent.org/beps/bep_0015.html
+.. _`BEP 16`: https://www.bittorrent.org/beps/bep_0016.html
+.. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html
+.. _`BEP 21`: https://www.bittorrent.org/beps/bep_0021.html
+.. _`BEP 24`: https://www.bittorrent.org/beps/bep_0024.html
+.. _`BEP 27`: https://www.bittorrent.org/beps/bep_0027.html
+.. _`BEP 29`: https://www.bittorrent.org/beps/bep_0029.html
+.. _`BEP 52`: https://www.bittorrent.org/beps/bep_0052.html
+.. _`BEP 53`: https://www.bittorrent.org/beps/bep_0053.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features
@@ -218,66 +253,24 @@ demand. New pieces will only be downloaded once the share ratio has hit a certai
 This feature is especially useful when combined with RSS, so that a client can be set up
 to provide additional bandwidth to an entire feed.
 
-merkle hash tree torrents
--------------------------
-
-.. image:: merkle_tree.png
-	:align: right
-
-Merkle hash tree torrents is an extension that lets a torrent file only contain the
-root hash of the hash tree forming the piece hashes. The main benefit of this feature
-is that regardless of how many pieces there is in a torrent, the .torrent file will
-always be the same size. It will only grow with the number of files (since it still
-has to contain the file names).
-
-With regular torrents, clients have to request multiple blocks for pieces, typically
-from different peers, before the data can be verified against the piece hash. The
-larger the pieces are, the longer it will take to download a complete piece and verify
-it. Before the piece is verified, it cannot be shared with the swarm, which means the
-larger piece sizes, the slower turnaround data has when it is downloaded by peers.
-Since on average the data has to sit around, waiting, in client buffers before it has
-been verified and can be uploaded again.
-
-Another problem with large piece sizes is that it is harder for a client to pinpoint
-the malicious or buggy peer when a piece fails, and it will take longer to re-download
-it and take more tries before the piece succeeds the larger the pieces are.
-
-The piece size in regular torrents is a trade-off between the size of the .torrent file
-itself and the piece size. Often, for files that are 4 GB, the piece size is 2 or 4 MB,
-just to avoid making the .torrent file too big.
-
-Merkle torrents solves these problems by removing the trade-off between .torrent size and
-piece size. With merkle torrents, the piece size can be the minimum block size (16 kB),
-which lets peers verify every block of data received from peers, immediately. This
-gives a minimum turnaround time and completely removes the problem of identifying malicious
-peers.
-
-The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
-down to the root.
-
-customizable file storage
--------------------------
+customizable file I/O
+---------------------
 
 .. image:: storage.png
 	:align: right
 
-libtorrent's storage implementation is customizable. That means a special purpose bittorrent
-client can replace the default way to store files on disk.
+libtorrent's disk I/O implementation is customizable. That means a special
+purpose bittorrent client can replace the default way to store files on disk.
 
 When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as
-long as it can be retrieved and seeded. In that case a new storage class can be implemented
-(inheriting from the ``storage_interface`` class) that avoids the unnecessary step of mapping
-slots to files and offsets. The storage can ignore the file boundaries and just store the
+long as it can be retrieved and seeded. In that case a new disk I/O class can be implemented
+(inheriting from the ``disk_interface``) that avoids the unnecessary step of mapping
+pieces to files and offsets. The storage can ignore the file boundaries and just store the
 entire torrent in a single file (which will end up being all the files concatenated). The main
 advantage of this, other than a slight CPU performance gain, is that all file operations would
 be page (and sector) aligned. This enables efficient unbuffered I/O, and can potentially
 lead to more efficient read caching (using the built in disk cache rather than relying on the
 operating system's disk cache).
-
-The storage interface supports operating systems where you can ask for sparse regions
-(such as Windows and Solaris). The advantage of this is that when checking files, the regions
-that are known to be sparse can be skipped, which can reduce the time to check a torrent
-significantly.
 
 easy to use API
 ---------------

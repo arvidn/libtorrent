@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2017-2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,7 +81,7 @@ TORRENT_TEST(read_resume)
 
 	add_torrent_params atp = read_resume_data(resume_data);
 
-	TEST_EQUAL(atp.info_hash, sha1_hash("abcdefghijklmnopqrst"));
+	TEST_EQUAL(atp.info_hash.v1, sha1_hash("abcdefghijklmnopqrst"));
 	TEST_EQUAL(atp.have_pieces.size(), 6);
 	TEST_EQUAL(atp.have_pieces.count(), 6);
 
@@ -129,6 +131,23 @@ TORRENT_TEST(read_resume_missing_info_hash)
 	TEST_EQUAL(ec, error_code(errors::missing_info_hash));
 }
 
+TORRENT_TEST(read_resume_info_hash2)
+{
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	// it's OK to *only* have a v2 hash
+	rd["info-hash2"] = "01234567890123456789012345678901";
+
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), rd);
+
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_EQUAL(ec, error_code());
+}
+
 TORRENT_TEST(read_resume_missing_file_format)
 {
 	entry rd;
@@ -173,7 +192,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);
 	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");
@@ -200,7 +219,7 @@ TORRENT_TEST(read_resume_torrent)
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hash().to_string();
+	rd["info-hash"] = ti->info_hash().v1.to_string();
 	rd["info"] = bdecode({ti->metadata().get(), ti->metadata_size()});
 
 	std::vector<char> resume_data;
@@ -287,3 +306,66 @@ TORRENT_TEST(round_trip_unfinished)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_trackers)
+{
+	add_torrent_params atp;
+	atp.flags |= torrent_flags::override_trackers;
+	test_roundtrip(atp);
+}
+
+TORRENT_TEST(round_trip_flags)
+{
+	torrent_flags_t const flags[] = {
+		torrent_flags::seed_mode,
+		torrent_flags::upload_mode,
+		torrent_flags::share_mode,
+		torrent_flags::apply_ip_filter,
+		torrent_flags::paused,
+		torrent_flags::auto_managed,
+		torrent_flags::duplicate_is_error,
+		torrent_flags::update_subscribe,
+		torrent_flags::super_seeding,
+		torrent_flags::sequential_download,
+		torrent_flags::stop_when_ready,
+		torrent_flags::override_trackers,
+		torrent_flags::override_web_seeds,
+		torrent_flags::need_save_resume,
+		torrent_flags::disable_dht,
+		torrent_flags::disable_lsd,
+		torrent_flags::disable_pex,
+	};
+
+	for (auto const& f : flags)
+	{
+		add_torrent_params atp;
+		atp.flags = f;
+		test_roundtrip(atp);
+	}
+}
+
+TORRENT_TEST(round_trip_info_hash)
+{
+	add_torrent_params atp;
+	atp.info_hash.v2 = sha256_hash{"21212121212121212121212121212121"};
+	test_roundtrip(atp);
+	entry e = write_resume_data(atp);
+	TEST_CHECK(e["info-hash2"] == "21212121212121212121212121212121");
+}
+
+TORRENT_TEST(round_trip_merkle_trees)
+{
+	add_torrent_params atp;
+	atp.merkle_trees = aux::vector<std::vector<sha256_hash>, file_index_t>{
+		{sha256_hash{"01010101010101010101010101010101"}, sha256_hash{"21212121212121212121212121212121"}}
+		, {sha256_hash{"23232323232323232323232323232323"}, sha256_hash{"43434343434343434343434343434343"}}
+		};
+	test_roundtrip(atp);
+}
+
+TORRENT_TEST(round_trip_verified_leaf_hashes)
+{
+	add_torrent_params atp;
+	atp.verified_leaf_hashes = aux::vector<std::vector<bool>, file_index_t>{
+		{true, true, false, false}, {false, true, false, true}};
+	test_roundtrip(atp);
+}

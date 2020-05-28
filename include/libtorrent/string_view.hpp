@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018, Arvid Norberg
+Copyright (c) 2016-2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,12 +37,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+// TODO: replace this by the standard string_view in C++17
+
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
+#include <cstring> // for strchr
 namespace libtorrent {
 
 using string_view = boost::string_ref;
 using wstring_view = boost::wstring_ref;
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const c
+	, string_view::size_type pos)
+{
+	while (pos < v.size())
+	{
+		if (v[pos] == c) return pos;
+		++pos;
+	}
+	return string_view::npos;
+}
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const* c
+	, string_view::size_type pos)
+{
+	while (pos < v.size())
+	{
+		if (std::strchr(c, v[pos]) != nullptr) return pos;
+		++pos;
+	}
+	return string_view::npos;
+}
 }
 #else
 #include <boost/utility/string_view.hpp>
@@ -50,6 +77,20 @@ namespace libtorrent {
 
 using string_view = boost::string_view;
 using wstring_view = boost::wstring_view;
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const c
+	, string_view::size_type pos)
+{
+	return v.find_first_of(c, pos);
+}
+
+// internal
+inline string_view::size_type find_first_of(string_view const v, char const* c
+	, string_view::size_type pos)
+{
+	return v.find_first_of(c, pos);
+}
 }
 #endif
 
@@ -57,7 +98,7 @@ namespace libtorrent {
 
 inline namespace literals {
 
-	constexpr string_view operator""_sv(char const* str, std::size_t len)
+	constexpr string_view operator "" _sv(char const* str, std::size_t len)
 	{ return string_view(str, len); }
 }
 }

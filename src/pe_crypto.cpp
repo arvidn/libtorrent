@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2007-2018, Un Shyam, Arvid Norberg, Steven Siloti
+Copyright (c) 2007, Un Shyam
+Copyright (c) 2011, 2014-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -210,7 +214,7 @@ namespace libtorrent {
 		return std::make_tuple(next_barrier, out_iovec);
 	}
 
-	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer
+	int encryption_handler::decrypt(aux::crypto_receive_buffer& recv_buffer
 		, std::size_t& bytes_transferred)
 	{
 		TORRENT_ASSERT(!is_recv_plaintext());
@@ -255,7 +259,7 @@ namespace libtorrent {
 	}
 
 	void encryption_handler::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
-		, crypto_receive_buffer& recv_buffer)
+		, aux::crypto_receive_buffer& recv_buffer)
 	{
 		m_dec_handler = crypto;
 		int packet_size = 0;
@@ -328,7 +332,7 @@ namespace libtorrent {
 
 	std::tuple<int, int, int> rc4_handler::decrypt(span<span<char>> bufs)
 	{
-		if (!m_decrypt) std::make_tuple(0, 0, 0);
+		if (!m_decrypt) return std::make_tuple(0, 0, 0);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)

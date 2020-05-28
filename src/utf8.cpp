@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2012, 2015-2019, Arvid Norberg
+Copyright (c) 2016-2017, 2019, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -232,10 +234,10 @@ namespace {
 		return wide;
 	}
 
-	std::wstring utf8_wchar(string_view wide)
+	std::wstring utf8_wchar(string_view utf8)
 	{
 		error_code ec;
-		std::wstring ret = utf8_wchar(wide, ec);
+		std::wstring ret = utf8_wchar(utf8, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}

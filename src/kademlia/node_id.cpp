@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg
+Copyright (c) 2006-2008, 2010-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_local et.al
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_local et.al
 #include "libtorrent/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/crc32c.hpp" // for crc32c
@@ -181,7 +183,7 @@ bool verify_secret_id(node_id const& nid)
 bool verify_id(node_id const& nid, address const& source_ip)
 {
 	// no need to verify local IPs, they would be incorrect anyway
-	if (is_local(source_ip)) return true;
+	if (aux::is_local(source_ip)) return true;
 
 	node_id h = generate_id_impl(source_ip, nid[19]);
 	return nid[0] == h[0] && nid[1] == h[1] && (nid[2] & 0xf8) == (h[2] & 0xf8);

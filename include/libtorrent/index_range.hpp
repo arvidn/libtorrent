@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2018, Arvid Norberg
+Copyright (c) 2018-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,8 @@ struct index_range
 {
 	Index _begin;
 	Index _end;
-	index_iter<Index> begin() { return index_iter<Index>{_begin}; }
-	index_iter<Index> end() { return index_iter<Index>{_end}; }
+	index_iter<Index> begin() const { return index_iter<Index>{_begin}; }
+	index_iter<Index> end() const { return index_iter<Index>{_end}; }
 };
 
 }

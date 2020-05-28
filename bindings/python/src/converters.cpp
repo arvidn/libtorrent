@@ -57,7 +57,7 @@ struct tuple_to_endpoint
         extract<std::uint16_t> port(object(borrowed(PyTuple_GetItem(x, 1))));
         if (!port.check()) return nullptr;
         lt::error_code ec;
-        lt::address::from_string(ip, ec);
+        lt::make_address(ip, ec);
         if (ec) return nullptr;
         return x;
     }
@@ -68,7 +68,7 @@ struct tuple_to_endpoint
            ->storage.bytes;
 
         object o(borrowed(x));
-        data->convertible = new (storage) T(lt::address::from_string(
+        data->convertible = new (storage) T(lt::make_address(
            extract<std::string>(o[0])), extract<std::uint16_t>(o[1]));
     }
 };
@@ -87,8 +87,7 @@ struct address_to_tuple
 {
     static PyObject* convert(Addr const& addr)
     {
-        lt::error_code ec;
-        return incref(bp::object(addr.to_string(ec)).ptr());
+        return incref(bp::object(addr.to_string()).ptr());
     }
 };
 
@@ -140,14 +139,33 @@ struct to_string_view
 
     static void* convertible(PyObject* x)
     {
-        return PyUnicode_Check(x) ? x: nullptr;
+#if PY_VERSION_HEX >= 0x03020000
+        return PyBytes_Check(x)
+#else
+        return PyString_Check(x)
+#endif
+            ? x : PyUnicode_Check(x) ? x : nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<
             lt::string_view>*)data)->storage.bytes;
-        data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
+
+        if (PyUnicode_Check(x))
+        {
+            data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
+        }
+        else
+        {
+            data->convertible = new (storage) lt::string_view(
+#if PY_VERSION_HEX >= 0x03020000
+                PyBytes_AsString(x), PyBytes_Size(x)
+#else
+                PyString_AsString(x), PyString_Size(x)
+#endif
+                );
+        }
     }
 };
 
@@ -264,12 +282,12 @@ struct list_to_bitfield
 
         T p;
         int const size = int(PyList_Size(x));
-		  p.resize(size);
+        p.resize(size);
         for (int i = 0; i < size; ++i)
         {
            object o(borrowed(PyList_GetItem(x, i)));
            if (extract<bool>(o)) p.set_bit(IndexType{i});
-			  else p.clear_bit(IndexType{i});
+           else p.clear_bit(IndexType{i});
         }
         data->convertible = new (storage) T(std::move(p));
     }
@@ -392,6 +410,7 @@ void bind_converters()
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
     to_python_converter<lt::port_mapping_t, from_strong_typedef<lt::port_mapping_t>>();
     to_python_converter<lt::peer_class_t, from_strong_typedef<lt::peer_class_t>>();
+    to_python_converter<lt::connection_type_t, from_bitfield_flag<lt::connection_type_t>>();
     to_python_converter<lt::torrent_flags_t, from_bitfield_flag<lt::torrent_flags_t>>();
     to_python_converter<lt::peer_flags_t, from_bitfield_flag<lt::peer_flags_t>>();
     to_python_converter<lt::peer_source_flags_t, from_bitfield_flag<lt::peer_source_flags_t>>();
@@ -405,13 +424,13 @@ void bind_converters()
     to_python_converter<lt::pause_flags_t, from_bitfield_flag<lt::pause_flags_t>>();
     to_python_converter<lt::deadline_flags_t, from_bitfield_flag<lt::deadline_flags_t>>();
     to_python_converter<lt::save_state_flags_t, from_bitfield_flag<lt::save_state_flags_t>>();
-    to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
     to_python_converter<lt::remove_flags_t, from_bitfield_flag<lt::remove_flags_t>>();
     to_python_converter<lt::reopen_network_flags_t, from_bitfield_flag<lt::reopen_network_flags_t>>();
     to_python_converter<lt::file_flags_t, from_bitfield_flag<lt::file_flags_t>>();
     to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
     to_python_converter<lt::pex_flags_t, from_bitfield_flag<lt::pex_flags_t>>();
     to_python_converter<lt::reannounce_flags_t, from_bitfield_flag<lt::reannounce_flags_t>>();
+    to_python_converter<lt::file_progress_flags_t, from_bitfield_flag<lt::file_progress_flags_t>>();
     to_python_converter<lt::string_view, from_string_view>();
 
     // work-around types
@@ -433,6 +452,10 @@ void bind_converters()
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
     to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
+
+#if TORRENT_ABI_VERSION <= 2
+    to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
+#endif
 
 #if TORRENT_ABI_VERSION == 1
     to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
@@ -489,11 +512,15 @@ void bind_converters()
     to_bitfield_flag<lt::pause_flags_t>();
     to_bitfield_flag<lt::deadline_flags_t>();
     to_bitfield_flag<lt::save_state_flags_t>();
-    to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::remove_flags_t>();
     to_bitfield_flag<lt::reopen_network_flags_t>();
     to_bitfield_flag<lt::file_flags_t>();
     to_bitfield_flag<lt::create_flags_t>();
     to_bitfield_flag<lt::pex_flags_t>();
     to_bitfield_flag<lt::reannounce_flags_t>();
+    to_string_view();
+
+#if TORRENT_ABI_VERSION <= 2
+    to_bitfield_flag<lt::session_flags_t>();
+#endif
 }

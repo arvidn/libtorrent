@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008-2018, Arvid Norberg
+Copyright (c) 2008-2009, 2012-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Falcosc
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,7 +81,6 @@ namespace libtorrent {
 		// query bit at ``index``. Returns true if bit is 1, otherwise false.
 		bool operator[](int index) const noexcept
 		{ return get_bit(index); }
-
 		bool get_bit(int index) const noexcept
 		{
 			TORRENT_ASSERT(index >= 0);
@@ -104,6 +105,7 @@ namespace libtorrent {
 		// returns true if all bits in the bitfield are set
 		bool all_set() const noexcept;
 
+		// returns true if no bit in the bitfield is set
 		bool none_set() const noexcept
 		{
 			if(size() == 0) return true;
@@ -125,6 +127,8 @@ namespace libtorrent {
 			return bits;
 		}
 
+		// returns the number of 32 bit words are needed to represent all bits in
+		// this bitfield.
 		int num_words() const noexcept
 		{
 			return (size() + 31) / 32;
@@ -133,7 +137,8 @@ namespace libtorrent {
 		// returns true if the bitfield has zero size.
 		bool empty() const noexcept { return size() == 0; }
 
-		// returns a pointer to the internal buffer of the bitfield.
+		// returns a pointer to the internal buffer of the bitfield, or
+		// ``nullptr`` if it's empty.
 		char const* data() const noexcept { return m_buf ? reinterpret_cast<char const*>(&m_buf[1]) : nullptr; }
 		char* data() noexcept { return m_buf ? reinterpret_cast<char*>(&m_buf[1]) : nullptr; }
 
@@ -142,16 +147,16 @@ namespace libtorrent {
 		char const* bytes() const { return data(); }
 #endif
 
-		// assignment operator
-		bitfield& operator=(bitfield const& rhs)
+		// hidden
+		bitfield& operator=(bitfield const& rhs) &
 		{
 			if (&rhs == this) return *this;
 			assign(rhs.data(), rhs.size());
 			return *this;
 		}
+		bitfield& operator=(bitfield&& rhs) & noexcept = default;
 
-		bitfield& operator=(bitfield&& rhs) noexcept = default;
-
+		// swaps the bit-fields two variables refer to
 		void swap(bitfield& rhs) noexcept
 		{
 			std::swap(m_buf, rhs.m_buf);
@@ -159,9 +164,14 @@ namespace libtorrent {
 
 		// count the number of bits in the bitfield that are set to 1.
 		int count() const noexcept;
+
+		// returns the index of the first set bit in the bitfield, i.e. 1 bit.
 		int find_first_set() const noexcept;
+
+		// returns the index to the last cleared bit in the bitfield, i.e. 0 bit.
 		int find_last_clear() const noexcept;
 
+		// internal
 		struct const_iterator
 		{
 		friend struct bitfield;
@@ -220,6 +230,7 @@ namespace libtorrent {
 			std::uint32_t bit = 0x80000000;
 		};
 
+		// internal
 		const_iterator begin() const noexcept { return const_iterator(m_buf ? buf() : nullptr, 0); }
 		const_iterator end() const noexcept
 		{
@@ -238,13 +249,13 @@ namespace libtorrent {
 		void set_all() noexcept
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0xff, std::size_t(num_words() * 4));
+			std::memset(buf(), 0xff, std::size_t(num_words()) * 4);
 			clear_trailing_bits();
 		}
 		void clear_all() noexcept
 		{
 			if (size() == 0) return;
-			std::memset(buf(), 0x00, std::size_t(num_words() * 4));
+			std::memset(buf(), 0x00, std::size_t(num_words()) * 4);
 		}
 
 		// make the bitfield empty, of zero size.
@@ -277,12 +288,12 @@ namespace libtorrent {
 		{}
 		typed_bitfield(bitfield&& rhs) noexcept : bitfield(std::forward<bitfield>(rhs)) {} // NOLINT
 		typed_bitfield(bitfield const& rhs) : bitfield(rhs) {} // NOLINT
-		typed_bitfield& operator=(typed_bitfield&& rhs) noexcept
+		typed_bitfield& operator=(typed_bitfield&& rhs) & noexcept
 		{
 			this->bitfield::operator=(std::forward<bitfield>(rhs));
 			return *this;
 		}
-		typed_bitfield& operator=(typed_bitfield const& rhs)
+		typed_bitfield& operator=(typed_bitfield const& rhs) &
 		{
 			this->bitfield::operator=(rhs);
 			return *this;

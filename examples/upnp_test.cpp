@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2010, 2014-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
 
 namespace {
@@ -73,7 +74,7 @@ int main(int argc, char*[])
 	}
 
 	settings_pack p;
-	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
+	p.set_int(settings_pack::alert_mask, alert_category::port_mapping);
 	lt::session s(p);
 
 	for (;;)

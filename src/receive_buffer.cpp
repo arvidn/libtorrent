@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2014-2016, 2018-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/receive_buffer.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/receive_buffer.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/span.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 int receive_buffer::max_receive() const
 {
@@ -333,4 +337,5 @@ span<char> crypto_receive_buffer::mutable_buffer(
 }
 #endif // TORRENT_DISABLE_ENCRYPTION
 
+} // namespace aux
 } // namespace libtorrent

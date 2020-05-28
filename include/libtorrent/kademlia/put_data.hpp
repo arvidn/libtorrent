@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg, Thomas Yuan
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 struct msg;
 class node;
@@ -49,7 +52,7 @@ struct put_data: traversal_algorithm
 {
 	using put_callback = std::function<void(item const&, int)>;
 
-	put_data(node& node, put_callback const& callback);
+	put_data(node& node, put_callback callback);
 
 	char const* name() const override;
 	void start() override;
@@ -84,6 +87,7 @@ struct put_data_observer : traversal_observer
 	std::string m_token;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // TORRENT_PUT_DATA_HPP

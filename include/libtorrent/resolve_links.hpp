@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,10 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent {
-
-	class torrent_info;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	// this class is used for mutable torrents, to discover identical files

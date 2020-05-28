@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,13 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 
 #include "make_torrent.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/storage_defs.hpp"
+#include "libtorrent/aux_/posix_storage.hpp"
 
 using namespace lt;
 
@@ -168,8 +168,6 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 void generate_files(lt::torrent_info const& ti, std::string const& path
 	, bool alternate_data)
 {
-	aux::file_view_pool fp;
-
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params params{
@@ -183,7 +181,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 
 	// default settings
 	aux::session_settings sett;
-	default_storage st(params, fp);
+	aux::posix_storage st(params);
 
 	file_storage const& fs = ti.files();
 	std::vector<char> buffer;
@@ -201,7 +199,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 
 		iovec_t b = { &buffer[0], piece_size };
 		storage_error ec;
-		int ret = st.writev(sett, b, i, 0, aux::open_mode::read_only, ec);
+		int ret = st.writev(sett, b, i, 0, ec);
 		if (ret != piece_size || ec)
 		{
 			std::printf("ERROR writing files: (%d expected %d) %s\n"

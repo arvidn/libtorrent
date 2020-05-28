@@ -41,13 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/open_mode.hpp"
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef VC_EXTRALEAN
-#define VC_EXTRALEAN
-#endif
-#include <windows.h>
+
+#include "libtorrent/aux_/windows.hpp"
+#include <mutex>
 
 #endif // TORRENT_HAVE_MAP_VIEW_OF_FILE
 
@@ -79,7 +75,7 @@ namespace aux {
 		file_handle& operator=(file_handle const& rhs) = delete;
 
 		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
-		file_handle& operator=(file_handle&& rhs);
+		file_handle& operator=(file_handle&& rhs) &;
 
 		~file_handle();
 
@@ -105,7 +101,7 @@ namespace aux {
 		file_mapping_handle& operator=(file_mapping_handle const&) = delete;
 
 		file_mapping_handle(file_mapping_handle&& fm);
-		file_mapping_handle& operator=(file_mapping_handle&& fm);
+		file_mapping_handle& operator=(file_mapping_handle&& fm) &;
 
 		HANDLE handle() const { return m_mapping; }
 	private:
@@ -119,14 +115,18 @@ namespace aux {
 	{
 		friend struct file_view;
 
-		file_mapping(file_handle file, open_mode_t mode, std::int64_t file_size);
+		file_mapping(file_handle file, open_mode_t mode, std::int64_t file_size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+			);
 
 		// non-copyable
 		file_mapping(file_mapping const&) = delete;
 		file_mapping& operator=(file_mapping const&) = delete;
 
 		file_mapping(file_mapping&& rhs);
-		file_mapping& operator=(file_mapping&& rhs);
+		file_mapping& operator=(file_mapping&& rhs) &;
 		~file_mapping();
 
 		// ...
@@ -145,6 +145,7 @@ namespace aux {
 		std::int64_t m_size;
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		file_mapping_handle m_file;
+		std::shared_ptr<std::mutex> m_open_unmap_lock;
 #else
 		file_handle m_file;
 #endif

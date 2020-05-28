@@ -68,19 +68,28 @@ namespace aux {
 
 	namespace mi = boost::multi_index;
 
+	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t const);
+
 	// this is an internal cache of open file mappings.
-	struct TORRENT_EXTRA_EXPORT file_view_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT file_view_pool
 	{
 		// ``size`` specifies the number of allowed files handles
 		// to hold open at any given time.
 		explicit file_view_pool(int size = 40);
 		~file_view_pool();
 
+		file_view_pool(file_view_pool const&) = delete;
+		file_view_pool& operator=(file_view_pool const&) = delete;
+
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		file_view open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, open_mode_t m);
+			, file_index_t file_index, file_storage const& fs, open_mode_t m
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+			);
 
 		// release all file views belonging to the specified storage_interface
 		// (``st``) the overload that takes ``file_index`` releases only the file
@@ -98,6 +107,8 @@ namespace aux {
 
 		std::vector<open_file_state> get_status(storage_index_t st) const;
 
+		void close_oldest();
+
 	private:
 
 		std::shared_ptr<file_mapping> remove_oldest(std::unique_lock<std::mutex>&);
@@ -111,9 +122,17 @@ namespace aux {
 			file_entry(file_id k
 				, string_view name
 				, open_mode_t const m
-				, std::int64_t const size)
+				, std::int64_t const size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+				)
 				: key(k)
-				, mapping(std::make_shared<file_mapping>(file_handle(name, size, m), m, size))
+				, mapping(std::make_shared<file_mapping>(file_handle(name, size, m), m, size
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+					, open_unmap_lock
+#endif
+					))
 				, mode(m)
 			{}
 

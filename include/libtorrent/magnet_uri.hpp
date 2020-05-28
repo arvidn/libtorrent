@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2009, 2011-2013, 2016-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct torrent_handle;
-	class session;
+	struct session;
 
 	// Generates a magnet URI from the specified torrent. If the torrent
 	// handle is invalid, an empty string is returned.

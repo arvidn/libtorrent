@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2013-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,10 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// TODO: It would be nice if this could be an internal type. default_disk_constructor depends on it now
 	struct TORRENT_EXPORT counters
 	{
-		// TODO: move this out of counters
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this
@@ -149,7 +149,6 @@ namespace libtorrent {
 #endif
 
 			// bittorrent message counters
-			// TODO: should keepalives be in here too?
 			// how about dont-have, share-mode, upload-only
 			num_incoming_choke,
 			num_incoming_unchoke,
@@ -190,6 +189,9 @@ namespace libtorrent {
 			num_outgoing_pex,
 			num_outgoing_metadata,
 			num_outgoing_extended,
+			num_outgoing_hash_request,
+			num_outgoing_hashes,
+			num_outgoing_hash_reject,
 
 			num_piece_passed,
 			num_piece_failed,
@@ -394,7 +396,7 @@ namespace libtorrent {
 			num_peers_down_disk,
 
 			// the number of peers in end-game mode. End game mode is where there
-			// are no blocks that we have not sent any requests to download. In ths
+			// are no blocks that we have not sent any requests to download. In this
 			// mode, blocks are allowed to be requested from more than one peer at
 			// at time.
 			num_peers_end_game,
@@ -469,7 +471,7 @@ namespace libtorrent {
 		counters() TORRENT_COUNTER_NOEXCEPT;
 
 		counters(counters const&) TORRENT_COUNTER_NOEXCEPT;
-		counters& operator=(counters const&) TORRENT_COUNTER_NOEXCEPT;
+		counters& operator=(counters const&) & TORRENT_COUNTER_NOEXCEPT;
 
 		// returns the new value
 		std::int64_t inc_stats_counter(int c, std::int64_t value = 1) TORRENT_COUNTER_NOEXCEPT;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2014-2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@ using namespace lt;
 
 const int proxy = lt::settings_pack::none;
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(url_seed_ssl_keepalive)
 {
 		run_http_suite(proxy, "https", 1, 0, 0, 1);
@@ -64,5 +64,3 @@ TORRENT_TEST(url_seed_keepalive_rename)
 {
 	run_http_suite(proxy, "http", 1, 0, 0, 1, 1);
 }
-
-

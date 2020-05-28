@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 from __future__ import print_function
@@ -24,14 +24,14 @@ for p in glob.iglob(os.path.join(sys.argv[1], '*.log')):
     uploaded_blocks = 0
     downloaded_blocks = 0
 
-    for l in f:
-        t = l.split(': ')[0].split('.')[0]
+    for line in f:
+        t = line.split(': ')[0].split('.')[0]
         log_line = False
-        if ' ==> PIECE' in l:
+        if ' ==> PIECE' in line:
             uploaded_blocks += 1
             log_line = True
 
-        if ' <== PIECE' in l:
+        if ' <== PIECE' in line:
             downloaded_blocks += 1
             log_line = True
 

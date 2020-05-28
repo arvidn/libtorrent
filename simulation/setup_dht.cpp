@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/kademlia/dht_settings.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
@@ -56,8 +56,6 @@ using namespace lt;
 
 namespace {
 
-	lt::time_point start_time;
-
 	// this is the IP address assigned to node 'idx'
 	asio::ip::address addr_from_int(int /* idx */)
 	{
@@ -74,7 +72,7 @@ namespace {
 	// this is the node ID assigned to node 'idx'
 	dht::node_id id_from_addr(lt::address const& addr)
 	{
-		return dht::generate_id(addr);
+		return dht::generate_id_impl(addr, 0);
 	}
 
 	std::shared_ptr<lt::aux::listen_socket_t> sim_listen_socket(tcp::endpoint ep)
@@ -90,26 +88,26 @@ namespace {
 
 struct dht_node final : lt::dht::socket_manager
 {
-	dht_node(sim::simulation& sim, lt::dht::dht_settings const& sett, lt::counters& cnt
+	dht_node(sim::simulation& sim, lt::aux::session_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
-		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
-		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
+		: m_io_context(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
+		, m_dht_storage(lt::dht::dht_default_storage_constructor(m_settings))
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
-		, m_socket(m_io_service)
-		, m_ls(sim_listen_socket(tcp::endpoint(m_io_service.get_ips().front(), 6881)))
-		, m_dht(m_ls, this, sett, id_from_addr(m_io_service.get_ips().front())
+		, m_socket(m_io_context)
+		, m_ls(sim_listen_socket(tcp::endpoint(m_io_context.get_ips().front(), 6881)))
+		, m_dht(m_ls, this, sett, id_from_addr(m_io_context.get_ips().front())
 			, nullptr, cnt
 			, [](lt::dht::node_id const&, std::string const&) -> lt::dht::node* { return nullptr; }
 			, *m_dht_storage)
 	{
-		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
+		m_dht_storage->update_node_ids({id_from_addr(m_io_context.get_ips().front())});
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(
 			m_ipv6 ? lt::address(lt::address_v6::any()) : lt::address(lt::address_v4::any()), 6881));
 
 		sock().non_blocking(true);
-		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
+		sock().async_receive_from(asio::buffer(m_buffer.data(), m_buffer.size())
 			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
 				{ this->on_read(ec, bytes_transferred); });
 	}
@@ -138,7 +136,7 @@ struct dht_node final : lt::dht::socket_manager
 		// since the simulation is single threaded, we can get away with just
 		// allocating a single of these
 		static bdecode_node msg;
-		int const ret = bdecode(m_buffer, m_buffer + bytes_transferred, msg, err, &pos, 10, 500);
+		int const ret = bdecode(m_buffer.data(), m_buffer.data() + bytes_transferred, msg, err, &pos, 10, 500);
 		if (ret != 0) return;
 
 		if (msg.type() != bdecode_node::dict_t) return;
@@ -146,7 +144,7 @@ struct dht_node final : lt::dht::socket_manager
 		lt::dht::msg m(msg, m_ep);
 		dht().incoming(m_ls, m);
 
-		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
+		sock().async_receive_from(asio::buffer(m_buffer.data(), m_buffer.size())
 			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
 				{ this->on_read(ec, bytes_transferred); });
 	}
@@ -160,14 +158,14 @@ struct dht_node final : lt::dht::socket_manager
 
 		send_buf.clear();
 		bencode(std::back_inserter(send_buf), e);
-		sock().send_to(boost::asio::const_buffers_1(send_buf.data(), int(send_buf.size())), addr);
+		sock().send_to(boost::asio::const_buffer(send_buf.data(), send_buf.size()), addr);
 		return true;
 	}
 
 	// the node_id and IP address of this node
 	std::pair<dht::node_id, lt::udp::endpoint> node_info() const
 	{
-		return std::make_pair(dht().nid(), lt::udp::endpoint(m_io_service.get_ips().front(), 6881));
+		return std::make_pair(dht().nid(), lt::udp::endpoint(m_io_context.get_ips().front(), 6881));
 	}
 
 	void bootstrap(std::vector<std::pair<dht::node_id, lt::udp::endpoint>> const& nodes)
@@ -176,7 +174,7 @@ struct dht_node final : lt::dht::socket_manager
 		// expensive. instead. pick a random subset of nodes proportionate to the
 		// bucket it would fall into
 
-		dht::node_id id = dht().nid();
+		dht::node_id const id = dht().nid();
 
 		// the number of slots left per bucket
 		std::array<int, 160> nodes_per_bucket;
@@ -188,8 +186,18 @@ struct dht_node final : lt::dht::socket_manager
 		nodes_per_bucket[2] = 32;
 		nodes_per_bucket[3] = 16;
 
-		for (auto const& n : nodes)
+		// pick nodes in random order to provide good connectivity
+		std::vector<std::size_t> order(nodes.size());
+		for (size_t i = 0; i < order.size(); ++i) order[i] = i;
+
+		while (!order.empty())
 		{
+			auto const idx = lt::random(static_cast<uint32_t>(order.size() - 1));
+			assert(idx >= 0 && idx < order.size());
+			auto const& n = nodes[order[idx]];
+			if (idx < order.size() - 1) order[idx] = order.back();
+			order.pop_back();
+
 			if (n.first == id) continue;
 			int const bucket = 159 - dht::distance_exp(id, n.first);
 
@@ -208,10 +216,10 @@ struct dht_node final : lt::dht::socket_manager
 			{
 				// generate a random node ID that would fall in `bucket`
 				dht::node_id const mask = dht::generate_prefix_mask(bucket + 1);
-				dht::node_id target = dht::generate_random_id() & ~mask;
+				udp::endpoint const ep = rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4);
+				dht::node_id target = dht::generate_id_impl(ep.address(), 0) & ~mask;
 				target |= id & mask;
-				dht().m_table.node_seen(target, rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4)
-					, lt::random(300) + 10);
+				dht().m_table.node_seen(target, ep, lt::random(300) + 10);
 			}
 		}
 /*
@@ -233,7 +241,8 @@ struct dht_node final : lt::dht::socket_manager
 	lt::dht::node const& dht() const { return m_dht; }
 
 private:
-	asio::io_service m_io_service;
+	lt::aux::session_settings m_settings;
+	asio::io_context m_io_context;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 	bool const m_add_dead_nodes;
 	bool const m_ipv6;
@@ -242,13 +251,13 @@ private:
 	std::shared_ptr<lt::aux::listen_socket_t> m_ls;
 	lt::dht::node m_dht;
 	lt::udp::endpoint m_ep;
-	char m_buffer[1300];
+	std::array<char, 1300> m_buffer;
 };
 
 dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags)
 {
-	m_sett.ignore_dark_internet = false;
-	m_sett.restrict_routing_ips = false;
+	m_sett.set_bool(settings_pack::dht_ignore_dark_internet, false);
+	m_sett.set_bool(settings_pack::dht_restrict_routing_ips, false);
 
 // TODO: how can we introduce churn among peers?
 
@@ -262,18 +271,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 		all_nodes.push_back(m_nodes.back().node_info());
 	}
 
-	int cnt = 0;
-	for (auto& n : m_nodes)
-	{
-		n.bootstrap(all_nodes);
-		if (++cnt == 25)
-		{
-			// every now and then, shuffle all_nodes to make the
-			// routing tables more randomly distributed
-			lt::aux::random_shuffle(all_nodes.begin(), all_nodes.end());
-			cnt = 0;
-		}
-	}
+	for (auto& n : m_nodes) n.bootstrap(all_nodes);
 }
 
 dht_network::~dht_network() = default;

@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2009-2018, Arvid Norberg
+Copyright (c) 2009, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,7 +57,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT sha1_hash hash_address(address const& ip);
 
-namespace detail {
+namespace aux {
 
 		template <class Proto>
 		std::size_t address_size(Proto p)
@@ -71,7 +73,7 @@ namespace detail {
 		{
 			if (a.is_v4())
 			{
-				write_uint32(a.to_v4().to_ulong(), out);
+				write_uint32(a.to_v4().to_uint(), out);
 			}
 			else if (a.is_v6())
 			{
@@ -81,14 +83,14 @@ namespace detail {
 		}
 
 		template<class InIt>
-		address read_v4_address(InIt&& in)
+		address_v4 read_v4_address(InIt&& in)
 		{
 			std::uint32_t const ip = read_uint32(in);
 			return address_v4(ip);
 		}
 
 		template<class InIt>
-		address read_v6_address(InIt&& in)
+		address_v6 read_v6_address(InIt&& in)
 		{
 			address_v6::bytes_type bytes;
 			for (auto& b : bytes)
@@ -137,7 +139,7 @@ namespace detail {
 			}
 			return ret;
 		}
-	} // namespace detail
+} // namespace aux
 
 }
 

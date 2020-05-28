@@ -10,10 +10,16 @@ By Steve Reid <sreid@sea-to-sky.net>
 changelog at the end of the file.
 */
 
+#include "libtorrent/sha1.hpp"
+
+#if !defined TORRENT_USE_LIBGCRYPT \
+	&& !TORRENT_USE_COMMONCRYPTO \
+	&& !TORRENT_USE_CNG \
+	&& !TORRENT_USE_CRYPTOAPI \
+	&& !defined TORRENT_USE_LIBCRYPTO
+
 #include <cstdio>
 #include <cstring>
-
-#include "libtorrent/sha1.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/predef/other/endian.h>
@@ -66,11 +72,11 @@ using u8 = std::uint8_t;
 	^block->l[((i)+2)&15]^block->l[(i)&15],1))
 
 // (R0+R1), R2, R3, R4 are the different operations used in SHA1
-#define R0(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+BlkFun::apply(block, i)+0x5A827999+rol(v,5);(w)=rol(w,30);
-#define R1(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+blk(i)+0x5A827999+rol(v,5);(w)=rol(w,30);
-#define R2(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0x6ED9EBA1+rol(v,5);(w)=rol(w,30);
-#define R3(v,w,x,y,z,i) z+=((((w)|(x))&(y))|((w)&(x)))+blk(i)+0x8F1BBCDC+rol(v,5);(w)=rol(w,30);
-#define R4(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0xCA62C1D6+rol(v,5);(w)=rol(w,30);
+#define R0(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+BlkFun::apply(block, i)+0x5A827999+rol(v,5);(w)=rol(w,30)
+#define R1(v,w,x,y,z,i) z+=(((w)&((x)^(y)))^(y))+blk(i)+0x5A827999+rol(v,5);(w)=rol(w,30)
+#define R2(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0x6ED9EBA1+rol(v,5);(w)=rol(w,30)
+#define R3(v,w,x,y,z,i) z+=((((w)|(x))&(y))|((w)&(x)))+blk(i)+0x8F1BBCDC+rol(v,5);(w)=rol(w,30)
+#define R4(v,w,x,y,z,i) z+=((w)^(x)^(y))+blk(i)+0xCA62C1D6+rol(v,5);(w)=rol(w,30)
 
 	// Hash a single 512-bit block. This is the core of the algorithm.
 	template <class BlkFun>
@@ -235,7 +241,9 @@ void SHA1_final(u8* digest, sha1_ctx* context)
 	}
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
+
+#endif
 
 /************************************************************
 

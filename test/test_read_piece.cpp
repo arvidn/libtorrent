@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2013, Arvid Norberg
+Copyright (c) 2013, 2015-2019, Arvid Norberg
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
@@ -77,7 +80,7 @@ void test_read_piece(int flags)
 	create_random_files(combine_path("tmp1_read_piece", "test_torrent"), file_sizes);
 
 	add_files(fs, combine_path("tmp1_read_piece", "test_torrent"));
-	lt::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);
@@ -89,7 +92,7 @@ void test_read_piece(int flags)
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
-		, aux::to_hex(ti->info_hash()).c_str());
+		, aux::to_hex(ti->info_hash().v1).c_str());
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");

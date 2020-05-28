@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "test.hpp"
-#include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/aux_/receive_buffer.hpp"
 
 using namespace lt;
+using lt::aux::receive_buffer;
 
 TORRENT_TEST(recv_buffer_init)
 {
@@ -215,11 +217,11 @@ TORRENT_TEST(receive_buffer_watermark)
 {
 	receive_buffer b;
 	b.reset(0x4000);
-	b.reserve(35000000);
-	b.received(35000000);
+	b.reserve(33500000);
+	b.received(33500000);
 	b.normalize();
 
-	TEST_EQUAL(b.watermark(), 35000000);
+	TEST_EQUAL(b.watermark(), 33500000);
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)

@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Steven Siloti
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2018, d-komarov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,10 +82,10 @@ namespace {
 
 namespace libtorrent {
 
-	part_file::part_file(std::string const& path, std::string const& name
+	part_file::part_file(std::string path, std::string name
 		, int const num_pieces, int const piece_size)
-		: m_path(path)
-		, m_name(name)
+		: m_path(std::move(path))
+		, m_name(std::move(name))
 		, m_max_pieces(num_pieces)
 		, m_piece_size(piece_size)
 		, m_header_size(round_up((2 + num_pieces) * 4))
@@ -103,7 +106,7 @@ namespace libtorrent {
 
 		// we don't have a full header. consider the file empty
 		if (n < m_header_size) return;
-		using namespace libtorrent::detail;
+		using namespace libtorrent::aux;
 
 		char* ptr = header.data();
 		// we have a header. Parse it
@@ -221,6 +224,23 @@ namespace libtorrent {
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
+		return do_hashv(ph, len, piece, offset, ec);
+	}
+
+	int part_file::hashv2(hasher256& ph
+		, std::ptrdiff_t const len
+		, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
+		return do_hashv(ph, len, piece, offset, ec);
+	}
+
+	template <typename Hasher>
+	int part_file::do_hashv(Hasher& ph
+		, std::ptrdiff_t const len
+		, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(int(len) + offset <= m_piece_size);
@@ -299,7 +319,7 @@ namespace libtorrent {
 
 		// we're only supposed to move part files from a fence job. i.e. no other
 		// disk jobs are supposed to be in-flight at this point
-		TORRENT_ASSERT(!m_file || m_file.unique());
+		TORRENT_ASSERT(!m_file || m_file.use_count() == 1);
 		m_file.reset();
 
 		if (!m_piece_map.empty())
@@ -418,7 +438,7 @@ namespace libtorrent {
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
 
-		using namespace libtorrent::detail;
+		using namespace libtorrent::aux;
 
 		char* ptr = header.data();
 		write_uint32(m_max_pieces, ptr);

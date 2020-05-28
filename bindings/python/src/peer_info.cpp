@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "boost_python.hpp"
+#include "bytes.hpp"
 #include <libtorrent/peer_info.hpp>
 #include <libtorrent/bitfield.hpp>
 #include <boost/python/iterator.hpp>
@@ -47,14 +48,19 @@ list get_pieces(peer_info const& pi)
     return ret;
 }
 
+bytes get_peer_info_client(peer_info const& pi)
+{
+	return pi.client;
+}
+
 using by_value = return_value_policy<return_by_value>;
 void bind_peer_info()
 {
     scope pi = class_<peer_info>("peer_info")
         .add_property("flags", make_getter(&peer_info::flags, by_value()))
         .add_property("source", make_getter(&peer_info::source, by_value()))
-        .def_readonly("read_state", &peer_info::read_state)
-        .def_readonly("write_state", &peer_info::write_state)
+        .add_property("read_state", make_getter(&peer_info::read_state, by_value()))
+        .add_property("write_state", make_getter(&peer_info::write_state, by_value()))
         .add_property("ip", get_ip)
         .def_readonly("up_speed", &peer_info::up_speed)
         .def_readonly("down_speed", &peer_info::down_speed)
@@ -87,7 +93,7 @@ void bind_peer_info()
         .add_property("downloading_block_index", make_getter(&peer_info::downloading_block_index, by_value()))
         .def_readonly("downloading_progress", &peer_info::downloading_progress)
         .def_readonly("downloading_total", &peer_info::downloading_total)
-        .def_readonly("client", &peer_info::client)
+        .add_property("client", get_peer_info_client)
         .def_readonly("connection_type", &peer_info::connection_type)
         .def_readonly("pending_disk_bytes", &peer_info::pending_disk_bytes)
         .def_readonly("send_quota", &peer_info::send_quota)
@@ -98,7 +104,9 @@ void bind_peer_info()
         .def_readonly("upload_rate_peak", &peer_info::upload_rate_peak)
         .def_readonly("progress", &peer_info::progress)
         .def_readonly("progress_ppm", &peer_info::progress_ppm)
+#if TORRENT_ABI_VERSION == 1
         .def_readonly("estimated_reciprocation_rate", &peer_info::estimated_reciprocation_rate)
+#endif
         .add_property("local_endpoint", get_local_endpoint)
         ;
 
@@ -127,8 +135,9 @@ void bind_peer_info()
 #endif
 
     // connection_type
-    pi.attr("standard_bittorrent") = (int)peer_info::standard_bittorrent;
-    pi.attr("web_seed") = (int)peer_info::web_seed;
+    pi.attr("standard_bittorrent") = peer_info::standard_bittorrent;
+    pi.attr("web_seed") = peer_info::web_seed;
+    pi.attr("http_seed") = peer_info::http_seed;
 
     // source
     pi.attr("tracker") = peer_info::tracker;

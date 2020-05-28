@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016, 2018, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2017, 2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "bittorrent_peer.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/random.hpp"
 
@@ -47,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 using namespace std::placeholders;
 
-peer_conn::peer_conn(io_service& ios
+peer_conn::peer_conn(io_context& ios
 	, std::function<void(int, char const*, int)> on_msg
 	, torrent_info const& ti
 	, tcp::endpoint const& ep
@@ -83,8 +86,8 @@ void peer_conn::on_connect(error_code const& ec)
 		"\0\0\0\x01\x02"; // interested
 	char* h = static_cast<char*>(malloc(sizeof(handshake)));
 	memcpy(h, handshake, sizeof(handshake));
-	std::memcpy(h + 28, m_ti.info_hash().data(), 20);
-	std::generate(h + 48, h + 68, &rand);
+	std::memcpy(h + 28, m_ti.info_hash().v1.data(), 20);
+	lt::aux::random_bytes({h + 48, 20});
 	// for seeds, don't send the interested message
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
 		- (m_mode == peer_mode_t::uploader ? 5 : 0))
@@ -130,7 +133,7 @@ void peer_conn::on_handshake2(error_code const& ec, size_t)
 
 void peer_conn::write_have_all()
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	if (fast_extension)
 	{
@@ -178,7 +181,7 @@ void peer_conn::on_have_all_sent(error_code const& ec, size_t)
 
 bool peer_conn::write_request()
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	// if we're choked (and there are no allowed-fast pieces left)
 	if (choked && allowed_fast.empty() && !m_current_piece_is_allowed) return false;
@@ -270,10 +273,10 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	char ep_str[200];
 	address const& addr = s.local_endpoint(e).address();
 	if (addr.is_v6())
-		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string().c_str()
 			, s.local_endpoint(e).port());
 	else
-		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 			, s.local_endpoint(e).port());
 	std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 		, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
@@ -304,7 +307,7 @@ void peer_conn::work_download()
 
 void peer_conn::on_msg_length(error_code const& ec, size_t)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	if ((ec == boost::asio::error::operation_aborted || ec == boost::asio::error::bad_descriptor)
 		&& restarting)
@@ -341,7 +344,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t)
 
 void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	if ((ec == boost::asio::error::operation_aborted || ec == boost::asio::error::bad_descriptor)
 		&& restarting)
@@ -370,9 +373,9 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				close("REQUEST packet has invalid size", error_code());
 				return;
 			}
-			int piece = detail::read_int32(ptr);
-			int start = detail::read_int32(ptr);
-			int length = detail::read_int32(ptr);
+			int piece = aux::read_int32(ptr);
+			int start = aux::read_int32(ptr);
+			int length = aux::read_int32(ptr);
 			write_piece(piece, start, length);
 		}
 		else if (msg == 3) // not-interested
@@ -394,11 +397,11 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 			pieces.clear();
 			for (int i = 0; i < int(pieces.size()); ++i)
 				pieces.push_back(i);
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 4) // have
 		{
-			int piece = detail::read_int32(ptr);
+			int piece = aux::read_int32(ptr);
 			if (pieces.empty()) pieces.push_back(piece);
 			else pieces.insert(pieces.begin() + static_cast<int>(lt::random(static_cast<std::uint32_t>(pieces.size()))), piece);
 		}
@@ -418,7 +421,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 				++ptr;
 			}
-			aux::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces);
 		}
 		else if (msg == 7) // piece
 		{
@@ -433,8 +436,8 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 */
 			++blocks_received;
 			--outstanding_requests;
-			int const piece = detail::read_int32(ptr);
-			int const start = detail::read_int32(ptr);
+			int const piece = aux::read_int32(ptr);
+			int const start = aux::read_int32(ptr);
 
 			if ((start + int(bytes_transferred)) / 0x4000 == m_blocks_per_piece)
 			{
@@ -444,7 +447,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		}
 		else if (msg == 13) // suggest
 		{
-			int piece = detail::read_int32(ptr);
+			int piece = aux::read_int32(ptr);
 			std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
 			if (i != pieces.end())
 			{
@@ -454,9 +457,9 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		}
 		else if (msg == 16) // reject request
 		{
-			int piece = detail::read_int32(ptr);
-			int start = detail::read_int32(ptr);
-			int length = detail::read_int32(ptr);
+			int piece = aux::read_int32(ptr);
+			int start = aux::read_int32(ptr);
+			int length = aux::read_int32(ptr);
 
 			// put it back!
 			if (current_piece != piece)
@@ -487,7 +490,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		}
 		else if (msg == 17) // allowed_fast
 		{
-			int piece = detail::read_int32(ptr);
+			int piece = aux::read_int32(ptr);
 			std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
 			if (i != pieces.end())
 			{
@@ -523,7 +526,7 @@ bool peer_conn::verify_piece(int piece, int start, char const* ptr, int size)
 */
 void peer_conn::write_piece(int piece, int start, int length)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 //	generate_block(write_buffer, piece, start, length);
 
@@ -542,7 +545,7 @@ void peer_conn::write_piece(int piece, int start, int length)
 
 void peer_conn::write_have(int piece)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	char* ptr = write_buf_proto.data();
 	write_uint32(5, ptr);

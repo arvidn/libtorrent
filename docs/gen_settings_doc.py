@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 
 f = open('../include/libtorrent/settings_pack.hpp')
 
 out = open('settings.rst', 'w+')
+all_names = set()
 
 
 def print_field(str, width):
@@ -18,6 +19,8 @@ def render_section(names, description, type, default_values):
     # add link targets for the rest of the manual to reference
     for n in names:
         print('.. _%s:\n' % n, file=out)
+        for w in n.split('_'):
+            all_names.add(w)
 
     if len(names) > 0:
         print('.. raw:: html\n', file=out)
@@ -61,8 +64,12 @@ for line in f2:
         continue
 
     line = line.split('(')[1].split(',')
-    def_map[line[0]] = line[1].strip()
-    print('%s = %s' % (line[0], line[1].strip()))
+    if line[1].strip()[0] == '"':
+        default = ','.join(line[1:]).strip()[1:].split('"')[0].strip()
+    else:
+        default = line[1].strip()
+    def_map[line[0]] = default
+    print('%s = %s' % (line[0], default))
 
 description = ''
 names = []
@@ -75,6 +82,8 @@ for line in f:
     if 'enum int_types' in line:
         mode = 'int'
     if '#if TORRENT_ABI_VERSION == 1' in line:
+        mode += 'skip'
+    if '#if TORRENT_ABI_VERSION <= 2' in line:
         mode += 'skip'
     if '#endif' in line:
         mode = mode[0:-4]
@@ -119,5 +128,9 @@ for line in f:
 
         names.append(line)
 
+dictionary = open('hunspell/settings.dic', 'w+')
+for w in all_names:
+    dictionary.write(w + '\n')
+dictionary.close()
 out.close()
 f.close()

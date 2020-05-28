@@ -143,7 +143,7 @@ void bind_create_torrent()
 #endif
     void (*add_files0)(file_storage&, std::string const&, create_flags_t) = add_files;
 
-    std::string const& (file_storage::*file_storage_symlink)(file_index_t) const = &file_storage::symlink;
+    std::string (file_storage::*file_storage_symlink)(file_index_t) const = &file_storage::symlink;
     sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
     std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
     string_view (file_storage::*file_storage_file_name)(file_index_t) const = &file_storage::file_name;
@@ -169,7 +169,7 @@ void bind_create_torrent()
         .def("add_file", add_file_wstring, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #endif // TORRENT_ABI_VERSION
         .def("hash", file_storage_hash)
-        .def("symlink", file_storage_symlink, return_value_policy<copy_const_reference>())
+        .def("symlink", file_storage_symlink)
         .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
         .def("file_name", file_storage_file_name)
         .def("file_size", file_storage_file_size)
@@ -209,8 +209,8 @@ void bind_create_torrent()
     scope s = class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())
         .def(init<torrent_info const&>(arg("ti")))
-        .def(init<file_storage&, int, int, create_flags_t>((arg("storage"), arg("piece_size") = 0
-            , arg("pad_file_limit") = -1, arg("flags") = lt::create_torrent::optimize_alignment)))
+        .def(init<file_storage&, int, create_flags_t>((arg("storage"), arg("piece_size") = 0
+            , arg("flags") = create_flags_t{})))
 
         .def("generate", &create_torrent::generate)
 
@@ -229,10 +229,16 @@ void bind_create_torrent()
         .def("piece_size", &create_torrent::piece_size)
         .def("priv", &create_torrent::priv)
         .def("set_root_cert", &create_torrent::set_root_cert, (arg("pem")))
+        .def("add_collection", &create_torrent::add_collection)
+        .def("add_similar_torrent", &create_torrent::add_similar_torrent)
+
         ;
 
+#if TORRENT_ABI_VERSION <= 2
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
         s.attr("merkle") = create_torrent::merkle;
+#endif
+        s.attr("v2_only") = create_torrent::v2_only;
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }
@@ -242,8 +248,11 @@ void bind_create_torrent()
 #if TORRENT_ABI_VERSION == 1
         s.attr("optimize") = create_torrent::optimize;
 #endif
+#if TORRENT_ABI_VERSION <= 2
         s.attr("optimize_alignment") = create_torrent::optimize_alignment;
         s.attr("merkle") = create_torrent::merkle;
+#endif
+        s.attr("v2_only") = create_torrent::v2_only;
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }

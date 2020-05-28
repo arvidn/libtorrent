@@ -1,6 +1,11 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -325,40 +330,28 @@ TORRENT_TEST(path)
 	std::string path = "a\\b\\c";
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
-
-#if TORRENT_ABI_VERSION == 1
-	// resolve_file_url
-
-#ifdef TORRENT_WINDOWS
-	std::string p = "c:/blah/foo/bar\\";
-	convert_path_to_windows(p);
-	TEST_EQUAL(p, "c:\\blah\\foo\\bar\\");
-	TEST_EQUAL(resolve_file_url("file:///c:/blah/foo/bar"), "c:\\blah\\foo\\bar");
-	TEST_EQUAL(resolve_file_url("file:///c:/b%3fah/foo/bar"), "c:\\b?ah\\foo\\bar");
-	TEST_EQUAL(resolve_file_url("file://\\c:\\b%3fah\\foo\\bar"), "c:\\b?ah\\foo\\bar");
-#else
-	TEST_EQUAL(resolve_file_url("file:///c/blah/foo/bar"), "/c/blah/foo/bar");
-	TEST_EQUAL(resolve_file_url("file:///c/b%3fah/foo/bar"), "/c/b?ah/foo/bar");
-#endif
-#endif
 }
 
 namespace {
 
 void test_parse_interface(char const* input
-	, std::vector<listen_interface_t> expected
-	, std::string output)
+	, std::vector<listen_interface_t> const expected
+	, std::vector<std::string> const expected_e
+	, string_view const output)
 {
 	std::printf("parse interface: %s\n", input);
-	auto const list = parse_listen_interfaces(input);
+	std::vector<std::string> err;
+	auto const list = parse_listen_interfaces(input, err);
 	TEST_EQUAL(list.size(), expected.size());
-	if (list.size() == expected.size())
-	{
-		TEST_CHECK(std::equal(list.begin(), list.end(), expected.begin()
-			, [&](listen_interface_t const& lhs, listen_interface_t const& rhs)
-			{ return lhs.device == rhs.device && lhs.port == rhs.port && lhs.ssl == rhs.ssl; }));
-	}
+	TEST_CHECK(list == expected);
+	TEST_CHECK(err == expected_e);
+#if TORRENT_ABI_VERSION == 1 \
+	|| !defined TORRENT_DISABLE_LOGGING
 	TEST_EQUAL(print_listen_interfaces(list), output);
+	std::cout << "RESULT: " << print_listen_interfaces(list) << '\n';
+#endif
+	for (auto const& e : err)
+		std::cout << "ERR: \"" << e << "\"\n";
 }
 
 } // anonymous namespace
@@ -367,46 +360,84 @@ TORRENT_TEST(parse_list)
 {
 	std::vector<std::string> list;
 	parse_comma_separated_string("  a,b, c, d ,e \t,foobar\n\r,[::1]", list);
-	TEST_EQUAL(list.size(), 7);
-	TEST_EQUAL(list[0], "a");
-	TEST_EQUAL(list[1], "b");
-	TEST_EQUAL(list[2], "c");
-	TEST_EQUAL(list[3], "d");
-	TEST_EQUAL(list[4], "e");
-	TEST_EQUAL(list[5], "foobar");
-	TEST_EQUAL(list[6], "[::1]");
+	TEST_CHECK((list == std::vector<std::string>{"a", "b", "c", "d", "e", "foobar", "[::1]"}));
+}
 
+TORRENT_TEST(parse_interface)
+{
 	test_parse_interface("  a:4,b:35, c : 1000s, d: 351 ,e \t:42,foobar:1337s\n\r,[2001::1]:6881"
-		, {{"a", 4, false}, {"b", 35, false}, {"c", 1000, true}, {"d", 351, false}
-			, {"e", 42, false}, {"foobar", 1337, true}, {"2001::1", 6881, false}}
+		, {{"a", 4, false, false}, {"b", 35, false, false}
+		, {"c", 1000, true, false}
+		, {"d", 351, false, false}
+		, {"e", 42, false, false}
+		, {"foobar", 1337, true, false}
+		, {"2001::1", 6881, false, false}}
+		, {}
 		, "a:4,b:35,c:1000s,d:351,e:42,foobar:1337s,[2001::1]:6881");
 
 	// IPv6 address
 	test_parse_interface("[2001:ffff::1]:6882s"
-		, {{"2001:ffff::1", 6882, true}}
+		, {{"2001:ffff::1", 6882, true, false}}
+		, {}
 		, "[2001:ffff::1]:6882s");
 
 	// IPv4 address
 	test_parse_interface("127.0.0.1:6882"
-		, {{"127.0.0.1", 6882, false}}
+		, {{"127.0.0.1", 6882, false, false}}
+		, {}
 		, "127.0.0.1:6882");
 
 	// maximum padding
 	test_parse_interface("  nic\r\n:\t 12\r s "
-		, {{"nic", 12, true}}
+		, {{"nic", 12, true, false}}
+		, {}
 		, "nic:12s");
 
 	// negative tests
-	test_parse_interface("nic:99999999999999999999999", {}, "");
-	test_parse_interface("nic:  -3", {}, "");
-	test_parse_interface("nic:  ", {}, "");
-	test_parse_interface("nic :", {}, "");
-	test_parse_interface("nic ", {}, "");
-	test_parse_interface("nic s", {}, "");
+	test_parse_interface("nic:99999999999999999999999", {}, {"nic:99999999999999999999999"}, "");
+	test_parse_interface("nic:  -3", {}, {"nic:  -3"}, "");
+	test_parse_interface("nic:  ", {}, {"nic:"}, "");
+	test_parse_interface("nic :", {}, {"nic :"}, "");
+	test_parse_interface("nic ", {}, {"nic"}, "");
+	test_parse_interface("nic s", {}, {"nic s"}, "");
 
 	// parse interface with port 0
-	test_parse_interface("127.0.0.1:0"
-		, {{"127.0.0.1", 0, false}}, "127.0.0.1:0");
+	test_parse_interface("127.0.0.1:0", {{"127.0.0.1", 0, false, false}}
+		, {}, "127.0.0.1:0");
+
+	// SSL flag
+	test_parse_interface("127.0.0.1:1234s", {{"127.0.0.1", 1234, true, false}}
+		, {}, "127.0.0.1:1234s");
+	// local flag
+	test_parse_interface("127.0.0.1:1234l", {{"127.0.0.1", 1234, false, true}}
+		, {}, "127.0.0.1:1234l");
+
+	// both
+	test_parse_interface("127.0.0.1:1234ls", {{"127.0.0.1", 1234, true, true}}
+		, {}, "127.0.0.1:1234sl");
+
+	// IPv6 error
+	test_parse_interface("[aaaa::1", {}, {"[aaaa::1"}, "");
+	test_parse_interface("[aaaa::1]", {}, {"[aaaa::1]"}, "");
+	test_parse_interface("[aaaa::1]:", {}, {"[aaaa::1]:"}, "");
+	test_parse_interface("[aaaa::1]:s", {}, {"[aaaa::1]:s"}, "");
+	test_parse_interface("[aaaa::1] :6881", {}, {"[aaaa::1] :6881"}, "");
+	test_parse_interface("[aaaa::1]:6881", {{"aaaa::1", 6881, false, false}}, {}, "[aaaa::1]:6881");
+
+	// unterminated [
+	test_parse_interface("[aaaa::1,foobar:0", {{"foobar", 0, false, false}}, {"[aaaa::1"}, "foobar:0");
+
+	// multiple errors
+	test_parse_interface("foo:,bar", {}, {"foo:", "bar"}, "");
+
+	// quoted elements
+	test_parse_interface("\"abc,.\",bar", {}, {"abc,.", "bar"}, "");
+
+	// silent error
+	test_parse_interface("\"", {}, {"\""}, "");
+
+	// multiple errors and one correct
+	test_parse_interface("foo,bar,0.0.0.0:6881", {{"0.0.0.0", 6881, false, false}}, {"foo", "bar"}, "0.0.0.0:6881");
 }
 
 TORRENT_TEST(split_string)
@@ -455,41 +486,6 @@ TORRENT_TEST(i2p_url)
 }
 #endif
 
-TORRENT_TEST(string_hash_no_case)
-{
-	string_hash_no_case hsh;
-
-	// make sure different strings yield different hashes
-	TEST_CHECK(hsh("ab") != hsh("ba"));
-
-	// make sure case is ignored
-	TEST_EQUAL(hsh("Ab"), hsh("ab"));
-	TEST_EQUAL(hsh("Ab"), hsh("aB"));
-
-	// make sure zeroes in strings are supported
-	TEST_CHECK(hsh(std::string("\0a", 2)) != hsh(std::string("\0b", 2)));
-	TEST_EQUAL(hsh(std::string("\0a", 2)), hsh(std::string("\0a", 2)));
-}
-
-TORRENT_TEST(string_eq_no_case)
-{
-	string_eq_no_case cmp;
-	TEST_CHECK(cmp("ab", "ba") == false);
-	TEST_CHECK(cmp("", ""));
-	TEST_CHECK(cmp("abc", "abc"));
-
-	// make sure different lengths are correctly treated as different
-	TEST_CHECK(cmp("abc", "ab") == false);
-
-	// make sure case is ignored
-	TEST_CHECK(cmp("Ab", "ab"));
-	TEST_CHECK(cmp("Ab", "aB"));
-
-	// make sure zeros are supported
-	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0b", 2)) == false);
-	TEST_CHECK(cmp(std::string("\0a", 2), std::string("\0a", 2)));
-}
-
 TORRENT_TEST(string_ptr_zero_termination)
 {
 	char str[] = {'f', 'o', 'o', 'b', 'a', 'r'};
@@ -527,5 +523,31 @@ TORRENT_TEST(string_ptr_move_assign)
 
 	// moved-from state is empty
 	TEST_CHECK(*p2 == nullptr);
+}
+
+TORRENT_TEST(find_first_of)
+{
+	string_view test("01234567891");
+	TEST_EQUAL(find_first_of(test, '1', 0), 1);
+	TEST_EQUAL(find_first_of(test, '1', 1), 1);
+	TEST_EQUAL(find_first_of(test, '1', 2), 10);
+	TEST_EQUAL(find_first_of(test, '1', 3), 10);
+
+	TEST_EQUAL(find_first_of(test, "61", 0), 1);
+	TEST_EQUAL(find_first_of(test, "61", 1), 1);
+	TEST_EQUAL(find_first_of(test, "61", 2), 6);
+	TEST_EQUAL(find_first_of(test, "61", 3), 6);
+	TEST_EQUAL(find_first_of(test, "61", 4), 6);
+}
+
+TORRENT_TEST(strip_string)
+{
+	TEST_EQUAL(strip_string("   ab"), "ab");
+	TEST_EQUAL(strip_string("   ab    "), "ab");
+	TEST_EQUAL(strip_string("       "), "");
+	TEST_EQUAL(strip_string(""), "");
+	TEST_EQUAL(strip_string("a     b"), "a     b");
+	TEST_EQUAL(strip_string("   a     b   "), "a     b");
+	TEST_EQUAL(strip_string(" \t \t ab\t\t\t"), "ab");
 }
 

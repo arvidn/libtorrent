@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -298,6 +300,9 @@ namespace {
 		METRIC(ses, num_outgoing_pex)
 		METRIC(ses, num_outgoing_metadata)
 		METRIC(ses, num_outgoing_extended)
+		METRIC(ses, num_outgoing_hash_request)
+		METRIC(ses, num_outgoing_hashes)
+		METRIC(ses, num_outgoing_hash_reject)
 
 		// the number of wasted downloaded bytes by reason of the bytes being
 		// wasted.
@@ -336,8 +341,7 @@ namespace {
 		METRIC(disk, disk_blocks_in_use)
 
 		// ``queued_disk_jobs`` is the number of disk jobs currently queued,
-		// waiting to be executed by a disk thread. Deprecates
-		// ``cache_status::job_queue_length``.
+		// waiting to be executed by a disk thread.
 		METRIC(disk, queued_disk_jobs)
 		METRIC(disk, num_running_disk_jobs)
 		METRIC(disk, num_read_jobs)
@@ -357,8 +361,7 @@ namespace {
 		METRIC(disk, queued_write_bytes)
 
 		// the number of blocks written and read from disk in total. A block is 16
-		// kiB. ``num_blocks_written`` and ``num_blocks_read`` deprecates
-		// ``cache_status::blocks_written`` and ``cache_status::blocks_read`` respectively.
+		// kiB. ``num_blocks_written`` and ``num_blocks_read``
 		METRIC(disk, num_blocks_written)
 		METRIC(disk, num_blocks_read)
 
@@ -371,8 +374,6 @@ namespace {
 
 		// the number of disk I/O operation for reads and writes. One disk
 		// operation may transfer more then one block.
-		// These counters deprecates ``cache_status::writes`` and
-		// ``cache_status::reads``.
 		METRIC(disk, num_write_ops)
 		METRIC(disk, num_read_ops)
 

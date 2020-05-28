@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
@@ -26,7 +26,18 @@ def substitute_file(name):
     subst = ''
     f = open(name)
     for line in f:
-        if '#define LIBTORRENT_VERSION_MAJOR' in line and name.endswith('.hpp'):
+        if 'constexpr int version_major = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_major = %d;\n' % version[0]
+        elif 'constexpr int version_minor = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_minor = %d;\n' % version[1]
+        elif 'constexpr int version_tiny = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr int version_tiny = %d;\n' % version[2]
+        elif 'constexpr std::uint64_t version_revision = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr std::uint64_t version_revision = 0x%s;\n' % revision
+        elif 'constexpr char const* version_str = ' in line and name.endswith('.hpp'):
+            line = '\tconstexpr char const* version_str = "%d.%d.%d.%d";\n' \
+                % (version[0], version[1], version[2], version[3])
+        elif '#define LIBTORRENT_VERSION_MAJOR' in line and name.endswith('.hpp'):
             line = '#define LIBTORRENT_VERSION_MAJOR %d\n' % version[0]
         elif '#define LIBTORRENT_VERSION_MINOR' in line and name.endswith('.hpp'):
             line = '#define LIBTORRENT_VERSION_MINOR %d\n' % version[1]
@@ -43,14 +54,14 @@ def substitute_file(name):
             line = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
         elif ':Version: ' in line and (name.endswith('.rst') or name.endswith('.py')):
             line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
-        elif 'VERSION = ' in line and name.endswith('Jamfile'):
+        elif line.startswith('VERSION = ') and name.endswith('Jamfile'):
             line = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
         elif 'VERSION=' in line and name.endswith('Makefile'):
-            line = 'VERSION=%d.%d.%d ;\n' % (version[0], version[1], version[2])
+            line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
         elif 'version=' in line and name.endswith('setup.py'):
-            line = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+            line = "    version='%d.%d.%d',\n" % (version[0], version[1], version[2])
         elif "version = '" in line and name.endswith('setup.py'):
-            line = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+            line = "    version='%d.%d.%d',\n" % (version[0], version[1], version[2])
         elif '"-LT' in line and name.endswith('settings_pack.cpp'):
             line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
 
@@ -63,7 +74,6 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('Makefile')
 substitute_file('CMakeLists.txt')
-substitute_file('configure.ac')
 substitute_file('bindings/python/setup.py')
 substitute_file('docs/gen_reference_doc.py')
 substitute_file('src/settings_pack.cpp')

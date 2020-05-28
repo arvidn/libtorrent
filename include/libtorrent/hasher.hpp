@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2004, 2007, 2009, 2012-2019, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,8 +50,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonDigest.h>
 
+#elif TORRENT_USE_CNG
+#include "libtorrent/aux_/win_cng.hpp"
+
 #elif TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
+
+#if !TORRENT_USE_CRYPTOAPI_SHA_512
+#include "libtorrent/sha256.hpp"
+#endif
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
@@ -57,10 +68,12 @@ extern "C" {
 
 #else
 #include "libtorrent/sha1.hpp"
+#include "libtorrent/sha256.hpp"
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+TORRENT_CRYPTO_NAMESPACE
 
 	// this is a SHA-1 hash class.
 	//
@@ -104,6 +117,7 @@ namespace libtorrent {
 		// default constructed.
 		void reset();
 
+		// hidden
 		~hasher();
 
 	private:
@@ -112,6 +126,8 @@ namespace libtorrent {
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
+#elif TORRENT_USE_CNG
+		aux::cng_hash<aux::cng_sha1_algorithm> m_context;
 #elif TORRENT_USE_CRYPTOAPI
 		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -121,6 +137,49 @@ namespace libtorrent {
 #endif
 	};
 
+	class TORRENT_EXPORT hasher256
+	{
+	public:
+		hasher256();
+
+		// this is the same as default constructing followed by a call to
+		// ``update(data, len)``.
+		hasher256(char const* data, int len);
+		explicit hasher256(span<char const> data);
+		hasher256(hasher256 const&);
+		hasher256& operator=(hasher256 const&) &;
+
+		// append the following bytes to what is being hashed
+		hasher256& update(span<char const> data);
+		hasher256& update(char const* data, int len);
+
+		// returns the SHA-1 digest of the buffers previously passed to
+		// update() and the hasher constructor.
+		sha256_hash final();
+
+		// restore the hasher state to be as if the hasher has just been
+		// default constructed.
+		void reset();
+
+		~hasher256();
+
+	private:
+#ifdef TORRENT_USE_LIBGCRYPT
+		gcry_md_hd_t m_context;
+#elif TORRENT_USE_COMMONCRYPTO
+		CC_SHA256_CTX m_context;
+#elif TORRENT_USE_CNG
+		aux::cng_hash<aux::cng_sha256_algorithm> m_context;
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
+		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
+#elif defined TORRENT_USE_LIBCRYPTO
+		SHA256_CTX m_context;
+#else
+		sha256_ctx m_context;
+#endif
+	};
+
+TORRENT_CRYPTO_NAMESPACE_END
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED

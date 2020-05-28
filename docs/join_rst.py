@@ -1,4 +1,5 @@
 #!/bin/python
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import sys
 
@@ -10,17 +11,17 @@ for name in sys.argv[2:]:
     sys.stdout.write('\n')
     sys.stderr.write('joining %s\n' % name)
     f = open(name, 'r')
-    for l in f:
+    for line in f:
         # strip out the table of contents from subsequent files
-        if '.. contents::' in l:
+        if '.. contents::' in line:
             in_directive = True
             continue
-        if ':Author:' in l:
+        if ':Author:' in line:
             continue
-        if ':Version:' in l:
+        if ':Version:' in line:
             continue
 
-        if l[0] in ' \t' and in_directive:
+        if line[0] in ' \t' and in_directive:
             continue
         in_directive = False
-        sys.stdout.write(l)
+        sys.stdout.write(line)

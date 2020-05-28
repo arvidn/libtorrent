@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
+#include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/string_ptr.hpp"
 #include "libtorrent/string_view.hpp"
 
@@ -56,7 +59,7 @@ namespace libtorrent {
 		torrent_peer(std::uint16_t port, bool connectable, peer_source_flags_t src);
 #if TORRENT_USE_ASSERTS
 		torrent_peer(torrent_peer const&) = default;
-		torrent_peer& operator=(torrent_peer const&) = default;
+		torrent_peer& operator=(torrent_peer const&) & = default;
 		~torrent_peer() { TORRENT_ASSERT(in_use); in_use = false; }
 #endif
 
@@ -73,6 +76,8 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		std::string to_string() const;
 #endif
+
+		protocol_version protocol() { return protocol_v2 ? protocol_version::V2 : protocol_version::V1; }
 
 		// this is the accumulated amount of
 		// uploaded and downloaded data to this
@@ -201,6 +206,8 @@ namespace libtorrent {
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
 		bool web_seed:1;
+		// this peer supports protocol version 2
+		bool protocol_v2:1;
 #if TORRENT_USE_ASSERTS
 		bool in_use = true;
 #endif
@@ -208,9 +215,9 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT ipv4_peer : torrent_peer
 	{
-		ipv4_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
+		ipv4_peer(tcp::endpoint const& ep, bool connectable, peer_source_flags_t src);
 		ipv4_peer(ipv4_peer const& p);
-		ipv4_peer& operator=(ipv4_peer const& p);
+		ipv4_peer& operator=(ipv4_peer const& p) &;
 
 		address_v4 addr;
 	};
@@ -218,11 +225,11 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
-		i2p_peer(string_view dst, bool connectable, peer_source_flags_t src);
+		i2p_peer(string_view dest, bool connectable, peer_source_flags_t src);
 		i2p_peer(i2p_peer const&) = delete;
 		i2p_peer& operator=(i2p_peer const&) = delete;
 		i2p_peer(i2p_peer&&) = default;
-		i2p_peer& operator=(i2p_peer&&) = default;
+		i2p_peer& operator=(i2p_peer&&) & = default;
 
 		aux::string_ptr destination;
 	};
@@ -230,7 +237,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
-		ipv6_peer(tcp::endpoint const& ip, bool connectable, peer_source_flags_t src);
+		ipv6_peer(tcp::endpoint const& ep, bool connectable, peer_source_flags_t src);
 		ipv6_peer(ipv6_peer const& p);
 
 		const address_v6::bytes_type addr;

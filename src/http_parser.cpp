@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008-2018, Arvid Norberg
+Copyright (c) 2008-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -135,16 +137,26 @@ namespace libtorrent {
 	std::string const& http_parser::header(string_view const key) const
 	{
 		static std::string const empty;
-		// TODO: remove to_string() if we're in C++14
-		auto const i = m_header.find(key.to_string());
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
+		auto const i = m_header.find(key);
+#else
+		auto const i = m_header.find(std::string(key));
+#endif
 		if (i == m_header.end()) return empty;
 		return i->second;
 	}
 
 	boost::optional<seconds32> http_parser::header_duration(string_view const key) const
 	{
-		// TODO: remove to_string() if we're in C++14
-		auto const i = m_header.find(key.to_string());
+		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
+		// doesn't seem to support transparent comparators$
+#if ! defined _GLIBCXX_DEBUG
+		auto const i = m_header.find(key);
+#else
+		auto const i = m_header.find(std::string(key));
+#endif
 		if (i == m_header.end()) return boost::none;
 		auto const val = std::atol(i->second.c_str());
 		if (val <= 0) return boost::none;
@@ -378,7 +390,8 @@ restart_response:
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
-						if (chunk_size < 0)
+						if (chunk_size < 0
+							|| chunk_size > std::numeric_limits<std::int64_t>::max() - m_cur_chunk_end - header_size)
 						{
 							m_state = error_state;
 							error = true;
@@ -616,7 +629,14 @@ restart_response:
 			span<char> chunk = buffer.subspan(
 				aux::numeric_cast<std::ptrdiff_t>(chunk_start - offset)
 				, aux::numeric_cast<std::ptrdiff_t>(chunk_end - chunk_start));
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 			std::memmove(write_ptr, chunk.data(), std::size_t(chunk.size()));
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
 			write_ptr += chunk.size();
 		}
 		return buffer.first(write_ptr - buffer.data());

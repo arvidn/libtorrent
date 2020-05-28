@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1298,3 +1299,43 @@ TORRENT_TEST(switch_buffer)
 	TEST_EQUAL(string1, string2);
 }
 
+TORRENT_TEST(data_offset)
+{
+	char const b[] = "li1e3:fooli1ei2eed1:xi1eee";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	std::printf("%s\n", print_entry(e).c_str());
+
+	TEST_EQUAL(e.data_offset(), 0);
+	TEST_EQUAL(e.list_at(0).data_offset(), 1);
+	TEST_EQUAL(e.list_at(1).data_offset(), 4);
+	TEST_EQUAL(e.list_at(2).data_offset(), 9);
+	TEST_EQUAL(e.list_at(3).data_offset(), 17);
+}
+
+TORRENT_TEST(string_offset)
+{
+	char const b[] = "l3:foo3:bare";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	std::printf("%s\n", print_entry(e).c_str());
+
+	TEST_EQUAL(e.list_at(0).string_offset(), 3);
+	TEST_EQUAL(e.list_at(1).string_offset(), 8);
+}
+
+TORRENT_TEST(dict_at_node)
+{
+	char const b[] = "d3:foo3:bar4:test4:teste";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	std::printf("%s\n", print_entry(e).c_str());
+
+	TEST_EQUAL(e.dict_at_node(0).first.string_offset(), 3);
+	TEST_EQUAL(e.dict_at_node(0).second.string_offset(), 8);
+	TEST_EQUAL(e.dict_at_node(1).first.string_offset(), 13);
+	TEST_EQUAL(e.dict_at_node(1).second.string_offset(), 19);
+}

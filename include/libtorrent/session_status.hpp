@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg
+Copyright (c) 2006, 2008-2011, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2017, Falcosc
+Copyright (c) 2017, Falco
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_STATUS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/export.hpp"
 #include <vector>
 
 #if TORRENT_ABI_VERSION == 1
@@ -47,7 +51,7 @@ namespace libtorrent {
 	// holds counters and gauges for the uTP sockets
 	// deprecated in 1.1 in favor of session_stats counters, which is a more
 	// flexible, extensible and performant mechanism for stats.
-	struct TORRENT_EXPORT utp_status
+	struct TORRENT_DEPRECATED_EXPORT utp_status
 	{
 		// gauges. These are snapshots of the number of
 		// uTP sockets in each respective state
@@ -76,7 +80,7 @@ namespace libtorrent {
 	// contains session wide state and counters
 	// deprecated in 1.1 in favor of session_stats counters, which is a more
 	// flexible, extensible and performant mechanism for stats.
-	struct TORRENT_EXPORT session_status
+	struct TORRENT_DEPRECATED_EXPORT session_status
 	{
 		// false as long as no incoming connections have been
 		// established on the listening socket. Every time you change the listen port, this will
@@ -212,8 +216,12 @@ namespace libtorrent {
 		// by the DHT.
 		int dht_total_allocations;
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		// statistics on the uTP sockets.
 		utp_status utp_stats;
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// the number of known peers across all torrents. These are not necessarily
 		// connected peers, just peers we know of.
@@ -228,4 +236,3 @@ namespace libtorrent {
 #endif // TORRENT_ABI_VERSION
 
 #endif // TORRENT_SESSION_STATUS_HPP_INCLUDED
-

@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2009-2018, Arvid Norberg
+Copyright (c) 2010-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,13 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/utp_stream.hpp"
+#include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/udp_socket.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/socket.hpp" // for TORRENT_HAS_DONT_FRAGMENT
-#include "libtorrent/broadcast_socket.hpp" // for is_teredo
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
@@ -45,16 +48,17 @@ POSSIBILITY OF SUCH DAMAGE.
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent {
+namespace aux {
 
 	utp_socket_manager::utp_socket_manager(
-		send_fun_t const& send_fun
-		, incoming_utp_callback_t const& cb
-		, io_service& ios
+		send_fun_t send_fun
+		, incoming_utp_callback_t cb
+		, io_context& ios
 		, aux::session_settings const& sett
 		, counters& cnt
 		, void* ssl_context)
-		: m_send_fun(send_fun)
-		, m_cb(cb)
+		: m_send_fun(std::move(send_fun))
+		, m_cb(std::move(cb))
 		, m_sett(sett)
 		, m_counters(cnt)
 		, m_ios(ios)
@@ -63,27 +67,21 @@ namespace libtorrent {
 		m_restrict_mtu.fill(65536);
 	}
 
-	utp_socket_manager::~utp_socket_manager()
-	{
-		for (auto& i : m_utp_sockets)
-		{
-			delete_utp_impl(i.second);
-		}
-	}
+	utp_socket_manager::~utp_socket_manager() = default;
 
 	void utp_socket_manager::tick(time_point now)
 	{
 		for (auto i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
 		{
-			if (should_delete(i->second))
+			if (i->second->should_delete())
 			{
-				delete_utp_impl(i->second);
-				if (m_last_socket == i->second) m_last_socket = nullptr;
+				if (m_last_socket == i->second.get()) m_last_socket = nullptr;
+				if (m_deferred_ack == i->second.get()) m_deferred_ack = nullptr;
 				i = m_utp_sockets.erase(i);
 				continue;
 			}
-			tick_utp_impl(i->second, now);
+			i->second->tick(now);
 			++i;
 		}
 	}
@@ -91,16 +89,16 @@ namespace libtorrent {
 	std::pair<int, int> utp_socket_manager::mtu_for_dest(address const& addr)
 	{
 		int mtu = 0;
-		if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+		if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 		else mtu = TORRENT_ETHERNET_MTU;
 
 #if defined __APPLE__
 		// apple has a very strange loopback. It appears you can't
 		// send messages of the reported MTU size, and you don't get
 		// EWOULDBLOCK either.
-		if (is_loopback(addr))
+		if (addr.is_loopback())
 		{
-			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+			if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 			else mtu = TORRENT_ETHERNET_MTU;
 		}
 #endif
@@ -167,19 +165,18 @@ namespace libtorrent {
 
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
-		std::uint16_t id = ph->connection_id;
+		std::uint16_t const id = ph->connection_id;
 
 		// first test to see if it's the same socket as last time
 		// in most cases it is
-		if (m_last_socket
-			&& utp_match(m_last_socket, ep, id))
+		if (m_last_socket && m_last_socket->match(ep, id))
 		{
-			return utp_incoming_packet(m_last_socket, p, ep, receive_time);
+			return m_last_socket->incoming_packet(p, ep, receive_time);
 		}
 
 		if (m_deferred_ack)
 		{
-			utp_send_ack(m_deferred_ack);
+			m_deferred_ack->send_ack();
 			m_deferred_ack = nullptr;
 		}
 
@@ -187,9 +184,9 @@ namespace libtorrent {
 
 		for (; r.first != r.second; ++r.first)
 		{
-			if (!utp_match(r.first->second, ep, id)) continue;
-			bool ret = utp_incoming_packet(r.first->second, p, ep, receive_time);
-			if (ret) m_last_socket = r.first->second;
+			if (!r.first->second->match(ep, id)) continue;
+			bool const ret = r.first->second->incoming_packet(p, ep, receive_time);
+			if (ret) m_last_socket = r.first->second.get();
 			return ret;
 		}
 
@@ -206,35 +203,32 @@ namespace libtorrent {
 			if (int(m_utp_sockets.size()) > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
-//			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
-
-			std::shared_ptr<aux::socket_type> c(new (std::nothrow) aux::socket_type(m_ios));
-			if (!c) return false;
-
 			TORRENT_ASSERT(m_new_connection == -1);
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			aux::instantiate_connection(m_ios, aux::proxy_settings(), *c
-				, m_ssl_context, this, true, false);
+//			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
+
+			// TODO: this should not be heap allocated, sockets should be movable
+			aux::socket_type c(aux::instantiate_connection(m_ios, aux::proxy_settings(), m_ssl_context, this, true, false));
 
 			utp_stream* str = nullptr;
-#ifdef TORRENT_USE_OPENSSL
-			if (is_ssl(*c))
-				str = &c->get<ssl_stream<utp_stream>>()->next_layer();
+#ifdef TORRENT_SSL_PEERS
+			if (is_ssl(c))
+				str = &boost::get<ssl_stream<utp_stream>>(c).next_layer();
 			else
 #endif
-				str = c->get<utp_stream>();
+				str = boost::get<utp_stream>(&c);
 
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;
 			std::tie(link_mtu, utp_mtu) = mtu_for_dest(ep.address());
-			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
-			utp_init_socket(str->get_impl(), std::move(socket));
-			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
+			str->get_impl()->init_mtu(link_mtu, utp_mtu);
+			str->get_impl()->m_sock = std::move(socket);
+			bool const ret = str->get_impl()->incoming_packet(p, ep, receive_time);
 			if (!ret) return false;
 			m_last_socket = str->get_impl();
-			m_cb(c);
+			m_cb(std::move(c));
 			// the connection most likely changed its connection ID here
 			// we need to move it to the correct ID
 			return true;
@@ -262,7 +256,7 @@ namespace libtorrent {
 			m_stalled_sockets.swap(m_temp_sockets);
 			for (auto const &s : m_temp_sockets)
 			{
-				utp_writable(s);
+				s->writable();
 			}
 		}
 	}
@@ -273,7 +267,7 @@ namespace libtorrent {
 		{
 			utp_socket_impl* s = m_deferred_ack;
 			m_deferred_ack = nullptr;
-			utp_send_ack(s);
+			s->send_ack();
 		}
 
 		if (!m_drained_event.empty())
@@ -281,15 +275,13 @@ namespace libtorrent {
 			m_temp_sockets.clear();
 			m_drained_event.swap(m_temp_sockets);
 			for (auto const &s : m_temp_sockets)
-			{
-				utp_socket_drained(s);
-			}
+				s->socket_drained();
 		}
 	}
 
 	void utp_socket_manager::defer_ack(utp_socket_impl* s)
 	{
-		TORRENT_ASSERT(m_deferred_ack == NULL || m_deferred_ack == s);
+		TORRENT_ASSERT(m_deferred_ack == nullptr || m_deferred_ack == s);
 		m_deferred_ack = s;
 	}
 
@@ -302,12 +294,13 @@ namespace libtorrent {
 
 	void utp_socket_manager::remove_udp_socket(std::weak_ptr<utp_socket_interface> sock)
 	{
+		auto iface = sock.lock();
 		for (auto& s : m_utp_sockets)
 		{
-			if (!bound_to_udp_socket(s.second, sock))
+			if (s.second->m_sock.lock() != iface)
 				continue;
 
-			utp_abort(s.second);
+			s.second->abort();
 		}
 	}
 
@@ -315,9 +308,8 @@ namespace libtorrent {
 	{
 		auto const i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
-		delete_utp_impl(i->second);
-		if (m_last_socket == i->second) m_last_socket = nullptr;
-		if (m_deferred_ack == i->second) m_deferred_ack = nullptr;
+		if (m_last_socket == i->second.get()) m_last_socket = nullptr;
+		if (m_deferred_ack == i->second.get()) m_deferred_ack = nullptr;
 		m_utp_sockets.erase(i);
 	}
 
@@ -345,8 +337,10 @@ namespace libtorrent {
 			send_id = std::uint16_t(random(0xffff));
 			recv_id = send_id - 1;
 		}
-		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, *this);
-		m_utp_sockets.emplace(recv_id, impl);
-		return impl;
+		auto impl = std::make_unique<utp_socket_impl>(recv_id, send_id, str, *this);
+		auto const ret = impl.get();
+		m_utp_sockets.emplace(recv_id, std::move(impl));
+		return ret;
 	}
+}
 }

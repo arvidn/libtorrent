@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/storage.hpp"
-#include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/aux_/disk_io_job.hpp"
+#include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "test.hpp"
 
@@ -40,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 using lt::aux::disk_job_fence;
+using lt::aux::disk_io_job;
 
 TORRENT_TEST(empty_fence)
 {

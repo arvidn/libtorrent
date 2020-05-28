@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2007-2009, 2011-2012, 2014-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <cstring>
 #include <functional>
@@ -84,7 +89,7 @@ void print_session_log(lt::session& ses)
 
 int read_message(tcp::socket& s, span<char> buffer)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 	error_code ec;
 	boost::asio::read(s, boost::asio::buffer(buffer.data(), 4)
 		, boost::asio::transfer_all(), ec);
@@ -139,16 +144,16 @@ void print_message(span<char const> buffer)
 		{
 			peer_request r;
 			const char* ptr = buffer.data() + 1;
-			r.piece = piece_index_t(detail::read_int32(ptr));
-			r.start = detail::read_int32(ptr);
-			r.length = detail::read_int32(ptr);
+			r.piece = piece_index_t(aux::read_int32(ptr));
+			r.start = aux::read_int32(ptr);
+			r.length = aux::read_int32(ptr);
 			std::snprintf(extra, sizeof(extra), "p: %d s: %d l: %d"
 				, static_cast<int>(r.piece), r.start, r.length);
 		}
 		else if (msg == 0x11 && buffer.size() == 5)
 		{
 			const char* ptr = buffer.data() + 1;
-			int index = detail::read_int32(ptr);
+			int index = aux::read_int32(ptr);
 			std::snprintf(extra, sizeof(extra), "p: %d", index);
 		}
 		else if (msg == 20 && buffer.size() > 4 && buffer[1] == 0 )
@@ -164,7 +169,7 @@ void print_message(span<char const> buffer)
 void send_allow_fast(tcp::socket& s, int piece)
 {
 	log("==> allow fast: %d", piece);
-	using namespace lt::detail;
+	using namespace lt::aux;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
@@ -177,7 +182,7 @@ void send_allow_fast(tcp::socket& s, int piece)
 void send_suggest_piece(tcp::socket& s, int piece)
 {
 	log("==> suggest piece: %d", piece);
-	using namespace lt::detail;
+	using namespace lt::aux;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
@@ -229,7 +234,7 @@ void send_have_none(tcp::socket& s)
 
 void send_bitfield(tcp::socket& s, char const* bits)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	int num_pieces = int(strlen(bits));
 	int packet_size = (num_pieces+7)/8 + 5;
@@ -249,14 +254,14 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
+void do_handshake(tcp::socket& s, info_hash_t const& ih, char* buffer)
 {
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa"; // peer-id
 	log("==> handshake");
 	error_code ec;
-	std::memcpy(handshake + 28, ih.begin(), 20);
+	std::memcpy(handshake + 28, ih.v1.data(), 20);
 	boost::asio::write(s, boost::asio::buffer(handshake, sizeof(handshake) - 1)
 		, boost::asio::transfer_all(), ec);
 	if (ec)
@@ -294,7 +299,7 @@ void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(dht_support == false);
 #endif
 
-	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
+	TEST_CHECK(std::memcmp(buffer + 28, ih.v1.data(), 20) == 0);
 }
 
 void send_extension_handshake(tcp::socket& s, entry const& e)
@@ -309,7 +314,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 
 	bencode(std::back_inserter(buf), e);
 
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	char* ptr = &buf[0];
 	write_uint32(int(buf.size()) - 4, ptr);
@@ -324,7 +329,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 
 void send_request(tcp::socket& s, peer_request req)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	log("==> request %d (%d,%d)", static_cast<int>(req.piece), req.start, req.length);
 	char msg[] = "\0\0\0\x0d\x06            "; // have_none
@@ -377,7 +382,7 @@ void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int pie
 	e["piece"] = piece;
 	bencode(std::back_inserter(buf), e);
 
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	char* ptr = &buf[0];
 	write_uint32(int(buf.size()) - 4, ptr);
@@ -416,7 +421,8 @@ entry read_ut_metadata_msg(tcp::socket& s, span<char> recv_buffer)
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
-std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
+std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
+	, info_hash_t& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
 	, torrent_flags_t const flags = torrent_flags_t{}
 	, torrent_handle* th = nullptr)
@@ -436,7 +442,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 #if TORRENT_ABI_VERSION == 1
 	sett.set_bool(settings_pack::rate_limit_utp, true);
 #endif
-	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
+	ses.reset(new lt::session(sett));
 
 	error_code ec;
 	add_torrent_params p;
@@ -457,14 +463,14 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 
 	if (incoming)
 	{
-		s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+		s.connect(ep("127.0.0.1", ses->listen_port()), ec);
 		if (ec) TEST_ERROR(ec.message());
 	}
 	else
 	{
-		tcp::acceptor l(s.get_io_service());
+		tcp::acceptor l(ioc);
 		l.open(tcp::v4());
-		l.bind(tcp::endpoint(address_v4::from_string("127.0.0.1"), 0));
+		l.bind(ep("127.0.0.1", 0));
 		l.listen();
 		tcp::endpoint addr = l.local_endpoint();
 
@@ -486,11 +492,11 @@ TORRENT_TEST(reject_fast)
 {
 	std::cout << "\n === test reject ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -518,7 +524,7 @@ TORRENT_TEST(reject_fast)
 		int msg = buffer[0];
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -556,11 +562,11 @@ TORRENT_TEST(invalid_suggest)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -583,7 +589,7 @@ TORRENT_TEST(invalid_suggest)
 		if (buffer[0] == 6)
 		{
 			char const* ptr = buffer.data() + 1;
-			idx = detail::read_int32(ptr);
+			idx = aux::read_int32(ptr);
 			break;
 		}
 		len = read_message(s, recv_buffer);
@@ -598,11 +604,11 @@ TORRENT_TEST(reject_suggest)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -638,7 +644,7 @@ TORRENT_TEST(reject_suggest)
 		fail_counter--;
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -678,11 +684,11 @@ TORRENT_TEST(suggest_order)
 {
 	std::cout << "\n === test suggest ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -717,7 +723,7 @@ TORRENT_TEST(suggest_order)
 		// we're just interested in requests
 		if (msg != 0x6) continue;
 
-		using namespace lt::detail;
+		using namespace lt::aux;
 		char const* ptr = buffer.data() + 1;
 		int const piece = read_int32(ptr);
 
@@ -739,11 +745,11 @@ TORRENT_TEST(multiple_bitfields)
 {
 	std::cout << "\n === test multiple bitfields ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
 	print_session_log(*ses);
 
 	char recv_buffer[1000];
@@ -773,11 +779,11 @@ TORRENT_TEST(multiple_have_all)
 {
 	std::cout << "\n === test multiple have_all ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -802,16 +808,16 @@ TORRENT_TEST(multiple_have_all)
 // makes sure that pieces that are lost are not requested
 TORRENT_TEST(dont_have)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
 	std::cout << "\n === test dont_have ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses, true
 		, torrent_flags_t{}, &th);
 
 	char recv_buffer[1000];
@@ -903,13 +909,13 @@ TORRENT_TEST(dont_have)
 
 TORRENT_TEST(extension_handshake)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -926,7 +932,9 @@ TORRENT_TEST(extension_handshake)
 
 	// these extensions are built-in
 	TEST_CHECK(extensions["m"]["lt_donthave"].integer() != 0);
+#ifndef TORRENT_DISABLE_SHARE_MODE
 	TEST_CHECK(extensions["m"]["share_mode"].integer() != 0);
+#endif
 	TEST_CHECK(extensions["m"]["upload_only"].integer() != 0);
 	TEST_CHECK(extensions["m"]["ut_holepunch"].integer() != 0);
 
@@ -944,13 +952,13 @@ TORRENT_TEST(extension_handshake)
 // pos
 TORRENT_TEST(invalid_metadata_request)
 {
-	using namespace lt::detail;
+	using namespace lt::aux;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -999,11 +1007,11 @@ TORRENT_TEST(invalid_request)
 {
 	std::cout << "\n === test request ===\n" << std::endl;
 
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -1021,11 +1029,11 @@ namespace {
 
 void have_all_test(bool const incoming)
 {
-	sha1_hash ih;
+	info_hash_t ih;
 	std::shared_ptr<lt::session> ses;
-	io_service ios;
+	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ih, ses, incoming, torrent_flags::seed_mode);
+	setup_peer(s, ios, ih, ses, incoming, torrent_flags::seed_mode);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

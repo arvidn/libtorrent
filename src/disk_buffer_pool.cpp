@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2011, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
+#include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/settings_pack.hpp" // for settings_interface
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -52,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 	namespace {
 
@@ -67,18 +70,13 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	disk_buffer_pool::disk_buffer_pool(io_service& ios)
+	disk_buffer_pool::disk_buffer_pool(io_context& ios)
 		: m_in_use(0)
 		, m_max_use(64)
 		, m_low_watermark(std::max(m_max_use - 32, 0))
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
-	{
-#if TORRENT_USE_ASSERTS
-		m_magic = 0x1337;
-		m_settings_set = false;
-#endif
-	}
+	{}
 
 	disk_buffer_pool::~disk_buffer_pool()
 	{
@@ -102,7 +100,7 @@ namespace libtorrent {
 		std::vector<std::weak_ptr<disk_observer>> cbs;
 		m_observers.swap(cbs);
 		l.unlock();
-		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
+		post(m_ios, std::bind(&watermark_callback, std::move(cbs)));
 	}
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)
@@ -194,7 +192,7 @@ namespace libtorrent {
 		check_buffer_level(l);
 	}
 
-	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
+	void disk_buffer_pool::set_settings(settings_interface const& sett)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
@@ -234,4 +232,5 @@ namespace libtorrent {
 		--m_in_use;
 	}
 
+}
 }

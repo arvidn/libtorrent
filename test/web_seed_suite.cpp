@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2015, Jakob Petsovits
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,9 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -381,7 +383,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			pack.set_bool(settings_pack::enable_natpmp, false);
 			pack.set_bool(settings_pack::enable_upnp, false);
 			pack.set_bool(settings_pack::enable_dht, false);
-			lt::session ses(pack, {});
+			lt::session ses(session_params{pack, {}});
 
 			test_transfer(ses, torrent_file, proxy, protocol, test_url_seed
 				, chunked_encoding, test_ban, keepalive, proxy_peers);

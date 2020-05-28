@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2015, Arvid Norberg
+Copyright (c) 2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/aux_/timestamp_history.hpp"
 
 TORRENT_TEST(timestamp_history)
 {
 	using namespace lt;
 
-	timestamp_history h;
+	aux::timestamp_history h;
 	TEST_EQUAL(h.add_sample(0x32, false), 0);
 	TEST_EQUAL(h.base(), 0x32);
 	TEST_EQUAL(h.add_sample(0x33, false), 0x1);

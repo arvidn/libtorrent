@@ -1,20 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
 import ssl
 import gzip
 import base64
+import socket
+import traceback
 
-# Python 3 has moved {Simple,Base}HTTPServer to http module
-try:
-    # Remove '.' from sys.path or we try to import the http.py module
-    # which is not what we want.
-    sys.path = sys.path[1:]
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-except ImportError:
-    from SimpleHTTPServer import SimpleHTTPRequestHandler as BaseHTTPRequestHandler
-    from BaseHTTPServer import HTTPServer
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 chunked_encoding = False
 keepalive = True
@@ -39,10 +33,19 @@ class http_server_with_timeout(HTTPServer):
 
 class http_handler(BaseHTTPRequestHandler):
 
-    def do_GET(s):
+    def do_GET(self):
+        try:
+            self.inner_do_GET()
+        except Exception:
+            print('EXCEPTION')
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
 
-        print('INCOMING-REQUEST: ', s.requestline)
+    def inner_do_GET(s):
+
+        print('INCOMING-REQUEST [from: {}]: {}'.format(s.request.getsockname(), s.requestline))
         print(s.headers)
+        sys.stdout.flush()
 
         global chunked_encoding
         global keepalive
@@ -53,14 +56,13 @@ class http_handler(BaseHTTPRequestHandler):
             s.path = s.path[s.path.find('/'):]
 
         file_path = os.path.normpath(s.path)
-        print(file_path)
-        print(s.path)
+        sys.stdout.flush()
 
         if s.path == '/password_protected':
             passed = False
             if 'Authorization' in s.headers:
                 auth = s.headers['Authorization']
-                passed = auth == 'Basic %s' % base64.b64encode('testuser:testpass')
+                passed = auth == 'Basic %s' % base64.b64encode(b'testuser:testpass').decode()
 
             if not passed:
                 s.send_response(401)
@@ -88,15 +90,16 @@ class http_handler(BaseHTTPRequestHandler):
             s.end_headers()
         elif s.path.startswith('/announce'):
             s.send_response(200)
-            response = 'd8:intervali1800e8:completei1e10:incompletei1e' + \
-                '12:min intervali' + min_interval + 'e' + \
-                '5:peers12:AAAABBCCCCDD' + \
-                '6:peers618:EEEEEEEEEEEEEEEEFF' + \
-                'e'
+            response = b'd8:intervali1800e8:completei1e10:incompletei1e' + \
+                b'12:min intervali' + min_interval.encode() + b'e' + \
+                b'5:peers12:AAAABBCCCCDD' + \
+                b'6:peers618:EEEEEEEEEEEEEEEEFF' + \
+                b'e'
             s.send_header("Content-Length", "%d" % len(response))
             s.send_header("Connection", "close")
             s.end_headers()
             s.wfile.write(response)
+            s.request.close()
         elif os.path.split(s.path)[1].startswith('seed?'):
             query = s.path[6:]
             args_raw = query.split('&')
@@ -111,6 +114,7 @@ class http_handler(BaseHTTPRequestHandler):
             try:
                 filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
                 print('filename = %s' % filename)
+                sys.stdout.flush()
                 f = open(filename, 'rb')
                 f.seek(piece * 32 * 1024 + int(ranges[0]))
                 data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
@@ -118,11 +122,14 @@ class http_handler(BaseHTTPRequestHandler):
 
                 s.send_response(200)
                 print('sending %d bytes' % len(data))
+                sys.stdout.flush()
                 s.send_header("Content-Length", "%d" % len(data))
                 s.end_headers()
                 s.wfile.write(data)
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                traceback.print_exc(file=sys.stdout)
+                sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
                 s.end_headers()
@@ -160,10 +167,8 @@ class http_handler(BaseHTTPRequestHandler):
                     s.send_header('Content-Encoding', 'gzip')
                 if not keepalive:
                     s.send_header("Connection", "close")
-                    try:
-                        s.request.shutdown()
-                    except Exception as e:
-                        print('Failed to shutdown read-channel of socket: ', e)
+                    if not use_ssl:
+                        s.request.shutdown(socket.SHUT_RD)
 
                 s.end_headers()
 
@@ -172,21 +177,29 @@ class http_handler(BaseHTTPRequestHandler):
                 while length > 0:
                     to_send = min(length, 0x900)
                     if chunked_encoding:
-                        s.wfile.write('%x\r\n' % to_send)
+                        s.wfile.write(b'%x\r\n' % to_send)
                     data = f.read(to_send)
                     print('read %d bytes' % to_send)
+                    sys.stdout.flush()
                     s.wfile.write(data)
                     if chunked_encoding:
-                        s.wfile.write('\r\n')
+                        s.wfile.write(b'\r\n')
                     length -= to_send
                     print('sent %d bytes (%d bytes left)' % (len(data), length))
+                    sys.stdout.flush()
                 if chunked_encoding:
-                    s.wfile.write('0\r\n\r\n')
+                    s.wfile.write(b'0\r\n\r\n')
             except Exception as e:
                 print('FILE ERROR: ', filename, e)
+                traceback.print_exc(file=sys.stdout)
+                sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
                 s.end_headers()
+
+        print("...DONE")
+        sys.stdout.flush()
+        s.wfile.flush()
 
 
 if __name__ == '__main__':
@@ -195,6 +208,7 @@ if __name__ == '__main__':
     use_ssl = sys.argv[3] != '0'
     keepalive = sys.argv[4] != '0'
     min_interval = sys.argv[5]
+    print('python version: %s' % sys.version_info.__str__())
 
     http_handler.protocol_version = 'HTTP/1.1'
     httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)

@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2004, 2006-2007, 2009-2011, 2013-2019, Arvid Norberg
+Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_ICONV
 #include <iconv.h>
-#include <locale.h>
+#include <clocale>
 #endif
 
 #include "libtorrent/assert.hpp"
@@ -189,13 +192,6 @@ namespace libtorrent {
 		std::replace(path.begin(), path.end(), '\\', '/');
 	}
 
-#ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path)
-	{
-		std::replace(path.begin(), path.end(), '/', '\\');
-	}
-#endif
-
 	// TODO: 2 this should probably be moved into string_util.cpp
 	std::string read_until(char const*& str, char const delim, char const* end)
 	{
@@ -250,34 +246,6 @@ namespace libtorrent {
 
 		return msg;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	std::string resolve_file_url(std::string const& url)
-	{
-		TORRENT_ASSERT(url.substr(0, 7) == "file://");
-		// first, strip the file:// part.
-		// On windows, we have
-		// to strip the first / as well
-		std::size_t num_to_strip = 7;
-#ifdef TORRENT_WINDOWS
-		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
-#endif
-		std::string ret = url.substr(num_to_strip);
-
-		// we also need to URL-decode it
-		error_code ec;
-		std::string unescaped = unescape_string(ret, ec);
-		if (ec) unescaped = ret;
-
-		// on windows, we need to convert forward slashes
-		// to backslashes
-#ifdef TORRENT_WINDOWS
-		convert_path_to_windows(unescaped);
-#endif
-
-		return unescaped;
-	}
-#endif
 
 	std::string base64encode(const std::string& s)
 	{
@@ -584,8 +552,8 @@ namespace {
 		std::wstring ws = libtorrent::utf8_wchar(s);
 		std::string ret;
 		ret.resize(ws.size() * 4 + 1);
-		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
-		if (size == std::size_t(-1)) return s;
+		int size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
+		if (size < 0) return s;
 		if (size != 0 && ret[size - 1] == '\0') --size;
 		ret.resize(size);
 		return ret;
@@ -595,8 +563,8 @@ namespace {
 	{
 		std::wstring ws;
 		ws.resize(s.size() + 1);
-		std::size_t size = MultiByteToWideChar(CP_ACP, 0, s.c_str(), -1, &ws[0], int(ws.size()));
-		if (size == std::size_t(-1)) return s;
+		int size = MultiByteToWideChar(CP_ACP, 0, s.c_str(), -1, &ws[0], int(ws.size()));
+		if (size < 0) return s;
 		if (size != 0 && ws[size - 1] == '\0') --size;
 		ws.resize(size);
 		return libtorrent::wchar_utf8(ws);
@@ -611,7 +579,7 @@ namespace {
 		if (size == std::size_t(-1)) return s;
 		std::string ret;
 		ret.resize(size);
-		size = wcstombs(&ret[0], ws.c_str(), size + 1);
+		size = std::wcstombs(&ret[0], ws.c_str(), size + 1);
 		if (size == std::size_t(-1)) return s;
 		ret.resize(size);
 		return ret;
@@ -621,7 +589,7 @@ namespace {
 	{
 		std::wstring ws;
 		ws.resize(s.size());
-		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
+		std::size_t size = std::mbstowcs(&ws[0], s.c_str(), s.size());
 		if (size == std::size_t(-1)) return s;
 		return libtorrent::wchar_utf8(ws);
 	}

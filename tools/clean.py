@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
@@ -29,8 +29,9 @@ def clean():
         '*.cpp.rej',
         '*.hpp.orig',
         '*.hpp.rej',
-        '*.hpp.gcov',
-        '*.cpp.gcov',
+        '*.gcov',
+        '*.gcno',
+        '*.gcda',
         'lib*.a',
         'Jamfile.rej',
         'Jamfile.orig',
@@ -50,6 +51,7 @@ def clean():
         'tools',
         'src',
         'simulation',
+        'fuzzers',
         os.path.join('src', 'kademlia'),
         os.path.join('include', 'libtorrent'),
         os.path.join('include', os.path.join('libtorrent', '_aux')),

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2016, 2019, Arvid Norberg
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +57,11 @@ namespace libtorrent { namespace aux {
 
 	file_view file_view_pool::open_file(storage_index_t st, std::string const& p
 		, file_index_t const file_index, file_storage const& fs
-		, open_mode_t const m)
+		, open_mode_t const m
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+		)
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
@@ -82,11 +87,18 @@ namespace libtorrent { namespace aux {
 				// mode
 				if (!(e.mode & open_mode::write) && (m & open_mode::write))
 				{
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+					std::unique_lock<std::mutex> lou(*open_unmap_lock);
+#endif
 					defer_destruction = std::move(e.mapping);
 					e.mapping = std::make_shared<file_mapping>(
 						file_handle(fs.file_path(file_index, p)
 							, fs.file_size(file_index), m), m
-						, fs.file_size(file_index));
+						, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+						, open_unmap_lock
+#endif
+						);
 					e.mode = m;
 				}
 			});
@@ -101,12 +113,23 @@ namespace libtorrent { namespace aux {
 		{
 			// the file cache is at its maximum size, close
 			// the least recently used file
-			remove_oldest(l);
+			defer_destruction = remove_oldest(l);
 		}
 
 		l.unlock();
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		std::unique_lock<std::mutex> lou(*open_unmap_lock);
+#endif
 		file_entry e({st, file_index}, fs.file_path(file_index, p), m
-			, fs.file_size(file_index));
+			, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, open_unmap_lock
+#endif
+			);
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		lou.unlock();
+#endif
 		auto ret = e.mapping->view();
 
 		l.lock();
@@ -115,18 +138,14 @@ namespace libtorrent { namespace aux {
 		return ret;
 	}
 
-namespace {
-
 	file_open_mode_t to_file_open_mode(open_mode_t const mode)
 	{
 		return ((mode & open_mode::write)
-				? file_open_mode::read_write : file_open_mode::read_write)
+				? file_open_mode::read_write : file_open_mode::read_only)
 			| ((mode & open_mode::no_atime)
 				? file_open_mode::no_atime : file_open_mode::read_only)
 			;
 	}
-
-}
 
 	std::vector<open_file_state> file_view_pool::get_status(storage_index_t const st) const
 	{
@@ -211,6 +230,9 @@ namespace {
 
 	void file_view_pool::resize(int const size)
 	{
+		// these are destructed _after_ the mutex is released
+		std::vector<std::shared_ptr<file_mapping>> defer_destruction;
+
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
@@ -221,7 +243,17 @@ namespace {
 
 		// close the least recently used files
 		while (int(m_files.size()) > m_size)
-			remove_oldest(l);
+			defer_destruction.emplace_back(remove_oldest(l));
+	}
+
+	void file_view_pool::close_oldest()
+	{
+		// closing a file may be long running operation (mac os x)
+		// destruct it after the mutex is released
+		std::shared_ptr<file_mapping> deferred_destruction;
+
+		std::unique_lock<std::mutex> l(m_mutex);
+		deferred_destruction = remove_oldest(l);
 	}
 }
 }

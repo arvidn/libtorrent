@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2016-2017, Steven Siloti
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2016-2017, 2019, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	using detail::bdecode_token;
+	using aux::bdecode_token;
 
 namespace {
 
@@ -119,7 +123,27 @@ namespace {
 		return (&t)[1].offset - t.offset;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
+
+namespace aux {
+	void escape_string(std::string& ret, char const* str, int len)
+	{
+		for (int i = 0; i < len; ++i)
+		{
+			if (str[i] >= 32 && str[i] < 127)
+			{
+				ret += str[i];
+			}
+			else
+			{
+				char tmp[5];
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
+				ret += tmp;
+			}
+		}
+	}
+}
+
 
 
 	// reads the string between start and end, or up to the first occurrance of
@@ -216,7 +240,7 @@ namespace {
 		(*this) = n;
 	}
 
-	bdecode_node& bdecode_node::operator=(bdecode_node const& n)
+	bdecode_node& bdecode_node::operator=(bdecode_node const& n) &
 	{
 		if (&n == this) return *this;
 		m_tokens = n.m_tokens;
@@ -244,9 +268,6 @@ namespace {
 		, m_buffer(buf)
 		, m_buffer_size(len)
 		, m_token_idx(idx)
-		, m_last_index(-1)
-		, m_last_token(-1)
-		, m_size(-1)
 	{
 		TORRENT_ASSERT(tokens != nullptr);
 		TORRENT_ASSERT(idx >= 0);
@@ -388,6 +409,14 @@ namespace {
 		return {m_buffer + t.offset, static_cast<std::ptrdiff_t>(next.offset - t.offset)};
 	}
 
+	std::ptrdiff_t bdecode_node::data_offset() const noexcept
+	{
+		TORRENT_ASSERT_PRECOND(m_token_idx != -1);
+		if (m_token_idx == -1) return -1;
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		return t.offset;
+	}
+
 	bdecode_node bdecode_node::list_at(int i) const
 	{
 		TORRENT_ASSERT(type() == list_t);
@@ -469,7 +498,7 @@ namespace {
 		return ret;
 	}
 
-	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int i) const
+	std::pair<bdecode_node, bdecode_node> bdecode_node::dict_at_node(int i) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_token_idx != -1);
@@ -515,8 +544,16 @@ namespace {
 		TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 		return std::make_pair(
-			bdecode_node(tokens, m_buffer, m_buffer_size, token).string_value()
+			bdecode_node(tokens, m_buffer, m_buffer_size, token)
 			, bdecode_node(tokens, m_buffer, m_buffer_size, value_token));
+	}
+
+	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int const i) const
+	{
+		bdecode_node key;
+		bdecode_node value;
+		std::tie(key, value) = dict_at_node(i);
+		return {key.string_value(), value};
 	}
 
 	int bdecode_node::dict_size() const
@@ -666,10 +703,18 @@ namespace {
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		std::size_t const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
+		auto const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);
+	}
+
+	std::ptrdiff_t bdecode_node::string_offset() const
+	{
+		TORRENT_ASSERT(type() == string_t);
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		TORRENT_ASSERT(t.type == bdecode_token::string);
+		return t.offset + t.start_offset();
 	}
 
 	char const* bdecode_node::string_ptr() const
@@ -908,7 +953,7 @@ namespace {
 
 					// the bdecode_token only has 8 bits to keep the header size
 					// in. If it overflows, fail!
-					if (start - str_start - 2 > detail::bdecode_token::max_header)
+					if (start - str_start - 2 > aux::bdecode_token::max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 					ret.m_tokens.push_back({str_start - orig_start
@@ -922,7 +967,8 @@ namespace {
 				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
-				stack[current_frame - 1].state = ~stack[current_frame - 1].state;
+				// state is an unsigned 1-bit member. adding 1 will flip the bit
+				stack[current_frame - 1].state = (stack[current_frame - 1].state + 1) & 1;
 			}
 
 			// this terminates the top level node, we're done!
@@ -1016,23 +1062,6 @@ done:
 		return line_len;
 	}
 
-	void escape_string(std::string& ret, char const* str, int len)
-	{
-		for (int i = 0; i < len; ++i)
-		{
-			if (str[i] >= 32 && str[i] < 127)
-			{
-				ret += str[i];
-			}
-			else
-			{
-				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
-				ret += tmp;
-			}
-		}
-	}
-
 	void print_string(std::string& ret, string_view str, bool single_line)
 	{
 		int const len = int(str.size());
@@ -1060,13 +1089,13 @@ done:
 		}
 		if (single_line && len > 20)
 		{
-			escape_string(ret, str.data(), 9);
+			aux::escape_string(ret, str.data(), 9);
 			ret += "...";
-			escape_string(ret, str.data() + len - 9, 9);
+			aux::escape_string(ret, str.data() + len - 9, 9);
 		}
 		else
 		{
-			escape_string(ret, str.data(), len);
+			aux::escape_string(ret, str.data(), len);
 		}
 		ret += "'";
 	}

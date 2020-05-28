@@ -1,6 +1,12 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2010, 2012-2019, Arvid Norberg
+Copyright (c) 2004, spyhole
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2017, Alden Torres
+Copyright (c) 2017, Col-blimp
+Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2019, gubatron
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -171,6 +177,7 @@ namespace {
 		, {"ES", "electric sheep"}
 		, {"FC", "FileCroc"}
 		, {"FT", "FoxTorrent"}
+		, {"FW", "FrostWire"}
 		, {"FX", "Freebox BitTorrent"}
 		, {"GS", "GSTorrent"}
 		, {"HK", "Hekate"}

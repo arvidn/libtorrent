@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg, Steven Siloti
+Copyright (c) 2015, 2017-2018, Steven Siloti
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -278,12 +280,11 @@ bool peer_connection_handle::in_handshake() const
 	return pc->in_handshake();
 }
 
-void peer_connection_handle::send_buffer(char const* begin, int size
-	, std::uint32_t const flags)
+void peer_connection_handle::send_buffer(char const* begin, int size)
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->send_buffer({begin, size}, flags);
+	pc->send_buffer({begin, size});
 }
 
 std::time_t peer_connection_handle::last_seen_complete() const

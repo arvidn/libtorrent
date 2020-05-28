@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2011, Arvid Norberg
+Copyright (c) 2008-2009, 2012-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/path.hpp"

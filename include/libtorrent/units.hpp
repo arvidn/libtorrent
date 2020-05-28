@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 	template <typename Tag>
 	struct difference_tag;
 
@@ -71,8 +74,8 @@ namespace libtorrent { namespace aux {
 		strong_typedef& operator++() { ++m_val; return *this; }
 		strong_typedef& operator--() { --m_val; return *this; }
 
-		strong_typedef operator++(int) { return strong_typedef{m_val++}; }
-		strong_typedef operator--(int) { return strong_typedef{m_val--}; }
+		strong_typedef operator++(int) & { return strong_typedef{m_val++}; }
+		strong_typedef operator--(int) & { return strong_typedef{m_val--}; }
 
 		friend diff_type operator-(strong_typedef lhs, strong_typedef rhs)
 		{ return diff_type{lhs.m_val - rhs.m_val}; }
@@ -83,21 +86,31 @@ namespace libtorrent { namespace aux {
 		friend strong_typedef operator-(strong_typedef lhs, diff_type rhs)
 		{ return strong_typedef{lhs.m_val - static_cast<UnderlyingType>(rhs)}; }
 
-		strong_typedef& operator+=(diff_type rhs)
+		strong_typedef& operator+=(diff_type rhs) &
 		{ m_val += static_cast<UnderlyingType>(rhs); return *this; }
-		strong_typedef& operator-=(diff_type rhs)
+		strong_typedef& operator-=(diff_type rhs) &
 		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
 		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;
 		strong_typedef& operator=(strong_typedef&& rhs) & noexcept = default;
+
+#if TORRENT_USE_IOSTREAM
+		friend std::ostream& operator<<(std::ostream& os, strong_typedef val)
+		{ return os << static_cast<UnderlyingType>(val); }
+#endif
+
 	private:
 		UnderlyingType m_val;
 	};
 
-	// meta function to return the underlying type of a strong_typedef, or the
-	// type itself if it isn't a strong_typedef
-	template <typename T>
+	// meta function to return the underlying type of a strong_typedef or enumeration
+	// , or the type itself if it isn't a strong_typedef
+	template <typename T, typename = void>
 	struct underlying_index_t { using type = T; };
+
+	template <typename T>
+	struct underlying_index_t<T, typename std::enable_if<std::is_enum<T>::value>::type>
+	{ using type = typename std::underlying_type<T>::type; };
 
 	template <typename U, typename Tag>
 	struct underlying_index_t<aux::strong_typedef<U, Tag>> { using type = U; };
@@ -116,12 +129,6 @@ namespace libtorrent { namespace aux {
 	template <typename T, typename Tag>
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
 	{ return --v;}
-
-#if TORRENT_USE_IOSTREAM
-	template <typename T, typename Tag>
-	std::ostream& operator<<(std::ostream& os, strong_typedef<T, Tag> val)
-	{ return os << static_cast<T>(val); }
-#endif
 
 } // namespace libtorrent::aux
 
@@ -153,7 +160,12 @@ namespace std {
 	{
 		using base = std::hash<UnderlyingType>;
 		using argument_type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
+#if __cplusplus < 201402
+		// this was deprecated in C++17
 		using result_type = typename base::result_type;
+#else
+		using result_type = std::size_t;
+#endif
 		result_type operator()(argument_type const& s) const
 		{ return this->base::operator()(static_cast<UnderlyingType>(s)); }
 	};

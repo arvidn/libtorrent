@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
 
 file_header = '''/*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2017-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,22 +61,26 @@ def print_classes(out, classes, keyword):
     current_file = ''
 
     # [(file, decl), ...]
-    classes = [(l.split(':')[0].strip(), ':'.join(l.split(':')[1:]).strip()) for l in classes]
+    classes = [(x.split(':')[0].strip(), ':'.join(x.split(':')[1:]).strip()) for x in classes]
 
     # we only care about header files
     # ignore the forward header itself, that's the one we're generating
     # also ignore any header in the aux_ directory, those are private
-    classes = [l for l in classes if l[0].endswith('.hpp') and not l[0].endswith('/fwd.hpp') and '/aux_/' not in l[0]]
+    classes = [x for x in classes if x[0].endswith('.hpp') and not x[0].endswith('/fwd.hpp') and '/aux_/' not in x[0]]
 
-    namespaces = ['TORRENT_VERSION_NAMESPACE_2',
-                  'TORRENT_VERSION_NAMESPACE_2_END']
+    namespaces = ['TORRENT_VERSION_NAMESPACE_3',
+                  'TORRENT_VERSION_NAMESPACE_3_END',
+                  'TORRENT_VERSION_NAMESPACE_2',
+                  'TORRENT_VERSION_NAMESPACE_2_END',
+                  'TORRENT_CRYPTO_NAMESPACE',
+                  'TORRENT_CRYPTO_NAMESPACE_END']
 
     # only include classes with the right kind of export
     classes = [
-        l for l in classes if l[1] in namespaces or (
-            l[1].split(' ')[0] in [
+        x for x in classes if x[1] in namespaces or (
+            x[1].split(' ')[0] in [
                 'class',
-                'struct'] and l[1].split(' ')[1] == keyword)]
+                'struct'] and x[1].split(' ')[1] == keyword)]
 
     # collapse empty namespaces
     classes2 = []
@@ -125,7 +130,7 @@ with open('include/libtorrent/fwd.hpp', 'w+') as f:
 
     print_classes(f, classes, 'TORRENT_EXPORT')
 
-    f.write('\n#if TORRENT_ABI_VERSION == 1\n')
+    f.write('\n#if TORRENT_ABI_VERSION <= 2\n')
 
     print_classes(f, classes, 'TORRENT_DEPRECATED_EXPORT')
 

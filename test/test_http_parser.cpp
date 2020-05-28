@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +61,18 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 			std::tie(payload, protocol) = parser.incoming(recv_buf, error);
 			std::get<0>(ret) += payload;
 			std::get<1>(ret) += protocol;
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// this ia a buggy diagnostic on msvc
+// warning C4834: discarding return value of function with 'nodiscard' attribute
+#pragma warning( disable : 4834 )
+#endif
 			std::get<2>(ret) |= error;
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 			TORRENT_ASSERT(payload + protocol == chunk_size || std::get<2>(ret));
 		}
 		TEST_CHECK(prev == std::make_tuple(0, 0, false) || ret == prev || std::get<2>(ret));
@@ -517,7 +529,7 @@ TORRENT_TEST(chunked_encoding)
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_EQUAL(strlen(chunked_input), 24 + 94)
+	TEST_EQUAL(strlen(chunked_input), 24 + 94);
 	TEST_CHECK(received == std::make_tuple(24, 94, false));
 	TEST_CHECK(parser.finished());
 
@@ -527,6 +539,24 @@ TORRENT_TEST(chunked_encoding)
 	body = parser.collapse_chunk_headers({mutable_buffer, body.size()});
 
 	TEST_CHECK(body == span<char const>("test12340123456789abcdef", 24));
+}
+
+TORRENT_TEST(chunked_encoding_overflow)
+{
+	char const chunked_input[] =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"7FFFFFFFFFFFFFBF\r\n";
+
+	http_parser parser;
+	int payload;
+	int protocol;
+	bool error = false;
+	std::tie(payload, protocol) = parser.incoming(chunked_input, error);
+
+	// it should have encountered an error
+	TEST_CHECK(error == true);
 }
 
 TORRENT_TEST(invalid_content_length)

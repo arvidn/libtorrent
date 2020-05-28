@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,18 +36,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/aux_/listen_socket_handle.hpp"
 
 #include <array>
 #include <memory>
 
 namespace libtorrent {
 
+namespace aux { struct alert_manager; }
 	struct socks5;
 
 	using udp_send_flags_t = flags::bitfield_flag<std::uint8_t, struct udp_send_flags_tag>;
@@ -53,7 +57,11 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
-		explicit udp_socket(io_service& ios);
+		udp_socket(io_context& ios, aux::listen_socket_handle ls);
+
+		// non-copyable
+		udp_socket(udp_socket const&) = delete;
+		udp_socket& operator=(udp_socket const&) = delete;
 
 		static constexpr udp_send_flags_t peer_connection = 0_bit;
 		static constexpr udp_send_flags_t tracker_connection = 1_bit;
@@ -61,18 +69,18 @@ namespace libtorrent {
 		static constexpr udp_send_flags_t dont_fragment = 3_bit;
 
 		bool is_open() const { return m_abort == false; }
-		io_service& get_io_service() { return m_socket.get_io_service(); }
+		udp::socket::executor_type get_executor() { return m_socket.get_executor(); }
 
 		template <typename Handler>
 		void async_read(Handler&& h)
 		{
-			m_socket.async_receive(null_buffers(), std::forward<Handler>(h));
+			m_socket.async_wait(udp::socket::wait_read, std::forward<Handler>(h));
 		}
 
 		template <typename Handler>
 		void async_write(Handler&& h)
 		{
-			m_socket.async_send(null_buffers(), std::forward<Handler>(h));
+			m_socket.async_wait(udp::socket::wait_write, std::forward<Handler>(h));
 		}
 
 		struct packet
@@ -95,7 +103,7 @@ namespace libtorrent {
 		void close();
 		int local_port() const { return m_bind_port; }
 
-		void set_proxy_settings(aux::proxy_settings const& ps);
+		void set_proxy_settings(aux::proxy_settings const& ps, aux::alert_manager& alerts);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }
@@ -130,11 +138,9 @@ namespace libtorrent {
 			m_socket.get_option(opt, ec);
 		}
 
-	private:
+		bool active_socks5() const;
 
-		// non-copyable
-		udp_socket(udp_socket const&);
-		udp_socket& operator=(udp_socket const&);
+	private:
 
 		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, udp_send_flags_t flags);
 		void wrap(char const* hostname, int port, span<char const> p, error_code& ec, udp_send_flags_t flags);
@@ -142,8 +148,11 @@ namespace libtorrent {
 
 		udp::socket m_socket;
 
+		io_context& m_ioc;
+
 		using receive_buffer = std::array<char, 1500>;
 		std::unique_ptr<receive_buffer> m_buf;
+		aux::listen_socket_handle m_listen_socket;
 
 		std::uint16_t m_bind_port;
 
@@ -152,11 +161,6 @@ namespace libtorrent {
 		std::shared_ptr<socks5> m_socks5_connection;
 
 		bool m_abort:1;
-
-#if TORRENT_USE_ASSERTS
-		bool m_started;
-		int m_magic;
-#endif
 	};
 }
 

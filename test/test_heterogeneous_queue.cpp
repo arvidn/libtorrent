@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/heterogeneous_queue.hpp"
+#include "libtorrent/aux_/heterogeneous_queue.hpp"
 
 namespace {
 
@@ -125,6 +126,9 @@ struct F
 		constructed = false;
 	}
 
+	// non-copyable
+	F& operator=(F const& f) = delete;
+
 	void check_invariant()
 	{
 		TEST_EQUAL(constructed, true);
@@ -138,9 +142,6 @@ struct F
 	bool constructed;
 	bool destructed;
 	bool gutted;
-private:
-	// non-copyable
-	F& operator=(F const& f);
 };
 
 struct G : A

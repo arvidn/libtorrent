@@ -1,6 +1,8 @@
 /*
 
 Copyright (c) 2015, Steven Siloti
+Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,9 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bdecode.hpp"
+#include "setup_transfer.hpp"
 
 using namespace lt;
 
@@ -100,9 +104,9 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_str(settings_pack::dht_bootstrap_nodes, "");
 	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
-	lt::session responder(sp, {});
+	lt::session responder(session_params(sp, {}));
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
-	lt::session requester(sp, {});
+	lt::session requester(session_params(sp, {}));
 
 	responder.add_extension(std::make_shared<test_plugin>());
 
@@ -110,34 +114,34 @@ TORRENT_TEST(direct_dht_request)
 
 	entry r;
 	r["q"] = "test_good";
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1")
-		, responder.listen_port()), r, reinterpret_cast<void*>(12345));
+	requester.dht_direct_request(uep("127.0.0.1", responder.listen_port())
+		, r, client_data_t(reinterpret_cast<int*>(12345)));
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
 	TEST_CHECK(ra);
 	if (ra)
 	{
 		bdecode_node response = ra->response();
-		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.address(), make_address("127.0.0.1"));
 		TEST_EQUAL(ra->endpoint.port(), responder.listen_port());
 		TEST_EQUAL(response.type(), bdecode_node::dict_t);
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
-		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(12345));
+		TEST_EQUAL(ra->userdata.get<int>(), reinterpret_cast<int*>(12345));
 	}
 
 	// failed request
 
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), 53545)
-		, r, reinterpret_cast<void*>(123456));
+	requester.dht_direct_request(uep("127.0.0.1", 53545)
+		, r, client_data_t(reinterpret_cast<int*>(123456)));
 
 	ra = get_direct_response(requester);
 	TEST_CHECK(ra);
 	if (ra)
 	{
-		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.address(), make_address("127.0.0.1"));
 		TEST_EQUAL(ra->endpoint.port(), 53545);
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
-		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(123456));
+		TEST_EQUAL(ra->userdata.get<int>(), reinterpret_cast<int*>(123456));
 	}
 
 	abort.emplace_back(responder.abort());

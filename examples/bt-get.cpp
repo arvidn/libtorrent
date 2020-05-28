@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 
 #include <libtorrent/session.hpp>
+#include <libtorrent/session_params.hpp>
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/alert_types.hpp>
@@ -47,8 +48,8 @@ int main(int argc, char const* argv[]) try
 		return 1;
 	}
 	lt::settings_pack p;
-	p.set_int(lt::settings_pack::alert_mask, lt::alert::status_notification
-		| lt::alert::error_notification);
+	p.set_int(lt::settings_pack::alert_mask, lt::alert_category::status
+		| lt::alert_category::error);
 	lt::session ses(p);
 
 	lt::add_torrent_params atp = lt::parse_magnet_uri(argv[1]);

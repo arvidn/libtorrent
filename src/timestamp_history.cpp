@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2009-2018, Arvid Norberg
+Copyright (c) 2010, 2014, 2016, 2018-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,10 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/aux_/timestamp_history.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 constexpr std::uint32_t TIME_MASK = 0xffffffff;
 
@@ -102,4 +104,5 @@ void timestamp_history::adjust_base(int change)
 	}
 }
 
+}
 }

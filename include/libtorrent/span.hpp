@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SPAN_HPP_INCLUDED
 #define TORRENT_SPAN_HPP_INCLUDED
 
+#include <string>
 #include <array>
 #include <type_traits>
 #include "libtorrent/assert.hpp"
@@ -121,10 +124,10 @@ namespace aux {
 		bool empty() const noexcept { return m_len == 0; }
 		T* data() const noexcept { return m_ptr; }
 
-		using iterator = T*;
 		using const_iterator = T const*;
-		using reverse_iterator = std::reverse_iterator<T*>;
 		using const_reverse_iterator = std::reverse_iterator<T const*>;
+		using iterator = T*;
+		using reverse_iterator = std::reverse_iterator<T*>;
 
 		T* begin() const noexcept { return m_ptr; }
 		T* end() const noexcept { return m_ptr + m_len; }

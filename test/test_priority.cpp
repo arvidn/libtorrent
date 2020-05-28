@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2018, Steven Siloti
+Copyright (c) 2018, d-komarov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
@@ -58,7 +62,8 @@ int peer_disconnects = 0;
 
 bool on_alert(alert const* a)
 {
-	if (alert_cast<peer_disconnected_alert>(a))
+	auto const* const pd = alert_cast<peer_disconnected_alert>(a);
+	if (pd && pd->error != make_error_code(errors::self_connection))
 		++peer_disconnects;
 	else if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
@@ -138,8 +143,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0_pri);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
-	std::cout << std::endl;
+	for (auto p : priorities) std::cout << int(static_cast<std::uint8_t>(p)) << " ";
+	std::cout << '\n';
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -171,10 +176,18 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		if (peer_disconnects >= 2) break;
+		if (peer_disconnects >= 2)
+		{
+			std::printf("too many disconnects (%d), exiting\n", peer_disconnects);
+			break;
+		}
 
-		// if nothing is being transferred after 2 seconds, we're failing the test
-		if (st1.upload_payload_rate == 0 && i > 20) break;
+		// if nothing is being transferred after 3 seconds, we're failing the test
+		if (st1.upload_payload_rate == 0 && i > 30)
+		{
+			std::cout << "no upload in " << (i / 10) << " seconds, failing\n";
+			break;
+		}
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
@@ -413,7 +426,7 @@ TORRENT_TEST(no_metadata_prioritize_files)
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
-	addp.info_hash = sha1_hash("abababababababababab");
+	addp.info_hash.v1 = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
@@ -440,7 +453,7 @@ TORRENT_TEST(no_metadata_file_prio)
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
-	addp.info_hash = sha1_hash("abababababababababab");
+	addp.info_hash.v1 = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
@@ -462,7 +475,7 @@ TORRENT_TEST(no_metadata_piece_prio)
 	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
-	addp.info_hash = sha1_hash("abababababababababab");
+	addp.info_hash.v1 = sha1_hash("abababababababababab");
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
@@ -473,6 +486,34 @@ TORRENT_TEST(no_metadata_piece_prio)
 	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4_pri);
 
 	ses.remove_torrent(h);
+}
+
+TORRENT_TEST(file_priority_multiple_calls)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	auto t = ::generate_torrent(true);
+
+	add_torrent_params addp;
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.save_path = ".";
+	addp.ti = t;
+	torrent_handle h = ses.add_torrent(addp);
+
+	for (file_index_t const i : t->files().file_range())
+		h.file_priority(i, lt::low_priority);
+
+	std::vector<download_priority_t> const expected(
+		std::size_t(t->files().num_files()), lt::low_priority);
+	for (int i = 0; i < 10; ++i)
+	{
+		auto const p = h.get_file_priorities();
+		if (p == expected) return;
+		std::this_thread::sleep_for(milliseconds(500));
+	}
+	TEST_CHECK(false);
 }
 
 TORRENT_TEST(export_file_while_seed)

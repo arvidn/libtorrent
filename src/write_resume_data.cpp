@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2017-2019, Arvid Norberg
+Copyright (c) 2017-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/socket_io.hpp" // for write_*_endpoint()
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/torrent.hpp" // for default_piece_priority
@@ -48,10 +49,10 @@ namespace libtorrent {
 	{
 		entry ret;
 
-		using namespace libtorrent::detail; // for write_*_endpoint()
+		using namespace libtorrent::aux; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
-		ret["libtorrent-version"] = LIBTORRENT_VERSION;
+		ret["libtorrent-version"] = lt::version_str;
 		ret["allocation"] = atp.storage_mode == storage_mode_allocate
 			? "allocate" : "sparse";
 
@@ -70,10 +71,22 @@ namespace libtorrent {
 		ret["num_incomplete"] = atp.num_incomplete;
 		ret["num_downloaded"] = atp.num_downloaded;
 
-		ret["sequential_download"] = bool(atp.flags & torrent_flags::sequential_download);
-
 		ret["seed_mode"] = bool(atp.flags & torrent_flags::seed_mode);
+		ret["upload_mode"] = bool(atp.flags & torrent_flags::upload_mode);
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		ret["share_mode"] = bool(atp.flags & torrent_flags::share_mode);
+#endif
+		ret["apply_ip_filter"] = bool(atp.flags & torrent_flags::apply_ip_filter);
+		ret["paused"] = bool(atp.flags & torrent_flags::paused);
+		ret["auto_managed"] = bool(atp.flags & torrent_flags::auto_managed);
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		ret["super_seeding"] = bool(atp.flags & torrent_flags::super_seeding);
+#endif
+		ret["sequential_download"] = bool(atp.flags & torrent_flags::sequential_download);
+		ret["stop_when_ready"] = bool(atp.flags & torrent_flags::stop_when_ready);
+		ret["disable_dht"] = bool(atp.flags & torrent_flags::disable_dht);
+		ret["disable_lsd"] = bool(atp.flags & torrent_flags::disable_lsd);
+		ret["disable_pex"] = bool(atp.flags & torrent_flags::disable_pex);
 
 		ret["added_time"] = atp.added_time;
 		ret["completed_time"] = atp.completed_time;
@@ -83,26 +96,51 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!atp.url.empty()) ret["url"] = atp.url;
-		if (!atp.uuid.empty()) ret["uuid"] = atp.uuid;
 #endif
 
-		ret["info-hash"] = atp.info_hash;
+		ret["info-hash"] = atp.info_hash.v1;
+		ret["info-hash2"] = atp.info_hash.v2;
 
 		if (atp.ti)
 		{
 			auto const info = atp.ti->metadata();
 			int const size = atp.ti->metadata_size();
 			ret["info"].preformatted().assign(&info[0], &info[0] + size);
+			if (!atp.ti->comment().empty())
+				ret["comment"] = atp.ti->comment();
+			if (atp.ti->creation_date() != 0)
+				ret["creation date"] = atp.ti->creation_date();
+			if (!atp.ti->creator().empty())
+				ret["created by"] = atp.ti->creator();
 		}
 
-		if (!atp.merkle_tree.empty())
+		if (!atp.merkle_trees.empty())
 		{
-			// we need to save the whole merkle hash tree
-			// in order to resume
-			std::string& tree_str = ret["merkle tree"].string();
-			auto const& tree = atp.merkle_tree;
-			tree_str.resize(tree.size() * 20);
-			std::memcpy(&tree_str[0], &tree[0], tree.size() * 20);
+			auto& trees = atp.merkle_trees;
+			auto& ret_trees = ret["trees"].list();
+			ret_trees.reserve(atp.merkle_trees.size());
+			for (file_index_t f(0); f < file_index_t{int(atp.merkle_trees.size())}; ++f)
+			{
+				auto& tree = trees[f];
+				ret_trees.emplace_back(entry::dictionary_t);
+				auto& ret_dict = ret_trees.back().dict();
+				auto& ret_tree = ret_dict["hashes"].string();
+
+				ret_tree.reserve(tree.size() * 32);
+				for (auto const& n : tree)
+					ret_tree.append(n.data(), n.size());
+
+				if (!atp.verified_leaf_hashes.empty())
+				{
+					auto& verified = atp.verified_leaf_hashes[f];
+					if (!verified.empty())
+					{
+						auto& ret_verified = ret_dict["verified"].string();
+						for (auto const bit : verified)
+							ret_verified.push_back(bit ? '1' : '0');
+					}
+				}
+			}
 		}
 
 		if (!atp.unfinished_pieces.empty())
@@ -124,9 +162,9 @@ namespace libtorrent {
 		}
 
 		// save trackers
+		entry::list_type& tr_list = ret["trackers"].list();
 		if (!atp.trackers.empty())
 		{
-			entry::list_type& tr_list = ret["trackers"].list();
 			tr_list.emplace_back(entry::list_type());
 			std::size_t tier = 0;
 			auto tier_it = atp.tracker_tiers.begin();
@@ -143,17 +181,11 @@ namespace libtorrent {
 		}
 
 		// save web seeds
-		if (!atp.url_seeds.empty())
-		{
-			entry::list_type& url_list = ret["url-list"].list();
-			std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
-		}
+		entry::list_type& url_list = ret["url-list"].list();
+		std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 
-		if (!atp.http_seeds.empty())
-		{
-			entry::list_type& url_list = ret["httpseeds"].list();
-			std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(url_list));
-		}
+		entry::list_type& httpseeds_list = ret["httpseeds"].list();
+		std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
 
 		// write have bitmask
 		entry::string_type& pieces = ret["pieces"].string();
@@ -180,7 +212,7 @@ namespace libtorrent {
 			entry::list_type& fl = ret["mapped_files"].list();
 			for (auto const& ent : atp.renamed_files)
 			{
-				std::size_t const idx(static_cast<std::size_t>(static_cast<int>(ent.first)));
+				auto const idx = static_cast<std::size_t>(static_cast<int>(ent.first));
 				if (idx >= fl.size()) fl.resize(idx + 1);
 				fl[idx] = ent.second;
 			}
@@ -217,8 +249,6 @@ namespace libtorrent {
 		ret["download_rate_limit"] = atp.download_limit;
 		ret["max_connections"] = atp.max_connections;
 		ret["max_uploads"] = atp.upload_limit;
-		ret["paused"] = bool(atp.flags & torrent_flags::paused);
-		ret["auto_managed"] = bool(atp.flags & torrent_flags::auto_managed);
 
 		if (!atp.file_priorities.empty())
 		{

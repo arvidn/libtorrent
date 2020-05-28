@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007, 2009, 2015, 2019, Arvid Norberg
+Copyright (c) 2015, Steven Siloti
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,15 +48,15 @@ struct msg
 {
 	msg(bdecode_node const& m, udp::endpoint const& ep): message(m), addr(ep) {}
 
+	// explicitly disallow assignment, to silence msvc warning
+	msg& operator=(msg const&) = delete;
+
 	// the message
 	bdecode_node const& message;
 
 	// the address of the process sending or receiving
 	// the message.
 	udp::endpoint addr;
-private:
-	// explicitly disallow assignment, to silence msvc warning
-	msg& operator=(msg const&);
 };
 
 struct key_desc_t
@@ -83,7 +85,7 @@ struct key_desc_t
 };
 
 // TODO: move this to its own .hpp/.cpp pair?
-TORRENT_EXTRA_EXPORT bool verify_message_impl(bdecode_node const& msg, span<key_desc_t const> desc
+TORRENT_EXTRA_EXPORT bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> desc
 	, span<bdecode_node> ret, span<char> error);
 
 // verifies that a message has all the required
@@ -95,6 +97,7 @@ bool verify_message(bdecode_node const& msg, key_desc_t const (&desc)[Size]
 	return verify_message_impl(msg, desc, ret, error);
 }
 
-} }
+}
+}
 
 #endif

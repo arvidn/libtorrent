@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2010, 2012, 2014-2019, Arvid Norberg
+Copyright (c) 2016, 2019, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
-#include <ctime>
-#include <algorithm>
 #include <deque>
 #include <string>
 #include <cstdint>
@@ -47,19 +46,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class torrent;
-
 	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection
 	{
-	friend class invariant_access;
+	friend struct invariant_access;
 	public:
 
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		web_connection_base(peer_connection_args const& pack
-			, web_seed_t& web);
+		web_connection_base(peer_connection_args& pack
+			, web_seed_t const& web);
 
 		int timeout() const override;
 		void start() override;

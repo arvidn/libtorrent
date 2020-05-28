@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2004-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,20 +39,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
+#include "libtorrent/ssl.hpp"
 
 using namespace std::placeholders;
 
 namespace libtorrent {
 
-	timeout_handler::timeout_handler(io_service& ios)
+constexpr tracker_request_flags_t tracker_request::scrape_request;
+constexpr tracker_request_flags_t tracker_request::i2p;
+
+	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
@@ -81,8 +82,7 @@ namespace libtorrent {
 		}
 
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
-		error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
+		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(std::bind(
 			&timeout_handler::timeout_callback, shared_from_this(), _1));
 #if TORRENT_USE_ASSERTS
@@ -99,8 +99,7 @@ namespace libtorrent {
 	{
 		m_abort = true;
 		m_completion_timeout = 0;
-		error_code ec;
-		m_timeout.cancel(ec);
+		m_timeout.cancel();
 	}
 
 	void timeout_handler::timeout_callback(error_code const& error)
@@ -135,8 +134,7 @@ namespace libtorrent {
 				: std::min(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
 		}
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
-		error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
+		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(
 			std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
 #if TORRENT_USE_ASSERTS
@@ -146,11 +144,11 @@ namespace libtorrent {
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
-		, tracker_request const& req
-		, io_service& ios
+		, tracker_request req
+		, io_context& ios
 		, std::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_req(req)
+		, m_req(std::move(req))
 		, m_requester(std::move(r))
 		, m_man(man)
 	{}
@@ -160,19 +158,19 @@ namespace libtorrent {
 		return m_requester.lock();
 	}
 
-	void tracker_connection::fail(error_code const& ec
+	void tracker_connection::fail(error_code const& ec, operation_t const op
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
-		get_io_service().post(std::bind(&tracker_connection::fail_impl
-			, shared_from_this(), ec, std::string(msg), interval, min_interval));
+		post(get_executor(), std::bind(&tracker_connection::fail_impl
+			, shared_from_this(), ec, op, std::string(msg), interval, min_interval));
 	}
 
-	void tracker_connection::fail_impl(error_code const& ec
+	void tracker_connection::fail_impl(error_code const& ec, operation_t const op
 		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		std::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, ec, msg
+		if (cb) cb->tracker_request_error(m_req, ec, op, msg
 			, interval.count() == 0 ? min_interval : interval);
 		close();
 	}
@@ -192,17 +190,17 @@ namespace libtorrent {
 		m_man.received_bytes(bytes);
 	}
 
-	tracker_manager::tracker_manager(send_fun_t const& send_fun
-		, send_fun_hostname_t const& send_fun_hostname
+	tracker_manager::tracker_manager(send_fun_t send_fun
+		, send_fun_hostname_t send_fun_hostname
 		, counters& stats_counters
-		, resolver_interface& resolver
+		, aux::resolver_interface& resolver
 		, aux::session_settings const& sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, aux::session_logger& ses
 #endif
 		)
-		: m_send_fun(send_fun)
-		, m_send_fun_hostname(send_fun_hostname)
+		: m_send_fun(std::move(send_fun))
+		, m_send_fun_hostname(std::move(send_fun_hostname))
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)
@@ -236,6 +234,21 @@ namespace libtorrent {
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
+			if (!m_queued.empty())
+			{
+				auto conn = std::move(m_queued.front());
+				m_queued.pop_front();
+				m_http_conns.push_back(std::move(conn));
+				m_http_conns.back()->start();
+			}
+			return;
+		}
+
+		auto const j = std::find_if(m_queued.begin(), m_queued.end()
+			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+		if (j != m_queued.end())
+		{
+			m_queued.erase(j);
 		}
 	}
 
@@ -255,14 +268,15 @@ namespace libtorrent {
 	}
 
 	void tracker_manager::queue_request(
-		io_service& ios
+		io_context& ios
 		, tracker_request&& req
+		, aux::session_settings const& sett
 		, std::weak_ptr<request_callback> c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);
-		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
-		if (m_abort && req.event != tracker_request::stopped) return;
+		TORRENT_ASSERT(!m_abort || req.event == event_t::stopped);
+		if (m_abort && req.event != event_t::stopped) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = c.lock();
@@ -272,15 +286,22 @@ namespace libtorrent {
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 		if (protocol == "http" || protocol == "https")
 #else
 		if (protocol == "http")
 #endif
 		{
 			auto con = std::make_shared<http_tracker_connection>(ios, *this, std::move(req), c);
-			m_http_conns.push_back(con);
-			con->start();
+			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
+			{
+				m_http_conns.push_back(std::move(con));
+				m_http_conns.back()->start();
+			}
+			else
+			{
+				m_queued.push_back(std::move(con));
+			}
 			return;
 		}
 		else if (protocol == "udp")
@@ -293,8 +314,8 @@ namespace libtorrent {
 
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())
-			ios.post(std::bind(&request_callback::tracker_request_error, r, std::move(req)
-				, errors::unsupported_url_protocol
+			post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
+				, errors::unsupported_url_protocol, operation_t::parse_address
 				, "", seconds32(0)));
 	}
 
@@ -412,7 +433,7 @@ namespace libtorrent {
 		for (auto const& c : m_http_conns)
 		{
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
+			if (req.event == event_t::stopped && !all)
 				continue;
 
 			close_http_connections.push_back(c);
@@ -426,7 +447,7 @@ namespace libtorrent {
 		{
 			auto const& c = p.second;
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
+			if (req.event == event_t::stopped && !all)
 				continue;
 
 			close_udp_connections.push_back(c);

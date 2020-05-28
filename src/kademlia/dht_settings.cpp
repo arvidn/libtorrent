@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace dht {
 
+#if TORRENT_ABI_VERSION <= 2
 	dht_settings read_dht_settings(bdecode_node const& e)
 	{
-		dht_settings sett;
+		dht_settings sett{};
 
 		if (e.type() != bdecode_node::dict_t) return sett;
 
@@ -110,5 +111,6 @@ namespace dht {
 
 		return e;
 	}
+#endif
 }
 }

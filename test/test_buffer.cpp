@@ -1,10 +1,11 @@
 /*
-	Copyright (c) 2003 - 2005, Arvid Norberg, Daniel Wallin
-	All rights reserved.
+Copyright (c) 2005, 2007-2008, 2014-2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
+All rights reserved.
 
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions
-	are met:
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
 
     * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
@@ -35,13 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <set>
 
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/socket.hpp"
 
 #include "test.hpp"
 
 using namespace lt;
+using lt::aux::buffer;
+using lt::aux::chained_buffer;
 
 // -- test buffer --
 
@@ -161,12 +164,11 @@ template <class T>
 int copy_buffers(T const& b, char* target)
 {
 	int copied = 0;
-	for (typename T::const_iterator i = b.begin()
-		, end(b.end()); i != end; ++i)
+	for (auto const& i : b)
 	{
-		memcpy(target, boost::asio::buffer_cast<char const*>(*i), boost::asio::buffer_size(*i));
-		target += boost::asio::buffer_size(*i);
-		copied += int(boost::asio::buffer_size(*i));
+		memcpy(target, i.data(), i.size());
+		target += i.size();
+		copied += int(i.size());
 	}
 	return copied;
 }
@@ -175,7 +177,7 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
 	if (size == 0) return true;
 	std::vector<char> flat((std::size_t(size)));
-	std::vector<boost::asio::const_buffer> const& iovec2 = b.build_iovec(size);
+	auto const iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
 	TEST_CHECK(copied == size);
 	return std::memcmp(&flat[0], mem, std::size_t(size)) == 0;

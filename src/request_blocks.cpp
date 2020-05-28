@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/request_blocks.hpp"
-#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 
 #include <vector>
@@ -116,12 +117,24 @@ namespace libtorrent {
 			&& !time_critical_mode
 			&& t.settings().get_int(settings_pack::whole_pieces_threshold) > 0)
 		{
+			// if our download rate lets us download a whole piece in
+			// "whole_pieces_threshold" seconds, we prefer to pick an entire piece.
+			// If we can download multiple whole pieces, we prefer to download that
+			// many contiguous pieces.
+
+			// download_rate times the whole piece threshold (seconds) gives the
+			// number of bytes downloaded in one window of that threshold, divided
+			// by the piece size give us the number of (whole) pieces downloaded
+			// in the window.
+			int const contiguous_pieces =
+				std::min(c.statistics().download_payload_rate()
+				* t.settings().get_int(settings_pack::whole_pieces_threshold)
+				, 8 * 1024 * 1024)
+				/ t.torrent_file().piece_length();
+
 			int const blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
-			prefer_contiguous_blocks
-				= (c.statistics().download_payload_rate()
-				> t.torrent_file().piece_length()
-				/ t.settings().get_int(settings_pack::whole_pieces_threshold))
-				? blocks_per_piece : 0;
+
+			prefer_contiguous_blocks = contiguous_pieces * blocks_per_piece;
 		}
 
 		// if we prefer whole pieces, the piece picker will pick at least
@@ -130,7 +143,7 @@ namespace libtorrent {
 		// than we requested.
 #if TORRENT_USE_ASSERTS
 		error_code ec;
-		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
+		TORRENT_ASSERT(c.remote() == c.get_socket().remote_endpoint(ec) || ec);
 #endif
 
 		aux::session_interface& ses = t.session();
@@ -239,8 +252,7 @@ namespace libtorrent {
 				|| std::find_if(rq.begin(), rq.end(), aux::has_block(pb)) != rq.end())
 			{
 #if TORRENT_USE_ASSERTS
-				std::vector<pending_block>::const_iterator j
-					= std::find_if(dq.begin(), dq.end(), aux::has_block(pb));
+				auto const j = std::find_if(dq.begin(), dq.end(), aux::has_block(pb));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING

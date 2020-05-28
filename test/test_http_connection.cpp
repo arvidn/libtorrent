@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2007-2010, 2013-2019, Arvid Norberg
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,9 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
+#include "libtorrent/random.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -50,8 +54,8 @@ using namespace lt;
 
 namespace {
 
-io_service ios;
-resolver res(ios);
+io_context ios;
+aux::resolver res(ios);
 
 int connect_handler_called = 0;
 int handler_called = 0;
@@ -78,7 +82,7 @@ void http_connect_handler_test(http_connection& c)
 	std::cout << time_now_string() << " connected to: "
 		<< print_endpoint(c.socket().remote_endpoint(ec)) << std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
-//	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
+//	TEST_CHECK(c.socket().remote_endpoint(ec).address() == make_address("127.0.0.1", ec));
 }
 
 void http_handler_test(error_code const& ec, http_parser const& parser
@@ -123,13 +127,21 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
+#if TORRENT_USE_SSL
+	ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl_ctx.set_verify_mode(ssl::context::verify_none);
+#endif
+
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
-		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test);
-	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, resolver_flags{}, auth);
-	ios.reset();
-	error_code e;
-	ios.run(e);
-	if (e) std::cout << time_now_string() << " run failed: " << e.message() << std::endl;
+		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
+		, http_filter_handler()
+#if TORRENT_USE_SSL
+		, &ssl_ctx
+#endif
+		);
+	h->get(url, seconds(5), 0, &ps, 5, "test/user-agent", boost::none, aux::resolver_flags{}, auth);
+	ios.restart();
+	ios.run();
 
 	std::string const n = time_now_string();
 	std::cout << n << " connect_handler_called: " << connect_handler_called << std::endl;
@@ -147,8 +159,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 void write_test_file()
 {
-	std::srand(unsigned(std::time(nullptr)));
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	aux::random_bytes(data_buffer);
 	error_code ec;
 	file test_file("test_file", aux::open_mode::write, ec);
 	TEST_CHECK(!ec);
@@ -220,7 +231,12 @@ void run_suite(std::string const& protocol
 		, static_cast<void*>(h), h_errno);
 	if (h == nullptr && h_errno == HOST_NOT_FOUND)
 	{
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
+		// if we have a proxy, we'll be able to connect to it, we will just get an
+		// error from the proxy saying it failed to connect to the final target
+		if (protocol == "http" && (ps.type == settings_pack::http || ps.type == settings_pack::http_pw))
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 1, err(), ps);
+		else
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}
 	if (ps.type != settings_pack::none)
 		stop_proxy(ps.port);
@@ -229,11 +245,18 @@ void run_suite(std::string const& protocol
 
 } // anonymous namespace
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
 TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
-#endif // USE_OPENSSL
+TORRENT_TEST(socks5_proxy_ssl) { run_suite("https", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw_proxy_ssl) { run_suite("https", settings_pack::socks5_pw); }
+#endif // USE_SSL
+
+TORRENT_TEST(http_proxy) { run_suite("http", settings_pack::http); }
+TORRENT_TEST(http__pwproxy) { run_suite("http", settings_pack::http_pw); }
+TORRENT_TEST(socks5_proxy) { run_suite("http", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw_proxy) { run_suite("http", settings_pack::socks5_pw); }
 
 TORRENT_TEST(no_keepalive)
 {

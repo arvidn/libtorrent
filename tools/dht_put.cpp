@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016, Steven Siloti
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2019, Amir Abrams
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,12 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/hex.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/session_params.hpp"
 
 #include <functional>
 #include <cstdio> // for snprintf
@@ -49,10 +53,6 @@ using namespace lt;
 using namespace lt::dht;
 using namespace std::placeholders;
 
-// TODO: don't use internal functions to libtorrent
-using lt::aux::from_hex;
-using lt::aux::to_hex;
-
 #ifdef TORRENT_DISABLE_DHT
 
 int main(int argc, char* argv[])
@@ -62,6 +62,43 @@ int main(int argc, char* argv[])
 }
 
 #else
+
+std::string to_hex(lt::span<char const> key)
+{
+	std::string out;
+	for (auto const b : key)
+	{
+		char buf[20];
+		std::snprintf(buf, sizeof(3), "%02x", static_cast<unsigned char>(b));
+		out += (char*)buf;
+	}
+	return out;
+}
+
+int hex_to_int(char in)
+{
+	if (in >= '0' && in <= '9') return int(in) - '0';
+	if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+	if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+	return -1;
+}
+
+bool from_hex(span<char const> in, span<char> out)
+{
+	if (in.size() != out.size() * 2) return false;
+	auto o = out.begin();
+	for (auto i = in.begin(); i != in.end(); ++i, ++o)
+	{
+		int const t1 = hex_to_int(*i);
+		if (t1 == -1) return false;
+		++i;
+		if (i == in.end()) return false;
+		int const t2 = hex_to_int(*i);
+		if (t2 == -1) return false;
+		*o = static_cast<char>((t1 << 4) | (t2 & 0xf));
+	}
+	return true;
+}
 
 namespace {
 void usage()
@@ -76,10 +113,12 @@ void usage()
 		"                            the specified file\n"
 		"dump-key <key-file>       - dump ed25519 keypair from the specified key\n"
 		"                            file.\n"
-		"mput <key-file> <string>  - puts the specified string as a mutable\n"
-		"                            object under the public key in key-file\n"
-		"mget <public-key>         - get a mutable object under the specified\n"
-		"                            public key\n"
+		"mput <key-file> <string> [salt]\n"
+		"                          - puts the specified string as a mutable\n"
+		"                            object under the public key in key-file,\n"
+		"                            and optionally specified salt\n"
+		"mget <public-key> [salt]  - get a mutable object under the specified\n"
+		"                            public key, and salt (optional)\n"
 		);
 	exit(1);
 }
@@ -94,10 +133,9 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 
 		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (auto const a : alerts)
 		{
-			if ((*i)->type() != alert_type)
+			if (a->type() != alert_type)
 			{
 				static int spinner = 0;
 				static const char anim[] = {'-', '\\', '|', '/'};
@@ -107,7 +145,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 				//print some alerts?
 				continue;
 			}
-			ret = *i;
+			ret = a;
 			found = true;
 		}
 	}
@@ -180,48 +218,22 @@ int generate_key(char const* filename)
 	return 0;
 }
 
-void load_dht_state(lt::session& s)
+lt::session_params load_dht_state()
 {
-	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
+	std::fstream f(".dht", std::ios_base::in | std::ios_base::binary);
+	f.unsetf(std::ios_base::skipws);
+	std::printf("load dht state from .dht\n");
+	std::vector<char> const state(std::istream_iterator<char>{f}
+		, std::istream_iterator<char>{});
 
-	auto const size = f.tellg();
-	if (static_cast<int>(size) <= 0) return;
-	f.seekg(0, std::ios_base::beg);
-
-	std::vector<char> state;
-	state.resize(static_cast<std::size_t>(size));
-
-	f.read(state.data(), size);
-	if (f.fail())
+	if (f.bad())
 	{
-		std::fprintf(stderr, "failed to read .dht");
-		return;
+		std::fprintf(stderr, "failed to read .dht\n");
+		return {};
 	}
-
-	bdecode_node e;
-	error_code ec;
-	bdecode(state.data(), state.data() + state.size(), e, ec);
-	if (ec)
-		std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
-			, ec.value(), ec.message().c_str());
-	else
-	{
-		std::printf("load dht state from .dht\n");
-		s.load_state(e);
-	}
+	return read_session_params(state);
 }
 
-int save_dht_state(lt::session& s)
-{
-	entry e;
-	s.save_state(e, session::save_dht_state);
-	std::vector<char> state;
-	bencode(std::back_inserter(state), e);
-
-	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-	f.write(state.data(), static_cast<std::streamsize>(state.size()));
-	return 0;
-}
 } // anonymous namespace
 
 int main(int argc, char* argv[])
@@ -250,15 +262,10 @@ int main(int argc, char* argv[])
 		return generate_key(argv[0]);
 	}
 
-	settings_pack sett;
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_int(settings_pack::alert_mask, 0x7fffffff);
-	lt::session s(sett);
-
-	sett.set_bool(settings_pack::enable_dht, true);
-	s.apply_settings(sett);
-
-	load_dht_state(s);
+	session_params sp = load_dht_state();
+	sp.settings.set_bool(settings_pack::enable_dht, true);
+	sp.settings.set_int(settings_pack::alert_mask, 0x7fffffff);
+	lt::session s(sp);
 
 	if (argv[0] == "get"_sv)
 	{
@@ -273,8 +280,7 @@ int main(int argc, char* argv[])
 			usage();
 		}
 		sha1_hash target;
-		bool ret = from_hex({argv[0], 40}, target.data());
-		if (!ret)
+		if (!from_hex({argv[0], 40}, target))
 		{
 			std::fprintf(stderr, "invalid hex encoding of target hash\n");
 			return 1;
@@ -290,7 +296,7 @@ int main(int argc, char* argv[])
 		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a);
 
 		std::string str = item->item.to_string();
-		std::printf("%s", str.c_str());
+		std::printf("%s\n", str.c_str());
 	}
 	else if (argv[0] == "put"_sv)
 	{
@@ -328,12 +334,16 @@ int main(int argc, char* argv[])
 		public_key pk;
 		secret_key sk;
 		std::tie(pk, sk) = ed25519_create_keypair(seed);
+		std::string salt;
+
+		if (argc > 1) salt = argv[1];
 
 		bootstrap(s);
 		s.dht_put_item(pk.bytes, std::bind(&put_string, _1, _2, _3, _4
-			, pk.bytes, sk.bytes, argv[0]));
+			, pk.bytes, sk.bytes, argv[0]), salt);
 
-		std::printf("MPUT public key: %s\n", to_hex(pk.bytes).c_str());
+		std::printf("MPUT public key: %s [salt: %s]\n", to_hex(pk.bytes).c_str()
+			, salt.c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
@@ -352,16 +362,18 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 		std::array<char, 32> public_key;
-		bool ret = from_hex({argv[0], len}, &public_key[0]);
-		if (!ret)
+		if (!from_hex({argv[0], len}, public_key))
 		{
 			std::fprintf(stderr, "invalid hex encoding of public key\n");
 			return 1;
 		}
 
+		std::string salt;
+		if (argc > 1) salt = argv[1];
+
 		bootstrap(s);
-		s.dht_get_item(public_key);
-		std::printf("MGET %s\n", argv[0]);
+		s.dht_get_item(public_key, salt);
+		std::printf("MGET %s [salt: %s]\n", argv[0], salt.c_str());
 
 		bool authoritative = false;
 
@@ -373,7 +385,7 @@ int main(int argc, char* argv[])
 
 			authoritative = item->authoritative;
 			std::string str = item->item.to_string();
-			std::printf("%s: %s", authoritative ? "auth" : "non-auth", str.c_str());
+			std::printf("%s: %s\n", authoritative ? "auth" : "non-auth", str.c_str());
 		}
 	}
 	else
@@ -381,7 +393,11 @@ int main(int argc, char* argv[])
 		usage();
 	}
 
-	return save_dht_state(s);
+	std::vector<char> state = write_session_params_buf(s.session_state(session::save_dht_state));
+	std::fstream f(".dht", std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+	f.write(state.data(), static_cast<std::streamsize>(state.size()));
+
+	return 0;
 }
 
 #endif

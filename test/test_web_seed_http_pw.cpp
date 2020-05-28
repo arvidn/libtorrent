@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2013, 2015, 2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ TORRENT_TEST(url_seed_http_pw)
 	run_http_suite(proxy, "http", true);
 }
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_SSL
 TORRENT_TEST(web_seed_http_pw_ssl)
 {
 	run_http_suite(proxy, "https", false);
@@ -59,4 +59,3 @@ TORRENT_TEST(url_seed_http_pw_ssl)
 	run_http_suite(proxy, "https", true);
 }
 #endif
-

@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2016-2019, Arvid Norberg
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2017-2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,6 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 
+constexpr lt::file_index_t operator""_file (unsigned long long int const v)
+{ return lt::file_index_t{static_cast<int>(v)}; }
+
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
@@ -71,7 +77,7 @@ TORRENT_TEST(create_verbatim_torrent)
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
 }
 
-TORRENT_TEST(piece_size)
+TORRENT_TEST(auto_piece_size)
 {
 	std::int64_t const kiB = 1024;
 	std::int64_t const MiB = 1024 * 1024;
@@ -99,6 +105,36 @@ TORRENT_TEST(piece_size)
 	}
 }
 
+namespace {
+int test_piece_size(int const piece_size, lt::create_flags_t const f = {})
+{
+	std::int64_t const MiB = 1024 * 1024;
+	lt::file_storage fs;
+	fs.add_file("a", 100 * MiB);
+	lt::create_torrent ct(fs, piece_size, f);
+	return ct.piece_length();
+}
+}
+
+TORRENT_TEST(piece_size_restriction_16kB)
+{
+	TEST_EQUAL(test_piece_size(15000), 16 * 1024);
+	TEST_EQUAL(test_piece_size(500), 16 * 1024);
+	TEST_THROW(test_piece_size(15000, lt::create_torrent::v1_only));
+	TEST_THROW(test_piece_size(8000, lt::create_torrent::v1_only));
+	TEST_EQUAL(test_piece_size(8192, lt::create_torrent::v1_only), 8192);
+}
+
+TORRENT_TEST(piece_size_quanta)
+{
+	TEST_EQUAL(test_piece_size(32 * 1024), 32 * 1024);
+	TEST_EQUAL(test_piece_size(32 * 1024, lt::create_torrent::v1_only), 32 * 1024);
+	TEST_THROW(test_piece_size(48 * 1024));
+	TEST_EQUAL(test_piece_size(48 * 1024, lt::create_torrent::v1_only), 48 * 1024);
+	TEST_THROW(test_piece_size(47 * 1024, lt::create_torrent::v1_only));
+	TEST_THROW(test_piece_size(47 * 1024));
+}
+
 TORRENT_TEST(create_torrent_round_trip)
 {
 	char const test_torrent[] = "d8:announce26:udp://testurl.com/announce7:comment22:this is a test comment13:creation datei1337e4:infod6:lengthi12345e4:name6:foobar12:piece lengthi65536e6:pieces20:ababababababababababee";
@@ -119,3 +155,47 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_CHECK(info1.info_hash() == info2.info_hash());
 }
 
+// check that attempting to create a torrent containing both
+// a file and directory with the same name is not allowed
+TORRENT_TEST(path_conflict)
+{
+	lt::file_storage fs;
+
+	for (int i = 0; i < 2; ++i)
+	{
+		switch (i)
+		{
+		case 0:
+			fs.add_file("test/A/tmp", 0x4000);
+			fs.add_file("test/a", 0x4000);
+			fs.add_file("test/A", 0x4000);
+			fs.add_file("test/filler", 0x4000);
+			break;
+		case 1:
+			fs.add_file("test/long/path/name/that/collides", 0x4000);
+			fs.add_file("test/long/path", 0x4000);
+			fs.add_file("test/filler-1", 0x4000);
+			fs.add_file("test/filler-2", 0x4000);
+			break;
+		}
+
+		lt::create_torrent t(fs, 0x4000);
+		TEST_THROW(t.generate());
+	}
+}
+
+TORRENT_TEST(v2_only)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8000);
+	fs.add_file("test/B", 0x4000);
+	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+	TEST_CHECK(info.info_hash().has_v2());
+	TEST_CHECK(!info.info_hash().has_v1());
+	TEST_EQUAL(info.files().file_name(0_file), "A");
+	TEST_EQUAL(info.files().file_name(1_file), "B");
+	TEST_EQUAL(info.name(), "test");
+}

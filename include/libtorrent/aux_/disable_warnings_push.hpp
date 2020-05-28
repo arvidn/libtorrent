@@ -45,14 +45,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #if __GNUC__ >= 6
 #pragma GCC diagnostic ignored "-Wshift-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-negative"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #if __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
+#if __GNUC__ >= 8
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+#if __GNUC__ >= 9
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
 #endif
 
@@ -99,4 +107,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4548)
 // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 #pragma warning(disable : 4244)
+// potentially uninitialized local variable 'result' used
+#pragma warning(disable : 4701)
 #endif

@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014, 2017-2019, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,12 +39,14 @@ using test_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test
 
 namespace test_flags
 {
-	using libtorrent::operator ""_bit;
+	using libtorrent::operator "" _bit;
 	constexpr test_flags_t super_seeding = 1_bit;
 	constexpr test_flags_t strict_super_seeding = 2_bit;
 	constexpr test_flags_t seed_mode = 3_bit;
 	constexpr test_flags_t time_critical = 4_bit;
 	constexpr test_flags_t suggest = 5_bit;
+	constexpr test_flags_t v1_meta = 6_bit;
+	constexpr test_flags_t v2_meta = 7_bit;
 }
 
 EXPORT void test_swarm(test_flags_t flags = test_flags_t{});

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2018, Arvid Norberg
+Copyright (c) 2015, 2017-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,11 +49,16 @@ namespace libtorrent {
 	// see the session-statistics_ section.
 	struct TORRENT_EXPORT stats_metric
 	{
+		// the name of the counter or gauge
 		char const* name;
+
+		// the index into the session stats array, where the underlying value of
+		// this counter or gauge is found. The session stats array is part of the
+		// session_stats_alert object.
 		int value_index;
 #if TORRENT_ABI_VERSION == 1
-		static constexpr metric_type_t TORRENT_DEPRECATED_MEMBER type_counter = metric_type_t::counter;
-		static constexpr metric_type_t TORRENT_DEPRECATED_MEMBER type_gauge = metric_type_t::gauge;
+		TORRENT_DEPRECATED static constexpr metric_type_t type_counter = metric_type_t::counter;
+		TORRENT_DEPRECATED static constexpr metric_type_t type_gauge = metric_type_t::gauge;
 #endif
 		metric_type_t type;
 	};

@@ -35,10 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 std::string save_path(int idx);
 lt::add_torrent_params create_torrent(int idx, bool seed = true
-	, int num_pieces = 9);
+	, int num_pieces = 9, lt::create_flags_t flags = {});
 
 #endif
 

@@ -1,7 +1,11 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
-Copyright (c) 2007-2018, Arvid Norberg, Un Shyam
+Copyright (c) 2007, Un Shyam
+Copyright (c) 2006-2019, Arvid Norberg
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2018-2019, Steven Siloti
+Copyright (c) 2018, Greg Hazel
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/debug.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -54,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/hash_picker.hpp"
 
 namespace libtorrent {
 
@@ -79,16 +84,15 @@ namespace libtorrent {
 	};
 #endif
 
-	class TORRENT_EXTRA_EXPORT bt_peer_connection
-		: public peer_connection
+	struct TORRENT_EXTRA_EXPORT bt_peer_connection
+		: peer_connection
 	{
-	friend class invariant_access;
-	public:
+	friend struct invariant_access;
 
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		explicit bt_peer_connection(peer_connection_args const& pack);
+		explicit bt_peer_connection(peer_connection_args& pack);
 
 		void start() override;
 
@@ -144,6 +148,10 @@ namespace libtorrent {
 
 			// extension protocol message
 			msg_extended = 20,
+
+			msg_hash_request = 21,
+			msg_hashes,
+			msg_hash_reject,
 
 			num_supported_messages
 		};
@@ -212,6 +220,9 @@ namespace libtorrent {
 		void on_request(int received);
 		void on_piece(int received);
 		void on_cancel(int received);
+		void on_hash_request(int received);
+		void on_hashes(int received);
+		void on_hash_reject(int received);
 
 		// DHT extension
 		void on_dht_port(int received);
@@ -227,6 +238,9 @@ namespace libtorrent {
 		void on_extended(int received);
 
 		void on_extended_handshake();
+
+		template<typename F, typename... Args>
+		void extension_notify(F message, Args... args);
 
 		// the following functions appends messages
 		// to the send buffer
@@ -247,6 +261,11 @@ namespace libtorrent {
 		void write_share_mode();
 		void write_holepunch_msg(hp_message type, tcp::endpoint const& ep
 			, hp_error error = hp_error::no_error);
+		void write_hash_request(hash_request const& req);
+		void write_hashes(hash_request const& req, span<sha256_hash> hashes);
+		void write_hash_reject(hash_request const& req);
+
+		void maybe_send_hash_request();
 
 		// DHT extension
 		void write_dht_port(int listen_port);
@@ -271,7 +290,6 @@ namespace libtorrent {
 		template <typename... Args>
 		void send_message(message_type const type
 			, counters::stats_counter_t const counter
-			, std::uint32_t flags
 			, Args... args)
 		{
 			TORRENT_ASSERT(m_sent_handshake);
@@ -282,10 +300,10 @@ namespace libtorrent {
 			char* ptr = msg + 5;
 			TORRENT_UNUSED(ptr);
 
-			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
+			int tmp[] = {0, (aux::write_int32(args, ptr), 0)...};
 			TORRENT_UNUSED(tmp);
 
-			send_buffer(msg, flags);
+			send_buffer(msg);
 
 			stats_counters().inc_stats_counter(counter);
 		}
@@ -334,7 +352,7 @@ namespace libtorrent {
 			{
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
-				buffer buf(size, {holder.data(), size});
+				aux::buffer buf(size, {holder.data(), size});
 				append_send_buffer(std::move(buf), size);
 			}
 			else
@@ -409,7 +427,7 @@ namespace libtorrent {
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wshadow-field"
 #endif
-		crypto_receive_buffer m_recv_buffer;
+		aux::crypto_receive_buffer m_recv_buffer;
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -440,6 +458,8 @@ namespace libtorrent {
 		};
 
 		std::vector<range> m_payloads;
+
+		std::vector<hash_request> m_hash_requests;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		// initialized during write_pe1_2_dhkey, and destroyed on

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2010-2018, Arvid Norberg
+Copyright (c) 2010-2011, 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	TORRENT_EXTRA_EXPORT void set_bits(std::uint8_t const* b, std::uint8_t* bits, int len);
-	TORRENT_EXTRA_EXPORT bool has_bits(std::uint8_t const* b, std::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT void set_bits(std::uint8_t const* k, std::uint8_t* bits, int len);
+	TORRENT_EXTRA_EXPORT bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int len);
 	TORRENT_EXTRA_EXPORT int count_zero_bits(std::uint8_t const* bits, int len);
 
 	template <int N>
@@ -63,8 +64,8 @@ namespace libtorrent {
 
 		float size() const
 		{
-			const int c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
-			const int m = N * 8;
+			int const c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
+			int const m = N * 8;
 			return std::log(c / float(m)) / (2.f * std::log(1.f - 1.f/m));
 		}
 

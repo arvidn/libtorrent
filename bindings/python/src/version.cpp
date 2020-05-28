@@ -13,7 +13,7 @@ void bind_version()
     scope().attr("__version__") = version();
 
 #if TORRENT_ABI_VERSION == 1
-    scope().attr("version") = LIBTORRENT_VERSION;
+    scope().attr("version") = lt::version_str;
     scope().attr("version_major") = LIBTORRENT_VERSION_MAJOR;
     scope().attr("version_minor") = LIBTORRENT_VERSION_MINOR;
 #endif

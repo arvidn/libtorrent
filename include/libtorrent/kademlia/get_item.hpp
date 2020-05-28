@@ -1,6 +1,9 @@
 /*
 
 Copyright (c) 2013, Steven Siloti
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace dht {
 
 class get_item : public find_data
 {
@@ -53,15 +57,15 @@ public:
 	// for immutable items
 	get_item(node& dht_node
 		, node_id const& target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback);
+		, data_callback dcallback
+		, nodes_callback ncallback);
 
 	// for mutable items
 	get_item(node& dht_node
 		, public_key const& pk
 		, span<char const> salt
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback);
+		, data_callback dcallback
+		, nodes_callback ncallback);
 
 	char const* name() const override;
 
@@ -88,6 +92,7 @@ public:
 	void reply(msg const&) override;
 };
 
-} } // namespace libtorrent::dht
+} // namespace dht
+} // namespace libtorrent
 
 #endif // LIBTORRENT_GET_ITEM_HPP

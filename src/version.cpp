@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2018, Arvid Norberg
+Copyright (c) 2015, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ namespace libtorrent {
 
 char const* version()
 {
-	return LIBTORRENT_VERSION;
+	return version_str;
 }
 
 }

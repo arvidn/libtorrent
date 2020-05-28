@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017-2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ struct bitfield_flag
 
 	static constexpr bitfield_flag all()
 	{
-		return bitfield_flag(~UnderlyingType{0});
+		return bitfield_flag(static_cast<UnderlyingType>(~UnderlyingType{0}));
 	}
 
 	bool constexpr operator==(bitfield_flag const f) const noexcept
@@ -82,19 +82,19 @@ struct bitfield_flag
 	bool constexpr operator!=(bitfield_flag const f) const noexcept
 	{ return m_val != f.m_val; }
 
-	bitfield_flag& operator|=(bitfield_flag const f) noexcept
+	bitfield_flag& operator|=(bitfield_flag const f) & noexcept
 	{
 		m_val |= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator&=(bitfield_flag const f) noexcept
+	bitfield_flag& operator&=(bitfield_flag const f) & noexcept
 	{
 		m_val &= f.m_val;
 		return *this;
 	}
 
-	bitfield_flag& operator^=(bitfield_flag const f) noexcept
+	bitfield_flag& operator^=(bitfield_flag const f) & noexcept
 	{
 		m_val ^= f.m_val;
 		return *this;
@@ -117,20 +117,23 @@ struct bitfield_flag
 
 	constexpr bitfield_flag operator~() const noexcept
 	{
-		return bitfield_flag(~m_val);
+		// technically, m_val is promoted to int before applying operator~, which
+		// means the result may not fit into the underlying type again. So,
+		// explicitly cast it
+		return bitfield_flag(static_cast<UnderlyingType>(~m_val));
 	}
 
-	bitfield_flag& operator=(bitfield_flag const& rhs) noexcept = default;
-	bitfield_flag& operator=(bitfield_flag&& rhs) noexcept = default;
+	bitfield_flag& operator=(bitfield_flag const& rhs) & noexcept = default;
+	bitfield_flag& operator=(bitfield_flag&& rhs) & noexcept = default;
+
+#if TORRENT_USE_IOSTREAM
+	friend std::ostream& operator<<(std::ostream& os, bitfield_flag val)
+	{ return os << static_cast<UnderlyingType>(val); }
+#endif
+
 private:
 	UnderlyingType m_val;
 };
-
-#if TORRENT_USE_IOSTREAM
-	template <typename T, typename Tag>
-	std::ostream& operator<<(std::ostream& os, bitfield_flag<T, Tag> val)
-	{ return os << static_cast<T>(val); }
-#endif
 
 } // flags
 } // libtorrent

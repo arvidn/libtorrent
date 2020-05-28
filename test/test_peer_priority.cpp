@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2012-2017, 2019, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_list.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
-#include "setup_transfer.hpp"
+#include "setup_transfer.hpp" // for supports_ipv6()
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

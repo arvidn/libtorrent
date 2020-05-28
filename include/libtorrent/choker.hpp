@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2014-2018, Arvid Norberg
+Copyright (c) 2014, 2017-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,8 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux { struct session_settings; }
-	class peer_connection;
+namespace aux {
+	struct session_settings;
+}
+	struct peer_connection;
 
 	// sorts the vector of peers in-place. When returning, the top unchoke slots
 	// elements are the peers we should unchoke. This is similar to a partial
@@ -49,7 +52,7 @@ namespace libtorrent {
 	// is also the number of elements that are valid at the beginning of the
 	// peer list. Peers beyond this initial range are not sorted.
 	TORRENT_EXTRA_EXPORT int unchoke_sort(std::vector<peer_connection*>& peers
-		, int max_upload_rate, time_duration unchoke_interval
+		, time_duration unchoke_interval
 		, aux::session_settings const& sett);
 
 }

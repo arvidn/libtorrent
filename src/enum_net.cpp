@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2012, 2014-2019, Arvid Norberg
+Copyright (c) 2015-2018, Steven Siloti
+Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2016-2017, Andrei Kurushin
+Copyright (c) 2018, Alexandre Janniaux
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/win_util.hpp"
 #endif
@@ -86,8 +91,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -117,14 +122,14 @@ namespace {
 
 
 #if !defined TORRENT_BUILD_SIMULATOR
-	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
+	address_v4 inaddr_to_address(void const* ina, int const len = 4)
 	{
 		boost::asio::ip::address_v4::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina, std::min(std::size_t(len), b.size()));
 		return address_v4(b);
 	}
 
-	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
+	address_v6 inaddr6_to_address(void const* ina6, int const len = 16)
 	{
 		boost::asio::ip::address_v6::bytes_type b = {};
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
@@ -164,48 +169,6 @@ namespace {
 			|| family == AF_INET6
 		);
 	}
-
-#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_NETLINK
-	address build_netmask(int bits, int const family)
-	{
-		if (family == AF_INET)
-		{
-			address_v4::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v4(b);
-		}
-		else if (family == AF_INET6)
-		{
-			address_v6::bytes_type b;
-			b.fill(0xff);
-			for (int i = int(b.size()) - 1; i >= 0; --i)
-			{
-				if (bits < 8)
-				{
-					b[std::size_t(i)] <<= bits;
-					break;
-				}
-				b[std::size_t(i)] = 0;
-				bits -= 8;
-			}
-			return address_v6(b);
-		}
-		else
-		{
-			return address();
-		}
-	}
-#endif
 
 #if TORRENT_USE_NETLINK
 
@@ -252,7 +215,7 @@ namespace {
 
 	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
 	{
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
 		nl_msg->nlmsg_len = std::uint32_t(NLMSG_LENGTH(msg_len));
 		nl_msg->nlmsg_type = type;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
@@ -280,12 +243,17 @@ namespace {
 		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
 	}
 
+	address to_address(int const address_family, void const* in)
+	{
+		if (address_family == AF_INET6) return inaddr6_to_address(in);
+		else return inaddr_to_address(in);
+	}
+
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
-		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
+		auto* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
-		if (!valid_addr_family(rt_msg->rtm_family) || (rt_msg->rtm_table != RT_TABLE_MAIN
-			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
+		if (!valid_addr_family(rt_msg->rtm_family))
 			return false;
 
 		// make sure the defaults have the right address family
@@ -297,12 +265,12 @@ namespace {
 		}
 
 		int if_index = 0;
-		int rt_len = int(RTM_PAYLOAD(nl_hdr));
+		auto rt_len = RTM_PAYLOAD(nl_hdr);
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #endif
-		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
+		for (auto* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
 			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
@@ -311,24 +279,13 @@ namespace {
 					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
 					break;
 				case RTA_GATEWAY:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->gateway = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->gateway = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->gateway = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 				case RTA_DST:
-					if (rt_msg->rtm_family == AF_INET6)
-					{
-						rt_info->destination = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
-					}
-					else
-					{
-						rt_info->destination = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
-					}
+					rt_info->destination = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
+					break;
+				case RTA_PREFSRC:
+					rt_info->source_hint = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
 					break;
 			}
 		}
@@ -355,42 +312,13 @@ namespace {
 
 	bool parse_nl_address(nlmsghdr* nl_hdr, ip_interface* ip_info)
 	{
-		ifaddrmsg* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
+		auto* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
-
-		if (addr_msg->ifa_family == AF_INET6)
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 128);
-			if (addr_msg->ifa_prefixlen > 0)
-			{
-				address_v6::bytes_type mask = {};
-				auto it = mask.begin();
-				if (addr_msg->ifa_prefixlen > 64)
-				{
-					detail::write_uint64(0xffffffffffffffffULL, it);
-					addr_msg->ifa_prefixlen -= 64;
-				}
-				if (addr_msg->ifa_prefixlen > 0)
-				{
-					std::uint64_t const m = ~((1ULL << (64 - addr_msg->ifa_prefixlen)) - 1);
-					detail::write_uint64(m, it);
-				}
-				ip_info->netmask = address_v6(mask);
-			}
-		}
-		else
-		{
-			TORRENT_ASSERT(addr_msg->ifa_prefixlen <= 32);
-			if (addr_msg->ifa_prefixlen != 0)
-			{
-				std::uint32_t const m = ~((1U << (32 - addr_msg->ifa_prefixlen)) - 1);
-				ip_info->netmask = address_v4(m);
-			}
-		}
+		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
 		int rt_len = int(IFA_PAYLOAD(nl_hdr));
@@ -398,7 +326,7 @@ namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #endif
-		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
+		for (auto* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
 			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
@@ -413,14 +341,14 @@ namespace {
 			case IFA_LOCAL:
 				if (addr_msg->ifa_family == AF_INET6)
 				{
-					address_v6 addr = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
+					address_v6 addr = inaddr6_to_address(RTA_DATA(rt_attr));
 					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
 						addr.scope_id(addr_msg->ifa_index);
 					ip_info->interface_address = addr;
 				}
 				else
 				{
-					ip_info->interface_address = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
+					ip_info->interface_address = inaddr_to_address(RTA_DATA(rt_attr));
 				}
 				break;
 			}
@@ -431,7 +359,6 @@ namespace {
 
 		static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
 		if_indextoname(addr_msg->ifa_index, ip_info->name);
-
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -475,6 +402,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		rt_info->netmask = sockaddr_to_address(rti_info[RTAX_NETMASK]
 			, rt_info->destination.is_v4() ? AF_INET : AF_INET6);
 		if_indextoname(rtm->rtm_index, rt_info->name);
+		if (rti_info[RTAX_IFA]) rt_info->source_hint = sockaddr_to_address(rti_info[RTAX_IFA]);
 		return true;
 	}
 #endif
@@ -487,10 +415,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return false;
 		}
 
-		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
-		rv.name[sizeof(rv.name) - 1] = 0;
-		rv.friendly_name[0] = 0;
-		rv.description[0] = 0;
+		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
+		rv.name[sizeof(rv.name) - 1] = '\0';
 
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
@@ -503,7 +429,49 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
+	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
+	{
+		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
+		TORRENT_ASSERT(prefix_bits >= 0);
+		int i = 0;
+		while (prefix_bits >= 8)
+		{
+			mask[i] = 0xff;
+			prefix_bits -= 8;
+			++i;
+		}
+		if (i < mask.size())
+		{
+			mask[i] = (0xff << (8 - prefix_bits)) & 0xff;
+			++i;
+			while (i < mask.size())
+			{
+				mask[i] = 0;
+				++i;
+			}
+		}
+	}
+
 } // <anonymous>
+
+	int family(address const& a) { return a.is_v4() ? AF_INET : AF_INET6; }
+
+	address build_netmask(int prefix_bits, int const family)
+	{
+		if (family == AF_INET)
+		{
+			address_v4::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v4(b);
+		}
+		else if (family == AF_INET6)
+		{
+			address_v6::bytes_type b;
+			build_netmask_impl(b, prefix_bits);
+			return address_v6(b);
+		}
+		return {};
+	}
 
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
@@ -514,6 +482,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		if (a1.is_v6())
 		{
+			if (a1.to_v6().scope_id() != a2.to_v6().scope_id()) return false;
+
 			address_v6::bytes_type b1 = a1.to_v6().to_bytes();
 			address_v6::bytes_type b2 = a2.to_v6().to_bytes();
 			address_v6::bytes_type m = mask.to_v6().to_bytes();
@@ -524,24 +494,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}
 			return b1 == b2;
 		}
-		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
-			== (a2.to_v4().to_ulong() & mask.to_v4().to_ulong());
+		return (a1.to_v4().to_uint() & mask.to_v4().to_uint())
+			== (a2.to_v4().to_uint() & mask.to_v4().to_uint());
 	}
 
-	bool in_local_network(io_service& ios, address const& addr, error_code& ec)
-	{
-		std::vector<ip_interface> net = enum_net_interfaces(ios, ec);
-		if (ec) return false;
-		return in_local_network(net, addr);
-	}
-
-	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
-	{
-		return std::any_of(net.begin(), net.end(), [&addr](ip_interface const& i)
-			{ return match_addr_mask(addr, i.interface_address, i.netmask); });
-	}
-
-	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
+	std::vector<ip_interface> enum_net_interfaces(io_context& ios, error_code& ec)
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
@@ -554,7 +511,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		{
 			ip_interface wan;
 			wan.interface_address = ip;
-			wan.netmask = address_v4::from_string("255.255.255.255");
+			if (ip.is_v4())
+				wan.netmask = make_address_v4("255.0.0.0");
+			else
+				wan.netmask = make_address_v6("ffff::");
 			std::strcpy(wan.name, "eth0");
 			std::strcpy(wan.friendly_name, "Ethernet");
 			std::strcpy(wan.description, "Simulator Ethernet Adapter");
@@ -569,7 +529,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 		int len = nl_dump_request(sock, RTM_GETADDR, 0, AF_PACKET, msg, sizeof(ifaddrmsg));
 		if (len < 0)
 		{
@@ -665,10 +625,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name));
-				iface.name[sizeof(iface.name) - 1] = 0;
-				iface.friendly_name[0] = 0;
-				iface.description[0] = 0;
+				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
+				iface.name[sizeof(iface.name) - 1] = '\0';
 
 				ifreq req = {};
 				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
@@ -729,22 +687,62 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}
 
 			for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
-				adapter != 0; adapter = adapter->Next)
+				adapter != nullptr; adapter = adapter->Next)
 			{
 				ip_interface r;
-				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-				r.name[sizeof(r.name) - 1] = 0;
+				std::strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
+				r.name[sizeof(r.name) - 1] = '\0';
 				wcstombs(r.friendly_name, adapter->FriendlyName, sizeof(r.friendly_name));
-				r.friendly_name[sizeof(r.friendly_name) - 1] = 0;
+				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
 				wcstombs(r.description, adapter->Description, sizeof(r.description));
-				r.description[sizeof(r.description) - 1] = 0;
+				r.description[sizeof(r.description) - 1] = '\0';
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
-					if (!valid_addr_family(unicast->Address.lpSockaddr->sa_family))
+					auto const family = unicast->Address.lpSockaddr->sa_family;
+					if (!valid_addr_family(family))
 						continue;
 					r.preferred = unicast->DadState == IpDadStatePreferred;
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+					int const max_prefix_len = family == AF_INET ? 32 : 128;
+
+					if (unicast->Length <= offsetof(IP_ADAPTER_UNICAST_ADDRESS, OnLinkPrefixLength))
+					{
+						// OnLinkPrefixLength is only present on Vista and newer. If
+						// we're running on XP, we don't have the netmask.
+						r.netmask = (family == AF_INET)
+							? address(address_v4())
+							: address(address_v6());
+						ret.push_back(r);
+						continue;
+					}
+
+					if (family == AF_INET6
+						&& unicast->OnLinkPrefixLength == 128
+						&& (unicast->PrefixOrigin == IpPrefixOriginDhcp
+							|| unicast->SuffixOrigin == IpSuffixOriginRandom))
+					{
+						// DHCPv6 does not specify a subnet mask (it should be taken from the RA)
+						// but apparently MS didn't get the memo and incorrectly reports a
+						// prefix length of 128 for DHCPv6 assigned addresses
+						// 128 is also reported for privacy addresses despite claiming to
+						// have gotten the prefix length from the RA *shrug*
+						// use a 64 bit prefix in these cases since that is likely to be
+						// the correct value, or at least less wrong than 128
+						r.netmask = build_netmask(64, family);
+					}
+					else if (unicast->OnLinkPrefixLength <= max_prefix_len)
+					{
+						r.netmask = build_netmask(unicast->OnLinkPrefixLength, family);
+					}
+					else
+					{
+						// we don't know what the netmask is
+						r.netmask = (family == AF_INET)
+							? address(address_v4())
+							: address(address_v6());
+					}
+
 					ret.push_back(r);
 				}
 			}
@@ -763,8 +761,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		INTERFACE_INFO buffer[30];
 		DWORD size;
 
-		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
-			sizeof(buffer), &size, 0, 0) != 0)
+		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, nullptr, 0, buffer,
+			sizeof(buffer), &size, nullptr, nullptr) != 0)
 		{
 			ec = error_code(WSAGetLastError(), system_category());
 			closesocket(s);
@@ -774,73 +772,63 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		int n = size / sizeof(INTERFACE_INFO);
 
-		ip_interface iface;
 		for (int i = 0; i < n; ++i)
 		{
+			ip_interface iface;
 			iface.interface_address = sockaddr_to_address(&buffer[i].iiAddress.Address);
 			if (iface.interface_address == address_v4::any()) continue;
 			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address
 				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
 			ret.push_back(iface);
 		}
 
 #else
 
-#ifdef _MSC_VER
-#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" )
-#else
-#warning "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK"
-#endif
+#error "Don't know how to enumerate network interfaces on this platform"
 
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
-		if (ec) return ret;
-		ip_interface iface;
-		for (;i != udp::resolver::iterator(); ++i)
-		{
-			iface.interface_address = i->endpoint().address();
-			iface.name[0] = 0;
-			iface.friendly_name[0] = 0;
-			iface.description[0] = 0;
-			if (iface.interface_address.is_v4())
-				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
-			ret.push_back(iface);
-		}
 #endif
 		return ret;
 	}
 
-	boost::optional<ip_route> get_default_route(io_service& ios
-		, string_view const device, bool const v6, error_code& ec)
+	boost::optional<address> get_gateway(ip_interface const& iface, span<ip_route const> routes)
 	{
-		std::vector<ip_route> const ret = enum_routes(ios, ec);
-		auto const i = std::find_if(ret.begin(), ret.end()
-			, [device,v6](ip_route const& r)
-		{
-			return r.destination.is_unspecified()
-				&& r.destination.is_v6() == v6
-				&& (device.empty() || r.name == device);
-		});
-		if (i == ret.end()) return boost::none;
-		return *i;
+		bool const v4 = iface.interface_address.is_v4();
+
+		// local IPv6 addresses can never be used to reach the internet
+		if (!v4 && aux::is_local(iface.interface_address)) return {};
+
+		auto const it = std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				return r.destination.is_unspecified()
+					&& r.destination.is_v4() == iface.interface_address.is_v4()
+					&& !r.gateway.is_unspecified()
+					// in case there are multiple networks on the same networking
+					// device, the source hint may be the only thing telling them
+					// apart
+					&& (r.source_hint.is_unspecified() || r.source_hint == iface.interface_address)
+					&& std::strcmp(r.name, iface.name) == 0;
+			});
+		if (it != routes.end()) return it->gateway;
+		return {};
 	}
 
-	address get_default_gateway(io_service& ios
-		, string_view const device, bool const v6, error_code& ec)
+	bool has_default_route(char const* device, int const fam, span<ip_route const> routes)
 	{
-		auto const default_route = get_default_route(ios, device, v6, ec);
-		return default_route ? default_route->gateway : address();
+		return std::find_if(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				return r.destination.is_unspecified()
+					&& family(r.destination) == fam
+					&& std::strcmp(r.name, device) == 0;
+			}) != routes.end();
 	}
 
-	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
+	std::vector<ip_route> enum_routes(io_context& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
-		TORRENT_UNUSED(ec);
+		ec.clear();
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
@@ -854,7 +842,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			if (ip.is_v4())
 			{
 				r.destination = address_v4();
-				r.netmask = address_v4::from_string("255.255.255.0");
+				r.netmask = make_address_v4("255.0.0.0");
 				address_v4::bytes_type b = ip.to_v4().to_bytes();
 				b[3] = 1;
 				r.gateway = address_v4(b);
@@ -862,7 +850,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			else
 			{
 				r.destination = address_v6();
-				r.netmask = address_v6::from_string("FFFF:FFFF:FFFF:FFFF::0");
+				r.netmask = make_address_v6("ffff:ffff:ffff:ffff::0");
 				address_v6::bytes_type b = ip.to_v6().to_bytes();
 				b[14] = 1;
 				r.gateway = address_v6(b);
@@ -1066,10 +1054,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 
 				ip_route r;
-				r.destination = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
-				r.gateway = address::from_string(adapter->GatewayList.IpAddress.String, ec);
-				r.netmask = address::from_string(adapter->IpAddressList.IpMask.String, ec);
-				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				r.destination = make_address(adapter->IpAddressList.IpAddress.String, ec);
+				r.gateway = make_address(adapter->GatewayList.IpAddress.String, ec);
+				r.netmask = make_address(adapter->IpAddressList.IpMask.String, ec);
+				strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
+				r.name[sizeof(r.name) - 1] = '\0';
 
 				if (ec)
 				{
@@ -1133,8 +1122,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 						{
 							name += wcslen(L"\\DEVICE\\TCPIP_");
 						}
-						wcstombs(r.name, name, sizeof(r.name));
-						r.name[sizeof(r.name) - 1] = 0;
+						wcstombs(r.name, name, sizeof(r.name) - 1);
+						r.name[sizeof(r.name) - 1] = '\0';
 						r.mtu = ifentry.dwMtu;
 						ret.push_back(r);
 					}
@@ -1175,15 +1164,15 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			for (int i = 0; i < int(routes->dwNumEntries); ++i)
 			{
 				ip_route r;
-				r.destination = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardDest);
-				r.netmask = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardMask);
-				r.gateway = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardNextHop);
+				r.destination = inaddr_to_address(&routes->table[i].dwForwardDest);
+				r.netmask = inaddr_to_address(&routes->table[i].dwForwardMask);
+				r.gateway = inaddr_to_address(&routes->table[i].dwForwardNextHop);
 				MIB_IFROW ifentry;
 				ifentry.dwIndex = routes->table[i].dwForwardIfIndex;
 				if (GetIfEntry(&ifentry) == NO_ERROR)
 				{
-					wcstombs(r.name, ifentry.wszName, sizeof(r.name));
-					r.name[sizeof(r.name) - 1] = 0;
+					wcstombs(r.name, ifentry.wszName, sizeof(r.name) - 1);
+					r.name[sizeof(r.name) - 1] = '\0';
 					r.mtu = ifentry.dwMtu;
 					ret.push_back(r);
 				}
@@ -1203,7 +1192,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		std::uint32_t seq = 0;
 
 		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
+		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 		int len = nl_dump_request(sock, RTM_GETROUTE, seq++, AF_UNSPEC, msg, sizeof(rtmsg));
 		if (len < 0)
 		{
@@ -1235,13 +1224,15 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 		::close(sock);
 
+#else
+#error "don't know how to enumerate network routes on this platform"
 #endif
 		return ret;
 	}
 
 	// returns the device name whose local address is ``addr``. If
 	// no such device is found, an empty string is returned.
-	std::string device_for_address(address addr, io_service& ios, error_code& ec)
+	std::string device_for_address(address addr, io_context& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return {};

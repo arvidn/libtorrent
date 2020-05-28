@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,13 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_v6
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 #include "udp_tracker.hpp"
 #include "test_utils.hpp"
 
@@ -54,7 +56,7 @@ using namespace std::placeholders;
 struct udp_tracker
 {
 
-	lt::io_service m_ios;
+	lt::io_context m_ios;
 	std::atomic<int> m_udp_announces{0};
 	udp::socket m_socket{m_ios};
 	int m_port = 0;
@@ -85,9 +87,9 @@ struct udp_tracker
 		std::printf("%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
 
 		char* ptr = buffer;
-		detail::read_uint64(ptr);
-		std::uint32_t const action = detail::read_uint32(ptr);
-		std::uint32_t const transaction_id = detail::read_uint32(ptr);
+		aux::read_uint64(ptr);
+		std::uint32_t const action = aux::read_uint32(ptr);
+		std::uint32_t const transaction_id = aux::read_uint32(ptr);
 
 		error_code e;
 
@@ -104,9 +106,9 @@ struct udp_tracker
 				std::printf("%s: UDP connect from %s\n", time_now_string()
 					, print_endpoint(*from).c_str());
 				ptr = buffer;
-				detail::write_uint32(0, ptr); // action = connect
-				detail::write_uint32(transaction_id, ptr); // transaction_id
-				detail::write_uint64(10, ptr); // connection_id
+				aux::write_uint32(0, ptr); // action = connect
+				aux::write_uint32(transaction_id, ptr); // transaction_id
+				aux::write_uint64(10, ptr); // connection_id
 				m_socket.send_to(boost::asio::buffer(buffer, 16), *from, 0, e);
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
@@ -127,30 +129,30 @@ struct udp_tracker
 				std::printf("%s: UDP announce [%d]\n", time_now_string()
 					, int(m_udp_announces));
 				ptr = buffer;
-				detail::write_uint32(1, ptr); // action = announce
-				detail::write_uint32(transaction_id, ptr); // transaction_id
-				detail::write_uint32(1800, ptr); // interval
-				detail::write_uint32(1, ptr); // incomplete
-				detail::write_uint32(1, ptr); // complete
+				aux::write_uint32(1, ptr); // action = announce
+				aux::write_uint32(transaction_id, ptr); // transaction_id
+				aux::write_uint32(1800, ptr); // interval
+				aux::write_uint32(1, ptr); // incomplete
+				aux::write_uint32(1, ptr); // complete
 				// 1 peers
-				if (is_v6(*from))
+				if (aux::is_v6(*from))
 				{
-					detail::write_uint32(0, ptr);
-					detail::write_uint32(0, ptr);
-					detail::write_uint32(0, ptr);
-					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
-					detail::write_uint16(1337, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint32(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(1, ptr);
+					aux::write_uint16(1337, ptr);
 				}
 				else
 				{
-					detail::write_uint8(1, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(3, ptr);
-					detail::write_uint8(7, ptr);
-					detail::write_uint16(1337, ptr);
+					aux::write_uint8(127, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(0, ptr);
+					aux::write_uint8(2, ptr);
+					aux::write_uint16(1337, ptr);
 				}
 				m_socket.send_to(boost::asio::buffer(buffer
 					, static_cast<std::size_t>(ptr - buffer)), *from, 0, e);
@@ -216,7 +218,7 @@ struct udp_tracker
 	{
 		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
 			, time_now_string(), static_cast<void*>(this));
-		m_ios.post(std::bind(&udp_tracker::stop, this));
+		post(m_ios, std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
 
@@ -228,32 +230,25 @@ struct udp_tracker
 	{
 		char buffer[2000];
 
-		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
 			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
-		m_ios.run(ec);
-
-		if (ec)
-		{
-			std::printf("UDP Error running UDP tracker service: %s\n", ec.message().c_str());
-			return;
-		}
+		m_ios.run();
 
 		std::printf("UDP exiting UDP tracker [%p] thread\n", static_cast<void*>(this));
 	}
 };
 
 namespace {
-std::shared_ptr<udp_tracker> g_udp_tracker;
+std::unique_ptr<udp_tracker> g_udp_tracker;
 }
 
 int start_udp_tracker(address iface)
 {
 	TORRENT_ASSERT(!g_udp_tracker);
-	g_udp_tracker.reset(new udp_tracker(iface));
+	g_udp_tracker = std::make_unique<udp_tracker>(iface);
 	return g_udp_tracker->port();
 }
 

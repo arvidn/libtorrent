@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2006-2017, Arvid Norberg
+Copyright (c) 2004, 2008-2013, 2015-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
 
 #include <functional>
@@ -118,21 +119,16 @@ or directory and writes it to standard out
 
 
 OPTIONS:
--m file       generate a merkle hash tree torrent.
-              merkle torrents require client support
-              the resulting full merkle tree is written to
-              the specified file
 -w url        adds a web seed to the torrent with
               the specified url
 -t url        adds the specified tracker to the
               torrent. For multiple trackers, specify more
-              -t options
+              -t options. Specify a dash character "-" as a tracker to indicate
+              the following trackers should be in a higher tier.
 -c comment    sets the comment to the specified string
 -C creator    sets the created-by field to the specified string
--p bytes      enables padding files. Files larger
-              than bytes will be piece-aligned
 -s bytes      specifies a piece size for the torrent
-              This has to be a multiple of 16 kiB
+              This has to be a power of 2, minimum 16kiB
 -l            Don't follow symlinks, instead encode them as
               links in the torrent file
 -o file       specifies the output filename of the torrent file
@@ -146,10 +142,7 @@ OPTIONS:
 -L collection add a collection name to this torrent. Other torrents
               in the same collection is expected to share files
               with this one.
--M            make the torrent compatible with mutable torrents
-              this means aligning large files and pad them in order
-              for piece hashes to uniquely indentify a file without
-              overlap
+-2            Only generate V2 metadata
 )";
 }
 
@@ -168,13 +161,11 @@ int main(int argc_, char const* argv_[]) try
 	std::vector<std::string> trackers;
 	std::vector<std::string> collections;
 	std::vector<lt::sha1_hash> similar;
-	int pad_file_limit = -1;
 	int piece_size = 0;
 	lt::create_flags_t flags = {};
 	std::string root_cert;
 
 	std::string outfile;
-	std::string merklefile;
 #ifdef TORRENT_WINDOWS
 	// don't ever write binary data to the console on windows
 	// it will just be interpreted as text and corrupted
@@ -194,12 +185,11 @@ int main(int argc_, char const* argv_[]) try
 
 		switch (flag)
 		{
-			case 'M':
-				flags |= lt::create_torrent::mutable_torrent_support;
-				pad_file_limit = 0x4000;
-				continue;
 			case 'l':
 				flags |= lt::create_torrent::symlinks;
+				continue;
+			case '2':
+				flags |= lt::create_torrent::v2_only;
 				continue;
 		}
 
@@ -218,14 +208,6 @@ int main(int argc_, char const* argv_[]) try
 			case 'c': comment_str = args[1]; break;
 			case 'r': root_cert = args[1]; break;
 			case 'L': collections.push_back(args[1]); break;
-			case 'p':
-				pad_file_limit = atoi(args[1]);
-				flags |= lt::create_torrent::optimize_alignment;
-				break;
-			case 'm':
-				merklefile = args[1];
-				flags |= lt::create_torrent::merkle;
-				break;
 			case 'S': {
 				if (strlen(args[1]) != 40) {
 					std::cerr << "invalid info-hash for -S. "
@@ -286,11 +268,11 @@ int main(int argc_, char const* argv_[]) try
 		return 1;
 	}
 
-	lt::create_torrent t(fs, piece_size, pad_file_limit, flags);
+	lt::create_torrent t(fs, piece_size, flags);
 	int tier = 0;
 	for (std::string const& tr : trackers) {
-		t.add_tracker(tr, tier);
-		++tier;
+		if (tr == "-") ++tier;
+		else t.add_tracker(tr, tier);
 	}
 
 	for (std::string const& ws : web_seeds)
@@ -332,13 +314,6 @@ int main(int argc_, char const* argv_[]) try
 		std::cout.write(torrent.data(), torrent.size());
 	}
 
-	if (!merklefile.empty()) {
-		std::fstream merkle;
-		merkle.exceptions(std::ifstream::failbit);
-		merkle.open(merklefile.c_str(), std::ios_base::out | std::ios_base::binary);
-		auto const& tree = t.merkle_tree();
-		merkle.write(reinterpret_cast<char const*>(tree.data()), tree.size() * 20);
-	}
 	return 0;
 }
 catch (std::exception& e) {

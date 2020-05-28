@@ -6,10 +6,9 @@
 #include <list>
 #include <string>
 #include <libtorrent/session.hpp>
-#include <libtorrent/storage.hpp>
+#include <libtorrent/session_params.hpp>
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/ip_filter.hpp>
-#include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
@@ -22,6 +21,7 @@
 #include <libtorrent/session_stats.hpp>
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
+#include <libtorrent/torrent_status.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -32,7 +32,7 @@ namespace boost
 	// this fixes mysterious link error on msvc
 	template <>
 	inline lt::alert const volatile*
-	get_pointer(class lt::alert const volatile* p)
+	get_pointer(lt::alert const volatile* p)
 	{
 		return p;
 	}
@@ -151,28 +151,40 @@ namespace
 		for (int i = settings_pack::string_type_base;
 			i < settings_pack::max_string_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_str(i);
+			// deprecated settings are still here, they just have empty names
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_str(i);
 		}
 
 		for (int i = settings_pack::int_type_base;
 			i < settings_pack::max_int_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_int(i);
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_int(i);
 		}
 
 		for (int i = settings_pack::bool_type_base;
 			i < settings_pack::max_bool_setting_internal; ++i)
 		{
-			ret[name_for_setting(i)] = sett.get_bool(i);
+			char const* name = name_for_setting(i);
+			if (name[0] != '\0') ret[name] = sett.get_bool(i);
 		}
 		return ret;
 	}
 
-	std::shared_ptr<lt::session> make_session(boost::python::dict sett, session_flags_t flags)
+	std::shared_ptr<lt::session> make_session(boost::python::dict sett
+#if TORRENT_ABI_VERSION <= 2
+		, session_flags_t flags
+#endif
+	)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
-		return std::make_shared<lt::session>(p, flags);
+		return std::make_shared<lt::session>(p
+#if TORRENT_ABI_VERSION <= 2
+			, flags
+#endif
+		);
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
@@ -247,8 +259,16 @@ namespace
             }
             else if(key == "info_hash")
             {
-                p.info_hash = sha1_hash(
-                bytes(extract<bytes>(value)).arr.data());
+                if (boost::python::len(value) == sha1_hash::size())
+                {
+                    p.info_hash = info_hash_t(sha1_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
+                else if (boost::python::len(value) == sha256_hash::size())
+                {
+                    p.info_hash = info_hash_t(sha256_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
                 continue;
             }
             else if(key == "name")
@@ -266,11 +286,6 @@ namespace
             {
                 std::string resume = extract<std::string>(value);
                 p.resume_data.assign(resume.begin(), resume.end());
-                continue;
-            }
-            else if(key == "uuid")
-            {
-                p.uuid = extract<std::string>(value);
                 continue;
             }
 #endif
@@ -421,17 +436,49 @@ namespace
 
     list get_torrents(lt::session& s)
     {
-        list ret;
         std::vector<torrent_handle> torrents;
         {
            allow_threading_guard guard;
            torrents = s.get_torrents();
         }
 
+        list ret;
         for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
-        {
             ret.append(*i);
+        return ret;
+    }
+
+    bool wrap_pred(object pred, torrent_status const& st)
+    {
+        return pred(st);
+    }
+
+    list get_torrent_status(lt::session& s, object pred, int const flags)
+    {
+        std::vector<torrent_status> torrents
+            = s.get_torrent_status(boost::bind(&wrap_pred, pred, _1), status_flags_t(flags));
+
+        list ret;
+        for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+            ret.append(*i);
+        return ret;
+    }
+
+    list refresh_torrent_status(lt::session& s, list in_torrents, int const flags)
+    {
+        std::vector<torrent_status> torrents;
+        int const n = int(boost::python::len(in_torrents));
+        for (int i = 0; i < n; ++i)
+           torrents.push_back(extract<torrent_status>(in_torrents[i]));
+
+        {
+           allow_threading_guard guard;
+           s.refresh_torrent_status(&torrents, status_flags_t(flags));
         }
+
+        list ret;
+        for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+            ret.append(*i);
         return ret;
     }
 
@@ -450,9 +497,11 @@ namespace
 
     entry save_state(lt::session const& s, std::uint32_t const flags)
     {
-        allow_threading_guard guard;
         entry e;
+#if TORRENT_ABI_VERSION <= 2
+        allow_threading_guard guard;
         s.save_state(e, save_state_flags_t(flags));
+#endif
         return e;
     }
 
@@ -474,6 +523,7 @@ namespace
 
 	void load_state(lt::session& ses, entry const& st, std::uint32_t const flags)
 	{
+#if TORRENT_ABI_VERSION <= 2
 		allow_threading_guard guard;
 
 		std::vector<char> buf;
@@ -483,6 +533,7 @@ namespace
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(!ec);
 		ses.load_state(e, save_state_flags_t(flags));
+#endif
 	}
 
 	dict get_peer_class(lt::session& ses, lt::peer_class_t const pc)
@@ -747,12 +798,13 @@ void bind_session()
         .add_property("have_pieces", PROP(&add_torrent_params::have_pieces))
         .add_property("verified_pieces", PROP(&add_torrent_params::verified_pieces))
         .add_property("piece_priorities", PROP(&add_torrent_params::piece_priorities))
+#if TORRENT_ABI_VERSION <= 2
         .add_property("merkle_tree", PROP(&add_torrent_params::merkle_tree))
+#endif
         .add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
 
 #if TORRENT_ABI_VERSION == 1
         .def_readwrite("url", &add_torrent_params::url)
-        .def_readwrite("uuid", &add_torrent_params::uuid)
         .add_property("resume_data", PROP(&add_torrent_params::resume_data))
 #endif
       ;
@@ -767,6 +819,7 @@ void bind_session()
         s.attr("delete_files") = lt::session::delete_files;
     }
 
+#if TORRENT_ABI_VERSION <= 2
     {
         scope s = class_<dummy10>("session_flags_t");
         s.attr("add_default_plugins") = lt::session::add_default_plugins;
@@ -774,6 +827,7 @@ void bind_session()
         s.attr("start_default_features") = lt::session::start_default_features;
 #endif
     }
+#endif
 
     {
     scope s = class_<dummy1>("torrent_flags");
@@ -790,6 +844,9 @@ void bind_session()
     s.attr("stop_when_ready") = torrent_flags::stop_when_ready;
     s.attr("override_trackers") = torrent_flags::override_trackers;
     s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
+    s.attr("disable_dht") = torrent_flags::disable_dht;
+    s.attr("disable_lsd") = torrent_flags::disable_lsd;
+    s.attr("disable_pex") = torrent_flags::disable_pex;
     s.attr("default_flags") = torrent_flags::default_flags;
     }
 
@@ -859,7 +916,11 @@ void bind_session()
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings")
-                , arg("flags")=lt::session::add_default_plugins))
+#if TORRENT_ABI_VERSION <= 2
+                , arg("flags")=lt::session::add_default_plugins
+#endif
+                )
+              )
         )
 #if TORRENT_ABI_VERSION == 1
         .def(
@@ -884,14 +945,18 @@ void bind_session()
         )
 #endif // TORRENT_ABI_VERSION
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
+#if TORRENT_ABI_VERSION <= 2
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
+#endif
         .def("dht_get_immutable_item", allow_threads(dht_get_immutable_item))
         .def("dht_get_mutable_item", &dht_get_mutable_item)
         .def("dht_put_immutable_item", allow_threads(dht_put_immutable_item))
         .def("dht_put_mutable_item", &dht_put_mutable_item)
         .def("dht_get_peers", allow_threads(&lt::session::dht_get_peers))
         .def("dht_announce", allow_threads(&lt::session::dht_announce))
+        .def("dht_live_nodes", allow_threads(&lt::session::dht_live_nodes))
+        .def("dht_sample_infohashes", allow_threads(&lt::session::dht_sample_infohashes))
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
@@ -937,6 +1002,8 @@ void bind_session()
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
         .def("find_torrent", allow_threads(&lt::session::find_torrent))
         .def("get_torrents", &get_torrents)
+        .def("get_torrent_status", &get_torrent_status, (arg("session"), arg("pred"), arg("flags") = 0))
+        .def("refresh_torrent_status", &refresh_torrent_status, (arg("session"), arg("torrents"), arg("flags") = 0))
         .def("pause", allow_threads(&lt::session::pause))
         .def("resume", allow_threads(&lt::session::resume))
         .def("is_paused", allow_threads(&lt::session::is_paused))
@@ -977,7 +1044,6 @@ void bind_session()
         .def("max_connections", allow_threads(&lt::session::max_connections))
         .def("num_connections", allow_threads(&lt::session::num_connections))
         .def("set_max_half_open_connections", allow_threads(&lt::session::set_max_half_open_connections))
-        .def("set_severity_level", allow_threads(&lt::session::set_severity_level))
         .def("set_alert_queue_size_limit", allow_threads(&lt::session::set_alert_queue_size_limit))
         .def("set_alert_mask", allow_threads(&lt::session::set_alert_mask))
         .def("set_peer_proxy", allow_threads(&lt::session::set_peer_proxy))
@@ -1006,6 +1072,9 @@ void bind_session()
     s.attr("local_peer_class_id") = session::local_peer_class_id;
 
     s.attr("reopen_map_ports") = lt::session::reopen_map_ports;
+
+    s.attr("delete_files") = lt::session::delete_files;
+    s.attr("delete_partfile") = lt::session::delete_partfile;
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -1019,7 +1088,9 @@ void bind_session()
     {
         scope s = class_<dummy9>("save_state_flags_t");
         s.attr("save_settings") = lt::session::save_settings;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("save_dht_settings") = lt::session::save_dht_settings;
+#endif
         s.attr("save_dht_state") = lt::session::save_dht_state;
 #if TORRENT_ABI_VERSION == 1
         s.attr("save_encryption_settings") = lt::session:: save_encryption_settings;

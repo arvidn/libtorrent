@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2011, 2014, 2016-2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/aux_/chained_buffer.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <algorithm> // for copy
 
 namespace libtorrent {
+namespace aux {
 
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{
@@ -112,7 +114,7 @@ namespace libtorrent {
 		return insert;
 	}
 
-	std::vector<boost::asio::const_buffer> const& chained_buffer::build_iovec(int const to_send)
+	span<boost::asio::const_buffer const> chained_buffer::build_iovec(int const to_send)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!m_destructed);
@@ -168,4 +170,5 @@ namespace libtorrent {
 #endif
 	}
 
+}
 }

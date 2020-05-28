@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2008-2018, Arvid Norberg
+Copyright (c) 2008-2017, 2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/time.hpp" // for seconds32
 #include "libtorrent/optional.hpp"
+#include "libtorrent/aux_/strview_less.hpp"
 
 namespace libtorrent {
 
@@ -114,7 +117,7 @@ namespace libtorrent {
 
 		bool connection_close() const { return m_connection_close; }
 
-		std::multimap<std::string, std::string> const& headers() const { return m_header; }
+		std::multimap<std::string, std::string, aux::strview_less> const& headers() const { return m_header; }
 		std::vector<std::pair<std::int64_t, std::int64_t>> const& chunks() const { return m_chunked_ranges; }
 
 	private:
@@ -128,7 +131,7 @@ namespace libtorrent {
 		std::int64_t m_range_start = -1;
 		std::int64_t m_range_end = -1;
 
-		std::multimap<std::string, std::string> m_header;
+		std::multimap<std::string, std::string, aux::strview_less> m_header;
 		span<char const> m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response

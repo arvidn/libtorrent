@@ -1,6 +1,12 @@
 /*
 
-Copyright (c) 2003-2018, Arvid Norberg
+Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Falcosc
+Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2018, Steven Siloti
+Copyright (c) 2019, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,18 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/aux_/throw.hpp"
-#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/pex_flags.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
@@ -67,6 +73,7 @@ namespace libtorrent {
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
 	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
+	constexpr file_progress_flags_t torrent_handle::piece_granularity;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
 	constexpr status_flags_t torrent_handle::query_accurate_download_counters;
@@ -77,8 +84,26 @@ namespace libtorrent {
 	constexpr status_flags_t torrent_handle::query_name;
 	constexpr status_flags_t torrent_handle::query_save_path;
 
+	void block_info::set_peer(tcp::endpoint const& ep)
+	{
+		is_v6_addr = aux::is_v6(ep);
+		if (is_v6_addr)
+			addr.v6 = ep.address().to_v6().to_bytes();
+		else
+			addr.v4 = ep.address().to_v4().to_bytes();
+		port = ep.port();
+	}
+
+	tcp::endpoint block_info::peer() const
+	{
+		if (is_v6_addr)
+			return {address_v6(addr.v6), port};
+		else
+			return {address_v4(addr.v4), port};
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
-	void TORRENT_NO_RETURN throw_invalid_handle()
+	[[noreturn]] void throw_invalid_handle()
 	{
 		throw system_error(errors::invalid_torrent_handle);
 	}
@@ -90,7 +115,7 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
 		auto& ses = static_cast<session_impl&>(t->session());
-		ses.get_io_service().dispatch([=,&ses] ()
+		dispatch(ses.get_context(), [=,&ses] ()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -122,7 +147,7 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		ses.get_io_service().dispatch([=,&done,&ses,&ex] ()
+		dispatch(ses.get_context(), [=,&done,&ses,&ex] ()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -158,7 +183,7 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		ses.get_io_service().dispatch([=,&r,&done,&ses,&ex] ()
+		dispatch(ses.get_context(), [=,&r,&done,&ses,&ex] ()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -180,10 +205,10 @@ namespace libtorrent {
 		return r;
 	}
 
-	sha1_hash torrent_handle::info_hash() const
+	info_hash_t torrent_handle::info_hash() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return t ? t->info_hash() : sha1_hash();
+		return t ? t->info_hash() : info_hash_t();
 	}
 
 	int torrent_handle::max_uploads() const
@@ -260,8 +285,8 @@ namespace libtorrent {
 	}
 
 	void torrent_handle::add_extension(
-		std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
-		, void* userdata)
+		std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
+		, client_data_t userdata)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&torrent::add_extension_fun, ext, userdata);
@@ -310,7 +335,12 @@ namespace libtorrent {
 	{ async_call(&torrent::set_upload_mode, b); }
 
 	void torrent_handle::set_share_mode(bool b) const
-	{ async_call(&torrent::set_share_mode, b); }
+	{
+		TORRENT_UNUSED(b);
+#ifndef TORRENT_DISABLE_SHARE_MODE
+		async_call(&torrent::set_share_mode, b);
+#endif
+	}
 
 	void torrent_handle::apply_ip_filter(bool b) const
 	{ async_call(&torrent::set_apply_ip_filter, b); }
@@ -335,7 +365,7 @@ namespace libtorrent {
 		, std::string const& dh_params
 		, std::string const& passphrase)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		async_call(&torrent::set_ssl_cert, certificate, private_key, dh_params, passphrase);
 #else
 		TORRENT_UNUSED(certificate);
@@ -350,7 +380,7 @@ namespace libtorrent {
 		, std::string const& private_key
 		, std::string const& dh_params)
 	{
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_SSL_PEERS
 		async_call(&torrent::set_ssl_cert_buffer, certificate, private_key, dh_params);
 #else
 		TORRENT_UNUSED(certificate);
@@ -430,7 +460,7 @@ namespace libtorrent {
 	}
 #endif
 
-	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
+	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags) const
 	{
 		auto& arg = static_cast<aux::vector<std::int64_t, file_index_t>&>(progress);
 		sync_call(&torrent::file_progress, std::ref(arg), flags);
@@ -520,6 +550,7 @@ namespace libtorrent {
 		return sync_call_ret<download_priority_t>(dont_download, &torrent::file_priority, index);
 	}
 
+	// TODO: support moving files into this call
 	void torrent_handle::prioritize_files(std::vector<download_priority_t> const& files) const
 	{
 		async_call(&torrent::prioritize_files
@@ -597,7 +628,13 @@ namespace libtorrent {
 	{ return sync_call_ret<bool>(false, &torrent::valid_metadata); }
 
 	bool torrent_handle::super_seeding() const
-	{ return sync_call_ret<bool>(false, &torrent::super_seeding); }
+	{
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+		return sync_call_ret<bool>(false, &torrent::super_seeding);
+#else
+		return false;
+#endif
+	}
 
 // ============ end deprecation ===============
 #endif
@@ -693,7 +730,7 @@ namespace libtorrent {
 
 		std::lock_guard<std::mutex> l(holder_mutex);
 		holder[cursor++] = r;
-		cursor = cursor % holder.end_index();;
+		cursor = cursor % holder.end_index();
 		return *r;
 	}
 
@@ -723,6 +760,11 @@ namespace libtorrent {
 		async_call(&torrent::add_peer, adr, source, flags);
 	}
 
+	void torrent_handle::clear_peers()
+	{
+		async_call(&torrent::clear_peers);
+	}
+
 #if TORRENT_ABI_VERSION == 1
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
@@ -749,6 +791,11 @@ namespace libtorrent {
 #endif
 	}
 
+	void torrent_handle::force_lsd_announce() const
+	{
+		async_call(&torrent::lsd_announce);
+	}
+
 	void torrent_handle::force_reannounce(int s, int idx, reannounce_flags_t const flags) const
 	{
 		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx, flags);
@@ -770,7 +817,10 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 	void torrent_handle::super_seeding(bool on) const
 	{
+		TORRENT_UNUSED(on);
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 		async_call(&torrent::set_super_seeding, on);
+#endif
 	}
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
@@ -792,20 +842,39 @@ namespace libtorrent {
 		sync_call(&torrent::get_download_queue, queuep);
 	}
 
+	std::vector<partial_piece_info> torrent_handle::get_download_queue() const
+	{
+		std::vector<partial_piece_info> queue;
+		sync_call(&torrent::get_download_queue, &queue);
+		return queue;
+	}
+
 	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline
 		, deadline_flags_t const flags) const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::set_piece_deadline, index, deadline, flags);
+#else
+		TORRENT_UNUSED(deadline);
+		if (flags & alert_when_available)
+			async_call(&torrent::read_piece, index);
+#endif
 	}
 
 	void torrent_handle::reset_piece_deadline(piece_index_t index) const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::reset_piece_deadline, index);
+#else
+		TORRENT_UNUSED(index);
+#endif
 	}
 
 	void torrent_handle::clear_piece_deadlines() const
 	{
+#ifndef TORRENT_DISABLE_STREAMING
 		async_call(&torrent::clear_time_critical);
+#endif
 	}
 
 	std::shared_ptr<torrent> torrent_handle::native_handle() const
@@ -818,6 +887,12 @@ namespace libtorrent {
 		// using the locked shared_ptr value as hash doesn't work
 		// for expired weak_ptrs. So, we're left with a hack
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
+	}
+
+	client_data_t torrent_handle::userdata() const
+	{
+		std::shared_ptr<torrent> t = m_torrent.lock();
+		return t ? t->get_userdata() : client_data_t{};
 	}
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value

@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2018, d-komarov
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h> // for chmod
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
@@ -43,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/file.hpp"
 
 namespace {
 
@@ -101,8 +107,7 @@ void test_checking(int flags)
 
 	create_random_files("test_torrent_dir", file_sizes, &fs);
 
-	lt::create_torrent t(fs, piece_size, 0x4000
-		, lt::create_torrent::optimize_alignment);
+	lt::create_torrent t(fs, piece_size);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".", ec);
@@ -114,7 +119,7 @@ void test_checking(int flags)
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
-		, aux::to_hex(ti->info_hash()).c_str());
+		, aux::to_hex(ti->info_hash().v1).c_str());
 
 	// truncate every file in half
 	if (flags & incomplete_files)
@@ -320,14 +325,18 @@ TORRENT_TEST(discrete_checking)
 	create_random_files("test_torrent_dir", file_sizes, &fs);
 	TEST_EQUAL(fs.num_files(), 2);
 
-	lt::create_torrent t(fs, piece_size, 1, lt::create_torrent::optimize_alignment);
+	lt::create_torrent t(fs, piece_size);
 	set_piece_hashes(t, ".", ec);
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
-	printf("generated torrent: %s test_torrent_dir\n", aux::to_hex(ti->info_hash().to_string()).c_str());
+	printf("generated torrent: %s test_torrent_dir result: %s\n"
+		, aux::to_hex(ti->info_hash().v1.to_string()).c_str()
+		, ec.message().c_str());
+
+	TEST_CHECK(ti->is_valid());
 
 	// we have two files, but there's a padfile now too
 	TEST_EQUAL(ti->num_files(), 3);

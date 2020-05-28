@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2013-2018, Arvid Norberg
+Copyright (c) 2014-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,17 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/resolver.hpp"
+#include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent {
+namespace aux {
 
 
 	constexpr resolver_flags resolver_interface::cache_only;
 	constexpr resolver_flags resolver_interface::abort_on_shutdown;
 
-	resolver::resolver(io_service& ios)
+	resolver::resolver(io_context& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
 		, m_critical_resolver(ios)
@@ -48,26 +50,33 @@ namespace libtorrent {
 		, m_timeout(seconds(1200))
 	{}
 
-	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
-		, resolver_interface::callback_t h, std::string hostname)
+	void resolver::callback(resolver_interface::callback_t const& h
+		, error_code const& ec, std::vector<address> const& ips)
+	{
+		try {
+			h(ec, ips);
+		} catch (std::exception&) {
+			TORRENT_ASSERT_FAIL();
+		}
+	}
+
+	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type ips
+		, resolver_interface::callback_t const& h, std::string const& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
 		{
-			h(ec, {});
+			callback(h, ec, {});
 			return;
 		}
 
 		dns_cache_entry& ce = m_cache[hostname];
-		ce.last_seen = aux::time_now();
+		ce.last_seen = time_now();
 		ce.addresses.clear();
-		while (i != tcp::resolver::iterator())
-		{
-			ce.addresses.push_back(i->endpoint().address());
-			++i;
-		}
+		for (auto i : ips)
+			ce.addresses.push_back(i.endpoint().address());
 
-		h(ec, ce.addresses);
+		callback(h, ec, ce.addresses);
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
@@ -94,7 +103,7 @@ namespace libtorrent {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			m_ios.post(std::bind(h, ec, std::vector<address>{ip}));
+			post(m_ios, [=]{ callback(h, ec, std::vector<address>{ip}); });
 			return;
 		}
 		ec.clear();
@@ -104,9 +113,10 @@ namespace libtorrent {
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::cache_only)
-				|| i->second.last_seen + m_timeout >= aux::time_now())
+				|| i->second.last_seen + m_timeout >= time_now())
 			{
-				m_ios.post(std::bind(h, ec, i->second.addresses));
+				std::vector<address> ips = i->second.addresses;
+				post(m_ios, [=] { callback(h, ec, ips); });
 				return;
 			}
 		}
@@ -114,24 +124,23 @@ namespace libtorrent {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			m_ios.post(std::bind(h, boost::asio::error::host_not_found
-					, std::vector<address>{}));
+			post(m_ios, [=] {
+				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
+			});
 			return;
 		}
 
 		// the port is ignored
-		tcp::resolver::query const q(host, "80");
-
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
-			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
+			m_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 		else
 		{
-			m_critical_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
+			m_critical_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 	}
@@ -148,4 +157,5 @@ namespace libtorrent {
 		else
 			m_timeout = seconds(0);
 	}
+}
 }

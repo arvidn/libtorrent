@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2013, Arvid Norberg
+Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -56,7 +57,7 @@ using namespace std::placeholders;
 struct dht_server
 {
 
-	lt::io_service m_ios;
+	lt::io_context m_ios;
 	std::atomic<int> m_dht_requests;
 	udp::socket m_socket;
 	int m_port;
@@ -129,7 +130,7 @@ struct dht_server
 			while (!done)
 			{
 				m_ios.poll_one();
-				m_ios.reset();
+				m_ios.restart();
 			}
 
 			if (ec == boost::asio::error::operation_aborted

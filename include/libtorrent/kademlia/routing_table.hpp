@@ -1,6 +1,11 @@
 /*
 
-Copyright (c) 2006-2018, Arvid Norberg
+Copyright (c) 2006-2007, 2009-2019, Arvid Norberg
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2015-2016, Steven Siloti
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2016, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,10 +51,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
+#include <libtorrent/flags.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+namespace aux {
+	struct session_settings;
+}
+namespace dht {
 
-struct dht_settings;
+struct settings;
 struct dht_logger;
 
 using bucket_t = aux::vector<node_entry>;
@@ -80,7 +90,7 @@ struct ipv6_hash
 	}
 };
 
-struct ip_set
+struct TORRENT_EXTRA_EXPORT ip_set
 {
 	void insert(address const& addr);
 	bool exists(address const& addr) const;
@@ -97,11 +107,25 @@ struct ip_set
 		return m_ip4s == rh.m_ip4s && m_ip6s == rh.m_ip6s;
 	}
 
+	std::size_t size() const { return m_ip4s.size() + m_ip6s.size(); }
+
 	// these must be multisets because there can be multiple routing table
 	// entries for a single IP when restrict_routing_ips is set to false
 	std::unordered_multiset<address_v4::bytes_type, ipv4_hash> m_ip4s;
 	std::unordered_multiset<address_v6::bytes_type, ipv6_hash> m_ip6s;
 };
+
+// Each routing table bucket represents node IDs with a certain number of bits
+// of prefix in common with our own node ID. Each bucket fits 8 nodes (and
+// sometimes more, closer to the top). In order to minimize the number of hops
+// necessary to traverse the DHT, we want the nodes in our buckets to be spread
+// out across all possible "sub-branches". This is what the "classify" refers
+// to. The 3 (or more) bits following the shared bit prefix.
+TORRENT_EXTRA_EXPORT std::uint8_t classify_prefix(int bucket_idx, bool last_bucket
+	, int bucket_size, node_id nid);
+
+TORRENT_EXTRA_EXPORT bool all_in_same_bucket(span<node_entry const> b
+	, node_id const& id, int bucket_index);
 
 // differences in the implementation from the description in
 // the paper:
@@ -112,8 +136,16 @@ struct ip_set
 // 	the most times is replaced. If none of the nodes in the
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
+// * The routing table bucket sizes are larger towards the "top" of the routing
+// 	table. This is to get closer to the target in fewer round-trips.
+// * Nodes with lower RTT are preferred and may replace nodes with higher RTT
+// * Nodes that are "verified" (i.e. use a node-ID derived from their IP) are
+// 	preferred and may replace nodes that are not verified.
 
+TORRENT_EXTRA_EXPORT bool mostly_verified_nodes(bucket_t const&);
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
+
+using find_nodes_flags_t = flags::bitfield_flag<std::uint8_t, struct find_nodes_flags_tag>;
 
 class TORRENT_EXTRA_EXPORT routing_table
 {
@@ -125,7 +157,7 @@ public:
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size
-		, dht_settings const& settings
+		, aux::session_settings const& settings
 		, dht_logger* log);
 
 	routing_table(routing_table const&) = delete;
@@ -174,18 +206,14 @@ public:
 
 	node_entry const* next_refresh();
 
-	enum
-	{
-		// nodes that have not been pinged are considered failed by this flag
-		include_failed = 1
-	};
+	// nodes that have not been pinged are considered failed by this flag
+	static constexpr find_nodes_flags_t include_failed = 0_bit;
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
-	void find_node(node_id const& id, std::vector<node_entry>& l
-		, int options, int count = 0);
-	void remove_node(node_entry* n
-		, table_t::iterator bucket) ;
+	std::vector<node_entry> find_node(node_id const& target
+		, find_nodes_flags_t options, int count = 0);
+	void remove_node(node_entry* n, bucket_t* b);
 
 	int bucket_size(int bucket) const
 	{
@@ -257,14 +285,16 @@ private:
 	// return a pointer the node_entry with the given endpoint
 	// or 0 if we don't have such a node. Both the address and the
 	// port has to match
-	node_entry* find_node(udp::endpoint const& ep
-		, routing_table::table_t::iterator* bucket);
+	std::tuple<node_entry*, routing_table::table_t::iterator, bucket_t*>
+	find_node(udp::endpoint const& ep);
 
 	// if the bucket is not full, try to fill it with nodes from the
 	// replacement list
 	void fill_from_replacements(table_t::iterator bucket);
 
-	dht_settings const& m_settings;
+	void prune_empty_bucket();
+
+	aux::session_settings const& m_settings;
 
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest
@@ -299,6 +329,14 @@ private:
 	// constant called k in paper
 	int const m_bucket_size;
 };
+
+TORRENT_EXTRA_EXPORT routing_table::add_node_status_t
+replace_node_impl(node_entry const& e, bucket_t& b, ip_set& ips
+	, int bucket_index, int bucket_size_limit, bool last_bucket
+#ifndef TORRENT_DISABLE_LOGGING
+	, dht_logger* log
+#endif
+	);
 
 } } // namespace libtorrent::dht
 

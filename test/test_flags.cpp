@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017, 2019, Arvid Norberg
+Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,8 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "settings.hpp"
 
 using namespace libtorrent;
@@ -42,13 +46,19 @@ namespace lt = libtorrent;
 
 namespace {
 
+std::string file(std::string name)
+{
+	return combine_path(parent_path(current_working_directory())
+		, combine_path("test_torrents", name));
+}
+
 void test_add_and_get_flags(torrent_flags_t const flags)
 {
 	session ses(settings());
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
@@ -63,7 +73,7 @@ void test_set_after_add(torrent_flags_t const flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = torrent_flags::all & ~flags;
@@ -80,7 +90,7 @@ void test_unset_after_add(torrent_flags_t const flags)
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	p.ti = std::make_shared<torrent_info>("../test_torrents/base.torrent",
+	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
 	TEST_CHECK(!ec);
 	p.flags = flags;
@@ -108,6 +118,7 @@ TORRENT_TEST(flag_upload_mode)
 	test_unset_after_add(torrent_flags::upload_mode);
 }
 
+#ifndef TORRENT_DISABLE_SHARE_MODE
 TORRENT_TEST(flag_share_mode)
 {
 	// share-mode
@@ -115,6 +126,7 @@ TORRENT_TEST(flag_share_mode)
 	test_set_after_add(torrent_flags::share_mode);
 	test_unset_after_add(torrent_flags::share_mode);
 }
+#endif
 
 TORRENT_TEST(flag_apply_ip_filter)
 {
@@ -141,13 +153,19 @@ TORRENT_TEST(flag_auto_managed)
 	test_unset_after_add(torrent_flags::auto_managed);
 }
 
+// super seeding mode is automatically turned off if we're not a seed
+// since the posix_disk_io is not threaded, this will happen immediately
+#if TORRENT_HAVE_MMAP
+#ifndef TORRENT_DISABLE_SUPERSEEDING
 TORRENT_TEST(flag_super_seeding)
 {
 	// super-seeding
 	test_add_and_get_flags(torrent_flags::super_seeding);
-	test_set_after_add(torrent_flags::super_seeding);
 	test_unset_after_add(torrent_flags::super_seeding);
+	test_set_after_add(torrent_flags::super_seeding);
 }
+#endif
+#endif
 
 TORRENT_TEST(flag_sequential_download)
 {
@@ -157,6 +175,10 @@ TORRENT_TEST(flag_sequential_download)
 	test_unset_after_add(torrent_flags::sequential_download);
 }
 
+// the stop when ready flag will be cleared when the torrent is ready to start
+// downloading.
+// since the posix_disk_io is not threaded, this will happen immediately
+#if TORRENT_HAVE_MMAP
 TORRENT_TEST(flag_stop_when_ready)
 {
 	// stop-when-ready
@@ -165,4 +187,27 @@ TORRENT_TEST(flag_stop_when_ready)
 	// TODO: change to a different test setup. currently always paused.
 	//test_set_after_add(torrent_flags::stop_when_ready);
 	test_unset_after_add(torrent_flags::stop_when_ready);
+}
+#endif
+
+TORRENT_TEST(flag_disable_dht)
+{
+	test_add_and_get_flags(torrent_flags::disable_dht);
+	test_set_after_add(torrent_flags::disable_dht);
+	test_unset_after_add(torrent_flags::disable_dht);
+}
+
+
+TORRENT_TEST(flag_disable_lsd)
+{
+	test_add_and_get_flags(torrent_flags::disable_lsd);
+	test_set_after_add(torrent_flags::disable_lsd);
+	test_unset_after_add(torrent_flags::disable_lsd);
+}
+
+TORRENT_TEST(flag_disable_pex)
+{
+	test_add_and_get_flags(torrent_flags::disable_pex);
+	test_set_after_add(torrent_flags::disable_pex);
+	test_unset_after_add(torrent_flags::disable_pex);
 }

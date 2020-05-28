@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2005, 2007-2010, 2012-2019, Arvid Norberg
+Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2019, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -112,12 +115,13 @@ std::shared_ptr<piece_picker> setup_picker(
 	char const* availability
 	, char const* have_str
 	, char const* priority
-	, char const* partial)
+	, char const* partial
+	, int num_blocks_per_piece = blocks_per_piece)
 {
 	const int num_pieces = int(strlen(availability));
 	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
-	std::shared_ptr<piece_picker> p = std::make_shared<piece_picker>(blocks_per_piece, blocks_per_piece, num_pieces);
+	std::shared_ptr<piece_picker> p = std::make_shared<piece_picker>(num_blocks_per_piece, num_blocks_per_piece, num_pieces);
 
 	for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 	{
@@ -193,7 +197,7 @@ std::shared_ptr<piece_picker> setup_picker(
 	{
 		if (!have[i]) continue;
 		p->we_have(i);
-		for (int j = 0; j < blocks_per_piece; ++j)
+		for (int j = 0; j < num_blocks_per_piece; ++j)
 			TEST_CHECK(p->is_finished(piece_block(i, j)));
 	}
 
@@ -407,36 +411,41 @@ TORRENT_TEST(get_downloaders)
 	p->mark_as_downloading({piece_index_t(0), 2}, &tmp2);
 	p->mark_as_writing({piece_index_t(0), 2}, &tmp2);
 
-	std::vector<torrent_peer*> d;
-	p->get_downloaders(d, piece_index_t(0));
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == &tmp2);
-	TEST_CHECK(d[3] == nullptr);
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(0));
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == &tmp2);
+		TEST_CHECK(d[3] == nullptr);
+	}
 
 	p->mark_as_downloading({piece_index_t(0), 3}, &tmp1);
 	p->abort_download({piece_index_t(0), 3}, &tmp1);
 	p->mark_as_downloading({piece_index_t(0), 3}, &tmp2);
 	p->mark_as_writing({piece_index_t(0), 3}, &tmp2);
 
-	p->get_downloaders(d, piece_index_t(0));
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(0));
 
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == &tmp2);
-	TEST_CHECK(d[3] == &tmp2);
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == &tmp2);
+		TEST_CHECK(d[3] == &tmp2);
+	}
 
 	// if we ask for downloaders for a piece that's not
 	// curently being downloaded, we get zeroes back
-	p->get_downloaders(d, piece_index_t(1));
+	{
+		std::vector<torrent_peer*> d = p->get_downloaders(piece_index_t(1));
 
-	TEST_EQUAL(d.size(), 4);
-	TEST_CHECK(d[0] == nullptr);
-	TEST_CHECK(d[1] == nullptr);
-	TEST_CHECK(d[2] == nullptr);
-	TEST_CHECK(d[3] == nullptr);
+		TEST_EQUAL(d.size(), 4);
+		TEST_CHECK(d[0] == nullptr);
+		TEST_CHECK(d[1] == nullptr);
+		TEST_CHECK(d[2] == nullptr);
+		TEST_CHECK(d[3] == nullptr);
+	}
 
 // ========================================================
 
@@ -632,6 +641,25 @@ TORRENT_TEST(resize)
 	TEST_EQUAL(p->want().num_pieces, blocks_per_piece * 7 - 1);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 	TEST_EQUAL(p->have().num_pieces, 0);
+}
+
+TORRENT_TEST(we_have_all)
+{
+	auto p = setup_picker("0123111", "  ** * ", "1234567", " 1234");
+
+	p->we_have_all();
+
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->want().pad_blocks, 0);
+	TEST_EQUAL(p->want().last_piece, true);
+
+	TEST_EQUAL(p->have_want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().pad_blocks, 0);
+	TEST_EQUAL(p->have_want().last_piece, true);
+
+	TEST_EQUAL(p->have().num_pieces, 7);
+	TEST_EQUAL(p->have().pad_blocks, 0);
+	TEST_EQUAL(p->have().last_piece, true);
 }
 
 TORRENT_TEST(dont_pick_requested_blocks)
@@ -1022,8 +1050,8 @@ TORRENT_TEST(piece_priorities)
 	std::vector<download_priority_t> prios;
 	p->piece_priorities(prios);
 	TEST_CHECK(prios.size() == 7);
-	download_priority_t prio_comp[] = {0_pri, 6_pri, 5_pri, 4_pri, 3_pri, 2_pri, 1_pri};
-	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
+	std::vector<download_priority_t> const prio_comp{0_pri, 6_pri, 5_pri, 4_pri, 3_pri, 2_pri, 1_pri};
+	TEST_CHECK(prios == prio_comp);
 }
 
 TORRENT_TEST(restore_piece)
@@ -1063,6 +1091,92 @@ TORRENT_TEST(restore_piece)
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == piece_index_t(0));
+}
+
+TORRENT_TEST(restore_piece_finished_blocks)
+{
+	// test restore_piece with a list of blocks to reset, not the whole piece
+	auto p = setup_picker("1234567", "       ", "", "");
+	p->mark_as_finished({piece_index_t(0), 0}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 1}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 2}, nullptr);
+	p->mark_as_finished({piece_index_t(0), 3}, nullptr);
+
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
+	}
+
+	// this should only restore block 1 and 2
+	p->restore_piece(piece_index_t(0), std::vector<int>{1, 2});
+
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(!p->is_finished(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(!p->is_finished(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_finished(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
+	}
+}
+
+TORRENT_TEST(restore_piece_downloading_blocks)
+{
+	// test restore_piece with a list of blocks to reset, not the whole piece
+	auto p = setup_picker("1234567", "       ", "", "");
+	p->mark_as_writing({piece_index_t(0), 0}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 1}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 2}, nullptr);
+	p->mark_as_writing({piece_index_t(0), 3}, nullptr);
+
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_writing);
+	}
+
+	// this should only restore block 1 and 2
+	p->restore_piece(piece_index_t(0), std::vector<int>{1, 2});
+
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 0)));
+	TEST_CHECK(!p->is_downloaded(piece_block(piece_index_t{0}, 1)));
+	TEST_CHECK(!p->is_downloaded(piece_block(piece_index_t{0}, 2)));
+	TEST_CHECK(p->is_downloaded(piece_block(piece_index_t{0}, 3)));
+
+	{
+		auto const dl = p->get_download_queue();
+		TEST_EQUAL(dl.size(), 1);
+		auto const blocks = p->blocks_for_piece(dl[0]);
+		TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_writing);
+		TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
+		TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_writing);
+	}
 }
 
 TORRENT_TEST(random_pick)
@@ -1193,24 +1307,23 @@ TORRENT_TEST(clear_peer)
 	p->mark_as_downloading({piece_index_t(2), 1}, &tmp2);
 	p->mark_as_downloading({piece_index_t(3), 1}, &tmp3);
 
-	std::vector<torrent_peer*> dls;
-	torrent_peer* expected_dls1[] = {&tmp1, &tmp2, &tmp3, nullptr};
-	torrent_peer* expected_dls2[] = {nullptr, &tmp1, nullptr, nullptr};
-	torrent_peer* expected_dls3[] = {nullptr, &tmp2, nullptr, nullptr};
-	torrent_peer* expected_dls4[] = {nullptr, &tmp3, nullptr, nullptr};
-	torrent_peer* expected_dls5[] = {&tmp1, nullptr, &tmp3, nullptr};
-	p->get_downloaders(dls, piece_index_t(0));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls1));
-	p->get_downloaders(dls, piece_index_t(1));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls2));
-	p->get_downloaders(dls, piece_index_t(2));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls3));
-	p->get_downloaders(dls, piece_index_t(3));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls4));
+	std::vector<torrent_peer*> const expected_dls1{&tmp1, &tmp2, &tmp3, nullptr};
+	std::vector<torrent_peer*> const expected_dls2{nullptr, &tmp1, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls3{nullptr, &tmp2, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls4{nullptr, &tmp3, nullptr, nullptr};
+	std::vector<torrent_peer*> const expected_dls5{&tmp1, nullptr, &tmp3, nullptr};
+	std::vector<torrent_peer*> dls = p->get_downloaders(piece_index_t(0));
+	TEST_CHECK(dls == expected_dls1);
+	dls = p->get_downloaders(piece_index_t(1));
+	TEST_CHECK(dls == expected_dls2);
+	dls = p->get_downloaders(piece_index_t(2));
+	TEST_CHECK(dls == expected_dls3);
+	dls = p->get_downloaders(piece_index_t(3));
+	TEST_CHECK(dls == expected_dls4);
 
 	p->clear_peer(&tmp2);
-	p->get_downloaders(dls, piece_index_t(0));
-	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls5));
+	dls = p->get_downloaders(piece_index_t(0));
+	TEST_CHECK(dls == expected_dls5);
 }
 
 TORRENT_TEST(have_all_have_none)
@@ -1339,8 +1452,8 @@ TORRENT_TEST(prefer_aligned_whole_pieces)
 	for (auto idx : picked) picked_pieces.insert(idx.piece_index);
 
 	TEST_CHECK(picked_pieces.size() == 4);
-	piece_index_t expected_pieces[] = {piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
-	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
+	std::set<piece_index_t> const expected_pieces{piece_index_t(4),piece_index_t(5),piece_index_t(6),piece_index_t(7)};
+	TEST_CHECK(picked_pieces == expected_pieces);
 }
 
 TORRENT_TEST(parole_mode)
@@ -1644,20 +1757,20 @@ TORRENT_TEST(dont_have_but_passed_hash_check)
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(0)), true)
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(0)), true);
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->piece_passed(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), true);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 
 	p->we_dont_have(piece_index_t(1));
 
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(0)), true);
 	TEST_EQUAL(p->has_piece_passed(piece_index_t(1)), false);
-	TEST_EQUAL(p->have_piece(piece_index_t(1)), false)
+	TEST_EQUAL(p->have_piece(piece_index_t(1)), false);
 }
 
 TORRENT_TEST(write_failed)
@@ -2144,6 +2257,234 @@ TORRENT_TEST(pad_blocks_some_wanted)
 	TEST_EQUAL(p->want().num_pieces, 2);
 	TEST_EQUAL(p->want().last_piece, true);
 	TEST_EQUAL(p->want().pad_blocks, 2);
+}
+
+TORRENT_TEST(started_hash_job)
+{
+	auto p = setup_picker("1111", "    ", "0404", "");
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	// we cannot start a hash job unless the block is also marked as downloading,
+	// writing or finished
+	p->mark_as_downloading(piece_block(piece_index_t{0}, 0), tmp_peer);
+
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	p->started_hash_job(piece_index_t{0});
+	TEST_CHECK(p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+
+	p->completed_hash_job(piece_index_t{0});
+	TEST_CHECK(!p->is_hashing(piece_index_t{0}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{1}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{2}));
+	TEST_CHECK(!p->is_hashing(piece_index_t{3}));
+}
+
+namespace {
+
+std::vector<piece_block> full_piece(int const p, int const blocks)
+{
+	std::vector<piece_block> ret;
+	for (int i = 0;i < blocks; ++i)
+		ret.push_back(piece_block(piece_index_t{p}, i));
+	return ret;
+}
+void mark_downloading(std::shared_ptr<piece_picker> const& p, std::vector<piece_block> const blocks
+	, torrent_peer* const peer, picker_options_t const opts)
+{
+	for (auto const& b : blocks)
+		p->mark_as_downloading(b, peer, opts);
+}
+}
+
+TORRENT_TEST(piece_extent_affinity)
+{
+	int const blocks = 64;
+	// these are 2 extents. the first 4 pieces and the last 4 pieces
+	auto const have_none = "        ";
+	auto const have_all  = "********";
+
+	auto p = setup_picker("33133233", have_none, "", "", blocks);
+
+	std::vector<piece_block> picked = pick_pieces(p, have_all, blocks, 0, &tmp0
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(2, blocks));
+	mark_downloading(p, full_piece(2, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// without the piece_extent_affinity, we would pick piece 5, because of
+	// availability
+	picked = pick_pieces(p, have_all, blocks, 0, &tmp1);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(5, blocks));
+	mark_downloading(p, full_piece(5, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// with piece_extent_affinity, we would pick piece 0, because it's the same
+	// extent as the piece we just picked
+	picked = pick_pieces(p, have_all, blocks, 0, &tmp2, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(0, blocks));
+	mark_downloading(p, full_piece(0, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// then we should pick piece 1
+	picked = pick_pieces(p, have_all, blocks, 0, &tmp3, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(1, blocks));
+	mark_downloading(p, full_piece(1, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// then we should pick piece 3. The last piece of the extent
+	picked = pick_pieces(p, have_all, blocks, 0, &tmp4, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(3, blocks));
+	mark_downloading(p, full_piece(3, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+}
+
+TORRENT_TEST(piece_extent_affinity_priority)
+{
+	int const blocks = 64;
+	auto const have_none = "        ";
+	auto const have_all  = "********";
+
+	auto p = setup_picker("33333233", have_none, "43444444", "", blocks);
+	// we pick piece 2. Since piece 1 has a different priority this should not
+	// create an affinity for the extent
+	mark_downloading(p, full_piece(2, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// so next piece to be picked will *not* be the extent, but piece 5, which
+	// has the lowest availability
+
+	std::vector<piece_block> picked = pick_pieces(p, have_all, blocks, 0, &tmp1
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(5, blocks));
+}
+
+TORRENT_TEST(piece_extent_affinity_large_pieces)
+{
+	int const blocks = 256;
+	auto const have_none = "        ";
+	auto const have_all  = "********";
+
+	auto p = setup_picker("33333233", have_none, "", "", blocks);
+	// we pick piece 2. Since the pieces are so large (4 MiB), there is no
+	// affinity for piece extents.
+	mark_downloading(p, full_piece(2, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+
+	// so next piece to be picked will *not* be the extent, but piece 5, which
+	// has the next lowest availability
+	std::vector<piece_block> picked = pick_pieces(p, have_all, blocks, 0, &tmp1
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(5, blocks));
+}
+
+TORRENT_TEST(piece_extent_affinity_active_limit)
+{
+	// an extent is two pieces wide, 6 extents total.
+	// make ure we limit the number of extents to 5
+	int const blocks = 128;
+	auto const have_none = "            ";
+
+	auto p = setup_picker("333333333333", have_none, "444444444455", "", blocks);
+	// open up the first 5 extents
+	mark_downloading(p, full_piece(0, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(2, blocks), &tmp1, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(4, blocks), &tmp2, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(6, blocks), &tmp3, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(8, blocks), &tmp4, options | piece_picker::piece_extent_affinity);
+
+	// this should not open up another extent. We should still have a bias
+	// towards pieces 1, 3, 5, 7 and 9.
+	mark_downloading(p, full_piece(10, blocks), &tmp5, options | piece_picker::piece_extent_affinity);
+
+	// a peer that only has piece 0, 1, 10, 11, will always pick 1, never 11,
+	// even though 10 and 11 have higher priority
+
+	std::vector<piece_block> picked = pick_pieces(p, "**        **", blocks, 0, &tmp1
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(1, blocks));
+}
+
+TORRENT_TEST(piece_extent_affinity_clear_done)
+{
+	// an extent is two pieces wide, 7 extents total.
+	// make sure we remove an active extent when we have all the pieces, and
+	// allow a new extent to be added
+	int const blocks = 128;
+	auto const have_none = "              ";
+
+	auto p = setup_picker("33333333333333", have_none, "44444444444455", "", blocks);
+	// open up the first 5 extents
+	mark_downloading(p, full_piece(0, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(2, blocks), &tmp1, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(4, blocks), &tmp2, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(6, blocks), &tmp3, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(8, blocks), &tmp4, options | piece_picker::piece_extent_affinity);
+
+	// now all 5 extents are in use, if we finish a whole extent, it should be
+	// removed from the list
+	p->we_have(piece_index_t{0});
+	p->we_have(piece_index_t{1});
+
+	// we need to invoke the piece picker once to detect and reap this full
+	// extent
+	pick_pieces(p, "**************", blocks, 0, &tmp1, options | piece_picker::piece_extent_affinity);
+
+	// this *should* open up another extent. We should still have a bias
+	// towards pieces 1, 3, 5, 7 and 9.
+	mark_downloading(p, full_piece(10, blocks), &tmp5, options | piece_picker::piece_extent_affinity);
+
+	// a peer that only has piece 10, 11, 12, 13 will always pick 11, since it's
+	// part of an extent that was just opened, never 12 or 13 even though they
+	// have higher priority
+	std::vector<piece_block> picked = pick_pieces(p, "          ****", blocks, 0, &tmp1
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(11, blocks));
+}
+
+TORRENT_TEST(piece_extent_affinity_no_duplicates)
+{
+	// an extent is 8 pieces wide, 3 extents total.
+	// make sure that downloading pieces from the same extent don't create
+	// multiple entries in the recent-extent list, but they all use a single
+	// entry
+	int const blocks = 32;
+	auto const have_none = "                        ";
+
+	auto p = setup_picker("333333333333333333333333", have_none
+		, "444444444444444444444455", "", blocks);
+	// download 5 pieces from the first extent
+	mark_downloading(p, full_piece(0, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(2, blocks), &tmp1, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(4, blocks), &tmp2, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(6, blocks), &tmp3, options | piece_picker::piece_extent_affinity);
+	mark_downloading(p, full_piece(1, blocks), &tmp4, options | piece_picker::piece_extent_affinity);
+
+	// since all these belong to the same extent (0), there should be a single
+	// entry in the recent extent list. Make sure that it's possible to open up a
+	// second extent, to show that all 5 entries weren't used up by 5 duplicates
+	// of 0.
+	// opens up extent 1
+	mark_downloading(p, full_piece(8, blocks), &tmp5, options | piece_picker::piece_extent_affinity);
+
+	// now, from a peer that doesn't have anything from the first extent, still
+	// pick from the second extent even though the last two pieces have higher
+	// priority.
+	std::vector<piece_block> picked = pick_pieces(p, "        ****************", blocks, 0, &tmp1
+		, options | piece_picker::piece_extent_affinity);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked == full_piece(9, blocks));
 }
 
 //TODO: 2 test picking with partial pieces and other peers present so that both
