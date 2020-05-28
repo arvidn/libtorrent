@@ -1463,16 +1463,18 @@ namespace {
 	}
 
 	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-		, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t const type)
+		, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t const type, direction_t const dir)
 		: peer_alert(alloc, h, ep, peer_id)
+		, direction(dir)
 		, socket_type(type)
 	{}
 
 	std::string peer_connect_alert::message() const
 	{
 		char msg[600];
-		std::snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
-			, peer_alert::message().c_str(), socket_type_name(socket_type));
+		char const* direction_str = direction == direction_t::in ? "incoming" : "outgoing";
+		std::snprintf(msg, sizeof(msg), "%s %s connection to peer (%s)"
+			, peer_alert::message().c_str(), direction_str, socket_type_name(socket_type));
 		return msg;
 	}
 

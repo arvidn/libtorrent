@@ -463,7 +463,7 @@ namespace libtorrent {
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().emplace_alert<peer_connect_alert>(
-				t->get_handle(), remote(), pid(), socket_type_idx(m_socket));
+				t->get_handle(), remote(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::out);
 		}
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
@@ -1346,6 +1346,12 @@ namespace libtorrent {
 		// of the torrent and peer_connection::disconnect() will fail if it
 		// think it is
 		m_torrent = t;
+
+		if (t && t->alerts().should_post<peer_connect_alert>())
+		{
+			t->alerts().emplace_alert<peer_connect_alert>(
+				t->get_handle(), remote(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::in);
+		}
 
 		if (t->info_hash().has_v2() && (t->info_hash().get(protocol_version::V2) == ih.v1
 			|| t->info_hash().v2 == ih.v2))
