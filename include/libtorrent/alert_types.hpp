@@ -782,19 +782,27 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 	};
 
-	// This alert is posted every time an outgoing peer connect attempts succeeds.
+	// This alert is posted every time an incoming peer connection both
+	// successfully passes the protocol handshake and is associated with a
+	// torrent, or an outgoing peer connection attempt succeeds. For arbitrary
+	// incoming connections, see incoming_connection_alert.
 	struct TORRENT_EXPORT peer_connect_alert final : peer_alert
 	{
+		enum class direction_t { in, out };
+
 		// internal
 		TORRENT_UNEXPORT peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t type);
+			, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t type, direction_t direction);
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
 		static constexpr alert_category_t static_category = alert_category::connect;
 		std::string message() const override;
 
-		socket_type_t const socket_type;
+		// Tells you if the peer was incoming or outgoing
+		direction_t direction;
+
+		socket_type_t socket_type;
 	};
 
 	// This alert is generated when a peer is disconnected for any reason (other than the ones
