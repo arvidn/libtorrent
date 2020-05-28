@@ -4,7 +4,7 @@ dist: xenial
 matrix:
   fast_finish: true
   include:
-    - if: repo = arvidn/libtorrent
+    - Sync: repo = arvidn/libtorrent
       env: variant=release sonar_scan=1 toolset=gcc
     - env: variant=debug toolset=gcc lint=1 pylint=1 clang_tidy=1
       addons:
