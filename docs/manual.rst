@@ -1,8 +1,8 @@
+.. include:: header.rst
+
 ============================
 libtorrent API Documentation
 ============================
-
-.. include:: header.rst
 
 .. contents:: Table of contents
   :depth: 1

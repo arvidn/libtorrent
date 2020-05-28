@@ -49,7 +49,6 @@ test_tmp_*
 libtool
 docs/reference*
 docs/*.html
-docs/*.png
 docs/*-ref.rst
 
 .DS_Store

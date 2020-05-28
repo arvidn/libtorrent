@@ -16,7 +16,6 @@
 * troubleshooting_
 * `tuning`_
 * fuzzing_
-* screenshot_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
 * `report bugs`_
@@ -72,7 +71,6 @@ libtorrent
 .. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning-ref.html
 .. _fuzzing: fuzzing.html
-.. _screenshot: client_test.png
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: reference-Plugins.html
@@ -102,6 +100,12 @@ on efficiency and scalability. It runs on embedded devices as well as
 desktops. It boasts a well documented library interface that is easy to
 use. It comes with a `simple bittorrent client`__ demonstrating the use of
 the library.
+
+.. figure:: screenshot_thumb.png
+	:target: client_test.html
+	:figclass: align-right
+
+	``client_test`` example program
 
 __ client_test.html
 
