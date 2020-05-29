@@ -28,10 +28,11 @@ you can usually get help in the ``#libtorrent`` IRC channel on
 	libtorrent has some code in header files, that code will not be
 	compatible with the built library if they see different configurations.
 
-	Always make sure that the same TORRENT_* and BOOST_* macros are defined when you
-	link against libtorrent as when you build it. The simplest way to see the full
-	list of macros defined is to build libtorrent with ``--debug-configuration -d2+2``
-	switches added to b2 command line, which output all compiler switches.
+	Always make sure that the same TORRENT_* and BOOST_* macros are defined
+	when you link against libtorrent as when you build it. The simplest way
+	to see the full list of macros defined is to build libtorrent with
+	``-n -a`` switches added to ``b2`` command line, which output all compiler
+	switches.
 
 	Boost-build supports propagating configuration options to dependencies.
 	When building using the makefiles, this is handled by setting the
@@ -97,8 +98,8 @@ script called ``bootstrap.bat`` or ``bootstrap.sh`` on a Unix system. This will
 build ``b2`` and place it in a directory ``src/engine/bin.<architecture>``.
 Copy the ``b2.exe`` (or ``b2`` on a Unix system) to a place that's in you
 shell's ``PATH``. On Linux systems a place commonly used may be
-``/usr/local/bin`` or on Windows ``c:\windows`` (you can also add directories to
-the search paths by modifying the environment variable called ``PATH``).
+``/usr/local/bin`` or on Windows ``c:\windows`` (you can also add directories
+to the search paths by modifying the environment variable called ``PATH``).
 
 Now you have ``b2`` installed. ``b2`` can be considered an interpreter
 that the boost-build system is implemented on. So boost-build uses ``b2``.
@@ -119,8 +120,8 @@ The last thing to do is to configure which compiler(s) to use. Create a file
 ``user-config.jam`` in your home directory. Depending on your platform and which
 compiler you're using, you should add a line for each compiler and compiler
 version you have installed on your system that you want to be able to use with
-BBv2. For example, if you're using Microsoft Visual Studio 14.2 (2019), just add a
-line::
+BBv2. For example, if you're using Microsoft Visual Studio 14.2 (2019), just
+add a line::
 
   using msvc : 14.2 ;
 
@@ -160,17 +161,21 @@ Then the only thing left is simply to invoke ``b2``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the command line.
 For example::
 
-  b2 msvc-14.2 (`Visual Studio 2019`: https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B#Internal_version_numbering)
+  b2 msvc-14.2
   b2 gcc-7.0
   b2 darwin-4.0
 
 .. note::
 
 	If the environment variable ``BOOST_ROOT`` is not set, the Jamfile will
-	attempt to link against "installed" boost libraries. i.e. assume the headers
-	and libraries are available in default search paths.
+	attempt to link against "installed" boost libraries. i.e. assume the
+	headers and libraries are available in default search paths.
 	In this case it's critical that you build your project with the same version
 	of C++ and the same build flags as the system libraries were built with.
+
+.. note:: Also see the `Visual Studio versions`_.
+
+.. _`Visual Studio versions`: https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B#Internal_version_numbering
 
 To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are ``release``, ``debug``,
@@ -184,7 +189,7 @@ can set the ``runtime-link`` feature on the command line, either to ``shared``
 or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
-  b2 msvc-14.2 link=static runtime-link=static debug-symbols=on
+  b2 msvc-14.2 variant=release link=static runtime-link=static debug-symbols=on
 
 .. note::
 
@@ -527,7 +532,7 @@ By default libtorrent is built In debug mode, and will have pretty expensive
 invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
 defines you can use to control the build. Make sure to define the same macros in your
-own code that compiles and links with bittorrent.
+own code that compiles and links with libtorrent.
 
 +----------------------------------------+-------------------------------------------------+
 | macro                                  | description                                     |
@@ -652,16 +657,20 @@ This will also install the headers and library files in the visual studio direct
 be picked up by libtorrent.
 
 list of macros
---------------------
+--------------
 
-The following is a list of defines that libtorrent is built with: ``BOOST_ALL_NO_LIB``, ``BOOST_ASIO_ENABLE_CANCELIO``, ``BOOST_ASIO_HAS_STD_CHRONO``, ``BOOST_MULTI_INDEX_DISABLE_SERIALIZATION``, ``BOOST_NO_DEPRECATED``, ``BOOST_SYSTEM_NO_DEPRECATED``, ``TORRENT_BUILDING_LIBRARY``, ``TORRENT_USE_I2P=1``
+The following is a list of defines that libtorrent is built with: ``BOOST_ALL_NO_LIB``,
+``BOOST_ASIO_ENABLE_CANCELIO``, ``BOOST_ASIO_HAS_STD_CHRONO``,
+``BOOST_MULTI_INDEX_DISABLE_SERIALIZATION``, ``BOOST_NO_DEPRECATED``,
+``BOOST_SYSTEM_NO_DEPRECATED``
 
-Make sure you define the same at complile time for your code to avoid any runtime errors and other issues.
+Make sure you define the same at compile time for your code to avoid any runtime errors
+and other issues.
 
-These might change in the future, so it's always best to verify these every time you upgrade to
-a new version of libtorrent. The simplest way to see the full list of macros defined is to build
-libtorrent with "--debug-configuration -d2+2" switches added to b2 command line:
+These might change in the future, so it's always best to verify these every time you
+upgrade to a new version of libtorrent. The simplest way to see the full list of macros
+defined is to build libtorrent with ``-n -a`` switches added to ``b2`` command line::
 
-``b2 --debug-configuration -d2+2 toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release``
+	b2 -n -a toolset=msvc-14.2 link=static runtime-link=static boost-link=static variant=release
 
-This will output all compiler switches, including defines (such as ``-DBOOST_ASIO_HAS_STD_CHRONO``).
+This will output all compiler switches, including defines (such as ``-DBOOST_ASIO_ENABLE_CANCELIO``).
