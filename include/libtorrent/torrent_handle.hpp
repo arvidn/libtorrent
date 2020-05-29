@@ -1228,10 +1228,14 @@ namespace aux {
 		void super_seeding(bool on) const;
 #endif // TORRENT_ABI_VERSION
 
-		// ``info_hash()`` returns the info-hash(es) of the torrent. If this handle
-		// is to a torrent that hasn't loaded yet (for instance by being added)
-		// by a URL, the returned value is undefined.
-		info_hash_t info_hash() const;
+		// returns the info-hash(es) of the torrent. If this handle is to a
+		// torrent that hasn't loaded yet (for instance by being added) by a
+		// URL, the returned value is undefined.
+		// The ``info_hash()`` returns the SHA-1 info-hash for v1 torrents and a
+		// truncated hash for v2 torrents. For the full v2 info-hash, use
+		// ``info_hashes()`` instead.
+		sha1_hash info_hash() const;
+		info_hash_t info_hashes() const;
 
 		// comparison operators. The order of the torrents is unspecified
 		// but stable.

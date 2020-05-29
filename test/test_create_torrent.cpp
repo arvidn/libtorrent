@@ -152,7 +152,7 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_EQUAL(info2.comment(), "this is a test comment");
 	TEST_EQUAL(info2.trackers().size(), 1);
 	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
-	TEST_CHECK(info1.info_hash() == info2.info_hash());
+	TEST_CHECK(info1.info_hashes() == info2.info_hashes());
 }
 
 // check that attempting to create a torrent containing both
@@ -193,8 +193,8 @@ TORRENT_TEST(v2_only)
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
 	lt::torrent_info info(buffer, lt::from_span);
-	TEST_CHECK(info.info_hash().has_v2());
-	TEST_CHECK(!info.info_hash().has_v1());
+	TEST_CHECK(info.info_hashes().has_v2());
+	TEST_CHECK(!info.info_hashes().has_v1());
 	TEST_EQUAL(info.files().file_name(0_file), "A");
 	TEST_EQUAL(info.files().file_name(1_file), "B");
 	TEST_EQUAL(info.name(), "test");

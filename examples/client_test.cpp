@@ -710,7 +710,7 @@ bool add_torrent(lt::session& ses, std::string torrent)
 	add_torrent_params p;
 
 	std::vector<char> resume_data;
-	if (load_file(resume_file(ti->info_hash()), resume_data))
+	if (load_file(resume_file(ti->info_hashes()), resume_data))
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
@@ -868,7 +868,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		std::string base_name = path_append("certificates", to_hex(h.info_hash().get_best()));
+		std::string base_name = path_append("certificates", to_hex(h.info_hash()));
 		std::string cert = base_name + ".pem";
 		std::string priv = base_name + "_key.pem";
 

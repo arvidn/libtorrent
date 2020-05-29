@@ -180,7 +180,7 @@ TORRENT_TEST(magnet)
 		std::printf("3: %s\n", trackers[2].url.c_str());
 	}
 
-	sha1_hash const ih = t.info_hash().v1;
+	sha1_hash const ih = t.info_hashes().v1;
 	TEST_EQUAL(aux::to_hex(ih), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();

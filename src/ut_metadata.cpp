@@ -111,15 +111,15 @@ namespace {
 			auto const ret = m_torrent.torrent_file().info_section();
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-			if (m_torrent.torrent_file().info_hash().has_v1())
+			if (m_torrent.torrent_file().info_hashes().has_v1())
 			{
 				TORRENT_ASSERT(hasher(ret).final()
-					== m_torrent.torrent_file().info_hash().v1);
+					== m_torrent.torrent_file().info_hashes().v1);
 			}
-			if (m_torrent.torrent_file().info_hash().has_v2())
+			if (m_torrent.torrent_file().info_hashes().has_v2())
 			{
 				TORRENT_ASSERT(hasher256(ret).final()
-					== m_torrent.torrent_file().info_hash().v2);
+					== m_torrent.torrent_file().info_hashes().v2);
 			}
 #endif
 

@@ -393,7 +393,7 @@ bool is_downloading_state(int const st)
 
 		// --- V2 HASHES ---
 
-		if (m_torrent_file->is_valid() && m_torrent_file->info_hash().has_v2())
+		if (m_torrent_file->is_valid() && m_torrent_file->info_hashes().has_v2())
 		{
 			if (!p.merkle_trees.empty())
 				m_torrent_file->internal_load_merkle_trees(p.merkle_trees);
@@ -2287,10 +2287,10 @@ bool is_downloading_state(int const st)
 		for (int i = 0; i < num_outstanding; ++i)
 		{
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
-			if (torrent_file().info_hash().has_v1())
+			if (torrent_file().info_hashes().has_v1())
 				flags |= disk_interface::v1_hash;
 			aux::vector<sha256_hash> hashes;
-			if (torrent_file().info_hash().has_v2())
+			if (torrent_file().info_hashes().has_v2())
 				hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(hashes);
@@ -2380,10 +2380,10 @@ bool is_downloading_state(int const st)
 
 		if (!settings().get_bool(settings_pack::disable_hash_checks))
 		{
-			if (torrent_file().info_hash().has_v1())
+			if (torrent_file().info_hashes().has_v1())
 				hash_passed[0] = piece_hash == m_torrent_file->hash_for_piece(piece);
 
-			if (torrent_file().info_hash().has_v2())
+			if (torrent_file().info_hashes().has_v2())
 			{
 				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
 			}
@@ -2454,9 +2454,9 @@ bool is_downloading_state(int const st)
 
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
 
-			if (torrent_file().info_hash().has_v1())
+			if (torrent_file().info_hashes().has_v1())
 				flags |= disk_interface::v1_hash;
-			if (torrent_file().info_hash().has_v2())
+			if (torrent_file().info_hashes().has_v2())
 				block_hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(block_hashes);
@@ -2549,7 +2549,7 @@ bool is_downloading_state(int const st)
 #endif
 
 		// announce with the local discovery service
-		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
 		{
 			m_ses.announce_lsd(ih, port);
 		});
@@ -2631,7 +2631,7 @@ bool is_downloading_state(int const st)
 		}
 
 		std::weak_ptr<torrent> self(shared_from_this());
-		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version v)
+		m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version v)
 		{
 			m_ses.dht()->announce(ih, 0, flags
 				, std::bind(&torrent::on_dht_announce_response_disp, self, v, _1));
@@ -3021,7 +3021,7 @@ namespace {
 #endif
 
 					req.outgoing_socket = aep.socket;
-					req.info_hash = m_torrent_file->info_hash().get(protocol_version(ih));
+					req.info_hash = m_torrent_file->info_hashes().get(protocol_version(ih));
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
@@ -3122,7 +3122,7 @@ namespace {
 		{
 			if (!aep.enabled) continue;
 			req.outgoing_socket = aep.socket;
-			m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+			m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
 			{
 				req.info_hash = ih;
 				m_ses.queue_tracker_request(req, shared_from_this());
@@ -3257,7 +3257,7 @@ namespace {
 
 		time_point32 const now = aux::time_now32();
 
-		protocol_version const v = r.info_hash == torrent_file().info_hash().v1
+		protocol_version const v = r.info_hash == torrent_file().info_hashes().v1
 			? protocol_version::V1 : protocol_version::V2;
 
 		auto const interval = std::max(resp.interval, seconds32(
@@ -3808,14 +3808,14 @@ namespace {
 		}
 		else
 		{
-			if (torrent_file().info_hash().has_v1())
+			if (torrent_file().info_hashes().has_v1())
 			{
 				passed = sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece);
 			}
 
 			if (!block_hashes.empty())
 			{
-				TORRENT_ASSERT(torrent_file().info_hash().has_v2());
+				TORRENT_ASSERT(torrent_file().info_hashes().has_v2());
 				v2_passed = on_blocks_hashed(piece, block_hashes);
 			}
 		}
@@ -4229,7 +4229,7 @@ namespace {
 		}
 #endif
 
-		if (!torrent_file().info_hash().has_v1() && blocks.empty())
+		if (!torrent_file().info_hashes().has_v1() && blocks.empty())
 		{
 			// This is a v2 only torrent so we can definitely get block
 			// level hashes. Don't fail the piece yet, let it sit in the
@@ -4715,11 +4715,11 @@ namespace {
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
 				alerts().emplace_alert<torrent_delete_failed_alert>(get_handle()
-					, error.ec, m_torrent_file->info_hash());
+					, error.ec, m_torrent_file->info_hashes());
 		}
 		else
 		{
-			alerts().emplace_alert<torrent_deleted_alert>(get_handle(), m_torrent_file->info_hash());
+			alerts().emplace_alert<torrent_deleted_alert>(get_handle(), m_torrent_file->info_hashes());
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -6460,7 +6460,7 @@ namespace {
 		TORRENT_ASSERT(!(!result.hash_failed.empty() && result.valid));
 		for (auto& p : result.hash_failed)
 		{
-			if (torrent_file().info_hash().has_v1() && have_piece(p.first))
+			if (torrent_file().info_hashes().has_v1() && have_piece(p.first))
 			{
 				set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
 				pause();
@@ -6476,7 +6476,7 @@ namespace {
 		}
 		for (piece_index_t p : result.hash_passed)
 		{
-			if (torrent_file().info_hash().has_v1() && !have_piece(p))
+			if (torrent_file().info_hashes().has_v1() && !have_piece(p))
 			{
 				set_error(errors::torrent_inconsistent_hashes, torrent_status::error_file_none);
 				pause();
@@ -6558,7 +6558,7 @@ namespace {
 
 		ret.save_path = m_save_path;
 
-		ret.info_hash = torrent_file().info_hash();
+		ret.info_hash = torrent_file().info_hashes();
 
 		if (valid_metadata())
 		{
@@ -6754,7 +6754,7 @@ namespace {
 			}
 		}
 
-		if (m_torrent_file->info_hash().has_v2())
+		if (m_torrent_file->info_hashes().has_v2())
 		{
 			ret.merkle_trees.clear();
 			ret.merkle_trees.reserve(m_torrent_file->internal_merkle_trees().size());
@@ -7055,7 +7055,7 @@ namespace {
 			{
 				// for ssl sockets, set the hostname
 				std::string const host_name = aux::to_hex(
-					m_torrent_file->info_hash().get(peerinfo->protocol()));
+					m_torrent_file->info_hashes().get(peerinfo->protocol()));
 
 				boost::apply_visitor(hostname_visitor{host_name}, ret);
 			}
@@ -7146,14 +7146,14 @@ namespace {
 
 		if (m_torrent_file->is_valid()) return false;
 
-		if (m_torrent_file->info_hash().has_v1())
+		if (m_torrent_file->info_hashes().has_v1())
 		{
 			sha1_hash const info_hash = hasher(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hash().v1)
+			if (info_hash != m_torrent_file->info_hashes().v1)
 			{
 				// check if the v1 hash is a truncated v2 hash
 				sha256_hash const info_hash2 = hasher256(metadata_buf).final();
-				if (sha1_hash(info_hash2.data()) != m_torrent_file->info_hash().v1)
+				if (sha1_hash(info_hash2.data()) != m_torrent_file->info_hashes().v1)
 				{
 					if (alerts().should_post<metadata_failed_alert>())
 					{
@@ -7164,13 +7164,13 @@ namespace {
 				}
 			}
 		}
-		if (m_torrent_file->info_hash().has_v2())
+		if (m_torrent_file->info_hashes().has_v2())
 		{
 			// we don't have to worry about computing the v2 hash twice because
 			// if the v1 hash was a truncated v2 hash then the torrent_file should
 			// not have a v2 hash and we shouldn't get here
 			sha256_hash const info_hash = hasher256(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hash().v2)
+			if (info_hash != m_torrent_file->info_hashes().v2)
 			{
 				if (alerts().should_post<metadata_failed_alert>())
 				{
@@ -7184,7 +7184,7 @@ namespace {
 		// the torrent's info hash might change
 		// e.g. it could be a hybrid torrent which we only had one of the hashes for
 		// so remove the existing entry
-		info_hash_t const old_ih = m_torrent_file->info_hash();
+		info_hash_t const old_ih = m_torrent_file->info_hashes();
 
 		error_code ec;
 		bdecode_node const metadata = bdecode(metadata_buf, ec);
@@ -7204,7 +7204,7 @@ namespace {
 		}
 
 		// now, we might already have this torrent in the session.
-		m_torrent_file->info_hash().for_each([&](sha1_hash const& ih, protocol_version)
+		m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
 		{
 			auto t = m_ses.find_torrent(info_hash_t(ih)).lock();
 			if (t && t != shared_from_this())
@@ -7219,7 +7219,7 @@ namespace {
 
 		if (m_abort) return false;
 
-		m_info_hash = m_torrent_file->info_hash();
+		m_info_hash = m_torrent_file->info_hashes();
 
 		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
 
@@ -8252,8 +8252,8 @@ namespace {
 
 		if (m_torrent_file)
 		{
-			TORRENT_ASSERT(m_info_hash.v1 == m_torrent_file->info_hash().v1);
-			TORRENT_ASSERT(m_info_hash.v2 == m_torrent_file->info_hash().v2);
+			TORRENT_ASSERT(m_info_hash.v1 == m_torrent_file->info_hashes().v1);
+			TORRENT_ASSERT(m_info_hash.v2 == m_torrent_file->info_hashes().v2);
 		}
 
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
@@ -10592,7 +10592,7 @@ namespace {
 			return nullptr;
 		}
 
-		if (!torrent_file().info_hash().has_v1())
+		if (!torrent_file().info_hashes().has_v1())
 			flags |= pex_lt_v2;
 
 		need_peer_list();
@@ -10686,10 +10686,10 @@ namespace {
 		TORRENT_ASSERT(!m_picker->is_hashing(piece));
 
 		disk_job_flags_t flags;
-		if (torrent_file().info_hash().has_v1())
+		if (torrent_file().info_hashes().has_v1())
 			flags |= disk_interface::v1_hash;
 		aux::vector<sha256_hash> hashes;
-		if (torrent_file().info_hash().has_v2())
+		if (torrent_file().info_hashes().has_v2())
 		{
 			hashes.resize(torrent_file().orig_files().blocks_in_piece2(piece));
 		}

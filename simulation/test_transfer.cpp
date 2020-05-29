@@ -143,7 +143,7 @@ void run_test(
 	params.save_path = save_path(0);
 	if (flags & tx::magnet_download)
 	{
-		params.info_hash = params.ti->info_hash();
+		params.info_hash = params.ti->info_hashes();
 		params.ti.reset();
 	}
 	ses[0]->async_add_torrent(params);
