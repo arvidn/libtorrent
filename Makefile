@@ -528,6 +528,7 @@ HEADERS = \
   stack_allocator.hpp          \
   stat.hpp                     \
   stat_cache.hpp               \
+  storage.hpp                  \
   storage_defs.hpp             \
   string_util.hpp              \
   string_view.hpp              \
