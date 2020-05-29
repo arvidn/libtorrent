@@ -11176,8 +11176,13 @@ bool is_downloading_state(int const st)
 			}
 		}
 		// announce to the next working tracker
-		if ((!m_abort && !is_paused()) || r.event == tracker_request::stopped)
+		// We may have changed state into checking by now, in which case we
+		// shouldn't keep trying to announce
+		if ((!m_abort && !is_paused() && state() != torrent_status::checking_files)
+			|| r.event == tracker_request::stopped)
+		{
 			announce_with_tracker(r.event);
+		}
 		update_tracker_timer(aux::time_now32());
 	}
 

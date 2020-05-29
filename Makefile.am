@@ -5,7 +5,8 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --enable-tests=yes
 SUBDIRS = include/libtorrent src examples test bindings tools
 
 DOCS_IMAGES = \
-  docs/client_test.png            \
+  docs/screenshot.png             \
+  docs/screenshot_thumb.png       \
   docs/cwnd.png                   \
   docs/cwnd_thumb.png             \
   docs/delays.png                 \

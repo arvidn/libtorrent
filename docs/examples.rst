@@ -1,7 +1,3 @@
-===================
-libtorrent Examples
-===================
-
 .. include:: header.rst
 
 .. contents:: Table of contents
