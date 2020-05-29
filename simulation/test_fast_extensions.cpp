@@ -233,7 +233,7 @@ TORRENT_TEST(allow_fast)
 			{
 				lt::torrent_handle h = at->handle;
 				p1.connect_to(ep("50.0.0.1", 6881)
-					, h.torrent_file()->info_hash().v1);
+					, h.torrent_file()->info_hashes().v1);
 				p1.send_bitfield(bitfield);
 				p1.send_interested();
 			}
@@ -296,7 +296,7 @@ TORRENT_TEST(allow_fast_stress)
 		{
 			lt::torrent_handle h = at->handle;
 			p1.connect_to(ep("50.0.0.1", 6881)
-				, h.torrent_file()->info_hash().v1);
+				, h.torrent_file()->info_hashes().v1);
 			p1.send_interested();
 		}
 		else if (auto l = lt::alert_cast<lt::peer_log_alert>(a))

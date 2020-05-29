@@ -282,9 +282,9 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test64K"_sv);
 			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 65536);
 			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "60aae9c7b428f87e0713e88229e18f0adf12cd7b22a0dd8a92bb2485eb7af242"_sv);
-			TEST_EQUAL(ti->info_hash().has_v1(), true);
-			TEST_EQUAL(ti->info_hash().has_v2(), true);
-			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "597b180c1a170a585dfc5e85d834d69013ceda174b8f357d5bb1a0ca509faf0a"_sv);
+			TEST_EQUAL(ti->info_hashes().has_v1(), true);
+			TEST_EQUAL(ti->info_hashes().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hashes().v2), "597b180c1a170a585dfc5e85d834d69013ceda174b8f357d5bb1a0ca509faf0a"_sv);
 		}
 	},
 	{ "v2_multipiece_file.torrent", [](torrent_info const* ti) {
@@ -292,9 +292,9 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
 			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
 			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
-			TEST_EQUAL(ti->info_hash().has_v1(), true);
-			TEST_EQUAL(ti->info_hash().has_v2(), true);
-			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "108ac2c3718ce722e6896edc56c4afa98f1d711ecaace7aad74fca418ebd03de"_sv);
+			TEST_EQUAL(ti->info_hashes().has_v1(), true);
+			TEST_EQUAL(ti->info_hashes().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hashes().v2), "108ac2c3718ce722e6896edc56c4afa98f1d711ecaace7aad74fca418ebd03de"_sv);
 		}
 	},
 	{ "v2_only.torrent", [](torrent_info const* ti) {
@@ -302,9 +302,9 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->files().file_path(file_index_t{ 0 }), "test1MB"_sv);
 			TEST_EQUAL(ti->files().file_size(file_index_t{ 0 }), 1048576);
 			TEST_EQUAL(aux::to_hex(ti->files().root(file_index_t{ 0 })), "515ea9181744b817744ded9d2e8e9dc6a8450c0b0c52e24b5077f302ffbd9008"_sv);
-			TEST_EQUAL(ti->info_hash().has_v1(), false);
-			TEST_EQUAL(ti->info_hash().has_v2(), true);
-			TEST_EQUAL(aux::to_hex(ti->info_hash().v2), "95e04d0c4bad94ab206efa884666fd89777dbe4f7bd9945af1829037a85c6192"_sv);
+			TEST_EQUAL(ti->info_hashes().has_v1(), false);
+			TEST_EQUAL(ti->info_hashes().has_v2(), true);
+			TEST_EQUAL(aux::to_hex(ti->info_hashes().v2), "95e04d0c4bad94ab206efa884666fd89777dbe4f7bd9945af1829037a85c6192"_sv);
 		}
 	},
 	{ "v2_invalid_filename.torrent", [](torrent_info const* ti) {

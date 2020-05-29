@@ -1111,7 +1111,7 @@ namespace libtorrent {
 	sha1_hash peer_connection::associated_info_hash() const
 	{
 		std::shared_ptr<torrent> t = associated_torrent().lock();
-		return t->torrent_file().info_hash().get(
+		return t->torrent_file().info_hashes().get(
 			peer_info_struct()->protocol_v2 ? protocol_version::V2 : protocol_version::V1);
 	}
 
@@ -1264,7 +1264,7 @@ namespace libtorrent {
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
 					, "Delay loaded torrent: %s:"
-					, aux::to_hex(t->torrent_file().info_hash().get_best()).c_str());
+					, aux::to_hex(t->torrent_file().info_hashes().get_best()).c_str());
 			}
 #endif
 		}
@@ -2981,7 +2981,7 @@ namespace libtorrent {
 
 		// this is for a future per-block request feature
 #if 0
-		if (t->info_hash().has_v2())
+		if (t->info_hashes().has_v2())
 		{
 			t->picker().started_hash_job(p.piece);
 			m_disk_thread.async_hash2(t->storage(), p.piece, p.start, {}
@@ -5242,10 +5242,10 @@ namespace libtorrent {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (t->torrent_file().info_hash().has_v1())
+				if (t->torrent_file().info_hashes().has_v1())
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
-				if (t->torrent_file().info_hash().has_v2())
+				if (t->torrent_file().info_hashes().has_v2())
 					hashes.resize(t->torrent_file().orig_files().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
@@ -5345,13 +5345,13 @@ namespace libtorrent {
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->torrent_file().info_hash().has_v1())
+			&& t->torrent_file().info_hashes().has_v1())
 		{
 			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
 
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->torrent_file().info_hash().has_v2())
+			&& t->torrent_file().info_hashes().has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 

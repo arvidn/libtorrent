@@ -307,6 +307,7 @@ void bind_torrent_info()
         .def("piece_length", &torrent_info::piece_length)
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
+        .def("info_hashes", &torrent_info::info_hashes, copy)
         .def("hash_for_piece", &hash_for_piece)
 #if TORRENT_ABI_VERSION <= 2
         .def("merkle_tree", get_merkle_tree)

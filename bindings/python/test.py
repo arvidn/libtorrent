@@ -372,7 +372,8 @@ class test_torrent_info(unittest.TestCase):
         if not HAVE_DEPRECATED_APIS:
             return
         info = lt.torrent_info(lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
-        self.assertEqual(info.info_hash().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+        self.assertEqual(info.info_hash(), lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+        self.assertEqual(info.info_hashes().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
 
     def test_metadata(self):
         if not HAVE_DEPRECATED_APIS:
@@ -552,7 +553,8 @@ class test_magnet_link(unittest.TestCase):
         self.assertEqual(str(p.info_hash.v1), '178882f042c0c33426a6d81e0333ece346e68a68')
         p.save_path = '.'
         h = ses.add_torrent(p)
-        self.assertEqual(str(h.info_hash().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hashes().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
 
     def test_parse_magnet_uri_dict(self):
         ses = lt.session({})
@@ -561,7 +563,8 @@ class test_magnet_link(unittest.TestCase):
         self.assertEqual(binascii.hexlify(p['info_hash']), b'178882f042c0c33426a6d81e0333ece346e68a68')
         p['save_path'] = '.'
         h = ses.add_torrent(p)
-        self.assertEqual(str(h.info_hash().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(h.info_hashes().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
 
 
 class test_peer_class(unittest.TestCase):

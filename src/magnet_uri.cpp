@@ -50,17 +50,17 @@ namespace libtorrent {
 
 		std::string ret = "magnet:?";
 
-		if (handle.info_hash().has_v1())
+		if (handle.info_hashes().has_v1())
 		{
-			sha1_hash const& ih = handle.info_hash().v1;
+			sha1_hash const& ih = handle.info_hashes().v1;
 			ret += "xt=urn:btih:";
 			ret += aux::to_hex(ih);
 		}
 
-		if (handle.info_hash().has_v2())
+		if (handle.info_hashes().has_v2())
 		{
-			if (handle.info_hash().has_v1()) ret += '&';
-			sha256_hash const& ih = handle.info_hash().v2;
+			if (handle.info_hashes().has_v1()) ret += '&';
+			sha256_hash const& ih = handle.info_hashes().v2;
 			ret += "xt=urn:btmh:1220";
 			ret += aux::to_hex(ih);
 		}
@@ -91,17 +91,17 @@ namespace libtorrent {
 	{
 		std::string ret = "magnet:?";
 
-		if (info.info_hash().has_v1())
+		if (info.info_hashes().has_v1())
 		{
-			sha1_hash const& ih = info.info_hash().v1;
+			sha1_hash const& ih = info.info_hashes().v1;
 			ret += "xt=urn:btih:";
 			ret += aux::to_hex(ih);
 		}
 
-		if (info.info_hash().has_v2())
+		if (info.info_hashes().has_v2())
 		{
-			if (info.info_hash().has_v1()) ret += '&';
-			sha256_hash const& ih = info.info_hash().v2;
+			if (info.info_hashes().has_v1()) ret += '&';
+			sha256_hash const& ih = info.info_hashes().v2;
 			ret += "xt=urn:btmh:1220";
 			ret += aux::to_hex(ih);
 		}

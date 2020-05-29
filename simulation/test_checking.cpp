@@ -156,7 +156,7 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 			std::string filename = lt::combine_path(lt::current_working_directory()
 				, lt::combine_path(atp.save_path, atp.ti->files().file_path(lt::file_index_t{1})));
 			partfile = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, "." + lt::aux::to_hex(atp.ti->info_hash().v1.to_string()) + ".parts"));
+				, lt::combine_path(atp.save_path, "." + lt::aux::to_hex(atp.ti->info_hashes().v1.to_string()) + ".parts"));
 			lt::error_code ec;
 			lt::remove(filename, ec);
 			TEST_CHECK(!ec);

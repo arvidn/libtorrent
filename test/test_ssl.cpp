@@ -456,7 +456,7 @@ bool try_connect(lt::session& ses1, int port
 
 	if (flags & valid_sni_hash)
 	{
-		std::string name = aux::to_hex(t->info_hash().v1);
+		std::string name = aux::to_hex(t->info_hashes().v1);
 		std::printf("SNI: %s\n", name.c_str());
 		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
 		TEST_CHECK(!ec);
@@ -493,7 +493,7 @@ bool try_connect(lt::session& ses1, int port
 	// fill in the info-hash
 	if (flags & valid_bittorrent_hash)
 	{
-		std::memcpy(handshake + 28, &t->info_hash().v1[0], 20);
+		std::memcpy(handshake + 28, &t->info_hashes().v1[0], 20);
 	}
 	else
 	{
@@ -532,7 +532,7 @@ bool try_connect(lt::session& ses1, int port
 		return false;
 	}
 
-	if (memcmp(buf + 28, &t->info_hash().v1[0], 20) != 0)
+	if (memcmp(buf + 28, t->info_hashes().v1.data(), 20) != 0)
 	{
 		std::printf("invalid info-hash in bittorrent handshake\n");
 		return false;

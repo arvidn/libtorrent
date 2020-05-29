@@ -4404,7 +4404,7 @@ namespace {
 		, info_hash_t const& old_ih)
 	{
 		m_torrents.erase(old_ih);
-		m_torrents.insert(t->torrent_file().info_hash(), t);
+		m_torrents.insert(t->torrent_file().info_hashes(), t);
 	}
 
 	void session_impl::set_queue_position(torrent* me, queue_position_t p)
@@ -4762,7 +4762,7 @@ namespace {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		TORRENT_ASSERT(params.info_hash == torrent_ptr->torrent_file().info_hash());
+		TORRENT_ASSERT(params.info_hash == torrent_ptr->torrent_file().info_hashes());
 		insert_torrent(params.info_hash, torrent_ptr);
 
 		// once we successfully add the torrent, we can disarm the abort action
@@ -4828,8 +4828,8 @@ namespace {
 		}
 
 		if (params.ti
-			&& ((params.info_hash.has_v1() && params.info_hash.v1 != params.ti->info_hash().v1)
-				|| (params.info_hash.has_v2() && params.info_hash.v2 != params.ti->info_hash().v2)
+			&& ((params.info_hash.has_v1() && params.info_hash.v1 != params.ti->info_hashes().v1)
+				|| (params.info_hash.has_v2() && params.info_hash.v2 != params.ti->info_hashes().v2)
 			))
 		{
 			ec = errors::mismatching_info_hash;
@@ -4852,7 +4852,7 @@ namespace {
 
 		// figure out the info hash of the torrent and make sure params.info_hash
 		// is set correctly
-		if (params.ti) params.info_hash = params.ti->info_hash();
+		if (params.ti) params.info_hash = params.ti->info_hashes();
 
 		if (!params.info_hash.has_v1() && !params.info_hash.has_v2())
 		{
@@ -5067,7 +5067,7 @@ namespace {
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
 		, remove_flags_t const options)
 	{
-		m_torrents.erase(tptr->torrent_file().info_hash());
+		m_torrents.erase(tptr->torrent_file().info_hashes());
 
 		torrent& t = *tptr;
 		if (options)
@@ -5076,7 +5076,7 @@ namespace {
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
 					m_alerts.emplace_alert<torrent_delete_failed_alert>(t.get_handle()
-						, error_code(), t.torrent_file().info_hash());
+						, error_code(), t.torrent_file().info_hashes());
 			}
 		}
 
@@ -5410,7 +5410,7 @@ namespace {
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
 
-		protocol_version const v = ih == t->torrent_file().info_hash().v1
+		protocol_version const v = ih == t->torrent_file().info_hashes().v1
 			? protocol_version::V1 : protocol_version::V2;
 
 		t->add_peer(peer, peer_info::lsd, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0));
