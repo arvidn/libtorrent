@@ -2,7 +2,7 @@
 # (python-docutils) as well as aafigure (python-aafigure)
 
 ifneq ($(STAGE),)
-WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
+WEB_PATH = ~/web/products/libtorrent
 endif
 
 ifndef RST2HTML
@@ -67,7 +67,8 @@ FIGURES = \
 	utp_stack \
 	storage \
 	disk_cache \
-	troubleshooting
+	troubleshooting \
+	screenshot_thumb
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
 
@@ -91,6 +92,12 @@ stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_c
 
 manual.rst: stats_counters.rst
 	touch manual.rst
+
+screenshot_thumb.png: screenshot.png
+	convert $? -resize 400 $@
+ifneq ($(STAGE),)
+	cp $@ $(WEB_PATH)/$@
+endif
 
 #troubleshooting_thumb.png: troubleshooting.png
 #	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png

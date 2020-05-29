@@ -1,7 +1,3 @@
-=================================
-BitTorrent DHT security extension
-=================================
-
 .. include:: header.rst
 
 .. contents:: Table of contents

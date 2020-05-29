@@ -49,7 +49,8 @@ clean: FORCE
     simulator/libsimulator/bin
 
 DOCS_IMAGES = \
-  docs/client_test.png            \
+  docs/screenshot.png             \
+  docs/screenshot_thumb.png       \
   docs/cwnd.png                   \
   docs/cwnd_thumb.png             \
   docs/delays.png                 \

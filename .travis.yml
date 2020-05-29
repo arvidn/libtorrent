@@ -117,7 +117,7 @@ before_install:
   - 'if [ "$docs" = "1" ]; then
     ${PIP} install docutils;
     ${PIP} install Pygments;
-    travis_retry brew install graphviz hunspell;
+    travis_retry brew install graphviz hunspell imagemagick;
     fi'
 
   - if [ "$coverage" == "1" ]; then

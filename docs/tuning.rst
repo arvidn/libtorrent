@@ -1,7 +1,3 @@
-=================
-libtorrent manual
-=================
-
 .. include:: header.rst
 
 .. contents:: Table of contents

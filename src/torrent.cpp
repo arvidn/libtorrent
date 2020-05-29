@@ -11568,8 +11568,13 @@ namespace {
 			}
 		}
 		// announce to the next working tracker
-		if ((!m_abort && !is_paused()) || r.event == event_t::stopped)
+		// We may have changed state into checking by now, in which case we
+		// shouldn't keep trying to announce
+		if ((!m_abort && !is_paused() && state() != torrent_status::checking_files)
+			|| r.event == event_t::stopped)
+		{
 			announce_with_tracker(r.event);
+		}
 		update_tracker_timer(aux::time_now32());
 	}
 

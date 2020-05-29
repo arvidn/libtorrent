@@ -21,14 +21,14 @@ Download and install `Visual C++ 2015 Build Tools`__
 
 .. __: http://landinghub.visualstudio.com/visual-cpp-build-tools
 
-Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_63_0 and create these environmental vars:
+Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_73_0 and create these environmental vars:
 
 .. __: http://www.boost.org/users/history/
 
-1. BOOST_BUILD_PATH: "c:/Libraries/boost_1_63_0/tools/build/"
-2. BOOST_ROOT: "c:/Libraries/boost_1_63_0/"
+1. BOOST_BUILD_PATH: "c:/Libraries/boost_1_73_0/tools/build/"
+2. BOOST_ROOT: "c:/Libraries/boost_1_73_0/"
 
-Navigate to BOOST_ROOT, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_63_0/tools/build/src/engine/bin.ntx86/"
+Navigate to ``BOOST_ROOT``, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_73_0/"
 	
 Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOOST_BUILD_PATH%/user-config.jam`` and add this at the end:
 
@@ -70,18 +70,18 @@ For more information on how to install and set up boost-build, see the
 .. __: building.html#step-2-setup-bbv2
 
 Once you have boost-build set up, you cd to the ``bindings/python``
-directory and invoke ``bjam`` with the appropriate settings. For the available
+directory and invoke ``b2`` with the appropriate settings. For the available
 build variants, see `libtorrent build options`_.
 
 .. _`libtorrent build options`: building.html#step-3-building-libtorrent
 
 For example::
 
-	$ bjam dht-support=on link=static
+	$ b2 stage_module stage_dependencies
 
-On Mac OS X, this will produce the following python module::
-
-	bin/darwin-4.0/release/dht-support-on/link-static/logging-none/threading-multi/libtorrent.so
+This will produce a ``libtorrent`` python module in the current directory (file
+name extension depends on operating system). The libraries the python module depends
+on will be copied into ``./dependencies``.
 
 using libtorrent in python
 ==========================
@@ -117,9 +117,33 @@ To get a python dictionary of the settings, call ``session::get_settings``.
 
 .. _`library reference`: reference.html
 
-Retrieving session statistics in Python is more convenient than that in C++.
-The statistics are stored as an array in ``session_stats_alert``, which will be posted after calling ``post_session_stats()`` in the ``session`` object.
-In order to interpret the statistics array, in C++ it is required to call ``session_stats_metrics()`` to get the indices of these metrics, while in Python it can be done using ``session_stats_alert.values["NAME_OF_METRIC"]``, where ``NAME_OF_METRIC`` is the name of a metric.
+Retrieving session statistics in Python is more convenient than that in C++. The
+statistics are stored as an array in ``session_stats_alert``, which will be
+posted after calling ``post_session_stats()`` in the ``session`` object. In
+order to interpret the statistics array, in C++ it is required to call
+``session_stats_metrics()`` to get the indices of these metrics, while in Python
+it can be done using ``session_stats_alert.values["NAME_OF_METRIC"]``, where
+``NAME_OF_METRIC`` is the name of a metric.
+
+set_alert_notify
+================
+
+The ``set_alert_notify()`` function is not compatible with python. Since it
+requires locking the GIL from within the libtorrent thread, to call the callback,
+it can cause a deadlock with the main thread.
+
+Instead, use the python-specific ``set_alert_fd()`` which takes a file descriptor
+that will have 1 byte written to it to notify the client that there are new
+alerts to be popped.
+
+The file descriptor should be set to non-blocking mode. If writing to the
+file/sending to the socket blocks, libtorrent's internal thread will stall.
+
+This can be used with ``socket.socketpair()``, for example. The file descriptor
+is what ``fileno()`` returns on a socket.
+
+Example
+=======
 
 For an example python program, see ``client.py`` in the ``bindings/python``
 directory.

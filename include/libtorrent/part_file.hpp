@@ -86,7 +86,10 @@ namespace libtorrent {
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const
-		{ return m_header_size + static_cast<int>(slot) * m_piece_size; }
+		{
+			return static_cast<int>(slot) * static_cast<std::int64_t>(m_piece_size)
+				+ m_header_size;
+		}
 
 		template <typename Hasher>
 		int do_hashv(Hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);

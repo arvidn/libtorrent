@@ -567,6 +567,9 @@ NOTSENT
 LOWAT
 Dstatic
 DOPENSSL
+fd
+socketpair
+fileno
 destructors
 fclose
 fopen
@@ -580,4 +583,3 @@ nginx
 SIGINT
 GNUTLS
 libgnutls
-

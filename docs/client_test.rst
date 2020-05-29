@@ -22,7 +22,7 @@ than one).
 
 While running, the ``client_test`` sample will look something like this:
 
-.. image:: client_test.png
+.. image:: screenshot.png
 
 The commands available in the client are:
 
