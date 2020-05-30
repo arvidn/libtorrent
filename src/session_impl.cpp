@@ -859,8 +859,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #ifndef TORRENT_DISABLE_DHT
 #if TORRENT_ABI_VERSION <= 2
-	if ((flags & session_handle::save_dht_settings)
-		|| (flags & session_handle::save_dht_settings))
+	if (flags & session_handle::save_dht_settings)
 	{
 		ret.dht_settings = get_dht_settings();
 	}
