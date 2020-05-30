@@ -151,6 +151,9 @@ EXTRA_DIST = Jamfile \
   invalid1.gz \
   utf8_test.txt \
   web_server.py \
+  root1.xml \
+  root2.xml \
+  root3.xml \
   socks.py \
   http_proxy.py \
   CMakeLists.txt
