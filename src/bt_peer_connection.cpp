@@ -1667,6 +1667,7 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto const& e : m_extensions)
 		{
 			if (e->on_extended(m_recv_buffer.packet_size() - 2, extended_id
@@ -1712,6 +1713,7 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto i = m_extensions.begin();
 			!m_extensions.empty() && i != m_extensions.end();)
 		{
@@ -1856,6 +1858,7 @@ namespace {
 			default:
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
+				ONE_INVARIANT_CHECK;
 				for (auto const& e : m_extensions)
 				{
 					if (e->on_unknown_message(m_recv_buffer.packet_size(), packet_type
@@ -2179,6 +2182,7 @@ namespace {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// loop backwards, to make the first extension be the last
 		// to fill in the handshake (i.e. give the first extensions priority)
+		ONE_INVARIANT_CHECK;
 		for (auto const& e : m_extensions)
 		{
 			e->add_handshake(handshake);
@@ -2238,6 +2242,7 @@ namespace {
 		send_message(msg_unchoke, counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto const& e : m_extensions)
 		{
 			e->sent_unchoke();
@@ -3224,6 +3229,7 @@ namespace {
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			ONE_INVARIANT_CHECK;
 			for (auto i = m_extensions.begin()
 				, end(m_extensions.end()); i != end;)
 			{

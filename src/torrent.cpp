@@ -634,6 +634,12 @@ bool is_downloading_state(int const st)
 		m_was_started = true;
 #endif
 
+		update_gauge();
+		update_want_peers();
+		update_want_scrape();
+		update_want_tick();
+		update_state_list();
+
 		// Some of these calls may log to the torrent debug log, which requires a
 		// call to get_handle(), which requires the torrent object to be fully
 		// constructed, as it relies on get_shared_from_this()
@@ -715,13 +721,6 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		update_gauge();
-
-		update_want_peers();
-		update_want_scrape();
-		update_want_tick();
-		update_state_list();
-
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!m_torrent_file->is_valid() && !m_url.empty())
@@ -743,9 +742,7 @@ bool is_downloading_state(int const st)
 			start_announcing();
 		}
 
-#if TORRENT_USE_INVARIANT_CHECKS
-		check_invariant();
-#endif
+		ONE_INVARIANT_CHECK;
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -3943,13 +3940,6 @@ bool is_downloading_state(int const st)
 			else p->fill_send_buffer();
 		}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
-		{
-			ext->on_piece_pass(index);
-		}
-#endif
-
 		// since this piece just passed, we might have
 		// become uninterested in some peers where this
 		// was the last piece we were interested in
@@ -3968,6 +3958,13 @@ bool is_downloading_state(int const st)
 
 		set_need_save_resume();
 		state_updated();
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto& ext : m_extensions)
+		{
+			ext->on_piece_pass(index);
+		}
+#endif
 
 		if (m_ses.alerts().should_post<piece_finished_alert>())
 			m_ses.alerts().emplace_alert<piece_finished_alert>(get_handle(), index);
@@ -4163,6 +4160,7 @@ bool is_downloading_state(int const st)
 		add_failed_bytes(m_torrent_file->piece_size(index));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_extensions)
 		{
 			ext->on_piece_failed(index);
@@ -6215,15 +6213,6 @@ bool is_downloading_state(int const st)
 		c->m_in_constructor = false;
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& ext : m_extensions)
-		{
-			std::shared_ptr<peer_plugin>
-				pp(ext->new_connection(peer_connection_handle(c->self())));
-			if (pp) c->add_extension(pp);
-		}
-#endif
-
 		TORRENT_ASSERT(!c->m_in_constructor);
 		// add the newly connected peer to this torrent's peer list
 		TORRENT_ASSERT(m_iterating_connections == 0);
@@ -6259,6 +6248,16 @@ bool is_downloading_state(int const st)
 		{
 			debug_log("web seed connection started: [%s] %s"
 				, print_endpoint(a).c_str(), web->url.c_str());
+		}
+#endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
+		for (auto const& ext : m_extensions)
+		{
+			std::shared_ptr<peer_plugin>
+				pp(ext->new_connection(peer_connection_handle(c->self())));
+			if (pp) c->add_extension(pp);
 		}
 #endif
 
@@ -6805,15 +6804,6 @@ bool is_downloading_state(int const st)
 		peerinfo->prev_amount_download = 0;
 		peerinfo->prev_amount_upload = 0;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const& ext : m_extensions)
-		{
-			std::shared_ptr<peer_plugin> pp(ext->new_connection(
-					peer_connection_handle(c->self())));
-			if (pp) c->add_extension(pp);
-		}
-#endif
-
 		// add the newly connected peer to this torrent's peer list
 		TORRENT_ASSERT(m_iterating_connections == 0);
 
@@ -6846,6 +6836,16 @@ bool is_downloading_state(int const st)
 			c->disconnect(errors::no_error, operation_t::bittorrent, peer_connection_interface::failure);
 			return false;
 		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
+		for (auto const& ext : m_extensions)
+		{
+			std::shared_ptr<peer_plugin> pp(ext->new_connection(
+					peer_connection_handle(c->self())));
+			if (pp) c->add_extension(pp);
+		}
+#endif
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_share_mode)
@@ -7085,6 +7085,7 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_extensions)
 		{
 			std::shared_ptr<peer_plugin> pp(ext->new_connection(
@@ -7702,6 +7703,7 @@ bool is_downloading_state(int const st)
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_extensions)
 		{
 			ext->on_files_checked();
@@ -8631,13 +8633,6 @@ bool is_downloading_state(int const st)
 			m_inactivity_timer.cancel();
 		}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
-		{
-			if (ext->on_pause()) return;
-		}
-#endif
-
 		m_connect_boost_counter
 			= static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost));
 		m_inactive = false;
@@ -8668,6 +8663,14 @@ bool is_downloading_state(int const st)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		log_to_all_peers("pausing");
+#endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
+		for (auto& ext : m_extensions)
+		{
+			ext->on_pause();
+		}
 #endif
 
 		// when checking and being paused in graceful pause mode, we
@@ -8866,13 +8869,6 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
-		{
-			if (ext->on_resume()) return;
-		}
-#endif
-
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().emplace_alert<torrent_resumed_alert>(get_handle());
 
@@ -8893,6 +8889,12 @@ bool is_downloading_state(int const st)
 		update_want_tick();
 		update_want_scrape();
 		update_gauge();
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
+		for (auto& ext : m_extensions)
+			ext->on_resume();
+#endif
 
 		if (should_check_files()) start_checking();
 
@@ -9164,6 +9166,7 @@ bool is_downloading_state(int const st)
 		auto self = shared_from_this();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto const& ext : m_extensions)
 		{
 			ext->tick();
@@ -10272,9 +10275,11 @@ bool is_downloading_state(int const st)
 		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
 
+		update_want_peers();
+		state_updated();
+
 		if (p)
 		{
-			state_updated();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source
 				, st.first_time_seen
@@ -10288,8 +10293,6 @@ bool is_downloading_state(int const st)
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
 		}
-		update_want_peers();
-		state_updated();
 		return p;
 	}
 
@@ -10664,6 +10667,7 @@ bool is_downloading_state(int const st)
 		state_updated();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_extensions)
 		{
 			ext->on_state(state());
@@ -10675,6 +10679,7 @@ bool is_downloading_state(int const st)
 	void torrent::notify_extension_add_peer(tcp::endpoint const& ip
 		, peer_source_flags_t const src, add_peer_flags_t const flags)
 	{
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_extensions)
 		{
 			ext->on_add_peer(ip, src, flags);

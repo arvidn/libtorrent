@@ -80,9 +80,13 @@ namespace libtorrent {
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
 	(void)_invariant_check
+
+#define ONE_INVARIANT_CHECK check_invariant()
 #else
 #define INVARIANT_CHECK do {} TORRENT_WHILE_0
+#define ONE_INVARIANT_CHECK do {} TORRENT_WHILE_0
 #endif
+
 
 #endif // TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 

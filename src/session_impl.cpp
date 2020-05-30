@@ -654,9 +654,7 @@ namespace aux {
 		run_all_updates(*this);
 		reopen_listen_sockets(false);
 
-#if TORRENT_USE_INVARIANT_CHECKS
-		check_invariant();
-#endif
+		ONE_INVARIANT_CHECK;
 	}
 
 	// TODO: 2 the ip filter should probably be saved here too
@@ -687,6 +685,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto const& ext : m_ses_extensions[plugins_all_idx])
 		{
 			ext->save_state(*eptr);
@@ -807,6 +806,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			ext->load_state(*e);
@@ -3233,6 +3233,7 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& ext : m_ses_extensions[plugins_tick_idx])
 		{
 			ext->on_tick();
@@ -4302,6 +4303,7 @@ namespace {
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
 			add_torrent_params p;
@@ -6981,6 +6983,7 @@ namespace {
 		, dht::msg const& request, entry& response)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		ONE_INVARIANT_CHECK;
 		for (auto const& ext : m_ses_extensions[plugins_dht_request_idx])
 		{
 			if (ext->on_dht_request(query
