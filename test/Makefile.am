@@ -152,7 +152,7 @@ EXTRA_DIST = Jamfile \
   utf8_test.txt \
   web_server.py \
   socks.py \
-  http.py \
+  http_proxy.py \
   CMakeLists.txt
 
 EXTRA_PROGRAMS = $(test_programs)

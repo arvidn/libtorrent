@@ -21,5 +21,5 @@ VERSION=1.2.7
 tar xvzf libtorrent-rasterbar-${VERSION}.tar.gz
 cd libtorrent-rasterbar-${VERSION}/test
 
-bjam link=static $1
+b2 link=static $1
 
