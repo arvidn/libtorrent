@@ -65,16 +65,18 @@ namespace {
 	// 	If !has_v2() then the v1 hash might actually be a truncated v2 hash
 	struct TORRENT_EXPORT info_hash_t
 	{
-		info_hash_t() {}
+		info_hash_t() noexcept = default;
 		// for backwards compatibility, make it possible to construct directly
 		// from a v1 hash
 #if TORRENT_ABI_VERSION > 2
 		explicit
 #endif
-		info_hash_t(sha1_hash h1) : v1(h1) {} // NOLINT
-		explicit info_hash_t(sha256_hash h2) : v2(h2) {}
-		info_hash_t(sha1_hash h1, sha256_hash h2)
+		info_hash_t(sha1_hash h1) noexcept : v1(h1) {} // NOLINT
+		explicit info_hash_t(sha256_hash h2) noexcept : v2(h2) {}
+		info_hash_t(sha1_hash h1, sha256_hash h2) noexcept
 			: v1(h1), v2(h2) {}
+		info_hash_t(info_hash_t const&) noexcept = default;
+		info_hash_t& operator=(info_hash_t const&) & noexcept = default;
 
 #if TORRENT_ABI_VERSION <= 2
 		// for backwards compatibility, assume the v1 hash is the one the client
@@ -109,7 +111,7 @@ namespace {
 			return std::tie(lhs.v1, lhs.v2) != std::tie(rhs.v1, rhs.v2);
 		}
 
-		friend bool operator==(info_hash_t const& lhs, info_hash_t const& rhs)
+		friend bool operator==(info_hash_t const& lhs, info_hash_t const& rhs) noexcept
 		{
 			return std::tie(lhs.v1, lhs.v2) == std::tie(rhs.v1, rhs.v2);
 		}
