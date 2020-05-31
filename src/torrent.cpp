@@ -10796,7 +10796,7 @@ namespace {
 		{
 			std::int64_t file_size = m_torrent_file->files().file_size(i);
 			if (file_size == 0) fp[i] = 1.f;
-			else fp[i] = float(progress[i]) / file_size;
+			else fp[i] = float(progress[i]) / float(file_size);
 		}
 	}
 #endif
@@ -11311,7 +11311,7 @@ namespace {
 			st->progress_ppm = int(st->total_wanted_done * 1000000
 				/ st->total_wanted);
 #if !TORRENT_NO_FPU
-			st->progress = st->progress_ppm / 1000000.f;
+			st->progress = float(st->progress_ppm) / 1000000.f;
 #endif
 		}
 
@@ -11342,7 +11342,7 @@ namespace {
 #if TORRENT_NO_FPU
 			st->distributed_copies = -1.f;
 #else
-			st->distributed_copies = st->distributed_full_copies
+			st->distributed_copies = float(st->distributed_full_copies)
 				+ float(st->distributed_fraction) / 1000;
 #endif
 		}
