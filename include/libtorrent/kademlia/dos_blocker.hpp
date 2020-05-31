@@ -57,14 +57,12 @@ namespace dht {
 
 		void set_rate_limit(int l)
 		{
-			TORRENT_ASSERT(l > 0);
-			m_message_rate_limit = l;
+			m_message_rate_limit = std::max(1, l);
 		}
 
 		void set_block_timer(int t)
 		{
-			TORRENT_ASSERT(t > 0);
-			m_block_timeout = t;
+			m_block_timeout = std::max(1, t);
 		}
 
 	private:
