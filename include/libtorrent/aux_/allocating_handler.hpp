@@ -55,6 +55,8 @@ namespace libtorrent { namespace aux {
 #endif
 
 #if defined _MSC_VER || defined __MINGW64__
+
+	// windows
 #ifndef NDEBUG
 	constexpr std::size_t debug_read_iter = 24 * sizeof(void*);
 	constexpr std::size_t debug_write_iter = 24 * sizeof(void*);
@@ -78,6 +80,9 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t abort_handler_max_size = tracking + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + 112;
 #else
+
+	// non-windows
+
 #ifdef _GLIBCXX_DEBUG
 #if defined __clang__
 	constexpr std::size_t debug_read_iter = 12 * sizeof(void*);
@@ -103,8 +108,16 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t openssl_read_cost = 0;
 	constexpr std::size_t openssl_write_cost = 0;
 #endif
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 152;
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 152;
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+	constexpr std::size_t fuzzer_write_cost = 32;
+	constexpr std::size_t fuzzer_read_cost = 80;
+#else
+	constexpr std::size_t fuzzer_write_cost = 0;
+	constexpr std::size_t fuzzer_read_cost = 0;
+#endif
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + fuzzer_write_cost + 152;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + fuzzer_read_cost + 152;
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
