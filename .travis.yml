@@ -54,6 +54,7 @@ git:
 branches:
   only:
     - master
+    - RC_2_0
     - RC_1_2
     - RC_1_1
 
