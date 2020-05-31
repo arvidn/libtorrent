@@ -313,7 +313,7 @@ namespace aux {
 			case mode_t::full_tree: return !m_tree[idx].is_all_zeros();
 			case mode_t::piece_layer: return idx < merkle_get_first_child(piece_layer_start());
 			case mode_t::block_layer: return idx < block_layer_start() + m_num_blocks;
-		};
+		}
 		TORRENT_ASSERT_FAIL();
 		return false;
 	}
@@ -329,7 +329,7 @@ namespace aux {
 			case mode_t::full_tree: return m_tree[idx] == h;
 			case mode_t::piece_layer: return idx < merkle_get_first_child(piece_layer_start());
 			case mode_t::block_layer: return true;
-		};
+		}
 		TORRENT_ASSERT_FAIL();
 		return false;
 	}
@@ -377,7 +377,7 @@ namespace aux {
 
 				return merkle_root_scratch(layer, layer_size, pad_hash, scratch_space);
 			}
-		};
+		}
 		TORRENT_ASSERT_FAIL();
 		return sha256_hash{};
 	}
@@ -418,7 +418,7 @@ namespace aux {
 				merkle_fill_tree(ret, num_leafs);
 				break;
 			}
-		};
+		}
 		ret[0] = root();
 		return ret;
 	}
