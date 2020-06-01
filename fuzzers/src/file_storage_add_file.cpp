@@ -35,7 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	lt::file_storage fs;
-	fs.add_file({reinterpret_cast<char const*>(data), size}, 1);
+	// we expect this call to fail sometimes
+	try {
+		fs.add_file({reinterpret_cast<char const*>(data), size}, 1);
+	}
+	catch (...) {}
 	return 0;
 }
 
