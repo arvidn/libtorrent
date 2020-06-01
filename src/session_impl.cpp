@@ -1213,9 +1213,12 @@ namespace {
 		}
 #endif
 
+#if TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		bool const use_ssl = req.ssl_ctx != nullptr && req.ssl_ctx != &m_ssl_ctx;
-		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
+		if (!use_ssl)
+#endif
+			req.ssl_ctx = &m_ssl_ctx;
 #endif
 
 		TORRENT_ASSERT(req.outgoing_socket);
