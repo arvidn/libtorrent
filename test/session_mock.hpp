@@ -117,7 +117,7 @@ struct session_mock : aux::session_interface
 	tcp::endpoint bind_outgoing_socket(aux::socket_type&, address const&, error_code&) const override { return {}; }
 	bool verify_bound_address(address const&, bool, error_code&) override { return false; }
 
-	proxy_settings proxy() const override { return {}; }
+	aux::proxy_settings proxy() const override { return {}; }
 
 	void prioritize_connections(std::weak_ptr<torrent>) override {}
 
@@ -171,7 +171,7 @@ struct session_mock : aux::session_interface
 #endif
 
 #if TORRENT_USE_I2P
-	proxy_settings i2p_proxy() const override { return {}; }
+	aux::proxy_settings i2p_proxy() const override { return {}; }
 	char const* i2p_session() const override { return nullptr; }
 #endif
 

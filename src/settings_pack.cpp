@@ -455,7 +455,7 @@ namespace libtorrent {
 				for (int k = 0; k < str_settings.end_index(); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + k, std::string(val.string_value()));
 					break;
 				}
 				break;

@@ -154,7 +154,7 @@ std::shared_ptr<aux::listen_socket_t> dummy_listen_socket6()
 	return ret;
 }
 
-node* get_foreign_node_stub(node_id const&, std::string const&)
+node* get_foreign_node_stub(node_id const&, string_view)
 {
 	return nullptr;
 }
@@ -324,7 +324,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 {
 	entry e;
 	e["y"] = "r";
-	e["t"] = request.dict_find_string_value("t").to_string();
+	e["t"] = std::string(request.dict_find_string_value("t"));
 //	e["ip"] = endpoint_to_bytes(ep);
 	e["r"] = args.a;
 	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
@@ -393,7 +393,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			if (ret)
 			{
 				TEST_EQUAL(parsed[4].string_value(), "r");
-				token = parsed[2].string_value().to_string();
+				token = std::string(parsed[2].string_value());
 //				std::printf("got token: %s\n", token.c_str());
 			}
 			else
@@ -876,7 +876,7 @@ TORRENT_TEST(get_peers_announce)
 	if (ret)
 	{
 		TEST_CHECK(peer1_keys[0].string_value() == "r");
-		token = peer1_keys[2].string_value().to_string();
+		token = std::string(peer1_keys[2].string_value());
 //		std::printf("got token: %s\n", token.c_str());
 	}
 	else
@@ -938,7 +938,7 @@ void test_scrape(address(&rand_addr)())
 		if (ret)
 		{
 			TEST_CHECK(peer1_keys[0].string_value() == "r");
-			token = peer1_keys[2].string_value().to_string();
+			token = std::string(peer1_keys[2].string_value());
 		}
 		else
 		{
@@ -1323,7 +1323,7 @@ void test_put(address(&rand_addr)())
 		if (ret)
 		{
 			TEST_EQUAL(desc_keys[4].string_value(), "r");
-			token = desc_keys[2].string_value().to_string();
+			token = std::string(desc_keys[2].string_value());
 			std::printf("get response: %s\n"
 				, print_entry(response).c_str());
 			std::printf("got token: %s\n", aux::to_hex(token).c_str());
@@ -2646,7 +2646,7 @@ TORRENT_TEST(dht_dual_stack)
 	obs observer;
 	counters cnt;
 	node* node4p = nullptr, *node6p = nullptr;
-	auto get_foreign_node = [&](node_id const&, std::string const& family)
+	auto get_foreign_node = [&](node_id const&, string_view const family)
 	{
 		if (family == "n4") return node4p;
 		if (family == "n6") return node6p;

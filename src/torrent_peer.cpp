@@ -191,10 +191,10 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(in_use);
 #if TORRENT_USE_I2P
-		if (is_i2p_addr) return dest().to_string();
+		if (is_i2p_addr) return std::string(dest());
 #endif // TORRENT_USE_I2P
 #if TORRENT_USE_RTC
-		if (is_rtc_addr) return dest().to_string();
+		if (is_rtc_addr) return std::string(dest());
 #endif // TORRENT_USE_RTC
 		return address().to_string();
 	}

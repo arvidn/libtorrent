@@ -429,7 +429,7 @@ namespace libtorrent {
 			ec = errors::invalid_tracker_response;
 			return false;
 		}
-		ret.hostname = i.string_value().to_string();
+		ret.hostname = i.string_value();
 
 		// extract port
 		i = info.dict_find_int("port");
@@ -465,20 +465,20 @@ namespace libtorrent {
 
 		bdecode_node const tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
-			resp.trackerid = tracker_id.string_value().to_string();
+			resp.trackerid = tracker_id.string_value();
 
 		// parse the response
 		bdecode_node const failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			resp.failure_reason = failure.string_value().to_string();
+			resp.failure_reason = failure.string_value();
 			ec = errors::tracker_failure;
 			return resp;
 		}
 
 		bdecode_node const warning = e.dict_find_string("warning message");
 		if (warning)
-			resp.warning_message = warning.string_value().to_string();
+			resp.warning_message = warning.string_value();
 
 		if (flags & tracker_request::scrape_request)
 		{

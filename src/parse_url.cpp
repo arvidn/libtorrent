@@ -40,16 +40,16 @@ namespace libtorrent {
 
 	// returns protocol, auth, hostname, port, path
 	std::tuple<std::string, std::string, std::string, int, std::string>
-		parse_url_components(std::string url, error_code& ec)
+		parse_url_components(string_view url, error_code& ec)
 	{
 		std::string hostname; // hostname only
 		std::string auth; // user:pass
 		std::string protocol; // http or https for instance
 		int port = -1;
 
-		std::string::iterator at;
-		std::string::iterator colon;
-		std::string::iterator port_pos;
+		string_view::iterator at;
+		string_view::iterator colon;
+		string_view::iterator port_pos;
 
 		// PARSE URL
 		auto start = url.begin();

@@ -185,7 +185,7 @@ namespace dht {
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 		void update_storage_node_ids();
-		node* get_node(node_id const& id, std::string const& family_name);
+		node* get_node(node_id const& id, string_view family_name);
 
 		// implements socket_manager
 		bool has_quota() override;

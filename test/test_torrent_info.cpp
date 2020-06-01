@@ -1127,7 +1127,7 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
-		std::printf("%s == %s\n", p.c_str(), test[i].expected_filename.to_string().c_str());
+		std::printf("%s == %s\n", p.c_str(), std::string(test[i].expected_filename).c_str());
 
 		TEST_EQUAL(p, test[i].expected_filename);
 	}

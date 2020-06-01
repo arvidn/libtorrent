@@ -253,7 +253,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	int num_pieces = int(strlen(bits));
 	int packet_size = (num_pieces+7)/8 + 5;
 	TORRENT_ALLOCA(msg, char, packet_size);
-	std::fill(msg.begin(), msg.end(), 0);
+	std::fill(msg.begin(), msg.end(), '\0');
 	char* ptr = msg.data();
 	write_int32(packet_size-4, ptr);
 	write_int8(5, ptr);

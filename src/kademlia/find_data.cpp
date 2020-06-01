@@ -74,7 +74,7 @@ void find_data_observer::reply(msg const& m)
 	if (token)
 	{
 		static_cast<find_data*>(algorithm())->got_write_token(
-			node_id(id.string_ptr()), token.string_value().to_string());
+			node_id(id.string_ptr()), std::string(token.string_value()));
 	}
 
 	traversal_observer::reply(m);

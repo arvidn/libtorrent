@@ -680,8 +680,8 @@ namespace {
 	std::string combine_path(string_view lhs, string_view rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty() || lhs == ".") return rhs.to_string();
-		if (rhs.empty() || rhs == ".") return lhs.to_string();
+		if (lhs.empty() || lhs == ".") return std::string(rhs);
+		if (rhs.empty() || rhs == ".") return std::string(lhs);
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
@@ -738,7 +738,7 @@ namespace {
 		for (int i = 0; i < num_steps; ++i)
 			ret += ".." TORRENT_SEPARATOR;
 
-		ret += target.to_string();
+		ret += target;
 		return ret;
 	}
 
@@ -946,9 +946,9 @@ namespace {
 		)
 		{ p.remove_prefix(1); if (pos > 0) --pos; }
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-		auto const sep = find_first_of(p, "/\\", std::string::size_type(pos));
+		auto const sep = p.find_first_of("/\\", std::string::size_type(pos));
 #else
-		auto const sep = find_first_of(p, TORRENT_SEPARATOR_CHAR, std::string::size_type(pos));
+		auto const sep = p.find_first_of(TORRENT_SEPARATOR_CHAR, std::string::size_type(pos));
 #endif
 		if (sep == string_view::npos) return {p, {}};
 		return { p.substr(0, sep), p.substr(sep + 1) };
@@ -956,7 +956,7 @@ namespace {
 
 	std::string complete(string_view f)
 	{
-		if (is_complete(f)) return f.to_string();
+		if (is_complete(f)) return std::string(f);
 		if (f == ".") return current_working_directory();
 		return combine_path(current_working_directory(), f);
 	}
@@ -967,7 +967,7 @@ namespace {
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		int i = 0;
 		// match the xx:\ or xx:/ form
-		while (f[i] && is_alpha(f[i])) ++i;
+		while (i < int(f.size()) && is_alpha(f[i])) ++i;
 		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
 

@@ -92,7 +92,7 @@ protected:
 };
 
 // get the closest node to the id with the given family_name
-using get_foreign_node_t = std::function<node*(node_id const&, std::string const&)>;
+using get_foreign_node_t = std::function<node*(node_id const&, string_view)>;
 
 struct dht_status
 {

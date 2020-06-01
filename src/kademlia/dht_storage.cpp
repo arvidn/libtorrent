@@ -329,7 +329,7 @@ namespace {
 			// for this torrent. Store it.
 			if (!name.empty() && v->name.empty())
 			{
-				v->name = name.substr(0, 100).to_string();
+				v->name = name.substr(0, 100);
 			}
 
 			auto& peersv = aux::is_v4(endp) ? v->peers4 : v->peers6;

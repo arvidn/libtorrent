@@ -61,7 +61,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string escape_path(string_view str);
 	// if the url does not appear to be encoded, and it contains illegal url characters
 	// it will be encoded
-	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
+	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(string_view url);
 
 	TORRENT_EXTRA_EXPORT string_view trim(string_view);
 	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack

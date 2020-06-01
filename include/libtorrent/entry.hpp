@@ -171,6 +171,7 @@ namespace libtorrent {
 		// hidden
 		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
+			|| std::is_same<U, string_view>::value
 			|| std::is_same<U, char const*>::value>::type>
 		entry& operator=(U v) &
 		{
