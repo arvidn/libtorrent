@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
-#include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -442,7 +441,7 @@ private:
 	}
 
 	// send and receive buffer
-	aux::noexcept_movable<aux::vector<char>> m_buffer;
+	aux::vector<char> m_buffer;
 	char const* m_id;
 	std::string m_dest;
 	std::string m_name_lookup;

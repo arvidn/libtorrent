@@ -139,18 +139,18 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.
-		aux::noexcept_movable<std::vector<std::string>> trackers;
+		std::vector<std::string> trackers;
 
 		// the tiers the URLs in ``trackers`` belong to. Trackers belonging to
 		// different tiers may be treated differently, as defined by the multi
 		// tracker extension. This is optional, if not specified trackers are
 		// assumed to be part of tier 0, or whichever the last tier was as
 		// iterating over the trackers.
-		aux::noexcept_movable<std::vector<int>> tracker_tiers;
+		std::vector<int> tracker_tiers;
 
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
-		aux::noexcept_movable<std::vector<std::pair<std::string, int>>> dht_nodes;
+		std::vector<std::pair<std::string, int>> dht_nodes;
 
 		// in case there's no other name in this torrent, this name will be used.
 		// The name out of the torrent_info object takes precedence if available.
@@ -182,7 +182,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// ``torrent_handle::prioritize_files()``. The file priorities specified
 		// in here take precedence over those specified in the resume data, if
 		// any.
-		aux::noexcept_movable<std::vector<download_priority_t>> file_priorities;
+		std::vector<download_priority_t> file_priorities;
 
 		// torrent extension construction functions can be added to this vector
 		// to have them be added immediately when the torrent is constructed.
@@ -190,7 +190,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		aux::noexcept_movable<std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>>>
+		std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By
@@ -286,15 +286,15 @@ TORRENT_VERSION_NAMESPACE_2
 		//
 		// url_seeds expects URLs to regular web servers, aka "get right" style,
 		// specified in `BEP 19`_.
-		aux::noexcept_movable<std::vector<std::string>> http_seeds;
-		aux::noexcept_movable<std::vector<std::string>> url_seeds;
+		std::vector<std::string> http_seeds;
+		std::vector<std::string> url_seeds;
 
 		// peers to add to the torrent, to be tried to be connected to as
 		// bittorrent peers.
-		aux::noexcept_movable<std::vector<tcp::endpoint>> peers;
+		std::vector<tcp::endpoint> peers;
 
 		// peers banned from this torrent. The will not be connected to
-		aux::noexcept_movable<std::vector<tcp::endpoint>> banned_peers;
+		std::vector<tcp::endpoint> banned_peers;
 
 		// this is a map of partially downloaded piece. The key is the piece index
 		// and the value is a bitfield where each bit represents a 16 kiB block.
@@ -314,7 +314,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// element in the vector represent the piece with the same index. If you
 		// set both file- and piece priorities, file priorities will take
 		// precedence.
-		aux::noexcept_movable<std::vector<download_priority_t>> piece_priorities;
+		std::vector<download_priority_t> piece_priorities;
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -322,7 +322,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the
 		// first entry. See torrent_info::set_merkle_tree() for more info.
-		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<sha1_hash>> merkle_tree;
+		TORRENT_DEPRECATED std::vector<sha1_hash> merkle_tree;
 #endif
 
 		// v2 hashes, if known
@@ -364,7 +364,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		TORRENT_DEPRECATED aux::noexcept_movable<std::vector<char>> resume_data;
+		TORRENT_DEPRECATED std::vector<char> resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is
