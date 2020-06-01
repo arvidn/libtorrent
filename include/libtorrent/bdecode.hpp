@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/aux_/noexcept_movable.hpp"
 
 /*
 
@@ -397,7 +396,7 @@ private:
 	// if this is the root node, that owns all the tokens, they live in this
 	// vector. If this is a sub-node, this field is not used, instead the
 	// m_root_tokens pointer points to the root node's token.
-	aux::noexcept_movable<std::vector<aux::bdecode_token>> m_tokens;
+	std::vector<aux::bdecode_token> m_tokens;
 
 	// this points to the root nodes token vector
 	// for the root node, this points to its own m_tokens member
