@@ -3013,13 +3013,20 @@ namespace {
 						// do we have left to download?
 						std::int64_t const rate = peer->connection->statistics().download_payload_rate();
 						std::int64_t const bytes_left = std::int64_t(st.requested) * t->block_size();
-						// the settings unit is milliseconds, so calculate the
-						// number of milliseconds worth of bytes left in the piece
-						if (rate > 1000
-							&& (bytes_left * 1000) / rate < m_settings.get_int(settings_pack::predictive_piece_announce))
+
+						// calculate the eta for the piece
+						time_duration const eta = rate > 0
+							? milliseconds((bytes_left * 1000) / rate)
+							: milliseconds(0);
+
+						// the configured threshold for predictive piece announce
+						time_duration const threshold = milliseconds(
+							m_settings.get_int(settings_pack::predictive_piece_announce));
+
+						if (rate > 1000 && eta < threshold)
 						{
 							// we predict we will complete this piece very soon.
-							t->predicted_have_piece(piece, int((bytes_left * 1000) / rate));
+							t->predicted_have_piece(piece, eta);
 						}
 					}
 				}

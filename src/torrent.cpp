@@ -4166,8 +4166,7 @@ namespace {
 	// announce it to peers ahead of time to eliminate the
 	// round-trip times involved in announcing it, requesting it
 	// and sending it
-	// TODO: 2 use chrono type for time duration
-	void torrent::predicted_have_piece(piece_index_t const index, int const milliseconds)
+	void torrent::predicted_have_piece(piece_index_t const index, time_duration const duration)
 	{
 		auto const i = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
@@ -4178,9 +4177,9 @@ namespace {
 			TORRENT_INCREMENT(m_iterating_connections);
 #ifndef TORRENT_DISABLE_LOGGING
 			p->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
-				, static_cast<int>(index), milliseconds);
+				, static_cast<int>(index), static_cast<int>(total_milliseconds(duration)));
 #else
-			TORRENT_UNUSED(milliseconds);
+			TORRENT_UNUSED(duration);
 #endif
 			p->announce_piece(index);
 		}
