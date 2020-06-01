@@ -7,10 +7,10 @@ matrix:
     - if: repo = arvidn/libtorrent
       env: variant=release sonar_scan=1 toolset=gcc
     - env: variant=release toolset=gcc check_headers=1 python=1
-    - env: variant=test_debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
+    - env: variant=debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
-    - env: variant=test_debug crypto=openssl python=1 toolset=darwin ios=1
+    - env: variant=debug crypto=openssl python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc pylint=1 clang_tidy=1
@@ -18,16 +18,16 @@ matrix:
         apt:
           packages:
           - python3-pip
-    - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
-    - env: variant=test_debug tests=1 mmap=off toolset=gcc
-    - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
-    - env: variant=test_debug tests=1 crypto=gnutls toolset=gcc sanitizer=on
+    - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
+    - env: variant=debug tests=1 mmap=off toolset=gcc
+    - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on
+    - env: variant=debug tests=1 crypto=gnutls toolset=gcc sanitizer=on
       addons:
         apt:
           packages:
           - gnutls-dev
-#    - env: variant=test_debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
+#    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
+    - env: variant=release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
         apt:
@@ -256,7 +256,7 @@ script:
 
   # the common boost-build command line arguments. It's important they are all
   # the same, in order for builds to be reused between invocations
-  - export B2_ARGS="mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant"
+  - export B2_ARGS="export-extra=on mmap-disk-io=$mmap warnings=all crypto=$crypto debug-iterators=on picker-debugging=on asserts=on invariant-checks=full $toolset variant=$variant"
   - 'if [[ $sanitizer == "on" ]]; then
       export B2_ARGS="${B2_ARGS} address-sanitizer=norecover undefined-sanitizer=norecover";
     fi'
@@ -353,7 +353,7 @@ script:
   - cd $TRAVIS_BUILD_DIR/test;
   - 'if [[ "$arch" == "arm" ]];
     then
-      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.execute=off;
+      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
       sudo cp -R bin rootfs/;
-      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs";
+      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs";
     fi'
