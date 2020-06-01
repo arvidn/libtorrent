@@ -232,7 +232,7 @@ TORRENT_VERSION_NAMESPACE_2
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
 	// from its base class.
-	// It's posted when the ``status_notification`` bit is set in the alert_mask.
+	// It's posted when the ``alert_category::status`` bit is set in the alert_mask.
 	// deprecated in 1.1.3
 	// use add_torrent_alert instead
 	struct TORRENT_DEPRECATED_EXPORT torrent_added_alert final : torrent_alert
@@ -252,7 +252,7 @@ TORRENT_VERSION_NAMESPACE_2
 	// The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
 	// the torrent handle in its base class will always be invalid (since the torrent
 	// is already removed) it has the info hash as a member, to identify it.
-	// It's posted when the ``status_notification`` bit is set in the alert_mask.
+	// It's posted when the ``alert_category::status`` bit is set in the alert_mask.
 	//
 	// Even though the ``handle`` member doesn't point to an existing torrent anymore,
 	// it is still useful for comparing to other handles, which may also no
@@ -1094,7 +1094,7 @@ TORRENT_VERSION_NAMESPACE_2
 	// this alert arrives, since the torrent is being deleted. The ``info_hash`` member
 	// is hence the main way of identifying which torrent just completed the delete.
 	//
-	// This alert is posted in the ``storage_notification`` category, and that bit
+	// This alert is posted in the ``alert_category::storage`` category, and that bit
 	// needs to be set in the alert_mask.
 	struct TORRENT_EXPORT torrent_deleted_alert final : torrent_alert
 	{
@@ -1745,7 +1745,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 	// This alert is generated when a DHT node announces to an info-hash on our
-	// DHT node. It belongs to the ``dht_notification`` category.
+	// DHT node. It belongs to the ``alert_category::dht`` category.
 	struct TORRENT_EXPORT dht_announce_alert final : alert
 	{
 		// internal
@@ -1763,7 +1763,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 	// This alert is generated when a DHT node sends a ``get_peers`` message to
-	// our DHT node. It belongs to the ``dht_notification`` category.
+	// our DHT node. It belongs to the ``alert_category::dht`` category.
 	struct TORRENT_EXPORT dht_get_peers_alert final : alert
 	{
 		// internal
@@ -1837,7 +1837,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// This alert is posted when the disk cache has been flushed for a specific
 	// torrent as a result of a call to torrent_handle::flush_cache(). This
-	// alert belongs to the ``storage_notification`` category, which must be
+	// alert belongs to the ``alert_category::storage`` category, which must be
 	// enabled to let this alert through. The alert is also posted when removing
 	// a torrent from the session, once the outstanding cache flush is complete
 	// and the torrent does no longer have any files open.
@@ -2041,7 +2041,7 @@ TORRENT_VERSION_NAMESPACE_2
 	// This alert is only posted when requested by the user, by calling
 	// session::post_torrent_updates() on the session. It contains the torrent
 	// status of all torrents that changed since last time this message was
-	// posted. Its category is ``status_notification``, but it's not subject to
+	// posted. Its category is ``alert_category::status``, but it's not subject to
 	// filtering, since it's only manually posted anyway.
 	struct TORRENT_EXPORT state_update_alert final : alert
 	{
@@ -2268,7 +2268,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 	// This alert is generated when we send a get_peers request
-	// It belongs to the ``dht_notification`` category.
+	// It belongs to the ``alert_category::dht`` category.
 	struct TORRENT_EXPORT dht_outgoing_get_peers_alert final : alert
 	{
 		// internal
@@ -2402,7 +2402,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 	// posted if the local service discovery socket fails to start properly.
-	// it's categorized as ``error_notification``.
+	// it's categorized as ``alert_category::error``.
 	struct TORRENT_EXPORT lsd_error_alert final : alert
 	{
 		// internal
@@ -2518,7 +2518,7 @@ TORRENT_VERSION_NAMESPACE_2
 		peer_request req;
 	};
 
-	// debug logging of the DHT when dht_log_notification is set in the alert
+	// debug logging of the DHT when alert_category::dht_log is set in the alert
 	// mask.
 	struct TORRENT_EXPORT dht_log_alert final : alert
 	{
@@ -2661,7 +2661,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// this is posted when one or more blocks are picked by the piece picker,
 	// assuming the verbose piece picker logging is enabled (see
-	// picker_log_notification).
+	// alert_category::picker_log).
 	struct TORRENT_EXPORT picker_log_alert final : peer_alert
 	{
 		// internal
@@ -2834,7 +2834,7 @@ TORRENT_VERSION_NAMESPACE_2
 	// This alert is posted when a block intended to be sent to a peer is placed in the
 	// send buffer. Note that if the connection is closed before the send buffer is sent,
 	// the alert may be posted without the bytes having been sent to the peer.
-	// It belongs to the ``upload_notification`` category.
+	// It belongs to the ``alert_category::upload`` category.
 	struct TORRENT_EXPORT block_uploaded_alert final : peer_alert
 	{
 		// internal
@@ -2878,7 +2878,7 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 	// this alert is posted with SOCKS5 related errors, when a SOCKS5 proxy is
-	// configured. It's enabled with the error_notification alert category.
+	// configured. It's enabled with the alert_category::error alert category.
 	struct TORRENT_EXPORT socks5_alert final : alert
 	{
 		// internal

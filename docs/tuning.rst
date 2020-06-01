@@ -26,7 +26,7 @@ access to via the ``session_stats_alert``. First, enable these alerts in the
 alert mask::
 
 	settings_pack p;
-	p.set_int(settings_mask::alert_mask, alert::stats_notification);
+	p.set_int(settings_mask::alert_mask, alert_category::stats);
 	ses.apply_settings(p);
 
 Then print alerts to a file::

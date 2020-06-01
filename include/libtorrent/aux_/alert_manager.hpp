@@ -61,7 +61,7 @@ namespace aux {
 	struct TORRENT_EXTRA_EXPORT alert_manager
 	{
 		explicit alert_manager(int queue_limit
-			, alert_category_t alert_mask = alert::error_notification);
+			, alert_category_t alert_mask = alert_category::error);
 
 		alert_manager(alert_manager const&) = delete;
 		alert_manager& operator=(alert_manager const&) = delete;
