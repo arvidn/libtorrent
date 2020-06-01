@@ -1155,7 +1155,7 @@ namespace libtorrent {
 
 		// this is called whenever we predict to have this piece
 		// within one second
-		void predicted_have_piece(piece_index_t index, int milliseconds);
+		void predicted_have_piece(piece_index_t index, time_duration duration);
 #endif
 
 		void clear_in_state_update()
