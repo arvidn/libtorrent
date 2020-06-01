@@ -9,8 +9,6 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-variant debug-mode : debug : <asserts>on <debug-iterators>on <invariant-checks>full ;
-
 project client_test
 	: requirements
 	<threading>multi <library>/torrent//torrent
@@ -24,7 +22,6 @@ project client_test
 	: default-build
 	<link>static
 	<cxxstd>14
-	<variant>debug-mode
 	;
 
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
