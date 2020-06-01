@@ -423,7 +423,7 @@ namespace {
 		switch (e.type())
 		{
 			case bdecode_node::string_t:
-				this->string() = e.string_value().to_string();
+				this->string() = e.string_value();
 				break;
 			case bdecode_node::int_t:
 				this->integer() = e.int_value();
@@ -434,7 +434,7 @@ namespace {
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					std::pair<string_view, bdecode_node> elem = e.dict_at(i);
-					d[elem.first.to_string()] = elem.second;
+					d[std::string(elem.first)] = elem.second;
 				}
 				break;
 			}

@@ -208,17 +208,17 @@ namespace libtorrent {
 		return ret;
 	}
 
-	std::string maybe_url_encode(std::string const& url)
+	std::string maybe_url_encode(string_view url)
 	{
 		std::string protocol, host, auth, path;
 		int port;
 		error_code ec;
 		std::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
-		if (ec) return url;
+		if (ec) return std::string(url);
 
 		// first figure out if this url contains unencoded characters
 		if (!need_encoding(path.c_str(), int(path.size())))
-			return url;
+			return std::string(url);
 
 		std::string msg;
 		std::string escaped_path { escape_path(path) };

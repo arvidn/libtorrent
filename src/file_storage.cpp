@@ -689,7 +689,7 @@ namespace aux {
 		else
 		{
 			if (m_files.empty())
-				m_name = lsplit_path(path).first.to_string();
+				m_name = lsplit_path(path).first;
 		}
 
 		// files without a root_hash are assumed to be v1, except symlinks. They
@@ -774,7 +774,7 @@ namespace aux {
 			&& m_symlinks.size() < aux::file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
-			m_symlinks.emplace_back(symlink_path.to_string());
+			m_symlinks.emplace_back(symlink_path);
 		}
 		else
 		{
@@ -947,7 +947,7 @@ namespace {
 
 		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
-			ret = fe.filename().to_string();
+			ret = fe.filename();
 		}
 		else if (fe.path_index == aux::file_entry::no_path)
 		{
@@ -996,7 +996,7 @@ namespace {
 		}
 		else
 		{
-			return fe.filename().to_string();
+			return std::string(fe.filename());
 		}
 	}
 
@@ -1130,7 +1130,7 @@ namespace {
 
 	std::string file_storage::file_name(aux::file_entry const& fe) const
 	{
-		return fe.filename().to_string();
+		return std::string(fe.filename());
 	}
 
 	std::int64_t file_storage::file_size(aux::file_entry const& fe) const
@@ -1276,8 +1276,7 @@ namespace {
 		bool file_map_initialized = false;
 
 		// lazily instantiated set of all valid directories a symlink may point to
-		// TODO: in C++17 this could be string_view
-		std::unordered_set<std::string> dir_map;
+		std::unordered_set<string_view> dir_map;
 		bool dir_map_initialized = false;
 
 		// symbolic links that points to directories
@@ -1334,7 +1333,7 @@ namespace {
 				{
 					for (auto const& p : m_paths)
 						for (string_view pv = p; !pv.empty(); pv = rsplit_path(pv).first)
-							dir_map.insert(pv.to_string());
+							dir_map.insert(pv);
 					dir_map_initialized = true;
 				}
 
@@ -1416,12 +1415,12 @@ namespace {
 				branch = lsplit_path(target, branch.size() + 1).first)
 			{
 				// this is a concrete directory
-				if (dir_map.count(branch.to_string())) continue;
+				if (dir_map.count(branch)) continue;
 
-				auto const iter = dir_links.find(branch.to_string());
+				auto const iter = dir_links.find(std::string(branch));
 				if (iter == dir_links.end()) goto failed;
-				if (traversed.count(branch.to_string())) goto failed;
-				traversed.insert(branch.to_string());
+				if (traversed.count(std::string(branch))) goto failed;
+				traversed.insert(std::string(branch));
 
 				// this path element is a symlink. substitute the branch so far by
 				// the link target

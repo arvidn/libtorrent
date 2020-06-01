@@ -525,21 +525,6 @@ TORRENT_TEST(string_ptr_move_assign)
 	TEST_CHECK(*p2 == nullptr);
 }
 
-TORRENT_TEST(find_first_of)
-{
-	string_view test("01234567891");
-	TEST_EQUAL(find_first_of(test, '1', 0), 1);
-	TEST_EQUAL(find_first_of(test, '1', 1), 1);
-	TEST_EQUAL(find_first_of(test, '1', 2), 10);
-	TEST_EQUAL(find_first_of(test, '1', 3), 10);
-
-	TEST_EQUAL(find_first_of(test, "61", 0), 1);
-	TEST_EQUAL(find_first_of(test, "61", 1), 1);
-	TEST_EQUAL(find_first_of(test, "61", 2), 6);
-	TEST_EQUAL(find_first_of(test, "61", 3), 6);
-	TEST_EQUAL(find_first_of(test, "61", 4), 6);
-}
-
 TORRENT_TEST(strip_string)
 {
 	TEST_EQUAL(strip_string("   ab"), "ab");

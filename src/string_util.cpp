@@ -220,7 +220,7 @@ namespace libtorrent {
 			string_view port;
 			if (element.front() == '[')
 			{
-				auto const pos = find_first_of(element, ']', 0);
+				auto const pos = element.find_first_of(']', 0);
 				if (pos == string_view::npos
 					|| pos+1 >= element.size()
 					|| element[pos+1] != ':')
@@ -229,15 +229,15 @@ namespace libtorrent {
 					continue;
 				}
 
-				iface.device = strip_string(element.substr(1, pos - 1)).to_string();
+				iface.device = strip_string(element.substr(1, pos - 1));
 
 				port = strip_string(element.substr(pos + 2));
 			}
 			else
 			{
 				// consume device name
-				auto const pos = find_first_of(element, ':', 0);
-				iface.device = strip_string(element.substr(0, pos)).to_string();
+				auto const pos = element.find_first_of(':', 0);
+				iface.device = strip_string(element.substr(0, pos));
 				if (pos == string_view::npos)
 				{
 					err.emplace_back(element);

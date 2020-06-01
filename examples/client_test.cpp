@@ -667,12 +667,12 @@ void set_torrent_params(lt::add_torrent_params& p)
 void add_magnet(lt::session& ses, lt::string_view uri)
 {
 	lt::error_code ec;
-	lt::add_torrent_params p = lt::parse_magnet_uri(uri.to_string(), ec);
+	lt::add_torrent_params p = lt::parse_magnet_uri(uri, ec);
 
 	if (ec)
 	{
 		std::printf("invalid magnet link \"%s\": %s\n"
-			, uri.to_string().c_str(), ec.message().c_str());
+			, std::string(uri).c_str(), ec.message().c_str());
 		return;
 	}
 
@@ -685,12 +685,12 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 
 	set_torrent_params(p);
 
-	std::printf("adding magnet: %s\n", uri.to_string().c_str());
+	std::printf("adding magnet: %s\n", std::string(uri).c_str());
 	ses.async_add_torrent(std::move(p));
 }
 
 // return false on failure
-bool add_torrent(lt::session& ses, std::string torrent)
+bool add_torrent(lt::session& ses, std::string const torrent)
 {
 	using lt::add_torrent_params;
 	using lt::storage_mode_t;
@@ -744,9 +744,9 @@ std::vector<std::string> list_dir(std::string path
 
 	do
 	{
-		lt::string_view p = fd.cFileName;
+		lt::string_view const p = fd.cFileName;
 		if (filter_fun(p))
-			ret.push_back(p.to_string());
+			ret.emplace_back(p);
 
 	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
@@ -765,9 +765,9 @@ std::vector<std::string> list_dir(std::string path
 	struct dirent* de;
 	while ((de = readdir(handle)))
 	{
-		lt::string_view p(de->d_name);
+		lt::string_view const p(de->d_name);
 		if (filter_fun(p))
-			ret.push_back(p.to_string());
+			ret.emplace_back(p);
 	}
 	closedir(handle);
 #endif
@@ -1381,7 +1381,7 @@ examples:
 	for (auto const& i : torrents)
 	{
 		if (i.substr(0, 7) == "magnet:") add_magnet(ses, i);
-		else add_torrent(ses, i.to_string());
+		else add_torrent(ses, std::string(i));
 	}
 
 	std::thread resume_data_loader([&ses]
@@ -1981,7 +1981,7 @@ done:
 
 					bool const complete = file_progress[idx] == ti->files().file_size(i);
 
-					std::string title = ti->files().file_name(i).to_string();
+					std::string title{ti->files().file_name(i)};
 					if (!complete)
 					{
 						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);

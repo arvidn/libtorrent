@@ -98,7 +98,7 @@ namespace {
 
 file_handle::file_handle(string_view name, std::int64_t
 	, open_mode_t const mode)
-	: m_fd(CreateFileW(convert_to_native_path_string(name.to_string()).c_str()
+	: m_fd(CreateFileW(convert_to_native_path_string(std::string(name)).c_str()
 		, file_access(mode)
 		, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
 		, nullptr
@@ -161,14 +161,14 @@ namespace {
 
 file_handle::file_handle(string_view name, std::int64_t const size
 	, open_mode_t const mode)
-	: m_fd(open(name.to_string().c_str(), file_flags(mode), 0755))
+	: m_fd(open(std::string(name).c_str(), file_flags(mode), 0755))
 {
 #ifdef O_NOATIME
 	if (m_fd < 0 && (mode & open_mode::no_atime))
 	{
 		// NOATIME may not be allowed for certain files, it's best-effort,
 		// so just try again without NOATIME
-		m_fd = open(name.to_string().c_str()
+		m_fd = open(std::string(name).c_str()
 			, file_flags(mode & ~open_mode::no_atime), 0755);
 	}
 #endif

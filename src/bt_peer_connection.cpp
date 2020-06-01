@@ -2027,7 +2027,7 @@ namespace {
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 
 		auto const client_info = root.dict_find_string_value("v");
-		if (!client_info.empty()) m_client_version = client_info.to_string();
+		if (!client_info.empty()) m_client_version = std::string(client_info);
 
 		int const reqq = int(root.dict_find_int_value("reqq"));
 		if (reqq > 0) max_out_request_queue(reqq);

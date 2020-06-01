@@ -214,7 +214,7 @@ namespace aux {
 
 		// this is not very efficient, but it only affects some specific
 		// windows builds for now anyway (not even the default windows build)
-		std::string pe = element.to_string();
+		std::string pe(element);
 		char const* file_end = strrchr(pe.c_str(), '.');
 		std::string name = file_end
 			? std::string(pe.data(), file_end)
@@ -1647,7 +1647,7 @@ namespace {
 				if (tier.type() != bdecode_node::list_t) continue;
 				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
-					announce_entry e(tier.list_string_value_at(k).to_string());
+					announce_entry e(tier.list_string_value_at(k));
 					ltrim(e.url);
 					if (e.url.empty()) continue;
 					e.tier = std::uint8_t(j);
@@ -1694,7 +1694,7 @@ namespace {
 					|| n.list_at(1).type() != bdecode_node::int_t)
 					continue;
 				m_nodes.emplace_back(
-					n.list_at(0).string_value().to_string()
+					n.list_at(0).string_value()
 					, int(n.list_at(1).int_value()));
 			}
 		}
@@ -1711,7 +1711,7 @@ namespace {
 		if (url_seeds && url_seeds.type() == bdecode_node::string_t
 			&& url_seeds.string_length() > 0)
 		{
-			web_seed_entry ent(maybe_url_encode(url_seeds.string_value().to_string())
+			web_seed_entry ent(maybe_url_encode(url_seeds.string_value())
 				, web_seed_entry::url_seed);
 			if ((m_flags & multifile) && num_files() > 1)
 				ensure_trailing_slash(ent.url);
@@ -1726,7 +1726,7 @@ namespace {
 				bdecode_node const url = url_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t) continue;
 				if (url.string_length() == 0) continue;
-				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
+				web_seed_entry ent(maybe_url_encode(url.string_value())
 					, web_seed_entry::url_seed);
 				if ((m_flags & multifile) && num_files() > 1)
 					ensure_trailing_slash(ent.url);
@@ -1740,7 +1740,7 @@ namespace {
 		if (http_seeds && http_seeds.type() == bdecode_node::string_t
 			&& http_seeds.string_length() > 0)
 		{
-			m_web_seeds.emplace_back(maybe_url_encode(http_seeds.string_value().to_string())
+			m_web_seeds.emplace_back(maybe_url_encode(http_seeds.string_value())
 				, web_seed_entry::http_seed);
 		}
 		else if (http_seeds && http_seeds.type() == bdecode_node::list_t)
@@ -1751,18 +1751,18 @@ namespace {
 			{
 				bdecode_node const url = http_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
-				std::string u = maybe_url_encode(url.string_value().to_string());
+				std::string u = maybe_url_encode(url.string_value());
 				if (!unique.insert(u).second) continue;
 				m_web_seeds.emplace_back(std::move(u), web_seed_entry::http_seed);
 			}
 		}
 
-		m_comment = torrent_file.dict_find_string_value("comment.utf-8").to_string();
-		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment").to_string();
+		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
+		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
 		aux::verify_encoding(m_comment);
 
-		m_created_by = torrent_file.dict_find_string_value("created by.utf-8").to_string();
-		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by").to_string();
+		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
+		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
 		aux::verify_encoding(m_created_by);
 
 		return true;

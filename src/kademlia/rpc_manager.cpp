@@ -313,7 +313,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 					, o->algorithm()->id()
 					, print_endpoint(m.addr).c_str()
 					, err.list_int_value_at(0)
-					, err.list_string_value_at(1).to_string().c_str());
+					, std::string(err.list_string_value_at(1)).c_str());
 			}
 			else
 			{

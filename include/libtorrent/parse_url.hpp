@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <string>
 
+#include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
@@ -45,7 +46,7 @@ namespace libtorrent {
 	// returns protocol, auth, hostname, port, path
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string
 		, std::string, int, std::string>
-		parse_url_components(std::string url, error_code& ec);
+		parse_url_components(string_view url, error_code& ec);
 
 	// split a URL in its base and path parts
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>

@@ -98,7 +98,7 @@ namespace aux {
 		void set_str(int name, std::string value) override
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
-			return m_store.set_str(name, std::move(value));
+			m_store.set_str(name, std::move(value));
 		}
 		void set_int(int name, int value) override
 		{

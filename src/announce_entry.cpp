@@ -59,7 +59,7 @@ namespace libtorrent {
 	{}
 
 	announce_entry::announce_entry(string_view u)
-		: url(u.to_string())
+		: url(u)
 		, source(0)
 		, verified(false)
 #if TORRENT_ABI_VERSION == 1
@@ -195,7 +195,7 @@ namespace aux {
 	}
 
 	announce_entry::announce_entry(string_view u)
-		: url(u.to_string())
+		: url(u)
 		, source(0)
 		, verified(false)
 	{}

@@ -1159,7 +1159,7 @@ void find_error_code(int const type, string_view string, error_code_parse_state&
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		state.error_code = std::atoi(string.to_string().c_str());
+		state.error_code = std::atoi(std::string(string).c_str());
 		state.exit = true;
 	}
 }

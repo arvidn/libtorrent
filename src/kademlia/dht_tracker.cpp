@@ -296,7 +296,7 @@ namespace libtorrent { namespace dht {
 		m_storage.update_node_ids(ids);
 	}
 
-	node* dht_tracker::get_node(node_id const& id, std::string const& family_name)
+	node* dht_tracker::get_node(node_id const& id, string_view  family_name)
 	{
 		TORRENT_UNUSED(id);
 		for (auto& n : m_nodes)

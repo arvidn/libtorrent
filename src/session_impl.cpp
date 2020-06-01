@@ -750,11 +750,11 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 					val = settings.dict_find_int("proxy_peer_connections");
 					if (val) s.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 					val = settings.dict_find_string("hostname");
-					if (val) s.set_str(settings_pack::proxy_hostname, val.string_value().to_string());
+					if (val) s.set_str(settings_pack::proxy_hostname, std::string(val.string_value()));
 					val = settings.dict_find_string("password");
-					if (val) s.set_str(settings_pack::proxy_password, val.string_value().to_string());
+					if (val) s.set_str(settings_pack::proxy_password, std::string(val.string_value()));
 					val = settings.dict_find_string("username");
-					if (val) s.set_str(settings_pack::proxy_username, val.string_value().to_string());
+					if (val) s.set_str(settings_pack::proxy_username, std::string(val.string_value()));
 				});
 				need_update_proxy = true;
 			}
