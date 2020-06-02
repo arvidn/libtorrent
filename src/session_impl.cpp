@@ -3530,9 +3530,10 @@ namespace {
 			// logic is disabled, since it is too disruptive
 			if (m_settings.get_int(settings_pack::connections_limit) > 5)
 			{
-				if (num_connections() >= m_settings.get_int(settings_pack::connections_limit)
-					* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
-					&& !m_torrents.empty())
+				int const limit = std::min(m_settings.get_int(settings_pack::connections_limit)
+					, std::numeric_limits<int>::max() / 100);
+				int const cutoff = std::min(m_settings.get_int(settings_pack::peer_turnover_cutoff), 100);
+				if (num_connections() >= limit * cutoff / 100 && !m_torrents.empty())
 				{
 					// every 90 seconds, disconnect the worst peers
 					// if we have reached the connection limit
@@ -3555,9 +3556,9 @@ namespace {
 					{
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
-						if (t->num_peers() < t->max_connections()
-							* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
-							|| t->max_connections() < 6)
+						int const max = std::min(t->max_connections()
+							, std::numeric_limits<int>::max() / 100);
+						if (t->num_peers() < max * cutoff / 100 || max < 6)
 							continue;
 
 						int const peers_to_disconnect = std::min(std::max(t->num_peers()
