@@ -5419,10 +5419,11 @@ namespace {
 		if (sock)
 		{
 			// if we're using a proxy, we won't be able to accept any TCP
-			// connections. We may be able to accept uTP connections though, so
-			// announce the UDP port instead
+			// connections. Not even uTP connections via the port we know about.
+			// The DHT may use the implied port to make it work, but the port we
+			// announce here has no relevance for that.
 			if (sock->flags & listen_socket_t::proxy)
-				return std::uint16_t(sock->udp_external_port());
+				return 0;
 
 			if (!(sock->flags & listen_socket_t::accept_incoming))
 				return 0;

@@ -153,7 +153,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		}
 	);
 
-	TEST_EQUAL(tracker_port, 6881);
+	TEST_EQUAL(tracker_port, 1);
 	TEST_CHECK(alert_port != -1);
 }
 

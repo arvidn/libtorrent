@@ -1,3 +1,5 @@
+	* always announce listen port 1 when using a proxy
+
 1.2.7 released
 
 	* add set_alert_fd in python binding, to supersede set_alert_notify
