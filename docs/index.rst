@@ -1,5 +1,3 @@
-.. include:: header.rst
-
 .. raw:: html
 
    <div id="librarySidebar">
@@ -17,7 +15,7 @@
 * `tuning`_
 * fuzzing_
 * `mailing list`_ (archive_)
-* `who's using libtorrent?`_
+* `projects using libtorrent`_
 * `report bugs`_
 * `github page`_
 * `blog`_
@@ -55,10 +53,6 @@ Bindings
    </div>
    <div id="libraryBody">
 
-==========
-libtorrent
-==========
-
 .. _download: https://github.com/arvidn/libtorrent/releases
 .. _features: features.html
 .. _tutorial: tutorial.html
@@ -83,7 +77,7 @@ libtorrent
 .. _multi-tracker: https://www.bittorrent.org/beps/bep_0012.html
 .. _mailing list: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/
-.. _`who's using libtorrent?`: projects.html
+.. _`projects using libtorrent`: projects.html
 .. _`report bugs`: https://github.com/arvidn/libtorrent/issues
 .. _`github page`: https://github.com/arvidn/libtorrent
 .. _blog: https://blog.libtorrent.org
