@@ -199,7 +199,7 @@ void test_checking(int flags)
 	{
 		// first make sure the session tries to check for the file and can't find
 		// them
-		libtorrent::alert const* a = wait_for_alert(
+		lt::alert const* a = wait_for_alert(
 			ses1, torrent_checked_alert::alert_type, "checking");
 		TEST_CHECK(a);
 
