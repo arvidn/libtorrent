@@ -820,7 +820,7 @@ TORRENT_TEST(symlinks_restore)
 	p.flags &= ~lt::torrent_flags::paused;
 	p.save_path = work_dir;
 	settings_pack pack = settings();
-	pack.set_int(libtorrent::settings_pack::alert_mask, libtorrent::alert_category::status | libtorrent::alert_category::error);
+	pack.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
 	lt::session ses(std::move(pack));
 	ses.add_torrent(p);
 

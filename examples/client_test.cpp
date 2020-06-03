@@ -558,7 +558,7 @@ void assign_setting(lt::settings_pack& settings, std::string const& key, char co
 			}
 			break;
 		case settings_pack::int_type_base:
-			using namespace libtorrent::literals;
+			using namespace lt::literals;
 			static std::map<lt::string_view, int> const enums = {
 				{"no_piece_suggestions"_sv, settings_pack::no_piece_suggestions},
 				{"suggest_read_cache"_sv, settings_pack::suggest_read_cache},
