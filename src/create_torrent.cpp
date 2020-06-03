@@ -530,7 +530,11 @@ namespace {
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
 			for (auto const i : m_files.file_range())
+			{
+				// don't include merkle hash trees for pad files
+				if (m_files.pad_file_at(i)) continue;
 				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
+			}
 		}
 
 		auto const info = ti.info_section();
