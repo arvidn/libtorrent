@@ -187,8 +187,8 @@ TORRENT_TEST(path_conflict)
 TORRENT_TEST(v2_only)
 {
 	lt::file_storage fs;
-	fs.add_file("test/A", 0x8000);
-	fs.add_file("test/B", 0x4000);
+	fs.add_file("test/A", 0x8002);
+	fs.add_file("test/B", 0x4002);
 	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
@@ -196,6 +196,13 @@ TORRENT_TEST(v2_only)
 	TEST_CHECK(info.info_hashes().has_v2());
 	TEST_CHECK(!info.info_hashes().has_v1());
 	TEST_EQUAL(info.files().file_name(0_file), "A");
-	TEST_EQUAL(info.files().file_name(1_file), "B");
+	TEST_EQUAL(info.files().pad_file_at(1_file), true);
+	TEST_EQUAL(info.files().file_name(2_file), "B");
 	TEST_EQUAL(info.name(), "test");
+
+	lt::create_torrent t2(info);
+	std::vector<char> buffer2;
+	lt::bencode(std::back_inserter(buffer2), t.generate());
+
+	TEST_CHECK(buffer == buffer2);
 }
