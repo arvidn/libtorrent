@@ -1,4 +1,5 @@
 	* libtorrent now requires C++17 to build
+	* added support for WebTorrent
 
 2.0 release
 
