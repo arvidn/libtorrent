@@ -585,3 +585,7 @@ nginx
 SIGINT
 GNUTLS
 libgnutls
+google
+WebTorrent
+WebRTC
+WebSocket
