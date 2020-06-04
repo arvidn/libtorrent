@@ -144,7 +144,7 @@ namespace libtorrent {
 	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int level_start)
 	{
 		TORRENT_ASSERT(num_leafs >= 1);
-		TORRENT_ASSERT(level_start > 0);
+		TORRENT_ASSERT(level_start >= 0);
 		TORRENT_ASSERT(level_start < tree.size());
 		TORRENT_ASSERT(level_start + num_leafs <= tree.size());
 		// the range of nodes must be within a single level

@@ -2328,6 +2328,7 @@ bool is_downloading_state(int const st)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
 				|| error.ec == boost::asio::error::eof
+				|| error.ec == lt::errors::file_too_short
 #ifdef TORRENT_WINDOWS
 				|| error.ec == error_code(ERROR_HANDLE_EOF, system_category())
 #endif
@@ -4026,6 +4027,7 @@ namespace {
 		int const blocks_in_piece = torrent_file().orig_files().blocks_in_piece2(piece);
 		int const blocks_per_piece = torrent_file().orig_files().piece_length() / default_block_size;
 
+		// the blocks are guaranteed to represent exactly one piece
 		TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 
 		TORRENT_ALLOCA(block_passed, bool, blocks_in_piece);
@@ -4095,6 +4097,13 @@ namespace {
 			}
 			else if (result.status == set_block_hash_result::result::block_hash_failed)
 			{
+				ret = false;
+			}
+			else if (result.status == set_block_hash_result::result::piece_hash_failed && i == blocks_in_piece - 1)
+			{
+				// only if the *last* block causes the piece to fail, do we know
+				// it actually failed. Otherwise it might have been failing
+				// because of other, previously existing block hashes.
 				ret = false;
 			}
 		}
