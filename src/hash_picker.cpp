@@ -336,6 +336,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	set_block_hash_result hash_picker::set_block_hash(piece_index_t const piece
 		, int const offset, sha256_hash const& h)
 	{
+		TORRENT_ASSERT(offset >= 0);
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
 		piece_index_t const file_first_piece = m_files.piece_index_at_file(f);
