@@ -652,15 +652,6 @@ namespace aux {
 		//   session, every torrent will have its paused state saved in the
 		//   resume data!
 		//
-		//.. warning::
-		//   The resume data contains the modification timestamps for all files.
-		//   If one file has been modified when the torrent is added again, the
-		//   will be rechecked. When shutting down, make sure to flush the disk
-		//   cache before saving the resume data. This will make sure that the
-		//   file timestamps are up to date and won't be modified after saving
-		//   the resume data. The recommended way to do this is to pause the
-		//   torrent, which will flush the cache and disconnect all peers.
-		//
 		//.. note::
 		//   It is typically a good idea to save resume data whenever a torrent
 		//   is completed or paused. In those cases you don't need to pause the

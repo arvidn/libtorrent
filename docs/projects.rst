@@ -7,13 +7,6 @@ project listed here, let me_ know.
 .. _me: mailto:arvid@libtorrent.org
 
 
-Wyzo
-----
-
-Wyzo_ is a media browser with built-in bittorrent support.
-
-.. _Wyzo: http://wyzo.findmysoft.com/#
-
 deluge
 ------
 
@@ -126,15 +119,6 @@ hrktorrent_ hrktorrent is a light console torrent client written in C++.
 
 .. _hrktorrent: http://50hz.ws/hrktorrent/
 
-FatRat
-------
-
-FatRat_ is an open source download manager for Linux/Unix systems written in
-C++ with the help of the Trolltech Qt 4 library. It's simple to use and
-install.
-
-.. _FatRat: http://fatrat.dolezel.info
-
 halite BitTorrent
 -----------------
 
@@ -160,18 +144,6 @@ an always running PC. Boasting Torrent downloader, DAAP streaming,
 Web, E-mail, printer and FTP server etc.
 
 .. _Bubba: https://excitostore.com/
-
-TVblob
-------
-
-The BLOBbox_ represents the ability to harness all of the content available
-on the web, without any filtering or pre-selection by a third party just
-like surfing the web.
-
-This means that anyone will have the ability to reach viewers via the Internet
-directly on TV, without them having to connect a PC.
-
-.. _BLOBbox: https://www.reviewed.com/cameras/news/blobbox-by-tvblob-20479
 
 Flush
 -----
