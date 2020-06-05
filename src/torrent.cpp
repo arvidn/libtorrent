@@ -4040,22 +4040,45 @@ namespace {
 				ret = false;
 				break;
 			}
-			auto result = get_hash_picker().set_block_hash(piece, i * default_block_size, block_hashes[i]);
+			auto const result = get_hash_picker().set_block_hash(piece
+				, i * default_block_size, block_hashes[i]);
 
-			block_passed[i] = result.status == set_block_hash_result::result::success;
 			if (result.status == set_block_hash_result::result::success)
 			{
-				TORRENT_ASSERT(result.first_verified_block <= blocks_in_piece);
+				TORRENT_ASSERT(result.first_verified_block < blocks_in_piece);
+				TORRENT_ASSERT(blocks_in_piece <= blocks_per_piece);
+
+				// all verified ranges should always be full pieces or less
+				TORRENT_ASSERT(result.first_verified_block >= 0
+					|| (result.first_verified_block % blocks_per_piece) == 0);
+				TORRENT_ASSERT(result.num_verified < blocks_in_piece
+					|| (result.num_verified % blocks_per_piece) == 0);
+
+				// sometimes, completing a single block may "unlock" validating
+				// multiple pieces. e.g. if we don't have the piece layer yet,
+				// but we completed the last block in the whole torrent, now we
+				// can validate everything. For this reason,
+				// first_verified_block may be negative.
+
+				// In this call, we track the blocks in this piece though, in
+				// the block_passed array. For that tracking we need to clamp
+				// the start index to 0.
 				auto const first_block = std::max(0, result.first_verified_block);
-				std::fill_n(block_passed.begin() + first_block
-					, std::min(blocks_in_piece - first_block, result.num_verified), true);
+				auto const count = std::min(blocks_in_piece - first_block, result.num_verified);
+				std::fill_n(block_passed.begin() + first_block, count, true);
 
-				using piece_delta = piece_index_t::diff_type;
+				// the current block (i) should be part of the range that was
+				// verified
+				TORRENT_ASSERT(first_block <= i);
+				TORRENT_ASSERT(i < first_block + count);
 
-				// if the hashes for more than one piece have been verified, check for any pieces which
-				// were already checked but couldn't be verified and mark them as verified
-				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_block / blocks_per_piece)
-					, end = verified_piece + piece_delta(result.num_verified / blocks_per_piece)
+				using delta = piece_index_t::diff_type;
+
+				// if the hashes for more than one piece have been verified,
+				// check for any pieces which were already checked but couldn't
+				// be verified and mark them as verified
+				for (piece_index_t verified_piece = piece + delta(result.first_verified_block / blocks_per_piece)
+					, end = verified_piece + delta(result.num_verified / blocks_per_piece)
 					; verified_piece < end; ++verified_piece)
 				{
 					if (!has_picker()
