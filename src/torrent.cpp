@@ -10480,10 +10480,11 @@ bool is_downloading_state(int const st)
 			// if we don't have any pieces, just return zeroes
 			fp.clear();
 			fp.resize(m_torrent_file->num_files(), 0);
-			return;
 		}
-
-		m_file_progress.export_progress(fp);
+		else
+		{
+			m_file_progress.export_progress(fp);
+		}
 
 		if (flags & torrent_handle::piece_granularity)
 			return;
