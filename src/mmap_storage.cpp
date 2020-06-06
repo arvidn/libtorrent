@@ -849,6 +849,7 @@ namespace libtorrent {
 		, aux::open_mode_t mode
 		, error_code& ec) const
 	{
+		TORRENT_ASSERT(!files().pad_file_at(file));
 		if (!m_allocate_files) mode |= aux::open_mode::sparse;
 
 		// files with priority 0 should always be sparse
