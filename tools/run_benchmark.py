@@ -8,8 +8,6 @@ import subprocess
 import sys
 import multiprocessing
 
-cache_size = 300  # in MiB
-
 toolset = ''
 if len(sys.argv) > 1:
     toolset = sys.argv[1]
@@ -78,8 +76,8 @@ def run_test(name, test_cmd, client_arg, num_peers):
     client_cmd = '../examples/client_test -k --listen_interfaces=127.0.0.1:%d cpu_benchmark.torrent ' \
         '--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' \
         '-e 120 %s -O --allow_multiple_connections_per_ip=1 --connections_limit=%d -T %d ' \
-        '--cache_size=%d -f %s/events.log --alert_mask=8747' \
-        % (port, client_arg, num_peers * 2, num_peers * 2, cache_size * 16, output_dir)
+        '-f %s/events.log --alert_mask=8747' \
+        % (port, client_arg, num_peers * 2, num_peers * 2, output_dir)
     test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (
         test_cmd, num_peers, port)
 

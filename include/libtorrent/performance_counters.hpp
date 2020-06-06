@@ -144,10 +144,6 @@ namespace libtorrent {
 			on_disk_queue_counter,
 			on_disk_counter,
 
-#if TORRENT_ABI_VERSION == 1
-			torrent_evicted_counter,
-#endif
-
 			// bittorrent message counters
 			// how about dont-have, share-mode, upload-only
 			num_incoming_choke,
@@ -202,7 +198,6 @@ namespace libtorrent {
 			num_blocks_written,
 			num_blocks_read,
 			num_blocks_hashed,
-			num_blocks_cache_hits,
 			num_write_ops,
 			num_read_ops,
 			num_read_back,
