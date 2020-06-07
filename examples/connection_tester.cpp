@@ -848,7 +848,11 @@ void write_handler(file_storage const& fs
 		offset = 0;
 		++piece;
 	}
-	if (piece >= fs.end_piece()) return;
+	if (piece >= fs.end_piece())
+	{
+		disk.abort(false);
+		return;
+	}
 
 	if (static_cast<int>(piece) & 1)
 	{
@@ -865,6 +869,8 @@ void write_handler(file_storage const& fs
 		, std::shared_ptr<disk_observer>()
 		, [&](lt::storage_error const& error)
 		{ write_handler(fs, disk, st, piece, offset, error); });
+
+	disk.submit_jobs();
 }
 
 void generate_data(char const* path, torrent_info const& ti)
@@ -906,6 +912,8 @@ void generate_data(char const* path, torrent_info const& ti)
 	{
 		write_handler(fs, *disk, st, piece, offset, lt::storage_error());
 	}
+
+	disk->submit_jobs();
 
 	ios.run();
 }
