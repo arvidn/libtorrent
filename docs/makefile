@@ -6,7 +6,7 @@ WEB_PATH = ~/web/products/libtorrent
 endif
 
 ifndef RST2HTML
-RST2HTML:=rst2html.py
+RST2HTML:=rst2html
 endif
 
 ifndef AAFIGURE
