@@ -196,7 +196,8 @@ namespace {
 			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);
 
 			int offset = 0;
-			for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
+			int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
+			for (int i = 0; i < blocks_to_read; ++i)
 			{
 				bool const v2_block = i < blocks_in_piece2;
 
@@ -220,7 +221,7 @@ namespace {
 				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_read_back);
-				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
 				m_stats_counters.inc_stats_counter(counters::num_read_ops);
 				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
