@@ -436,9 +436,15 @@ namespace aux {
 	//
 	// 	void Fun(piece_index_t);
 	//
+	// The overloads taking a settings_pack may be used to configure the
+	// underlying disk access. Such as ``settings_pack::aio_threads``.
+	//
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
+		, std::function<void(piece_index_t)> const& f, error_code& ec);
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
+		, settings_interface const& settings
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
@@ -456,6 +462,14 @@ namespace aux {
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
+		if (ec) throw system_error(ec);
+	}
+	inline void set_piece_hashes(create_torrent& t, std::string const& p
+		, settings_interface const& settings
+		, std::function<void(piece_index_t)> const& f)
+	{
+		error_code ec;
+		set_piece_hashes(t, p, settings, f, ec);
 		if (ec) throw system_error(ec);
 	}
 #endif
