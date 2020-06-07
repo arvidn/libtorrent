@@ -315,7 +315,7 @@ namespace libtorrent {
 		SET(alert_queue_size, 2000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		DEPRECATED_SET(hashing_threads, 1, nullptr),
-		SET(checking_mem_usage, 1024, nullptr),
+		SET(checking_mem_usage, 256, nullptr),
 		SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		DEPRECATED_SET(aio_max, 300, nullptr),
