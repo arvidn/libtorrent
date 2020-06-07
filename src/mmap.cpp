@@ -377,14 +377,20 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 		throw_ex<system_error>(error_code(errno, system_category()));
 	}
 
-#if TORRENT_USE_MADVISE && defined MADV_DONTDUMP
+#if TORRENT_USE_MADVISE
 	if (file_size > 0)
 	{
+		int const advise = ((mode & open_mode::random_access) ? 0 : MADV_SEQUENTIAL)
+#ifdef MADV_DONTDUMP
 		// on versions of linux that support it, ask for this region to not be
 		// included in coredumps (mostly to make the coredumps more manageable
 		// with large disk caches)
 		// ignore errors here, since this is best-effort
-		madvise(m_mapping, static_cast<std::size_t>(m_size), MADV_DONTDUMP);
+			| MADV_DONTDUMP
+#endif
+		;
+		if (advise != 0)
+			madvise(m_mapping, static_cast<std::size_t>(m_size), advise);
 	}
 #endif
 }
