@@ -763,14 +763,47 @@ void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
 {
 	if (print) std::fprintf(stderr, "\n");
 	std::uint32_t piece[0x4000 / 4];
+	lt::file_storage const& fs = t->files();
+
+	std::vector<file_slice> files = fs.map_block(start_piece, 0
+		, std::min(static_cast<int>(end_piece - start_piece) * std::int64_t(piece_size)
+			, fs.total_size() - static_cast<int>(start_piece) * std::int64_t(piece_size)));
+
 	for (piece_index_t i = start_piece; i < end_piece; ++i)
 	{
 		hasher ph;
 		for (int j = 0; j < piece_size; j += 0x4000)
 		{
 			generate_block(piece, i, j);
+
+			// if any part of this block overlaps with a pad-file, we need to
+			// clear those bytes to 0
+			for (int k = 0; k < 0x4000; )
+			{
+				if (files.empty())
+				{
+					TORRENT_ASSERT(i == prev(end_piece));
+					TORRENT_ASSERT(k > 0);
+					TORRENT_ASSERT(k < 0x4000);
+					// this is the last piece of the torrent, and the piece
+					// extends a bit past the end of the last file. This part
+					// should be truncated
+					ph.update(reinterpret_cast<char*>(piece), k);
+					goto out;
+				}
+				auto& f = files.front();
+				int const range = int(std::min(std::int64_t(0x4000 - k), f.size));
+				if (fs.pad_file_at(f.file_index))
+					std::memset(reinterpret_cast<char*>(piece) + k, 0, range);
+
+				f.offset += range;
+				f.size -= range;
+				k += range;
+				if (f.size == 0) files.erase(files.begin());
+			}
 			ph.update(reinterpret_cast<char*>(piece), 0x4000);
 		}
+out:
 		t->set_hash(i, ph.final());
 		int const range = static_cast<int>(end_piece) - static_cast<int>(start_piece);
 		if (print && (static_cast<int>(i) & 1))
@@ -841,6 +874,13 @@ void write_handler(file_storage const& fs
 		return;
 	}
 
+
+	if (static_cast<int>(piece) & 1)
+	{
+		std::fprintf(stderr, "\r%.1f %% "
+			, float(static_cast<int>(piece) * 100) / float(fs.num_pieces()));
+	}
+
 	if (piece >= fs.end_piece()) return;
 	offset += 0x4000;
 	if (offset >= fs.piece_size(piece))
@@ -854,15 +894,11 @@ void write_handler(file_storage const& fs
 		return;
 	}
 
-	if (static_cast<int>(piece) & 1)
-	{
-		std::fprintf(stderr, "\r%.1f %% "
-			, float(static_cast<int>(piece) * 100) / float(fs.num_pieces()));
-	}
 	std::uint32_t buffer[0x4000 / 4];
 	generate_block(buffer, piece, offset);
 
 	int const left_in_piece = fs.piece_size(piece) - offset;
+	if (left_in_piece <= 0) return;
 
 	disk.async_write(st, { piece, offset, std::min(left_in_piece, 0x4000)}
 		, reinterpret_cast<char const*>(buffer)
