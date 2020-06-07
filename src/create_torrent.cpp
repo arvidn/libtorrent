@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/file.hpp" // for directory
+#include "libtorrent/disk_interface.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -210,12 +211,12 @@ namespace {
 			st->iothread.async_hash(st->storage, st->piece_counter, v2_span, flags
 				, std::bind(&on_hash, std::move(v2_blocks), _1, _2, _3, st));
 			++st->piece_counter;
+			st->iothread.submit_jobs();
 		}
-		else
+		else if (st->completed_piece == st->ct.files().end_piece())
 		{
 			st->iothread.abort(true);
 		}
-		st->iothread.submit_jobs();
 	}
 
 } // anonymous namespace
@@ -316,6 +317,16 @@ namespace {
 	void set_piece_hashes(create_torrent& t, std::string const& p
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
+		aux::session_settings sett;
+		int const num_threads = std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+		sett.set_int(settings_pack::aio_threads, num_threads);
+		set_piece_hashes(t, p, sett, f, ec);
+	}
+
+	void set_piece_hashes(create_torrent& t, std::string const& p
+		, settings_interface const& sett
+		, std::function<void(piece_index_t)> const& f, error_code& ec)
+	{
 		// optimized path
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim::default_config conf;
@@ -344,10 +355,7 @@ namespace {
 		}
 
 		counters cnt;
-		aux::session_settings sett;
-		int const num_threads = hasher_thread_divisor - 1;
-		int const jobs_per_thread = 4;
-		sett.set_int(settings_pack::aio_threads, num_threads);
+		int const num_threads = sett.get_int(settings_pack::aio_threads);
 		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, sett, cnt);
 		disk_aborter da(*disk_thread.get());
 
@@ -365,8 +373,10 @@ namespace {
 		storage_holder storage = disk_thread->new_torrent(std::move(params)
 			, std::shared_ptr<void>());
 
+		// have 4 outstanding hash requests per thread, and no less than 1 MiB
+		int const jobs_per_thread = 4;
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
-			, default_block_size / t.piece_length());
+			, 1 * 1024 * 1024 / t.piece_length());
 
 		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
