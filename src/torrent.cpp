@@ -2268,6 +2268,11 @@ bool is_downloading_state(int const st)
 				/ hasher_thread_divisor);
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
 
+		// subtract the number of pieces we already have outstanding
+		num_outstanding -= (static_cast<int>(m_checking_piece)
+			- static_cast<int>(m_num_checked_pieces));
+		if (num_outstanding <= 0) return;
+
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed
 		if (m_checking_piece >= m_torrent_file->end_piece())
@@ -2278,11 +2283,6 @@ bool is_downloading_state(int const st)
 #endif
 			return;
 		}
-
-		// subtract the number of pieces we already have outstanding
-		num_outstanding -= (static_cast<int>(m_checking_piece)
-			- static_cast<int>(m_num_checked_pieces));
-		if (num_outstanding < 0) num_outstanding = 0;
 
 		for (int i = 0; i < num_outstanding; ++i)
 		{
