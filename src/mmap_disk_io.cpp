@@ -480,12 +480,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
-		// add one hasher thread for every three generic threads
-		int const num_hash_threads = num_threads / hasher_thread_divisor;
+		int const num_hash_threads = m_settings.get_int(settings_pack::hashing_threads);
+		DLOG("set max threads(%d, %d)\n", num_threads, num_hash_threads);
 
-		DLOG("set_max_threads(%d, %d)\n", num_threads - num_hash_threads
-			, num_hash_threads);
-		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
+		m_generic_threads.set_max_threads(num_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 

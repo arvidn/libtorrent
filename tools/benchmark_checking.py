@@ -87,5 +87,4 @@ def run_test(name, client_arg):
 
 
 for threads in [4, 8, 16, 32, 64]:
-    for mem in [256, 512, 1024, 2048]:
-        run_test('%d-%d' % (threads, mem), '--aio_threads=%d --checking_mem_usage=%d' % (threads, mem))
+    run_test('%d' % threads, '--hashing_threads=%d ' % threads)

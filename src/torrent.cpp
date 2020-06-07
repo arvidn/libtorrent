@@ -2263,9 +2263,8 @@ bool is_downloading_state(int const st)
 		// if we only keep a single read operation in-flight at a time, we suffer
 		// significant performance degradation. Always keep at least 4 jobs
 		// outstanding per hasher thread
-		int const min_outstanding = 4
-			* std::max(1, settings().get_int(settings_pack::aio_threads)
-				/ hasher_thread_divisor);
+		int const min_outstanding
+			= std::max(1, settings().get_int(settings_pack::hashing_threads)) * 2;
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
 
 		// subtract the number of pieces we already have outstanding

@@ -6293,6 +6293,8 @@ namespace {
 	{
 		if (m_settings.get_int(settings_pack::aio_threads) < 0)
 			m_settings.set_int(settings_pack::aio_threads, 0);
+		if (m_settings.get_int(settings_pack::hashing_threads) < 0)
+			m_settings.set_int(settings_pack::hashing_threads, 0);
 	}
 
 	void session_impl::update_report_web_seed_downloads()
