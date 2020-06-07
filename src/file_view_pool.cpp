@@ -130,12 +130,14 @@ namespace libtorrent { namespace aux {
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		lou.unlock();
 #endif
-		auto ret = e.mapping->view();
-
 		l.lock();
 		auto& key_view2 = m_files.get<0>();
-		key_view2.insert(std::move(e));
-		return ret;
+		auto it = key_view2.insert(std::move(e));
+// TODO: (it.seond == false) should probably be counted/reported, to make sure it
+// doesn't happen too often
+		auto f = it.first->mapping;
+		l.unlock();
+		return f->view();
 	}
 
 	file_open_mode_t to_file_open_mode(open_mode_t const mode)
