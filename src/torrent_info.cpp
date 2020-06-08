@@ -443,6 +443,11 @@ namespace {
 				return false;
 			}
 			pieces_root = info_buffer + (root.string_offset() - info_offset);
+			if (file_size > 0 && sha256_hash(pieces_root).is_all_zeros())
+			{
+				ec = errors::torrent_missing_pieces_root;
+				return false;
+			}
 		}
 
 		files.add_file_borrow(ec, name, path, file_size, file_flags, nullptr

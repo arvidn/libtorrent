@@ -366,6 +366,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
+	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
+	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
 };
 
 } // anonymous namespace
@@ -963,7 +965,11 @@ TORRENT_TEST(parse_torrents)
 				, flags & file_storage::flag_symlink ? fs.symlink(idx).c_str() : "");
 		}
 	}
+}
 
+TORRENT_TEST(parse_invalid_torrents)
+{
+	std::string root_dir = parent_path(current_working_directory());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
