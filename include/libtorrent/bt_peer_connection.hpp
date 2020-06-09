@@ -263,7 +263,7 @@ namespace libtorrent {
 			, hp_error error = hp_error::no_error);
 		void write_hash_request(hash_request const& req);
 		void write_hashes(hash_request const& req, span<sha256_hash> hashes);
-		void write_hash_reject(hash_request const& req);
+		void write_hash_reject(hash_request const& req, sha256_hash const& file_root);
 
 		void maybe_send_hash_request();
 

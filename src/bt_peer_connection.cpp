@@ -1199,7 +1199,7 @@ namespace {
 
 		if (!validate_hash_request(hr, files))
 		{
-			write_hash_reject(hr);
+			write_hash_reject(hr, file_root);
 			return;
 		}
 
@@ -1207,7 +1207,7 @@ namespace {
 
 		if (hashes.empty())
 		{
-			write_hash_reject(hr);
+			write_hash_reject(hr, file_root);
 			return;
 		}
 
@@ -1788,7 +1788,7 @@ namespace {
 		send_buffer(buf);
 	}
 
-	void bt_peer_connection::write_hash_reject(hash_request const& req)
+	void bt_peer_connection::write_hash_reject(hash_request const& req, sha256_hash const& root)
 	{
 		INVARIANT_CHECK;
 
@@ -1799,10 +1799,6 @@ namespace {
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
-		auto const& ti = t->torrent_file();
-		auto const& fs = ti.files();
-		auto root = fs.root(req.file);
-
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
 		aux::write_uint32(req.base, ptr);
