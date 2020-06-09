@@ -157,7 +157,7 @@ TORRENT_TEST(create_torrent_round_trip)
 
 // check that attempting to create a torrent containing both
 // a file and directory with the same name is not allowed
-TORRENT_TEST(path_conflict)
+TORRENT_TEST(v2_path_conflict)
 {
 	lt::file_storage fs;
 
@@ -180,6 +180,12 @@ TORRENT_TEST(path_conflict)
 		}
 
 		lt::create_torrent t(fs, 0x4000);
+		lt::sha256_hash const dummy("01234567890123456789012345678901");
+		lt::piece_index_t::diff_type zero(0);
+		t.set_hash2(lt::file_index_t(0), zero, dummy);
+		t.set_hash2(lt::file_index_t(1), zero, dummy);
+		t.set_hash2(lt::file_index_t(2), zero, dummy);
+		t.set_hash2(lt::file_index_t(3), zero, dummy);
 		TEST_THROW(t.generate());
 	}
 }
@@ -190,6 +196,15 @@ TORRENT_TEST(v2_only)
 	fs.add_file("test/A", 0x8002);
 	fs.add_file("test/B", 0x4002);
 	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
+
+	using p = lt::piece_index_t::diff_type;
+	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(0), p(2), lt::sha256_hash::max());
+	// file 1 is a pad file
+	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(2), p(1), lt::sha256_hash::max());
+
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
 	lt::torrent_info info(buffer, lt::from_span);
@@ -205,4 +220,74 @@ TORRENT_TEST(v2_only)
 	lt::bencode(std::back_inserter(buffer2), t.generate());
 
 	TEST_CHECK(buffer == buffer2);
+}
+
+TORRENT_TEST(v2_only_set_hash)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8002);
+	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
+
+	TEST_THROW(t.set_hash(lt::piece_index_t(0), lt::sha1_hash::max()));
+}
+
+TORRENT_TEST(v1_only_set_hash2)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8002);
+	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v1_only);
+
+	using p = lt::piece_index_t::diff_type;
+	TEST_THROW(t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max()));
+}
+
+// if we don't specify a v2-only flag, but only set v2 hashes, the created
+// torrent is implicitly v2-only
+TORRENT_TEST(implicit_v2_only)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8002);
+	fs.add_file("test/B", 0x4002);
+	lt::create_torrent t(fs, 0x4000);
+
+	using p = lt::piece_index_t::diff_type;
+	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(0), p(2), lt::sha256_hash::max());
+	// file 1 is a pad file
+	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(2), p(1), lt::sha256_hash::max());
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+	TEST_CHECK(info.info_hashes().has_v2());
+	TEST_CHECK(!info.info_hashes().has_v1());
+	TEST_EQUAL(info.files().file_name(0_file), "A");
+	TEST_EQUAL(info.files().pad_file_at(1_file), true);
+	TEST_EQUAL(info.files().file_name(2_file), "B");
+	TEST_EQUAL(info.name(), "test");
+}
+
+// if we don't specify a v1-only flag, but only set v1 hashes, the created
+// torrent is implicitly v1-only
+TORRENT_TEST(implicit_v1_only)
+{
+	lt::file_storage fs;
+	fs.add_file("test/A", 0x8002);
+	fs.add_file("test/B", 0x4002);
+	lt::create_torrent t(fs, 0x4000);
+
+	for (lt::piece_index_t i : fs.piece_range())
+		t.set_hash(i, lt::sha1_hash::max());
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+	TEST_CHECK(!info.info_hashes().has_v2());
+	TEST_CHECK(info.info_hashes().has_v1());
+	TEST_EQUAL(info.files().file_name(0_file), "A");
+	TEST_EQUAL(info.files().pad_file_at(1_file), true);
+	TEST_EQUAL(info.files().file_name(2_file), "B");
+	TEST_EQUAL(info.name(), "test");
 }

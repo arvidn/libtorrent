@@ -60,9 +60,8 @@ TORRENT_TEST(mutable_torrents)
 	lt::create_torrent t(fs, 0x4000);
 
 	// calculate the hash for all pieces
-	sha1_hash ph;
 	for (auto const i : fs.piece_range())
-		t.set_hash(i, ph);
+		t.set_hash(i, sha1_hash::max());
 
 	t.add_collection("collection1");
 	t.add_collection("collection2");
@@ -70,11 +69,9 @@ TORRENT_TEST(mutable_torrents)
 	t.add_similar_torrent(sha1_hash("abababababababababab"));
 	t.add_similar_torrent(sha1_hash("babababababababababa"));
 
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-
 	entry tor = t.generate();
-	bencode(out, tor);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), tor);
 
 	torrent_info ti(tmp, from_span);
 
@@ -1092,10 +1089,8 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	// isn't supported by v2 torrents, so we can only test this with v1 torrents
 	lt::create_torrent t(fs, 0x4000, create_torrent::v1_only);
 
-	// calculate the hash for all pieces
-	sha1_hash ph;
 	for (auto const i : fs.piece_range())
-		t.set_hash(i, ph);
+		t.set_hash(i, sha1_hash::max());
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);

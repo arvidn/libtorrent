@@ -523,8 +523,8 @@ void test_check_files(std::string const& test_path
 
 	lt::create_torrent t(fs, piece_size_check);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
-	t.set_hash(piece_index_t(1), {});
-	t.set_hash(piece_index_t(2), {});
+	t.set_hash(piece_index_t(1), sha1_hash::max());
+	t.set_hash(piece_index_t(2), sha1_hash::max());
 	t.set_hash(piece_index_t(3), hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);

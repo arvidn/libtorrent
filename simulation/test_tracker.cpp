@@ -1105,7 +1105,7 @@ std::shared_ptr<torrent_info> make_torrent(bool priv)
 	ct.add_tracker("http://tracker.com:8080/announce");
 
 	for (piece_index_t i(0); i < piece_index_t(ct.num_pieces()); ++i)
-		ct.set_hash(i, sha1_hash(nullptr));
+		ct.set_hash(i, sha1_hash::max());
 
 	ct.set_priv(priv);
 

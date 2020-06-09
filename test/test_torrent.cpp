@@ -231,6 +231,11 @@ TORRENT_TEST(total_wanted)
 	fs.add_file("test_torrent_dir4/tmp4", default_block_size);
 
 	lt::create_torrent t(fs, default_block_size);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(piece_index_t{1}, sha1_hash::max());
+	t.set_hash(piece_index_t{2}, sha1_hash::max());
+	t.set_hash(piece_index_t{3}, sha1_hash::max());
+
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -270,6 +275,7 @@ TORRENT_TEST(added_peers)
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 
 	lt::create_torrent t(fs, 1024);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -301,6 +307,7 @@ TORRENT_TEST(mismatching_info_hash)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -325,6 +332,7 @@ TORRENT_TEST(exceed_file_prio)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -346,6 +354,7 @@ TORRENT_TEST(exceed_piece_prio)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -402,8 +411,7 @@ TORRENT_TEST(torrent)
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char>> out(tmp);
-		bencode(out, t.generate());
+		bencode(std::back_inserter(tmp), t.generate());
 		error_code ec;
 		auto info = std::make_shared<torrent_info>(tmp, std::ref(ec), from_span);
 		TEST_CHECK(info->num_pieces() > 0);
@@ -430,8 +438,7 @@ TORRENT_TEST(torrent)
 		t.set_hash2(file_index_t{ 0 }, piece_index_t::diff_type{ 0 }, lt::hasher256(piece).final());
 
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char>> out(tmp);
-		bencode(out, t.generate());
+		bencode(std::back_inserter(tmp), t.generate());
 		auto info = std::make_shared<torrent_info>(tmp, from_span);
 		test_running_torrent(info, default_block_size);
 	}
@@ -472,8 +479,7 @@ TORRENT_TEST(duplicate_is_not_error)
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-	bencode(out, t.generate());
+	bencode(std::back_inserter(tmp), t.generate());
 
 	int called = 0;
 	plugin_creator creator(called);
@@ -526,11 +532,11 @@ TORRENT_TEST(rename_file)
 
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
-	lt::create_torrent t(fs, 128 * 1024);
+	lt::create_torrent t(fs, 128 * 1024, lt::create_torrent::v1_only);
+	t.set_hash(piece_index_t{0}, sha1_hash::max());
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-	bencode(out, t.generate());
+	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	TEST_EQUAL(info->files().file_path(file_index_t(0)), combine_path("test3","tmp1"));
@@ -566,6 +572,7 @@ void test_queue(add_torrent_params)
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
 		lt::create_torrent t(fs, 128 * 1024);
+		t.set_hash(piece_index_t{0}, sha1_hash::max());
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
