@@ -158,22 +158,27 @@ namespace libtorrent {
 #endif
 
 		// Do not generate v1 metadata. The resulting torrent will only be usable by
-		// clients which support v2.
+		// clients which support v2. This requires setting all v2 hashes, with
+		// set_hash2() before calling generate(). Setting v1 hashes (with
+		// set_hash()) is an error with this flag set.
 		static constexpr create_flags_t v2_only = 5_bit;
 
 		// do not generate v2 metadata or enforce v2 alignment and padding rules
-		// this is mainly for tests, not recommended for production use
+		// this is mainly for tests, not recommended for production use. This
+		// requires setting all v1 hashes, with set_hash(), before calling
+		// generate(). Setting v2 hashes (with set_hash2()) is an error with
+		// this flag set.
 		static constexpr create_flags_t v1_only = 6_bit;
 
-		// The ``piece_size`` is the size of each piece in bytes. It must
-		// be a power of 2 and a minimum of 16 kiB. If a piece size of 0 is specified, a
-		// piece_size will be calculated such that the torrent file is roughly 40 kB.
+		// The ``piece_size`` is the size of each piece in bytes. It must be a
+		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
+		// specified, a piece_size will be set automatically.
 		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
 		// the info dictionary will be used by create_torrent::generate(). This means
 		// that none of the member functions of create_torrent that affects
-		// the content of the info dictionary (such as ``set_hash()``), will
+		// the content of the info dictionary (such as set_hash()), will
 		// have any affect.
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
@@ -198,25 +203,23 @@ namespace libtorrent {
 		// It may be useful to add custom entries to the torrent file before bencoding it
 		// and saving it to disk.
 		//
-		// If anything goes wrong during torrent generation, this function will return
-		// an empty ``entry`` structure. You can test for this condition by querying the
-		// type of the entry:
+		// Whether the resulting torrent object is v1, v2 or hybrid depends on
+		// whether any of the v1_only or v2_only flags were set on the
+		// constructor. If neither were set, the resulting torrent depends on
+		// which hashes were set. If both v1 and v2 hashes were set, a hybrid
+		// torrent is created.
 		//
-		// .. code:: c++
+		// Any failure will cause this function to throw system_error, with an
+		// appropriate error message. These are the reasons this call may throw:
 		//
-		//	file_storage fs;
-		//	// add file ...
-		//	create_torrent t(fs);
-		//	// add trackers and piece hashes ...
-		//	e = t.generate();
-		//
-		//	if (e.type() == entry::undefined_t)
-		//	{
-		//		// something went wrong
-		//	}
-		//
-		// For instance, you cannot generate a torrent with 0 files in it. If you don't add
-		// any files to the ``file_storage``, torrent generation will fail.
+		// * the file storage has 0 files
+		// * the total size of the file storage is 0 bytes (i.e. it only has
+		//   empty files)
+		// * not all v1 hashes (set_hash()) and not all v2 hashes (set_hash2())
+		//   were set
+		// * for v2 torrents, you may not have a directory with the same name as
+		//   a file. If that's encountered in the file storage, generate()
+		//   fails.
 		entry generate() const;
 
 		// returns an immutable reference to the file_storage used to create
@@ -235,6 +238,11 @@ namespace libtorrent {
 		// to set the hash for every piece in the torrent before generating it. If you have
 		// the files on disk, you can use the high level convenience function to do this.
 		// See set_piece_hashes().
+		// A SHA-1 hash of all zeros is internally used to indicate a hash that
+		// has not been set. Setting such hash will not be considered set when
+		// calling generate().
+		// This function will throw ``std::system_error`` if it is called on an
+		// object constructed with the v2_only flag.
 		void set_hash(piece_index_t index, sha1_hash const& h);
 
 		// sets the bittorrent v2 hash for file `file` of the piece `piece`.
@@ -244,6 +252,11 @@ namespace libtorrent {
 		// The hash, `h`, is the root of the merkle tree formed by the piece's
 		// 16 kiB blocks. Note that piece sizes must be powers-of-2, so all
 		// per-piece merkle trees are complete.
+		// A SHA-256 hash of all zeros is internally used to indicate a hash
+		// that has not been set. Setting such hash will not be considered set
+		// when calling generate().
+		// This function will throw ``std::system_error`` if it is called on an
+		// object constructed with the v1_only flag.
 		void set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h);
 
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``

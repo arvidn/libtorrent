@@ -151,10 +151,13 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	fs2.add_file("test_resolve_links_dir/tmp1", 1024);
 	fs2.add_file("test_resolve_links_dir/tmp2", 1024);
 
-	lt::create_torrent t1(fs1, 1024);
-	lt::create_torrent t2(fs2, 1024);
+	lt::create_torrent t1(fs1, 1024, lt::create_torrent::v1_only);
+	lt::create_torrent t2(fs2, 1024, lt::create_torrent::v1_only);
 
 	t1.set_hash(piece_index_t{0}, sha1_hash::max());
+	t1.set_hash(piece_index_t{1}, sha1_hash::max());
+	t2.set_hash(piece_index_t{0}, sha1_hash::max());
+	t2.set_hash(piece_index_t{1}, sha1_hash("01234567890123456789"));
 
 	std::vector<char> tmp1;
 	std::vector<char> tmp2;

@@ -58,6 +58,8 @@ class test_create_torrent(unittest.TestCase):
         ct.add_tracker('bar')
         ct.set_root_cert('1234567890')
         ct.add_collection('1337')
+        for i in range(ct.num_pieces()):
+            ct.set_hash(i, b'abababababababababab')
         entry = ct.generate()
         print(entry)
 

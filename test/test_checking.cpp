@@ -124,6 +124,7 @@ void test_checking(int const flags)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	TEST_CHECK(ti->is_valid());
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
 		, aux::to_hex(ti->info_hashes().v1).c_str());

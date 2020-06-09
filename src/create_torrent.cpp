@@ -409,8 +409,6 @@ namespace {
 		, m_v2_only(bool(flags & create_torrent::v2_only))
 		, m_v1_only(bool(flags & create_torrent::v1_only))
 	{
-		TORRENT_ASSERT_PRECOND(!(m_v2_only && m_v1_only));
-
 		// return instead of crash in release mode
 		if (fs.num_files() == 0 || fs.total_size() == 0) return;
 
@@ -446,7 +444,7 @@ namespace {
 			piece_size = default_block_size << i;
 		}
 
-		if (!m_v1_only)
+		if (!(flags & v1_only))
 		{
 			// v2 torrents requires piece sizes to be at least 16 kiB
 			piece_size = std::max(piece_size, 16 * 1024);
@@ -464,22 +462,10 @@ namespace {
 		}
 
 		m_files.set_piece_length(piece_size);
-		if (!m_v1_only)
+		if (!(flags & v1_only))
 			m_files.canonicalize();
 		m_files.set_num_pieces(aux::calc_num_pieces(m_files));
-		if (!m_v2_only)
-			m_piece_hash.resize(m_files.num_pieces());
-		if (!m_v1_only)
-		{
-			m_fileroots.resize(m_files.num_files());
-			m_file_piece_hash.resize(m_files.num_files());
-			for (file_index_t i : m_files.file_range())
-			{
-				// don't include merkle hash trees for pad files
-				if (m_files.pad_file_at(i)) continue;
-				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
-			}
-		}
+		TORRENT_ASSERT(m_files.piece_length() > 0);
 	}
 
 	create_torrent::create_torrent(torrent_info const& ti)
@@ -492,11 +478,14 @@ namespace {
 		, m_v2_only(!ti.info_hashes().has_v1())
 		, m_v1_only(!ti.info_hashes().has_v2())
 	{
-		TORRENT_ASSERT_PRECOND(!(m_v2_only && m_v1_only));
-		TORRENT_ASSERT(ti.is_valid());
-		TORRENT_ASSERT(ti.num_pieces() > 0);
-		TORRENT_ASSERT(ti.num_files() > 0);
-		TORRENT_ASSERT(ti.total_size() > 0);
+		bool const make_v1 = ti.info_hashes().has_v1();
+		bool const make_v2 = ti.info_hashes().has_v2();
+
+		TORRENT_ASSERT_PRECOND(make_v2 || make_v1);
+		TORRENT_ASSERT_PRECOND(ti.is_valid());
+		TORRENT_ASSERT_PRECOND(ti.num_pieces() > 0);
+		TORRENT_ASSERT_PRECOND(ti.num_files() > 0);
+		TORRENT_ASSERT_PRECOND(ti.total_size() > 0);
 
 		if (!ti.is_valid()) return;
 		if (ti.creation_date() > 0) m_creation_date = ti.creation_date();
@@ -518,15 +507,16 @@ namespace {
 				add_http_seed(s.url);
 		}
 
-		if (!m_v2_only)
+		if (make_v1)
 		{
 			m_piece_hash.resize(m_files.num_pieces());
 			for (auto const i : m_files.piece_range())
 				set_hash(i, ti.hash_for_piece(i));
 		}
 
-		if (!m_v1_only)
+		if (make_v2)
 		{
+//			auto const& file_trees = ti.internal_merkle_trees();
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
 			for (auto const i : m_files.file_range())
@@ -534,6 +524,8 @@ namespace {
 				// don't include merkle hash trees for pad files
 				if (m_files.pad_file_at(i)) continue;
 				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
+
+				// TODO: copy piece layer from file_trees[i]
 			}
 		}
 
@@ -541,14 +533,64 @@ namespace {
 		m_info_dict.preformatted().assign(info.data(), info.data() + info.size());
 	}
 
+namespace {
+	bool validate_v2_hashes(file_storage const& fs
+		, aux::vector<aux::vector<sha256_hash, piece_index_t::diff_type>, file_index_t> const& file_piece_hash)
+	{
+		if (int(file_piece_hash.size()) != fs.num_files()) return false;
+
+		int const piece_size = fs.piece_length();
+
+		for (auto i : fs.file_range())
+		{
+			auto const& hashes = file_piece_hash[i];
+
+			// pad files are not supposed to have any hashes
+			if (fs.pad_file_at(i))
+			{
+				if (!hashes.empty()) return false;
+				continue;
+			}
+
+			if (int(hashes.size()) != (fs.file_size(i) + piece_size - 1) / piece_size) return false;
+			if (std::any_of(hashes.begin(), hashes.end(), [](sha256_hash const& h)
+				{ return h.is_all_zeros(); }))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool validate_v1_hashes(file_storage const& fs
+		, aux::vector<sha1_hash, piece_index_t> piece_hash)
+	{
+		int const piece_size = fs.piece_length();
+		if (int(piece_hash.size()) != (fs.total_size() + piece_size - 1) / piece_size)
+			return false;
+
+		return !std::any_of(piece_hash.begin(), piece_hash.end()
+			, [](sha1_hash const& h) { return h.is_all_zeros(); });
+	}
+}
+
 	entry create_torrent::generate() const
 	{
-		entry dict;
-
 		if (m_files.num_files() == 0 || m_files.total_size() == 0)
-			return dict;
+			aux::throw_ex<system_error>(errors::torrent_missing_file_tree);
+
+		// if all v2 hashes are set correctly, generate the v2 parts of the
+		// torrent
+		bool const make_v2 = validate_v2_hashes(m_files, m_file_piece_hash);
+		bool const make_v1 = validate_v1_hashes(m_files, m_piece_hash);
+
+		// if neither v1 nor v2 hashes were set, we can't create a torrent
+		if (!make_v1 && !make_v2)
+			aux::throw_ex<system_error>(errors::invalid_hash_entry);
 
 		TORRENT_ASSERT(m_files.piece_length() > 0);
+
+		entry dict;
 
 		if (!m_urls.empty()) dict["announce"] = m_urls.front().first;
 
@@ -624,12 +666,15 @@ namespace {
 			}
 		}
 
-		if (!m_file_piece_hash.empty())
+		if (make_v2)
 		{
+			TORRENT_ASSERT(!m_file_piece_hash.empty());
+			m_fileroots.resize(m_files.num_files());
+
 			sha256_hash const pad_hash = merkle_pad(m_files.piece_length() / default_block_size, 1);
 			auto& file_pieces = dict["piece layers"].dict();
 
-			for (file_index_t fi(0); fi != m_files.end_file(); ++fi)
+			for (file_index_t fi : m_files.file_range())
 			{
 				if (files().file_flags(fi) & file_storage::flag_pad_file) continue;
 				if (files().file_size(fi) == 0) continue;
@@ -682,7 +727,7 @@ namespace {
 		{
 			file_index_t const first(0);
 			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
-			if (!m_v2_only)
+			if (make_v1)
 			{
 				info["length"] = m_files.file_size(first);
 				file_flags_t const flags = m_files.file_flags(first);
@@ -712,7 +757,7 @@ namespace {
 				}
 			}
 
-			if (!m_v1_only && !info.find_key("file tree"))
+			if (make_v2 && !info.find_key("file tree"))
 			{
 				auto& tree_file = info["file tree"][m_files.name()].dict()[{}];
 				tree_file["length"] = m_files.file_size(first);
@@ -721,7 +766,7 @@ namespace {
 		}
 		else
 		{
-			if (!m_v2_only && !info.find_key("files"))
+			if (make_v1 && !info.find_key("files"))
 			{
 				entry& files = info["files"];
 
@@ -771,11 +816,11 @@ namespace {
 				}
 			}
 
-			if (!m_v1_only && !info.find_key("file tree"))
+			if (make_v2 && !info.find_key("file tree"))
 			{
 				auto& tree = info["file tree"];
 
-				for (file_index_t i(0); i != m_files.end_file(); ++i)
+				for (file_index_t i : m_files.file_range())
 				{
 					if (files().file_flags(i) & file_storage::flag_pad_file) continue;
 
@@ -841,12 +886,12 @@ namespace {
 			}
 		}
 
-		if (!m_v1_only)
+		if (make_v2)
 			info["meta version"] = 2;
 
 		info["piece length"] = m_files.piece_length();
 
-		if (!m_v2_only)
+		if (make_v1)
 		{
 			std::string& p = info["pieces"].string();
 
@@ -887,20 +932,35 @@ namespace {
 
 	void create_torrent::set_hash(piece_index_t index, sha1_hash const& h)
 	{
-		TORRENT_ASSERT(!m_v2_only);
-		TORRENT_ASSERT(index >= piece_index_t(0));
-		TORRENT_ASSERT(index < m_piece_hash.end_index());
+		if (m_v2_only)
+			aux::throw_ex<system_error>(errors::invalid_hash_entry);
+
+		if (m_piece_hash.empty())
+			m_piece_hash.resize(m_files.num_pieces());
+
+		TORRENT_ASSERT_PRECOND(index >= piece_index_t(0));
+		TORRENT_ASSERT_PRECOND(index < m_piece_hash.end_index());
 		m_piece_hash[index] = h;
 	}
 
 	void create_torrent::set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h)
 	{
-		TORRENT_ASSERT(file >= file_index_t(0));
-		TORRENT_ASSERT(file < m_files.end_file());
-		TORRENT_ASSERT(piece >= piece_index_t::diff_type(0));
-		TORRENT_ASSERT(piece < m_file_piece_hash[file].end_index());
-		TORRENT_ASSERT(!m_files.pad_file_at(file));
-		m_file_piece_hash[file][piece] = h;
+		TORRENT_ASSERT_PRECOND(file >= file_index_t(0));
+		TORRENT_ASSERT_PRECOND(file < m_files.end_file());
+		TORRENT_ASSERT_PRECOND(piece >= piece_index_t::diff_type(0));
+		TORRENT_ASSERT_PRECOND(piece < piece_index_t::diff_type(m_files.file_num_pieces(file)));
+		TORRENT_ASSERT_PRECOND(!m_files.pad_file_at(file));
+
+		if (m_v1_only)
+			aux::throw_ex<system_error>(errors::invalid_hash_entry);
+
+		if (m_file_piece_hash.empty())
+			m_file_piece_hash.resize(m_files.num_files());
+
+		auto& fh = m_file_piece_hash[file];
+		if (fh.empty())
+			fh.resize(std::size_t(m_files.file_num_pieces(file)));
+		fh[piece] = h;
 	}
 
 	void create_torrent::set_file_hash(file_index_t index, sha1_hash const& h)
