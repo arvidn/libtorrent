@@ -48,7 +48,7 @@ int test_counter()
 
 void report_failure(char const* err, char const* file, int line)
 {
-	char buf[500];
+	char buf[2000];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
 	std::printf("\n%s\n", buf);
 	failure_strings.push_back(buf);
