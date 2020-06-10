@@ -394,7 +394,7 @@ namespace aux {
 		//
 		// may not exceed the total size of the torrent.
 		std::vector<file_slice> map_block(piece_index_t piece, std::int64_t offset
-			, int size) const;
+			, std::int64_t size) const;
 
 		// returns a peer_request representing the piece index, byte offset
 		// and size the specified file range overlaps. This is the inverse
