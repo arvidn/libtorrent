@@ -470,10 +470,8 @@ TORRENT_TEST(set_web_seeds)
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
 
-TORRENT_TEST(sanitize_long_path)
+TORRENT_TEST(sanitize_path_truncate)
 {
-	// test sanitize_append_path_element
-
 	using lt::aux::sanitize_append_path_element;
 
 	std::string path;
@@ -500,6 +498,25 @@ TORRENT_TEST(sanitize_long_path)
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+}
+
+TORRENT_TEST(sanitize_path_truncate_utf)
+{
+	using lt::aux::sanitize_append_path_element;
+
+	std::string path;
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014abcde.jpg");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014.jpg");
 }
 
 TORRENT_TEST(sanitize_path_trailing_dots)

@@ -307,7 +307,7 @@ namespace aux {
 				if (dot == -1) break;
 				found_extension = true;
 				TORRENT_ASSERT(dot > 0);
-				i = std::size_t(dot - 1);
+				i = std::size_t(dot - seq_len);
 			}
 		}
 
