@@ -494,11 +494,12 @@ namespace aux {
 #endif
 
 	std::vector<file_slice> file_storage::map_block(piece_index_t const piece
-		, std::int64_t const offset, int size) const
+		, std::int64_t const offset, std::int64_t size) const
 	{
 		TORRENT_ASSERT_PRECOND(piece >= piece_index_t{0});
 		TORRENT_ASSERT_PRECOND(piece < end_piece());
 		TORRENT_ASSERT_PRECOND(num_files() > 0);
+		TORRENT_ASSERT_PRECOND(size >= 0);
 		std::vector<file_slice> ret;
 
 		if (m_files.empty()) return ret;
@@ -512,7 +513,7 @@ namespace aux {
 
 		// in case the size is past the end, fix it up
 		if (std::int64_t(target.offset) > m_total_size - size)
-			size = aux::numeric_cast<int>(m_total_size - std::int64_t(target.offset));
+			size = m_total_size - std::int64_t(target.offset);
 
 		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
@@ -531,7 +532,7 @@ namespace aux {
 				f.offset = file_offset;
 				f.size = std::min(std::int64_t(file_iter->size) - file_offset, std::int64_t(size));
 				TORRENT_ASSERT(f.size <= size);
-				size -= int(f.size);
+				size -= f.size;
 				file_offset += f.size;
 				ret.push_back(f);
 			}
