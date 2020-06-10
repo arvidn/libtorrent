@@ -729,8 +729,6 @@ void print_usage()
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
 		"    -t <file>          the file to save the .torrent file to\n"
-		"    -T <name>          the name of the torrent (and directory\n"
-		"                       its files are saved in)\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
@@ -758,12 +756,15 @@ void print_usage()
 	exit(1);
 }
 
-void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
-	, piece_index_t const end_piece, int piece_size, bool print)
+void hasher_thread(lt::aux::vector<sha1_hash, piece_index_t>* output
+	, lt::file_storage const& fs
+	, piece_index_t const start_piece
+	, piece_index_t const end_piece
+	, bool print)
 {
 	if (print) std::fprintf(stderr, "\n");
 	std::uint32_t piece[0x4000 / 4];
-	lt::file_storage const& fs = t->files();
+	int const piece_size = fs.piece_length();
 
 	std::vector<file_slice> files = fs.map_block(start_piece, 0
 		, std::min(static_cast<int>(end_piece - start_piece) * std::int64_t(piece_size)
@@ -804,7 +805,7 @@ void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
 			ph.update(reinterpret_cast<char*>(piece), 0x4000);
 		}
 out:
-		t->set_hash(i, ph.final());
+		(*output)[i] = ph.final();
 		int const range = static_cast<int>(end_piece) - static_cast<int>(start_piece);
 		if (print && (static_cast<int>(i) & 1))
 		{
@@ -837,7 +838,7 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 		file_size += 200;
 	}
 
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size, lt::create_torrent::v1_only);
 
 	num_pieces = t.num_pieces();
 
@@ -847,20 +848,22 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 
 	std::vector<std::thread> threads;
 	threads.reserve(num_threads);
+	lt::aux::vector<lt::sha1_hash, piece_index_t> hashes(num_pieces);
 	for (int i = 0; i < num_threads; ++i)
 	{
-		threads.emplace_back(&hasher_thread, &t
+		threads.emplace_back(&hasher_thread, &hashes, t.files()
 			, piece_index_t(i * num_pieces / num_threads)
 			, piece_index_t((i + 1) * num_pieces / num_threads)
-			, piece_size
 			, i == 0);
 	}
 
 	for (auto& i : threads)
 		i.join();
 
-	std::back_insert_iterator<std::vector<char>> out(buf);
-	bencode(out, t.generate());
+	for (auto i : t.files().piece_range())
+		t.set_hash(i, hashes[i]);
+
+	bencode(std::back_inserter(buf), t.generate());
 }
 
 void write_handler(file_storage const& fs
@@ -1079,7 +1082,7 @@ int main(int argc, char* argv[])
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;
-			lt::create_torrent t(fs, piece_size);
+			lt::create_torrent t(fs, piece_size, lt::create_torrent::v1_only);
 			sha1_hash zero(nullptr);
 			for (auto const k : fs.piece_range())
 				t.set_hash(k, zero);
