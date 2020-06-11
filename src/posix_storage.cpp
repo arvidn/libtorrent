@@ -55,7 +55,7 @@ namespace aux {
 		, m_save_path(std::move(p.path))
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 	{
-		if (p.mapped_files) m_mapped_files.reset(new file_storage(*p.mapped_files));
+		if (p.mapped_files) m_mapped_files = std::make_unique<file_storage>(*p.mapped_files);
 	}
 
 	file_storage const& posix_storage::files() const { return m_mapped_files ? *m_mapped_files.get() : m_files; }
@@ -382,7 +382,7 @@ namespace aux {
 
 		if (!m_mapped_files)
 		{
-			m_mapped_files.reset(new file_storage(files()));
+			m_mapped_files = std::make_unique<file_storage>(files());
 		}
 		m_mapped_files->rename_file(index, new_filename);
 	}
