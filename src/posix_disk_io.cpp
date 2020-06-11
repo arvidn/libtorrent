@@ -83,13 +83,13 @@ namespace {
 			m_buffer_pool.set_settings(m_settings);
 		}
 
-		storage_holder new_torrent(storage_params params
+		storage_holder new_torrent(storage_params const& params
 			, std::shared_ptr<void> const&) override
 		{
 			storage_index_t const idx = m_free_slots.empty()
 				? m_torrents.end_index()
 				: pop(m_free_slots);
-			auto storage = std::make_unique<posix_storage>(std::move(params));
+			auto storage = std::make_unique<posix_storage>(params);
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
 			return storage_holder(idx, *this);

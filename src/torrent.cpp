@@ -1611,7 +1611,7 @@ bool is_downloading_state(int const st)
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = m_ses.disk_thread().new_torrent(std::move(params), shared_from_this());
+		m_storage = m_ses.disk_thread().new_torrent(params, shared_from_this());
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
