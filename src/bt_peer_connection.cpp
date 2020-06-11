@@ -2818,7 +2818,7 @@ namespace {
 				std::array<char, dh_key_len> const buffer = export_key(m_dh_key_exchange->get_secret());
 				hasher h(req1);
 				h.update(buffer);
-				m_sync_hash.reset(new sha1_hash(h.final()));
+				m_sync_hash = std::make_unique<sha1_hash>(h.final());
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::info))

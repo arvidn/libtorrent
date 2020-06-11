@@ -50,10 +50,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_list
 #include <ctime>
 #include <algorithm>
+
 #include <set>
 #include <map>
 #include <vector>
 #include <cctype>
+#include <memory>
 #include <numeric>
 #include <limits> // for numeric_limits
 #include <cstdio> // for snprintf
@@ -365,7 +367,7 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			if (!p.name.empty()) m_name.reset(new std::string(p.name));
+			if (!p.name.empty()) m_name = std::make_unique<std::string>(p.name);
 		}
 
 		TORRENT_ASSERT(is_single_thread());
@@ -1196,10 +1198,10 @@ bool is_downloading_state(int const st)
 
 		//INVARIANT_CHECK;
 
-		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
+		m_hash_picker = std::make_unique<hash_picker>(m_torrent_file->orig_files()
 			, m_torrent_file->internal_merkle_trees(), std::move(verified)
 			, m_torrent_file->v2_piece_hashes_verified()
-				&& m_torrent_file->piece_length() == default_block_size));
+				&& m_torrent_file->piece_length() == default_block_size);
 	}
 
 	struct piece_refcount
