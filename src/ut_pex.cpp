@@ -236,10 +236,9 @@ namespace libtorrent { namespace {
 			, m_message_index(0)
 			, m_first_time(true)
 		{
-			const int num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
-			for (int i = 0; i < num_pex_timers; ++i)
+			for (auto& i : m_last_pex)
 			{
-				m_last_pex[i] = min_time();
+				i = min_time();
 			}
 		}
 

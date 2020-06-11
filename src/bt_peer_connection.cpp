@@ -2474,11 +2474,10 @@ namespace {
 #ifndef NDEBUG
 		// make sure there are not conflicting extensions
 		std::set<int> ext;
-		for (entry::dictionary_type::const_iterator i = m.begin()
-			, end(m.end()); i != end; ++i)
+		for (auto const& i : m)
 		{
-			if (i->second.type() != entry::int_t) continue;
-			int val = int(i->second.integer());
+			if (i.second.type() != entry::int_t) continue;
+			int val = int(i.second.integer());
 			TORRENT_ASSERT(ext.find(val) == ext.end());
 			ext.insert(val);
 		}
@@ -3726,22 +3725,22 @@ namespace {
 			// the payload ranges they represent have been sent
 			auto first_to_keep = m_payloads.begin();
 
-			for (auto i = m_payloads.begin(); i != m_payloads.end(); ++i)
+			for (auto& p : m_payloads)
 			{
-				i->start -= int(bytes_transferred);
-				if (i->start < 0)
+				p.start -= int(bytes_transferred);
+				if (p.start < 0)
 				{
-					if (i->start + i->length <= 0)
+					if (p.start + p.length <= 0)
 					{
-						amount_payload += i->length;
-						TORRENT_ASSERT(first_to_keep == i);
+						amount_payload += p.length;
+						TORRENT_ASSERT(first_to_keep == p);
 						++first_to_keep;
 					}
 					else
 					{
-						amount_payload += -i->start;
-						i->length -= -i->start;
-						i->start = 0;
+						amount_payload += -p.start;
+						p.length -= -p.start;
+						p.start = 0;
 					}
 				}
 			}
