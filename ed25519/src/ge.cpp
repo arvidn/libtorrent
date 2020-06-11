@@ -109,7 +109,7 @@ void ge_double_scalarmult_vartime(ge_p2 *r, const unsigned char *a, const ge_p3 
         }
     }
 
-    for (; i >= 0; --i) {
+    for (; i > 0; --i) {
         ge_p2_dbl(&t, r);
 
         if (aslide[i] > 0) {
