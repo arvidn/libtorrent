@@ -4725,7 +4725,7 @@ namespace {
 		// of it being copied by the torrent constructor
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
-		torrent_handle const handle(torrent_ptr);
+		torrent_handle handle(torrent_ptr);
 		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
 		if (!torrent_ptr) return handle;
