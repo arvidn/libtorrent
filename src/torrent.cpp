@@ -2068,7 +2068,7 @@ bool is_downloading_state(int const st)
 
 				int const num_pieces = std::min(m_add_torrent_params->have_pieces.size()
 					, torrent_file().num_pieces());
-				for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
+				for (auto i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 				{
 					if (!m_add_torrent_params->have_pieces[i]) continue;
 					need_picker();
@@ -2082,7 +2082,7 @@ bool is_downloading_state(int const st)
 				{
 					int const num_pieces2 = std::min(m_add_torrent_params->verified_pieces.size()
 						, torrent_file().num_pieces());
-					for (piece_index_t i = piece_index_t(0);
+					for (auto i = piece_index_t(0);
 						i < piece_index_t(num_pieces2); ++i)
 					{
 						if (!m_add_torrent_params->verified_pieces[i]) continue;

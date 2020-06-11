@@ -407,7 +407,7 @@ namespace {
 			return false;
 		}
 
-		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
+		auto const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
 
 		char const* pieces_root = nullptr;
 
@@ -473,7 +473,7 @@ namespace {
 			return false;
 		}
 
-		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
+		auto const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
 
 		std::string path = root_dir;
 		string_view filename;
