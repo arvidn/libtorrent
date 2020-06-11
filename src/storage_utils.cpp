@@ -371,7 +371,7 @@ namespace libtorrent { namespace aux {
 
 			// if we ended up renaming the file instead of moving it, there's no
 			// need to delete the source.
-			if (copied_files[i] == false) continue;
+			if (!copied_files[i]) continue;
 
 			std::string const old_path = combine_path(save_path, f.file_path(i));
 
@@ -521,7 +521,7 @@ namespace libtorrent { namespace aux {
 		// actually do exist
 		for (piece_index_t i(0); i < piece_index_t(rd.have_pieces.size()); ++i)
 		{
-			if (rd.have_pieces.get_bit(i) == false) continue;
+			if (!rd.have_pieces.get_bit(i)) continue;
 
 			std::vector<file_slice> f = fs.map_block(i, 0, 1);
 			TORRENT_ASSERT(!f.empty());

@@ -699,7 +699,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// the new web seed we're adding only has this file for now
 		// we may add more files later
 		web->redirects[file_index] = redirect_path;
-		if (web->have_files.get_bit(file_index) == false)
+		if (!web->have_files.get_bit(file_index))
 		{
 			web->have_files.set_bit(file_index);
 

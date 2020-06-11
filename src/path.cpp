@@ -976,8 +976,7 @@ namespace {
 			return true;
 		return false;
 #else
-		if (f[0] == '/') return true;
-		return false;
+		return f[0] == '/';
 #endif
 	}
 }

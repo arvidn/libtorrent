@@ -242,7 +242,7 @@ namespace {
 			TORRENT_ASSERT(peer_info_struct());
 
 			torrent_peer* pi = peer_info_struct();
-			if (pi->pe_support == true)
+			if (pi->pe_support)
 			{
 				// toggle encryption support flag, toggled back to
 				// true if encrypted portion of the handshake

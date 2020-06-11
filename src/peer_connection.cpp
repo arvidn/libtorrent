@@ -1464,7 +1464,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "CHOKE");
 #endif
-		if (m_peer_choked == false)
+		if (!m_peer_choked)
 			m_counters.inc_stats_counter(counters::num_peers_down_unchoked, -1);
 
 		m_peer_choked = true;
@@ -1752,7 +1752,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "INTERESTED");
 #endif
-		if (m_peer_interested == false)
+		if (!m_peer_interested)
 			m_counters.inc_stats_counter(counters::num_peers_up_interested);
 
 		m_peer_interested = true;
@@ -3614,7 +3614,7 @@ namespace libtorrent {
 		}
 
 		pending_block pb(block);
-		pb.busy = (flags & busy) ? true : false;
+		pb.busy = static_cast<bool>((flags & busy));
 		if (flags & time_critical)
 		{
 			m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical
@@ -4476,8 +4476,7 @@ namespace libtorrent {
 
 		if (m_ses.ignore_unchoke_slots_set(*this)) return true;
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		if (t && m_ses.ignore_unchoke_slots_set(*t)) return true;
-		return false;
+		return t && m_ses.ignore_unchoke_slots_set(*t);
 	}
 
 	bool peer_connection::on_local_network() const

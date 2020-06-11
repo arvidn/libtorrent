@@ -799,7 +799,7 @@ namespace libtorrent {
 
 			// if we haven't created this file already, make sure to truncate it to
 			// its final size
-			mode |= (m_file_created[file] == false) ? aux::open_mode::truncate : aux::open_mode::read_only;
+			mode |= (!m_file_created[file]) ? aux::open_mode::truncate : aux::open_mode::read_only;
 		}
 
 		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec.ec);

@@ -440,15 +440,12 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p.in_use);
-		if (p.connection
+		return !(p.connection
 			|| p.banned
 			|| p.web_seed
 			|| !p.connectable
 			|| (p.seed && m_finished)
-			|| int(p.failcount) >= m_max_failcount)
-			return false;
-
-		return true;
+			|| int(p.failcount) >= m_max_failcount);
 	}
 
 	void peer_list::find_connect_candidates(std::vector<torrent_peer*>& peers
