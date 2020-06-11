@@ -254,7 +254,7 @@ void upnp::discover_device_impl()
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			log("multicast send failed: \"%s\" and \"%s\". Aborting."
+			log(R"(multicast send failed: "%s" and "%s". Aborting.)"
 				, convert_from_native(mcast_ec.message()).c_str()
 				, convert_from_native(ucast_ec.message()).c_str());
 		}
