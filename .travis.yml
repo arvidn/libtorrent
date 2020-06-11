@@ -74,7 +74,7 @@ before_install:
       ./bootstrap.sh;
       ./b2 headers;
       if [[ "$install_boost" = "1" ]]; then
-        sudo ./b2 cxxstd=11 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
+        sudo ./b2 cxxstd=11 release install --with-python | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
         cd tools/build;
         ./bootstrap.sh;
         echo "installing boost.build";
