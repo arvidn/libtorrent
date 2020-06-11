@@ -170,7 +170,7 @@ namespace libtorrent { namespace aux {
 	std::shared_ptr<file_mapping> file_view_pool::remove_oldest(std::unique_lock<std::mutex>&)
 	{
 		auto& lru_view = m_files.get<1>();
-		if (lru_view.size() == 0) return {};
+		if (lru_view.empty()) return {};
 
 		auto mapping = lru_view.back().mapping;
 		lru_view.pop_back();

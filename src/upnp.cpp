@@ -943,7 +943,7 @@ void find_control_url(int const type, string_view str, parse_state& state)
 			}
 		}
 		else if (state.control_url.empty() && state.in_service
-			&& state.top_tags("service", "controlurl") && str.size() > 0)
+			&& state.top_tags("service", "controlurl") && !str.empty())
 		{
 			// default to the first (or only) control url in the router's listing
 			state.control_url.assign(str.begin(), str.end());

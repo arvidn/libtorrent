@@ -1332,7 +1332,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	auto const close_reason = static_cast<std::uint32_t>(m_close_reason);
 
 	int sack = 0;
-	if (m_inbuf.size())
+	if (!m_inbuf.empty())
 	{
 		const int max_sack_size = effective_mtu
 			- int(sizeof(utp_header))
@@ -1461,7 +1461,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			sack = ptr[1];
 			// if we no longer have any out-of-order packets waiting
 			// to be delivered, there's no selective ack to be sent.
-			if (m_inbuf.size() == 0)
+			if (m_inbuf.empty())
 			{
 				// we need to remove the sack header
 				remove_sack_header(p.get());
@@ -1758,7 +1758,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	{
 		std::uint8_t* ptr = p->buf + sizeof(utp_header);
 		int sack_size = ptr[1];
-		if (m_inbuf.size())
+		if (!m_inbuf.empty())
 		{
 			// update the sack header
 			write_sack(ptr + 2, sack_size);
@@ -2440,7 +2440,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// regardless of our outgoing traffic, which makes their ACK number not
 	// indicative of a dropped packet
 	if (ph->ack_nr == m_acked_seq_nr
-		&& m_outbuf.size()
+		&& !m_outbuf.empty()
 		&& ph->get_type() == ST_STATE)
 	{
 		++m_duplicate_acks;
@@ -3130,7 +3130,7 @@ void utp_socket_impl::tick(time_point const now)
 		// observed that the SSL shutdown sometimes can hang in a state where
 		// there's no outstanding data, and it won't receive any more from the
 		// other end. This catches that case and let the socket time out.
-		if (m_outbuf.size() || m_close_reason != close_reason_t::none)
+		if (!m_outbuf.empty() || m_close_reason != close_reason_t::none)
 		{
 			// m_num_timeouts is used to update the connection timeout, and if we
 			// lose this packet because it's an MTU-probe, don't change the timeout

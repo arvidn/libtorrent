@@ -112,7 +112,7 @@ bool mostly_verified_nodes(bucket_t const& b)
 {
 	int const num_verified = static_cast<int>(std::count_if(b.begin(), b.end()
 		, [](node_entry const& e) { return e.verified; }));
-	if (num_verified == 0 && b.size() > 0) return false;
+	if (num_verified == 0 && !b.empty()) return false;
 	return num_verified >= static_cast<int>(b.size()) * 2 / 3;
 }
 
