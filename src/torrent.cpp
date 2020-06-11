@@ -3767,9 +3767,9 @@ namespace {
 
 		// look at all unfinished pieces and add the completed
 		// blocks to our 'done' counter
-		for (auto i = dl_queue.begin(); i != dl_queue.end(); ++i)
+		for (auto i : dl_queue)
 		{
-			piece_index_t const index = i->index;
+			piece_index_t const index = i.index;
 
 			// completed pieces are already accounted for
 			if (m_picker->have_piece(index)) continue;
@@ -3777,7 +3777,7 @@ namespace {
 			TORRENT_ASSERT(i->finished + i->writing <= m_picker->blocks_in_piece(index));
 			TORRENT_ASSERT(i->finished + i->writing >= m_picker->pad_blocks_in_piece(index));
 
-			int const blocks = i->finished + i->writing - m_picker->pad_blocks_in_piece(index);
+			int const blocks = i.finished + i.writing - m_picker->pad_blocks_in_piece(index);
 			TORRENT_ASSERT(blocks >= 0);
 
 			auto const additional_bytes = std::int64_t(blocks) * block_size();

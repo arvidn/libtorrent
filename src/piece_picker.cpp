@@ -747,12 +747,11 @@ namespace libtorrent {
 		// and also the number of pieces that have more than that.
 		int integer_part = 0;
 		int fraction_part = 0;
-		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i)
+		for (auto i : m_piece_map)
 		{
-			int peer_count = int(i->peer_count);
+			int peer_count = int(i.peer_count);
 			// take ourself into account
-			if (i->have()) ++peer_count;
+			if (i.have()) ++peer_count;
 			if (min_availability > peer_count)
 			{
 				min_availability = peer_count;

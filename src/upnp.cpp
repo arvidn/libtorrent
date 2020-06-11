@@ -691,13 +691,13 @@ void upnp::try_map_upnp()
 	TORRENT_ASSERT(is_single_thread());
 	if (m_devices.empty()) return;
 
-	for (auto i = m_devices.begin(), end(m_devices.end()); i != end; ++i)
+	for (const auto& m_device : m_devices)
 	{
-		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
+		if (m_device.control_url.empty() && !m_device.upnp_connection && !m_device.disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
-			connect(const_cast<rootdevice&>(*i));
+			connect(const_cast<rootdevice&>(m_device));
 		}
 	}
 }

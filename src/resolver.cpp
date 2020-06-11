@@ -73,7 +73,7 @@ namespace aux {
 		dns_cache_entry& ce = m_cache[hostname];
 		ce.last_seen = time_now();
 		ce.addresses.clear();
-		for (auto i : ips)
+		for (const auto& i : ips)
 			ce.addresses.push_back(i.endpoint().address());
 
 		callback(h, ec, ce.addresses);
