@@ -64,7 +64,7 @@ namespace aux {
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
 
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
+		char* allocate_buffer(bool& exceeded, const std::shared_ptr<disk_observer>& o
 			, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec);

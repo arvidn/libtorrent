@@ -502,7 +502,7 @@ namespace libtorrent {
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
-	std::pair<status_t, std::string> mmap_storage::move_storage(std::string save_path
+	std::pair<status_t, std::string> mmap_storage::move_storage(const std::string& save_path
 		, move_flags_t const flags, storage_error& ec)
 	{
 		m_pool.release(storage_index());

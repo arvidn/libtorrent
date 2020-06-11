@@ -60,7 +60,7 @@ namespace aux {
 		}
 	}
 
-	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type ips
+	void resolver::on_lookup(error_code const& ec, const tcp::resolver::results_type& ips
 		, resolver_interface::callback_t const& h, std::string const& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");

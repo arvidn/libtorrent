@@ -381,7 +381,7 @@ void http_connection::start(std::string const& hostname, int port
 	}
 }
 
-void http_connection::on_timeout(std::weak_ptr<http_connection> p
+void http_connection::on_timeout(const std::weak_ptr<http_connection>& p
 	, error_code const& e)
 {
 	COMPLETE_ASYNC("http_connection::on_timeout");

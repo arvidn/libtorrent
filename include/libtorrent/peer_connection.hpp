@@ -341,7 +341,7 @@ namespace aux {
 		void send_allowed_set();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(std::shared_ptr<peer_plugin>);
+		void add_extension(const std::shared_ptr<peer_plugin>&);
 		peer_plugin const* find_plugin(string_view type);
 #endif
 
@@ -792,7 +792,7 @@ namespace aux {
 		void on_disk_read_complete(disk_buffer_holder buffer
 			, storage_error const& error, peer_request const&, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request const&, std::shared_ptr<torrent>);
+			, peer_request const&, const std::shared_ptr<torrent>&);
 		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, aux::vector<sha256_hash> const& block_hashes
 			, storage_error const& error);

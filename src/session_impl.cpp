@@ -121,6 +121,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/item.hpp>
+#include <utility>
+
 #endif // TORRENT_DISABLE_DHT
 
 #include "libtorrent/http_tracker_connection.hpp"
@@ -487,7 +489,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif // TORRENT_SSL_PEERS
 
 	session_impl::session_impl(io_context& ioc, settings_pack const& pack
-		, disk_io_constructor_type disk_io_constructor)
+		, const disk_io_constructor_type& disk_io_constructor)
 		: m_settings(pack)
 		, m_io_context(ioc)
 #if TORRENT_USE_SSL
@@ -895,7 +897,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	void session_impl::add_extension(ext_function_t ext)
+	void session_impl::add_extension(const ext_function_t& ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(ext);
@@ -903,7 +905,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		add_ses_extension(std::make_shared<session_plugin_wrapper>(ext));
 	}
 
-	void session_impl::add_ses_extension(std::shared_ptr<plugin> ext)
+	void session_impl::add_ses_extension(const std::shared_ptr<plugin>& ext)
 	{
 		// this is called during startup of the session, from the thread creating
 		// it, not its own thread
@@ -2307,7 +2309,7 @@ namespace {
 	}
 #endif
 
-	void session_impl::send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
+	void session_impl::send_udp_packet_hostname(const std::weak_ptr<utp_socket_interface>& sock
 		, char const* hostname
 		, int const port
 		, span<char const> p
@@ -2335,7 +2337,7 @@ namespace {
 		}
 	}
 
-	void session_impl::send_udp_packet(std::weak_ptr<utp_socket_interface> sock
+	void session_impl::send_udp_packet(const std::weak_ptr<utp_socket_interface>& sock
 		, udp::endpoint const& ep
 		, span<char const> p
 		, error_code& ec
@@ -2363,7 +2365,7 @@ namespace {
 		}
 	}
 
-	void session_impl::on_udp_writeable(std::weak_ptr<session_udp_socket> sock, error_code const& ec)
+	void session_impl::on_udp_writeable(const std::weak_ptr<session_udp_socket>& sock, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_writeable");
 		if (ec) return;
@@ -2390,8 +2392,8 @@ namespace {
 	}
 
 
-	void session_impl::on_udp_packet(std::weak_ptr<session_udp_socket> socket
-		, std::weak_ptr<listen_socket_t> ls, transport const ssl, error_code const& ec)
+	void session_impl::on_udp_packet(const std::weak_ptr<session_udp_socket>& socket
+		, const std::weak_ptr<listen_socket_t>& ls, transport const ssl, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_packet");
 		if (ec)
@@ -2572,7 +2574,7 @@ namespace {
 #endif
 
 	void session_impl::on_accept_connection(true_tcp_socket s, error_code const& e
-		, std::weak_ptr<tcp::acceptor> listen_socket, transport const ssl)
+		, const std::weak_ptr<tcp::acceptor>& listen_socket, transport const ssl)
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
@@ -5906,7 +5908,7 @@ namespace {
 	// the salt is optional
 	// TODO: 3 use public_key here instead of std::array
 	void session_impl::dht_get_mutable_item(std::array<char, 32> key
-		, std::string salt)
+		, const std::string& salt)
 	{
 		if (!m_dht) return;
 		m_dht->get_item(dht::public_key(key.data()), std::bind(&session_impl::get_mutable_callback
@@ -5935,8 +5937,8 @@ namespace {
 		}
 
 		void put_mutable_callback(dht::item& i
-			, std::function<void(entry&, std::array<char, 64>&
-				, std::int64_t&, std::string const&)> cb)
+			, const std::function<void(entry&, std::array<char, 64>&
+				, std::int64_t&, std::string const&)>& cb)
 		{
 			entry value = i.value();
 			dht::signature sig = i.sig();
@@ -5973,12 +5975,12 @@ namespace {
 	void session_impl::dht_put_mutable_item(std::array<char, 32> key
 		, std::function<void(entry&, std::array<char,64>&
 		, std::int64_t&, std::string const&)> cb
-		, std::string salt)
+		, const std::string& salt)
 	{
 		if (!m_dht) return;
 		m_dht->put_item(dht::public_key(key.data())
 			, std::bind(&on_dht_put_mutable_item, std::ref(m_alerts), _1, _2)
-			, std::bind(&put_mutable_callback, _1, std::move(cb)), salt);
+			, std::bind(&put_mutable_callback, _1, std::move(cb)), std::move(salt));
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)
@@ -6005,8 +6007,8 @@ namespace {
 		if (!m_dht) return;
 		m_dht->sample_infohashes(ep, target, [this, ep](sha1_hash const& nid
 			, time_duration const interval
-			, int const num, std::vector<sha1_hash> samples
-			, std::vector<std::pair<sha1_hash, udp::endpoint>> nodes)
+			, int const num, const std::vector<sha1_hash>& samples
+			, const std::vector<std::pair<sha1_hash, udp::endpoint>>& nodes)
 		{
 			m_alerts.emplace_alert<dht_sample_infohashes_alert>(nid
 				, ep, interval, num, std::move(samples), std::move(nodes));

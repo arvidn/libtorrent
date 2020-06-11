@@ -104,10 +104,10 @@ namespace libtorrent {
 		int decrypt(aux::crypto_receive_buffer& recv_buffer
 			, std::size_t& bytes_transferred);
 
-		bool switch_send_crypto(std::shared_ptr<crypto_plugin> crypto
+		bool switch_send_crypto(const std::shared_ptr<crypto_plugin>& crypto
 			, int pending_encryption);
 
-		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
+		void switch_recv_crypto(const std::shared_ptr<crypto_plugin>& crypto
 			, aux::crypto_receive_buffer& recv_buffer);
 
 		bool is_send_plaintext() const

@@ -109,7 +109,7 @@ upnp::upnp(io_context& ios
 	, address_v4 listen_address
 	, address_v4 netmask
 	, std::string listen_device
-	, listen_socket_handle ls)
+	, const listen_socket_handle& ls)
 	: m_settings(settings)
 	, m_callback(cb)
 	, m_io_service(ios)
@@ -277,7 +277,7 @@ void upnp::discover_device_impl()
 
 // returns a reference to a mapping or -1 on failure
 port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_port
-	, tcp::endpoint const local_ep)
+	, tcp::endpoint const& local_ep)
 {
 	TORRENT_ASSERT(is_single_thread());
 	// external port 0 means _every_ port

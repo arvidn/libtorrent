@@ -254,7 +254,7 @@ namespace libtorrent {
 	// erased through this function. This way we can make
 	// sure that any references to the peer are removed
 	// as well, such as in the piece picker.
-	void peer_list::erase_peer(iterator i, torrent_state* state)
+	void peer_list::erase_peer(const iterator& i, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;

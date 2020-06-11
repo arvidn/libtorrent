@@ -355,7 +355,7 @@ namespace aux {
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 
-			session_impl(io_context&, settings_pack const&, disk_io_constructor_type);
+			session_impl(io_context&, settings_pack const&, const disk_io_constructor_type&);
 			~session_impl() override;
 
 			session_impl(session_impl const&) = delete;
@@ -385,9 +385,9 @@ namespace aux {
 				ext_function_t m_f;
 			};
 
-			void add_extension(std::function<std::shared_ptr<torrent_plugin>(
-				torrent_handle const&, client_data_t)> ext);
-			void add_ses_extension(std::shared_ptr<plugin> ext);
+			void add_extension(const std::function<std::shared_ptr<torrent_plugin>(
+				torrent_handle const&, client_data_t)>& ext);
+			void add_ses_extension(const std::shared_ptr<plugin>& ext);
 #endif
 #if TORRENT_USE_ASSERTS
 			bool has_peer(peer_connection const* p) const override;
@@ -429,7 +429,7 @@ namespace aux {
 
 			void async_accept(std::shared_ptr<tcp::acceptor> const&, transport);
 			void on_accept_connection(true_tcp_socket s, error_code const&
-				, std::weak_ptr<tcp::acceptor>, transport);
+				, const std::weak_ptr<tcp::acceptor>&, transport);
 
 			void incoming_connection(socket_type);
 
@@ -502,14 +502,14 @@ namespace aux {
 			void dht_get_immutable_item(sha1_hash const& target);
 
 			void dht_get_mutable_item(std::array<char, 32> key
-				, std::string salt = std::string());
+				, const std::string& salt = std::string());
 
 			void dht_put_immutable_item(entry const& data, sha1_hash target);
 
 			void dht_put_mutable_item(std::array<char, 32> key
 				, std::function<void(entry&, std::array<char,64>&
 					, std::int64_t&, std::string const&)> cb
-				, std::string salt = std::string());
+				, const std::string& salt = std::string());
 
 			void dht_get_peers(sha1_hash const& info_hash);
 			void dht_announce(sha1_hash const& info_hash, int port = 0, dht::announce_flags_t flags = {});
@@ -1168,7 +1168,7 @@ namespace aux {
 			int m_outstanding_router_lookups = 0;
 #endif
 
-			void send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
+			void send_udp_packet_hostname(const std::weak_ptr<utp_socket_interface>& sock
 				, char const* hostname
 				, int port
 				, span<char const> p
@@ -1191,7 +1191,7 @@ namespace aux {
 				send_udp_packet_hostname(sock.get_ptr(), hostname, port, p, ec, flags);
 			}
 
-			void send_udp_packet(std::weak_ptr<utp_socket_interface> sock
+			void send_udp_packet(const std::weak_ptr<utp_socket_interface>& sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
@@ -1212,10 +1212,10 @@ namespace aux {
 				send_udp_packet(sock.get_ptr(), ep, p, ec, flags);
 			}
 
-			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);
+			void on_udp_writeable(const std::weak_ptr<session_udp_socket>& s, error_code const& ec);
 
-			void on_udp_packet(std::weak_ptr<session_udp_socket> s
-				, std::weak_ptr<listen_socket_t> ls
+			void on_udp_packet(const std::weak_ptr<session_udp_socket>& s
+				, const std::weak_ptr<listen_socket_t>& ls
 				, transport ssl, error_code const& ec);
 
 			libtorrent::aux::utp_socket_manager m_utp_socket_manager;

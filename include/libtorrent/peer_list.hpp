@@ -193,7 +193,7 @@ namespace libtorrent {
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 
 		void erase_peer(torrent_peer* p, torrent_state* state);
-		void erase_peer(iterator i, torrent_state* state);
+		void erase_peer(const iterator& i, torrent_state* state);
 
 		void set_max_failcount(torrent_state* st);
 

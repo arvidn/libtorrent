@@ -96,7 +96,7 @@ namespace aux {
 			, error_code& ec, udp_send_flags_t flags = {});
 		void subscribe_writable(utp_socket_impl* s);
 
-		void remove_udp_socket(std::weak_ptr<utp_socket_interface> sock);
+		void remove_udp_socket(const std::weak_ptr<utp_socket_interface>& sock);
 
 		// internal, used by utp_stream
 		void remove_socket(std::uint16_t id);

@@ -871,13 +871,13 @@ namespace aux {
 
 		// deprecated in 0.16, feature will be removed
 		TORRENT_DEPRECATED
-		int get_peer_upload_limit(tcp::endpoint ip) const;
+		int get_peer_upload_limit(const tcp::endpoint& ip) const;
 		TORRENT_DEPRECATED
-		int get_peer_download_limit(tcp::endpoint ip) const;
+		int get_peer_download_limit(const tcp::endpoint& ip) const;
 		TORRENT_DEPRECATED
-		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
+		void set_peer_upload_limit(const tcp::endpoint& ip, int limit) const;
 		TORRENT_DEPRECATED
-		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(const tcp::endpoint& ip, int limit) const;
 
 		// deprecated in 0.16, feature will be removed
 		TORRENT_DEPRECATED
@@ -1058,7 +1058,7 @@ namespace aux {
 		// announce will take place until the given time has
 		// timed out.
 		TORRENT_DEPRECATED
-		void force_reannounce(boost::posix_time::time_duration) const;
+		void force_reannounce(const boost::posix_time::time_duration&) const;
 #endif
 
 		// ``scrape_tracker()`` will send a scrape request to a tracker. By

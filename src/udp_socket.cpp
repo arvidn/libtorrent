@@ -79,7 +79,7 @@ std::size_t const max_header_size = 255;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : std::enable_shared_from_this<socks5>
 {
-	explicit socks5(io_context& ios, aux::listen_socket_handle ls
+	explicit socks5(io_context& ios, const aux::listen_socket_handle& ls
 		, aux::alert_manager& alerts)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
@@ -99,7 +99,7 @@ private:
 
 	std::shared_ptr<socks5> self() { return shared_from_this(); }
 
-	void on_name_lookup(error_code const& e, tcp::resolver::results_type ips);
+	void on_name_lookup(error_code const& e, const tcp::resolver::results_type& ips);
 	void on_connect_timeout(error_code const& e);
 	void on_connected(error_code const& e);
 	void handshake1(error_code const& e);
@@ -175,7 +175,7 @@ struct set_dont_frag
 { set_dont_frag(udp::socket&, int) {} };
 #endif
 
-udp_socket::udp_socket(io_context& ios, aux::listen_socket_handle ls)
+udp_socket::udp_socket(io_context& ios, const aux::listen_socket_handle& ls)
 	: m_socket(ios)
 	, m_ioc(ios)
 	, m_buf(new receive_buffer())
@@ -537,7 +537,7 @@ void socks5::start(aux::proxy_settings const& ps)
 		&socks5::on_name_lookup, self(), _1, _2));
 }
 
-void socks5::on_name_lookup(error_code const& e, tcp::resolver::results_type ips)
+void socks5::on_name_lookup(error_code const& e, const tcp::resolver::results_type& ips)
 {
 	COMPLETE_ASYNC("socks5::on_name_lookup");
 

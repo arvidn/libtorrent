@@ -225,8 +225,8 @@ public:
 		return int(i->live_nodes.size());
 	}
 
-	void for_each_node(std::function<void(node_entry const&)> live_cb
-		, std::function<void(node_entry const&)> replacements_cb) const;
+	void for_each_node(const std::function<void(node_entry const&)>& live_cb
+		, const std::function<void(node_entry const&)>& replacements_cb) const;
 
 	void for_each_node(std::function<void(node_entry const&)> f) const
 	{ for_each_node(f, f); }

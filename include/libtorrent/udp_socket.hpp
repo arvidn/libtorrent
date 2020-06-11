@@ -57,7 +57,7 @@ namespace aux { struct alert_manager; }
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
-		udp_socket(io_context& ios, aux::listen_socket_handle ls);
+		udp_socket(io_context& ios, const aux::listen_socket_handle& ls);
 
 		// non-copyable
 		udp_socket(udp_socket const&) = delete;

@@ -590,7 +590,7 @@ namespace libtorrent {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void peer_connection::add_extension(std::shared_ptr<peer_plugin> ext)
+	void peer_connection::add_extension(const std::shared_ptr<peer_plugin>& ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_extensions.push_back(ext);
@@ -3093,7 +3093,7 @@ namespace libtorrent {
 	}
 
 	void peer_connection::on_disk_write_complete(storage_error const& error
-		, peer_request const& p, std::shared_ptr<torrent> t)
+		, peer_request const& p, const std::shared_ptr<torrent>& t)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_LOGGING

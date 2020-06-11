@@ -59,7 +59,7 @@ namespace libtorrent {
 			file_index_t file_idx;
 		};
 
-		explicit resolve_links(std::shared_ptr<torrent_info> ti);
+		explicit resolve_links(const std::shared_ptr<torrent_info>& ti);
 
 		// check to see if any files are shared with this torrent
 		void match(std::shared_ptr<const torrent_info> const& ti

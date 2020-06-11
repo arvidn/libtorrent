@@ -63,12 +63,12 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 	: std::enable_shared_from_this<traversal_algorithm>
 {
 	void traverse(node_id const& id, udp::endpoint const& addr);
-	void finished(observer_ptr o);
+	void finished(const observer_ptr& o);
 
 	static constexpr traversal_flags_t prevent_request = 0_bit;
 	static constexpr traversal_flags_t short_timeout = 1_bit;
 
-	void failed(observer_ptr o, traversal_flags_t flags = {});
+	void failed(const observer_ptr& o, traversal_flags_t flags = {});
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
 
@@ -156,7 +156,7 @@ private:
 };
 
 void look_for_nodes(char const* nodes_key, udp const& protocol
-	, bdecode_node const& r, std::function<void(node_endpoint const&)> f);
+	, bdecode_node const& r, const std::function<void(node_endpoint const&)>& f);
 
 struct traversal_observer : observer
 {

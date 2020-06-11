@@ -124,7 +124,7 @@ namespace aux {
 		void set_notify_function(std::function<void()> const& fun);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(std::shared_ptr<plugin> ext);
+		void add_extension(const std::shared_ptr<plugin>& ext);
 #endif
 
 	private:

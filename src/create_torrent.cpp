@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <memory>
+#include <utility>
+
 
 using namespace std::placeholders;
 
@@ -260,7 +262,7 @@ namespace aux {
 #if TORRENT_ABI_VERSION == 1
 
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, std::function<bool(std::string)> p, create_flags_t const flags)
+		, const std::function<bool(std::string)>& p, create_flags_t const flags)
 	{
 		std::string utf8 = wchar_utf8(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
@@ -279,19 +281,19 @@ namespace aux {
 		, std::function<void(int)> f, error_code& ec)
 	{
 		std::string utf8 = wchar_utf8(p);
-		set_piece_hashes(t, utf8, f, ec);
+		set_piece_hashes(t, utf8, std::move(f), ec);
 	}
 
 	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec)
 	{
 		std::string utf8 = wchar_utf8(p);
-		set_piece_hashes(t, utf8, f, ec);
+		set_piece_hashes(t, utf8, std::move(f), ec);
 	}
 #endif // TORRENT_ABI_VERSION
 
 	void add_files(file_storage& fs, std::string const& file
-		, std::function<bool(std::string)> p, create_flags_t const flags)
+		, const std::function<bool(std::string)>& p, create_flags_t const flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}

@@ -158,7 +158,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 		, address_v4 listen_address
 		, address_v4 netmask
 		, std::string listen_device
-		, aux::listen_socket_handle ls);
+		, const aux::listen_socket_handle& ls);
 	~upnp();
 
 	void start();
@@ -180,7 +180,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
-	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, const tcp::endpoint& local_ep);
 
 	// This function removes a port mapping. ``mapping_index`` is the index that refers
 	// to the mapping you want to remove, which was returned from add_mapping().

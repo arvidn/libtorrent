@@ -93,7 +93,7 @@ public:
 	time_duration tick();
 
 	bool invoke(entry& e, udp::endpoint const& target
-		, observer_ptr o);
+		, const observer_ptr& o);
 
 	void add_our_id(entry& e);
 

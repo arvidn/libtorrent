@@ -158,15 +158,15 @@ public:
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void direct_request(udp::endpoint const& ep, entry& e
-		, std::function<void(msg const&)> f);
+		, const std::function<void(msg const&)>& f);
 
-	void get_item(sha1_hash const& target, std::function<void(item const&)> f);
+	void get_item(sha1_hash const& target, const std::function<void(item const&)>& f);
 	void get_item(public_key const& pk, std::string const& salt, std::function<void(item const&, bool)> f);
 
-	void put_item(sha1_hash const& target, entry const& data, std::function<void(int)> f);
+	void put_item(sha1_hash const& target, entry const& data, const std::function<void(int)>& f);
 	void put_item(public_key const& pk, std::string const& salt
-		, std::function<void(item const&, int)> f
-		, std::function<void(item&)> data_cb);
+		, const std::function<void(item const&, int)>& f
+		, const std::function<void(item&)>& data_cb);
 
 	void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 		, std::function<void(sha1_hash

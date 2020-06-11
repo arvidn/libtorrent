@@ -116,7 +116,7 @@ namespace aux {
 	// that there's more room in the pool now. This caps the amount of over-
 	// allocation to one block per peer connection.
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded
-		, std::shared_ptr<disk_observer> o, char const* category)
+		, const std::shared_ptr<disk_observer>& o, char const* category)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		char* ret = allocate_buffer_impl(l, category);

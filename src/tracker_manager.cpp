@@ -167,7 +167,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, operation_t const op
-		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
+		, std::string const& msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->tracker_request_error(m_req, ec, op, msg
@@ -259,7 +259,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 	}
 
 	void tracker_manager::update_transaction_id(
-		std::shared_ptr<udp_tracker_connection> c
+		const std::shared_ptr<udp_tracker_connection>& c
 		, std::uint32_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -271,7 +271,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		io_context& ios
 		, tracker_request&& req
 		, aux::session_settings const& sett
-		, std::weak_ptr<request_callback> c)
+		, const std::weak_ptr<request_callback>& c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);

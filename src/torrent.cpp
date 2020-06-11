@@ -1099,7 +1099,7 @@ bool is_downloading_state(int const st)
 
 	void torrent::on_disk_read_complete(disk_buffer_holder buffer
 		, storage_error const& se
-		, peer_request const&  r, std::shared_ptr<read_piece_struct> rp) try
+		, peer_request const&  r, const std::shared_ptr<read_piece_struct>& rp) try
 	{
 		// hold a reference until this function returns
 		TORRENT_ASSERT(is_single_thread());
@@ -1347,12 +1347,12 @@ bool is_downloading_state(int const st)
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
+	void torrent::add_extension(const std::shared_ptr<torrent_plugin>& ext)
 	{
 		m_extensions.push_back(ext);
 	}
 
-	void torrent::remove_extension(std::shared_ptr<torrent_plugin> ext)
+	void torrent::remove_extension(const std::shared_ptr<torrent_plugin>& ext)
 	{
 		auto const i = std::find(m_extensions.begin(), m_extensions.end(), ext);
 		if (i == m_extensions.end()) return;
@@ -2641,7 +2641,7 @@ bool is_downloading_state(int const st)
 		});
 	}
 
-	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> const t
+	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> const& t
 		, protocol_version const v, std::vector<tcp::endpoint> const& peers)
 	{
 		std::shared_ptr<torrent> tor = t.lock();
@@ -5803,7 +5803,7 @@ namespace {
 			m_connections.erase(i);
 	}
 
-	void torrent::remove_peer(std::shared_ptr<peer_connection> p) noexcept
+	void torrent::remove_peer(const std::shared_ptr<peer_connection>& p) noexcept
 	{
 		TORRENT_ASSERT(p);
 		TORRENT_ASSERT(is_single_thread());
@@ -10502,7 +10502,7 @@ namespace {
 		remove_web_seed_iter(i);
 	}
 
-	void torrent::retry_web_seed(peer_connection* p, boost::optional<seconds32> const retry)
+	void torrent::retry_web_seed(peer_connection* p, boost::optional<seconds32> const& retry)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()

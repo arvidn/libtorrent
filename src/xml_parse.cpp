@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	void xml_parse(string_view input
-		, std::function<void(int, string_view, string_view)> callback)
+		, const std::function<void(int, string_view, string_view)>& callback)
 	{
 		char const* p = input.data();
 		char const* end = input.data() + input.size();

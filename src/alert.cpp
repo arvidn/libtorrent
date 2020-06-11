@@ -192,7 +192,7 @@ namespace libtorrent {
 	{}
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
-		, torrent_handle h, piece_index_t p, error_code e)
+		, const torrent_handle& h, piece_index_t p, error_code e)
 		: torrent_alert(alloc, h)
 		, error(e)
 		, piece(p)
@@ -514,7 +514,7 @@ namespace libtorrent {
 	}
 
 	peer_ban_alert::peer_ban_alert(aux::stack_allocator& alloc
-		, torrent_handle h, tcp::endpoint const& ep
+		, const torrent_handle& h, tcp::endpoint const& ep
 		, peer_id const& peer_id)
 		: peer_alert(alloc, h, ep, peer_id)
 	{}
@@ -525,7 +525,7 @@ namespace libtorrent {
 	}
 
 	peer_unsnubbed_alert::peer_unsnubbed_alert(aux::stack_allocator& alloc
-		, torrent_handle h, tcp::endpoint const& ep
+		, const torrent_handle& h, tcp::endpoint const& ep
 		, peer_id const& peer_id)
 		: peer_alert(alloc, h, ep, peer_id)
 	{}
@@ -536,7 +536,7 @@ namespace libtorrent {
 	}
 
 	peer_snubbed_alert::peer_snubbed_alert(aux::stack_allocator& alloc
-		, torrent_handle h, tcp::endpoint const& ep
+		, const torrent_handle& h, tcp::endpoint const& ep
 		, peer_id const& peer_id)
 		: peer_alert(alloc, h, ep, peer_id)
 	{}
@@ -574,7 +574,7 @@ namespace libtorrent {
 	}
 
 	torrent_finished_alert::torrent_finished_alert(aux::stack_allocator& alloc
-		, torrent_handle h)
+		, const torrent_handle& h)
 		: torrent_alert(alloc, h)
 	{}
 
@@ -597,7 +597,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	request_dropped_alert::request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
+	request_dropped_alert::request_dropped_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
 		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
@@ -615,7 +615,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	block_timeout_alert::block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
+	block_timeout_alert::block_timeout_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
 		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
@@ -633,7 +633,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	block_finished_alert::block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
+	block_finished_alert::block_finished_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
 		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
@@ -651,7 +651,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
+	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep
 		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
@@ -672,7 +672,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	unwanted_block_alert::unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
+	unwanted_block_alert::unwanted_block_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep
 		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
@@ -1462,7 +1462,7 @@ namespace {
 		return msg;
 	}
 
-	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
+	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t const type, direction_t const dir)
 		: peer_alert(alloc, h, ep, peer_id)
 		, direction(dir)
@@ -1953,7 +1953,7 @@ namespace {
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&
 		, std::vector<dht_routing_bucket> table
 		, std::vector<dht_lookup> requests
-			, sha1_hash id, udp::endpoint ep)
+			, sha1_hash id, const udp::endpoint& ep)
 		: alert()
 		, active_requests(std::move(requests))
 		, routing_table(std::move(table))
@@ -2038,7 +2038,7 @@ namespace {
 	}
 
 	incoming_request_alert::incoming_request_alert(aux::stack_allocator& alloc
-		, peer_request r, torrent_handle h
+		, peer_request r, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id)
 		: peer_alert(alloc, h, ep, peer_id)
 		, req(r)
@@ -2524,7 +2524,7 @@ namespace {
 			, m_v6_num_nodes, m_v6_nodes_idx);
 	}
 
-	block_uploaded_alert::block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
+	block_uploaded_alert::block_uploaded_alert(aux::stack_allocator& alloc, const torrent_handle& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
 		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)

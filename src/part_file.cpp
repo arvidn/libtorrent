@@ -341,7 +341,7 @@ namespace libtorrent {
 		m_path = path;
 	}
 
-	void part_file::export_file(std::function<void(std::int64_t, span<char>)> f
+	void part_file::export_file(const std::function<void(std::int64_t, span<char>)>& f
 		, std::int64_t const offset, std::int64_t size, error_code& ec)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);

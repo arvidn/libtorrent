@@ -118,8 +118,8 @@ namespace libtorrent {
 		bool rc4_encrypted() const
 		{ return m_rc4_encrypted; }
 
-		void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
-		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
+		void switch_send_crypto(const std::shared_ptr<crypto_plugin>& crypto);
+		void switch_recv_crypto(const std::shared_ptr<crypto_plugin>& crypto);
 #endif
 
 		connection_type type() const override

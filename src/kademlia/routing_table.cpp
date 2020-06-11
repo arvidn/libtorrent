@@ -989,8 +989,8 @@ void routing_table::update_node_id(node_id const& id)
 			add_node(n);
 }
 
-void routing_table::for_each_node(std::function<void(node_entry const&)> live_cb
-	, std::function<void(node_entry const&)> replacements_cb) const
+void routing_table::for_each_node(const std::function<void(node_entry const&)>& live_cb
+	, const std::function<void(node_entry const&)>& replacements_cb) const
 {
 	for (auto const& i : m_buckets)
 	{

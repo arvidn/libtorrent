@@ -176,7 +176,7 @@ namespace {
 			sha1_hash digest;
 		};
 
-		void on_read_failed_block(piece_block const b, address const a
+		void on_read_failed_block(piece_block const b, address const& a
 			, disk_buffer_holder buffer, int const block_size
 			, storage_error const& error)
 		{

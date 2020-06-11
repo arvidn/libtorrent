@@ -349,7 +349,7 @@ namespace libtorrent {
 		//
 		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
 		TORRENT_DEPRECATED
-		void set_load_function(user_load_function_t fun);
+		void set_load_function(const user_load_function_t& fun);
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -408,7 +408,7 @@ namespace libtorrent {
 		// custom storage, create a session with the setting
 		// ``settings_pack::enable_dht`` to false, set your constructor function
 		// and call ``apply_settings`` with ``settings_pack::enable_dht`` to true.
-		void set_dht_storage(dht::dht_storage_constructor_type sc);
+		void set_dht_storage(const dht::dht_storage_constructor_type& sc);
 
 		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
 		// pinged, and if a valid DHT reply is received, the node will be added to
@@ -441,13 +441,13 @@ namespace libtorrent {
 		// if the item is found in the DHT, a dht_mutable_item_alert is
 		// posted.
 		void dht_get_item(std::array<char, 32> key
-			, std::string salt = std::string());
+			, const std::string& salt = std::string());
 
 		// store the given bencoded data as an immutable item in the DHT.
 		// the returned hash is the key that is to be used to look the item
 		// up again. It's just the SHA-1 hash of the bencoded form of the
 		// structure.
-		sha1_hash dht_put_item(entry data);
+		sha1_hash dht_put_item(const entry& data);
 
 		// store a mutable item. The ``key`` is the public key the blob is
 		// to be stored under. The optional ``salt`` argument is a string that
@@ -489,9 +489,9 @@ namespace libtorrent {
 		// the DHT works, it is natural to always do a lookup before storing and
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
-			, std::function<void(entry&, std::array<char, 64>&
-				, std::int64_t&, std::string const&)> cb
-			, std::string salt = std::string());
+			, const std::function<void(entry&, std::array<char, 64>&
+				, std::int64_t&, std::string const&)>& cb
+			, const std::string& salt = std::string());
 
 		// ``dht_get_peers()`` will issue a DHT get_peer request to the DHT for the
 		// specified info-hash. The response (the peers) will be posted back in a
@@ -579,9 +579,9 @@ namespace libtorrent {
 		//
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
-		void add_extension(std::function<std::shared_ptr<torrent_plugin>(
-			torrent_handle const&, client_data_t)> ext);
-		void add_extension(std::shared_ptr<plugin> ext);
+		void add_extension(const std::function<std::shared_ptr<torrent_plugin>(
+			torrent_handle const&, client_data_t)>& ext);
+		void add_extension(const std::shared_ptr<plugin>& ext);
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 0.15

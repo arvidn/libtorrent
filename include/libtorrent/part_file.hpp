@@ -74,7 +74,7 @@ namespace libtorrent {
 		// the function is called for every block of data belonging to the
 		// specified range that's in the part_file. The first parameter is the
 		// offset within the range
-		void export_file(std::function<void(std::int64_t, span<char>)> f
+		void export_file(const std::function<void(std::int64_t, span<char>)>& f
 			, std::int64_t offset, std::int64_t size, error_code& ec);
 
 		// flush the metadata

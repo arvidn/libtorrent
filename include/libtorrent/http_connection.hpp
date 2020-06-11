@@ -140,7 +140,7 @@ private:
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
-	static void on_timeout(std::weak_ptr<http_connection> p
+	static void on_timeout(const std::weak_ptr<http_connection>& p
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 

@@ -115,7 +115,7 @@ namespace libtorrent { namespace aux {
 	// do with the file and the buffers.
 	int readwritev(file_storage const& files, span<iovec_t const> const bufs
 		, piece_index_t const piece, const int offset
-		, storage_error& ec, fileop op)
+		, storage_error& ec, const fileop& op)
 	{
 		TORRENT_ASSERT(piece >= piece_index_t(0));
 		TORRENT_ASSERT(piece < files.end_piece());
@@ -209,7 +209,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	std::pair<status_t, std::string> move_storage(file_storage const& f
-		, std::string save_path
+		, const std::string& save_path
 		, std::string const& destination_save_path
 		, part_file* pf
 		, move_flags_t const flags, storage_error& ec)

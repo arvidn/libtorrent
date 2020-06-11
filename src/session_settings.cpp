@@ -44,13 +44,13 @@ namespace libtorrent { namespace aux {
 		apply_pack_impl(&p, m_store);
 	}
 
-	void session_settings::bulk_set(std::function<void(session_settings_single_thread&)> f)
+	void session_settings::bulk_set(const std::function<void(session_settings_single_thread&)>& f)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		f(m_store);
 	}
 
-	void session_settings::bulk_get(std::function<void(session_settings_single_thread const&)> f) const
+	void session_settings::bulk_get(const std::function<void(session_settings_single_thread const&)>& f) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		f(m_store);

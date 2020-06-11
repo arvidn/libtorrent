@@ -69,14 +69,14 @@ namespace aux {
 	// space (files on disk).
 	TORRENT_EXTRA_EXPORT int readwritev(file_storage const& files
 		, span<iovec_t const> bufs, piece_index_t piece, int offset
-		, storage_error& ec, fileop op);
+		, storage_error& ec, const fileop& op);
 
 	// moves the files in file_storage f from ``save_path`` to
 	// ``destination_save_path`` according to the rules defined by ``flags``.
 	// returns the status code and the new save_path.
 	TORRENT_EXTRA_EXPORT std::pair<status_t, std::string>
 	move_storage(file_storage const& f
-		, std::string save_path
+		, const std::string& save_path
 		, std::string const& destination_save_path
 		, part_file* pf
 		, move_flags_t flags, storage_error& ec);

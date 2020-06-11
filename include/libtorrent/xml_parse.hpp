@@ -63,7 +63,7 @@ namespace libtorrent {
 	// neither string is 0-terminated, but their lengths are specified via
 	// name_len and val_len respectively
 	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
-		, std::function<void(int, string_view, string_view)> callback);
+		, const std::function<void(int, string_view, string_view)>& callback);
 }
 
 

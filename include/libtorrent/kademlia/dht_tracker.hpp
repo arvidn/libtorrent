@@ -112,41 +112,41 @@ namespace dht {
 		dht_state state() const;
 
 		void get_peers(sha1_hash const& ih
-			, std::function<void(std::vector<tcp::endpoint> const&)> f);
+			, const std::function<void(std::vector<tcp::endpoint> const&)>& f);
 		void announce(sha1_hash const& ih, int listen_port, announce_flags_t flags
-			, std::function<void(std::vector<tcp::endpoint> const&)> f);
+			, const std::function<void(std::vector<tcp::endpoint> const&)>& f);
 
 		void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
-			, std::function<void(node_id
+			, const std::function<void(node_id
 				, time_duration
 				, int, std::vector<sha1_hash>
-				, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
+				, std::vector<std::pair<sha1_hash, udp::endpoint>>)>& f);
 
 		void get_item(sha1_hash const& target
-			, std::function<void(item const&)> cb);
+			, const std::function<void(item const&)>& cb);
 
 		// key is a 32-byte binary string, the public key to look up.
 		// the salt is optional
 		void get_item(public_key const& key
-			, std::function<void(item const&, bool)> cb
-			, std::string salt = std::string());
+			, const std::function<void(item const&, bool)>& cb
+			, const std::string& salt = std::string());
 
 		// for immutable_item.
 		// the callback function will be called when put operation is done.
 		// the int parameter indicates the success numbers of put operation.
 		void put_item(entry const& data
-			, std::function<void(int)> cb);
+			, const std::function<void(int)>& cb);
 
 		// for mutable_item.
 		// the data_cb will be called when we get authoritative mutable_item,
 		// the cb is same as put immutable_item.
 		void put_item(public_key const& key
-			, std::function<void(item const&, int)> cb
-			, std::function<void(item&)> data_cb, std::string salt = std::string());
+			, const std::function<void(item const&, int)>& cb
+			, const std::function<void(item&)>& data_cb, const std::string& salt = std::string());
 
 		// send an arbitrary DHT request directly to a node
 		void direct_request(udp::endpoint const& ep, entry& e
-			, std::function<void(msg const&)> f);
+			, const std::function<void(msg const&)>& f);
 
 #if TORRENT_ABI_VERSION == 1
 		void dht_status(session_status& s);

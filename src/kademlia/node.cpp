@@ -464,7 +464,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, announce_flags_
 }
 
 void node::direct_request(udp::endpoint const& ep, entry& e
-	, std::function<void(msg const&)> f)
+	, const std::function<void(msg const&)>& f)
 {
 	// not really a traversal
 	auto algo = std::make_shared<direct_traversal>(*this, node_id(), f);
@@ -477,7 +477,7 @@ void node::direct_request(udp::endpoint const& ep, entry& e
 	m_rpc.invoke(e, ep, o);
 }
 
-void node::get_item(sha1_hash const& target, std::function<void(item const&)> f)
+void node::get_item(sha1_hash const& target, const std::function<void(item const&)>& f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
@@ -533,7 +533,7 @@ void put_data_cb(item const& i, bool auth
 
 } // namespace
 
-void node::put_item(sha1_hash const& target, entry const& data, std::function<void(int)> f)
+void node::put_item(sha1_hash const& target, entry const& data, const std::function<void(int)>& f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
@@ -554,8 +554,8 @@ void node::put_item(sha1_hash const& target, entry const& data, std::function<vo
 }
 
 void node::put_item(public_key const& pk, std::string const& salt
-	, std::function<void(item const&, int)> f
-	, std::function<void(item&)> data_cb)
+	, const std::function<void(item const&, int)>& f
+	, const std::function<void(item&)>& data_cb)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))

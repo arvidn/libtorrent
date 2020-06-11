@@ -308,7 +308,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 	add_entry(id, addr, {});
 }
 
-void traversal_algorithm::finished(observer_ptr o)
+void traversal_algorithm::finished(const observer_ptr& o)
 {
 #if TORRENT_USE_ASSERTS
 	auto i = std::find(m_results.begin(), m_results.end(), o);
@@ -336,7 +336,7 @@ void traversal_algorithm::finished(observer_ptr o)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
+void traversal_algorithm::failed(const observer_ptr& o, traversal_flags_t const flags)
 {
 	// don't tell the routing table about
 	// node ids that we just generated ourself
@@ -605,7 +605,7 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.last_sent = last_sent;
 }
 
-void look_for_nodes(char const* nodes_key, udp const& protocol, bdecode_node const& r, std::function<void(const node_endpoint&)> f)
+void look_for_nodes(char const* nodes_key, udp const& protocol, bdecode_node const& r, const std::function<void(const node_endpoint&)>& f)
 {
 	bdecode_node const n = r.dict_find_string(nodes_key);
 	if (n)

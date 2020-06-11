@@ -526,7 +526,7 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-	void session_handle::set_load_function(user_load_function_t fun)
+	void session_handle::set_load_function(const user_load_function_t& fun)
 	{
 		async_call(&session_impl::set_load_function, fun);
 	}
@@ -580,7 +580,7 @@ namespace {
 #endif
 	}
 
-	void session_handle::set_dht_storage(dht::dht_storage_constructor_type sc)
+	void session_handle::set_dht_storage(const dht::dht_storage_constructor_type& sc)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::set_dht_storage, sc);
@@ -619,7 +619,7 @@ namespace {
 	}
 
 	void session_handle::dht_get_item(std::array<char, 32> key
-		, std::string salt)
+		, const std::string& salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::dht_get_mutable_item, key, salt);
@@ -631,7 +631,7 @@ namespace {
 
 	// TODO: 3 expose the sequence_number, public_key, secret_key and signature
 	// types to the client
-	sha1_hash session_handle::dht_put_item(entry data)
+	sha1_hash session_handle::dht_put_item(const entry& data)
 	{
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), data);
@@ -644,9 +644,9 @@ namespace {
 	}
 
 	void session_handle::dht_put_item(std::array<char, 32> key
-		, std::function<void(entry&, std::array<char,64>&
-			, std::int64_t&, std::string const&)> cb
-		, std::string salt)
+		, const std::function<void(entry&, std::array<char,64>&
+			, std::int64_t&, std::string const&)>& cb
+		, const std::string& salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::dht_put_mutable_item, key, cb, salt);
@@ -730,7 +730,7 @@ namespace {
 	}
 #endif // TORRENT_ABI_VERSION
 
-	void session_handle::add_extension(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> ext)
+	void session_handle::add_extension(const std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)>& ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&session_impl::add_extension, ext);
@@ -739,7 +739,7 @@ namespace {
 #endif
 	}
 
-	void session_handle::add_extension(std::shared_ptr<plugin> ext)
+	void session_handle::add_extension(const std::shared_ptr<plugin>& ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&session_impl::add_ses_extension, ext);

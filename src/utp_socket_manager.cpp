@@ -292,7 +292,7 @@ namespace aux {
 		m_drained_event.push_back(s);
 	}
 
-	void utp_socket_manager::remove_udp_socket(std::weak_ptr<utp_socket_interface> sock)
+	void utp_socket_manager::remove_udp_socket(const std::weak_ptr<utp_socket_interface>& sock)
 	{
 		auto iface = sock.lock();
 		for (auto& s : m_utp_sockets)

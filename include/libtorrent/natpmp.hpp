@@ -89,13 +89,13 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
+	natpmp(io_context& ios, aux::portmap_callback& cb, const aux::listen_socket_handle& ls);
 
 	void start(ip_interface const& ip);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
-	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, const tcp::endpoint& local_ep);
 	void delete_mapping(port_mapping_t mapping_index);
 	bool get_mapping(port_mapping_t mapping_index, int& local_port, int& external_port
 		, portmap_protocol& protocol) const;

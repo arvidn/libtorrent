@@ -377,8 +377,8 @@ namespace libtorrent {
 		int current_stats_state() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(std::shared_ptr<torrent_plugin>);
-		void remove_extension(std::shared_ptr<torrent_plugin>);
+		void add_extension(const std::shared_ptr<torrent_plugin>&);
+		void remove_extension(const std::shared_ptr<torrent_plugin>&);
 		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, client_data_t)> const& ext
 			, client_data_t userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip
@@ -457,7 +457,7 @@ namespace libtorrent {
 		};
 		void read_piece(piece_index_t);
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
-			, peer_request const&, std::shared_ptr<read_piece_struct>);
+			, peer_request const&, const std::shared_ptr<read_piece_struct>&);
 
 		storage_mode_t storage_mode() const;
 
@@ -655,7 +655,7 @@ namespace libtorrent {
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
 
-		void retry_web_seed(peer_connection* p, boost::optional<seconds32> retry = boost::none);
+		void retry_web_seed(peer_connection* p, const boost::optional<seconds32>& retry = boost::none);
 
 		void remove_web_seed_conn(peer_connection* p, error_code const& ec
 			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal);
@@ -680,7 +680,7 @@ namespace libtorrent {
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
-		void remove_peer(std::shared_ptr<peer_connection> p) noexcept;
+		void remove_peer(const std::shared_ptr<peer_connection>& p) noexcept;
 
 		// cancel requests to this block from any peer we're
 		// connected to on this torrent
@@ -1261,7 +1261,7 @@ namespace libtorrent {
 		void on_tracker_announce(error_code const& ec);
 
 #ifndef TORRENT_DISABLE_DHT
-		static void on_dht_announce_response_disp(std::weak_ptr<torrent> t
+		static void on_dht_announce_response_disp(const std::weak_ptr<torrent>& t
 			, protocol_version v, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(protocol_version v, std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;

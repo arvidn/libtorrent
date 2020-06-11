@@ -436,7 +436,7 @@ namespace aux {
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
-		, std::function<bool(std::string)> p, create_flags_t flags = {});
+		, const std::function<bool(std::string)>& p, create_flags_t flags = {});
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
 		, create_flags_t flags = {});
 
@@ -494,7 +494,7 @@ namespace aux {
 	// and pass in utf8 strings
 	TORRENT_DEPRECATED_EXPORT
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, std::function<bool(std::string)> p, create_flags_t flags = {});
+		, const std::function<bool(std::string)>& p, create_flags_t flags = {});
 
 	TORRENT_DEPRECATED_EXPORT
 	void add_files(file_storage& fs, std::wstring const& wfile

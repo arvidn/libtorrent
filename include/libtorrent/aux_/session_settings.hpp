@@ -132,8 +132,8 @@ namespace aux {
 		session_settings();
 		explicit session_settings(settings_pack const&);
 
-		void bulk_set(std::function<void(session_settings_single_thread&)>);
-		void bulk_get(std::function<void(session_settings_single_thread const&)>) const;
+		void bulk_set(const std::function<void(session_settings_single_thread&)>&);
+		void bulk_get(const std::function<void(session_settings_single_thread const&)>&) const;
 
 		// since std::mutex is not copyable, we have to explicitly just copy the
 		// underlying storage object. Lock the object we're copying from first,

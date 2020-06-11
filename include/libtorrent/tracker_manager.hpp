@@ -300,7 +300,7 @@ enum class event_t : std::uint8_t
 
 	protected:
 
-		void fail_impl(error_code const& ec, operation_t op, std::string msg = std::string()
+		void fail_impl(error_code const& ec, operation_t op, const std::string& msg = std::string()
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 
 		std::weak_ptr<request_callback> m_requester;
@@ -341,7 +341,7 @@ enum class event_t : std::uint8_t
 			io_context& ios
 			, tracker_request&& r
 			, aux::session_settings const& sett
-			, std::weak_ptr<request_callback> c
+			, const std::weak_ptr<request_callback>& c
 				= std::weak_ptr<request_callback>());
 		void queue_request(
 			io_context& ios
@@ -369,7 +369,7 @@ enum class event_t : std::uint8_t
 		bool incoming_packet(char const* hostname, span<char const> buf);
 
 		void update_transaction_id(
-			std::shared_ptr<udp_tracker_connection> c
+			const std::shared_ptr<udp_tracker_connection>& c
 			, std::uint32_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
