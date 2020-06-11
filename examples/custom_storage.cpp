@@ -153,7 +153,7 @@ struct temp_disk_io final : lt::disk_interface
 
 	void settings_updated() override {}
 
-	lt::storage_holder new_torrent(lt::storage_params params
+	lt::storage_holder new_torrent(lt::storage_params const& params
 		, std::shared_ptr<void> const&) override
 	{
 		lt::storage_index_t const idx = m_free_slots.empty()
