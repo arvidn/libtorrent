@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cstdarg>
 #include <functional>
+#include <utility>
 
 using namespace std::placeholders;
 
@@ -105,8 +106,8 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 upnp::upnp(io_context& ios
 	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
-	, address_v4 const& listen_address
-	, address_v4 const& netmask
+	, address_v4 listen_address
+	, address_v4 netmask
 	, std::string listen_device
 	, listen_socket_handle ls)
 	: m_settings(settings)
@@ -118,8 +119,8 @@ upnp::upnp(io_context& ios
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
-	, m_listen_address(listen_address)
-	, m_netmask(netmask)
+	, m_listen_address(std::move(listen_address))
+	, m_netmask(std::move(netmask))
 	, m_device(std::move(listen_device))
 #if TORRENT_USE_SSL
 	, m_ssl_ctx(ssl::context::sslv23_client)
