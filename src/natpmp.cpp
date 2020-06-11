@@ -144,7 +144,7 @@ natpmp::natpmp(io_context& ios
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
 	, m_ioc(ios)
-	, m_listen_handle(std::move(ls))
+	, m_listen_handle(ls)
 {
 	// unfortunately async operations rely on the storage
 	// for this array not to be reallocated, by passing

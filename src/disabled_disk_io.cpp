@@ -119,7 +119,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler), path = std::move(p)] () mutable
-			{ h(status_t::no_error, std::move(path), storage_error{}); });
+			{ h(status_t::no_error, path, storage_error{}); });
 	}
 
 	void async_release_files(storage_index_t, std::function<void()> handler) override
@@ -146,7 +146,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler), index, n = std::move(name)]
-			{ h(std::move(n), index, storage_error{}); });
+			{ h(n, index, storage_error{}); });
 	}
 
 	void async_stop_torrent(storage_index_t, std::function<void()> handler) override

@@ -53,7 +53,7 @@ void peer_connection_handle::add_extension(const std::shared_ptr<peer_plugin>& e
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->add_extension(std::move(ext));
+	pc->add_extension(ext);
 #else
 	TORRENT_UNUSED(ext);
 #endif
@@ -331,7 +331,7 @@ void bt_peer_connection_handle::switch_send_crypto(const std::shared_ptr<crypto_
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	std::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->switch_send_crypto(std::move(crypto));
+	pc->switch_send_crypto(crypto);
 #else
 	TORRENT_UNUSED(crypto);
 #endif
@@ -342,7 +342,7 @@ void bt_peer_connection_handle::switch_recv_crypto(const std::shared_ptr<crypto_
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	std::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->switch_recv_crypto(std::move(crypto));
+	pc->switch_recv_crypto(crypto);
 #else
 	TORRENT_UNUSED(crypto);
 #endif

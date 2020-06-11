@@ -1371,7 +1371,7 @@ bool is_downloading_state(int const st)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			std::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
-			if (pp) p->add_extension(std::move(pp));
+			if (pp) p->add_extension(pp);
 		}
 
 		// if files are checked for this torrent, call the extension
@@ -1613,7 +1613,7 @@ bool is_downloading_state(int const st)
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = m_ses.disk_thread().new_torrent(std::move(params), shared_from_this());
+		m_storage = m_ses.disk_thread().new_torrent(params, shared_from_this());
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
@@ -2466,7 +2466,7 @@ bool is_downloading_state(int const st)
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
 				, [self = shared_from_this(), hashes = std::move(block_hashes)]
 				(piece_index_t p, sha1_hash const& h, storage_error const& e)
-				{ self->on_piece_hashed(std::move(hashes), p, h, e); });
+				{ self->on_piece_hashed(hashes, p, h, e); });
 			++m_checking_piece;
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d"
@@ -4425,7 +4425,7 @@ namespace {
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
-			on_piece_sync(index, std::move(blocks));
+			on_piece_sync(index, blocks);
 		}
 
 #if TORRENT_USE_ASSERTS

@@ -199,7 +199,7 @@ namespace {
 		switch (t)
 		{
 		case int_t:
-			new (&data) integer_type(std::move(e.integer()));
+			new (&data) integer_type(e.integer());
 			break;
 		case string_t:
 			new (&data) string_type(std::move(e.string()));
@@ -402,7 +402,7 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) integer_type(std::move(v));
+		new(&data) integer_type(v);
 		m_type = int_t;
 	}
 
@@ -501,7 +501,7 @@ namespace {
 	entry& entry::operator=(integer_type v) &
 	{
 		destruct();
-		new(&data) integer_type(std::move(v));
+		new(&data) integer_type(v);
 		m_type = int_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;

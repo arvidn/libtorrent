@@ -182,13 +182,13 @@ namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	void bt_peer_connection::switch_send_crypto(const std::shared_ptr<crypto_plugin>& crypto)
 	{
-		if (m_enc_handler.switch_send_crypto(std::move(crypto), send_buffer_size() - get_send_barrier()))
+		if (m_enc_handler.switch_send_crypto(crypto, send_buffer_size() - get_send_barrier()))
 			set_send_barrier(send_buffer_size());
 	}
 
 	void bt_peer_connection::switch_recv_crypto(const std::shared_ptr<crypto_plugin>& crypto)
 	{
-		m_enc_handler.switch_recv_crypto(std::move(crypto), m_recv_buffer);
+		m_enc_handler.switch_recv_crypto(crypto, m_recv_buffer);
 	}
 #endif
 

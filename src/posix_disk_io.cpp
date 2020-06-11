@@ -89,7 +89,7 @@ namespace {
 			storage_index_t const idx = m_free_slots.empty()
 				? m_torrents.end_index()
 				: pop(m_free_slots);
-			auto storage = std::make_unique<posix_storage>(std::move(params));
+			auto storage = std::make_unique<posix_storage>(params);
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
 			return storage_holder(idx, *this);
@@ -316,7 +316,7 @@ namespace {
 
 			storage_error se;
 			if ((rd->have_pieces.empty()
-					|| !st->verify_resume_data(*rd, std::move(links), error))
+					|| !st->verify_resume_data(*rd, links, error))
 				&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 			{
 				bool const has_files = st->has_any_file(se);
@@ -347,7 +347,7 @@ namespace {
 			storage_error error;
 			st->rename_file(idx, name, error);
 			post(m_ios, [idx, error, h = std::move(handler), n = std::move(name)] () mutable
-				{ h(std::move(n), idx, error); });
+				{ h(n, idx, error); });
 		}
 
 		void async_stop_torrent(storage_index_t, std::function<void()> handler) override

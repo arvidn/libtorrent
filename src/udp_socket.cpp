@@ -86,7 +86,7 @@ struct socks5 : std::enable_shared_from_this<socks5>
 		, m_timer(ios)
 		, m_retry_timer(ios)
 		, m_alerts(alerts)
-		, m_listen_socket(std::move(ls))
+		, m_listen_socket(ls)
 	{}
 
 	void start(aux::proxy_settings const& ps);
@@ -179,7 +179,7 @@ udp_socket::udp_socket(io_context& ios, const aux::listen_socket_handle& ls)
 	: m_socket(ios)
 	, m_ioc(ios)
 	, m_buf(new receive_buffer())
-	, m_listen_socket(std::move(ls))
+	, m_listen_socket(ls)
 	, m_bind_port(0)
 	, m_abort(true)
 {}

@@ -878,7 +878,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 			{
 				auto state = ext->save_state();
 				for (auto& v : state)
-					ret.ext_state[std::move(v.first)] = std::move(v.second);
+					ret.ext_state[v.first] = std::move(v.second);
 			}
 		}
 #endif
@@ -2542,7 +2542,7 @@ namespace {
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		s->sock.async_read(make_handler([this, socket, ls, ssl](error_code const& e)
-			{ this->on_udp_packet(std::move(socket), std::move(ls), ssl, e); }
+			{ this->on_udp_packet(socket, ls, ssl, e); }
 			, s->udp_handler_storage, *this));
 	}
 
@@ -4705,7 +4705,7 @@ namespace {
 		{
 			std::shared_ptr<torrent_plugin> tp(e->new_torrent(
 				torrent_ptr->get_handle(), userdata));
-			if (tp) torrent_ptr->add_extension(std::move(tp));
+			if (tp) torrent_ptr->add_extension(tp);
 		}
 	}
 #endif
@@ -4761,7 +4761,7 @@ namespace {
 		for (auto& ext : params.extensions)
 		{
 			std::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
-			if (tp) torrent_ptr->add_extension(std::move(tp));
+			if (tp) torrent_ptr->add_extension(tp);
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
@@ -5912,7 +5912,7 @@ namespace {
 	{
 		if (!m_dht) return;
 		m_dht->get_item(dht::public_key(key.data()), std::bind(&session_impl::get_mutable_callback
-			, this, _1, _2), std::move(salt));
+			, this, _1, _2), salt);
 	}
 
 	namespace {
@@ -5980,7 +5980,7 @@ namespace {
 		if (!m_dht) return;
 		m_dht->put_item(dht::public_key(key.data())
 			, std::bind(&on_dht_put_mutable_item, std::ref(m_alerts), _1, _2)
-			, std::bind(&put_mutable_callback, _1, std::move(cb)), std::move(salt));
+			, std::bind(&put_mutable_callback, _1, std::move(cb)), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)
@@ -6011,7 +6011,7 @@ namespace {
 			, const std::vector<std::pair<sha1_hash, udp::endpoint>>& nodes)
 		{
 			m_alerts.emplace_alert<dht_sample_infohashes_alert>(nid
-				, ep, interval, num, std::move(samples), std::move(nodes));
+				, ep, interval, num, samples, nodes);
 		});
 	}
 

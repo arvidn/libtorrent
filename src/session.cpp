@@ -316,7 +316,7 @@ namespace {
 		for (auto& ext : params.extensions)
 		{
 			ext->load_state(params.ext_state);
-			m_impl->add_ses_extension(std::move(ext));
+			m_impl->add_ses_extension(ext);
 		}
 #endif
 

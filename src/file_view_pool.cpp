@@ -172,7 +172,7 @@ namespace libtorrent { namespace aux {
 		auto& lru_view = m_files.get<1>();
 		if (lru_view.size() == 0) return {};
 
-		auto mapping = std::move(lru_view.back().mapping);
+		auto mapping = lru_view.back().mapping;
 		lru_view.pop_back();
 
 		// closing a file may be long running operation (mac os x)
@@ -188,7 +188,7 @@ namespace libtorrent { namespace aux {
 		auto const i = key_view.find(file_id{st, file_index});
 		if (i == key_view.end()) return;
 
-		auto mapping = std::move(i->mapping);
+		auto mapping = i->mapping;
 		key_view.erase(i);
 
 		// closing a file may take a long time (mac os x), so make sure
@@ -221,7 +221,7 @@ namespace libtorrent { namespace aux {
 		auto const end = key_view.upper_bound(file_id{st, std::numeric_limits<file_index_t>::max()});
 
 		for (auto it = begin; it != end; ++it)
-			defer_destruction.emplace_back(std::move(it->mapping));
+			defer_destruction.emplace_back(it->mapping);
 
 		if (begin != end) key_view.erase(begin, end);
 		l.unlock();

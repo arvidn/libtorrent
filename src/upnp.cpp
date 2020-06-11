@@ -125,7 +125,7 @@ upnp::upnp(io_context& ios
 #if TORRENT_USE_SSL
 	, m_ssl_ctx(ssl::context::sslv23_client)
 #endif
-	, m_listen_handle(std::move(ls))
+	, m_listen_handle(ls)
 {
 #if TORRENT_USE_SSL
 	m_ssl_ctx.set_verify_mode(ssl::context::verify_none);

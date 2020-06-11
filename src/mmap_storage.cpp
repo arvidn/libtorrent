@@ -508,7 +508,7 @@ namespace libtorrent {
 		m_pool.release(storage_index());
 
 		status_t ret;
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(save_path)
+		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, save_path
 			, m_part_file.get(), flags, ec);
 
 		// clear the stat cache in case the new location has new files

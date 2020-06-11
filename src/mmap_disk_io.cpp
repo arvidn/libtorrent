@@ -406,7 +406,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-		auto storage = std::make_shared<mmap_storage>(std::move(params), m_file_pool);
+		auto storage = std::make_shared<mmap_storage>(params, m_file_pool);
 		storage->set_storage_index(idx);
 		storage->set_owner(owner);
 		if (idx == m_torrents.end_index())

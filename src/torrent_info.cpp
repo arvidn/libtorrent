@@ -1117,7 +1117,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		torrent_info tmp = std::move(ti);
+		torrent_info tmp = ti;
 		ti = std::move(*this);
 		*this = std::move(tmp);
 	}

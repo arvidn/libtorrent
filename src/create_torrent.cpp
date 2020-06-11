@@ -372,7 +372,7 @@ namespace {
 			info_hash
 		};
 
-		storage_holder storage = disk_thread->new_torrent(std::move(params)
+		storage_holder storage = disk_thread->new_torrent(params
 			, std::shared_ptr<void>());
 
 		// have 4 outstanding hash requests per thread, and no less than 1 MiB
