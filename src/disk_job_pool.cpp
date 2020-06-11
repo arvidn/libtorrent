@@ -44,11 +44,15 @@ namespace aux {
 		, m_job_pool(sizeof(disk_io_job))
 	{}
 
+#if 0
 	disk_job_pool::~disk_job_pool()
 	{
 // #error this should be fixed!
 //		TORRENT_ASSERT(m_jobs_in_use == 0);
 	}
+#else
+	disk_job_pool::~disk_job_pool() = default;
+#endif
 
 	disk_io_job* disk_job_pool::allocate_job(job_action_t const type)
 	{

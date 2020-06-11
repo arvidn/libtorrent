@@ -41,7 +41,7 @@ namespace libtorrent {
 	file_index_t constexpr torrent_status::error_file_partfile;
 	file_index_t constexpr torrent_status::error_file_metadata;
 
-	torrent_status::torrent_status() noexcept {}
+	torrent_status::torrent_status() noexcept = default;
 	torrent_status::~torrent_status() = default;
 	torrent_status::torrent_status(torrent_status const&) = default;
 	torrent_status& torrent_status::operator=(torrent_status const&) = default;

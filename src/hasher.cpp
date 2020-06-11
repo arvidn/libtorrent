@@ -150,12 +150,14 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 	}
 
+#if defined TORRENT_USE_LIBGCRYPT
 	hasher::~hasher()
 	{
-#if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
-#endif
 	}
+#else
+	hasher::~hasher() = default;
+#endif
 
 	hasher256::hasher256()
 	{
@@ -266,12 +268,14 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 	}
 
+#if defined TORRENT_USE_LIBGCRYPT
 	hasher256::~hasher256()
 	{
-#if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
-#endif
 	}
+#else
+	hasher256::~hasher256() = default;
+#endif
 
 TORRENT_CRYPTO_NAMESPACE_END
 
