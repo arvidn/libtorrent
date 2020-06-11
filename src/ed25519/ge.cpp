@@ -357,8 +357,8 @@ static void cmov(ge_precomp *t, const ge_precomp *u, unsigned char b) {
 
 
 static void select(ge_precomp *t, int pos, signed char b) {
-    typedef signed char schar;
-    typedef unsigned char uchar;
+    using schar = signed char;
+    using uchar = unsigned char;
     ge_precomp minust;
     unsigned char const bnegative = negative(b);
     unsigned char const babs = b - schar(uchar((-bnegative) & b) << 1);
