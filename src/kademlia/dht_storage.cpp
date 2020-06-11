@@ -65,7 +65,7 @@ namespace {
 	{
 		time_point added;
 		tcp::endpoint addr;
-		bool seed = 0;
+		bool seed = false;
 	};
 
 	// internal
