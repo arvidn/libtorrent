@@ -1611,7 +1611,7 @@ bool is_downloading_state(int const st)
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = m_ses.disk_thread().new_torrent(std::move(params), shared_from_this());
+		m_storage = m_ses.disk_thread().new_torrent(params, shared_from_this());
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
@@ -2070,7 +2070,7 @@ bool is_downloading_state(int const st)
 
 				int const num_pieces = std::min(m_add_torrent_params->have_pieces.size()
 					, torrent_file().num_pieces());
-				for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
+				for (piece_index_t i{0}; i < piece_index_t(num_pieces); ++i)
 				{
 					if (!m_add_torrent_params->have_pieces[i]) continue;
 					need_picker();
@@ -2084,8 +2084,7 @@ bool is_downloading_state(int const st)
 				{
 					int const num_pieces2 = std::min(m_add_torrent_params->verified_pieces.size()
 						, torrent_file().num_pieces());
-					for (piece_index_t i = piece_index_t(0);
-						i < piece_index_t(num_pieces2); ++i)
+					for (piece_index_t i{0}; i < piece_index_t(num_pieces2); ++i)
 					{
 						if (!m_add_torrent_params->verified_pieces[i]) continue;
 						m_verified.set_bit(i);
@@ -2263,10 +2262,14 @@ bool is_downloading_state(int const st)
 		// if we only keep a single read operation in-flight at a time, we suffer
 		// significant performance degradation. Always keep at least 4 jobs
 		// outstanding per hasher thread
-		int const min_outstanding = 4
-			* std::max(1, settings().get_int(settings_pack::aio_threads)
-				/ hasher_thread_divisor);
+		int const min_outstanding
+			= std::max(1, settings().get_int(settings_pack::hashing_threads)) * 2;
 		if (num_outstanding < min_outstanding) num_outstanding = min_outstanding;
+
+		// subtract the number of pieces we already have outstanding
+		num_outstanding -= (static_cast<int>(m_checking_piece)
+			- static_cast<int>(m_num_checked_pieces));
+		if (num_outstanding <= 0) return;
 
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed
@@ -2278,11 +2281,6 @@ bool is_downloading_state(int const st)
 #endif
 			return;
 		}
-
-		// subtract the number of pieces we already have outstanding
-		num_outstanding -= (static_cast<int>(m_checking_piece)
-			- static_cast<int>(m_num_checked_pieces));
-		if (num_outstanding < 0) num_outstanding = 0;
 
 		for (int i = 0; i < num_outstanding; ++i)
 		{
@@ -2328,6 +2326,7 @@ bool is_downloading_state(int const st)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
 				|| error.ec == boost::asio::error::eof
+				|| error.ec == lt::errors::file_too_short
 #ifdef TORRENT_WINDOWS
 				|| error.ec == error_code(ERROR_HANDLE_EOF, system_category())
 #endif
@@ -2742,8 +2741,8 @@ namespace {
 
 		struct announce_state
 		{
-			explicit announce_state(aux::listen_socket_handle const& s)
-				: socket(s) {}
+			explicit announce_state(aux::listen_socket_handle s)
+				: socket(std::move(s)) {}
 
 			aux::listen_socket_handle socket;
 
@@ -4026,6 +4025,7 @@ namespace {
 		int const blocks_in_piece = torrent_file().orig_files().blocks_in_piece2(piece);
 		int const blocks_per_piece = torrent_file().orig_files().piece_length() / default_block_size;
 
+		// the blocks are guaranteed to represent exactly one piece
 		TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 
 		TORRENT_ALLOCA(block_passed, bool, blocks_in_piece);
@@ -4040,22 +4040,45 @@ namespace {
 				ret = false;
 				break;
 			}
-			auto result = get_hash_picker().set_block_hash(piece, i * default_block_size, block_hashes[i]);
+			auto const result = get_hash_picker().set_block_hash(piece
+				, i * default_block_size, block_hashes[i]);
 
-			block_passed[i] = result.status == set_block_hash_result::result::success;
 			if (result.status == set_block_hash_result::result::success)
 			{
-				TORRENT_ASSERT(result.first_verified_block <= blocks_in_piece);
+				TORRENT_ASSERT(result.first_verified_block < blocks_in_piece);
+				TORRENT_ASSERT(blocks_in_piece <= blocks_per_piece);
+
+				// all verified ranges should always be full pieces or less
+				TORRENT_ASSERT(result.first_verified_block >= 0
+					|| (result.first_verified_block % blocks_per_piece) == 0);
+				TORRENT_ASSERT(result.num_verified < blocks_in_piece
+					|| (result.num_verified % blocks_per_piece) == 0);
+
+				// sometimes, completing a single block may "unlock" validating
+				// multiple pieces. e.g. if we don't have the piece layer yet,
+				// but we completed the last block in the whole torrent, now we
+				// can validate everything. For this reason,
+				// first_verified_block may be negative.
+
+				// In this call, we track the blocks in this piece though, in
+				// the block_passed array. For that tracking we need to clamp
+				// the start index to 0.
 				auto const first_block = std::max(0, result.first_verified_block);
-				std::fill_n(block_passed.begin() + first_block
-					, std::min(blocks_in_piece - first_block, result.num_verified), true);
+				auto const count = std::min(blocks_in_piece - first_block, result.num_verified);
+				std::fill_n(block_passed.begin() + first_block, count, true);
 
-				using piece_delta = piece_index_t::diff_type;
+				// the current block (i) should be part of the range that was
+				// verified
+				TORRENT_ASSERT(first_block <= i);
+				TORRENT_ASSERT(i < first_block + count);
 
-				// if the hashes for more than one piece have been verified, check for any pieces which
-				// were already checked but couldn't be verified and mark them as verified
-				for (piece_index_t verified_piece = piece + piece_delta(result.first_verified_block / blocks_per_piece)
-					, end = verified_piece + piece_delta(result.num_verified / blocks_per_piece)
+				using delta = piece_index_t::diff_type;
+
+				// if the hashes for more than one piece have been verified,
+				// check for any pieces which were already checked but couldn't
+				// be verified and mark them as verified
+				for (piece_index_t verified_piece = piece + delta(result.first_verified_block / blocks_per_piece)
+					, end = verified_piece + delta(result.num_verified / blocks_per_piece)
 					; verified_piece < end; ++verified_piece)
 				{
 					if (!has_picker()
@@ -4072,6 +4095,13 @@ namespace {
 			}
 			else if (result.status == set_block_hash_result::result::block_hash_failed)
 			{
+				ret = false;
+			}
+			else if (result.status == set_block_hash_result::result::piece_hash_failed && i == blocks_in_piece - 1)
+			{
+				// only if the *last* block causes the piece to fail, do we know
+				// it actually failed. Otherwise it might have been failing
+				// because of other, previously existing block hashes.
 				ret = false;
 			}
 		}
@@ -9208,8 +9238,8 @@ namespace {
 	{
 		struct timer_state
 		{
-			explicit timer_state(aux::listen_socket_handle const& s)
-				: socket(s) {}
+			explicit timer_state(aux::listen_socket_handle s)
+				: socket(std::move(s)) {}
 
 			aux::listen_socket_handle socket;
 
@@ -10827,10 +10857,11 @@ namespace {
 			// if we don't have any pieces, just return zeroes
 			fp.clear();
 			fp.resize(m_torrent_file->num_files(), 0);
-			return;
 		}
-
-		m_file_progress.export_progress(fp);
+		else
+		{
+			m_file_progress.export_progress(fp);
+		}
 
 		if (flags & torrent_handle::piece_granularity)
 			return;

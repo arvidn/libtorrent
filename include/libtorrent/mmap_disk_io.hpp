@@ -52,12 +52,6 @@ namespace libtorrent {
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE
 
-enum
-{
-	// every 4:th thread is a hash thread
-	hasher_thread_divisor = 4
-};
-
 }
 
 #endif // TORRENT_DISK_IO_THREAD

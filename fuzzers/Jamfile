@@ -32,6 +32,7 @@ project fuzzers
 	: default-build
 	<cxxstd>17
 	<fuzz>on
+	<threading>multi
 	<sanitize>on
 	<link>static
 	<variant>release

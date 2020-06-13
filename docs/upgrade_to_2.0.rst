@@ -276,6 +276,19 @@ member.
 
 As a consequence of this, ``get_storage_impl()`` has been removed from torrent_handle.
 
+``aio_threads`` and ``hashing_threads``
+---------------------------------------
+
+In previous versions of libtorrent, the number of disk threads to use were
+configured by settings_pack::aio_threads. Every fourth thread was dedicated to
+run hash jobs, i.e. computing SHA-1 piece hashes to compare them against the
+expected hash.
+
+This setting has now been split up to allow controlling the number of dedicated
+hash threads independently from the number of generic disk I/O threads.
+settings_pack::hashing_threads is now used to control the number of threads
+dedicated to computing hashes.
+
 cache_size
 ----------
 

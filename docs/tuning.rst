@@ -22,28 +22,31 @@ profiling
 =========
 
 libtorrent is instrumented with a number of counters and gauges you can have
-access to via the ``session_stats_alert``. First, enable these alerts in the
-alert mask::
+access to via the ``session_stats_alert``. To get a snapshot of the counters,
+call session::post_session_stats(). This call should be made periodically, with
+whatever granularity you want::
 
-	settings_pack p;
-	p.set_int(settings_mask::alert_mask, alert::stats_notification);
-	ses.apply_settings(p);
+	ses.post_session_stats();
 
 Then print alerts to a file::
 
-	std::vector<alert*> alerts;
+	std::vector<lt::alert*> alerts;
 	ses.pop_alerts(&alerts);
 
 	for (auto* a : alerts) {
-		std::cout << a->message() << "\n";
+		if (lt::alert_cast<lt::session_stats_alert>(a)
+			|| lt::alert_cast<lt::session_stats_header_alert>(a))
+		{
+			std::cout << a->message() << "\n";
+		}
+
+		// ...
 	}
 
-If you want to separate generic alerts from session stats, you can filter on the
-alert category in the alert, ``alert::category()``.
-
 The alerts with data will have the type session_stats_alert and there is one
-session_log_alert that will be posted on startup containing the column names
-for all metrics. Logging this line will greatly simplify interpreting the output.
+session_stats_header_alert that will be posted on startup containing the column names
+for all metrics. Logging this line will greatly simplify interpreting the output,
+and is required for the script to work out-of-the-box.
 
 The python scrip in ``tools/parse_session_stats.py`` can parse the resulting
 file and produce graphs of relevant stats. It requires gnuplot_.
@@ -254,14 +257,14 @@ torrent limits
 To seed thousands of torrents, you need to increase the settings_pack::active_limit
 and settings_pack::active_seeds.
 
-SHA-1 hashing
--------------
+hashing
+-------
 
 When downloading at very high rates, it is possible to have the CPU be the
-bottleneck for passing every downloaded byte through SHA-1. In order to enable
-calculating SHA-1 hashes in parallel, on multi-core systems, set
+bottleneck for passing every downloaded byte through SHA-1 and/or SHA-256. In order to enable
+computing hashes in parallel, on multi-core systems, set
 settings_pack::aio_threads to the number of threads libtorrent should
-perform I/O and do SHA-1 hashing in. Only if that thread is close to saturating
+perform I/O and do hashing in. Only if that thread is close to saturating
 one core does it make sense to increase the number of threads.
 
 scalability

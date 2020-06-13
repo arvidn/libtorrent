@@ -461,7 +461,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 int ssl_server_name_callback(SSL* s, int*, void* arg)
 {
 	char const* name = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
-	session_impl* si = reinterpret_cast<session_impl*>(arg);
+	auto* si = reinterpret_cast<session_impl*>(arg);
 	return ssl_server_name_callback_impl(s, name ? std::string(name) : "", si)
 			? SSL_TLSEXT_ERR_OK
 			: SSL_TLSEXT_ERR_ALERT_FATAL;
@@ -1203,9 +1203,12 @@ namespace {
 		}
 #endif
 
+#if TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		bool const use_ssl = req.ssl_ctx != nullptr && req.ssl_ctx != &m_ssl_ctx;
-		if (!use_ssl) req.ssl_ctx = &m_ssl_ctx;
+		if (!use_ssl)
+#endif
+			req.ssl_ctx = &m_ssl_ctx;
 #endif
 
 		TORRENT_ASSERT(req.outgoing_socket);
@@ -2262,7 +2265,7 @@ namespace {
 				, nullptr, nullptr, true, false));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
-		i2p_stream& s = std::get<i2p_stream>(*m_i2p_listen_socket);
+		auto& s = std::get<i2p_stream>(*m_i2p_listen_socket);
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
 
@@ -3517,9 +3520,10 @@ namespace {
 			// logic is disabled, since it is too disruptive
 			if (m_settings.get_int(settings_pack::connections_limit) > 5)
 			{
-				if (num_connections() >= m_settings.get_int(settings_pack::connections_limit)
-					* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
-					&& !m_torrents.empty())
+				int const limit = std::min(m_settings.get_int(settings_pack::connections_limit)
+					, std::numeric_limits<int>::max() / 100);
+				int const cutoff = std::min(m_settings.get_int(settings_pack::peer_turnover_cutoff), 100);
+				if (num_connections() >= limit * cutoff / 100 && !m_torrents.empty())
 				{
 					// every 90 seconds, disconnect the worst peers
 					// if we have reached the connection limit
@@ -3542,9 +3546,9 @@ namespace {
 					{
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
-						if (t->num_peers() < t->max_connections()
-							* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
-							|| t->max_connections() < 6)
+						int const max = std::min(t->max_connections()
+							, std::numeric_limits<int>::max() / 100);
+						if (t->num_peers() < max * cutoff / 100 || max < 6)
 							continue;
 
 						int const peers_to_disconnect = std::min(std::max(t->num_peers()
@@ -5286,10 +5290,11 @@ namespace {
 		if (sock)
 		{
 			// if we're using a proxy, we won't be able to accept any TCP
-			// connections. We may be able to accept uTP connections though, so
-			// announce the UDP port instead
+			// connections. Not even uTP connections via the port we know about.
+			// The DHT may use the implied port to make it work, but the port we
+			// announce here has no relevance for that.
 			if (sock->flags & listen_socket_t::proxy)
-				return std::uint16_t(sock->udp_external_port());
+				return 0;
 
 			if (!(sock->flags & listen_socket_t::accept_incoming))
 				return 0;
@@ -6278,6 +6283,8 @@ namespace {
 	{
 		if (m_settings.get_int(settings_pack::aio_threads) < 0)
 			m_settings.set_int(settings_pack::aio_threads, 0);
+		if (m_settings.get_int(settings_pack::hashing_threads) < 0)
+			m_settings.set_int(settings_pack::hashing_threads, 0);
 	}
 
 	void session_impl::update_report_web_seed_downloads()

@@ -1932,7 +1932,7 @@ std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const receive
 	// increment the acked sequence number counter
 	maybe_inc_acked_seq_nr();
 
-	std::uint32_t rtt = std::uint32_t(total_microseconds(receive_time - p->send_time));
+	auto rtt = static_cast<std::uint32_t>(total_microseconds(receive_time - p->send_time));
 	if (receive_time < p->send_time)
 	{
 		// this means our clock is not monotonic. Just assume the RTT was 100 ms
@@ -2284,7 +2284,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	std::uint32_t their_delay = 0;
 	if (ph->timestamp_microseconds != 0)
 	{
-		std::uint32_t timestamp = std::uint32_t(total_microseconds(
+		auto timestamp = static_cast<std::uint32_t>(total_microseconds(
 			receive_time.time_since_epoch()) & 0xffffffff);
 		m_reply_micro = timestamp - ph->timestamp_microseconds;
 		std::uint32_t const prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;

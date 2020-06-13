@@ -81,6 +81,7 @@ lt::settings_pack settings()
 	// we use 0 threads (disk I/O operations will be performed in the network
 	// thread) to be simulator friendly.
 	pack.set_int(settings_pack::aio_threads, 0);
+	pack.set_int(settings_pack::hashing_threads, 0);
 #endif
 
 #if TORRENT_ABI_VERSION == 1

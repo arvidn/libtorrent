@@ -417,7 +417,12 @@ The file format is a bencoded dictionary containing the following fields:
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
-|                          |                                                              |
+|                          | This is a 20 byte SHA-1 hash of the info section of the      |
+|                          | torrent if this is a v1 or v1+v2-hybrid torrent.             |
++--------------------------+--------------------------------------------------------------+
+| ``info-hash2``           | string, the v2 info hash of the torrent this data is saved.  |
+|                          | for, in case it is a v2 or v1+v2-hybrid torrent. This is a   |
+|                          | 32 byte SHA-256 hash of the info section of the torrent.     |
 +--------------------------+--------------------------------------------------------------+
 | ``pieces``               | A string with piece flags, one character per piece.          |
 |                          | Bit 1 means we have that piece.                              |
@@ -501,11 +506,25 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
-| ``merkle tree``          | string. In case this torrent is a merkle torrent, this is a  |
-|                          | string containing the entire merkle tree, all nodes,         |
-|                          | including the root and all leaves. The tree is not           |
-|                          | necessarily complete, but complete enough to be able to send |
-|                          | any piece that we have, indicated by the have bitmask.       |
+| ``trees``                | list. In case this is a v2 (or v1+v2-hybrid) torrent, this   |
+|                          | is an optional list containing the merkle tree nodes we know |
+|                          | of so far, for all files. It's a list of dictionaries, one   |
+|                          | entry for each file in the torrent. The entries have the     |
+|                          | following structure:                                         |
+|                          |                                                              |
+|                          | +--------------+-------------------------------------------+ |
+|                          | | ``hashes``   | string. Sequence of 32 byte (SHA-256)     | |
+|                          | |              | hashes, representing the nodes in the     | |
+|                          | |              | merkle hash tree for this file. Some      | |
+|                          | |              | hashes may be all zeros, if we haven't    | |
+|                          | |              | downloaded them yet.                      | |
+|                          | +--------------+-------------------------------------------+ |
+|                          | | ``verified`` | string. This indicates which leaf nodes   | |
+|                          | |              | in the tree have been verified correct.   | |
+|                          | |              | There is one character per leaf, ``0``    | |
+|                          | |              | means not verified, ``1`` means verified. | |
+|                          | +--------------+-------------------------------------------+ |
+|                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
 | ``save_path``            | string. The save path where this torrent was saved. This is  |
 |                          | especially useful when moving torrents with move_storage()   |

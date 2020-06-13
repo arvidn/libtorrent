@@ -301,7 +301,7 @@ namespace aux {
 				if (dot == -1) break;
 				found_extension = true;
 				TORRENT_ASSERT(dot > 0);
-				i = std::size_t(dot - 1);
+				i = std::size_t(dot - seq_len);
 			}
 		}
 
@@ -407,7 +407,7 @@ namespace {
 			return false;
 		}
 
-		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
+		std::time_t const mtime(dict.dict_find_int_value("mtime", 0));
 
 		char const* pieces_root = nullptr;
 
@@ -437,6 +437,11 @@ namespace {
 				return false;
 			}
 			pieces_root = info_buffer + (root.string_offset() - info_offset);
+			if (file_size > 0 && sha256_hash(pieces_root).is_all_zeros())
+			{
+				ec = errors::torrent_missing_pieces_root;
+				return false;
+			}
 		}
 
 		files.add_file_borrow(ec, name, path, file_size, file_flags, nullptr
@@ -473,7 +478,7 @@ namespace {
 			return false;
 		}
 
-		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
+		std::time_t const mtime(dict.dict_find_int_value("mtime", 0));
 
 		std::string path = root_dir;
 		string_view filename;

@@ -80,17 +80,23 @@ enum
 	// force-recheck. Make sure the stat cache is cleared and let us pick up the
 	// new files
 	force_recheck = 8,
+
+	v2 = 16,
+
+	single_file = 32,
 };
 
-void test_checking(int flags)
+void test_checking(int const flags)
 {
 	using namespace lt;
 
-	std::printf("\n==== TEST CHECKING %s%s%s%s=====\n\n"
+	std::printf("\n==== TEST CHECKING %s%s%s%s%s%s=====\n\n"
 		, (flags & read_only_files) ? "read-only-files ":""
 		, (flags & corrupt_files) ? "corrupt ":""
 		, (flags & incomplete_files) ? "incomplete ":""
-		, (flags & force_recheck) ? "force_recheck ":"");
+		, (flags & force_recheck) ? "force_recheck ":""
+		, (flags & v2) ? "v2 ":""
+		, (flags & single_file) ? "single_file ":"");
 
 	error_code ec;
 	create_directory("test_torrent_dir", ec);
@@ -99,15 +105,16 @@ void test_checking(int flags)
 
 	file_storage fs;
 	std::srand(10);
-	int piece_size = 0x4000;
+	int const piece_size = (flags & single_file) ? 0x8000 : 0x4000;
 
-	static std::array<const int, 46> const file_sizes
-	{{ 0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-		,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4 }};
+	auto const file_sizes = (flags & single_file)
+		? std::vector<int>{500000}
+		: std::vector<int>{0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+		,1,1,1,1,1,1,13,65000,34,75,2,30,400,50000,73000,900,43000,400,4300,6, 4 };
 
 	create_random_files("test_torrent_dir", file_sizes, &fs);
 
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size, (flags & v2) ? create_torrent::v2_only : create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".", ec);
@@ -117,6 +124,7 @@ void test_checking(int flags)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	TEST_CHECK(ti->is_valid());
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
 		, aux::to_hex(ti->info_hashes().v1).c_str());
@@ -126,6 +134,7 @@ void test_checking(int flags)
 	{
 		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
+			if ((i & 1) == 1) continue;
 			char name[1024];
 			std::snprintf(name, sizeof(name), "test%d", int(i));
 			char dirname[200];
@@ -136,7 +145,7 @@ void test_checking(int flags)
 			file f(path, aux::open_mode::write, ec);
 			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
-			f.set_size(file_sizes[i] / 2, ec);
+			f.set_size(file_sizes[i] * 2 / 3, ec);
 			if (ec) std::printf("ERROR: truncating file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 		}
@@ -148,10 +157,10 @@ void test_checking(int flags)
 		std::printf("corrupt file test. overwriting files\n");
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
-			static std::array<const int, 46> const file_sizes2
+		std::vector<int> const file_sizes2
 		{{ 0, 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4}};
-		create_random_files("test_torrent_dir", file_sizes2);
+		create_random_files("test_torrent_dir", (flags & single_file) ? file_sizes : file_sizes2);
 	}
 
 	// make the files read only
@@ -199,7 +208,7 @@ void test_checking(int flags)
 	{
 		// first make sure the session tries to check for the file and can't find
 		// them
-		libtorrent::alert const* a = wait_for_alert(
+		lt::alert const* a = wait_for_alert(
 			ses1, torrent_checked_alert::alert_type, "checking");
 		TEST_CHECK(a);
 
@@ -227,26 +236,33 @@ void test_checking(int flags)
 		std::this_thread::sleep_for(lt::milliseconds(500));
 	}
 
-	if (flags & incomplete_files)
+	if (flags & (incomplete_files | corrupt_files))
 	{
 		TEST_CHECK(!st.is_seeding);
 
 		std::this_thread::sleep_for(lt::milliseconds(500));
 		st = tor1.status();
-		TEST_CHECK(!st.is_seeding);
-	}
-
-	if (flags & corrupt_files)
-	{
-		TEST_CHECK(!st.is_seeding);
 
 		TEST_CHECK(!st.errc);
 		if (st.errc)
 			std::printf("error: %s\n", st.errc.message().c_str());
+		std::vector<std::int64_t> const file_progress = tor1.file_progress();
+		bool one_incomplete = false;
+		file_storage const& fs1 = ti->files();
+		for (file_index_t i : fs1.file_range())
+		{
+			if (fs1.pad_file_at(i)) continue;
+			std::printf("file: %d progress: %" PRId64 " / %" PRId64 "\n", static_cast<int>(i)
+				, file_progress[std::size_t(static_cast<int>(i))], fs1.file_size(i));
+			if (fs1.file_size(i) == file_progress[std::size_t(static_cast<int>(i))]) continue;
+			one_incomplete = true;
+		}
+		TEST_CHECK(one_incomplete);
+		TEST_CHECK(st.num_pieces < ti->num_pieces());
 	}
-
-	if ((flags & (incomplete_files | corrupt_files)) == 0)
+	else
 	{
+		TEST_CHECK(st.num_pieces == ti->num_pieces());
 		TEST_CHECK(st.is_seeding);
 		if (st.errc)
 			std::printf("error: %s\n", st.errc.message().c_str());
@@ -307,6 +323,51 @@ TORRENT_TEST(corrupt)
 TORRENT_TEST(force_recheck)
 {
 	test_checking(force_recheck);
+}
+
+TORRENT_TEST(checking_v2)
+{
+	test_checking(v2);
+}
+
+TORRENT_TEST(read_only_corrupt_v2)
+{
+	test_checking(read_only_files | corrupt_files | v2);
+}
+
+TORRENT_TEST(read_only_v2)
+{
+	test_checking(read_only_files | v2);
+}
+
+TORRENT_TEST(incomplete_v2)
+{
+	test_checking(incomplete_files | v2);
+}
+
+TORRENT_TEST(corrupt_v2)
+{
+	test_checking(corrupt_files | v2);
+}
+
+TORRENT_TEST(single_file_v2)
+{
+	test_checking(v2 | single_file);
+}
+
+TORRENT_TEST(single_file_corrupt_v2)
+{
+	test_checking(corrupt_files | v2 | single_file);
+}
+
+TORRENT_TEST(single_file_incomplete_v2)
+{
+	test_checking(incomplete_files | v2 | single_file);
+}
+
+TORRENT_TEST(force_recheck_v2)
+{
+	test_checking(force_recheck | v2);
 }
 
 TORRENT_TEST(discrete_checking)

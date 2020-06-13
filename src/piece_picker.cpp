@@ -1298,7 +1298,7 @@ namespace libtorrent {
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
-			piece_index_t index = piece_index_t(0);
+			piece_index_t index{0};
 			int num_inc = 0;
 			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 			{
@@ -1334,7 +1334,7 @@ namespace libtorrent {
 			}
 		}
 
-		piece_index_t index = piece_index_t(0);
+		piece_index_t index{0};
 		bool updated = false;
 		for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 		{
@@ -1394,7 +1394,7 @@ namespace libtorrent {
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
-			piece_index_t index = piece_index_t(0);
+			piece_index_t index{0};
 			int num_dec = 0;
 			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 			{
@@ -1439,7 +1439,7 @@ namespace libtorrent {
 			}
 		}
 
-		piece_index_t index = piece_index_t(0);
+		piece_index_t index{0};
 		bool updated = false;
 		for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
 		{
@@ -1521,7 +1521,7 @@ namespace libtorrent {
 		// set up m_pieces to contain valid piece indices, based on piece
 		// priority. m_piece_map[].index is still just an index relative to the
 		// respective priority range.
-		piece_index_t piece = piece_index_t(0);
+		piece_index_t piece{0};
 		for (auto i = m_piece_map.begin(), end(m_piece_map.end()); i != end; ++i, ++piece)
 		{
 			piece_pos& p = *i;

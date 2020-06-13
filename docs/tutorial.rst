@@ -88,9 +88,9 @@ constructed like this:
 
 	lt::settings_pack pack;
 	pack.set_int(lt::settings_pack::alert_mask
-		, lt::alert::error_notification
-		| lt::alert::storage_notification
-		| lt::alert::status_notification);
+		, lt::alert_category::error
+		| lt::alert_category::storage
+		| lt::alert_category::status);
 
 	lt::session ses(pack);
 

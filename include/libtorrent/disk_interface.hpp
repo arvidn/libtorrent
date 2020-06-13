@@ -164,7 +164,7 @@ namespace file_open_mode {
 		// compute a v1 piece hash
 		static inline constexpr disk_job_flags_t v1_hash = 5_bit;
 
-		virtual storage_holder new_torrent(storage_params p
+		virtual storage_holder new_torrent(storage_params const& p
 			, std::shared_ptr<void> const& torrent) = 0;
 
 		virtual void remove_torrent(storage_index_t) = 0;

@@ -239,13 +239,6 @@ namespace {
 		METRIC(ses, num_have_pieces)
 		METRIC(ses, num_total_pieces_added)
 
-#if TORRENT_ABI_VERSION == 1
-		// this counts the number of times a torrent has been
-		// evicted (only applies when dynamic-loading-of-torrent-files
-		// is enabled, which is deprecated).
-		METRIC(ses, torrent_evicted_counter)
-#endif
-
 		// the number of allowed unchoked peers
 		METRIC(ses, num_unchoke_slots)
 
@@ -362,10 +355,6 @@ namespace {
 
 		// the total number of blocks run through SHA-1 hashing
 		METRIC(disk, num_blocks_hashed)
-
-		// the number of blocks read from the disk cache
-		// Deprecates ``cache_info::blocks_read_hit``.
-		METRIC(disk, num_blocks_cache_hits)
 
 		// the number of disk I/O operation for reads and writes. One disk
 		// operation may transfer more then one block.

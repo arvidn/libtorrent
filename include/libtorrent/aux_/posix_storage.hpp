@@ -51,7 +51,7 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT posix_storage
 	{
-		explicit posix_storage(storage_params p);
+		explicit posix_storage(storage_params const& p);
 		file_storage const& files() const;
 		file_storage const& orig_files() const { return m_files; }
 		~posix_storage();

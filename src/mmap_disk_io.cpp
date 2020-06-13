@@ -163,7 +163,7 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 #endif
 
 	void settings_updated() override;
-	storage_holder new_torrent(storage_params params
+	storage_holder new_torrent(storage_params const& params
 		, std::shared_ptr<void> const& owner) override;
 	void remove_torrent(storage_index_t) override;
 
@@ -400,13 +400,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return m_file_pool.get_status(st);
 	}
 
-	storage_holder mmap_disk_io::new_torrent(storage_params params
+	storage_holder mmap_disk_io::new_torrent(storage_params const& params
 		, std::shared_ptr<void> const& owner)
 	{
 		storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-		auto storage = std::make_shared<mmap_storage>(std::move(params), m_file_pool);
+		auto storage = std::make_shared<mmap_storage>(params, m_file_pool);
 		storage->set_storage_index(idx);
 		storage->set_owner(owner);
 		if (idx == m_torrents.end_index())
@@ -480,12 +480,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
-		// add one hasher thread for every three generic threads
-		int const num_hash_threads = num_threads / hasher_thread_divisor;
+		int const num_hash_threads = m_settings.get_int(settings_pack::hashing_threads);
+		DLOG("set max threads(%d, %d)\n", num_threads, num_hash_threads);
 
-		DLOG("set_max_threads(%d, %d)\n", num_threads - num_hash_threads
-			, num_hash_threads);
-		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
+		m_generic_threads.set_max_threads(num_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 
@@ -944,7 +942,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		hasher h;
 		int ret = 0;
 		int offset = 0;
-		for (int i = 0; i < std::max(blocks_in_piece, blocks_in_piece2); ++i)
+		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
+		for (int i = 0; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
 
@@ -990,9 +989,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			{
 				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
-				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
 				m_stats_counters.inc_stats_counter(counters::num_read_ops);
-				m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
@@ -1043,7 +1042,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
-			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
 

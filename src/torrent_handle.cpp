@@ -453,6 +453,13 @@ namespace libtorrent {
 		sync_call(&torrent::file_progress, std::ref(arg), flags);
 	}
 
+	std::vector<std::int64_t> torrent_handle::file_progress(file_progress_flags_t flags) const
+	{
+		aux::vector<std::int64_t, file_index_t> ret;
+		sync_call(&torrent::file_progress, std::ref(ret), flags);
+		return std::move(ret);
+	}
+
 	torrent_status torrent_handle::status(status_flags_t const flags) const
 	{
 		torrent_status st;

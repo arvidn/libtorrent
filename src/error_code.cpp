@@ -290,7 +290,7 @@ namespace libtorrent {
 			"the torrent contains v2 keys but does not specify meta version 2",
 			"the v1 and v2 file metadata does not match",
 			"one or more files are missing piece layer hashes",
-			"a piece layer has the wrong size",
+			"a piece layer is invalid",
 			"a v2 file entry has no root hash",
 			"v1 and v2 hashes do not describe the same data",
 			"a file in the v2 metadata has the pad attribute set"

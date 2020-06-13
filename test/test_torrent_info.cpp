@@ -60,9 +60,8 @@ TORRENT_TEST(mutable_torrents)
 	lt::create_torrent t(fs, 0x4000);
 
 	// calculate the hash for all pieces
-	sha1_hash ph;
 	for (auto const i : fs.piece_range())
-		t.set_hash(i, ph);
+		t.set_hash(i, sha1_hash::max());
 
 	t.add_collection("collection1");
 	t.add_collection("collection2");
@@ -70,11 +69,9 @@ TORRENT_TEST(mutable_torrents)
 	t.add_similar_torrent(sha1_hash("abababababababababab"));
 	t.add_similar_torrent(sha1_hash("babababababababababa"));
 
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-
 	entry tor = t.generate();
-	bencode(out, tor);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), tor);
 
 	torrent_info ti(tmp, from_span);
 
@@ -369,6 +366,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
+	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
+	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
 };
 
 } // anonymous namespace
@@ -473,10 +472,8 @@ TORRENT_TEST(set_web_seeds)
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
 
-TORRENT_TEST(sanitize_long_path)
+TORRENT_TEST(sanitize_path_truncate)
 {
-	// test sanitize_append_path_element
-
 	using lt::aux::sanitize_append_path_element;
 
 	std::string path;
@@ -503,6 +500,25 @@ TORRENT_TEST(sanitize_long_path)
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+}
+
+TORRENT_TEST(sanitize_path_truncate_utf)
+{
+	using lt::aux::sanitize_append_path_element;
+
+	std::string path;
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014abcde.jpg");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014.jpg");
 }
 
 TORRENT_TEST(sanitize_path_trailing_dots)
@@ -966,7 +982,11 @@ TORRENT_TEST(parse_torrents)
 				, flags & file_storage::flag_symlink ? fs.symlink(idx).c_str() : "");
 		}
 	}
+}
 
+TORRENT_TEST(parse_invalid_torrents)
+{
+	std::string root_dir = parent_path(current_working_directory());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
@@ -1092,10 +1112,8 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	// isn't supported by v2 torrents, so we can only test this with v1 torrents
 	lt::create_torrent t(fs, 0x4000, create_torrent::v1_only);
 
-	// calculate the hash for all pieces
-	sha1_hash ph;
 	for (auto const i : fs.piece_range())
-		t.set_hash(i, ph);
+		t.set_hash(i, sha1_hash::max());
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);

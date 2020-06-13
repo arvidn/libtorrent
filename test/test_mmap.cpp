@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
-using namespace libtorrent;
-using namespace libtorrent::aux;
+using namespace lt;
+using namespace lt::aux;
 
 namespace {
 

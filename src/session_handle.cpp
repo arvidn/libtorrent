@@ -368,7 +368,7 @@ namespace {
 #endif
 		error_code ec;
 		auto ecr = std::ref(ec);
-		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
+		auto r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
 		if (ec) aux::throw_ex<system_error>(ec);
 		return r;
 	}

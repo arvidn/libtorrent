@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp" // for settings_interface
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
-#include "libtorrent/platform_util.hpp" // for total_physical_ram
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

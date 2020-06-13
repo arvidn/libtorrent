@@ -74,6 +74,7 @@ TORRENT_TEST(dht_bootstrap)
 	// we use 0 threads (disk I/O operations will be performed in the network
 	// thread) to be simulator friendly.
 	pack.set_int(lt::settings_pack::aio_threads, 0);
+	pack.set_int(lt::settings_pack::hashing_threads, 0);
 	pack.set_bool(lt::settings_pack::enable_lsd, false);
 	pack.set_bool(lt::settings_pack::enable_upnp, false);
 	pack.set_bool(lt::settings_pack::enable_natpmp, false);

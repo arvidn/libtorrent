@@ -151,11 +151,11 @@ using observer_storage = aux::aligned_union<1
 rpc_manager::rpc_manager(node_id const& our_id
 	, aux::session_settings const& settings
 	, routing_table& table
-	, aux::listen_socket_handle const& sock
+	, aux::listen_socket_handle sock
 	, socket_manager* sock_man
 	, dht_logger* log)
 	: m_pool_allocator(sizeof(observer_storage), 10)
-	, m_sock(sock)
+	, m_sock(std::move(sock))
 	, m_sock_man(sock_man)
 #ifndef TORRENT_DISABLE_LOGGING
 	, m_log(log)

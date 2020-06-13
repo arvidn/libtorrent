@@ -94,12 +94,12 @@ namespace libtorrent {
 	// given a flat index, return the offset in the layer
 	TORRENT_EXTRA_EXPORT int merkle_get_layer_offset(int idx);
 
-	// given "leafs" number of leafs in the full tree (i.e. at the block level)
+	// given "blocks" number of leafs in the full tree (i.e. at the block level)
 	// and given "pieces" nodes in the piece layer, compute the pad hash for the
 	// piece layer
-	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int leafs, int pieces);
+	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int blocks, int pieces);
 
-	// Computes the path of hashes starting with "to_validate" given sibling and
+	// Computes the path of hashes starting with "hash" given sibling and
 	// uncle hashes in "hashes". "index" is the index to the hash we're
 	// validating in its layer. This is necessary to know of the sibling is to
 	// the left or right.
@@ -108,7 +108,7 @@ namespace libtorrent {
 	// verify the returned hash against the known hash in the tree.
 	TORRENT_EXTRA_EXPORT
 	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
-	merkle_check_proofs(sha256_hash to_validate, span<sha256_hash const> hashes, int index);
+	merkle_check_proofs(sha256_hash hash, span<sha256_hash const> hashes, int index);
 
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_proofs(int start_idx
@@ -116,7 +116,7 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right
-		, sha256_hash const& paremt);
+		, sha256_hash const& parent);
 
 	// validates hashes from src and copies the valid ones to dst given root as
 	// the expected root of the tree (i.e. index 0)
@@ -132,7 +132,7 @@ namespace libtorrent {
 
 	// given a leaf index (0-based index in the leaf layer) and a tree, return
 	// the leafs_start, leafs_size and root_index representing a subtree that
-	// can be validated. The leaf_index and leaf_size is the range of the leaf
+	// can be validated. The block_index and leaf_size is the range of the leaf
 	// layer that can be verified, and the root_index is the node that needs to
 	// be known in (tree) to do so. The num_valid_leafs specifies how many of
 	// the leafs that are actually *supposed* to be non-zero. Any leafs beyond
@@ -140,7 +140,7 @@ namespace libtorrent {
 	// The caller must validate the hash at root_index.
 	TORRENT_EXTRA_EXPORT
 	std::tuple<int, int, int> merkle_find_known_subtree(span<sha256_hash const> const tree
-		, int leaf_index, int num_valid_leafs);
+		, int block_index, int num_valid_leafs);
 }
 
 #endif

@@ -1639,19 +1639,13 @@ namespace aux {
 			// received by the metadata extension, i.e. magnet links.
 			max_metadata_size,
 
-#if TORRENT_ABI_VERSION == 1
-			// DEPRECATED: use aio_threads instead
-
-			// ``hashing_threads`` is the number of threads to use for piece hash
-			// verification. For very high download rates, on
-			// machines with multiple cores, this could be incremented. Setting it
-			// higher than the number of CPU cores would presumably not provide
-			// any benefit of setting it to the number of cores. If it's set to 0,
-			// hashing is done in the disk thread.
-			hashing_threads TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated_hashing_threads,
-#endif
+			// ``hashing_threads`` is the number of disk I/O threads to use for
+			// piece hash verification. These threads are *in addition* to the
+			// regular disk I/O threads specified by settings_pack::aio_threads.
+			// The hasher threads do not only compute hashes, but also perform
+			// the read from disk. On storage optimal for sequential access,
+			// such as hard drives, this setting should probably be set to 1.
+			hashing_threads,
 
 			// the number of blocks to keep outstanding at any given time when
 			// checking torrents. Higher numbers give faster re-checks but uses

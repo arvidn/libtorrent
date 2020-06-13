@@ -155,8 +155,8 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	upnp(io_context& ios
 		, aux::session_settings const& settings
 		, aux::portmap_callback& cb
-		, address_v4 const& listen_address
-		, address_v4 const& netmask
+		, address_v4 listen_address
+		, address_v4 netmask
 		, std::string listen_device
 		, aux::listen_socket_handle ls);
 	~upnp();

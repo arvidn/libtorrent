@@ -164,7 +164,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         pass
 
     script = os.path.join(output_dir, '%s_%04d.gnuplot' % (name, generation))
-    out = open(script, 'wb')
+    out = open(script, 'w')
     print("set term png size 1200,700", file=out)
     print('set output "%s"' % filename, file=out)
     if 'allow-negative' not in options:
@@ -418,19 +418,7 @@ reports = [
 
     ('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread',
      ['disk.disk_read_time', 'disk.disk_write_time', 'disk.disk_hash_time'], {'type': stacked}),
-    ('disk_cache_hits', 'blocks (16kiB)', '', '', [
-     'disk.num_blocks_read', 'disk.num_blocks_cache_hits'], {'type': stacked}),
-    ('disk_cache', 'blocks (16kiB)', '', 'disk store-buffer size', [
-     'disk.disk_blocks_in_use']),
-    ('disk_readback',
-     '% of written blocks',
-     '%%',
-     'portion of written blocks that had to be read back for hash verification',
-     ['disk.num_read_back']),
-    ('disk_queue',
-     'number of queued disk jobs',
-     '',
-     'num disk jobs',
+    ('disk_queue', 'blocks (16kiB)', '', 'disk store-buffer size',
      ['disk.num_write_jobs',
       'disk.num_read_jobs',
       'disk.num_jobs',
