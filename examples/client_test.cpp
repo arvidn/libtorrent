@@ -1960,8 +1960,7 @@ done:
 
 			if (print_file_progress && s.has_metadata)
 			{
-				std::vector<std::int64_t> file_progress;
-				h.file_progress(file_progress);
+				std::vector<std::int64_t> const file_progress = h.file_progress();
 				std::vector<lt::open_file_state> file_status = h.file_status();
 				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();

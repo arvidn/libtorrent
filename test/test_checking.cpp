@@ -246,8 +246,7 @@ void test_checking(int const flags)
 		TEST_CHECK(!st.errc);
 		if (st.errc)
 			std::printf("error: %s\n", st.errc.message().c_str());
-		std::vector<std::int64_t> file_progress;
-		tor1.file_progress(file_progress);
+		std::vector<std::int64_t> const file_progress = tor1.file_progress();
 		bool one_incomplete = false;
 		file_storage const& fs1 = ti->files();
 		for (file_index_t i : fs1.file_range())
