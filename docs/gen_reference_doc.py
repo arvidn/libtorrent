@@ -727,6 +727,7 @@ def trim_define(line):
             .replace('#if', '').replace('defined', '') \
             .replace('TORRENT_ABI_VERSION == 1', '') \
             .replace('TORRENT_ABI_VERSION <= 2', '') \
+            .replace('TORRENT_ABI_VERSION < 3', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
             .replace('!', '').replace('\\', '').strip()
 
@@ -760,7 +761,9 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
             ' TORRENT_USE_ASSERTS' in line or
             ' TORRENT_USE_INVARIANT_CHECKS' in line or
             ' TORRENT_ASIO_DEBUGGING' in line) or
-            (line == '#if TORRENT_ABI_VERSION == 1' or line == '#if TORRENT_ABI_VERSION <= 2')):
+            line == '#if TORRENT_ABI_VERSION == 1' or
+            line == '#if TORRENT_ABI_VERSION <= 2' or
+            line == '#if TORRENT_ABI_VERSION < 3'):
         while lno < len(lines):
             line = lines[lno].strip()
             lno += 1
