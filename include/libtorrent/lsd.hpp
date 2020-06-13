@@ -47,7 +47,7 @@ namespace libtorrent {
 struct lsd : std::enable_shared_from_this<lsd>
 {
 	lsd(io_context& ios, aux::lsd_callback& cb
-		, address const& listen_address, address const& netmask);
+		, address listen_address, address netmask);
 	~lsd();
 
 	void start(error_code& ec);
@@ -60,7 +60,7 @@ private:
 	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port, int retry_count);
-	void resend_announce(error_code const& e, sha1_hash const& ih
+	void resend_announce(error_code const& e, sha1_hash const& info_hash
 		, int listen_port, int retry_count);
 	void on_announce(error_code const& ec);
 

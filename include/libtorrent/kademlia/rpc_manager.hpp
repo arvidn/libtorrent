@@ -80,7 +80,7 @@ public:
 	rpc_manager(node_id const& our_id
 		, aux::session_settings const& settings
 		, routing_table& table
-		, aux::listen_socket_handle const& sock
+		, aux::listen_socket_handle sock
 		, socket_manager* sock_man
 		, dht_logger* log);
 	~rpc_manager();

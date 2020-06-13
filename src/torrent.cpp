@@ -2742,8 +2742,8 @@ namespace {
 
 		struct announce_state
 		{
-			explicit announce_state(aux::listen_socket_handle const& s)
-				: socket(s) {}
+			explicit announce_state(aux::listen_socket_handle s)
+				: socket(std::move(s)) {}
 
 			aux::listen_socket_handle socket;
 
@@ -9240,8 +9240,8 @@ namespace {
 	{
 		struct timer_state
 		{
-			explicit timer_state(aux::listen_socket_handle const& s)
-				: socket(s) {}
+			explicit timer_state(aux::listen_socket_handle s)
+				: socket(std::move(s)) {}
 
 			aux::listen_socket_handle socket;
 

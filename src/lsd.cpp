@@ -72,7 +72,7 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 } // anonymous namespace
 
 lsd::lsd(io_context& ios, aux::lsd_callback& cb
-	, address const& listen_address, address const& netmask)
+	, address const listen_address, address const netmask)
 	: m_callback(cb)
 	, m_listen_address(listen_address)
 	, m_netmask(netmask)

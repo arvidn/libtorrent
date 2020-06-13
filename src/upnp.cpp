@@ -102,11 +102,12 @@ upnp::rootdevice& upnp::rootdevice::operator=(rootdevice const&) & = default;
 upnp::rootdevice::rootdevice(rootdevice&&) noexcept = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 
+// TODO: 2 use boost::asio::ip::network instead of netmask
 upnp::upnp(io_context& ios
 	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
-	, address_v4 const& listen_address
-	, address_v4 const& netmask
+	, address_v4 const listen_address
+	, address_v4 const netmask
 	, std::string listen_device
 	, listen_socket_handle ls)
 	: m_settings(settings)
