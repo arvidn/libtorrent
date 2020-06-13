@@ -761,10 +761,12 @@ namespace {
 						elems = lsplit_path(elems.second))
 						sympath_e.list().emplace_back(elems.first);
 				}
+#if TORRENT_ABI_VERSION < 3
 				if (!m_filehashes.empty())
 				{
 					info["sha1"] = m_filehashes[first].to_string();
 				}
+#endif
 			}
 
 			if (make_v2 && !info.find_key("file tree"))
@@ -819,10 +821,12 @@ namespace {
 							elems = lsplit_path(elems.second))
 							sympath_e.list().emplace_back(elems.first);
 					}
+#if TORRENT_ABI_VERSION < 3
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
 					{
 						file_e["sha1"] = m_filehashes[i].to_string();
 					}
+#endif
 				}
 			}
 
@@ -973,6 +977,7 @@ namespace {
 		fh[piece] = h;
 	}
 
+#if TORRENT_ABI_VERSION < 3
 	void create_torrent::set_file_hash(file_index_t index, sha1_hash const& h)
 	{
 		TORRENT_ASSERT(index >= file_index_t(0));
@@ -980,6 +985,7 @@ namespace {
 		if (m_filehashes.empty()) m_filehashes.resize(m_files.num_files());
 		m_filehashes[index] = h;
 	}
+#endif
 
 	void create_torrent::add_node(std::pair<std::string, int> node)
 	{
