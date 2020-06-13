@@ -471,7 +471,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 int ssl_server_name_callback(SSL* s, int*, void* arg)
 {
 	char const* name = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
-	session_impl* si = reinterpret_cast<session_impl*>(arg);
+	auto* si = reinterpret_cast<session_impl*>(arg);
 	return ssl_server_name_callback_impl(s, name ? std::string(name) : "", si)
 			? SSL_TLSEXT_ERR_OK
 			: SSL_TLSEXT_ERR_ALERT_FATAL;
@@ -2275,7 +2275,7 @@ namespace {
 				, nullptr, nullptr, true, false));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
-		i2p_stream& s = boost::get<i2p_stream>(*m_i2p_listen_socket);
+		auto& s = boost::get<i2p_stream>(*m_i2p_listen_socket);
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
 
