@@ -61,6 +61,19 @@ toolset.flags clang_tidy.compile OPTIONS <debug-symbols>on : -g ;
 toolset.flags clang_tidy.compile OPTIONS <profiling>on : -pg ;
 toolset.flags clang_tidy.compile OPTIONS <rtti>off : -fno-rtti ;
 
+local rule cxxstd-flags ( toolset : condition * : options * )
+{
+    toolset.flags $(toolset).compile.c++ OPTIONS $(condition) : $(options) : unchecked ;
+    toolset.flags $(toolset).link OPTIONS $(condition) : $(options) : unchecked ;
+}
+
+cxxstd-flags clang_tidy : <cxxstd>11/<cxxstd-dialect>iso : -std=c++11 ;
+cxxstd-flags clang_tidy : <cxxstd>11/<cxxstd-dialect>gnu : -std=gnu++11 ;
+cxxstd-flags clang_tidy : <cxxstd>14/<cxxstd-dialect>iso : -std=c++14 ;
+cxxstd-flags clang_tidy : <cxxstd>14/<cxxstd-dialect>gnu : -std=gnu++14 ;
+cxxstd-flags clang_tidy : <cxxstd>17/<cxxstd-dialect>iso : -std=c++17 ;
+cxxstd-flags clang_tidy : <cxxstd>17/<cxxstd-dialect>gnu : -std=gnu++17 ;
+
 ###############################################################################
 # C and C++ compilation
 
