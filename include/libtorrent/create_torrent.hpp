@@ -259,13 +259,16 @@ namespace libtorrent {
 		// object constructed with the v1_only flag.
 		void set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h);
 
+#if TORRENT_ABI_VERSION < 3
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
 		// associated with this file (for multi-file torrents) or in the root info dictionary
 		// for single-file torrents.
 		// .. note::
 		//
 		// 	with bittorrent v2, this feature is obsolete
+		TORRENT_DEPRECATED
 		void set_file_hash(file_index_t index, sha1_hash const& h);
+#endif
 
 		// This adds a url seed to the torrent. You can have any number of url seeds. For a
 		// single file torrent, this should be an HTTP url, pointing to a file with identical
@@ -359,6 +362,8 @@ namespace libtorrent {
 
 		aux::vector<sha1_hash, piece_index_t> m_piece_hash;
 
+		// leave this here for now, to preserve ABI between building with
+		// deprecated functions and without
 		aux::vector<sha1_hash, file_index_t> m_filehashes;
 
 		mutable aux::vector<sha256_hash, file_index_t> m_fileroots;

@@ -1,5 +1,6 @@
 2.0 release
 
+	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
 	* stats_alert deprecated
