@@ -2030,8 +2030,21 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert_category::status;
 		std::string message() const override;
 
-		// a copy of the parameters used when adding the torrent, it can be used
-		// to identify which invocation to ``async_add_torrent()`` caused this alert.
+		// This contains copies of the most important fields from the original
+		// add_torrent_params object, passed to add_torrent() or
+		// async_add_torrent(). Specifically, these fields are copied:
+		//
+		// * version
+		// * ti
+		// * name
+		// * save_path
+		// * userdata
+		// * tracker_id
+		// * flags
+		// * info_hash
+		//
+		// the info_hash field will be updated with the info-hash of the torrent
+		// specified by ``ti``.
 		add_torrent_params params;
 
 		// set to the error, if one occurred while adding the torrent.

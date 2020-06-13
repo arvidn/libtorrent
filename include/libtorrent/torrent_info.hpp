@@ -590,7 +590,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// internal
 		aux::vector<aux::merkle_tree, file_index_t>& internal_merkle_trees();
-		void internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> const& t);
+		void internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> t);
 
 		// internal
 		void internal_set_creator(string_view);

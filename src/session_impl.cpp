@@ -4711,33 +4711,41 @@ namespace {
 	torrent_handle session_impl::add_torrent(add_torrent_params&& params
 		, error_code& ec)
 	{
-		// params is updated by add_torrent_impl()
 		std::shared_ptr<torrent> torrent_ptr;
 
 		// in case there's an error, make sure to abort the torrent before leaving
 		// the scope
 		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
 
-		bool added;
-		// TODO: 3 perhaps params could be moved into the torrent object, instead
-		// of it being copied by the torrent constructor
-		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		auto extensions = std::move(params.extensions);
+		auto const userdata = std::move(params.userdata);
+#endif
 
-		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
+		// copy the most important fields from params to pass back in the
+		// add_torrent_alert
+		add_torrent_params alert_params;
+		alert_params.flags = params.flags;
+		alert_params.ti = params.ti;
+		alert_params.name = params.name;
+		alert_params.save_path = params.save_path;
+		alert_params.userdata = params.userdata;
+		alert_params.trackerid = params.trackerid;
+
+		auto const flags = params.flags;
+
+		info_hash_t info_hash;
+		bool added;
+		std::tie(torrent_ptr, info_hash, added) = add_torrent_impl(std::move(params), ec);
+
+		alert_params.info_hash = info_hash;
+
+		torrent_handle handle(torrent_ptr);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 
 		if (!torrent_ptr) return handle;
 
-		// params.info_hash should have been initialized by add_torrent_impl()
-		TORRENT_ASSERT(params.info_hash.has_v1() || params.info_hash.has_v2());
-
-#ifndef TORRENT_DISABLE_DHT
-		if (params.ti)
-		{
-			for (auto const& n : params.ti->nodes())
-				add_dht_node_name(n);
-		}
-#endif
+		TORRENT_ASSERT(info_hash.has_v1() || info_hash.has_v2());
 
 #if TORRENT_ABI_VERSION == 1
 		if (m_alerts.should_post<torrent_added_alert>())
@@ -4756,17 +4764,17 @@ namespace {
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : params.extensions)
+		for (auto& ext : extensions)
 		{
-			std::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
+			std::shared_ptr<torrent_plugin> tp(ext(handle, userdata));
 			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
 
-		add_extensions_to_torrent(torrent_ptr, params.userdata);
+		add_extensions_to_torrent(torrent_ptr, userdata);
 #endif
 
-		TORRENT_ASSERT(params.info_hash == torrent_ptr->torrent_file().info_hashes());
-		insert_torrent(params.info_hash, torrent_ptr);
+		TORRENT_ASSERT(info_hash == torrent_ptr->torrent_file().info_hashes());
+		insert_torrent(info_hash, torrent_ptr);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
@@ -4776,7 +4784,7 @@ namespace {
 		// we want to put it off again anyway. So that while we're adding
 		// a boat load of torrents, we postpone the recalculation until
 		// we're done adding them all (since it's kind of an expensive operation)
-		if (params.flags & torrent_flags::auto_managed)
+		if (flags & torrent_flags::auto_managed)
 		{
 			const int max_downloading = settings().get_int(settings_pack::active_downloads);
 			const int max_seeds = settings().get_int(settings_pack::active_seeds);
@@ -4802,8 +4810,8 @@ namespace {
 		return handle;
 	}
 
-	std::pair<std::shared_ptr<torrent>, bool>
-	session_impl::add_torrent_impl(add_torrent_params& params, error_code& ec)
+	std::tuple<std::shared_ptr<torrent>, info_hash_t, bool>
+	session_impl::add_torrent_impl(add_torrent_params&& params, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
@@ -4813,7 +4821,7 @@ namespace {
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
-			if (ec) return std::make_pair(ptr_t(), false);
+			if (ec) return {ptr_t(), params.info_hash, false};
 			params.url.clear();
 		}
 #endif
@@ -4821,13 +4829,13 @@ namespace {
 		if (params.ti && !params.ti->is_valid())
 		{
 			ec = errors::no_metadata;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 		if (params.ti
@@ -4836,13 +4844,19 @@ namespace {
 			))
 		{
 			ec = errors::mismatching_info_hash;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 #ifndef TORRENT_DISABLE_DHT
 		// add params.dht_nodes to the DHT, if enabled
 		for (auto const& n : params.dht_nodes)
 			add_dht_node_name(n);
+
+		if (params.ti)
+		{
+			for (auto const& n : params.ti->nodes())
+				add_dht_node_name(n);
+		}
 #endif
 
 		INVARIANT_CHECK;
@@ -4850,7 +4864,7 @@ namespace {
 		if (is_aborted())
 		{
 			ec = errors::session_is_closing;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 		// figure out the info hash of the torrent and make sure params.info_hash
@@ -4860,7 +4874,7 @@ namespace {
 		if (!params.info_hash.has_v1() && !params.info_hash.has_v2())
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 		// is the torrent already active?
@@ -4869,10 +4883,10 @@ namespace {
 		if (torrent_ptr)
 		{
 			if (!(params.flags & torrent_flags::duplicate_is_error))
-				return std::make_pair(torrent_ptr, false);
+				return {torrent_ptr, params.info_hash, false};
 
 			ec = errors::duplicate_torrent;
-			return std::make_pair(ptr_t(), false);
+			return {ptr_t(), params.info_hash, false};
 		}
 
 		// make sure we have enough memory in the torrent lists up-front,
@@ -4884,10 +4898,12 @@ namespace {
 			l.reserve(num_torrents + 1);
 		}
 
-		torrent_ptr = std::make_shared<torrent>(*this, m_paused, params);
+		torrent_ptr = std::make_shared<torrent>(*this, m_paused, std::move(params));
 		torrent_ptr->set_queue_position(m_download_queue.end_index());
 
-		return std::make_pair(torrent_ptr, true);
+		// it's fine to copy this moved-from info_hash_t object, since its move
+		// construction is just a copy.
+		return {torrent_ptr, params.info_hash, true};
 	}
 
 	void session_impl::update_outgoing_interfaces()
