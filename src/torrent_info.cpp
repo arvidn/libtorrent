@@ -1135,7 +1135,7 @@ namespace {
 		return m_merkle_trees;
 	}
 
-	void torrent_info::internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> const& trees_import)
+	void torrent_info::internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> trees_import)
 	{
 		for (file_index_t i{0}; i < orig_files().end_file(); ++i)
 		{

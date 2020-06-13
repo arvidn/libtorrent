@@ -183,7 +183,7 @@ bool is_downloading_state(int const st)
 	torrent::torrent(
 		aux::session_interface& ses
 		, bool const session_paused
-		, add_torrent_params const& p)
+		, add_torrent_params&& p)
 		: torrent_hot_members(ses, p, session_paused)
 		, m_total_uploaded(p.total_uploaded)
 		, m_total_downloaded(p.total_downloaded)
@@ -242,10 +242,6 @@ bool is_downloading_state(int const st)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
-
-		// TODO: 3 we could probably get away with just saving a few fields here
-		// TODO: 2 p should probably be moved in here
-		m_add_torrent_params = std::make_unique<add_torrent_params>(p);
 
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
@@ -396,7 +392,10 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->is_valid() && m_torrent_file->info_hashes().has_v2())
 		{
 			if (!p.merkle_trees.empty())
-				m_torrent_file->internal_load_merkle_trees(p.merkle_trees);
+				m_torrent_file->internal_load_merkle_trees(std::move(p.merkle_trees));
+
+			// we really don't want to store extra copies of the trees
+			TORRENT_ASSERT(p.merkle_trees.empty());
 
 			if (!p.verified_leaf_hashes.empty())
 			{
@@ -415,6 +414,9 @@ bool is_downloading_state(int const st)
 			inc_stats_counter(counters::num_total_pieces_added
 				, m_torrent_file->num_pieces());
 		}
+
+		// TODO: 3 we could probably get away with just saving a few fields here
+		m_add_torrent_params = std::make_unique<add_torrent_params>(std::move(p));
 	}
 
 	void torrent::inc_stats_counter(int c, int value)

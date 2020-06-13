@@ -596,8 +596,10 @@ namespace aux {
 
 			// second return value is true if the torrent was added and false if an
 			// existing one was found.
-			std::pair<std::shared_ptr<torrent>, bool>
-			add_torrent_impl(add_torrent_params& p, error_code& ec);
+			std::tuple<std::shared_ptr<torrent>, info_hash_t, bool>
+			add_torrent_impl(add_torrent_params&& p, error_code& ec);
+			std::tuple<std::shared_ptr<torrent>, info_hash_t, bool>
+			add_torrent_impl(add_torrent_params const& p, error_code& ec) = delete;
 			void async_add_torrent(add_torrent_params* params);
 
 			void remove_torrent(torrent_handle const& h, remove_flags_t options) override;
