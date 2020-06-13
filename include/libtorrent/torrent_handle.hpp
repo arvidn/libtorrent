@@ -432,12 +432,14 @@ namespace aux {
 		// regress in this mode.
 		static constexpr file_progress_flags_t piece_granularity = 0_bit;
 
-		// This function fills in the supplied vector with the number of
-		// bytes downloaded of each file in this torrent. The progress values are
-		// ordered the same as the files in the torrent_info. This operation is
-		// not very cheap. Its complexity is *O(n + mj)*. Where *n* is the number
-		// of files, *m* is the number of downloading pieces and *j* is the
-		// number of blocks in a piece.
+		// This function fills in the supplied vector, or returns a vector, with
+		// the number of bytes downloaded of each file in this torrent. The
+		// progress values are ordered the same as the files in the
+		// torrent_info.
+		//
+		// This operation is not very cheap. Its complexity is *O(n + mj)*.
+		// Where *n* is the number of files, *m* is the number of currently
+		// downloading pieces and *j* is the number of blocks in a piece.
 		//
 		// The ``flags`` parameter can be used to specify the granularity of the
 		// file progress. If left at the default value of 0, the progress will be
@@ -448,6 +450,7 @@ namespace aux {
 		// piece granularity, the operation is a lot cheaper, since libtorrent
 		// already keeps track of this internally and no calculation is required.
 		void file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags = {}) const;
+		std::vector<std::int64_t> file_progress(file_progress_flags_t flags = {}) const;
 
 		// This function returns a vector with status about files
 		// that are open for this torrent. Any file that is not open
