@@ -465,10 +465,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #endif // TORRENT_WINDOWS
 
 
-#ifdef TORRENT_WINDOWS
-	void acquire_manage_volume_privs();
-#endif
-
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
 	{}
 
@@ -529,14 +525,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			| FILE_FLAG_OVERLAPPED
 			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
-		if (!(mode & open_mode::sparse))
-		{
-			// Enable privilege required by SetFileValidData()
-			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
-			static std::once_flag flag;
-			std::call_once(flag, acquire_manage_volume_privs);
-		}
-
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
 			, FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
@@ -550,10 +538,12 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 		m_file_handle = handle;
 
-		// try to make the file sparse if supported
-		// only set this flag if the file is opened for writing
-		if ((mode & open_mode::sparse)
-			&& (mode & open_mode::rw_mask) != open_mode::read_only)
+		// try to make the file sparse if supported.
+		// On windows we do this regardless of whether the sparse flag is set or
+		// not, since even when fully allocating files, we create sparse files.
+		// we can only set this flag if the file is opened for writing, we don't
+		// want to modify files opened for reading
+		if ((mode & open_mode::rw_mask) != open_mode::read_only)
 		{
 			DWORD temp;
 			overlapped_t ol;
@@ -660,55 +650,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		return m_file_handle != INVALID_HANDLE_VALUE;
 	}
 
-#ifdef TORRENT_WINDOWS
-	// returns true if the given file has any regions that are
-	// sparse, i.e. not allocated.
-	bool is_sparse(HANDLE file)
-	{
-		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(file, &file_size))
-			return false;
-
-		overlapped_t ol;
-		if (ol.ol.hEvent == nullptr) return false;
-
-#ifndef FSCTL_QUERY_ALLOCATED_RANGES
-typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
-	LARGE_INTEGER FileOffset;
-	LARGE_INTEGER Length;
-} FILE_ALLOCATED_RANGE_BUFFER;
-#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
-#endif
-		FILE_ALLOCATED_RANGE_BUFFER in;
-		in.FileOffset.QuadPart = 0;
-		in.Length.QuadPart = file_size.QuadPart;
-
-		FILE_ALLOCATED_RANGE_BUFFER out[2];
-
-		DWORD returned_bytes = 0;
-		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
-			, out, sizeof(out), &returned_bytes, &ol.ol);
-
-		if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-		{
-			error_code ec;
-			returned_bytes = ol.wait(file, ec);
-			if (ec) return true;
-		}
-		else if (ret == FALSE)
-		{
-			return true;
-		}
-
-		// if we have more than one range in the file, we're sparse
-		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
-			return true;
-		}
-
-		return (in.Length.QuadPart != out[0].Length.QuadPart);
-	}
-#endif
-
 	void file::close()
 	{
 		if (!is_open()) return;
@@ -719,9 +660,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// flag set, but there are no sparse regions, unset
 		// the flag
 		open_mode_t const rw_mode = m_open_mode & open_mode::rw_mask;
-		if ((rw_mode != open_mode::read_only)
-			&& (m_open_mode & open_mode::sparse)
-			&& !is_sparse(native_handle()))
+		if (rw_mode != open_mode::read_only)
 		{
 			overlapped_t ol;
 			// according to MSDN, clearing the sparse flag of a file only
@@ -1041,68 +980,6 @@ namespace {
 		return ret;
 	}
 
-#ifdef TORRENT_WINDOWS
-	void acquire_manage_volume_privs()
-	{
-		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
-
-		using LookupPrivilegeValue_t = BOOL (WINAPI*)(LPCSTR, LPCSTR, PLUID);
-
-		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
-			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
-
-		auto OpenProcessToken =
-			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
-		auto LookupPrivilegeValue =
-			aux::get_library_procedure<aux::advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
-		auto AdjustTokenPrivileges =
-			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
-
-		if (OpenProcessToken == nullptr
-			|| LookupPrivilegeValue == nullptr
-			|| AdjustTokenPrivileges == nullptr)
-		{
-			return;
-		}
-
-
-		HANDLE token;
-		if (!OpenProcessToken(GetCurrentProcess()
-			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
-			return;
-
-		BOOST_SCOPE_EXIT_ALL(&token) {
-			CloseHandle(token);
-		};
-
-		TOKEN_PRIVILEGES privs{};
-		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
-			, &privs.Privileges[0].Luid))
-		{
-			return;
-		}
-
-		privs.PrivilegeCount = 1;
-		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
-	}
-
-	void set_file_valid_data(HANDLE f, std::int64_t size)
-	{
-		using SetFileValidData_t = BOOL (WINAPI*)(HANDLE, LONGLONG);
-		auto SetFileValidData =
-			aux::get_library_procedure<aux::kernel32, SetFileValidData_t>("SetFileValidData");
-
-		if (SetFileValidData)
-		{
-			// we don't necessarily expect to have enough
-			// privilege to do this, so ignore errors.
-			SetFileValidData(f, size);
-		}
-	}
-#endif
-
 	bool file::set_size(std::int64_t s, error_code& ec)
 	{
 		TORRENT_ASSERT(is_open());
@@ -1118,9 +995,8 @@ namespace {
 			return false;
 		}
 		offs.QuadPart = s;
-		// only set the file size if it's not already at
-		// the right size. We don't want to update the
-		// modification time if we don't have to
+		// only set the file size if it's not already at the right size. We
+		// don't want to update the modification time if we don't have to.
 		if (cur_size.QuadPart != s)
 		{
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
@@ -1133,12 +1009,20 @@ namespace {
 				ec.assign(GetLastError(), system_category());
 				return false;
 			}
-			if (!(m_open_mode & open_mode::sparse))
+			if (!(m_open_mode & open_mode::sparse) && cur_size.QuadPart < s)
 			{
-				// if the user has permissions, avoid filling
-				// the file with zeroes, but just fill it with
-				// garbage instead
-				set_file_valid_data(m_file_handle, s);
+				FILE_ZERO_DATA_INFORMATION fzdi{};
+				DWORD temp;
+				overlapped_t ol;
+
+				fzdi.FileOffset = cur_size;
+				fzdi.BeyondFinalZero = offs;
+				BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_ZERO_DATA,
+					&fzdi, sizeof(fzdi), nullptr, 0, &temp, &ol.ol);
+
+				error_code error;
+				if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
+					ol.wait(native_handle(), error);
 			}
 		}
 #else // NON-WINDOWS
