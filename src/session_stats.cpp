@@ -129,7 +129,8 @@ namespace {
 		METRIC(peer, incoming_connections)
 
 		// the number of peer connections for each kind of socket.
-		// these counts include half-open (connecting) peers.
+		// ``num_peers_half_open`` counts half-open (connecting) peers, no other
+		// count includes those peers.
 		// ``num_peers_up_unchoked_all`` is the total number of unchoked peers,
 		// whereas ``num_peers_up_unchoked`` only are unchoked peers that count
 		// against the limit (i.e. excluding peers that are unchoked because the
