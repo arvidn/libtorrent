@@ -822,7 +822,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	}
 
 	aux::vector<char> piece(static_cast<std::size_t>(piece_size));
-	for (int i = 0; i < int(piece.size()); ++i)
+	for (int i = 0; i < piece.end_index(); ++i)
 		piece[i] = (i % 26) + 'A';
 
 	// calculate the hash for all pieces
@@ -839,12 +839,10 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		}
 	}
 
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-
 	entry tor = t.generate();
 
-	bencode(out, tor);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), tor);
 	error_code ec;
 	return std::make_shared<torrent_info>(tmp, ec, from_span);
 }

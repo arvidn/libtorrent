@@ -326,6 +326,8 @@ class TestAddPiece(unittest.TestCase):
         self.atp.ti = self.ti
         self.atp.save_path = self.dir.name
         self.handle = self.session.add_torrent(self.atp)
+        self.wait_for(lambda: self.handle.status().state != lt.torrent_status.checking_files
+                      and self.handle.status().state != lt.torrent_status.checking_resume_data, msg="checking")
 
     def wait_for(self, condition, msg="condition", timeout=5):
         deadline = time.time() + timeout
