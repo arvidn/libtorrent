@@ -1390,6 +1390,12 @@ bool is_downloading_state(int const st)
 		// avoid crash trying to access the picker when there is none
 		if (m_have_all && !has_picker()) return;
 
+		// we don't support clobbering the piece picker while checking the
+		// files. We may end up having the same piece multiple times
+		if (state() == torrent_status::checking_files
+			|| state() == torrent_status::checking_resume_data)
+			return;
+
 		need_picker();
 
 		if (picker().have_piece(piece)
@@ -2351,7 +2357,6 @@ bool is_downloading_state(int const st)
 			m_file_progress.clear();
 			m_file_progress.init(picker(), m_torrent_file->files());
 		}
-
 
 		// assume that we don't have anything
 		m_files_checked = false;

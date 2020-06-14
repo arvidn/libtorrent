@@ -90,6 +90,20 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	torrent_handle tor1 = ses.add_torrent(params);
 
+	// prevent race conditions of adding pieces while checking
+	lt::torrent_status st = tor1.status();
+	for (int i = 0; i < 40; ++i)
+	{
+		st = tor1.status();
+		if (st.state != torrent_status::checking_files
+			&& st.state != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(st.state != torrent_status::checking_files
+		&& st.state != torrent_status::checking_files);
+	TEST_CHECK(st.num_pieces == 0);
+
 	// write pieces
 	for (auto const i : fs.piece_range())
 	{
@@ -173,7 +187,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	print_alerts(ses, "ses");
 
-	torrent_status st = tor1.status();
+	st = tor1.status();
 	TEST_EQUAL(st.is_seeding, true);
 
 	std::printf("\ntesting force recheck\n\n");

@@ -1,3 +1,4 @@
+	* disallow calling add_piece() during checking
 	* fix incorrect filename truncation at multi-byte character
 	* always announce listen port 1 when using a proxy
 
