@@ -42,6 +42,8 @@ def clean():
         'config.report',
         'config.log',
         '.lib',
+        'checking_benchmark',
+        'cpu_benchmark',
     ]
 
     directories = [
@@ -71,7 +73,8 @@ def clean():
                 try:
                     shutil.rmtree(p)
                     print(p)
-                except Exception:
+                except Exception as e:
+                    print(p, e)
                     try:
                         os.remove(p)
                         print(p)
