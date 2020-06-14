@@ -266,7 +266,7 @@ script:
     fi'
 
   - 'if [ "$check_headers" == "1" ]; then
-      ${B2} -j2 check-headers ${B2_ARGS};
+      ${B2} -j2 crypto=openssl check-headers ${B2_ARGS};
     fi'
 
 # if we are building with code coverage, report it as soon as possible
