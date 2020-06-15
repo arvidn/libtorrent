@@ -538,8 +538,23 @@ TORRENT_TEST(export_file_while_seed)
 	h.file_priority(file_index_t{0}, lt::dont_download);
 
 	std::vector<char> piece(16 * 1024);
-	for (int i = 0; i < int(piece.size()); ++i)
-		piece[std::size_t(i)] = char((i % 26) + 'A');
+	for (std::size_t i = 0; i < piece.size(); ++i)
+		piece[i] = char((i % 26) + 'A');
+
+	// prevent race conditions of adding pieces while checking
+	lt::torrent_status st = h.status();
+	for (int i = 0; i < 40; ++i)
+	{
+		print_alerts(ses, "ses", true, true);
+		st = h.status();
+		if (st.state != torrent_status::checking_files
+			&& st.state != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(st.state != torrent_status::checking_files
+		&& st.state != torrent_status::checking_files);
+	TEST_CHECK(st.num_pieces == 0);
 
 	for (piece_index_t i : t->piece_range())
 		h.add_piece(i, piece.data());
