@@ -155,7 +155,7 @@ namespace libtorrent { namespace aux {
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
 
-			auto& key_view = m_files.get<0>();
+			auto const& key_view = m_files.get<0>();
 			auto const start = key_view.lower_bound(file_id{st, file_index_t(0)});
 			auto const end = key_view.upper_bound(file_id{st, std::numeric_limits<file_index_t>::max()});
 

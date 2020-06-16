@@ -1604,7 +1604,7 @@ void upnp::on_expire(error_code const& ec)
 	time_point const now = aux::time_now();
 	time_point next_expire = max_time();
 
-	for (auto& dev : m_devices)
+	for (auto const& dev : m_devices)
 	{
 		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
@@ -1645,7 +1645,7 @@ void upnp::close()
 	m_unicast_socket.close(ec);
 	m_multicast_socket.close(ec);
 
-	for (auto& dev : m_devices)
+	for (auto const& dev : m_devices)
 	{
 		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);

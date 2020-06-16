@@ -115,12 +115,12 @@ namespace libtorrent {
 
 		if (!atp.merkle_trees.empty())
 		{
-			auto& trees = atp.merkle_trees;
+			auto const& trees = atp.merkle_trees;
 			auto& ret_trees = ret["trees"].list();
 			ret_trees.reserve(atp.merkle_trees.size());
 			for (file_index_t f(0); f < file_index_t{int(atp.merkle_trees.size())}; ++f)
 			{
-				auto& tree = trees[f];
+				auto const& tree = trees[f];
 				ret_trees.emplace_back(entry::dictionary_t);
 				auto& ret_dict = ret_trees.back().dict();
 				auto& ret_tree = ret_dict["hashes"].string();
@@ -131,7 +131,7 @@ namespace libtorrent {
 
 				if (!atp.verified_leaf_hashes.empty())
 				{
-					auto& verified = atp.verified_leaf_hashes[f];
+					auto const& verified = atp.verified_leaf_hashes[f];
 					if (!verified.empty())
 					{
 						auto& ret_verified = ret_dict["verified"].string();

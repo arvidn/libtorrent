@@ -112,7 +112,7 @@ void find_data::start()
 void find_data::got_write_token(node_id const& n, std::string write_token)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	auto logger = get_node().observer();
+	auto* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		logger->log(dht_logger::traversal
@@ -141,7 +141,7 @@ void find_data::done()
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	auto logger = get_node().observer();
+	auto* logger = get_node().observer();
 	if (logger != nullptr)
 	{
 		logger->log(dht_logger::traversal, "[%u] %s DONE"

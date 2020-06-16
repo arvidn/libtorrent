@@ -693,7 +693,7 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
 		TORRENT_ASSERT(m_connections.empty());
 		// just in case, make sure the session accounting is kept right
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 			m_ses.close_connection(p);
 	}
 
@@ -763,7 +763,7 @@ bool is_downloading_state(int const st)
 	void torrent::send_share_mode()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto const pc : m_connections)
+		for (auto* const pc : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (pc->type() != connection_type::bittorrent) continue;
@@ -801,7 +801,7 @@ bool is_downloading_state(int const st)
 #endif
 			;
 
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 
@@ -923,7 +923,7 @@ bool is_downloading_state(int const st)
 		if (m_upload_mode)
 		{
 			// clear request queues of all peers
-			for (auto p : m_connections)
+			for (auto* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				// we may want to disconnect other upload-only peers
@@ -937,13 +937,13 @@ bool is_downloading_state(int const st)
 		else if (m_peer_list)
 		{
 			// reset last_connected, to force fast reconnect after leaving upload mode
-			for (auto pe : *m_peer_list)
+			for (auto* pe : *m_peer_list)
 			{
 				pe->last_connected = 0;
 			}
 
 			// send_block_requests on all peers
-			for (auto p : m_connections)
+			for (auto* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				// we may be interested now, or no longer interested
@@ -1174,7 +1174,7 @@ bool is_downloading_state(int const st)
 
 		update_gauge();
 
-		for (auto const p : m_connections)
+		for (auto* const p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (p->is_disconnecting()) continue;
@@ -1364,7 +1364,7 @@ bool is_downloading_state(int const st)
 
 		add_extension(tp);
 
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			std::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
@@ -1713,7 +1713,7 @@ bool is_downloading_state(int const st)
 			// is available
 			// copy the peer list since peers may disconnect and invalidate
 			// m_connections as we initialize them
-			for (auto c : m_connections)
+			for (auto* const c : m_connections)
 			{
 				auto pc = c->self();
 				if (pc->is_disconnecting()) continue;
@@ -1886,7 +1886,7 @@ bool is_downloading_state(int const st)
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto pe : m_connections)
+		for (auto* pe : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (pe->type() != connection_type::bittorrent) continue;
@@ -1902,7 +1902,7 @@ bool is_downloading_state(int const st)
 
 	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
 	{
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (p->type() != connection_type::bittorrent) continue;
@@ -1913,7 +1913,7 @@ bool is_downloading_state(int const st)
 
 	peer_connection* torrent::find_peer(peer_id const& pid)
 	{
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			if (p->pid() == pid) return p;
 		}
@@ -2667,7 +2667,7 @@ bool is_downloading_state(int const st)
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().get_bool(settings_pack::allow_i2p_mixed))) return;
 
-		for (auto& p : peers)
+		for (auto const& p : peers)
 			add_peer(p, peer_info::dht, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2850,7 +2850,7 @@ namespace {
 			// amount to exceed the total size of the torrent which upsets some trackers
 			if (is_seed())
 			{
-				for (auto c : m_connections)
+				for (auto const& c : m_connections)
 				{
 					TORRENT_INCREMENT(m_iterating_connections);
 					auto const pbp = c->downloading_piece_progress();
@@ -3221,7 +3221,7 @@ namespace {
 			{
 				for (protocol_version const ih : all_versions)
 				{
-					auto& a = aep.info_hashes[ih];
+					auto const& a = aep.info_hashes[ih];
 					complete = std::max(a.scrape_complete, complete);
 					incomplete = std::max(a.scrape_incomplete, incomplete);
 					downloaded = std::max(a.scrape_downloaded, downloaded);
@@ -3940,7 +3940,7 @@ namespace {
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
-		for (auto c : m_connections)
+		for (auto* c : m_connections)
 		{
 			auto p = c->self();
 
@@ -3971,7 +3971,7 @@ namespace {
 		// was the last piece we were interested in
 		// update_interest may disconnect the peer and
 		// invalidate the iterator
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			// if we're not interested already, no need to check
@@ -4181,7 +4181,7 @@ namespace {
 			return ret;
 		}();
 
-		for (auto p : peers)
+		for (auto* p : peers)
 		{
 			TORRENT_ASSERT(p != nullptr);
 			if (p == nullptr) continue;
@@ -4216,7 +4216,7 @@ namespace {
 			, m_predictive_pieces.end(), index);
 		if (i != m_predictive_pieces.end() && *i == index) return;
 
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4256,7 +4256,7 @@ namespace {
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
 		{
-			for (auto p : m_connections)
+			for (auto* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				// send reject messages for
@@ -4335,7 +4335,7 @@ namespace {
 		// that all peers in the list sent us bad data
 		bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
 
-		for (auto p : peers)
+		for (auto* p : peers)
 		{
 			if (p == nullptr) continue;
 			TORRENT_ASSERT(p->in_use);
@@ -4485,7 +4485,7 @@ namespace {
 
 		// loop over all peers and re-request potential duplicate
 		// blocks to this piece
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			for (auto const& b : p->download_queue())
@@ -4701,7 +4701,7 @@ namespace {
 		if (m_super_seeding) return;
 
 		// disable super seeding for all peers
-		for (auto pc : *this)
+		for (auto* pc : *this)
 		{
 			pc->superseed_piece(piece_index_t(-1), piece_index_t(-1));
 		}
@@ -4724,7 +4724,7 @@ namespace {
 			if (bits[i]) continue;
 
 			int availability = 0;
-			for (auto pc : *this)
+			for (auto* pc : *this)
 			{
 				if (pc->super_seeded_piece(i))
 				{
@@ -4831,7 +4831,7 @@ namespace {
 		for (auto const& p : m_time_critical_pieces)
 			time_critical.insert(p.piece);
 
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			// for each peer, go through its download and request queue
@@ -5630,7 +5630,7 @@ namespace {
 
 	bool torrent::add_tracker(announce_entry const& url)
 	{
-		if(auto k = find_tracker(url.url))
+		if (auto* k = find_tracker(url.url))
 		{
 			k->source |= url.source;
 			return false;
@@ -5692,7 +5692,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			p->cancel_request(block);
@@ -6588,7 +6588,7 @@ namespace {
 		m_hash_picker->hashes_rejected(req);
 		// we need to poke all of the v2 peers in case there are no other
 		// outstanding hash requests
-		for (auto peer : m_connections)
+		for (auto* peer : m_connections)
 		{
 			if (peer->type() != connection_type::bittorrent) continue;
 			auto* const btpeer = static_cast<bt_peer_connection*>(peer);
@@ -6756,7 +6756,7 @@ namespace {
 		std::vector<torrent_peer const*> deferred_peers;
 		if (m_peer_list)
 		{
-			for (auto p : *m_peer_list)
+			for (auto* p : *m_peer_list)
 			{
 #if TORRENT_USE_I2P
 				if (p->is_i2p_addr) continue;
@@ -6800,7 +6800,7 @@ namespace {
 		if (int(ret.peers.size()) < 100)
 		{
 			aux::random_shuffle(deferred_peers);
-			for (auto const p : deferred_peers)
+			for (auto const* p : deferred_peers)
 			{
 				ret.peers.push_back(p->ip());
 				if (int(ret.peers.size()) >= 100) break;
@@ -6882,7 +6882,7 @@ namespace {
 		if (!m_peer_list) return;
 
 		v->reserve(aux::numeric_cast<std::size_t>(m_peer_list->num_peers()));
-		for (auto p : *m_peer_list)
+		for (auto const* p : *m_peer_list)
 		{
 			peer_list_entry e;
 			e.ip = p->ip();
@@ -6897,7 +6897,7 @@ namespace {
 	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{
 		v->clear();
-		for (auto const peer : *this)
+		for (auto const* peer : *this)
 		{
 			TORRENT_ASSERT(peer->m_in_use == 1337);
 
@@ -7355,7 +7355,7 @@ namespace {
 			, m_torrent_file->num_pieces());
 
 		// disconnect redundant peers
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 			p->disconnect_if_redundant();
 
 		set_need_save_resume();
@@ -7389,7 +7389,7 @@ namespace {
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			aux::socket_type& s = p->get_socket();
 
-			auto stream_handle = std::visit(ssl_handle_visitor{}, s.var());
+			ssl::stream_handle_type stream_handle = std::visit(ssl_handle_visitor{}, s.var());
 
 			if (!stream_handle)
 			{
@@ -7877,7 +7877,7 @@ namespace {
 		to_disconnect.resize(num);
 		auto end = std::partial_sort_copy(m_connections.begin(), m_connections.end()
 			, to_disconnect.begin(), to_disconnect.end(), compare_disconnect_peer);
-		for (auto p : aux::range(to_disconnect.begin(), end))
+		for (auto* p : aux::range(to_disconnect.begin(), end))
 		{
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 			p->disconnect(ec, operation_t::bittorrent);
@@ -7918,7 +7918,7 @@ namespace {
 			// not just seeds. It would be pretty expensive to check all pieces
 			// for all peers though
 			std::vector<peer_connection*> seeds;
-			for (auto const p : m_connections)
+			for (auto* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
@@ -8143,7 +8143,7 @@ namespace {
 
 		update_want_tick();
 
-		for (auto pc : m_connections)
+		for (auto* pc : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			// all peer connections have to initialize themselves now that the metadata
@@ -8858,14 +8858,12 @@ namespace {
 	// currently representable by the session_time)
 	void torrent::step_session_time(int const seconds)
 	{
-		if (m_peer_list)
+		if (!m_peer_list) return;
+		for (auto* pe : *m_peer_list)
 		{
-			for (auto pe : *m_peer_list)
-			{
-				pe->last_optimistically_unchoked
-					= clamped_subtract_u16(pe->last_optimistically_unchoked, seconds);
-				pe->last_connected = clamped_subtract_u16(pe->last_connected, seconds);
-			}
+			pe->last_optimistically_unchoked
+				= clamped_subtract_u16(pe->last_optimistically_unchoked, seconds);
+			pe->last_connected = clamped_subtract_u16(pe->last_connected, seconds);
 		}
 	}
 
@@ -9122,7 +9120,7 @@ namespace {
 			// disconnect all peers with no outstanding data to receive
 			// and choke all remaining peers to prevent responding to new
 			// requests
-			for (auto p : m_connections)
+			for (auto* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
@@ -9164,7 +9162,7 @@ namespace {
 
 		if (log_peers)
 		{
-			for (auto const p : m_connections)
+			for (auto const* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				p->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
@@ -9399,7 +9397,7 @@ namespace {
 					if (!supports_protocol[ih]) continue;
 
 					auto& state = ep_state.state[ih];
-					auto& a = aep.info_hashes[ih];
+					auto const& a = aep.info_hashes[ih];
 
 					if (state.done) continue;
 
@@ -9692,7 +9690,7 @@ namespace {
 		maybe_connect_web_seeds();
 
 		m_swarm_last_seen_complete = m_last_seen_complete;
-		for (auto p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 
@@ -9830,7 +9828,7 @@ namespace {
 		int num_downloaders = 0;
 		int missing_pieces = 0;
 		int num_interested = 0;
-		for (auto const p : m_connections)
+		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (p->is_connecting()) continue;
@@ -10511,7 +10509,7 @@ namespace {
 		}
 
 		// commit all the time critical requests
-		for (auto p : peers_with_requests)
+		for (auto* p : peers_with_requests)
 		{
 			p->send_block_requests();
 		}
@@ -10880,7 +10878,7 @@ namespace {
 	{
 		if (!has_picker()) return;
 
-		for (auto const p : peers)
+		for (auto* const p : peers)
 		{
 			m_picker->clear_peer(p);
 		}

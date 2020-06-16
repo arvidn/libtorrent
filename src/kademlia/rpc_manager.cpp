@@ -251,11 +251,11 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	// if we don't have the transaction id in our
 	// request list, ignore the packet
 
-	auto transaction_id = m.message.dict_find_string_value("t");
+	auto const transaction_id = m.message.dict_find_string_value("t");
 	if (transaction_id.empty()) return false;
 
-	auto ptr = transaction_id.begin();
-	int tid = transaction_id.size() != 2 ? -1 : aux::read_uint16(ptr);
+	auto const* ptr = transaction_id.data();
+	int const tid = transaction_id.size() != 2 ? -1 : aux::read_uint16(ptr);
 
 	observer_ptr o;
 	auto range = m_transactions.equal_range(tid);

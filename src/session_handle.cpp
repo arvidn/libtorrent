@@ -738,7 +738,7 @@ namespace {
 	entry session_handle::state() const
 	{
 		entry ret;
-		auto retp = &ret;
+		auto* const retp = &ret;
 		sync_call(&session_impl::save_state, retp, save_state_flags_t::all());
 		return ret;
 	}
