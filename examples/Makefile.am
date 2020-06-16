@@ -31,5 +31,5 @@ upnp_test_SOURCES = upnp_test.cpp
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 AM_CPPFLAGS = -ftemplate-depth-50 @DEBUGFLAGS@
-AM_LDFLAGS = @BOOST_SYSTEM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
+AM_LDFLAGS = @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 DEFAULT_INCLUDES = -I$(top_srcdir)/include @OPENSSL_INCLUDES@
