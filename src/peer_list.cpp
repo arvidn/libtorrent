@@ -98,7 +98,7 @@ namespace libtorrent {
 
 	void peer_list::clear()
 	{
-		for (auto const p : m_peers)
+		for (auto* p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 		m_peers.clear();
 		m_num_connect_candidates = 0;
@@ -106,7 +106,7 @@ namespace libtorrent {
 
 	peer_list::~peer_list()
 	{
-		for (auto const p : m_peers)
+		for (auto* p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 	}
 

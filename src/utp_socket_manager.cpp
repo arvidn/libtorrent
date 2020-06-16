@@ -338,7 +338,7 @@ namespace aux {
 			recv_id = send_id - 1;
 		}
 		auto impl = std::make_unique<utp_socket_impl>(recv_id, send_id, str, *this);
-		auto const ret = impl.get();
+		auto* const ret = impl.get();
 		m_utp_sockets.emplace(recv_id, std::move(impl));
 		return ret;
 	}

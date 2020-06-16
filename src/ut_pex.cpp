@@ -135,7 +135,7 @@ namespace libtorrent { namespace {
 
 			m_peers_in_message = 0;
 			int num_added = 0;
-			for (auto const peer : m_torrent)
+			for (auto const* peer : m_torrent)
 			{
 				if (!send_peer(*peer)) continue;
 
@@ -543,7 +543,7 @@ namespace libtorrent { namespace {
 			std::back_insert_iterator<std::string> plf6_out(plf6);
 
 			int num_added = 0;
-			for (auto const peer : m_torrent)
+			for (auto const* peer : m_torrent)
 			{
 				if (!send_peer(*peer)) continue;
 

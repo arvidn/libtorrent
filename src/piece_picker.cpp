@@ -2016,7 +2016,7 @@ namespace {
 			// now, copy over the pointers. We also apply a filter here to not
 			// include ineligible pieces in certain modes. For instance, a piece
 			// that the current peer doesn't have is not included.
-			for (auto& dp : m_downloads[piece_pos::piece_downloading])
+			for (auto const& dp : m_downloads[piece_pos::piece_downloading])
 			{
 				pc.inc_stats_counter(counters::piece_picker_partial_loops);
 

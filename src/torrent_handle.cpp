@@ -498,7 +498,7 @@ namespace libtorrent {
 	std::vector<download_priority_t> torrent_handle::get_piece_priorities() const
 	{
 		aux::vector<download_priority_t, piece_index_t> ret;
-		auto retp = &ret;
+		auto* const retp = &ret;
 		sync_call(&torrent::piece_priorities, retp);
 		return std::move(ret);
 	}
@@ -524,7 +524,7 @@ namespace libtorrent {
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
 		aux::vector<download_priority_t, piece_index_t> prio;
-		auto retp = &prio;
+		auto* const retp = &prio;
 		sync_call(&torrent::piece_priorities, retp);
 		std::vector<int> ret;
 		ret.reserve(prio.size());
@@ -554,7 +554,7 @@ namespace libtorrent {
 	std::vector<download_priority_t> torrent_handle::get_file_priorities() const
 	{
 		aux::vector<download_priority_t, file_index_t> ret;
-		auto retp = &ret;
+		auto* const retp = &ret;
 		sync_call(&torrent::file_priorities, retp);
 		return std::move(ret);
 	}
@@ -576,7 +576,7 @@ namespace libtorrent {
 	std::vector<int> torrent_handle::file_priorities() const
 	{
 		aux::vector<download_priority_t, file_index_t> prio;
-		auto retp = &prio;
+		auto* const retp = &prio;
 		sync_call(&torrent::file_priorities, retp);
 		std::vector<int> ret;
 		ret.reserve(prio.size());
@@ -819,20 +819,20 @@ namespace libtorrent {
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
-		auto vp = &v;
+		auto* vp = &v;
 		sync_call(&torrent::get_full_peer_list, vp);
 	}
 #endif
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
-		auto vp = &v;
+		auto* vp = &v;
 		sync_call(&torrent::get_peer_info, vp);
 	}
 
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
-		auto queuep = &queue;
+		auto* queuep = &queue;
 		sync_call(&torrent::get_download_queue, queuep);
 	}
 

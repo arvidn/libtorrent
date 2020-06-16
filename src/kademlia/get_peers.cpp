@@ -95,7 +95,7 @@ void get_peers_observer::reply(msg const& m)
 #ifndef TORRENT_DISABLE_LOGGING
 void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int const size) const
 {
-			auto logger = get_observer();
+			auto* logger = get_observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
 				bdecode_node const id = r.dict_find_string("id");

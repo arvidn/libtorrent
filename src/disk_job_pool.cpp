@@ -62,7 +62,7 @@ namespace aux {
 		l.unlock();
 		TORRENT_ASSERT(storage);
 
-		auto ptr = new (storage) disk_io_job;
+		auto* ptr = new (storage) disk_io_job;
 		ptr->action = type;
 #if TORRENT_USE_ASSERTS
 		ptr->in_use = true;

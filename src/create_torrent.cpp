@@ -677,7 +677,7 @@ namespace {
 				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();
 				pieces.clear();
 				pieces.reserve(m_file_piece_hash[fi].size() * sha256_hash::size());
-				for (auto& p : m_file_piece_hash[fi])
+				for (auto const& p : m_file_piece_hash[fi])
 					pieces.append(reinterpret_cast<const char*>(p.data()), p.size());
 			}
 		}
