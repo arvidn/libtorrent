@@ -198,6 +198,11 @@ still be running, but it will disconnect the majority of peers (since connection
 to peers that already have the metadata are redundant). It will keep seeding the
 *metadata* only.
 
+Note that this doesn't prevent empty files from being created, if the torrent
+contains any. If you need to prevent that, you can either
+set ``file_priority`` to a long list of zeros (since the number of files is not known
+in advance), or set ``save_path`` to an invalid path.
+
 queuing
 =======
 
