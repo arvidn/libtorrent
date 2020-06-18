@@ -139,15 +139,6 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
     rm -f visibility_conftest.*
 ])
 
-AS_ECHO
-AS_ECHO "Checking for boost libraries:"
-
-AX_BOOST_BASE([1.69])
-
-AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
-
-CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
-LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
 
 ###############################################################################
 # Checking for functions and other stuffs
@@ -601,11 +592,6 @@ Pthread library:
   CFlags:               ${PTHREAD_CFLAGS}
   Libs:                 ${PTHREAD_LIBS}
 
-Boost libraries:
-  version:              ${BOOST_VERSION}
-  CPPFlags:             ${BOOST_CPPFLAGS}
-  LDFlags:              ${BOOST_LDFLAGS}
-  boost.system:         ${BOOST_SYSTEM_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
