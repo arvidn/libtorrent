@@ -681,7 +681,6 @@ endif()
 # Boost
 find_public_dependency(Boost REQUIRED COMPONENTS system)
 target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
 
 if (exceptions)
 	if (MSVC)
