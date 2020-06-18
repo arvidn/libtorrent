@@ -48,9 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
 #include <vector>

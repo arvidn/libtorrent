@@ -25,6 +25,12 @@ environment:
       python_dist: 1
       crypto: openssl
       bjam: 1
+    - variant: release
+      compiler: msvc
+      model: 64
+      crypto: openssl
+      webtorrent: on
+      bjam: 1
 
 artifacts:
   - path: bindings/python/dist/*
@@ -37,6 +43,9 @@ install:
   - if not defined compiler ( set compiler="" )
   - if not defined linking ( set linking="shared" )
   - if not defined crypto ( set crypto=built-in )
+  - if not defined webtorrent ( set webtorrent=off )
+  - if not defined openssl-include ( set openssl-include="C:\OpenSSL-v111-Win64\include" )
+  - if not defined openssl-lib ( set openssl-lib="C:\OpenSSL-v111-Win64\lib" )
   - cd %ROOT_DIRECTORY%
   - set BOOST_ROOT=c:\Libraries\boost_1_71_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -49,6 +58,7 @@ install:
   - set PATH=c:\Python36-x64;%PATH%
   - set PYTHON_INTERPRETER=c:\Python36-x64\python.exe
   - python --version
+  - python -m pip install websockets
   - echo %ROOT_DIRECTORY%
   - cd %BOOST_BUILD_PATH%
   - bootstrap.bat >nul
@@ -58,19 +68,19 @@ build_script:
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on openssl-include=%openssl-include% openssl-lib=%openssl-lib%
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on openssl-include=%openssl-include% openssl-lib=%openssl-lib%
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on testing.execute=off
+    b2.exe --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on testing.execute=off openssl-include=%openssl-include% openssl-lib=%openssl-lib%
     )
 
   # python binding
@@ -79,7 +89,7 @@ build_script:
   # boost.python itself doesn't build warning free, so we can't build
   # with warnings-as-errors
   - if defined python (
-    b2.exe --hash openssl-version=pre1.1 warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=%linking% stage_module stage_dependencies
+    b2.exe --hash warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on libtorrent-link=%linking% stage_module stage_dependencies openssl-include=%openssl-include% openssl-lib=%openssl-lib%
     )
   - if defined python_dist (
     c:\Python36-x64\python.exe setup.py bdist --format=msi
@@ -88,7 +98,7 @@ build_script:
   # simulations
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+    b2.exe --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
     )
 
   # minimal support for cmake build
@@ -107,7 +117,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% asserts=on export-extra=on win-tests
+    appveyor-retry b2.exe -l500 --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=%linking% crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on win-tests openssl-include=%openssl-include% openssl-lib=%openssl-lib%
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
@@ -130,5 +140,5 @@ test_script:
   # certain unexpected terminations (through exceptions)
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash openssl-version=pre1.1 warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+    b2.exe --hash warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
     )

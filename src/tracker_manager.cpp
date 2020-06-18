@@ -289,9 +289,8 @@ namespace libtorrent {
 		if (m_abort && req.event != event_t::stopped) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		std::shared_ptr<request_callback> cb = c.lock();
-		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]"
-			, req.listen_port);
+		if(auto cb = c.lock())
+			cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]", req.listen_port);
 #endif
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));

@@ -41,9 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/random.hpp"
 
-#include "rtc/rtc.hpp" // for overloaded
-
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/connect.hpp>
+#include <rtc/rtc.hpp> // for overloaded
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
 #include <tuple>
@@ -137,7 +138,7 @@ void websocket_stream::do_connect(std::string url)
 	if (!target.empty()) m_target = std::move(target);
 	else m_target = "/";
 
-	do_resolve(hostname, port);
+	do_resolve(hostname, std::uint16_t(port));
 }
 
 void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)

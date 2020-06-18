@@ -10,7 +10,7 @@ matrix:
     - env: variant=debug crypto=openssl docs=1 tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
-    - env: variant=debug crypto=openssl python=1 toolset=darwin ios=1
+    - env: variant=debug crypto=openssl webtorrent=on python=1 toolset=darwin ios=1
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc pylint=1 clang_tidy=1
@@ -21,13 +21,14 @@ matrix:
     - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=debug tests=1 mmap=off toolset=gcc
     - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on
-    - env: variant=debug tests=1 crypto=gnutls toolset=gcc sanitizer=on
+    - env: variant=debug tests=1 crypto=gnutls webtorrent=on toolset=gcc sanitizer=on
       addons:
         apt:
           packages:
           - gnutls-dev
+          - nettle-dev
+          - python3-websockets
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
-    - env: variant=debug tests=1 crypto=openssl webtorrent=on toolset=gcc sanitizer=on
     - env: variant=release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
     - env: dist=1 toolset=gcc install_boost=1
       addons:
@@ -265,6 +266,10 @@ script:
 
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$crypto" == "openssl" ]]; then
     export B2_ARGS="${B2_ARGS} openssl-lib=/usr/local/opt/openssl@1.1/lib openssl-include=/usr/local/opt/openssl@1.1/include" ;
+    fi'
+
+  - 'if [[ $webtorrent == "on" ]]; then
+      export B2_ARGS="${B2_ARGS} webtorrent=on";
     fi'
 
   - 'if [ "$check_headers" == "1" ]; then
