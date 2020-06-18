@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/span.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <rtc/rtc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -346,7 +348,7 @@ std::size_t rtc_stream_impl::incoming_data(span<char const> data)
 	{
 		std::size_t to_copy = std::min(std::size_t(data.size()), target->size());
 		std::memcpy(target->data(), data.data(), to_copy);
-		data = data.subspan(to_copy);
+		data = data.subspan(long(to_copy));
 		(*target)+= to_copy;
 		TORRENT_ASSERT(m_read_buffer_size >= to_copy);
 		m_read_buffer_size -= to_copy;
@@ -393,7 +395,7 @@ rtc_stream_impl::endpoint_type rtc_stream_impl::parse_endpoint(std::string const
 		if (pos == std::string::npos) throw std::exception();
 
 		host = addr.substr(0, pos);
-		port = std::stoul(addr.substr(pos+1));
+		port = std::uint16_t(std::stoul(addr.substr(pos+1)));
 	}
 	catch(...) {
 		ec = errors::parse_failed;

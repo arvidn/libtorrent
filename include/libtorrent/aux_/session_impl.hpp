@@ -1373,7 +1373,7 @@ namespace aux {
 
 #if TORRENT_USE_RTC
 			void generate_rtc_offers(int /*count*/
-				, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
+				, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override
 			{
 				handler(boost::asio::error::operation_not_supported, {});
 			}

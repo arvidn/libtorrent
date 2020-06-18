@@ -112,4 +112,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4244)
 // potentially uninitialized local variable 'result' used
 #pragma warning(disable : 4701)
+// unreachable code
+#pragma warning(disable : 4702)
+// potential mod by 0
+#pragma warning(disable : 4724)
 #endif

@@ -46,10 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include "boost/json.hpp"
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <boost/system/system_error.hpp>
+#include <boost/json.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -174,13 +173,13 @@ void websocket_tracker_connection::send_pending()
 	auto [msg, callback] = std::move(m_pending.front());
 	m_pending.pop();
 
-	std::visit([&](auto const& m)
+	std::visit([this, callback = callback](auto const& m)
 		{
 			// Update requester and store callback
 			if (callback.lock())
 			{
 				m_requester = callback;
-				m_callbacks[m.info_hash] = callback;
+				m_callbacks[m.info_hash] = std::move(callback);
 			}
 
 			do_send(m);
@@ -228,14 +227,15 @@ void websocket_tracker_connection::do_send(tracker_request const& req)
 	}
 
 	json::string const data = json::to_string(payload);
+	m_write_data.assign(data.begin(), data.end());
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]", long(data.size()), data.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]", long(m_write_data.size()), m_write_data.c_str());
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
-	m_websocket->async_write(boost::asio::const_buffer(data.data(), data.size())
+	m_websocket->async_write(boost::asio::const_buffer(m_write_data.data(), m_write_data.size())
 			, std::bind(&websocket_tracker_connection::on_write, this, weak_from_this(), _1, _2));
 }
 
@@ -330,7 +330,7 @@ void websocket_tracker_connection::on_read(std::weak_ptr<websocket_tracker_conne
 	auto const& buf = m_read_buffer.data();
 
 #ifndef TORRENT_DISABLE_LOGGING
-	std::string str(static_cast<char const*>(buf.data()), long(buf.size()));
+	std::string str(static_cast<char const*>(buf.data()), buf.size());
 	if (auto cb = requester())
 		cb->debug_log("*** WEBSOCKET_TRACKER_READ [ size: %ld, data: %s ]", long(str.size()), str.c_str());
 #endif
@@ -392,8 +392,8 @@ void websocket_tracker_connection::on_read(std::weak_ptr<websocket_tracker_conne
 	else
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (auto cb = requester())
-			cb->debug_log("*** WEBSOCKET_TRACKER_READ [ warning: no callback for info_hash ]");
+		if (auto cb_ = requester())
+			cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ warning: no callback for info_hash ]");
 #endif
 		m_callbacks.erase(response.info_hash);
 	}
@@ -408,6 +408,7 @@ void websocket_tracker_connection::on_write(std::weak_ptr<websocket_tracker_conn
 	auto locked = weak_this.lock();
 	if (!locked) return;
 
+	m_write_data.clear();
 	m_sending = false;
 	if (ec)
 	{
@@ -431,11 +432,11 @@ TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 	try {
 		json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
 
-		auto it = payload.find("info_hash");
-		if (it == payload.end())
+		auto it_info_hash = payload.find("info_hash");
+		if (it_info_hash == payload.end())
 			throw std::invalid_argument("no info hash in message");
 
-		auto const raw_info_hash = utf8_latin1(it->value().as_string());
+		auto const raw_info_hash = utf8_latin1(it_info_hash->value().as_string());
 		if (raw_info_hash.size() != 20)
 			throw std::invalid_argument("invalid info hash size " + std::to_string(raw_info_hash.size()));
 
@@ -479,17 +480,17 @@ TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 				resp.min_interval = seconds32{60};
 
 			if (auto it = payload.find("complete"); it != payload.end())
-				resp.complete = it->value().as_int64();
+				resp.complete = int(it->value().as_int64());
 			else
 				resp.complete = -1;
 
 			if (auto it = payload.find("incomplete"); it != payload.end())
-				resp.incomplete = it->value().as_int64();
+				resp.incomplete = int(it->value().as_int64());
 			else
 				resp.incomplete = -1;
 
 			if (auto it = payload.find("downloaded"); it != payload.end())
-				resp.downloaded = it->value().as_int64();
+				resp.downloaded = int(it->value().as_int64());
 			else
 				resp.downloaded = -1;
 		}

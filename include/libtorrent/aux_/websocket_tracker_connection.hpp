@@ -74,7 +74,7 @@ struct TORRENT_EXTRA_EXPORT websocket_tracker_connection : tracker_connection
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::weak_ptr<request_callback> cb);
-	~websocket_tracker_connection() = default;
+	~websocket_tracker_connection() override = default;
 
 	void start() override;
 	void close() override;

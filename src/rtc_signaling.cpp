@@ -44,7 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
 
-#include "rtc/rtc.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <rtc/rtc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdarg>
 #include <utility>
@@ -55,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_RTC 0
 
 #if DEBUG_RTC
-#include "plog/Formatters/FuncMessageFormatter.h"
+#include <plog/Formatters/FuncMessageFormatter.h>
 #endif
 
 namespace libtorrent {
@@ -115,14 +117,16 @@ rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler han
 	debug_log("*** RTC signaling created");
 
 	static std::once_flag flag;
-	std::call_once(flag, [this]() {
 #if DEBUG_RTC
+	std::call_once(flag, [this]() {
 		appender.set_session(&m_torrent->session());
 		rtc::InitLogger(plog::Severity::debug, &appender);
-#else
-		rtc::InitLogger(plog::Severity::none, nullptr);
-#endif
 	});
+#else
+	std::call_once(flag, []() {
+		rtc::InitLogger(plog::Severity::none, nullptr);
+	});
+#endif
 }
 
 rtc_signaling::~rtc_signaling()
@@ -287,15 +291,15 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	{
 		// Warning: this is called from another thread
 		auto self = weak_this.lock();
-		auto pc = weak_pc.lock();
-		if (!self || !pc) return;
+		auto pc_ = weak_pc.lock();
+		if (!self || !pc_) return;
 
 		if (state == rtc::PeerConnection::State::Failed)
 		{
 			error_code const ec = boost::asio::error::connection_refused;
 			auto& io_context = self->m_io_context;
 
-			if(pc->gatheringState() != rtc::PeerConnection::GatheringState::Complete)
+			if(pc_->gatheringState() != rtc::PeerConnection::GatheringState::Complete)
 				post(io_context, std::bind(std::move(handler), ec, ""));
 
 			post(io_context, std::bind(&rtc_signaling::on_data_channel
@@ -313,13 +317,13 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	{
 		// Warning: this is called from another thread
 		auto self = weak_this.lock();
-		auto pc = weak_pc.lock();
-		if (!self || !pc) return;
+		auto pc_ = weak_pc.lock();
+		if (!self || !pc_) return;
 
 		if (state == rtc::PeerConnection::GatheringState::Complete)
 		{
 			auto& io_context = self->m_io_context;
-			auto description = *pc->localDescription();
+			auto description = *pc_->localDescription();
 			post(io_context, std::bind(std::move(handler), error_code{}, description));
 		}
 	});
