@@ -260,10 +260,12 @@ script:
   - 'if [[ $sanitizer == "on" ]]; then
       export B2_ARGS="${B2_ARGS} address-sanitizer=norecover undefined-sanitizer=norecover";
     fi'
+  - echo ${B2_ARGS}
 
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$crypto" == "openssl" ]]; then
     export B2_ARGS="${B2_ARGS} openssl-lib=/usr/local/opt/openssl@1.1/lib openssl-include=/usr/local/opt/openssl@1.1/include" ;
     fi'
+  - echo ${B2_ARGS}
 
   - 'if [ "$check_headers" == "1" ]; then
       ${B2} -j2 crypto=openssl check-headers ${B2_ARGS};
