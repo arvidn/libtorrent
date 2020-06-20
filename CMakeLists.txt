@@ -749,7 +749,7 @@ endif()
 
 if (webtorrent)
 	option(USE_JUICE "Use libjuice instead of libnice for libdatachannel" ON)
-	option(RTC_ENABLE_WEBSOCKET "Enable WebSocket support in libdatachannel" OFF)
+	option(NO_WEBSOCKET "Enable WebSocket support in libdatachannel" ON)
 	if(GNUTLS_FOUND)
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" ON)
 	else()
