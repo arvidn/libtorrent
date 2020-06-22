@@ -678,6 +678,10 @@ else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()
 
+# Boost		
+￼find_public_dependency(Boost REQUIRED COMPONENTS system)		
+￼target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
+
 if (exceptions)
 	if (MSVC)
 		target_compile_options(torrent-rasterbar PUBLIC /EHsc)
