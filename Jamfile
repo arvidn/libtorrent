@@ -234,6 +234,7 @@ rule warnings ( properties * )
 		result += <cflags>-Weverything ;
 		result += <cflags>-Wno-documentation ;
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
+		result += <cxxflags>-Wno-c++11-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
 # this warns on any global static object, which are used for error_category
@@ -258,7 +259,7 @@ rule warnings ( properties * )
 #		result += <cflags>-Wmisleading-indentation ;
 		result += <cflags>-Wparentheses ;
 		result += <cflags>-Wvla ;
-		result += <cxxflags>-Wc++11-compat ;
+		result += <cxxflags>-Wno-c++11-compat ;
 		result += <cflags>-Wno-format-zero-length ;
 		result += <cflags>-Wno-noexcept-type ;
 	}
