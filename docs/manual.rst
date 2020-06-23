@@ -519,6 +519,12 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | |              | hashes may be all zeros, if we haven't    | |
 |                          | |              | downloaded them yet.                      | |
 |                          | +--------------+-------------------------------------------+ |
+|                          | | ``mask``     | string. When present, a bitmask (of ``0`` | |
+|                          | |              | and ``1`` characters, indicating which    | |
+|                          | |              | hashes of the full tree are included in   | |
+|                          | |              | the ``hashes`` key. This is used to avoid | |
+|                          | |              | storing large numbers of zeros.           | |
+|                          | +--------------+-------------------------------------------+ |
 |                          | | ``verified`` | string. This indicates which leaf nodes   | |
 |                          | |              | in the tree have been verified correct.   | |
 |                          | |              | There is one character per leaf, ``0``    | |

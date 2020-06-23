@@ -74,6 +74,11 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int level_start);
 	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs);
 
+	// fills in nodes that can be computed from a tree with arbitrary nodes set
+	// all "orphan" hashes, i.e ones that do not contribute towards computing
+	// the root, will be cleared.
+	TORRENT_EXTRA_EXPORT void merkle_fill_partial_tree(span<sha256_hash> tree);
+
 	// given a merkle tree (`tree`), clears all hashes in the range of nodes:
 	// [ level_start, level_start+ num_leafs), as well as all of their parents,
 	// within the sub-tree. It does not clear the root of the sub-tree.

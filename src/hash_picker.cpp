@@ -93,7 +93,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	hash_picker::hash_picker(file_storage const& files
 		, aux::vector<aux::merkle_tree, file_index_t>& trees
-		, aux::vector<aux::vector<bool>, file_index_t> verified
+		, aux::vector<std::vector<bool>, file_index_t> verified
 		, bool all_verified)
 		: m_files(files)
 		, m_merkle_trees(trees)
@@ -111,7 +111,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 			// TODO: allocate m_hash_verified lazily when a hash conflist occurs?
 			// would save memory in the common case of no hash failures
-			m_hash_verified[f].resize(m_files.file_num_blocks(f), all_verified);
+			m_hash_verified[f].resize(std::size_t(m_files.file_num_blocks(f)), all_verified);
 			if (m_hash_verified[f].size() == 1)
 			{
 				// the root hash comes from the metadata so it is always verified
@@ -139,7 +139,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 						m_piece_hash_requested[f][i].have = true;
 						break;
 					}
-					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][j])
+					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][std::size_t(j)])
 						|| (m_files.piece_length() > default_block_size
 							&& !tree.has_node(piece_layer_start + j)))
 						break;
@@ -353,7 +353,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		}
 
 		// if this blocks's hash is already known, check the passed-in hash against it
-		if (m_hash_verified[f][block_index])
+		if (m_hash_verified[f][std::size_t(block_index)])
 		{
 			TORRENT_ASSERT(merkle_tree.has_node(block_tree_index));
 			if (block_tree_index > 0)
