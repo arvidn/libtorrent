@@ -8551,9 +8551,9 @@ namespace {
 	void torrent::set_max_uploads(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(limit >= -1);
+		// TODO: perhaps 0 should actially mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
-		if (int(m_max_uploads)!= limit && state_update) state_updated();
+		if (int(m_max_uploads) != limit && state_update) state_updated();
 		m_max_uploads = aux::numeric_cast<std::uint32_t>(limit);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log() && state_update)
@@ -8567,7 +8567,7 @@ namespace {
 	void torrent::set_max_connections(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(limit >= -1);
+		// TODO: perhaps 0 should actially mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (int(m_max_connections) != limit && state_update) state_updated();
 		m_max_connections = aux::numeric_cast<std::uint32_t>(limit);
@@ -8609,8 +8609,7 @@ namespace {
 	void torrent::set_limit_impl(int limit, int const channel, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = 0;
+		if (limit <= 0 || limit == aux::bandwidth_channel::inf) limit = 0;
 
 		if (m_peer_class == peer_class_t{0})
 		{
