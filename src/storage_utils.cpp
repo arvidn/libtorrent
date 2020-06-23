@@ -519,7 +519,8 @@ namespace libtorrent { namespace aux {
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist
-		for (piece_index_t i(0); i < piece_index_t(rd.have_pieces.size()); ++i)
+		piece_index_t const end_piece = std::min(rd.have_pieces.end_index(), fs.end_piece());
+		for (piece_index_t i(0); i < end_piece; ++i)
 		{
 			if (rd.have_pieces.get_bit(i) == false) continue;
 
