@@ -1135,15 +1135,25 @@ namespace {
 		return m_merkle_trees;
 	}
 
-	void torrent_info::internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> trees_import)
+	void torrent_info::internal_load_merkle_trees(
+		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
+		, aux::vector<std::vector<bool>, file_index_t> mask)
 	{
 		for (file_index_t i{0}; i < orig_files().end_file(); ++i)
 		{
 			if (orig_files().pad_file_at(i) || orig_files().file_size(i) == 0)
 				continue;
 
-			if (trees_import.size() <= std::size_t(static_cast<int>(i))) break;
-			m_merkle_trees[i].load_tree(trees_import[std::size_t(static_cast<int>(i))]);
+			if (i >= trees_import.end_index()) break;
+			if (i < mask.end_index() && !mask[i].empty())
+			{
+				mask[i].resize(m_merkle_trees[i].size(), false);
+				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i]);
+			}
+			else
+			{
+				m_merkle_trees[i].load_tree(trees_import[i]);
+			}
 		}
 	}
 

@@ -158,13 +158,17 @@ namespace {
 					ret.merkle_trees.back().emplace_back(hashes);
 				}
 
-				auto verified = de.dict_find_string_value("verified");
+				auto const verified = de.dict_find_string_value("verified");
 				ret.verified_leaf_hashes.emplace_back();
 				ret.verified_leaf_hashes.back().reserve(verified.size());
 				for (auto const bit : verified)
-				{
 					ret.verified_leaf_hashes.back().emplace_back(bit == '1');
-				}
+
+				auto const mask = de.dict_find_string_value("mask");
+				ret.merkle_tree_mask.emplace_back();
+				ret.merkle_tree_mask.back().reserve(mask.size());
+				for (auto const bit : mask)
+					ret.merkle_tree_mask.back().emplace_back(bit == '1');
 			}
 		}
 

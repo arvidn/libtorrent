@@ -371,6 +371,208 @@ TORRENT_TEST(merkle_fill_tree)
 	}
 }
 
+TORRENT_TEST(merkle_fill_partial_tree)
+{
+	// fill whole tree
+	{
+		v tree{o,
+		   o,      o,
+		  o, o,   o, o,
+		a,b,c,d,e,f,g,h};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 ab, cd, ef, gh,
+		a,b,c,d,e,f,g,h}));
+	}
+
+	// fill left side of the tree
+	{
+		v tree{o,
+		   o,      eh,
+		 ab,cd,   o, o,
+		a,b,c,d,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,    eh,
+		 ab, cd, o, o,
+		a,b,c,d,o,o,o,o}));
+	}
+
+	// fill right side of the tree
+	{
+		v tree{o,
+		   ad,     o,
+		 o,  o,   o, o,
+		o,o,o,o,e,f,g,h};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,  ef,gh,
+		o,o,o,o,e,f,g,h}));
+	}
+
+	// fill shallow left of the tree
+	{
+		v tree{
+		       o,
+		   o,      eh,
+		 ab, cd,   o, o,
+		o,o,o,o,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,    eh,
+		 ab, cd,   o, o,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// fill shallow right of the tree
+	{
+		v tree{
+		       o,
+		   ad,     o,
+		 o,  o,   ef,gh,
+		o,o,o,o,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,   ef, gh,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// fill uneven tree
+	{
+		v tree{
+		       o,
+		   ad,     o,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// clear orphans
+	{
+		v tree{
+		       o,
+		   ad,    ah,
+		 o,  o,  ef, gh,
+		a,o,c,o,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,   ef,gh,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// clear orphan sub-tree
+	{
+		v tree{o,
+		   o,     o,
+		 o, o,   o, o,
+		a,b,c,d,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		    v{o,
+		   o,     o,
+		 o, o,   o, o,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// fill sub-tree
+	{
+		v tree{o,
+		   o,     eh,
+		 o, o,   o, o,
+		a,b,c,d,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		    v{ah,
+		   ad,   eh,
+		 ab,cd,   o, o,
+		a,b,c,d,o,o,o,o}));
+	}
+
+	// clear no-siblings left
+	{
+		v tree{
+		       o,
+		   ad,    ah,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,o,h};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// clear no-siblings right
+	{
+		v tree{
+		       o,
+		   ad,    ah,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,g,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 o,  o,  ef, gh,
+		o,o,o,o,o,o,o,o}));
+	}
+
+	// fill gaps
+	{
+		v tree{
+		       o,
+		   ad,    ah,
+		 o,  o,  ef,gh,
+		a,b,c,d,o,o,o,o};
+
+		merkle_fill_partial_tree(tree);
+
+		TEST_CHECK((tree ==
+		     v{ah,
+		   ad,     eh,
+		 ab,cd,   ef,gh,
+		a,b,c,d,o,o,o,o}));
+	}
+}
+
 TORRENT_TEST(merkle_root)
 {
 	// all leaves in the tree

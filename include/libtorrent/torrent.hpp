@@ -1025,7 +1025,7 @@ namespace libtorrent {
 			return *m_hash_picker;
 		}
 
-		void need_hash_picker(aux::vector<aux::vector<bool>, file_index_t> verified = {});
+		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
 		bool has_hash_picker() const
 		{
 			return m_hash_picker.get() != nullptr;
