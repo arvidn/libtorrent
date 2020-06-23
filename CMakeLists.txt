@@ -471,6 +471,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Weverything
 		-Wno-documentation
 		-Wno-c++98-compat-pedantic
+		-Wno-c++11-compat-pedantic
 		-Wno-padded
 		-Wno-global-constructors
 		-Wno-exit-time-destructors
@@ -484,7 +485,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wpedantic
 		-Wparentheses
 		-Wvla
-		-Wc++11-compat
+		-Wno-c++11-compat
 		-Wno-format-zero-length
 		-Wno-noexcept-type
 		-ftemplate-depth=512)
