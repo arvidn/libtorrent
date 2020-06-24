@@ -411,7 +411,7 @@ namespace libtorrent {
 		// if a connection is erased while a timeout event is in the queue
 		std::unordered_map<std::uint32_t, std::shared_ptr<udp_tracker_connection>> m_udp_conns;
 
-		std::vector<std::shared_ptr<http_tracker_connection>> m_http_conns;
+		std::vector<std::weak_ptr<http_tracker_connection>> m_http_conns;
 		std::deque<std::shared_ptr<http_tracker_connection>> m_queued;
 
 		send_fun_t m_send_fun;

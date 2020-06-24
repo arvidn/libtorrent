@@ -331,7 +331,6 @@ TORRENT_TEST(exceed_file_prio)
 	p.save_path = ".";
 
 	lt::session ses(settings());
-	error_code ec;
 	torrent_handle h = ses.add_torrent(std::move(p));
 	auto const prios = h.get_file_priorities();
 	TEST_CHECK(prios.size() == 1);
@@ -354,7 +353,6 @@ TORRENT_TEST(exceed_piece_prio)
 	p.save_path = ".";
 
 	lt::session ses(settings());
-	error_code ec;
 	torrent_handle h = ses.add_torrent(std::move(p));
 	auto const prios = h.get_piece_priorities();
 	TEST_CHECK(prios.size() == num_pieces);
@@ -368,7 +366,6 @@ TORRENT_TEST(exceed_piece_prio_magnet)
 	p.save_path = ".";
 
 	lt::session ses(settings());
-	error_code ec;
 	torrent_handle h = ses.add_torrent(std::move(p));
 	auto const prios = h.get_piece_priorities();
 	TEST_CHECK(prios.empty());

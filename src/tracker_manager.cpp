@@ -233,7 +233,7 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		auto const i = std::find_if(m_http_conns.begin(), m_http_conns.end()
-			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+			, [c] (std::weak_ptr<http_tracker_connection> const& ptr) { return ptr.lock().get() == c; });
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
@@ -241,8 +241,8 @@ namespace libtorrent {
 			{
 				auto conn = std::move(m_queued.front());
 				m_queued.pop_front();
-				m_http_conns.push_back(std::move(conn));
-				m_http_conns.back()->start();
+				m_http_conns.emplace_back(conn);
+				conn->start();
 			}
 			return;
 		}
@@ -298,8 +298,8 @@ namespace libtorrent {
 			auto con = std::make_shared<http_tracker_connection>(ios, *this, std::move(req), c);
 			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
 			{
-				m_http_conns.push_back(std::move(con));
-				m_http_conns.back()->start();
+				m_http_conns.emplace_back(con);
+				con->start();
 			}
 			else
 			{
@@ -433,8 +433,13 @@ namespace libtorrent {
 		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
-		for (auto const& c : m_http_conns)
+		m_http_conns.erase(std::remove_if(m_http_conns.begin(), m_http_conns.end()
+			, [](std::weak_ptr<http_tracker_connection> const& c)
+			{ return c.use_count() == 0; } ), m_http_conns.end());
+
+		for (auto const& wc : m_http_conns)
 		{
+			auto c = wc.lock();
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;

@@ -116,7 +116,6 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	lt::create_torrent t(fs, 0x40000, -1, {});
 
 	// calculate the hash for all pieces
-	lt::error_code ec;
 	set_piece_hashes(t, ".");
 
 	std::vector<char> buf;
