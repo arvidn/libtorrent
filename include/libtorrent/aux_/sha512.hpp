@@ -24,8 +24,8 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT int SHA512_init(sha512_ctx* md);
 	TORRENT_EXTRA_EXPORT int SHA512_update(sha512_ctx* md
-		, std::uint8_t const* data, std::size_t len);
-	TORRENT_EXTRA_EXPORT int SHA512_final(std::uint8_t* digest, sha512_ctx* md);
+		, std::uint8_t const* in, std::size_t len);
+	TORRENT_EXTRA_EXPORT int SHA512_final(std::uint8_t* out, sha512_ctx* md);
 }
 }
 

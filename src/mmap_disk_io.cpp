@@ -506,7 +506,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	namespace {
 
-	typedef status_t (mmap_disk_io::*disk_io_fun_t)(aux::disk_io_job* j);
+	using disk_io_fun_t = status_t (mmap_disk_io::*)(aux::disk_io_job* j);
 
 	// this is a jump-table for disk I/O jobs
 	std::array<disk_io_fun_t, 12> const job_functions =

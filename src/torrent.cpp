@@ -6422,7 +6422,7 @@ namespace {
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
-			socks5_stream& str =
+			auto& str =
 #if TORRENT_USE_SSL
 				ssl ? std::get<ssl_stream<socks5_stream>>(s).next_layer() :
 #endif

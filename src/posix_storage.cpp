@@ -58,7 +58,7 @@ namespace aux {
 		if (p.mapped_files) m_mapped_files = std::make_unique<file_storage>(*p.mapped_files);
 	}
 
-	file_storage const& posix_storage::files() const { return m_mapped_files ? *m_mapped_files.get() : m_files; }
+	file_storage const& posix_storage::files() const { return m_mapped_files ? *m_mapped_files : m_files; }
 
 	posix_storage::~posix_storage()
 	{

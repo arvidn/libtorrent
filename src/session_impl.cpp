@@ -3590,7 +3590,7 @@ namespace {
 
 	bool session_impl::has_dht() const
 	{
-		return m_dht.get() != nullptr;
+		return m_dht != nullptr;
 	}
 
 	void session_impl::prioritize_dht(std::weak_ptr<torrent> t)

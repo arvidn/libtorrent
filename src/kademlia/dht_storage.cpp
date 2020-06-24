@@ -144,6 +144,9 @@ namespace {
 		explicit immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
+		// explicitly disallow assignment, to silence msvc warning
+		immutable_item_comparator& operator=(immutable_item_comparator const&) = delete;
+
 		template <typename Item>
 		bool operator()(std::pair<node_id const, Item> const& lhs
 			, std::pair<node_id const, Item> const& rhs) const
@@ -161,9 +164,6 @@ namespace {
 		}
 
 	private:
-
-		// explicitly disallow assignment, to silence msvc warning
-		immutable_item_comparator& operator=(immutable_item_comparator const&) = delete;
 
 		std::vector<node_id> const& m_node_ids;
 	};

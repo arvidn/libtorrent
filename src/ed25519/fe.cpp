@@ -954,7 +954,6 @@ void fe_pow22523(fe out, const fe z) {
     }
 
     fe_mul(out, t0, z);
-    return;
 }
 
 
