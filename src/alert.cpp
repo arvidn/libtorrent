@@ -384,7 +384,6 @@ namespace libtorrent {
 		, string_view u, error_code const& e)
 		: tracker_alert(alloc, h, ep, u)
 		, error(e)
-		, m_msg_idx()
 #if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(e.message()))
 #endif
@@ -1681,7 +1680,6 @@ namespace {
 		: target(t)
 		, public_key()
 		, signature()
-		, salt()
 		, seq(0)
 		, num_success(n)
 	{}
@@ -1945,7 +1943,6 @@ namespace {
 		: torrent_alert(alloc, h)
 		, error(e)
 		, m_url_idx(alloc.copy_string(u))
-		, m_msg_idx()
 #if TORRENT_ABI_VERSION == 1
 		, url(u)
 		, msg(convert_from_native(e.message()))
@@ -2171,7 +2168,6 @@ namespace {
 		, udp::endpoint const& addr_)
 		: userdata(userdata_), endpoint(addr_)
 		, m_alloc(alloc)
-		, m_response_idx()
 		, m_response_size(0)
 #if TORRENT_ABI_VERSION == 1
 		, addr(addr_)
