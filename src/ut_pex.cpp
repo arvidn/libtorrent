@@ -85,6 +85,9 @@ namespace libtorrent { namespace {
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 
+		// explicitly disallow assignment, to silence msvc warning
+		ut_pex_plugin& operator=(ut_pex_plugin const&) = delete;
+
 		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
@@ -220,9 +223,6 @@ namespace libtorrent { namespace {
 		time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message;
-
-		// explicitly disallow assignment, to silence msvc warning
-		ut_pex_plugin& operator=(ut_pex_plugin const&) = delete;
 	};
 
 	struct ut_pex_peer_plugin final
@@ -242,6 +242,9 @@ namespace libtorrent { namespace {
 				m_last_pex[i] = min_time();
 			}
 		}
+
+		// explicitly disallow assignment, to silence msvc warning
+		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&) = delete;
 
 		void add_handshake(entry& h) override
 		{
@@ -634,9 +637,6 @@ namespace libtorrent { namespace {
 		// it is used to know if a diff message or a) ful
 		// message should be sent.
 		bool m_first_time;
-
-		// explicitly disallow assignment, to silence msvc warning
-		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&) = delete;
 	};
 
 	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)

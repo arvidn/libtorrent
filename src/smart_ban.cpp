@@ -76,6 +76,9 @@ namespace {
 			, m_salt(random(0xffffffff))
 		{}
 
+		// explicitly disallow assignment, to silence msvc warning
+		smart_ban_plugin& operator=(smart_ban_plugin const&) = delete;
+
 		void on_piece_pass(piece_index_t const p) override
 		{
 			// has this piece failed earlier? If it has, go through the
@@ -319,9 +322,6 @@ namespace {
 		// the salt is required to avoid attacks where bad data is sent
 		// that is forged to match the CRC of the good data.
 		std::uint32_t const m_salt;
-
-		// explicitly disallow assignment, to silence msvc warning
-		smart_ban_plugin& operator=(smart_ban_plugin const&) = delete;
 	};
 
 } }

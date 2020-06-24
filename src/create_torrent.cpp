@@ -339,7 +339,7 @@ namespace {
 		counters cnt;
 		int const num_threads = sett.get_int(settings_pack::hashing_threads);
 		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, sett, cnt);
-		disk_aborter da(*disk_thread.get());
+		disk_aborter da(*disk_thread);
 
 		aux::vector<download_priority_t, file_index_t> priorities;
 		sha1_hash info_hash;
@@ -360,7 +360,7 @@ namespace {
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
 			, 1 * 1024 * 1024 / t.piece_length());
 
-		hash_state st = { t, std::move(storage), *disk_thread.get(), piece_index_t(0), piece_index_t(0), f, ec };
+		hash_state st = { t, std::move(storage), *disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
 			aux::vector<sha256_hash> v2_blocks;

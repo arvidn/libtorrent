@@ -1,5 +1,5 @@
 ---
-Checks:          '-clang-analyzer-core.*,readability-redundant-member-init,modernize-pass-by-value,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list'
+Checks:          '-clang-analyzer-core.*,readability-redundant-smartptr-get,readability-redundant-declaration,readability-redundant-control-flow,readability-delete-null-pointer,performance-faster-string-find,misc-uniqueptr-reset-release,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,modernize-redundant-void-arg,google-runtime-operator,modernize-use-equals-delete,modernize-use-using,modernize-use-nullptr,readability-const-return-type,modernize-use-noexcept,readability-avoid-const-params-in-decls,readability-redundant-string-cstr,readability-redundant-member-init,modernize-pass-by-value,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list'
 CheckOptions:
   - key:             cert-dcl16-c.NewSuffixes
     value:           'L;LL;LU;LLU'
