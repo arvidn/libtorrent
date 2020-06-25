@@ -1210,12 +1210,12 @@ namespace {
 
 struct upnp_error_category final : boost::system::error_category
 {
-	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return "upnp";
 	}
 
-	std::string message(int ev) const override
+	[[nodiscard]] std::string message(int ev) const override
 	{
 		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 		error_code_t* end = error_codes + num_errors;
@@ -1232,7 +1232,7 @@ struct upnp_error_category final : boost::system::error_category
 		return msg;
 	}
 
-	boost::system::error_condition default_error_condition(
+	[[nodiscard]] boost::system::error_condition default_error_condition(
 		int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return {ev, *this};

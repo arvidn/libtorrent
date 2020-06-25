@@ -43,9 +43,9 @@ namespace libtorrent {
 
 	struct libtorrent_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
-		std::string message(int ev) const override;
-		boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT override
+		[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override;
+		[[nodiscard]] std::string message(int ev) const override;
+		[[nodiscard]] boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return {ev, *this}; }
 	};
 
@@ -308,9 +308,9 @@ namespace libtorrent {
 
 	struct http_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override
+		[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "http"; }
-		std::string message(int ev) const override
+		[[nodiscard]] std::string message(int ev) const override
 		{
 			std::string ret;
 			ret += to_string(ev).data();
@@ -338,7 +338,7 @@ namespace libtorrent {
 			}
 			return ret;
 		}
-		boost::system::error_condition default_error_condition(
+		[[nodiscard]] boost::system::error_condition default_error_condition(
 			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return {ev, *this}; }
 	};

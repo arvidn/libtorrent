@@ -67,9 +67,9 @@ namespace libtorrent {
 
 struct pcp_error_category final : boost::system::error_category
 {
-	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{ return "pcp error"; }
-	std::string message(int ev) const override
+	[[nodiscard]] std::string message(int ev) const override
 	{
 		static char const* msgs[] =
 		{
@@ -92,7 +92,7 @@ struct pcp_error_category final : boost::system::error_category
 			return "Unknown error";
 		return msgs[ev];
 	}
-	boost::system::error_condition default_error_condition(
+	[[nodiscard]] boost::system::error_condition default_error_condition(
 		int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{ return {ev, *this}; }
 };

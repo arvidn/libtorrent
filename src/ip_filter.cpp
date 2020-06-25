@@ -248,7 +248,7 @@ namespace aux {
 
 	template <typename Addr>
 	template <typename ExternalAddressType>
-	std::vector<ip_range<ExternalAddressType>> filter_impl<Addr>::export_filter() const
+	[[nodiscard]] std::vector<ip_range<ExternalAddressType>> filter_impl<Addr>::export_filter() const
 	{
 		std::vector<ip_range<ExternalAddressType>> ret;
 		ret.reserve(m_access_list.size());

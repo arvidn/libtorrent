@@ -53,9 +53,9 @@ namespace libtorrent {
 
 	struct i2p_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override
+		[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "i2p error"; }
-		std::string message(int ev) const override
+		[[nodiscard]] std::string message(int ev) const override
 		{
 			static char const* messages[] =
 			{
@@ -73,7 +73,7 @@ namespace libtorrent {
 			if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
 			return messages[ev];
 		}
-		boost::system::error_condition default_error_condition(
+		[[nodiscard]] boost::system::error_condition default_error_condition(
 			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return {ev, *this}; }
 	};

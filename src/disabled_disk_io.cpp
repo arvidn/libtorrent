@@ -179,7 +179,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	// here. The buffer is owned by the disabled_disk_io object itself
 	void free_disk_buffer(char*) override {}
 
-	std::vector<open_file_state> get_status(storage_index_t) const override
+	[[nodiscard]] std::vector<open_file_state> get_status(storage_index_t) const override
 	{ return {}; }
 
 	// this submits all queued up jobs to the thread

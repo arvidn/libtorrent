@@ -182,12 +182,12 @@ namespace {
 
 		struct utf8_error_category final : boost::system::error_category
 		{
-			const char* name() const BOOST_SYSTEM_NOEXCEPT override
+			[[nodiscard]] const char* name() const BOOST_SYSTEM_NOEXCEPT override
 			{
 				return "UTF error";
 			}
 
-			std::string message(int ev) const override
+			[[nodiscard]] std::string message(int ev) const override
 			{
 				static char const* error_messages[] = {
 					"ok",
@@ -201,7 +201,7 @@ namespace {
 				return error_messages[ev];
 			}
 
-			boost::system::error_condition default_error_condition(
+			[[nodiscard]] boost::system::error_condition default_error_condition(
 				int ev) const BOOST_SYSTEM_NOEXCEPT override
 			{ return {ev, *this}; }
 		};

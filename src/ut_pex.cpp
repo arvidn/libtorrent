@@ -96,7 +96,7 @@ namespace libtorrent { namespace {
 			return m_ut_pex_msg;
 		}
 
-		int peers_in_msg() const
+		[[nodiscard]] int peers_in_msg() const
 		{
 			return m_peers_in_message;
 		}

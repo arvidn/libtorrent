@@ -3904,7 +3904,7 @@ namespace {
 			std::vector<std::shared_ptr<plugin>>& plugins;
 #endif
 
-			uint64_t get_ext_priority(opt_unchoke_candidate const& peer) const
+			[[nodiscard]] uint64_t get_ext_priority(opt_unchoke_candidate const& peer) const
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 				if (peer.ext_priority == priority_undetermined)

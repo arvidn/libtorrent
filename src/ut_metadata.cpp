@@ -103,7 +103,7 @@ namespace {
 		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
-		span<char const> metadata() const
+		[[nodiscard]] span<char const> metadata() const
 		{
 			if (!m_metadata.empty()) return m_metadata;
 			if (!m_torrent.valid_metadata()) return {};

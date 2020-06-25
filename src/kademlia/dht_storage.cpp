@@ -187,7 +187,7 @@ namespace {
 		aux::vector<sha1_hash> samples;
 		time_point created = min_time();
 
-		int count() const { return int(samples.size()); }
+		[[nodiscard]] int count() const { return int(samples.size()); }
 	};
 
 	class dht_default_storage final : public dht_storage_interface
@@ -206,8 +206,8 @@ namespace {
 		dht_default_storage& operator=(dht_default_storage const&) = delete;
 
 #if TORRENT_ABI_VERSION == 1
-		size_t num_torrents() const override { return m_map.size(); }
-		size_t num_peers() const override
+		[[nodiscard]] size_t num_torrents() const override { return m_map.size(); }
+		[[nodiscard]] size_t num_peers() const override
 		{
 			size_t ret = 0;
 			for (auto const& t : m_map)
@@ -541,7 +541,7 @@ namespace {
 			}
 		}
 
-		dht_storage_counters counters() const override
+		[[nodiscard]] dht_storage_counters counters() const override
 		{
 			return m_counters;
 		}
