@@ -131,7 +131,7 @@ namespace aux {
 	{
 		int max_buffer_size = 6000000;
 		// the max number of pieces allowed in the torrent
-		int max_pieces = 0x100000;
+		int max_pieces = 0x1000000;
 		// the max recursion depth in the bdecoded structure
 		int max_decode_depth = 100;
 		// the max number of bdecode tokens
