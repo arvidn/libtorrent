@@ -374,6 +374,27 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
 
+    def test_load_decode_depth_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'test': {'test': {'test': {'test': {'test': {}}}}}, 'info': {
+                'name': 'test_torrent', 'length': 1234,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_decode_depth': 1}))
+
+    def test_load_max_pieces_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_pieces': 1}))
+
+    def test_load_max_buffer_size_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_buffer_size': 1}))
+
     def test_metadata(self):
         ti = lt.torrent_info('base.torrent')
 
