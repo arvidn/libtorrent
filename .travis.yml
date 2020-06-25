@@ -18,6 +18,7 @@ matrix:
         apt:
           packages:
           - python3-pip
+          - clang-tidy-9
     - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=debug tests=1 mmap=off toolset=gcc
     - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on
@@ -155,7 +156,7 @@ install:
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
   - 'if [ $clang_tidy == "1" ]; then
-      echo "using clang_tidy : : clang-tidy : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+      echo "using clang_tidy : : clang-tidy-9 : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
        echo "using darwin : : ccache clang++ : ;" >> ~/user-config.jam;
@@ -252,8 +253,8 @@ script:
        sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
   - 'if [[ $clang_tidy == "1" ]]; then
-       which clang-tidy;
-       clang-tidy --version;
+       which clang-tidy-9;
+       clang-tidy-9 --version;
        ${B2} -a -j2 crypto=openssl cxxstd=17 clang_tidy;
     fi'
 
