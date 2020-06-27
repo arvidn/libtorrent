@@ -76,7 +76,7 @@ namespace libtorrent {
 
 	private:
 
-		void open_file(open_mode_t mode, error_code& ec);
+		file open_file(open_mode_t mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const
@@ -122,11 +122,6 @@ namespace libtorrent {
 
 		// maps a piece index to the part-file slot it is stored in
 		std::unordered_map<piece_index_t, slot_index_t> m_piece_map;
-
-		// this is the file handle to the part file
-		// it's allocated on the heap and reference counted, to allow it to be
-		// closed and re-opened while other threads are still using it
-		std::shared_ptr<file> m_file;
 	};
 }
 

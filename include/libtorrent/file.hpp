@@ -167,6 +167,8 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT file : boost::noncopyable
 	{
 		file();
+		file(file&&) noexcept;
+		file& operator=(file&&);
 		file(std::string const& p, open_mode_t m, error_code& ec);
 		~file();
 
