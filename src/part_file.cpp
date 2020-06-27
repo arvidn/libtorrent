@@ -91,14 +91,13 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_piece_size > 0);
 
 		error_code ec;
-		std::string fn = combine_path(m_path, m_name);
-		auto f = std::make_shared<file>(fn, open_mode::read_only, ec);
+		auto f = open_file(open_mode::read_only, ec);
 		if (ec) return;
 
 		// parse header
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
 		iovec_t b = header;
-		int n = int(f->readv(0, b, ec));
+		int n = int(f.readv(0, b, ec));
 		if (ec) return;
 
 		// we don't have a full header. consider the file empty
@@ -140,7 +139,6 @@ namespace libtorrent {
 		{
 			if (free_slots[i]) m_free_slots.push_back(i);
 		}
-		m_file = std::move(f);
 	}
 
 	part_file::~part_file()
@@ -177,17 +175,16 @@ namespace libtorrent {
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
+		auto f = open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
 		if (ec) return -1;
 
 		auto const i = m_piece_map.find(piece);
 		slot_index_t const slot = (i == m_piece_map.end())
 			? allocate_slot(piece) : i->second;
 
-		auto const f = m_file;
 		l.unlock();
 
-		return int(f->writev(slot_offset(slot) + offset, bufs, ec));
+		return int(f.writev(slot_offset(slot) + offset, bufs, ec));
 	}
 
 	int part_file::readv(span<iovec_t const> bufs
@@ -204,24 +201,18 @@ namespace libtorrent {
 		}
 
 		slot_index_t const slot = i->second;
-		open_file(open_mode::read_only | open_mode::attribute_hidden, ec);
-		if (ec) return -1;
-
-		auto const f = m_file;
 		l.unlock();
 
-		return int(f->readv(slot_offset(slot) + offset, bufs, ec));
+		auto f = open_file(open_mode::read_only | open_mode::attribute_hidden, ec);
+		if (ec) return -1;
+
+		return int(f.readv(slot_offset(slot) + offset, bufs, ec));
 	}
 
-	void part_file::open_file(open_mode_t const mode, error_code& ec)
+	file part_file::open_file(open_mode_t const mode, error_code& ec)
 	{
-		if (m_file && m_file->is_open()
-			&& (mode == open_mode::read_only
-			|| (m_file->open_mode() & open_mode::rw_mask) == open_mode::read_write))
-			return;
-
 		std::string const fn = combine_path(m_path, m_name);
-		auto f = std::make_shared<file>(fn, mode, ec);
+		file f(fn, mode, ec);
 		if (((mode & open_mode::rw_mask) != open_mode::read_only)
 			&& ec == boost::system::errc::no_such_file_or_directory)
 		{
@@ -230,10 +221,11 @@ namespace libtorrent {
 			ec.clear();
 			create_directories(m_path, ec);
 
-			if (ec) return;
-			f = std::make_shared<file>(fn, mode, ec);
+			if (ec) return {};
+			f = file(fn, mode, ec);
 		}
-		if (!ec) m_file = std::move(f);
+		if (ec) return {};
+		return f;
 	}
 
 	void part_file::free_piece(piece_index_t const piece)
@@ -260,11 +252,6 @@ namespace libtorrent {
 		flush_metadata_impl(ec);
 		if (ec) return;
 
-		// we're only supposed to move part files from a fence job. i.e. no other
-		// disk jobs are supposed to be in-flight at this point
-		TORRENT_ASSERT(!m_file || m_file.use_count() == 1);
-		m_file.reset();
-
 		if (!m_piece_map.empty())
 		{
 			std::string old_path = combine_path(m_path, m_name);
@@ -289,6 +276,9 @@ namespace libtorrent {
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
+		// there's nothing stored in the part_file. Nothing to do
+		if (m_piece_map.empty()) return;
+
 		piece_index_t piece(int(offset / m_piece_size));
 		piece_index_t const end = piece_index_t(int(((offset + size) + m_piece_size - 1) / m_piece_size));
 
@@ -297,6 +287,9 @@ namespace libtorrent {
 		std::int64_t piece_offset = offset - std::int64_t(static_cast<int>(piece))
 			* m_piece_size;
 		std::int64_t file_offset = 0;
+		auto file = open_file(open_mode::read_only, ec);
+		if (ec) return;
+
 		for (; piece < end; ++piece)
 		{
 			auto const i = m_piece_map.find(piece);
@@ -304,9 +297,6 @@ namespace libtorrent {
 			if (i != m_piece_map.end())
 			{
 				slot_index_t const slot = i->second;
-				open_file(open_mode::read_only, ec);
-				if (ec) return;
-				auto const local_file = m_file;
 
 				if (!buf) buf.reset(new char[std::size_t(m_piece_size)]);
 
@@ -314,7 +304,7 @@ namespace libtorrent {
 				l.unlock();
 
 				iovec_t v = {buf.get(), block_to_copy};
-				auto bytes_read = local_file->readv(slot_offset(slot) + piece_offset, v, ec);
+				auto bytes_read = file.readv(slot_offset(slot) + piece_offset, v, ec);
 				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.empty()) return;
@@ -364,8 +354,6 @@ namespace libtorrent {
 
 		if (m_piece_map.empty())
 		{
-			m_file.reset();
-
 			// if we don't have any pieces left in the
 			// part file, remove it
 			std::string const p = combine_path(m_path, m_name);
@@ -376,7 +364,7 @@ namespace libtorrent {
 			return;
 		}
 
-		open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
+		auto f = open_file(open_mode::read_write | open_mode::attribute_hidden, ec);
 		if (ec) return;
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
@@ -396,7 +384,7 @@ namespace libtorrent {
 		}
 		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - header.data())));
 		iovec_t b = header;
-		m_file->writev(0, b, ec);
+		f.writev(0, b, ec);
 		if (ec) return;
 		m_dirty_metadata = false;
 	}
