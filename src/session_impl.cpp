@@ -3215,7 +3215,8 @@ namespace {
 				// shut-down
 				if (m_abort)
 				{
-					post(m_io_context, std::bind(&session_impl::abort_stage2, this));
+					post(m_io_context, make_handler([this] { abort_stage2(); }
+						, m_abort_handler_storage, *this));
 				}
 			}
 		}
@@ -4816,12 +4817,13 @@ namespace {
 		TORRENT_ASSERT(!params.save_path.empty());
 
 		using ptr_t = std::shared_ptr<torrent>;
+		using ret_t = std::tuple<std::shared_ptr<torrent>, info_hash_t, bool>;
 
 #if TORRENT_ABI_VERSION == 1
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
-			if (ec) return {ptr_t(), params.info_hash, false};
+			if (ec) return ret_t{ptr_t(), params.info_hash, false};
 			params.url.clear();
 		}
 #endif
@@ -4829,13 +4831,13 @@ namespace {
 		if (params.ti && !params.ti->is_valid())
 		{
 			ec = errors::no_metadata;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 		if (params.ti
@@ -4844,7 +4846,7 @@ namespace {
 			))
 		{
 			ec = errors::mismatching_info_hash;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -4864,7 +4866,7 @@ namespace {
 		if (is_aborted())
 		{
 			ec = errors::session_is_closing;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 		// figure out the info hash of the torrent and make sure params.info_hash
@@ -4874,7 +4876,7 @@ namespace {
 		if (!params.info_hash.has_v1() && !params.info_hash.has_v2())
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 		// is the torrent already active?
@@ -4883,10 +4885,10 @@ namespace {
 		if (torrent_ptr)
 		{
 			if (!(params.flags & torrent_flags::duplicate_is_error))
-				return {torrent_ptr, params.info_hash, false};
+				return ret_t{std::move(torrent_ptr), params.info_hash, false};
 
 			ec = errors::duplicate_torrent;
-			return {ptr_t(), params.info_hash, false};
+			return ret_t{ptr_t(), params.info_hash, false};
 		}
 
 		// make sure we have enough memory in the torrent lists up-front,
@@ -4903,7 +4905,7 @@ namespace {
 
 		// it's fine to copy this moved-from info_hash_t object, since its move
 		// construction is just a copy.
-		return {torrent_ptr, params.info_hash, true};
+		return ret_t{std::move(torrent_ptr), params.info_hash, true};
 	}
 
 	void session_impl::update_outgoing_interfaces()

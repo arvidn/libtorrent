@@ -733,8 +733,8 @@ namespace {
 
 TORRENT_VERSION_NAMESPACE_3
 
-	torrent_info::torrent_info(torrent_info const& t) = default;
-	torrent_info& torrent_info::operator=(torrent_info&& t) = default;
+	torrent_info::torrent_info(torrent_info const&) = default;
+	torrent_info& torrent_info::operator=(torrent_info&&) = default;
 
 	void torrent_info::resolve_duplicate_filenames()
 	{
