@@ -379,6 +379,27 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(info.info_hash(), lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
         self.assertEqual(info.info_hashes().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
 
+    def test_load_decode_depth_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'test': {'test': {'test': {'test': {'test': {}}}}}, 'info': {
+                'name': 'test_torrent', 'length': 1234,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_decode_depth': 1}))
+
+    def test_load_max_pieces_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_pieces': 1}))
+
+    def test_load_max_buffer_size_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_buffer_size': 1}))
+
     def test_metadata(self):
         if not HAVE_DEPRECATED_APIS:
             return

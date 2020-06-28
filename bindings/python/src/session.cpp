@@ -489,7 +489,7 @@ namespace
     list get_torrent_status(lt::session& s, object pred, int const flags)
     {
         std::vector<torrent_status> torrents
-            = s.get_torrent_status(boost::bind(&wrap_pred, pred, _1), status_flags_t(flags));
+            = s.get_torrent_status(std::bind(&wrap_pred, pred, std::placeholders::_1), status_flags_t(flags));
 
         list ret;
         for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
