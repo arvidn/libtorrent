@@ -2588,8 +2588,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 			return status_t::no_error;
 
-		// if the seed mode flag is not set, and the piece vector is empty, it
-		// suggests we're starting without any resume data
 		if (!aux::contains_resume_data(*rd))
 		{
 			// if we don't have any resume data, we still may need to trigger a

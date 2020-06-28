@@ -1905,7 +1905,6 @@ bool is_downloading_state(int const st)
 			update_gauge();
 		}
 
-
 		if (m_seed_mode)
 		{
 			m_have_all = true;
@@ -2194,12 +2193,11 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		bool should_start_full_check = (status != status_t::no_error)
-			&& !m_seed_mode;
+		bool should_start_full_check = (status != status_t::no_error);
 
 		// if we got a partial pieces bitfield, it means we were in the middle of
 		// checking this torrent. pick it up where we left off
-		if (!should_start_full_check
+		if (status == status_t::no_error
 			&& m_add_torrent_params
 			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_add_torrent_params->have_pieces.size() < m_torrent_file->num_pieces())
@@ -2213,18 +2211,30 @@ bool is_downloading_state(int const st)
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (m_seed_mode)
-		{
-			m_have_all = true;
-			update_gauge();
-			update_state_list();
-		}
-		else if (status == status_t::no_error)
+		if (status == status_t::no_error)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!error && m_add_torrent_params)
+			if (m_seed_mode)
+			{
+				m_have_all = true;
+				update_gauge();
+				update_state_list();
+
+				if (!error && m_add_torrent_params)
+				{
+					int const num_pieces2 = std::min(m_add_torrent_params->verified_pieces.size()
+						, torrent_file().num_pieces());
+					for (piece_index_t i = piece_index_t(0);
+						i < piece_index_t(num_pieces2); ++i)
+					{
+						if (!m_add_torrent_params->verified_pieces[i]) continue;
+						m_verified.set_bit(i);
+					}
+				}
+			}
+			else if (!error && m_add_torrent_params)
 			{
 				// --- PIECES ---
 
@@ -2238,18 +2248,6 @@ bool is_downloading_state(int const st)
 					inc_stats_counter(counters::num_piece_passed);
 					update_gauge();
 					we_have(i);
-				}
-
-				if (m_seed_mode)
-				{
-					int const num_pieces2 = std::min(m_add_torrent_params->verified_pieces.size()
-						, torrent_file().num_pieces());
-					for (piece_index_t i = piece_index_t(0);
-						i < piece_index_t(num_pieces2); ++i)
-					{
-						if (!m_add_torrent_params->verified_pieces[i]) continue;
-						m_verified.set_bit(i);
-					}
 				}
 
 				// --- UNFINISHED PIECES ---
@@ -2293,11 +2291,18 @@ bool is_downloading_state(int const st)
 				}
 			}
 		}
+		else
+		{
+			m_seed_mode = false;
+			// either the fastresume data was rejected or there are
+			// some files
+			m_have_all = false;
+			update_gauge();
+			update_state_list();
+		}
 
 		if (should_start_full_check)
 		{
-			// either the fastresume data was rejected or there are
-			// some files
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
 
