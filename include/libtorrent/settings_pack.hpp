@@ -1935,12 +1935,9 @@ namespace aux {
 		};
 
 		// hidden
-		enum settings_counts_t : int
-		{
-			num_string_settings = int(max_string_setting_internal) - int(string_type_base),
-			num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base),
-			num_int_settings = int(max_int_setting_internal) - int(int_type_base)
-		};
+		constexpr static int num_string_settings = int(max_string_setting_internal) - int(string_type_base);
+		constexpr static int num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base);
+		constexpr static int num_int_settings = int(max_int_setting_internal) - int(int_type_base);
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 

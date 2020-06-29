@@ -106,10 +106,18 @@ namespace libtorrent {
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
 #endif
 
+		// tested to fail with _MSC_VER <= 1916. The actual version condition
+#if !defined _MSC_VER
+#define CONSTEXPR_SETTINGS constexpr
+#else
+#define CONSTEXPR_SETTINGS
+#endif
+
 	namespace {
 
 	using aux::session_impl;
 
+	CONSTEXPR_SETTINGS
 	aux::array<str_setting_entry_t, settings_pack::num_string_settings> const str_settings
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
@@ -126,6 +134,7 @@ namespace libtorrent {
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
 	}});
 
+	CONSTEXPR_SETTINGS
 	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
 	({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
@@ -210,6 +219,7 @@ namespace libtorrent {
 		SET(validate_https_trackers, false, &session_impl::update_validate_https),
 	}});
 
+	CONSTEXPR_SETTINGS
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
 	({{
 		SET(tracker_completion_timeout, 30, nullptr),
@@ -366,6 +376,7 @@ namespace libtorrent {
 
 #undef SET
 #undef DEPRECATED_SET
+#undef CONSTEXPR_SETTINGS
 
 	} // anonymous namespace
 
