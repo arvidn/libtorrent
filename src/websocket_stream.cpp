@@ -64,7 +64,7 @@ websocket_stream::websocket_stream(io_context& ios
 	, m_resolver(resolver)
 	, m_ssl_context(ssl_ctx)
 	, m_stream(std::in_place_type_t<stream_type>{}, ios)
- 	, m_open(false)
+	, m_open(false)
 {
 
 }
@@ -110,7 +110,7 @@ void websocket_stream::do_connect(std::string url)
 	m_url = std::move(url);
 
 	error_code ec;
-	auto [protocol, _ignored, hostname,  port, target] = parse_url_components(m_url, ec);
+	auto [protocol, _ignored, hostname, port, target] = parse_url_components(m_url, ec);
 	TORRENT_UNUSED(_ignored);
 	if (ec)
 	{
@@ -241,8 +241,9 @@ void websocket_stream::do_handshake()
 			if (!user_agent.empty()) req.set(http::field::user_agent, user_agent);
 		};
 
+	bool is_ssl = std::holds_alternative<ssl_stream_type>(m_stream);
 	std::string host = m_hostname;
-	if(m_port != 80 && m_port != 443)
+	if((!is_ssl && m_port != 80) || (is_ssl &&  m_port != 443))
 		host += std::string(":") + std::to_string(m_port);
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
@@ -250,11 +251,11 @@ void websocket_stream::do_handshake()
 		{
 #if BOOST_VERSION >= 107000
 			stream.set_option(websocket::stream_base::decorator(user_agent_handler));
-			stream.async_handshake(m_hostname
+			stream.async_handshake(host
 				, m_target
 				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));
 #else
-			stream.async_handshake_ex(m_hostname
+			stream.async_handshake_ex(host
 				, m_target
 				, user_agent_handler
 				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));

@@ -344,7 +344,8 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		));
 	});
 
-	time_duration const timeout = seconds(m_torrent->settings().get_int(settings_pack::webtorrent_connection_timeout));
+	int const connection_timeout = m_torrent->settings().get_int(settings_pack::webtorrent_connection_timeout);
+	time_duration const timeout = seconds(std::max(connection_timeout, 1));
 	connection conn(m_io_context);
 	conn.peer_connection = std::move(pc);
 	conn.timer.expires_after(timeout);
@@ -393,7 +394,7 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	auto it = m_connections.find(offer_id);
 	if (it == m_connections.end()) return;
 
-	auto conn = std::move(it->second);
+	connection conn = std::move(it->second);
 	m_connections.erase(it);
 
 	if (ec || !conn.pid)

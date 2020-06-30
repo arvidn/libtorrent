@@ -569,7 +569,7 @@ TORRENT_TEST(current_tracker)
 #if TORRENT_USE_RTC
 TORRENT_TEST(parse_websocket_tracker_response)
 {
-	char const response[] = "{\"complete\":1,\"incomplete\":0,\"action\":\"announce\",\"interval\":120,\"info_hash\":\"xxxxxxxxxxxxxxxxxxxx\"}";
+	char const response[] = R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -598,7 +598,7 @@ TORRENT_TEST(parse_websocket_tracker_response)
 
 TORRENT_TEST(parse_websocket_tracker_invalid_json)
 {
-	char const response[] = "{\"invalid\":foo";
+	char const response[] = R"({"invalid":foo)";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -609,7 +609,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_json)
 
 TORRENT_TEST(parse_websocket_tracker_response_invalid_info_hash)
 {
-	char const response[] = "{\"complete\":1,\"incomplete\":0,\"action\":\"announce\",\"interval\":120,\"info_hash\":\"tooshort\"}";
+	char const response[] = R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"tooshort"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -620,7 +620,7 @@ TORRENT_TEST(parse_websocket_tracker_response_invalid_info_hash)
 
 TORRENT_TEST(parse_websocket_tracker_response_offer)
 {
-	char const response[] = "{\"action\":\"announce\",\"offer\":{\"type\":\"offer\",\"sdp\":\"SDP\\r\\n\"},\"offer_id\":\"yyyyyyyyyyyyyyyy\",\"peer_id\":\"-LT2000-p!SALH(DnYsi\",\"info_hash\":\"xxxxxxxxxxxxxxxxxxxx\"}";
+	char const response[] = R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -647,7 +647,7 @@ TORRENT_TEST(parse_websocket_tracker_response_offer)
 
 TORRENT_TEST(parse_websocket_tracker_response_answer)
 {
-	char const response[] = "{\"action\":\"announce\",\"answer\":{\"type\":\"answer\",\"sdp\":\"SDP\\r\\n\"},\"offer_id\":\"yyyyyyyyyyyyyyyy\",\"peer_id\":\"-LT2000-p!SALH(DnYsi\",\"info_hash\":\"xxxxxxxxxxxxxxxxxxxx\"}";
+	char const response[] = R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
