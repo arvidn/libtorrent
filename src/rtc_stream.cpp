@@ -160,7 +160,7 @@ rtc_stream::endpoint_type rtc_stream_impl::remote_endpoint(error_code& ec) const
 		return {};
 	}
 
-	return parse_endpoint(*addr, ec);
+	return rtc_parse_endpoint(*addr, ec);
 }
 
 rtc_stream::endpoint_type rtc_stream_impl::local_endpoint(error_code& ec) const
@@ -178,7 +178,7 @@ rtc_stream::endpoint_type rtc_stream_impl::local_endpoint(error_code& ec) const
 		return {};
 	}
 
-	return parse_endpoint(*addr, ec);
+	return rtc_parse_endpoint(*addr, ec);
 }
 
 void rtc_stream_impl::cancel_handlers(error_code const& ec)
@@ -384,7 +384,19 @@ std::pair<std::size_t, bool> rtc_stream_impl::write_data(std::size_t size)
 	return std::make_pair(total, is_buffered);
 }
 
-rtc_stream_impl::endpoint_type rtc_stream_impl::parse_endpoint(std::string const& addr, error_code& ec)
+rtc_stream::rtc_stream(io_context& ioc, rtc_stream_init init)
+	  : m_io_context(ioc)
+	  , m_impl(std::make_shared<rtc_stream_impl>(ioc, std::move(init)))
+{
+	m_impl->init();
+}
+
+rtc_stream::~rtc_stream()
+{
+	if (m_impl) m_impl->close();
+}
+
+rtc_stream::endpoint_type rtc_parse_endpoint(std::string const& addr, error_code& ec)
 {
 	// The format is always "address:port" without brackets around the address,
 	// therefore splitting on the last ':' works to separate address and port.
@@ -402,19 +414,7 @@ rtc_stream_impl::endpoint_type rtc_stream_impl::parse_endpoint(std::string const
 		return {};
 	}
 
-	return endpoint_type(ip::make_address(host, ec), port);
-}
-
-rtc_stream::rtc_stream(io_context& ioc, rtc_stream_init init)
-	  : m_io_context(ioc)
-	  , m_impl(std::make_shared<rtc_stream_impl>(ioc, std::move(init)))
-{
-	m_impl->init();
-}
-
-rtc_stream::~rtc_stream()
-{
-	if (m_impl) m_impl->close();
+	return rtc_stream_impl::endpoint_type(ip::make_address(host, ec), port);
 }
 
 }

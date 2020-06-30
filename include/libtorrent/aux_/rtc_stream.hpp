@@ -80,8 +80,8 @@ struct TORRENT_EXTRA_EXPORT rtc_stream_impl : std::enable_shared_from_this<rtc_s
 	~rtc_stream_impl() = default;
 	rtc_stream_impl& operator=(rtc_stream_impl const&) = delete;
 	rtc_stream_impl(rtc_stream_impl const&) = delete;
-	rtc_stream_impl& operator=(rtc_stream_impl&&) noexcept = delete;
-	rtc_stream_impl(rtc_stream_impl&&) noexcept = delete;
+	rtc_stream_impl& operator=(rtc_stream_impl&&) = delete;
+	rtc_stream_impl(rtc_stream_impl&&) = delete;
 
 	void init();
 	void close();
@@ -128,8 +128,6 @@ private:
 	void on_available(error_code const& ec);
 	void on_buffered_low(error_code const& ec);
 	bool ensure_open();
-
-	static endpoint_type parse_endpoint(std::string const& addr, error_code& ec);
 
 	std::size_t incoming_data(span<char const> data);
 	std::pair<std::size_t, bool> write_data(std::size_t size);
@@ -382,6 +380,8 @@ private:
 	io_context& m_io_context;
 	std::shared_ptr<rtc_stream_impl> m_impl;
 };
+
+TORRENT_EXTRA_EXPORT rtc_stream::endpoint_type rtc_parse_endpoint(std::string const& addr, error_code& ec);
 
 }
 }

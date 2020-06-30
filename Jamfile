@@ -83,7 +83,7 @@ rule linking ( properties * )
 	else if <crypto>gnutls in $(properties)
 	{
 		result += <library>./deps/asio-gnutls//asio-gnutls ;
-		result += <library>gnutls ;
+		result += <library>gnutls/<link>shared ;
 	}
 	else if <crypto>libcrypto in $(properties)
 	{

@@ -65,14 +65,31 @@ using aux::rtc_answer;
 
 namespace {
 
+void test_parse_endpoint() {
+	error_code ec;
+	rtc_stream::endpoint_type endpoint;
+
+	endpoint = aux::rtc_parse_endpoint("10.9.8.7:65432", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endpoint.address().to_string(), "10.9.8.7");
+	TEST_EQUAL(endpoint.port(), 65432);
+	ec.clear();
+
+	endpoint = aux::rtc_parse_endpoint("2001:0db8:85a3::8a2e:370:7334:1234", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endpoint.address().to_string(), "2001:db8:85a3::8a2e:370:7334");
+	TEST_EQUAL(endpoint.port(), 1234);
+	ec.clear();
+
+	endpoint = aux::rtc_parse_endpoint("10.9.8.7", ec);
+	TEST_EQUAL(ec, errors::parse_failed);
+	ec.clear();
+
+	endpoint = aux::rtc_parse_endpoint("invalid:6666", ec);
+	TEST_CHECK(ec);
+}
+
 boost::asio::io_context io_context;
-
-session_mock ses1(io_context);
-torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
-
-session_mock ses2(io_context);
-torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
-
 bool success = false;
 
 void run_test() {
@@ -95,6 +112,11 @@ void run_test() {
 
 void test_offers()
 {
+	time_point const start_time = clock_type::now();
+
+	session_mock ses(io_context);
+	torrent tor(ses, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
 	std::shared_ptr<rtc_signaling> sig;
 
 	int const requested_offers_count = 10;
@@ -111,19 +133,30 @@ void test_offers()
 
 	auto handler = [&](peer_id const&, rtc_stream_init) {};
 
-	sig = std::make_shared<rtc_signaling>(io_context, &tor1, handler);
+	sig = std::make_shared<rtc_signaling>(io_context, &tor, handler);
 
 	std::cout << "Generating " << requested_offers_count << " offers" << std::endl;
 	sig->generate_offers(requested_offers_count, offers_handler);
 
 	run_test();
 
+	ses.print_alerts(start_time);
+
 	sig->close();
 }
 
 void test_connectivity()
 {
+	time_point const start_time = clock_type::now();
+
+	session_mock ses1(io_context);
+	torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	session_mock ses2(io_context);
+	torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
 	std::shared_ptr<rtc_signaling> sig1, sig2;
+	rtc_stream_init init1, init2;
 	bool endpoint1_connected = false;
 	bool endpoint2_connected = false;
 
@@ -150,6 +183,7 @@ void test_connectivity()
 	auto handler1 = [&](peer_id const&, rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
+		init1 = std::move(init);
 
 		std::cout << "Signaling 1: Endpoint is connected" << std::endl;
 		endpoint1_connected = true;
@@ -164,6 +198,7 @@ void test_connectivity()
 	auto handler2 = [&](peer_id const&, rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
+		init2 = std::move(init);
 
 		std::cout << "Signaling 2: Endpoint is connected" << std::endl;
 		endpoint2_connected = true;
@@ -183,12 +218,23 @@ void test_connectivity()
 
 	run_test();
 
+	ses1.print_alerts(start_time);
+	ses2.print_alerts(start_time);
+
 	sig1->close();
 	sig2->close();
 }
 
 void test_stream()
 {
+	time_point const start_time = clock_type::now();
+
+	session_mock ses1(io_context);
+	torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	session_mock ses2(io_context);
+	torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
 	std::shared_ptr<rtc_signaling> sig1, sig2;
 	std::shared_ptr<rtc_stream> stream1, stream2;
 
@@ -293,6 +339,9 @@ void test_stream()
 	TEST_CHECK(stream1 != nullptr);
 	TEST_CHECK(stream2 != nullptr);
 
+	ses1.print_alerts(start_time);
+	ses2.print_alerts(start_time);
+
 	if (stream1)
 		stream1->close();
 	if (stream2)
@@ -305,6 +354,7 @@ void test_stream()
 
 } // namespace
 
+TORRENT_TEST(parse_endpoint) { test_parse_endpoint(); }
 TORRENT_TEST(signaling_offers) { test_offers(); }
 TORRENT_TEST(signaling_connectivity) { test_connectivity(); }
 TORRENT_TEST(signaling_stream) { test_stream(); }

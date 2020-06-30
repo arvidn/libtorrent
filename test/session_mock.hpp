@@ -205,6 +205,7 @@ struct session_mock : aux::session_interface
 	}
 
 	// utils for tests
+	aux::session_settings& mutable_settings() { return _session_settings; }
 	void print_alerts(time_point start_time)
 	{
 		std::vector<alert*> as;

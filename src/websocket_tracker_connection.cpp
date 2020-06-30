@@ -419,85 +419,83 @@ void websocket_tracker_connection::fail(operation_t op, error_code const& ec)
 
 TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 	parse_websocket_tracker_response(span<char const> message, error_code& ec)
+try {
+	json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
+
+	auto it_info_hash = payload.find("info_hash");
+	if (it_info_hash == payload.end())
+		throw std::invalid_argument("no info hash in message");
+
+	auto const raw_info_hash = utf8_latin1(it_info_hash->value().as_string());
+	if (raw_info_hash.size() != 20)
+		throw std::invalid_argument("invalid info hash size " + std::to_string(raw_info_hash.size()));
+
+	websocket_tracker_response response;
+	response.info_hash = sha1_hash(span<char const>{raw_info_hash.data(), 20});
+
+	if (auto it = payload.find("offer"); it != payload.end())
+	{
+		json::object& payload_offer = it->value().as_object();
+		auto sdp = payload_offer["sdp"].as_string();
+		auto id = utf8_latin1(payload["offer_id"].as_string());
+		auto pid = utf8_latin1(payload["peer_id"].as_string());
+
+		aux::rtc_offer_id oid{span<char const>(id)};
+		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
+	}
+
+	if (auto it = payload.find("answer"); it != payload.end())
+	{
+		json::object& payload_answer = it->value().as_object();
+		auto sdp = payload_answer["sdp"].as_string();
+		auto id = utf8_latin1(payload["offer_id"].as_string());
+		auto pid = utf8_latin1(payload["peer_id"].as_string());
+
+		aux::rtc_offer_id oid{span<char const>(id)};
+		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
+	}
+
+	if (payload.find("interval") != payload.end())
+	{
+		tracker_response& resp = response.resp.emplace();
+
+		if (auto it = payload.find("interval"); it != payload.end())
+			resp.interval = seconds32{it->value().as_int64()};
+		else
+			resp.interval = seconds32{120};
+
+		if (auto it = payload.find("min_interval"); it != payload.end())
+			resp.min_interval = seconds32{it->value().as_int64()};
+		else
+			resp.min_interval = seconds32{60};
+
+		if (auto it = payload.find("complete"); it != payload.end())
+			resp.complete = int(it->value().as_int64());
+		else
+			resp.complete = -1;
+
+		if (auto it = payload.find("incomplete"); it != payload.end())
+			resp.incomplete = int(it->value().as_int64());
+		else
+			resp.incomplete = -1;
+
+		if (auto it = payload.find("downloaded"); it != payload.end())
+			resp.downloaded = int(it->value().as_int64());
+		else
+			resp.downloaded = -1;
+	}
+
+	return response;
+}
+catch(std::invalid_argument const& e)
 {
-	try {
-		json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
-
-		auto it_info_hash = payload.find("info_hash");
-		if (it_info_hash == payload.end())
-			throw std::invalid_argument("no info hash in message");
-
-		auto const raw_info_hash = utf8_latin1(it_info_hash->value().as_string());
-		if (raw_info_hash.size() != 20)
-			throw std::invalid_argument("invalid info hash size " + std::to_string(raw_info_hash.size()));
-
-		websocket_tracker_response response;
-		response.info_hash = sha1_hash(span<char const>{raw_info_hash.data(), 20});
-
-		if (auto it = payload.find("offer"); it != payload.end())
-		{
-			json::object& payload_offer = it->value().as_object();
-			auto sdp = payload_offer["sdp"].as_string();
-			auto id = utf8_latin1(payload["offer_id"].as_string());
-			auto pid = utf8_latin1(payload["peer_id"].as_string());
-
-			aux::rtc_offer_id oid{span<char const>(id)};
-			response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
-		}
-
-		if (auto it = payload.find("answer"); it != payload.end())
-		{
-			json::object& payload_answer = it->value().as_object();
-			auto sdp = payload_answer["sdp"].as_string();
-			auto id = utf8_latin1(payload["offer_id"].as_string());
-			auto pid = utf8_latin1(payload["peer_id"].as_string());
-
-			aux::rtc_offer_id oid{span<char const>(id)};
-			response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
-		}
-
-		if (payload.find("interval") != payload.end())
-		{
-			tracker_response& resp = response.resp.emplace();
-
-			if (auto it = payload.find("interval"); it != payload.end())
-				resp.interval = seconds32{it->value().as_int64()};
-			else
-				resp.interval = seconds32{120};
-
-			if (auto it = payload.find("min_interval"); it != payload.end())
-				resp.min_interval = seconds32{it->value().as_int64()};
-			else
-				resp.min_interval = seconds32{60};
-
-			if (auto it = payload.find("complete"); it != payload.end())
-				resp.complete = int(it->value().as_int64());
-			else
-				resp.complete = -1;
-
-			if (auto it = payload.find("incomplete"); it != payload.end())
-				resp.incomplete = int(it->value().as_int64());
-			else
-				resp.incomplete = -1;
-
-			if (auto it = payload.find("downloaded"); it != payload.end())
-				resp.downloaded = int(it->value().as_int64());
-			else
-				resp.downloaded = -1;
-		}
-
-		return response;
-	}
-	catch(std::invalid_argument const& e)
-	{
-		ec = errc::make_error_code(errc::invalid_argument);
-		return std::string(e.what());
-	}
-	catch(std::exception const& e)
-	{
-		ec = errc::make_error_code(errc::bad_message);
-		return std::string(e.what());
-	}
+	ec = errc::make_error_code(errc::invalid_argument);
+	return std::string(e.what());
+}
+catch(std::exception const& e)
+{
+	ec = errc::make_error_code(errc::bad_message);
+	return std::string(e.what());
 }
 
 }
