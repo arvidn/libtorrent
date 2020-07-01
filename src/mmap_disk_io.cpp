@@ -403,6 +403,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	storage_holder mmap_disk_io::new_torrent(storage_params const& params
 		, std::shared_ptr<void> const& owner)
 	{
+		TORRENT_ASSERT(params.files.is_valid());
+
 		storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);

@@ -252,6 +252,7 @@ TOOLS_FILES= \
   Jamfile                \
   dht_put.cpp            \
   dht_sample.cpp         \
+  disk_io_stress_test.cpp\
   parse_dht_log.py       \
   parse_dht_rtt.py       \
   parse_dht_stats.py     \
