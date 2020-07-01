@@ -79,12 +79,10 @@ namespace libtorrent {
 	namespace {
 
 	// this is an arbitrary limit to avoid malicious torrents causing
-	// unreasaonably large allocations for the merkle hash tree
-	// the size of the tree would be max_pieces * sizeof(int) * 2
-	// which is about 8 MB with this limit
+	// unreasaonably large allocations.
 	// TODO: remove this limit and the overloads that imply it, in favour of
 	// using load_torrent_limits
-	constexpr int default_piece_limit = 0x100000;
+	constexpr int default_piece_limit = 0x200000;
 
 	bool valid_path_character(std::int32_t const c)
 	{
@@ -500,13 +498,13 @@ namespace {
 					sanitize_append_path_element(symlink_path, pe);
 				}
 			}
+			else
+			{
+				// technically this is an invalid torrent. "symlink path" must exist
+				file_flags &= ~file_storage::flag_symlink;
+			}
 			// symlink targets are validated later, as it may point to a file or
 			// directory we haven't parsed yet
-		}
-		else
-		{
-			// technically this is an invalid torrent. "symlink path" must exist
-			file_flags &= ~file_storage::flag_symlink;
 		}
 
 		if (filename.size() > path.length()
