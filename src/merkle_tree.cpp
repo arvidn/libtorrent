@@ -220,7 +220,7 @@ namespace aux {
 			}
 			else
 			{
-				passed_pieces.push_back(piece_index_t{file_piece_offset + piece});
+				passed_pieces.emplace_back(file_piece_offset + piece);
 			}
 		}
 

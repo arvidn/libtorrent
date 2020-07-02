@@ -253,7 +253,7 @@ namespace libtorrent {
 			place_barrier = true;
 
 		if (crypto)
-			m_send_barriers.push_back(barrier(crypto, INT_MAX));
+			m_send_barriers.emplace_back(crypto, INT_MAX);
 
 		return place_barrier;
 	}

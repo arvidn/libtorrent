@@ -1014,7 +1014,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator const iter = std::lower_bound(m_peers.begin(), m_peers.end()
+		auto const iter = std::lower_bound(m_peers.begin(), m_peers.end()
 				, peer_id, peer_address_compare());
 
 		torrent_peer* p = m_peer_allocator.allocate_peer_entry(

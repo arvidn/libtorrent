@@ -653,7 +653,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			std::lock_guard<std::mutex> l(m_need_tick_mutex);
 			if (!j->storage->set_need_tick())
-				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
+				m_need_tick.emplace_back(aux::time_now() + minutes(2), j->storage);
 		}
 
 		m_store_buffer.erase({j->storage->storage_index(), j->piece, j->d.io.offset});
