@@ -282,14 +282,12 @@ void http_connection::start(std::string const& hostname, int port
 			// because i2p is sloooooow
 			m_completion_timeout *= 4;
 
-#if TORRENT_USE_I2P
 			if (i2p_conn->proxy().type != settings_pack::i2p_proxy)
 			{
 				post(m_ios, std::bind(&http_connection::callback
 					, me, error_code(errors::no_i2p_router), span<char>{}));
 				return;
 			}
-#endif
 
 			i2p_proxy = i2p_conn->proxy();
 			proxy = &i2p_proxy;
