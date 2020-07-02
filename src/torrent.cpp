@@ -7229,7 +7229,8 @@ namespace {
 
 		error_code ec;
 		bdecode_node const metadata = bdecode(metadata_buf, ec);
-		if (ec || !m_torrent_file->parse_info_section(metadata, ec))
+		if (ec || !m_torrent_file->parse_info_section(metadata, ec
+			, settings().get_int(settings_pack::max_piece_count)))
 		{
 			update_gauge();
 			// this means the metadata is correct, since we

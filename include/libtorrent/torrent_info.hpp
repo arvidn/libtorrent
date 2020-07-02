@@ -566,11 +566,17 @@ TORRENT_VERSION_NAMESPACE_3
 		// where we only have the info-dict. The bdecode_node ``e`` points to a
 		// parsed info-dictionary. ``ec`` returns an error code if something
 		// fails (typically if the info dictionary is malformed).
-		// the `piece_limit` parameter allows limiting the amount of memory
+		// The `max_pieces` parameter allows limiting the amount of memory
 		// dedicated to loading the torrent, and fails for torrents that exceed
-		// the limit
-		bool parse_info_section(bdecode_node const& info, error_code& ec);
+		// the limit. To load large torrents, this limit may also need to be
+		// raised in settings_pack::max_piece_count and in calls to
+		// read_resume_data().
 		bool parse_info_section(bdecode_node const& info, error_code& ec, int max_pieces);
+
+#if TORRENT_ABI_VERSION < 3
+		TORRENT_DEPRECATED
+		bool parse_info_section(bdecode_node const& info, error_code& ec);
+#endif
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
@@ -628,7 +634,6 @@ TORRENT_VERSION_NAMESPACE_3
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
-		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec);
 		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec, int piece_limit);
 
 		void resolve_duplicate_filenames();

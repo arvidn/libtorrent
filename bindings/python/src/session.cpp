@@ -50,6 +50,9 @@ namespace boost
 using namespace boost::python;
 using namespace lt;
 
+// defined in torrent_info.cpp
+load_torrent_limits dict_to_limits(dict limits);
+
 namespace
 {
 #if TORRENT_ABI_VERSION == 1
@@ -675,14 +678,14 @@ namespace
     }
 #endif
 
-    add_torrent_params read_resume_data_wrapper(bytes const& b)
+    add_torrent_params read_resume_data_wrapper0(bytes const& b)
     {
-        error_code ec;
-        add_torrent_params p = read_resume_data(b.arr, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-        if (ec) throw system_error(ec);
-#endif
-        return p;
+        return read_resume_data(b.arr);
+    }
+
+    add_torrent_params read_resume_data_wrapper1(bytes const& b, dict cfg)
+    {
+        return read_resume_data(b.arr, dict_to_limits(cfg));
     }
 
 	 int find_metric_idx_wrap(char const* name)
@@ -1148,7 +1151,8 @@ void bind_session()
     def("high_performance_seed", high_performance_seed_wrapper);
     def("min_memory_usage", min_memory_usage_wrapper);
     def("default_settings", default_settings_wrapper);
-    def("read_resume_data", read_resume_data_wrapper);
+    def("read_resume_data", read_resume_data_wrapper0);
+    def("read_resume_data", read_resume_data_wrapper1);
     def("write_resume_data", write_resume_data);
     def("write_resume_data_buf", write_resume_data_buf_);
 
