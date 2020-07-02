@@ -65,7 +65,8 @@ namespace {
 
 } // anonyous namespace
 
-	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
+	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec
+		, int const piece_limit)
 	{
 		add_torrent_params ret;
 		if (rd.type() != bdecode_node::dict_t)
@@ -121,7 +122,7 @@ namespace {
 				ret.ti = std::make_shared<torrent_info>(resume_ih);
 
 				error_code err;
-				if (!ret.ti->parse_info_section(info, err))
+				if (!ret.ti->parse_info_section(info, err, piece_limit))
 				{
 					ec = err;
 				}
@@ -403,29 +404,35 @@ namespace {
 		return ret;
 	}
 
-	add_torrent_params read_resume_data(span<char const> buffer, error_code& ec)
+	add_torrent_params read_resume_data(span<char const> buffer, error_code& ec
+		, load_torrent_limits const& cfg)
 	{
-		bdecode_node rd = bdecode(buffer, ec);
+		int pos;
+		bdecode_node rd = bdecode(buffer, ec, &pos, cfg.max_decode_depth
+			, cfg.max_decode_tokens);
 		if (ec) return add_torrent_params();
 
-		return read_resume_data(rd, ec);
+		return read_resume_data(rd, ec, cfg.max_pieces);
 	}
 
-	add_torrent_params read_resume_data(bdecode_node const& rd)
+	add_torrent_params read_resume_data(bdecode_node const& rd, int const piece_limit)
 	{
 		error_code ec;
-		auto ret = read_resume_data(rd, ec);
+		auto ret = read_resume_data(rd, ec, piece_limit);
 		if (ec) throw system_error(ec);
 		return ret;
 	}
 
-	add_torrent_params read_resume_data(span<char const> buffer)
+	add_torrent_params read_resume_data(span<char const> buffer
+		, load_torrent_limits const& cfg)
 	{
+		int pos;
 		error_code ec;
-		bdecode_node rd = bdecode(buffer, ec);
+		bdecode_node rd = bdecode(buffer, ec, &pos, cfg.max_decode_depth
+			, cfg.max_decode_tokens);
 		if (ec) throw system_error(ec);
 
-		auto ret = read_resume_data(rd, ec);
+		auto ret = read_resume_data(rd, ec, cfg.max_pieces);
 		if (ec) throw system_error(ec);
 		return ret;
 	}

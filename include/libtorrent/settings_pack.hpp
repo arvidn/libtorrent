@@ -1931,6 +1931,13 @@ namespace aux {
 			// to clamp it in order to allow UDP packets go through
 			dht_max_infohashes_sample_count,
 
+			// ``max_piece_count`` is the maximum allowed number of pieces in
+			// metadata received via magnet links. Loading large torrents (with
+			// more pieces than the default limit) may also require passing in
+			// a higher limit to read_resume_data() and
+			// torrent_info::parse_info_section(), if those are used.
+			max_piece_count,
+
 			max_int_setting_internal
 		};
 

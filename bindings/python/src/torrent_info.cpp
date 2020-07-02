@@ -186,6 +186,8 @@ namespace
     bool get_symlink_attribute(file_entry const& fe) { return fe.symlink_attribute; }
 #endif
 
+} // namespace unnamed
+
 load_torrent_limits dict_to_limits(dict limits)
 {
     load_torrent_limits ret;
@@ -221,8 +223,6 @@ load_torrent_limits dict_to_limits(dict limits)
     }
     return ret;
 }
-
-} // namespace unnamed
 
 std::shared_ptr<torrent_info> buffer_constructor0(bytes b)
 {

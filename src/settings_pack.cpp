@@ -362,6 +362,7 @@ namespace libtorrent {
 		SET(dht_item_lifetime, 0, nullptr),
 		SET(dht_sample_infohashes_interval, 21600, nullptr),
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
+		SET(max_piece_count, 0x200000, nullptr),
 	}});
 
 #undef SET
