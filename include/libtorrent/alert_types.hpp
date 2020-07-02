@@ -516,11 +516,6 @@ TORRENT_VERSION_NAMESPACE_2
 	// This alert is generated on tracker time outs, premature disconnects,
 	// invalid response or a HTTP response other than "200 OK". From the alert
 	// you can get the handle to the torrent the tracker belongs to.
-	//
-	// The ``times_in_row`` member says how many times in a row this tracker has
-	// failed. ``status_code`` is the code returned from the HTTP server. 401
-	// means the tracker needs authentication, 404 means not found etc. If the
-	// tracker timed out, the code will be set to 0.
 	struct TORRENT_EXPORT tracker_error_alert final : tracker_alert
 	{
 		// internal
@@ -533,13 +528,23 @@ TORRENT_VERSION_NAMESPACE_2
 		static constexpr alert_category_t static_category = alert_category::tracker | alert_category::error;
 		std::string message() const override;
 
+		// This member says how many times in a row this tracker has failed.
 		int const times_in_row;
+
+		// the error code indicating why the tracker announce failed. If it is
+		// is ``lt::errors::tracker_failure`` the failure_reason() might contain
+		// a more detailed description of why the tracker rejected the request.
+		// HTTP status codes indicating errors are also set in this field.
 		error_code const error;
 
 		operation_t op;
 
-		// the message associated with this error
-		char const* error_message() const;
+		// if the tracker sent a "failure reason" string, it will be returned
+		// here.
+		char const* failure_reason() const;
+
+		// hidden
+		char const* error_message() const { return failure_reason(); }
 
 	private:
 		aux::allocation_slot m_msg_idx;

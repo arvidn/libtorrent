@@ -476,6 +476,7 @@ void bind_alert()
         .def_readonly("status_code", &tracker_error_alert::status_code)
 #endif
         .def("error_message", &tracker_error_alert::error_message)
+        .def("failure_reason", &tracker_error_alert::failure_reason)
         .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
         .def_readonly("error", &tracker_error_alert::error)
         ;

@@ -356,7 +356,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(!u.empty());
 	}
 
-	char const* tracker_error_alert::error_message() const
+	char const* tracker_error_alert::failure_reason() const
 	{
 		return m_alloc.get().ptr(m_msg_idx);
 	}
