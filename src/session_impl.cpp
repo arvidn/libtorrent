@@ -779,9 +779,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif
 
 		if ((flags & session_handle::save_settings)
-#if TORRENT_ABI_VERSION <= 2
 			|| (flags & session_handle::save_dht_settings)
-#endif
 			)
 		{
 			settings = e->dict_find_dict("settings");
@@ -805,9 +803,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 			}
 		}
 
-#if TORRENT_ABI_VERSION <= 2
 		if (flags & session_handle::save_dht_settings)
-#endif
 		{
 			// This is here for backwards compatibility, to support loading state
 			// files in the previous file format, where the DHT settings were in
@@ -829,12 +825,10 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-#if TORRENT_ABI_VERSION <= 2
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			ext->load_state(*e);
 		}
-#endif
 #endif
 	}
 #endif
@@ -5704,7 +5698,6 @@ namespace {
 #if TORRENT_ABI_VERSION <= 2
 	void session_impl::set_dht_settings(dht::dht_settings const& settings)
 	{
-#ifndef TORRENT_DISABLE_DHT
 #define SET_BOOL(name) m_settings.set_bool(settings_pack::dht_ ## name, settings.name)
 #define SET_INT(name) m_settings.set_int(settings_pack::dht_ ## name, settings.name)
 
@@ -5732,13 +5725,11 @@ namespace {
 #undef SET_BOOL
 #undef SET_INT
 		update_dht_upload_rate_limit();
-#endif
 	}
 
 	dht::dht_settings session_impl::get_dht_settings() const
 	{
 		dht::dht_settings sett;
-#ifndef TORRENT_DISABLE_DHT
 #define SET_BOOL(name) \
 		sett.name = m_settings.get_bool( settings_pack::dht_ ## name )
 #define SET_INT(name) \
@@ -5767,7 +5758,6 @@ namespace {
 		SET_INT(max_infohashes_sample_count);
 #undef SET_BOOL
 #undef SET_INT
-#endif
 		return sett;
 	}
 #endif
