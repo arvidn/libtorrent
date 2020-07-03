@@ -86,12 +86,13 @@ namespace {
 		// if a peer is already unchoked, the number of bytes sent since it was unchoked
 		// is greater than the send quanta, and it has been unchoked for at least one minute
 		// then it's done with its upload slot, and we can de-prioritize it
-		bool const c1_quota_complete = !lhs->is_choked()
-			&& u1 > std::int64_t(t1->torrent_file().piece_length()) * pieces
-			&& aux::time_now() - lhs->time_of_last_unchoke() > minutes(1);
-		bool const c2_quota_complete = !rhs->is_choked()
-			&& u2 > std::int64_t(t2->torrent_file().piece_length()) * pieces
-			&& aux::time_now() - rhs->time_of_last_unchoke() > minutes(1);
+		auto quota_complete = [pieces](peer_connection const* p, std::int64_t const u, std::shared_ptr<torrent> const t){
+					return !p->is_choked()
+					  && u > std::int64_t(t->torrent_file().piece_length()) * pieces
+					  && aux::time_now() - p->time_of_last_unchoke() > minutes(1);
+				      };
+		bool const c1_quota_complete = quota_complete(lhs,u1,t1);
+		bool const c2_quota_complete = quota_complete(rhs,u2,t2);
 
 		// if c2 has completed a quanta, it should be de-prioritized
 		// and vice versa
