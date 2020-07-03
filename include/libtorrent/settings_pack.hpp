@@ -103,9 +103,11 @@ namespace aux {
 		virtual bool get_bool(int name) const = 0;
 
 		template <typename Type, typename Tag>
+		// hidden
 		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
 		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
 
+		// hidden
 		// these are here just to suppress the warning about virtual destructors
 		// internal
 		settings_interface() = default;
