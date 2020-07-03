@@ -108,8 +108,8 @@ favicon-32.png: img/logo-color.svg
 favicon-64.png: img/logo-color.svg
 	convert -background transparent $< -resize 64x64 $@
 
-single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
-	python3 join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
+single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings.rst stats_counters.rst
+	python3 gen_reference_doc.py --single-page
 
 settings.rst hunspell/settings.dic: ../include/libtorrent/settings_pack.hpp hunspell/libtorrent.dic
 	python3 gen_settings_doc.py || { rm $@; exit 1; }
