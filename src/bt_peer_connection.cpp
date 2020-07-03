@@ -242,7 +242,7 @@ namespace {
 			TORRENT_ASSERT(peer_info_struct());
 
 			torrent_peer* pi = peer_info_struct();
-			if (pi->pe_support == true)
+			if (pi->pe_support)
 			{
 				// toggle encryption support flag, toggled back to
 				// true if encrypted portion of the handshake
@@ -659,10 +659,7 @@ namespace {
 		send_buffer(vec);
 
 		// encryption method has been negotiated
-		if (crypto_select == 0x02)
-			m_rc4_encrypted = true;
-		else // 0x01
-			m_rc4_encrypted = false;
+		m_rc4_encrypted = (crypto_select == 0x02);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", " crypto select: %s"

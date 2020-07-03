@@ -438,15 +438,17 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p.in_use);
-		if (p.connection
-			|| p.banned
-			|| p.web_seed
-			|| !p.connectable
-			|| (p.seed && m_finished)
-			|| int(p.failcount) >= m_max_failcount)
-			return false;
+		return !(p.connection
 
-		return true;
+			|| p.banned
+
+			|| p.web_seed
+
+			|| !p.connectable
+
+			|| (p.seed && m_finished)
+
+			|| int(p.failcount) >= m_max_failcount);
 	}
 
 	void peer_list::find_connect_candidates(std::vector<torrent_peer*>& peers
@@ -1014,7 +1016,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator const iter = std::lower_bound(m_peers.begin(), m_peers.end()
+		auto const iter = std::lower_bound(m_peers.begin(), m_peers.end()
 				, peer_id, peer_address_compare());
 
 		torrent_peer* p = m_peer_allocator.allocate_peer_entry(

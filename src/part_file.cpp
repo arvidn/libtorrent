@@ -417,7 +417,7 @@ namespace libtorrent {
 	void part_file::flush_metadata_impl(error_code& ec)
 	{
 		// do we need to flush the metadata?
-		if (m_dirty_metadata == false) return;
+		if (!m_dirty_metadata) return;
 
 		if (m_piece_map.empty())
 		{

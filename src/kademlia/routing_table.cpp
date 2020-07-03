@@ -830,7 +830,7 @@ ip_ok:
 	// same bucket, splitting isn't going to do anything.
 	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
-		&& (m_settings.get_bool(settings_pack::dht_prefer_verified_node_ids) == false
+		&& (!m_settings.get_bool(settings_pack::dht_prefer_verified_node_ids)
 			|| (e.verified && mostly_verified_nodes(b)))
 		&& e.confirmed()
 		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1)

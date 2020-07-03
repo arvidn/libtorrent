@@ -534,7 +534,7 @@ namespace {
 		}
 #else
 		// as well as parent_path("/") should be "/".
-		if (f == "/") return true;
+		return f == "/";
 #endif
 		return false;
 	}
@@ -976,8 +976,7 @@ namespace {
 			return true;
 		return false;
 #else
-		if (f[0] == '/') return true;
-		return false;
+		return f[0] == '/';
 #endif
 	}
 }

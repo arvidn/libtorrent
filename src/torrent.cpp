@@ -9224,8 +9224,8 @@ namespace {
 			// there is one special case here. If we are
 			// currently in graceful pause mode, and we just turned into regular
 			// paused mode, we need to actually pause the torrent properly
-			if (m_paused == true
-				&& m_graceful_pause_mode == true
+			if (m_paused
+				&& m_graceful_pause_mode
 				&& !(flags & torrent_handle::graceful_pause))
 			{
 				m_graceful_pause_mode = false;

@@ -601,10 +601,8 @@ bool web_peer_connection::received_invalid_data(piece_index_t const index, bool 
 	peer_connection::received_invalid_data(index, single_peer);
 
 	// if we don't think we have any of the files, allow banning the web seed
-	if (num_have_pieces() == 0) return true;
-
 	// don't disconnect, we won't request anything from this file again
-	return false;
+	return num_have_pieces() == 0;
 }
 
 void web_peer_connection::on_receive_padfile()
@@ -699,7 +697,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// the new web seed we're adding only has this file for now
 		// we may add more files later
 		web->redirects[file_index] = redirect_path;
-		if (web->have_files.get_bit(file_index) == false)
+		if (!web->have_files.get_bit(file_index))
 		{
 			web->have_files.set_bit(file_index);
 

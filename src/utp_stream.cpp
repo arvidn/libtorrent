@@ -754,7 +754,7 @@ void utp_socket_impl::maybe_trigger_receive_callback()
 {
 	INVARIANT_CHECK;
 
-	if (m_read_handler == false) return;
+	if (!m_read_handler) return;
 
 	// nothing has been read or there's no outstanding read operation
 	if (m_null_buffers && m_receive_buffer_size == 0) return;
@@ -773,7 +773,7 @@ void utp_socket_impl::maybe_trigger_send_callback()
 	INVARIANT_CHECK;
 
 	// nothing has been written or there's no outstanding write operation
-	if (m_written == 0 || m_write_handler == false) return;
+	if (m_written == 0 || !m_write_handler) return;
 
 	UTP_LOGV("%8p: calling write handler written:%d\n", static_cast<void*>(this), m_written);
 
