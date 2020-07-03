@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	bandwidth_manager::bandwidth_manager(int channel)
 		: m_queued_bytes(0)
@@ -221,5 +220,4 @@ namespace aux {
 			queue.pop_back();
 		}
 	}
-}
 }

@@ -76,8 +76,7 @@ unsigned long int helper_getauxval(unsigned long int type)
 #endif
 #endif // TORRENT_HAS_ARM && TORRENT_HAS_AUXV
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 namespace {
 
 #if TORRENT_HAS_SSE
@@ -159,4 +158,4 @@ namespace {
 	bool const mmx_support = supports_mmx();
 	bool const arm_neon_support = supports_arm_neon();
 	bool const arm_crc32c_support = supports_arm_crc32c();
-} }
+}

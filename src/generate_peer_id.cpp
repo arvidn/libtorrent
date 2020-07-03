@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 peer_id generate_peer_id(session_settings const& sett)
 {
@@ -53,4 +53,4 @@ peer_id generate_peer_id(session_settings const& sett)
 	return ret;
 }
 
-}}
+}

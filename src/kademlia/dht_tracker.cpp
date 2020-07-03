@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 	namespace {
 
@@ -704,4 +704,4 @@ namespace {
 		return true;
 	}
 
-}}
+}

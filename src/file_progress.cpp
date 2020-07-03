@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	void file_progress::init(piece_picker const& picker, file_storage const& fs)
 	{
@@ -182,4 +182,4 @@ namespace libtorrent { namespace aux {
 		}
 	}
 #endif
-} }
+}

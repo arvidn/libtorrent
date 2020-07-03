@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #endif
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 namespace {
 
@@ -209,4 +209,4 @@ void item::assign(entry v, span<char const> salt
 	m_value = std::move(v);
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

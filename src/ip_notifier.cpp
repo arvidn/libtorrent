@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -442,4 +442,4 @@ private:
 	{
 		return std::make_unique<ip_change_notifier_impl>(ios);
 	}
-}}
+}

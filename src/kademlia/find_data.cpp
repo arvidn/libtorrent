@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 void find_data_observer::reply(msg const& m)
 {
@@ -194,4 +194,4 @@ void find_data::done()
 	traversal_algorithm::done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

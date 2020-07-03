@@ -32,9 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	time_point time_now() { return clock_type::now(); }
 	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
 
-} }
+}

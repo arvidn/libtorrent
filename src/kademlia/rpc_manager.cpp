@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 dht_observer* observer::get_observer() const
 {
@@ -508,4 +508,4 @@ observer::~observer()
 #endif
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

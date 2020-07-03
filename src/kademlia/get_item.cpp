@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 void get_item::got_data(bdecode_node const& v,
 	public_key const& pk,
@@ -219,4 +219,4 @@ void get_item_observer::reply(msg const& m)
 	find_data_observer::reply(m);
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

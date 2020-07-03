@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/bdecode.hpp"
 
-namespace libtorrent {
-namespace dht {
+namespace libtorrent::dht {
 
 #if TORRENT_ABI_VERSION <= 2
 	dht_settings read_dht_settings(bdecode_node const& e)
@@ -112,5 +111,4 @@ namespace dht {
 		return e;
 	}
 #endif
-}
 }

@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <set>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	int copy_bufs(span<iovec_t const> bufs, int bytes
 		, span<iovec_t> target)
@@ -617,4 +617,4 @@ namespace libtorrent { namespace aux {
 		return ret;
 	}
 
-}}
+}

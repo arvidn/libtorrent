@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/entry.hpp"
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> desc
 	, span<bdecode_node> ret, span<char> error)
@@ -135,4 +135,4 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 	return true;
 }
 
-} }
+}

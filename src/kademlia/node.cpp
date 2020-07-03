@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 namespace {
 
@@ -1245,4 +1245,4 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp const prot
 	return *iter;
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

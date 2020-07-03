@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include <algorithm>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	bandwidth_channel::bandwidth_channel()
 		: tmp(0)
@@ -106,5 +105,4 @@ namespace aux {
 		m_quota_left -= amount;
 	}
 
-}
 }

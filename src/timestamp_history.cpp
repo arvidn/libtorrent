@@ -35,8 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/timestamp_history.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 constexpr std::uint32_t TIME_MASK = 0xffffffff;
 
@@ -104,5 +103,4 @@ void timestamp_history::adjust_base(int change)
 	}
 }
 
-}
 }

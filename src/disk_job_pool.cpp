@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_job.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	disk_job_pool::disk_job_pool()
 		: m_jobs_in_use(0)
@@ -108,5 +107,4 @@ namespace aux {
 		for (int i = 0; i < num; ++i)
 			m_job_pool.free(j[i]);
 	}
-}
 }

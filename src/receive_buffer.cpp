@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 int receive_buffer::max_receive() const
 {
@@ -337,5 +336,4 @@ span<char> crypto_receive_buffer::mutable_buffer(
 }
 #endif // TORRENT_DISABLE_ENCRYPTION
 
-} // namespace aux
 } // namespace libtorrent

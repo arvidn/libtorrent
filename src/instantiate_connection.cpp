@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/ssl_stream.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
 	aux::socket_type instantiate_connection(io_context& ios
@@ -150,4 +150,4 @@ namespace libtorrent { namespace aux {
 		throw std::runtime_error("unknown socket type");
 	}
 
-}}
+}

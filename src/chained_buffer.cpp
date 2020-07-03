@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for copy
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{
@@ -170,5 +169,4 @@ namespace aux {
 #endif
 	}
 
-}
 }

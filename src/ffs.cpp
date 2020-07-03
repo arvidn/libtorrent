@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	// returns the index of the first set bit.
 	// Use std::log2p1 in C++20
@@ -182,4 +181,4 @@ namespace aux {
 		return aux::count_trailing_ones_sw(buf);
 #endif
 	}
-}}
+}

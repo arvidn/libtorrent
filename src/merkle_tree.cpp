@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	merkle_tree::merkle_tree(int const num_blocks, int const blocks_per_piece, char const* r)
 		: m_root(r)
@@ -535,5 +534,4 @@ namespace aux {
 		return ret;
 	}
 
-}
 }

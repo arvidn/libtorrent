@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/bandwidth_queue_entry.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	bw_request::bw_request(std::shared_ptr<bandwidth_socket> pe
 		, int blk, int prio)
@@ -77,5 +76,4 @@ namespace aux {
 		, "should be nothrow move constructible");
 	static_assert(std::is_nothrow_move_assignable<bw_request>::value
 		, "should be nothrow move assignable");
-}
 }

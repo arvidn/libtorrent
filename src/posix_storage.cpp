@@ -47,8 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent::flags; // for flag operators
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	posix_storage::posix_storage(storage_params const& p)
 		: m_files(p.files)
@@ -606,6 +605,5 @@ namespace aux {
 		m_use_partfile[index] = b;
 	}
 
-}
 }
 

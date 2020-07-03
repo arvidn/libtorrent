@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/socket_io.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 	node_ids_t extract_node_ids(bdecode_node const& e, string_view key)
 	{
@@ -132,4 +132,4 @@ namespace {
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 		return ret;
 	}
-}}
+}

@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/variant/get.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	namespace {
 		struct caller_visitor
@@ -127,5 +126,4 @@ namespace aux {
 	{
 		std::visit(caller_visitor(*this), callback);
 	}
-}
 }

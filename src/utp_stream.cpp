@@ -58,8 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 #if TORRENT_UTP_LOG
 
@@ -3306,5 +3305,4 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
-}
 }

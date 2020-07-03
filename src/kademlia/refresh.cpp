@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 observer_ptr bootstrap::new_observer(udp::endpoint const& ep
 	, node_id const& id)
@@ -104,4 +104,4 @@ void bootstrap::done()
 	get_peers::done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -63,5 +63,4 @@ proxy_settings::proxy_settings(settings_pack const& sett)
 proxy_settings::proxy_settings(aux::session_settings const& sett)
 { init(*this, sett); }
 
-} // namespace aux
 } // namespace libtorrent

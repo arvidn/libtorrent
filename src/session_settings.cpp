@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	session_settings::session_settings() = default;
 
@@ -61,5 +61,5 @@ namespace libtorrent { namespace aux {
 		initialize_default_settings(*this);
 	}
 
-} }
+}
 

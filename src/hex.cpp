@@ -34,9 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hex.hpp"
 
-namespace libtorrent {
-
-	namespace aux {
+namespace libtorrent::aux {
 
 	int hex_to_int(char in)
 	{
@@ -101,6 +99,4 @@ namespace libtorrent {
 		out[in.size() * 2] = '\0';
 	}
 
-	} // aux namespace
-
-}
+	}

@@ -52,8 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	namespace {
 
@@ -231,5 +230,4 @@ namespace aux {
 		--m_in_use;
 	}
 
-}
 }

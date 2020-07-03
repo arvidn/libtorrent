@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	bool is_ip_address(std::string const& host)
 	{
@@ -119,6 +118,5 @@ namespace aux {
 		return a == address_v4() ? address_v6() : a;
 	}
 
-}
 }
 

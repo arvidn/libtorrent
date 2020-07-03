@@ -5,8 +5,7 @@
 #include "libtorrent/aux_/hasher512.hpp"
 #include "ge.h"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 void ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed) {
     ge_p3 A;
@@ -21,4 +20,4 @@ void ed25519_create_keypair(unsigned char *public_key, unsigned char *private_ke
     ge_p3_tobytes(public_key, &A);
 }
 
-} }
+}

@@ -43,8 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <gnutls/x509.h>
 #endif
 
-namespace libtorrent {
-namespace ssl {
+namespace libtorrent::ssl {
 
 void set_trust_certificate(native_context_type nc, string_view pem, error_code &ec)
 {
@@ -205,7 +204,6 @@ namespace {
 }
 #endif
 
-} // ssl
 } // libtorrent
 
 #endif

@@ -35,8 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	resolver::resolver(io_context& ios)
 		: m_ios(ios)
@@ -153,5 +152,4 @@ namespace aux {
 		else
 			m_timeout = seconds(0);
 	}
-}
 }
