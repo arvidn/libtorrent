@@ -82,7 +82,9 @@ match the first 21 bits of the resulting hash. The last byte of the hash MUST
 match the random number (``r``) used to generate the hash.
 
 .. image:: ip_id_v4.png
+	:class: bw
 .. image:: ip_id_v6.png
+	:class: bw
 
 Example code code for calculating a valid node ID::
 
@@ -174,6 +176,7 @@ The following graph illustrate a few different hash functions with regard
 to this property.
 
 .. image:: complete_bit_prefixes.png
+	:class: bw
 
 This test takes into account IP addresses that are not globally routable, i.e.
 reserved for local networks, multicast and other things. It also takes into
@@ -195,6 +198,7 @@ number of results falling into it. The following graph shows the resulting
 histogram, comparing SHA-1 and CRC32C.
 
 .. image:: hash_distribution.png
+	:class: bw
 
 The source code for these tests can be found here_.
 

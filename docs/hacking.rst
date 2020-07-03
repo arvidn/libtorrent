@@ -60,6 +60,7 @@ interface:
 
 
 .. image:: hacking.png
+	:class: bw
 
 session_impl
 ------------

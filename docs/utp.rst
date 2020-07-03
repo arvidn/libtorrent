@@ -128,6 +128,7 @@ It can simply be expressed as::
 
 .. image:: cwnd_thumb.png
 	:target: cwnd.png
+	:class: bw
 	:align: right
 
 Similarly to TCP, this is scaled so that the increase is evened out over one RTT.
@@ -161,6 +162,7 @@ there might be congestion, since those points will have buffers.
 
 .. image:: delays_thumb.png
 	:target: delays.png
+	:class: bw
 	:align: right
 
 Delay on the return link is explicitly not included in the delay measurement.
@@ -276,6 +278,7 @@ clock drift
 
 .. image:: our_delay_base_thumb.png
 	:target: our_delay_base.png
+	:class: bw
 	:align: right
 
 Clock drift is clocks progressing at different rates. It's different from clock
