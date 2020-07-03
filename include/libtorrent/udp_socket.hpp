@@ -132,6 +132,10 @@ namespace aux { struct alert_manager; }
 			m_socket.set_option(opt, ec);
 		}
 
+#ifdef TCP_NOTSENT_LOWAT
+		void set_option(tcp_notsent_lowat const&, error_code&) {}
+#endif
+
 		template <class SocketOption>
 		void get_option(SocketOption& opt, error_code& ec)
 		{

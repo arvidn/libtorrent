@@ -3253,7 +3253,7 @@ namespace {
 		// if the tracker told us what our external IP address is, record it with
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
-		if (resp.external_ip != address() && !tracker_ip.is_unspecified())
+		if (resp.external_ip != address() && !tracker_ip.is_unspecified() && r.outgoing_socket)
 			m_ses.set_external_address(r.outgoing_socket.get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);

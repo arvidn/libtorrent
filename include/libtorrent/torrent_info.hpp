@@ -130,16 +130,16 @@ namespace aux {
 	struct TORRENT_EXPORT load_torrent_limits
 	{
 		// the max size of a .torrent file to load into RAM
-		int max_buffer_size = 6000000;
+		int max_buffer_size = 10000000;
 
 		// the max number of pieces allowed in the torrent
-		int max_pieces = 0x100000;
+		int max_pieces = 0x200000;
 
 		// the max recursion depth in the bdecoded structure
 		int max_decode_depth = 100;
 
 		// the max number of bdecode tokens
-		int max_decode_tokens = 2000000;
+		int max_decode_tokens = 3000000;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;

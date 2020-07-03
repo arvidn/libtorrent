@@ -305,9 +305,11 @@ TORRENT_TEST(save_settings_to_dict)
 	TEST_EQUAL(buf, "d21:max_out_request_queuei1337e16:peer_fingerprint3:abc19:send_redundant_havei0ee");
 }
 
+namespace {
 // make sure a global constructor has access to the default values, to
 // initialize itself with
 lt::aux::session_settings g_sett;
+}
 
 TORRENT_TEST(global_constructors)
 {

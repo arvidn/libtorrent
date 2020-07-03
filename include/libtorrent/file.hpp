@@ -118,6 +118,8 @@ namespace libtorrent {
 	{
 		file();
 		file(std::string const& p, aux::open_mode_t m, error_code& ec);
+		file(file&&) noexcept;
+		file& operator=(file&&);
 		~file();
 
 		file(file const&) = delete;

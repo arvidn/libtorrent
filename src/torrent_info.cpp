@@ -577,13 +577,13 @@ namespace {
 					aux::sanitize_append_path_element(symlink_path, pe);
 				}
 			}
+			else
+			{
+				// technically this is an invalid torrent. "symlink path" must exist
+				file_flags &= ~file_storage::flag_symlink;
+			}
 			// symlink targets are validated later, as it may point to a file or
 			// directory we haven't parsed yet
-		}
-		else
-		{
-			// technically this is an invalid torrent. "symlink path" must exist
-			file_flags &= ~file_storage::flag_symlink;
 		}
 
 		if (filename.size() > path.length()

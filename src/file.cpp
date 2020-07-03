@@ -276,6 +276,22 @@ namespace libtorrent {
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
 	{}
 
+	file::file(file&& f) noexcept
+		: m_file_handle(f.m_file_handle)
+		, m_open_mode(f.m_open_mode)
+	{
+		f.m_file_handle = INVALID_HANDLE_VALUE;
+	}
+
+	file& file::operator=(file&& f)
+	{
+		file tmp(std::move(*this)); // close at end of scope
+		m_file_handle = f.m_file_handle;
+		m_open_mode = f.m_open_mode;
+		f.m_file_handle = INVALID_HANDLE_VALUE;
+		return *this;
+	}
+
 	file::file(std::string const& path, aux::open_mode_t const mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 	{

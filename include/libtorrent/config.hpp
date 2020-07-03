@@ -171,10 +171,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #else // ANDROID
 
-// posix_fallocate() is available under this condition
-#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
-#define TORRENT_HAS_FALLOCATE 1
-#else
+// posix_fallocate() is not available in glibc under these condition
+#if defined _XOPEN_SOURCE && _XOPEN_SOURCE < 600
+#define TORRENT_HAS_FALLOCATE 0
+#elif defined _POSIX_C_SOURCE && _POSIX_C_SOURCE < 200112L
 #define TORRENT_HAS_FALLOCATE 0
 #endif
 
