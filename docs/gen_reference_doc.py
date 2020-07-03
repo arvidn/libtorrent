@@ -85,6 +85,7 @@ static_links = \
         ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
         ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
+        ".. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html",
         ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
         ".. _`rate based choking`: manual-ref.html#rate-based-choking",
         ".. _extensions: manual-ref.html#extensions",
@@ -96,14 +97,25 @@ category_mapping = {
     'ed25519.hpp': 'ed25519',
     'session.hpp': 'Session',
     'session_handle.hpp': 'Session',
-    'add_torrent_params.hpp': 'Core',
+    'torrent_handle.hpp': 'Torrent Handle',
+    'torrent_info.hpp': 'Torrent Info',
+    'announce_entry.hpp': 'Trackers',
+    'peer_class_type_filter.hpp': 'PeerClass',
+    'peer_class.hpp': 'PeerClass',
+    'torrent_status.hpp': 'Torrent Status',
+    'session_stats.hpp': 'Stats',
+    'performance_counters.hpp': 'Stats',
+    'read_resume_data.hpp': 'Resume Data',
+    'write_resume_data.hpp': 'Resume Data',
+    'add_torrent_params.hpp': 'Add Torrent',
+    'client_data.hpp': 'Add Torrent',
     'session_status.hpp': 'Session',
-    'session_stats.hpp': 'Session',
     'session_params.hpp': 'Session',
     'error_code.hpp': 'Error Codes',
     'storage_defs.hpp': 'Storage',
     'file_storage.hpp': 'Storage',
     'disk_interface.hpp': 'Custom Storage',
+    'disk_observer.hpp': 'Custom Storage',
     'mmap_disk_io.hpp': 'Storage',
     'disabled_disk_io.hpp': 'Storage',
     'posix_disk_io.hpp': 'Storage',
@@ -112,6 +124,7 @@ category_mapping = {
     'ut_pex.hpp': 'Plugins',
     'ut_trackers.hpp': 'Plugins',
     'smart_ban.hpp': 'Plugins',
+    'peer_connection_handle.hpp': 'Plugins',
     'create_torrent.hpp': 'Create Torrents',
     'alert.hpp': 'Alerts',
     'alert_types.hpp': 'Alerts',
@@ -131,6 +144,7 @@ category_mapping = {
     'ip_filter.hpp': 'Filter',
     'session_settings.hpp': 'Settings',
     'settings_pack.hpp': 'Settings',
+    'fingerprint.hpp': 'Settings',
     'operations.hpp': 'Alerts',
     'disk_buffer_holder.hpp': 'Custom Storage',
     'alert_dispatcher.hpp': 'Alerts',
@@ -139,7 +153,8 @@ category_mapping = {
 category_fun_mapping = {
     'min_memory_usage()': 'Settings',
     'high_performance_seed()': 'Settings',
-    'default_disk_io_constructor()': 'Storage'
+    'default_disk_io_constructor()': 'Storage',
+    'settings_interface': 'Custom Storage',
 }
 
 
@@ -867,6 +882,7 @@ for filename in files:
             continue
 
         if (line == 'namespace aux {' or
+                line == 'namespace ssl {' or
                 line == 'namespace libtorrent { namespace aux {') \
                 and not internal:
             lno = consume_block(lno - 1, lines)
@@ -1267,7 +1283,14 @@ sections = \
         'Core': 0,
         'DHT': 0,
         'Session': 0,
+        'Torrent Handle': 0,
+        'Torrent Info': 0,
+        'Trackers': 0,
         'Settings': 0,
+        'Torrent Status': 0,
+        'Stats': 0,
+        'Resume Data': 0,
+        'Add Torrent': 0,
 
         'Bencoding': 1,
         'Bdecoding': 1,
@@ -1275,6 +1298,7 @@ sections = \
         'Error Codes': 1,
         'Create Torrents': 1,
 
+        'PeerClass': 2,
         'ed25519': 2,
         'Utility': 2,
         'Storage': 2,

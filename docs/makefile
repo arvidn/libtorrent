@@ -24,6 +24,14 @@ REFERENCE_TARGETS = \
 	reference-Core \
 	reference-DHT \
 	reference-Session \
+	reference-Torrent_Handle \
+	reference-Torrent_Info \
+	reference-Trackers \
+	reference-PeerClass \
+	reference-Torrent_Status \
+	reference-Stats \
+	reference-Resume_Data \
+	reference-Add_Torrent \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \

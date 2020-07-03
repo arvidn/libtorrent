@@ -126,20 +126,30 @@ DOCS_PAGES = \
   docs/header.rst                 \
   docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
-  docs/reference-Alerts.html      \
-  docs/reference-Bdecoding.html   \
-  docs/reference-Bencoding.html   \
-  docs/reference-Core.html        \
-  docs/reference-Create_Torrents.html \
-  docs/reference-ed25519.html     \
-  docs/reference-Error_Codes.html \
-  docs/reference-Filter.html      \
-  docs/reference-Plugins.html     \
-  docs/reference-Settings.html    \
-  docs/reference-Storage.html     \
-  docs/reference-Custom_Storage.html \
-  docs/reference-Utility.html     \
   docs/reference.html             \
+  docs/reference-Core.html        \
+  docs/reference-DHT.html         \
+  docs/reference-Session.html     \
+  docs/reference-Torrent_Handle.html \
+  docs/reference-Torrent_Info.html \
+  docs/reference-Trackers.html   \
+  docs/reference-PeerClass.html  \
+  docs/reference-Torrent_Status.html \
+  docs/reference-Stats.html      \
+  docs/reference-Resume_Data.html \
+  docs/reference-Add_Torrent.html \
+  docs/reference-Plugins.html    \
+  docs/reference-Create_Torrents.html \
+  docs/reference-Error_Codes.html \
+  docs/reference-Storage.html    \
+  docs/reference-Custom_Storage.html \
+  docs/reference-Utility.html    \
+  docs/reference-Bencoding.html  \
+  docs/reference-Alerts.html     \
+  docs/reference-Filter.html     \
+  docs/reference-Settings.html   \
+  docs/reference-Bdecoding.html  \
+  docs/reference-ed25519.html    \
   docs/single-page-ref.html
 
 ED25519_SOURCE = \

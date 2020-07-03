@@ -149,8 +149,6 @@ namespace libtorrent {
 		// to create a torrent that can be updated via a *mutable torrent*
 		// (see `BEP 38`_). This also needs to be enabled for torrents that update
 		// another torrent.
-		//
-		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 #if TORRENT_ABI_VERSION <= 2
 		// BEP 52 requires files to be piece aligned so all torrents are now compatible
 		// with BEP 38
@@ -341,8 +339,6 @@ namespace libtorrent {
 		// to share files with this torrent. A torrent may have more than one
 		// collection and more than one similar torrents. For more information,
 		// see `BEP 38`_.
-		//
-		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		void add_similar_torrent(sha1_hash ih);
 		void add_collection(string_view c);
 

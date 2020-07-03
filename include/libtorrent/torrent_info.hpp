@@ -292,11 +292,11 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
 		// The ``trackers()`` function will return a sorted vector of
-		// ``announce_entry``. Each announce entry contains a string, which is
+		// announce_entry. Each announce entry contains a string, which is
 		// the tracker url, and a tier index. The tier index is the high-level
 		// priority. No matter which trackers that works or not, the ones with
 		// lower tier will always be tried before the one with higher tier
-		// number. For more information, see announce_entry_.
+		// number. For more information, see announce_entry.
 		//
 		// ``trackers()`` returns all entries from announce-list.
 		//
@@ -312,8 +312,6 @@ TORRENT_VERSION_NAMESPACE_3
 		// "collections" keys in the .torrent file. Both info-hashes and
 		// collections from within the info-dict and from outside of it are
 		// included.
-		//
-		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		std::vector<sha1_hash> similar_torrents() const;
 		std::vector<std::string> collections() const;
 
