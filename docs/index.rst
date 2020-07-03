@@ -122,7 +122,7 @@ Contribute
 ==========
 
 If your organization uses libtorrent, please consider supporting its development.
-See the contribute_ page for other ways to help out.
+See the contributing_ page for other ways to help out.
 
 .. raw:: html
 
