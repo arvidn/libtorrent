@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 %(head_prefix)s
 %(head)s
-<meta name="description" content="A BitTorrent protocol implementation as a C++ library">
+<meta name="description" content="A feature complete BitTorrent protocol implementation as a C++ library">
 <meta name=viewport content="width=device-width, initial-scale=1">
 %(stylesheet)s
 %(body_prefix)s
     <div id="container">
     <a href="index.html"><div id="logo">
-    <img src="img/logo-color-text.png"/>
+    <img src="img/logo-color-text.png" alt="libtorrent logo"/>
     </div></a>
     <div id="main">
 %(body_pre_docinfo)s

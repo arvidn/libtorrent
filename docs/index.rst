@@ -127,7 +127,7 @@ See the contributing_ page for other ways to help out.
 .. raw:: html
 
 	<span style="display:block;text-align:center;">
-	<img src="bitcoin.png" style="display:inline"><br/>
+	<img src="bitcoin.png" style="display:inline" alt="bitcoin address for libtorrent donations"><br/>
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
 	</span>
 
