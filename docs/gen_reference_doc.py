@@ -1349,13 +1349,11 @@ for cat in categories:
 
 __ reference.html
 
-%s
-
 .. contents:: Table of contents
   :depth: 2
   :backlinks: none
 
-''' % heading(cat, '='))
+''')
 
     if 'overview' in categories[cat]:
         out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
