@@ -35,7 +35,7 @@
       <td><a href="dht_store.html">DHT put extension</a></td>
     </tr>
     <tr>
-      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="python_binding.html">python bindings</a></td>
       <td><a href="features.html">features</a></td>
       <td><a href="dht_sec.html">DHT security extension</a></td>
     </tr>
