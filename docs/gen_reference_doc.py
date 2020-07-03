@@ -11,6 +11,7 @@ verbose = '--verbose' in sys.argv
 dump = '--dump' in sys.argv
 internal = '--internal' in sys.argv
 plain_output = '--plain-output' in sys.argv
+single_page_output = '--single-page' in sys.argv
 if plain_output:
     plain_file = open('plain_text_out.txt', 'w+')
 in_code = None
@@ -1319,44 +1320,15 @@ def dump_report_issue(h, out):
                 urllib.parse.quote_plus('Documentation under heading "' + h + '" could be improved')), file=out)
 
 
-out = open('reference.rst', 'w+')
-out.write('''=======================
-reference documentation
-=======================
+def render(out, category):
 
-''')
+    classes = category['classes']
+    functions = category['functions']
+    enums = category['enums']
+    constants = category['constants']
 
-out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
-
-for i in range(4):
-
-    out.write('.. container:: main-toc\n\n')
-    print_toc(out, categories, i)
-
-out.close()
-
-for cat in categories:
-    out = open(categories[cat]['filename'], 'w+')
-
-    classes = categories[cat]['classes']
-    functions = categories[cat]['functions']
-    enums = categories[cat]['enums']
-    constants = categories[cat]['constants']
-
-    out.write('''.. include:: header.rst
-
-`home`__
-
-__ reference.html
-
-.. contents:: Table of contents
-  :depth: 2
-  :backlinks: none
-
-''')
-
-    if 'overview' in categories[cat]:
-        out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
+    if 'overview' in category:
+        out.write('%s\n' % linkify_symbols(category['overview']))
 
     for c in classes:
 
@@ -1484,19 +1456,75 @@ __ reference.html
     for i in static_links:
         print(i, file=out)
 
+
+if single_page_output:
+
+    out = open('single-page-ref.rst', 'w+')
+    out.write('''.. include:: header.rst
+
+`home`__
+
+__ reference.html
+
+.. contents:: Table of contents
+  :depth: 2
+  :backlinks: none
+
+''')
+
+    for cat in categories:
+        render(out, categories[cat])
+
     out.close()
 
-# for s in symbols:
-#   print(s)
+else:
 
-for i, o in list(preprocess_rst.items()):
-    f = open(i, 'r')
-    out = open(o, 'w+')
-    print('processing %s -> %s' % (i, o))
-    link = linkify_symbols(f.read())
-    print(link, end=' ', file=out)
+    out = open('reference.rst', 'w+')
+    out.write('''=======================
+reference documentation
+=======================
 
-    print(dump_link_targets(), file=out)
+''')
+
+    out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
+
+    for i in range(4):
+
+        out.write('.. container:: main-toc\n\n')
+        print_toc(out, categories, i)
 
     out.close()
-    f.close()
+
+    for cat in categories:
+        out = open(categories[cat]['filename'], 'w+')
+
+        out.write('''.. include:: header.rst
+
+`home`__
+
+__ reference.html
+
+.. contents:: Table of contents
+  :depth: 2
+  :backlinks: none
+
+''')
+
+        render(out, categories[cat])
+
+        out.close()
+
+#       for s in symbols:
+#           print(s)
+
+    for i, o in list(preprocess_rst.items()):
+        f = open(i, 'r')
+        out = open(o, 'w+')
+        print('processing %s -> %s' % (i, o))
+        link = linkify_symbols(f.read())
+        print(link, end=' ', file=out)
+
+        print(dump_link_targets(), file=out)
+
+        out.close()
+        f.close()
