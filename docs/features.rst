@@ -193,6 +193,7 @@ copy back into kernel memory, as illustrated by this figure:
 
 .. image:: write_disk_buffers.png
 	:width: 100%
+	:class: bw
 
 When seeding and uploading in general, unnecessary copying is avoided by caching blocks
 in aligned buffers, that are copied once into the peer's send buffer. The peer's send buffer
@@ -203,6 +204,7 @@ peer-specific encryption. This is illustrated by the following figure:
 
 .. image:: read_disk_buffers.png
 	:width: 100%
+	:class: bw
 
 
 piece picker
@@ -243,6 +245,7 @@ customizable file I/O
 
 .. image:: storage.png
 	:align: right
+	:class: bw
 
 libtorrent's disk I/O implementation is customizable. That means a special
 purpose bittorrent client can replace the default way to store files on disk.

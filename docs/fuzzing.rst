@@ -8,9 +8,6 @@ fuzzing libtorrent
   :depth: 1
   :backlinks: none
 
-overview
-========
-
 Libtorrent comes with a set of fuzzers. They are not included in the distribution
 tar ball, instead download the `repository snapshot`_ or clone the repository_.
 

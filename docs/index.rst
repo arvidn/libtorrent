@@ -110,7 +110,7 @@ The main goals of libtorrent are:
 * to be memory efficient
 * to be very easy to use
 
-Getting started
+getting started
 ===============
 
 The tutorial_ is an introduction to using libtorrent (C++). Also see the
@@ -118,7 +118,7 @@ The tutorial_ is an introduction to using libtorrent (C++). Also see the
 
 .. _`reference documentation`: reference.html
 
-Contribute
+contribute
 ==========
 
 If your organization uses libtorrent, please consider supporting its development.
@@ -153,7 +153,7 @@ See the contributing_ page for other ways to help out.
 	</span>
 
 
-Support
+support
 =======
 
 Please direct questions to the `mailing list`__, general libtorrent discussion.
@@ -180,7 +180,7 @@ list or posted to the `bug tracker`_.
 
 .. _`bug tracker`: https://github.com/arvidn/libtorrent/issues
 
-Acknowledgements
+acknowledgements
 ================
 
 Written by Arvid Norberg. Copyright |copy| 2003-2018

@@ -1312,7 +1312,7 @@ def print_toc(out, categories, s):
 
 
 def dump_report_issue(h, out):
-    print(('.. raw:: html\n\n\t<span style="float:right;">[<a style="color:blue;" ' +
+    print(('.. raw:: html\n\n\t<span class="report-issue">[<a ' +
            'href="http://github.com/arvidn/libtorrent/issues/new?title=docs:{0}&labels=' +
            'documentation&body={1}">report issue</a>]</span>\n\n').format(
                 urllib.parse.quote_plus(h),

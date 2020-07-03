@@ -77,13 +77,7 @@ DOCS_IMAGES = \
   docs/utp_stack.png              \
   docs/bitcoin.png                \
   docs/style.css                  \
-  docs/rst.css                    \
-  docs/img/blue_bottom.png        \
-  docs/img/blue_top.png           \
-  docs/img/dotline.gif            \
-  docs/img/minus.gif              \
-  docs/img/logo-color-text.png    \
-  docs/join_rst.py
+  docs/img/logo-color-text.png
 
 DOCS_PAGES = \
   docs/building.html              \

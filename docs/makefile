@@ -82,13 +82,13 @@ epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 all: html pdf favicon.ico
 
 img/logo-color-text.png: img/logo-color-text.svg
-	convert -background transparent $? -resize 400 $@
+	convert -background transparent $< -resize 400 $@
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
 img/%.png: img/%.svg
-	convert -background transparent $? -resize 128x128 $@
+	convert -background transparent $< -resize 128x128 $@
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
@@ -100,13 +100,13 @@ ifneq ($(STAGE),)
 endif
 
 favicon-16.png: img/logo-color.svg
-	convert -background transparent $? -resize 16x16 $@
+	convert -background transparent $< -resize 16x16 $@
 
 favicon-32.png: img/logo-color.svg
-	convert -background transparent $? -resize 32x32 $@
+	convert -background transparent $< -resize 32x32 $@
 
 favicon-64.png: img/logo-color.svg
-	convert -background transparent $? -resize 64x64 $@
+	convert -background transparent $< -resize 64x64 $@
 
 single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
 	python3 join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
@@ -122,7 +122,7 @@ manual.rst: stats_counters.rst
 	touch manual.rst
 
 screenshot_thumb.png: screenshot.png
-	convert $? -resize 400 $@
+	convert $< -resize 400 $@
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
@@ -160,25 +160,25 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
 
 %.epub:%.rst
-	rst2epub --exit-status=2 $? $@
+	rst2epub --exit-status=2 $< $@
 
 %.pdf:%.rst
-	rst2pdf $? -o $@ --stylesheets stylesheet
+	rst2pdf $< -o $@ --stylesheets stylesheet
 
-%.html:%.rst
-	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@ || { rm $@; exit 1; }
+%.html:%.rst template.txt template2.txt
+	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
 ifneq ($(STAGE),)
-	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@ || { rm $@; exit 1; }
+	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $(WEB_PATH)/$@ || { rm $@; exit 1; }
 endif
 
 %.png:%.dot
-	dot -Tpng $? >$@ || { rm $@; exit 1; }
+	dot -Tpng $< >$@ || { rm $@; exit 1; }
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
 %.png:%.diagram
-	$(AAFIGURE) --scale 0.6 -o $@ $? || { rm $@; exit 1; }
+	$(AAFIGURE) --scale 0.6 -o $@ $< || { rm $@; exit 1; }
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif

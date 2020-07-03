@@ -2,18 +2,12 @@
 %(head)s
 <meta name=viewport content="width=device-width, initial-scale=1">
 %(stylesheet)s
-<link rel="stylesheet" type="text/css" href="rst.css" />
-<style type="text/css">
-/* Hides from IE-mac \*/
-* html pre { height: 1%%; }
-/* End hide from IE-mac */
-</style>
 %(body_prefix)s
     <div id="container">
-    <a href="index.html"><div id="logo">
+    <a href="index.html">
     <img src="img/logo-color-text.png"/>
-    </div></a>
-    <div id="main">
+    </a>
+    <div>
 %(body_pre_docinfo)s
 %(docinfo)s
 %(body)s
@@ -21,35 +15,24 @@
     </div>
     </div>
     <div id="gradient"></div>
+    <div id="filler">
     <div id="footer">
-    <table>
-    <tr>
-      <td><a href="index.html">home</a></td>
-      <td><a href="https://blog.libtorrent.org">blog</a></td>
-      <td><a href="utp.html">uTP</a></td>
-    </tr>
-    <tr>
-      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
-      <td><a href="reference.html">documentation</a></td>
-      <td><a href="dht_store.html">DHT put extension</a></td>
-    </tr>
-    <tr>
-      <td><a href="python_binding.html">python bindings</a></td>
-      <td><a href="features-ref.html">features</a></td>
-      <td><a href="dht_sec.html">DHT security extension</a></td>
-    </tr>
-    <tr>
-      <td><a href="https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/">mailing list archive</a></td>
-      <td><a href="contributing.html">contributing</a></td>
-      <td><a href="streaming.html">streaming</a></td>
-    </tr>
-    <tr>
-      <td><a href="https://github.com/arvidn/libtorrent/issues">report a bug</a></td>
-      <td><a href="building.html">building</a></td>
-      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
-    </tr>
-    </table>
+    <div><a href="index.html">home</a></div>
+    <div><a href="https://blog.libtorrent.org">blog</a></div>
+    <div><a href="utp.html">uTP</a></div>
+    <div><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></div>
+    <div><a href="reference.html">documentation</a></div>
+    <div><a href="dht_store.html">DHT put extension</a></div>
+    <div><a href="python_binding.html">python bindings</a></div>
+    <div><a href="features-ref.html">features</a></div>
+    <div><a href="dht_sec.html">DHT security extension</a></div>
+    <div><a href="https://sourceforge.net/p/libtorrent/mailman/libtorrent-discuss/">mailing list archive</a></div>
+    <div><a href="contributing.html">contributing</a></div>
+    <div><a href="streaming.html">streaming</a></div>
+    <div><a href="https://github.com/arvidn/libtorrent/issues">report a bug</a></div>
+    <div><a href="building.html">building</a></div>
+    <div><a href="bittorrent.pdf">bittorrent slides</a></div>
     </div>
-    <div id="filler"></div>
+	</div>
 
 %(body_suffix)s
