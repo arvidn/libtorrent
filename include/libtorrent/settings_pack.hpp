@@ -91,6 +91,8 @@ namespace aux {
 	// returns a settings_pack with every setting set to its default value
 	TORRENT_EXPORT settings_pack default_settings();
 
+	// the common interface to settings_pack and the internal representation of
+	// settings.
 	struct TORRENT_EXPORT settings_interface
 	{
 		virtual void set_str(int name, std::string val) = 0;
