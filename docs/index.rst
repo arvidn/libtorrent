@@ -90,19 +90,23 @@ Bindings
 
 .. _`Introduction, slides`: bittorrent.pdf
 
+introduction
+============
+
 libtorrent is a feature complete C++ bittorrent implementation focusing
 on efficiency and scalability. It runs on embedded devices as well as
 desktops. It boasts a well documented library interface that is easy to
 use. It comes with a `simple bittorrent client`__ demonstrating the use of
 the library.
 
-.. figure:: screenshot_thumb.png
-	:target: client_test.html
-	:figclass: align-right
-
-	``client_test`` example program
-
 __ client_test.html
+
+.. image:: screenshot_thumb.png
+	:target: client_test.html
+	:alt: screenshot of libtorrent's client_test
+	:class: align-right
+	:width: 400
+	:height: 239
 
 The main goals of libtorrent are:
 
