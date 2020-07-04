@@ -2,31 +2,44 @@
 
    <div id="librarySidebar">
 
+Getting started
+
 * download_
-* features_
-* tutorial_
-* examples_
-* overview_
-* documentation_
-* `libtorrent 1.2`_
-* contributing_
 * building_
+* tutorial_
+* overview_
+* examples_
+* features_
+
+--------
+
+Documentation
+
+* reference_
+* `blog`_
+* `upgrade to 2.0`_
+* `upgrade to 1.2`_
+* contributing_
 * troubleshooting_
-* `tuning`_
+* tuning_
 * fuzzing_
-* `mailing list`_ (archive_)
 * `projects using libtorrent`_
+
+--------
+
+Contact
+
+* `mailing list`_ (archive_)
 * `report bugs`_
 * `github page`_
-* `blog`_
 
 --------
 
 Extensions
 
-* `uTP`_
+* uTP_
 * `extensions protocol`_
-* `plugin interface`_
+* `libtorrent plugins`_
 * `streaming`_
 * `DHT extensions`_
 * `DHT security extension`_
@@ -41,7 +54,7 @@ Bindings
 
 * python_
 * Java_
-* go_
+* golang_
 * node_
 
 --------
@@ -60,15 +73,15 @@ Bindings
 .. _building: building.html
 .. _examples: examples.html
 .. _overview: manual-ref.html
-.. _documentation: reference.html
-.. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
-.. _`libtorrent 2.0`: upgrade_to_2.0-ref.html
+.. _reference: reference.html
+.. _`upgrade to 2.0`: upgrade_to_2.0-ref.html
+.. _`upgrade to 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html
-.. _`tuning`: tuning-ref.html
+.. _tuning: tuning-ref.html
 .. _fuzzing: fuzzing.html
-.. _`uTP`: utp.html
+.. _uTP: utp.html
 .. _`extensions protocol`: extension_protocol.html
-.. _`plugin interface`: reference-Plugins.html
+.. _`libtorrent plugins`: reference-Plugins.html
 .. _`streaming`: streaming.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
@@ -85,7 +98,7 @@ Bindings
 
 .. _Java: https://github.com/frostwire/frostwire-jlibtorrent/
 .. _python: python_binding.html
-.. _go: https://github.com/steeve/libtorrent-go
+.. _golang: https://github.com/steeve/libtorrent-go
 .. _node: https://github.com/fanatid/node-libtorrent
 
 .. _`Introduction, slides`: bittorrent.pdf

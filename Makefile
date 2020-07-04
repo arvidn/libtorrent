@@ -126,6 +126,7 @@ DOCS_PAGES = \
   docs/header.rst                 \
   docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
+  docs/upgrade_to_2.0-ref.html    \
   docs/reference.html             \
   docs/reference-Core.html        \
   docs/reference-DHT.html         \
