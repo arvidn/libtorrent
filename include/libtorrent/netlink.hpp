@@ -52,9 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	template <typename Protocol>
-	class basic_nl_endpoint
+	struct basic_nl_endpoint
 	{
-	public:
 		using protocol_type = Protocol;
 		using data_type = boost::asio::detail::socket_addr_type;
 
@@ -63,7 +62,6 @@ namespace libtorrent {
 		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, std::uint32_t pid = 0)
 			: m_proto(netlink_family)
 		{
-			std::memset(&m_sockaddr, 0, sizeof(sockaddr_nl));
 			m_sockaddr.nl_family = AF_NETLINK;
 			m_sockaddr.nl_groups = group;
 			m_sockaddr.nl_pid = pid;
@@ -89,25 +87,15 @@ namespace libtorrent {
 			return m_proto;
 		}
 
-		data_type* data()
-		{
-			return reinterpret_cast<data_type*>(&m_sockaddr);
-		}
+		data_type* data() { return reinterpret_cast<data_type*>(&m_sockaddr); }
 
 		const data_type* data() const
 		{
 			return reinterpret_cast<data_type const*>(&m_sockaddr);
 		}
 
-		std::size_t size() const
-		{
-			return sizeof(m_sockaddr);
-		}
-
-		std::size_t capacity() const
-		{
-			return sizeof(m_sockaddr);
-		}
+		std::size_t size() const { return sizeof(m_sockaddr); }
+		std::size_t capacity() const { return sizeof(m_sockaddr); }
 
 		// commented the comparison operators for now, until the
 		// same operators are implemented for sockaddr_nl
@@ -149,38 +137,22 @@ namespace libtorrent {
 		}
 		*/
 
-		private:
-			protocol_type m_proto;
-			sockaddr_nl m_sockaddr;
+	private:
+		protocol_type m_proto;
+		sockaddr_nl m_sockaddr{};
 	};
 
-	class netlink
+	struct netlink
 	{
-	public:
 		using endpoint = basic_nl_endpoint<netlink>;
 		using socket = boost::asio::basic_raw_socket<netlink>;
 
-		netlink() : netlink(NETLINK_ROUTE) {}
+		netlink() = default;
+		explicit netlink(int nl_family) : m_nl_family(nl_family) {}
 
-		explicit netlink(int nl_family)
-			: m_nl_family(nl_family)
-		{
-		}
-
-		int type() const
-		{
-			return SOCK_RAW;
-		}
-
-		int protocol() const
-		{
-			return m_nl_family;
-		}
-
-		int family() const
-		{
-			return AF_NETLINK;
-		}
+		int type() const { return SOCK_RAW; }
+		int protocol() const { return m_nl_family; }
+		int family() const { return AF_NETLINK; }
 
 		friend bool operator==(const netlink& l, const netlink& r)
 		{
@@ -193,7 +165,7 @@ namespace libtorrent {
 		}
 
 	private:
-		int m_nl_family;
+		int m_nl_family = NETLINK_ROUTE;
 	};
 
 }
