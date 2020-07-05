@@ -117,7 +117,7 @@ __ client_test.html
 .. image:: screenshot_thumb.png
 	:target: client_test.html
 	:alt: screenshot of libtorrent's client_test
-	:class: align-right
+	:class: front-page-screenshot
 	:width: 400
 	:height: 239
 
@@ -135,6 +135,12 @@ The tutorial_ is an introduction to using libtorrent (C++). Also see the
 
 .. _`reference documentation`: reference.html
 
+.. raw:: html
+
+	<br/>
+	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">
+	<img src="bitcoin.png" class="front-page-qr" alt="bitcoin address for libtorrent donations" width="190" height="190"></a>
+
 contribute
 ==========
 
@@ -143,10 +149,9 @@ See the contributing_ page for other ways to help out.
 
 .. raw:: html
 
-	<span style="display:block;text-align:center;">
-	<img src="bitcoin.png" style="display:inline" alt="bitcoin address for libtorrent donations" width="190" height="190"><br/>
+	<div style="text-align: right;">
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
-	</span>
+	</div>
 
 	<span style="display:block;text-align:center;margin-top:1em">
 	<span style="display:inline-block">
