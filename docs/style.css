@@ -159,9 +159,16 @@ table.docinfo {
 	border: none;
 }
 
+@media screen and (max-width: 499px) {
+table.docinfo {
+	display: none;
+}
+}
+
 table.docinfo th {
 	text-align: right;
 	background-color: transparent;
+	border: none;
 }
 
 table.docinfo td {
@@ -171,9 +178,21 @@ table.docinfo td {
 
 /* FRONT PAGE */
 
+@media screen and (min-width: 500px) {
 #librarySidebar {
 	float: left;
-	width: 14em;
+	width: 13em;
+}
+#libraryBody {
+	margin-left: 13em;
+}
+}
+
+@media screen and (max-width: 240px) {
+#librarySidebar ul {
+	list-style-type: none;
+	padding-inline-start: 0px;
+}
 }
 
 #librarySidebar li { padding-bottom: 0.35em; }
@@ -193,11 +212,30 @@ table.docinfo td {
 	border-left-style: solid;
 	border-left-width: 1px;
 	padding-left: 10px;
-	margin-left: 14em;
 	margin-right: 10px;
 }
-.align-right {
+
+.screenshot {
+	width: 100%;
+}
+
+.front-page-screenshot {
 	float: right;
+}
+@media screen and (max-width: 890px) {
+.front-page-screenshot {
+	display: none;
+}
+}
+
+.front-page-qr {
+	float: right;
+	clear: right;
+}
+@media screen and (max-width: 600px) {
+.front-page-qr {
+	display: none;
+}
 }
 
 .report-issue {
@@ -248,13 +286,17 @@ div.main-toc {
 #table-of-contents {
 	margin-left: 20px;
 	padding: 0.8em;
-	width: 15em;
-	float: right;
-	clear: right;
 	border-style: solid;
 	border-width: 1px;
 	position: relative;
 	z-index: 1;
+}
+
+@media screen and (min-width: 500px) {
+#table-of-contents {
+	width: 15em;
+	float: right;
+	clear: right;
 }
 }
 
@@ -271,6 +313,13 @@ div.main-toc {
 	list-style: square;
 	text-align: left;
 	line-height: 1.5em;
+}
+
+@media screen and (max-width: 319px) {
+#table-of-contents ul {
+	list-style-type: none;
+	padding-inline-start: 0px;
+}
 }
 
 #table-of-contents a.reference {
