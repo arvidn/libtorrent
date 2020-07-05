@@ -1588,6 +1588,7 @@ namespace {
 	void torrent_info::add_tracker(std::string const& url, int const tier
 		, announce_entry::tracker_source const source)
 	{
+		TORRENT_ASSERT_PRECOND(!url.empty());
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
