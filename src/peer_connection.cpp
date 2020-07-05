@@ -1928,8 +1928,7 @@ namespace libtorrent {
 
 		if (!t->valid_metadata() && index >= m_have_piece.end_index())
 		{
-			// TODO: 3 replace this magic number with something that makes sense
-			if (index < piece_index_t(524288))
+			if (index <= piece_index_t(m_settings.get_int(settings_pack::max_piece_count)))
 			{
 				// if we don't have metadata
 				// and we might not have received a bitfield
