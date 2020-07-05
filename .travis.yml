@@ -94,7 +94,7 @@ before_install:
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
       brew unlink python@2;
-      travis_retry brew install python;
+      travis_retry brew upgrade python;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
