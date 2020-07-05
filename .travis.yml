@@ -98,7 +98,7 @@ before_install:
       travis_retry brew update > /dev/null && brew install ccache;
      fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      travis_retry brew install python;
+      travis_retry brew upgrade python;
     fi'
   - 'if [[ "$python" == "1" ]]; then
        which python3;
