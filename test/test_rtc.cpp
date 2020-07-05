@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include <libtorrent/torrent.hpp>
+#include <libtorrent/aux_/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
 #include "test.hpp"
@@ -115,7 +115,7 @@ void test_offers()
 	time_point const start_time = clock_type::now();
 
 	session_mock ses(io_context);
-	torrent tor(ses, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor(ses, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	std::shared_ptr<rtc_signaling> sig;
 
@@ -150,10 +150,10 @@ void test_connectivity()
 	time_point const start_time = clock_type::now();
 
 	session_mock ses1(io_context);
-	torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	session_mock ses2(io_context);
-	torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	std::shared_ptr<rtc_signaling> sig1, sig2;
 	rtc_stream_init init1, init2;
@@ -230,10 +230,10 @@ void test_stream()
 	time_point const start_time = clock_type::now();
 
 	session_mock ses1(io_context);
-	torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor1(ses1, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	session_mock ses2(io_context);
-	torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor2(ses2, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	std::shared_ptr<rtc_signaling> sig1, sig2;
 	std::shared_ptr<rtc_stream> stream1, stream2;
@@ -361,4 +361,3 @@ TORRENT_TEST(signaling_stream) { test_stream(); }
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_USE_RTC
-
