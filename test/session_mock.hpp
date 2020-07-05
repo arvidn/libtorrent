@@ -80,7 +80,7 @@ struct session_mock : aux::session_interface
 	void insert_peer(std::shared_ptr<peer_connection> const&) override {}
 
 	void remove_torrent(torrent_handle const&, remove_flags_t) override {}
-	void remove_torrent_impl(std::shared_ptr<torrent>, remove_flags_t) override {}
+	void remove_torrent_impl(std::shared_ptr<aux::torrent>, remove_flags_t) override {}
 
 	port_filter const& get_port_filter() const override { return _port_filter; }
 	void ban_ip(address) override {}
@@ -94,12 +94,12 @@ struct session_mock : aux::session_interface
 	void trigger_optimistic_unchoke() noexcept override {}
 	void trigger_unchoke() noexcept override {}
 
-	std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override { return std::weak_ptr<torrent>(); }
-	std::weak_ptr<torrent> find_disconnect_candidate_torrent() const override { return std::weak_ptr<torrent>(); }
-	std::shared_ptr<torrent> delay_load_torrent(info_hash_t const&, peer_connection*) override { return nullptr; }
-	void insert_torrent(info_hash_t const&, std::shared_ptr<torrent> const&) override {}
-	void update_torrent_info_hash(std::shared_ptr<torrent> const&, info_hash_t const&) override {}
-	void set_queue_position(torrent*, queue_position_t) override {}
+	std::weak_ptr<aux::torrent> find_torrent(info_hash_t const&) const override { return std::weak_ptr<aux::torrent>(); }
+	std::weak_ptr<aux::torrent> find_disconnect_candidate_torrent() const override { return std::weak_ptr<aux::torrent>(); }
+	std::shared_ptr<aux::torrent> delay_load_torrent(info_hash_t const&, peer_connection*) override { return nullptr; }
+	void insert_torrent(info_hash_t const&, std::shared_ptr<aux::torrent> const&) override {}
+	void update_torrent_info_hash(std::shared_ptr<aux::torrent> const&, info_hash_t const&) override {}
+	void set_queue_position(aux::torrent*, queue_position_t) override {}
 	int num_torrents() const override { return 1; }
 
 	void close_connection(peer_connection*) noexcept override {}
@@ -119,7 +119,7 @@ struct session_mock : aux::session_interface
 
 	aux::proxy_settings proxy() const override { return {}; }
 
-	void prioritize_connections(std::weak_ptr<torrent>) override {}
+	void prioritize_connections(std::weak_ptr<aux::torrent>) override {}
 
 	void trigger_auto_manage() override {}
 
@@ -143,7 +143,7 @@ struct session_mock : aux::session_interface
 	void sent_syn(bool) override {}
 	void received_synack(bool) override {}
 
-	aux::vector<torrent*>& torrent_list(torrent_list_index_t) override { return _torrent_list; }
+	aux::vector<aux::torrent*>& torrent_list(torrent_list_index_t) override { return _torrent_list; }
 
 	bool has_lsd() const override { return false; }
 	void announce_lsd(sha1_hash const&, int) override {}
@@ -163,11 +163,11 @@ struct session_mock : aux::session_interface
 	void sent_buffer(int) override {}
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	std::vector<std::shared_ptr<torrent>> find_collection(std::string const&) const override { return {}; }
+	std::vector<std::shared_ptr<aux::torrent>> find_collection(std::string const&) const override { return {}; }
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-	torrent const* find_encrypted_torrent(sha1_hash const&, sha1_hash const&) override { return nullptr; }
+	aux::torrent const* find_encrypted_torrent(sha1_hash const&, sha1_hash const&) override { return nullptr; }
 #endif
 
 #if TORRENT_USE_I2P
@@ -181,11 +181,11 @@ struct session_mock : aux::session_interface
 	bool has_dht() const override { return false; }
 	int external_udp_port(address const&) const override { return 0; }
 	dht::dht_tracker* dht() override { return nullptr; }
-	void prioritize_dht(std::weak_ptr<torrent>) override {}
+	void prioritize_dht(std::weak_ptr<aux::torrent>) override {}
 #endif
 
 #if TORRENT_USE_ASSERTS
-	bool verify_queue_position(torrent const*, queue_position_t) override { return false; }
+	bool verify_queue_position(aux::torrent const*, queue_position_t) override { return false; }
 	bool is_single_thread() const override { return true; }
 	bool has_peer(peer_connection const*) const override { return false; }
 	bool any_torrent_has_peer(peer_connection const*) const override { return false; }
@@ -239,7 +239,7 @@ struct session_mock : aux::session_interface
 
 	std::unique_ptr<disk_interface> _disk_io;
 
-	aux::vector<torrent*> _torrent_list;
+	aux::vector<aux::torrent*> _torrent_list;
 	std::vector<block_info> _block_info_list;
 };
 
