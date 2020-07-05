@@ -775,7 +775,11 @@ namespace libtorrent {
 
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 
-		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
+		if (m_have_all)
+		{
+			m_num_pieces = t->torrent_file().num_pieces();
+			m_have_piece.set_all();
+		}
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_initialized);
 		m_initialized = true;
@@ -1917,8 +1921,7 @@ namespace libtorrent {
 
 		if (!t->valid_metadata() && index >= m_have_piece.end_index())
 		{
-			// TODO: 3 replace this magic number with something that makes sense
-			if (index < piece_index_t(524288))
+			if (index < piece_index_t(0x200000))
 			{
 				// if we don't have metadata
 				// and we might not have received a bitfield

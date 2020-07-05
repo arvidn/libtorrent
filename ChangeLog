@@ -1,3 +1,4 @@
+	* fix issue when receiving have-all message before the metadata
 	* don't leave lingering part files handles open
 	* disallow calling add_piece() during checking
 	* fix incorrect filename truncation at multi-byte character
