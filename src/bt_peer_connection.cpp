@@ -1236,7 +1236,7 @@ namespace {
 			m_supports_dht_port = true;
 			// if we're done with the handshake, respond right away, otherwise
 			// we'll send the DHT port later
-			if (m_sent_handshake)
+			if (m_sent_bitfield)
 				write_dht_port();
 		}
 	}
