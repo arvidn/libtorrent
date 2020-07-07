@@ -36,7 +36,7 @@
     </tr>
     <tr>
       <td><a href="python_binding.html">python bindings</a></td>
-      <td><a href="features.html">features</a></td>
+      <td><a href="features-ref.html">features</a></td>
       <td><a href="dht_sec.html">DHT security extension</a></td>
     </tr>
     <tr>

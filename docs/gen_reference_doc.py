@@ -45,6 +45,7 @@ preprocess_rst = \
         'manual.rst': 'manual-ref.rst',
         'tuning.rst': 'tuning-ref.rst',
         'tutorial.rst': 'tutorial-ref.rst',
+        'features.rst': 'features-ref.rst',
         'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
         'upgrade_to_2.0.rst': 'upgrade_to_2.0-ref.rst',
         'settings.rst': 'settings-ref.rst'
@@ -85,6 +86,7 @@ static_links = \
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
         ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
         ".. _`rate based choking`: manual-ref.html#rate-based-choking",
+        ".. _extensions: manual-ref.html#extensions",
     }
 
 anon_index = 0

@@ -54,7 +54,7 @@ Bindings
    <div id="libraryBody">
 
 .. _download: https://github.com/arvidn/libtorrent/releases
-.. _features: features.html
+.. _features: features-ref.html
 .. _tutorial: tutorial-ref.html
 .. _contributing: contributing.html
 .. _building: building.html
