@@ -377,6 +377,11 @@ TORRENT_VERSION_NAMESPACE_2
 	};
 
 TORRENT_VERSION_NAMESPACE_2_END
+
+namespace aux {
+	bool contains_resume_data(add_torrent_params const&);
+}
+
 }
 
 #endif

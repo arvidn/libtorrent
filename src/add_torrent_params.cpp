@@ -82,4 +82,15 @@ namespace libtorrent {
 	// TODO: it would be nice if this was nothrow default constructible
 //	static_assert(std::is_nothrow_default_constructible<add_torrent_params>::value
 //		, "should be nothrow default constructible");
+
+namespace aux {
+
+	// returns whether this add_torrent_params object has "resume-data", i.e.
+	// information about which pieces we have.
+	bool contains_resume_data(add_torrent_params const& atp)
+	{
+		return !atp.have_pieces.empty();
+	}
+}
+
 }
