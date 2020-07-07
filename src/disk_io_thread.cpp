@@ -281,7 +281,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 	void disk_io_thread::abort(bool const wait)
 	{
-		DLOG("disk_io_thread::abort: (%d)\n", int(wait));
+		DLOG("disk_io_thread::abort: (wait: %d)\n", int(wait));
 
 		// first make sure queued jobs have been submitted
 		// otherwise the queue may not get processed
@@ -3200,12 +3200,13 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// if we're not aborting, that means we just configured the thread pool to
 		// not have any threads (i.e. perform all disk operations in the network
 		// thread). In this case, the cleanup will happen in abort().
-		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
-		if (--m_num_running_threads > 0 || !m_abort)
+		int const threads_left = --m_num_running_threads;
+		if (threads_left > 0 || !m_abort)
 		{
 			DLOG("exiting disk thread. num_threads: %d aborting: %d\n"
-				, num_threads(), int(m_abort));
+				, threads_left, int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
+			m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 			return;
 		}
 
@@ -3214,6 +3215,11 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// doesn't inadvertently trigger the code below when it thinks there are no
 		// more disk I/O threads running
 		l.unlock();
+
+		DLOG("last thread alive. (left: %d) cleaning up. (generic-jobs: %d hash-jobs: %d)\n"
+			, threads_left
+			, m_generic_io_jobs.m_queued_jobs.size()
+			, m_hash_io_jobs.m_queued_jobs.size());
 
 		// at this point, there are no queued jobs left. However, main
 		// thread is still running and may still have peer_connections
@@ -3240,6 +3246,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		abort_jobs();
 
 		TORRENT_ASSERT(m_magic == 0x1337);
+		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 	}
 
 	void disk_io_thread::abort_jobs()
@@ -3356,6 +3363,12 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
+
+		if (m_abort.load())
+		{
+			// cancel all jobs
+			fail_jobs(storage_error(boost::asio::error::operation_aborted), new_jobs);
+		}
 
 		if (!new_jobs.empty())
 		{
