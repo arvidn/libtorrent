@@ -2574,43 +2574,35 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 		TORRENT_ASSERT(j->storage->files().piece_length() > 0);
 
+		// always initialize the storage
+		j->storage->initialize(j->error);
+		if (j->error) return status_t::fatal_disk_error;
+
 		bool const verify_success = j->storage->verify_resume_data(*rd
 			, links ? *links : aux::vector<std::string, file_index_t>(), j->error);
 
-		// if we don't have any resume data, return
-		// or if error is set and return value is 'no_error' or 'need_full_check'
-		// the error message indicates that the fast resume data was rejected
-		// if 'fatal_disk_error' is returned, the error message indicates what
-		// when wrong in the disk access
-		if ((rd->have_pieces.empty() || !verify_success)
-			&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
+		// j->error may have been set at this point, by verify_resume_data()
+		// it's important to not have it cleared out subsequent calls, as long
+		// as they succeed.
+
+		if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
+			return status_t::no_error;
+
+		// if the seed mode flag is not set, and the piece vector is empty, it
+		// suggests we're starting without any resume data
+		if (!aux::contains_resume_data(*rd))
 		{
-			// j->error may have been set at this point, by verify_resume_data()
-			// it's important to not have it cleared out subsequent calls, as long
-			// as they succeed.
+			// if we don't have any resume data, we still may need to trigger a
+			// full re-check, if there are *any* files.
 			storage_error ignore;
-			if (j->storage->has_any_file(ignore))
-			{
-				// always initialize the storage
-				storage_error se;
-				j->storage->initialize(se);
-				if (se)
-				{
-					j->error = se;
-					return status_t::fatal_disk_error;
-				}
-				return status_t::need_full_check;
-			}
+			return (j->storage->has_any_file(ignore))
+				? status_t::need_full_check
+				: status_t::no_error;
 		}
 
-		storage_error se;
-		j->storage->initialize(se);
-		if (se)
-		{
-			j->error = se;
-			return status_t::fatal_disk_error;
-		}
-		return status_t::no_error;
+		return verify_success
+			? status_t::no_error
+			: status_t::need_full_check;
 	}
 
 	status_t disk_io_thread::do_rename_file(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
