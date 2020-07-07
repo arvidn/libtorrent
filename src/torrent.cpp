@@ -2167,7 +2167,7 @@ bool is_downloading_state(int const st)
 		// (i.e. m_add_torrent_params->have_pieces)
 		if ((error || status != status_t::no_error)
 			&& m_add_torrent_params
-			&& !m_add_torrent_params->have_pieces.empty()
+			&& aux::contains_resume_data(*m_add_torrent_params)
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
