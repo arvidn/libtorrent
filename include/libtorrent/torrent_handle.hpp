@@ -278,6 +278,9 @@ namespace aux {
 		// Since the data is written asynchronously, you may know that is passed
 		// or failed the hash check by waiting for piece_finished_alert or
 		// hash_failed_alert.
+		//
+		// Adding pieces while the torrent is being checked (i.e. in
+		// torrent_status::checking_files state) is not supported.
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified

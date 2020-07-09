@@ -45,6 +45,7 @@ preprocess_rst = \
         'manual.rst': 'manual-ref.rst',
         'tuning.rst': 'tuning-ref.rst',
         'tutorial.rst': 'tutorial-ref.rst',
+        'features.rst': 'features-ref.rst',
         'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
         'upgrade_to_2.0.rst': 'upgrade_to_2.0-ref.rst',
         'settings.rst': 'settings-ref.rst'
@@ -85,6 +86,7 @@ static_links = \
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
         ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
         ".. _`rate based choking`: manual-ref.html#rate-based-choking",
+        ".. _extensions: manual-ref.html#extensions",
     }
 
 anon_index = 0
@@ -727,6 +729,7 @@ def trim_define(line):
             .replace('#if', '').replace('defined', '') \
             .replace('TORRENT_ABI_VERSION == 1', '') \
             .replace('TORRENT_ABI_VERSION <= 2', '') \
+            .replace('TORRENT_ABI_VERSION < 3', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
             .replace('!', '').replace('\\', '').strip()
 
@@ -760,7 +763,9 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
             ' TORRENT_USE_ASSERTS' in line or
             ' TORRENT_USE_INVARIANT_CHECKS' in line or
             ' TORRENT_ASIO_DEBUGGING' in line) or
-            (line == '#if TORRENT_ABI_VERSION == 1' or line == '#if TORRENT_ABI_VERSION <= 2')):
+            line == '#if TORRENT_ABI_VERSION == 1' or
+            line == '#if TORRENT_ABI_VERSION <= 2' or
+            line == '#if TORRENT_ABI_VERSION < 3'):
         while lno < len(lines):
             line = lines[lno].strip()
             lno += 1

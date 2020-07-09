@@ -58,8 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // * save and restore state via the session state
 // * see all alerts that are posted
 //
-// .. _extensions: extension_protocol.html
-//
 // a word of caution
 // -----------------
 //

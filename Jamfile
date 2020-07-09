@@ -243,6 +243,7 @@ rule warnings ( properties * )
 		result += <cflags>-Weverything ;
 		result += <cflags>-Wno-documentation ;
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
+		result += <cxxflags>-Wno-c++11-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
 # this warns on any global static object, which are used for error_category
@@ -267,7 +268,7 @@ rule warnings ( properties * )
 #		result += <cflags>-Wmisleading-indentation ;
 		result += <cflags>-Wparentheses ;
 		result += <cflags>-Wvla ;
-		result += <cxxflags>-Wc++11-compat ;
+		result += <cxxflags>-Wno-c++11-compat ;
 		result += <cflags>-Wno-format-zero-length ;
 		result += <cflags>-Wno-noexcept-type ;
 	}
@@ -931,6 +932,8 @@ lib torrent
 	: # default build
 	<threading>multi
 	<c++-template-depth>512
+	# default to 64 bit address model as it's required by mmap-disk-io.
+	<address-model>64
 
 	: # usage requirements
 	$(usage-requirements)
@@ -964,7 +967,7 @@ for local target in $(headers)
 		# this cast tells boost build that the header files really *are* cpp files
 		# otherwise the object rule doesn't know which language to interpret them as
 		obj header-build/$(target).o : [ cast.cast _ cpp : $(target) ]
-			: <library>/torrent <cxxflags>-fsyntax-only
+			: <library>torrent <cxxflags>-fsyntax-only
 			: <cxxstd>17 ;
 		explicit header-build/$(target).o ;
 		header_targets += $(target) ;

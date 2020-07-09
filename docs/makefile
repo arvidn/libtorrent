@@ -17,6 +17,7 @@ REFERENCE_TARGETS = \
 	manual-ref \
 	tutorial-ref \
 	tuning-ref \
+	features-ref \
 	upgrade_to_1.2-ref \
 	upgrade_to_2.0-ref \
 	reference \
@@ -42,7 +43,6 @@ MANUAL_TARGETS = index \
 	dht_store \
 	client_test \
 	building \
-	features \
 	troubleshooting \
 	contributing\
 	examples \
@@ -66,7 +66,6 @@ FIGURES = \
 	hacking \
 	utp_stack \
 	storage \
-	disk_cache \
 	troubleshooting \
 	screenshot_thumb
 
@@ -111,7 +110,7 @@ ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
 	python3 gen_reference_doc.py --plain-output
 
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst

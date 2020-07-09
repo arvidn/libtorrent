@@ -25,10 +25,12 @@ namespace
         c.set_hash(p, sha1_hash(b.arr));
     }
 
+#if TORRENT_ABI_VERSION < 3
     void set_file_hash(create_torrent& c, file_index_t f, bytes const& b)
     {
         c.set_file_hash(f, sha1_hash(b.arr));
     }
+#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
@@ -218,7 +220,9 @@ void bind_create_torrent()
         .def("set_comment", &create_torrent::set_comment)
         .def("set_creator", &create_torrent::set_creator)
         .def("set_hash", &set_hash)
+#if TORRENT_ABI_VERSION < 3
         .def("set_file_hash", &set_file_hash)
+#endif
         .def("add_url_seed", &create_torrent::add_url_seed)
         .def("add_http_seed", &create_torrent::add_http_seed)
         .def("add_node", &add_node)

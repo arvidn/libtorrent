@@ -77,14 +77,6 @@ namespace libtorrent {
 
 	namespace {
 
-	// this is an arbitrary limit to avoid malicious torrents causing
-	// unreasaonably large allocations for the merkle hash tree
-	// the size of the tree would be max_pieces * sizeof(int) * 2
-	// which is about 8 MB with this limit
-	// TODO: remove this limit and the overloads that imply it, in favour of
-	// using load_torrent_limits
-	constexpr int default_piece_limit = 0x100000;
-
 	bool valid_path_character(std::int32_t const c)
 	{
 #ifdef TORRENT_WINDOWS
@@ -579,13 +571,13 @@ namespace {
 					aux::sanitize_append_path_element(symlink_path, pe);
 				}
 			}
+			else
+			{
+				// technically this is an invalid torrent. "symlink path" must exist
+				file_flags &= ~file_storage::flag_symlink;
+			}
 			// symlink targets are validated later, as it may point to a file or
 			// directory we haven't parsed yet
-		}
-		else
-		{
-			// technically this is an invalid torrent. "symlink path" must exist
-			file_flags &= ~file_storage::flag_symlink;
 		}
 
 		if (filename.size() > path.length()
@@ -727,8 +719,8 @@ namespace {
 
 TORRENT_VERSION_NAMESPACE_3
 
-	torrent_info::torrent_info(torrent_info const& t) = default;
-	torrent_info& torrent_info::operator=(torrent_info&& t) = default;
+	torrent_info::torrent_info(torrent_info const&) = default;
+	torrent_info& torrent_info::operator=(torrent_info&&) = default;
 
 	void torrent_info::resolve_duplicate_filenames()
 	{
@@ -909,10 +901,10 @@ namespace {
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
 			aux::throw_ex<system_error>(ec);
 #else
-		parse_torrent_file(e, ec);
+		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
 #endif
 		INVARIANT_CHECK;
 	}
@@ -922,7 +914,7 @@ namespace {
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
 	{
 		error_code ec;
-		if (!parse_torrent_file(torrent_file, ec))
+		if (!parse_torrent_file(torrent_file, ec, load_torrent_limits{}.max_pieces))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -934,7 +926,7 @@ namespace {
 		bdecode_node e = bdecode(buffer, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -950,7 +942,7 @@ namespace {
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -1009,7 +1001,7 @@ namespace {
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -1041,7 +1033,7 @@ namespace {
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, error_code& ec)
 	{
-		parse_torrent_file(torrent_file, ec);
+		parse_torrent_file(torrent_file, ec, load_torrent_limits{}.max_pieces);
 		INVARIANT_CHECK;
 	}
 
@@ -1050,7 +1042,7 @@ namespace {
 	{
 		bdecode_node e = bdecode(buffer, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec);
+		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
 
 		INVARIANT_CHECK;
 	}
@@ -1063,7 +1055,7 @@ namespace {
 
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec);
+		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
 
 		INVARIANT_CHECK;
 	}
@@ -1078,7 +1070,7 @@ namespace {
 
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec);
+		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
 
 		INVARIANT_CHECK;
 	}
@@ -1129,15 +1121,25 @@ namespace {
 		return m_merkle_trees;
 	}
 
-	void torrent_info::internal_load_merkle_trees(std::vector<std::vector<sha256_hash>> const& trees_import)
+	void torrent_info::internal_load_merkle_trees(
+		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
+		, aux::vector<std::vector<bool>, file_index_t> mask)
 	{
 		for (file_index_t i{0}; i < orig_files().end_file(); ++i)
 		{
 			if (orig_files().pad_file_at(i) || orig_files().file_size(i) == 0)
 				continue;
 
-			if (trees_import.size() <= std::size_t(static_cast<int>(i))) break;
-			m_merkle_trees[i].load_tree(trees_import[std::size_t(static_cast<int>(i))]);
+			if (i >= trees_import.end_index()) break;
+			if (i < mask.end_index() && !mask[i].empty())
+			{
+				mask[i].resize(m_merkle_trees[i].size(), false);
+				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i]);
+			}
+			else
+			{
+				m_merkle_trees[i].load_tree(trees_import[i]);
+			}
 		}
 	}
 
@@ -1159,10 +1161,12 @@ namespace {
 		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
 
+#if TORRENT_ABI_VERSION < 3
 	bool torrent_info::parse_info_section(bdecode_node const& info, error_code& ec)
 	{
-		return parse_info_section(info, ec, default_piece_limit);
+		return parse_info_section(info, ec, 0x200000);
 	}
+#endif
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
 		, error_code& ec, int const max_pieces)
@@ -1561,12 +1565,6 @@ namespace {
 	}
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
-		, error_code& ec)
-	{
-		return parse_torrent_file(torrent_file, ec, default_piece_limit);
-	}
-
-	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, int const piece_limit)
 	{
 		if (torrent_file.type() != bdecode_node::dict_t)
@@ -1778,6 +1776,7 @@ namespace {
 	void torrent_info::add_tracker(std::string const& url, int const tier
 		, announce_entry::tracker_source const source)
 	{
+		TORRENT_ASSERT_PRECOND(!url.empty());
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;

@@ -3,6 +3,7 @@
 
 2.0 release
 
+	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
 	* stats_alert deprecated
@@ -29,6 +30,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix issue when receiving have-all message before the metadata
+	* don't leave lingering part files handles open
+	* disallow calling add_piece() during checking
 	* fix incorrect filename truncation at multi-byte character
 	* always announce listen port 1 when using a proxy
 

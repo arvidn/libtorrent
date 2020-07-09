@@ -232,7 +232,7 @@ namespace libtorrent {
 					p.tracker_tiers.resize(p.trackers.size(), 0);
 				error_code e;
 				std::string tracker = unescape_string(value, e);
-				if (!e)
+				if (!e && !tracker.empty())
 				{
 					p.trackers.push_back(std::move(tracker));
 					p.tracker_tiers.push_back(tier++);

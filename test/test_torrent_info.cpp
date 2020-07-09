@@ -507,18 +507,19 @@ TORRENT_TEST(sanitize_path_truncate_utf)
 	using lt::aux::sanitize_append_path_element;
 
 	std::string path;
+	// msvc doesn't like unicode string literals, so we encode it as UTF-8 explicitly
 	sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014abcde.jpg");
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi" "\xE2" "\x80" "\x94" "abcde.jpg");
 	TEST_EQUAL(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi\u2014.jpg");
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi" "\xE2" "\x80" "\x94" ".jpg");
 }
 
 TORRENT_TEST(sanitize_path_trailing_dots)

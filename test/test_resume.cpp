@@ -1075,9 +1075,17 @@ TORRENT_TEST(merkle_trees)
 	if (a == nullptr) return;
 
 	TEST_EQUAL(a->params.merkle_trees.size(), 3);
+	TEST_EQUAL(a->params.merkle_tree_mask.size(), 3);
 	TEST_EQUAL(p.ti->internal_merkle_trees().size(), 3);
 	for (file_index_t const i : p.ti->files().file_range())
-		TEST_CHECK(a->params.merkle_trees[i] == p.ti->internal_merkle_trees()[i].build_vector());
+	{
+		// use stuctured binding in C++17
+		std::vector<bool> mask;
+		std::vector<sha256_hash> sparse_tree;
+		std::tie(sparse_tree, mask) = p.ti->internal_merkle_trees()[i].build_sparse_vector();
+		TEST_CHECK(a->params.merkle_trees[i] == sparse_tree);
+		TEST_CHECK(a->params.merkle_tree_mask[i] == mask);
+	}
 }
 
 TORRENT_TEST(resume_info_dict)

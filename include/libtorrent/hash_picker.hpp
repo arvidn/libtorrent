@@ -136,7 +136,7 @@ namespace libtorrent
 	public:
 		hash_picker(file_storage const& files
 			, aux::vector<aux::merkle_tree, file_index_t>& trees
-			, aux::vector<aux::vector<bool>, file_index_t> verified = {}
+			, aux::vector<std::vector<bool>, file_index_t> verified = {}
 			, bool all_verified = false);
 
 		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces);
@@ -153,7 +153,7 @@ namespace libtorrent
 		bool have_all(file_index_t file) const;
 		bool have_all() const;
 		// get bits indicating if each leaf hash is verified
-		aux::vector<aux::vector<bool>, file_index_t> const& verified_leafs() const
+		aux::vector<std::vector<bool>, file_index_t> const& verified_leafs() const
 		{ return m_hash_verified; }
 		bool piece_verified(piece_index_t piece) const;
 
@@ -204,7 +204,7 @@ namespace libtorrent
 
 		file_storage const& m_files;
 		aux::vector<aux::merkle_tree, file_index_t>& m_merkle_trees;
-		aux::vector<aux::vector<bool>, file_index_t> m_hash_verified;
+		aux::vector<std::vector<bool>, file_index_t> m_hash_verified;
 
 		// information about every 512-piece span of each file. We request hashes
 		// for 512 pieces at a time

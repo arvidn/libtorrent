@@ -69,6 +69,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	sha256_hash root() const;
 
 	void load_tree(span<sha256_hash const> t);
+	void load_sparse_tree(span<sha256_hash const> t, std::vector<bool> const& mask);
 
 	std::size_t size() const;
 	int end_index() const { return int(size()); }
@@ -80,6 +81,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	sha256_hash operator[](int idx) const;
 
 	std::vector<sha256_hash> build_vector() const;
+	std::pair<std::vector<sha256_hash>, aux::vector<bool>> build_sparse_vector() const;
 
 	bool load_piece_layer(span<char const> piece_layer);
 
@@ -114,6 +116,9 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 		, int index, int count, int proof_layers) const;
 
 private:
+
+	// set to an empty tree
+	void clear();
 
 	sha256_hash get_impl(int idx, std::vector<sha256_hash>& scratch_space) const;
 

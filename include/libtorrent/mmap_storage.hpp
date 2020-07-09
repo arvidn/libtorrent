@@ -86,6 +86,8 @@ namespace aux {
 		mmap_storage(mmap_storage const&) = delete;
 		mmap_storage& operator=(mmap_storage const&) = delete;
 
+		void abort_jobs();
+
 		bool has_any_file(storage_error&);
 		void set_file_priority(settings_interface const&
 			, aux::vector<download_priority_t, file_index_t>& prio

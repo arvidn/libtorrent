@@ -60,9 +60,10 @@ namespace {
 
 	// class holding the info-hash of a torrent. It can hold a v1 info-hash
 	// (SHA-1) or a v2 info-hash (SHA-256) or both.
+	//
 	// .. note::
 	//
-	// 	If !has_v2() then the v1 hash might actually be a truncated v2 hash
+	//	If !has_v2() then the v1 hash might actually be a truncated v2 hash
 	struct TORRENT_EXPORT info_hash_t
 	{
 		info_hash_t() noexcept = default;

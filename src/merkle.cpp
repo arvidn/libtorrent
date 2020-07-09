@@ -88,6 +88,7 @@ namespace libtorrent {
 	{
 		// num_leafs must be a power of 2
 		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
+		TORRENT_ASSERT(num_leafs > 0);
 		return num_leafs - 1;
 	}
 
@@ -139,6 +140,61 @@ namespace libtorrent {
 			level_size /= 2;
 		}
 		TORRENT_ASSERT(level_size == 1);
+	}
+
+	void merkle_fill_partial_tree(span<sha256_hash> tree)
+	{
+		int const num_nodes = aux::numeric_cast<int>(tree.size());
+		// the tree size must be one less than a power of two
+		TORRENT_ASSERT(((num_nodes+1) & num_nodes) == 0);
+
+		// we do two passes over the tree, first to compute all the missing
+		// "interior" hashes. Then to clear all the ones that don't have a
+		// parent (i.e. "orphan" hashes). We clear them since we can't validate
+		// them against the root, which mean they may be incorrect.
+		int const num_leafs = (num_nodes + 1) / 2;
+		int level_size = num_leafs;
+		int level_start = merkle_first_leaf(num_leafs);
+		while (level_size > 1)
+		{
+			level_start = merkle_get_parent(level_start);
+			level_size /= 2;
+
+			for (int i = level_start; i < level_start + level_size; ++i)
+			{
+				int const child = merkle_get_first_child(i);
+				bool const zeros_left = tree[child].is_all_zeros();
+				bool const zeros_right = tree[child + 1].is_all_zeros();
+				if (zeros_left || zeros_right) continue;
+				hasher256 h;
+				h.update(tree[child]);
+				h.update(tree[child + 1]);
+				tree[i] = h.final();
+			}
+		}
+		TORRENT_ASSERT(level_size == 1);
+
+		int parent = 0;
+		for (int i = 1; i < int(tree.size()); i += 2, parent += 1)
+		{
+			if (tree[parent].is_all_zeros())
+			{
+				// if the parent is all zeros, the validation chain up to the
+				// root is broken, and this cannot be validated
+				tree[i].clear();
+				tree[i + 1].clear();
+			}
+			else if (tree[i + 1].is_all_zeros())
+			{
+				// if the sibling is all zeros, this hash cannot be validated
+				tree[i].clear();
+			}
+			else if (tree[i].is_all_zeros())
+			{
+				// if this hash is all zeros, the sibling hash cannot be validated
+				tree[i + 1].clear();
+			}
+		}
 	}
 
 	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int level_start)

@@ -403,6 +403,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	storage_holder mmap_disk_io::new_torrent(storage_params const& params
 		, std::shared_ptr<void> const& owner)
 	{
+		TORRENT_ASSERT(params.files.is_valid());
+
 		storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
@@ -439,7 +441,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::abort(bool const wait)
 	{
-		DLOG("mmap_disk_io::abort: (%d)\n", int(wait));
+		DLOG("mmap_disk_io::abort: (wait: %d)\n", int(wait));
 
 		// first make sure queued jobs have been submitted
 		// otherwise the queue may not get processed
@@ -1459,12 +1461,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if we're not aborting, that means we just configured the thread pool to
 		// not have any threads (i.e. perform all disk operations in the network
 		// thread). In this case, the cleanup will happen in abort().
-		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
-		if (--m_num_running_threads > 0 || !m_abort)
+
+		int const threads_left = --m_num_running_threads;
+		if (threads_left > 0 || !m_abort)
 		{
 			DLOG("exiting disk thread. num_threads: %d aborting: %d\n"
-				, num_threads(), int(m_abort));
+				, threads_left, int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
+			m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 			return;
 		}
 
@@ -1473,6 +1477,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// doesn't inadvertently trigger the code below when it thinks there are no
 		// more disk I/O threads running
 		l.unlock();
+
+		DLOG("last thread alive. (left: %d) cleaning up. (generic-jobs: %d hash-jobs: %d)\n"
+			, threads_left
+			, m_generic_io_jobs.m_queued_jobs.size()
+			, m_hash_io_jobs.m_queued_jobs.size());
 
 		// at this point, there are no queued jobs left. However, main
 		// thread is still running and may still have peer_connections
@@ -1489,6 +1498,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		abort_jobs();
 
 		TORRENT_ASSERT(m_magic == 0x1337);
+		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 	}
 
 	void mmap_disk_io::abort_jobs()
@@ -1575,6 +1585,22 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
+
+		if (m_abort.load())
+		{
+			jobqueue_t completed;
+
+			while (!new_jobs.empty())
+			{
+				aux::disk_io_job* j = new_jobs.pop_front();
+				TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+				j->ret = status_t::fatal_disk_error;
+				j->error = storage_error(boost::asio::error::operation_aborted);
+				completed.push_back(j);
+			}
+			if (!completed.empty())
+				add_completed_jobs(completed);
+		}
 
 		if (!new_jobs.empty())
 		{

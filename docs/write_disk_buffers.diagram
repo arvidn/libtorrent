@@ -1,14 +1,14 @@
 
                      "decrypt in place"              "move buffer ref."
-+------------------+ "(no copy)"    +--------------+ "(no copy)"     +--------------+
-| "receive buffer" +--=------------>| "plain text" +--=------------->| "disk cache" |
-+------------------+                | "buffer"     |                 +------+-------+
++------------------+ "(no copy)"    +--------------+ "(no copy)"     +----------------+
+| "receive buffer" +--=------------>| "plain text" +--=------------->| "store buffer" |
++------------------+                | "buffer"     |                 +------+---------+
         ^                           +--------------+                        |
         | "read() on socket"                              "write() to file" |
         | "(copy)"                                        "(copy)"          |
 ---=----|---------------------------------=---------------------------------|--=----
-        |                       "kernel space"                              |
-        |                                                                   v
+        |                       "kernel space"                memcpy() into |
+        |                                                     mmap          v
 +-------+---------+                                           +---------------------+
 | "socket kernel" |                                           | "kernel page cache" |
 | "buffer"        |                                           |                     |

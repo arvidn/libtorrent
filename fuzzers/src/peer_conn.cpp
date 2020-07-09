@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/random.hpp"
 
-
 #include "libtorrent/io_context.hpp"
 
 using namespace lt;

@@ -324,6 +324,8 @@ class TestAddPiece(unittest.TestCase):
         self.atp.ti = self.ti
         self.atp.save_path = self.dir.name
         self.handle = self.session.add_torrent(self.atp)
+        self.wait_for(lambda: self.handle.status().state != lt.torrent_status.checking_files
+                      and self.handle.status().state != lt.torrent_status.checking_resume_data, msg="checking")
 
     def wait_for(self, condition, msg="condition", timeout=5):
         deadline = time.time() + timeout
@@ -376,6 +378,27 @@ class test_torrent_info(unittest.TestCase):
         info = lt.torrent_info(lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
         self.assertEqual(info.info_hash(), lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
         self.assertEqual(info.info_hashes().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
+
+    def test_load_decode_depth_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'test': {'test': {'test': {'test': {'test': {}}}}}, 'info': {
+                'name': 'test_torrent', 'length': 1234,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_decode_depth': 1}))
+
+    def test_load_max_pieces_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_pieces': 1}))
+
+    def test_load_max_buffer_size_limit(self):
+        self.assertRaises(RuntimeError, lambda: lt.torrent_info(
+            {'info': {
+                'name': 'test_torrent', 'length': 1234000,
+                'piece length': 16 * 1024,
+                'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_buffer_size': 1}))
 
     def test_metadata(self):
         if not HAVE_DEPRECATED_APIS:

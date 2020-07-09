@@ -103,9 +103,11 @@ namespace aux {
 		virtual bool get_bool(int name) const = 0;
 
 		template <typename Type, typename Tag>
+		// hidden
 		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
 		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
 
+		// hidden
 		// these are here just to suppress the warning about virtual destructors
 		// internal
 		settings_interface() = default;
@@ -316,7 +318,7 @@ namespace aux {
 			// Windows OS network adapter device name must be specified with GUID.
 			// It can be obtained from "netsh lan show interfaces" command output.
 			// GUID must be uppercased string embraced in curly brackets.
-			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}::7777`` - will accept
+			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}:7777`` - will accept
 			// connections on port 7777 on adapter with this GUID.
 			//
 			// For more information, see the `Multi-homed hosts`_ section.
@@ -1935,6 +1937,13 @@ namespace aux {
 			// to clamp it in order to allow UDP packets go through
 			dht_max_infohashes_sample_count,
 
+			// ``max_piece_count`` is the maximum allowed number of pieces in
+			// metadata received via magnet links. Loading large torrents (with
+			// more pieces than the default limit) may also require passing in
+			// a higher limit to read_resume_data() and
+			// torrent_info::parse_info_section(), if those are used.
+			max_piece_count,
+
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is
 			// specified in seconds and is used as a sanity check on what is
@@ -1948,12 +1957,9 @@ namespace aux {
 		};
 
 		// hidden
-		enum settings_counts_t : int
-		{
-			num_string_settings = int(max_string_setting_internal) - int(string_type_base),
-			num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base),
-			num_int_settings = int(max_int_setting_internal) - int(int_type_base)
-		};
+		constexpr static int num_string_settings = int(max_string_setting_internal) - int(string_type_base);
+		constexpr static int num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base);
+		constexpr static int num_int_settings = int(max_int_setting_internal) - int(int_type_base);
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 

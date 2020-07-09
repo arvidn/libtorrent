@@ -73,8 +73,6 @@ DOCS_IMAGES = \
   docs/troubleshooting_thumb.png  \
   docs/hacking.diagram            \
   docs/hacking.png                \
-  docs/disk_cache.diagram         \
-  docs/disk_cache.png             \
   docs/utp_stack.diagram          \
   docs/utp_stack.png              \
   docs/bitcoin.png                \
@@ -98,7 +96,7 @@ DOCS_PAGES = \
   docs/dht_store.html             \
   docs/examples.html              \
   docs/extension_protocol.html    \
-  docs/features.html              \
+  docs/features-ref.html          \
   docs/index.html                 \
   docs/manual-ref.html            \
   docs/projects.html              \
@@ -252,6 +250,7 @@ TOOLS_FILES= \
   Jamfile                \
   dht_put.cpp            \
   dht_sample.cpp         \
+  disk_io_stress_test.cpp\
   parse_dht_log.py       \
   parse_dht_rtt.py       \
   parse_dht_stats.py     \

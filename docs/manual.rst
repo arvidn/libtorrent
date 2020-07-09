@@ -199,6 +199,11 @@ still be running, but it will disconnect the majority of peers (since connection
 to peers that already have the metadata are redundant). It will keep seeding the
 *metadata* only.
 
+Note that this doesn't prevent empty files from being created, if the torrent
+contains any. If you need to prevent that, you can either
+set ``file_priority`` to a long list of zeros (since the number of files is not known
+in advance), or set ``save_path`` to an invalid path.
+
 queuing
 =======
 
@@ -518,6 +523,12 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | |              | merkle hash tree for this file. Some      | |
 |                          | |              | hashes may be all zeros, if we haven't    | |
 |                          | |              | downloaded them yet.                      | |
+|                          | +--------------+-------------------------------------------+ |
+|                          | | ``mask``     | string. When present, a bitmask (of ``0`` | |
+|                          | |              | and ``1`` characters, indicating which    | |
+|                          | |              | hashes of the full tree are included in   | |
+|                          | |              | the ``hashes`` key. This is used to avoid | |
+|                          | |              | storing large numbers of zeros.           | |
 |                          | +--------------+-------------------------------------------+ |
 |                          | | ``verified`` | string. This indicates which leaf nodes   | |
 |                          | |              | in the tree have been verified correct.   | |

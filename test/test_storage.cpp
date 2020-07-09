@@ -826,6 +826,18 @@ TORRENT_TEST(rename_file)
 	error_code ec;
 	torrent_handle h = ses.add_torrent(std::move(p), ec);
 
+	// prevent race conditions of adding pieces while checking
+	lt::torrent_status st = h.status();
+	for (int i = 0; i < 40; ++i)
+	{
+		print_alerts(ses, "ses", true, true);
+		st = h.status();
+		if (st.state != torrent_status::checking_files
+			&& st.state != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
 	// make it a seed
 	std::vector<char> tmp(std::size_t(info->piece_length()));
 	for (auto const i : fs.piece_range())

@@ -179,6 +179,8 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 				auto const first = aux::read_v4_address(ptr);
 				auto const last = aux::read_v4_address(ptr);
 				auto const f = aux::read_uint32(ptr);
+				// ignore invalid entries
+				if (first > last) continue;
 				load.add_rule(first, last, f);
 			}
 		}
@@ -195,6 +197,8 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 				auto const first = aux::read_v6_address(ptr);
 				auto const last = aux::read_v6_address(ptr);
 				auto const f = aux::read_uint32(ptr);
+				// ignore invalid entries
+				if (first > last) continue;
 				load.add_rule(first, last, f);
 			}
 		}

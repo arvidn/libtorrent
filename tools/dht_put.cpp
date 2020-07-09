@@ -68,8 +68,8 @@ std::string to_hex(lt::span<char const> key)
 	std::string out;
 	for (auto const b : key)
 	{
-		char buf[20];
-		std::snprintf(buf, sizeof(3), "%02x", static_cast<unsigned char>(b));
+		char buf[3]{};
+		std::snprintf(buf, sizeof(buf), "%02x", static_cast<unsigned char>(b));
 		out += (char*)buf;
 	}
 	return out;

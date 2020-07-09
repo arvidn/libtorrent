@@ -102,14 +102,10 @@ disk management
 * fast resume support, a way to avoid the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state
   as well as all local peers in a fast-resume file.
-* has an adjustable read and write disk cache for improved disk throughput.
 * queues torrents for file check, instead of checking all of them in parallel.
-* does not have any requirements on the piece order in a torrent that it
   resumes. This means it can resume a torrent downloaded by any client.
 * seed mode, where the files on disk are assumed to be complete, and each
   piece's hash is verified the first time it is requested.
-* implements an ARC disk cache, tuned for performing well under bittorrent work
-  loads
 
 network
 -------
@@ -134,7 +130,7 @@ network
   want to download.
 * ip filter to disallow ip addresses and ip ranges from connecting and
   being connected.
-* NAT-PMP and UPnP support (automatic port mapping on routers that supports it)
+* NAT-PMP, PCP and UPnP support (automatic port mapping on routers that supports it)
 * implements automatic upload slots, to optimize download rate without spreading
   upload capacity too thin. The number of upload slots is adjusted based on the
   peers' download capacity to work even for connections that are orders of
@@ -162,35 +158,24 @@ network
 highlighted features
 ====================
 
-disk caching
-------------
+disk I/O
+--------
 
 All disk I/O in libtorrent is done asynchronously to the network thread, by the
-disk io threads. When a block is read, the disk io thread reads all subsequent
-blocks from that piece into the read cache, assuming that the peer requesting
-the block will also request more blocks from the same piece. This decreases the
-number of system calls for reading data. It also decreases delay from seeking.
+disk io threads. Files are mapped into memory and the kernel's page cache is
+relied on for caching disk blocks. This has the advantage that the disk cache
+size adapts to global system load and memory pressure, maximizing the cache
+without bogging down the whole system. Since memory mapped I/O is inherently
+synchronous, files can be accessed from multiple disk I/O threads.
 
-Similarly, for write requests, blocks are cached and flushed to disk once one full
-piece is complete or the piece is the least recently updated one when more cache
-space is needed. The cache dynamically allocates space between the write and read
-cache. The write cache is strictly prioritized over the read cache.
+Similarly, for write requests, blocks are queued in a store-buffer while waiting
+to be flushed to disk. Read requests that happen before a block has been
+flushed, will short circuit by picking the block from the store buffer.
 
-The cache blocks that are in used, are locked into physical memory to avoid it
-being paged out to disk. Allowing the disk cache to be paged out to disk means
-that it would become extremely inefficient to flush it, since it would have to be
-read back into physical memory only to be flushed back out to disk again.
-
-In order to conserve memory, and system calls, iovec file operations are
-used to flush multiple cache blocks in a single call.
-
-On low-memory systems, the disk cache can be disabled altogether or set to smaller
-limit, to save memory.
-
-The disk caching algorithm is configurable between *LRU* and *largest contiguous*.
-The largest contiguous algorithm is the default and flushes the largest contiguous
-block of buffers, instead of flushing all blocks belonging to the piece which was
-written to least recently.
+Memory mapped files are available on Windows and posix 64 bit systems. When
+building on other, simpler platforms, or 32 bits, a simple portable and
+single-threaded disk I/O back-end is available, using `fopen()` and `fclose()`
+family of functions.
 
 network buffers
 ---------------
@@ -264,7 +249,7 @@ purpose bittorrent client can replace the default way to store files on disk.
 
 When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as
 long as it can be retrieved and seeded. In that case a new disk I/O class can be implemented
-(inheriting from the ``disk_interface``) that avoids the unnecessary step of mapping
+(inheriting from the disk_interface) that avoids the unnecessary step of mapping
 pieces to files and offsets. The storage can ignore the file boundaries and just store the
 entire torrent in a single file (which will end up being all the files concatenated). The main
 advantage of this, other than a slight CPU performance gain, is that all file operations would
@@ -277,7 +262,9 @@ easy to use API
 
 One of the design goals of the libtorrent API is to make common operations simple, but still
 have it possible to do complicated and advanced operations. This is best illustrated by example
-code to implement a simple bittorrent client::
+code to implement a simple bittorrent client:
+
+.. code:: c++
 
 	#include <iostream>
 	#include "libtorrent/session.hpp"
@@ -288,8 +275,8 @@ code to implement a simple bittorrent client::
 		lt::session s;
 		lt::add_torrent_params p;
 		p.save_path = "./";
-		p.ti = new torrent_info(argv[1]);
-		s.add_torrent(p);
+		p.ti = std::make_shared<torrent_info>(argv[1]);
+		lt::torrent_handle h = s.add_torrent(p);
 
 		// wait for the user to end
 		char a;
@@ -303,27 +290,35 @@ code to implement a simple bittorrent client::
 		return 1;
 	}
 
-This client doesn't give the user any status information or progress about the torrent, but
-it is fully functional.
+This client doesn't give the user any status information or progress about the
+torrent, but it is fully functional.
 
-libtorrent also comes with python bindings for easy access for python developers.
+libtorrent also comes with `python bindings`_.
+
+.. _`python bindings`: python_binding.html
 
 
 portability
 ===========
 
-libtorrent runs on most major operating systems, including Windows,
-macOS, Linux, BSD and Solaris.
+libtorrent runs on most major operating systems including:
+
+* Windows
+* macOS
+* Linux
+* BSD
+* Solaris
+
 It uses Boost.Asio, Boost.Optional, Boost.System, Boost.Multiprecision,
-Boost.Intrusive, Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
-other boost libraries. At least version 1.49 of boost is required.
+Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
+other boost libraries. At least version 1.70 of boost is required.
 
 Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on Linux and kqueue on macOS and BSD.
 
-libtorrent does not build with the following compilers:
+libtorrent requires a C++11 compiler and does not build with the following compilers:
 
-* GCC 2.95.4
-* Visual Studio 6, 7.0, 7.1
+* GCC older than 5.4
+* Visual Studio older than Visual Studio 15 2017 (aka msvc-14.1)
 

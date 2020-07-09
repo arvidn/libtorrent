@@ -337,8 +337,10 @@ namespace libtorrent {
 		, peer_class_set
 		, std::enable_shared_from_this<torrent>
 	{
-		torrent(aux::session_interface& ses
-			, bool session_paused, add_torrent_params const& p);
+		// add_torrent_params may contain large merkle trees that are best
+		// moved. Deleting the const& overload ensures that it's always moved in.
+		torrent(aux::session_interface& ses, bool session_paused, add_torrent_params&& p);
+		torrent(aux::session_interface&, bool, add_torrent_params const& p) = delete;
 		~torrent() override;
 
 		// This may be called from multiple threads
@@ -1025,7 +1027,7 @@ namespace libtorrent {
 			return *m_hash_picker;
 		}
 
-		void need_hash_picker(aux::vector<aux::vector<bool>, file_index_t> verified = {});
+		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
 		bool has_hash_picker() const
 		{
 			return m_hash_picker.get() != nullptr;

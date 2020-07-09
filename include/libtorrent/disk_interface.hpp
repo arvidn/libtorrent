@@ -138,10 +138,6 @@ namespace file_open_mode {
 		time_point last_use;
 	};
 
-#if TORRENT_ABI_VERSION == 1
-	using pool_file_status = open_file_state;
-#endif
-
 	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, struct disk_job_flags_tag>;
 
 	// The disk_interface is the customization point for disk I/O in libtorrent.

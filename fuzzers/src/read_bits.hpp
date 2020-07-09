@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019, Arvid Norberg
+Copyright (c) 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <cstdint>
-#include "libtorrent/read_resume_data.hpp"
-#include "libtorrent/write_resume_data.hpp"
-#include "libtorrent/add_torrent_params.hpp"
-
-extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
+struct read_bits
 {
-	lt::error_code ec;
-	auto ret = lt::read_resume_data({reinterpret_cast<char const*>(data), int(size)}, ec);
-	auto buf = write_resume_data_buf(ret);
-	return 0;
-}
+	read_bits(std::uint8_t const* d, std::size_t s)
+		: m_data(d), m_size(s)
+	{}
+
+	int read(int bits)
+	{
+		if (m_size == 0) return 0;
+		int ret = 0;
+		while (bits > 0 && m_size > 0)
+		{
+			int const bits_to_copy = std::min(8 - m_bit, bits);
+			ret <<= bits_to_copy;
+			ret |= ((*m_data) >> m_bit) & ((1 << bits_to_copy) - 1);
+			m_bit += bits_to_copy;
+			bits -= bits_to_copy;
+			if (m_bit == 8)
+			{
+				--m_size;
+				++m_data;
+				m_bit = 0;
+			}
+		}
+		return ret;
+	}
+private:
+	std::uint8_t const* m_data;
+	std::size_t m_size;
+	int m_bit = 0;
+};
+
 

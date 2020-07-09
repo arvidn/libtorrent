@@ -22,13 +22,12 @@ variant build_coverage : release : <sanitize>off <debug-symbols>on <asserts>off 
 project fuzzers
 	: requirements
 	<export-extra>on
-	<define>TORRENT_USE_ASSERTS=1
 	<define>TORRENT_USE_IPV6=1
 	<define>_SCL_SECURE=1
 	<define>_GLIBCXX_DEBUG
 	<cxxflags>-fno-omit-frame-pointer
 	<linkflags>-fno-omit-frame-pointer
-	<library>/torrent//torrent/
+	<library>/torrent//torrent
 	: default-build
 	<cxxstd>17
 	<fuzz>on
@@ -76,6 +75,7 @@ fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
 fuzzer session_params ;
+fuzzer add_torrent ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -89,6 +89,7 @@ local LARGE_TARGETS =
 	upnp
 	peer_conn
 	session_params
+	add_torrent
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
