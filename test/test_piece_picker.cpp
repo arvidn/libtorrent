@@ -2487,5 +2487,13 @@ TORRENT_TEST(piece_extent_affinity_no_duplicates)
 	TEST_CHECK(picked == full_piece(9, blocks));
 }
 
+TORRENT_TEST(piece_block_exported)
+{
+	// piece_block is part of the public API via picker_log_alert::blocks
+	// ensure it's exported by using piece_block::invalid
+	TEST_EQUAL(piece_block::invalid.piece_index, std::numeric_limits<piece_index_t>::max());
+	TEST_EQUAL(piece_block::invalid.block_index, std::numeric_limits<int>::max());
+}
+
 //TODO: 2 test picking with partial pieces and other peers present so that both
 // backup_pieces and backup_pieces2 are used
