@@ -71,12 +71,13 @@ TORRENT_VERSION_NAMESPACE_3
 struct TORRENT_EXPORT session_params
 {
 	// This constructor can be used to start with the default plugins
-	// (ut_metadata, ut_pex and smart_ban). The default values in the
-	// settings is to start the default features like upnp, NAT-PMP,
-	// and dht for example.
+	// (ut_metadata, ut_pex and smart_ban). Pass a settings_pack to set the
+	// initial settings when the session starts.
 	session_params(settings_pack&& sp); // NOLINT
 	session_params(settings_pack const& sp); // NOLINT
 	session_params();
+
+	// hidden
 	~session_params();
 
 	// This constructor helps to configure the set of initial plugins
