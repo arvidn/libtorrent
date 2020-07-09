@@ -1,9 +1,7 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 # (python-docutils) as well as aafigure (python-aafigure)
 
-ifneq ($(STAGE),)
 WEB_PATH = ~/web/products/libtorrent
-endif
 
 ifndef RST2HTML
 RST2HTML:=rst2html
@@ -75,11 +73,27 @@ FIGURES = \
 	utp_stack \
 	storage \
 	troubleshooting \
+	troubleshooting_thumb \
+	screenshot \
 	screenshot_thumb \
 	img/logo-color \
-	img/logo-bw
+	img/logo-bw \
+	img/logo-color-text \
+	bitcoin \
+	ip_id_v4 \
+	ip_id_v6 \
+	hash_distribution \
+	complete_bit_prefixes \
+	our_delay_base \
+	our_delay_base_thumb \
+	delays \
+	delays_thumb \
+	cwnd \
+	cwnd_thumb
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico
+
+stage: $(addprefix $(WEB_PATH)/, $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico style.css)
 
 rst: $(TARGETS:=.rst) todo.html
 
@@ -91,21 +105,12 @@ all: html pdf favicon.ico
 
 img/logo-color-text.png: img/logo-color-text.svg
 	convert -background transparent $< -resize 400 $@
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
 img/%.png: img/%.svg
 	convert -background transparent $< -resize 128x128 $@
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
 favicon.ico: favicon-16.png favicon-32.png favicon-64.png
-	icotool -o $@ -c favicon-16.png favicon-32.png favicon-64.png
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+	icotool -o $@ -c $?
 
 favicon-16.png: img/logo-color.svg
 	convert -background transparent $< -resize 16x16 $@
@@ -116,7 +121,7 @@ favicon-32.png: img/logo-color.svg
 favicon-64.png: img/logo-color.svg
 	convert -background transparent $< -resize 64x64 $@
 
-single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings.rst stats_counters.rst
+single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings-ref.rst stats_counters.rst
 	python3 gen_reference_doc.py --single-page
 
 settings.rst hunspell/settings.dic: ../include/libtorrent/settings_pack.hpp hunspell/libtorrent.dic
@@ -129,25 +134,16 @@ stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_c
 manual.rst: stats_counters.rst
 	touch manual.rst
 
-screenshot_thumb.png: screenshot.png
+%_thumb.png: %.png
 	convert $< -resize 400 $@
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
-#troubleshooting_thumb.png: troubleshooting.png
-#	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-#ifneq ($(STAGE),)
-#	cp $@ $(WEB_PATH)/$@
-#endif
+troubleshooting_thumb.png: troubleshooting.png
+	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python3 gen_todo.py
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt settings-ref.rst:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
 	python3 gen_reference_doc.py --plain-output
 
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst
@@ -175,22 +171,38 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 
 %.html:%.rst template.txt template2.txt
 	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $(WEB_PATH)/$@ || { rm $@; exit 1; }
-endif
 
 %.png:%.dot
 	dot -Tpng $< >$@ || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
 %.png:%.diagram
 	$(AAFIGURE) --scale 0.6 -o $@ $< || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+
+# stage rules
+
+$(WEB_PATH)/%.html:%.rst template.txt template2.txt
+	mkdir -p $(WEB_PATH) >/dev/null
+	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
+
+$(WEB_PATH)/img/%.png: img/%.png
+	mkdir -p $(WEB_PATH)/img >/dev/null
+	cp $< $@
+
+$(WEB_PATH)/%.png: %.png
+	cp $< $@
+
+$(WEB_PATH)/%.css: %.css
+	cp $< $@
+
+$(WEB_PATH)/%.svg: %.svg
+	cp $< $@
+
+$(WEB_PATH)/%.html: %.html
+	cp $< $@
+
+$(WEB_PATH)/%.ico: %.ico
+	cp $< $@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
 
