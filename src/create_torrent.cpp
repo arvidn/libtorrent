@@ -918,6 +918,7 @@ namespace {
 
 	void create_torrent::add_tracker(string_view url, int const tier)
 	{
+		if (url.empty()) return;
 		using announce_entry = std::pair<std::string, int>;
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.first == url; });

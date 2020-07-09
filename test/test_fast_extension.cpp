@@ -232,6 +232,20 @@ void send_have_none(tcp::socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
+void send_dht_port(tcp::socket& s, int port)
+{
+	using namespace lt::aux;
+
+	log("==> dht_port");
+	char msg[] = "\0\0\0\x03\x09\0\0"; // dht_port
+	char* ptr = msg + 5;
+	write_uint16(port, ptr);
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(msg, 7)
+		, boost::asio::transfer_all(), ec);
+	if (ec) TEST_ERROR(ec.message());
+}
+
 void send_bitfield(tcp::socket& s, char const* bits)
 {
 	using namespace lt::aux;
@@ -424,6 +438,7 @@ entry read_ut_metadata_msg(tcp::socket& s, span<char> recv_buffer)
 std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	, info_hash_t& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
+	, bool const magnet_link = false, bool const dht = false
 	, torrent_flags_t const flags = torrent_flags_t{}
 	, torrent_handle* th = nullptr)
 {
@@ -434,7 +449,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_dht, dht);
 	sett.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	sett.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
@@ -449,7 +464,10 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
-	p.ti = t;
+	if (magnet_link)
+		p.info_hash = ih;
+	else
+		p.ti = t;
 	p.save_path = "./tmp1_fast";
 
 	remove("./tmp1_fast/temporary", ec);
@@ -818,7 +836,7 @@ TORRENT_TEST(dont_have)
 	io_context ios;
 	tcp::socket s(ios);
 	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses, true
-		, torrent_flags_t{}, &th);
+		, false, false, torrent_flags_t{}, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -1033,7 +1051,7 @@ void have_all_test(bool const incoming)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ios, ih, ses, incoming, torrent_flags::seed_mode);
+	setup_peer(s, ios, ih, ses, incoming, false, false, torrent_flags::seed_mode);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -1079,5 +1097,24 @@ TORRENT_TEST(incoming_have_all)
 	have_all_test(false);
 }
 
+TORRENT_TEST(dht_port_no_support)
+{
+	std::cout << "\n === test DHT port (without advertising support) ===\n" << std::endl;
+
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, true, true);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_dht_port(s, 6881);
+	print_session_log(*ses);
+
+	s.close();
+	std::this_thread::sleep_for(lt::milliseconds(500));
+	print_session_log(*ses);
+}
 // TODO: test sending invalid requests (out of bound piece index, offsets and
 // sizes)

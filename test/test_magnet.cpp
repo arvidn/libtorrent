@@ -537,6 +537,14 @@ TORRENT_TEST(invalid_web_seed_escaping)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(invalid_trackers)
+{
+	error_code ec;
+	add_torrent_params p = parse_magnet_uri("magnet:?tr=", ec);
+	TEST_CHECK(p.trackers.empty());
+}
+
+
 namespace {
 
 auto const yes = default_priority;

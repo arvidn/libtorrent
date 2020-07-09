@@ -331,6 +331,7 @@ bool is_downloading_state(int const st)
 			e.tier = std::uint8_t(tier);
 			if (!find_tracker(e.url))
 			{
+				if (e.url.empty()) continue;
 				m_trackers.push_back(e);
 				// add the tracker to the m_torrent_file here so that the trackers
 				// will be preserved via create_torrent() when passing in just the
@@ -5618,6 +5619,7 @@ namespace {
 
 	bool torrent::add_tracker(announce_entry const& url)
 	{
+		if (url.url.empty()) return false;
 		if(auto k = find_tracker(url.url))
 		{
 			k->source |= url.source;
