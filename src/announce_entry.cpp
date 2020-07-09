@@ -50,6 +50,8 @@ namespace libtorrent {
 		minutes32 constexpr tracker_retry_delay_max{ 60 };
 	}
 
+TORRENT_VERSION_NAMESPACE_2
+
 	announce_infohash::announce_infohash()
 		: fails(0)
 		, updating(false)
@@ -88,6 +90,8 @@ namespace libtorrent {
 	announce_entry::~announce_entry() = default;
 	announce_entry::announce_entry(announce_entry const&) = default;
 	announce_entry& announce_entry::operator=(announce_entry const&) & = default;
+
+	announce_endpoint::announce_endpoint() = default;
 
 #if TORRENT_ABI_VERSION <= 2
 	void announce_infohash::reset()
@@ -175,6 +179,8 @@ namespace libtorrent {
 			, [](announce_endpoint const& aep) { return aep.is_working(); });
 	}
 #endif
+
+TORRENT_VERSION_NAMESPACE_2_END
 
 namespace aux {
 
