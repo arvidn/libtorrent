@@ -89,32 +89,33 @@ before_install:
   - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-    travis_retry brew update > /dev/null && brew install ccache;
-    fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then
-      brew unlink python@2;
-      travis_retry brew upgrade python;
-    fi'
-  - 'if [[ "$python" == "1" ]]; then
-       which python3;
-       python3 --version;
-    fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
       export B2=b2;
       export PIP=pip;
     else
       export B2=b2;
-      export PIP=pip3;
+      export PIP="python -m pip";
       sysctl hw.ncpu;
+    fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+      travis_retry brew install ccache;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
   # user-libraries (i.e. python modules) into system binaries (i.e. /usr/bin/python)
+  # it's important to install the brew python version before any pip packages,
+  # as the pip packages may break if the version of python they used gets pulled
+  # from under them
   - 'if [ "$docs" = "1" ]; then
-    ${PIP} install docutils;
-    ${PIP} install Pygments;
-    travis_retry brew install graphviz hunspell imagemagick;
+       travis_retry brew install graphviz hunspell imagemagick;
+       ${PIP} install docutils;
+       ${PIP} install Pygments;
+       ${PIP} install aafigure;
+    fi'
+  - 'if [[ "$python" == "1" || "$docs" == "1" ]]; then
+       which python3;
+       which pip3;
+       python3 --version;
     fi'
 
   - if [ "$coverage" == "1" ]; then
@@ -214,7 +215,7 @@ script:
 
   - cd docs
   - 'if [ "$docs" == "1" ]; then
-      make spell-check html RST2HTML=rst2html.py AAFIGURE=echo;
+      make spell-check html RST2HTML=rst2html.py;
     fi'
   - cd ..
 
