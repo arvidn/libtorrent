@@ -89,6 +89,9 @@ p.first {
 	margin-top: 0.3em;
 }
 
+.align-right {
+	float: right;
+}
 
 @media (prefers-color-scheme: dark) {
 .bw {
