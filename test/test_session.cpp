@@ -424,6 +424,22 @@ TORRENT_TEST(save_state_peer_id)
 	TEST_EQUAL(ses.get_settings().get_str(settings_pack::peer_fingerprint), "foobar");
 }
 
+TORRENT_TEST(pop_alert_clear)
+{
+	session s;
+
+	// make sure the vector is cleared if there are no alerts to be popped
+	std::vector<alert*> alerts(100);
+
+	for (int i = 0; i < 10; ++i)
+	{
+		alerts.resize(100);
+		s.pop_alerts(&alerts);
+		if (alerts.empty()) break;
+	}
+	TEST_CHECK(alerts.empty());
+}
+
 #if !defined TORRENT_DISABLE_LOGGING
 
 #if !defined TORRENT_DISABLE_DHT
