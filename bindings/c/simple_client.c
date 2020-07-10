@@ -53,9 +53,12 @@ int main(int argc, char* argv[])
 
 	int ret = 0;
 	void* ses = session_create(
-		SES_LISTENPORT, 6881,
-		SES_LISTENPORT_END, 6889,
-		SES_ALERT_MASK, ~(cat_progress | cat_port_mapping | cat_debug | cat_performance_warning | cat_peer),
+		SET_LISTEN_INTERFACES, "0.0.0.0:6881",
+		SET_ALERT_MASK, CAT_ERROR
+			| CAT_PORT_MAPPING
+			| CAT_STORAGE
+			| CAT_TRACKER
+			| CAT_IP_BLOCK,
 		TAG_END);
 
 	int t = session_add_torrent(ses,
@@ -98,9 +101,14 @@ int main(int argc, char* argv[])
 			, message);
 
 
-		char msg[400];
-		while (session_pop_alert(ses, msg, sizeof(msg), 0) >= 0)
+		struct libtorrent_alert const* alerts[400];
+		int num_alerts = 400;
+		session_pop_alerts(ses, alerts, &num_alerts);
+
+		for (int i = 0; i < num_alerts; ++i)
 		{
+			char msg[500];
+			alert_message(alerts[i], msg, sizeof(msg));
 			printf("%s\n", msg);
 		}
 

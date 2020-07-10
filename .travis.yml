@@ -21,7 +21,7 @@ matrix:
           - clang-tidy-9
     - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=debug tests=1 mmap=off toolset=gcc
-    - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on
+    - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on cbinding=1
     - env: variant=debug tests=1 crypto=gnutls webtorrent=on toolset=gcc sanitizer=on
       addons:
         apt:
@@ -251,7 +251,7 @@ script:
 
   - cd $TRAVIS_BUILD_DIR
   - 'if [ "$pylint" == "1" ]; then
-      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123,E402 --exclude=deps/libdatachannel,deps/json;
+      python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123,E402 --exclude=deps/libdatachannel,deps/json,bindings/c;
     fi'
   - 'if [ "$sonar_scan" == "1" ]; then
        build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=17 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
@@ -295,6 +295,11 @@ script:
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
+    fi'
+
+  - cd $TRAVIS_BUILD_DIR/bindings/c;
+  - 'if [ "$cbinding" == "1" ]; then
+      ${B2} -j2 warnings-as-errors=on warnings=all ${B2_ARGS} link=shared;
     fi'
 
   # build fuzzers with the same build configuration as the test above, to avoid
