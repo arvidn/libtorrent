@@ -266,6 +266,10 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	lt::time_point const start_time = lt::clock_type::now();
 
+	static char const* state_str[] =
+		{"checking (q)", "checking", "dl metadata"
+		, "downloading", "finished", "seeding", "allocating", "checking (r)"};
+
 	for (int i = 0; i < 20000; ++i)
 	{
 		if (lt::clock_type::now() - start_time > seconds(10))
@@ -287,8 +291,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			print_ses_rate(i / 10.f, &st1, &st2);
 		}
 
-		std::cout << "st1-progress: " << st1.progress << " " << st1.state << "\n";
-		std::cout << "st2-progress: " << st2.progress << " " << st2.state << "\n";
+		std::cout << "st1-progress: " << (st1.progress * 100.f) << "% state: " << state_str[st1.state] << "\n";
+		std::cout << "st2-progress: " << (st2.progress * 100.f) << "% state: " << state_str[st2.state] << "\n";
 		if ((flags & move_storage) && st2.progress > 0.1f)
 		{
 			flags &= ~move_storage;
@@ -352,7 +356,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		if (!(flags & disk_full) && st2.is_seeding) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
-			|| st1.state == torrent_status::checking_files);
+			|| st1.state == torrent_status::checking_files
+			|| st1.state == torrent_status::checking_resume_data);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data
 			|| ((flags & disk_full) && st2.errc));
