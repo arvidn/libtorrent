@@ -284,6 +284,16 @@ TORRENT_TEST(alert_mask)
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
 
+TORRENT_TEST(get_all_empty)
+{
+	aux::alert_manager mgr(100, alert_category::all);
+	std::vector<alert*> alerts(10);
+
+	mgr.get_all(alerts);
+
+	TEST_CHECK(alerts.empty());
+}
+
 TORRENT_TEST(dropped_alerts)
 {
 	aux::alert_manager mgr(1, alert_category::all);

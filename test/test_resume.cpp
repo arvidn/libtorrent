@@ -1486,7 +1486,9 @@ TORRENT_TEST(auto_managed)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & flags_mask, torrent_flags::auto_managed);
+	// auto managed torrents may have been paused by the time we get here, so
+	// filter out that flag
+	TEST_EQUAL((s.flags & flags_mask) & ~torrent_flags::paused, torrent_flags::auto_managed);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 }

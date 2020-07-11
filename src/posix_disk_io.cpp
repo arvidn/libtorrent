@@ -313,28 +313,31 @@ namespace {
 			add_torrent_params const* rd = resume_data ? resume_data : &tmp;
 
 			storage_error error;
-			status_t ret = status_t::no_error;
-
-			storage_error se;
-			if ((rd->have_pieces.empty()
-					|| !st->verify_resume_data(*rd, std::move(links), error))
-				&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
+			status_t const ret = [&]
 			{
-				bool const has_files = st->has_any_file(se);
+				st->initialize(m_settings, error);
+				if (error) return status_t::fatal_disk_error;
 
-				if (has_files && !se)
+				bool const verify_success = st->verify_resume_data(*rd
+					, std::move(links), error);
+
+				if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
+					return status_t::no_error;
+
+				if (!aux::contains_resume_data(*rd))
 				{
-					ret = status_t::need_full_check;
+					// if we don't have any resume data, we still may need to trigger a
+					// full re-check, if there are *any* files.
+					storage_error ignore;
+					return (st->has_any_file(ignore))
+						? status_t::need_full_check
+						: status_t::no_error;
 				}
-			}
 
-			if (!se) st->initialize(m_settings, se);
-
-			if (se)
-			{
-				error = se;
-				ret = status_t::fatal_disk_error;
-			}
+				return verify_success
+					? status_t::no_error
+					: status_t::need_full_check;
+			}();
 
 			post(m_ios, [error, ret, h = std::move(handler)]{ h(ret, error); });
 		}
