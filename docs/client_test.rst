@@ -22,9 +22,9 @@ than one).
 
 While running, the ``client_test`` sample will look something like this:
 
-.. image:: screenshot.png
+.. image:: img/screenshot.png
 	:class: screenshot
-	:target: screenshot.png
+	:target: img/screenshot.png
 
 The commands available in the client are:
 

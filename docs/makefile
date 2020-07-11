@@ -66,7 +66,7 @@ TARGETS = single-page-ref \
 	$(MANUAL_TARGETS) \
 	$(REFERENCE_TARGETS)
 
-FIGURES = \
+FIGURES = $(addprefix img/, \
 	read_disk_buffers \
 	write_disk_buffers \
 	hacking \
@@ -76,9 +76,9 @@ FIGURES = \
 	troubleshooting_thumb \
 	screenshot \
 	screenshot_thumb \
-	img/logo-color \
-	img/logo-bw \
-	img/logo-color-text \
+	logo-color \
+	logo-bw \
+	logo-color-text \
 	bitcoin \
 	ip_id_v4 \
 	ip_id_v6 \
@@ -89,7 +89,8 @@ FIGURES = \
 	delays \
 	delays_thumb \
 	cwnd \
-	cwnd_thumb
+	cwnd_thumb \
+)
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico
 
@@ -137,8 +138,8 @@ manual.rst: stats_counters.rst
 %_thumb.png: %.png
 	convert $< -resize 400 $@
 
-troubleshooting_thumb.png: troubleshooting.png
-	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+img/troubleshooting_thumb.png: img/troubleshooting.png
+	convert $< -resize 800x800 $@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python3 gen_todo.py

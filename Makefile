@@ -49,35 +49,33 @@ clean: FORCE
     simulator/libsimulator/bin
 
 DOCS_IMAGES = \
-  docs/screenshot.png             \
-  docs/screenshot_thumb.png       \
-  docs/cwnd.png                   \
-  docs/cwnd_thumb.png             \
-  docs/delays.png                 \
-  docs/delays_thumb.png           \
-  docs/hacking.html               \
-  docs/our_delay_base.png         \
-  docs/our_delay_base_thumb.png   \
-  docs/read_disk_buffers.png      \
-  docs/read_disk_buffers.diagram  \
-  docs/storage.png                \
-  docs/todo.html                  \
-  docs/write_disk_buffers.png     \
-  docs/write_disk_buffers.diagram \
-  docs/ip_id_v4.png               \
-  docs/ip_id_v6.png               \
-  docs/hash_distribution.png      \
-  docs/complete_bit_prefixes.png  \
-  docs/troubleshooting.dot        \
-  docs/troubleshooting.png        \
-  docs/troubleshooting_thumb.png  \
-  docs/hacking.diagram            \
-  docs/hacking.png                \
-  docs/utp_stack.diagram          \
-  docs/utp_stack.png              \
-  docs/bitcoin.png                \
-  docs/style.css                  \
-  docs/img/logo-color-text.png
+  docs/img/screenshot.png             \
+  docs/img/screenshot_thumb.png       \
+  docs/img/cwnd.png                   \
+  docs/img/cwnd_thumb.png             \
+  docs/img/delays.png                 \
+  docs/img/delays_thumb.png           \
+  docs/img/our_delay_base.png         \
+  docs/img/our_delay_base_thumb.png   \
+  docs/img/read_disk_buffers.png      \
+  docs/img/read_disk_buffers.diagram  \
+  docs/img/storage.png                \
+  docs/img/write_disk_buffers.png     \
+  docs/img/write_disk_buffers.diagram \
+  docs/img/ip_id_v4.png               \
+  docs/img/ip_id_v6.png               \
+  docs/img/hash_distribution.png      \
+  docs/img/complete_bit_prefixes.png  \
+  docs/img/troubleshooting.dot        \
+  docs/img/troubleshooting.png        \
+  docs/img/troubleshooting_thumb.png  \
+  docs/img/hacking.diagram            \
+  docs/img/hacking.png                \
+  docs/img/utp_stack.diagram          \
+  docs/img/utp_stack.png              \
+  docs/img/bitcoin.png                \
+  docs/img/logo-color-text.png        \
+  docs/style.css
 
 DOCS_PAGES = \
   docs/building.html              \
@@ -124,6 +122,9 @@ DOCS_PAGES = \
   docs/tutorial.rst               \
   docs/tutorial-ref.rst           \
   docs/header.rst                 \
+  docs/hacking.rst                \
+  docs/hacking.html               \
+  docs/todo.html                  \
   docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
   docs/upgrade_to_2.0-ref.html    \

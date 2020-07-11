@@ -59,7 +59,7 @@ This is the high level structure of libtorrent. Bold types are part of the publi
 interface:
 
 
-.. image:: hacking.png
+.. image:: img/hacking.png
 	:class: bw
 
 session_impl
