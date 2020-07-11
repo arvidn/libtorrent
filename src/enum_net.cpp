@@ -168,19 +168,25 @@ namespace {
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, span<char> buf, std::uint32_t const seq, std::uint32_t const pid)
+	int read_nl_sock(int sock, std::vector<char>& buf, std::uint32_t const seq, std::uint32_t const pid)
 	{
 		nlmsghdr* nl_hdr;
 
-		int msg_len = 0;
-
+		int increment = 2048;
+		int const max_increment = 8192;
+		int const headroom = 2048;
+		int read_cursor = 0;
 		for (;;)
 		{
-			auto next_msg = buf.subspan(msg_len);
-			int const read_len = int(recv(sock, next_msg.data(), static_cast<std::size_t>(next_msg.size()), 0));
+			if (read_cursor + headroom > int(buf.size()))
+			{
+				buf.resize(buf.size() + increment);
+				if (increment < max_increment) increment *= 2;
+			}
+			int const read_len = int(recv(sock, buf.data() + read_cursor, buf.size() - read_cursor, 0));
 			if (read_len < 0) return -1;
 
-			nl_hdr = reinterpret_cast<nlmsghdr*>(next_msg.data());
+			nl_hdr = reinterpret_cast<nlmsghdr*>(buf.data() + read_cursor);
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -200,41 +206,34 @@ namespace {
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
-			msg_len += read_len;
+			read_cursor += read_len;
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
 		}
-		return msg_len;
+		buf.resize(read_cursor);
+		return 0;
 	}
 
-	constexpr int NL_BUFSIZE = 8192;
-
-	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
+	int nl_dump_request(int const sock, std::uint16_t const type
+		, std::uint32_t const seq, std::vector<char>& msg
+		, nlmsghdr* const request_msg)
 	{
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
-		nl_msg->nlmsg_len = std::uint32_t(NLMSG_LENGTH(msg_len));
-		nl_msg->nlmsg_type = type;
-		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-		nl_msg->nlmsg_seq = seq;
+		request_msg->nlmsg_type = type;
+		request_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+		request_msg->nlmsg_seq = seq;
 		// in theory nlmsg_pid should be set to the netlink port ID (NOT the process ID)
 		// of the sender, but the kernel ignores this field so it is typically set to
 		// zero
-		nl_msg->nlmsg_pid = 0;
-		// first byte of routing messages is always the family
-		msg[sizeof(nlmsghdr)] = family;
+		request_msg->nlmsg_pid = 0;
 
-		if (::send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
-		{
+		if (::send(sock, request_msg, request_msg->nlmsg_len, 0) < 0)
 			return -1;
-		}
 
 		// get the socket's port ID so that we can verify it in the repsonse
 		sockaddr_nl sock_addr;
 		socklen_t sock_addr_len = sizeof(sock_addr);
 		if (::getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
-		{
 			return -1;
-		}
 
 		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
 	}
@@ -524,15 +523,25 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return ret;
 		}
 
-		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-		int len = nl_dump_request(sock, RTM_GETADDR, 0, AF_PACKET, msg, sizeof(ifaddrmsg));
-		if (len < 0)
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct ifaddrmsg msg;
+		} request{};
+
+		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.msg.ifa_family = AF_PACKET;
+
+		std::vector<char> msg;
+		if (nl_dump_request(sock, RTM_GETADDR, 0, msg, &request.hdr) != 0)
 		{
 			ec = error_code(errno, system_category());
 			::close(sock);
 			return ret;
 		}
+
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
+		int len = int(msg.size());
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -1185,17 +1194,25 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return std::vector<ip_route>();
 		}
 
-		std::uint32_t seq = 0;
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct rtmsg msg;
+		} request{};
+		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.msg.rtm_family = AF_UNSPEC;
 
-		char msg[NL_BUFSIZE] = {};
-		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-		int len = nl_dump_request(sock, RTM_GETROUTE, seq++, AF_UNSPEC, msg, sizeof(rtmsg));
-		if (len < 0)
+		std::uint32_t seq = 0;
+		std::vector<char> msg;
+		if (nl_dump_request(sock, RTM_GETROUTE, seq++, msg, &request.hdr) != 0)
 		{
 			ec = error_code(errno, system_category());
 			::close(sock);
 			return std::vector<ip_route>();
 		}
+
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
+		int len = int(msg.size());
 
 		close(sock);
 		sock = ::socket(AF_INET, SOCK_DGRAM, 0);

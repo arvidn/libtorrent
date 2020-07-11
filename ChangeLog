@@ -1,3 +1,4 @@
+	* fix network route enumeration for large routing tables
 	* fixed issue where pop_alerts() could return old, invalid alerts
 	* fix issue when receiving have-all message before the metadata
 	* don't leave lingering part files handles open
