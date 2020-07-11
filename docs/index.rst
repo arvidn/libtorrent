@@ -114,7 +114,7 @@ the library.
 
 __ client_test.html
 
-.. image:: screenshot_thumb.png
+.. image:: img/screenshot_thumb.png
 	:target: client_test.html
 	:alt: screenshot of libtorrent's client_test
 	:class: front-page-screenshot
@@ -139,7 +139,7 @@ The tutorial_ is an introduction to using libtorrent (C++). Also see the
 
 	<br/>
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">
-	<img src="bitcoin.png" class="front-page-qr" alt="bitcoin address for libtorrent donations" width="190" height="190"></a>
+	<img src="img/bitcoin.png" class="front-page-qr" alt="bitcoin address for libtorrent donations" width="190" height="190"></a>
 
 contribute
 ==========

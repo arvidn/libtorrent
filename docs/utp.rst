@@ -126,7 +126,7 @@ It can simply be expressed as::
 
 	cwnd += gain * (target_delay - delay)
 
-.. image:: cwnd_thumb.png
+.. image:: img/cwnd_thumb.png
 	:target: cwnd.png
 	:class: bw
 	:align: right
@@ -160,7 +160,7 @@ baseline measurement, to cancel out any fixed delay. By focusing on the
 variable delay along a link, it will specifically detect points where
 there might be congestion, since those points will have buffers.
 
-.. image:: delays_thumb.png
+.. image:: img/delays_thumb.png
 	:target: delays.png
 	:class: bw
 	:align: right
@@ -276,7 +276,7 @@ with jumbo frames.
 clock drift
 -----------
 
-.. image:: our_delay_base_thumb.png
+.. image:: img/our_delay_base_thumb.png
 	:target: our_delay_base.png
 	:class: bw
 	:align: right

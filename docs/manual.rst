@@ -1039,7 +1039,7 @@ Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
 are called *SSL torrents*. An SSL torrent talks to all bittorrent peers over
 SSL. The protocols are layered like this:
 
-.. image:: utp_stack.png
+.. image:: img/utp_stack.png
 	:class: bw
 	:align: right
 
