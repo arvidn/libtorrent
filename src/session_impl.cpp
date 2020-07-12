@@ -1327,7 +1327,9 @@ namespace {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		post(m_io_context, [this] { wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_context, make_handler(
+			[this] { wrap(&session_impl::submit_disk_jobs); }
+			, m_submit_jobs_handler_storage, *this));
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -3208,9 +3210,6 @@ namespace {
 		m_stats_counters.inc_stats_counter(counters::on_tick_counter);
 
 		TORRENT_ASSERT(is_single_thread());
-
-		// submit all disk jobs when we leave this function
-		deferred_submit_jobs();
 
 		time_point const now = aux::time_now();
 
