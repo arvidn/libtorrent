@@ -117,6 +117,19 @@ namespace libtorrent {
 
 namespace {
 
+#ifndef TORRENT_WINDOWS
+	struct socket_closer
+	{
+		socket_closer(int s) : m_socket(s) {}
+		socket_closer(socket_closer const&) = delete;
+		socket_closer(socket_closer &&) = delete;
+		socket_closer& operator=(socket_closer const&) = delete;
+		socket_closer& operator=(socket_closer &&) = delete;
+		~socket_closer() { ::close(m_socket); }
+	private:
+		int m_socket;
+	};
+#endif
 
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(void const* ina, int const len = 4)
@@ -519,12 +532,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
-		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(sock);
 
 		struct
 		{
@@ -542,24 +556,21 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
-			::close(sock);
 			return ret;
 		}
-
-		::close(sock);
 #elif TORRENT_USE_IFADDRS
-		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(s);
 
 		ifaddrs *ifaddr;
 		if (getifaddrs(&ifaddr) == -1)
 		{
 			ec = error_code(errno, system_category());
-			::close(s);
 			return ret;
 		}
 
@@ -575,16 +586,16 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					ret.push_back(iface);
 			}
 		}
-		::close(s);
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
 #elif TORRENT_USE_IFCONF
-		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(s);
 		ifconf ifc;
 		// make sure the buffer is aligned to hold ifreq structs
 		ifreq buf[40];
@@ -593,7 +604,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
-			::close(s);
 			return ret;
 		}
 
@@ -633,7 +643,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					else
 					{
 						ec = error_code(errno, system_category());
-						::close(s);
 						return ret;
 					}
 				}
@@ -647,7 +656,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ifr += current_size;
 			remaining -= current_size;
 		}
-		::close(s);
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
 
@@ -991,12 +999,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	char* end = buf.get() + needed;
 
-	int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+	int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 	{
 		ec = error_code(errno, system_category());
 		return std::vector<ip_route>();
 	}
+	socket_closer c1(s);
 	rt_msghdr* rtm;
 	for (char* next = buf.get(); next < end; next += rtm->rtm_msglen)
 	{
@@ -1011,8 +1020,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
-	::close(s);
-
 #elif TORRENT_USE_GETIPFORWARDTABLE
 /*
 	move this to enum_net_interfaces
@@ -1175,12 +1182,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// Free memory
 		free(routes);
 #elif TORRENT_USE_NETLINK
-		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
+		socket_closer c1(sock);
 
 		int dgram_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (dgram_sock < 0)
@@ -1188,6 +1196,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
+		socket_closer c2(dgram_sock);
 
 		struct
 		{
@@ -1205,13 +1214,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
-			::close(sock);
-			::close(dgram_sock);
 			return std::vector<ip_route>();
 		}
-
-		::close(sock);
-		::close(dgram_sock);
 
 #else
 #error "don't know how to enumerate network routes on this platform"
