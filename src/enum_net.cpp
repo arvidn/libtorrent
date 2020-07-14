@@ -751,61 +751,86 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// make sure the buffer is aligned to hold ifreq structs
 		ifreq buf[40];
 		ifc.ifc_len = sizeof(buf);
-		ifc.ifc_buf = reinterpret_cast<char*>(buf);
+		ifc.ifc_req = buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
 
-		char *ifr = reinterpret_cast<char*>(ifc.ifc_req);
-		int remaining = ifc.ifc_len;
+		char *ifr = ifc.ifc_buf;
 
-		while (remaining > 0)
+		int current_size = 0;
+		for (int remaining = ifc.ifc_len;
+			remaining > 0;
+			ifr += current_size, remaining -= current_size)
 		{
-			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
+			ifreq const& item = *reinterpret_cast<ifreq const*>(ifr);
 
 #ifdef _SIZEOF_ADDR_IFREQ
-			int current_size = _SIZEOF_ADDR_IFREQ(item);
+			current_size = _SIZEOF_ADDR_IFREQ(item);
 #elif defined TORRENT_BSD
-			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
+			current_size = item.ifr_addr.sa_len + IFNAMSIZ;
 #else
-			int current_size = sizeof(ifreq);
+			current_size = sizeof(ifreq);
 #endif
 
 			if (remaining < current_size) break;
 
-			if (valid_addr_family(item.ifr_addr.sa_family))
-			{
-				ip_interface iface;
-				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
-				iface.name[sizeof(iface.name) - 1] = '\0';
+			if (!valid_addr_family(item.ifr_addr.sa_family))
+				continue;
 
-				ifreq req = {};
-				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
-				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
+			ip_interface iface;
+			iface.interface_address = sockaddr_to_address(&item.ifr_addr);
+			std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
+			iface.name[sizeof(iface.name) - 1] = '\0';
+
+			ifreq req = {};
+			std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
+			if (ioctl(s, SIOCGIFFLAGS, &req) < 0)
+			{
+				ec = error_code(errno, system_category());
+				return {};
+			}
+			iface.flags
+				= ((req.ifr_flags & IFF_UP) ? if_flags::up : interface_flags{})
+				| ((req.ifr_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
+				| ((req.ifr_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
+				| ((req.ifr_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+				| ((req.ifr_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
+				| ((req.ifr_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
+				| ((req.ifr_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
+				| ((req.ifr_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
+#ifdef IFF_MASTER
+				| ((req.ifr_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
+#endif
+#ifdef IFF_SLAVE
+				| ((req.ifr_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
+#endif
+				| ((req.ifr_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
+#ifdef IFF_DYNAMIC
+				| ((req.ifr_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
+#endif
+				;
+
+			if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
+			{
+				if (iface.interface_address.is_v6())
 				{
-					if (iface.interface_address.is_v6())
-					{
-						// this is expected to fail (at least on MacOS X)
-						iface.netmask = address_v6::any();
-					}
-					else
-					{
-						ec = error_code(errno, system_category());
-						return ret;
-					}
+					// this is expected to fail (at least on MacOS X)
+					iface.netmask = address_v6::any();
 				}
 				else
 				{
-					iface.netmask = sockaddr_to_address(&req.ifr_addr, item.ifr_addr.sa_family);
+					ec = error_code(errno, system_category());
+					return ret;
 				}
-				ret.push_back(iface);
 			}
-
-			ifr += current_size;
-			remaining -= current_size;
+			else
+			{
+				iface.netmask = sockaddr_to_address(&req.ifr_addr, item.ifr_addr.sa_family);
+			}
+			ret.push_back(iface);
 		}
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
