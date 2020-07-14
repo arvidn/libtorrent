@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
@@ -76,12 +77,33 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if TORRENT_USE_NETLINK
+
+// We really should be including <linux/if.h> here, for the IF_OPER_* flags.
+// Howerver, including this header creates conflicting definitions of <net/if.h>
+// on some platforms. So, instead, we just pull those flags out and define them
+// here.
+//#include <linux/if.h> // for IF_OPER* flags
+
+// RFC 2863 operational status
+// these match the ones in linux/if.h, but with different names to not cause any
+// conflicts
+namespace if_oper {
+enum : int {
+	unknown,
+	notpresent,
+	down,
+	lowerlayerdown,
+	testing,
+	dormant,
+	up,
+};
+}
+
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <asm/types.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
-#include <net/if.h>
 #include <cstdio>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -254,6 +276,76 @@ namespace {
 		else return inaddr_to_address(in);
 	}
 
+	struct link_info
+	{
+		int mtu;
+		std::uint32_t if_idx;
+		int type;
+		int oper_state;
+		char name[64];
+		interface_flags flags;
+	};
+
+	link_info parse_nl_link(nlmsghdr const* nl_hdr)
+	{
+		auto const* if_msg = reinterpret_cast<ifinfomsg const*>(NLMSG_DATA(nl_hdr));
+		auto const* rta_ptr = reinterpret_cast<rtattr const*>(IFLA_RTA(if_msg));
+		int attr_len = IFLA_PAYLOAD(nl_hdr);
+
+		link_info ret{};
+		ret.flags
+			= ((if_msg->ifi_flags & IFF_UP) ? if_flags::up : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_LOWER_UP) ? if_flags::lower_up : interface_flags{})
+			| ((if_msg->ifi_flags & IFF_DORMANT) ? if_flags::dormant : interface_flags{})
+		;
+		ret.if_idx = if_msg->ifi_index;
+
+		for (; RTA_OK(rta_ptr, attr_len); rta_ptr = RTA_NEXT(rta_ptr, attr_len))
+		{
+			auto* const ptr = RTA_DATA(rta_ptr);
+			switch (rta_ptr->rta_type)
+			{
+				case IFLA_IFNAME:
+					strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name));
+					ret.name[sizeof(ret.name)-1] = '\0';
+					break;
+				case IFLA_MTU: memcpy(&ret.mtu, ptr, sizeof(int)); break;
+				case IFLA_LINK: memcpy(&ret.type, ptr, sizeof(int)); break;
+				case IFLA_OPERSTATE: memcpy(&ret.oper_state, ptr, sizeof(int)); break;
+
+				// ignore these attributes
+				case IFLA_CARRIER:
+				case IFLA_ADDRESS:
+				case IFLA_BROADCAST:
+				case IFLA_QDISC:
+				case IFLA_COST:
+				case IFLA_PRIORITY:
+				case IFLA_MASTER:
+				case IFLA_WIRELESS:
+				case IFLA_WEIGHT:
+				case IFLA_LINKMODE:
+				case IFLA_LINKINFO:
+				case IFLA_STATS64:
+				case IFLA_STATS:
+				case IFLA_PROMISCUITY:
+				default:
+					break;
+			};
+		}
+		return ret;
+	}
+
 	bool parse_route(int s, nlmsghdr const* nl_hdr, ip_route* rt_info)
 	{
 		// sanity check
@@ -318,7 +410,8 @@ namespace {
 		return true;
 	}
 
-	bool parse_nl_address(nlmsghdr const* nl_hdr, ip_interface* ip_info)
+	bool parse_nl_address(nlmsghdr const* nl_hdr, span<link_info const> nics
+		, ip_interface* ip_info)
 	{
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWADDR) return false;
@@ -327,6 +420,11 @@ namespace {
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
+
+		auto interface = std::find_if(nics.begin(), nics.end()
+			, [addr_msg](link_info const& li) { return li.if_idx == addr_msg->ifa_index; });
+		TORRENT_ASSERT(interface != nics.end());
+		if (interface == nics.end()) return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
 		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
@@ -368,8 +466,20 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-		static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
-		if_indextoname(addr_msg->ifa_index, ip_info->name);
+		static_assert(sizeof(ip_info->name) == sizeof(interface->name), "interface name field sizes differ");
+		memcpy(ip_info->name, interface->name, sizeof(ip_info->name));
+		ip_info->flags = interface->flags;
+
+		ip_info->state
+			= interface->oper_state == if_oper::up ? if_state::up
+			: interface->oper_state == if_oper::dormant ? if_state::dormant
+			: interface->oper_state == if_oper::lowerlayerdown ? if_state::lowerlayerdown
+			: interface->oper_state == if_oper::down ? if_state::down
+			: interface->oper_state == if_oper::notpresent ? if_state::notpresent
+			: interface->oper_state == if_oper::testing ? if_state::testing
+			: interface->oper_state == if_oper::unknown ? if_state::unknown
+			: if_state::unknown;
+
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -540,6 +650,34 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 		socket_closer c1(sock);
 
+		// netlink socket documentation:
+		// https://people.redhat.com/nhorman/papers/netlink.pdf
+		int seq = 0;
+
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct ifinfomsg msg;
+		} link_req{};
+
+		link_req.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(link_req.msg)));
+		link_req.hdr.nlmsg_type = RTM_GETLINK;
+		link_req.msg.ifi_family = AF_PACKET;
+		link_req.msg.ifi_change = 0xFFFFFFFF;
+
+		std::vector<link_info> nics;
+		if (nl_dump_request(sock, seq++, &link_req.hdr, [&](nlmsghdr const* msg) {
+
+				// sanity check
+				if (msg->nlmsg_type != RTM_NEWLINK) return;
+
+				nics.push_back(parse_nl_link(msg));
+			}) != 0)
+		{
+			ec = error_code(errno, system_category());
+			return ret;
+		}
+
 		struct
 		{
 			struct nlmsghdr hdr;
@@ -550,9 +688,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		request.hdr.nlmsg_type = RTM_GETADDR;
 		request.msg.ifa_family = AF_PACKET;
 
-		if (nl_dump_request(sock, 0, &request.hdr, [&](nlmsghdr const* msg) {
+		if (nl_dump_request(sock, seq++, &request.hdr, [&](nlmsghdr const* msg) {
 				ip_interface iface;
-				if (parse_nl_address(msg, &iface)) ret.push_back(iface);
+				if (parse_nl_address(msg, nics, &iface)) ret.push_back(iface);
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
