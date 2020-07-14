@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
 #include "libtorrent/aux_/windows.hpp"
 #include <iphlpapi.h>
+#include <ifdef.h> // for IF_OPER_STATUS
 #endif
 
 #if TORRENT_USE_NETLINK
@@ -835,12 +836,39 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
 				wcstombs(r.description, adapter->Description, sizeof(r.description));
 				r.description[sizeof(r.description) - 1] = '\0';
+				r.state
+					= (adapter->OperStatus == IfOperStatusUp) ? if_state::up
+					: (adapter->OperStatus == IfOperStatusDown) ? if_state::down
+					: (adapter->OperStatus == IfOperStatusTesting) ? if_state::testing
+					: (adapter->OperStatus == IfOperStatusUnknown) ? if_state::unknown
+					: (adapter->OperStatus == IfOperStatusDormant) ? if_state::dormant
+					: (adapter->OperStatus == IfOperStatusNotPresent) ? if_state::notpresent
+					: (adapter->OperStatus == IfOperStatusLowerLayerDown) ? if_state::lowerlayerdown
+					: if_state::unknown;
+
+				r.flags = r.state != if_state::down ? if_flags::up : interface_flags{};
+				if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+					r.flags |= if_flags::loopback;
+				if (adapter->IfType == IF_TYPE_PPP)
+					r.flags |= if_flags::pointopoint;
+				if (!(adapter->Flags & IP_ADAPTER_NO_MULTICAST))
+					r.flags |= if_flags::multicast;
+
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
 					auto const family = unicast->Address.lpSockaddr->sa_family;
+
 					if (!valid_addr_family(family))
 						continue;
+
+					if (family == AF_INET && !(adapter->Flags & IP_ADAPTER_IPV4_ENABLED))
+						r.flags &= ~if_flags::up;
+					else if (family == AF_INET6 && !(adapter->Flags & IP_ADAPTER_IPV6_ENABLED))
+						r.flags &= ~if_flags::up;
+					else
+						r.flags |= if_flags::up;
+
 					r.preferred = unicast->DadState == IpDadStatePreferred;
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
 					int const max_prefix_len = family == AF_INET ? 32 : 128;
