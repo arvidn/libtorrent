@@ -51,12 +51,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/flags.hpp"
 
 #include <vector>
 
 namespace libtorrent {
 
-	// the interface should not have a netmask
+using interface_flags = flags::bitfield_flag<std::uint32_t, struct interface_flags_tag>;
+
+namespace if_flags {
+
+	constexpr interface_flags up = 0_bit;
+	constexpr interface_flags broadcast = 1_bit;
+	constexpr interface_flags loopback = 2_bit;
+	constexpr interface_flags pointopoint = 3_bit;
+	constexpr interface_flags running = 4_bit;
+	constexpr interface_flags noarp = 5_bit;
+	constexpr interface_flags promisc = 6_bit;
+	constexpr interface_flags allmulti = 7_bit;
+	constexpr interface_flags master = 8_bit;
+	constexpr interface_flags slave = 9_bit;
+	constexpr interface_flags multicast = 10_bit;
+	constexpr interface_flags dynamic = 11_bit;
+	constexpr interface_flags lower_up = 12_bit;
+	constexpr interface_flags dormant = 13_bit;
+}
+
+enum class if_state : std::uint8_t {
+
+	up,
+	dormant,
+	lowerlayerdown,
+	down,
+	notpresent,
+	testing,
+	unknown
+};
+
 	struct ip_interface
 	{
 		address interface_address;
@@ -67,6 +98,9 @@ namespace libtorrent {
 		// an interface is preferred if its address is
 		// not tentative/duplicate/deprecated
 		bool preferred = true;
+
+		interface_flags flags = if_flags::up;
+		if_state state = if_state::unknown;
 	};
 
 	struct ip_route
