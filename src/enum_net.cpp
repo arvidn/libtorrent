@@ -123,6 +123,8 @@ enum : int {
 
 #if TORRENT_USE_IFADDRS
 #include <ifaddrs.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 #endif
 
 #if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
@@ -532,21 +534,37 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IFADDRS && !defined TORRENT_BUILD_SIMULATOR
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
-		if (!valid_addr_family(ifa->ifa_addr->sa_family))
-		{
-			return false;
-		}
+		// determine address
+		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
+		if (rv.interface_address.is_unspecified()) return false;
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
 		rv.name[sizeof(rv.name) - 1] = '\0';
 
-		// determine address
-		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		// determine netmask
 		if (ifa->ifa_netmask != nullptr)
-		{
 			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
-		}
+
+		rv.flags
+			= ((ifa->ifa_flags & IFF_UP) ? if_flags::up : interface_flags{})
+			| ((ifa->ifa_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
+			| ((ifa->ifa_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
+			| ((ifa->ifa_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+			| ((ifa->ifa_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
+			| ((ifa->ifa_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
+			| ((ifa->ifa_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
+			| ((ifa->ifa_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
+#ifdef IFF_MASTER
+			| ((ifa->ifa_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
+#endif
+#ifdef IFF_SLAVE
+			| ((ifa->ifa_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
+#endif
+			| ((ifa->ifa_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
+#ifdef IFF_DYNAMIC
+			| ((ifa->ifa_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
+#endif
+		;
 		return true;
 	}
 #endif
@@ -715,15 +733,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		for (ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
-			if (ifa->ifa_addr == nullptr) continue;
-			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
-
-			if (valid_addr_family(ifa->ifa_addr->sa_family))
-			{
-				ip_interface iface;
-				if (iface_from_ifaddrs(ifa, iface))
-					ret.push_back(iface);
-			}
+			ip_interface iface;
+			if (iface_from_ifaddrs(ifa, iface))
+				ret.push_back(iface);
 		}
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
