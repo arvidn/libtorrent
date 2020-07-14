@@ -205,6 +205,31 @@ namespace {
 		);
 	}
 
+#if TORRENT_USE_NETLINK || TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF
+	interface_flags convert_if_flags(unsigned int const f)
+	{
+		return ((f & IFF_UP) ? if_flags::up : interface_flags{})
+			| ((f & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
+			| ((f & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
+			| ((f & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+			| ((f & IFF_RUNNING) ? if_flags::running : interface_flags{})
+			| ((f & IFF_NOARP) ? if_flags::noarp : interface_flags{})
+			| ((f & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
+			| ((f & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
+#ifdef IFF_MASTER
+			| ((f & IFF_MASTER) ? if_flags::master : interface_flags{})
+#endif
+#ifdef IFF_SLAVE
+			| ((f & IFF_SLAVE) ? if_flags::slave : interface_flags{})
+#endif
+			| ((f & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
+#ifdef IFF_DYNAMIC
+			| ((f & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
+#endif
+		;
+	}
+#endif
+
 #if TORRENT_USE_NETLINK
 
 	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
@@ -296,22 +321,7 @@ namespace {
 		int attr_len = IFLA_PAYLOAD(nl_hdr);
 
 		link_info ret{};
-		ret.flags
-			= ((if_msg->ifi_flags & IFF_UP) ? if_flags::up : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_LOWER_UP) ? if_flags::lower_up : interface_flags{})
-			| ((if_msg->ifi_flags & IFF_DORMANT) ? if_flags::dormant : interface_flags{})
-		;
+		ret.flags = convert_if_flags(if_msg->ifi_flags);
 		ret.if_idx = if_msg->ifi_index;
 
 		for (; RTA_OK(rta_ptr, attr_len); rta_ptr = RTA_NEXT(rta_ptr, attr_len))
@@ -545,26 +555,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (ifa->ifa_netmask != nullptr)
 			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
 
-		rv.flags
-			= ((ifa->ifa_flags & IFF_UP) ? if_flags::up : interface_flags{})
-			| ((ifa->ifa_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
-			| ((ifa->ifa_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
-			| ((ifa->ifa_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
-			| ((ifa->ifa_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
-			| ((ifa->ifa_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
-			| ((ifa->ifa_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
-			| ((ifa->ifa_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
-#ifdef IFF_MASTER
-			| ((ifa->ifa_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
-#endif
-#ifdef IFF_SLAVE
-			| ((ifa->ifa_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
-#endif
-			| ((ifa->ifa_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
-#ifdef IFF_DYNAMIC
-			| ((ifa->ifa_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
-#endif
-		;
+		rv.flags = convert_if_flags(ifa->ifa_flags);
 		return true;
 	}
 #endif
@@ -792,26 +783,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				ec = error_code(errno, system_category());
 				return {};
 			}
-			iface.flags
-				= ((req.ifr_flags & IFF_UP) ? if_flags::up : interface_flags{})
-				| ((req.ifr_flags & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
-				| ((req.ifr_flags & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
-				| ((req.ifr_flags & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
-				| ((req.ifr_flags & IFF_RUNNING) ? if_flags::running : interface_flags{})
-				| ((req.ifr_flags & IFF_NOARP) ? if_flags::noarp : interface_flags{})
-				| ((req.ifr_flags & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
-				| ((req.ifr_flags & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
-#ifdef IFF_MASTER
-				| ((req.ifr_flags & IFF_MASTER) ? if_flags::master : interface_flags{})
-#endif
-#ifdef IFF_SLAVE
-				| ((req.ifr_flags & IFF_SLAVE) ? if_flags::slave : interface_flags{})
-#endif
-				| ((req.ifr_flags & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
-#ifdef IFF_DYNAMIC
-				| ((req.ifr_flags & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
-#endif
-				;
+			iface.flags = convert_if_flags(req.ifr_flags);
 
 			if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 			{
