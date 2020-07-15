@@ -989,14 +989,18 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return {};
 	}
 
-	bool has_default_route(char const* device, int const fam, span<ip_route const> routes)
+	bool has_internet_route(string_view device, int const fam, span<ip_route const> routes)
 	{
 		return std::find_if(routes.begin(), routes.end()
 			, [&](ip_route const& r) -> bool
 			{
-				return r.destination.is_unspecified()
-					&& family(r.destination) == fam
-					&& std::strcmp(r.name, device) == 0;
+				// if *any* global IP can be routed to this interface, it's
+				// considered able to reach the internet
+				return family(r.destination) == fam
+					&& r.name == device
+					&& (r.destination.is_unspecified()
+						|| is_global(r.destination)
+					);
 			}) != routes.end();
 	}
 

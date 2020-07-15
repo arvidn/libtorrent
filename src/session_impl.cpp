@@ -290,8 +290,8 @@ namespace aux {
 					|| is_link_local(ipface.interface_address)
 					|| (ipface.flags & if_flags::loopback)
 					|| (!is_global(ipface.interface_address)
-						&& !has_default_route(ipface.name, family(ipface.interface_address), routes)
-						&& !(ipface.flags & if_flags::pointopoint));
+						&& !(ipface.flags & if_flags::pointopoint)
+						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
