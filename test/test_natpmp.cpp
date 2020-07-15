@@ -77,14 +77,37 @@ int main(int argc, char* argv[])
 	io_service ios;
 	std::string user_agent = "test agent";
 
-	if (argc != 3)
+	if (argc != 4)
 	{
-		std::cout << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
+		std::cout << "usage: test_natpmp interface tcp-port udp-port" << std::endl;
 		return 1;
+	}
+
+	error_code ec;
+	std::vector<ip_interface> ifaces = lt::enum_net_interfaces(ios, ec);
+	if (ec)
+	{
+		std::cerr << "failed to enumerate interfaces: " << ec.message() << '\n';
+		return -1;
+	}
+
+	auto it = std::find_if(ifaces.begin(), ifaces.end(), [&](ip_interface const& ipf)
+		{
+			return ipf.name == string_view(argv[1]);
+		});
+	if (it == ifaces.end())
+	{
+		std::cerr << "could not find interface: \"" << argv[1] << "\"\navailable ones are:\n";
+		for (auto const& ipf : ifaces)
+		{
+			std::cerr << ipf.name << '\n';
+		}
+		return -1;
 	}
 
 	natpmp_callback cb;
 	auto natpmp_handler = std::make_shared<natpmp>(ios, cb);
+	natpmp_handler->start(*it);
 
 	deadline_timer timer(ios);
 
@@ -93,7 +116,6 @@ int main(int argc, char* argv[])
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
 		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))));
 
-	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
 	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
 	std::cout << "mapping ports TCP: " << argv[1]
