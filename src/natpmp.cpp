@@ -464,7 +464,23 @@ void natpmp::send_map_request(port_mapping_t const i)
 		write_uint8(opcode_map, out);
 		write_uint16(0, out); // reserved
 		write_uint32(ttl, out);
-		address const local_addr = m_socket.local_endpoint().address();
+		error_code ec;
+		address const local_addr = m_socket.local_endpoint(ec).address();
+		if (ec)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if ( should_log())
+			{
+				log("*** port map, local_endpoint [ ec: %s:%d %s ]"
+					, ec.category().name()
+					, ec.value()
+					, ec.message().c_str());
+			}
+#endif
+			m_currently_mapping = port_mapping_t{-1};
+			m.act = portmap_action::none;
+			return;
+		}
 		auto const local_bytes = local_addr.is_v4()
 			? address_v6::v4_mapped(local_addr.to_v4()).to_bytes()
 			: local_addr.to_v6().to_bytes();
@@ -522,8 +538,18 @@ void natpmp::send_map_request(port_mapping_t const i)
 
 	error_code ec;
 	m_socket.send_to(boost::asio::buffer(buf, std::size_t(out - buf)), m_nat_endpoint, 0, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (ec && should_log())
+	{
+		log("*** port map [ ec: %s:%d %s ]"
+			, ec.category().name()
+			, ec.value()
+			, ec.message().c_str());
+	}
+#endif
 	m.map_sent = true;
 	m.outstanding_request = true;
+
 	if (m_abort)
 	{
 		// when we're shutting down, ignore the
@@ -656,7 +682,8 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 		log("unsupported version");
 #endif
-		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint()))
+		// ignore errors from local_endpoint
+		if (m_version == version_pcp && !is_v6(m_socket.local_endpoint(ec)))
 		{
 			m_version = version_natpmp;
 			resend_request(m_currently_mapping);
