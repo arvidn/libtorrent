@@ -1,3 +1,4 @@
+	* fix NAT-PMP shutdown issue
 	* improve hostname lookup by merging identical lookups
 	* fix network route enumeration for large routing tables
 	* fixed issue where pop_alerts() could return old, invalid alerts

@@ -862,7 +862,7 @@ void natpmp::mapping_expired(error_code const& e, port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("natpmp::mapping_expired");
-	if (e) return;
+	if (e || m_abort) return;
 #ifndef TORRENT_DISABLE_LOGGING
 	log("mapping %u expired", static_cast<int>(i));
 #endif
