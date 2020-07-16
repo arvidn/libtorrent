@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 #include <vector>
+#include <map>
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
@@ -53,7 +54,7 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 	explicit resolver(io_service& ios);
 
 	void async_resolve(std::string const& host, resolver_flags flags
-		, callback_t const& h) override;
+		, callback_t h) override;
 
 	void abort() override;
 
@@ -62,9 +63,9 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 private:
 
 	void on_lookup(error_code const& ec, tcp::resolver::iterator i
-		, resolver_interface::callback_t const& h, std::string const& hostname);
+		, std::string const& hostname);
 
-	void callback(resolver_interface::callback_t const& h
+	void callback(resolver_interface::callback_t h
 		, error_code const& ec, std::vector<address> const& ips);
 
 	struct dns_cache_entry
@@ -87,6 +88,10 @@ private:
 
 	// timeout of cache entries
 	time_duration m_timeout;
+
+	// the callbacks to call when a host resolution completes. This allows to
+	// attach more callbacks if the same host is looked up mutliple times
+	std::multimap<std::string, resolver_interface::callback_t> m_callbacks;
 };
 
 }
