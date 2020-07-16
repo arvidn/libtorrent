@@ -118,8 +118,22 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #endif
 
 namespace libtorrent {
+
 namespace {
 
+#ifndef TORRENT_WINDOWS
+	struct socket_closer
+	{
+		socket_closer(int s) : m_socket(s) {}
+		socket_closer(socket_closer const&) = delete;
+		socket_closer(socket_closer &&) = delete;
+		socket_closer& operator=(socket_closer const&) = delete;
+		socket_closer& operator=(socket_closer &&) = delete;
+		~socket_closer() { ::close(m_socket); }
+	private:
+		int m_socket;
+	};
+#endif
 
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(void const* ina, int const len = 4)
@@ -172,75 +186,70 @@ namespace {
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, span<char> buf, std::uint32_t const seq, std::uint32_t const pid)
+	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
+		, std::function<void(nlmsghdr const*)> on_msg)
 	{
-		nlmsghdr* nl_hdr;
-
-		int msg_len = 0;
-
+		std::array<char, 4096> buf;
 		for (;;)
 		{
-			auto next_msg = buf.subspan(msg_len);
-			int const read_len = int(recv(sock, next_msg.data(), static_cast<std::size_t>(next_msg.size()), 0));
+			int const read_len = int(recv(sock, buf.data(), buf.size(), 0));
 			if (read_len < 0) return -1;
 
-			nl_hdr = reinterpret_cast<nlmsghdr*>(next_msg.data());
+			auto const* nl_hdr = reinterpret_cast<nlmsghdr const*>(buf.data());
+			int len = read_len;
 
+			for (; len > 0 && NLMSG_OK(nl_hdr, len); nl_hdr = NLMSG_NEXT(nl_hdr, len))
+			{
 #ifdef __clang__
 #pragma clang diagnostic push
 // NLMSG_OK uses signed/unsigned compare in the same expression
 #pragma clang diagnostic ignored "-Wsign-compare"
 #endif
-			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
-				return -1;
+				// TODO: if we get here, the caller still assumes the error code
+				// is reported via errno
+				if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
+					return -1;
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
-			// this function doesn't handle multiple requests at the same time
-			// so report an error if the message does not have the expected seq and pid
-			if (nl_hdr->nlmsg_seq != seq || nl_hdr->nlmsg_pid != pid)
-				return -1;
+				// this function doesn't handle multiple requests at the same time
+				// so report an error if the message does not have the expected seq and pid
+				// TODO: if we get here, the caller still assumes the error code
+				// is reported via errno
+				if (nl_hdr->nlmsg_seq != seq || nl_hdr->nlmsg_pid != pid)
+					return -1;
 
-			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
+				if (nl_hdr->nlmsg_type == NLMSG_DONE) return 0;
 
-			msg_len += read_len;
+				on_msg(nl_hdr);
 
-			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
+				if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) return 0;
+			}
 		}
-		return msg_len;
+		return 0;
 	}
 
-	constexpr int NL_BUFSIZE = 8192;
-
-	int nl_dump_request(int sock, std::uint16_t type, std::uint32_t seq, char family, span<char> msg, std::size_t msg_len)
+	int nl_dump_request(int const sock, std::uint32_t const seq
+		, nlmsghdr* const request_msg, std::function<void(nlmsghdr const*)> on_msg)
 	{
-		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg.data());
-		nl_msg->nlmsg_len = std::uint32_t(NLMSG_LENGTH(msg_len));
-		nl_msg->nlmsg_type = type;
-		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-		nl_msg->nlmsg_seq = seq;
+		request_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+		request_msg->nlmsg_seq = seq;
 		// in theory nlmsg_pid should be set to the netlink port ID (NOT the process ID)
 		// of the sender, but the kernel ignores this field so it is typically set to
 		// zero
-		nl_msg->nlmsg_pid = 0;
-		// first byte of routing messages is always the family
-		msg[sizeof(nlmsghdr)] = family;
+		request_msg->nlmsg_pid = 0;
 
-		if (::send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
-		{
+		if (::send(sock, request_msg, request_msg->nlmsg_len, 0) < 0)
 			return -1;
-		}
 
 		// get the socket's port ID so that we can verify it in the repsonse
 		sockaddr_nl sock_addr;
 		socklen_t sock_addr_len = sizeof(sock_addr);
 		if (::getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)
-		{
 			return -1;
-		}
 
-		return read_nl_sock(sock, msg, seq, sock_addr.nl_pid);
+		return read_nl_sock(sock, seq, sock_addr.nl_pid, std::move(on_msg));
 	}
 
 	address to_address(int const address_family, void const* in)
@@ -249,8 +258,11 @@ namespace {
 		else return inaddr_to_address(in);
 	}
 
-	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
+	bool parse_route(int s, nlmsghdr const* nl_hdr, ip_route* rt_info)
 	{
+		// sanity check
+		if (nl_hdr->nlmsg_type != RTM_NEWROUTE) return false;
+
 		auto* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(rt_msg->rtm_family))
@@ -310,8 +322,11 @@ namespace {
 		return true;
 	}
 
-	bool parse_nl_address(nlmsghdr* nl_hdr, ip_interface* ip_info)
+	bool parse_nl_address(nlmsghdr const* nl_hdr, ip_interface* ip_info)
 	{
+		// sanity check
+		if (nl_hdr->nlmsg_type != RTM_NEWADDR) return false;
+
 		auto* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
@@ -321,7 +336,7 @@ namespace {
 		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
-		int rt_len = int(IFA_PAYLOAD(nl_hdr));
+		auto rt_len = IFA_PAYLOAD(nl_hdr);
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
@@ -521,52 +536,45 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
-		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(sock);
 
-		char msg[NL_BUFSIZE] = {};
-		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-		int len = nl_dump_request(sock, RTM_GETADDR, 0, AF_PACKET, msg, sizeof(ifaddrmsg));
-		if (len < 0)
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct ifaddrmsg msg;
+		} request{};
+
+		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.hdr.nlmsg_type = RTM_GETADDR;
+		request.msg.ifa_family = AF_PACKET;
+
+		if (nl_dump_request(sock, 0, &request.hdr, [&](nlmsghdr const* msg) {
+				ip_interface iface;
+				if (parse_nl_address(msg, &iface)) ret.push_back(iface);
+			}) != 0)
 		{
 			ec = error_code(errno, system_category());
-			::close(sock);
 			return ret;
 		}
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-			// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
-		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
-		{
-			ip_interface iface;
-			if (parse_nl_address(nl_msg, &iface)) ret.push_back(iface);
-		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-		::close(sock);
 #elif TORRENT_USE_IFADDRS
-		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(s);
 
 		ifaddrs *ifaddr;
 		if (getifaddrs(&ifaddr) == -1)
 		{
 			ec = error_code(errno, system_category());
-			::close(s);
 			return ret;
 		}
 
@@ -582,16 +590,16 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					ret.push_back(iface);
 			}
 		}
-		::close(s);
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
 #elif TORRENT_USE_IFCONF
-		int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
+		socket_closer c1(s);
 		ifconf ifc;
 		// make sure the buffer is aligned to hold ifreq structs
 		ifreq buf[40];
@@ -600,7 +608,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
-			::close(s);
 			return ret;
 		}
 
@@ -640,7 +647,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					else
 					{
 						ec = error_code(errno, system_category());
-						::close(s);
 						return ret;
 					}
 				}
@@ -654,7 +660,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ifr += current_size;
 			remaining -= current_size;
 		}
-		::close(s);
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
 
@@ -998,12 +1003,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	char* end = buf.get() + needed;
 
-	int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+	int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 	{
 		ec = error_code(errno, system_category());
 		return std::vector<ip_route>();
 	}
+	socket_closer c1(s);
 	rt_msghdr* rtm;
 	for (char* next = buf.get(); next < end; next += rtm->rtm_msglen)
 	{
@@ -1018,8 +1024,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
-	::close(s);
-
 #elif TORRENT_USE_GETIPFORWARDTABLE
 /*
 	move this to enum_net_interfaces
@@ -1182,47 +1186,40 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// Free memory
 		free(routes);
 #elif TORRENT_USE_NETLINK
-		int sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
+		socket_closer c1(sock);
+
+		int dgram_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+		if (dgram_sock < 0)
+		{
+			ec = error_code(errno, system_category());
+			return std::vector<ip_route>();
+		}
+		socket_closer c2(dgram_sock);
+
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct rtmsg msg;
+		} request{};
+		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.hdr.nlmsg_type = RTM_GETROUTE;
+		request.msg.rtm_family = AF_UNSPEC;
 
 		std::uint32_t seq = 0;
-
-		char msg[NL_BUFSIZE] = {};
-		auto* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
-		int len = nl_dump_request(sock, RTM_GETROUTE, seq++, AF_UNSPEC, msg, sizeof(rtmsg));
-		if (len < 0)
-		{
-			ec = error_code(errno, system_category());
-			::close(sock);
-			return std::vector<ip_route>();
-		}
-
-		close(sock);
-		sock = ::socket(AF_INET, SOCK_DGRAM, 0);
-		if (sock < 0)
+		if (nl_dump_request(sock, seq++, &request.hdr, [&](nlmsghdr const* msg) {
+				ip_route r;
+				if (parse_route(dgram_sock, msg, &r)) ret.push_back(r);
+			}) != 0)
 		{
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
-		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
-		{
-			ip_route r;
-			if (parse_route(sock, nl_msg, &r)) ret.push_back(r);
-		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-		::close(sock);
 
 #else
 #error "don't know how to enumerate network routes on this platform"
