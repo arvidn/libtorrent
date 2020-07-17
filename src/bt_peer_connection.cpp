@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 namespace {

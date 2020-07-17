@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cmath> // for log()
 #include <cstdint>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT void set_bits(std::uint8_t const* k, std::uint8_t* bits, int len);
 	TORRENT_EXTRA_EXPORT bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int len);

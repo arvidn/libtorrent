@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct bt_peer_connection;
+namespace aux { struct bt_peer_connection; }
 
 // the peer_connection_handle class provides a handle to the internal peer
 // connection object, to be used by plugins. This is a low level interface that
@@ -150,7 +150,7 @@ struct TORRENT_EXPORT bt_peer_connection_handle : peer_connection_handle
 	void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
 	void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 
-	std::shared_ptr<bt_peer_connection> native_handle() const;
+	std::shared_ptr<aux::bt_peer_connection> native_handle() const;
 };
 
 } // namespace libtorrent

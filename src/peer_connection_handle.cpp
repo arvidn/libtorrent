@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_connection_handle.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cstdarg> // for va_start, va_end
@@ -303,14 +303,14 @@ time_point peer_connection_handle::time_of_last_unchoke() const
 
 bool bt_peer_connection_handle::packet_finished() const
 {
-	std::shared_ptr<bt_peer_connection> pc = native_handle();
+	std::shared_ptr<aux::bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->packet_finished();
 }
 
 bool bt_peer_connection_handle::support_extensions() const
 {
-	std::shared_ptr<bt_peer_connection> pc = native_handle();
+	std::shared_ptr<aux::bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->support_extensions();
 }
@@ -318,7 +318,7 @@ bool bt_peer_connection_handle::support_extensions() const
 bool bt_peer_connection_handle::supports_encryption() const
 {
 #if !defined TORRENT_DISABLE_ENCRYPTION
-	std::shared_ptr<bt_peer_connection> pc = native_handle();
+	std::shared_ptr<aux::bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->supports_encryption();
 #else
@@ -329,7 +329,7 @@ bool bt_peer_connection_handle::supports_encryption() const
 void bt_peer_connection_handle::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
 #if !defined TORRENT_DISABLE_ENCRYPTION
-	std::shared_ptr<bt_peer_connection> pc = native_handle();
+	std::shared_ptr<aux::bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_send_crypto(std::move(crypto));
 #else
@@ -340,7 +340,7 @@ void bt_peer_connection_handle::switch_send_crypto(std::shared_ptr<crypto_plugin
 void bt_peer_connection_handle::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
 #if !defined TORRENT_DISABLE_ENCRYPTION
-	std::shared_ptr<bt_peer_connection> pc = native_handle();
+	std::shared_ptr<aux::bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_recv_crypto(std::move(crypto));
 #else
@@ -348,9 +348,9 @@ void bt_peer_connection_handle::switch_recv_crypto(std::shared_ptr<crypto_plugin
 #endif
 }
 
-std::shared_ptr<bt_peer_connection> bt_peer_connection_handle::native_handle() const
+std::shared_ptr<aux::bt_peer_connection> bt_peer_connection_handle::native_handle() const
 {
-	return std::static_pointer_cast<bt_peer_connection>(
+	return std::static_pointer_cast<aux::bt_peer_connection>(
 		peer_connection_handle::native_handle());
 }
 

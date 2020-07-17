@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/hash_picker.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct TORRENT_EXTRA_EXPORT ut_pex_peer_store

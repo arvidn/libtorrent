@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include "libtorrent/address.hpp"
-#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/bloom_filter.hpp"
 #include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/aux_/session_interface.hpp" // for ip_source_t
 
@@ -73,7 +73,7 @@ namespace libtorrent {
 
 			// this is a bloom filter of the IPs that have
 			// reported this address
-			bloom_filter<16> voters;
+			aux::bloom_filter<16> voters;
 			// this is the actual external address
 			address addr;
 			// a bitmask of sources the reporters have come from
@@ -85,7 +85,7 @@ namespace libtorrent {
 		// this is a bloom filter of all the IPs that have
 		// been the first to report an external address. Each
 		// IP only gets to add a new item once.
-		bloom_filter<32> m_external_address_voters;
+		aux::bloom_filter<32> m_external_address_voters;
 
 		std::vector<external_ip_t> m_external_addresses;
 		address m_external_address;

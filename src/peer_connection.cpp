@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
@@ -4183,9 +4183,9 @@ namespace {
 			&& !m_holepunch_mode)
 		{
 			// see if we can try a holepunch
-			bt_peer_connection* p = t->find_introducer(remote());
+			aux::bt_peer_connection* p = t->find_introducer(remote());
 			if (p)
-				p->write_holepunch_msg(bt_peer_connection::hp_message::rendezvous, remote());
+				p->write_holepunch_msg(aux::bt_peer_connection::hp_message::rendezvous, remote());
 		}
 #endif
 
@@ -4332,7 +4332,7 @@ namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 			if (type() == connection_type::bittorrent && op != operation_t::connect)
 			{
-				auto* bt = static_cast<bt_peer_connection*>(this);
+				auto* bt = static_cast<aux::bt_peer_connection*>(this);
 				if (bt->supports_encryption()) m_counters.inc_stats_counter(
 					counters::error_encrypted_peers);
 				if (bt->rc4_encrypted() && bt->supports_encryption())

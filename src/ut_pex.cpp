@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/aux_/torrent.hpp"
@@ -152,7 +152,7 @@ namespace libtorrent { namespace {
 					if (peer->type() != connection_type::bittorrent)
 						continue;
 
-					auto const* const p = static_cast<bt_peer_connection const*>(peer);
+					auto const* const p = static_cast<aux::bt_peer_connection const*>(peer);
 
 					// if the peer has told us which port its listening on,
 					// use that port. But only if we didn't connect to the peer.
@@ -226,7 +226,7 @@ namespace libtorrent { namespace {
 	};
 
 	struct ut_pex_peer_plugin final
-		: ut_pex_peer_store, peer_plugin
+		: aux::ut_pex_peer_store, peer_plugin
 	{
 		ut_pex_peer_plugin(aux::torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
@@ -491,7 +491,7 @@ namespace libtorrent { namespace {
 			char* ptr = msg;
 
 			aux::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
-			aux::write_uint8(bt_peer_connection::msg_extended, ptr);
+			aux::write_uint8(aux::bt_peer_connection::msg_extended, ptr);
 			aux::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg);
 			m_pc.send_buffer(pex_msg);
@@ -554,7 +554,7 @@ namespace libtorrent { namespace {
 				if (peer->type() != connection_type::bittorrent)
 					continue;
 
-				auto const* const p = static_cast<bt_peer_connection const*>(peer);
+				auto const* const p = static_cast<aux::bt_peer_connection const*>(peer);
 
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
@@ -602,7 +602,7 @@ namespace libtorrent { namespace {
 			char* ptr = msg;
 
 			aux::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
-			aux::write_uint8(bt_peer_connection::msg_extended, ptr);
+			aux::write_uint8(aux::bt_peer_connection::msg_extended, ptr);
 			aux::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg);
 			m_pc.send_buffer(pex_msg);
@@ -643,7 +643,7 @@ namespace libtorrent { namespace {
 	{
 		if (pc.type() != connection_type::bittorrent) return {};
 
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
+		aux::bt_peer_connection* c = static_cast<aux::bt_peer_connection*>(pc.native_handle().get());
 		auto p = std::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
 		c->set_ut_pex(p);
 		return p;

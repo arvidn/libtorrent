@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
-#include <libtorrent/bloom_filter.hpp>
+#include <libtorrent/aux_/bloom_filter.hpp>
 #include <libtorrent/random.hpp>
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>
@@ -94,7 +94,7 @@ namespace {
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
-		bloom_filter<128> ips;
+		aux::bloom_filter<128> ips;
 		// the last time we heard about this item
 		// the correct interpretation of this field
 		// requires a time reference
@@ -234,8 +234,8 @@ namespace {
 
 			if (scrape)
 			{
-				bloom_filter<256> downloaders;
-				bloom_filter<256> seeds;
+				aux::bloom_filter<256> downloaders;
+				aux::bloom_filter<256> seeds;
 
 				for (auto const& p : peersv)
 				{

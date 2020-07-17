@@ -428,8 +428,6 @@ HEADERS = \
   bdecode.hpp                  \
   bencode.hpp                  \
   bitfield.hpp                 \
-  bloom_filter.hpp             \
-  bt_peer_connection.hpp       \
   client_data.hpp              \
   close_reason.hpp             \
   config.hpp                   \
@@ -570,6 +568,8 @@ HEADERS = \
   aux_/bind_to_device.hpp           \
   aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \
+  aux_/bloom_filter.hpp             \
+  aux_/bt_peer_connection.hpp       \
   aux_/container_wrapper.hpp        \
   aux_/chained_buffer.hpp           \
   aux_/choker.hpp                   \

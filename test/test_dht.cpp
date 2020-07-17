@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/bloom_filter.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
@@ -980,8 +980,8 @@ void test_scrape(address(&rand_addr)())
 		TEST_CHECK(peer2_keys[0].string_value() == "r");
 		TEST_EQUAL(peer2_keys[1].dict_find_string_value("n"), "test");
 
-		bloom_filter<256> downloaders;
-		bloom_filter<256> seeds;
+		aux::bloom_filter<256> downloaders;
+		aux::bloom_filter<256> seeds;
 		downloaders.from_string(peer2_keys[2].string_ptr());
 		seeds.from_string(peer2_keys[3].string_ptr());
 
@@ -1121,7 +1121,7 @@ TORRENT_TEST(id_enforcement_v6)
 
 TORRENT_TEST(bloom_filter)
 {
-	bloom_filter<256> test;
+	aux::bloom_filter<256> test;
 	for (int i = 0; i < 256; ++i)
 	{
 		char adr[50];

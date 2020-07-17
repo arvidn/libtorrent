@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/aux_/torrent.hpp"
@@ -184,7 +184,7 @@ namespace {
 	{
 		friend struct ut_metadata_plugin;
 
-		ut_metadata_peer_plugin(aux::torrent& t, bt_peer_connection& pc
+		ut_metadata_peer_plugin(aux::torrent& t, aux::bt_peer_connection& pc
 			, ut_metadata_plugin& tp)
 			: m_message_index(0)
 			, m_request_limit(min_time())
@@ -273,7 +273,7 @@ namespace {
 			int const total_size = 2 + len + metadata_piece_size;
 			namespace io = aux;
 			io::write_uint32(total_size, header);
-			io::write_uint8(bt_peer_connection::msg_extended, header);
+			io::write_uint8(aux::bt_peer_connection::msg_extended, header);
 			io::write_uint8(m_message_index, header);
 
 			m_pc.send_buffer({msg, len + 6});
@@ -468,7 +468,7 @@ namespace {
 		std::vector<int> m_incoming_requests;
 
 		aux::torrent& m_torrent;
-		bt_peer_connection& m_pc;
+		aux::bt_peer_connection& m_pc;
 		ut_metadata_plugin& m_tp;
 	};
 
@@ -477,7 +477,7 @@ namespace {
 	{
 		if (pc.type() != connection_type::bittorrent) return {};
 
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
+		aux::bt_peer_connection* c = static_cast<aux::bt_peer_connection*>(pc.native_handle().get());
 		return std::make_shared<ut_metadata_peer_plugin>(m_torrent, *c, *this);
 	}
 

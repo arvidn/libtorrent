@@ -108,9 +108,10 @@ namespace libtorrent {
 
 	class http_parser;
 	struct tracker_request;
-	struct bt_peer_connection;
 
 namespace aux {
+
+	struct bt_peer_connection;
 
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
 
