@@ -67,6 +67,17 @@ namespace
 		return ipi;
 	}
 
+	ip_interface ifc(char const* ip, char const* device, interface_flags const flags
+		, char const* netmask = nullptr)
+	{
+		ip_interface ipi;
+		ipi.interface_address = address::from_string(ip);
+		if (netmask) ipi.netmask = address::from_string(netmask);
+		strncpy(ipi.name, device, sizeof(ipi.name));
+		ipi.flags = flags;
+		return ipi;
+	}
+
 	ip_route rt(char const* ip, char const* device, char const* gateway)
 	{
 		ip_route ret;
@@ -387,6 +398,88 @@ TORRENT_TEST(expand_unspecified)
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl) == 0);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_loopb_nossl) == 1);
 	TEST_CHECK(std::count(eps.begin(), eps.end(), v6_g_nossl_dev) == 1);
+}
+
+using eps_t =  std::vector<aux::listen_endpoint_t>;
+
+auto const global = aux::listen_socket_t::accept_incoming
+	| aux::listen_socket_t::was_expanded;
+auto const local = global | aux::listen_socket_t::local_network;
+
+TORRENT_TEST(expand_unspecified_no_default)
+{
+	// even though this route isn't a default route, it's a route for a global
+	// internet address
+	std::vector<ip_route> const routes = {
+		rt("128.0.0.0", "eth0", "128.0.0.0"),
+	};
+
+	std::vector<ip_interface> const ifs = { ifc("192.168.1.2", "eth0", "255.255.0.0") };
+	eps_t eps = { ep("0.0.0.0", 6881) };
+
+	aux::expand_unspecified_address(ifs, routes, eps);
+
+	TEST_CHECK(eps == eps_t{ ep("192.168.1.2", 6881, global) });
+}
+
+namespace {
+
+void test_expand_unspecified_if_flags(interface_flags const flags
+	, eps_t const& expected)
+{
+	// even though this route isn't a default route, it's a route for a global
+	// internet address
+	std::vector<ip_route> const routes;
+
+	std::vector<ip_interface> const ifs = { ifc("192.168.1.2", "eth0", flags) };
+	eps_t eps = { ep("0.0.0.0", 6881) };
+	aux::expand_unspecified_address(ifs, routes, eps);
+	TEST_CHECK((eps == expected));
+}
+
+void test_expand_unspecified_if_address(char const* address, eps_t const& expected)
+{
+	std::vector<ip_route> const routes;
+	std::vector<ip_interface> const ifs = { ifc(address, "eth0", "255.255.0.0") };
+	eps_t eps = { ep("0.0.0.0", 6881) };
+
+	aux::expand_unspecified_address(ifs, routes, eps);
+
+	TEST_CHECK(eps == expected);
+}
+
+}
+
+TORRENT_TEST(expand_unspecified_ppp)
+{
+	test_expand_unspecified_if_flags(if_flags::up | if_flags::pointopoint, eps_t{ ep("192.168.1.2", 6881, global) });
+	test_expand_unspecified_if_flags(if_flags::up, eps_t{ ep("192.168.1.2", 6881, local) });
+}
+
+TORRENT_TEST(expand_unspecified_down_if)
+{
+	test_expand_unspecified_if_flags({}, eps_t{});
+	test_expand_unspecified_if_flags(if_flags::up, eps_t{ ep("192.168.1.2", 6881, local) });
+}
+
+TORRENT_TEST(expand_unspecified_if_loopback)
+{
+	test_expand_unspecified_if_flags(if_flags::up | if_flags::loopback, eps_t{ ep("192.168.1.2", 6881, local) });
+}
+
+TORRENT_TEST(expand_unspecified_global_address)
+{
+	test_expand_unspecified_if_address("1.2.3.4", eps_t{ ep("1.2.3.4", 6881, global)});
+}
+
+TORRENT_TEST(expand_unspecified_link_local)
+{
+	test_expand_unspecified_if_address("169.254.1.2", eps_t{ ep("169.254.1.2", 6881, local)});
+}
+
+TORRENT_TEST(expand_unspecified_loopback)
+{
+	test_expand_unspecified_if_address("127.1.1.1", eps_t{ ep("127.1.1.1", 6881, local)});
 }
 
 namespace {
