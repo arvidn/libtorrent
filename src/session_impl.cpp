@@ -282,11 +282,10 @@ namespace aux {
 				if (!(ipface.flags & if_flags::up))
 					continue;
 
-				// record whether the device has a gateway associated with it
-				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
-				bool const local = ipface.interface_address.is_loopback()
+				// we assume this listen_socket_t is local-network under some
+				// conditions, meaning we won't announce it to internet trackers
+				bool const local
+					= ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address)
 					|| (ipface.flags & if_flags::loopback)
 					|| (!is_global(ipface.interface_address)
@@ -1812,10 +1811,6 @@ namespace {
 				// connecting to)
 				if (iface.device != ipface.name) continue;
 
-				// record whether the device has a gateway associated with it
-				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address);
