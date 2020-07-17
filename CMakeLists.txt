@@ -24,8 +24,6 @@ set(libtorrent_include_files
 	bdecode
 	bencode
 	bitfield
-	bloom_filter
-	bt_peer_connection
 	client_data
 	close_reason
 	config
@@ -194,6 +192,8 @@ set(libtorrent_aux_include_files
 	bandwidth_socket
 	bind_to_device
 	buffer
+	bloom_filter
+	bt_peer_connection
 	keepalive
 	byteswap
 	chained_buffer

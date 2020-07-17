@@ -78,7 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"

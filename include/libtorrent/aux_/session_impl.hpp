@@ -71,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"
-#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/bloom_filter.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"

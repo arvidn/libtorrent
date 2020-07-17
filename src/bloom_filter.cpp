@@ -31,10 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/bloom_filter.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int const len)
 	{
