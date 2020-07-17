@@ -65,10 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_SSL_PEERS
 #include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/ssl/verify_context.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/ssl.hpp"
 #endif // TORRENT_SSL_PEERS
 
 #include "libtorrent/torrent_handle.hpp"
