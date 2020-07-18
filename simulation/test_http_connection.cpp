@@ -493,7 +493,7 @@ TORRENT_TEST(http_connection_timeout_server_stalls)
 	int connect_counter = 0;
 	int handler_counter = 0;
 
-	error_condition timed_out(boost::system::errc::timed_out, boost::system::generic_category());
+	error_condition timed_out(lt::errors::timed_out, lt::libtorrent_category());
 
 	auto c = test_request(client_ios, resolver
 		, "http://dual-stack.test-hostname.com:8080/timeout", data_buffer, -1, -1
@@ -542,7 +542,7 @@ TORRENT_TEST(http_connection_timeout_server_does_not_accept)
 	int connect_counter = 0;
 	int handler_counter = 0;
 
-	error_condition timed_out(boost::system::errc::timed_out, boost::system::generic_category());
+	error_condition timed_out(lt::errors::timed_out, lt::libtorrent_category());
 
 	char data_buffer[4000];
 	lt::aux::random_bytes(data_buffer);
