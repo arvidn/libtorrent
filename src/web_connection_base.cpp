@@ -53,7 +53,7 @@ namespace libtorrent {
 		, m_ssl(false)
 		, m_external_auth(web.auth)
 		, m_extra_headers(web.extra_headers)
-		, m_parser(http_parser::dont_parse_chunks)
+		, m_parser(aux::http_parser::dont_parse_chunks)
 		, m_body_start(0)
 	{
 		TORRENT_ASSERT(&web.peer_info == pack.peerinfo);

@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
 #include "libtorrent/aux_/torrent.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 
 namespace libtorrent {
 
@@ -512,7 +512,7 @@ void web_peer_connection::write_request(peer_request const& r)
 
 namespace {
 
-	std::string get_peer_name(http_parser const& p, std::string const& host)
+	std::string get_peer_name(aux::http_parser const& p, std::string const& host)
 	{
 		std::string ret = "URL seed @ ";
 		ret += host;
@@ -528,7 +528,7 @@ namespace {
 	}
 
 	std::tuple<std::int64_t, std::int64_t> get_range(
-		http_parser const& parser, error_code& ec)
+		aux::http_parser const& parser, error_code& ec)
 	{
 		std::int64_t range_start;
 		std::int64_t range_end;
@@ -663,7 +663,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		TORRENT_ASSERT(!m_file_requests.empty());
 		file_index_t const file_index = m_file_requests.front().file_index;
 
-		location = resolve_redirect_location(m_url, location);
+		location = aux::resolve_redirect_location(m_url, location);
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
@@ -734,7 +734,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	}
 	else
 	{
-		location = resolve_redirect_location(m_url, location);
+		location = aux::resolve_redirect_location(m_url, location);
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
@@ -847,7 +847,7 @@ void web_peer_connection::on_receive(error_code const& error
 #endif
 
 			// if the status code is not one of the accepted ones, abort
-			if (!is_ok_status(m_parser.status_code()))
+			if (!aux::is_ok_status(m_parser.status_code()))
 			{
 				if (!m_file_requests.empty())
 				{
@@ -864,7 +864,7 @@ void web_peer_connection::on_receive(error_code const& error
 				return;
 			}
 
-			if (is_redirect(m_parser.status_code()))
+			if (aux::is_redirect(m_parser.status_code()))
 			{
 				handle_redirect(int(recv_buffer.size()));
 				return;

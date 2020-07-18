@@ -276,7 +276,7 @@ namespace libtorrent {
 				}
 
 				// if the status code is not one of the accepted ones, abort
-				if (!is_ok_status(m_parser.status_code()))
+				if (!aux::is_ok_status(m_parser.status_code()))
 				{
 					auto const retry_time = value_or(m_parser.header_duration("retry-after")
 						, seconds32(m_settings.get_int(settings_pack::urlseed_wait_retry)));
@@ -306,7 +306,7 @@ namespace libtorrent {
 			// we just completed reading the header
 			if (!header_finished)
 			{
-				if (is_redirect(m_parser.status_code()))
+				if (aux::is_redirect(m_parser.status_code()))
 				{
 					// this means we got a redirection request
 					// look for the location header

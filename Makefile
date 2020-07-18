@@ -452,11 +452,9 @@ HEADERS = \
   flags.hpp                    \
   fwd.hpp                      \
   gzip.hpp                     \
-  hash_picker.hpp              \
   hasher.hpp                   \
   hex.hpp                      \
   http_connection.hpp          \
-  http_parser.hpp              \
   http_seed_connection.hpp     \
   http_stream.hpp              \
   http_tracker_connection.hpp  \
@@ -595,8 +593,10 @@ HEADERS = \
   aux_/file_view_pool.hpp           \
   aux_/generate_peer_id.hpp         \
   aux_/has_block.hpp                \
+  aux_/hash_picker.hpp              \
   aux_/hasher512.hpp                \
   aux_/heterogeneous_queue.hpp      \
+  aux_/http_parser.hpp              \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \

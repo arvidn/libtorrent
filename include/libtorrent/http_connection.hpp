@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/i2p_stream.hpp"
@@ -63,7 +63,7 @@ struct close_visitor;
 constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
 using http_handler = std::function<void(error_code const&
-	, http_parser const&, span<char const> data, http_connection&)>;
+	, aux::http_parser const&, span<char const> data, http_connection&)>;
 
 using http_connect_handler = std::function<void(http_connection&)>;
 
@@ -170,7 +170,7 @@ private:
 #endif
 	aux::resolver_interface& m_resolver;
 
-	http_parser m_parser;
+	aux::http_parser m_parser;
 	http_handler m_handler;
 	http_connect_handler m_connect_handler;
 	http_filter_handler m_filter_handler;

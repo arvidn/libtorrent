@@ -739,7 +739,7 @@ void http_connection::on_read(error_code const& e
 		{
 			int code = m_parser.status_code();
 
-			if (is_redirect(code))
+			if (aux::is_redirect(code))
 			{
 				// attempt a redirect
 				std::string const& location = m_parser.header("location");
@@ -757,7 +757,7 @@ void http_connection::on_read(error_code const& e
 //				async_shutdown(m_sock, me);
 				m_sock->close(ec);
 
-				std::string url = resolve_redirect_location(m_url, location);
+				std::string url = aux::resolve_redirect_location(m_url, location);
 				get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
 					, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
 #if TORRENT_USE_I2P

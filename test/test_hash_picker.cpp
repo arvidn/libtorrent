@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-#include "libtorrent/hash_picker.hpp"
+#include "libtorrent/aux_/hash_picker.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/aux_/merkle.hpp"
@@ -197,7 +197,7 @@ TORRENT_TEST(reject_piece_request)
 	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
 	trees.emplace_back(4 * 512, 1, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	typed_bitfield<piece_index_t> const pieces(4 * 512, true);
 
@@ -220,7 +220,7 @@ TORRENT_TEST(add_leaf_hashes)
 	sha256_hash const root = full_tree[0];
 	trees.emplace_back(4 * 512, 1, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	std::vector<sha256_hash> hashes;
 	auto const pieces_start = full_tree.end_index() - merkle_num_leafs(4 * 512);
@@ -229,11 +229,11 @@ TORRENT_TEST(add_leaf_hashes)
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 0, 0, 512, 10)
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 
-	result = picker.add_hashes(hash_request(0_file, 0, 512, 512, 0)
+	result = picker.add_hashes(aux::hash_request(0_file, 0, 512, 512, 0)
 		, span<sha256_hash const>(full_tree).last(merkle_num_leafs(4 * 512) - 512).first(512));
 	TEST_CHECK(result.valid);
 
@@ -244,11 +244,11 @@ TORRENT_TEST(add_leaf_hashes)
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
 
-	result = picker.add_hashes(hash_request(0_file, 0, 1024, 512, 10)
+	result = picker.add_hashes(aux::hash_request(0_file, 0, 1024, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 
-	result = picker.add_hashes(hash_request(0_file, 0, 1536, 512, 0)
+	result = picker.add_hashes(aux::hash_request(0_file, 0, 1536, 512, 0)
 		, span<sha256_hash const>(full_tree).last(merkle_num_leafs(4 * 512) - 1536).first(512));
 	TEST_CHECK(result.valid);
 
@@ -267,19 +267,19 @@ TORRENT_TEST(add_piece_hashes)
 	sha256_hash const root = full_tree[0];
 	trees.emplace_back(4 * 1024, 4, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	auto pieces_start = full_tree.begin() + merkle_num_nodes(1024) - 1024;
 
 	std::vector<sha256_hash> hashes;
 	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
 	hashes.push_back(full_tree[2]);
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 9), hashes);
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 2, 0, 512, 9), hashes);
 	TEST_CHECK(result.valid);
 
 	hashes.clear();
 	std::copy(pieces_start + 512, pieces_start + 1024, std::back_inserter(hashes));
-	result = picker.add_hashes(hash_request(0_file, 2, 512, 512, 8), hashes);
+	result = picker.add_hashes(aux::hash_request(0_file, 2, 512, 512, 8), hashes);
 	TEST_CHECK(result.valid);
 
 	auto const cmp = trees.front().build_vector();
@@ -298,7 +298,7 @@ TORRENT_TEST(add_piece_hashes_padded)
 	sha256_hash const root = full_tree[0];
 	trees.emplace_back(4 * 1029, 4, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
 
@@ -312,7 +312,7 @@ TORRENT_TEST(add_piece_hashes_padded)
 		hashes.push_back(full_tree[merkle_get_sibling(proof)]);
 		proof = merkle_get_parent(proof);
 	}
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 1024, 8, 10), hashes);
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 2, 1024, 8, 10), hashes);
 	TEST_CHECK(result.valid);
 }
 
@@ -328,7 +328,7 @@ TORRENT_TEST(add_piece_hashes_unpadded)
 	sha256_hash const root = full_tree[0];
 	trees.emplace_back(4 * 1029, 4, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
 
@@ -341,7 +341,7 @@ TORRENT_TEST(add_piece_hashes_unpadded)
 		hashes.push_back(full_tree[merkle_get_sibling(proof)]);
 		proof = merkle_get_parent(proof);
 	}
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 1024, 5, 10), hashes);
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 2, 1024, 5, 10), hashes);
 	TEST_CHECK(result.valid);
 }
 
@@ -357,11 +357,11 @@ TORRENT_TEST(add_bad_hashes)
 	sha256_hash const root = full_tree[0];
 	trees.emplace_back(4 * 512, 4, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	// totally bogus hashes
 	std::vector<sha256_hash> hashes(512);
-	auto result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 0), hashes);
+	auto result = picker.add_hashes(aux::hash_request(0_file, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 
 	// bad proof hash
@@ -369,7 +369,7 @@ TORRENT_TEST(add_bad_hashes)
 	auto const pieces_start = full_tree.end_index() - 512;
 	for (int i = 0; i < 512; ++i) hashes.push_back(full_tree[pieces_start + i]);
 	hashes.back()[1] ^= 0xaa;
-	result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 0), hashes);
+	result = picker.add_hashes(aux::hash_request(0_file, 2, 0, 512, 0), hashes);
 	TEST_CHECK(!result.valid);
 }
 
@@ -391,7 +391,7 @@ TORRENT_TEST(bad_block_hash)
 
 	trees.front().set_block(1, hash);
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	std::vector<sha256_hash> hashes;
 	auto leafs_start = full_tree.end() - merkle_num_leafs(4 * 512);
@@ -400,7 +400,7 @@ TORRENT_TEST(bad_block_hash)
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
 	}
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 0, 0, 512, 10)
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
 	TEST_CHECK(result.hash_failed.count(1_piece) == 1);
@@ -426,18 +426,18 @@ TORRENT_TEST(set_block_hash)
 
 	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 	auto result = picker.set_block_hash(1_piece, default_block_size
 		, full_tree[first_leaf + 5]);
-	TEST_CHECK(result.status == set_block_hash_result::result::success);
+	TEST_CHECK(result.status == aux::set_block_hash_result::result::success);
 
 	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, full_tree[first_leaf + 10]);
-	TEST_CHECK(result.status == set_block_hash_result::result::success);
+	TEST_CHECK(result.status == aux::set_block_hash_result::result::success);
 
 	result = picker.set_block_hash(2_piece, default_block_size * 2
 		, sha256_hash("01234567890123456789012345678901"));
-	TEST_CHECK(result.status == set_block_hash_result::result::block_hash_failed);
+	TEST_CHECK(result.status == aux::set_block_hash_result::result::block_hash_failed);
 }
 
 TORRENT_TEST(set_block_hash_fail)
@@ -463,23 +463,23 @@ TORRENT_TEST(set_block_hash_fail)
 
 	trees.front().load_tree(full_tree);
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	TEST_CHECK(picker.set_block_hash(3_piece, 0, full_tree[first_leaf + 12]).status
-		== lt::set_block_hash_result::result::unknown);
+		== aux::set_block_hash_result::result::unknown);
 	TEST_CHECK(picker.set_block_hash(3_piece, 2 * default_block_size, full_tree[first_leaf + 14]).status
-		== lt::set_block_hash_result::result::unknown);
+		== aux::set_block_hash_result::result::unknown);
 	TEST_CHECK(picker.set_block_hash(3_piece, 3 * default_block_size, full_tree[first_leaf + 15]).status
-		== lt::set_block_hash_result::result::unknown);
+		== aux::set_block_hash_result::result::unknown);
 
 	auto result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
-	TEST_CHECK(result.status == set_block_hash_result::result::piece_hash_failed);
+	TEST_CHECK(result.status == aux::set_block_hash_result::result::piece_hash_failed);
 
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 12)].is_all_zeros());
 	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 14)].is_all_zeros());
 
 	result = picker.set_block_hash(3_piece, default_block_size, orig_hash);
-	TEST_CHECK(result.status == set_block_hash_result::result::success);
+	TEST_CHECK(result.status == aux::set_block_hash_result::result::success);
 }
 
 TORRENT_TEST(pass_piece)
@@ -495,7 +495,7 @@ TORRENT_TEST(pass_piece)
 	sha256_hash root = full_tree[0];
 	trees.emplace_back(4 * 512, 4, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
 
@@ -503,14 +503,14 @@ TORRENT_TEST(pass_piece)
 	{
 		auto result = picker.set_block_hash(0_piece, default_block_size * i
 			, full_tree[first_leaf + i]);
-		TEST_CHECK(result.status == set_block_hash_result::result::unknown);
+		TEST_CHECK(result.status == aux::set_block_hash_result::result::unknown);
 	}
 
 	auto const pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
 
 	std::vector<sha256_hash> hashes;
 	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
-	add_hashes_result result = picker.add_hashes(hash_request(0_file, 2, 0, 512, 8), hashes);
+	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 2, 0, 512, 8), hashes);
 	TEST_CHECK(result.valid);
 	TEST_EQUAL(result.hash_passed.size(), 1);
 	if (result.hash_passed.size() == 1)
@@ -530,14 +530,14 @@ TORRENT_TEST(only_pick_have_pieces)
 	sha256_hash root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
 	trees.emplace_back(4 * 512, 1, root.data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	typed_bitfield<piece_index_t> pieces;
 	pieces.resize(4 * 512);
 	pieces.set_bit(512_piece);
 	pieces.set_bit(1537_piece);
 
-	std::vector <hash_request> picked;
+	std::vector<aux::hash_request> picked;
 	for (int i = 0; i < 3; ++i)
 		picked.push_back(picker.pick_hashes(pieces));
 	TEST_EQUAL(picked[0].file, 0_file);
@@ -568,6 +568,7 @@ TORRENT_TEST(validate_hash_request)
 
 	// hash_request make function
 	// (file_index_t const f, int const b, int const i, int const c, int const p)
+	using hash_request = aux::hash_request;
 
 	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
 
@@ -1160,4 +1161,3 @@ TORRENT_TEST(merkle_tree_get_hashes)
 		TEST_CHECK(s(h) == range(f, 255 + 128, 64));
 	}
 }
-

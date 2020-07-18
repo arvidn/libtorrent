@@ -32,11 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/hash_picker.hpp"
+#include "libtorrent/aux_/hash_picker.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-namespace libtorrent
+namespace libtorrent::aux
 {
 	namespace
 	{

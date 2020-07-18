@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/hash_picker.hpp"
+#include "libtorrent/aux_/hash_picker.hpp"
 
 namespace libtorrent::aux {
 

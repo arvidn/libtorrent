@@ -136,7 +136,7 @@ std::shared_ptr<http_connection> test_request(io_context& ios
 
 	auto h = std::make_shared<http_connection>(ios
 		, res
-		, [=](error_code const& ec, http_parser const& parser
+		, [=](error_code const& ec, lt::aux::http_parser const& parser
 			, span<char const> data, http_connection&)
 		{
 			std::printf("RESPONSE: %s\n", url.c_str());
@@ -633,7 +633,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 
 	auto h = std::make_shared<http_connection>(client_ios
 		, res
-		, [&client_counter](error_code const& ec, http_parser const&
+		, [&client_counter](error_code const& ec, lt::aux::http_parser const&
 			, span<char const>, http_connection&)
 		{
 			client_counter++;

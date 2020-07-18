@@ -48,11 +48,9 @@ set(libtorrent_include_files
 	flags
 	fwd
 	gzip
-	hash_picker
 	hasher
 	hex
 	http_connection
-	http_parser
 	http_seed_connection
 	http_stream
 	http_tracker_connection
@@ -218,7 +216,9 @@ set(libtorrent_aux_include_files
 	file_progress
 	file_view_pool
 	has_block
+	hash_picker
 	heterogeneous_queue
+	http_parser
 	invariant_check
 	instantiate_connection
 	io

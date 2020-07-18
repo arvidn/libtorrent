@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "broadcast_socket.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -77,7 +77,7 @@ char const* soap_delete_response[] = {
 
 void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 {
-	http_parser p;
+	aux::http_parser p;
 	bool error = false;
 	p.incoming(buffer, error);
 	if (error || !p.header_finished())

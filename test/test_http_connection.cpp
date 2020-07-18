@@ -64,7 +64,7 @@ int http_status = 0;
 error_code g_error_code;
 char data_buffer[4000];
 
-void print_http_header(http_parser const& p)
+void print_http_header(aux::http_parser const& p)
 {
 	std::cout << time_now_string() << " < " << p.status_code() << " " << p.message() << std::endl;
 
@@ -85,7 +85,7 @@ void http_connect_handler_test(http_connection& c)
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == make_address("127.0.0.1", ec));
 }
 
-void http_handler_test(error_code const& ec, http_parser const& parser
+void http_handler_test(error_code const& ec, aux::http_parser const& parser
 	, span<char const> data, http_connection&)
 {
 	++handler_called;
