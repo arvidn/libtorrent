@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/optional.hpp"
 #include "libtorrent/aux_/strview_less.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	// return true if the status code is 200, 206, or in the 300-400 range
 	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);

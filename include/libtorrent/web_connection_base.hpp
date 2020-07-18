@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 
 namespace libtorrent {
 
@@ -124,7 +124,7 @@ namespace libtorrent {
 		std::string m_external_auth;
 		web_seed_entry::headers_t m_extra_headers;
 
-		http_parser m_parser;
+		aux::http_parser m_parser;
 
 		int m_port;
 

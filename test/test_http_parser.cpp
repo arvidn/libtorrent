@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/string_view.hpp"
 
@@ -42,7 +42,7 @@ using namespace lt;
 
 namespace {
 
-std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
+std::tuple<int, int, bool> feed_bytes(aux::http_parser& parser, string_view str)
 {
 	std::tuple<int, int, bool> ret(0, 0, false);
 	std::tuple<int, int, bool> prev(0, 0, false);
@@ -91,7 +91,7 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, string_view str)
 TORRENT_TEST(http_parser)
 {
 	// HTTP request parser
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> received;
 
 	received = feed_bytes(parser
@@ -461,58 +461,58 @@ TORRENT_TEST(http_parser)
 
 	// test resolve_redirect_location
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "a")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b", "a")
 		, "http://example.com/a/a");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "c/d/e/")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b", "c/d/e/")
 		, "http://example.com/a/c/d/e/");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "../a")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b", "../a")
 		, "http://example.com/a/../a");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "/c")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b", "/c")
 		, "http://example.com/c");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
 
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "http://test.com/d")
+	TEST_EQUAL(aux::resolve_redirect_location("my-custom-scheme://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com", "/d")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com", "/d")
 		, "http://example.com/d");
 
-	TEST_EQUAL(resolve_redirect_location("http://example.com", "d")
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com", "d")
 		, "http://example.com/d");
 
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "/d")
+	TEST_EQUAL(aux::resolve_redirect_location("my-custom-scheme://example.com/a/b", "/d")
 		, "my-custom-scheme://example.com/d");
 
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "c/d")
+	TEST_EQUAL(aux::resolve_redirect_location("my-custom-scheme://example.com/a/b", "c/d")
 		, "my-custom-scheme://example.com/a/c/d");
 
 	// if the referrer is invalid, just respond the verbatim location
 
-	TEST_EQUAL(resolve_redirect_location("example.com/a/b", "/c/d")
+	TEST_EQUAL(aux::resolve_redirect_location("example.com/a/b", "/c/d")
 		, "/c/d");
 
 	// is_ok_status
 
-	TEST_EQUAL(is_ok_status(200), true);
-	TEST_EQUAL(is_ok_status(206), true);
-	TEST_EQUAL(is_ok_status(299), false);
-	TEST_EQUAL(is_ok_status(300), true);
-	TEST_EQUAL(is_ok_status(399), true);
-	TEST_EQUAL(is_ok_status(400), false);
-	TEST_EQUAL(is_ok_status(299), false);
+	TEST_EQUAL(aux::is_ok_status(200), true);
+	TEST_EQUAL(aux::is_ok_status(206), true);
+	TEST_EQUAL(aux::is_ok_status(299), false);
+	TEST_EQUAL(aux::is_ok_status(300), true);
+	TEST_EQUAL(aux::is_ok_status(399), true);
+	TEST_EQUAL(aux::is_ok_status(400), false);
+	TEST_EQUAL(aux::is_ok_status(299), false);
 
 	// is_redirect
 
-	TEST_EQUAL(is_redirect(299), false);
-	TEST_EQUAL(is_redirect(100), false);
-	TEST_EQUAL(is_redirect(300), true);
-	TEST_EQUAL(is_redirect(399), true);
-	TEST_EQUAL(is_redirect(400), false);
+	TEST_EQUAL(aux::is_redirect(299), false);
+	TEST_EQUAL(aux::is_redirect(100), false);
+	TEST_EQUAL(aux::is_redirect(300), true);
+	TEST_EQUAL(aux::is_redirect(399), true);
+	TEST_EQUAL(aux::is_redirect(400), false);
 }
 
 TORRENT_TEST(chunked_encoding)
@@ -525,7 +525,7 @@ TORRENT_TEST(chunked_encoding)
 		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
 		"0\r\n\r\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -549,7 +549,7 @@ TORRENT_TEST(chunked_encoding_overflow)
 		"\r\n"
 		"7FFFFFFFFFFFFFBF\r\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	int payload;
 	int protocol;
 	bool error = false;
@@ -567,7 +567,7 @@ TORRENT_TEST(invalid_content_length)
 		"Content-Length: -45345\r\n"
 		"\r\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -583,7 +583,7 @@ TORRENT_TEST(invalid_chunked)
 		"-53465234545\r\n"
 		"foobar";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -597,7 +597,7 @@ TORRENT_TEST(invalid_content_range_start)
 		"Content-Range: bYTes -3-4\n"
 		"\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -611,7 +611,7 @@ TORRENT_TEST(invalid_content_range_end)
 		"Content-Range: bYTes 3--434\n"
 		"\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -625,7 +625,7 @@ TORRENT_TEST(overflow_content_length)
 		"Content-Length: 9999999999999999999999999999\r\n"
 		"\r\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -639,7 +639,7 @@ TORRENT_TEST(overflow_content_range_end)
 		"Content-Range: bytes 0-999999999999999999999999\n"
 		"\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -653,7 +653,7 @@ TORRENT_TEST(overflow_content_range_begin)
 		"Content-Range: bytes 999999999999999999999999-0\n"
 		"\n";
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
@@ -673,7 +673,7 @@ TORRENT_TEST(missing_chunked_header)
 	char chunked_input[sizeof(input)-1];
 	std::memcpy(chunked_input, input, sizeof(chunked_input));
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, {chunked_input, sizeof(chunked_input)});
 
@@ -705,7 +705,7 @@ TORRENT_TEST(invalid_chunk_1)
 		0x0a, 0x00
 	};
 
-	http_parser parser;
+	aux::http_parser parser;
 	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, {reinterpret_cast<char const*>(invalid_chunked_input), sizeof(invalid_chunked_input)});
 
@@ -731,7 +731,7 @@ TORRENT_TEST(invalid_chunk_2)
 		0x0a
 	};
 
-	http_parser parser;
+	aux::http_parser parser;
 	feed_bytes(parser, {reinterpret_cast<char const*>(invalid_chunked_input), sizeof(invalid_chunked_input)});
 }
 
@@ -754,6 +754,6 @@ TORRENT_TEST(invalid_chunk_3)
 		0x6a, 0x76, 0x73, 0x66, 0x63, 0x6b, 0x65, 0x0a, 0x30, 0x0a, 0x0a, 0x0a,              // jvsfcke.0...
 	};
 
-	http_parser parser;
+	aux::http_parser parser;
 	feed_bytes(parser, {reinterpret_cast<char const*>(invalid_chunked_input), sizeof(invalid_chunked_input)});
 }

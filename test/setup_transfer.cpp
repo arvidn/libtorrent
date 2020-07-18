@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"

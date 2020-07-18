@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/hex.hpp" // for hex_to_int
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for seconds32
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	bool is_ok_status(int http_status)
 	{

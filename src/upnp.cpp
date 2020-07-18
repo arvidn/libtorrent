@@ -520,7 +520,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 		return;
 	}
 
-	http_parser p;
+	aux::http_parser p;
 	bool error = false;
 	p.incoming({buffer.data(), len}, error);
 	if (error)
@@ -960,7 +960,7 @@ void find_control_url(int const type, string_view str, parse_state& state)
 }
 
 void upnp::on_upnp_xml(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d
+	, aux::http_parser const& p, rootdevice& d
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -1246,7 +1246,7 @@ boost::system::error_category& upnp_category()
 }
 
 void upnp::on_upnp_get_ip_address_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d
+	, aux::http_parser const& p, rootdevice& d
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -1341,7 +1341,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 }
 
 void upnp::on_upnp_map_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, port_mapping_t const mapping
+	, aux::http_parser const& p, rootdevice& d, port_mapping_t const mapping
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -1514,7 +1514,7 @@ void upnp::return_error(port_mapping_t const mapping, int const code)
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d
+	, aux::http_parser const& p, rootdevice& d
 	, port_mapping_t const mapping
 	, http_connection& c)
 {

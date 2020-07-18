@@ -46,7 +46,7 @@ namespace libtorrent {
 
 	class tracker_manager;
 	struct http_connection;
-	class http_parser;
+	namespace aux { class http_parser; }
 	struct bdecode_node;
 	struct peer_entry;
 
@@ -75,7 +75,7 @@ namespace libtorrent {
 
 		void on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints);
 		void on_connect(http_connection& c);
-		void on_response(error_code const& ec, http_parser const& parser
+		void on_response(error_code const& ec, aux::http_parser const& parser
 			, span<char const> data);
 
 		void on_timeout(error_code const&) override {}

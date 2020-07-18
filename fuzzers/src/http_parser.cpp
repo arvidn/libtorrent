@@ -30,11 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	lt::http_parser p;
+	lt::aux::http_parser p;
 	bool error;
 	p.incoming({reinterpret_cast<char const*>(data), int(size)}, error);
 	return 0;

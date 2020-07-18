@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/hash_picker.hpp"
+#include "libtorrent/aux_/hash_picker.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/aux_/bandwidth_queue_entry.hpp"
@@ -106,11 +106,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class http_parser;
 	struct tracker_request;
 
 namespace aux {
 
+	class http_parser;
 	struct bt_peer_connection;
 
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;

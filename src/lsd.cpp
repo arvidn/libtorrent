@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
@@ -240,7 +240,7 @@ void lsd::on_announce(error_code const& ec)
 		return;
 	}
 
-	http_parser p;
+	aux::http_parser p;
 
 	bool error = false;
 	p.incoming(span<char const>{buffer.data(), len}, error);

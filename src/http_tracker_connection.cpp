@@ -324,7 +324,7 @@ namespace libtorrent {
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
-		, http_parser const& parser, span<char const> data)
+		, aux::http_parser const& parser, span<char const> data)
 	{
 		// keep this alive
 		std::shared_ptr<http_tracker_connection> me(shared_from_this());

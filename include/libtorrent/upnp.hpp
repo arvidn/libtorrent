@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 	struct http_connection;
-	class http_parser;
+	namespace aux { class http_parser; }
 
 namespace upnp_errors {
 	// error codes for the upnp_error_category. They hold error codes
@@ -222,16 +222,16 @@ private:
 	void connect(rootdevice& d);
 
 	void on_upnp_xml(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d
+		, aux::http_parser const& p, rootdevice& d
 		, http_connection& c);
 	void on_upnp_get_ip_address_response(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d
+		, aux::http_parser const& p, rootdevice& d
 		, http_connection& c);
 	void on_upnp_map_response(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d
+		, aux::http_parser const& p, rootdevice& d
 		, port_mapping_t mapping, http_connection& c);
 	void on_upnp_unmap_response(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d
+		, aux::http_parser const& p, rootdevice& d
 		, port_mapping_t mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
