@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/crc32c.hpp"
+#include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/io.hpp" // for write_uint16
 #include "libtorrent/aux_/ip_helpers.hpp"
@@ -89,7 +89,7 @@ namespace libtorrent {
 			auto* ptr = reinterpret_cast<char*>(&p);
 			aux::write_uint16(e1.port(), ptr);
 			aux::write_uint16(e2.port(), ptr);
-			ret = crc32c_32(p);
+			ret = aux::crc32c_32(p);
 		}
 		else if (aux::is_v6(e1))
 		{
@@ -107,9 +107,9 @@ namespace libtorrent {
 			apply_mask(b1.data(), v6mask[mask], 8);
 			apply_mask(b2.data(), v6mask[mask], 8);
 			std::uint64_t addrbuf[4];
-			memcpy(&addrbuf[0], b1.data(), 16);
-			memcpy(&addrbuf[2], b2.data(), 16);
-			ret = crc32c(addrbuf, 4);
+			std::memcpy(&addrbuf[0], b1.data(), 16);
+			std::memcpy(&addrbuf[2], b2.data(), 16);
+			ret = aux::crc32c(addrbuf, 4);
 		}
 		else
 		{
@@ -122,14 +122,14 @@ namespace libtorrent {
 			if (e1 > e2) swap(e1, e2);
 			address_v4::bytes_type b1 = e1.address().to_v4().to_bytes();
 			address_v4::bytes_type b2 = e2.address().to_v4().to_bytes();
-			int mask = memcmp(&b1[0], &b2[0], 2) ? 0
-				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
+			int mask = std::memcmp(&b1[0], &b2[0], 2) ? 0
+				: std::memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
 			std::uint64_t addrbuf;
-			memcpy(&addrbuf, &b1[0], 4);
-			memcpy(reinterpret_cast<char*>(&addrbuf) + 4, &b2[0], 4);
-			ret = crc32c(&addrbuf, 1);
+			std::memcpy(&addrbuf, &b1[0], 4);
+			std::memcpy(reinterpret_cast<char*>(&addrbuf) + 4, &b2[0], 4);
+			ret = aux::crc32c(&addrbuf, 1);
 		}
 
 		return ret;

@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_local et.al
 #include "libtorrent/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
-#include "libtorrent/crc32c.hpp" // for crc32c
+#include "libtorrent/aux_/crc32c.hpp" // for crc32c
 
 namespace libtorrent { namespace dht {
 
@@ -117,12 +117,12 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	std::uint32_t c;
 	if (num_octets == 4)
 	{
-		c = crc32c_32(*reinterpret_cast<std::uint32_t*>(ip));
+		c = aux::crc32c_32(*reinterpret_cast<std::uint32_t*>(ip));
 	}
 	else
 	{
 		TORRENT_ASSERT(num_octets == 8);
-		c = crc32c(reinterpret_cast<std::uint64_t*>(ip), 1);
+		c = aux::crc32c(reinterpret_cast<std::uint64_t*>(ip), 1);
 	}
 	node_id id;
 

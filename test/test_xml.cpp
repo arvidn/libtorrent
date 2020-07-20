@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/xml_parse.hpp"
+#include "libtorrent/aux_/xml_parse.hpp"
 #include "libtorrent/upnp.hpp"
 #include "test.hpp"
 #include <iostream>
@@ -275,6 +275,7 @@ using namespace std::placeholders;
 void parser_callback(std::string& out, int token, string_view s
 	, string_view val)
 {
+	using namespace aux;
 	switch (token)
 	{
 		case xml_start_tag: out += "B"; break;
@@ -304,7 +305,7 @@ void parser_callback(std::string& out, int token, string_view s
 void test_parse(char const* in, char const* expected)
 {
 	std::string out;
-	xml_parse(in, std::bind(&parser_callback
+	aux::xml_parse(in, std::bind(&parser_callback
 		, std::ref(out), _1, _2, _3));
 	std::printf("in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
@@ -316,7 +317,7 @@ void test_parse(char const* in, char const* expected)
 TORRENT_TEST(upnp_parser1)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
+	aux::xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
 
 	std::cout << "namespace " << xml_s.service_type << std::endl;
 	std::cout << "url_base: " << xml_s.url_base << std::endl;
@@ -330,7 +331,7 @@ TORRENT_TEST(upnp_parser1)
 TORRENT_TEST(upnp_parser2)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
+	aux::xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
 
 	std::cout << "namespace " << xml_s.service_type << std::endl;
 	std::cout << "url_base: " << xml_s.url_base << std::endl;
@@ -344,7 +345,7 @@ TORRENT_TEST(upnp_parser2)
 TORRENT_TEST(upnp_parser3)
 {
 	error_code_parse_state xml_s;
-	xml_parse(upnp_xml3, std::bind(&find_error_code, _1, _2, std::ref(xml_s)));
+	aux::xml_parse(upnp_xml3, std::bind(&find_error_code, _1, _2, std::ref(xml_s)));
 
 	std::cout << "error_code " << xml_s.error_code << std::endl;
 	TEST_EQUAL(xml_s.error_code, 402);
@@ -353,7 +354,7 @@ TORRENT_TEST(upnp_parser3)
 TORRENT_TEST(upnp_parser4)
 {
 	ip_address_parse_state xml_s;
-	xml_parse(upnp_xml4, std::bind(&find_ip_address, _1, _2, std::ref(xml_s)));
+	aux::xml_parse(upnp_xml4, std::bind(&find_ip_address, _1, _2, std::ref(xml_s)));
 
 	std::cout << "error_code " << xml_s.error_code << std::endl;
 	std::cout << "ip_address " << xml_s.ip_address << std::endl;
@@ -439,4 +440,3 @@ TORRENT_TEST(unterminated_tag_with_attribute)
 	// test unterminated tag
 	test_parse("<foo a=\"bar", "Punexpected end of file");
 }
-

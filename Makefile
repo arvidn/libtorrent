@@ -432,7 +432,6 @@ HEADERS = \
   close_reason.hpp             \
   config.hpp                   \
   copy_ptr.hpp                 \
-  crc32c.hpp                   \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \
@@ -550,7 +549,6 @@ HEADERS = \
   web_connection_base.hpp      \
   web_peer_connection.hpp      \
   write_resume_data.hpp        \
-  xml_parse.hpp                \
   \
   aux_/alert_manager.hpp            \
   aux_/aligned_storage.hpp          \
@@ -573,6 +571,7 @@ HEADERS = \
   aux_/choker.hpp                   \
   aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
+  aux_/crc32c.hpp                   \
   aux_/deferred_handler.hpp         \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \
@@ -653,6 +652,7 @@ HEADERS = \
   aux_/rtc_stream.hpp               \
   aux_/websocket_stream.hpp         \
   aux_/websocket_tracker_connection.hpp \
+  aux_/xml_parse.hpp                \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

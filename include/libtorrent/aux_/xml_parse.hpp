@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, 2014-2019, Arvid Norberg
+Copyright (c) 2007, 2011-2017, 2019, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CRC32C_HPP_INCLUDE
-#define TORRENT_CRC32C_HPP_INCLUDE
+#ifndef TORRENT_XML_PARSE_HPP
+#define TORRENT_XML_PARSE_HPP
 
-#include <cstdint>
-#include "libtorrent/aux_/export.hpp"
+#include <functional>
 
-namespace libtorrent {
+#include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/string_view.hpp"
 
-	// this is the crc32c (Castagnoli) polynomial
-	TORRENT_EXTRA_EXPORT std::uint32_t crc32c_32(std::uint32_t);
-	TORRENT_EXTRA_EXPORT std::uint32_t crc32c(std::uint64_t const*, int);
+namespace libtorrent::aux {
+
+	enum
+	{
+		xml_start_tag,
+		xml_end_tag,
+		xml_empty_tag,
+		xml_declaration_tag,
+		xml_string,
+		xml_attribute,
+		xml_comment,
+		xml_parse_error,
+		// used for tags that don't follow the convention of
+		// key-value pairs inside the tag brackets. Like !DOCTYPE
+		xml_tag_content
+	};
+
+	// callback(int type, char const* name, int name_len
+	//   , char const* val, int val_len)
+	// name is element or attribute name
+	// val is attribute value
+	// neither string is 0-terminated, but their lengths are specified via
+	// name_len and val_len respectively
+	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
+		, std::function<void(int, string_view, string_view)> callback);
 }
 
 #endif

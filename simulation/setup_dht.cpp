@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/random.hpp"
-#include "libtorrent/crc32c.hpp"
+#include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 
@@ -315,4 +315,3 @@ void dht_network::stop()
 }
 
 #endif // TORRENT_DISABLE_DHT
-
