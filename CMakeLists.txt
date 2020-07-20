@@ -29,7 +29,6 @@ set(libtorrent_include_files
 	config
 	ConvertUTF
 	copy_ptr
-	crc32c
 	create_torrent
 	deadline_timer
 	debug
@@ -141,7 +140,6 @@ set(libtorrent_include_files
 	web_connection_base
 	web_peer_connection
 	write_resume_data
-	xml_parse
 	ssl)
 
 set(libtorrent_kademlia_include_files
@@ -198,6 +196,7 @@ set(libtorrent_aux_include_files
 	choker
 	cppint_import_export
 	cpuid
+	crc32c
 	deferred_handler
 	deprecated
 	deque
@@ -268,7 +267,8 @@ set(libtorrent_aux_include_files
 	rtc_signaling
 	rtc_stream
 	websocket_stream
-	websocket_tracker_connection)
+	websocket_tracker_connection
+	xml_parse)
 
 set(try_signal_include_files
 	try_signal

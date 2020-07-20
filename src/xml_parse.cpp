@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 
-#include "libtorrent/xml_parse.hpp"
+#include "libtorrent/aux_/xml_parse.hpp"
 #include "libtorrent/string_util.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	void xml_parse(string_view input
 		, std::function<void(int, string_view, string_view)> callback)

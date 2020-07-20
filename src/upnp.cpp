@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/xml_parse.hpp"
+#include "libtorrent/aux_/xml_parse.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native

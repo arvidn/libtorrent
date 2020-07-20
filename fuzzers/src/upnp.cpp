@@ -31,15 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/upnp.hpp"
-#include "libtorrent/xml_parse.hpp"
+#include "libtorrent/aux_/xml_parse.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	using namespace std::placeholders;
 
 	lt::parse_state s;
-	lt::xml_parse({reinterpret_cast<char const*>(data), size}
+	lt::aux::xml_parse({reinterpret_cast<char const*>(data), size}
 		, std::bind(&lt::find_control_url, _1, _2, std::ref(s)));
 	return 0;
 }
-

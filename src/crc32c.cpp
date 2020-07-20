@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/crc32c.hpp"
+#include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arm_acle.h>
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{
