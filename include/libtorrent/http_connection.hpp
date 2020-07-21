@@ -229,20 +229,23 @@ private:
 	bool m_bottled;
 
 	// set to true the first time the handler is called
-	bool m_called;
+	bool m_called = false;
 
 	// only hand out new quota 4 times a second if the
 	// quota is 0. If it isn't 0 wait for it to reach
 	// 0 and continue to hand out quota at that time.
-	bool m_limiter_timer_active;
+	bool m_limiter_timer_active = false;
 
 	// true if the connection is using ssl
-	bool m_ssl;
+	bool m_ssl = false;
 
-	bool m_abort;
+	bool m_abort = false;
 
 	// true while waiting for an async_connect
-	bool m_connecting;
+	bool m_connecting = false;
+
+	// true while resolving hostname
+	bool m_resolving_host = false;
 };
 
 }
