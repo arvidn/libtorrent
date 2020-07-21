@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/socks_server.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
-#include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/random.hpp"
 
@@ -115,7 +115,7 @@ std::string chunk_string(std::string s)
 	return ret;
 }
 
-std::shared_ptr<http_connection> test_request(io_context& ios
+std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 	, lt::aux::resolver& res
 	, std::string const& url
 	, char const* expected_data
@@ -134,10 +134,10 @@ std::shared_ptr<http_connection> test_request(io_context& ios
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 
-	auto h = std::make_shared<http_connection>(ios
+	auto h = std::make_shared<lt::aux::http_connection>(ios
 		, res
 		, [=](error_code const& ec, lt::aux::http_parser const& parser
-			, span<char const> data, http_connection&)
+			, span<char const> data, lt::aux::http_connection&)
 		{
 			std::printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
@@ -174,14 +174,14 @@ std::shared_ptr<http_connection> test_request(io_context& ios
 					&& memcmp(expected_data, data.data(), data.size()) == 0);
 			}
 		}
-		, true, 1024*1024
-		, [=](http_connection& c)
+		, true, 1024 * 1024
+		, [=](lt::aux::http_connection& c)
 		{
 			++*connect_handler_called;
 			TEST_CHECK(c.socket().is_open());
 			std::printf("CONNECTED: %s\n", url.c_str());
 		}
-		, lt::http_filter_handler()
+		, lt::aux::http_filter_handler()
 #if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif
@@ -273,7 +273,7 @@ void run_suite(lt::aux::proxy_settings ps)
 	{
 		// this hostname will resolve to multiple IPs, all but one that we cannot
 		// connect to and the second one where we'll get the test file response. Make
-		// sure the http_connection correcly tries the second IP if the first one
+		// sure the http_connection correctly tries the second IP if the first one
 		// fails.
 		run_test(ps, "http://try-next.com:8080/test_file", 1337, 200
 			, error_condition(), { 1, 1, 1});
@@ -631,16 +631,16 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 
-	auto h = std::make_shared<http_connection>(client_ios
+	auto h = std::make_shared<lt::aux::http_connection>(client_ios
 		, res
 		, [&client_counter](error_code const& ec, lt::aux::http_parser const&
-			, span<char const>, http_connection&)
+			, span<char const>, lt::aux::http_connection&)
 		{
 			client_counter++;
 			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);
 		}
-		, true, 1024*1024, lt::http_connect_handler()
-		, http_filter_handler()
+		, true, 1024 * 1024, lt::aux::http_connect_handler()
+		, lt::aux::http_filter_handler()
 #if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif

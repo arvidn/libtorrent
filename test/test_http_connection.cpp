@@ -40,13 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/random.hpp"
 
-#include <fstream>
 #include <iostream>
 #include <boost/optional.hpp>
 
@@ -74,7 +73,7 @@ void print_http_header(aux::http_parser const& p)
 	}
 }
 
-void http_connect_handler_test(http_connection& c)
+void http_connect_handler_test(aux::http_connection& c)
 {
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
@@ -86,7 +85,7 @@ void http_connect_handler_test(http_connection& c)
 }
 
 void http_handler_test(error_code const& ec, aux::http_parser const& parser
-	, span<char const> data, http_connection&)
+	, span<char const> data, aux::http_connection&)
 {
 	++handler_called;
 	data_size = int(data.size());
@@ -132,9 +131,9 @@ void run_test(std::string const& url, int size, int status, int connected
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 
-	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
+	std::shared_ptr<aux::http_connection> h = std::make_shared<aux::http_connection>(ios
 		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
-		, http_filter_handler()
+		, aux::http_filter_handler()
 #if TORRENT_USE_SSL
 		, &ssl_ctx
 #endif
