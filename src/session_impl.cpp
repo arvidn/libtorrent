@@ -3061,6 +3061,8 @@ namespace {
 
 	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
 	{
+		TORRENT_ASSERT(bytes_payload >= 0);
+		TORRENT_ASSERT(bytes_protocol >= 0);
 		m_stats_counters.inc_stats_counter(counters::sent_bytes
 			, bytes_payload + bytes_protocol);
 		m_stats_counters.inc_stats_counter(counters::sent_payload_bytes
@@ -3071,6 +3073,8 @@ namespace {
 
 	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
 	{
+		TORRENT_ASSERT(bytes_payload >= 0);
+		TORRENT_ASSERT(bytes_protocol >= 0);
 		m_stats_counters.inc_stats_counter(counters::recv_bytes
 			, bytes_payload + bytes_protocol);
 		m_stats_counters.inc_stats_counter(counters::recv_payload_bytes
@@ -3081,6 +3085,7 @@ namespace {
 
 	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
 	{
+		TORRENT_ASSERT(bytes >= 0);
 		// one TCP/IP packet header for the packet
 		// sent or received, and one for the ACK
 		// The IPv4 header is 20 bytes
