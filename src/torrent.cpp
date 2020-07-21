@@ -91,7 +91,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/peer_class.hpp" // for peer_class
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint

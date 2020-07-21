@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
-#include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/ssl.hpp"
 
@@ -433,7 +433,7 @@ void upnp::connect(rootdevice& d)
 		log("connecting to: %s", d.url.c_str());
 #endif
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection = std::make_shared<http_connection>(m_io_service
+		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_xml, self(), _1, _2
 				, std::ref(d), _4), true, default_max_bottled_buffer_size
@@ -736,7 +736,7 @@ int upnp::lease_duration(rootdevice const& d) const
 		: 0;
 }
 
-void upnp::create_port_mapping(http_connection& c, rootdevice& d
+void upnp::create_port_mapping(aux::http_connection& c, rootdevice& d
 	, port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -862,7 +862,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	else if (m.act == portmap_action::del)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection = std::make_shared<http_connection>(m_io_service
+		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
@@ -961,7 +961,7 @@ void find_control_url(int const type, string_view str, parse_state& state)
 
 void upnp::on_upnp_xml(error_code const& e
 	, aux::http_parser const& p, rootdevice& d
-	, http_connection& c)
+	, aux::http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
 	std::shared_ptr<upnp> me(self());

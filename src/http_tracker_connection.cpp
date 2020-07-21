@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/http_connection.hpp"
+#include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
@@ -208,7 +208,7 @@ namespace libtorrent {
 		}
 
 		using namespace std::placeholders;
-		m_tracker_connection = std::make_shared<http_connection>(m_ioc, m_man.host_resolver()
+		m_tracker_connection = std::make_shared<aux::http_connection>(m_ioc, m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
@@ -275,7 +275,7 @@ namespace libtorrent {
 	}
 
 	// endpoints is an in-out parameter
-	void http_tracker_connection::on_filter(http_connection& c
+	void http_tracker_connection::on_filter(aux::http_connection& c
 		, std::vector<tcp::endpoint>& endpoints)
 	{
 		// filter all endpoints we cannot reach from this listen socket, which may
@@ -316,7 +316,7 @@ namespace libtorrent {
 			fail(errors::banned_by_ip_filter, operation_t::bittorrent);
 	}
 
-	void http_tracker_connection::on_connect(http_connection& c)
+	void http_tracker_connection::on_connect(aux::http_connection& c)
 	{
 		error_code ec;
 		tcp::endpoint ep = c.socket().remote_endpoint(ec);

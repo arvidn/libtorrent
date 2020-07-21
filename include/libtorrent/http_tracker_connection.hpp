@@ -45,8 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	class tracker_manager;
-	struct http_connection;
-	namespace aux { class http_parser; }
+	namespace aux {
+		struct http_connection;
+		class http_parser;
+	}
 	struct bdecode_node;
 	struct peer_entry;
 
@@ -73,14 +75,14 @@ namespace libtorrent {
 				tracker_connection::shared_from_this());
 		}
 
-		void on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints);
-		void on_connect(http_connection& c);
+		void on_filter(aux::http_connection& c, std::vector<tcp::endpoint>& endpoints);
+		void on_connect(aux::http_connection& c);
 		void on_response(error_code const& ec, aux::http_parser const& parser
 			, span<char const> data);
 
 		void on_timeout(error_code const&) override {}
 
-		std::shared_ptr<http_connection> m_tracker_connection;
+		std::shared_ptr<aux::http_connection> m_tracker_connection;
 		address m_tracker_ip;
 		io_context& m_ioc;
 	};

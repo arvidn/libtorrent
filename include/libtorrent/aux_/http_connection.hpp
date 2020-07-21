@@ -52,12 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/optional.hpp"
 #include "libtorrent/ssl.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 struct http_connection;
-namespace aux { struct resolver_interface; }
-
-struct close_visitor;
 
 // internal
 constexpr int default_max_bottled_buffer_size = 2 * 1024 * 1024;
@@ -74,7 +71,6 @@ using http_filter_handler = std::function<void(http_connection&, std::vector<tcp
 struct TORRENT_EXTRA_EXPORT http_connection
 	: std::enable_shared_from_this<http_connection>
 {
-	friend struct close_visitor;
 
 	http_connection(io_context& ios
 		, aux::resolver_interface& resolver

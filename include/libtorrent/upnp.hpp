@@ -55,8 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 namespace libtorrent {
-	struct http_connection;
-	namespace aux { class http_parser; }
+
+	namespace aux {
+		struct http_connection;
+		class http_parser;
+	}
 
 namespace upnp_errors {
 	// error codes for the upnp_error_category. They hold error codes
@@ -223,16 +226,16 @@ private:
 
 	void on_upnp_xml(error_code const& e
 		, aux::http_parser const& p, rootdevice& d
-		, http_connection& c);
+		, aux::http_connection& c);
 	void on_upnp_get_ip_address_response(error_code const& e
 		, aux::http_parser const& p, rootdevice& d
-		, http_connection& c);
+		, aux::http_connection& c);
 	void on_upnp_map_response(error_code const& e
 		, aux::http_parser const& p, rootdevice& d
-		, port_mapping_t mapping, http_connection& c);
+		, port_mapping_t mapping, aux::http_connection& c);
 	void on_upnp_unmap_response(error_code const& e
 		, aux::http_parser const& p, rootdevice& d
-		, port_mapping_t mapping, http_connection& c);
+		, port_mapping_t mapping, aux::http_connection& c);
 	void on_expire(error_code const& e);
 
 	void disable(error_code const& ec);
@@ -244,7 +247,7 @@ private:
 
 	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, port_mapping_t i);
-	void create_port_mapping(http_connection& c, rootdevice& d, port_mapping_t i);
+	void create_port_mapping(aux::http_connection& c, rootdevice& d, port_mapping_t i);
 	void post(upnp::rootdevice const& d, char const* soap
 		, char const* soap_action);
 
@@ -304,7 +307,7 @@ private:
 
 		bool disabled = false;
 
-		mutable std::shared_ptr<http_connection> upnp_connection;
+		mutable std::shared_ptr<aux::http_connection> upnp_connection;
 
 #if TORRENT_USE_ASSERTS
 		int magic = 1337;
