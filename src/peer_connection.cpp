@@ -2923,6 +2923,7 @@ namespace {
 		bool const exceeded = m_disk_thread.async_write(t->storage(), p, data, self()
 			, [conn = self(), p, t] (storage_error const& e)
 			{ conn->wrap(&peer_connection::on_disk_write_complete, e, p, t); });
+		m_ses.deferred_submit_jobs();
 
 		// every peer is entitled to have two disk blocks allocated at any given
 		// time, regardless of whether the cache size is exceeded or not. If this
@@ -2986,6 +2987,7 @@ namespace {
 			{
 				conn->wrap(&peer_connection::on_hash2_complete, e, p, h);
 			});
+			m_ses.deferred_submit_jobs();
 		}
 #endif
 
@@ -3164,6 +3166,7 @@ namespace {
 					// state up-to-date, right?
 					t->on_piece_fail_sync(p.piece, block_finished);
 				}
+				m_ses.deferred_submit_jobs();
 			}
 			t->update_gauge();
 			// handle_disk_error may disconnect us
@@ -5307,6 +5310,7 @@ namespace {
 
 			--i;
 		}
+		m_ses.deferred_submit_jobs();
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		if (t->share_mode() && sent_a_piece)

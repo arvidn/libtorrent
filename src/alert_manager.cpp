@@ -111,7 +111,11 @@ namespace aux {
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-		if (m_alerts[m_generation].empty()) return;
+		if (m_alerts[m_generation].empty())
+		{
+			alerts.clear();
+			return;
+		}
 
 		if (m_dropped.any()) {
 			emplace_alert<alerts_dropped_alert>(m_dropped);

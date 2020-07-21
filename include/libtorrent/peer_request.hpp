@@ -38,15 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// represents a byte range within a piece. Internally this is
-	// is used for incoming piece requests.
+	// represents a byte range within a piece. Internally this is is used for
+	// incoming piece requests.
 	struct TORRENT_EXPORT peer_request
 	{
-		// the index of the piece in which the range starts.
+		// The index of the piece in which the range starts.
 		piece_index_t piece;
-		// the offset within that piece where the range starts.
+		// The byte offset within that piece where the range starts.
 		int start;
-		// the size of the range, in bytes.
+		// The size of the range, in bytes.
 		int length;
 
 		// returns true if the right hand side peer_request refers to the same

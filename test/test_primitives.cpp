@@ -235,3 +235,12 @@ TORRENT_TEST(client_data_initialize)
 	TEST_CHECK(v.get<int>() == &a);
 	TEST_CHECK(*v.get<int>() == 1337);
 }
+
+TORRENT_TEST(announce_endpoint_initialize)
+{
+	// announce_endpoint has an array of announce_infohash and
+	// announce_infohash has the constructor marked TORRENT_UNEXPORT
+	// it's important that announce_endpoint provides a constructor
+	announce_endpoint ae;
+	TEST_EQUAL(ae.enabled, true);
+}

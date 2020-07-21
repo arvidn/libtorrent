@@ -97,9 +97,6 @@ before_install:
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-      travis_retry brew update > /dev/null && brew install ccache;
-     fi'
   - 'if [[ $TRAVIS_OS_NAME != "osx" ]]; then
       export B2=b2;
       export PIP=pip;

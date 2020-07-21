@@ -325,7 +325,9 @@ def looks_like_forward_decl(line):
 
 def looks_like_function(line):
     line = line.split('//')[0]
-    if line.startswith('friend'):
+    if line.startswith('friend class '):
+        return False
+    if line.startswith('friend struct '):
         return False
     if '::' in line.split('(')[0].split(' ')[-1]:
         return False
@@ -356,6 +358,7 @@ def parse_function(lno, lines, filename):
 
         sig_line = line.replace('TORRENT_EXPORT ', '') \
             .replace('TORRENT_EXTRA_EXPORT', '') \
+            .replace('TORRENT_V3_EXPLICIT', '') \
             .replace('TORRENT_COUNTER_NOEXCEPT', '') \
             .split('//')[0].strip()
         if signature != '':
@@ -433,6 +436,7 @@ def parse_class(lno, lines, filename):
         line = lines[lno].strip()
         decl += lines[lno].replace('TORRENT_EXPORT ', '') \
             .replace('TORRENT_EXTRA_EXPORT', '') \
+            .replace('TORRENT_V3_EXPLICIT', '') \
             .replace('TORRENT_COUNTER_NOEXCEPT', '').split('{')[0].strip()
         if '{' in line:
             break

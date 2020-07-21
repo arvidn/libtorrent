@@ -145,6 +145,8 @@ TORRENT_VERSION_NAMESPACE_2
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
+		announce_endpoint();
+
 		// the local endpoint of the listen interface associated with this endpoint
 		tcp::endpoint local_endpoint;
 
@@ -189,7 +191,7 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 
 		// set to false to not announce from this endpoint
-		bool enabled : 1;
+		bool enabled = true;
 	};
 
 	// this class holds information about one bittorrent tracker, as it

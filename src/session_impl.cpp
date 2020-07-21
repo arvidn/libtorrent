@@ -294,14 +294,22 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					continue;
 				}
 
+				// ignore interfaces that are down
+				if (ipface.state != if_state::up && ipface.state != if_state::unknown)
+					continue;
+				if (!(ipface.flags & if_flags::up))
+					continue;
+
 				// record whether the device has a gateway associated with it
 				// (which indicates it can be used to reach the internet)
 				// if the IP address tell us it's loopback or link-local, don't
 				// bother looking for the gateway
 				bool const local = ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address)
+					|| (ipface.flags & if_flags::loopback)
 					|| (!is_global(ipface.interface_address)
-						&& !has_default_route(ipface.name, family(ipface.interface_address), routes));
+						&& !has_default_route(ipface.name, family(ipface.interface_address), routes)
+						&& !(ipface.flags & if_flags::pointopoint));
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
@@ -971,6 +979,10 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_abort = true;
 		error_code ec;
 
+		// we rely on on_tick() during shutdown, but we don't need to wait a
+		// whole second for it to fire
+		m_timer.cancel();
+
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
 #endif
@@ -1308,7 +1320,9 @@ namespace {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		post(m_io_context, [this] { wrap(&session_impl::submit_disk_jobs); } );
+		post(m_io_context, make_handler(
+			[this] { wrap(&session_impl::submit_disk_jobs); }
+			, m_submit_jobs_handler_storage, *this));
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -2761,6 +2775,14 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		if (m_abort)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log(" <== INCOMING CONNECTION [ ignored, aborting ]");
+#endif
+			return;
+		}
+
 		if (m_paused)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3182,9 +3204,6 @@ namespace {
 
 		TORRENT_ASSERT(is_single_thread());
 
-		// submit all disk jobs when we leave this function
-		deferred_submit_jobs();
-
 		time_point const now = aux::time_now();
 
 		// remove undead peers that only have this list as their reference keeping them alive
@@ -3222,6 +3241,8 @@ namespace {
 				&& m_undead_peers.empty()
 				&& m_tracker_manager.empty())
 			{
+				// this is where shutdown completes. We won't issue another
+				// on_tick()
 				return;
 			}
 #if defined TORRENT_ASIO_DEBUGGING
@@ -3236,9 +3257,7 @@ namespace {
 #endif
 		}
 
-		if (e == boost::asio::error::operation_aborted) return;
-
-		if (e)
+		if (e && e != boost::asio::error::operation_aborted)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -3248,7 +3267,8 @@ namespace {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
-		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)));
+		milliseconds const tick_interval(m_abort ? 100 : m_settings.get_int(settings_pack::tick_interval));
+		m_timer.expires_at(now + tick_interval);
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
 

@@ -1248,6 +1248,9 @@ namespace aux {
 			// abort may not fail and cannot allocate memory
 			aux::handler_storage<aux::abort_handler_max_size, aux::abort_handler> m_abort_handler_storage;
 
+			// submit_deferred may not fail
+			aux::handler_storage<aux::submit_handler_max_size, aux::submit_handler> m_submit_jobs_handler_storage;
+
 			// torrents are announced on the local network in a
 			// round-robin fashion. All torrents are cycled through
 			// within the LSD announce interval (which defaults to

@@ -78,6 +78,7 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t utp_handler_max_size = tracking + 184;
 	constexpr std::size_t tick_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 104;
+	constexpr std::size_t submit_handler_max_size = tracking + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + 112;
 #else
 
@@ -121,13 +122,14 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t utp_handler_max_size = tracking + 136;
 	constexpr std::size_t udp_handler_max_size = tracking + 112;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
+	constexpr std::size_t submit_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
 	constexpr std::size_t tick_handler_max_size = tracking + 80;
 #endif
 
 	enum HandlerName
 	{
-		write_handler, read_handler, udp_handler, tick_handler, abort_handler, defer_handler, utp_handler
+		write_handler, read_handler, udp_handler, tick_handler, abort_handler, defer_handler, utp_handler, submit_handler
 	};
 
 	// this is meant to provide the actual storage for the handler allocator.

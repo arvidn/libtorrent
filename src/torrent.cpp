@@ -758,7 +758,7 @@ bool is_downloading_state(int const st)
 				, [self, r, rp](disk_buffer_holder block, storage_error const& se) mutable
 				{ self->on_disk_read_complete(std::move(block), se, r, rp); });
 		}
-		m_ses.disk_thread().submit_jobs();
+		m_ses.deferred_submit_jobs();
 	}
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
@@ -1287,6 +1287,7 @@ bool is_downloading_state(int const st)
 				verify_piece(p.piece);
 			}
 		}
+		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_disk_write_complete(storage_error const& error
@@ -1881,6 +1882,7 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_files");
 #endif
+		m_ses.deferred_submit_jobs();
 
 		update_want_peers();
 		update_want_tick();
@@ -2014,7 +2016,7 @@ bool is_downloading_state(int const st)
 		// (i.e. m_add_torrent_params->have_pieces)
 		if ((error || status != status_t::no_error)
 			&& m_add_torrent_params
-			&& !m_add_torrent_params->have_pieces.empty()
+			&& aux::contains_resume_data(*m_add_torrent_params)
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
@@ -2224,6 +2226,7 @@ bool is_downloading_state(int const st)
 		m_ses.disk_thread().async_check_files(m_storage, nullptr
 			, {}, [self = shared_from_this()](status_t st, storage_error const& error)
 			{ self->on_force_recheck(st, error); });
+		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
@@ -2305,6 +2308,7 @@ bool is_downloading_state(int const st)
 			++m_checking_piece;
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 		}
+		m_ses.deferred_submit_jobs();
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("start_checking, m_checking_piece: %d"
 			, static_cast<int>(m_checking_piece));
@@ -2470,6 +2474,7 @@ bool is_downloading_state(int const st)
 				(piece_index_t p, sha1_hash const& h, storage_error const& e)
 				{ self->on_piece_hashed(std::move(hashes), p, h, e); });
 			++m_checking_piece;
+			m_ses.deferred_submit_jobs();
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d"
 				, static_cast<int>(m_checking_piece));
@@ -4432,6 +4437,7 @@ namespace {
 			m_ses.disk_thread().async_clear_piece(m_storage, index
 				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
 				{ self->on_piece_sync(p, c); });
+			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
@@ -4646,6 +4652,7 @@ namespace {
 				if (alerts().should_post<cache_flushed_alert>())
 					alerts().emplace_alert<cache_flushed_alert>(get_handle());
 			}
+			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
@@ -5333,6 +5340,7 @@ namespace {
 				, std::move(new_priority)
 				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
 				{ self->on_file_priority(ec, std::move(p)); });
+			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
@@ -5386,6 +5394,7 @@ namespace {
 				, std::move(new_priority)
 				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
 				{ self->on_file_priority(ec, std::move(p)); });
+			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
@@ -7960,6 +7969,7 @@ namespace {
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage
 				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false));
+			m_ses.deferred_submit_jobs();
 		}
 
 		// this torrent just completed downloads, which means it will fall
@@ -8243,6 +8253,7 @@ namespace {
 
 		m_ses.disk_thread().async_rename_file(m_storage, index, std::move(name)
 			, std::bind(&torrent::on_file_renamed, shared_from_this(), _1, _2, _3));
+		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::move_storage(std::string const& save_path, move_flags_t const flags)
@@ -8285,6 +8296,7 @@ namespace {
 			m_ses.disk_thread().async_move_storage(m_storage, std::move(path), flags
 				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
 			m_moving_storage = true;
+			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
@@ -8758,6 +8770,7 @@ namespace {
 			m_ses.disk_thread().async_delete_files(m_storage, options
 				, std::bind(&torrent::on_files_deleted, shared_from_this(), _1));
 			m_deleted = true;
+			m_ses.deferred_submit_jobs();
 			return true;
 		}
 		return false;
@@ -8973,7 +8986,10 @@ namespace {
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
+		{
 			m_ses.disk_thread().async_release_files(m_storage);
+			m_ses.deferred_submit_jobs();
+		}
 
 		state_updated();
 
@@ -9004,6 +9020,7 @@ namespace {
 		}
 		m_ses.disk_thread().async_release_files(m_storage
 			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true));
+		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_cache_flushed(bool const manually_triggered) try
@@ -9121,6 +9138,7 @@ namespace {
 				// the torrent_paused alert will be posted from on_torrent_paused
 				m_ses.disk_thread().async_stop_torrent(m_storage
 					, [self = shared_from_this()] { self->on_torrent_paused(); });
+				m_ses.deferred_submit_jobs();
 			}
 			else
 			{
@@ -10835,6 +10853,7 @@ namespace {
 			(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
 			{ self->on_piece_verified(std::move(hashes), p, h, error); });
 		m_picker->started_hash_job(piece);
+		m_ses.deferred_submit_jobs();
 	}
 
 	aux::announce_entry* torrent::find_tracker(std::string const& url)

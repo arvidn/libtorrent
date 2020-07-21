@@ -57,9 +57,9 @@ enum class socket_type_t : std::uint8_t {
 };
 
 // return a short human readable name for types of socket
+// TODO: move to aux
 char const* socket_type_name(socket_type_t);
 
 }
 
 #endif
-

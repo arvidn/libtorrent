@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct TORRENT_EXTRA_EXPORT piece_block
+	struct TORRENT_EXPORT piece_block
 	{
 		static const piece_block invalid;
 

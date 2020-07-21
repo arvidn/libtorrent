@@ -410,7 +410,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 			// http_connection object alive. We want to cancel all that.
 			error_code ec;
 			c->m_sock->close(ec);
-			c->callback(boost::asio::error::timed_out);
+			c->callback(lt::errors::timed_out);
 			return;
 		}
 	}

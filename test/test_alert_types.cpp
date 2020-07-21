@@ -329,4 +329,3 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 }
 
 #undef PROGRESS_NOTIFICATION
-

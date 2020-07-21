@@ -163,7 +163,7 @@ namespace aux {
 		//
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
-		// 	``io_context``. The ``io_context::run()`` call _must_ have returned
+		// 	``io_context``. The ``io_context::run()`` call *must* have returned
 		// 	before it's safe to destruct the session. Which means you *MUST*
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_context, then

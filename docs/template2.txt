@@ -19,59 +19,6 @@
 %(docinfo)s
 <div style="position:absolute; left:66em">
 <a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=25405&url_id=902"><img src="nordvpn.jpg"/></a>
-
-<script type="text/javascript">
-amzn_assoc_tracking_id = "libtorrentorg-20";
-amzn_assoc_ad_mode = "manual";
-amzn_assoc_ad_type = "smart";
-amzn_assoc_marketplace = "amazon";
-amzn_assoc_region = "US";
-amzn_assoc_design = "enhanced_links";
-amzn_assoc_asins = "396730017X";
-amzn_assoc_placement = "adunit";
-amzn_assoc_linkid = "9b51d79fa7823485ef4ac79c3135e09f";
-</script>
-<script src="//z-na.amazon-adsystem.com/widgets/onejs?MarketPlace=US"></script>
-
-<script type="text/javascript">
-amzn_assoc_tracking_id = "libtorrentorg-20";
-amzn_assoc_ad_mode = "manual";
-amzn_assoc_ad_type = "smart";
-amzn_assoc_marketplace = "amazon";
-amzn_assoc_region = "US";
-amzn_assoc_design = "enhanced_links";
-amzn_assoc_asins = "B00DUW4BMS";
-amzn_assoc_placement = "adunit";
-amzn_assoc_linkid = "1963187b469529b911609ec627dcbad9";
-</script>
-<script src="//z-na.amazon-adsystem.com/widgets/onejs?MarketPlace=US"></script>
-
-<script type="text/javascript">
-amzn_assoc_tracking_id = "libtorrentorg-20";
-amzn_assoc_ad_mode = "manual";
-amzn_assoc_ad_type = "smart";
-amzn_assoc_marketplace = "amazon";
-amzn_assoc_region = "US";
-amzn_assoc_design = "enhanced_links";
-amzn_assoc_asins = "0134997832";
-amzn_assoc_placement = "adunit";
-amzn_assoc_linkid = "26577cd4796cf3adcba118a74d849e73";
-</script>
-<script src="//z-na.amazon-adsystem.com/widgets/onejs?MarketPlace=US"></script>
-
-<script type="text/javascript">
-amzn_assoc_tracking_id = "libtorrentorg-20";
-amzn_assoc_ad_mode = "manual";
-amzn_assoc_ad_type = "smart";
-amzn_assoc_marketplace = "amazon";
-amzn_assoc_region = "US";
-amzn_assoc_design = "enhanced_links";
-amzn_assoc_asins = "B00PGCMGDQ";
-amzn_assoc_placement = "adunit";
-amzn_assoc_linkid = "034233f3b180d1d1d88a5dcd268ab0e4";
-</script>
-<script src="//z-na.amazon-adsystem.com/widgets/onejs?MarketPlace=US"></script>
-
 </div>
 %(body)s
 
