@@ -1,3 +1,4 @@
+	* don't time out tracker announces as eagerly while resolving hostnames
 	* fix NAT-PMP shutdown issue
 	* improve hostname lookup by merging identical lookups
 	* fix network route enumeration for large routing tables

@@ -96,11 +96,6 @@ http_connection::http_connection(io_service& ios
 	, m_resolve_flags{}
 	, m_port(0)
 	, m_bottled(bottled)
-	, m_called(false)
-	, m_limiter_timer_active(false)
-	, m_ssl(false)
-	, m_abort(false)
-	, m_connecting(false)
 {
 	TORRENT_ASSERT(m_handler);
 }
@@ -374,6 +369,7 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 		{
+			m_resolving_host = true;
 			ADD_OUTSTANDING_ASYNC("http_connection::on_resolve");
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, std::bind(&http_connection::on_resolve
@@ -396,7 +392,9 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	time_point const now = clock_type::now();
 
-	if (c->m_start_time + c->m_completion_timeout <= now)
+	// be forgiving of timeout while we're still resolving the hostname
+	// it may be delayed because we're queued up behind another slow lookup
+	if (c->m_start_time + (c->m_completion_timeout * (int(c->m_resolving_host) + 1)) <= now)
 	{
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
@@ -418,10 +416,6 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 			c->callback(lt::errors::timed_out);
 			return;
 		}
-	}
-	else
-	{
-		if (!c->m_sock.is_open()) return;
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
@@ -487,12 +481,16 @@ void http_connection::on_resolve(error_code const& e
 	, std::vector<address> const& addresses)
 {
 	COMPLETE_ASYNC("http_connection::on_resolve");
+	m_resolving_host = false;
 	if (e)
 	{
 		callback(e);
 		return;
 	}
 	TORRENT_ASSERT(!addresses.empty());
+
+	// reset timeout
+	m_start_time = clock_type::now();
 
 	for (auto const& addr : addresses)
 		m_endpoints.emplace_back(addr, m_port);
