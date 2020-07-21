@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
@@ -77,15 +78,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
 #include "libtorrent/aux_/windows.hpp"
 #include <iphlpapi.h>
+#include <ifdef.h> // for IF_OPER_STATUS
 #endif
 
 #if TORRENT_USE_NETLINK
+
+// We really should be including <linux/if.h> here, for the IF_OPER_* flags.
+// Howerver, including this header creates conflicting definitions of <net/if.h>
+// on some platforms. So, instead, we just pull those flags out and define them
+// here.
+//#include <linux/if.h> // for IF_OPER* flags
+
+// RFC 2863 operational status
+// these match the ones in linux/if.h, but with different names to not cause any
+// conflicts
+namespace if_oper {
+enum : int {
+	unknown,
+	notpresent,
+	down,
+	lowerlayerdown,
+	testing,
+	dormant,
+	up,
+};
+}
+
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <asm/types.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
-#include <net/if.h>
 #include <cstdio>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -104,6 +127,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_IFADDRS
 #include <ifaddrs.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 #endif
 
 #if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
@@ -184,6 +209,31 @@ namespace {
 		);
 	}
 
+#if TORRENT_USE_NETLINK || TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF
+	interface_flags convert_if_flags(unsigned int const f)
+	{
+		return ((f & IFF_UP) ? if_flags::up : interface_flags{})
+			| ((f & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
+			| ((f & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
+			| ((f & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+			| ((f & IFF_RUNNING) ? if_flags::running : interface_flags{})
+			| ((f & IFF_NOARP) ? if_flags::noarp : interface_flags{})
+			| ((f & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
+			| ((f & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
+#ifdef IFF_MASTER
+			| ((f & IFF_MASTER) ? if_flags::master : interface_flags{})
+#endif
+#ifdef IFF_SLAVE
+			| ((f & IFF_SLAVE) ? if_flags::slave : interface_flags{})
+#endif
+			| ((f & IFF_MULTICAST) ? if_flags::multicast : interface_flags{})
+#ifdef IFF_DYNAMIC
+			| ((f & IFF_DYNAMIC) ? if_flags::dynamic : interface_flags{})
+#endif
+		;
+	}
+#endif
+
 #if TORRENT_USE_NETLINK
 
 	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
@@ -258,6 +308,61 @@ namespace {
 		else return inaddr_to_address(in);
 	}
 
+	struct link_info
+	{
+		int mtu;
+		std::uint32_t if_idx;
+		int type;
+		int oper_state;
+		char name[64];
+		interface_flags flags;
+	};
+
+	link_info parse_nl_link(nlmsghdr const* nl_hdr)
+	{
+		auto const* if_msg = reinterpret_cast<ifinfomsg const*>(NLMSG_DATA(nl_hdr));
+		auto const* rta_ptr = reinterpret_cast<rtattr const*>(IFLA_RTA(if_msg));
+		int attr_len = IFLA_PAYLOAD(nl_hdr);
+
+		link_info ret{};
+		ret.flags = convert_if_flags(if_msg->ifi_flags);
+		ret.if_idx = if_msg->ifi_index;
+
+		for (; RTA_OK(rta_ptr, attr_len); rta_ptr = RTA_NEXT(rta_ptr, attr_len))
+		{
+			auto* const ptr = RTA_DATA(rta_ptr);
+			switch (rta_ptr->rta_type)
+			{
+				case IFLA_IFNAME:
+					strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name));
+					ret.name[sizeof(ret.name)-1] = '\0';
+					break;
+				case IFLA_MTU: memcpy(&ret.mtu, ptr, sizeof(int)); break;
+				case IFLA_LINK: memcpy(&ret.type, ptr, sizeof(int)); break;
+				case IFLA_OPERSTATE: memcpy(&ret.oper_state, ptr, sizeof(int)); break;
+
+				// ignore these attributes
+				case IFLA_CARRIER:
+				case IFLA_ADDRESS:
+				case IFLA_BROADCAST:
+				case IFLA_QDISC:
+				case IFLA_COST:
+				case IFLA_PRIORITY:
+				case IFLA_MASTER:
+				case IFLA_WIRELESS:
+				case IFLA_WEIGHT:
+				case IFLA_LINKMODE:
+				case IFLA_LINKINFO:
+				case IFLA_STATS64:
+				case IFLA_STATS:
+				case IFLA_PROMISCUITY:
+				default:
+					break;
+			};
+		}
+		return ret;
+	}
+
 	bool parse_route(int s, nlmsghdr const* nl_hdr, ip_route* rt_info)
 	{
 		// sanity check
@@ -322,7 +427,8 @@ namespace {
 		return true;
 	}
 
-	bool parse_nl_address(nlmsghdr const* nl_hdr, ip_interface* ip_info)
+	bool parse_nl_address(nlmsghdr const* nl_hdr, span<link_info const> nics
+		, ip_interface* ip_info)
 	{
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWADDR) return false;
@@ -331,6 +437,11 @@ namespace {
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
+
+		auto interface = std::find_if(nics.begin(), nics.end()
+			, [addr_msg](link_info const& li) { return li.if_idx == addr_msg->ifa_index; });
+		TORRENT_ASSERT(interface != nics.end());
+		if (interface == nics.end()) return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
 		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
@@ -372,8 +483,20 @@ namespace {
 #pragma clang diagnostic pop
 #endif
 
-		static_assert(sizeof(ip_info->name) >= IF_NAMESIZE, "not enough space in ip_interface::name");
-		if_indextoname(addr_msg->ifa_index, ip_info->name);
+		static_assert(sizeof(ip_info->name) == sizeof(interface->name), "interface name field sizes differ");
+		memcpy(ip_info->name, interface->name, sizeof(ip_info->name));
+		ip_info->flags = interface->flags;
+
+		ip_info->state
+			= interface->oper_state == if_oper::up ? if_state::up
+			: interface->oper_state == if_oper::dormant ? if_state::dormant
+			: interface->oper_state == if_oper::lowerlayerdown ? if_state::lowerlayerdown
+			: interface->oper_state == if_oper::down ? if_state::down
+			: interface->oper_state == if_oper::notpresent ? if_state::notpresent
+			: interface->oper_state == if_oper::testing ? if_state::testing
+			: interface->oper_state == if_oper::unknown ? if_state::unknown
+			: if_state::unknown;
+
 		return true;
 	}
 #endif // TORRENT_USE_NETLINK
@@ -425,21 +548,18 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IFADDRS && !defined TORRENT_BUILD_SIMULATOR
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
-		if (!valid_addr_family(ifa->ifa_addr->sa_family))
-		{
-			return false;
-		}
+		// determine address
+		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
+		if (rv.interface_address.is_unspecified()) return false;
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
 		rv.name[sizeof(rv.name) - 1] = '\0';
 
-		// determine address
-		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		// determine netmask
 		if (ifa->ifa_netmask != nullptr)
-		{
 			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
-		}
+
+		rv.flags = convert_if_flags(ifa->ifa_flags);
 		return true;
 	}
 #endif
@@ -544,6 +664,34 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 		socket_closer c1(sock);
 
+		// netlink socket documentation:
+		// https://people.redhat.com/nhorman/papers/netlink.pdf
+		int seq = 0;
+
+		struct
+		{
+			struct nlmsghdr hdr;
+			struct ifinfomsg msg;
+		} link_req{};
+
+		link_req.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(link_req.msg)));
+		link_req.hdr.nlmsg_type = RTM_GETLINK;
+		link_req.msg.ifi_family = AF_PACKET;
+		link_req.msg.ifi_change = 0xFFFFFFFF;
+
+		std::vector<link_info> nics;
+		if (nl_dump_request(sock, seq++, &link_req.hdr, [&](nlmsghdr const* msg) {
+
+				// sanity check
+				if (msg->nlmsg_type != RTM_NEWLINK) return;
+
+				nics.push_back(parse_nl_link(msg));
+			}) != 0)
+		{
+			ec = error_code(errno, system_category());
+			return ret;
+		}
+
 		struct
 		{
 			struct nlmsghdr hdr;
@@ -554,9 +702,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		request.hdr.nlmsg_type = RTM_GETADDR;
 		request.msg.ifa_family = AF_PACKET;
 
-		if (nl_dump_request(sock, 0, &request.hdr, [&](nlmsghdr const* msg) {
+		if (nl_dump_request(sock, seq++, &request.hdr, [&](nlmsghdr const* msg) {
 				ip_interface iface;
-				if (parse_nl_address(msg, &iface)) ret.push_back(iface);
+				if (parse_nl_address(msg, nics, &iface)) ret.push_back(iface);
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
@@ -580,15 +728,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		for (ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
-			if (ifa->ifa_addr == nullptr) continue;
-			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
-
-			if (valid_addr_family(ifa->ifa_addr->sa_family))
-			{
-				ip_interface iface;
-				if (iface_from_ifaddrs(ifa, iface))
-					ret.push_back(iface);
-			}
+			ip_interface iface;
+			if (iface_from_ifaddrs(ifa, iface))
+				ret.push_back(iface);
 		}
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
@@ -604,61 +746,67 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// make sure the buffer is aligned to hold ifreq structs
 		ifreq buf[40];
 		ifc.ifc_len = sizeof(buf);
-		ifc.ifc_buf = reinterpret_cast<char*>(buf);
+		ifc.ifc_req = buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
 			return ret;
 		}
 
-		char *ifr = reinterpret_cast<char*>(ifc.ifc_req);
-		int remaining = ifc.ifc_len;
+		char *ifr = ifc.ifc_buf;
 
-		while (remaining > 0)
+		int current_size = 0;
+		for (int remaining = ifc.ifc_len;
+			remaining > 0;
+			ifr += current_size, remaining -= current_size)
 		{
-			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
+			ifreq const& item = *reinterpret_cast<ifreq const*>(ifr);
 
 #ifdef _SIZEOF_ADDR_IFREQ
-			int current_size = _SIZEOF_ADDR_IFREQ(item);
+			current_size = _SIZEOF_ADDR_IFREQ(item);
 #elif defined TORRENT_BSD
-			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
+			current_size = item.ifr_addr.sa_len + IFNAMSIZ;
 #else
-			int current_size = sizeof(ifreq);
+			current_size = sizeof(ifreq);
 #endif
 
 			if (remaining < current_size) break;
 
-			if (valid_addr_family(item.ifr_addr.sa_family))
-			{
-				ip_interface iface;
-				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
-				std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
-				iface.name[sizeof(iface.name) - 1] = '\0';
+			if (!valid_addr_family(item.ifr_addr.sa_family))
+				continue;
 
-				ifreq req = {};
-				std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
-				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
+			ip_interface iface;
+			iface.interface_address = sockaddr_to_address(&item.ifr_addr);
+			std::strncpy(iface.name, item.ifr_name, sizeof(iface.name) - 1);
+			iface.name[sizeof(iface.name) - 1] = '\0';
+
+			ifreq req = {};
+			std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
+			if (ioctl(s, SIOCGIFFLAGS, &req) < 0)
+			{
+				ec = error_code(errno, system_category());
+				return {};
+			}
+			iface.flags = convert_if_flags(req.ifr_flags);
+
+			if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
+			{
+				if (iface.interface_address.is_v6())
 				{
-					if (iface.interface_address.is_v6())
-					{
-						// this is expected to fail (at least on MacOS X)
-						iface.netmask = address_v6::any();
-					}
-					else
-					{
-						ec = error_code(errno, system_category());
-						return ret;
-					}
+					// this is expected to fail (at least on MacOS X)
+					iface.netmask = address_v6::any();
 				}
 				else
 				{
-					iface.netmask = sockaddr_to_address(&req.ifr_addr, item.ifr_addr.sa_family);
+					ec = error_code(errno, system_category());
+					return ret;
 				}
-				ret.push_back(iface);
 			}
-
-			ifr += current_size;
-			remaining -= current_size;
+			else
+			{
+				iface.netmask = sockaddr_to_address(&req.ifr_addr, item.ifr_addr.sa_family);
+			}
+			ret.push_back(iface);
 		}
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
@@ -701,12 +849,39 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				r.friendly_name[sizeof(r.friendly_name) - 1] = '\0';
 				wcstombs(r.description, adapter->Description, sizeof(r.description));
 				r.description[sizeof(r.description) - 1] = '\0';
+				r.state
+					= (adapter->OperStatus == IfOperStatusUp) ? if_state::up
+					: (adapter->OperStatus == IfOperStatusDown) ? if_state::down
+					: (adapter->OperStatus == IfOperStatusTesting) ? if_state::testing
+					: (adapter->OperStatus == IfOperStatusUnknown) ? if_state::unknown
+					: (adapter->OperStatus == IfOperStatusDormant) ? if_state::dormant
+					: (adapter->OperStatus == IfOperStatusNotPresent) ? if_state::notpresent
+					: (adapter->OperStatus == IfOperStatusLowerLayerDown) ? if_state::lowerlayerdown
+					: if_state::unknown;
+
+				r.flags = r.state != if_state::down ? if_flags::up : interface_flags{};
+				if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+					r.flags |= if_flags::loopback;
+				if (adapter->IfType == IF_TYPE_PPP)
+					r.flags |= if_flags::pointopoint;
+				if (!(adapter->Flags & IP_ADAPTER_NO_MULTICAST))
+					r.flags |= if_flags::multicast;
+
 				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 					unicast; unicast = unicast->Next)
 				{
 					auto const family = unicast->Address.lpSockaddr->sa_family;
+
 					if (!valid_addr_family(family))
 						continue;
+
+					if (family == AF_INET && !(adapter->Flags & IP_ADAPTER_IPV4_ENABLED))
+						r.flags &= ~if_flags::up;
+					else if (family == AF_INET6 && !(adapter->Flags & IP_ADAPTER_IPV6_ENABLED))
+						r.flags &= ~if_flags::up;
+					else
+						r.flags |= if_flags::up;
+
 					r.preferred = unicast->DadState == IpDadStatePreferred;
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
 					int const max_prefix_len = family == AF_INET ? 32 : 128;
