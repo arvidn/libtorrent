@@ -5008,6 +5008,9 @@ namespace {
 			// TODO: factor out this logic into a separate function for unit
 			// testing
 
+			if (m_listen_sockets.size() == 1)
+				return m_listen_sockets.front();
+
 			utp_socket_impl* impl = nullptr;
 			transport ssl = transport::plaintext;
 #ifdef TORRENT_USE_OPENSSL
@@ -5020,14 +5023,14 @@ namespace {
 #endif
 				impl = s.get<utp_stream>()->get_impl();
 
-			std::vector<std::shared_ptr<listen_socket_t>> with_gateways;
+			std::vector<std::shared_ptr<listen_socket_t>> global_route;
 			std::shared_ptr<listen_socket_t> match;
 			for (auto& ls : m_listen_sockets)
 			{
 				if (is_v4(ls->local_endpoint) != remote_address.is_v4()) continue;
 				if (ls->ssl != ssl) continue;
 				if (!(ls->flags & listen_socket_t::local_network))
-					with_gateways.push_back(ls);
+					global_route.push_back(ls);
 
 				if (match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
 				{
@@ -5035,8 +5038,8 @@ namespace {
 					match = ls;
 				}
 			}
-			if (!match && !with_gateways.empty())
-				match = with_gateways[random(std::uint32_t(with_gateways.size() - 1))];
+			if (!match && !global_route.empty())
+				match = global_route[random(std::uint32_t(with_gateways.size() - 1))];
 
 			if (match)
 			{
