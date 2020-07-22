@@ -78,7 +78,7 @@ namespace {
 		int counter = 0;
 		while (log_async())
 		{
-			std::this_thread::sleep_for(seconds(1));
+			std::this_thread::sleep_for(milliseconds(300));
 			++counter;
 			std::printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
 				, counter);
