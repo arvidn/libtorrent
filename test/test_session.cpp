@@ -312,6 +312,9 @@ TORRENT_TEST(session_shutdown)
 
 TORRENT_TEST(save_state_fingerprint)
 {
+	lt::session_proxy p1;
+	lt::session_proxy p2;
+
 	lt::settings_pack pack;
 	pack.set_str(settings_pack::peer_fingerprint, "AAA");
 	lt::session ses(pack);
@@ -324,6 +327,9 @@ TORRENT_TEST(save_state_fingerprint)
 
 	lt::session ses2(read_session_params(st));
 	TEST_EQUAL(ses2.get_settings().get_str(settings_pack::peer_fingerprint), "AAA");
+
+	p1 = ses.abort();
+	p2 = ses2.abort();
 }
 
 TORRENT_TEST(pop_alert_clear)
