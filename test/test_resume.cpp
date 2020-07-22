@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "setup_transfer.hpp"
 
 #include "test.hpp"
@@ -137,7 +138,8 @@ torrent_handle test_resume_flags(lt::session& ses
 	, char const* file_priorities = "1111", char const* resume_file_prio = ""
 	, bool const test_deprecated = false)
 {
-	std::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent(
+		bool(flags & torrent_flags::seed_mode));
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
@@ -163,11 +165,18 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	p.ti = ti;
 	p.flags = flags;
+	if (flags & torrent_flags::seed_mode)
+	{
+		p.save_path = ".";
+	}
+	else
+	{
 #ifdef TORRENT_WINDOWS
-	p.save_path = "c:\\add_torrent_params save_path";
+		p.save_path = "c:\\add_torrent_params save_path";
 #else
-	p.save_path = "/add_torrent_params save_path";
+		p.save_path = "/add_torrent_params save_path";
 #endif
+	}
 
 	if (file_priorities[0])
 	{
@@ -794,11 +803,6 @@ TORRENT_TEST(seed_mode_deprecated)
 	torrent_status s = test_resume_flags(ses, torrent_flags::override_resume_data
 		| torrent_flags::seed_mode, "", "", true).status();
 	default_tests(s);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
-#else
-	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
-#endif
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
@@ -1127,6 +1131,9 @@ namespace test_mode {
 #if TORRENT_ABI_VERSION == 1
 	constexpr test_mode_t deprecated = 4_bit;
 #endif
+	constexpr test_mode_t missing_files = 5_bit;
+	constexpr test_mode_t pieces_have_all = 6_bit;
+	constexpr test_mode_t missing_all_files = 7_bit;
 }
 
 namespace {
@@ -1138,6 +1145,18 @@ void test_seed_mode(test_mode_t const flags)
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";
+
+	if (flags & test_mode::missing_files)
+	{
+		TEST_CHECK(::remove(combine_path("test_resume", "tmp2").c_str()) == 0);
+	}
+
+	if (flags & test_mode::missing_all_files)
+	{
+		lt::error_code ec;
+		lt::remove_all("test_resume", ec);
+		TEST_CHECK(!ec);
+	}
 
 	entry rd;
 
@@ -1165,6 +1184,11 @@ void test_seed_mode(test_mode_t const flags)
 		std::string pieces(std::size_t(ti->num_pieces()), '\x01');
 		pieces[0] = '\0';
 		rd["pieces"] = pieces;
+	}
+
+	if (flags & test_mode::pieces_have_all)
+	{
+		rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 	}
 
 	if (flags & test_mode::piece_prio)
@@ -1198,6 +1222,8 @@ void test_seed_mode(test_mode_t const flags)
 
 	if (flags & (test_mode::file_prio
 		| test_mode::piece_prio
+		| test_mode::missing_files
+		| test_mode::missing_all_files
 		| test_mode::pieces_have))
 	{
 		std::vector<alert*> alerts;
@@ -1215,6 +1241,11 @@ void test_seed_mode(test_mode_t const flags)
 					TEST_CHECK(sca->state != torrent_status::seeding);
 					if (sca->state == torrent_status::downloading) done = true;
 				}
+				else if (alert_cast<torrent_finished_alert>(a))
+				{
+					// the torrent is not finished!
+					TEST_CHECK(false);
+				}
 			}
 			if (lt::clock_type::now() - start_time > seconds(5)) break;
 		}
@@ -1226,8 +1257,9 @@ void test_seed_mode(test_mode_t const flags)
 	{
 		std::vector<alert*> alerts;
 		bool done = false;
+		bool finished = false;
 		auto const start_time = lt::clock_type::now();
-		while (!done)
+		while (!done || !finished)
 		{
 			ses.wait_for_alert(seconds(1));
 			ses.pop_alerts(&alerts);
@@ -1239,10 +1271,15 @@ void test_seed_mode(test_mode_t const flags)
 					TEST_CHECK(sca->state != torrent_status::checking_files);
 					if (sca->state == torrent_status::seeding) done = true;
 				}
+				else if (alert_cast<torrent_finished_alert>(a))
+				{
+					finished = true;
+				}
 			}
 			if (lt::clock_type::now() - start_time > seconds(5)) break;
 		}
 		TEST_CHECK(done);
+		TEST_CHECK(finished);
 		torrent_status const s = h.status();
 		TEST_CHECK(s.flags & torrent_flags::seed_mode);
 	}
@@ -1270,6 +1307,26 @@ TORRENT_TEST(seed_mode_preserve_deprecated)
 {
 	test_seed_mode(test_mode::deprecated);
 }
+
+TORRENT_TEST(seed_mode_missing_files_deprecated)
+{
+	test_seed_mode(test_mode::missing_files | test_mode::deprecated);
+}
+
+TORRENT_TEST(seed_mode_missing_all_files_deprecated)
+{
+	test_seed_mode(test_mode::missing_all_files | test_mode::deprecated);
+}
+
+TORRENT_TEST(seed_mode_missing_files_with_pieces_deprecated)
+{
+	test_seed_mode(test_mode::missing_files | test_mode::pieces_have | test_mode::deprecated);
+}
+
+TORRENT_TEST(seed_mode_missing_files_with_all_pieces_deprecated)
+{
+	test_seed_mode(test_mode::missing_files | test_mode::pieces_have_all | test_mode::deprecated);
+}
 #endif
 
 TORRENT_TEST(seed_mode_file_prio)
@@ -1290,6 +1347,26 @@ TORRENT_TEST(seed_mode_piece_have)
 TORRENT_TEST(seed_mode_preserve)
 {
 	test_seed_mode(test_mode_t{});
+}
+
+TORRENT_TEST(seed_mode_missing_files)
+{
+	test_seed_mode(test_mode::missing_files);
+}
+
+TORRENT_TEST(seed_mode_missing_all_files)
+{
+	test_seed_mode(test_mode::missing_all_files);
+}
+
+TORRENT_TEST(seed_mode_missing_files_with_pieces)
+{
+	test_seed_mode(test_mode::missing_files | test_mode::pieces_have);
+}
+
+TORRENT_TEST(seed_mode_missing_files_with_all_pieces)
+{
+	test_seed_mode(test_mode::missing_files | test_mode::pieces_have_all);
 }
 
 TORRENT_TEST(seed_mode_load_peers)
@@ -1432,11 +1509,6 @@ TORRENT_TEST(seed_mode)
 	torrent_status s = test_resume_flags(ses
 		, torrent_flags::seed_mode).status();
 	default_tests(s);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
-#else
-	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
-#endif
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);

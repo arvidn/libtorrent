@@ -770,8 +770,12 @@ std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
 {
 	using namespace lt;
 	file_storage fs = make_file_storage(file_sizes, piece_size);
+	return make_torrent(fs);
+}
 
-	lt::create_torrent ct(fs, piece_size);
+std::shared_ptr<lt::torrent_info> make_torrent(lt::file_storage& fs)
+{
+	lt::create_torrent ct(fs, fs.piece_length());
 
 	for (auto const i : fs.piece_range())
 	{

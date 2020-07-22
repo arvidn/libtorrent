@@ -282,7 +282,7 @@ script:
         travis_retry ${B2} -j2 warnings-as-errors=on ${B2_ARGS} test_lsd -l300;
       fi &&
       if [ "$coverage" == "1" ]; then
-        codecov --root .. --gcov-exec gcov-5;
+        codecov --root .. >/dev/null;
       fi;
     fi'
 
