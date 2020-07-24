@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memcpy
 
 #include "libtorrent/natpmp.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"

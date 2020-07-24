@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
-#include <libtorrent/io.hpp>
+#include <libtorrent/aux_/io_bytes.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/socket_io.hpp>
 

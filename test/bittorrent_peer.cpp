@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "bittorrent_peer.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/random.hpp"
 
 #include <cstdlib>

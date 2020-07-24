@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
@@ -85,7 +85,7 @@ namespace libtorrent {
 		// these are used only by find_connect_candidates in order
 		// to implement peer ranking. See:
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
-		external_ip ip;
+		aux::external_ip ip;
 		int port = 0;
 
 		// the number of times a peer must fail before it's no longer considered
@@ -216,7 +216,7 @@ namespace libtorrent {
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
 		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
-			, external_ip const& external, int external_port) const;
+			, aux::external_ip const& external, int external_port) const;
 
 		void find_connect_candidates(std::vector<torrent_peer*>& peers
 			, int session_time, torrent_state* state);

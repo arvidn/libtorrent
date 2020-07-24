@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PROXY_BASE_HPP_INCLUDED
 #define TORRENT_PROXY_BASE_HPP_INCLUDED
 
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"

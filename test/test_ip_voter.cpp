@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
@@ -45,7 +45,7 @@ using namespace lt;
 
 namespace {
 
-bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
+bool cast_vote(aux::ip_voter& ipv, address ext_ip, address voter)
 {
 	bool new_ip = ipv.cast_vote(ext_ip, aux::session_interface::source_dht, voter);
 	std::printf("%15s -> %-15s\n"
@@ -67,7 +67,7 @@ TORRENT_TEST(test_random)
 {
 	init_rand_address();
 
-	ip_voter ipv;
+	aux::ip_voter ipv;
 
 	address_v4 addr1(make_address_v4("51.41.61.132"));
 
@@ -86,7 +86,7 @@ TORRENT_TEST(two_ips)
 {
 	init_rand_address();
 
-	ip_voter ipv;
+	aux::ip_voter ipv;
 
 	address_v4 addr1(make_address_v4("51.1.1.1"));
 	address_v4 addr2(make_address_v4("53.3.3.3"));
@@ -113,7 +113,7 @@ TORRENT_TEST(one_ip)
 {
 	init_rand_address();
 
-	ip_voter ipv;
+	aux::ip_voter ipv;
 
 	address_v4 start_addr(make_address_v4("93.12.63.174"));
 	address_v4 addr1(make_address_v4("51.1.1.1"));
@@ -158,7 +158,7 @@ TORRENT_TEST(ip_voter_1)
 	init_rand_address();
 
 	// test external ip voting
-	ip_voter ipv1;
+	aux::ip_voter ipv1;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -180,7 +180,7 @@ TORRENT_TEST(ip_voter_2)
 {
 	init_rand_address();
 
-	ip_voter ipv2,ipv6;
+	aux::ip_voter ipv2,ipv6;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -220,4 +220,3 @@ TORRENT_TEST(ip_voter_2)
 	if (supports_ipv6())
 		TEST_CHECK(ipv6.external_address() == real_external2);
 }
-

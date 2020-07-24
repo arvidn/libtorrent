@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/session.hpp" // for user_load_function_t
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -778,7 +778,7 @@ namespace aux {
 			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip
 				, ip_source_t source_type, address const& source) override;
-			external_ip external_address() const override;
+			aux::external_ip external_address() const override;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects

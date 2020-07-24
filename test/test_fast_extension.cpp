@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/alloca.hpp" // for use of private TORRENT_ALLOCA
 #include "libtorrent/time.hpp"
 #include "libtorrent/peer_info.hpp"

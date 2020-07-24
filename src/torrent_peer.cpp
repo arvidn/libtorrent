@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/crc32c.hpp"
-#include "libtorrent/ip_voter.hpp"
-#include "libtorrent/io.hpp" // for write_uint16
+#include "libtorrent/aux_/ip_voter.hpp"
+#include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/aux_/ip_helpers.hpp"
 
 namespace libtorrent {
@@ -175,7 +175,7 @@ namespace libtorrent {
 		, protocol_v2(false)
 	{}
 
-	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
+	std::uint32_t torrent_peer::rank(aux::external_ip const& external, int external_port) const
 	{
 		TORRENT_ASSERT(in_use);
 		//TODO: how do we deal with our external address changing?

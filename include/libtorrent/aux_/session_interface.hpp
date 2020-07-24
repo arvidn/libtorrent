@@ -64,7 +64,6 @@ namespace libtorrent {
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
-	struct external_ip;
 	struct torrent_peer_allocator_interface;
 	struct counters;
 
@@ -75,6 +74,7 @@ namespace aux {
 	struct resolver_interface;
 	struct alert_manager;
 	struct torrent;
+	struct external_ip;
 }
 
 	// hidden
@@ -144,7 +144,7 @@ namespace aux {
 		virtual void set_external_address(tcp::endpoint const& local_endpoint
 			, address const& ip
 			, ip_source_t source_type, address const& source) = 0;
-		virtual external_ip external_address() const = 0;
+		virtual aux::external_ip external_address() const = 0;
 
 		virtual disk_interface& disk_thread() = 0;
 

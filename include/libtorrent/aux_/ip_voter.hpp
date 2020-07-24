@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/aux_/session_interface.hpp" // for ip_source_t
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	// this is an object that keeps the state for a single external IP
 	// based on peoples votes
