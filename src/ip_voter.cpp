@@ -32,13 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random()
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_local() etc.
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	ip_voter::ip_voter()
 		: m_total_votes(0)

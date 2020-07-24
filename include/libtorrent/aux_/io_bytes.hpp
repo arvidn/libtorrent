@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include <iterator>
 
-#include "assert.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/io.hpp"
 
 namespace libtorrent {

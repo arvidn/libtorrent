@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/io.hpp" // for write_string
+#include "libtorrent/aux_/io_bytes.hpp" // for write_string
 #include "libtorrent/string_util.hpp" // for is_digit
 
 namespace libtorrent {

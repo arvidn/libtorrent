@@ -55,10 +55,8 @@ set(libtorrent_include_files
 	i2p_stream
 	identify_client
 	index_range
-	io
 	io_service
 	ip_filter
-	ip_voter
 	link
 	lsd
 	magnet_uri
@@ -221,8 +219,10 @@ set(libtorrent_aux_include_files
 	invariant_check
 	instantiate_connection
 	io
+	io_bytes
 	ip_helpers
 	ip_notifier
+	ip_voter
 	listen_socket_handle
 	lsd
 	merkle

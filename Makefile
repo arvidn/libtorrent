@@ -460,11 +460,9 @@ HEADERS = \
   identify_client.hpp          \
   index_range.hpp              \
   info_hash.hpp                \
-  io.hpp                       \
   io_context.hpp               \
   io_service.hpp               \
   ip_filter.hpp                \
-  ip_voter.hpp                 \
   link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \
@@ -599,8 +597,10 @@ HEADERS = \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \
+  aux_/io_bytes.hpp                 \
   aux_/ip_helpers.hpp               \
   aux_/ip_notifier.hpp              \
+  aux_/ip_voter.hpp                 \
   aux_/keepalive.hpp                \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \

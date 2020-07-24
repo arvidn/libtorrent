@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/extensions.hpp"

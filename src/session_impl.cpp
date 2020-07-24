@@ -6758,7 +6758,7 @@ namespace {
 		}
 	}
 
-	external_ip session_impl::external_address() const
+	aux::external_ip session_impl::external_address() const
 	{
 		address ips[2][2];
 

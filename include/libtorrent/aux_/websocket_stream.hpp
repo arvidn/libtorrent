@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ssl.hpp"

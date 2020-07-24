@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
-#include "libtorrent/ip_voter.hpp" // for external_ip
+#include "libtorrent/aux_/ip_voter.hpp" // for external_ip
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
 #if TORRENT_USE_ASSERTS
@@ -463,7 +463,7 @@ namespace libtorrent {
 		if (bool(m_finished) != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		external_ip const& external = state->ip;
+		aux::external_ip const& external = state->ip;
 		int external_port = state->port;
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
@@ -1334,7 +1334,7 @@ namespace libtorrent {
 
 	// this returns true if lhs is a better connect candidate than rhs
 	bool peer_list::compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
-		, external_ip const& external, int external_port) const
+		, aux::external_ip const& external, int external_port) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// prefer peers with lower failcount

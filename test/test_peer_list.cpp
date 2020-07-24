@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"

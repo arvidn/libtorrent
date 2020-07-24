@@ -66,7 +66,7 @@ struct session_mock : aux::session_interface
 	{}
 
 	void set_external_address(tcp::endpoint const&, address const&, aux::ip_source_t, address const&) override {}
-	external_ip external_address() const override { return {}; }
+	aux::external_ip external_address() const override { return {}; }
 
 	disk_interface& disk_thread() override { return *_disk_io; }
 

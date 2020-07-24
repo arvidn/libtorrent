@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	struct peer_connection_interface;
-	struct external_ip;
+	namespace aux { struct external_ip; }
 
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
@@ -66,7 +66,7 @@ namespace libtorrent {
 		std::int64_t total_download() const;
 		std::int64_t total_upload() const;
 
-		std::uint32_t rank(external_ip const& external, int external_port) const;
+		std::uint32_t rank(aux::external_ip const& external, int external_port) const;
 
 		libtorrent::address address() const;
 		string_view dest() const;
