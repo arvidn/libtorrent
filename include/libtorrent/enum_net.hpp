@@ -140,7 +140,9 @@ enum class if_state : std::uint8_t {
 	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
 		ip_interface const& iface, span<ip_route const> routes);
 
-	TORRENT_EXTRA_EXPORT bool has_default_route(char const* device, int family
+	// returns whether there is a route to the specified device for for any global
+	// internet address of the specified address family.
+	TORRENT_EXTRA_EXPORT bool has_internet_route(string_view device, int family
 		, span<ip_route const> routes);
 
 	// attempt to bind socket to the device with the specified name. For systems

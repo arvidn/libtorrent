@@ -800,46 +800,42 @@ trackers outside of that network. For example, ``10.0.0.2:6881l`` is marked as "
 network" and it will only be used as the source address announcing to a tracker
 if the tracker is also within the same local network (e.g. ``10.0.0.0/8``).
 
-If an IP address is the *unspecified* address (i.e. ``0.0.0.0`` or ``::``),
-libtorrent will enumerate all addresses it can find for the corresponding
-address family. If a device name is specified instead of an IP, it will expand
-to all IP addresses associated with that device.
-
-Listen IP addresses that are automatically expanded by libtorrent have some
-special rules. They are all assumed to be restricted to be "local network"
-unless the following conditions are met:
-
-* the IP address is not in a known link-local range
-* the IP address is not in a known loopback range
-* the item the IP address was expanded from was not marked local (``l``)
-* the IP address is in a globally reachable IP address range OR the routing
-  table contains a default route with a gateway for the corresponding network.
-  This bullet only applies when expanding from an unspecified IP address. When
-  explicitly specifying a device, we don't need to find a route to treat it as
-  external.
-
 The NAT-PMP/PCP and UPnP port mapper objects are only created for networks that
 are expected to be externally available (i.e. not "local network"). If there are
-multiple subnets connected to the internet, they will each have a separate
-gateway, and separate port mappings.
+multiple subnets connected to the internet, they will have separate port mappings.
 
+expanding device names
+----------------------
 
-default routes
---------------
+If a device name is specified, libtorrent will expand it to the IP addresses
+associated with that device, but also retain the device name in order to attempt
+to bind the listen sockets to that specific device.
 
-This section describes the logic for determining whether an address has a
-default route associated with it or not. This is only used for listen addresses that
-are *expanded* from either an unspecified listen address (``0.0.0.0`` or ``::``)
-or from a device name (e.g. ``eth0``).
+expanding unspecified addresses
+-------------------------------
 
-A network is considered having a default route if there is a default route with
-a matching egress network device name and address family.
+If an IP address is the *unspecified* address (i.e. ``0.0.0.0`` or ``::``),
+libtorrent will expand it to specific IP addresses. This expansion will
+enumerate all addresses it can find for the corresponding address family.
+The expanded IP addresses are considered "local network" if any of the following
+conditions are met:
+
+* the IP address is in a known link-local range
+* the IP address is in a known loopback range
+* the item the IP address was expanded from was marked local (``l``)
+* the network interface has the ``loopback`` flag set
+* NONE of the following conditions are met:
+  1. the IP address is in a globally reachable IP address range
+  2. the network interface has the ``point-to-point`` flag set
+  3. the routing table contains a route for at least one global internet address
+  (e.g. a default route) for the address family of the expanded IP that points to
+  the network interface of the expanded IP.
 
 routing
 -------
 
-A ``listen_socket_t`` item can route to a destination address if any of these
-hold:
+A ``listen_socket_t`` item is considered able to route to a destination address
+if any of these hold:
 
 * the destination address falls inside its subnet (i.e. interface address masked
   by netmask is the same as the destination address masked by the netmask).
@@ -849,6 +845,9 @@ hold:
 The ability to route to an address is used when determining whether to announce
 to a tracker from a ``listen_socket_t`` and whether to open a SOCKS5 UDP tunnel
 for a ``listen_socket_t``.
+
+Note that the actual IP stack routing table is not considered for this purpose.
+This mechanism is to determine which IP addresses should be announced to trackers.
 
 tracker announces
 -----------------

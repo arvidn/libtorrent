@@ -238,7 +238,7 @@ namespace aux {
 			// used instead
 			handshake_client_version,
 
-			// This controls which IP address outgoing TCP connections are bound
+			// This controls which IP address outgoing TCP peer connections are bound
 			// to, in addition to controlling whether such connections are also
 			// bound to a specific network interface/adapter (*bind-to-device*).
 			// This string is a comma-separated list of IP addresses and
@@ -250,7 +250,7 @@ namespace aux {
 			// that interface. If that fails, or is unsupported, one of the IP
 			// addresses configured for that interface is used to `bind()` the
 			// socket to. If the interface or adapter doesn't exist, the
-			// outgoing connection will failed with an error message suggesting
+			// outgoing peer connection will fail with an error message suggesting
 			// the device cannot be found. Adapter names on Unix systems are of
 			// the form "eth0", "eth1", "tun0", etc. This may be useful for
 			// clients that are multi-homed. Binding an outgoing connection to a
@@ -260,7 +260,7 @@ namespace aux {
 
 			// a comma-separated list of (IP or device name, port) pairs. These are
 			// the listen ports that will be opened for accepting incoming uTP and
-			// TCP connections. These are also used for *outgoing* uTP and UDP
+			// TCP peer connections. These are also used for *outgoing* uTP and UDP
 			// tracker connections and DHT nodes.
 			//
 			// It is possible to listen on multiple interfaces and
@@ -275,8 +275,8 @@ namespace aux {
 			//    you use and hand that port out to other peers trying to connect
 			//    to you, as well as trying to connect to you themselves.
 			//
-			// A port that has an "s" suffix will accept SSL connections. (note
-			// that SSL sockets are not enabled by default).
+			// A port that has an "s" suffix will accept SSL peer connections. (note
+			// that SSL sockets are only available in builds with SSL support)
 			//
 			// A port that has an "l" suffix will be considered a local network.
 			// i.e. it's assumed to only be able to reach hosts in the same local
