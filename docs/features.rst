@@ -1,7 +1,3 @@
-=================
-libtorrent manual
-=================
-
 .. include:: header.rst
 
 .. contents:: Table of contents
@@ -191,8 +187,9 @@ cache needs to be flushed, all the blocks are passed directly to ``writev()`` to
 them in a single system call. This means a single copy into user space memory, and a single
 copy back into kernel memory, as illustrated by this figure:
 
-.. image:: write_disk_buffers.png
+.. image:: img/write_disk_buffers.png
 	:width: 100%
+	:class: bw
 
 When seeding and uploading in general, unnecessary copying is avoided by caching blocks
 in aligned buffers, that are copied once into the peer's send buffer. The peer's send buffer
@@ -201,8 +198,9 @@ then encrypted with the peer specific key and chained onto the ``iovec`` for sen
 This means there is one user space copy in order to allow unaligned peer requests and
 peer-specific encryption. This is illustrated by the following figure:
 
-.. image:: read_disk_buffers.png
+.. image:: img/read_disk_buffers.png
 	:width: 100%
+	:class: bw
 
 
 piece picker
@@ -241,8 +239,9 @@ to provide additional bandwidth to an entire feed.
 customizable file I/O
 ---------------------
 
-.. image:: storage.png
+.. image:: img/storage.png
 	:align: right
+	:class: bw
 
 libtorrent's disk I/O implementation is customizable. That means a special
 purpose bittorrent client can replace the default way to store files on disk.

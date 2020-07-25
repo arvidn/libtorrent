@@ -82,7 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 //
 // plugin-interface
-// ================
+// ----------------
 //
 // The plugin interface consists of three base classes that the plugin may
 // implement. These are called plugin, torrent_plugin and peer_plugin.
@@ -117,7 +117,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // it in to ``session::add_extension()``.
 //
 // custom alerts
-// =============
+// -------------
 //
 // Since plugins are running within internal libtorrent threads, one convenient
 // way to communicate with the client is to post custom alerts.

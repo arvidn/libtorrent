@@ -186,7 +186,7 @@ TORRENT_VERSION_NAMESPACE_2
 		std::weak_ptr<const torrent_info> torrent_file;
 
 		// the time until the torrent will announce itself to the tracker.
-		time_duration next_announce = seconds(0);
+		time_duration next_announce = seconds{0};
 
 #if TORRENT_ABI_VERSION == 1
 		// the time the tracker want us to wait until we announce ourself

@@ -300,16 +300,15 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				if (!(ipface.flags & if_flags::up))
 					continue;
 
-				// record whether the device has a gateway associated with it
-				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
-				bool const local = ipface.interface_address.is_loopback()
+				// we assume this listen_socket_t is local-network under some
+				// conditions, meaning we won't announce it to internet trackers
+				bool const local
+					= ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address)
 					|| (ipface.flags & if_flags::loopback)
 					|| (!is_global(ipface.interface_address)
-						&& !has_default_route(ipface.name, family(ipface.interface_address), routes)
-						&& !(ipface.flags & if_flags::pointopoint));
+						&& !(ipface.flags & if_flags::pointopoint)
+						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
@@ -1871,10 +1870,6 @@ namespace {
 				// connecting to)
 				if (iface.device != ipface.name) continue;
 
-				// record whether the device has a gateway associated with it
-				// (which indicates it can be used to reach the internet)
-				// if the IP address tell us it's loopback or link-local, don't
-				// bother looking for the gateway
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address);
@@ -3141,6 +3136,8 @@ namespace {
 
 	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
 	{
+		TORRENT_ASSERT(bytes_payload >= 0);
+		TORRENT_ASSERT(bytes_protocol >= 0);
 		m_stats_counters.inc_stats_counter(counters::sent_bytes
 			, bytes_payload + bytes_protocol);
 		m_stats_counters.inc_stats_counter(counters::sent_payload_bytes
@@ -3151,6 +3148,8 @@ namespace {
 
 	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
 	{
+		TORRENT_ASSERT(bytes_payload >= 0);
+		TORRENT_ASSERT(bytes_protocol >= 0);
 		m_stats_counters.inc_stats_counter(counters::recv_bytes
 			, bytes_payload + bytes_protocol);
 		m_stats_counters.inc_stats_counter(counters::recv_payload_bytes
@@ -3161,6 +3160,7 @@ namespace {
 
 	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
 	{
+		TORRENT_ASSERT(bytes >= 0);
 		// one TCP/IP packet header for the packet
 		// sent or received, and one for the ACK
 		// The IPv4 header is 20 bytes

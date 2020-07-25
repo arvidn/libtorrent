@@ -60,6 +60,12 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 	error_code ec;
 	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
+	if (flags & torrent_flags::seed_mode)
+	{
+		std::ofstream file("temp");
+		std::vector<char> temp(425);
+		file.write(temp.data(), std::streamsize(temp.size()));
+	}
 	TEST_CHECK(!ec);
 	p.flags = flags;
 	const torrent_handle h = ses.add_torrent(p);

@@ -5,7 +5,7 @@ Upgrading to libtorrent 2.0
 :Author: Arvid Norberg, arvid@libtorrent.org
 
 .. contents:: Table of contents
-  :depth: 1
+  :depth: 2
   :backlinks: none
 
 In libtorrent 2.0, some parts of the API has changed and some deprecated parts

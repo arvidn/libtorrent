@@ -1,9 +1,7 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 # (python-docutils) as well as aafigure (python-aafigure)
 
-ifneq ($(STAGE),)
 WEB_PATH = ~/web/products/libtorrent
-endif
 
 ifndef RST2HTML
 RST2HTML:=rst2html
@@ -24,6 +22,14 @@ REFERENCE_TARGETS = \
 	reference-Core \
 	reference-DHT \
 	reference-Session \
+	reference-Torrent_Handle \
+	reference-Torrent_Info \
+	reference-Trackers \
+	reference-PeerClass \
+	reference-Torrent_Status \
+	reference-Stats \
+	reference-Resume_Data \
+	reference-Add_Torrent \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \
@@ -60,16 +66,35 @@ TARGETS = single-page-ref \
 	$(MANUAL_TARGETS) \
 	$(REFERENCE_TARGETS)
 
-FIGURES = \
+FIGURES = $(addprefix img/, \
 	read_disk_buffers \
 	write_disk_buffers \
 	hacking \
 	utp_stack \
 	storage \
 	troubleshooting \
-	screenshot_thumb
+	troubleshooting_thumb \
+	screenshot \
+	screenshot_thumb \
+	logo-color \
+	logo-bw \
+	logo-color-text \
+	bitcoin \
+	ip_id_v4 \
+	ip_id_v6 \
+	hash_distribution \
+	complete_bit_prefixes \
+	our_delay_base \
+	our_delay_base_thumb \
+	delays \
+	delays_thumb \
+	cwnd \
+	cwnd_thumb \
+)
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico
+
+stage: $(addprefix $(WEB_PATH)/, $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico style.css)
 
 rst: $(TARGETS:=.rst) todo.html
 
@@ -77,10 +102,28 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.png)
 
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
-all: html pdf
+all: html pdf favicon.ico
 
-single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
-	python3 join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
+img/logo-color-text.png: img/logo-color-text.svg
+	convert -background transparent $< -resize 400 $@
+
+img/%.png: img/%.svg
+	convert -background transparent $< -resize 128x128 $@
+
+favicon.ico: favicon-16.png favicon-32.png favicon-64.png
+	icotool -o $@ -c $?
+
+favicon-16.png: img/logo-color.svg
+	convert -background transparent $< -resize 16x16 $@
+
+favicon-32.png: img/logo-color.svg
+	convert -background transparent $< -resize 32x32 $@
+
+favicon-64.png: img/logo-color.svg
+	convert -background transparent $< -resize 64x64 $@
+
+single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings-ref.rst stats_counters.rst
+	python3 gen_reference_doc.py --single-page
 
 settings.rst hunspell/settings.dic: ../include/libtorrent/settings_pack.hpp hunspell/libtorrent.dic
 	python3 gen_settings_doc.py || { rm $@; exit 1; }
@@ -92,25 +135,16 @@ stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_c
 manual.rst: stats_counters.rst
 	touch manual.rst
 
-screenshot_thumb.png: screenshot.png
-	convert $? -resize 400 $@
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+%_thumb.png: %.png
+	convert $< -resize 400 $@
 
-#troubleshooting_thumb.png: troubleshooting.png
-#	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-#ifneq ($(STAGE),)
-#	cp $@ $(WEB_PATH)/$@
-#endif
+img/troubleshooting_thumb.png: img/troubleshooting.png
+	convert $< -resize 800x800 $@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python3 gen_todo.py
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt settings-ref.rst:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
 	python3 gen_reference_doc.py --plain-output
 
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst
@@ -131,29 +165,45 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
 
 %.epub:%.rst
-	rst2epub --exit-status=2 $? $@
+	rst2epub --exit-status=2 $< $@
 
 %.pdf:%.rst
-	rst2pdf $? -o $@ --stylesheets stylesheet
+	rst2pdf $< -o $@ --stylesheets stylesheet
 
-%.html:%.rst
-	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@ || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@ || { rm $@; exit 1; }
-endif
+%.html:%.rst template.txt template2.txt
+	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
 
 %.png:%.dot
-	dot -Tpng $? >$@ || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+	dot -Tpng $< >$@ || { rm $@; exit 1; }
 
 %.png:%.diagram
-	$(AAFIGURE) --scale 0.6 -o $@ $? || { rm $@; exit 1; }
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+	$(AAFIGURE) --scale 0.6 -o $@ $< || { rm $@; exit 1; }
+
+# stage rules
+
+$(WEB_PATH)/%.html:%.rst template.txt template2.txt
+	mkdir -p $(WEB_PATH) >/dev/null
+	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
+
+$(WEB_PATH)/img/%.png: img/%.png
+	mkdir -p $(WEB_PATH)/img >/dev/null
+	cp $< $@
+
+$(WEB_PATH)/%.png: %.png
+	cp $< $@
+
+$(WEB_PATH)/%.css: %.css
+	cp $< $@
+
+$(WEB_PATH)/%.svg: %.svg
+	cp $< $@
+
+$(WEB_PATH)/%.html: %.html
+	cp $< $@
+
+$(WEB_PATH)/%.ico: %.ico
+	cp $< $@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
 

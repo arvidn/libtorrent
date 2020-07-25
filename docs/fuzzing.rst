@@ -5,11 +5,8 @@ fuzzing libtorrent
 .. include:: header.rst
 
 .. contents:: Table of contents
-  :depth: 1
+  :depth: 2
   :backlinks: none
-
-overview
-========
 
 Libtorrent comes with a set of fuzzers. They are not included in the distribution
 tar ball, instead download the `repository snapshot`_ or clone the repository_.

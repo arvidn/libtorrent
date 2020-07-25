@@ -717,8 +717,12 @@ TORRENT_TEST(test_have_piece_out_of_range)
 	add_torrent_params p;
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};
 	int const piece_size = 0x8000;
-	p.ti = make_torrent(file_sizes, piece_size);
-	p.save_path = "save_path";
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	create_random_files(".", file_sizes, &fs);
+	p.ti = make_torrent(fs);
+
+	p.save_path = ".";
 	p.flags |= torrent_flags::seed_mode;
 	torrent_handle h = ses.add_torrent(p);
 

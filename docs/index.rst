@@ -2,31 +2,44 @@
 
    <div id="librarySidebar">
 
+Getting started
+
 * download_
-* features_
-* tutorial_
-* examples_
-* overview_
-* documentation_
-* `libtorrent 1.2`_
-* contributing_
 * building_
+* tutorial_
+* overview_
+* examples_
+* features_
+
+--------
+
+Documentation
+
+* reference_
+* `blog`_
+* `upgrade to 2.0`_
+* `upgrade to 1.2`_
+* contributing_
 * troubleshooting_
-* `tuning`_
+* tuning_
 * fuzzing_
-* `mailing list`_ (archive_)
 * `projects using libtorrent`_
+
+--------
+
+Contact
+
+* `mailing list`_ (archive_)
 * `report bugs`_
 * `github page`_
-* `blog`_
 
 --------
 
 Extensions
 
-* `uTP`_
+* uTP_
 * `extensions protocol`_
-* `plugin interface`_
+* `libtorrent plugins`_
 * `streaming`_
 * `DHT extensions`_
 * `DHT security extension`_
@@ -41,7 +54,7 @@ Bindings
 
 * python_
 * Java_
-* go_
+* golang_
 * node_
 
 --------
@@ -60,15 +73,15 @@ Bindings
 .. _building: building.html
 .. _examples: examples.html
 .. _overview: manual-ref.html
-.. _documentation: reference.html
-.. _`libtorrent 1.2`: upgrade_to_1.2-ref.html
-.. _`libtorrent 2.0`: upgrade_to_2.0-ref.html
+.. _reference: reference.html
+.. _`upgrade to 2.0`: upgrade_to_2.0-ref.html
+.. _`upgrade to 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html
-.. _`tuning`: tuning-ref.html
+.. _tuning: tuning-ref.html
 .. _fuzzing: fuzzing.html
-.. _`uTP`: utp.html
+.. _uTP: utp.html
 .. _`extensions protocol`: extension_protocol.html
-.. _`plugin interface`: reference-Plugins.html
+.. _`libtorrent plugins`: reference-Plugins.html
 .. _`streaming`: streaming.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
@@ -85,10 +98,13 @@ Bindings
 
 .. _Java: https://github.com/frostwire/frostwire-jlibtorrent/
 .. _python: python_binding.html
-.. _go: https://github.com/steeve/libtorrent-go
+.. _golang: https://github.com/steeve/libtorrent-go
 .. _node: https://github.com/fanatid/node-libtorrent
 
 .. _`Introduction, slides`: bittorrent.pdf
+
+introduction
+============
 
 libtorrent is a feature complete C++ bittorrent implementation focusing
 on efficiency and scalability. It runs on embedded devices as well as
@@ -96,13 +112,14 @@ desktops. It boasts a well documented library interface that is easy to
 use. It comes with a `simple bittorrent client`__ demonstrating the use of
 the library.
 
-.. figure:: screenshot_thumb.png
-	:target: client_test.html
-	:figclass: align-right
-
-	``client_test`` example program
-
 __ client_test.html
+
+.. image:: img/screenshot_thumb.png
+	:target: client_test.html
+	:alt: screenshot of libtorrent's client_test
+	:class: front-page-screenshot
+	:width: 400
+	:height: 239
 
 The main goals of libtorrent are:
 
@@ -110,7 +127,7 @@ The main goals of libtorrent are:
 * to be memory efficient
 * to be very easy to use
 
-Getting started
+getting started
 ===============
 
 The tutorial_ is an introduction to using libtorrent (C++). Also see the
@@ -118,7 +135,13 @@ The tutorial_ is an introduction to using libtorrent (C++). Also see the
 
 .. _`reference documentation`: reference.html
 
-Contribute
+.. raw:: html
+
+	<br/>
+	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">
+	<img src="img/bitcoin.png" class="front-page-qr" alt="bitcoin address for libtorrent donations" width="190" height="190"></a>
+
+contribute
 ==========
 
 If your organization uses libtorrent, please consider supporting its development.
@@ -126,10 +149,9 @@ See the contributing_ page for other ways to help out.
 
 .. raw:: html
 
-	<span style="display:block;text-align:center;">
-	<img src="bitcoin.png" style="display:inline"><br/>
+	<div style="text-align: right;">
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
-	</span>
+	</div>
 
 	<span style="display:block;text-align:center;margin-top:1em">
 	<span style="display:inline-block">
@@ -153,7 +175,7 @@ See the contributing_ page for other ways to help out.
 	</span>
 
 
-Support
+support
 =======
 
 Please direct questions to the `mailing list`__, general libtorrent discussion.
@@ -180,7 +202,7 @@ list or posted to the `bug tracker`_.
 
 .. _`bug tracker`: https://github.com/arvidn/libtorrent/issues
 
-Acknowledgements
+acknowledgements
 ================
 
 Written by Arvid Norberg. Copyright |copy| 2003-2018

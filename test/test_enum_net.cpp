@@ -246,23 +246,33 @@ TORRENT_TEST(get_gateway_multi_homed)
 	TEST_CHECK(get_gateway(ip("10.0.1.130", "eth1"), routes) == make_address("10.0.0.1"));
 }
 
-TORRENT_TEST(has_default_route)
+TORRENT_TEST(has_internet_route)
 {
 	std::vector<ip_route> const routes = {
 		rt("0.0.0.0", "eth0", "192.168.0.1", "255.255.0.0"),
 		rt("0.0.0.0", "eth1", "0.0.0.0", "255.0.0.0"),
-		rt("127.0.0.0", "lo", "0.0.0.0", "255.0.0.0")
+		rt("127.0.0.0", "lo", "0.0.0.0", "255.0.0.0"),
+		rt("0.0.0.0", "tun0", "0.0.0.0", "128.0.0.0"),
+		rt("128.0.0.0", "tun0", "0.0.0.0", "128.0.0.0"),
+		rt("1.2.3.4", "tun1", "0.0.0.0", "255.255.0.0"),
+		rt("2000:5678::1", "tun1", "::", "f::"),
 	};
 
-	TEST_CHECK(has_default_route("eth0", AF_INET, routes));
-	TEST_CHECK(!has_default_route("eth0", AF_INET6, routes));
+	TEST_CHECK(has_internet_route("eth0", AF_INET, routes));
+	TEST_CHECK(!has_internet_route("eth0", AF_INET6, routes));
 
-	TEST_CHECK(has_default_route("eth1", AF_INET, routes));
-	TEST_CHECK(!has_default_route("eth1", AF_INET6, routes));
+	TEST_CHECK(has_internet_route("eth1", AF_INET, routes));
+	TEST_CHECK(!has_internet_route("eth1", AF_INET6, routes));
 
-	TEST_CHECK(!has_default_route("lo", AF_INET, routes));
-	TEST_CHECK(!has_default_route("lo", AF_INET6, routes));
+	TEST_CHECK(!has_internet_route("lo", AF_INET, routes));
+	TEST_CHECK(!has_internet_route("lo", AF_INET6, routes));
 
-	TEST_CHECK(!has_default_route("eth2", AF_INET, routes));
-	TEST_CHECK(!has_default_route("eth2", AF_INET6, routes));
+	TEST_CHECK(!has_internet_route("eth2", AF_INET, routes));
+	TEST_CHECK(!has_internet_route("eth2", AF_INET6, routes));
+
+	TEST_CHECK(has_internet_route("tun0", AF_INET, routes));
+	TEST_CHECK(!has_internet_route("tun0", AF_INET6, routes));
+
+	TEST_CHECK(has_internet_route("tun1", AF_INET, routes));
+	TEST_CHECK(has_internet_route("tun1", AF_INET6, routes));
 }

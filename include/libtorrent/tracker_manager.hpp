@@ -93,6 +93,7 @@ namespace aux {
 
 using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
 
+// internal
 enum class event_t : std::uint8_t
 {
 	none,

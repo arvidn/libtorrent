@@ -11,6 +11,7 @@ verbose = '--verbose' in sys.argv
 dump = '--dump' in sys.argv
 internal = '--internal' in sys.argv
 plain_output = '--plain-output' in sys.argv
+single_page_output = '--single-page' in sys.argv
 if plain_output:
     plain_file = open('plain_text_out.txt', 'w+')
 in_code = None
@@ -84,6 +85,7 @@ static_links = \
         ".. _`BEP 3`: https://www.bittorrent.org/beps/bep_0003.html",
         ".. _`BEP 17`: https://www.bittorrent.org/beps/bep_0017.html",
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
+        ".. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html",
         ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
         ".. _`rate based choking`: manual-ref.html#rate-based-choking",
         ".. _extensions: manual-ref.html#extensions",
@@ -95,14 +97,25 @@ category_mapping = {
     'ed25519.hpp': 'ed25519',
     'session.hpp': 'Session',
     'session_handle.hpp': 'Session',
-    'add_torrent_params.hpp': 'Core',
+    'torrent_handle.hpp': 'Torrent Handle',
+    'torrent_info.hpp': 'Torrent Info',
+    'announce_entry.hpp': 'Trackers',
+    'peer_class_type_filter.hpp': 'PeerClass',
+    'peer_class.hpp': 'PeerClass',
+    'torrent_status.hpp': 'Torrent Status',
+    'session_stats.hpp': 'Stats',
+    'performance_counters.hpp': 'Stats',
+    'read_resume_data.hpp': 'Resume Data',
+    'write_resume_data.hpp': 'Resume Data',
+    'add_torrent_params.hpp': 'Add Torrent',
+    'client_data.hpp': 'Add Torrent',
     'session_status.hpp': 'Session',
-    'session_stats.hpp': 'Session',
     'session_params.hpp': 'Session',
     'error_code.hpp': 'Error Codes',
     'storage_defs.hpp': 'Storage',
     'file_storage.hpp': 'Storage',
     'disk_interface.hpp': 'Custom Storage',
+    'disk_observer.hpp': 'Custom Storage',
     'mmap_disk_io.hpp': 'Storage',
     'disabled_disk_io.hpp': 'Storage',
     'posix_disk_io.hpp': 'Storage',
@@ -111,6 +124,7 @@ category_mapping = {
     'ut_pex.hpp': 'Plugins',
     'ut_trackers.hpp': 'Plugins',
     'smart_ban.hpp': 'Plugins',
+    'peer_connection_handle.hpp': 'Plugins',
     'create_torrent.hpp': 'Create Torrents',
     'alert.hpp': 'Alerts',
     'alert_types.hpp': 'Alerts',
@@ -130,6 +144,7 @@ category_mapping = {
     'ip_filter.hpp': 'Filter',
     'session_settings.hpp': 'Settings',
     'settings_pack.hpp': 'Settings',
+    'fingerprint.hpp': 'Settings',
     'operations.hpp': 'Alerts',
     'disk_buffer_holder.hpp': 'Custom Storage',
     'alert_dispatcher.hpp': 'Alerts',
@@ -138,7 +153,8 @@ category_mapping = {
 category_fun_mapping = {
     'min_memory_usage()': 'Settings',
     'high_performance_seed()': 'Settings',
-    'default_disk_io_constructor()': 'Storage'
+    'default_disk_io_constructor()': 'Storage',
+    'settings_interface': 'Custom Storage',
 }
 
 
@@ -866,6 +882,7 @@ for filename in files:
             continue
 
         if (line == 'namespace aux {' or
+                line == 'namespace ssl {' or
                 line == 'namespace libtorrent { namespace aux {') \
                 and not internal:
             lno = consume_block(lno - 1, lines)
@@ -1266,7 +1283,14 @@ sections = \
         'Core': 0,
         'DHT': 0,
         'Session': 0,
+        'Torrent Handle': 0,
+        'Torrent Info': 0,
+        'Trackers': 0,
         'Settings': 0,
+        'Torrent Status': 0,
+        'Stats': 0,
+        'Resume Data': 0,
+        'Add Torrent': 0,
 
         'Bencoding': 1,
         'Bdecoding': 1,
@@ -1274,6 +1298,7 @@ sections = \
         'Error Codes': 1,
         'Create Torrents': 1,
 
+        'PeerClass': 2,
         'ed25519': 2,
         'Utility': 2,
         'Storage': 2,
@@ -1312,53 +1337,22 @@ def print_toc(out, categories, s):
 
 
 def dump_report_issue(h, out):
-    print(('.. raw:: html\n\n\t<span style="float:right;">[<a style="color:blue;" ' +
+    print(('.. raw:: html\n\n\t<span class="report-issue">[<a ' +
            'href="http://github.com/arvidn/libtorrent/issues/new?title=docs:{0}&labels=' +
            'documentation&body={1}">report issue</a>]</span>\n\n').format(
                 urllib.parse.quote_plus(h),
                 urllib.parse.quote_plus('Documentation under heading "' + h + '" could be improved')), file=out)
 
 
-out = open('reference.rst', 'w+')
-out.write('''=======================
-reference documentation
-=======================
+def render(out, category):
 
-''')
+    classes = category['classes']
+    functions = category['functions']
+    enums = category['enums']
+    constants = category['constants']
 
-out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
-
-for i in range(4):
-
-    out.write('.. container:: main-toc\n\n')
-    print_toc(out, categories, i)
-
-out.close()
-
-for cat in categories:
-    out = open(categories[cat]['filename'], 'w+')
-
-    classes = categories[cat]['classes']
-    functions = categories[cat]['functions']
-    enums = categories[cat]['enums']
-    constants = categories[cat]['constants']
-
-    out.write('''.. include:: header.rst
-
-`home`__
-
-__ reference.html
-
-%s
-
-.. contents:: Table of contents
-  :depth: 2
-  :backlinks: none
-
-''' % heading(cat, '='))
-
-    if 'overview' in categories[cat]:
-        out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
+    if 'overview' in category:
+        out.write('%s\n' % linkify_symbols(category['overview']))
 
     for c in classes:
 
@@ -1486,19 +1480,75 @@ __ reference.html
     for i in static_links:
         print(i, file=out)
 
+
+if single_page_output:
+
+    out = open('single-page-ref.rst', 'w+')
+    out.write('''.. include:: header.rst
+
+`home`__
+
+__ reference.html
+
+.. contents:: Table of contents
+  :depth: 2
+  :backlinks: none
+
+''')
+
+    for cat in categories:
+        render(out, categories[cat])
+
     out.close()
 
-# for s in symbols:
-#   print(s)
+else:
 
-for i, o in list(preprocess_rst.items()):
-    f = open(i, 'r')
-    out = open(o, 'w+')
-    print('processing %s -> %s' % (i, o))
-    link = linkify_symbols(f.read())
-    print(link, end=' ', file=out)
+    out = open('reference.rst', 'w+')
+    out.write('''=======================
+reference documentation
+=======================
 
-    print(dump_link_targets(), file=out)
+''')
+
+    out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
+
+    for i in range(4):
+
+        out.write('.. container:: main-toc\n\n')
+        print_toc(out, categories, i)
 
     out.close()
-    f.close()
+
+    for cat in categories:
+        out = open(categories[cat]['filename'], 'w+')
+
+        out.write('''.. include:: header.rst
+
+`home`__
+
+__ reference.html
+
+.. contents:: Table of contents
+  :depth: 2
+  :backlinks: none
+
+''')
+
+        render(out, categories[cat])
+
+        out.close()
+
+#       for s in symbols:
+#           print(s)
+
+    for i, o in list(preprocess_rst.items()):
+        f = open(i, 'r')
+        out = open(o, 'w+')
+        print('processing %s -> %s' % (i, o))
+        link = linkify_symbols(f.read())
+        print(link, end=' ', file=out)
+
+        print(dump_link_targets(), file=out)
+
+        out.close()
+        f.close()

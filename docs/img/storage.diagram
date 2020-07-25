@@ -1,0 +1,35 @@
++------------------------+
+|     "disk_interface"   |
+|                        |     +-----------------+
+|  "customization point" |<--->| "counters"      |
+|  "for disk I/O for"    |     | "to keep stats" |
+|  "whole session"       |     +-----------------+
+|                        |<-- "async_read()"
+|                        |<-- "async_write()"
+|                        |<-- "async_hash()"
+|                        |<-- "async_hash2()"
+|                        |<-- "async_move_storage()"
+|                        |<-- "async_check_files()"
+|                        |<-- "async_stop_torrent()"
+|                        |<-- "remove_torrent()"
+|                        |<-- "async_rename_file()"
+|                        |<-- "async_set_file_priority()"
+|                        |<-- "async_delete_files()"
+|                        |<-- "async_clear_piece()"
++------------------------+
+              ^
+              |
+              | "new_torrent()"
+              |   "save-path, file_storage,"
+              |   "info_hash, allocation_mode"
+              |   "file-priorities"
+              | "returns storage_holder"
+              |
+              v
++----------------------------+
+|     "storage_holder"       |+
+| "opaque handle to storage" ||   +-------------------+
+| "for a torrent"            |<---+ "file_storage"    |
++----------------------------+|   | "standard piece"  |
+ +----------------------------+   | "to file mapping" |
+                                  +-------------------+

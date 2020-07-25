@@ -5,7 +5,7 @@ Upgrading to libtorrent 1.2
 :Author: Arvid Norberg, arvid@libtorrent.org
 
 .. contents:: Table of contents
-  :depth: 1
+  :depth: 2
   :backlinks: none
 
 libtorrent version 1.2 comes with some significant updates in the API.

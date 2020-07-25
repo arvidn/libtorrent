@@ -15,9 +15,6 @@ form of patches against ``docs/troubleshooting.dot``.
 
 .. _`mailing list`: https://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
-|thumb|__
-
-__ troubleshooting.png
-
-.. |thumb| image:: troubleshooting_thumb.png
+.. image:: img/troubleshooting_thumb.png
+	:target: img/troubleshooting.png
 

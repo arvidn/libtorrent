@@ -442,8 +442,26 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	, torrent_flags_t const flags = torrent_flags_t{}
 	, torrent_handle* th = nullptr)
 {
-	std::shared_ptr<torrent_info> t = ::create_torrent();
+	std::ofstream out_file;
+	std::ofstream* file = nullptr;
+	if (flags & torrent_flags::seed_mode)
+	{
+		error_code ec;
+		create_directory("tmp1_fast", ec);
+		out_file.open(combine_path("tmp1_fast", "temporary").c_str(), std::ios_base::trunc | std::ios_base::binary);
+		file = &out_file;
+	}
+	else
+	{
+		error_code ec;
+		remove(combine_path("tmp1_fast","temporary").c_str(), ec);
+		if (ec) log("remove(): %s", ec.message().c_str());
+	}
+
+	std::shared_ptr<torrent_info> t = ::create_torrent(file);
+	out_file.close();
 	ih = t->info_hashes();
+
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
 	sett.set_bool(settings_pack::enable_upnp, false);
@@ -459,7 +477,6 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 #endif
 	ses.reset(new lt::session(sett));
 
-	error_code ec;
 	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
@@ -468,12 +485,9 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 		p.info_hash = ih;
 	else
 		p.ti = t;
-	p.save_path = "./tmp1_fast";
+	p.save_path = "tmp1_fast";
 
-	remove("./tmp1_fast/temporary", ec);
-	if (ec) log("remove(): %s", ec.message().c_str());
-	ec.clear();
-	torrent_handle ret = ses->add_torrent(p, ec);
+	torrent_handle ret = ses->add_torrent(p);
 	if (th) *th = ret;
 
 	// wait for the torrent to be ready
@@ -481,6 +495,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 
 	if (incoming)
 	{
+		error_code ec;
 		s.connect(ep("127.0.0.1", ses->listen_port()), ec);
 		if (ec) TEST_ERROR(ec.message());
 	}
@@ -1088,13 +1103,13 @@ void have_all_test(bool const incoming)
 TORRENT_TEST(outgoing_have_all)
 {
 	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
-	have_all_test(true);
+	have_all_test(false);
 }
 
 TORRENT_TEST(incoming_have_all)
 {
-	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
-	have_all_test(false);
+	std::cout << "\n === test incoming have-all ===\n" << std::endl;
+	have_all_test(true);
 }
 
 TORRENT_TEST(dht_port_no_support)

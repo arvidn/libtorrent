@@ -94,6 +94,7 @@ EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
 	, int const piece_size, std::string base_name = "test_dir-");
 EXPORT std::shared_ptr<lt::torrent_info> make_torrent(lt::span<const int> file_sizes
 	, int piece_size);
+EXPORT std::shared_ptr<lt::torrent_info> make_torrent(lt::file_storage& fs);
 EXPORT void create_random_files(std::string const& path, lt::span<const int> file_sizes
 	, lt::file_storage* fs = nullptr);
 
