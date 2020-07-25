@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/aux_/stack_allocator.hpp"
 #include "libtorrent/string_view.hpp"
 #include <cstdarg> // for va_list, va_start, va_end
 

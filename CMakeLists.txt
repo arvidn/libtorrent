@@ -78,7 +78,6 @@ set(libtorrent_include_files
 	peer_connection_interface
 	peer_id
 	peer_info
-	peer_list
 	peer_request
 	performance_counters
 	pex_flags
@@ -111,7 +110,6 @@ set(libtorrent_include_files
 	socks5_stream
 	span
 	ssl_stream
-	stack_allocator
 	stat
 	stat_cache
 	storage_defs
@@ -232,6 +230,7 @@ set(libtorrent_aux_include_files
 	packet_buffer
 	packet_pool
 	path
+	peer_list
 	polymorphic_socket
 	portmap
 	proxy_settings
@@ -248,6 +247,7 @@ set(libtorrent_aux_include_files
 	session_udp_sockets
 	set_socket_buffer
 	socket_type
+	stack_allocator
 	storage_utils
 	string_ptr
 	strview_less

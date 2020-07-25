@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
-#include "libtorrent/peer_list.hpp"
+#include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
@@ -85,7 +85,7 @@ namespace {
 	};
 }
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
 		: m_locked_peer(nullptr)

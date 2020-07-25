@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/aux_/stack_allocator.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_transport
 #include "libtorrent/tracker_manager.hpp" // for event_t

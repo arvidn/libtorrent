@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/peer_list.hpp"
+#include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
@@ -327,7 +327,7 @@ namespace aux {
 		// the state of this torrent (queued, checking, downloading, etc.)
 		std::uint32_t m_state:3;
 
-		std::unique_ptr<peer_list> m_peer_list;
+		std::unique_ptr<aux::peer_list> m_peer_list;
 	};
 
 	// a torrent is a class that holds information
@@ -704,7 +704,7 @@ namespace aux {
 		void update_peer_port(int port, torrent_peer* p, peer_source_flags_t src);
 		void set_seed(torrent_peer* p, bool s);
 		void clear_failcount(torrent_peer* p);
-		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
+		std::pair<aux::peer_list::iterator, aux::peer_list::iterator> find_peers(address const& a);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return int(m_connections.size() - m_peers_to_disconnect.size()); }
