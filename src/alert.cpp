@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/aux_/stack_allocator.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/session_stats.hpp"

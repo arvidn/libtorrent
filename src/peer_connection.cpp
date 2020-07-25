@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/peer_list.hpp"
+#include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"

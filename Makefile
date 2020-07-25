@@ -489,7 +489,6 @@ HEADERS = \
   peer_connection_interface.hpp \
   peer_id.hpp                  \
   peer_info.hpp                \
-  peer_list.hpp                \
   peer_request.hpp             \
   performance_counters.hpp     \
   pex_flags.hpp                \
@@ -524,7 +523,6 @@ HEADERS = \
   span.hpp                     \
   ssl.hpp                      \
   ssl_stream.hpp               \
-  stack_allocator.hpp          \
   stat.hpp                     \
   stat_cache.hpp               \
   storage.hpp                  \
@@ -618,6 +616,7 @@ HEADERS = \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
+  aux_/peer_list.hpp                \
   aux_/polymorphic_socket.hpp       \
   aux_/portmap.hpp                  \
   aux_/posix_storage.hpp            \
@@ -636,6 +635,7 @@ HEADERS = \
   aux_/set_socket_buffer.hpp        \
   aux_/sha512.hpp                   \
   aux_/socket_type.hpp              \
+  aux_/stack_allocator.hpp          \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \

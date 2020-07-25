@@ -58,9 +58,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/pex_flags.hpp"
 
-namespace libtorrent {
+namespace libtorrent { struct torrent_peer_allocator_interface; }
 
-	struct torrent_peer_allocator_interface;
+namespace libtorrent::aux {
 
 	// this object is used to communicate torrent state and
 	// some configuration to the peer_list object. This make

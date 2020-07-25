@@ -30,11 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/aux_/stack_allocator.hpp"
 #include <cstdarg> // for va_list, va_copy, va_end
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	allocation_slot stack_allocator::copy_string(string_view str)
 	{
@@ -139,5 +138,3 @@ namespace aux {
 		m_storage.clear();
 	}
 }
-}
-

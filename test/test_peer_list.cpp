@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/peer_list.hpp"
+#include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg>
 
 using namespace lt;
+using namespace lt::aux;
 
 namespace {
 
