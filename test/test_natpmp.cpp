@@ -145,19 +145,22 @@ int main(int argc, char* argv[])
 
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
-	std::cout << "mapping ports TCP: " << argv[1]
-		<< " UDP: " << argv[2] << std::endl;
+	std::cout << "attempting to map ports TCP: " << argv[1]
+		<< " UDP: " << argv[2]
+		<< " on interface: " << iface->name << std::endl;
 
 	ios.restart();
 	ios.run();
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
-	std::cout << "removing mapping " << tcp_map << std::endl;
-	natpmp_handler->delete_mapping(tcp_map);
+	if (tcp_map >= 0)
+	{
+		std::cout << "removing mapping " << tcp_map << std::endl;
+		natpmp_handler->delete_mapping(tcp_map);
+	}
 
 	ios.restart();
 	ios.run();
-	std::cout << "removing mappings" << std::endl;
 	natpmp_handler->close();
 
 	ios.restart();

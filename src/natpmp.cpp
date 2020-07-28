@@ -183,9 +183,8 @@ void natpmp::start(ip_interface const& ip)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			log("failed to find default route for \"%s\" %s: %s"
-				, ip.name, local_address.to_string().c_str()
-				, convert_from_native(ec.message()).c_str());
+			log("failed to find default route for \"%s\" %s"
+				, ip.name, local_address.to_string().c_str());
 		}
 #endif
 		disable(ec);
