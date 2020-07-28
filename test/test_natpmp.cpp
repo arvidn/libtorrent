@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 
 	if (argc != 3)
 	{
-		std::cout << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
+		std::cout << "usage: test_natpmp tcp-port udp-port" << std::endl;
 		return 1;
 	}
 
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 		std::cerr << "failed to enumerate routes: " << ec.message() << '\n';
 		return -1;
 	}
-	std::vector<ip_interface> const ifs = enum_net_interfaces(ios, ec);
+	std::vector<ip_interface> const ifs = lt::enum_net_interfaces(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate network interfaces: " << ec.message() << '\n';
