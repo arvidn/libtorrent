@@ -688,7 +688,8 @@ void natpmp::on_reply(error_code const& e
 		log("unsupported version");
 #endif
 		// ignore errors from local_endpoint
-		if (m_version == version_pcp && !aux::is_v6(m_socket.local_endpoint()))
+		error_code ec;
+		if (m_version == version_pcp && !aux::is_v6(m_socket.local_endpoint(ec)))
 		{
 			m_version = version_natpmp;
 			resend_request(m_currently_mapping);

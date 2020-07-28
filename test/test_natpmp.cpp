@@ -79,14 +79,14 @@ int main(int argc, char* argv[])
 	io_context ios;
 	std::string user_agent = "test agent";
 
-	if (argc != 3)
+	if (argc < 3 || argc > 4)
 	{
-		std::cout << "usage: test_natpmp tcp-port udp-port" << std::endl;
+		std::cout << "usage: test_natpmp tcp-port udp-port [interface]" << std::endl;
 		return 1;
 	}
 
 	error_code ec;
-	std::vector<ip_route> const routes = enum_routes(ios, ec);
+	std::vector<ip_route> const routes = lt::enum_routes(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate routes: " << ec.message() << '\n';
@@ -98,18 +98,37 @@ int main(int argc, char* argv[])
 		std::cerr << "failed to enumerate network interfaces: " << ec.message() << '\n';
 		return -1;
 	}
-	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
-		{
-			if (!face.interface_address.is_v4()) return false;
-			if (face.interface_address.is_loopback()) return false;
-			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
-				{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
-			if (route == routes.end()) return false;
-			return true;
-		});
+	auto const iface = [&]
+	{
+		if (argc > 3)
+			return std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipf)
+				{ return ipf.name == string_view(argv[3]); });
+		else
+			return std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
+				{
+				if (!face.interface_address.is_v4()) return false;
+				if (face.interface_address.is_loopback()) return false;
+				auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+					{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
+				if (route == routes.end()) return false;
+				return true;
+				});
+	}();
+
 	if (iface == ifs.end())
 	{
-		std::cerr << "could not find an IPv4 interface to run NAT-PMP test over!\n";
+		if (argc < 4)
+		{
+			std::cerr << "could not find an IPv4 interface to run NAT-PMP test over!\n";
+		}
+		else
+		{
+			std::cerr << "could not find interface: \"" << argv[3] << "\"\navailable ones are:\n";
+			for (auto const& ipf : ifs)
+			{
+				std::cerr << ipf.name << '\n';
+			}
+		}
 		return -1;
 	}
 
