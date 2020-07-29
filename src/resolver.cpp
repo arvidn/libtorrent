@@ -46,7 +46,7 @@ namespace aux {
 		, m_timeout(seconds(1200))
 	{}
 
-	void resolver::callback(resolver_interface::callback_t const& h
+	void resolver::callback(resolver_interface::callback_t h
 		, error_code const& ec, std::vector<address> const& ips)
 	{
 		try {
@@ -57,12 +57,15 @@ namespace aux {
 	}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type ips
-		, resolver_interface::callback_t const& h, std::string const& hostname)
+		, std::string const& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
 		{
-			callback(h, ec, {});
+			auto const range = m_callbacks.equal_range(hostname);
+			for (auto c = range.first; c != range.second; ++c)
+				callback(std::move(c->second), ec, {});
+			m_callbacks.erase(range.first, range.second);
 			return;
 		}
 
@@ -72,7 +75,10 @@ namespace aux {
 		for (auto i : ips)
 			ce.addresses.push_back(i.endpoint().address());
 
-		callback(h, ec, ce.addresses);
+		auto const range = m_callbacks.equal_range(hostname);
+		for (auto c = range.first; c != range.second; ++c)
+			callback(std::move(c->second), ec, ce.addresses);
+		m_callbacks.erase(range.first, range.second);
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
@@ -91,7 +97,7 @@ namespace aux {
 	}
 
 	void resolver::async_resolve(std::string const& host, resolver_flags const flags
-		, resolver_interface::callback_t const& h)
+		, resolver_interface::callback_t h)
 	{
 		// special handling for raw IP addresses. There's no need to get in line
 		// behind actual lookups if we can just resolve it immediately.
@@ -126,18 +132,27 @@ namespace aux {
 			return;
 		}
 
+		auto iter = m_callbacks.find(host);
+		bool const done = (iter != m_callbacks.end());
+
+		m_callbacks.insert(iter, {host, std::move(h)});
+
+		// if there is an existing outtanding lookup, our callback will be
+		// called once it completes. We're done here.
+		if (done) return;
+
 		// the port is ignored
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
 			m_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
-				, h, host));
+				, host));
 		}
 		else
 		{
 			m_critical_resolver.async_resolve(host, "80", std::bind(&resolver::on_lookup, this, _1, _2
-				, h, host));
+				, host));
 		}
 	}
 

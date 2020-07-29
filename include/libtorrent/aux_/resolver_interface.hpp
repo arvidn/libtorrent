@@ -63,7 +63,7 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 	static inline constexpr resolver_flags abort_on_shutdown = 1_bit;
 
 	virtual void async_resolve(std::string const& host, resolver_flags flags
-		, callback_t const& h) = 0;
+		, callback_t h) = 0;
 
 	virtual void abort() = 0;
 

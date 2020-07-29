@@ -31,6 +31,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* don't time out tracker announces as eagerly while resolving hostnames
+	* fix NAT-PMP shutdown issue
+	* improve hostname lookup by merging identical lookups
 	* fix network route enumeration for large routing tables
 	* fixed issue where pop_alerts() could return old, invalid alerts
 	* fix issue when receiving have-all message before the metadata
