@@ -1440,6 +1440,9 @@ namespace {
 			|| (pack.has_val(settings_pack::proxy_type)
 				&& pack.get_int(settings_pack::proxy_type)
 					!= m_settings.get_int(settings_pack::proxy_type))
+			|| (pack.has_val(settings_pack::proxy_peer_connections)
+				&& pack.get_bool(settings_pack::proxy_peer_connections)
+					!= m_settings.get_bool(settings_pack::proxy_peer_connections))
 			;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1914,7 +1917,10 @@ namespace {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+		// if we don't proxy peer connections, don't apply the special logic for
+		// proxies
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
 		{
 			// we will be able to accept incoming connections over UDP. so use
 			// one of the ports the user specified to use a consistent port
@@ -1929,11 +1935,6 @@ namespace {
 		}
 		else
 		{
-			listen_socket_flags_t const flags
-				= (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
-				? listen_socket_flags_t{}
-				: listen_socket_t::accept_incoming;
-
 			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
 			if (ec && m_alerts.should_post<listen_failed_alert>())
 			{
@@ -1972,7 +1973,7 @@ namespace {
 				// IP address or a device name. In case it's a device name, we want to
 				// (potentially) end up binding a socket for each IP address associated
 				// with that device.
-				interface_to_endpoints(iface, flags, ifs, eps);
+				interface_to_endpoints(iface, listen_socket_t::accept_incoming, ifs, eps);
 			}
 
 			if (eps.empty())
