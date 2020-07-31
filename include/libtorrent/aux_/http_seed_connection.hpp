@@ -40,13 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/web_connection_base.hpp"
+#include "libtorrent/aux_/web_connection_base.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 
-namespace libtorrent {
+namespace libtorrent { struct peer_request; }
 
-namespace aux { struct torrent; }
-	struct peer_request;
+namespace libtorrent::aux {
 
 	class TORRENT_EXTRA_EXPORT http_seed_connection
 		: public web_connection_base

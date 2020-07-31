@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-#include "libtorrent/web_peer_connection.hpp"
+#include "libtorrent/aux_/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 constexpr int request_size_overhead = 5000;
 
@@ -109,7 +109,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		if (m_path.empty()) m_path += '/';
 		if (m_path[m_path.size() - 1] == '/')
 		{
-			m_path += escape_string(t->torrent_file().name());
+			m_path += lt::escape_string(t->torrent_file().name());
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
@@ -420,9 +420,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		request += " HTTP/1.1\r\n";
 		add_headers(request, m_settings, using_proxy);
 		request += "\r\nRange: bytes=";
-		request += to_string(file_req.start).data();
+		request += lt::to_string(file_req.start).data();
 		request += "-";
-		request += to_string(file_req.start + file_req.length - 1).data();
+		request += lt::to_string(file_req.start + file_req.length - 1).data();
 		request += "\r\n\r\n";
 		m_first_request = false;
 
@@ -477,9 +477,9 @@ void web_peer_connection::write_request(peer_request const& r)
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
 			request += "\r\nRange: bytes=";
-			request += to_string(f.offset).data();
+			request += lt::to_string(f.offset).data();
 			request += "-";
-			request += to_string(f.offset + f.size - 1).data();
+			request += lt::to_string(f.offset + f.size - 1).data();
 			request += "\r\n\r\n";
 			m_first_request = false;
 
@@ -626,7 +626,7 @@ void web_peer_connection::handle_error(int const bytes_left)
 	t->retry_web_seed(this, m_parser.header_duration("retry-after"));
 	if (t->alerts().should_post<url_seed_alert>())
 	{
-		std::string const error_msg = to_string(m_parser.status_code()).data()
+		std::string const error_msg = lt::to_string(m_parser.status_code()).data()
 			+ (" " + m_parser.message());
 		t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), m_url
 			, error_msg);

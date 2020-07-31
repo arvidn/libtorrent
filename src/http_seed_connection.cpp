@@ -38,14 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/http_seed_connection.hpp"
+#include "libtorrent/aux_/http_seed_connection.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
 #include "libtorrent/optional.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	http_seed_connection::http_seed_connection(peer_connection_args& pack
 		, aux::web_seed_t& web)
@@ -172,7 +172,7 @@ namespace libtorrent {
 		request += "GET ";
 		request += using_proxy ? m_url : m_path;
 		request += "?info_hash=";
-		request += escape_string({associated_info_hash().data(), 20});
+		request += lt::escape_string({associated_info_hash().data(), 20});
 		request += "&piece=";
 		request += to_string(r.piece);
 
@@ -181,10 +181,10 @@ namespace libtorrent {
 		if (r.start > 0 || r.length != t->torrent_file().piece_size(r.piece))
 		{
 			request += "&ranges=";
-			request += to_string(r.start).data();
+			request += lt::to_string(r.start).data();
 			request += "-";
 			// ranges are inclusive, just like HTTP
-			request += to_string(r.start + r.length - 1).data();
+			request += lt::to_string(r.start + r.length - 1).data();
 		}
 
 		request += " HTTP/1.1\r\n";
@@ -286,7 +286,7 @@ namespace libtorrent {
 
 					if (t->alerts().should_post<url_seed_alert>())
 					{
-						std::string const error_msg = to_string(m_parser.status_code()).data()
+						std::string const error_msg = lt::to_string(m_parser.status_code()).data()
 							+ (" " + m_parser.message());
 						t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), url()
 							, error_msg);
