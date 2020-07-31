@@ -4,7 +4,7 @@ dist: bionic
 matrix:
   fast_finish: true
   include:
-    - env: variant=release toolset=gcc check_headers=1 python=1
+    - env: variant=release toolset=gcc check_headers=1 python=1 python_dist=1
     - env: variant=debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
@@ -25,7 +25,7 @@ matrix:
           packages:
           - gnutls-dev
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
-    - env: variant=release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
+    - env: variant=release coverage=1 toolset=gcc-coverage
     - env: dist=1 toolset=gcc install_boost=1 docs=1
       addons:
         apt:
@@ -255,15 +255,21 @@ script:
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
+  - 'if [ "$coverage" == "1" ]; then
+      ${B2} -j2 -l300 warnings-as-errors=on $variant $toolset deprecated-functions=off deterministic-tests &&
+      codecov --root .. >/dev/null &&
+      cd $TRAVIS_BUILD_DIR/simulation &&
+      ${B2} -j2 crypto=built-in warnings-as-errors=on warnings=all $variant $toolset deprecated-functions=off &&
+      codecov --root .. >/dev/null;
+    fi'
+
+  - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
       ${B2} -j2 warnings-as-errors=on ${B2_ARGS} testing.execute=off &&
       travis_retry ${B2} -j3 warnings-as-errors=on ${B2_ARGS} -l300 &&
       travis_retry ${B2} -j2 warnings-as-errors=on ${B2_ARGS} test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
         travis_retry ${B2} -j2 warnings-as-errors=on ${B2_ARGS} test_lsd -l300;
-      fi &&
-      if [ "$coverage" == "1" ]; then
-        codecov --root .. >/dev/null;
       fi;
     fi'
 
