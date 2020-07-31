@@ -7672,6 +7672,10 @@ namespace {
 				|| m_state == torrent_status::finished))
 			return false;
 
+		if (!settings().get_bool(settings_pack::enable_outgoing_tcp)
+			&& !settings().get_bool(settings_pack::enable_outgoing_utp))
+			return false;
+
 		return true;
 	}
 
