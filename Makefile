@@ -458,7 +458,6 @@ HEADERS = \
   gzip.hpp                     \
   hasher.hpp                   \
   hex.hpp                      \
-  http_seed_connection.hpp     \
   http_stream.hpp              \
   http_tracker_connection.hpp  \
   i2p_stream.hpp               \
@@ -546,8 +545,6 @@ HEADERS = \
   utf8.hpp                     \
   vector_utils.hpp             \
   version.hpp                  \
-  web_connection_base.hpp      \
-  web_peer_connection.hpp      \
   write_resume_data.hpp        \
   \
   aux_/alert_manager.hpp            \
@@ -597,6 +594,7 @@ HEADERS = \
   aux_/heterogeneous_queue.hpp      \
   aux_/http_connection.hpp          \
   aux_/http_parser.hpp              \
+  aux_/http_seed_connection.hpp     \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \
@@ -651,6 +649,8 @@ HEADERS = \
   aux_/utp_socket_manager.hpp       \
   aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \
+  aux_/web_connection_base.hpp      \
+  aux_/web_peer_connection.hpp      \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
   aux_/rtc_signaling.hpp            \

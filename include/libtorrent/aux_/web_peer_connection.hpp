@@ -42,12 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/web_connection_base.hpp"
+#include "libtorrent/aux_/web_connection_base.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base

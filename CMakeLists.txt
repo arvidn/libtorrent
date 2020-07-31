@@ -49,7 +49,6 @@ set(libtorrent_include_files
 	gzip
 	hasher
 	hex
-	http_seed_connection
 	http_stream
 	http_tracker_connection
 	i2p_stream
@@ -132,8 +131,6 @@ set(libtorrent_include_files
 	utf8
 	vector_utils
 	version
-	web_connection_base
-	web_peer_connection
 	write_resume_data
 	ssl)
 
@@ -214,6 +211,7 @@ set(libtorrent_aux_include_files
 	heterogeneous_queue
 	http_connection
 	http_parser
+	http_seed_connection
 	invariant_check
 	instantiate_connection
 	io
@@ -262,6 +260,8 @@ set(libtorrent_aux_include_files
 	utp_socket_manager
 	utp_stream
 	vector
+	web_connection_base
+	web_peer_connection
 	win_crypto_provider
 	win_util
 	rtc_signaling

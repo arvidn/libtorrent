@@ -38,12 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <cstdlib>
 
-#include "libtorrent/web_connection_base.hpp"
+#include "libtorrent/aux_/web_connection_base.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	web_connection_base::web_connection_base(
 		peer_connection_args& pack
