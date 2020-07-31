@@ -4,8 +4,6 @@ dist: bionic
 matrix:
   fast_finish: true
   include:
-    - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc
     - env: variant=release toolset=gcc check_headers=1 python=1
     - env: variant=debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
       os: osx
@@ -75,10 +73,6 @@ addons:
     - python3.7-dev
 
 before_install:
-
-  - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
-      export sonar_scan=0;
-    fi'
 
   # pull down a recent version of boost and build boost-build
   - cd $HOME;
@@ -194,13 +188,6 @@ install:
       sudo pip3 install flake8;
       python3 -m flake8 --version;
     fi'
-  - 'if [ $sonar_scan == "1" ]; then
-      wget --no-verbose https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip;
-      wget --no-verbose https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip;
-      unzip sonar-scanner-cli-4.2.0.1873-linux.zip;
-      unzip build-wrapper-linux-x86.zip;
-      export PATH=$PWD/sonar-scanner-4.2.0.1873-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
-    fi'
 
   - ccache -V
   - ccache --show-stats
@@ -243,10 +230,6 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - 'if [ "$pylint" == "1" ]; then
       python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123;
-    fi'
-  - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=14 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
-       sonar-scanner -D sonar.login=$SONAR_TOKEN;
     fi'
   - 'if [[ $clang_tidy == "1" ]]; then
        which clang-tidy;

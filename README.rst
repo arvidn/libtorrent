@@ -20,15 +20,6 @@
 .. image:: https://img.shields.io/lgtm/grade/cpp/g/arvidn/libtorrent.svg?logo=lgtm&logoWidth=18
 	:target: https://lgtm.com/projects/g/arvidn/libtorrent/context:cpp
 
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=alert_status
-	:target: https://sonarcloud.io/dashboard?id=libtorrent
-
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=security_rating
-	:target: https://sonarcloud.io/dashboard?id=libtorrent
-
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=libtorrent&metric=sqale_rating
-	:target: https://sonarcloud.io/dashboard?id=libtorrent
-
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
     :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample
 
