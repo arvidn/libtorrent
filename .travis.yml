@@ -40,6 +40,7 @@ matrix:
           - graphviz
           - hunspell
           - imagemagick
+          - ninja-build
     - env: cmake=1 toolset=gcc install_boost=1
       addons:
         apt:
@@ -344,7 +345,9 @@ script:
       make dist &&
       cd libtorrent-rasterbar-2.0.0 &&
       make &&
-      make python-binding tools examples;
+      make python-binding tools examples &&
+      cmake -GNinja . &&
+      ninja;
     fi
 
   - ccache --show-stats
