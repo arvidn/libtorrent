@@ -29,6 +29,7 @@
 
 1.2.8 released
 
+	* validate UTF-8 encoding of client version strings from peers
 	* don't time out tracker announces as eagerly while resolving hostnames
 	* fix NAT-PMP shutdown issue
 	* improve hostname lookup by merging identical lookups
