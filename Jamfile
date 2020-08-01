@@ -10,6 +10,8 @@ import package ;
 import virtual-target ;
 import cast ;
 
+VERSION = 2.0 ;
+
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
 LDFLAGS = [ modules.peek : LDFLAGS ] ;
@@ -46,8 +48,6 @@ else
 }
 
 use-project /try_signal : ./deps/try_signal ;
-
-VERSION = 2.0.0 ;
 
 rule linking ( properties * )
 {
