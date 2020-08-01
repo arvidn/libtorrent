@@ -9,7 +9,12 @@ project(libtorrent
 	DESCRIPTION "Bittorrent library"
 	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
 )
-set (SOVERSION "10")
+set (LIBVERSION_MAJOR 11)
+set (LIBVERSION_MINOR 0)
+set (LIBVERSION_PATCH 0)
+
+set (LIBVERSION ${LIBVERSION_MAJOR}.${LIBVERSION_MINOR}.${LIBVERSION_PATCH})
+set (SOVERSION ${LIBVERSION_MAJOR})
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
@@ -515,7 +520,7 @@ set_target_properties(torrent-rasterbar
 	PROPERTIES
 		CXX_VISIBILITY_PRESET "hidden"
 		VISIBILITY_INLINES_HIDDEN "true"
-		VERSION ${PROJECT_VERSION}
+		VERSION ${LIBVERSION}
 		SOVERSION ${SOVERSION}
 )
 
