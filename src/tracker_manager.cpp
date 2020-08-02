@@ -436,6 +436,19 @@ namespace libtorrent {
 		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
+		for (auto const& c : m_queued)
+		{
+			tracker_request const& req = c->tracker_req();
+			if (req.event == tracker_request::stopped && !all)
+				continue;
+
+			close_http_connections.push_back(c);
+
+#ifndef TORRENT_DISABLE_LOGGING
+			std::shared_ptr<request_callback> rc = c->requester();
+			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
+#endif
+		}
 		for (auto const& c : m_http_conns)
 		{
 			tracker_request const& req = c->tracker_req();
