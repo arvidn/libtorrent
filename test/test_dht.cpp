@@ -1705,7 +1705,7 @@ void test_routing_table(address(&rand_addr)())
 				, std::bind(&node_entry::id, _1)
 				, std::bind(&node_entry::id, _2), id));
 
-		int expected = std::accumulate(nodes.begin(), nodes.begin() + (bucket_size * 2)
+		int expected = std::accumulate(nodes.begin(), nodes.begin() + int(temp.size())
 			, 0, std::bind(&sum_distance_exp, _1, _2, id));
 		int sum_hits = std::accumulate(temp.begin(), temp.end()
 			, 0, std::bind(&sum_distance_exp, _1, _2, id));
