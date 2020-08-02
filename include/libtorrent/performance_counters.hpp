@@ -46,6 +46,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXPORT counters
 	{
+		// internal
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this
@@ -330,6 +331,8 @@ namespace libtorrent {
 
 		// it is important that all gauges have a higher index than counters.
 		// This assumption is relied upon in other parts of the code
+
+		// internal
 		enum stats_gauge_t
 		{
 			num_checking_torrents = num_stats_counters,
