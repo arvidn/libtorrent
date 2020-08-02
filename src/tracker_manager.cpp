@@ -243,6 +243,7 @@ namespace libtorrent {
 				m_queued.pop_front();
 				m_http_conns.push_back(std::move(conn));
 				m_http_conns.back()->start();
+				m_stats_counters.set_value(counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 			}
 			return;
 		}
@@ -252,6 +253,7 @@ namespace libtorrent {
 		if (j != m_queued.end())
 		{
 			m_queued.erase(j);
+			m_stats_counters.set_value(counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 		}
 	}
 
@@ -304,6 +306,7 @@ namespace libtorrent {
 			else
 			{
 				m_queued.push_back(std::move(con));
+				m_stats_counters.set_value(counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 			}
 			return;
 		}

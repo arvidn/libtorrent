@@ -631,6 +631,9 @@ reports = [
     ('async_accept', 'number of outstanding accept calls', '', '', [ \
         'ses.num_outstanding_accept' \
     ]),
+    ('queued_trackers', 'number of queued tracker announces', '', '', [ \
+        'tracker.num_queued_tracker_announces' \
+    ]),
 
     # ('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'],
     #  {'type': histogram, 'binwidth': 5, 'numbins': 120}),

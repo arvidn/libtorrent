@@ -467,6 +467,8 @@ namespace libtorrent {
 
 			num_outstanding_accept,
 
+			num_queued_tracker_announces,
+
 			num_counters,
 			num_gauges_counters = num_counters - num_stats_counters
 		};
