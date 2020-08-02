@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <boost/predef/other/endian.h>
+
 #ifdef TORRENT_WINDOWS
 #include <winsock2.h>
 #else
@@ -64,6 +66,20 @@ inline std::uint16_t host_to_network(std::uint16_t x)
 
 inline std::uint16_t network_to_host(std::uint16_t x)
 { return ntohs(x); }
+
+inline std::uint32_t little_endian_to_host(std::uint32_t x)
+{
+#if BOOST_ENDIAN_BIG_BYTE
+	return (x & 0xff000000) >> 24
+		| (x & 0x00ff0000) >> 8
+		| (x & 0x0000ff00) << 8
+		| (x & 0x000000ff) << 24;
+#elif BOOST_ENDIAN_LITTLE_BYTE
+	return x;
+#else
+#error "unknown endian"
+#endif
+}
 
 }
 }
