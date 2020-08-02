@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
@@ -48,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// The general CRC32 function doesn't output an integer, it outputs a
+	// sequence of 4 bytes. We interpret those 4 bytes as an integer, and as
+	// such we need to decide whether to interpret it as big endian or little
+	// endian. For historical reasons, it's interpreted as little endian.
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{
 #if TORRENT_HAS_SSE
@@ -57,13 +62,13 @@ namespace libtorrent {
 #ifdef __GNUC__
 			// we can't use these because then we'd have to tell
 			// -msse4.2 to gcc on the command line
-//			return __builtin_ia32_crc32si(ret, v) ^ 0xffffffff;
+//			return aux::little_endian_to_host(__builtin_ia32_crc32si(ret, v) ^ 0xffffffff);
 			asm ("crc32l\t" "(%1), %0"
 				: "=r"(ret)
 				: "r"(&v), "0"(ret));
-			return ret ^ 0xffffffff;
+			return aux::little_endian_to_host(ret ^ 0xffffffff);
 #else
-			return _mm_crc32_u32(ret, v) ^ 0xffffffff;
+			return aux::little_endian_to_host(_mm_crc32_u32(ret, v) ^ 0xffffffff);
 #endif
 		}
 #endif
@@ -72,13 +77,13 @@ namespace libtorrent {
 		if (aux::arm_crc32c_support)
 		{
 			std::uint32_t ret = 0xffffffff;
-			return __crc32cw(ret, v) ^ 0xffffffff;
+			return aux::little_endian_to_host(__crc32cw(ret, v) ^ 0xffffffff);
 		}
 #endif
 
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		crc.process_bytes(&v, 4);
-		return crc.checksum();
+		return aux::little_endian_to_host(crc.checksum());
 	}
 
 	std::uint32_t crc32c(std::uint64_t const* buf, int num_words)
@@ -102,7 +107,7 @@ namespace libtorrent {
 				ret = _mm_crc32_u64(ret, buf[i]);
 #endif
 			}
-			return std::uint32_t(ret) ^ 0xffffffff;
+			return aux::little_endian_to_host(std::uint32_t(ret) ^ 0xffffffff);
 #else
 			std::uint32_t ret = 0xffffffff;
 			std::uint32_t const* buf0 = reinterpret_cast<std::uint32_t const*>(buf);
@@ -124,7 +129,7 @@ namespace libtorrent {
 				ret = _mm_crc32_u32(ret, buf0[i*2+1]);
 #endif
 			}
-			return ret ^ 0xffffffff;
+			return aux::little_endian_to_host(ret ^ 0xffffffff);
 #endif // amd64 or x86
 		}
 #endif // x86 or amd64 and gcc or msvc
@@ -137,12 +142,12 @@ namespace libtorrent {
 			{
 				ret = __crc32cd(ret, buf[i]);
 			}
-			return ret ^ 0xffffffff;
+			return aux::little_endian_to_host(ret ^ 0xffffffff);
 		}
 #endif
 
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		crc.process_bytes(buf, std::size_t(num_words) * 8);
-		return crc.checksum();
+		return aux::little_endian_to_host(crc.checksum());
 	}
 }
