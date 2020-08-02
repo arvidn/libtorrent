@@ -49,6 +49,16 @@ matrix:
           packages:
           - ninja-build
     - env: arch=arm toolset=gcc-arm
+      addons:
+        apt:
+          packages:
+          - qemu-user-static
+    - env: arch=s390x toolset=gcc-s390x
+      addons:
+        apt:
+          packages:
+          - g++-8-s390x-linux-gnu
+          - qemu-user-static
 
 notifications:
   email: false
@@ -154,6 +164,12 @@ install:
         <linkflags>-static-libstdc++
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
+  - 'if [[ $toolset == "gcc-s390x" ]]; then
+      echo "using gcc : s390x : ccache s390x-linux-gnu-g++-8 :
+        <linkflags>-lm
+        <linkflags>-static-libstdc++
+        <linkflags>-static-libgcc ;" >> ~/user-config.jam;
+    fi;'
   - 'if [ $clang_tidy == "1" ]; then
       echo "using clang_tidy : : clang-tidy-9 : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
@@ -215,11 +231,20 @@ install:
       export PATH=$PWD/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin:$PATH;
       arm-linux-gnueabihf-g++ --version;
       ./gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ --version;
-      travis_retry sudo apt-get install -y qemu-user-static;
       wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
+      sudo chroot rootfs mount -t proc none /proc;
+    fi'
+
+  - 'if [[ "$arch" == "s390x" ]]; then
+      cd $TRAVIS_BUILD_DIR/test;
+      s390x-linux-gnu-g++-8 --version;
+      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-s390x.tar.gz;
+      sudo mkdir rootfs;
+      sudo tar xf ubuntu-base.tar.gz -C rootfs;
+      sudo cp /usr/bin/qemu-s390x-static rootfs/usr/bin/;
       sudo chroot rootfs mount -t proc none /proc;
     fi'
 
@@ -372,4 +397,14 @@ script:
       chmod +x test-launcher.sh;
       sudo cp test-launcher.sh rootfs;
       travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
+    fi'
+  - 'if [[ "$arch" == "s390x" ]];
+    then
+      ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
+      sudo cp -R bin rootfs/home;
+      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
+      cat test-launcher.sh;
+      chmod +x test-launcher.sh;
+      sudo cp test-launcher.sh rootfs;
+      travis_retry ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
     fi'
