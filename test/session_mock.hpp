@@ -192,6 +192,7 @@ struct session_mock : aux::session_interface
 	bool is_posting_torrent_updates() const override { return false; }
 #endif
 
+#ifndef TORRENT_DISABLE_LOGGING
 	// session_logger
 	bool should_log() const override { return true; }
 	void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3)
@@ -203,6 +204,7 @@ struct session_mock : aux::session_interface
 		_alerts.emplace_alert<log_alert>(fmt, v);
 		va_end(v);
 	}
+#endif
 
 	// utils for tests
 	aux::session_settings& mutable_settings() { return _session_settings; }
@@ -244,4 +246,3 @@ struct session_mock : aux::session_interface
 };
 
 }
-
