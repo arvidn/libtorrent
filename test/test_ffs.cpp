@@ -76,7 +76,9 @@ TORRENT_TEST(count_leading_zeros)
 		std::uint32_t buf[5];
 		to_binary(t.first, buf);
 		TEST_EQUAL(aux::count_leading_zeros_sw({buf, 5}), t.second);
+#if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
 		TEST_EQUAL(aux::count_leading_zeros_hw({buf, 5}), t.second);
+#endif
 		TEST_EQUAL(aux::count_leading_zeros({buf, 5}), t.second);
 	}
 }
@@ -85,38 +87,52 @@ TORRENT_TEST(count_trailing_ones_u32)
 {
 	std::uint32_t v = 0;
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = 0xffffffff;
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 32);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 32);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 32);
 
 	v = aux::host_to_network(0xff00ff00);
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = aux::host_to_network(0xff0fff00);
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = aux::host_to_network(0xf0ff00ff);
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 8);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 8);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 8);
 
 	v = aux::host_to_network(0xf0ff0fff);
 	TEST_EQUAL(aux::count_trailing_ones_sw(v), 12);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(v), 12);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(v), 12);
 
 	std::uint32_t const arr[2] = {
 		aux::host_to_network(0xf0ff0fff)
 		, 0xffffffff};
 	TEST_EQUAL(aux::count_trailing_ones_sw(arr), 44);
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
 	TEST_EQUAL(aux::count_trailing_ones_hw(arr), 44);
+#endif
 	TEST_EQUAL(aux::count_trailing_ones(arr), 44);
 }
