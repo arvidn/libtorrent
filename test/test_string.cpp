@@ -350,6 +350,7 @@ void test_parse_interface(char const* input
 	TEST_EQUAL(print_listen_interfaces(list), output);
 	std::cout << "RESULT: " << print_listen_interfaces(list) << '\n';
 #endif
+	TORRENT_UNUSED(output);
 	for (auto const& e : err)
 		std::cout << "ERR: \"" << e << "\"\n";
 }
@@ -535,4 +536,3 @@ TORRENT_TEST(strip_string)
 	TEST_EQUAL(strip_string("   a     b   "), "a     b");
 	TEST_EQUAL(strip_string(" \t \t ab\t\t\t"), "ab");
 }
-
