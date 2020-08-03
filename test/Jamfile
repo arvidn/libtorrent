@@ -272,6 +272,17 @@ explicit arm-tests ;
 
 alias s390x-tests :
 	test_sha1_hash
+	test_primitives
+	test_string
+	test_pe_crypto
+	test_gzip
+	test_dht
+	test_bitfield
+	test_crc32
+	test_ffs
+	test_ed25519
+	test_session_params
+	test_mmap
 	;
 
 explicit s390x-tests ;
