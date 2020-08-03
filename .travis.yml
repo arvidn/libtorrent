@@ -230,6 +230,8 @@ install:
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-s390x-static rootfs/usr/bin/;
       sudo chroot rootfs mount -t proc none /proc;
+      sudo mount -o bind /sys rootfs/sys/;
+      sudo chroot rootfs lscpu;
     fi'
 
   - if [[ "$cmake" == "1" ]]; then
