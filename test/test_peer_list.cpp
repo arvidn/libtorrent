@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/aux_/ip_voter.hpp"

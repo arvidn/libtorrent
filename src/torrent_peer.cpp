@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/aux_/ip_helpers.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	namespace {
 

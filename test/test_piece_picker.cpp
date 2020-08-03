@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/random.hpp"
@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 
 using namespace lt;
+using namespace lt::aux;
 using namespace std::placeholders;
 
 namespace {

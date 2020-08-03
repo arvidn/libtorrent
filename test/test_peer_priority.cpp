@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/peer_list.hpp"
-#include "libtorrent/hasher.hpp"
 #include "setup_transfer.hpp" // for supports_ipv6()
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -54,29 +53,29 @@ std::uint32_t hash_buffer(char const* buf, int len)
 TORRENT_TEST(peer_priority)
 {
 	// when the IP is the same, we hash the ports, sorted
-	std::uint32_t p = peer_priority(
+	std::uint32_t p = aux::peer_priority(
 		ep("230.12.123.3", 0x4d2), ep("230.12.123.3", 0x12c));
 	TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));
 
 	// when we're in the same /24, we just hash the IPs
-	p = peer_priority(ep("230.12.123.1", 0x4d2), ep("230.12.123.3", 0x12c));
+	p = aux::peer_priority(ep("230.12.123.1", 0x4d2), ep("230.12.123.3", 0x12c));
 	TEST_EQUAL(p, hash_buffer("\xe6\x0c\x7b\x01\xe6\x0c\x7b\x03", 8));
 
 	// when we're in the same /16, we just hash the IPs masked by
 	// 0xffffff55
-	p = peer_priority(ep("230.12.23.1", 0x4d2), ep("230.12.123.3", 0x12c));
+	p = aux::peer_priority(ep("230.12.23.1", 0x4d2), ep("230.12.123.3", 0x12c));
 	TEST_EQUAL(p, hash_buffer("\xe6\x0c\x17\x01\xe6\x0c\x7b\x01", 8));
 
 	// when we're in different /16, we just hash the IPs masked by
 	// 0xffff5555
-	p = peer_priority(ep("230.120.23.1", 0x4d2), ep("230.12.123.3", 0x12c));
+	p = aux::peer_priority(ep("230.120.23.1", 0x4d2), ep("230.12.123.3", 0x12c));
 	TEST_EQUAL(p, hash_buffer("\xe6\x0c\x51\x01\xe6\x78\x15\x01", 8));
 
 	// test vectors from BEP 40
-	TEST_EQUAL(peer_priority(ep("123.213.32.10", 0), ep("98.76.54.32", 0))
+	TEST_EQUAL(aux::peer_priority(ep("123.213.32.10", 0), ep("98.76.54.32", 0))
 		, 0xec2d7224);
 
-	TEST_EQUAL(peer_priority(
+	TEST_EQUAL(aux::peer_priority(
 		ep("123.213.32.10", 0), ep("123.213.32.234", 0))
 		, 0x99568189);
 
@@ -84,13 +83,13 @@ TORRENT_TEST(peer_priority)
 	{
 		// IPv6 has a twice as wide mask, and we only care about the top 64 bits
 		// when the IPs are the same, just hash the ports
-		p = peer_priority(
+		p = aux::peer_priority(
 			ep("ffff:ffff:ffff:ffff::1", 0x4d2), ep("ffff:ffff:ffff:ffff::1", 0x12c));
 		TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));
 
 		// these IPs don't belong to the same /32, so apply the full mask
 		// 0xffffffff55555555
-		p = peer_priority(
+		p = aux::peer_priority(
 			ep("ffff:ffff:ffff:ffff::1", 0x4d2), ep("ffff:0fff:ffff:ffff::1", 0x12c));
 		TEST_EQUAL(p, hash_buffer(
 			"\xff\xff\x0f\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01"

@@ -60,11 +60,9 @@ namespace libtorrent {
 	struct peer_class_set;
 	struct peer_class_pool;
 	struct disk_observer;
-	struct torrent_peer;
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
-	struct torrent_peer_allocator_interface;
 	struct counters;
 
 namespace aux {
@@ -74,6 +72,8 @@ namespace aux {
 	struct resolver_interface;
 	struct alert_manager;
 	struct torrent;
+	struct torrent_peer;
+	struct torrent_peer_allocator_interface;
 	struct external_ip;
 }
 

@@ -83,7 +83,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct torrent_peer;
 	struct disk_interface;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -94,6 +93,7 @@ namespace aux {
 
 	struct session_interface;
 	struct torrent;
+	struct torrent_peer;
 
 	struct min_value_t {};
 	static const min_value_t min_value{};
@@ -178,7 +178,7 @@ namespace aux {
 		std::weak_ptr<aux::torrent> tor;
 		aux::socket_type s;
 		tcp::endpoint endp;
-		torrent_peer* peerinfo;
+		aux::torrent_peer* peerinfo;
 		peer_id our_peer_id;
 	};
 
@@ -315,14 +315,14 @@ namespace aux {
 
 		~peer_connection() override;
 
-		void set_peer_info(torrent_peer* pi) override
+		void set_peer_info(aux::torrent_peer* pi) override
 		{
 			TORRENT_ASSERT(m_peer_info == nullptr || pi == nullptr );
 			TORRENT_ASSERT(pi != nullptr || m_disconnect_started);
 			m_peer_info = pi;
 		}
 
-		torrent_peer* peer_info_struct() const override
+		aux::torrent_peer* peer_info_struct() const override
 		{ return m_peer_info; }
 
 		// this is called when the peer object is created, in case
@@ -822,7 +822,7 @@ namespace aux {
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming
 		// and hasn't been added to a torrent yet.
-		torrent_peer* m_peer_info;
+		aux::torrent_peer* m_peer_info;
 
 		// stats counters
 		counters& m_counters;

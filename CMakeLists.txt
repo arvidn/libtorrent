@@ -118,8 +118,6 @@ set(libtorrent_include_files
 	torrent_flags
 	torrent_handle
 	torrent_info
-	torrent_peer
-	torrent_peer_allocator
 	torrent_status
 	tracker_manager
 	udp_socket
@@ -255,6 +253,8 @@ set(libtorrent_aux_include_files
 	torrent
 	torrent_impl
 	torrent_list
+	torrent_peer
+	torrent_peer_allocator
 	unique_ptr
 	utp_socket_manager
 	utp_stream

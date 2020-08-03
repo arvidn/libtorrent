@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/request_blocks.hpp" // for source_rank
 
-#include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
@@ -58,9 +58,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/pex_flags.hpp"
 
-namespace libtorrent { struct torrent_peer_allocator_interface; }
-
 namespace libtorrent::aux {
+
+	struct torrent_peer_allocator_interface;
 
 	// this object is used to communicate torrent state and
 	// some configuration to the peer_list object. This make

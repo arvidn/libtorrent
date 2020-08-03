@@ -66,12 +66,12 @@ namespace libtorrent {
 
 namespace aux {
 	struct torrent;
+	struct torrent_peer;
 }
 	struct peer_connection;
 	template <typename Index>
 	struct typed_bitfield;
 	struct counters;
-	struct torrent_peer;
 
 	using prio_index_t = aux::strong_typedef<int, struct prio_index_tag_t>;
 	using picker_options_t = flags::bitfield_flag<std::uint16_t, struct picker_options_tag>;
@@ -114,7 +114,7 @@ namespace aux {
 			block_info(): num_peers(0), state(state_none) {}
 			// the peer this block was requested or
 			// downloaded from.
-			torrent_peer* peer = nullptr;
+			aux::torrent_peer* peer = nullptr;
 			// the number of peers that has this block in their
 			// download or request queues
 			unsigned num_peers:14;
@@ -124,7 +124,7 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 			// to allow verifying the invariant of blocks belonging to the right piece
 			piece_index_t piece_index{-1};
-			std::set<torrent_peer*> peers;
+			std::set<aux::torrent_peer*> peers;
 #endif
 		};
 
@@ -229,23 +229,23 @@ namespace aux {
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
-		void inc_refcount(piece_index_t, torrent_peer const*);
-		void dec_refcount(piece_index_t, torrent_peer const*);
+		void inc_refcount(piece_index_t, aux::torrent_peer const*);
+		void dec_refcount(piece_index_t, aux::torrent_peer const*);
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
 		void inc_refcount(typed_bitfield<piece_index_t> const& bitmask
-			, const torrent_peer* peer);
+			, const aux::torrent_peer* peer);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
 		void dec_refcount(typed_bitfield<piece_index_t> const& bitmask
-			, const torrent_peer* peer);
+			, const aux::torrent_peer* peer);
 
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
-		void inc_refcount_all(const torrent_peer* peer);
-		void dec_refcount_all(const torrent_peer* peer);
+		void inc_refcount_all(const aux::torrent_peer* peer);
+		void dec_refcount_all(const aux::torrent_peer* peer);
 
 		// we have every piece. This is used when creating a piece picker for a
 		// seed
@@ -309,7 +309,7 @@ namespace aux {
 		// (i.e. higher overhead per request).
 		picker_flags_t pick_pieces(typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
-			, int prefer_contiguous_blocks, torrent_peer* peer
+			, int prefer_contiguous_blocks, aux::torrent_peer* peer
 			, picker_options_t options, std::vector<piece_index_t> const& suggested_pieces
 			, int num_peers
 			, counters& pc
@@ -326,7 +326,7 @@ namespace aux {
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, torrent_peer* peer, std::vector<piece_index_t> const& ignore
+			, aux::torrent_peer* peer, std::vector<piece_index_t> const& ignore
 			, picker_options_t options) const;
 
 		// picks blocks only from downloading pieces
@@ -336,12 +336,12 @@ namespace aux {
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, torrent_peer* peer
+			, aux::torrent_peer* peer
 			, picker_options_t options) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
-		void clear_peer(torrent_peer* peer);
+		void clear_peer(aux::torrent_peer* peer);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// this is an invariant check
@@ -359,18 +359,18 @@ namespace aux {
 
 		// marks this piece-block as queued for downloading
 		// options are flags from options_t.
-		bool mark_as_downloading(piece_block block, torrent_peer* peer
+		bool mark_as_downloading(piece_block block, aux::torrent_peer* peer
 			, picker_options_t options = {});
 
 		// returns true if the block was marked as writing,
 		// and false if the block is already finished or writing
-		bool mark_as_writing(piece_block block, torrent_peer* peer);
+		bool mark_as_writing(piece_block block, aux::torrent_peer* peer);
 
 		void started_hash_job(piece_index_t piece);
 		void completed_hash_job(piece_index_t piece);
 
-		void mark_as_canceled(piece_block block, torrent_peer* peer);
-		void mark_as_finished(piece_block block, torrent_peer* peer);
+		void mark_as_canceled(piece_block block, aux::torrent_peer* peer);
+		void mark_as_finished(piece_block block, aux::torrent_peer* peer);
 
 		void mark_as_pad(piece_block block);
 
@@ -402,7 +402,7 @@ namespace aux {
 
 		// clears the given piece's download flag
 		// this means that this piece-block can be picked again
-		void abort_download(piece_block block, torrent_peer* peer = nullptr);
+		void abort_download(piece_block block, aux::torrent_peer* peer = nullptr);
 
 		// returns true if all blocks in this piece are finished
 		// or if we have the piece
@@ -421,7 +421,7 @@ namespace aux {
 
 		// return the peer pointers to all peers that participated in
 		// this piece
-		std::vector<torrent_peer*> get_downloaders(piece_index_t) const;
+		std::vector<aux::torrent_peer*> get_downloaders(piece_index_t) const;
 
 		std::vector<piece_picker::downloading_piece> get_download_queue() const;
 		int get_download_queue_size() const;
@@ -429,7 +429,7 @@ namespace aux {
 		void get_download_queue_sizes(int* partial
 			, int* full, int* finished, int* zero_prio) const;
 
-		torrent_peer* get_downloader(piece_block block) const;
+		aux::torrent_peer* get_downloader(piece_block block) const;
 
 
 		// piece states
@@ -462,7 +462,7 @@ namespace aux {
 
 		piece_count all_pieces() const;
 
-		int pad_blocks_in_piece(piece_index_t const index) const;
+		int pad_blocks_in_piece(piece_index_t index) const;
 
 		// number of pieces whose hash has passed (but haven't necessarily
 		// been flushed to disk yet)
@@ -500,7 +500,7 @@ namespace aux {
 			, typed_bitfield<piece_index_t> const& bits) const;
 
 		void check_peer_invariant(typed_bitfield<piece_index_t> const& have
-			, torrent_peer const* p) const;
+			, aux::torrent_peer const* p) const;
 		void check_invariant(const aux::torrent* t = nullptr) const;
 #endif
 
@@ -536,7 +536,7 @@ namespace aux {
 
 		std::tuple<bool, bool, int, int> requested_from(
 			piece_picker::downloading_piece const& p
-			, int num_blocks_in_piece, torrent_peer* peer) const;
+			, int num_blocks_in_piece, aux::torrent_peer* peer) const;
 
 		bool can_pick(piece_index_t piece, typed_bitfield<piece_index_t> const& bitmask) const;
 		bool is_piece_free(piece_index_t piece, typed_bitfield<piece_index_t> const& bitmask) const;
@@ -652,7 +652,7 @@ namespace aux {
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			// all the peers that have this piece
-			std::set<const torrent_peer*> have_peers;
+			std::set<const aux::torrent_peer*> have_peers;
 #endif
 
 			// index is set to this to indicate that we have the

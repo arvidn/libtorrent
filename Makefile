@@ -534,8 +534,6 @@ HEADERS = \
   torrent_flags.hpp            \
   torrent_handle.hpp           \
   torrent_info.hpp             \
-  torrent_peer.hpp             \
-  torrent_peer_allocator.hpp   \
   torrent_status.hpp           \
   tracker_manager.hpp          \
   udp_socket.hpp               \
@@ -646,6 +644,8 @@ HEADERS = \
   aux_/torrent.hpp                  \
   aux_/torrent_impl.hpp             \
   aux_/torrent_list.hpp             \
+  aux_/torrent_peer.hpp             \
+  aux_/torrent_peer_allocator.hpp   \
   aux_/unique_ptr.hpp               \
   aux_/utp_socket_manager.hpp       \
   aux_/utp_stream.hpp               \

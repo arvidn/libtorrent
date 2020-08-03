@@ -141,7 +141,7 @@ namespace {
 			// a bunch of read operations on it
 			if (m_torrent.is_aborted()) return;
 
-			std::vector<torrent_peer*> const downloaders
+			std::vector<aux::torrent_peer*> const downloaders
 				= m_torrent.picker().get_downloaders(p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
@@ -175,7 +175,7 @@ namespace {
 		// a peer.
 		struct block_entry
 		{
-			torrent_peer* peer;
+			aux::torrent_peer* peer;
 			sha1_hash digest;
 		};
 
@@ -197,7 +197,7 @@ namespace {
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
 
-			torrent_peer* p = (*range.first);
+			aux::torrent_peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
 			auto i = m_block_hashes.lower_bound(b);
@@ -279,7 +279,7 @@ namespace {
 			// find the peer
 			auto range = m_torrent.find_peers(a);
 			if (range.first == range.second) return;
-			torrent_peer* p = nullptr;
+			aux::torrent_peer* p = nullptr;
 			for (; range.first != range.second; ++range.first)
 			{
 				if (b.second.peer != *range.first) continue;

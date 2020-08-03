@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/ip_filter.hpp"
-#include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/aux_/ip_voter.hpp" // for external_ip
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
@@ -74,7 +74,7 @@ namespace {
 			: m_addr(addr), m_port(port)
 		{}
 
-		bool operator()(torrent_peer const* p) const
+		bool operator()(aux::torrent_peer const* p) const
 		{
 			TORRENT_ASSERT(p->in_use);
 			return p->address() == m_addr && p->port == m_port;

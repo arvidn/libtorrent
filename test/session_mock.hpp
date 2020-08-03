@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/disabled_disk_io.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_class.hpp"
 
@@ -72,7 +72,7 @@ struct session_mock : aux::session_interface
 
 	aux::alert_manager& alerts() override { return _alerts; }
 
-	torrent_peer_allocator_interface& get_peer_allocator() override { return _torrent_peer_allocator; }
+	aux::torrent_peer_allocator_interface& get_peer_allocator() override { return _torrent_peer_allocator; }
 	boost::asio::io_context& get_context() override { return _io_context; }
 	aux::resolver_interface& get_resolver() override { return _resolver; }
 
@@ -233,7 +233,7 @@ struct session_mock : aux::session_interface
 	mutable aux::alert_manager _alerts;
 	aux::resolver _resolver;
 	aux::session_settings _session_settings;
-	torrent_peer_allocator _torrent_peer_allocator;
+	aux::torrent_peer_allocator _torrent_peer_allocator;
 	port_filter _port_filter;
 	counters _counters;
 	peer_class_pool _peer_class_pool;
