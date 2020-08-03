@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/session_udp_sockets.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
-#include "libtorrent/torrent_peer.hpp"
-#include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -313,7 +313,7 @@ namespace aux {
 		TORRENT_EXTRA_EXPORT void interface_to_endpoints(
 			listen_interface_t const& iface
 			, listen_socket_flags_t flags
-			, span<ip_interface const> const ifs
+			, span<ip_interface const> ifs
 			, std::vector<listen_endpoint_t>& eps);
 
 		// expand [::] to all IPv6 interfaces for BEP 45 compliance

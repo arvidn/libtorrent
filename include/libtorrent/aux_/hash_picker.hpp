@@ -45,10 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <map>
 
-namespace libtorrent { struct torrent_peer; }
-
 namespace libtorrent::aux
 {
+	struct torrent_peer;
+
 	struct set_block_hash_result
 	{
 		enum class result

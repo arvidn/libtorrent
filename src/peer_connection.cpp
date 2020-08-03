@@ -1495,7 +1495,7 @@ namespace {
 	{
 		auto t = m_torrent.lock();
 		piece_picker& picker = t->picker();
-		torrent_peer* self_peer = peer_info_struct();
+		aux::torrent_peer* self_peer = peer_info_struct();
 		while (!m_download_queue.empty())
 		{
 			pending_block& qe = m_download_queue.back();
@@ -3005,12 +3005,12 @@ namespace {
 			int const num_blocks = t->picker().blocks_in_piece(piece);
 			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
 			{
-				std::vector<torrent_peer*> const d = t->picker().get_downloaders(piece);
+				std::vector<aux::torrent_peer*> const d = t->picker().get_downloaders(piece);
 				if (d.size() == 1)
 				{
 					// only make predictions if all remaining
 					// blocks are requested from the same peer
-					torrent_peer* const peer = d[0];
+					aux::torrent_peer* const peer = d[0];
 					if (peer->connection)
 					{
 						// we have a connection. now, what is the current
@@ -4167,7 +4167,7 @@ namespace {
 					std::shared_ptr<peer_connection> p = weak_self.lock();
 					if (tor && p)
 					{
-						torrent_peer* pi = p->peer_info_struct();
+						aux::torrent_peer* pi = p->peer_info_struct();
 						tor->connect_to_peer(pi, true);
 					}
 				});
@@ -4220,7 +4220,7 @@ namespace {
 		// while being disconnected, it's possible that our torrent_peer
 		// pointer gets cleared. Make sure we save it to be able to keep
 		// proper books in the piece_picker (when debugging is enabled)
-		torrent_peer* self_peer = peer_info_struct();
+		aux::torrent_peer* self_peer = peer_info_struct();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info)) try
@@ -4599,7 +4599,7 @@ namespace {
 		if (m_holepunch_mode) p.flags |= peer_info::holepunched;
 		if (peer_info_struct())
 		{
-			torrent_peer* pi = peer_info_struct();
+			aux::torrent_peer* pi = peer_info_struct();
 			TORRENT_ASSERT(pi->in_use);
 			p.source = peer_source_flags_t(pi->source);
 			p.failcount = pi->failcount;

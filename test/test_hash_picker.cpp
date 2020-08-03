@@ -59,8 +59,8 @@ struct mock_peer_connection final : peer_connection_interface
 	peer_id const& pid() const override { return m_pid; }
 	peer_id our_pid() const override { return m_pid; }
 	void set_holepunch_mode() override {}
-	torrent_peer* peer_info_struct() const override { return m_torrent_peer; }
-	void set_peer_info(torrent_peer* pi) override { m_torrent_peer = pi; }
+	aux::torrent_peer* peer_info_struct() const override { return m_torrent_peer; }
+	void set_peer_info(aux::torrent_peer* pi) override { m_torrent_peer = pi; }
 	bool is_outgoing() const override { return false; }
 	void add_stat(std::int64_t, std::int64_t) override {}
 	bool fast_reconnect() const override { return false; }
@@ -74,7 +74,7 @@ struct mock_peer_connection final : peer_connection_interface
 		, char const*, char const*, ...) const noexcept override TORRENT_FORMAT(4, 5) {}
 #endif
 
-	torrent_peer* m_torrent_peer;
+	aux::torrent_peer* m_torrent_peer;
 	lt::stat m_stat;
 	tcp::endpoint m_remote;
 	peer_id m_pid;

@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/torrent.hpp"
-#include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #endif
 
 #include "libtorrent/aux_/invariant_check.hpp"
@@ -383,7 +383,7 @@ namespace libtorrent {
 				for (auto const& bl : blocks_for_piece(dp))
 				{
 					if (!bl.peer) continue;
-					torrent_peer* p = bl.peer;
+					aux::torrent_peer* p = bl.peer;
 					TORRENT_ASSERT(p->in_use);
 					TORRENT_ASSERT(p->connection == nullptr
 						|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -418,7 +418,7 @@ namespace libtorrent {
 	}
 
 	void piece_picker::check_peer_invariant(typed_bitfield<piece_index_t> const& have
-		, torrent_peer const* p) const
+		, aux::torrent_peer const* p) const
 	{
 #ifdef TORRENT_DEBUG_REFCOUNTS
 		for (piece_index_t i(0); i < have.end_index(); ++i)
@@ -1104,7 +1104,7 @@ namespace libtorrent {
 		}
 	}
 
-	void piece_picker::inc_refcount_all(const torrent_peer* peer)
+	void piece_picker::inc_refcount_all(const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1130,7 +1130,7 @@ namespace libtorrent {
 #endif
 	}
 
-	void piece_picker::dec_refcount_all(const torrent_peer* peer)
+	void piece_picker::dec_refcount_all(const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1177,7 +1177,7 @@ namespace libtorrent {
 	}
 
 	void piece_picker::inc_refcount(piece_index_t const index
-		, const torrent_peer* peer)
+		, const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1226,7 +1226,7 @@ namespace libtorrent {
 	}
 
 	void piece_picker::dec_refcount(piece_index_t const index
-		, const torrent_peer* peer)
+		, const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1264,7 +1264,7 @@ namespace libtorrent {
 	}
 
 	void piece_picker::inc_refcount(typed_bitfield<piece_index_t> const& bitmask
-		, const torrent_peer* peer)
+		, const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1359,7 +1359,7 @@ namespace libtorrent {
 	}
 
 	void piece_picker::dec_refcount(typed_bitfield<piece_index_t> const& bitmask
-		, const torrent_peer* peer)
+		, const aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -1946,7 +1946,7 @@ namespace {
 	// returned block picks.
 	picker_flags_t piece_picker::pick_pieces(typed_bitfield<piece_index_t> const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
-		, int prefer_contiguous_blocks, torrent_peer* peer
+		, int prefer_contiguous_blocks, aux::torrent_peer* peer
 		, picker_options_t options, std::vector<piece_index_t> const& suggested_pieces
 		, int num_peers
 		, counters& pc
@@ -2586,12 +2586,12 @@ get_out:
 	{
 		for (auto const& b : m_block_info)
 		{
-			TORRENT_ASSERT(b.peer == nullptr || static_cast<torrent_peer*>(b.peer)->in_use);
+			TORRENT_ASSERT(b.peer == nullptr || static_cast<aux::torrent_peer*>(b.peer)->in_use);
 		}
 	}
 #endif
 
-	void piece_picker::clear_peer(torrent_peer* peer)
+	void piece_picker::clear_peer(aux::torrent_peer* peer)
 	{
 		for (auto& b : m_block_info)
 		{
@@ -2607,7 +2607,7 @@ get_out:
 	// the first-fit range, which would be better
 	std::tuple<bool, bool, int, int> piece_picker::requested_from(
 		piece_picker::downloading_piece const& p
-		, int const num_blocks_in_piece, torrent_peer* peer) const
+		, int const num_blocks_in_piece, aux::torrent_peer* peer) const
 	{
 		bool exclusive = true;
 		bool exclusive_active = true;
@@ -2656,7 +2656,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, torrent_peer* peer, std::vector<piece_index_t> const& ignore
+		, aux::torrent_peer* peer, std::vector<piece_index_t> const& ignore
 		, picker_options_t const options) const
 	{
 		TORRENT_ASSERT(is_piece_free(piece, pieces));
@@ -2727,7 +2727,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, torrent_peer* peer, picker_options_t const options) const
+		, aux::torrent_peer* peer, picker_options_t const options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
 		TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
@@ -3154,7 +3154,7 @@ get_out:
 	// options may be 0 or piece_picker::reverse
 	// returns false if the block could not be marked as downloading
 	bool piece_picker::mark_as_downloading(piece_block const block
-		, torrent_peer* peer, picker_options_t const options)
+		, aux::torrent_peer* peer, picker_options_t const options)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_downloading( {"
@@ -3308,7 +3308,7 @@ get_out:
 		return m_piece_map[piece].peer_count + m_seeds;
 	}
 
-	bool piece_picker::mark_as_writing(piece_block const block, torrent_peer* peer)
+	bool piece_picker::mark_as_writing(piece_block const block, aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -3318,7 +3318,7 @@ get_out:
 		std::cerr << "[" << this << "] " << "mark_as_writing( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<aux::torrent_peer*>(peer)->in_use);
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -3546,7 +3546,7 @@ get_out:
 		}
 	}
 
-	void piece_picker::mark_as_canceled(piece_block const block, torrent_peer* peer)
+	void piece_picker::mark_as_canceled(piece_block const block, aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_cancelled( {"
@@ -3603,7 +3603,7 @@ get_out:
 #endif
 	}
 
-	void piece_picker::mark_as_finished(piece_block const block, torrent_peer* peer)
+	void piece_picker::mark_as_finished(piece_block const block, aux::torrent_peer* peer)
 	{
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_piece_state();
@@ -3614,7 +3614,7 @@ get_out:
 			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<aux::torrent_peer*>(peer)->in_use);
 		TORRENT_ASSERT(block.block_index >= 0);
 
 		piece_pos& p = m_piece_map[block.piece_index];
@@ -3742,9 +3742,9 @@ get_out:
 		return it->second;
 	}
 
-	std::vector<torrent_peer*> piece_picker::get_downloaders(piece_index_t const index) const
+	std::vector<aux::torrent_peer*> piece_picker::get_downloaders(piece_index_t const index) const
 	{
-		std::vector<torrent_peer*> d;
+		std::vector<aux::torrent_peer*> d;
 		auto const state = m_piece_map[index].download_queue();
 		int const num_blocks = blocks_in_piece(index);
 		d.reserve(aux::numeric_cast<std::size_t>(num_blocks));
@@ -3767,7 +3767,7 @@ get_out:
 		return d;
 	}
 
-	torrent_peer* piece_picker::get_downloader(piece_block const block) const
+	aux::torrent_peer* piece_picker::get_downloader(piece_block const block) const
 	{
 		auto const state = m_piece_map[block.piece_index].download_queue();
 		if (state == piece_pos::piece_open) return nullptr;
@@ -3780,14 +3780,14 @@ get_out:
 		if (binfo[block.block_index].state == block_info::state_none)
 			return nullptr;
 
-		torrent_peer* peer = binfo[block.block_index].peer;
-		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
+		aux::torrent_peer* peer = binfo[block.block_index].peer;
+		TORRENT_ASSERT(peer == nullptr || static_cast<aux::torrent_peer*>(peer)->in_use);
 		return peer;
 	}
 
 	// this is called when a request is rejected or when
 	// a peer disconnects. The piece might be in any state
-	void piece_picker::abort_download(piece_block const block, torrent_peer* peer)
+	void piece_picker::abort_download(piece_block const block, aux::torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;

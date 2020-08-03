@@ -92,7 +92,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/choker.hpp"
 #include "libtorrent/error.hpp"

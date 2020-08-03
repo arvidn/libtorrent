@@ -43,10 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/string_ptr.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent {
+namespace libtorrent { struct peer_connection_interface; }
 
-	struct peer_connection_interface;
-	namespace aux { struct external_ip; }
+namespace libtorrent::aux {
+
+	struct external_ip;
 
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't

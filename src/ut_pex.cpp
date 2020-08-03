@@ -159,7 +159,7 @@ namespace libtorrent { namespace {
 					// if we connected to it, use the port we know works
 					if (!p->is_outgoing())
 					{
-						torrent_peer const* const pi = peer->peer_info_struct();
+						aux::torrent_peer const* const pi = peer->peer_info_struct();
 						if (pi != nullptr && pi->port > 0)
 							remote.port(pi->port);
 					}
@@ -577,7 +577,7 @@ namespace libtorrent { namespace {
 
 				if (!p->is_outgoing())
 				{
-					torrent_peer const* const pi = peer->peer_info_struct();
+					aux::torrent_peer const* const pi = peer->peer_info_struct();
 					if (pi != nullptr && pi->port > 0)
 						remote.port(pi->port);
 				}
