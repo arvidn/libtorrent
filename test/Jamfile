@@ -340,3 +340,9 @@ alias arm-tests :
 	;
 
 explicit arm-tests ;
+
+alias s390x-tests :
+	test_sha1_hash
+	;
+
+explicit s390x-tests ;
