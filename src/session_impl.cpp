@@ -943,6 +943,9 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** session paused ***");
 #endif
+		// this will abort all tracker announces other than event=stopped
+		m_tracker_manager.abort_all_requests();
+
 		m_paused = true;
 		for (auto& te : m_torrents)
 		{

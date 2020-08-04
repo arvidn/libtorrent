@@ -738,6 +738,8 @@ void print_usage()
 		"    -N <num-torrents>  number of torrents to generate\n"
 		"    -n <num-files>     number of files in each torrent\n"
 		"    -t <name>          base name of torrent files (index is appended)\n\n"
+		"    -T <URL>           add the specified tracker URL to each torrent\n"
+		"                       this option may appear multiple times\n\n"
 		"  upload               start an uploader test\n"
 		"  download             start a downloader test\n"
 		"  dual                 start a download and upload test\n"
@@ -980,6 +982,7 @@ int main(int argc, char* argv[])
 	char const* destination_ip = "127.0.0.1";
 	int destination_port = 6881;
 	int churn = 0;
+	std::vector<std::string> trackers;
 
 	argv += 2;
 	argc -= 2;
@@ -1018,6 +1021,7 @@ int main(int argc, char* argv[])
 			case 'n': num_files = atoi(optarg); break;
 			case 'N': num_torrents = atoi(optarg); break;
 			case 't': torrent_file = optarg; break;
+			case 'T': trackers.push_back(optarg); break;
 			case 'P': data_path = optarg; break;
 			case 'c': num_connections = atoi(optarg); break;
 			case 'p': destination_port = atoi(optarg); break;
@@ -1086,6 +1090,10 @@ int main(int argc, char* argv[])
 			sha1_hash zero(nullptr);
 			for (auto const k : fs.piece_range())
 				t.set_hash(k, zero);
+
+			int tier = 0;
+			for (auto const& tr : trackers)
+				t.add_tracker(tr, tier++);
 
 			buf.clear();
 			std::back_insert_iterator<std::vector<char>> out(buf);

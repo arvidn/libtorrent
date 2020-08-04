@@ -91,6 +91,8 @@ private:
 	int const m_utp_connected = lt::find_metric_idx("utp.num_utp_connected");
 	int const m_utp_fin_sent = lt::find_metric_idx("utp.num_utp_fin_sent");
 	int const m_utp_close_wait = lt::find_metric_idx("utp.num_utp_close_wait");
+
+	int const m_queued_tracker_announces = lt::find_metric_idx("tracker.num_queued_tracker_announces");
 };
 
 #endif
