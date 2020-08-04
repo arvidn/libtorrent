@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/aux_/announce_entry.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/client_data.hpp"
@@ -244,3 +245,10 @@ TORRENT_TEST(announce_endpoint_initialize)
 	announce_endpoint ae;
 	TEST_EQUAL(ae.enabled, true);
 }
+
+TORRENT_TEST(byteswap)
+{
+	TEST_CHECK(aux::swap_byteorder(0x12345678) == 0x78563412);
+	TEST_CHECK(aux::swap_byteorder(0xfeefaffa) == 0xfaafeffe);
+}
+
