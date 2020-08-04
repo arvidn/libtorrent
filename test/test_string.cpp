@@ -350,6 +350,7 @@ void test_parse_interface(char const* input
 	TEST_EQUAL(print_listen_interfaces(list), output);
 	std::cout << "RESULT: " << print_listen_interfaces(list) << '\n';
 #endif
+	TORRENT_UNUSED(output);
 	for (auto const& e : err)
 		std::cout << "ERR: \"" << e << "\"\n";
 }
