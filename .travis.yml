@@ -45,6 +45,16 @@ matrix:
           packages:
           - ninja-build
     - env: arch=arm toolset=gcc-arm
+      addons:
+        apt:
+          packages:
+          - qemu-user-static
+    - env: arch=s390x toolset=gcc-s390x
+      addons:
+        apt:
+          packages:
+          - g++-8-s390x-linux-gnu
+          - qemu-user-static
 
 notifications:
   email: false
@@ -146,6 +156,12 @@ install:
         <linkflags>-static-libstdc++
         <linkflags>-static-libgcc ;" >> ~/user-config.jam;
     fi;'
+  - 'if [[ $toolset == "gcc-s390x" ]]; then
+      echo "using gcc : s390x : ccache s390x-linux-gnu-g++-8 :
+        <linkflags>-lm
+        <linkflags>-static-libstdc++
+        <linkflags>-static-libgcc ;" >> ~/user-config.jam;
+    fi;'
   - 'if [ $clang_tidy == "1" ]; then
       echo "using clang_tidy : : clang-tidy "-checks=-clang-analyzer-core.*,modernize-pass-by-value,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list,readability-qualified-auto" : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
@@ -199,11 +215,20 @@ install:
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-6.5.0-2018.12-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
-      travis_retry sudo apt-get install -y qemu-user-static;
       wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/ubuntu-base-14.04.5-base-armhf.tar.gz;
       sudo mkdir rootfs;
       sudo tar xf ubuntu-base.tar.gz -C rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
+      sudo chroot rootfs mount -t proc none /proc;
+    fi'
+
+  - 'if [[ "$arch" == "s390x" ]]; then
+      cd $TRAVIS_BUILD_DIR/test;
+      s390x-linux-gnu-g++-8 --version;
+      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-s390x.tar.gz;
+      sudo mkdir rootfs;
+      sudo tar xf ubuntu-base.tar.gz -C rootfs;
+      sudo cp /usr/bin/qemu-s390x-static rootfs/usr/bin/;
       sudo chroot rootfs mount -t proc none /proc;
     fi'
 
@@ -347,4 +372,14 @@ script:
       ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
       sudo cp -R bin rootfs/;
       travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs";
+    fi'
+  - 'if [[ "$arch" == "s390x" ]];
+    then
+      ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
+      sudo cp -R bin rootfs/home;
+      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
+      cat test-launcher.sh;
+      chmod +x test-launcher.sh;
+      sudo cp test-launcher.sh rootfs;
+      travis_retry ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
     fi'
