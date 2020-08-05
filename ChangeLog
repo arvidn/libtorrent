@@ -1,3 +1,5 @@
+	* fixed resume data regression for seeds with prio 0 files
+
 1.2.8 released
 
 	* validate UTF-8 encoding of client version strings from peers

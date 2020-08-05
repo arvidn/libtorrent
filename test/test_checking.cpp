@@ -74,17 +74,22 @@ enum
 	// force-recheck. Make sure the stat cache is cleared and let us pick up the
 	// new files
 	force_recheck = 8,
+
+	// files that are *bigger* than expected still considered OK. We don't
+	// truncate files willy-nilly. Checking is a read-only operation.
+	extended_files = 16,
 };
 
 void test_checking(int flags)
 {
 	using namespace lt;
 
-	std::printf("\n==== TEST CHECKING %s%s%s%s=====\n\n"
+	std::printf("\n==== TEST CHECKING %s%s%s%s%s=====\n\n"
 		, (flags & read_only_files) ? "read-only-files ":""
 		, (flags & corrupt_files) ? "corrupt ":""
 		, (flags & incomplete_files) ? "incomplete ":""
-		, (flags & force_recheck) ? "force_recheck ":"");
+		, (flags & force_recheck) ? "force_recheck ":""
+		, (flags & extended_files) ? "extended_files ":"");
 
 	error_code ec;
 	create_directory("test_torrent_dir", ec);
@@ -117,7 +122,7 @@ void test_checking(int flags)
 		, aux::to_hex(ti->info_hash()).c_str());
 
 	// truncate every file in half
-	if (flags & incomplete_files)
+	if (flags & (incomplete_files | extended_files))
 	{
 		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
@@ -131,7 +136,14 @@ void test_checking(int flags)
 			file f(path, open_mode::read_write, ec);
 			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
-			f.set_size(file_sizes[i] / 2, ec);
+			if (flags & extended_files)
+			{
+				f.set_size(file_sizes[i] + 10, ec);
+			}
+			else
+			{
+				f.set_size(file_sizes[i] / 2, ec);
+			}
 			if (ec) std::printf("ERROR: truncating file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 		}
@@ -292,6 +304,11 @@ TORRENT_TEST(read_only)
 TORRENT_TEST(incomplete)
 {
 	test_checking(incomplete_files);
+}
+
+TORRENT_TEST(extended)
+{
+	test_checking(extended_files);
 }
 
 TORRENT_TEST(corrupt)

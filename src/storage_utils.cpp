@@ -543,11 +543,19 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			{
 				if (fs.pad_file_at(file_index)) continue;
 
+				// files with priority zero may not have been saved to disk at their
+				// expected location, but is likely to be in a partfile. Just exempt it
+				// from checking
+				if (file_index < file_priority.end_index()
+					&& file_priority[file_index] == dont_download
+					&& !(rd.flags & torrent_flags::seed_mode))
+					continue;
+
 				std::int64_t const size = get_filesize(stat, file_index, fs
 					, save_path, ec);
 				if (size < 0) return false;
 
-				if (size != fs.file_size(file_index))
+				if (size < fs.file_size(file_index))
 				{
 					ec.ec = errors::mismatching_file_size;
 					ec.file(file_index);
