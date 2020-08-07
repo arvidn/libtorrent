@@ -79,7 +79,7 @@ void session_view::render()
 		/ seconds);
 
 	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
-		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d%*s\x1b[K"
+		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d queued-trackers: %02d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
 		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
@@ -90,6 +90,7 @@ void session_view::render()
 		, int(m_cnt[0][m_num_peers_idx])
 		, int(m_cnt[0][m_unchoked_idx])
 		, int(m_cnt[0][m_unchoke_slots_idx])
+		, int(m_cnt[0][m_queued_tracker_announces])
 		, std::max(0, m_width - 86)
 		, esc("0"));
 

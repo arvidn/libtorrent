@@ -733,7 +733,7 @@ namespace libtorrent {
 	std::string const& settings_pack::get_str(int name) const
 	{
 		static std::string const empty;
-		TORRENT_ASSERT((name & type_mask) == string_type_base);
+		TORRENT_ASSERT_PRECOND((name & type_mask) == string_type_base);
 		if ((name & type_mask) != string_type_base) return empty;
 
 		// this is an optimization. If the settings pack is complete,
@@ -752,7 +752,7 @@ namespace libtorrent {
 
 	int settings_pack::get_int(int name) const
 	{
-		TORRENT_ASSERT((name & type_mask) == int_type_base);
+		TORRENT_ASSERT_PRECOND((name & type_mask) == int_type_base);
 		if ((name & type_mask) != int_type_base) return 0;
 
 		// this is an optimization. If the settings pack is complete,
@@ -771,7 +771,7 @@ namespace libtorrent {
 
 	bool settings_pack::get_bool(int name) const
 	{
-		TORRENT_ASSERT((name & type_mask) == bool_type_base);
+		TORRENT_ASSERT_PRECOND((name & type_mask) == bool_type_base);
 		if ((name & type_mask) != bool_type_base) return false;
 
 		// this is an optimization. If the settings pack is complete,
@@ -783,7 +783,7 @@ namespace libtorrent {
 		}
 		std::pair<std::uint16_t, bool> v(aux::numeric_cast<std::uint16_t>(name), false);
 		auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
-					, &compare_first<bool>);
+			, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
 		return false;
 	}

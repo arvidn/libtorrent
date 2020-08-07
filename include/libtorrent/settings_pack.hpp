@@ -235,7 +235,7 @@ namespace aux {
 
 			// this is the client name and version identifier sent to peers in the
 			// handshake message. If this is an empty string, the user_agent is
-			// used instead
+			// used instead. This string must be a UTF-8 encoded unicode string.
 			handshake_client_version,
 
 			// This controls which IP address outgoing TCP peer connections are bound

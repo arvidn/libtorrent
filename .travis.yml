@@ -4,9 +4,7 @@ dist: bionic
 matrix:
   fast_finish: true
   include:
-    - if: repo = arvidn/libtorrent
-      env: variant=release sonar_scan=1 toolset=gcc
-    - env: variant=release toolset=gcc check_headers=1 python=1
+    - env: variant=release toolset=gcc check_headers=1 python=1 python_dist=1
     - env: variant=debug crypto=openssl tests=1 examples=1 tools=1 toolset=darwin
       os: osx
       osx_image: xcode11.2
@@ -30,7 +28,7 @@ matrix:
           - nettle-dev
           - python3-websockets
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
-    - env: variant=release coverage=1 tests=1 toolset=gcc-coverage python=1 python_dist=1
+    - env: variant=release coverage=1 toolset=gcc-coverage
     - env: dist=1 toolset=gcc install_boost=1 docs=1
       addons:
         apt:
@@ -43,6 +41,7 @@ matrix:
           - graphviz
           - hunspell
           - imagemagick
+          - ninja-build
     - env: cmake=1 toolset=gcc install_boost=1
       addons:
         apt:
@@ -87,10 +86,6 @@ addons:
     - python3.7-dev
 
 before_install:
-
-  - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
-      export sonar_scan=0;
-    fi'
 
   # pull down a recent version of boost and build boost-build
   - cd $HOME;
@@ -212,13 +207,6 @@ install:
       sudo pip3 install flake8;
       python3 -m flake8 --version;
     fi'
-  - 'if [ $sonar_scan == "1" ]; then
-      wget --no-verbose https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip;
-      wget --no-verbose https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip;
-      unzip sonar-scanner-cli-4.2.0.1873-linux.zip;
-      unzip build-wrapper-linux-x86.zip;
-      export PATH=$PWD/sonar-scanner-4.2.0.1873-linux/bin:$PWD/build-wrapper-linux-x86:$PATH;
-    fi'
 
   - ccache -V
   - ccache --show-stats
@@ -274,10 +262,6 @@ script:
   - 'if [ "$pylint" == "1" ]; then
       python3 -m flake8 --max-line-length=120 --ignore=E741,W504,E126,W503,E121,E124,E123,E402 --exclude=deps/libdatachannel,deps/json,bindings/c;
     fi'
-  - 'if [ "$sonar_scan" == "1" ]; then
-       build-wrapper-linux-x86-64 --out-dir bw-output ${B2} -a -j2 cxxstd=17 optimization=off crypto=$crypto deprecated-functions=off $toolset variant=$variant -l300 &&
-       sonar-scanner -D sonar.login=$SONAR_TOKEN;
-    fi'
   - 'if [[ $clang_tidy == "1" ]]; then
        which clang-tidy-9;
        clang-tidy-9 --version;
@@ -306,15 +290,21 @@ script:
 # if we are building with code coverage, report it as soon as possible
 # libtorrent is the name of the test suite target
   - cd $TRAVIS_BUILD_DIR/test;
+  - 'if [ "$coverage" == "1" ]; then
+      ${B2} -j2 -l300 warnings-as-errors=on $variant $toolset deprecated-functions=off deterministic-tests &&
+      codecov --root .. >/dev/null &&
+      cd $TRAVIS_BUILD_DIR/simulation &&
+      ${B2} -j2 crypto=built-in warnings-as-errors=on warnings=all $variant $toolset deprecated-functions=off &&
+      codecov --root .. >/dev/null;
+    fi'
+
+  - cd $TRAVIS_BUILD_DIR/test;
   - 'if [ "$tests" == "1" ]; then
       ${B2} -j2 warnings-as-errors=on ${B2_ARGS} testing.execute=off &&
       travis_retry ${B2} -j3 warnings-as-errors=on ${B2_ARGS} -l300 &&
       travis_retry ${B2} -j2 warnings-as-errors=on ${B2_ARGS} test_natpmp enum_if -l300 &&
       if [[ $TRAVIS_OS_NAME != "osx" ]]; then
         travis_retry ${B2} -j2 warnings-as-errors=on ${B2_ARGS} test_lsd -l300;
-      fi &&
-      if [ "$coverage" == "1" ]; then
-        codecov --root .. >/dev/null;
       fi;
     fi'
 
@@ -384,7 +374,9 @@ script:
       make dist &&
       cd libtorrent-rasterbar-2.0.0 &&
       make &&
-      make python-binding tools examples;
+      make python-binding tools examples &&
+      cmake -GNinja . &&
+      ninja;
     fi
 
   - ccache --show-stats
@@ -399,6 +391,16 @@ script:
       chmod +x test-launcher.sh;
       sudo cp test-launcher.sh rootfs;
       travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
+    fi'
+  - 'if [[ "$arch" == "s390x" ]];
+    then
+      ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
+      sudo cp -R bin rootfs/home;
+      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
+      cat test-launcher.sh;
+      chmod +x test-launcher.sh;
+      sudo cp test-launcher.sh rootfs;
+      travis_retry ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
     fi'
   - 'if [[ "$arch" == "s390x" ]];
     then

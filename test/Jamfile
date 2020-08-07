@@ -154,8 +154,6 @@ run test_piece_picker.cpp ;
 run test_alloca.cpp ;
 run test_string.cpp ;
 run test_utf8.cpp ;
-run test_hasher.cpp ;
-run test_hasher512.cpp ;
 run test_sha1_hash.cpp ;
 run test_span.cpp ;
 run test_bitfield.cpp ;
@@ -180,6 +178,11 @@ run test_fast_extension.cpp ;
 run test_privacy.cpp ;
 run test_recheck.cpp ;
 run test_read_resume.cpp ;
+run test_hash_picker.cpp ;
+run test_torrent.cpp ;
+run test_remap_files.cpp ;
+
+# turn these tests into simulations
 run test_resume.cpp ;
 run test_ssl.cpp : :
 	: <crypto>openssl:<library>/torrent//ssl
@@ -198,30 +201,100 @@ run test_web_seed_http_pw.cpp ;
 run test_web_seed_chunked.cpp ;
 run test_web_seed_ban.cpp ;
 run test_pe_crypto.cpp ;
-run test_rtc.cpp ;
 
-run test_remap_files.cpp ;
+run test_rtc.cpp ;
 run test_utp.cpp ;
 run test_auto_unchoke.cpp ;
 run test_http_connection.cpp : :
 		: <crypto>openssl:<library>/torrent//ssl
 		<crypto>openssl:<library>/torrent//crypto
 	;
-run test_torrent.cpp ;
 run test_transfer.cpp ;
 run test_time_critical.cpp ;
 run test_pex.cpp ;
 run test_priority.cpp ;
 
-run test_hash_picker.cpp ;
-
-# turn these tests into simulations
 run test_upnp.cpp ;
-
 run test_lsd.cpp ;
 explicit test_lsd ;
+run test_hasher.cpp ;
 explicit test_hasher ;
+run test_hasher512.cpp ;
 explicit test_hasher512 ;
+
+# unfortunately, some tests spin up full libtorrent sessions, with threads and
+# real sockets and sometimes fail for timing issues. This is a list of all the
+# deterministic tests
+alias deterministic-tests :
+	test_alert_manager
+	test_alert_types
+	test_alloca
+	test_bandwidth_limiter
+	test_bdecode
+	test_bencoding
+	test_bitfield
+	test_bloom_filter
+	test_buffer
+	test_crc32
+	test_create_torrent
+	test_dht
+	test_dos_blocker
+	test_ed25519
+	test_enum_net
+	test_fence
+	test_ffs
+	test_file
+	test_file_progress
+	test_file_storage
+	test_generate_peer_id
+	test_gzip
+	test_hash_picker
+	test_heterogeneous_queue
+	test_http_parser
+	test_identify_client
+	test_info_hash
+	test_io
+	test_ip_filter
+	test_ip_voter
+	test_listen_socket
+	test_magnet
+	test_merkle
+	test_mmap
+	test_packet_buffer
+	test_part_file
+	test_pe_crypto
+	test_peer_classes
+	test_peer_list
+	test_peer_priority
+	test_piece_picker
+	test_primitives
+	test_read_resume
+	test_receive_buffer
+	test_recheck
+	test_remap_files
+	test_resolve_links
+	test_resume
+	test_session
+	test_session_params
+	test_settings_pack
+	test_sha1_hash
+	test_sliding_average
+	test_socket_io
+	test_span
+	test_stack_allocator
+	test_stat_cache
+	test_storage
+	test_string
+	test_tailqueue
+	test_threads
+	test_time
+	test_timestamp_history
+	test_torrent
+	test_torrent_info
+	test_torrent_list
+	test_utf8
+	test_xml
+	;
 
 # these are the tests run on appveyor, while the flapping ones are being
 # transitioned into simulations
@@ -272,6 +345,17 @@ explicit arm-tests ;
 
 alias s390x-tests :
 	test_sha1_hash
+	test_primitives
+	test_string
+	test_pe_crypto
+	test_gzip
+	test_dht
+	test_bitfield
+	test_crc32
+	test_ffs
+	test_ed25519
+	test_session_params
+	test_mmap
 	;
 
 explicit s390x-tests ;

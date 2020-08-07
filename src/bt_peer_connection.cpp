@@ -2027,7 +2027,12 @@ namespace {
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 
 		auto const client_info = root.dict_find_string_value("v");
-		if (!client_info.empty()) m_client_version = std::string(client_info);
+		if (!client_info.empty())
+		{
+			m_client_version = std::string(client_info);
+			// the client name is supposed to be UTF-8
+			aux::verify_encoding(m_client_version);
+		}
 
 		int const reqq = int(root.dict_find_int_value("reqq"));
 		if (reqq > 0) max_out_request_queue(reqq);

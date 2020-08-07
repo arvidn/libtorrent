@@ -530,6 +530,11 @@ namespace {
 		METRIC(sock_bufs, socket_recv_size19)
 		METRIC(sock_bufs, socket_recv_size20)
 
+		// if the outstanding tracker announce limit is reached, tracker
+		// announces are queued, to be issued when an announce slot opens up.
+		// this measure the number of tracker announces currently in the
+		// queue
+		METRIC(tracker, num_queued_tracker_announces)
 		// ... more
 	}});
 #undef METRIC
