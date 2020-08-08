@@ -523,7 +523,7 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_WINDOWS
-		FILE* f = _wfopen(utf8_wchar(fn).c_str(), mode_str);
+		FILE* f = _wfopen(convert_to_native_path_string(fn).c_str(), mode_str);
 #else
 		FILE* f = fopen(fn.c_str(), mode_str);
 #endif
@@ -554,7 +554,7 @@ namespace aux {
 				// reading and writing, but doesn't create the file. "w+" creates
 				// the file and truncates it
 #ifdef TORRENT_WINDOWS
-				f = _wfopen(utf8_wchar(fn).c_str(), L"wb+");
+				f = _wfopen(convert_to_native_path_string(fn).c_str(), L"wb+");
 #else
 				f = fopen(fn.c_str(), "wb+");
 #endif

@@ -65,7 +65,6 @@ fuzzer gzip ;
 fuzzer verify_encoding ;
 fuzzer convert_to_native ;
 fuzzer convert_from_native ;
-fuzzer utf8_wchar ;
 fuzzer utf8_codepoint ;
 fuzzer http_parser ;
 fuzzer upnp ;
