@@ -76,9 +76,11 @@ namespace utf8_errors {
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide, error_code& ec);
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide);
 
-	// TODO: 3 take a string_view here
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);
+
+	TORRENT_EXTRA_EXPORT void append_utf8_codepoint(std::string&, std::int32_t);
+
 } // namespace libtorrent
 
 #endif
