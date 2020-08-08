@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
+#if TORRENT_ABI_VERSION == 1 && defined TORRENT_WINDOWS
+#include "libtorrent/aux_/escape_string.hpp"
+#endif
+
 using namespace std::placeholders;
 
 namespace libtorrent {
@@ -208,10 +212,11 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 
+#if defined TORRENT_WINDOWS
 	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::function<bool(std::string)> p, create_flags_t const flags)
 	{
-		std::string utf8 = wchar_utf8(wfile);
+		std::string utf8 = convert_from_wstring(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), p, flags);
 	}
@@ -219,7 +224,7 @@ namespace aux {
 	void add_files(file_storage& fs
 		, std::wstring const& wfile, create_flags_t const flags)
 	{
-		std::string utf8 = wchar_utf8(wfile);
+		std::string utf8 = convert_from_wstring(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), default_pred, flags);
 	}
@@ -227,16 +232,17 @@ namespace aux {
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec)
 	{
-		std::string utf8 = wchar_utf8(p);
+		std::string utf8 = convert_from_wstring(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
 
 	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec)
 	{
-		std::string utf8 = wchar_utf8(p);
+		std::string utf8 = convert_from_wstring(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
+#endif // TORRENT_WINDOWS
 #endif // TORRENT_ABI_VERSION
 
 	void add_files(file_storage& fs, std::string const& file

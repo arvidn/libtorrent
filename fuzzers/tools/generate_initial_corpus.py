@@ -10,7 +10,7 @@ corpus_dirs = [
     'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file',
     'http_parser', 'lazy_bdecode', 'parse_int', 'parse_magnet_uri', 'resume_data',
     'sanitize_path', 'utf8_codepoint', 'utf8_wchar', 'utp',
-    'verify_encoding', 'wchar_utf8', 'peer_conn']
+    'verify_encoding', 'peer_conn']
 
 for p in corpus_dirs:
     try:

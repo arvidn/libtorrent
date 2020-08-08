@@ -1215,10 +1215,12 @@ namespace aux {
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
+#ifdef TORRENT_WINDOWS
 		TORRENT_DEPRECATED
 		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_name) const;
+#endif // TORRENT_WINDOWS
 
 		// Enables or disabled super seeding/initial seeding for this torrent.
 		// The torrent needs to be a seed for this to take effect.

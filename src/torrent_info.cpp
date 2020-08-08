@@ -71,6 +71,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <array>
 
+#if TORRENT_ABI_VERSION == 1 && defined TORRENT_WINDOWS
+#include "libtorrent/aux_/escape_string.hpp"
+#endif
+
 namespace libtorrent {
 
 	TORRENT_EXPORT from_span_t from_span;
@@ -893,11 +897,12 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
+#if defined TORRENT_WINDOWS
 	torrent_info::torrent_info(std::wstring const& filename)
 	{
 		std::vector<char> buf;
 		error_code ec;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
+		int ret = load_file(convert_from_wstring(filename), buf, ec);
 		if (ret < 0) aux::throw_ex<system_error>(ec);
 
 		bdecode_node e = bdecode(buf, ec);
@@ -915,6 +920,7 @@ namespace {
 		copy_on_write();
 		m_files.rename_file_deprecated(index, new_filename);
 	}
+#endif // TORRENT_WINDOWS
 #endif // TORRENT_ABI_VERSION
 #endif
 
@@ -949,11 +955,12 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
+#if defined TORRENT_WINDOWS
 	torrent_info::torrent_info(std::wstring const& filename
 		, error_code& ec)
 	{
 		std::vector<char> buf;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
+		int ret = load_file(convert_from_wstring(filename), buf, ec);
 		if (ret < 0) return;
 
 		bdecode_node e = bdecode(buf, ec);
@@ -962,6 +969,7 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
+#endif // TORRENT_WINDOWS
 #endif // TORRENT_ABI_VERSION
 
 	// constructor used for creating new torrents

@@ -446,8 +446,10 @@ void bind_torrent_handle()
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
 #if TORRENT_ABI_VERSION == 1
+#ifdef TORRENT_WINDOWS
     void (torrent_handle::*move_storage1)(std::wstring const&, int) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
+#endif
 #endif
 
     std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
@@ -571,8 +573,10 @@ void bind_torrent_handle()
         .def("set_ratio", _(&torrent_handle::set_ratio))
         .def("save_path", _(&torrent_handle::save_path))
         .def("set_tracker_login", &torrent_handle::set_tracker_login)
+#ifdef TORRENT_WINDOWS
         .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = always_replace_files))
         .def("rename_file", _(rename_file1))
+#endif
 #endif
         ;
 

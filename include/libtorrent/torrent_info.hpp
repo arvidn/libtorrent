@@ -204,14 +204,17 @@ namespace libtorrent {
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
 		TORRENT_DEPRECATED
 		explicit torrent_info(lazy_entry const& torrent_file);
+
 		TORRENT_DEPRECATED
 		torrent_info(lazy_entry const& torrent_file, error_code& eca);
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
+#ifdef TORRENT_WINDOWS
 		TORRENT_DEPRECATED
 		torrent_info(std::wstring const& filename, error_code& ec);
 		TORRENT_DEPRECATED
 		explicit torrent_info(std::wstring const& filename);
+#endif
 #endif // TORRENT_ABI_VERSION
 
 		// frees all storage associated with this torrent_info object

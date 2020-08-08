@@ -257,7 +257,9 @@ void bind_torrent_info()
 
     void (torrent_info::*rename_file0)(file_index_t, std::string const&) = &torrent_info::rename_file;
 #if TORRENT_ABI_VERSION == 1
+#ifdef TORRENT_WINDOWS
     void (torrent_info::*rename_file1)(file_index_t, std::wstring const&) = &torrent_info::rename_file;
+#endif
 #endif
 
     class_<file_slice>("file_slice")
@@ -286,7 +288,9 @@ void bind_torrent_info()
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_ABI_VERSION == 1
+#ifdef TORRENT_WINDOWS
         .def(init<std::wstring>((arg("file"))))
+#endif
 #endif
 
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
@@ -318,7 +322,9 @@ void bind_torrent_info()
 #if TORRENT_ABI_VERSION == 1
         .def("file_at", &torrent_info::file_at)
         .def("file_at_offset", &torrent_info::file_at_offset)
+#ifdef TORRENT_WINDOWS
         .def("rename_file", rename_file1)
+#endif
 #endif // TORRENT_ABI_VERSION
 
         .def("is_valid", &torrent_info::is_valid)
