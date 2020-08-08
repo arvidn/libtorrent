@@ -333,20 +333,6 @@ namespace aux {
 		TORRENT_DEPRECATED
 		void add_file(file_entry const& fe, char const* filehash = nullptr);
 
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
-		TORRENT_DEPRECATED
-		void add_file(std::wstring const& file, std::int64_t size
-			, file_flags_t flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = "");
-		TORRENT_DEPRECATED
-		void rename_file(file_index_t index, std::wstring const& new_filename);
-		TORRENT_DEPRECATED
-		void set_name(std::wstring const& n);
-
-		void rename_file_deprecated(file_index_t index, std::wstring const& new_filename);
-
 		// all functions depending on aux::file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead

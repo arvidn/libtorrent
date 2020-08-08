@@ -995,31 +995,6 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	torrent_info::torrent_info(std::wstring const& filename)
-	{
-		std::vector<char> buf;
-		error_code ec;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
-		if (ret < 0) aux::throw_ex<system_error>(ec);
-
-		bdecode_node e = bdecode(buf, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
-			aux::throw_ex<system_error>(ec);
-
-		INVARIANT_CHECK;
-	}
-
-	void torrent_info::rename_file(file_index_t index, std::wstring const& new_filename)
-	{
-		TORRENT_ASSERT(is_loaded());
-		copy_on_write();
-		m_files.rename_file_deprecated(index, new_filename);
-	}
-#endif // TORRENT_ABI_VERSION
 #endif
 
 	file_storage const& torrent_info::orig_files() const
@@ -1065,22 +1040,6 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	torrent_info::torrent_info(std::wstring const& filename
-		, error_code& ec)
-	{
-		std::vector<char> buf;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
-		if (ret < 0) return;
-
-		bdecode_node e = bdecode(buf, ec);
-		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
-
-		INVARIANT_CHECK;
-	}
-#endif // TORRENT_ABI_VERSION
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
