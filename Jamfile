@@ -664,7 +664,6 @@ SOURCES =
 	broadcast_socket
 	magnet_uri
 	parse_url
-	ConvertUTF
 	xml_parse
 	version
 	peer_class

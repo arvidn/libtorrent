@@ -24,7 +24,6 @@ nobase_include_HEADERS = \
   choker.hpp                   \
   close_reason.hpp             \
   config.hpp                   \
-  ConvertUTF.h                 \
   copy_ptr.hpp                 \
   crc32c.hpp                   \
   create_torrent.hpp           \
