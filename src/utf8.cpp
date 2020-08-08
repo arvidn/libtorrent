@@ -205,7 +205,23 @@ namespace {
 				int ev) const BOOST_SYSTEM_NOEXCEPT override
 			{ return {ev, *this}; }
 		};
-	} // anonymous namespace
+
+	// return the number of bytes in the UTF-8 sequence starting with this
+	// character. Returns 0 if the lead by is invalid
+	int utf8_sequence_length(char const c)
+	{
+		auto const b = static_cast<std::uint8_t>(c);
+		if (b < 0b10000000) return 1;
+		if ((b >> 5) == 0b110) return 2;
+		if ((b >> 4) == 0b1110) return 3;
+		if ((b >> 3) == 0b11110) return 4;
+		// this is an invalid prefix, but we still parse it to skip this many
+		// bytes
+		if ((b >> 2) == 0b111110) return 5;
+		return 0;
+	}
+
+} // anonymous namespace
 
 	namespace utf8_errors
 	{
@@ -265,35 +281,74 @@ namespace {
 		return ret;
 	}
 
+	std::uint32_t const max_codepoint = 0x10ffff;
+
 	// returns the unicode codepoint and the number of bytes of the utf8 sequence
 	// that was parsed. The codepoint is -1 if it's invalid
 	std::pair<std::int32_t, int> parse_utf8_codepoint(string_view str)
 	{
-		int const sequence_len = trailingBytesForUTF8[static_cast<std::uint8_t>(str[0])] + 1;
-		if (sequence_len > int(str.size())) return std::make_pair(-1, static_cast<int>(str.size()));
+		TORRENT_ASSERT(!str.empty());
+		if (str.empty()) return std::make_pair(-1, 0);
+
+		int const sequence_len = utf8_sequence_length(str[0]);
+
+		// this is likely the most common case
+		if (sequence_len == 1) return std::make_pair(std::int32_t(str[0]), sequence_len);
+
+		// if we find an invalid sequence length, skip one byte
+		if (sequence_len == 0)
+			return std::make_pair(-1, 1);
 
 		if (sequence_len > 4)
-		{
 			return std::make_pair(-1, sequence_len);
-		}
 
-		if (!isLegalUTF8(reinterpret_cast<UTF8 const*>(str.data()), sequence_len))
-		{
-			return std::make_pair(-1, sequence_len);
-		}
+		if (sequence_len > int(str.size()))
+			return std::make_pair(-1, static_cast<int>(str.size()));
 
 		std::uint32_t ch = 0;
-		for (int i = 0; i < sequence_len; ++i)
+		// first byte
+		switch (sequence_len)
 		{
+			case 1:
+				ch = str[0] & 0b01111111;
+				break;
+			case 2:
+				ch = str[0] & 0b00011111;
+				break;
+			case 3:
+				ch = str[0] & 0b00001111;
+				break;
+			case 4:
+				ch = str[0] & 0b00000111;
+				break;
+		};
+		for (int i = 1; i < sequence_len; ++i)
+		{
+			auto const b = static_cast<std::uint8_t>(str[static_cast<std::size_t>(i)]);
+			// continuation bytes must start with 10xxxxxx
+			if (b > 0b10111111 || b < 0b10000000)
+				return std::make_pair(-1, sequence_len);
 			ch <<= 6;
-			ch += static_cast<std::uint8_t>(str[static_cast<std::size_t>(i)]);
+			ch += b & 0b111111;
 		}
-		ch -= offsetsFromUTF8[sequence_len-1];
 
-		if (ch > 0x7fffffff)
+		// check if the sequence is overlong, i.e. whether it has leading
+		// (redundant) zeros
+		switch (sequence_len)
 		{
+			case 2:
+				if (ch < 0x80) return std::make_pair(-1, sequence_len);
+				break;
+			case 3:
+				if (ch < 0x800) return std::make_pair(-1, sequence_len);
+				break;
+			case 4:
+				if (ch < 0x10000) return std::make_pair(-1, sequence_len);
+				break;
+		};
+
+		if (ch > max_codepoint)
 			return std::make_pair(-1, sequence_len);
-		}
 
 		return std::make_pair(static_cast<std::int32_t>(ch), sequence_len);
 	}
