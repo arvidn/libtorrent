@@ -144,8 +144,8 @@ namespace libtorrent {
 		}
 
 		// shift left or right ``n`` bits.
-		digest32& operator<<=(int n) noexcept;
-		digest32& operator>>=(int n) noexcept;
+		digest32& operator<<=(int n) & noexcept;
+		digest32& operator>>=(int n) & noexcept;
 
 		// standard comparison operators
 		bool operator==(digest32 const& n) const noexcept
@@ -191,7 +191,7 @@ namespace libtorrent {
 		}
 
 		// in-place bit-wise XOR with the passed in digest.
-		digest32& operator^=(digest32 const& n) noexcept
+		digest32& operator^=(digest32 const& n) & noexcept
 		{
 			for (auto const v : boost::combine(m_number, n.m_number))
 				boost::get<0>(v) ^= boost::get<1>(v);
@@ -207,7 +207,7 @@ namespace libtorrent {
 		}
 
 		// in-place bit-wise AND of the passed in digest
-		digest32& operator&=(digest32 const& n) noexcept
+		digest32& operator&=(digest32 const& n) & noexcept
 		{
 			for (auto const v : boost::combine(m_number, n.m_number))
 				boost::get<0>(v) &= boost::get<1>(v);
@@ -215,7 +215,7 @@ namespace libtorrent {
 		}
 
 		// in-place bit-wise OR of the two digests.
-		digest32& operator|=(digest32 const& n) noexcept
+		digest32& operator|=(digest32 const& n) & noexcept
 		{
 			for (auto const v : boost::combine(m_number, n.m_number))
 				boost::get<0>(v) |= boost::get<1>(v);
@@ -291,10 +291,10 @@ namespace libtorrent {
 	extern template void digest32<256>::stream_in(std::istream&);
 #endif // TORRENT_USE_IOSTREAM
 
-	extern template digest32<160>& digest32<160>::operator<<=(int) noexcept;
-	extern template digest32<256>& digest32<256>::operator<<=(int) noexcept;
-	extern template digest32<160>& digest32<160>::operator>>=(int) noexcept;
-	extern template digest32<256>& digest32<256>::operator>>=(int) noexcept;
+	extern template digest32<160>& digest32<160>::operator<<=(int) & noexcept;
+	extern template digest32<256>& digest32<256>::operator<<=(int) & noexcept;
+	extern template digest32<160>& digest32<160>::operator>>=(int) & noexcept;
+	extern template digest32<256>& digest32<256>::operator>>=(int) & noexcept;
 }
 
 namespace std {

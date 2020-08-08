@@ -151,7 +151,7 @@ namespace {
 
 		// shift left ``n`` bits.
 	template <std::ptrdiff_t N>
-	digest32<N>& digest32<N>::operator<<=(int const n) noexcept
+	digest32<N>& digest32<N>::operator<<=(int const n) & noexcept
 	{
 		bits_shift_left(m_number, n);
 		return *this;
@@ -159,16 +159,16 @@ namespace {
 
 	// shift right ``n`` bits.
 	template <std::ptrdiff_t N>
-	digest32<N>& digest32<N>::operator>>=(int const n) noexcept
+	digest32<N>& digest32<N>::operator>>=(int const n) & noexcept
 	{
 		bits_shift_right(m_number, n);
 		return *this;
 	}
 
-	template TORRENT_EXPORT digest32<160>& digest32<160>::operator<<=(int) noexcept;
-	template TORRENT_EXPORT digest32<256>& digest32<256>::operator<<=(int) noexcept;
-	template TORRENT_EXPORT digest32<160>& digest32<160>::operator>>=(int) noexcept;
-	template TORRENT_EXPORT digest32<256>& digest32<256>::operator>>=(int) noexcept;
+	template TORRENT_EXPORT digest32<160>& digest32<160>::operator<<=(int) & noexcept;
+	template TORRENT_EXPORT digest32<256>& digest32<256>::operator<<=(int) & noexcept;
+	template TORRENT_EXPORT digest32<160>& digest32<160>::operator>>=(int) & noexcept;
+	template TORRENT_EXPORT digest32<256>& digest32<256>::operator>>=(int) & noexcept;
 
 	static_assert(std::is_nothrow_move_constructible<sha1_hash>::value
 		, "should be nothrow move constructible");
