@@ -38,7 +38,6 @@ set(libtorrent_include_files
 	choker
 	close_reason
 	config
-	ConvertUTF
 	copy_ptr
 	crc32c
 	create_torrent
@@ -380,7 +379,6 @@ set(sources
 	broadcast_socket
 	magnet_uri
 	parse_url
-	ConvertUTF
 	xml_parse
 	version
 	ffs
