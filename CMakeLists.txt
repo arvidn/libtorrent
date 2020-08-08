@@ -30,7 +30,6 @@ set(libtorrent_include_files
 	client_data
 	close_reason
 	config
-	ConvertUTF
 	copy_ptr
 	crc32c
 	create_torrent
@@ -388,7 +387,6 @@ set(sources
 	enum_net
 	magnet_uri
 	parse_url
-	ConvertUTF
 	xml_parse
 	version
 	ffs

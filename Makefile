@@ -291,7 +291,6 @@ KADEMLIA_SOURCES = \
   traversal_algorithm.cpp
 
 SOURCES = \
-  ConvertUTF.cpp                  \
   add_torrent_params.cpp          \
   alert.cpp                       \
   alert_manager.cpp               \
@@ -423,7 +422,6 @@ SOURCES = \
   xml_parse.cpp
 
 HEADERS = \
-  ConvertUTF.h                 \
   add_torrent_params.hpp       \
   address.hpp                  \
   alert.hpp                    \

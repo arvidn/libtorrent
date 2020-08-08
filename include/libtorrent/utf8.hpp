@@ -37,35 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 #include <string>
-#include <cwchar>
 
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
-
-namespace utf8_errors {
-	// internal
-	enum error_code_enum
-	{
-		// conversion successful
-		conversion_ok,
-
-		// partial character in source, but hit end
-		source_exhausted,
-
-		// insufficient room in target for conversion
-		target_exhausted,
-
-		// source sequence is illegal/malformed
-		source_illegal
-	};
-
-	// hidden
-	TORRENT_EXPORT error_code make_error_code(error_code_enum e);
-} // namespace utf8_errors
-
-	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);
