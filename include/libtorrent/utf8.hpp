@@ -67,11 +67,6 @@ namespace utf8_errors {
 
 	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
-	// ``utf8_wchar`` converts a UTF-8 string (``utf8``) to a wide character
-	// string (``wide``).
-	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8, error_code& ec);
-	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8);
-
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);
 
