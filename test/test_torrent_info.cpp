@@ -862,28 +862,28 @@ TORRENT_TEST(verify_encoding)
 	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
 	TEST_CHECK(!verify_encoding(test));
 	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_____foobar");
+	TEST_CHECK(test == "filename_foobar");
 
 	// redundant (overlong) 2-byte sequence
 	// ascii code 0x2e encoded with a leading 0
 	test = "filename\xc0\xae";
 	TEST_CHECK(!verify_encoding(test));
 	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename__");
+	TEST_CHECK(test == "filename_");
 
 	// redundant (overlong) 3-byte sequence
 	// ascii code 0x2e encoded with two leading 0s
 	test = "filename\xe0\x80\xae";
 	TEST_CHECK(!verify_encoding(test));
 	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename___");
+	TEST_CHECK(test == "filename_");
 
 	// redundant (overlong) 4-byte sequence
 	// ascii code 0x2e encoded with three leading 0s
 	test = "filename\xf0\x80\x80\xae";
 	TEST_CHECK(!verify_encoding(test));
 	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename____");
+	TEST_CHECK(test == "filename_");
 
 	// missing byte header
 	test = "filename\xed\0\x80";

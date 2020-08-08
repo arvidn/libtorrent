@@ -281,7 +281,45 @@ namespace {
 		return ret;
 	}
 
-	std::uint32_t const max_codepoint = 0x10ffff;
+	std::int32_t const max_codepoint = 0x10ffff;
+
+	void append_utf8_codepoint(std::string& ret, std::int32_t codepoint)
+	{
+		std::int32_t const surrogate_start = 0xd800;
+		std::int32_t const surrogate_end = 0xdfff;
+
+		if (codepoint >= surrogate_start
+			&& codepoint <= surrogate_end)
+			codepoint = '_';
+
+		if (codepoint > max_codepoint)
+			codepoint = '_';
+
+		int seq_len = 0;
+		if (codepoint < 0x80) seq_len = 1;
+		else if (codepoint < 0x800) seq_len = 2;
+		else if (codepoint < 0x10000) seq_len = 3;
+		else seq_len = 4;
+
+		switch (seq_len)
+		{
+			case 1:
+				ret.push_back(static_cast<char>(codepoint));
+				break;
+			case 2:
+				ret.push_back(static_cast<char>(0b11000000 | (codepoint >> 6)));
+				break;
+			case 3:
+				ret.push_back(static_cast<char>(0b11100000 | (codepoint >> 12)));
+				break;
+			case 4:
+				ret.push_back(static_cast<char>(0b11110000 | (codepoint >> 18)));
+				break;
+		}
+
+		for (int i = seq_len - 2; i >= 0; --i)
+			ret.push_back(static_cast<char>(0b10000000 | ((codepoint >> (6 * i)) & 0b111111)));
+	}
 
 	// returns the unicode codepoint and the number of bytes of the utf8 sequence
 	// that was parsed. The codepoint is -1 if it's invalid
@@ -305,7 +343,7 @@ namespace {
 		if (sequence_len > int(str.size()))
 			return std::make_pair(-1, static_cast<int>(str.size()));
 
-		std::uint32_t ch = 0;
+		std::int32_t ch = 0;
 		// first byte
 		switch (sequence_len)
 		{
