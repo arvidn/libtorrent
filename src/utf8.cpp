@@ -258,29 +258,6 @@ namespace {
 		return ret;
 	}
 
-	std::string wchar_utf8(wstring_view wide, error_code& ec)
-	{
-		// allocate space for worst-case
-		std::string utf8;
-		utf8.resize(wide.size() * 6);
-		if (wide.empty()) return {};
-
-		wchar_t const* src_start = wide.data();
-		utf8_errors::error_code_enum const ret = convert_from_wide<sizeof(wchar_t)>::convert(
-			&src_start, src_start + wide.size(), utf8);
-		if (ret != utf8_errors::error_code_enum::conversion_ok)
-			ec = make_error_code(ret);
-		return utf8;
-	}
-
-	std::string wchar_utf8(wstring_view wide)
-	{
-		error_code ec;
-		std::string ret = wchar_utf8(wide, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-		return ret;
-	}
-
 	std::int32_t const max_codepoint = 0x10ffff;
 
 	void append_utf8_codepoint(std::string& ret, std::int32_t codepoint)

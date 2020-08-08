@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <clocale>
 #endif
 
+#if TORRENT_USE_LOCALE
+#include <clocale>
+#endif
+
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp"
 
@@ -439,47 +443,24 @@ namespace libtorrent {
 #if defined TORRENT_WINDOWS
 	std::wstring convert_to_wstring(std::string const& s)
 	{
-		error_code ec;
-		std::wstring ret = libtorrent::utf8_wchar(s, ec);
-		if (!ec) return ret;
-
-		ret.clear();
-		const char* end = &s[0] + s.size();
-		for (const char* i = &s[0]; i < end;)
-		{
-			wchar_t c = '.';
-			int const result = std::mbtowc(&c, i, end - i);
-			if (result > 0) i += result;
-			else ++i;
-			ret += c;
-		}
-		return ret;
+		std::wstring ws;
+		ws.resize(s.size() + 1);
+		int wsize = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ws[0], int(ws.size()));
+		if (wsize < 0) return {};
+		if (wsize > 0 && ws[wsize - 1] == '\0') --wsize;
+		ws.resize(wsize);
+		return ws;
 	}
 
 	std::string convert_from_wstring(std::wstring const& s)
 	{
-		error_code ec;
-		std::string ret = libtorrent::wchar_utf8(s, ec);
-		if (!ec) return ret;
-
-		ret.clear();
-		const wchar_t* end = &s[0] + s.size();
-		for (const wchar_t* i = &s[0]; i < end;)
-		{
-			char c[10];
-			TORRENT_ASSERT(sizeof(c) >= std::size_t(MB_CUR_MAX));
-			int const result = std::wctomb(c, *i);
-			if (result > 0)
-			{
-				i += result;
-				ret.append(c, result);
-			}
-			else
-			{
-				++i;
-				ret += ".";
-			}
-		}
+		std::string ret;
+		ret.resize(s.size() * 4 + 1);
+		int size = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1
+			, &ret[0], int(ret.size()), nullptr, nullptr);
+		if (size < 0) return {};
+		if (size > 0 && ret[size - 1] == '\0') --size;
+		ret.resize(size);
 		return ret;
 	}
 #endif
@@ -547,51 +528,79 @@ namespace {
 
 #elif defined TORRENT_WINDOWS
 
-	std::string convert_to_native(std::string const& s)
+namespace {
+
+	std::string convert_impl(std::string const& s, UINT from, UINT to)
 	{
-		std::wstring ws = libtorrent::utf8_wchar(s);
+		std::wstring ws;
+		ws.resize(s.size() + 1);
+		int wsize = MultiByteToWideChar(from, 0, s.c_str(), -1, &ws[0], int(ws.size()));
+		if (wsize > 0 && ws[wsize - 1] == '\0') --wsize;
+		ws.resize(wsize);
+
 		std::string ret;
 		ret.resize(ws.size() * 4 + 1);
-		int size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
-		if (size < 0) return s;
-		if (size != 0 && ret[size - 1] == '\0') --size;
+		int size = WideCharToMultiByte(to, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
+		if (size > 0 && ret[size - 1] == '\0') --size;
 		ret.resize(size);
 		return ret;
+	}
+} // anonymous namespace
+
+	std::string convert_to_native(std::string const& s)
+	{
+		return convert_impl(s, CP_UTF8, CP_ACP);
 	}
 
 	std::string convert_from_native(std::string const& s)
 	{
-		std::wstring ws;
-		ws.resize(s.size() + 1);
-		int size = MultiByteToWideChar(CP_ACP, 0, s.c_str(), -1, &ws[0], int(ws.size()));
-		if (size < 0) return s;
-		if (size != 0 && ws[size - 1] == '\0') --size;
-		ws.resize(size);
-		return libtorrent::wchar_utf8(ws);
+		return convert_impl(s, CP_ACP, CP_UTF8);
 	}
 
 #elif TORRENT_USE_LOCALE
 
 	std::string convert_to_native(std::string const& s)
 	{
-		std::wstring ws = libtorrent::utf8_wchar(s);
-		std::size_t size = wcstombs(0, ws.c_str(), 0);
-		if (size == std::size_t(-1)) return s;
 		std::string ret;
-		ret.resize(size);
-		size = std::wcstombs(&ret[0], ws.c_str(), size + 1);
-		if (size == std::size_t(-1)) return s;
-		ret.resize(size);
+		string_view ptr = s;
+		while (!ptr.empty())
+		{
+			std::int32_t codepoint;
+			int len;
+
+			// decode a single utf-8 character
+			std::tie(codepoint, len) = parse_utf8_codepoint(ptr);
+
+			if (codepoint == -1)
+				codepoint = '.';
+
+			ptr = ptr.substr(std::size_t(len));
+
+			char out[10];
+			int size = std::wctomb(out, static_cast<wchar_t>(codepoint));
+			for (int i = 0; i < size; ++i)
+				ret += out[i];
+		}
 		return ret;
 	}
 
 	std::string convert_from_native(std::string const& s)
 	{
-		std::wstring ws;
-		ws.resize(s.size());
-		std::size_t size = std::mbstowcs(&ws[0], s.c_str(), s.size());
-		if (size == std::size_t(-1)) return s;
-		return libtorrent::wchar_utf8(ws);
+		std::string ret;
+		string_view ptr = s;
+		while (!ptr.empty())
+		{
+			wchar_t codepoint;
+			int const size = std::mbtowc(&codepoint, ptr.data(), ptr.size());
+			if (size < 0)
+				ret.push_back('.');
+			else
+				append_utf8_codepoint(ret, static_cast<std::int32_t>(codepoint));
+
+			ptr = ptr.substr(std::size_t(size < 1 ? 1 : size));
+		}
+
+		return ret;
 	}
 
 #endif
