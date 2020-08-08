@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/ConvertUTF.h"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/string_util.hpp" // is_space, is_i2p_url
 #include "libtorrent/bencode.hpp"
@@ -120,55 +119,28 @@ namespace libtorrent {
 		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
 
-		UTF8 const* ptr = reinterpret_cast<UTF8 const*>(&target[0]);
-		UTF8 const* end = ptr + target.size();
-		while (ptr < end)
+		string_view ptr = target;
+		while (!ptr.empty())
 		{
-			UTF32 codepoint;
-			UTF32* cp = &codepoint;
+			std::int32_t codepoint;
+			int len;
 
 			// decode a single utf-8 character
-			ConversionResult res = ConvertUTF8toUTF32(&ptr, end, &cp, cp + 1
-				, lenientConversion);
+			std::tie(codepoint, len) = parse_utf8_codepoint(ptr);
 
 			// this was the last character, and nothing was
 			// written to the destination buffer (i.e. the source character was
 			// truncated)
-			if (res == sourceExhausted
-				|| res == sourceIllegal)
+			if (codepoint == -1)
 			{
-				if (cp == &codepoint)
-				{
-					if (res == sourceExhausted)
-						ptr = end;
-					else
-						++ptr;
-
-					codepoint = '_';
-					valid_encoding = false;
-				}
-			}
-			else if ((res != conversionOK && res != targetExhausted)
-				|| codepoint == UNI_REPLACEMENT_CHAR)
-			{
-				// we expect the conversion to fail with targetExhausted, since we
-				// only pass in a single destination character slot. The last
-				// character will succeed though. Also, if the character was replaced,
-				// use our own replacement symbol (underscore).
 				codepoint = '_';
 				valid_encoding = false;
 			}
 
-			// encode codepoint into utf-8
-			cp = &codepoint;
-			UTF8 sequence[5];
-			UTF8* start = sequence;
-			res = ConvertUTF32toUTF8(const_cast<const UTF32**>(&cp), cp + 1, &start, start + 5, lenientConversion);
-			TORRENT_UNUSED(res);
-			TORRENT_ASSERT(res == conversionOK);
+			ptr = ptr.substr(std::size_t(len));
 
-			for (int i = 0; i < std::min(5, int(start - sequence)); ++i)
-				tmp_path += char(sequence[i]);
+			// encode codepoint into utf-8
+			append_utf8_codepoint(tmp_path, codepoint);
 		}
 
 		// the encoding was not valid utf-8
