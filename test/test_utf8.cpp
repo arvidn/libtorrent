@@ -240,16 +240,6 @@ TORRENT_TEST(utf8)
 	expect_error("\xed\xae\x80\xed\xbf\xbf", sourceIllegal);
 	expect_error("\xed\xaf\xbf\xed\xb0\x80", sourceIllegal);
 	expect_error("\xed\xaf\xbf\xed\xbf\xbf", sourceIllegal);
-
-	// test higher level conversions
-
-	std::string utf8;
-	std::copy(utf8_source.begin(), utf8_source.end(), std::back_inserter(utf8));
-
-	std::wstring const wide = utf8_wchar(utf8);
-	std::string const identity = wchar_utf8(wide);
-
-	TEST_EQUAL(utf8, identity);
 }
 
 TORRENT_TEST(invalid_encoding)

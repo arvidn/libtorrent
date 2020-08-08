@@ -425,6 +425,7 @@ namespace detail {
 #endif
 
 #if TORRENT_ABI_VERSION == 1
+#if defined TORRENT_WINDOWS
 
 	// all wstring APIs are deprecated since 0.16.11
 	// instead, use the wchar -> utf8 conversion functions
@@ -470,6 +471,7 @@ namespace detail {
 	{
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);
 	}
+#endif // TORRENT_WINDOWS
 #endif // TORRENT_ABI_VERSION
 
 namespace aux {

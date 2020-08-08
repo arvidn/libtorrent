@@ -310,6 +310,7 @@ namespace libtorrent {
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
+#if defined TORRENT_WINDOWS
 		TORRENT_DEPRECATED
 		void add_file(std::wstring const& p, std::int64_t size
 			, file_flags_t flags = {}
@@ -320,6 +321,8 @@ namespace libtorrent {
 		void set_name(std::wstring const& n);
 
 		void rename_file_deprecated(file_index_t index, std::wstring const& new_filename);
+#endif
+
 		// all functions depending on internal_file_entry
 		// were deprecated in 1.0. Use the variants that take an
 		// index instead
