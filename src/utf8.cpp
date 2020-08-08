@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/ConvertUTF.h"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
@@ -51,161 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 namespace {
-
-		// ==== utf-8 -> wide ===
-		template<int width>
-		struct convert_to_wide
-		{
-			static utf8_errors::error_code_enum convert(UTF8 const** src_start
-				, UTF8 const* src_end
-				, std::wstring& wide)
-			{
-				TORRENT_UNUSED(src_start);
-				TORRENT_UNUSED(src_end);
-				TORRENT_UNUSED(wide);
-				return utf8_errors::error_code_enum::source_illegal;
-			}
-		};
-
-		// ==== utf-8 -> utf-32 ===
-		template<>
-		struct convert_to_wide<4>
-		{
-			static utf8_errors::error_code_enum convert(char const** src_start
-				, char const* src_end
-				, std::wstring& wide)
-			{
-				wchar_t* dst_start = &wide[0];
-				int ret = ConvertUTF8toUTF32(
-					reinterpret_cast<UTF8 const**>(src_start)
-					, reinterpret_cast<UTF8 const*>(src_end)
-					, reinterpret_cast<UTF32**>(&dst_start)
-					, reinterpret_cast<UTF32*>(dst_start + wide.size())
-					, lenientConversion);
-				if (ret == sourceIllegal)
-				{
-					// assume Latin-1
-					wide.clear();
-					std::copy(reinterpret_cast<std::uint8_t const*>(*src_start)
-						,reinterpret_cast<std::uint8_t const*>(src_end)
-						, std::back_inserter(wide));
-					return static_cast<utf8_errors::error_code_enum>(ret);
-				}
-				wide.resize(aux::numeric_cast<std::size_t>(dst_start - wide.c_str()));
-				return static_cast<utf8_errors::error_code_enum>(ret);
-			}
-		};
-
-		// ==== utf-8 -> utf-16 ===
-		template<>
-		struct convert_to_wide<2>
-		{
-			static utf8_errors::error_code_enum convert(char const** src_start
-				, char const* src_end
-				, std::wstring& wide)
-			{
-				wchar_t* dst_start = &wide[0];
-				int ret = ConvertUTF8toUTF16(
-					reinterpret_cast<UTF8 const**>(src_start)
-					, reinterpret_cast<UTF8 const*>(src_end)
-					, reinterpret_cast<UTF16**>(&dst_start)
-					, reinterpret_cast<UTF16*>(dst_start + wide.size())
-					, lenientConversion);
-				if (ret == sourceIllegal)
-				{
-					// assume Latin-1
-					wide.clear();
-					std::copy(reinterpret_cast<std::uint8_t const*>(*src_start)
-						, reinterpret_cast<std::uint8_t const*>(src_end)
-						, std::back_inserter(wide));
-					return static_cast<utf8_errors::error_code_enum>(ret);
-				}
-				wide.resize(aux::numeric_cast<std::size_t>(dst_start - wide.c_str()));
-				return static_cast<utf8_errors::error_code_enum>(ret);
-			}
-		};
-
-		// ==== wide -> utf-8 ===
-		template<int width>
-		struct convert_from_wide
-		{
-			static utf8_errors::error_code_enum convert(wchar_t const** src_start
-				, wchar_t const* src_end
-				, std::string& utf8)
-			{
-				TORRENT_UNUSED(src_start);
-				TORRENT_UNUSED(src_end);
-				TORRENT_UNUSED(utf8);
-				return utf8_errors::error_code_enum::source_illegal;
-			}
-		};
-
-		// ==== utf-32 -> utf-8 ===
-		template<>
-		struct convert_from_wide<4>
-		{
-			static utf8_errors::error_code_enum convert(wchar_t const** src_start
-				, wchar_t const* src_end
-				, std::string& utf8)
-			{
-				char* dst_start = &utf8[0];
-				int ret = ConvertUTF32toUTF8(
-					reinterpret_cast<UTF32 const**>(src_start)
-					, reinterpret_cast<UTF32 const*>(src_end)
-					, reinterpret_cast<UTF8**>(&dst_start)
-					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
-					, lenientConversion);
-				utf8.resize(aux::numeric_cast<std::size_t>(dst_start - &utf8[0]));
-				return static_cast<utf8_errors::error_code_enum>(ret);
-			}
-		};
-
-		// ==== utf-16 -> utf-8 ===
-		template<>
-		struct convert_from_wide<2>
-		{
-			static utf8_errors::error_code_enum convert(wchar_t const** src_start
-				, wchar_t const* src_end
-				, std::string& utf8)
-			{
-				char* dst_start = &utf8[0];
-				int ret = ConvertUTF16toUTF8(
-					reinterpret_cast<UTF16 const**>(src_start)
-					, reinterpret_cast<UTF16 const*>(src_end)
-					, reinterpret_cast<UTF8**>(&dst_start)
-					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
-					, lenientConversion);
-				utf8.resize(aux::numeric_cast<std::size_t>(dst_start - &utf8[0]));
-				return static_cast<utf8_errors::error_code_enum>(ret);
-			}
-		};
-
-		struct utf8_error_category final : boost::system::error_category
-		{
-			const char* name() const BOOST_SYSTEM_NOEXCEPT override
-			{
-				return "UTF error";
-			}
-
-			std::string message(int ev) const override
-			{
-				static char const* error_messages[] = {
-					"ok",
-					"source exhausted",
-					"target exhausted",
-					"source illegal"
-				};
-
-				TORRENT_ASSERT(ev >= 0);
-				TORRENT_ASSERT(ev < int(sizeof(error_messages)/sizeof(error_messages[0])));
-				return error_messages[ev];
-			}
-
-			boost::system::error_condition default_error_condition(
-				int ev) const BOOST_SYSTEM_NOEXCEPT override
-			{ return {ev, *this}; }
-		};
-
 	// return the number of bytes in the UTF-8 sequence starting with this
 	// character. Returns 0 if the lead by is invalid
 	int utf8_sequence_length(char const c)
@@ -222,20 +66,6 @@ namespace {
 	}
 
 } // anonymous namespace
-
-	namespace utf8_errors
-	{
-		boost::system::error_code make_error_code(utf8_errors::error_code_enum e)
-		{
-			return {e, utf8_category()};
-		}
-	} // utf_errors namespace
-
-	boost::system::error_category const& utf8_category()
-	{
-		static utf8_error_category cat;
-		return cat;
-	}
 
 	std::int32_t const max_codepoint = 0x10ffff;
 
