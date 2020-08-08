@@ -263,8 +263,6 @@ namespace aux {
 				continue;
 			}
 
-			TORRENT_ASSERT(isLegalUTF8(reinterpret_cast<UTF8 const*>(element.data() + i), seq_len));
-
 			// validation passed, add it to the output string
 			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
 			{
