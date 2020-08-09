@@ -187,6 +187,7 @@ EXTRA_DIST = \
   bindings/CMakeLists.txt \
   setup.py \
   LICENSE \
+  src/ed25519/LICENSE \
   COPYING \
   AUTHORS \
   NEWS \
