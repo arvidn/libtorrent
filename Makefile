@@ -11,7 +11,7 @@ ifneq ($(OS),Windows_NT)
 	endif
 endif
 
-BUILD_CONFIG=release cxxstd=14 link=shared crypto=openssl warnings=off -j${NCORES}
+BUILD_CONFIG=release cxxstd=14 link=shared crypto=openssl warnings=off address-model=64 -j${NCORES}
 
 ifeq (${PREFIX},)
 PREFIX=/usr/local/

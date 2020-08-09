@@ -899,8 +899,6 @@ lib torrent
 	: # default build
 	<threading>multi
 	<c++-template-depth>512
-	# default to 64 bit address model as it's required by mmap-disk-io.
-	<address-model>64
 
 	: # usage requirements
 	$(usage-requirements)
