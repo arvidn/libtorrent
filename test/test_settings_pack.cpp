@@ -305,6 +305,9 @@ TORRENT_TEST(save_settings_to_dict)
 	TEST_EQUAL(buf, "d21:max_out_request_queuei1337e16:peer_fingerprint3:abc19:send_redundant_havei0ee");
 }
 
+// MSVC doesn't support making these arrays constexpr yet (which is required to
+// initialize them before global constructors)
+#if !defined _MSC_VER
 namespace {
 // make sure a global constructor has access to the default values, to
 // initialize itself with
@@ -315,3 +318,4 @@ TORRENT_TEST(global_constructors)
 {
 	TEST_CHECK(g_sett.get_int(lt::settings_pack::aio_threads) > 0);
 }
+#endif
