@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/aux_/win_util.hpp"
+#endif
+
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h> // for mmap
 #include <sys/stat.h>
@@ -109,7 +113,56 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 
-#endif
+	std::once_flag g_once_flag;
+
+	void acquire_manage_volume_privs()
+	{
+		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
+
+		using LookupPrivilegeValue_t = BOOL (WINAPI*)(LPCSTR, LPCSTR, PLUID);
+
+		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
+			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+
+		auto OpenProcessToken =
+			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
+		auto LookupPrivilegeValue =
+			aux::get_library_procedure<aux::advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
+		auto AdjustTokenPrivileges =
+			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
+
+		if (OpenProcessToken == nullptr
+			|| LookupPrivilegeValue == nullptr
+			|| AdjustTokenPrivileges == nullptr)
+		{
+			return;
+		}
+
+
+		HANDLE token;
+		if (!OpenProcessToken(GetCurrentProcess()
+			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+			return;
+
+		BOOST_SCOPE_EXIT_ALL(&token) {
+			CloseHandle(token);
+		};
+
+		TOKEN_PRIVILEGES privs{};
+		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
+			, &privs.Privileges[0].Luid))
+		{
+			return;
+		}
+
+		privs.PrivilegeCount = 1;
+		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
+	}
+
+#endif // TORRENT_WINDOWS
+
 } // anonymous
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -141,7 +194,7 @@ namespace {
 
 } // anonymous
 
-file_handle::file_handle(string_view name, std::int64_t
+file_handle::file_handle(string_view name, std::int64_t const size
 	, open_mode_t const mode)
 	: m_fd(CreateFileW(convert_to_native_path_string(name.to_string()).c_str()
 		, file_access(mode)
@@ -156,11 +209,29 @@ file_handle::file_handle(string_view name, std::int64_t
 
 	// try to make the file sparse if supported
 	// only set this flag if the file is opened for writing
-	if ((mode & aux::open_mode::sparse)
-		&& (mode & aux::open_mode::write))
+	if ((mode & aux::open_mode::sparse) && (mode & aux::open_mode::write))
 	{
 		DWORD temp;
 		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
+	}
+
+	if ((mode & open_mode::truncate) && !(mode & aux::open_mode::sparse))
+	{
+		LARGE_INTEGER sz;
+		sz.QuadPart = size;
+		if (SetFilePointerEx(m_fd, sz, nullptr, FILE_BEGIN) == FALSE)
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+
+		if (::SetEndOfFile(m_fd) == FALSE)
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+		// Enable privilege required by SetFileValidData()
+		// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+		std::call_once(g_once_flag, acquire_manage_volume_privs);
+
+		// if the user has permissions, avoid filling
+		// the file with zeroes, but just fill it with
+		// garbage instead
+		SetFileValidData(m_fd, size);
 	}
 }
 
