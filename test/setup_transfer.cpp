@@ -631,8 +631,9 @@ void wait_for_port(int const port)
 }
 #endif
 
-std::string get_python()
+std::vector<std::string> get_python()
 {
+	std::vector<std::string> ret;
 #ifdef _WIN32
 	char dummy[1];
 	DWORD const req_size = GetEnvironmentVariable("PYTHON_INTERPRETER", dummy, sizeof(dummy));
@@ -640,13 +641,15 @@ std::string get_python()
 	{
 		std::vector<char> buf(req_size);
 		DWORD const sz = GetEnvironmentVariable("PYTHON_INTERPRETER", buf.data(), buf.size());
-		if (sz == buf.size() - 1) return buf.data();
+		if (sz == buf.size() - 1) ret.emplace_back(buf.data(), buf.size());
 	}
 #endif
-	return "python3";
+	ret.push_back("python3");
+	ret.push_back("python");
+	return ret;
 }
 
-}
+} // anonymous namespace
 
 // returns a port on success and -1 on failure
 int start_proxy(int proxy_type)
@@ -704,20 +707,24 @@ int start_proxy(int proxy_type)
 			cmd = "../http_proxy.py";
 			break;
 	}
-	std::string python_exe = get_python();
-	char buf[1024];
-	std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
+	std::vector<std::string> python_exes = get_python();
+	for (auto const& python_exe : python_exes)
+	{
+		char buf[1024];
+		std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
 
-	std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
-	std::printf("%s\n", buf);
-	pid_type r = async_run(buf);
-	if (r == 0) abort();
-	proxy_t t = { r, proxy_type };
-	running_proxies.insert(std::make_pair(port, t));
-	std::printf("%s launched\n", time_now_string());
-	std::this_thread::sleep_for(lt::milliseconds(500));
-	wait_for_port(port);
-	return port;
+		std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+		std::printf("%s\n", buf);
+		pid_type r = async_run(buf);
+		if (r == 0) continue;
+		proxy_t t = { r, proxy_type };
+		running_proxies.insert(std::make_pair(port, t));
+		std::printf("%s launched\n", time_now_string());
+		std::this_thread::sleep_for(lt::milliseconds(500));
+		wait_for_port(port);
+		return port;
+	}
+	abort();
 }
 
 using namespace lt;
@@ -1116,22 +1123,26 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 			, std::uint16_t(port)), ec);
 	} while (ec);
 
-	std::string python_exe = get_python();
+	std::vector<std::string> python_exes = get_python();
 
-	char buf[200];
-	std::snprintf(buf, sizeof(buf), "%s ../web_server.py %d %d %d %d %d"
-		, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
+	for (auto const& python_exe : python_exes)
+	{
+		char buf[200];
+		std::snprintf(buf, sizeof(buf), "%s ../web_server.py %d %d %d %d %d"
+			, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
 
-	std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
+		std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
 
-	std::printf("%s\n", buf);
-	pid_type r = async_run(buf);
-	if (r == 0) abort();
-	web_server_pid = r;
-	std::printf("%s launched\n", time_now_string());
-	std::this_thread::sleep_for(lt::milliseconds(1000));
-	wait_for_port(port);
-	return port;
+		std::printf("%s\n", buf);
+		pid_type r = async_run(buf);
+		if (r == 0) continue;
+		web_server_pid = r;
+		std::printf("%s launched\n", time_now_string());
+		std::this_thread::sleep_for(lt::milliseconds(1000));
+		wait_for_port(port);
+		return port;
+	}
+	abort();
 }
 
 void stop_web_server()
