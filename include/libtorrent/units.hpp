@@ -59,36 +59,36 @@ namespace aux {
 		constexpr strong_typedef(strong_typedef&& rhs) noexcept = default;
 		strong_typedef() noexcept = default;
 #if TORRENT_ABI_VERSION == 1
-		constexpr strong_typedef(UnderlyingType val) : m_val(val) {}
-		constexpr operator UnderlyingType() const { return m_val; }
+		constexpr strong_typedef(UnderlyingType val) noexcept : m_val(val) {}
+		constexpr operator UnderlyingType() const noexcept { return m_val; }
 #else
-		constexpr explicit strong_typedef(UnderlyingType val) : m_val(val) {}
-		constexpr explicit operator UnderlyingType() const { return m_val; }
-		constexpr bool operator==(strong_typedef const& rhs) const { return m_val == rhs.m_val; }
-		constexpr bool operator!=(strong_typedef const& rhs) const { return m_val != rhs.m_val; }
-		constexpr bool operator<(strong_typedef const& rhs) const { return m_val < rhs.m_val; }
-		constexpr bool operator>(strong_typedef const& rhs) const { return m_val > rhs.m_val; }
-		constexpr bool operator>=(strong_typedef const& rhs) const { return m_val >= rhs.m_val; }
-		constexpr bool operator<=(strong_typedef const& rhs) const { return m_val <= rhs.m_val; }
+		constexpr explicit strong_typedef(UnderlyingType val) noexcept : m_val(val) {}
+		constexpr explicit operator UnderlyingType() const noexcept { return m_val; }
+		constexpr bool operator==(strong_typedef const& rhs) const noexcept { return m_val == rhs.m_val; }
+		constexpr bool operator!=(strong_typedef const& rhs) const noexcept { return m_val != rhs.m_val; }
+		constexpr bool operator<(strong_typedef const& rhs) const noexcept { return m_val < rhs.m_val; }
+		constexpr bool operator>(strong_typedef const& rhs) const noexcept { return m_val > rhs.m_val; }
+		constexpr bool operator>=(strong_typedef const& rhs) const noexcept { return m_val >= rhs.m_val; }
+		constexpr bool operator<=(strong_typedef const& rhs) const noexcept { return m_val <= rhs.m_val; }
 #endif
-		strong_typedef& operator++() { ++m_val; return *this; }
-		strong_typedef& operator--() { --m_val; return *this; }
+		strong_typedef& operator++() noexcept { ++m_val; return *this; }
+		strong_typedef& operator--() noexcept { --m_val; return *this; }
 
-		strong_typedef operator++(int) & { return strong_typedef{m_val++}; }
-		strong_typedef operator--(int) & { return strong_typedef{m_val--}; }
+		strong_typedef operator++(int) & noexcept { return strong_typedef{m_val++}; }
+		strong_typedef operator--(int) & noexcept { return strong_typedef{m_val--}; }
 
-		friend diff_type operator-(strong_typedef lhs, strong_typedef rhs)
+		friend diff_type operator-(strong_typedef lhs, strong_typedef rhs) noexcept
 		{ return diff_type{lhs.m_val - rhs.m_val}; }
-		friend strong_typedef operator+(strong_typedef lhs, diff_type rhs)
+		friend strong_typedef operator+(strong_typedef lhs, diff_type rhs) noexcept
 		{ return strong_typedef{lhs.m_val + static_cast<UnderlyingType>(rhs)}; }
-		friend strong_typedef operator+(diff_type lhs, strong_typedef rhs)
+		friend strong_typedef operator+(diff_type lhs, strong_typedef rhs) noexcept
 		{ return strong_typedef{static_cast<UnderlyingType>(lhs) + rhs.m_val}; }
-		friend strong_typedef operator-(strong_typedef lhs, diff_type rhs)
+		friend strong_typedef operator-(strong_typedef lhs, diff_type rhs) noexcept
 		{ return strong_typedef{lhs.m_val - static_cast<UnderlyingType>(rhs)}; }
 
-		strong_typedef& operator+=(diff_type rhs) &
+		strong_typedef& operator+=(diff_type rhs) & noexcept
 		{ m_val += static_cast<UnderlyingType>(rhs); return *this; }
-		strong_typedef& operator-=(diff_type rhs) &
+		strong_typedef& operator-=(diff_type rhs) & noexcept
 		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
 		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;
@@ -123,11 +123,11 @@ namespace aux {
 	{ return std::to_string(static_cast<T>(t)); }
 
 	template <typename T, typename Tag>
-	strong_typedef<T, Tag> next(strong_typedef<T, Tag> v)
+	strong_typedef<T, Tag> next(strong_typedef<T, Tag> v) noexcept
 	{ return ++v;}
 
 	template <typename T, typename Tag>
-	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
+	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v) noexcept
 	{ return --v;}
 
 } // namespace libtorrent::aux
