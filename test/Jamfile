@@ -53,6 +53,8 @@ local default-build =
 	<logging>on
 	<cxxstd>14
 	<variant>debug-mode
+# default to 64 bit address model as it's required by mmap-disk-io.
+	<address-model>64
 	;
 
 project
