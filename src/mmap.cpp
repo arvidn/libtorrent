@@ -128,8 +128,7 @@ namespace {
 		return ((mode & open_mode::write)
 			? O_RDWR | O_CREAT : O_RDONLY)
 #ifdef O_NOATIME
-			| ((mode & open_mode::no_atime)
-			? O_NOATIME : 0)
+			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
 #endif
 			;
 	}
@@ -147,9 +146,7 @@ namespace {
 		return
 			MAP_FILE | MAP_SHARED
 #ifdef MAP_NOCACHE
-			| ((m & open_mode::no_cache)
-			? MAP_NOCACHE
-			: 0)
+			| ((m & open_mode::no_cache) ? MAP_NOCACHE : 0)
 #endif
 #ifdef MAP_NOCORE
 			// BSD has a flag to exclude this region from core files
@@ -173,6 +170,12 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 	if (m_fd < 0) throw_ex<system_error>(error_code(errno, system_category()));
+
+#ifdef DIRECTIO_ON
+	// for solaris
+	if (mode & open_mode::no_cache)
+		directio(m_fd, DIRECTIO_ON);
+#endif
 
 	if (mode & open_mode::truncate)
 	{
@@ -237,6 +240,31 @@ file_handle::file_handle(string_view name, std::int64_t const size
 #endif // F_PREALLOCATE
 		}
 	}
+
+#ifdef F_NOCACHE
+	// for BSD/Mac
+	if (mode & aux::open_mode::no_cache)
+	{
+		int yes = 1;
+		::fcntl(m_fd, F_NOCACHE, &yes);
+
+#ifdef F_NODIRECT
+		// it's OK to temporarily cache written pages
+		::fcntl(m_fd, F_NODIRECT, &yes);
+#endif
+	}
+#endif
+
+#ifdef POSIX_FADV_RANDOM
+	if (mode & aux::open_mode::random_access)
+	{
+		// disable read-ahead
+		// NOTE: in android this function was introduced in API 21,
+		// but the constant POSIX_FADV_RANDOM is there for lower
+		// API levels, just don't add :: to allow a macro workaround
+		posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+	}
+#endif
 }
 #endif
 
