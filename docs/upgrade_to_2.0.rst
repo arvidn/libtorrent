@@ -36,7 +36,8 @@ takes an info_hash_t. For backwards compatibility, info_hash_t is implicitly
 convertible to and from sha1_hash and is interpreted as the v1 info-hash.
 The implicit conversion is deprecated though.
 
-Perhaps most noteworthy is that ``add_torrent_params::info_hash`` is now of type
+Perhaps most noteworthy is that ``add_torrent_params::info_hash`` is now
+deprecated in favor of ``add_torrent_params::info_hashes`` which is an
 info_hash_t.
 
 The alerts torrent_removed_alert, torrent_deleted_alert,

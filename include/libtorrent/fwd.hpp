@@ -39,9 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // include/libtorrent/add_torrent_params.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct add_torrent_params;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/alert.hpp
 struct alert;
@@ -238,6 +238,9 @@ struct peer_request;
 // include/libtorrent/performance_counters.hpp
 struct counters;
 
+// include/libtorrent/piece_block.hpp
+struct piece_block;
+
 // include/libtorrent/session.hpp
 struct session_proxy;
 struct session;
@@ -264,6 +267,7 @@ struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
 struct web_seed_entry;
+struct load_torrent_limits;
 TORRENT_VERSION_NAMESPACE_3
 class torrent_info;
 TORRENT_VERSION_NAMESPACE_3_END

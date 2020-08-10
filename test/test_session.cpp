@@ -112,7 +112,7 @@ TORRENT_TEST(async_add_torrent_duplicate_error)
 	lt::session ses(p);
 
 	add_torrent_params atp;
-	atp.info_hash.v1.assign("abababababababababab");
+	atp.info_hashes.v1.assign("abababababababababab");
 	atp.save_path = ".";
 	ses.async_add_torrent(atp);
 
@@ -136,7 +136,7 @@ TORRENT_TEST(async_add_torrent_duplicate)
 	lt::session ses(p);
 
 	add_torrent_params atp;
-	atp.info_hash.v1.assign("abababababababababab");
+	atp.info_hashes.v1.assign("abababababababababab");
 	atp.save_path = ".";
 	ses.async_add_torrent(atp);
 
@@ -162,7 +162,7 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	lt::session ses(p);
 
 	add_torrent_params atp;
-	atp.info_hash.v1.assign("abababababababababab");
+	atp.info_hashes.v1.assign("abababababababababab");
 	atp.save_path = ".";
 	atp.flags |= torrent_flags::paused;
 	atp.flags &= ~torrent_flags::apply_ip_filter;

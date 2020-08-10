@@ -1520,7 +1520,7 @@ namespace {
 				auto const p = parse_magnet_uri(uri.string_value(), ec);
 				if (ec) return false;
 
-				m_info_hash = p.info_hash;
+				m_info_hash = p.info_hashes;
 				m_urls.reserve(m_urls.size() + p.trackers.size());
 				for (auto const& url : p.trackers)
 					m_urls.emplace_back(url);

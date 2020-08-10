@@ -260,16 +260,24 @@ namespace
                     extract<torrent_info const&>(value));
                 continue;
             }
-            else if(key == "info_hash")
+            else if (key == "info_hash")
             {
                 if (boost::python::len(value) == sha1_hash::size())
                 {
                     p.info_hash = info_hash_t(sha1_hash(
                             bytes(extract<bytes>(value)).arr.data()));
                 }
+            }
+            else if (key == "info_hashes")
+            {
+                if (boost::python::len(value) == sha1_hash::size())
+                {
+                    p.info_hashes = info_hash_t(sha1_hash(
+                            bytes(extract<bytes>(value)).arr.data()));
+                }
                 else if (boost::python::len(value) == sha256_hash::size())
                 {
-                    p.info_hash = info_hash_t(sha256_hash(
+                    p.info_hashes = info_hash_t(sha256_hash(
                             bytes(extract<bytes>(value)).arr.data()));
                 }
                 continue;
@@ -826,6 +834,8 @@ void bind_session()
         .def_readwrite("num_complete", &add_torrent_params::num_complete)
         .def_readwrite("num_incomplete", &add_torrent_params::num_incomplete)
         .def_readwrite("num_downloaded", &add_torrent_params::num_downloaded)
+        .def_readwrite("info_hash", &add_torrent_params::info_hash)
+        .def_readwrite("info_hashes", &add_torrent_params::info_hashes)
         .add_property("http_seeds", PROP(&add_torrent_params::http_seeds))
         .add_property("url_seeds", PROP(&add_torrent_params::url_seeds))
         .add_property("peers", PROP(&add_torrent_params::peers))

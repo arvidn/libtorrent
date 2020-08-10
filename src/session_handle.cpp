@@ -397,6 +397,10 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
+#if TORRENT_ABI_VERSION < 3
+		params.info_hash = params.info_hashes.get_best();
+#endif
+
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(params);
 #endif
@@ -416,6 +420,10 @@ namespace {
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
+#if TORRENT_ABI_VERSION < 3
+		params.info_hash = params.info_hashes.get_best();
+#endif
 
 		ec.clear();
 #if TORRENT_ABI_VERSION == 1
@@ -438,6 +446,10 @@ namespace {
 	void session_handle::async_add_torrent(add_torrent_params&& params)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
+#if TORRENT_ABI_VERSION < 3
+		params.info_hash = params.info_hashes.get_best();
+#endif
 
 		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
 		// pointer for now. async_call uses a lambda expression to post the call
@@ -492,7 +504,7 @@ namespace {
 
 		add_torrent_params p;
 		p.trackers.push_back(tracker_url);
-		p.info_hash.v1 = info_hash;
+		p.info_hashes.v1 = info_hash;
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
 

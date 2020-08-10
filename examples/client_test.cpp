@@ -677,7 +677,7 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	}
 
 	std::vector<char> resume_data;
-	if (load_file(resume_file(p.info_hash), resume_data))
+	if (load_file(resume_file(p.info_hashes), resume_data))
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
@@ -990,7 +990,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	{
 		--num_outstanding_resume_data;
 		auto const buf = write_resume_data_buf(p->params);
-		save_file(resume_file(p->params.info_hash), buf);
+		save_file(resume_file(p->params.info_hashes), buf);
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
