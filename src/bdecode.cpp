@@ -128,18 +128,18 @@ namespace {
 namespace aux {
 	void escape_string(std::string& ret, char const* str, int len)
 	{
-		for (int i = 0; i < len; ++i)
+		if (std::any_of(str, str + len, [](char const c) { return c < 32 || c >= 127; } ))
 		{
-			if (str[i] >= 32 && str[i] < 127)
+			for (int i = 0; i < len; ++i)
 			{
-				ret += str[i];
-			}
-			else
-			{
-				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
+				char tmp[3];
+				std::snprintf(tmp, sizeof(tmp), "%02x", std::uint8_t(str[i]));
 				ret += tmp;
 			}
+		}
+		else
+		{
+			ret.assign(str, std::size_t(len));
 		}
 	}
 }
@@ -1087,11 +1087,11 @@ done:
 			ret += "'";
 			return;
 		}
-		if (single_line && len > 20)
+		if (single_line && len > 32)
 		{
-			aux::escape_string(ret, str.data(), 9);
+			aux::escape_string(ret, str.data(), 25);
 			ret += "...";
-			aux::escape_string(ret, str.data() + len - 9, 9);
+			aux::escape_string(ret, str.data() + len - 4, 4);
 		}
 		else
 		{
