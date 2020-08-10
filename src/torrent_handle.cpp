@@ -208,7 +208,7 @@ namespace libtorrent {
 	sha1_hash torrent_handle::info_hash() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return t ? t->info_hash().v1 : sha1_hash{};
+		return t ? t->info_hash().get_best() : sha1_hash{};
 	}
 
 	info_hash_t torrent_handle::info_hashes() const
