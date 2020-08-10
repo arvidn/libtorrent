@@ -3188,29 +3188,26 @@ namespace {
 			peer_id pid;
 			std::copy(recv_buffer.begin(), recv_buffer.begin() + 20, pid.data());
 
-			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
+			// now, let's see if this connection should be closed
+			peer_connection* p = t->find_peer(pid);
+			if (p)
 			{
-				// now, let's see if this connection should be closed
-				peer_connection* p = t->find_peer(pid);
-				if (p)
+				TORRENT_ASSERT(p->pid() == pid);
+				// we found another connection with the same peer-id
+				// which connection should be closed in order to be
+				// sure that the other end closes the same connection?
+				// the peer with greatest peer-id is the one allowed to
+				// initiate connections. So, if our peer-id is greater than
+				// the others, we should close the incoming connection,
+				// if not, we should close the outgoing one.
+				if ((pid < m_our_peer_id) == is_outgoing())
 				{
-					TORRENT_ASSERT(p->pid() == pid);
-					// we found another connection with the same peer-id
-					// which connection should be closed in order to be
-					// sure that the other end closes the same connection?
-					// the peer with greatest peer-id is the one allowed to
-					// initiate connections. So, if our peer-id is greater than
-					// the others, we should close the incoming connection,
-					// if not, we should close the outgoing one.
-					if ((pid < m_our_peer_id) == is_outgoing())
-					{
-						p->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
-					}
-					else
-					{
-						disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
-						return;
-					}
+					p->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+				}
+				else
+				{
+					disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+					return;
 				}
 			}
 
