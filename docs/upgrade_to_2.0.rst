@@ -41,15 +41,12 @@ deprecated in favor of ``add_torrent_params::info_hashes`` which is an
 info_hash_t.
 
 The alerts torrent_removed_alert, torrent_deleted_alert,
-torrent_delete_failed_alert all have ``info_hash`` members. They are no longer
-of the type sha1_hash, but info_hash_t.
+torrent_delete_failed_alert all have ``info_hash`` members. Those members are
+now deprecated in favor of an ``info_hashes`` member, which is of type
+info_hash_t.
 
-info_hash_t can be implicitly constructed from a sha1_hash, which means it can
-also be compared to a sha1_hash, via this conversion constructor. However, when
-adding support for v2 torrents to a client, this conversion may also be a source
-of stripping off the v2 hash. An info_hash_t object for a hybrid torrent will
-have both the v1 and v2 hashes set, it will compare false to a sha1_hash of
-*just* the v1 hash.
+An info_hash_t object for a hybrid torrent will have both the v1 and v2 hashes
+set, it will compare false to a sha1_hash of *just* the v1 hash.
 
 Calls to torrent_handle::info_hash() may need to be replaced by
 torrent_handle::info_hashes(), in order to get both v1 and v2 hashes.

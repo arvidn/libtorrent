@@ -249,7 +249,7 @@ std::shared_ptr<torrent_info> file_constructor1(std::string const& filename, dic
 #if TORRENT_ABI_VERSION == 1
 std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
 {
-   return std::make_shared<torrent_info>(ih);
+   return std::make_shared<torrent_info>(info_hash_t(ih));
 }
 #endif
 
