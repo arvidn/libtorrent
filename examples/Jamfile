@@ -44,7 +44,7 @@ explicit stage_client_test ;
 explicit stage_connection_tester ;
 explicit stage ;
 
-install stage : client_test connection_tester make_torrent dump_torrent upnp_test stats_counters bt-get bt-get2 simple_client : <location>. ;
+install stage : client_test connection_tester make_torrent dump_torrent upnp_test stats_counters bt-get bt-get2 simple_client dump_bdecode : <location>. ;
 install stage_client_test : client_test : <location>. ;
 install stage_connection_tester : connection_tester : <location>. ;
 
