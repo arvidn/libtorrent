@@ -55,7 +55,7 @@ namespace libtorrent {
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 #endif
 
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 
 	// holds a snapshot of the status of a torrent, as queried by
 	// torrent_handle::status().
@@ -554,8 +554,12 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEPRECATED bool stop_when_ready = false;
 #endif
 
+#if TORRENT_ABI_VERSION < 3
+		TORRENT_DEPRECATED sha1_hash info_hash;
+#endif
+
 		// the info-hash for this torrent
-		info_hash_t info_hash;
+		info_hash_t info_hashes;
 
 		// the timestamps of the last time this torrent uploaded or downloaded
 		// payload to any peer.
@@ -579,7 +583,7 @@ TORRENT_VERSION_NAMESPACE_2
 		torrent_flags_t flags{};
 	};
 
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 } // namespace libtorrent
 
 namespace std {
