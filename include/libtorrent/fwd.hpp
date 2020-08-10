@@ -48,7 +48,7 @@ struct alert;
 
 // include/libtorrent/alert_types.hpp
 struct dht_routing_bucket;
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct torrent_alert;
 struct peer_alert;
 struct tracker_alert;
@@ -140,7 +140,7 @@ struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
 struct socks5_alert;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/announce_entry.hpp
 TORRENT_VERSION_NAMESPACE_2
@@ -280,12 +280,12 @@ TORRENT_VERSION_NAMESPACE_2_END
 #if TORRENT_ABI_VERSION <= 2
 
 // include/libtorrent/alert_types.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct torrent_added_alert;
 struct stats_alert;
 struct anonymous_mode_alert;
 struct mmap_cache_alert;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;

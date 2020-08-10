@@ -260,14 +260,15 @@ namespace
                     extract<torrent_info const&>(value));
                 continue;
             }
+#if TORRENT_ABI_VERSION < 3
             else if (key == "info_hash")
             {
                 if (boost::python::len(value) == sha1_hash::size())
                 {
-                    p.info_hash = info_hash_t(sha1_hash(
-                            bytes(extract<bytes>(value)).arr.data()));
+                    p.info_hash = sha1_hash(bytes(extract<bytes>(value)).arr.data());
                 }
             }
+#endif
             else if (key == "info_hashes")
             {
                 if (boost::python::len(value) == sha1_hash::size())

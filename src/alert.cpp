@@ -751,8 +751,12 @@ namespace libtorrent {
 	torrent_deleted_alert::torrent_deleted_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, info_hash_t const& ih)
 		: torrent_alert(alloc, h)
-		, info_hash(ih)
-	{}
+		, info_hashes(ih)
+	{
+#if TORRENT_ABI_VERSION < 3
+		info_hash = info_hashes.get_best();
+#endif
+	}
 
 	std::string torrent_deleted_alert::message() const
 	{
@@ -763,11 +767,14 @@ namespace libtorrent {
 		, torrent_handle const& h, error_code const& e, info_hash_t const& ih)
 		: torrent_alert(alloc, h)
 		, error(e)
-		, info_hash(ih)
+		, info_hashes(ih)
 #if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(error.message()))
 #endif
 	{
+#if TORRENT_ABI_VERSION < 3
+		info_hash = info_hashes.get_best();
+#endif
 	}
 
 	std::string torrent_delete_failed_alert::message() const
@@ -1436,9 +1443,13 @@ namespace {
 	torrent_removed_alert::torrent_removed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, info_hash_t const& ih, client_data_t u)
 		: torrent_alert(alloc, h)
-		, info_hash(ih)
+		, info_hashes(ih)
 		, userdata(u)
-	{}
+	{
+#if TORRENT_ABI_VERSION < 3
+		info_hash = info_hashes.get_best();
+#endif
+	}
 
 	std::string torrent_removed_alert::message() const
 	{

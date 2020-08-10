@@ -95,12 +95,6 @@ TORRENT_TEST(ordering)
 	}
 }
 
-#if TORRENT_ABI_VERSION <= 2
-namespace {
-sha1_hash implicit_conv(sha1_hash const& h) { return h;}
-}
-#endif
-
 TORRENT_TEST(has)
 {
 	{
@@ -110,9 +104,6 @@ TORRENT_TEST(has)
 		TEST_EQUAL(a.has(protocol_version::V1), false);
 		TEST_EQUAL(a.has(protocol_version::V2), false);
 		TEST_EQUAL(a.get_best(), none1);
-#if TORRENT_ABI_VERSION <= 2
-		TEST_CHECK(implicit_conv(a) == none1);
-#endif
 	}
 
 	{
@@ -122,9 +113,6 @@ TORRENT_TEST(has)
 		TEST_EQUAL(a.has(protocol_version::V1), true);
 		TEST_EQUAL(a.has(protocol_version::V2), false);
 		TEST_EQUAL(a.get_best(), ones1);
-#if TORRENT_ABI_VERSION <= 2
-		TEST_CHECK(implicit_conv(a) == ones1);
-#endif
 	}
 
 	{
@@ -134,9 +122,6 @@ TORRENT_TEST(has)
 		TEST_EQUAL(a.has(protocol_version::V1), true);
 		TEST_EQUAL(a.has(protocol_version::V2), true);
 		TEST_EQUAL(a.get_best(), twos1);
-#if TORRENT_ABI_VERSION <= 2
-		TEST_CHECK(implicit_conv(a) == ones1);
-#endif
 	}
 
 	{
@@ -146,8 +131,5 @@ TORRENT_TEST(has)
 		TEST_EQUAL(a.has(protocol_version::V1), false);
 		TEST_EQUAL(a.has(protocol_version::V2), true);
 		TEST_EQUAL(a.get_best(), ones1);
-#if TORRENT_ABI_VERSION <= 2
-		TEST_CHECK(implicit_conv(a) == none1);
-#endif
 	}
 }
