@@ -785,6 +785,9 @@ namespace libtorrent {
 		, resume_data(std::make_shared<entry>(write_resume_data(params)))
 #endif
 	{
+#if TORRENT_ABI_VERSION < 3
+		params.info_hash = params.info_hashes.get_best();
+#endif
 	}
 
 	std::string save_resume_data_alert::message() const
@@ -1490,7 +1493,11 @@ namespace {
 		: torrent_alert(alloc, h)
 		, params(std::move(p))
 		, error(ec)
-	{}
+	{
+#if TORRENT_ABI_VERSION < 3
+		params.info_hash = params.info_hashes.get_best();
+#endif
+	}
 
 	std::string add_torrent_alert::message() const
 	{
@@ -1502,7 +1509,7 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
 #endif
-		else aux::to_hex(params.info_hash.get_best(), info_hash);
+		else aux::to_hex(params.info_hashes.get_best(), info_hash);
 
 		if (error)
 		{

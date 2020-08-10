@@ -98,7 +98,7 @@ class test_torrent_handle(unittest.TestCase):
         self.ses = lt.session(settings)
         self.ti = lt.torrent_info('url_seed_multi.torrent')
         with self.assertRaises(RuntimeError):
-            self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'info_hash': b'abababababababababab'})
+            self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'info_hashes': b'abababababababababab'})
 
     def test_torrent_handle(self):
         self.setup()
@@ -231,7 +231,7 @@ class test_torrent_handle(unittest.TestCase):
         self.setup()
         st = self.h.status()
         ti = st.handle
-        self.assertEqual(ti.info_hash(), self.ti.info_hash())
+        self.assertEqual(ti.info_hashes(), self.ti.info_hashes())
         # make sure we can compare torrent_status objects
         st2 = self.h.status()
         self.assertEqual(st2, st)
@@ -249,7 +249,7 @@ class test_torrent_handle(unittest.TestCase):
         tp = lt.read_resume_data(resume_data)
 
         self.assertEqual(tp.name, 'test')
-        self.assertEqual(tp.info_hash.v1, lt.sha1_hash('abababababababababab'))
+        self.assertEqual(tp.info_hashes.v1, lt.sha1_hash('abababababababababab'))
         self.assertEqual(tp.file_priorities, [0, 1, 1])
         self.assertEqual(tp.peers, [('1.1.1.1', 1), ('2.2.2.2', 2)])
 
@@ -575,7 +575,7 @@ class test_magnet_link(unittest.TestCase):
         ses = lt.session({})
         magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
         p = lt.parse_magnet_uri(magnet)
-        self.assertEqual(str(p.info_hash.v1), '178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(str(p.info_hashes.v1), '178882f042c0c33426a6d81e0333ece346e68a68')
         p.save_path = '.'
         h = ses.add_torrent(p)
         self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
@@ -585,7 +585,7 @@ class test_magnet_link(unittest.TestCase):
         ses = lt.session({})
         magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
         p = lt.parse_magnet_uri_dict(magnet)
-        self.assertEqual(binascii.hexlify(p['info_hash']), b'178882f042c0c33426a6d81e0333ece346e68a68')
+        self.assertEqual(binascii.hexlify(p['info_hashes']), b'178882f042c0c33426a6d81e0333ece346e68a68')
         p['save_path'] = '.'
         h = ses.add_torrent(p)
         self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')

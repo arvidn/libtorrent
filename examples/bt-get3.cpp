@@ -102,7 +102,7 @@ int main(int argc, char const* argv[]) try
 	lt::add_torrent_params magnet = lt::parse_magnet_uri(argv[1]);
 	if (buf.size()) {
 		lt::add_torrent_params atp = lt::read_resume_data(buf);
-		if (atp.info_hash == magnet.info_hash) magnet = std::move(atp);
+		if (atp.info_hashes == magnet.info_hashes) magnet = std::move(atp);
 	}
 	magnet.save_path = "."; // save in current dir
 	ses.async_add_torrent(std::move(magnet));

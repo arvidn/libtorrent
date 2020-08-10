@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 
 	// The add_torrent_params is a parameter pack for adding torrents to a
 	// session. The key fields when adding a torrent are:
@@ -209,12 +209,18 @@ TORRENT_VERSION_NAMESPACE_2
 		// 	AND the inverse of a flag to clear it.
 		torrent_flags_t flags = torrent_flags::default_flags;
 
+#if TORRENT_ABI_VERSION < 3
+		// backwards compatible v1 hash, or truncated v2
+		TORRENT_DEPRECATED
+		sha1_hash info_hash;
+#endif
+
 		// set this to the info hash of the torrent to add in case the info-hash
 		// is the only known property of the torrent. i.e. you don't have a
 		// .torrent file nor a magnet link.
 		// To add a magnet link, use parse_magnet_uri() to populate fields in the
 		// add_torrent_params object.
-		info_hash_t info_hash;
+		info_hash_t info_hashes;
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``,
 		// ``download_limit`` correspond to the ``set_max_uploads()``,
@@ -383,7 +389,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	};
 
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 namespace aux {
 	bool contains_resume_data(add_torrent_params const&);

@@ -288,7 +288,7 @@ TORRENT_TEST(added_peers)
 	add_torrent_params p = parse_magnet_uri(
 		"magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082");
 	p.ti = info;
-	p.info_hash = info_hash_t{};
+	p.info_hashes = info_hash_t{};
 	p.save_path = ".";
 
 	torrent_handle h = ses.add_torrent(std::move(p));
@@ -317,7 +317,7 @@ TORRENT_TEST(mismatching_info_hash)
 
 	// this info-hash is definitely different from the one in `info`, this
 	// should trigger a failure
-	p.info_hash = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
+	p.info_hashes = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
 	p.save_path = ".";
 
 	lt::session ses(settings());
@@ -375,7 +375,7 @@ TORRENT_TEST(exceed_piece_prio)
 TORRENT_TEST(exceed_piece_prio_magnet)
 {
 	add_torrent_params p;
-	p.info_hash = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
+	p.info_hashes = lt::info_hash_t(lt::sha1_hash("01010101010101010101"));
 	p.piece_priorities.resize(9999, lt::low_priority);
 	p.save_path = ".";
 
