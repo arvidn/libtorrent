@@ -54,47 +54,6 @@ macro(find_public_dependency _name)
 	endif()
 endmacro()
 
-function(_cxx_standard_to_year _yearVar _std)
-	if (${_std} GREATER 97)
-		math(EXPR _year "1900 + ${_std}")
-	else()
-		math(EXPR _year "2000 + ${_std}")
-	endif()
-	set(${_yearVar} ${_year} PARENT_SCOPE)
-endfunction()
-
-function(select_cxx_standard _target _minimal_supported_version)
-	message(STATUS "Compiler default is C++${CMAKE_CXX_STANDARD_DEFAULT}")
-	# make the CXX_STANDARD property public to ensure it makes it into the pkg-config file
-	get_target_property(_std ${_target} CXX_STANDARD)
-	# ${CMAKE_CXX_STANDARD_DEFAULT} could be 98, which is lower version than C++11. Thus we convert std
-	# version to year value and compare years
-	_cxx_standard_to_year(minimal_supported_version_year ${_minimal_supported_version})
-	# if it is unset, select the default if it is sufficient or the ${_minimal_supported_version}
-	if (NOT ${_std})
-		_cxx_standard_to_year(std_default_year ${CMAKE_CXX_STANDARD_DEFAULT})
-		if (${std_default_year} GREATER_EQUAL ${minimal_supported_version_year})
-			set(_std ${CMAKE_CXX_STANDARD_DEFAULT})
-		else()
-			set(_std ${_minimal_supported_version})
-		endif()
-	else()
-		_cxx_standard_to_year(std_year ${_std})
-		if (${std_year} LESS ${minimal_supported_version_year})
-			message(FATAL_ERROR "The minimal supported C++ standard version is C++${_minimal_supported_version}")
-		endif()
-	endif()
-
-	if (cxx_std_${_std} IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-		# force this standard
-		target_compile_features(${_target} PUBLIC cxx_std_${_std})
-	else()
-		message(FATAL_ERROR "Requested C++ standard version (${_std}) is not supported by the compiler")
-	endif()
-
-	message(STATUS "Building in C++${_std} mode")
-endfunction()
-
 # function for parsing version variables that are set in version.hpp file
 # the version identifiers there are defined as follows:
 # #define LIBTORRENT_VERSION_MAJOR 1
