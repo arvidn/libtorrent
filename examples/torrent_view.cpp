@@ -90,7 +90,7 @@ bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rh
 		if (lhs->seed_rank != rhs->seed_rank)
 			return lhs->seed_rank > rhs->seed_rank;
 
-		return lhs->info_hash < rhs->info_hash;
+		return lhs->info_hashes < rhs->info_hashes;
 	}
 
 	return (lhs->queue_position == queue_position_t{-1})

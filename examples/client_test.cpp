@@ -1591,7 +1591,7 @@ examples:
 					if (scan_ret == 1 && response == 'y')
 					{
 						// also delete the resume file
-						std::string const rpath = resume_file(st.info_hash);
+						std::string const rpath = resume_file(st.info_hashes);
 						if (::remove(rpath.c_str()) < 0)
 							std::printf("failed to delete resume file (\"%s\")\n"
 								, rpath.c_str());
@@ -1882,7 +1882,7 @@ COLUMN OPTIONS
 						if (!ep.enabled) continue;
 						for (lt::protocol_version const v : {lt::protocol_version::V1, lt::protocol_version::V2})
 						{
-							if (!s.info_hash.has(v)) continue;
+							if (!s.info_hashes.has(v)) continue;
 							auto const& av = ep.info_hashes[v];
 
 							std::snprintf(str, sizeof(str), "  [%2d] fails: %-3d (%-3d) %s %5d \"%s\" %s\x1b[K\n"

@@ -190,7 +190,7 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	torrent_handle h = ses.add_torrent(p);
 	torrent_status s = h.status();
-	TEST_EQUAL(s.info_hash, ti->info_hashes());
+	TEST_EQUAL(s.info_hashes, ti->info_hashes());
 	return h;
 }
 
@@ -456,7 +456,7 @@ TORRENT_TEST(piece_slots)
 
 	torrent_status s = h.status();
 	print_alerts(ses, "ses");
-	TEST_EQUAL(s.info_hash, ti->info_hashes());
+	TEST_EQUAL(s.info_hashes, ti->info_hashes());
 	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
 	TEST_CHECK(s.pieces.size() >= 4);
 	TEST_EQUAL(s.pieces[piece_index_t{0}], true);
@@ -513,7 +513,7 @@ void test_piece_slots_seed(settings_pack const& sett)
 
 	torrent_status s = h.status();
 	print_alerts(ses, "ses");
-	TEST_EQUAL(s.info_hash, ti->info_hashes());
+	TEST_EQUAL(s.info_hashes, ti->info_hashes());
 	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
 	for (auto const i : ti->piece_range())
 	{

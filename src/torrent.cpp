@@ -11149,7 +11149,10 @@ namespace {
 		time_point32 const now = aux::time_now32();
 
 		st->handle = get_handle();
-		st->info_hash = info_hash();
+		st->info_hashes = info_hash();
+#if TORRENT_ABI_VERSION < 3
+		st->info_hash = info_hash().get_best();
+#endif
 #if TORRENT_ABI_VERSION == 1
 		st->is_loaded = true;
 #endif
