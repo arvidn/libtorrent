@@ -493,16 +493,26 @@ namespace {
 
 		if (make_v2)
 		{
-//			auto const& file_trees = ti.internal_merkle_trees();
+			auto const& file_trees = ti.internal_merkle_trees();
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
 			for (auto const i : m_files.file_range())
 			{
 				// don't include merkle hash trees for pad files
 				if (m_files.pad_file_at(i)) continue;
-				m_file_piece_hash[i].resize(std::size_t(m_files.file_num_pieces(i)));
 
-				// TODO: copy piece layer from file_trees[i]
+				auto const file_size = m_files.file_size(i);
+				if (file_size < m_files.piece_length())
+				{
+					set_hash2(i, piece_index_t::diff_type{0}, m_files.root(i));
+					continue;
+				}
+
+				aux::vector<sha256_hash> pieces = file_trees[i].get_piece_layer();
+
+				piece_index_t::diff_type p{0};
+				for (auto const& ph : pieces)
+					set_hash2(i, p++, ph);
 			}
 		}
 
@@ -932,6 +942,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(piece >= piece_index_t::diff_type(0));
 		TORRENT_ASSERT_PRECOND(piece < piece_index_t::diff_type(m_files.file_num_pieces(file)));
 		TORRENT_ASSERT_PRECOND(!m_files.pad_file_at(file));
+		TORRENT_ASSERT_PRECOND(!h.is_all_zeros());
 
 		if (m_v1_only)
 			aux::throw_ex<system_error>(errors::invalid_hash_entry);

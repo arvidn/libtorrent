@@ -1056,6 +1056,11 @@ namespace {
 		return m_merkle_trees;
 	}
 
+	aux::vector<aux::merkle_tree, file_index_t> const& torrent_info::internal_merkle_trees() const
+	{
+		return m_merkle_trees;
+	}
+
 	void torrent_info::internal_load_merkle_trees(
 		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
 		, aux::vector<std::vector<bool>, file_index_t> mask)

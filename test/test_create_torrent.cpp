@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -41,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/units.hpp"
 
 #include <cstring>
 
@@ -153,6 +155,50 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_EQUAL(info2.trackers().size(), 1);
 	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
 	TEST_CHECK(info1.info_hashes() == info2.info_hashes());
+	TEST_CHECK(info2.hash_for_piece(lt::piece_index_t(0)) == info1.hash_for_piece(lt::piece_index_t(0)));
+}
+
+namespace {
+
+void test_round_trip_torrent(std::string const& name)
+{
+	std::string const root_dir = lt::parent_path(lt::current_working_directory());
+	std::string const filename = lt::combine_path(lt::combine_path(root_dir, "test_torrents"), name);
+	std::vector<char> v2_buffer;
+	lt::error_code ec;
+	int const ret = load_file(filename, v2_buffer, ec);
+	TEST_CHECK(ret == 0);
+	TEST_CHECK(!ec);
+
+	lt::bdecode_node in_torrent = lt::bdecode(v2_buffer);
+
+	lt::torrent_info info1(v2_buffer, lt::from_span);
+	lt::create_torrent t(info1);
+
+	std::vector<char> out_buffer;
+	lt::entry e = t.generate();
+	lt::bencode(std::back_inserter(out_buffer), e);
+
+	lt::bdecode_node out_torrent = lt::bdecode(out_buffer);
+
+	TEST_CHECK(out_torrent.dict_find("info").data_section()
+		== in_torrent.dict_find("info").data_section());
+
+	auto in_piece_layers = in_torrent.dict_find("piece layers").data_section();
+	auto out_piece_layers = out_torrent.dict_find("piece layers").data_section();
+	TEST_CHECK(out_piece_layers == in_piece_layers);
+}
+
+}
+
+TORRENT_TEST(create_torrent_round_trip_v2)
+{
+	test_round_trip_torrent("v2_only.torrent");
+}
+
+TORRENT_TEST(create_torrent_round_trip_hybrid)
+{
+	test_round_trip_torrent("v2_hybrid.torrent");
 }
 
 // check that attempting to create a torrent containing both

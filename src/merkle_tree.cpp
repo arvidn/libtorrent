@@ -170,6 +170,40 @@ namespace {
 		optimize_storage();
 	}
 
+	aux::vector<sha256_hash> merkle_tree::get_piece_layer() const
+	{
+		aux::vector<sha256_hash> ret;
+
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree: break;
+			case mode_t::empty_tree: break;
+			case mode_t::full_tree:
+				ret.assign(m_tree.begin() + piece_layer_start()
+					, m_tree.begin() + piece_layer_start() + num_pieces());
+				break;
+			case mode_t::piece_layer:
+			{
+				ret = m_tree;
+				break;
+			}
+			case mode_t::block_layer:
+			{
+				ret.reserve(num_pieces());
+				std::vector<sha256_hash> scratch_space;
+
+				int const blocks_in_piece = blocks_per_piece();
+				for (int b = 0; b < int(m_tree.size()); b += blocks_in_piece)
+				{
+					auto const leafs = span<sha256_hash const>(m_tree).subspan(b);
+					ret.push_back(merkle_root_scratch(leafs, blocks_in_piece, sha256_hash{}, scratch_space));
+				}
+				break;
+			}
+		}
+		return ret;
+	}
+
 	// returns false if the piece layer fails to validate against the root hash
 	bool merkle_tree::load_piece_layer(span<char const> piece_layer)
 	{
