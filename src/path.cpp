@@ -169,6 +169,7 @@ namespace {
 
 	native_path_string convert_to_native_path_string(std::string const& path)
 	{
+#ifdef TORRENT_WINDOWS
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
 		// network paths are already UNC paths
@@ -178,6 +179,9 @@ namespace {
 		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
 
 		return convert_to_wstring(prepared_path);
+#else
+		return convert_to_wstring(path);
+#endif
 #else // TORRENT_WINDOWS
 		return convert_to_native(path);
 #endif
