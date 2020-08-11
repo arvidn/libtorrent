@@ -321,6 +321,11 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
 		}
 	},
+	{ "v2_hybrid.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
 };
 
 struct test_failing_torrent_t

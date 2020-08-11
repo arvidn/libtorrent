@@ -98,11 +98,12 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	void add_proofs(int dest_start_idx
 		, span<std::pair<sha256_hash, sha256_hash> const> proofs);
 
-
 	// returns the index of the pieces that passed the hash check
 	std::vector<piece_index_t> check_pieces(int base
 		, int index, int file_piece_offset
 		, span<sha256_hash const> hashes);
+
+	aux::vector<sha256_hash> get_piece_layer() const;
 
 	enum class set_block_result
 	{
