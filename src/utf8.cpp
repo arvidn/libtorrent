@@ -145,7 +145,7 @@ namespace {
 			case 4:
 				ch = str[0] & 0b00000111;
 				break;
-		};
+		}
 		for (int i = 1; i < sequence_len; ++i)
 		{
 			auto const b = static_cast<std::uint8_t>(str[static_cast<std::size_t>(i)]);
@@ -169,7 +169,7 @@ namespace {
 			case 4:
 				if (ch < 0x10000) return std::make_pair(-1, sequence_len);
 				break;
-		};
+		}
 
 		if (ch > max_codepoint)
 			return std::make_pair(-1, sequence_len);
