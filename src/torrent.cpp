@@ -1393,6 +1393,8 @@ bool is_downloading_state(int const st)
 
 		// we don't support clobbering the piece picker while checking the
 		// files. We may end up having the same piece multiple times
+		TORRENT_ASSERT_PRECOND(state() != torrent_status::checking_files
+			&& state() != torrent_status::checking_resume_data);
 		if (state() == torrent_status::checking_files
 			|| state() == torrent_status::checking_resume_data)
 			return;
