@@ -118,7 +118,13 @@ std::uint8_t classify_prefix(int const bucket_idx, bool const last_bucket
 	// bucket sizes must be even powers of two.
 	TORRENT_ASSERT_VAL((mask & static_cast<std::uint32_t>(bucket_size)) == 0, bucket_size);
 
-	int const mask_shift = aux::count_leading_zeros(mask);
+	// this is a bit weird. count_leading_zeros treats the span we pass to it as
+	// an array of chars, but we pass a span of uint32_t as an optimization, to
+	// allow it to operate on 32 bits at a time. In this case, the value fits in
+	// a single byte, so we could get away with just passing in the least
+	// significant byte of `mask`, but we can't with the current API of
+	// count_leading_zeros().
+	int const mask_shift = aux::count_leading_zeros(aux::little_endian_to_host(mask));
 	TORRENT_ASSERT_VAL(mask_shift >= 0, mask_shift);
 	TORRENT_ASSERT_VAL(mask_shift < 8, mask_shift);
 	mask <<= mask_shift;
