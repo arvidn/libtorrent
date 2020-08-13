@@ -39,6 +39,10 @@ matrix:
           - hunspell
           - imagemagick
           - ninja-build
+    - env: toolset=gcc tests=1 variant=debug
+      os: linux
+      arch: ppc64le
+      dist: bionic
     - env: cmake=1 toolset=gcc install_boost=1
       addons:
         apt:
