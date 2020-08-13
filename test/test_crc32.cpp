@@ -64,9 +64,7 @@ TORRENT_TEST(crc32)
 	out = crc32c(buf, 4);
 	TEST_EQUAL(out, 0x46dd794eU);
 
-#if TORRENT_HAS_ARM
-	TORRENT_ASSERT(aux::arm_crc32c_support);
-#else
+#if !TORRENT_HAS_ARM
 	TORRENT_ASSERT(!aux::arm_crc32c_support);
 #endif
 }

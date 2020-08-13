@@ -252,12 +252,3 @@ alias win-tests :
 
 explicit win-tests ;
 
-alias arm-tests :
-	test_sha1_hash
-	test_bitfield
-	test_crc32
-	test_ffs
-	test_ed25519
-	;
-
-explicit arm-tests ;
