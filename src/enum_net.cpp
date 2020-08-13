@@ -471,7 +471,7 @@ namespace {
 
 		auto interface = std::find_if(nics.begin(), nics.end()
 			, [addr_msg](link_info const& li) { return li.if_idx == int(addr_msg->ifa_index); });
-		TORRENT_ASSERT(interface != nics.end());
+//		TORRENT_ASSERT(interface != nics.end());
 		if (interface == nics.end()) return false;
 
 		ip_info->preferred = (addr_msg->ifa_flags & (IFA_F_DADFAILED | IFA_F_DEPRECATED | IFA_F_TENTATIVE)) == 0;
