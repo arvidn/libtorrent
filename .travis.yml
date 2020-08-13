@@ -1,5 +1,5 @@
 language: cpp
-dist: bionic
+dist: focal
 
 matrix:
   fast_finish: true
@@ -14,27 +14,17 @@ matrix:
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc pylint=1 clang_tidy=1
-      addons:
-        apt:
-          packages:
-          - python3-pip
     - env: variant=test_debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=test_debug sim=1 crypto=openssl toolset=gcc sanitizer=on
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage
-    - env: autotools=1 toolset=gcc install_boost=1
-    - env: cmake=1 toolset=gcc install_boost=1
-      addons:
-        apt:
-          packages:
-          - ninja-build
-    - env: toolset=gcc tests=1 variant=debug
+    - env: autotools=1 toolset=gcc
+    - env: cmake=1 toolset=gcc
+    - env: toolset=gcc tests=1 variant=test_debug
       os: linux
       arch: arm64
-      dist: bionic
-    - env: toolset=gcc tests=1 variant=debug
+    - env: toolset=gcc tests=1 variant=test_debug
       os: linux
       arch: s390x
-      dist: bionic
 
 notifications:
   email: false
@@ -59,38 +49,17 @@ cache:
 addons:
   apt:
     packages:
-    - python3.7-dev
+    - python3-pip
+    - python3.8-dev
     - ninja-build
+    - libboost-all-dev
+    - libboost-tools-dev
 
 before_install:
 
   - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
       export sonar_scan=0;
     fi'
-
-  # pull down a recent version of boost and build boost-build
-  - 'if [[ "$arch" != "arm" ]]; then
-      cd $HOME;
-      if [[ ! -d boost/.git ]]; then
-        git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
-      fi;
-      export BOOST_ROOT=$PWD/boost;
-      echo ${BOOST_ROOT};
-      cd boost;
-      git submodule update --init --depth=1;
-      ./bootstrap.sh;
-      ./b2 headers;
-      if [[ "$install_boost" = "1" ]]; then
-        sudo ./b2 cxxstd=11 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
-        cd tools/build;
-        ./bootstrap.sh;
-        echo "installing boost.build";
-        sudo ./b2 install --prefix=/usr/;
-        sudo ln -s /usr/local/lib/libboost_python37.so /usr/local/lib/libboost_python.so;
-        sudo ln -s /usr/local/lib/libboost_python36.so /usr/local/lib/libboost_python3.so;
-      fi;
-    fi'
-  - export PATH=$BOOST_ROOT:$PATH
 
   - cd $TRAVIS_BUILD_DIR
   - git submodule update --init --recursive
@@ -105,7 +74,7 @@ before_install:
       sysctl hw.ncpu;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-      travis_retry brew install ccache;
+      travis_retry brew install ccache boost-build boost-python3;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
