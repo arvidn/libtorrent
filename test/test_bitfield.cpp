@@ -207,9 +207,7 @@ TORRENT_TEST(test_assign2)
 		TEST_EQUAL(test1.all_set(), true);
 	}
 
-#if TORRENT_HAS_ARM
-	TORRENT_ASSERT(aux::arm_neon_support);
-#else
+#if !TORRENT_HAS_ARM
 	TORRENT_ASSERT(!aux::arm_neon_support);
 #endif
 }
