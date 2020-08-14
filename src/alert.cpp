@@ -278,23 +278,36 @@ namespace libtorrent {
 
 	std::string performance_alert::message() const
 	{
-		static char const* const warning_str[] =
+		static const std::unordered_map<performance_warning_t, char const*> warning_str =
 		{
-			"max outstanding disk writes reached",
-			"max outstanding piece requests reached",
-			"upload limit too low (download rate will suffer)",
-			"download limit too low (upload rate will suffer)",
-			"send buffer watermark too low (upload rate will suffer)",
-			"too many optimistic unchoke slots",
-			"using bittyrant unchoker with no upload rate limit set",
-			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size",
-			"outstanding AIO operations limit reached",
-			"too few ports allowed for outgoing connections",
-			"too few file descriptors are allowed for this process. connection limit lowered"
+			{ outstanding_disk_buffer_limit_reached, "max outstanding disk writes reached" },
+			{ outstanding_request_limit_reached, "max outstanding piece requests reached" },
+			{ upload_limit_too_low, "upload limit too low (download rate will suffer)" },
+			{ download_limit_too_low, "download limit too low (upload rate will suffer)" },
+			{ send_buffer_watermark_too_low, "send buffer watermark too low (upload rate will suffer)" },
+			{ too_many_optimistic_unchoke_slots, "too many optimistic unchoke slots" },
+			{ too_high_disk_queue_limit, "the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size" },
+			{ aio_limit_reached, "outstanding AIO operations limit reached" },
+			{
+#if TORRENT_ABI_VERSION == 1
+				bittyrant_with_no_uplimit,
+#else
+				deprecated_bittyrant_with_no_uplimit,
+#endif
+				"using bittyrant unchoker with no upload rate limit set" },
+			{ too_few_outgoing_ports, "too few ports allowed for outgoing connections" },
+			{ too_few_file_descriptors, "too few file descriptors are allowed for this process. connection limit lowered" }
 		};
 
-		return torrent_alert::message() + ": performance warning: "
-			+ warning_str[warning_code];
+		// If you found this, it likely means that the `performance_warning_t`
+		// enum was updated without also updating the message map above.
+		const char* msg = "WARN: unknown performance warning enum. Please consult source!";
+		auto it = warning_str.find(warning_code);
+		if (it != warning_str.end()) {
+			msg = it->second;
+		}
+
+		return torrent_alert::message() + ": performance warning: " + msg;
 	}
 
 	state_changed_alert::state_changed_alert(aux::stack_allocator& alloc

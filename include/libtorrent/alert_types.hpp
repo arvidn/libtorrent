@@ -384,8 +384,10 @@ TORRENT_VERSION_NAMESPACE_2
 		error_code const error;
 	};
 
-	// This alert is generated when a limit is reached that might have a negative impact on
-	// upload or download rate performance.
+	// This alert is generated when a limit is reached that might have
+	// a negative impact on upload or download rate performance.
+	// NOTE: any additions to this enum should have a corresponding entry
+	//   added to the `warning_str` map in alert.cpp
 	struct TORRENT_EXPORT performance_alert final : torrent_alert
 	{
 		enum performance_warning_t
