@@ -330,10 +330,8 @@ namespace {
 			return;
 		}
 		// something failed. Does the filesystem not support hard links?
-		// TODO: 3 find out what error code is reported when the filesystem
-		// does not support hard links.
 		DWORD const error = GetLastError();
-		if (error != ERROR_NOT_SUPPORTED && error != ERROR_ACCESS_DENIED)
+		if (error != ERROR_INVALID_FUNCTION)
 		{
 			// it's possible CreateHardLink will copy the file internally too,
 			// if the filesystem does not support it.
@@ -342,7 +340,6 @@ namespace {
 		}
 
 		// fall back to making a copy
-
 #else
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());
