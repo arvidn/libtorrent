@@ -276,7 +276,7 @@ namespace libtorrent {
 		, warning_code(w)
 	{}
 
-	std::string performance_alert::message() const
+	char const* performance_warning_str(performance_alert::performance_warning_t i)
 	{
 		static char const* const warning_str[] =
 		{
@@ -286,15 +286,22 @@ namespace libtorrent {
 			"download limit too low (upload rate will suffer)",
 			"send buffer watermark too low (upload rate will suffer)",
 			"too many optimistic unchoke slots",
-			"using bittyrant unchoker with no upload rate limit set",
 			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size",
 			"outstanding AIO operations limit reached",
+			"using bittyrant unchoker with no upload rate limit set",
 			"too few ports allowed for outgoing connections",
 			"too few file descriptors are allowed for this process. connection limit lowered"
 		};
 
+		TORRENT_ASSERT(i >= 0);
+		TORRENT_ASSERT(i < std::end(warning_str) - std::begin(warning_str));
+		return warning_str[i];
+	}
+
+	std::string performance_alert::message() const
+	{
 		return torrent_alert::message() + ": performance warning: "
-			+ warning_str[warning_code];
+			+ performance_warning_str(warning_code);
 	}
 
 	state_changed_alert::state_changed_alert(aux::stack_allocator& alloc
