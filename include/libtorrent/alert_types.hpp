@@ -2975,6 +2975,10 @@ TORRENT_VERSION_NAMESPACE_2
 
 TORRENT_VERSION_NAMESPACE_2_END
 
+	// internal
+	TORRENT_EXTRA_EXPORT char const* performance_warning_str(performance_alert::performance_warning_t i);
+
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO

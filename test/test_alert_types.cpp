@@ -325,5 +325,20 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 	TEST_CHECK(nv == nodes);
 }
 
+TORRENT_TEST(performance_warning)
+{
+	using pw = lt::performance_alert;
+	TEST_EQUAL(performance_warning_str(pw::outstanding_disk_buffer_limit_reached), "max outstanding disk writes reached"_sv);
+	TEST_EQUAL(performance_warning_str(pw::outstanding_request_limit_reached), "max outstanding piece requests reached"_sv);
+	TEST_EQUAL(performance_warning_str(pw::upload_limit_too_low), "upload limit too low (download rate will suffer)"_sv);
+	TEST_EQUAL(performance_warning_str(pw::download_limit_too_low), "download limit too low (upload rate will suffer)"_sv);
+	TEST_EQUAL(performance_warning_str(pw::send_buffer_watermark_too_low), "send buffer watermark too low (upload rate will suffer)"_sv);
+	TEST_EQUAL(performance_warning_str(pw::too_many_optimistic_unchoke_slots), "too many optimistic unchoke slots"_sv);
+	TEST_EQUAL(performance_warning_str(pw::too_high_disk_queue_limit), "the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size"_sv);
+	TEST_EQUAL(performance_warning_str(pw::aio_limit_reached), "outstanding AIO operations limit reached"_sv);
+	TEST_EQUAL(performance_warning_str(pw::too_few_outgoing_ports), "too few ports allowed for outgoing connections"_sv);
+	TEST_EQUAL(performance_warning_str(pw::too_few_file_descriptors), "too few file descriptors are allowed for this process. connection limit lowered"_sv);
+}
+
 #undef PROGRESS_NOTIFICATION
 
