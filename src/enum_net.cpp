@@ -330,7 +330,7 @@ namespace {
 			switch (rta_ptr->rta_type)
 			{
 				case IFLA_IFNAME:
-					strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name));
+					std::strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name) - 1);
 					ret.name[sizeof(ret.name)-1] = '\0';
 					break;
 				case IFLA_MTU: memcpy(&ret.mtu, ptr, sizeof(int)); break;
