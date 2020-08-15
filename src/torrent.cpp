@@ -7429,23 +7429,51 @@ bool is_downloading_state(int const st)
 		if (lhs->on_parole() != rhs->on_parole())
 			return lhs->on_parole();
 
-		// prefer to disconnect peers that send data at a lower rate
-		std::int64_t lhs_transferred = lhs->statistics().total_payload_download();
-		std::int64_t rhs_transferred = rhs->statistics().total_payload_download();
-
-		time_point const now = aux::time_now();
-		std::int64_t const lhs_time_connected = total_seconds(now - lhs->connected_time());
-		std::int64_t const rhs_time_connected = total_seconds(now - rhs->connected_time());
-
-		lhs_transferred /= lhs_time_connected + 1;
-		rhs_transferred /= (rhs_time_connected + 1);
-		if (lhs_transferred != rhs_transferred)
-			return lhs_transferred < rhs_transferred;
-
 		// prefer to disconnect peers that chokes us
 		if (lhs->is_choked() != rhs->is_choked())
 			return lhs->is_choked();
 
+		// prefer to disconnect peers that send data at a lower rate over those waiting to download
+		// the assumption is that a connection waiting to start downloading has the same potential 
+		// to be faster than the current slowest downloading connection than a new connection that 
+		// replaces a waiting connection - and disconnecting a waiting connection starts a new wait
+		// however ... to avoid torrents which wait forever there needs to be a maximum wait time
+		// after which a waiting connection is disconnected
+		std::int64_t lhs_transferred = lhs->statistics().total_payload_download();
+		std::int64_t rhs_transferred = rhs->statistics().total_payload_download();
+		bool const is_waiting = lhs_transferred * rhs_transferred == 0;
+
+		// for this commit, the maximum time is a constant - but it could be replaced by a new 
+		// setting peer_turnover_maximum_wait in a future commit
+		std::int64_t const peer_turnover_maximum_wait = 60;
+		time_point const now = aux::time_now();
+		std::int64_t const lhs_time_connected = total_seconds(now - lhs->connected_time());
+		std::int64_t const rhs_time_connected = total_seconds(now - rhs->connected_time());
+		
+		// if one connection is waiting
+		if ((lhs_transferred != rhs_transferred) && (is_waiting))
+		{
+			// One of lhs_transferred & rhs_transferred is zero - get connected time for waiting connection
+			std::int64_t const waiting_time = 
+				((lhs_transferred * rhs_time_connected) + (rhs_transferred * lhs_time_connected)) 
+				/
+				(lhs_transferred + rhs_transferred);
+			if (waiting_time <= peer_turnover_maximum_wait)
+				return lhs_transferred != 0;
+			else return lhs_transferred == 0;
+		}
+
+		// when both have downloaded something prefer to disconnect peers that send data at a lower rate
+		else if (!is_waiting)
+		{
+			lhs_transferred /= lhs_time_connected + 1;
+			rhs_transferred /= (rhs_time_connected + 1);
+			if (lhs_transferred != rhs_transferred)
+				return lhs_transferred < rhs_transferred;
+		}
+
+		// if none of the above preferences apply then ...
+		// prefer to disconnect peers that have been silent longest
 		return lhs->last_received() < rhs->last_received();
 	}
 
