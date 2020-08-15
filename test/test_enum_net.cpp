@@ -186,7 +186,7 @@ namespace {
 		ret.destination = address::from_string(ip);
 		ret.gateway = address::from_string(gateway);
 		ret.netmask = address::from_string(mask);
-		std::strncpy(ret.name, device, sizeof(ret.name));
+		std::strncpy(ret.name, device, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
 	}
@@ -196,7 +196,8 @@ namespace {
 		ip_interface ret;
 		ret.interface_address = address::from_string(addr);
 		ret.netmask = address::from_string("255.255.255.255");
-		std::strncpy(ret.name, name, sizeof(ret.name));
+		std::strncpy(ret.name, name, sizeof(ret.name) - 1);
+		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
 	}
 }
