@@ -1,5 +1,5 @@
 language: cpp
-dist: bionic
+dist: focal
 
 matrix:
   fast_finish: true
@@ -12,46 +12,36 @@ matrix:
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc pylint=1 clang_tidy=1
-      addons:
-        apt:
-          packages:
-          - python3-pip
     - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=debug tests=1 mmap=off toolset=gcc
     - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on
     - env: variant=debug tests=1 crypto=gnutls toolset=gcc sanitizer=on
-      addons:
-        apt:
-          packages:
-          - gnutls-dev
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
     - env: variant=release coverage=1 toolset=gcc-coverage
-    - env: dist=1 toolset=gcc install_boost=1 docs=1
+    - env: dist=1 toolset=gcc docs=1
       addons:
         apt:
           packages:
           - python-docutils
           - python-pygments
           - python-pil
-          - python-aafigure
+          - gsfonts
+          - inkscape
           - icoutils
           - graphviz
           - hunspell
           - imagemagick
+          - libboost-all-dev
+          - libboost-tools-dev
+          - python3.8-dev
           - ninja-build
-    - env: cmake=1 toolset=gcc install_boost=1
-      addons:
-        apt:
-          packages:
-          - ninja-build
+    - env: cmake=1 toolset=gcc
     - env: toolset=gcc tests=1 variant=debug
       os: linux
       arch: arm64
-      dist: bionic
     - env: toolset=gcc tests=1 variant=debug
       os: linux
       arch: s390x
-      dist: bionic
 
 notifications:
   email: false
@@ -77,25 +67,21 @@ cache:
 addons:
   apt:
     packages:
-    - python3.7-dev
+    - python3-pip
+    - python3.8-dev
+    - ninja-build
+    - libboost-all-dev
+    - libboost-tools-dev
+    - gnutls-dev
 
 before_install:
 
-  # pull down a recent version of boost and build boost-build
-  - cd $HOME;
-  - 'if [[ ! -d boost/.git ]]; then
-      git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
+  - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
+      export sonar_scan=0;
     fi'
-  - export BOOST_ROOT=$PWD/boost
-  - echo ${BOOST_ROOT}
-  - cd boost
-  - git submodule update --init --depth=1
-  - ./bootstrap.sh
-  - ./b2 headers
-  - export PATH=$BOOST_ROOT:$PATH
 
-  - cd $TRAVIS_BUILD_DIR;
-  - git submodule update --depth=1 --init --recursive
+  - cd $TRAVIS_BUILD_DIR
+  - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
@@ -108,7 +94,7 @@ before_install:
       sysctl hw.ncpu;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-      travis_retry brew install ccache;
+      travis_retry brew install ccache boost-build boost-python3;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
@@ -120,6 +106,10 @@ before_install:
        which python3;
        which pip3;
        python3 --version;
+    fi'
+
+  - 'if [ "$docs" == "1" ]; then
+      ${PIP} install aafigure;
     fi'
 
   - if [ "$coverage" == "1" ]; then
@@ -166,18 +156,6 @@ install:
     fi'
   - 'echo "using python : : $(which python3) : /usr/local/Frameworks/Python.framework/Headers : : <target-os>darwin ;" >> ~/user-config.jam'
   - 'echo "using python : : $(which python3) : : : <target-os>linux ;" >> ~/user-config.jam'
-  - 'if [[ "$install_boost" = "1" ]]; then
-      cd $BOOST_ROOT;
-      sudo ./b2 cxxstd=14 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
-      cd tools/build/;
-      echo "bootstrapping boost.build";
-      ./bootstrap.sh;
-      echo "installing boost.build";
-      sudo ./b2 install --prefix=/usr/;
-      sudo ln -s /usr/local/lib/libboost_python37.so /usr/local/lib/libboost_python.so;
-      sudo ln -s /usr/local/lib/libboost_python36.so /usr/local/lib/libboost_python3.so;
-      cd $TRAVIS_BUILD_DIR;
-    fi;'
   - cat ~/user-config.jam
   - if [ "$docs" == "1" ]; then rst2html --version; fi
   - 'if [ "$pylint" == "1" ]; then

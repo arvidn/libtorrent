@@ -42,11 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-member-function"
-#endif
-
 namespace libtorrent {
 
 namespace {
@@ -177,8 +172,3 @@ namespace {
 		return std::make_pair(static_cast<std::int32_t>(ch), sequence_len);
 	}
 }
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
