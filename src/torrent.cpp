@@ -7429,10 +7429,6 @@ bool is_downloading_state(int const st)
 		if (lhs->on_parole() != rhs->on_parole())
 			return lhs->on_parole();
 
-		// prefer to disconnect peers that chokes us
-		if (lhs->is_choked() != rhs->is_choked())
-			return lhs->is_choked();
-
 		// prefer to disconnect peers that send data at a lower rate over those waiting to download
 		// the assumption is that a connection waiting to start downloading has the same potential 
 		// to be faster than the current slowest downloading connection than a new connection that 
@@ -7471,6 +7467,11 @@ bool is_downloading_state(int const st)
 			if (lhs_transferred != rhs_transferred)
 				return lhs_transferred < rhs_transferred;
 		}
+
+		// prefer to disconnect peers that chokes us
+		// this code dropped with agreement from @arvidn
+		// if (lhs->is_choked() != rhs->is_choked())
+		//	return lhs->is_choked();
 
 		// if none of the above preferences apply then ...
 		// prefer to disconnect peers that have been silent longest
