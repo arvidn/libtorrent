@@ -20,7 +20,8 @@
 	* create_torrent() merkle- and optimize-alignment flags removed
 	* merkle_tree removed from add_torrent_params
 	* announce_entry expose information per v1 and v2 info-hash announces
-	* torrent_removed_alert, torrent_deleted_alert, torrent_delete_failed_alert: info_hash member is no longer a sha-1 hash, but (deprecated) implicitly convertible to one
+	* deprecated sha1_hash info_hash members on torrent_removed_alert,
+	  torrent_deleted_alert, torrent_delete_failed_alert and add_torrent_params
 	* undeprecate error_file_metadata for torrent errors related to its metadata
 	* remove support for adding a torrent under a UUID (used for previous RSS support)
 	* remove deprecated feature to add torrents by file:// URL

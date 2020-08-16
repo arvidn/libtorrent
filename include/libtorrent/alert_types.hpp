@@ -121,7 +121,7 @@ namespace libtorrent {
 		int last_active;
 	};
 
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
@@ -270,11 +270,14 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4, alert_priority::critical)
 		static inline constexpr alert_category_t static_category = alert_category::status;
 		std::string message() const override;
-		info_hash_t info_hash;
+#if TORRENT_ABI_VERSION < 3
+		TORRENT_DEPRECATED sha1_hash info_hash;
+#endif
+		info_hash_t info_hashes;
 
 		// '`userdata`` as set in add_torrent_params at torrent creation.
 		// This can be used to associate this torrent with related data
-		// in the client application more efficiently than info_hash.
+		// in the client application more efficiently than info_hashes.
 		client_data_t userdata;
 	};
 
@@ -1094,11 +1097,6 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// This alert is generated when a request to delete the files of a torrent complete.
 	//
-	// The ``info_hash`` is the info-hash of the torrent that was just deleted. Most of
-	// the time the torrent_handle in the ``torrent_alert`` will be invalid by the time
-	// this alert arrives, since the torrent is being deleted. The ``info_hash`` member
-	// is hence the main way of identifying which torrent just completed the delete.
-	//
 	// This alert is posted in the ``alert_category::storage`` category, and that bit
 	// needs to be set in the alert_mask.
 	struct TORRENT_EXPORT torrent_deleted_alert final : torrent_alert
@@ -1112,7 +1110,15 @@ TORRENT_VERSION_NAMESPACE_2
 		static inline constexpr alert_category_t static_category = alert_category::storage;
 		std::string message() const override;
 
-		info_hash_t info_hash;
+#if TORRENT_ABI_VERSION < 3
+		TORRENT_DEPRECATED sha1_hash info_hash;
+#endif
+
+		// The info-hash of the torrent that was just deleted. Most of
+		// the time the torrent_handle in the ``torrent_alert`` will be invalid by the time
+		// this alert arrives, since the torrent is being deleted. The ``info_hashes`` member
+		// is hence the main way of identifying which torrent just completed the delete.
+		info_hash_t info_hashes;
 	};
 
 	// This alert is generated when a request to delete the files of a torrent fails.
@@ -1132,8 +1138,11 @@ TORRENT_VERSION_NAMESPACE_2
 		// tells you why it failed.
 		error_code const error;
 
+#if TORRENT_ABI_VERSION < 3
+		TORRENT_DEPRECATED sha1_hash info_hash;
+#endif
 		// the info hash of the torrent whose files failed to be deleted
-		info_hash_t info_hash;
+		info_hash_t info_hashes;
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED std::string msg;
@@ -1343,7 +1352,7 @@ TORRENT_VERSION_NAMESPACE_2
 	//		entry te = ct.generate();
 	//		std::vector<char> buffer;
 	//		bencode(std::back_inserter(buffer), te);
-	//		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "wb+");
+	//		FILE* f = fopen((to_hex(ti->info_hashes().get_best().to_string()) + ".torrent").c_str(), "wb+");
 	//		if (f) {
 	//			fwrite(&buffer[0], 1, buffer.size(), f);
 	//			fclose(f);
@@ -2917,7 +2926,7 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::noexcept_movable<tcp::endpoint> ip;
 	};
 
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 	// internal
 	TORRENT_EXTRA_EXPORT char const* performance_warning_str(performance_alert::performance_warning_t i);

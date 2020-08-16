@@ -136,8 +136,9 @@ lt::add_torrent_params make_add_torrent_params(int tag, va_list lp)
 				torrent_size = va_arg(lp, int);
 				break;
 			case TOR_INFOHASH:
-				params.info_hash = lt::sha1_hash(va_arg(lp, char const*));
+				params.info_hashes.v1 = lt::sha1_hash(va_arg(lp, char const*));
 				break;
+			// TODO: add an info-hash-v2 field too
 			case TOR_MAGNETLINK:
 				parse_magnet_uri(va_arg(lp, char const*), params, ec);
 				break;
@@ -164,7 +165,7 @@ lt::add_torrent_params make_add_torrent_params(int tag, va_list lp)
 				params.flags = lt::torrent_flags_t(va_arg(lp, int));
 				break;
 			case TOR_USER_DATA:
-				params.userdata = va_arg(lp, void*);
+				params.userdata = va_arg(lp, char*);
 				break;
 			case TOR_STORAGE_MODE:
 				params.storage_mode = static_cast<lt::storage_mode_t>(va_arg(lp, int));
@@ -382,10 +383,10 @@ TORRENT_EXPORT int alert_type(struct libtorrent_alert const* alert)
 	return a->type();
 }
 
-TORRENT_EXPORT int alert_category(struct libtorrent_alert const* alert)
+TORRENT_EXPORT uint32_t alert_category(struct libtorrent_alert const* alert)
 {
 	auto const* a = reinterpret_cast<lt::alert const*>(alert);
-	return static_cast<int>(a->category());
+	return static_cast<std::uint32_t>(a->category());
 }
 
 TORRENT_EXPORT int alert_torrent_handle(struct libtorrent_alert const* alert)
@@ -395,7 +396,9 @@ TORRENT_EXPORT int alert_torrent_handle(struct libtorrent_alert const* alert)
 	switch (type)
 	{
 		// torrent_alert
+#if TORRENT_ABI_VERSION == 1
 		case lt::torrent_added_alert::alert_type:
+#endif
 		case lt::torrent_removed_alert::alert_type:
 		case lt::read_piece_alert::alert_type:
 		case lt::file_completed_alert::alert_type:
@@ -420,9 +423,13 @@ TORRENT_EXPORT int alert_torrent_handle(struct libtorrent_alert const* alert)
 		case lt::metadata_failed_alert::alert_type:
 		case lt::metadata_received_alert::alert_type:
 		case lt::fastresume_rejected_alert::alert_type:
+#if TORRENT_ABI_VERSION <= 2
 		case lt::stats_alert::alert_type:
+#endif
 		case lt::cache_flushed_alert::alert_type:
+#if TORRENT_ABI_VERSION == 1
 		case lt::anonymous_mode_alert::alert_type:
+#endif
 		case lt::torrent_error_alert::alert_type:
 		case lt::torrent_need_cert_alert::alert_type:
 		case lt::add_torrent_alert::alert_type:

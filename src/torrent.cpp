@@ -197,7 +197,7 @@ bool is_downloading_state(int const st)
 		, m_stats_counters(ses.stats_counters())
 		, m_added_time(p.added_time ? p.added_time : std::time(nullptr))
 		, m_completed_time(p.completed_time)
-		, m_info_hash(p.info_hash)
+		, m_info_hash(p.info_hashes)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
 		, m_peer_id(aux::generate_peer_id(settings()))
@@ -6672,7 +6672,11 @@ namespace {
 
 		ret.save_path = m_save_path;
 
-		ret.info_hash = torrent_file().info_hashes();
+		ret.info_hashes = torrent_file().info_hashes();
+
+#if TORRENT_ABI_VERSION < 3
+		ret.info_hash = ret.info_hashes.get_best();
+#endif
 
 		if (valid_metadata())
 		{
@@ -11229,7 +11233,10 @@ namespace {
 		time_point32 const now = aux::time_now32();
 
 		st->handle = get_handle();
-		st->info_hash = info_hash();
+		st->info_hashes = info_hash();
+#if TORRENT_ABI_VERSION < 3
+		st->info_hash = info_hash().get_best();
+#endif
 #if TORRENT_ABI_VERSION == 1
 		st->is_loaded = true;
 #endif

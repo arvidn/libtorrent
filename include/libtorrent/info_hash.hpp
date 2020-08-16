@@ -53,12 +53,6 @@ namespace libtorrent
 	// internal
 	constexpr std::size_t num_protocols = int(protocol_version::NUM);
 
-#if TORRENT_ABI_VERSION < 3
-#define TORRENT_V3_EXPLICIT
-#else
-#define TORRENT_V3_EXPLICIT explicit
-#endif
-
 namespace {
 	std::initializer_list<protocol_version> const all_versions{
 		protocol_version::V1,
@@ -82,7 +76,7 @@ namespace {
 		// from a v1 hash. This constructor allows *implicit* conversion from a
 		// v1 hash, but the implicitness is deprecated.
 		info_hash_t() noexcept = default;
-		TORRENT_V3_EXPLICIT info_hash_t(sha1_hash h1) noexcept : v1(h1) {} // NOLINT
+		explicit info_hash_t(sha1_hash h1) noexcept : v1(h1) {} // NOLINT
 		explicit info_hash_t(sha256_hash h2) noexcept : v2(h2) {}
 		info_hash_t(sha1_hash h1, sha256_hash h2) noexcept
 			: v1(h1), v2(h2) {}
@@ -90,15 +84,6 @@ namespace {
 		// hidden
 		info_hash_t(info_hash_t const&) noexcept = default;
 		info_hash_t& operator=(info_hash_t const&) & noexcept = default;
-
-#if TORRENT_ABI_VERSION <= 2
-		// for backwards compatibility, assume the v1 hash is the one the client
-		// is interested in
-		TORRENT_DEPRECATED operator sha1_hash() const
-		{
-			return v1;
-		}
-#endif
 
 		// returns true if the corresponding info hash is present in this
 		// object.

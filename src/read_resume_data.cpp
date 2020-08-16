@@ -101,9 +101,9 @@ namespace {
 		ret.name = rd.dict_find_string_value("name");
 
 		if (info_hash.size() == 20)
-			ret.info_hash.v1.assign(info_hash.data());
+			ret.info_hashes.v1.assign(info_hash.data());
 		if (info_hash2.size() == 32)
-			ret.info_hash.v2.assign(info_hash2.data());
+			ret.info_hashes.v2.assign(info_hash2.data());
 
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
@@ -116,8 +116,8 @@ namespace {
 			// if url is set, the info_hash is not actually the info-hash of the
 			// torrent, but the hash of the URL, until we have the full torrent
 			// only require the info-hash to match if we actually passed in one
-			if ((!ret.info_hash.has_v1() || resume_ih.v1 == ret.info_hash.v1)
-				&& (!ret.info_hash.has_v2() || resume_ih.v2 == ret.info_hash.v2))
+			if ((!ret.info_hashes.has_v1() || resume_ih.v1 == ret.info_hashes.v1)
+				&& (!ret.info_hashes.has_v2() || resume_ih.v2 == ret.info_hashes.v2))
 			{
 				ret.ti = std::make_shared<torrent_info>(resume_ih);
 
@@ -137,6 +137,10 @@ namespace {
 				}
 			}
 		}
+
+#if TORRENT_ABI_VERSION < 3
+		ret.info_hash = ret.info_hashes.get_best();
+#endif
 
 		bdecode_node const trees = rd.dict_find_list("trees");
 		if (trees)

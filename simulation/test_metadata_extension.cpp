@@ -109,7 +109,7 @@ void run_metadata_test(int flags)
 			params.trackers = p.trackers;
 			params.tracker_tiers = p.tracker_tiers;
 			params.url_seeds = p.url_seeds;
-			params.info_hash = p.info_hash;
+			params.info_hashes = p.info_hashes;
 			params.peers = p.peers;
 #ifndef TORRENT_DISABLE_DHT
 			params.dht_nodes = p.dht_nodes;

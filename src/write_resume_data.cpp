@@ -98,8 +98,8 @@ namespace libtorrent {
 		if (!atp.url.empty()) ret["url"] = atp.url;
 #endif
 
-		ret["info-hash"] = atp.info_hash.v1;
-		ret["info-hash2"] = atp.info_hash.v2;
+		ret["info-hash"] = atp.info_hashes.v1;
+		ret["info-hash2"] = atp.info_hashes.v2;
 
 		if (atp.ti)
 		{

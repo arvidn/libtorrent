@@ -1030,7 +1030,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (use_metadata_transfer)
 	{
 		param.ti.reset();
-		param.info_hash = t->info_hashes();
+		param.info_hashes = t->info_hashes();
 	}
 	else if (torrent2)
 	{

@@ -275,7 +275,7 @@ namespace libtorrent {
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					p.info_hash.v1 = info_hash;
+					p.info_hashes.v1 = info_hash;
 					has_ih[0] = true;
 				}
 				else if (value.substr(0, 9) == "urn:btmh:")
@@ -296,7 +296,7 @@ namespace libtorrent {
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					aux::from_hex(value, p.info_hash.v2.data());
+					aux::from_hex(value, p.info_hashes.v2.data());
 					has_ih[1] = true;
 				}
 			}
@@ -377,6 +377,10 @@ namespace libtorrent {
 			ec = errors::missing_info_hash_in_uri;
 			return;
 		}
+
+#if TORRENT_ABI_VERSION < 3
+		p.info_hash = p.info_hashes.get_best();
+#endif
 		if (!display_name.empty()) p.name = display_name;
 	}
 

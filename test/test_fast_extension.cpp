@@ -482,7 +482,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
 	if (magnet_link)
-		p.info_hash = ih;
+		p.info_hashes = ih;
 	else
 		p.ti = t;
 	p.save_path = "tmp1_fast";

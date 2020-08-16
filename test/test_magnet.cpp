@@ -216,13 +216,13 @@ TORRENT_TEST(magnet)
 TORRENT_TEST(parse_escaped_hash_parameter)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn%3Abtih%3Acdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_invalid_escaped_hash_parameter)
@@ -249,7 +249,7 @@ TORRENT_TEST(parse_base32_hash)
 {
 	// parse_magnet_uri
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:MFRGCYTBMJQWEYLCMFRGCYTBMJQWEYLC");
-	TEST_EQUAL(p.info_hash.v1, sha1_hash("abababababababababab"));
+	TEST_EQUAL(p.info_hashes.v1, sha1_hash("abababababababababab"));
 }
 
 TORRENT_TEST(parse_web_seeds)
@@ -293,8 +293,8 @@ TORRENT_TEST(parse_space_hash)
 TORRENT_TEST(parse_v2_hash)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "0000000000000000000000000000000000000000");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v1), "0000000000000000000000000000000000000000");
 }
 
 TORRENT_TEST(parse_v2_short_hash)
@@ -316,8 +316,8 @@ TORRENT_TEST(parse_hybrid_uri)
 	add_torrent_params p = parse_magnet_uri("magnet:?"
 		"xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-	TEST_EQUAL(aux::to_hex(p.info_hash.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v1), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hashes.v2), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(parse_peer)

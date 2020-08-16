@@ -677,7 +677,7 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	}
 
 	std::vector<char> resume_data;
-	if (load_file(resume_file(p.info_hash), resume_data))
+	if (load_file(resume_file(p.info_hashes), resume_data))
 	{
 		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
@@ -990,7 +990,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	{
 		--num_outstanding_resume_data;
 		auto const buf = write_resume_data_buf(p->params);
-		save_file(resume_file(p->params.info_hash), buf);
+		save_file(resume_file(p->params.info_hashes), buf);
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
@@ -1591,7 +1591,7 @@ examples:
 					if (scan_ret == 1 && response == 'y')
 					{
 						// also delete the resume file
-						std::string const rpath = resume_file(st.info_hash);
+						std::string const rpath = resume_file(st.info_hashes);
 						if (::remove(rpath.c_str()) < 0)
 							std::printf("failed to delete resume file (\"%s\")\n"
 								, rpath.c_str());
@@ -1882,7 +1882,7 @@ COLUMN OPTIONS
 						if (!ep.enabled) continue;
 						for (lt::protocol_version const v : {lt::protocol_version::V1, lt::protocol_version::V2})
 						{
-							if (!s.info_hash.has(v)) continue;
+							if (!s.info_hashes.has(v)) continue;
 							auto const& av = ep.info_hashes[v];
 
 							std::snprintf(str, sizeof(str), "  [%2d] fails: %-3d (%-3d) %s %5d \"%s\" %s\x1b[K\n"

@@ -249,7 +249,7 @@ std::shared_ptr<torrent_info> file_constructor1(std::string const& filename, dic
 #if TORRENT_ABI_VERSION == 1
 std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
 {
-   return std::make_shared<torrent_info>(ih);
+   return std::make_shared<torrent_info>(info_hash_t(ih));
 }
 #endif
 
@@ -337,7 +337,7 @@ void bind_torrent_info()
         .def("total_size", &torrent_info::total_size)
         .def("piece_length", &torrent_info::piece_length)
         .def("num_pieces", &torrent_info::num_pieces)
-        .def("info_hash", &torrent_info::info_hash, copy)
+        .def("info_hash", &torrent_info::info_hash)
         .def("info_hashes", &torrent_info::info_hashes, copy)
         .def("hash_for_piece", &hash_for_piece)
 #if TORRENT_ABI_VERSION <= 2

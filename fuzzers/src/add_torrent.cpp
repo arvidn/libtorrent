@@ -127,7 +127,7 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 	read_bits bits(data, size);
 	lt::add_torrent_params ret;
 	ret.ti = g_torrent;
-	ret.info_hash = g_torrent->info_hashes();
+	ret.info_hashes = g_torrent->info_hashes();
 	ret.save_path = ".";
 	ret.file_priorities.resize(bits.read(2));
 	for (auto& p : ret.file_priorities)

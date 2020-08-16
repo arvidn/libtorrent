@@ -263,7 +263,7 @@ int alert_type(struct libtorrent_alert const* alert);
 
 // returns the category of the alert. This is a bitmask with one or more bits
 // set from the category_t enum.
-int alert_category(struct libtorrent_alert const* alert);
+uint32_t alert_category(struct libtorrent_alert const* alert);
 
 // if this is an alert with an associated torrent handle, return that handle.
 // Otherwise, return -1.

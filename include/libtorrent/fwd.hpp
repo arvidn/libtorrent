@@ -39,16 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // include/libtorrent/add_torrent_params.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct add_torrent_params;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/alert.hpp
 struct alert;
 
 // include/libtorrent/alert_types.hpp
 struct dht_routing_bucket;
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct torrent_alert;
 struct peer_alert;
 struct tracker_alert;
@@ -140,7 +140,7 @@ struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
 struct socks5_alert;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/announce_entry.hpp
 TORRENT_VERSION_NAMESPACE_2
@@ -238,6 +238,9 @@ struct peer_request;
 // include/libtorrent/performance_counters.hpp
 struct counters;
 
+// include/libtorrent/piece_block.hpp
+struct piece_block;
+
 // include/libtorrent/session.hpp
 struct session_proxy;
 struct session;
@@ -264,24 +267,25 @@ struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
 struct web_seed_entry;
+struct load_torrent_limits;
 TORRENT_VERSION_NAMESPACE_3
 class torrent_info;
 TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/torrent_status.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct torrent_status;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 #if TORRENT_ABI_VERSION <= 2
 
 // include/libtorrent/alert_types.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_3
 struct torrent_added_alert;
 struct stats_alert;
 struct anonymous_mode_alert;
 struct mmap_cache_alert;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/file_storage.hpp
 struct file_entry;

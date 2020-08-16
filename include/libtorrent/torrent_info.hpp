@@ -370,7 +370,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// returns the info-hash of the torrent. For BitTorrent v2 support, use
 		// ``info_hashes()`` to get an object that may hold both a v1 and v2
 		// info-hash
-		sha1_hash const& info_hash() const { return m_info_hash.v1; }
+		sha1_hash info_hash() const noexcept;
 		info_hash_t const& info_hashes() const { return m_info_hash; }
 
 #if TORRENT_ABI_VERSION == 1

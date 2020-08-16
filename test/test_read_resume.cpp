@@ -81,7 +81,7 @@ TORRENT_TEST(read_resume)
 
 	add_torrent_params atp = read_resume_data(resume_data);
 
-	TEST_EQUAL(atp.info_hash.v1, sha1_hash("abcdefghijklmnopqrst"));
+	TEST_EQUAL(atp.info_hashes.v1, sha1_hash("abcdefghijklmnopqrst"));
 	TEST_EQUAL(atp.have_pieces.size(), 6);
 	TEST_EQUAL(atp.have_pieces.count(), 6);
 
@@ -346,7 +346,7 @@ TORRENT_TEST(round_trip_flags)
 TORRENT_TEST(round_trip_info_hash)
 {
 	add_torrent_params atp;
-	atp.info_hash.v2 = sha256_hash{"21212121212121212121212121212121"};
+	atp.info_hashes.v2 = sha256_hash{"21212121212121212121212121212121"};
 	test_roundtrip(atp);
 	entry e = write_resume_data(atp);
 	TEST_CHECK(e["info-hash2"] == "21212121212121212121212121212121");

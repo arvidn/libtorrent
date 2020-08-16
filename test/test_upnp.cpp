@@ -177,14 +177,42 @@ ip_interface pick_upnp_interface()
 		return {};
 	}
 	int idx = 0;
+	for (auto const& face : ifs)
+	{
+		if (!face.interface_address.is_v4()) continue;
+		std::cout << " - " << idx
+			<< ' ' << face.interface_address.to_string()
+			<< ' ' << int(static_cast<std::uint8_t>(face.state))
+			<< ' ' << static_cast<std::uint32_t>(face.flags)
+			<< ' ' << face.name << '\n';
+		++idx;
+	}
+
+	std::printf("%-17s%-17s%s\n", "destination", "network", "interface");
+	for (auto const& r : routes)
+	{
+		if (!r.destination.is_v4()) continue;
+		std::printf("%-17s%-17s%s\n"
+			, r.destination.to_string().c_str()
+			, r.netmask.to_string().c_str()
+			, r.name);
+	}
+
 	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
 		{
-			std::cerr << " - " << idx << ' ' << face.interface_address.to_string() << ' ' << face.name << '\n';
-			++idx;
 			if (!face.interface_address.is_v4()) return false;
-			if (face.interface_address.is_loopback()) return false;
+			if (!(face.flags & if_flags::up)) return false;
+			if (!(face.flags & if_flags::multicast)) return false;
+			if (face.state != if_state::up && face.state != if_state::unknown) return false;
+
 			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
-				{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
+			{
+				if (!r.destination.is_v4()) return false;
+				if (string_view(face.name) != r.name) return false;
+				return match_addr_mask(make_address_v4("239.255.255.250")
+					, r.destination.to_v4()
+					, r.netmask);
+			});
 			if (route == routes.end()) return false;
 			return true;
 		});
@@ -232,13 +260,12 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	sock = new broadcast_socket(uep("239.255.255.250", 1900));
 
 	lt::io_context ios;
-
-	sock->open(&incoming_msearch, ios, ec);
-
 	aux::session_settings sett;
 
 	// pick an appropriate interface to run this test on
 	auto const ipf = pick_upnp_interface();
+
+	sock->open(&incoming_msearch, ios, ec);
 
 	upnp_callback cb;
 	auto upnp_handler = std::make_shared<upnp>(ios, sett, cb
@@ -299,10 +326,18 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 } // anonymous namespace
 
-TORRENT_TEST(upnp)
+TORRENT_TEST(upnp_wipconn)
 {
 	run_upnp_test(combine_path("..", "root1.xml").c_str(), "wipconn", 1);
+}
+
+TORRENT_TEST(upnp_wanipconnection)
+{
 	run_upnp_test(combine_path("..", "root2.xml").c_str(), "WANIPConnection", 1);
+}
+
+TORRENT_TEST(upnp_wanipconnection2)
+{
 	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection_2", 2);
 }
 

@@ -424,7 +424,7 @@ void test_ipv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.v1.assign("abababababababababab");
+		p.info_hashes.v1.assign("abababababababababab");
 
 //TODO: parameterize http vs. udp here
 		p.trackers.push_back("http://tracker.com:8080/announce");
@@ -523,7 +523,7 @@ void test_udpv6_support(char const* listen_interfaces
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
-		p.info_hash.v1.assign("abababababababababab");
+		p.info_hashes.v1.assign("abababababababababab");
 
 		p.trackers.push_back("udp://tracker.com:8080/announce");
 		ses->async_add_torrent(p);
@@ -649,7 +649,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	lt::add_torrent_params p;
 	p.name = "test-torrent";
 	p.save_path = ".";
-	p.info_hash.v1.assign("abababababababababab");
+	p.info_hashes.v1.assign("abababababababababab");
 	int const delay = setup(p, *ses);
 	ses->async_add_torrent(p);
 
@@ -727,7 +727,7 @@ TORRENT_TEST(omit_stop_event)
 	lt::add_torrent_params p;
 	p.name = "test-torrent";
 	p.save_path = ".";
-	p.info_hash.v1.assign("abababababababababab");
+	p.info_hashes.v1.assign("abababababababababab");
 	p.trackers.push_back("udp://tracker.com:8080/announce");
 	ses->async_add_torrent(p);
 
@@ -1129,7 +1129,7 @@ TORRENT_TEST(tracker_ipv6_argument)
 			pack.set_str(settings_pack::listen_interfaces, "123.0.0.3:0,[ffff::1337]:0");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1168,7 +1168,7 @@ TORRENT_TEST(tracker_key_argument)
 		[](lt::add_torrent_params& p, lt::session&)
 		{
 			p.ti = make_torrent(true);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string, std::string req
@@ -1199,7 +1199,7 @@ TORRENT_TEST(tracker_ipv6_argument_non_private)
 			pack.set_bool(settings_pack::anonymous_mode, false);
 			ses.apply_settings(pack);
 			p.ti = make_torrent(false);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1228,7 +1228,7 @@ TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
 			pack.set_bool(settings_pack::anonymous_mode, true);
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1257,7 +1257,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_public_torrent)
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(false);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string method, std::string req
@@ -1285,7 +1285,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
 			p.ti = make_torrent(true);
-			p.info_hash = lt::info_hash_t{};
+			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
 		[&](std::string method, std::string req

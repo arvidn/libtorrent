@@ -25,9 +25,10 @@ except Exception:
 
 class http_server_with_timeout(HTTPServer):
     allow_reuse_address = True
-    timeout = 190
+    timeout = 250
 
     def handle_timeout(self):
+        print('TIMEOUT')
         raise Exception('timeout')
 
 
@@ -132,7 +133,10 @@ class http_handler(BaseHTTPRequestHandler):
                 sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
-                s.end_headers()
+                try:
+                    s.end_headers()
+                except Exception:
+                    pass
         else:
             filename = ''
             try:
@@ -195,7 +199,10 @@ class http_handler(BaseHTTPRequestHandler):
                 sys.stdout.flush()
                 s.send_response(404)
                 s.send_header("Content-Length", "0")
-                s.end_headers()
+                try:
+                    s.end_headers()
+                except Exception:
+                    pass
 
         print("...DONE")
         sys.stdout.flush()
