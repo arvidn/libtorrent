@@ -531,45 +531,15 @@ add_library(torrent-rasterbar
 target_compile_features(torrent-rasterbar
 	PUBLIC
 		cxx_std_14
-		cxx_rvalue_references
-		cxx_reference_qualified_functions
-		cxx_nonstatic_member_init
-		cxx_variadic_templates
-		cxx_generalized_initializers
-		cxx_static_assert
-		cxx_auto_type
-		cxx_trailing_return_types
-		cxx_lambdas
-		cxx_decltype
-		cxx_right_angle_brackets
-		cxx_default_function_template_args
-		cxx_alias_templates
-		cxx_extern_templates
-		cxx_nullptr
-		cxx_strong_enums
-		cxx_enum_forward_declarations
-		cxx_attributes
-		cxx_constexpr
-		cxx_alignas
-		cxx_alignof
-		cxx_delegating_constructors
-		cxx_inheriting_constructors
-		cxx_explicit_conversions
-		cxx_raw_string_literals
-		cxx_user_literals
-		cxx_defaulted_functions
-		cxx_deleted_functions
-		cxx_extended_friend_declarations
-		cxx_sizeof_member
-		cxx_inline_namespaces
-		cxx_unrestricted_unions
-		cxx_local_type_template_args
-		cxx_range_for
-		cxx_final
-		cxx_override
-		cxx_noexcept
-		cxx_defaulted_move_initializers
+		cxx_contextual_conversions
+		cxx_binary_literals
+		cxx_decltype_auto
 		cxx_lambda_init_captures
+		cxx_generic_lambdas
+		cxx_variable_templates
+		cxx_relaxed_constexpr
+		cxx_attribute_deprecated
+		cxx_digit_separators
 )
 
 if (BUILD_SHARED_LIBS)
