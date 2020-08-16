@@ -129,7 +129,10 @@ namespace libtorrent { namespace aux {
 
 	enum HandlerName
 	{
-		write_handler, read_handler, udp_handler, tick_handler, abort_handler, defer_handler, utp_handler, submit_handler
+		// when adding a handler here, be sure to update handler_names in
+		// debug.hpp as well
+		write_handler, read_handler, udp_handler, tick_handler, abort_handler,
+		defer_handler, utp_handler, submit_handler
 	};
 
 	// this is meant to provide the actual storage for the handler allocator.

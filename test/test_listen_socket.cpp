@@ -65,7 +65,7 @@ namespace
 		ip_interface ipi;
 		ipi.interface_address = make_address(ip);
 		if (netmask) ipi.netmask = make_address(netmask);
-		strncpy(ipi.name, device, sizeof(ipi.name));
+		std::strncpy(ipi.name, device, sizeof(ipi.name) - 1);
 		return ipi;
 	}
 
@@ -75,7 +75,7 @@ namespace
 		ip_interface ipi;
 		ipi.interface_address = make_address(ip);
 		if (netmask) ipi.netmask = make_address(netmask);
-		strncpy(ipi.name, device, sizeof(ipi.name));
+		std::strncpy(ipi.name, device, sizeof(ipi.name) - 1);
 		ipi.flags = flags;
 		return ipi;
 	}
@@ -85,7 +85,7 @@ namespace
 		ip_route ret;
 		ret.destination = make_address(ip);
 		ret.gateway = make_address(gateway);
-		std::strncpy(ret.name, device, sizeof(ret.name));
+		std::strncpy(ret.name, device, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		ret.mtu = 1500;
 		return ret;

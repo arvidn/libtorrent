@@ -1243,6 +1243,8 @@ bool is_downloading_state(int const st)
 
 		// we don't support clobbering the piece picker while checking the
 		// files. We may end up having the same piece multiple times
+		TORRENT_ASSERT_PRECOND(state() != torrent_status::checking_files
+			&& state() != torrent_status::checking_resume_data);
 		if (state() == torrent_status::checking_files
 			|| state() == torrent_status::checking_resume_data)
 			return;
@@ -7756,6 +7758,10 @@ namespace {
 		if (!settings().get_bool(settings_pack::seeding_outgoing_connections)
 			&& (m_state == torrent_status::seeding
 				|| m_state == torrent_status::finished))
+			return false;
+
+		if (!settings().get_bool(settings_pack::enable_outgoing_tcp)
+			&& !settings().get_bool(settings_pack::enable_outgoing_utp))
 			return false;
 
 		return true;

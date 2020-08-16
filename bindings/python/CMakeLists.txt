@@ -44,14 +44,14 @@ find_package(PythonLibs REQUIRED)
 
 if (NOT boost-python-module-name)
 	# use active python
-	if (PYTHON_VERSION_STRING VERSION_GREATER_EQUAL "3")
-		set(_boost-python-module-name "python${PYTHON_VERSION_MAJOR}")
-	else()
+#	if (PYTHON_VERSION_STRING VERSION_GREATER_EQUAL "3")
+#		set(_boost-python-module-name "python${PYTHON_VERSION_MAJOR}")
+#	else()
 		set(_boost-python-module-name "python") # to overwrite possible value from a previous run
-	endif()
+#	endif()
 endif()
 
-set(boost-python-module-name ${_boost-python-module-name} CACHE STRING "Boost:python module name, e.g. 'pythom-3.6'")
+set(boost-python-module-name ${_boost-python-module-name} CACHE STRING "Boost:python module name, e.g. 'python-3.6'")
 
 find_package(Boost REQUIRED COMPONENTS ${boost-python-module-name})
 

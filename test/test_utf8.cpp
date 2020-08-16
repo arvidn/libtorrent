@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/ConvertUTF.h"
 #include "setup_transfer.hpp" // for load_file
 #include "libtorrent/aux_/path.hpp" // for combine_path
 
@@ -43,252 +42,120 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 namespace {
-
-void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
+void test_utf8_roundtrip(std::int32_t const codepoint)
 {
-	if (utf8_source_len == -1)
-		utf8_source_len = int(strlen(utf8_source));
+	std::string utf8;
+	append_utf8_codepoint(utf8, codepoint);
 
-	// utf8 -> utf16 -> utf32 -> utf8
-	{
-		std::vector<UTF16> utf16((std::size_t(utf8_source_len)));
-		UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8_source);
-		UTF16* out16 = &utf16[0];
-		ConversionResult ret = ConvertUTF8toUTF16(&in8, in8 + utf8_source_len
-			, &out16, out16 + utf16.size(), strictConversion);
+	int len;
+	std::int32_t cp;
+	std::tie(cp, len) = parse_utf8_codepoint(utf8);
 
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		std::vector<UTF32> utf32((std::size_t(utf8_source_len)));
-		UTF16 const* in16 = &utf16[0];
-		UTF32* out32 = &utf32[0];
-		ret = ConvertUTF16toUTF32(&in16, out16
-			, &out32, out32 + utf32.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		std::vector<UTF8> utf8((std::size_t(utf8_source_len)));
-		UTF32 const* in32 = &utf32[0];
-		UTF8* out8 = &utf8[0];
-		ret = ConvertUTF32toUTF8(&in32, out32
-			, &out8, out8 + utf8.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
-		TEST_CHECK(std::equal(&utf8[0], out8, reinterpret_cast<UTF8 const*>(utf8_source)));
-	}
-
-	// utf8 -> utf32 -> utf16 -> utf8
-	{
-		std::vector<UTF32> utf32((std::size_t(utf8_source_len)));
-		UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8_source);
-		UTF32* out32 = &utf32[0];
-		ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + utf8_source_len
-			, &out32, out32 + utf32.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		std::vector<UTF16> utf16((std::size_t(utf8_source_len)));
-		UTF32 const* in32 = &utf32[0];
-		UTF16* out16 = &utf16[0];
-		ret = ConvertUTF32toUTF16(&in32, out32
-			, &out16, out16 + utf16.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		std::vector<UTF8> utf8((std::size_t(utf8_source_len)));
-		UTF16 const* in16 = &utf16[0];
-		UTF8* out8 = &utf8[0];
-		ret = ConvertUTF16toUTF8(&in16, out16
-			, &out8, out8 + utf8.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		if (ret != conversionOK && utf8_source_len < 10)
-		{
-			for (char const* i = utf8_source; *i != 0; ++i)
-				std::printf("%x ", UTF8(*i));
-		}
-
-		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
-		TEST_CHECK(std::equal(&utf8[0], out8, reinterpret_cast<UTF8 const*>(utf8_source)));
-	}
+	TEST_EQUAL(len, int(utf8.size()));
+	TEST_EQUAL(cp, codepoint);
 }
 
-void expect_error(char const* utf8, ConversionResult expect)
+void test_parse_utf8(lt::string_view utf8)
 {
-	UTF8 const* in8 = reinterpret_cast<UTF8 const*>(utf8);
-	std::vector<UTF32> utf32(strlen(utf8));
-	UTF32* out32 = &utf32[0];
-	ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + std::strlen(utf8)
-		, &out32, out32 + utf32.size(), strictConversion);
+	int len;
+	std::int32_t cp;
+	std::tie(cp, len) = parse_utf8_codepoint(utf8);
+	TEST_EQUAL(len, int(utf8.size()));
 
-	TEST_EQUAL(ret, expect);
-	if (ret != expect)
-	{
-		std::printf("%d expected %d\n", ret, expect);
-		for (char const* i = utf8; *i != 0; ++i)
-			std::printf("%x ", UTF8(*i));
-	}
-
-	in8 = reinterpret_cast<UTF8 const*>(utf8);
-	std::vector<UTF16> utf16(std::strlen(utf8));
-	UTF16* out16 = &utf16[0];
-	ret = ConvertUTF8toUTF16(&in8, in8 + std::strlen(utf8)
-		, &out16, out16 + utf16.size(), strictConversion);
-
-	TEST_EQUAL(ret, expect);
-	if (ret != expect)
-	{
-		std::printf("%d expected %d\n", ret, expect);
-		for (char const* i = utf8; *i != 0; ++i)
-			std::printf("%x ", UTF8(*i));
-	}
+	std::string out;
+	append_utf8_codepoint(out, cp);
+	TEST_EQUAL(out, utf8);
 }
 
-} // anonymous namespace
-
-TORRENT_TEST(utf8)
+void parse_error(lt::string_view utf8)
 {
-	std::vector<char> utf8_source;
-	error_code ec;
-	load_file(combine_path("..", "utf8_test.txt"), utf8_source, ec, 1000000);
-	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
-		, ec.message().c_str());
-	TEST_CHECK(!ec);
+	int len;
+	std::int32_t cp;
+	std::tie(cp, len) = parse_utf8_codepoint(utf8);
+	TEST_EQUAL(cp, -1);
+	TEST_CHECK(len >= 1);
+	TEST_CHECK(len <= int(utf8.size()));
+}
+}
 
+TORRENT_TEST(parse_utf8_roundtrip)
+{
+	for (std::int32_t cp = 0; cp < 0xd800; ++cp)
+		test_utf8_roundtrip(cp);
+
+	// skip surrogate codepoints, which are invalid. They won't round-trip
+
+	for (std::int32_t cp = 0xe000; cp < 0xffff; ++cp)
+		test_utf8_roundtrip(cp);
+}
+
+TORRENT_TEST(parse_utf8)
+{
+	test_parse_utf8("\x7f");
+	test_parse_utf8("\xc3\xb0");
+	test_parse_utf8("\xed\x9f\xbf");
+	test_parse_utf8("\xee\x80\x80");
+	test_parse_utf8("\xef\xbf\xbd");
+	test_parse_utf8("\xf4\x8f\xbf\xbf");
+
+	// largest possible codepoint
+	test_parse_utf8("\xf4\x8f\xbf\xbf");
+}
+
+TORRENT_TEST(utf8_latin1)
+{
 	std::vector<char> utf8_latin1_source;
+	error_code ec;
 	load_file(combine_path("..", "utf8_latin1_test.txt"), utf8_latin1_source, ec, 1000000);
 	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 
+	std::string utf8;
+	std::copy(utf8_latin1_source.begin(), utf8_latin1_source.end(), std::back_inserter(utf8));
+	std::string const latin1 = utf8_latin1(utf8);
+	std::string const identity = latin1_utf8(latin1);
 
-	// test lower level conversions
+	TEST_EQUAL(utf8, identity);
+}
 
-	verify_transforms(&utf8_source[0], int(utf8_source.size()));
-
-	verify_transforms("\xc3\xb0");
-	verify_transforms("\xed\x9f\xbf");
-	verify_transforms("\xee\x80\x80");
-	verify_transforms("\xef\xbf\xbd");
-	verify_transforms("\xf4\x8f\xbf\xbf");
-	verify_transforms("\xf0\x91\x80\x80\x30");
-
+TORRENT_TEST(parse_utf8_fail)
+{
 	// Unexpected continuation bytes
-	expect_error("\x80", sourceIllegal);
-	expect_error("\xbf", sourceIllegal);
+	parse_error("\x80");
+	parse_error("\xbf");
 
 	// Impossible bytes
 	// The following two bytes cannot appear in a correct UTF-8 string
-	expect_error("\xff", sourceExhausted);
-	expect_error("\xfe", sourceExhausted);
-	expect_error("\xff\xff\xfe\xfe", sourceExhausted);
+	parse_error("\xff");
+	parse_error("\xfe");
+	parse_error("\xff\xff\xfe\xfe");
 
 	// Examples of an overlong ASCII character
-	expect_error("\xc0\xaf", sourceIllegal);
-	expect_error("\xe0\x80\xaf", sourceIllegal);
-	expect_error("\xf0\x80\x80\xaf", sourceIllegal);
-	expect_error("\xf8\x80\x80\x80\xaf ", sourceIllegal);
-	expect_error("\xfc\x80\x80\x80\x80\xaf", sourceIllegal);
+	parse_error("\xc0\xaf");
+	parse_error("\xe0\x80\xaf");
+	parse_error("\xf0\x80\x80\xaf");
+	parse_error("\xf8\x80\x80\x80\xaf ");
+	parse_error("\xfc\x80\x80\x80\x80\xaf");
 
 	// Maximum overlong sequences
-	expect_error("\xc1\xbf", sourceIllegal);
-	expect_error("\xe0\x9f\xbf", sourceIllegal);
-	expect_error("\xf0\x8f\xbf\xbf", sourceIllegal);
-	expect_error("\xf8\x87\xbf\xbf\xbf", sourceIllegal);
-	expect_error("\xfc\x83\xbf\xbf\xbf\xbf", sourceIllegal);
+	parse_error("\xc1\xbf");
+	parse_error("\xe0\x9f\xbf");
+	parse_error("\xf0\x8f\xbf\xbf");
+	parse_error("\xf8\x87\xbf\xbf\xbf");
+	parse_error("\xfc\x83\xbf\xbf\xbf\xbf");
 
 	// Overlong representation of the NUL character
-	expect_error("\xc0\x80", sourceIllegal);
-	expect_error("\xe0\x80\x80", sourceIllegal);
-	expect_error("\xf0\x80\x80\x80", sourceIllegal);
-	expect_error("\xf8\x80\x80\x80\x80", sourceIllegal);
-	expect_error("\xfc\x80\x80\x80\x80\x80", sourceIllegal);
+	parse_error("\xc0\x80");
+	parse_error("\xe0\x80\x80");
+	parse_error("\xf0\x80\x80\x80");
+	parse_error("\xf8\x80\x80\x80\x80");
+	parse_error("\xfc\x80\x80\x80\x80\x80");
 
-	// Single UTF-16 surrogates
-	expect_error("\xed\xa0\x80", sourceIllegal);
-	expect_error("\xed\xad\xbf", sourceIllegal);
-	expect_error("\xed\xae\x80", sourceIllegal);
-	expect_error("\xed\xaf\xbf", sourceIllegal);
-	expect_error("\xed\xb0\x80", sourceIllegal);
-	expect_error("\xed\xbe\x80", sourceIllegal);
-	expect_error("\xed\xbf\xbf", sourceIllegal);
+	// invalid continuation character
+	parse_error("\xc0\x7f");
 
-	// Paired UTF-16 surrogates
-	expect_error("\xed\xa0\x80\xed\xb0\x80", sourceIllegal);
-	expect_error("\xed\xa0\x80\xed\xbf\xbf", sourceIllegal);
-	expect_error("\xed\xad\xbf\xed\xb0\x80", sourceIllegal);
-	expect_error("\xed\xad\xbf\xed\xbf\xbf", sourceIllegal);
-	expect_error("\xed\xae\x80\xed\xb0\x80", sourceIllegal);
-	expect_error("\xed\xae\x80\xed\xbf\xbf", sourceIllegal);
-	expect_error("\xed\xaf\xbf\xed\xb0\x80", sourceIllegal);
-	expect_error("\xed\xaf\xbf\xed\xbf\xbf", sourceIllegal);
-
-	// test higher level conversions
-
-	std::string utf8;
-	std::copy(utf8_source.begin(), utf8_source.end(), std::back_inserter(utf8));
-
-	std::wstring const wide = utf8_wchar(utf8);
-	std::string const identity1 = wchar_utf8(wide);
-
-	TEST_EQUAL(utf8, identity1);
-
-	std::u32string const utf32 = utf8_utf32(utf8);
-	std::string const identity2 = utf32_utf8(utf32);
-
-	TEST_EQUAL(utf8, identity2);
-
-	utf8.clear();
-	std::copy(utf8_latin1_source.begin(), utf8_latin1_source.end(), std::back_inserter(utf8));
-
-	std::string const latin1 = utf8_latin1(utf8);
-	std::string const identity3 = latin1_utf8(latin1);
-
-	TEST_EQUAL(utf8, identity3);
-
-}
-
-TORRENT_TEST(invalid_encoding)
-{
-	// thest invalid utf8 encodings. just treat it as "Latin-1"
-	std::uint8_t const test_string[] = {
-		0xd2, 0xe5, 0xf0, 0xea, 0xf1, 0x20, 0xe8, 0x20, 0xca, 0xe0, 0xe9, 0xea,
-		0xee, 0xf1, 0x2e, 0x32, 0x30, 0x31, 0x34, 0x2e, 0x42, 0x44, 0x52, 0x69,
-		0x70, 0x2e, 0x31, 0x30, 0x38, 0x30, 0x70, 0x2e, 0x6d, 0x6b, 0x76, 0x00
-	};
-	error_code ec;
-	std::wstring wide = utf8_wchar(reinterpret_cast<char const*>(test_string), ec);
-	TEST_CHECK(ec);
-
-	std::wstring cmp_wide;
-	std::copy(test_string, test_string + sizeof(test_string) - 1,
-		std::back_inserter(cmp_wide));
-	TEST_CHECK(wide == cmp_wide);
+	// codepoint too high
+	parse_error("\xf5\x8f\xbf\xbf");
+	parse_error("\xf4\xbf\xbf\xbf");
 }

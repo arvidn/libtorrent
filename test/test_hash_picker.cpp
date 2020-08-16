@@ -1052,6 +1052,27 @@ TORRENT_TEST(sparse_merkle_tree_block_layer)
 	}
 }
 
+TORRENT_TEST(get_piece_layer)
+{
+	// 8 blocks per piece.
+	aux::merkle_tree t(260, 8, f[0].data());
+	t.load_tree(span<sha256_hash const>(f).first(int(t.size())));
+
+	int const num_pieces = (260 + 7) / 8;
+	int const piece_layer_size = merkle_num_leafs(num_pieces);
+	int const piece_layer_start = merkle_first_leaf(piece_layer_size);
+	auto const piece_layer = t.get_piece_layer();
+
+	TEST_EQUAL(num_pieces, int(piece_layer.size()));
+	for (int i = 0; i < int(piece_layer.size()); ++i)
+	{
+		TEST_CHECK(t[piece_layer_start + i] == piece_layer[i]);
+	}
+}
+
+// TODO: add test for load_piece_layer()
+// TODO: add test for get_piece_layer() when tree is in piece-layer mode
+
 namespace {
 using s = span<sha256_hash const>;
 

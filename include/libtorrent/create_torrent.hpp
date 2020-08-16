@@ -488,54 +488,6 @@ namespace aux {
 	}
 #endif
 
-#if TORRENT_ABI_VERSION == 1
-
-	// all wstring APIs are deprecated since 0.16.11
-	// instead, use the wchar -> utf8 conversion functions
-	// and pass in utf8 strings
-	TORRENT_DEPRECATED_EXPORT
-	void add_files(file_storage& fs, std::wstring const& wfile
-		, std::function<bool(std::string)> p, create_flags_t flags = {});
-
-	TORRENT_DEPRECATED_EXPORT
-	void add_files(file_storage& fs, std::wstring const& wfile
-		, create_flags_t flags = {});
-
-	TORRENT_DEPRECATED_EXPORT
-	void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, std::function<void(int)> f, error_code& ec);
-
-	TORRENT_EXPORT void set_piece_hashes_deprecated(create_torrent& t
-		, std::wstring const& p
-		, std::function<void(int)> f, error_code& ec);
-
-#ifndef BOOST_NO_EXCEPTIONS
-	TORRENT_DEPRECATED
-	inline void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, std::function<void(int)> f)
-	{
-		error_code ec;
-		set_piece_hashes_deprecated(t, p, f, ec);
-		if (ec) throw system_error(ec);
-	}
-
-	TORRENT_DEPRECATED
-	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
-	{
-		error_code ec;
-		set_piece_hashes_deprecated(t, p, aux::nop, ec);
-		if (ec) throw system_error(ec);
-	}
-#endif
-
-	TORRENT_DEPRECATED
-	inline void set_piece_hashes(create_torrent& t
-		, std::wstring const& p, error_code& ec)
-	{
-		set_piece_hashes_deprecated(t, p, aux::nop, ec);
-	}
-#endif // TORRENT_ABI_VERSION
-
 namespace aux {
 	TORRENT_EXTRA_EXPORT file_flags_t get_file_attributes(std::string const& p);
 	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p);

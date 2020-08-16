@@ -1413,25 +1413,49 @@ namespace {
 		return ret;
 	}
 
+namespace {
+	template <typename Pack>
+	int get_setting_impl(Pack const& p, int name, int*)
+	{ return p.get_int(name); }
+
+	template <typename Pack>
+	bool get_setting_impl(Pack const& p, int name, bool*)
+	{ return p.get_bool(name); }
+
+	template <typename Pack>
+	std::string get_setting_impl(Pack const& p, int name, std::string*)
+	{ return p.get_str(name); }
+
+	template <typename Type, typename Pack>
+	Type get_setting(Pack const& p, int name)
+	{
+		return get_setting_impl(p, name, static_cast<Type*>(nullptr));
+	}
+
+	template <typename Type>
+	bool setting_changed(settings_pack const& pack, aux::session_settings const& sett, int name)
+	{
+		return pack.has_val(name)
+			&& get_setting<Type>(pack, name) != get_setting<Type>(sett, name);
+	}
+}
+
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
-		bool const reopen_listen_port =
+		bool const reopen_listen_port
+			= setting_changed<std::string>(pack, m_settings, settings_pack::listen_interfaces)
+			|| setting_changed<int>(pack, m_settings, settings_pack::proxy_type)
+			|| setting_changed<bool>(pack, m_settings, settings_pack::proxy_peer_connections)
 #if TORRENT_ABI_VERSION == 1
-			(pack.has_val(settings_pack::ssl_listen)
-				&& pack.get_int(settings_pack::ssl_listen)
-					!= m_settings.get_int(settings_pack::ssl_listen))
-			||
+			|| setting_changed<int>(pack, m_settings, settings_pack::ssl_listen)
 #endif
-			(pack.has_val(settings_pack::listen_interfaces)
-				&& pack.get_str(settings_pack::listen_interfaces)
-					!= m_settings.get_str(settings_pack::listen_interfaces))
-			|| (pack.has_val(settings_pack::proxy_type)
-				&& pack.get_int(settings_pack::proxy_type)
-					!= m_settings.get_int(settings_pack::proxy_type))
-			|| (pack.has_val(settings_pack::proxy_peer_connections)
-				&& pack.get_bool(settings_pack::proxy_peer_connections)
-					!= m_settings.get_bool(settings_pack::proxy_peer_connections))
 			;
+
+		bool const update_want_peers
+			= setting_changed<bool>(pack, m_settings, settings_pack::seeding_outgoing_connections)
+			|| setting_changed<bool>(pack, m_settings, settings_pack::enable_outgoing_tcp)
+			|| setting_changed<bool>(pack, m_settings, settings_pack::enable_outgoing_utp)
+		;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("applying settings pack, reopen_listen_port=%s"
@@ -1447,10 +1471,15 @@ namespace {
 			// since the apply_pack will do it
 			update_listen_interfaces();
 		}
-
-		if (reopen_listen_port)
+		else
 		{
 			reopen_listen_sockets();
+		}
+
+		if (update_want_peers)
+		{
+			for (auto const& t : m_torrents)
+				t->update_want_peers();
 		}
 	}
 

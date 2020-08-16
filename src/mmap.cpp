@@ -39,8 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/file.hpp" // for is_sparse
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/scope_exit.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <cstdint>
+
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/aux_/win_util.hpp"
+#endif
 
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h> // for mmap
@@ -65,6 +73,96 @@ namespace {
 		return (mode & open_mode::write)
 			? file_size : std::min(std::int64_t(fh.get_size()), file_size);
 	}
+
+#ifdef TORRENT_WINDOWS
+	// returns true if the given file has any regions that are
+	// sparse, i.e. not allocated.
+	bool is_sparse(HANDLE file)
+	{
+		LARGE_INTEGER file_size;
+		if (!GetFileSizeEx(file, &file_size))
+			return false;
+
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+	LARGE_INTEGER FileOffset;
+	LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER;
+#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
+		FILE_ALLOCATED_RANGE_BUFFER in;
+		in.FileOffset.QuadPart = 0;
+		in.Length.QuadPart = file_size.QuadPart;
+
+		FILE_ALLOCATED_RANGE_BUFFER out[2];
+
+		DWORD returned_bytes = 0;
+		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, static_cast<void*>(&in), sizeof(in)
+			, out, sizeof(out), &returned_bytes, nullptr);
+
+		if (ret == FALSE)
+		{
+			return true;
+		}
+
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
+	}
+
+	std::once_flag g_once_flag;
+
+	void acquire_manage_volume_privs()
+	{
+		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
+
+		using LookupPrivilegeValue_t = BOOL (WINAPI*)(LPCSTR, LPCSTR, PLUID);
+
+		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
+			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+
+		auto OpenProcessToken =
+			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
+		auto LookupPrivilegeValue =
+			aux::get_library_procedure<aux::advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
+		auto AdjustTokenPrivileges =
+			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
+
+		if (OpenProcessToken == nullptr
+			|| LookupPrivilegeValue == nullptr
+			|| AdjustTokenPrivileges == nullptr)
+		{
+			return;
+		}
+
+
+		HANDLE token;
+		if (!OpenProcessToken(GetCurrentProcess()
+			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+			return;
+
+		BOOST_SCOPE_EXIT_ALL(&token) {
+			CloseHandle(token);
+		};
+
+		TOKEN_PRIVILEGES privs{};
+		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
+			, &privs.Privileges[0].Luid))
+		{
+			return;
+		}
+
+		privs.PrivilegeCount = 1;
+		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
+	}
+
+#endif // TORRENT_WINDOWS
+
 } // anonymous
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -96,7 +194,7 @@ namespace {
 
 } // anonymous
 
-file_handle::file_handle(string_view name, std::int64_t
+file_handle::file_handle(string_view name, std::int64_t const size
 	, open_mode_t const mode)
 	: m_fd(CreateFileW(convert_to_native_path_string(std::string(name)).c_str()
 		, file_access(mode)
@@ -111,11 +209,29 @@ file_handle::file_handle(string_view name, std::int64_t
 
 	// try to make the file sparse if supported
 	// only set this flag if the file is opened for writing
-	if ((mode & aux::open_mode::sparse)
-		&& (mode & aux::open_mode::write))
+	if ((mode & aux::open_mode::sparse) && (mode & aux::open_mode::write))
 	{
 		DWORD temp;
 		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
+	}
+
+	if ((mode & open_mode::truncate) && !(mode & aux::open_mode::sparse))
+	{
+		LARGE_INTEGER sz;
+		sz.QuadPart = size;
+		if (SetFilePointerEx(m_fd, sz, nullptr, FILE_BEGIN) == FALSE)
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+
+		if (::SetEndOfFile(m_fd) == FALSE)
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+		// Enable privilege required by SetFileValidData()
+		// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+		std::call_once(g_once_flag, acquire_manage_volume_privs);
+
+		// if the user has permissions, avoid filling
+		// the file with zeroes, but just fill it with
+		// garbage instead
+		SetFileValidData(m_fd, size);
 	}
 }
 
@@ -128,8 +244,7 @@ namespace {
 		return ((mode & open_mode::write)
 			? O_RDWR | O_CREAT : O_RDONLY)
 #ifdef O_NOATIME
-			| ((mode & open_mode::no_atime)
-			? O_NOATIME : 0)
+			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
 #endif
 			;
 	}
@@ -147,9 +262,7 @@ namespace {
 		return
 			MAP_FILE | MAP_SHARED
 #ifdef MAP_NOCACHE
-			| ((m & open_mode::no_cache)
-			? MAP_NOCACHE
-			: 0)
+			| ((m & open_mode::no_cache) ? MAP_NOCACHE : 0)
 #endif
 #ifdef MAP_NOCORE
 			// BSD has a flag to exclude this region from core files
@@ -173,6 +286,12 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 	if (m_fd < 0) throw_ex<system_error>(error_code(errno, system_category()));
+
+#ifdef DIRECTIO_ON
+	// for solaris
+	if (mode & open_mode::no_cache)
+		directio(m_fd, DIRECTIO_ON);
+#endif
 
 	if (mode & open_mode::truncate)
 	{
@@ -237,6 +356,31 @@ file_handle::file_handle(string_view name, std::int64_t const size
 #endif // F_PREALLOCATE
 		}
 	}
+
+#ifdef F_NOCACHE
+	// for BSD/Mac
+	if (mode & aux::open_mode::no_cache)
+	{
+		int yes = 1;
+		::fcntl(m_fd, F_NOCACHE, &yes);
+
+#ifdef F_NODIRECT
+		// it's OK to temporarily cache written pages
+		::fcntl(m_fd, F_NODIRECT, &yes);
+#endif
+	}
+#endif
+
+#ifdef POSIX_FADV_RANDOM
+	if (mode & aux::open_mode::random_access)
+	{
+		// disable read-ahead
+		// NOTE: in android this function was introduced in API 21,
+		// but the constant POSIX_FADV_RANDOM is there for lower
+		// API levels, just don't add :: to allow a macro workaround
+		posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+	}
+#endif
 }
 #endif
 

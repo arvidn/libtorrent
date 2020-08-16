@@ -169,6 +169,7 @@ namespace {
 
 	native_path_string convert_to_native_path_string(std::string const& path)
 	{
+#ifdef TORRENT_WINDOWS
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
 		// network paths are already UNC paths
@@ -178,6 +179,9 @@ namespace {
 		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
 
 		return convert_to_wstring(prepared_path);
+#else
+		return convert_to_wstring(path);
+#endif
 #else // TORRENT_WINDOWS
 		return convert_to_native(path);
 #endif
@@ -326,10 +330,8 @@ namespace {
 			return;
 		}
 		// something failed. Does the filesystem not support hard links?
-		// TODO: 3 find out what error code is reported when the filesystem
-		// does not support hard links.
 		DWORD const error = GetLastError();
-		if (error != ERROR_NOT_SUPPORTED && error != ERROR_ACCESS_DENIED)
+		if (error != ERROR_INVALID_FUNCTION)
 		{
 			// it's possible CreateHardLink will copy the file internally too,
 			// if the filesystem does not support it.
@@ -338,7 +340,6 @@ namespace {
 		}
 
 		// fall back to making a copy
-
 #else
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());

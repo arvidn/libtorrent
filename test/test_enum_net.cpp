@@ -164,7 +164,7 @@ namespace {
 		ret.destination = make_address(ip);
 		ret.gateway = make_address(gateway);
 		ret.netmask = make_address(mask);
-		std::strncpy(ret.name, device, sizeof(ret.name));
+		std::strncpy(ret.name, device, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
 	}
@@ -174,7 +174,7 @@ namespace {
 		ip_interface ret;
 		ret.interface_address = make_address(addr);
 		ret.netmask = make_address("255.255.255.255");
-		std::strncpy(ret.name, name, sizeof(ret.name));
+		std::strncpy(ret.name, name, sizeof(ret.name) - 1);
 		return ret;
 	}
 }

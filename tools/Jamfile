@@ -37,6 +37,7 @@ project tools
 	: default-build
 	<link>static
 	<cxxstd>17
+	<address-model>64
    ;  
 
 exe dht : dht_put.cpp : <include>../ed25519/src ;

@@ -7,6 +7,7 @@ import platform
 import sys
 import shutil
 import multiprocessing
+import glob
 
 
 def bjam_build():
@@ -72,8 +73,8 @@ def bjam_build():
         os.mkdir('libtorrent')
     except BaseException:
         pass
-    shutil.copyfile('libtorrent' + file_ext,
-                    'build/lib/libtorrent' + file_ext)
+    for f in glob.glob('libtorrent*.' + file_ext):
+        shutil.copyfile(f, 'build/lib/libtorrent' + file_ext)
 
     return None
 

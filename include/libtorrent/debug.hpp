@@ -185,7 +185,8 @@ namespace libtorrent {
 			"tick_handler",
 			"abort_handler",
 			"defer_handler",
-			"utp_handler"
+			"utp_handler",
+			"submit_handler",
 		};
 		std::lock_guard<std::mutex> l(_handler_storage_mutex);
 		std::printf("handler allocator storage:\n\n");

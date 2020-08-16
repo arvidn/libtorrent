@@ -114,11 +114,11 @@ primarily because of trackers that are unresponsive (and time out) and also
 DNS servers that are unresponsive. DNS lookups are especially difficult to
 abort when stalled.
 
-In order to be able to start destruction an wait for it asynchronously, one
-can call session::abort().
+In order to be able to start destruction asynchronously, one can call
+session::abort().
 
 This call returns a session_proxy object, which is a handle keeping the session
-state alive while destructing it. It deliberately does not provide any of the
+state alive while shutting it down. It deliberately does not provide any of the
 session operations, since it's shutting down.
 
 After having a session_proxy object, the session destructor does not block.

@@ -88,10 +88,6 @@ namespace libtorrent {
 	using handle_type = int;
 #endif
 
-#ifdef TORRENT_WINDOWS
-	bool is_sparse(HANDLE file);
-#endif
-
 	struct TORRENT_EXTRA_EXPORT directory
 	{
 		directory(std::string const& path, error_code& ec);
@@ -126,11 +122,8 @@ namespace libtorrent {
 		file& operator=(file const&) = delete;
 
 		bool open(std::string const& p, aux::open_mode_t m, error_code& ec);
-		bool is_open() const;
 		void close();
 		bool set_size(std::int64_t size, error_code& ec);
-
-		aux::open_mode_t open_mode() const { return m_open_mode; }
 
 		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
 			, error_code& ec, aux::open_mode_t flags = {});
@@ -139,13 +132,8 @@ namespace libtorrent {
 
 		std::int64_t get_size(error_code& ec) const;
 
-		handle_type native_handle() const { return m_file_handle; }
-
 	private:
-
 		handle_type m_file_handle;
-
-		aux::open_mode_t m_open_mode{};
 	};
 }
 

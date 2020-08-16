@@ -11,7 +11,7 @@ ifneq ($(OS),Windows_NT)
 	endif
 endif
 
-BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off -j${NCORES}
+BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64 -j${NCORES}
 
 ifeq (${PREFIX},)
 PREFIX=/usr/local/
@@ -187,6 +187,7 @@ EXTRA_DIST = \
   bindings/CMakeLists.txt \
   setup.py \
   LICENSE \
+  src/ed25519/LICENSE \
   COPYING \
   AUTHORS \
   NEWS \
@@ -290,7 +291,6 @@ KADEMLIA_SOURCES = \
   traversal_algorithm.cpp
 
 SOURCES = \
-  ConvertUTF.cpp                  \
   add_torrent_params.cpp          \
   alert.cpp                       \
   alert_manager.cpp               \
@@ -425,7 +425,6 @@ SOURCES = \
   websocket_tracker_connection.cpp
 
 HEADERS = \
-  ConvertUTF.h                 \
   add_torrent_params.hpp       \
   address.hpp                  \
   alert.hpp                    \
@@ -1039,7 +1038,8 @@ TEST_TORRENTS = \
   v2_large_offset.torrent \
   v2_piece_size.torrent \
   v2_zero_root.torrent \
-  v2_zero_root_small.torrent
+  v2_zero_root_small.torrent \
+  v2_hybrid.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

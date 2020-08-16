@@ -372,28 +372,6 @@ namespace aux {
 		add_file_borrow({}, fe.path, fe.size, flags, filehash, fe.mtime
 			, fe.symlink_path);
 	}
-
-	void file_storage::set_name(std::wstring const& n)
-	{
-		m_name = wchar_utf8(n);
-	}
-
-	void file_storage::rename_file_deprecated(file_index_t index, std::wstring const& new_filename)
-	{
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		update_path_index(m_files[index], wchar_utf8(new_filename));
-	}
-
-	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, file_flags_t const file_flags, std::time_t mtime, string_view symlink_path)
-	{
-		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
-	}
-
-	void file_storage::rename_file(file_index_t index, std::wstring const& new_filename)
-	{
-		rename_file_deprecated(index, new_filename);
-	}
 #endif // TORRENT_ABI_VERSION
 
 	void file_storage::rename_file(file_index_t const index

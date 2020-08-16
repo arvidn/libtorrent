@@ -1,5 +1,5 @@
 language: cpp
-dist: bionic
+dist: focal
 
 matrix:
   fast_finish: true
@@ -12,52 +12,36 @@ matrix:
       os: osx
       osx_image: xcode11.2
     - env: variant=debug toolset=gcc pylint=1 clang_tidy=1
-      addons:
-        apt:
-          packages:
-          - python3-pip
-          - clang-tidy-9
     - env: variant=debug tests=1 toolset=gcc sanitizer=on fuzzers=1
     - env: variant=debug tests=1 mmap=off toolset=gcc
     - env: variant=debug sim=1 crypto=openssl toolset=gcc sanitizer=on cbinding=1
     - env: variant=debug tests=1 crypto=gnutls webtorrent=on toolset=gcc sanitizer=on
-      addons:
-        apt:
-          packages:
-          - gnutls-dev
-          - nettle-dev
-          - python3-websockets
 #    - env: variant=debug tests=1 crypto=wolfssl toolset=gcc sanitizer=on
     - env: variant=release coverage=1 toolset=gcc-coverage
-    - env: dist=1 toolset=gcc install_boost=1 docs=1
+    - env: dist=1 toolset=gcc docs=1
       addons:
         apt:
           packages:
           - python-docutils
           - python-pygments
           - python-pil
-          - python-aafigure
+          - gsfonts
+          - inkscape
           - icoutils
           - graphviz
           - hunspell
           - imagemagick
+          - libboost-all-dev
+          - libboost-tools-dev
+          - python3.8-dev
           - ninja-build
-    - env: cmake=1 toolset=gcc install_boost=1
-      addons:
-        apt:
-          packages:
-          - ninja-build
-    - env: arch=arm toolset=gcc-arm
-      addons:
-        apt:
-          packages:
-          - qemu-user-static
-    - env: arch=s390x toolset=gcc-s390x
-      addons:
-        apt:
-          packages:
-          - g++-8-s390x-linux-gnu
-          - qemu-user-static
+    - env: cmake=1 toolset=gcc
+    - env: toolset=gcc tests=1 variant=debug
+      os: linux
+      arch: arm64
+    - env: toolset=gcc tests=1 variant=debug
+      os: linux
+      arch: s390x
 
 notifications:
   email: false
@@ -83,25 +67,24 @@ cache:
 addons:
   apt:
     packages:
-    - python3.7-dev
+    - clang-tidy-9
+    - python3-pip
+    - python3.8-dev
+    - ninja-build
+    - libboost-all-dev
+    - libboost-tools-dev
+    - gnutls-dev
+    - nettle-dev
+    - python3-websockets
 
 before_install:
 
-  # pull down a recent version of boost and build boost-build
-  - cd $HOME;
-  - 'if [[ ! -d boost/.git ]]; then
-      git clone --depth=1 --branch=boost-1.72.0 https://github.com/boostorg/boost.git;
+  - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
+      export sonar_scan=0;
     fi'
-  - export BOOST_ROOT=$PWD/boost
-  - echo ${BOOST_ROOT}
-  - cd boost
-  - git submodule update --init --depth=1
-  - ./bootstrap.sh
-  - ./b2 headers
-  - export PATH=$BOOST_ROOT:$PATH
 
-  - cd $TRAVIS_BUILD_DIR;
-  - git submodule update --depth=1 --init --recursive
+  - cd $TRAVIS_BUILD_DIR
+  - git submodule update --init --recursive
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $sanitizer == "" ]]; then export sanitizer=off; fi'
   - 'if [[ $mmap == "" ]]; then export mmap=on; fi'
@@ -114,7 +97,7 @@ before_install:
       sysctl hw.ncpu;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-      travis_retry brew install ccache;
+      travis_retry brew install ccache boost-build boost-python3;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
@@ -126,6 +109,10 @@ before_install:
        which python3;
        which pip3;
        python3 --version;
+    fi'
+
+  - 'if [ "$docs" == "1" ]; then
+      ${PIP} install aafigure;
     fi'
 
   - if [ "$coverage" == "1" ]; then
@@ -148,23 +135,6 @@ install:
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++ --coverage : <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
-  - 'if [[ $toolset == "gcc-arm" ]]; then
-      echo "using gcc : arm : ccache arm-linux-gnueabihf-g++ :
-        <cxxflags>-Wno-psabi
-        <cxxflags>-fsigned-char
-        <cxxflags>-march=armv8-a+crc
-        <cxxflags>-mfpu=crypto-neon-fp-armv8
-        <cxxflags>-DTORRENT_FORCE_ARM_CRC32
-        <linkflags>-lm
-        <linkflags>-static-libstdc++
-        <linkflags>-static-libgcc ;" >> ~/user-config.jam;
-    fi;'
-  - 'if [[ $toolset == "gcc-s390x" ]]; then
-      echo "using gcc : s390x : ccache s390x-linux-gnu-g++-8 :
-        <linkflags>-lm
-        <linkflags>-static-libstdc++
-        <linkflags>-static-libgcc ;" >> ~/user-config.jam;
-    fi;'
   - 'if [ $clang_tidy == "1" ]; then
       echo "using clang_tidy : : clang-tidy-9 : <cxxflags>-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW=1 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
     fi'
@@ -189,18 +159,6 @@ install:
     fi'
   - 'echo "using python : : $(which python3) : /usr/local/Frameworks/Python.framework/Headers : : <target-os>darwin ;" >> ~/user-config.jam'
   - 'echo "using python : : $(which python3) : : : <target-os>linux ;" >> ~/user-config.jam'
-  - 'if [[ "$install_boost" = "1" ]]; then
-      cd $BOOST_ROOT;
-      sudo ./b2 cxxstd=17 release install --with-python --with-system | grep -v "^common.copy " | grep -v "^\.\.\.skipped " | grep -v "th target\.\.\.$";
-      cd tools/build/;
-      echo "bootstrapping boost.build";
-      ./bootstrap.sh;
-      echo "installing boost.build";
-      sudo ./b2 install --prefix=/usr/;
-      sudo ln -s /usr/local/lib/libboost_python37.so /usr/local/lib/libboost_python.so;
-      sudo ln -s /usr/local/lib/libboost_python36.so /usr/local/lib/libboost_python3.so;
-      cd $TRAVIS_BUILD_DIR;
-    fi;'
   - cat ~/user-config.jam
   - if [ "$docs" == "1" ]; then rst2html --version; fi
   - 'if [ "$pylint" == "1" ]; then
@@ -211,32 +169,6 @@ install:
   - ccache -V
   - ccache --show-stats
   - ccache --zero-stats
-
-  - 'if [[ "$arch" == "arm" ]]; then
-      cd $TRAVIS_BUILD_DIR/test;
-      wget --no-verbose -O gcc.tar.xz https://developer.arm.com/-/media/Files/downloads/gnu-a/8.2-2018.11/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf.tar.xz;
-      tar xf gcc.tar.xz;
-      export PATH=$PWD/gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin:$PATH;
-      arm-linux-gnueabihf-g++ --version;
-      ./gcc-arm-8.2-2018.11-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ --version;
-      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-armhf.tar.gz;
-      sudo mkdir rootfs;
-      sudo tar xf ubuntu-base.tar.gz -C rootfs;
-      sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
-      sudo chroot rootfs mount -t proc none /proc;
-    fi'
-
-  - 'if [[ "$arch" == "s390x" ]]; then
-      cd $TRAVIS_BUILD_DIR/test;
-      s390x-linux-gnu-g++-8 --version;
-      wget --no-verbose -O ubuntu-base.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/19.10/release/ubuntu-base-19.10-base-s390x.tar.gz;
-      sudo mkdir rootfs;
-      sudo tar xf ubuntu-base.tar.gz -C rootfs;
-      sudo cp /usr/bin/qemu-s390x-static rootfs/usr/bin/;
-      sudo chroot rootfs mount -t proc none /proc;
-      sudo mount -o bind /sys rootfs/sys/;
-      sudo chroot rootfs lscpu;
-    fi'
 
   - if [[ "$cmake" == "1" ]]; then
       which cmake;
@@ -380,35 +312,3 @@ script:
     fi
 
   - ccache --show-stats
-
-  - cd $TRAVIS_BUILD_DIR/test;
-  - 'if [[ "$arch" == "arm" ]];
-    then
-      ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
-      sudo cp -R bin rootfs/home;
-      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
-      cat test-launcher.sh;
-      chmod +x test-launcher.sh;
-      sudo cp test-launcher.sh rootfs;
-      travis_retry ${B2} arm-tests warnings-as-errors=on warnings=all crypto=$crypto dht=off extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
-    fi'
-  - 'if [[ "$arch" == "s390x" ]];
-    then
-      ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
-      sudo cp -R bin rootfs/home;
-      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
-      cat test-launcher.sh;
-      chmod +x test-launcher.sh;
-      sudo cp test-launcher.sh rootfs;
-      travis_retry ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
-    fi'
-  - 'if [[ "$arch" == "s390x" ]];
-    then
-      ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.execute=off;
-      sudo cp -R bin rootfs/home;
-      echo "#!/bin/sh\ncd home\nexec $1" > test-launcher.sh;
-      cat test-launcher.sh;
-      chmod +x test-launcher.sh;
-      sudo cp test-launcher.sh rootfs;
-      travis_retry ${B2} s390x-tests warnings-as-errors=on warnings=all crypto=$crypto dht=on extensions=off logging=off deprecated-functions=off invariant-checks=off export-extra=on asserts=on $toolset target-os=linux link=static testing.launcher="sudo chroot rootfs /bin/sh test-launcher.sh";
-    fi'

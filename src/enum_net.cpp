@@ -236,6 +236,53 @@ namespace {
 
 #if TORRENT_USE_NETLINK
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-compare"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+	// these are here to concentrate all the shady casts these macros expand to,
+	// to disable the warnings for them all
+	bool nlmsg_ok(nlmsghdr const* hdr, int const len)
+	{ return NLMSG_OK(hdr, len); }
+
+	nlmsghdr const* nlmsg_next(nlmsghdr const* hdr, int& len)
+	{ return NLMSG_NEXT(hdr, len); }
+
+	void const* nlmsg_data(nlmsghdr const* hdr)
+	{ return NLMSG_DATA(hdr); }
+
+	rtattr const* rtm_rta(rtmsg const* hdr)
+	{ return static_cast<rtattr const*>(RTM_RTA(hdr)); }
+
+	std::size_t rtm_payload(nlmsghdr const* hdr)
+	{ return RTM_PAYLOAD(hdr); }
+
+	bool rta_ok(rtattr const* rt, std::size_t const len)
+	{ return RTA_OK(rt, len); }
+
+	void const* rta_data(rtattr const* rt)
+	{ return RTA_DATA(rt); }
+
+	rtattr const* rta_next(rtattr const* rt, std::size_t& len)
+	{ return RTA_NEXT(rt, len); }
+
+	rtattr const* ifa_rta(ifaddrmsg const* ifa)
+	{ return static_cast<rtattr const*>(IFA_RTA(ifa)); }
+
+	std::size_t ifa_payload(nlmsghdr const* hdr)
+	{ return IFA_PAYLOAD(hdr); }
+
+	rtattr const* ifla_rta(ifinfomsg const* ifinfo)
+	{ return static_cast<rtattr const*>(IFLA_RTA(ifinfo)); }
+
+	std::size_t ifla_payload(nlmsghdr const* hdr)
+	{ return IFLA_PAYLOAD(hdr); }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
 		, std::function<void(nlmsghdr const*)> on_msg)
 	{
@@ -248,21 +295,12 @@ namespace {
 			auto const* nl_hdr = reinterpret_cast<nlmsghdr const*>(buf.data());
 			int len = read_len;
 
-			for (; len > 0 && NLMSG_OK(nl_hdr, len); nl_hdr = NLMSG_NEXT(nl_hdr, len))
+			for (; len > 0 && nlmsg_ok(nl_hdr, len); nl_hdr = nlmsg_next(nl_hdr, len))
 			{
-#ifdef __clang__
-#pragma clang diagnostic push
-// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
 				// TODO: if we get here, the caller still assumes the error code
 				// is reported via errno
-				if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
+				if ((nlmsg_ok(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 					return -1;
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
 				// this function doesn't handle multiple requests at the same time
 				// so report an error if the message does not have the expected seq and pid
 				// TODO: if we get here, the caller still assumes the error code
@@ -277,7 +315,7 @@ namespace {
 				if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) return 0;
 			}
 		}
-		return 0;
+//		return 0;
 	}
 
 	int nl_dump_request(int const sock, std::uint32_t const seq
@@ -311,7 +349,7 @@ namespace {
 	struct link_info
 	{
 		int mtu;
-		std::uint32_t if_idx;
+		int if_idx;
 		int type;
 		int oper_state;
 		char name[64];
@@ -320,26 +358,26 @@ namespace {
 
 	link_info parse_nl_link(nlmsghdr const* nl_hdr)
 	{
-		auto const* if_msg = reinterpret_cast<ifinfomsg const*>(NLMSG_DATA(nl_hdr));
-		auto const* rta_ptr = reinterpret_cast<rtattr const*>(IFLA_RTA(if_msg));
-		int attr_len = IFLA_PAYLOAD(nl_hdr);
+		auto const* if_msg = static_cast<ifinfomsg const*>(nlmsg_data(nl_hdr));
+		rtattr const* rta_ptr = ifla_rta(if_msg);
+		std::size_t attr_len = ifla_payload(nl_hdr);
 
 		link_info ret{};
 		ret.flags = convert_if_flags(if_msg->ifi_flags);
 		ret.if_idx = if_msg->ifi_index;
 
-		for (; RTA_OK(rta_ptr, attr_len); rta_ptr = RTA_NEXT(rta_ptr, attr_len))
+		for (; rta_ok(rta_ptr, attr_len); rta_ptr = rta_next(rta_ptr, attr_len))
 		{
-			auto* const ptr = RTA_DATA(rta_ptr);
+			auto* const ptr = rta_data(rta_ptr);
 			switch (rta_ptr->rta_type)
 			{
 				case IFLA_IFNAME:
-					strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name));
+					std::strncpy(ret.name, static_cast<char const*>(ptr), sizeof(ret.name) - 1);
 					ret.name[sizeof(ret.name)-1] = '\0';
 					break;
-				case IFLA_MTU: memcpy(&ret.mtu, ptr, sizeof(int)); break;
-				case IFLA_LINK: memcpy(&ret.type, ptr, sizeof(int)); break;
-				case IFLA_OPERSTATE: memcpy(&ret.oper_state, ptr, sizeof(int)); break;
+				case IFLA_MTU: std::memcpy(&ret.mtu, ptr, sizeof(int)); break;
+				case IFLA_LINK: std::memcpy(&ret.type, ptr, sizeof(int)); break;
+				case IFLA_OPERSTATE: std::memcpy(&ret.oper_state, ptr, sizeof(int)); break;
 
 				// ignore these attributes
 				case IFLA_CARRIER:
@@ -358,7 +396,7 @@ namespace {
 				case IFLA_PROMISCUITY:
 				default:
 					break;
-			};
+			}
 		}
 		return ret;
 	}
@@ -368,7 +406,7 @@ namespace {
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWROUTE) return false;
 
-		auto* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
+		auto const* rt_msg = static_cast<rtmsg const*>(nlmsg_data(nl_hdr));
 
 		if (!valid_addr_family(rt_msg->rtm_family))
 			return false;
@@ -382,33 +420,26 @@ namespace {
 		}
 
 		int if_index = 0;
-		auto rt_len = RTM_PAYLOAD(nl_hdr);
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
-		for (auto* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
-			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
+		std::size_t rt_len = rtm_payload(nl_hdr);
+		for (rtattr const* rt_attr = rtm_rta(rt_msg);
+			rta_ok(rt_attr, rt_len); rt_attr = rta_next(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
 				case RTA_OIF:
-					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
+					std::memcpy(&if_index, rta_data(rt_attr), sizeof(int));
 					break;
 				case RTA_GATEWAY:
-					rt_info->gateway = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
+					rt_info->gateway = to_address(rt_msg->rtm_family, rta_data(rt_attr));
 					break;
 				case RTA_DST:
-					rt_info->destination = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
+					rt_info->destination = to_address(rt_msg->rtm_family, rta_data(rt_attr));
 					break;
 				case RTA_PREFSRC:
-					rt_info->source_hint = to_address(rt_msg->rtm_family, RTA_DATA(rt_attr));
+					rt_info->source_hint = to_address(rt_msg->rtm_family, rta_data(rt_attr));
 					break;
 			}
 		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 		if (rt_info->gateway.is_v6() && rt_info->gateway.to_v6().is_link_local())
 		{
@@ -433,13 +464,13 @@ namespace {
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWADDR) return false;
 
-		auto* addr_msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(nl_hdr));
+		auto const* addr_msg = static_cast<ifaddrmsg const*>(nlmsg_data(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
 
 		auto interface = std::find_if(nics.begin(), nics.end()
-			, [addr_msg](link_info const& li) { return li.if_idx == addr_msg->ifa_index; });
+			, [addr_msg](link_info const& li) { return li.if_idx == int(addr_msg->ifa_index); });
 		TORRENT_ASSERT(interface != nics.end());
 		if (interface == nics.end()) return false;
 
@@ -447,13 +478,9 @@ namespace {
 		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
-		auto rt_len = IFA_PAYLOAD(nl_hdr);
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
-		for (auto* rt_attr = reinterpret_cast<rtattr*>(IFA_RTA(addr_msg));
-			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
+		std::size_t rt_len = ifa_payload(nl_hdr);
+		for (rtattr const* rt_attr = ifa_rta(addr_msg);
+			rta_ok(rt_attr, rt_len); rt_attr = rta_next(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
@@ -467,24 +494,21 @@ namespace {
 			case IFA_LOCAL:
 				if (addr_msg->ifa_family == AF_INET6)
 				{
-					address_v6 addr = inaddr6_to_address(RTA_DATA(rt_attr));
+					address_v6 addr = inaddr6_to_address(rta_data(rt_attr));
 					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
 						addr.scope_id(addr_msg->ifa_index);
 					ip_info->interface_address = addr;
 				}
 				else
 				{
-					ip_info->interface_address = inaddr_to_address(RTA_DATA(rt_attr));
+					ip_info->interface_address = inaddr_to_address(rta_data(rt_attr));
 				}
 				break;
 			}
 		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 		static_assert(sizeof(ip_info->name) == sizeof(interface->name), "interface name field sizes differ");
-		memcpy(ip_info->name, interface->name, sizeof(ip_info->name));
+		std::memcpy(ip_info->name, interface->name, sizeof(ip_info->name));
 		ip_info->flags = interface->flags;
 
 		ip_info->state
@@ -666,7 +690,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		// netlink socket documentation:
 		// https://people.redhat.com/nhorman/papers/netlink.pdf
-		int seq = 0;
+		std::uint32_t seq = 0;
 
 		struct
 		{

@@ -218,12 +218,6 @@ TORRENT_VERSION_NAMESPACE_3
 		TORRENT_DEPRECATED
 		torrent_info(char const* buffer, int size, error_code& ec, int)
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
-		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
-		// -> utf8 conversion functions and pass in utf8 strings
-		TORRENT_DEPRECATED
-		torrent_info(std::wstring const& filename, error_code& ec);
-		TORRENT_DEPRECATED
-		explicit torrent_info(std::wstring const& filename);
 #endif // TORRENT_ABI_VERSION
 
 		// frees all storage associated with this torrent_info object
@@ -265,13 +259,6 @@ TORRENT_VERSION_NAMESPACE_3
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.
 		void rename_file(file_index_t index, std::string const& new_filename);
-#if TORRENT_ABI_VERSION == 1
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
-		TORRENT_DEPRECATED
-		void rename_file(file_index_t index, std::wstring const& new_filename);
-#endif // TORRENT_ABI_VERSION
 
 		// .. warning::
 		// 	Using `remap_files()` is discouraged as it's incompatible with v2
@@ -598,6 +585,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// internal
 		aux::vector<aux::merkle_tree, file_index_t>& internal_merkle_trees();
+		aux::vector<aux::merkle_tree, file_index_t> const& internal_merkle_trees() const;
 		void internal_load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
 			, aux::vector<std::vector<bool>, file_index_t> mask);
 

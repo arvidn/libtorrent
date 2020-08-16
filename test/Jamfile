@@ -53,6 +53,8 @@ local default-build =
 	<logging>on
 	<cxxstd>17
 	<variant>debug-mode
+# default to 64 bit address model as it's required by mmap-disk-io.
+	<address-model>64
 	;
 
 project
@@ -333,29 +335,3 @@ alias win-tests :
 
 explicit win-tests ;
 
-alias arm-tests :
-	test_sha1_hash
-	test_bitfield
-	test_crc32
-	test_ffs
-	test_ed25519
-	;
-
-explicit arm-tests ;
-
-alias s390x-tests :
-	test_sha1_hash
-	test_primitives
-	test_string
-	test_pe_crypto
-	test_gzip
-	test_dht
-	test_bitfield
-	test_crc32
-	test_ffs
-	test_ed25519
-	test_session_params
-	test_mmap
-	;
-
-explicit s390x-tests ;

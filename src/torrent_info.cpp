@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/ConvertUTF.h"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/string_util.hpp" // is_space, is_i2p_url
 #include "libtorrent/bencode.hpp"
@@ -115,55 +114,28 @@ namespace aux {
 		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
 
-		UTF8 const* ptr = reinterpret_cast<UTF8 const*>(&target[0]);
-		UTF8 const* end = ptr + target.size();
-		while (ptr < end)
+		string_view ptr = target;
+		while (!ptr.empty())
 		{
-			UTF32 codepoint;
-			UTF32* cp = &codepoint;
+			std::int32_t codepoint;
+			int len;
 
 			// decode a single utf-8 character
-			ConversionResult res = ConvertUTF8toUTF32(&ptr, end, &cp, cp + 1
-				, lenientConversion);
+			std::tie(codepoint, len) = parse_utf8_codepoint(ptr);
 
 			// this was the last character, and nothing was
 			// written to the destination buffer (i.e. the source character was
 			// truncated)
-			if (res == sourceExhausted
-				|| res == sourceIllegal)
+			if (codepoint == -1)
 			{
-				if (cp == &codepoint)
-				{
-					if (res == sourceExhausted)
-						ptr = end;
-					else
-						++ptr;
-
-					codepoint = '_';
-					valid_encoding = false;
-				}
-			}
-			else if ((res != conversionOK && res != targetExhausted)
-				|| codepoint == UNI_REPLACEMENT_CHAR)
-			{
-				// we expect the conversion to fail with targetExhausted, since we
-				// only pass in a single destination character slot. The last
-				// character will succeed though. Also, if the character was replaced,
-				// use our own replacement symbol (underscore).
 				codepoint = '_';
 				valid_encoding = false;
 			}
 
-			// encode codepoint into utf-8
-			cp = &codepoint;
-			UTF8 sequence[5];
-			UTF8* start = sequence;
-			res = ConvertUTF32toUTF8(const_cast<const UTF32**>(&cp), cp + 1, &start, start + 5, lenientConversion);
-			TORRENT_UNUSED(res);
-			TORRENT_ASSERT(res == conversionOK);
+			ptr = ptr.substr(std::size_t(len));
 
-			for (int i = 0; i < std::min(5, int(start - sequence)); ++i)
-				tmp_path += char(sequence[i]);
+			// encode codepoint into utf-8
+			append_utf8_codepoint(tmp_path, codepoint);
 		}
 
 		// the encoding was not valid utf-8
@@ -256,8 +228,6 @@ namespace aux {
 				++unicode_chars;
 				continue;
 			}
-
-			TORRENT_ASSERT(isLegalUTF8(reinterpret_cast<UTF8 const*>(element.data() + i), seq_len));
 
 			// validation passed, add it to the output string
 			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
@@ -989,31 +959,6 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	torrent_info::torrent_info(std::wstring const& filename)
-	{
-		std::vector<char> buf;
-		error_code ec;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
-		if (ret < 0) aux::throw_ex<system_error>(ec);
-
-		bdecode_node e = bdecode(buf, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
-			aux::throw_ex<system_error>(ec);
-
-		INVARIANT_CHECK;
-	}
-
-	void torrent_info::rename_file(file_index_t index, std::wstring const& new_filename)
-	{
-		TORRENT_ASSERT(is_loaded());
-		copy_on_write();
-		m_files.rename_file_deprecated(index, new_filename);
-	}
-#endif // TORRENT_ABI_VERSION
 #endif
 
 	file_storage const& torrent_info::orig_files() const
@@ -1060,22 +1005,6 @@ namespace {
 		INVARIANT_CHECK;
 	}
 
-#if TORRENT_ABI_VERSION == 1
-	torrent_info::torrent_info(std::wstring const& filename
-		, error_code& ec)
-	{
-		std::vector<char> buf;
-		int ret = load_file(wchar_utf8(filename), buf, ec);
-		if (ret < 0) return;
-
-		bdecode_node e = bdecode(buf, ec);
-		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
-
-		INVARIANT_CHECK;
-	}
-#endif // TORRENT_ABI_VERSION
-
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
@@ -1117,6 +1046,11 @@ namespace {
 #endif
 
 	aux::vector<aux::merkle_tree, file_index_t>& torrent_info::internal_merkle_trees()
+	{
+		return m_merkle_trees;
+	}
+
+	aux::vector<aux::merkle_tree, file_index_t> const& torrent_info::internal_merkle_trees() const
 	{
 		return m_merkle_trees;
 	}
