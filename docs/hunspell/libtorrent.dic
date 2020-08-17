@@ -320,7 +320,6 @@ libssl
 libeay32
 ssleay32
 libc
-iconv
 MinGW
 config
 xbt

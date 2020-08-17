@@ -43,14 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/windows.hpp"
-#endif
-
-#if TORRENT_USE_ICONV
-#include <iconv.h>
-#include <clocale>
-#endif
-
-#if TORRENT_USE_LOCALE
+#else
 #include <clocale>
 #endif
 
@@ -465,68 +458,9 @@ namespace libtorrent {
 	}
 #endif
 
-#if TORRENT_USE_ICONV
-namespace {
+#if !TORRENT_NATIVE_UTF8
 
-	// this is a helper function to deduce the type of the second argument to
-	// the iconv() function.
-
-	template <typename Input>
-	size_t call_iconv(size_t (&fun)(iconv_t, Input**, size_t*, char**, size_t*)
-		, iconv_t cd, char const** in, size_t* insize, char** out, size_t* outsize)
-	{
-		return fun(cd, const_cast<Input**>(in), insize, out, outsize);
-	}
-
-	std::string iconv_convert_impl(std::string const& s, iconv_t h)
-	{
-		std::string ret;
-		size_t insize = s.size();
-		size_t outsize = insize * 4;
-		ret.resize(outsize);
-		char const* in = s.c_str();
-		char* out = &ret[0];
-		// posix has a weird iconv() signature. implementations
-		// differ on the type of the second parameter. We use a helper template
-		// to deduce what we need to cast to.
-		std::size_t const retval = call_iconv(::iconv, h, &in, &insize, &out, &outsize);
-		if (retval == size_t(-1)) return s;
-		// if this string has an invalid utf-8 sequence in it, don't touch it
-		if (insize != 0) return s;
-		// not sure why this would happen, but it seems to be possible
-		if (outsize > s.size() * 4) return s;
-		// outsize is the number of bytes unused of the out-buffer
-		TORRENT_ASSERT(ret.size() >= outsize);
-		ret.resize(ret.size() - outsize);
-		return ret;
-	}
-} // anonymous namespace
-
-	std::string convert_to_native(std::string const& s)
-	{
-		static std::mutex iconv_mutex;
-		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_mutex);
-
-		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = ::iconv_open("", "UTF-8");
-		if (iconv_handle == iconv_t(-1)) return s;
-		return iconv_convert_impl(s, iconv_handle);
-	}
-
-	std::string convert_from_native(std::string const& s)
-	{
-		static std::mutex iconv_mutex;
-		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_mutex);
-
-		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = ::iconv_open("UTF-8", "");
-		if (iconv_handle == iconv_t(-1)) return s;
-		return iconv_convert_impl(s, iconv_handle);
-	}
-
-#elif defined TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS
 
 namespace {
 
@@ -557,7 +491,7 @@ namespace {
 		return convert_impl(s, CP_ACP, CP_UTF8);
 	}
 
-#elif TORRENT_USE_LOCALE
+#else
 
 	std::string convert_to_native(std::string const& s)
 	{
@@ -603,6 +537,7 @@ namespace {
 		return ret;
 	}
 
+#endif
 #endif
 
 }
