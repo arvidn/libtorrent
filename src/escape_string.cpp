@@ -593,6 +593,7 @@ namespace {
 
 	std::string convert_to_native(std::string const& s)
 	{
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
@@ -609,21 +610,25 @@ namespace {
 			ptr = ptr.substr(std::size_t(len));
 
 			char out[10];
-			int size = std::wctomb(out, static_cast<wchar_t>(codepoint));
-			for (int i = 0; i < size; ++i)
-				ret += out[i];
+			int const size = std::wcrtomb(out, static_cast<wchar_t>(codepoint), &state);
+			if (size < 0)
+				ret += '.';
+			else
+				for (int i = 0; i < size; ++i)
+					ret += out[i];
 		}
 		return ret;
 	}
 
 	std::string convert_from_native(std::string const& s)
 	{
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
 		{
 			wchar_t codepoint;
-			int const size = std::mbtowc(&codepoint, ptr.data(), ptr.size());
+			int const size = std::mbrtowc(&codepoint, ptr.data(), ptr.size(), &state);
 			if (size < 0)
 				ret.push_back('.');
 			else
