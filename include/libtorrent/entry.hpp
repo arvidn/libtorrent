@@ -87,7 +87,7 @@ namespace libtorrent {
 
 namespace aux {
 
-#if (__cplusplus > 201103) || (defined _MSC_VER && _MSC_VER >= 1900)
+#if !defined TORRENT_CXX11_ABI && (__cplusplus > 201103) || (defined _MSC_VER && _MSC_VER >= 1900)
 		// this enables us to compare a string_view against the std::string that's
 		// held by the std::map
 		// is_transparent was introduced in C++14
