@@ -466,6 +466,10 @@ namespace {
 
 	std::string convert_impl(std::string const& s, UINT from, UINT to)
 	{
+		// if the local codepage is already UTF-8, no need to convert
+		static UINT const cp = GetACP();
+		if (cp == 65001 || cp == CP_UTF8) return s;
+
 		std::wstring ws;
 		ws.resize(s.size() + 1);
 		int wsize = MultiByteToWideChar(from, 0, s.c_str(), -1, &ws[0], int(ws.size()));
@@ -493,8 +497,25 @@ namespace {
 
 #else
 
+namespace {
+
+	bool ends_with(string_view s, string_view suffix)
+	{
+		return s.size() >= suffix.size()
+			&& s.substr(s.size() - suffix.size()) == suffix;
+	}
+
+	bool need_conversion()
+	{
+		static bool const ret = ends_with(std::locale("").name(), ".UTF-8");
+		return !ret;
+	}
+}
+
 	std::string convert_to_native(std::string const& s)
 	{
+		if (!need_conversion()) return s;
+
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
@@ -520,6 +541,8 @@ namespace {
 
 	std::string convert_from_native(std::string const& s)
 	{
+		if (!need_conversion()) return s;
+
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
