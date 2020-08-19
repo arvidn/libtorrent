@@ -458,6 +458,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFCONF 0
 #endif
 
+#ifndef TORRENT_NATIVE_UTF8
+#define TORRENT_NATIVE_UTF8 0
+#endif
+
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.
