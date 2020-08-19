@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #endif
 
+#if TORRENT_USE_GRTTABLE
+#include <net/if.h>
+#endif
+
 #if TORRENT_USE_SYSCTL
 #include <sys/sysctl.h>
 #ifdef __APPLE__
@@ -132,6 +136,11 @@ enum : int {
 #endif
 
 #if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
+#ifdef TORRENT_BEOS
+// TODO: in C++17, use __has_include for this. Other operating systems are
+// likely to require this as well
+#include <sys/sockio.h>
+#endif
 // capture this here where warnings are disabled (the macro generates warnings)
 const unsigned long siocgifmtu = SIOCGIFMTU;
 #endif
@@ -216,7 +225,9 @@ namespace {
 			| ((f & IFF_BROADCAST) ? if_flags::broadcast : interface_flags{})
 			| ((f & IFF_LOOPBACK) ? if_flags::loopback : interface_flags{})
 			| ((f & IFF_POINTOPOINT) ? if_flags::pointopoint : interface_flags{})
+#ifdef IFF_RUNNING
 			| ((f & IFF_RUNNING) ? if_flags::running : interface_flags{})
+#endif
 			| ((f & IFF_NOARP) ? if_flags::noarp : interface_flags{})
 			| ((f & IFF_PROMISC) ? if_flags::promisc : interface_flags{})
 			| ((f & IFF_ALLMULTI) ? if_flags::allmulti : interface_flags{})
@@ -757,7 +768,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				ret.push_back(iface);
 		}
 		freeifaddrs(ifaddr);
-// MacOS X, BSD and solaris
+// MacOS X, BSD, solaris and Haiku
 #elif TORRENT_USE_IFCONF
 		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
@@ -777,7 +788,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return ret;
 		}
 
-		char *ifr = ifc.ifc_buf;
+		char const* ifr = reinterpret_cast<char const*>(ifc.ifc_buf);
 
 		int current_size = 0;
 		for (int remaining = ifc.ifc_len;
@@ -806,12 +817,10 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 			ifreq req = {};
 			std::strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
-			if (ioctl(s, SIOCGIFFLAGS, &req) < 0)
-			{
-				ec = error_code(errno, system_category());
-				return {};
-			}
-			iface.flags = convert_if_flags(req.ifr_flags);
+			if (ioctl(s, SIOCGIFFLAGS, &req) == 0)
+				iface.flags = convert_if_flags(req.ifr_flags);
+			else
+				iface.flags = if_flags::up;
 
 			if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 			{
@@ -985,7 +994,6 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
 			ret.push_back(iface);
 		}
-
 #else
 
 #error "Don't know how to enumerate network interfaces on this platform"
@@ -1423,7 +1431,74 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
+#elif TORRENT_USE_GRTTABLE
 
+		for (int fam = 0; fam < 2; ++fam)
+		{
+			int const s = ::socket(fam == 0 ? AF_INET : AF_INET6, SOCK_DGRAM, 0);
+			if (s < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+			socket_closer c1(s);
+			ifconf ifc;
+			ifc.ifc_len = sizeof(ifc.ifc_value);
+			if (ioctl(s, SIOCGRTSIZE, &ifc, sizeof(ifc)) < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+
+			std::uint32_t const sz(ifc.ifc_value);
+
+			std::vector<char> buf(sz);
+			ifc.ifc_len = sz;
+			ifc.ifc_buf = static_cast<void*>(buf.data());
+			if (ioctl(s, SIOCGRTTABLE, &ifc, sizeof(ifc)) < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+
+			ifreq const* i = reinterpret_cast<ifreq const*>(ifc.ifc_buf);
+
+			int bytes_left = static_cast<int>(ifc.ifc_len);
+			while (bytes_left > 0)
+			{
+				route_entry const& route = i->ifr_route;
+
+				ip_route ipr{};
+				int skip = IF_NAMESIZE + sizeof(route_entry);
+				if (route.destination != nullptr)
+				{
+					ipr.destination = sockaddr_to_address(route.destination);
+					skip += route.destination->sa_len;
+				}
+				if (route.mask != nullptr)
+				{
+					ipr.netmask = sockaddr_to_address(route.mask);
+					skip += route.mask->sa_len;
+				}
+				if (route.gateway)
+				{
+					ipr.gateway = sockaddr_to_address(route.gateway);
+					skip += route.gateway->sa_len;
+				}
+				if (route.source != nullptr)
+				{
+					ipr.source_hint = sockaddr_to_address(route.source);
+					skip += route.source->sa_len;
+				}
+				ipr.mtu = route.mtu;
+				std::strncpy(ipr.name, i->ifr_name, sizeof(ipr.name) - 1);
+				ipr.name[sizeof(ipr.name) - 1] = '\0';
+
+				ret.push_back(ipr);
+				bytes_left -= skip;
+				i = reinterpret_cast<ifreq const*>(reinterpret_cast<char const*>(i) + skip);
+			}
+		}
 #else
 #error "don't know how to enumerate network routes on this platform"
 #endif

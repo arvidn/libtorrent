@@ -302,6 +302,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_NATIVE_UTF8 1
+#define TORRENT_USE_IFCONF 1
+#define TORRENT_USE_GRTTABLE 1
 
 // ==== GNU/Hurd ===
 #elif defined __GNU__
