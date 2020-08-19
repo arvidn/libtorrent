@@ -105,6 +105,9 @@ namespace aux {
 		struct map_string : std::map<std::string, T>
 		{
 			using base = std::map<std::string, T>;
+			using base::base;
+			map_string() = default;
+			map_string(base&& rhs) : base(std::move(rhs)) {}
 
 			typename base::iterator find(const string_view& key)
 			{
