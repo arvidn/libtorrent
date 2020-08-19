@@ -328,7 +328,7 @@ namespace aux {
 	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
 		, move_flags_t const flags, storage_error& ec)
 	{
-		status_t ret;
+		lt::status_t ret;
 		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
 			, m_part_file.get(), flags, ec);
 

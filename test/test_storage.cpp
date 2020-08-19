@@ -97,23 +97,23 @@ void delete_dirs(std::string path)
 	TEST_CHECK(!exists(path));
 }
 
-void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
+void on_check_resume_data(lt::status_t const status, storage_error const& error, bool* done)
 {
 	std::cout << time_now_string() << " on_check_resume_data ret: "
 		<< static_cast<int>(status);
 	switch (status)
 	{
-		case status_t::no_error:
+		case lt::status_t::no_error:
 			std::cout << time_now_string() << " success" << std::endl;
 			break;
-		case status_t::fatal_disk_error:
+		case lt::status_t::fatal_disk_error:
 			std::cout << time_now_string() << " disk error: " << error.ec.message()
 				<< " file: " << error.file() << std::endl;
 			break;
-		case status_t::need_full_check:
+		case lt::status_t::need_full_check:
 			std::cout << time_now_string() << " need full check" << std::endl;
 			break;
-		case status_t::file_exist:
+		case lt::status_t::file_exist:
 			std::cout << time_now_string() << " file exist" << std::endl;
 			break;
 	}
@@ -1424,13 +1424,18 @@ void test_move_storage_to_self()
 
 	iovec_t const b = {&buf[0], 4};
 	storage_error se;
+	TEST_EQUAL(se.ec, boost::system::errc::success);
 	writev(s, set, b, piece_index_t(1), 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
+	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	s->move_storage(save_path, move_flags_t::always_replace_files, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
+	std::cerr << "file: " << se.file() << '\n';
+	std::cerr << "op: " << int(se.operation) << '\n';
+	std::cerr << "ec: " << se.ec.message() << '\n';
 
 	TEST_CHECK(exists(test_path));
 
