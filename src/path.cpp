@@ -355,7 +355,13 @@ namespace {
 		// most errors are passed through, except for the ones that indicate that
 		// hard links are not supported and require a copy.
 		// TODO: 2 test this on a FAT volume to see what error we get!
-		if (errno != EMLINK && errno != EXDEV)
+		if (errno != EMLINK
+			&& errno != EXDEV
+#ifdef TORRENT_BEOS
+			// haiku returns EPERM when the filesystem doesn't support hard link
+			&& errno != EPERM
+#endif
+			)
 		{
 			// some error happened, report up to the caller
 			ec.assign(errno, system_category());
