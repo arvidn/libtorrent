@@ -264,6 +264,8 @@ namespace {
 		native_path_string f1 = convert_to_native_path_string(inf);
 		native_path_string f2 = convert_to_native_path_string(newf);
 
+		if (f1 == f2) return;
+
 #if defined TORRENT_WINDOWS
 #define RenameFunction_ ::_wrename
 #else
