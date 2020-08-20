@@ -538,45 +538,15 @@ add_library(torrent-rasterbar
 target_compile_features(torrent-rasterbar
 	PUBLIC
 		cxx_std_17
-		cxx_rvalue_references
-		cxx_reference_qualified_functions
-		cxx_nonstatic_member_init
-		cxx_variadic_templates
-		cxx_generalized_initializers
-		cxx_static_assert
-		cxx_auto_type
-		cxx_trailing_return_types
-		cxx_lambdas
-		cxx_decltype
-		cxx_right_angle_brackets
-		cxx_default_function_template_args
-		cxx_alias_templates
-		cxx_extern_templates
-		cxx_nullptr
-		cxx_strong_enums
-		cxx_enum_forward_declarations
-		cxx_attributes
-		cxx_constexpr
-		cxx_alignas
-		cxx_alignof
-		cxx_delegating_constructors
-		cxx_inheriting_constructors
-		cxx_explicit_conversions
-		cxx_raw_string_literals
-		cxx_user_literals
-		cxx_defaulted_functions
-		cxx_deleted_functions
-		cxx_extended_friend_declarations
-		cxx_sizeof_member
-		cxx_inline_namespaces
-		cxx_unrestricted_unions
-		cxx_local_type_template_args
-		cxx_range_for
-		cxx_final
-		cxx_override
-		cxx_noexcept
-		cxx_defaulted_move_initializers
+		cxx_contextual_conversions
+		cxx_binary_literals
+		cxx_decltype_auto
 		cxx_lambda_init_captures
+		cxx_generic_lambdas
+		cxx_variable_templates
+		cxx_relaxed_constexpr
+		cxx_attribute_deprecated
+		cxx_digit_separators
 )
 
 if (BUILD_SHARED_LIBS)
@@ -683,26 +653,6 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutabl
 	DESCRIPTION "Enables mutable torrent support" DISABLED TORRENT_DISABLE_MUTABLE_TORRENTS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME streaming DEFAULT ON
 	DESCRIPTION "Enables support for piece deadline" DISABLED TORRENT_DISABLE_STREAMING)
-
-find_public_dependency(Iconv)
-if(MSVC)
-	set(iconv_package_type OPTIONAL)
-else()
-	set(iconv_package_type RECOMMENDED)
-endif()
-
-set_package_properties(Iconv
-	PROPERTIES
-		URL "https://www.gnu.org/software/libiconv/"
-		DESCRIPTION "GNU encoding conversion library"
-		TYPE ${iconv_package_type}
-		PURPOSE "Convert strings between various encodings"
-)
-
-if(Iconv_FOUND)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ICONV)
-	target_link_libraries(torrent-rasterbar PRIVATE Iconv::Iconv)
-endif()
 
 if(NOT gnutls)
 	find_public_dependency(OpenSSL)
@@ -871,6 +821,14 @@ if(developer-options)
 	endif()
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME profile-calls DEFAULT OFF
 		ENABLED TORRENT_PROFILE_CALLS=1)
+endif()
+
+# This is best effort attempt to propagate whether the library was built with
+# C++11 or not. It affects the ABI of entry. A client building with C++14 and
+# linking against a libtorrent binary built with C++11 can still define
+# TORRENT_CXX11_ABI
+if ("${CMAKE_CXX_STANDARD}" STREQUAL "11")
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_CXX11_ABI)
 endif()
 
 # There is little to none support for using pkg-config with MSVC and most users won't bother with it.

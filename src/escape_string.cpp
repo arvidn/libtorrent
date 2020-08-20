@@ -43,14 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/windows.hpp"
-#endif
-
-#if TORRENT_USE_ICONV
-#include <iconv.h>
-#include <clocale>
-#endif
-
-#if TORRENT_USE_LOCALE
+#else
 #include <clocale>
 #endif
 
@@ -465,73 +458,18 @@ namespace libtorrent {
 	}
 #endif
 
-#if TORRENT_USE_ICONV
-namespace {
+#if !TORRENT_NATIVE_UTF8
 
-	// this is a helper function to deduce the type of the second argument to
-	// the iconv() function.
-
-	template <typename Input>
-	size_t call_iconv(size_t (&fun)(iconv_t, Input**, size_t*, char**, size_t*)
-		, iconv_t cd, char const** in, size_t* insize, char** out, size_t* outsize)
-	{
-		return fun(cd, const_cast<Input**>(in), insize, out, outsize);
-	}
-
-	std::string iconv_convert_impl(std::string const& s, iconv_t h)
-	{
-		std::string ret;
-		size_t insize = s.size();
-		size_t outsize = insize * 4;
-		ret.resize(outsize);
-		char const* in = s.c_str();
-		char* out = &ret[0];
-		// posix has a weird iconv() signature. implementations
-		// differ on the type of the second parameter. We use a helper template
-		// to deduce what we need to cast to.
-		std::size_t const retval = call_iconv(::iconv, h, &in, &insize, &out, &outsize);
-		if (retval == size_t(-1)) return s;
-		// if this string has an invalid utf-8 sequence in it, don't touch it
-		if (insize != 0) return s;
-		// not sure why this would happen, but it seems to be possible
-		if (outsize > s.size() * 4) return s;
-		// outsize is the number of bytes unused of the out-buffer
-		TORRENT_ASSERT(ret.size() >= outsize);
-		ret.resize(ret.size() - outsize);
-		return ret;
-	}
-} // anonymous namespace
-
-	std::string convert_to_native(std::string const& s)
-	{
-		static std::mutex iconv_mutex;
-		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_mutex);
-
-		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = ::iconv_open("", "UTF-8");
-		if (iconv_handle == iconv_t(-1)) return s;
-		return iconv_convert_impl(s, iconv_handle);
-	}
-
-	std::string convert_from_native(std::string const& s)
-	{
-		static std::mutex iconv_mutex;
-		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_mutex);
-
-		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = ::iconv_open("UTF-8", "");
-		if (iconv_handle == iconv_t(-1)) return s;
-		return iconv_convert_impl(s, iconv_handle);
-	}
-
-#elif defined TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS
 
 namespace {
 
 	std::string convert_impl(std::string const& s, UINT from, UINT to)
 	{
+		// if the local codepage is already UTF-8, no need to convert
+		static UINT const cp = GetACP();
+		if (cp == 65001 || cp == CP_UTF8) return s;
+
 		std::wstring ws;
 		ws.resize(s.size() + 1);
 		int wsize = MultiByteToWideChar(from, 0, s.c_str(), -1, &ws[0], int(ws.size()));
@@ -557,10 +495,28 @@ namespace {
 		return convert_impl(s, CP_ACP, CP_UTF8);
 	}
 
-#elif TORRENT_USE_LOCALE
+#else
+
+namespace {
+
+	bool ends_with(string_view s, string_view suffix)
+	{
+		return s.size() >= suffix.size()
+			&& s.substr(s.size() - suffix.size()) == suffix;
+	}
+
+	bool need_conversion()
+	{
+		static bool const ret = ends_with(std::locale("").name(), ".UTF-8");
+		return !ret;
+	}
+}
 
 	std::string convert_to_native(std::string const& s)
 	{
+		if (!need_conversion()) return s;
+
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
@@ -577,32 +533,47 @@ namespace {
 			ptr = ptr.substr(std::size_t(len));
 
 			char out[10];
-			int size = std::wctomb(out, static_cast<wchar_t>(codepoint));
-			for (int i = 0; i < size; ++i)
-				ret += out[i];
+			std::size_t const size = std::wcrtomb(out, static_cast<wchar_t>(codepoint), &state);
+			if (size == static_cast<std::size_t>(-1))
+			{
+				ret += '.';
+				state = std::mbstate_t{};
+			}
+			else
+				for (std::size_t i = 0; i < size; ++i)
+					ret += out[i];
 		}
 		return ret;
 	}
 
 	std::string convert_from_native(std::string const& s)
 	{
+		if (!need_conversion()) return s;
+
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
 		{
 			wchar_t codepoint;
-			int const size = std::mbtowc(&codepoint, ptr.data(), ptr.size());
-			if (size < 0)
+			std::size_t const size = std::mbrtowc(&codepoint, ptr.data(), ptr.size(), &state);
+			if (size == static_cast<std::size_t>(-1))
+			{
 				ret.push_back('.');
+				state = std::mbstate_t{};
+				ptr = ptr.substr(1);
+			}
 			else
+			{
 				append_utf8_codepoint(ret, static_cast<std::int32_t>(codepoint));
-
-			ptr = ptr.substr(std::size_t(size < 1 ? 1 : size));
+				ptr = ptr.substr(size < 1 ? 1 : size);
+			}
 		}
 
 		return ret;
 	}
 
+#endif
 #endif
 
 }

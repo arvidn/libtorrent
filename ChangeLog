@@ -4,6 +4,7 @@
 
 2.0 release
 
+	* dropped depenency on iconv
 	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
@@ -32,6 +33,15 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.9 released
+
+	* add macro TORRENT_CXX11_ABI for clients building with C++14 against
+	  libtorrent build with C++11
+	* refreshed m4 scripts for autotools
+	* removed deprecated wstring overloads on non-windows systems
+	* drop dependency on Unicode's ConvertUTF code (which had a license
+	  incompatible with Debian)
+	* fix bugs exposed on big-endian systems
 	* fix detection of hard-links not being supported by filesystem
 	* fixed resume data regression for seeds with prio 0 files
 

@@ -360,12 +360,6 @@ Build features:
 |                          |   API. Generates build errors when deprecated      |
 |                          |   functions are used.                              |
 +--------------------------+----------------------------------------------------+
-| ``iconv``                | * ``auto`` - use iconv for string conversions for  |
-|                          |   Linux and MinGW and other posix platforms.       |
-|                          | * ``on`` - force use of iconv                      |
-|                          | * ``off`` - force not using iconv (disables locale |
-|                          |   awareness except on windows).                    |
-+--------------------------+----------------------------------------------------+
 | ``i2p``                  | * ``on`` - default. build with I2P support         |
 |                          | * ``off`` - build without I2P support              |
 +--------------------------+----------------------------------------------------+

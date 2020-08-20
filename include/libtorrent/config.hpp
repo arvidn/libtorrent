@@ -96,23 +96,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NO_FPU 1
 #define TORRENT_USE_I2P 0
 #define TORRENT_USE_RTC 0
-#ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#endif
 
 // ==== Darwin/BSD ===
 #elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
-// we don't need iconv on mac, because
-// the locale is always utf-8
+
 #if defined __APPLE__
 
-# ifndef TORRENT_USE_ICONV
-#  define TORRENT_USE_ICONV 0
-#  define TORRENT_USE_LOCALE 0
-# endif
+#define TORRENT_NATIVE_UTF8 1
+
 #include <AvailabilityMacros.h>
 #include <TargetConditionals.h>
 
@@ -169,7 +163,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __ANDROID__
 #define TORRENT_ANDROID
 #define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_ICONV 0
 #else // ANDROID
 
 // posix_fallocate() is not available in glibc under these condition
@@ -192,10 +185,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WINDOWS
 #ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
 #define TORRENT_HAVE_MAP_VIEW_OF_FILE 1
-#endif
-#ifndef TORRENT_USE_ICONV
-# define TORRENT_USE_ICONV 0
-# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_USE_NETLINK 0
@@ -285,11 +274,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
-// windows has its own functions to convert
-#ifndef TORRENT_USE_ICONV
-# define TORRENT_USE_ICONV 0
-# define TORRENT_USE_LOCALE 1
-#endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_UNC_PATHS 1
@@ -318,9 +302,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
-#ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#endif
+#define TORRENT_NATIVE_UTF8 1
+#define TORRENT_USE_IFCONF 1
+#define TORRENT_USE_GRTTABLE 1
 
 // ==== GNU/Hurd ===
 #elif defined __GNU__
@@ -359,11 +343,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROKEN_RANDOM_DEVICE 0
 #endif
 
-// libiconv presence detection is not implemented yet
-#ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 1
-#endif
-
 #ifndef TORRENT_HAS_SALEN
 #define TORRENT_HAS_SALEN 1
 #endif
@@ -386,10 +365,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 #define TORRENT_USE_GETIPFORWARDTABLE 0
-#endif
-
-#ifndef TORRENT_USE_LOCALE
-#define TORRENT_USE_LOCALE 0
 #endif
 
 #if defined BOOST_NO_STD_WSTRING
@@ -486,6 +461,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_IFCONF
 #define TORRENT_USE_IFCONF 0
+#endif
+
+#ifndef TORRENT_NATIVE_UTF8
+#define TORRENT_NATIVE_UTF8 0
 #endif
 
 // debug builds have asserts enabled by default, release

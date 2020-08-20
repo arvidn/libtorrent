@@ -153,11 +153,6 @@ rule linking ( properties * )
 		result += <framework>CoreFoundation <framework>SystemConfiguration ;
 	}
 
-	if <iconv>on in $(properties)
-	{
-		result += <library>libiconv ;
-	}
-
 	if ( <toolset>gcc in $(properties)
 			|| <toolset>clang in $(properties) )
 		&& <target-os>linux in $(properties)
@@ -532,10 +527,6 @@ feature webtorrent : off on : composite propagated ;
 feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 ;
 feature.compose <webtorrent>off : <define>TORRENT_USE_RTC=0 ;
 
-feature iconv : auto on off : composite propagated ;
-feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
-feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
-
 feature asserts : off on production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
@@ -678,9 +669,6 @@ lib dbghelp : : <name>dbghelp ;
 # required for networking on beos
 lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
 lib gcc : : <name>gcc <link>static ;
-
-# when using iconv
-lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # gcrypt on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
@@ -871,9 +859,6 @@ local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
-# freebsd doesn't seem to include this automatically
-# and iconv.h is installed there
-	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64
 # enable cancel support in asio

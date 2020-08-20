@@ -1,0 +1,21 @@
+freebsd_instance:
+  image_family: freebsd-12-1
+
+task:
+  install_script: |
+    pkg update
+    pkg install -U -y git boost-jam boost-libs unzip wget
+    wget "https://github.com/boostorg/build/archive/develop.zip"
+    unzip develop.zip
+    git clone --depth=1 --single-branch --branch boost-1.74.0 https://github.com/boostorg/build.git
+    cd build-develop
+    ./bootstrap.sh
+    echo "using clang ;" > ~/user-config.jam
+  submodules_script: |
+    git submodule update --init --recursive
+  tests_script: |
+    echo ${PWD}
+    export BOOST_BUILD_PATH=${PWD}/build-develop
+    export PATH=${PWD}/build-develop:$PATH
+    cd test
+    bjam -j2 -l250 warnings-as-errors=on warnings=all deterministic-tests
