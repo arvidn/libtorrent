@@ -516,6 +516,7 @@ namespace {
 	{
 		if (!need_conversion()) return s;
 
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
@@ -532,9 +533,15 @@ namespace {
 			ptr = ptr.substr(std::size_t(len));
 
 			char out[10];
-			int size = std::wctomb(out, static_cast<wchar_t>(codepoint));
-			for (int i = 0; i < size; ++i)
-				ret += out[i];
+			std::size_t const size = std::wcrtomb(out, static_cast<wchar_t>(codepoint), &state);
+			if (size == static_cast<std::size_t>(-1))
+			{
+				ret += '.';
+				state = std::mbstate_t{};
+			}
+			else
+				for (std::size_t i = 0; i < size; ++i)
+					ret += out[i];
 		}
 		return ret;
 	}
@@ -543,18 +550,24 @@ namespace {
 	{
 		if (!need_conversion()) return s;
 
+		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
 		while (!ptr.empty())
 		{
 			wchar_t codepoint;
-			int const size = std::mbtowc(&codepoint, ptr.data(), ptr.size());
-			if (size < 0)
+			std::size_t const size = std::mbrtowc(&codepoint, ptr.data(), ptr.size(), &state);
+			if (size == static_cast<std::size_t>(-1))
+			{
 				ret.push_back('.');
+				state = std::mbstate_t{};
+				ptr = ptr.substr(1);
+			}
 			else
+			{
 				append_utf8_codepoint(ret, static_cast<std::int32_t>(codepoint));
-
-			ptr = ptr.substr(std::size_t(size < 1 ? 1 : size));
+				ptr = ptr.substr(size < 1 ? 1 : size);
+			}
 		}
 
 		return ret;

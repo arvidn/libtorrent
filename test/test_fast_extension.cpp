@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <fstream>
 #include <cstdarg>
 #include <cstdio> // for vsnprintf
 

@@ -792,6 +792,14 @@ if(developer-options)
 		ENABLED TORRENT_PROFILE_CALLS=1)
 endif()
 
+# This is best effort attempt to propagate whether the library was built with
+# C++11 or not. It affects the ABI of entry. A client building with C++14 and
+# linking against a libtorrent binary built with C++11 can still define
+# TORRENT_CXX11_ABI
+if ("${CMAKE_CXX_STANDARD}" STREQUAL "11")
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_CXX11_ABI)
+endif()
+
 # There is little to none support for using pkg-config with MSVC and most users won't bother with it.
 # However, msys is a linux-like platform on Windows that do support/prefer using pkg-config.
 if (NOT MSVC)

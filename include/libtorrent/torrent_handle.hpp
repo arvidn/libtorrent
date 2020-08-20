@@ -712,17 +712,17 @@ namespace aux {
 		//
 		//		for (alert* i : alerts)
 		//		{
-		//			if (alert_cast<save_resume_data_failed_alert>(a))
+		//			if (alert_cast<save_resume_data_failed_alert>(i))
 		//			{
-		//				process_alert(a);
+		//				process_alert(i);
 		//				--outstanding_resume_data;
 		//				continue;
 		//			}
 		//
-		//			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+		//			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(i);
 		//			if (rd == nullptr)
 		//			{
-		//				process_alert(a);
+		//				process_alert(i);
 		//				continue;
 		//			}
 		//
