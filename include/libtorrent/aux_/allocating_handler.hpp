@@ -98,7 +98,7 @@ namespace libtorrent { namespace aux {
 #endif
 
 #if TORRENT_USE_SSL
-#ifdef __APPLE__
+#ifdef __clang__
 	constexpr std::size_t openssl_read_cost = 264;
 	constexpr std::size_t openssl_write_cost = 216;
 #else
