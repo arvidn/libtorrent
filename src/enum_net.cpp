@@ -1333,9 +1333,11 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					{
 						WCHAR* name = ifentry.wszName;
 						// strip UNC prefix to match the names returned by enum_net_interfaces
-						if (wcsncmp(name, L"\\DEVICE\\TCPIP_", wcslen(L"\\DEVICE\\TCPIP_")) == 0)
+						const auto dev_name = L"\\DEVICE\\TCPIP_";
+						const auto dev_name_len = wcslen(dev_name);
+						if (wcsncmp(name, dev_name, dev_name_len) == 0)
 						{
-							name += wcslen(L"\\DEVICE\\TCPIP_");
+							name += dev_name_len;
 						}
 						wcstombs(r.name, name, sizeof(r.name) - 1);
 						r.name[sizeof(r.name) - 1] = '\0';
