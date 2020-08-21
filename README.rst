@@ -2,8 +2,8 @@
 
 |
 
-.. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
-    :target: https://travis-ci.org/arvidn/libtorrent
+.. image:: https://travis-ci.com/arvidn/libtorrent.svg?branch=RC_2_0
+    :target: https://travis-ci.com/github/arvidn/libtorrent
 
 .. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
     :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
