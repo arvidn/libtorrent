@@ -155,7 +155,7 @@ namespace libtorrent {
 
 namespace {
 
-#ifndef TORRENT_WINDOWS
+#if !defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 	struct socket_closer
 	{
 		socket_closer(int s) : m_socket(s) {}
