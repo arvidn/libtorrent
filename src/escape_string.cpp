@@ -505,9 +505,16 @@ namespace {
 			&& s.substr(s.size() - suffix.size()) == suffix;
 	}
 
+	bool has_utf8_locale()
+	{
+		char const* lang = std::getenv("LANG");
+		if (lang == nullptr) return false;
+		return ends_with(lang, ".UTF-8");
+	}
+
 	bool need_conversion()
 	{
-		static bool const ret = ends_with(std::locale("").name(), ".UTF-8");
+		static bool const ret = has_utf8_locale();
 		return !ret;
 	}
 }
