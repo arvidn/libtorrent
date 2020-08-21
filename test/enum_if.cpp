@@ -75,7 +75,7 @@ char const* print_state(if_state const s)
 		case if_state::notpresent: return "notpresent";
 		case if_state::testing: return "testing";
 		case if_state::unknown: return "unknown";
-	};
+	}
 	return "unknown";
 }
 
