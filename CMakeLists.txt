@@ -538,15 +538,6 @@ add_library(torrent-rasterbar
 target_compile_features(torrent-rasterbar
 	PUBLIC
 		cxx_std_17
-		cxx_contextual_conversions
-		cxx_binary_literals
-		cxx_decltype_auto
-		cxx_lambda_init_captures
-		cxx_generic_lambdas
-		cxx_variable_templates
-		cxx_relaxed_constexpr
-		cxx_attribute_deprecated
-		cxx_digit_separators
 )
 
 if (BUILD_SHARED_LIBS)
