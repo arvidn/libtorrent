@@ -14,8 +14,13 @@ task:
   submodules_script: |
     git submodule update --init --recursive
   tests_script: |
-    echo ${PWD}
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
     cd test
     bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl deterministic-tests
+  enum_if_script: |
+    export BOOST_BUILD_PATH=${PWD}/build-develop
+    export PATH=${PWD}/build-develop:$PATH
+    cd test
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies
+    LD_LIBRARY_PATH=./dependencies ./enum_if
