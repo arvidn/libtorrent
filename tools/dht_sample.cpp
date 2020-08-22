@@ -68,7 +68,7 @@ std::atomic_bool quit(false);
 
 void stop(int) { quit = true; }
 
-void usage()
+[[noreturn]] void usage()
 {
 	std::cerr << "USAGE: dht-sample\n";
 	exit(1);
