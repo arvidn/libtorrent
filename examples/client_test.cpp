@@ -835,7 +835,7 @@ void print_alert(lt::alert const* a, std::string& str)
 
 	if (g_log_file)
 		std::fprintf(g_log_file, "[%" PRId64 "] %s\n"
-			, duration_cast<std::chrono::milliseconds>(a->timestamp() - first_ts).count()
+			, std::int64_t(duration_cast<std::chrono::milliseconds>(a->timestamp() - first_ts).count())
 			,  a->message().c_str());
 }
 
