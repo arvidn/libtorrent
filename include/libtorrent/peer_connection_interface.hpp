@@ -43,8 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace aux { struct torrent_peer; }
-	class stat;
+	namespace aux {
+		struct torrent_peer;
+		class stat;
+	}
 
 	using disconnect_severity_t = aux::strong_typedef<std::uint8_t, struct disconnect_severity_tag>;
 
@@ -69,7 +71,7 @@ namespace libtorrent {
 		virtual bool fast_reconnect() const = 0;
 		virtual bool is_choked() const = 0;
 		virtual bool failed() const = 0;
-		virtual stat const& statistics() const = 0;
+		virtual aux::stat const& statistics() const = 0;
 		virtual void get_peer_info(peer_info& p) const = 0;
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log(peer_log_alert::direction_t direction) const = 0;

@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/entry.hpp"
@@ -1803,7 +1803,7 @@ TORRENT_VERSION_NAMESPACE_3
 	{
 		// internal
 		TORRENT_UNEXPORT stats_alert(aux::stack_allocator& alloc, torrent_handle const& h, int interval
-			, stat const& s);
+			, aux::stat const& s);
 
 		TORRENT_DEFINE_ALERT(stats_alert, 57)
 

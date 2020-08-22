@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POSIX_STORAGE
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t

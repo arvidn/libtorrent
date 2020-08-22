@@ -108,8 +108,6 @@ set(libtorrent_include_files
 	socks5_stream
 	span
 	ssl_stream
-	stat
-	stat_cache
 	storage_defs
 	string_util
 	string_view
@@ -243,6 +241,8 @@ set(libtorrent_aux_include_files
 	set_socket_buffer
 	socket_type
 	stack_allocator
+	stat
+	stat_cache
 	storage_utils
 	string_ptr
 	strview_less

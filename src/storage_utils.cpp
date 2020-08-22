@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp" // for count_bufs
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_status.hpp"
 

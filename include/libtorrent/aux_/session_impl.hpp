@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ip_notifier.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/bandwidth_manager.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"

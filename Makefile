@@ -523,8 +523,6 @@ HEADERS = \
   span.hpp                     \
   ssl.hpp                      \
   ssl_stream.hpp               \
-  stat.hpp                     \
-  stat_cache.hpp               \
   storage.hpp                  \
   storage_defs.hpp             \
   string_util.hpp              \
@@ -633,6 +631,8 @@ HEADERS = \
   aux_/sha512.hpp                   \
   aux_/socket_type.hpp              \
   aux_/stack_allocator.hpp          \
+  aux_/stat.hpp                     \
+  aux_/stat_cache.hpp               \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \

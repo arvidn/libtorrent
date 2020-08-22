@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/error_code.hpp"
 #include "test.hpp"
 
@@ -40,7 +40,7 @@ TORRENT_TEST(stat_cache)
 {
 	error_code ec;
 
-	stat_cache sc;
+	aux::stat_cache sc;
 
 	file_storage fs;
 	for (int i = 0; i < 20; ++i)
@@ -56,12 +56,12 @@ TORRENT_TEST(stat_cache)
 
 	sc.set_error(file_index_t(3), error_code(boost::system::errc::permission_denied, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::permission_denied, generic_category()));
 
 	sc.set_error(file_index_t(3), error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 
 	ec.clear();
@@ -71,12 +71,12 @@ TORRENT_TEST(stat_cache)
 
 	sc.set_error(file_index_t(11), error_code(boost::system::errc::broken_pipe, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(11), fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(file_index_t(11), fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::broken_pipe, generic_category()));
 
 	ec.clear();
 	sc.set_error(file_index_t(13), error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
-	TEST_EQUAL(sc.get_filesize(file_index_t(13), fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(file_index_t(13), fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 
 	ec.clear();
@@ -84,4 +84,3 @@ TORRENT_TEST(stat_cache)
 	TEST_CHECK(sc.get_filesize(file_index_t(15), fs, save_path, ec) == 1000);
 	TEST_CHECK(!ec);
 }
-

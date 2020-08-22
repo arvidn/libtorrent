@@ -1076,12 +1076,12 @@ namespace {
 			if (peers_with_requests == 0) peers_with_requests = 1;
 
 			// TODO: this should be the global download rate
-			rate = t->statistics().transfer_rate(stat::download_payload) / peers_with_requests;
+			rate = t->statistics().transfer_rate(aux::stat::download_payload) / peers_with_requests;
 		}
 		else
 		{
 			// current download rate in bytes per seconds
-			rate = m_statistics.transfer_rate(stat::download_payload);
+			rate = m_statistics.transfer_rate(aux::stat::download_payload);
 		}
 
 		// avoid division by zero

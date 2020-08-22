@@ -32,12 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	stat_cache::stat_cache() = default;
 	stat_cache::~stat_cache() = default;
