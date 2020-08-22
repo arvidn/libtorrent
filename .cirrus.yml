@@ -1,13 +1,16 @@
-freebsd_instance:
-  image_family: freebsd-12-1
-
 task:
+  matrix:
+    freebsd_instance:
+      image_family: freebsd-12-1
+    freebsd_instance:
+      image_family: freebsd-12-1-snap
+
   install_script: |
     pkg update
     pkg install -U -y git boost-jam boost-libs unzip wget openssl cmake ninja
+  install_boost_build_script: |
     wget "https://github.com/boostorg/build/archive/develop.zip"
     unzip develop.zip
-    git clone --depth=1 --single-branch --branch boost-1.74.0 https://github.com/boostorg/build.git
     cd build-develop
     ./bootstrap.sh
     echo "using clang ;" > ~/user-config.jam
@@ -33,4 +36,4 @@ task:
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
     cd examples
-    bjam -j2 -l250 warnings-as-errors=on warnings=all
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl asserts=on invariant-checks=full debug-iterators=on logging=on picker-debugging=on
