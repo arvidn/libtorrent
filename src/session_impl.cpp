@@ -110,7 +110,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 
 // for logging stat layout
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 
 #include <cstdarg> // for va_list
 

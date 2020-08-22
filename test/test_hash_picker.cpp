@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/hash_picker.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -66,7 +66,7 @@ struct mock_peer_connection final : peer_connection_interface
 	bool fast_reconnect() const override { return false; }
 	bool is_choked() const override { return false; }
 	bool failed() const override { return false; }
-	lt::stat const& statistics() const override { return m_stat; }
+	aux::stat const& statistics() const override { return m_stat; }
 	void get_peer_info(peer_info&) const override {}
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log(peer_log_alert::direction_t) const override { return true; }
@@ -75,7 +75,7 @@ struct mock_peer_connection final : peer_connection_interface
 #endif
 
 	aux::torrent_peer* m_torrent_peer;
-	lt::stat m_stat;
+	aux::stat m_stat;
 	tcp::endpoint m_remote;
 	peer_id m_pid;
 };

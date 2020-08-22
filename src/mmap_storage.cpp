@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE

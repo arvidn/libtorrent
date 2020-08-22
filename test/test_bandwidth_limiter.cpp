@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 

@@ -1235,16 +1235,16 @@ namespace {
 #if TORRENT_ABI_VERSION <= 2
 namespace {
 
-		std::array<int, stats_alert::num_channels> stat_to_array(stat const& s)
+		std::array<int, stats_alert::num_channels> stat_to_array(aux::stat const& s)
 		{
-			std::array<int, stats_alert::num_channels> arr;
+			std::array<int, stats_alert::num_channels> arr{};
 
-			arr[stats_alert::upload_payload] = s[stat::upload_payload].counter();
-			arr[stats_alert::upload_protocol] = s[stat::upload_protocol].counter();
-			arr[stats_alert::download_payload] = s[stat::download_payload].counter();
-			arr[stats_alert::download_protocol] = s[stat::download_protocol].counter();
-			arr[stats_alert::upload_ip_protocol] = s[stat::upload_ip_protocol].counter();
-			arr[stats_alert::download_ip_protocol] = s[stat::download_ip_protocol].counter();
+			arr[stats_alert::upload_payload] = s[aux::stat::upload_payload].counter();
+			arr[stats_alert::upload_protocol] = s[aux::stat::upload_protocol].counter();
+			arr[stats_alert::download_payload] = s[aux::stat::download_payload].counter();
+			arr[stats_alert::download_protocol] = s[aux::stat::download_protocol].counter();
+			arr[stats_alert::upload_ip_protocol] = s[aux::stat::upload_ip_protocol].counter();
+			arr[stats_alert::download_ip_protocol] = s[aux::stat::download_ip_protocol].counter();
 
 #if TORRENT_ABI_VERSION == 1
 			arr[stats_alert::upload_dht_protocol] = 0;
@@ -1262,7 +1262,7 @@ namespace {
 	}
 
 	stats_alert::stats_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int in, stat const& s)
+		, torrent_handle const& h, int in, aux::stat const& s)
 		: torrent_alert(alloc, h)
 		, transferred(stat_to_array(s))
 		, interval(in)

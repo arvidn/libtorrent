@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -98,7 +98,7 @@ struct mock_peer_connection
 	bool was_disconnected() const { return m_disconnect_called; }
 	void set_local_ep(tcp::endpoint const& ep) { m_local = ep; }
 
-	lt::stat m_stat;
+	aux::stat m_stat;
 	bool m_choked;
 	bool m_outgoing;
 	torrent_peer* m_tp;
@@ -125,7 +125,7 @@ struct mock_peer_connection
 	bool fast_reconnect() const override { return true; }
 	bool is_choked() const override { return m_choked; }
 	bool failed() const override { return false; }
-	lt::stat const& statistics() const override { return m_stat; }
+	aux::stat const& statistics() const override { return m_stat; }
 };
 
 struct mock_torrent

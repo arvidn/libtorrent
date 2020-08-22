@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -413,4 +413,3 @@ namespace {
 		return std::make_unique<posix_disk_io>(ios, sett, cnt);
 	}
 }
-

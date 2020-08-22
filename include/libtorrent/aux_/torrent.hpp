@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/aux_/hash_picker.hpp"
@@ -1324,7 +1324,7 @@ namespace aux {
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
-		libtorrent::stat m_stat;
+		stat m_stat;
 
 		// -----------------------------
 

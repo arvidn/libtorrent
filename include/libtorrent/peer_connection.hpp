@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -476,7 +476,7 @@ namespace aux {
 		// on which protocol version this connection is using
 		sha1_hash associated_info_hash() const;
 
-		stat const& statistics() const override { return m_statistics; }
+		aux::stat const& statistics() const override { return m_statistics; }
 		void add_stat(std::int64_t downloaded, std::int64_t uploaded) override;
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
@@ -1023,7 +1023,7 @@ namespace aux {
 		// this peer
 		// TODO: factor this out into its own class with a virtual interface
 		// torrent and session should implement this interface
-		stat m_statistics;
+		aux::stat m_statistics;
 
 		// the number of outstanding bytes expected
 		// to be received by extensions

@@ -31,9 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/stat.hpp"
+#include "libtorrent/aux_/stat.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 void stat_channel::second_tick(int tick_interval_ms)
 {

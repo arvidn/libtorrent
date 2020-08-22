@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct TORRENT_EXTRA_EXPORT stat_cache
 	{

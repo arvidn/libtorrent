@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/part_file.hpp"
-#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -160,7 +160,7 @@ namespace aux {
 		// during startup, cache the results in here, and clear it all
 		// out once the torrent starts (to avoid getting stale results)
 		// each entry represents the size and timestamp of the file
-		mutable stat_cache m_stat_cache;
+		mutable aux::stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
 		boost::optional<aux::file_view> open_file(settings_interface const&, file_index_t
