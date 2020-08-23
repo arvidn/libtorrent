@@ -80,6 +80,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "session_view.hpp"
 #include "print.hpp"
 
+
+#ifdef _WIN32
+
+#include <windows.h>
+#include <conio.h>
+
+#else
+
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <csignal>
+#include <utility>
+#include <dirent.h>
+
+#endif
+
+namespace {
+
 using lt::total_milliseconds;
 using lt::alert;
 using lt::piece_index_t;
@@ -101,9 +119,6 @@ using std::stoi;
 
 #ifdef _WIN32
 
-#include <windows.h>
-#include <conio.h>
-
 bool sleep_and_input(int* c, lt::time_duration const sleep)
 {
 	for (int i = 0; i < 2; ++i)
@@ -120,12 +135,6 @@ bool sleep_and_input(int* c, lt::time_duration const sleep)
 
 #else
 
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <csignal>
-#include <utility>
-#include <dirent.h>
-
 struct set_keypress
 {
 	enum terminal_mode {
@@ -135,16 +144,18 @@ struct set_keypress
 
 	explicit set_keypress(std::uint8_t const mode = 0)
 	{
+		using ul = unsigned long;
+
 		termios new_settings;
 		tcgetattr(0, &stored_settings);
 		new_settings = stored_settings;
 		// Disable canonical mode, and set buffer size to 1 byte
 		// and disable echo
 		if (mode & echo) new_settings.c_lflag |= ECHO;
-		else new_settings.c_lflag &= ~ECHO;
+		else new_settings.c_lflag &= ul(~ECHO);
 
 		if (mode & canonical) new_settings.c_lflag |= ICANON;
-		else new_settings.c_lflag &= ~ICANON;
+		else new_settings.c_lflag &= ul(~ICANON);
 
 		new_settings.c_cc[VTIME] = 0;
 		new_settings.c_cc[VMIN] = 1;
@@ -163,8 +174,8 @@ retry:
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	int const delay = total_milliseconds(done - lt::clock_type::now());
-	timeval tv = {delay / 1000, (delay % 1000) * 1000 };
+	auto const delay = total_milliseconds(done - lt::clock_type::now());
+	timeval tv = {int(delay / 1000), int((delay % 1000) * 1000) };
 	ret = select(1, &set, nullptr, nullptr, &tv);
 	if (ret > 0)
 	{
@@ -198,7 +209,6 @@ bool print_matrix = false;
 bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
-bool sequential_download = false;
 
 bool print_ip = true;
 bool print_local_ip = false;
@@ -234,7 +244,7 @@ bool load_file(std::string const& filename, std::vector<char>& v
 	f.seekg(0, std::ios_base::beg);
 	v.resize(static_cast<std::size_t>(s));
 	if (s == std::fstream::pos_type(0)) return !f.fail();
-	f.read(v.data(), v.size());
+	f.read(v.data(), int(v.size()));
 	return !f.fail();
 }
 
@@ -256,12 +266,6 @@ bool is_absolute_path(std::string const& f)
 	if (f[0] == '/') return true;
 	return false;
 #endif
-}
-
-std::string trunc(std::string str, int const sz)
-{
-	if (str.size() > std::size_t(sz)) str.resize(std::size_t(sz));
-	return str;
 }
 
 std::string path_append(std::string const& lhs, std::string const& rhs)
@@ -369,7 +373,7 @@ int print_peer_info(std::string& out
 		temp[7] = 0;
 
 		char peer_progress[10];
-		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
+		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.0);
 		std::snprintf(str, sizeof(str)
 			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
@@ -516,13 +520,13 @@ void signal_handler(int)
 std::string peer;
 
 void print_settings(int const start, int const num
-	, char const* const fmt)
+	, char const* const type)
 {
 	for (int i = start; i < start + num; ++i)
 	{
 		char const* name = lt::name_for_setting(i);
 		if (!name || name[0] == '\0') continue;
-		std::printf(fmt, name);
+		std::printf("%s=<%s>\n", name, type);
 	}
 }
 
@@ -842,7 +846,7 @@ void print_alert(lt::alert const* a, std::string& str)
 int save_file(std::string const& filename, std::vector<char> const& v)
 {
 	std::fstream f(filename, std::ios_base::trunc | std::ios_base::out | std::ios_base::binary);
-	f.write(v.data(), v.size());
+	f.write(v.data(), int(v.size()));
 	return !f.fail();
 }
 
@@ -1111,6 +1115,8 @@ bool is_resume_file(std::string const& s)
 	return true;
 }
 
+} // anonymous namespace
+
 int main(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -1254,14 +1260,11 @@ examples:
 		{
 			// print all libtorrent settings and exit
 			print_settings(settings_pack::string_type_base
-				, settings_pack::num_string_settings
-				, "%s=<string>\n");
+				, settings_pack::num_string_settings, "string");
 			print_settings(settings_pack::bool_type_base
-				, settings_pack::num_bool_settings
-				, "%s=<bool>\n");
+				, settings_pack::num_bool_settings, "bool");
 			print_settings(settings_pack::int_type_base
-				, settings_pack::num_int_settings
-				, "%s=<int>\n");
+				, settings_pack::num_int_settings, "int");
 			return 0;
 		}
 
