@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <direct.h> // for _getcwd
 #endif
 
+namespace {
+
 using namespace std::placeholders;
 
 std::vector<char> load_file(std::string const& filename)
@@ -59,7 +61,7 @@ std::vector<char> load_file(std::string const& filename)
 	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
 	std::vector<char> ret(size);
-	in.read(ret.data(), ret.size());
+	in.read(ret.data(), int(ret.size()));
 	return ret;
 }
 
@@ -72,7 +74,7 @@ std::string branch_path(std::string const& f)
 #endif
 	if (f == "/") return "";
 
-	int len = int(f.size());
+	auto len = f.size();
 	// if the last character is / or \ ignore it
 	if (f[len-1] == '/' || f[len-1] == '\\') --len;
 	while (len > 0) {
@@ -110,7 +112,7 @@ bool file_filter(std::string const& f)
 	return true;
 }
 
-void print_usage()
+[[noreturn]] void print_usage()
 {
 	std::cerr << R"(usage: make_torrent FILE [OPTIONS]
 
@@ -144,18 +146,18 @@ OPTIONS:
               with this one.
 -2            Only generate V2 metadata
 )";
+	std::exit(1);
 }
+
+} // anonymous namespace
 
 int main(int argc_, char const* argv_[]) try
 {
-	lt::span<char const*> args(argv_, size_t(argc_));
+	lt::span<char const*> args(argv_, argc_);
 	std::string creator_str = "libtorrent";
 	std::string comment_str;
 
-	if (args.size() < 2) {
-		print_usage();
-		return 1;
-	}
+	if (args.size() < 2) print_usage();
 
 	std::vector<std::string> web_seeds;
 	std::vector<std::string> trackers;
@@ -176,10 +178,7 @@ int main(int argc_, char const* argv_[]) try
 	args = args.subspan(2);
 
 	for (; !args.empty(); args = args.subspan(1)) {
-		if (args[0][0] != '-') {
-			print_usage();
-			return 1;
-		}
+		if (args[0][0] != '-') print_usage();
 
 		char const flag = args[0][1];
 
@@ -193,10 +192,7 @@ int main(int argc_, char const* argv_[]) try
 				continue;
 		}
 
-		if (args.size() < 2) {
-			print_usage();
-			return 1;
-		}
+		if (args.size() < 2) print_usage();
 
 		switch (flag)
 		{
@@ -213,7 +209,6 @@ int main(int argc_, char const* argv_[]) try
 					std::cerr << "invalid info-hash for -S. "
 						"Expected 40 hex characters\n";
 					print_usage();
-					return 1;
 				}
 				std::stringstream hash(args[1]);
 				lt::sha1_hash ih;
@@ -221,14 +216,12 @@ int main(int argc_, char const* argv_[]) try
 				if (hash.fail()) {
 					std::cerr << "invalid info-hash for -S\n";
 					print_usage();
-					return 1;
 				}
 				similar.push_back(ih);
 				break;
 			}
 			default:
 				print_usage();
-				return 1;
 		}
 		args = args.subspan(1);
 	}
@@ -308,10 +301,10 @@ int main(int argc_, char const* argv_[]) try
 		std::fstream out;
 		out.exceptions(std::ifstream::failbit);
 		out.open(outfile.c_str(), std::ios_base::out | std::ios_base::binary);
-		out.write(torrent.data(), torrent.size());
+		out.write(torrent.data(), int(torrent.size()));
 	}
 	else {
-		std::cout.write(torrent.data(), torrent.size());
+		std::cout.write(torrent.data(), int(torrent.size()));
 	}
 
 	return 0;
