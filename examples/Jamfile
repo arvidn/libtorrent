@@ -19,6 +19,7 @@ project client_test
 	#        with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268
 	<toolset>msvc:<cflags>/wd4373
+	<conditional>@warnings
 	: default-build
 	<link>static
 	<cxxstd>14
