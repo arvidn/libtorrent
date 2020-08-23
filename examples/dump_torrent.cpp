@@ -44,7 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 
-void print_usage()
+namespace {
+
+[[noreturn]] void print_usage()
 {
 	std::cerr << R"(usage: dump_torrent torrent-file [options]
     OPTIONS:
@@ -57,6 +59,8 @@ void print_usage()
     --max-size <size in MiB> reject files larger than this size limit
 )";
 	std::exit(1);
+}
+
 }
 
 int main(int argc, char const* argv[]) try
