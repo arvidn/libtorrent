@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/span.hpp"
 
+namespace {
+
 std::vector<char> load_file(char const* filename)
 {
 	std::fstream in;
@@ -46,11 +48,11 @@ std::vector<char> load_file(char const* filename)
 	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
 	std::vector<char> ret(size);
-	in.read(ret.data(), size);
+	in.read(ret.data(), int(size));
 	return ret;
 }
 
-void print_usage()
+[[noreturn]] void print_usage()
 {
 	std::cerr << R"(usage: dump_bdecode file [options]
     OPTIONS:
@@ -60,6 +62,8 @@ void print_usage()
 )";
 	std::exit(1);
 }
+
+} // anonymous namespace
 
 int main(int argc, char const* argv[]) try
 {
