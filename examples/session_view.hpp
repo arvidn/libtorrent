@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/time.hpp"
 
 struct session_view
 {
@@ -53,7 +54,7 @@ struct session_view
 
 	void render();
 
-	void update_counters(lt::span<std::int64_t const> stats_counters, std::uint64_t t);
+	void update_counters(lt::span<std::int64_t const> stats_counters, lt::clock_type::time_point t);
 
 private:
 
@@ -65,8 +66,8 @@ private:
 	std::vector<std::int64_t> m_cnt[2];
 
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
-	// respectively. The timestamps are microseconds since session start
-	std::uint64_t m_timestamp[2];
+	// respectively.
+	lt::clock_type::time_point m_timestamp[2];
 
 	int const m_queued_bytes_idx = lt::find_metric_idx("disk.queued_write_bytes");
 	int const m_wasted_bytes_idx = lt::find_metric_idx("net.recv_redundant_bytes");

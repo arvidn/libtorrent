@@ -859,8 +859,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
-		ses_view.update_counters(s->counters()
-			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
+		ses_view.update_counters(s->counters(), s->timestamp());
 		return !stats_enabled;
 	}
 

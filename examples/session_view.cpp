@@ -71,7 +71,8 @@ void session_view::render()
 
 	int y = m_position;
 
-	float const seconds = (m_timestamp[0] - m_timestamp[1]) / 1000000.f;
+	using std::chrono::duration_cast;
+	double const seconds = duration_cast<lt::milliseconds>(m_timestamp[0] - m_timestamp[1]).count() / 1000.0;
 
 	int const download_rate = int((m_cnt[0][m_recv_idx] - m_cnt[1][m_recv_idx])
 		/ seconds);
@@ -133,11 +134,11 @@ void session_view::render()
 }
 
 void session_view::update_counters(span<std::int64_t const> stats_counters
-	, std::uint64_t const t)
+	, lt::clock_type::time_point const t)
 {
 	// only update the previous counters if there's been enough
 	// time since it was last updated
-	if (t - m_timestamp[1] > 2000000)
+	if (t - m_timestamp[1] > lt::seconds(2))
 	{
 		m_cnt[1].swap(m_cnt[0]);
 		m_timestamp[1] = m_timestamp[0];
