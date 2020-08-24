@@ -64,6 +64,18 @@ int session_view::height() const
 	return 3;
 }
 
+std::int64_t session_view::value(int idx) const
+{
+	if (idx < 0) return 0;
+	return m_cnt[0][std::size_t(idx)];
+}
+
+std::int64_t session_view::prev_value(int idx) const
+{
+	if (idx < 0) return 0;
+	return m_cnt[1][std::size_t(idx)];
+}
+
 void session_view::render()
 {
 	char str[1024];
@@ -74,24 +86,24 @@ void session_view::render()
 	using std::chrono::duration_cast;
 	double const seconds = duration_cast<lt::milliseconds>(m_timestamp[0] - m_timestamp[1]).count() / 1000.0;
 
-	int const download_rate = int((m_cnt[0][m_recv_idx] - m_cnt[1][m_recv_idx])
+	int const download_rate = int((value(m_recv_idx) - prev_value(m_recv_idx))
 		/ seconds);
-	int const upload_rate = int((m_cnt[0][m_sent_idx] - m_cnt[1][m_sent_idx])
+	int const upload_rate = int((value(m_sent_idx) - prev_value(m_sent_idx))
 		/ seconds);
 
 	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
 		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d queued-trackers: %02d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
-		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
+		, add_suffix(value(m_failed_bytes_idx)).c_str()
 		, color(add_suffix(download_rate, "/s"), col_green).c_str()
-		, color(add_suffix(m_cnt[0][m_recv_idx]), col_green).c_str()
-		, color(to_string(int(m_cnt[0][m_limiter_up_queue_idx]), 3), col_red).c_str()
-		, color(to_string(int(m_cnt[0][m_limiter_down_queue_idx]), 3), col_green).c_str()
-		, int(m_cnt[0][m_num_peers_idx])
-		, int(m_cnt[0][m_unchoked_idx])
-		, int(m_cnt[0][m_unchoke_slots_idx])
-		, int(m_cnt[0][m_queued_tracker_announces])
+		, color(add_suffix(value(m_recv_idx)), col_green).c_str()
+		, color(to_string(int(value(m_limiter_up_queue_idx)), 3), col_red).c_str()
+		, color(to_string(int(value(m_limiter_down_queue_idx)), 3), col_green).c_str()
+		, int(value(m_num_peers_idx))
+		, int(value(m_unchoked_idx))
+		, int(value(m_unchoke_slots_idx))
+		, int(value(m_queued_tracker_announces))
 		, std::max(0, m_width - 86)
 		, esc("0"));
 
@@ -106,14 +118,14 @@ void session_view::render()
 		, esc("48;5;238")
 #endif
 		, esc("1")
-		, add_suffix(m_cnt[0][m_wasted_bytes_idx]).c_str()
+		, add_suffix(value(m_wasted_bytes_idx)).c_str()
 		, color(add_suffix(upload_rate, "/s"), col_red).c_str()
-		, color(add_suffix(m_cnt[0][m_sent_idx]), col_red).c_str()
-		, color(to_string(int(m_cnt[0][m_queued_reads_idx]), 3), col_red).c_str()
-		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
-		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
-			/ std::max(std::int64_t(1), m_cnt[0][m_blocks_written_idx]))
-		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
+		, color(add_suffix(value(m_sent_idx)), col_red).c_str()
+		, color(to_string(int(value(m_queued_reads_idx)), 3), col_red).c_str()
+		, color(to_string(int(value(m_queued_writes_idx)), 3), col_green).c_str()
+		, int((value(m_blocks_written_idx) - value(m_write_ops_idx)) * 100
+			/ std::max(std::int64_t(1), value(m_blocks_written_idx)))
+		, add_suffix(value(m_blocks_in_use_idx) * 16 * 1024).c_str()
 		, std::max(0, m_width - 85)
 		, esc("0"));
 	set_cursor_pos(0, y++);
@@ -122,11 +134,11 @@ void session_view::render()
 	std::snprintf(str, sizeof(str), "%s%suTP idle: %d syn: %d est: %d fin: %d wait: %d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
-		, int(m_cnt[0][m_utp_idle])
-		, int(m_cnt[0][m_utp_syn_sent])
-		, int(m_cnt[0][m_utp_connected])
-		, int(m_cnt[0][m_utp_fin_sent])
-		, int(m_cnt[0][m_utp_close_wait])
+		, int(value(m_utp_idle))
+		, int(value(m_utp_syn_sent))
+		, int(value(m_utp_connected))
+		, int(value(m_utp_fin_sent))
+		, int(value(m_utp_close_wait))
 		, int(m_width - 37)
 		, esc("0"));
 	set_cursor_pos(0, y++);
