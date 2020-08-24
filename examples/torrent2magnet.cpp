@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 
-void print_usage()
+namespace {
+
+[[noreturn]] void print_usage()
 {
 	std::cerr << R"(usage: torrent2magnet torrent-file [options]
     OPTIONS:
@@ -45,6 +47,8 @@ void print_usage()
 )";
 	std::exit(1);
 }
+
+} // anonymous namespace
 
 int main(int argc, char const* argv[]) try
 {
