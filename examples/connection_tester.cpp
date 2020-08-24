@@ -58,9 +58,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <chrono>
 
-#if BOOST_ASIO_DYN_LINK
+#ifdef BOOST_ASIO_DYN_LINK
 #include <boost/asio/impl/src.hpp>
 #endif
+
+namespace {
 
 using namespace lt;
 using namespace lt::aux; // for write_* and read_*
@@ -71,7 +73,8 @@ using namespace std::placeholders;
 void generate_block(span<std::uint32_t> buffer, piece_index_t const piece
 	, int const offset)
 {
-	std::uint32_t const fill = (static_cast<int>(piece) << 8) | ((offset / 0x4000) & 0xff);
+	std::uint32_t const fill = static_cast<std::uint32_t>(
+		(static_cast<int>(piece) << 8) | ((offset / 0x4000) & 0xff));
 	for (auto& w : buffer) w = fill;
 }
 
@@ -124,7 +127,7 @@ std::string leaf_path(std::string f)
 	{
 		// if the last character is a / (or \)
 		// ignore it
-		int len = 0;
+		std::size_t len = 0;
 		while (sep > first)
 		{
 			--sep;
@@ -148,7 +151,7 @@ std::mt19937 rng(dev());
 
 struct peer_conn
 {
-	peer_conn(io_context& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
+	peer_conn(io_context& ios, int piece_count, int blocks_pp, tcp::endpoint const& ep
 		, char const* ih, bool seed_, int churn_, bool corrupt_)
 		: s(ios)
 		, read_pos(0)
@@ -164,7 +167,7 @@ struct peer_conn
 		, fast_extension(false)
 		, blocks_received(0)
 		, blocks_sent(0)
-		, num_pieces(num_pieces)
+		, num_pieces(piece_count)
 		, start_time(clock_type::now())
 		, churn(churn_)
 		, corrupt(corrupt_)
@@ -173,7 +176,7 @@ struct peer_conn
 	{
 		corruption_counter = rand() % 1000;
 		if (seed) ++num_seeds;
-		pieces.reserve(num_pieces);
+		pieces.reserve(std::size_t(piece_count));
 		start_conn();
 	}
 
@@ -185,18 +188,16 @@ struct peer_conn
 			s.open(endpoint.protocol(), ec);
 			if (ec)
 			{
-				close("ERROR OPEN: %s", ec);
+				close("ERROR OPEN", ec);
 				return;
 			}
 			tcp::endpoint bind_if(address_v4(
-				(127 << 24)
-				+ ((local_if_counter / 255) << 16)
-				+ ((local_if_counter % 255) + 1)), 0);
+				(127 << 24) + unsigned (local_if_counter + 1)), 0);
 			++local_if_counter;
 			s.bind(bind_if, ec);
 			if (ec)
 			{
-				close("ERROR BIND: %s", ec);
+				close("ERROR BIND", ec);
 				return;
 			}
 		}
@@ -245,7 +246,7 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			close("ERROR CONNECT: %s", ec);
+			close("ERROR CONNECT", ec);
 			return;
 		}
 
@@ -253,7 +254,7 @@ struct peer_conn
 			"                    " // space for info-hash
 			"aaaaaaaaaaaaaaaaaaaa" // peer-id
 			"\0\0\0\x01\x02"; // interested
-		char* h = (char*)malloc(sizeof(handshake));
+		char* h = static_cast<char*>(malloc(sizeof(handshake)));
 		memcpy(h, handshake, sizeof(handshake));
 		std::memcpy(h + 28, info_hash, 20);
 		std::generate(h + 48, h + 68, &rand);
@@ -267,12 +268,12 @@ struct peer_conn
 		free(h);
 		if (ec)
 		{
-			close("ERROR SEND HANDSHAKE: %s", ec);
+			close("ERROR SEND HANDSHAKE", ec);
 			return;
 		}
 
 		// read handshake
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 68)
+		boost::asio::async_read(s, boost::asio::buffer(buffer, 68)
 			, std::bind(&peer_conn::on_handshake2, this, _1, _2));
 	}
 
@@ -280,14 +281,14 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			close("ERROR READ HANDSHAKE: %s", ec);
+			close("ERROR READ HANDSHAKE", ec);
 			return;
 		}
 
 		// buffer is the full 68 byte handshake
 		// look at the extension bits
 
-		fast_extension = (((char*)buffer)[27] & 4) != 0;
+		fast_extension = (reinterpret_cast<char const*>(buffer)[27] & 4) != 0;
 
 		if (seed)
 		{
@@ -310,22 +311,22 @@ struct peer_conn
 			// unchoke
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
-			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
+			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, std::size_t(ptr - write_buf_proto))
 				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 		else
 		{
 			// bitfield
 			int len = (num_pieces + 7) / 8;
-			char* ptr = (char*)buffer;
+			char* ptr = reinterpret_cast<char*>(buffer);
 			write_uint32(len + 1, ptr);
 			write_uint8(5, ptr);
-			memset(ptr, 255, len);
+			memset(ptr, 255, std::size_t(len));
 			ptr += len;
 			// unchoke
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
-			boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
+			boost::asio::async_write(s, boost::asio::buffer(buffer, std::size_t(len + 10))
 				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 	}
@@ -334,12 +335,12 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			close("ERROR SEND HAVE ALL: %s", ec);
+			close("ERROR SEND HAVE ALL", ec);
 			return;
 		}
 
 		// read message
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
 			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
@@ -386,7 +387,7 @@ struct peer_conn
 			"    " // piece
 			"    " // offset
 			"    "; // length
-		char* m = (char*)malloc(sizeof(msg));
+		char* m = static_cast<char*>(malloc(sizeof(msg)));
 		memcpy(m, msg, sizeof(msg));
 		char* ptr = m + 5;
 		write_uint32(static_cast<int>(current_piece), ptr);
@@ -411,22 +412,22 @@ struct peer_conn
 		free(m);
 		if (ec)
 		{
-			close("ERROR SEND REQUEST: %s", ec);
+			close("ERROR SEND REQUEST", ec);
 			return;
 		}
 
 		work_download();
 	}
 
-	void close(char const* fmt, error_code const& ec)
+	void close(char const* msg, error_code const& ec)
 	{
 		end_time = clock_type::now();
 		char tmp[1024];
-		std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+		std::snprintf(tmp, sizeof(tmp), "%s: %s", msg, ec ? ec.message().c_str() : "");
 		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
-		float up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
-		float down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.f;
+		double const up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.0;
+		double const down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.0;
 		error_code e;
 
 		char ep_str[200];
@@ -461,7 +462,7 @@ struct peer_conn
 		}
 
 		// read message
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
 			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
@@ -476,10 +477,10 @@ struct peer_conn
 
 		if (ec)
 		{
-			close("ERROR RECEIVE MESSAGE PREFIX: %s", ec);
+			close("ERROR RECEIVE MESSAGE PREFIX", ec);
 			return;
 		}
-		char* ptr = (char*)buffer;
+		char* ptr = reinterpret_cast<char*>(buffer);
 		unsigned int length = read_uint32(ptr);
 		if (length > sizeof(buffer))
 		{
@@ -487,7 +488,7 @@ struct peer_conn
 			close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 			return;
 		}
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, length)
+		boost::asio::async_read(s, boost::asio::buffer(buffer, length)
 			, std::bind(&peer_conn::on_message, this, _1, _2));
 	}
 
@@ -502,10 +503,10 @@ struct peer_conn
 
 		if (ec)
 		{
-			close("ERROR RECEIVE MESSAGE: %s", ec);
+			close("ERROR RECEIVE MESSAGE", ec);
 			return;
 		}
-		char* ptr = (char*)buffer;
+		char* ptr = reinterpret_cast<char*>(buffer);
 		int msg = read_uint8(ptr);
 
 		if (test_mode == dual_test && num_seeds == 0)
@@ -548,20 +549,20 @@ struct peer_conn
 			if (msg == 0xe) // have_all
 			{
 				// build a list of all pieces and request them all!
-				pieces.resize(num_pieces);
-				for (piece_index_t i(0); i < piece_index_t(int(pieces.size())); ++i)
-					pieces[static_cast<int>(i)] = i;
+				pieces.resize(std::size_t(num_pieces));
+				for (std::size_t i = 0; i < pieces.size(); ++i)
+					pieces[i] = piece_index_t(int(i));
 				std::shuffle(pieces.begin(), pieces.end(), rng);
 			}
 			else if (msg == 4) // have
 			{
 				piece_index_t const piece(aux::read_int32(ptr));
 				if (pieces.empty()) pieces.push_back(piece);
-				else pieces.insert(pieces.begin() + (rand() % pieces.size()), piece);
+				else pieces.insert(pieces.begin() + (unsigned(rand()) % pieces.size()), piece);
 			}
 			else if (msg == 5) // bitfield
 			{
-				pieces.reserve(num_pieces);
+				pieces.reserve(std::size_t(num_pieces));
 				piece_index_t piece(0);
 				for (int i = 0; i < int(bytes_transferred); ++i)
 				{
@@ -581,8 +582,8 @@ struct peer_conn
 			{
 				if (verify_downloads)
 				{
-					piece_index_t const piece(read_uint32(ptr));
-					int start = read_uint32(ptr);
+					piece_index_t const piece(read_int32(ptr));
+					int start = read_int32(ptr);
 					int size = int(bytes_transferred) - 9;
 					verify_piece(piece, start, ptr, size);
 				}
@@ -597,7 +598,7 @@ struct peer_conn
 					s.close();
 					return;
 				}
-				if (int((start + bytes_transferred) / 0x4000) == blocks_per_piece)
+				if ((start + int(bytes_transferred)) / 0x4000 == blocks_per_piece)
 				{
 					write_have(piece);
 					return;
@@ -664,8 +665,9 @@ struct peer_conn
 
 	bool verify_piece(piece_index_t const piece, int start, char const* ptr, int size)
 	{
-		std::uint32_t* buf = (std::uint32_t*)ptr;
-		std::uint32_t const fill = (static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff);
+		std::uint32_t const* buf = reinterpret_cast<std::uint32_t const*>(ptr);
+		std::uint32_t const fill = static_cast<std::uint32_t>(
+			(static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff));
 		for (int i = 0; i < size / 4; ++i)
 		{
 			if (buf[i] != fill)
@@ -699,8 +701,8 @@ struct peer_conn
 		write_uint32(static_cast<int>(piece), ptr);
 		write_uint32(start, ptr);
 		std::array<boost::asio::const_buffer, 2> vec;
-		vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
-		vec[1] = boost::asio::buffer(write_buffer, length);
+		vec[0] = boost::asio::buffer(write_buf_proto, std::size_t(ptr - write_buf_proto));
+		vec[1] = boost::asio::buffer(write_buffer, std::size_t(length));
 		boost::asio::async_write(s, vec, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		++blocks_sent;
 		if (churn && (blocks_sent % churn) == 0 && seed) {
@@ -720,7 +722,7 @@ struct peer_conn
 	}
 };
 
-void print_usage()
+[[noreturn]] void print_usage()
 {
 	std::fprintf(stderr, "usage: connection_tester command [options]\n\n"
 		"command is one of:\n"
@@ -797,7 +799,7 @@ void hasher_thread(lt::aux::vector<sha1_hash, piece_index_t>* output
 				auto& f = files.front();
 				int const range = int(std::min(std::int64_t(0x4000 - k), f.size));
 				if (fs.pad_file_at(f.file_index))
-					std::memset(reinterpret_cast<char*>(piece) + k, 0, range);
+					std::memset(reinterpret_cast<char*>(piece) + k, 0, std::size_t(range));
 
 				f.offset += range;
 				f.size -= range;
@@ -812,7 +814,7 @@ out:
 		if (print && (static_cast<int>(i) & 1))
 		{
 			int const delta_piece = static_cast<int>(i) - static_cast<int>(start_piece);
-			std::fprintf(stderr, "\r%.1f %% ", float(delta_piece * 100) / float(range));
+			std::fprintf(stderr, "\r%.1f %% ", double(delta_piece * 100) / double(range));
 		}
 	}
 	if (print) std::fprintf(stderr, "\n");
@@ -845,12 +847,12 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 	num_pieces = t.num_pieces();
 
 	int const num_threads = std::thread::hardware_concurrency()
-		? std::thread::hardware_concurrency() : 4;
+		? int(std::thread::hardware_concurrency()) : 4;
 	std::printf("hashing in %d threads\n", num_threads);
 
 	std::vector<std::thread> threads;
-	threads.reserve(num_threads);
-	lt::aux::vector<lt::sha1_hash, piece_index_t> hashes(num_pieces);
+	threads.reserve(std::size_t(num_threads));
+	lt::aux::vector<lt::sha1_hash, piece_index_t> hashes{static_cast<std::size_t>(num_pieces)};
 	for (int i = 0; i < num_threads; ++i)
 	{
 		threads.emplace_back(&hasher_thread, &hashes, t.files()
@@ -883,7 +885,7 @@ void write_handler(file_storage const& fs
 	if (static_cast<int>(piece) & 1)
 	{
 		std::fprintf(stderr, "\r%.1f %% "
-			, float(static_cast<int>(piece) * 100) / float(fs.num_pieces()));
+			, double(static_cast<int>(piece) * 100) / double(fs.num_pieces()));
 	}
 
 	if (piece >= fs.end_piece()) return;
@@ -908,8 +910,8 @@ void write_handler(file_storage const& fs
 	disk.async_write(st, { piece, offset, std::min(left_in_piece, 0x4000)}
 		, reinterpret_cast<char const*>(buffer)
 		, std::shared_ptr<disk_observer>()
-		, [&](lt::storage_error const& error)
-		{ write_handler(fs, disk, st, piece, offset, error); });
+		, [&](lt::storage_error const& e)
+		{ write_handler(fs, disk, st, piece, offset, e); });
 
 	disk.submit_jobs();
 }
@@ -968,6 +970,8 @@ catch (std::exception const& e)
 	std::fprintf(stderr, "ERROR: %s\n", e.what());
 }
 
+} // anonymous namespace
+
 int main(int argc, char* argv[])
 {
 	if (argc <= 1) print_usage();
@@ -1011,22 +1015,22 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-		char const* optarg = argv[0];
+		char const* opt = argv[0];
 		++argv;
 		--argc;
 
 		switch (optname[1])
 		{
-			case 's': size = atoi(optarg); break;
-			case 'n': num_files = atoi(optarg); break;
-			case 'N': num_torrents = atoi(optarg); break;
-			case 't': torrent_file = optarg; break;
-			case 'T': trackers.push_back(optarg); break;
-			case 'P': data_path = optarg; break;
-			case 'c': num_connections = atoi(optarg); break;
-			case 'p': destination_port = atoi(optarg); break;
-			case 'd': destination_ip = optarg; break;
-			case 'r': churn = atoi(optarg); break;
+			case 's': size = atoi(opt); break;
+			case 'n': num_files = atoi(opt); break;
+			case 'N': num_torrents = atoi(opt); break;
+			case 't': torrent_file = opt; break;
+			case 'T': trackers.push_back(opt); break;
+			case 'P': data_path = opt; break;
+			case 'c': num_connections = atoi(opt); break;
+			case 'p': destination_port = atoi(opt); break;
+			case 'd': destination_ip = opt; break;
+			case 'r': churn = atoi(opt); break;
 			default: std::fprintf(stderr, "unknown option: %s\n", optname);
 		}
 	}
@@ -1162,7 +1166,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::vector<peer_conn*> conns;
-	conns.reserve(num_connections);
+	conns.reserve(std::size_t(num_connections));
 	int const num_threads = 2;
 	io_context ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
@@ -1172,7 +1176,7 @@ int main(int argc, char* argv[])
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
-			, ep, (char const*)ti.info_hash().data(), seed, churn, corrupt));
+			, ep, ti.info_hash().data(), seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}
@@ -1183,18 +1187,19 @@ int main(int argc, char* argv[])
 	t1.join();
 	t2.join();
 
-	float up = 0.f;
-	float down = 0.f;
-	std::uint64_t total_sent = 0;
-	std::uint64_t total_received = 0;
+	double up = 0.0;
+	double down = 0.0;
+	std::int64_t total_sent = 0;
+	std::int64_t total_received = 0;
 
 	for (peer_conn* p : conns)
 	{
 		int time = int(total_milliseconds(p->end_time - p->start_time));
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
-		up += (std::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
-		down += (std::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
+		total_received += p->blocks_received;
+		up += (std::int64_t(p->blocks_sent) * 0x4000) / time / 1000.0;
+		down += (std::int64_t(p->blocks_received) * 0x4000) / time / 1000.0;
 		delete p;
 	}
 
@@ -1203,8 +1208,8 @@ int main(int argc, char* argv[])
 		"total sent: %.1f %% received: %.1f %%\n"
 		"rate sent: %.1f MB/s received: %.1f MB/s\n"
 		, int(num_suggest), int(num_suggested_requests)
-		, total_sent * 0x4000 * 100.f / float(ti.total_size())
-		, total_received * 0x4000 * 100.f / float(ti.total_size())
+		, total_sent * 0x4000 * 100.0 / double(ti.total_size())
+		, total_received * 0x4000 * 100.0 / double(ti.total_size())
 		, up, down);
 
 	return 0;
