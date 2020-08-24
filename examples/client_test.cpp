@@ -510,11 +510,13 @@ bool share_mode = false;
 
 bool quit = false;
 
+#ifndef _WIN32
 void signal_handler(int)
 {
 	// make the main loop terminate
 	quit = true;
 }
+#endif
 
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
@@ -946,7 +948,8 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		h.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
 	}
-	else if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
+
+	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
 	{
 		if (p->error)
 		{
@@ -964,12 +967,12 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 			// if we have a peer specified, connect to it
 			if (!peer.empty())
 			{
-				char* port = (char*) strrchr((char*)peer.c_str(), ':');
-				if (port != nullptr)
+				auto port = peer.find_last_of(':');
+				if (port != std::string::npos)
 				{
-					*port++ = 0;
-					char const* ip = peer.c_str();
-					int peer_port = atoi(port);
+					peer[port++] = '\0';
+					char const* ip = peer.data();
+					int const peer_port = atoi(peer.data() + port);
 					error_code ec;
 					if (peer_port > 0)
 						h.connect_peer(tcp::endpoint(make_address(ip, ec), std::uint16_t(peer_port)));
@@ -977,7 +980,8 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 			}
 		}
 	}
-	else if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
+
+	if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
 	{
 		p->handle.set_max_connections(max_connections_per_torrent / 2);
 
@@ -989,20 +993,23 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		++num_outstanding_resume_data;
 		if (exit_on_finish) quit = true;
 	}
-	else if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
+
+	if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
 	{
 		--num_outstanding_resume_data;
 		auto const buf = write_resume_data_buf(p->params);
 		save_file(resume_file(p->params.info_hashes), buf);
 	}
-	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
+
+	if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
 		--num_outstanding_resume_data;
 		// don't print the error if it was just that we didn't need to save resume
 		// data. Returning true means "handled" and not printed to the log
 		return p->error == lt::errors::resume_data_not_modified;
 	}
-	else if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
+
+	if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
 	{
 		// write resume data for the finished torrent
 		// the alert handler for save_resume_data_alert
@@ -1011,12 +1018,14 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		h.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
 	}
-	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
+
+	if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
 		view.update_torrents(std::move(p->status));
 		return true;
 	}
-	else if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a))
+
+	if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a))
 	{
 		view.remove_torrent(std::move(p->handle));
 	}
@@ -1061,7 +1070,7 @@ void print_piece(lt::partial_piece_info const& pp
 	for (int j = 0; j < num_blocks; ++j)
 	{
 		int const index = peer_index(pp.blocks[j].peer(), peers) % 36;
-		bool const snubbed = index >= 0 ? bool(peers[index].flags & lt::peer_info::snubbed) : false;
+		bool const snubbed = index >= 0 ? bool(peers[std::size_t(index)].flags & lt::peer_info::snubbed) : false;
 		char const* chr = " ";
 		char const* color = "";
 
@@ -1121,7 +1130,7 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 	// sets the terminal to single-character mode
 	// and resets when destructed
-	set_keypress s;
+	set_keypress s_;
 #endif
 
 	if (argc == 1)
@@ -1273,7 +1282,7 @@ examples:
 			char const* equal = strchr(argv[i], '=');
 			char const* start = argv[i]+2;
 			// +2 is to skip the --
-			std::string const key(start, equal - start);
+			std::string const key(start, std::size_t(equal - start));
 			char const* value = equal + 1;
 
 			assign_setting(settings, key, value);
@@ -1313,7 +1322,7 @@ examples:
 					std::fstream filter(arg, std::ios_base::in);
 					if (!filter.fail())
 					{
-						std::regex regex(R"(^\s*([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)\s*-\s*([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)\s+([0-9]+)$)");
+						std::regex regex(R"(^\s*([0-9\.]+)\s*-\s*([0-9\.]+)\s+([0-9]+)$)");
 
 						std::string line;
 						while (std::getline(filter, line))
@@ -1321,10 +1330,9 @@ examples:
 							std::smatch m;
 							if (std::regex_match(line, m, regex))
 							{
-								address_v4 start((stoi(m[1]) << 24) | (stoi(m[2]) << 16) | (stoi(m[3]) << 8) | stoi(m[4]));
-								address_v4 last((stoi(m[5]) << 24) | (stoi(m[6]) << 16) | (stoi(m[7]) << 8) | stoi(m[8]));
-								loaded_ip_filter.add_rule(start, last
-									, stoi(m[9]) <= 127 ? lt::ip_filter::blocked : 0);
+								address_v4 start = make_address_v4(m[1]);
+								address_v4 last = make_address_v4(m[2]);
+								loaded_ip_filter.add_rule(start, last, stoi(m[3]) <= 127 ? lt::ip_filter::blocked : 0);
 							}
 						}
 					}
@@ -1556,7 +1564,7 @@ examples:
 
 #ifndef _WIN32
 					// enable terminal echo temporarily
-					set_keypress s(set_keypress::echo | set_keypress::canonical);
+					set_keypress echo_(set_keypress::echo | set_keypress::canonical);
 #endif
 					if (std::scanf("%4095s", url) == 1) add_magnet(ses, url);
 					else std::printf("failed to read magnet link\n");
@@ -1586,7 +1594,7 @@ examples:
 						, st.name.c_str());
 #ifndef _WIN32
 					// enable terminal echo temporarily
-					set_keypress s(set_keypress::echo | set_keypress::canonical);
+					set_keypress echo_(set_keypress::echo | set_keypress::canonical);
 #endif
 					char response = 'n';
 					int scan_ret = std::scanf("%c", &response);
@@ -1971,7 +1979,7 @@ done:
 				int p = 0; // this is horizontal position
 				for (file_index_t i(0); i < file_index_t(ti->num_files()); ++i)
 				{
-					int const idx = static_cast<int>(i);
+					auto const idx = std::size_t(static_cast<int>(i));
 					if (pos + 1 >= terminal_height) break;
 
 					bool const pad_file = ti->files().pad_file_at(i);
@@ -1986,7 +1994,7 @@ done:
 					std::string title = ti->files().file_name(i).to_string();
 					if (!complete)
 					{
-						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
+						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.0);
 						title += str;
 					}
 

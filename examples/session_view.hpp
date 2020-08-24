@@ -65,6 +65,9 @@ private:
 	// is used to calculate rates
 	std::vector<std::int64_t> m_cnt[2];
 
+	std::int64_t value(int idx) const;
+	std::int64_t prev_value(int idx) const;
+
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
 	// respectively.
 	lt::clock_type::time_point m_timestamp[2];

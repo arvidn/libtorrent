@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <array>
 
+namespace {
+
 const int header_size = 2;
 using lt::queue_position_t;
 
@@ -71,7 +73,7 @@ std::string torrent_state(lt::torrent_status const& s)
 			ret += " [F]";
 	}
 	char buf[10];
-	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
+	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.0);
 	ret += buf;
 	return ret;
 }
@@ -97,13 +99,9 @@ bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rh
 		< (rhs->queue_position == queue_position_t{-1});
 }
 
-torrent_view::torrent_view()
-	: m_active_torrent(0)
-	, m_scroll_position(0)
-	, m_torrent_filter(0)
-	, m_width(80)
-	, m_height(30)
-{}
+}
+
+torrent_view::torrent_view() = default;
 
 void torrent_view::set_size(int width, int height)
 {
@@ -136,7 +134,7 @@ lt::torrent_status const& torrent_view::get_active_torrent() const
 	if (m_active_torrent < 0) m_active_torrent = 0;
 	TORRENT_ASSERT(m_active_torrent >= 0);
 
-	return *m_filtered_handles[m_active_torrent];
+	return *m_filtered_handles[std::size_t(m_active_torrent)];
 }
 
 lt::torrent_handle torrent_view::get_active_handle() const
@@ -148,7 +146,7 @@ lt::torrent_handle torrent_view::get_active_handle() const
 
 	if (m_filtered_handles.empty()) return lt::torrent_handle();
 
-	return m_filtered_handles[m_active_torrent]->handle;
+	return m_filtered_handles[std::size_t(m_active_torrent)]->handle;
 }
 
 void torrent_view::remove_torrent(lt::torrent_handle h)
@@ -158,8 +156,7 @@ void torrent_view::remove_torrent(lt::torrent_handle h)
 	bool need_rerender = false;
 	if (show_torrent(i->second))
 	{
-		auto j = std::find(m_filtered_handles.begin(), m_filtered_handles.end()
-			, &i->second);
+		auto j = std::find(m_filtered_handles.begin(), m_filtered_handles.end(), &i->second);
 		if (j != m_filtered_handles.end())
 		{
 			m_filtered_handles.erase(j);
@@ -254,12 +251,12 @@ void torrent_view::arrow_up()
 	}
 
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
-	print_torrent(*m_filtered_handles[m_active_torrent], false);
+	print_torrent(*m_filtered_handles[std::size_t(m_active_torrent)], false);
 	--m_active_torrent;
 	TORRENT_ASSERT(m_active_torrent >= 0);
 
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
-	print_torrent(*m_filtered_handles[m_active_torrent], true);
+	print_torrent(*m_filtered_handles[std::size_t(m_active_torrent)], true);
 }
 
 void torrent_view::arrow_down()
@@ -278,13 +275,13 @@ void torrent_view::arrow_down()
 	}
 
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
-	print_torrent(*m_filtered_handles[m_active_torrent], false);
+	print_torrent(*m_filtered_handles[std::size_t(m_active_torrent)], false);
 
 	TORRENT_ASSERT(m_active_torrent >= 0);
 	++m_active_torrent;
 
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
-	print_torrent(*m_filtered_handles[m_active_torrent], true);
+	print_torrent(*m_filtered_handles[std::size_t(m_active_torrent)], true);
 }
 
 void torrent_view::render()
@@ -335,16 +332,16 @@ void torrent_view::print_tabs()
 		, "seeding", "queued", "stopped", "checking"}};
 	for (int i = 0; i < int(filter_names.size()); ++i)
 	{
-		int const ret = std::snprintf(dest.data(), dest.size(), "%s[%s]%s"
+		int const ret = std::snprintf(dest.data(), std::size_t(dest.size()), "%s[%s]%s"
 			, m_torrent_filter == i?esc("7"):""
-			, filter_names[i], m_torrent_filter == i?esc("0"):"");
+			, filter_names[std::size_t(i)], m_torrent_filter == i?esc("0"):"");
 		if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 	}
-	int const ret = std::snprintf(dest.data(), dest.size(), "\x1b[K");
+	int const ret = std::snprintf(dest.data(), std::size_t(dest.size()), "\x1b[K");
 	if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 
 	if (m_width + 1 < int(str.size()))
-		str[m_width + 1] = '\0';
+		str.back() = '\0';
 	print(str.data());
 }
 
@@ -361,7 +358,7 @@ void torrent_view::print_headers()
 		, "Down", "Up", "Flags");
 
 	if (m_width + 1 < int(str.size()))
-		str[m_width + 1] = '\0';
+		str.back() = '\0';
 
 	print(str.data());
 }
@@ -399,7 +396,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	int const total_pieces = ti && ti->is_valid() ? ti->num_pieces() : 0;
 	color_code piece_color = total_pieces == s.num_pieces ? col_green : col_yellow;
 
-	int const ret = std::snprintf(dest.data(), dest.size(), "%s%-3s %-50s %s%s %s/%s %s (%s) "
+	int const ret = std::snprintf(dest.data(), std::size_t(dest.size()), "%s%-3s %-50s %s%s %s/%s %s (%s) "
 		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
 		, queue_pos
@@ -421,11 +418,11 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	// if this is the selected torrent, restore the background color
 	if (selected)
 	{
-		int const ret2 = std::snprintf(dest.data(), dest.size(), "%s", esc("0"));
+		int const ret2 = std::snprintf(dest.data(), std::size_t(dest.size()), "%s", esc("0"));
 		if (ret2 >= 0 && ret2 <= dest.size()) dest = dest.subspan(ret2);
 	}
 
-	int const ret2 = std::snprintf(dest.data(), dest.size(), "\x1b[K");
+	int const ret2 = std::snprintf(dest.data(), std::size_t(dest.size()), "\x1b[K");
 	if (ret2 >= 0 && ret2 <= dest.size()) dest = dest.subspan(ret2);
 
 	print(str.data());
