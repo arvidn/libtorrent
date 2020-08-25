@@ -35,6 +35,7 @@ BOOST_PYTHON_MODULE(libtorrent)
     PyEval_InitThreads();
 
     bind_converters();
+    bind_unicode_string_conversion();
     bind_error_code();
     bind_utility();
     bind_fingerprint();
@@ -43,7 +44,6 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_torrent_handle();
     bind_session();
     bind_torrent_info();
-    bind_unicode_string_conversion();
     bind_torrent_status();
     bind_session_settings();
     bind_version();

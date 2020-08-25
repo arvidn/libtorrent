@@ -98,6 +98,12 @@ class test_torrent_handle(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'info_hash': b'abababababababababab'})
 
+    def test_move_storage(self):
+        self.setup()
+        self.h.move_storage(u'test-dir')
+        self.h.move_storage(b'test-dir2')
+        self.h.move_storage('test-dir3')
+
     def test_torrent_handle(self):
         self.setup()
         self.assertEqual(self.h.get_file_priorities(), [4, 4])
