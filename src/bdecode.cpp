@@ -805,7 +805,15 @@ namespace aux {
 		// this is the stack of bdecode_token indices, into m_tokens.
 		// sp is the stack pointer, as index into the array, stack
 		int sp = 0;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Walloca"
+#endif
 		TORRENT_ALLOCA(stack, stack_frame, depth_limit);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 		// TODO: 2 attempt to simplify this implementation by embracing the span
 		char const* start = buffer.data();
