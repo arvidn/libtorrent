@@ -3733,10 +3733,11 @@ namespace {
 		TORRENT_ASSERT(st.total_wanted >= std::int64_t(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
 
-		// if any piece hash fails, we'll be taken out of seed mode
-		// and m_seed_mode will be false
 		if (m_seed_mode || is_seed())
 		{
+			// once we're a seed and remove the piece picker, we stop tracking
+			// piece- and file priority. We consider everything as being
+			// "wanted"
 			st.total_done = m_torrent_file->total_size()
 				- m_padding_blocks * default_block_size;
 			st.total_wanted_done = st.total_done;

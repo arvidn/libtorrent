@@ -986,7 +986,10 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 	// set file priorities to 0
 	rd["file_priority"] = entry::list_type(100, entry(0));
 
-	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
+	if (mix_prios)
+		rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
+	else
+		rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x00');
 
 	// but set the piece priorities to 1. these take precedence
 	if (mix_prios)
@@ -1010,7 +1013,19 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 
 	torrent_handle h = ses.add_torrent(p);
 
-	torrent_status s = h.status();
+	lt::torrent_status s = h.status();
+	for (int i = 0; i < 40; ++i)
+	{
+		if (s.state != torrent_status::checking_files
+			&& s.state != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+		s = h.status();
+	}
+
+	// Once a torrent becomes seed, any piece- and file priorities are
+	// forgotten and all bytes are considered "wanted". So, whether we "want"
+	// all bytes here or not, depends on whether we're a seed
 	if (mix_prios)
 	{
 		TEST_EQUAL(s.total_wanted, ti->total_size());
