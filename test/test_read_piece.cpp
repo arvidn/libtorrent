@@ -72,7 +72,6 @@ void test_read_piece(int flags)
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
-	std::srand(10);
 	int piece_size = 0x4000;
 
 	static std::array<const int, 2> const file_sizes{{ 100000, 10000 }};

@@ -109,7 +109,6 @@ void test_checking(int const flags)
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
-	std::srand(10);
 	int const piece_size = (flags & single_file) ? 0x8000 : 0x4000;
 
 	auto const file_sizes = (flags & single_file)
