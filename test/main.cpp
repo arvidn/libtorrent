@@ -514,6 +514,7 @@ int EXPORT main(int argc, char const* argv[])
 		{
 #endif
 
+			std::srand(unsigned(std::hash<std::string>{}(executable)) + unsigned(i));
 			lt::aux::random_engine().seed(0x82daf973);
 
 			_g_test_failures = 0;
