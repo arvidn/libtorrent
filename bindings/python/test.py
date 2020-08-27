@@ -25,8 +25,6 @@ import dummy_data
 if os.name != 'nt':
     import pty
 
-HAVE_DEPRECATED_APIS = hasattr(lt, 'version')
-
 settings = {
     'alert_mask': lt.alert.category_t.all_categories,
     'enable_dht': False, 'enable_lsd': False, 'enable_natpmp': False,
@@ -276,11 +274,6 @@ class test_torrent_handle(unittest.TestCase):
         # from python
         self.h.scrape_tracker()
 
-    def test_cache_info(self):
-        self.setup()
-        cs = self.ses.get_cache_info(self.h)
-        self.assertEqual(cs.pieces, [])
-
     def test_unknown_torrent_parameter(self):
         self.ses = lt.session(settings)
         try:
@@ -420,25 +413,6 @@ class test_torrent_info(unittest.TestCase):
             self.assertEqual(web_seeds[i]["auth"], ws[i]["auth"])
             self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
 
-    def test_iterable_files(self):
-        # the file_strage object is only iterable for backwards compatibility
-        if not HAVE_DEPRECATED_APIS:
-            return
-
-        lt.session(settings)
-        ti = lt.torrent_info('url_seed_multi.torrent')
-        files = ti.files()
-
-        idx = 0
-        expected = ['bar.txt', 'var.txt']
-        for f in files:
-            print(f.path)
-
-            self.assertEqual(os.path.split(f.path)[1], expected[idx])
-            self.assertEqual(os.path.split(f.path)[0],
-                             os.path.join('temp', 'foo'))
-            idx += 1
-
     def test_announce_entry(self):
         ae = lt.announce_entry('test')
         self.assertEqual(ae.url, 'test')
@@ -481,8 +455,6 @@ class test_alerts(unittest.TestCase):
         print(st.progress)
         print(st.num_pieces)
         print(st.distributed_copies)
-        if HAVE_DEPRECATED_APIS:
-            print(st.paused)
         print(st.info_hash)
         print(st.seeding_duration)
         print(st.last_upload)
