@@ -650,6 +650,8 @@ HEADERS = \
   aux_/utp_socket_manager.hpp       \
   aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \
+  aux_/windows.hpp                  \
+  aux_/win_cng.hpp                  \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
   \

@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
+#include <fstream>
+
 using namespace lt;
 using dht::dht_storage_interface;
 using dht::dht_state;
