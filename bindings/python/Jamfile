@@ -124,7 +124,7 @@ rule libtorrent_linking ( properties * )
 
 	if <boost-link>static in $(properties) && $(BOOST_VERSION_TAG) < 1_74 && <target-os>linux in $(properties)
 	{
-		ECHO "WARNING: you cannot link statically against boost-python on linux under version 1.74.0, because it links against pthread statically in that case, which is not allowed" ;
+		ECHO "WARNING: you cannot link statically against boost-python on linux before version 1.74.0, because it links against pthread statically in that case, which is not allowed" ;
 	}
 
 	local boost_python_lib ;
