@@ -29,8 +29,3 @@ task:
     cd test
     bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies
     LD_LIBRARY_PATH=./dependencies ./enum_if
-  examples_script: |
-    export BOOST_BUILD_PATH=${PWD}/build-develop
-    export PATH=${PWD}/build-develop:$PATH
-    cd examples
-    bjam -j2 -l250 warnings-as-errors=on warnings=all
