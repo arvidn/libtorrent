@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 
+#include <fstream>
+
 using namespace libtorrent;
 namespace lt = libtorrent;
 
