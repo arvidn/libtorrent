@@ -61,13 +61,22 @@ inline void uninitialized_default_construct(ForwardIt first, ForwardIt last)
 template <typename T>
 struct alloca_destructor
 {
+	static std::ptrdiff_t const cutoff = 4096 / sizeof(T);
+
 	span<T> objects;
 	~alloca_destructor()
 	{
-		for (auto& o : objects)
+		if (objects.size() > cutoff)
 		{
-			TORRENT_UNUSED(o);
-			o.~T();
+			delete [] objects.data();
+		}
+		else
+		{
+			for (auto& o : objects)
+			{
+				TORRENT_UNUSED(o);
+				o.~T();
+			}
 		}
 	}
 };
@@ -93,10 +102,15 @@ struct alloca_destructor
 
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
 	auto TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::ptrdiff_t>(n); \
-	auto* TORRENT_ALLOCA_tmp = static_cast<t*>(TORRENT_ALLOCA_FUN(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
-	::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+	if (TORRENT_ALLOCA_size > ::libtorrent::aux::alloca_destructor<t>::cutoff) {\
+		v = ::libtorrent::span<t>(new t[TORRENT_ALLOCA_size], TORRENT_ALLOCA_size); \
 	} \
-	::libtorrent::aux::alloca_destructor<t> v##_destructor{v}
+	else { \
+		auto* TORRENT_ALLOCA_tmp = static_cast<t*>(TORRENT_ALLOCA_FUN(sizeof(t) * static_cast<std::size_t>(TORRENT_ALLOCA_size))); \
+		v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
+		::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+	} \
+} \
+::libtorrent::aux::alloca_destructor<t> v##_destructor{v}
 
 #endif // TORRENT_ALLOCA_HPP_INCLUDED
