@@ -71,3 +71,12 @@ TORRENT_TEST(alloca_destruct)
 	TEST_EQUAL(destructed, 3);
 }
 
+TORRENT_TEST(alloca_large)
+{
+	// this is something like 256 kiB of allocation
+	// it should be made on the heap and always succeed
+	TORRENT_ALLOCA(vec, A, 65536);
+	for (auto const& a : vec)
+		TEST_EQUAL(a.val, 1337);
+}
+
