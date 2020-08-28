@@ -73,9 +73,9 @@ namespace libtorrent {
 	};
 
 	// defined in session_impl.cpp
-	extern std::map<std::string, async_t> _async_ops;
-	extern int _async_ops_nthreads;
-	extern std::mutex _async_ops_mutex;
+	TORRENT_EXTRA_EXPORT extern std::map<std::string, async_t> _async_ops;
+	TORRENT_EXTRA_EXPORT extern int _async_ops_nthreads;
+	TORRENT_EXTRA_EXPORT extern std::mutex _async_ops_mutex;
 
 	// timestamp -> operation
 	struct wakeup_t
@@ -84,7 +84,7 @@ namespace libtorrent {
 		std::uint64_t context_switches;
 		char const* operation;
 	};
-	extern std::deque<wakeup_t> _wakeups;
+	TORRENT_EXTRA_EXPORT extern std::deque<wakeup_t> _wakeups;
 
 	inline bool has_outstanding_async(char const* name)
 	{
