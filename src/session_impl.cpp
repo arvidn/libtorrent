@@ -2736,11 +2736,12 @@ namespace {
 			// TODO: this size need to be capped
 			auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(c))).first;
 
+			auto sock = iter->get();
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 			boost::get<ssl_stream<tcp::socket>>(**iter).async_accept_handshake(
-				std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
+				[this, sock] (error_code const& err) { ssl_handshake(err, sock); });
 		}
 		else
 #endif
@@ -2759,12 +2760,13 @@ namespace {
 
 		// TODO: this size need to be capped
 		auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(s))).first;
+		auto sock = iter->get();
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 		boost::get<ssl_stream<utp_stream>>(**iter).async_accept_handshake(
-			std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
+			[this, sock] (error_code const& err) { ssl_handshake(err, sock); });
 	}
 
 	// to test SSL connections, one can use this openssl command template:
