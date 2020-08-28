@@ -104,8 +104,8 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t openssl_read_cost = 264;
 	constexpr std::size_t openssl_write_cost = 216;
 #else
-	constexpr std::size_t openssl_read_cost = 72;
-	constexpr std::size_t openssl_write_cost = 72;
+	constexpr std::size_t openssl_read_cost = 152;
+	constexpr std::size_t openssl_write_cost = 152;
 #endif
 #else
 	constexpr std::size_t openssl_read_cost = 0;
@@ -121,12 +121,12 @@ namespace libtorrent { namespace aux {
 #endif
 	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + fuzzer_write_cost + 152;
 	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + fuzzer_read_cost + 152;
-	constexpr std::size_t utp_handler_max_size = tracking + 136;
-	constexpr std::size_t udp_handler_max_size = tracking + 112;
+	constexpr std::size_t udp_handler_max_size = tracking + 144;
+	constexpr std::size_t utp_handler_max_size = tracking + 168;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t submit_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
-	constexpr std::size_t tick_handler_max_size = tracking + 80;
+	constexpr std::size_t tick_handler_max_size = tracking + 112;
 #endif
 
 	enum HandlerName
