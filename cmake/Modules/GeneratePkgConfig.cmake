@@ -146,6 +146,11 @@ function(generate_and_install_pkg_config_file _target _packageName)
 	set(_generate_target_dir "${CMAKE_CURRENT_BINARY_DIR}/${_target}-pkgconfig")
 	set(_pkg_config_file_template_filename "${_GeneratePkGConfigDir}/pkg-config.cmake.in")
 
+	# Avoid things in the CFLAGS -- which can come from INTERFACE_OPTIONS
+	# of dependencies -- that don't work with file(GENERATE). CMake bug 21074
+	string(REPLACE "<COMPILE_LANG_AND_ID:CUDA,NVIDIA>" "<COMPILE_LANGUAGE:CUDA>" _s "${_interface_compile_options}")
+	set(_interface_compile_options "${_s}")
+
 	# put target and project properties into a file
 	configure_file("${_GeneratePkGConfigDir}/target-compile-settings.cmake.in"
 		"${_generate_target_dir}/compile-settings.cmake" @ONLY)
