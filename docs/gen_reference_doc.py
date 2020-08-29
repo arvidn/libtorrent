@@ -1121,7 +1121,7 @@ for t, c in constants.items():
 
 
 def print_declared_in(out, o):
-    out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
+    out.write('Declared in "%s"\n\n' % print_link(o['file'], 'include/%s' % o['file']))
     print(dump_link_targets(), file=out)
 
 # returns RST marked up string
