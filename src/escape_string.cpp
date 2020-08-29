@@ -468,7 +468,7 @@ namespace {
 	{
 		// if the local codepage is already UTF-8, no need to convert
 		static UINT const cp = GetACP();
-		if (cp == 65001 || cp == CP_UTF8) return s;
+		if (cp == CP_UTF8) return s;
 
 		std::wstring ws;
 		ws.resize(s.size() + 1);
