@@ -1,3 +1,4 @@
+	* improve stat_file() performance on Windows
 	* fix issue with loading invalid torrents with only 0-sized files
 	* fix to avoid large stack allocations
 
