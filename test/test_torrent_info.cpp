@@ -166,6 +166,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
+	{ "zero.torrent", errors::torrent_invalid_length},
+	{ "zero2.torrent", errors::torrent_invalid_length},
 };
 
 } // anonymous namespace

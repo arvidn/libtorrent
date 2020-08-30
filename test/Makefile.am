@@ -121,7 +121,9 @@ TEST_TORRENTS = \
   url_seed_multi_space_nolist.torrent \
   url_seed_multi_single_file.torrent \
   whitespace_url.torrent \
-  overlapping_symlinks.torrent
+  overlapping_symlinks.torrent \
+  zero.torrent \
+  zero2.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
