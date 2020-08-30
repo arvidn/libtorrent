@@ -333,7 +333,6 @@ SOURCES = \
   hex.cpp                         \
   http_connection.cpp             \
   http_parser.cpp                 \
-  http_seed_connection.cpp        \
   http_tracker_connection.cpp     \
   i2p_stream.cpp                  \
   identify_client.cpp             \
@@ -590,7 +589,6 @@ HEADERS = \
   aux_/heterogeneous_queue.hpp      \
   aux_/http_connection.hpp          \
   aux_/http_parser.hpp              \
-  aux_/http_seed_connection.hpp     \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \

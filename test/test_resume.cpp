@@ -866,7 +866,6 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 	torrent_handle h = test_resume_flags(ses,
 		torrent_flags::merge_resume_http_seeds, "", "", true);
 	std::set<std::string> us = h.url_seeds();
-	std::set<std::string> ws = h.http_seeds();
 
 	TEST_EQUAL(us.size(), 3);
 	TEST_EQUAL(std::count(us.begin(), us.end()
@@ -875,10 +874,6 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 		, "http://torrent_file_url_seed.com/"), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()
 		, "http://resume_data_url_seed.com/"), 1);
-
-	TEST_EQUAL(ws.size(), 1);
-	TEST_EQUAL(std::count(ws.begin(), ws.end()
-		, "http://resume_data_http_seed.com"), 1);
 }
 
 TORRENT_TEST(resume_override_torrent_deprecated)
@@ -889,11 +884,6 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 	torrent_handle h = test_resume_flags(ses,
 		torrent_flags::merge_resume_trackers, "", "", true);
 	std::set<std::string> us = h.url_seeds();
-	std::set<std::string> ws = h.http_seeds();
-
-	TEST_EQUAL(ws.size(), 1);
-	TEST_EQUAL(std::count(ws.begin(), ws.end()
-		, "http://resume_data_http_seed.com"), 1);
 
 	TEST_EQUAL(us.size(), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()

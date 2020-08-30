@@ -59,7 +59,6 @@ namespace
         {
             dict d;
             d["url"] = i->url;
-            d["type"] = i->type;
             d["auth"] = i->auth;
             ret.append(d);
         }
@@ -74,10 +73,8 @@ namespace
         for (int i = 0; i < len; i++)
         {
            dict e = extract<dict>(ws[i]);
-           int const type = extract<int>(e["type"]);
            web_seeds.push_back(web_seed_entry(
               extract<std::string>(e["url"])
-              , static_cast<web_seed_entry::type_t>(type)
               , extract<std::string>(e["auth"])));
         }
         ti.set_web_seeds(web_seeds);

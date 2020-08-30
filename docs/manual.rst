@@ -503,10 +503,6 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | The URLs are expected to be properly encoded and not contain |
 |                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
-| ``httpseeds``            | list of strings. List of HTTP seed URLs used by this torrent.|
-|                          | The URLs are expected to be properly encoded and not contain |
-|                          | any illegal url characters.                                  |
-+--------------------------+--------------------------------------------------------------+
 | ``trees``                | list. In case this is a v2 (or v1+v2-hybrid) torrent, this   |
 |                          | is an optional list containing the merkle tree nodes we know |
 |                          | of so far, for all files. It's a list of dictionaries, one   |

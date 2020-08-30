@@ -492,7 +492,6 @@ peers6
 DNSName
 SubjectAltName
 SNI
-httpseeds
 Base16
 lsd
 xt

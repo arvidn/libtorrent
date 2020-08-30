@@ -19,7 +19,7 @@ see LICENSE file.
 
 #if !defined TORRENT_ABI_VERSION
 # ifdef TORRENT_NO_DEPRECATE
-#  define TORRENT_ABI_VERSION 3
+#  define TORRENT_ABI_VERSION 4
 # else
 #  define TORRENT_ABI_VERSION 1
 # endif

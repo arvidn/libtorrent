@@ -390,7 +390,7 @@ TORRENT_TEST(add_tracker)
 	TEST_EQUAL(ti.trackers().size(), 0);
 }
 
-TORRENT_TEST(url_list_and_httpseeds)
+TORRENT_TEST(url_list_duplicate)
 {
 	entry info;
 	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
@@ -400,17 +400,16 @@ TORRENT_TEST(url_list_and_httpseeds)
 	info["length"] = 3245;
 	entry::list_type l;
 	l.push_back(entry("http://foo.com/bar1"));
-	l.push_back(entry("http://foo.com/bar1"));
+	l.push_back(entry("http://foo.com/bar1")); // <- duplicate
 	l.push_back(entry("http://foo.com/bar2"));
 	entry const e(l);
 	entry torrent;
 	torrent["url-list"] = e;
-	torrent["httpseeds"] = e;
 	torrent["info"] = info;
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti(buf, from_span);
-	TEST_EQUAL(ti.web_seeds().size(), 4);
+	TEST_EQUAL(ti.web_seeds().size(), 2);
 }
 
 TORRENT_TEST(add_url_seed)
@@ -422,20 +421,6 @@ TORRENT_TEST(add_url_seed)
 
 	TEST_EQUAL(ti.web_seeds().size(), 1);
 	web_seed_entry we = ti.web_seeds()[0];
-	TEST_EQUAL(we.type, web_seed_entry::url_seed);
-	TEST_EQUAL(we.url, "http://test.com");
-}
-
-TORRENT_TEST(add_http_seed)
-{
-	torrent_info ti(info_hash_t(sha1_hash("                   ")));
-	TEST_EQUAL(ti.web_seeds().size(), 0);
-
-	ti.add_http_seed("http://test.com");
-
-	TEST_EQUAL(ti.web_seeds().size(), 1);
-	web_seed_entry we = ti.web_seeds()[0];
-	TEST_EQUAL(we.type, web_seed_entry::http_seed);
 	TEST_EQUAL(we.url, "http://test.com");
 }
 
@@ -445,9 +430,9 @@ TORRENT_TEST(set_web_seeds)
 	TEST_EQUAL(ti.web_seeds().size(), 0);
 
 	std::vector<web_seed_entry> seeds;
-	web_seed_entry e1("http://test1.com", web_seed_entry::url_seed);
+	web_seed_entry e1("http://test1.com");
 	seeds.push_back(e1);
-	web_seed_entry e2("http://test2com", web_seed_entry::http_seed);
+	web_seed_entry e2("http://test2com");
 	seeds.push_back(e2);
 
 	ti.set_web_seeds(seeds);

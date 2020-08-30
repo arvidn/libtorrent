@@ -608,37 +608,26 @@ namespace libtorrent {
 
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
-		async_call(&aux::torrent::add_web_seed, url, web_seed_entry::url_seed
+		async_call(&aux::torrent::add_web_seed, url
 			, std::string(), web_seed_entry::headers_t(), aux::web_seed_flag_t{});
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
 	{
-		async_call(&aux::torrent::remove_web_seed, url, web_seed_entry::url_seed);
+		async_call(&aux::torrent::remove_web_seed, url);
 	}
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
 		static const std::set<std::string> empty;
-		return sync_call_ret<std::set<std::string>>(empty, &aux::torrent::web_seeds, web_seed_entry::url_seed);
+		return sync_call_ret<std::set<std::string>>(empty, &aux::torrent::web_seeds);
 	}
 
-	void torrent_handle::add_http_seed(std::string const& url) const
-	{
-		async_call(&aux::torrent::add_web_seed, url, web_seed_entry::http_seed
-			, std::string(), web_seed_entry::headers_t(), aux::web_seed_flag_t{});
-	}
-
-	void torrent_handle::remove_http_seed(std::string const& url) const
-	{
-		async_call(&aux::torrent::remove_web_seed, url, web_seed_entry::http_seed);
-	}
-
-	std::set<std::string> torrent_handle::http_seeds() const
-	{
-		static const std::set<std::string> empty;
-		return sync_call_ret<std::set<std::string>>(empty, &aux::torrent::web_seeds, web_seed_entry::http_seed);
-	}
+#if TORRENT_ABI_VERSION < 4
+	void torrent_handle::add_http_seed(std::string const&) const {}
+	void torrent_handle::remove_http_seed(std::string const&) const {}
+	std::set<std::string> torrent_handle::http_seeds() const { return {}; }
+#endif
 
 	void torrent_handle::replace_trackers(
 		std::vector<announce_entry> const& urls) const

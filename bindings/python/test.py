@@ -293,7 +293,6 @@ class test_torrent_handle(unittest.TestCase):
             'trackers': ['http://test.com/announce'],
             'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
             'file_priorities': [1, 1],
-            'http_seeds': ['http://test.com/file3'],
             'url_seeds': ['http://test.com/announce-url'],
             'peers': [('5.6.7.8', 6881)],
             'banned_peers': [('8.7.6.5', 6881)],
@@ -306,7 +305,6 @@ class test_torrent_handle(unittest.TestCase):
         self.assertEqual(trackers[0].get('url'), 'http://test.com/announce')
         self.assertEqual(trackers[0].get('tier'), 0)
         self.assertEqual(self.h.get_file_priorities(), [1, 1])
-        self.assertEqual(self.h.http_seeds(), ['http://test.com/file3'])
         # url_seeds was already set, test that it did not get overwritten
         self.assertEqual(self.h.url_seeds(),
                          ['http://test.com/announce-url/', 'http://test.com/file/'])
@@ -400,19 +398,6 @@ class test_torrent_info(unittest.TestCase):
 
         self.assertTrue(len(ti.info_section()) != 0)
         self.assertTrue(len(ti.hash_for_piece(0)) != 0)
-
-    def test_web_seeds(self):
-        ti = lt.torrent_info('base.torrent')
-
-        ws = [{'url': 'http://foo/test', 'auth': '', 'type': 0},
-              {'url': 'http://bar/test', 'auth': '', 'type': 1}]
-        ti.set_web_seeds(ws)
-        web_seeds = ti.web_seeds()
-        self.assertEqual(len(ws), len(web_seeds))
-        for i in range(len(web_seeds)):
-            self.assertEqual(web_seeds[i]["url"], ws[i]["url"])
-            self.assertEqual(web_seeds[i]["auth"], ws[i]["auth"])
-            self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
 
     def test_announce_entry(self):
         ae = lt.announce_entry('test')

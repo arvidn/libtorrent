@@ -146,7 +146,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		print_ses_rate(i / 10.f, &s, nullptr);
 		print_alerts(ses, "  >>  ses", false, false, &on_alert);
 
-		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())
+		if (test_ban && th.url_seeds().empty())
 		{
 			std::printf("testing ban: URL seed removed\n");
 			// when we don't have any web seeds left, we know we successfully banned it
@@ -181,10 +181,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		// torrents that don't have very many pieces will not ban the web seeds,
 		// since they won't have an opportunity to accrue enough negative points
 		if (torrent_file->files().num_pieces() > 3)
-		{
 			TEST_CHECK(th.url_seeds().empty());
-			TEST_CHECK(th.http_seeds().empty());
-		}
 	}
 	else
 	{
@@ -231,8 +228,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 // protocol: "http" or "https"
-// test_url_seed determines whether to use url-seed or http-seed
-int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
+int EXPORT run_http_suite(int proxy, char const* protocol
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename
 	, bool proxy_peers)
 {
@@ -246,7 +242,6 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 	std::vector<torrent_args> test_cases;
 
-	if (test_url_seed)
 	{
 		char url[512];
 		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s", protocol, port, save_path.c_str());
@@ -321,16 +316,6 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			.name("torrent_dir")
 			.url_seed(url));
 	}
-	else
-	{
-		char url[512];
-		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/seed", protocol, port, save_path.c_str());
-		std::printf("testing: %s\n", url);
-
-		// there's really just one test case for http seeds
-		test_cases.push_back(torrent_args().file("589824,name=seed")
-			.http_seed(url));
-	}
 
 	int idx = 0;
 	for (auto const& c : test_cases)
@@ -362,13 +347,13 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			pack.set_bool(settings_pack::enable_dht, false);
 			lt::session ses(session_params{pack, {}});
 
-			test_transfer(ses, torrent_file, proxy, protocol, test_url_seed
+			test_transfer(ses, torrent_file, proxy, protocol, true
 				, chunked_encoding, test_ban, keepalive, proxy_peers);
 
-			if (test_url_seed && test_rename)
+			if (test_rename)
 			{
 				torrent_file->rename_file(file_index_t(0), combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
-				test_transfer(ses, torrent_file, 0, protocol, test_url_seed
+				test_transfer(ses, torrent_file, 0, protocol, true
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}
 		}
