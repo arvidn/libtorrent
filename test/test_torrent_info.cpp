@@ -354,6 +354,8 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
 	{ "no_files.torrent", errors::no_files_in_torrent},
+	{ "zero.torrent", errors::torrent_invalid_length},
+	{ "zero2.torrent", errors::torrent_invalid_length},
 	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},

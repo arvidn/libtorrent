@@ -159,11 +159,14 @@ def add_torrent(ses, filename, options):
     if filename.startswith('magnet:'):
         atp = lt.parse_magnet_uri(filename)
     else:
-        atp.ti = lt.torrent_info(filename)
+        ti = lt.torrent_info(filename)
+        resume_file = os.path.join(options.save_path, ti.name() + '.fastresume')
         try:
-            atp.resume_data = open(os.path.join(options.save_path, atp.info.name() + '.fastresume'), 'rb').read()
-        except Exception:
+            atp = lt.read_resume_data(open(resume_file, 'rb').read())
+        except Exception as e:
+            print('failed to open resume file "%s": %s' % (resume_file, e))
             pass
+        atp.ti = ti
 
     atp.save_path = options.save_path
     atp.storage_mode = lt.storage_mode_t.storage_mode_sparse

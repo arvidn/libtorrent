@@ -1032,7 +1032,9 @@ TEST_TORRENTS = \
   v2_piece_size.torrent \
   v2_zero_root.torrent \
   v2_zero_root_small.torrent \
-  v2_hybrid.torrent
+  v2_hybrid.torrent \
+  zero.torrent \
+  zero2.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \
