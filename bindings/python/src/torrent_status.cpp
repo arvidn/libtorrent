@@ -21,7 +21,6 @@ void bind_torrent_status()
     scope status = class_<torrent_status>("torrent_status")
         .def(self == self)
         .def_readonly("handle", &torrent_status::handle)
-        .def_readonly("info_hash", &torrent_status::info_hash)
         .add_property("torrent_file", &get_torrent_file)
         .def_readonly("state", &torrent_status::state)
 #if TORRENT_ABI_VERSION == 1
@@ -111,7 +110,10 @@ void bind_torrent_status()
         .def_readonly("announcing_to_trackers", &torrent_status::announcing_to_trackers)
         .def_readonly("announcing_to_lsd", &torrent_status::announcing_to_lsd)
         .def_readonly("announcing_to_dht", &torrent_status::announcing_to_dht)
+#if TORRENT_ABI_VERSION < 3
         .def_readonly("info_hash", &torrent_status::info_hash)
+#endif
+        .def_readonly("info_hashes", &torrent_status::info_hashes)
         .add_property("last_upload", make_getter(&torrent_status::last_upload, by_value()))
         .add_property("last_download", make_getter(&torrent_status::last_download, by_value()))
         .add_property("active_duration", make_getter(&torrent_status::active_duration, by_value()))

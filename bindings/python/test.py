@@ -456,7 +456,7 @@ class test_alerts(unittest.TestCase):
         print(st.progress)
         print(st.num_pieces)
         print(st.distributed_copies)
-        print(st.info_hash)
+        print(st.info_hashes)
         print(st.seeding_duration)
         print(st.last_upload)
         print(st.last_download)

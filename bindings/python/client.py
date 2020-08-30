@@ -288,7 +288,7 @@ def main():
                 % (add_suffix(t.upload_rate), add_suffix(t.total_upload))
 
             if t.state != lt.torrent_status.seeding:
-                out += 'info-hash: %s\n' % t.info_hash
+                out += 'info-hash: %s\n' % t.info_hashes
                 out += 'next announce: %s\n' % t.next_announce
                 out += 'tracker: %s\n' % t.current_tracker
 
