@@ -165,7 +165,6 @@ def add_torrent(ses, filename, options):
             atp = lt.read_resume_data(open(resume_file, 'rb').read())
         except Exception as e:
             print('failed to open resume file "%s": %s' % (resume_file, e))
-            pass
         atp.ti = ti
 
     atp.save_path = options.save_path
