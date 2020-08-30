@@ -16,24 +16,14 @@ using namespace lt;
 
 const int proxy = lt::settings_pack::http_pw;
 
-TORRENT_TEST(web_seed_http_pw)
-{
-	run_http_suite(proxy, "http", false);
-}
-
 TORRENT_TEST(url_seed_http_pw)
 {
-	run_http_suite(proxy, "http", true);
+	run_http_suite(proxy, "http");
 }
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(web_seed_http_pw_ssl)
-{
-	run_http_suite(proxy, "https", false);
-}
-
 TORRENT_TEST(url_seed_http_pw_ssl)
 {
-	run_http_suite(proxy, "https", true);
+	run_http_suite(proxy, "https");
 }
 #endif

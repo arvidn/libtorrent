@@ -57,29 +57,32 @@ namespace aux {
 	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
 	struct TORRENT_EXPORT web_seed_entry
 	{
+#if TORRENT_ABI_VERSION < 4
 		// http seeds are different from url seeds in the
 		// protocol they use. http seeds follows the original
 		// http seed spec. by John Hoffman
-		enum type_t { url_seed, http_seed };
+		enum TORRENT_DEPRECATED type_t { url_seed, http_seed };
+#endif
 
 		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
 		// hidden
-		web_seed_entry(std::string url_, type_t type_
+		web_seed_entry(std::string url_
 			, std::string auth_ = std::string()
 			, headers_t extra_headers_ = headers_t());
 
+		web_seed_entry(web_seed_entry const&);
+		web_seed_entry(web_seed_entry&&);
+		web_seed_entry& operator=(web_seed_entry const&);
+		web_seed_entry& operator=(web_seed_entry&&);
+
 		// URL and type comparison
 		bool operator==(web_seed_entry const& e) const
-		{ return type == e.type && url == e.url; }
+		{ return url == e.url; }
 
 		// URL and type less-than comparison
 		bool operator<(web_seed_entry const& e) const
-		{
-			if (url < e.url) return true;
-			if (url > e.url) return false;
-			return type < e.type;
-		}
+		{ return url < e.url; }
 
 		// The URL of the web seed
 		std::string url;
@@ -92,8 +95,11 @@ namespace aux {
 		// Any extra HTTP headers that need to be passed to the web seed
 		headers_t extra_headers;
 
+#if TORRENT_ABI_VERSION < 4
 		// The type of web seed (see type_t)
-		std::uint8_t type;
+		TORRENT_DEPRECATED
+		std::uint8_t type = 0;
+#endif
 	};
 
 	// hidden
@@ -292,8 +298,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// Each entry is a ``web_seed_entry`` and may refer to either a url seed
 		// or http seed.
 		//
-		// ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-		// url/http seeds.
+		// ``add_url_seed()`` adds one url to the list of web seeds.
 		//
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
@@ -311,11 +316,14 @@ TORRENT_VERSION_NAMESPACE_3
 		void add_url_seed(std::string const& url
 			, std::string const& ext_auth = std::string()
 			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
+		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
+		void set_web_seeds(std::vector<web_seed_entry> seeds);
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
-		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
-		void set_web_seeds(std::vector<web_seed_entry> seeds);
+#endif
 
 		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
 		// total number of bytes the torrent-file represents (all the files in

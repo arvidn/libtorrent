@@ -171,7 +171,7 @@ TORRENT_TEST(pointer_offset)
 		, 10, file_flags_t{}, filehash, 0, {}, roothash);
 
 	// test filename_ptr and filename_len
-#ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_ABI_VERSION <= 2
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
 #endif

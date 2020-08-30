@@ -654,15 +654,17 @@ namespace {
 
 } // anonymous namespace
 
-	web_seed_entry::web_seed_entry(std::string url_, type_t type_
-		, std::string auth_
-		, headers_t extra_headers_)
+	web_seed_entry::web_seed_entry(std::string url_, std::string auth_, headers_t extra_headers_)
 		: url(std::move(url_))
 		, auth(std::move(auth_))
 		, extra_headers(std::move(extra_headers_))
-		, type(std::uint8_t(type_))
 	{
 	}
+
+	web_seed_entry::web_seed_entry(web_seed_entry const&) = default;
+	web_seed_entry::web_seed_entry(web_seed_entry&&) = default;
+	web_seed_entry& web_seed_entry::operator=(web_seed_entry const&) = default;
+	web_seed_entry& web_seed_entry::operator=(web_seed_entry&&) = default;
 
 TORRENT_VERSION_NAMESPACE_3
 
@@ -1630,8 +1632,7 @@ namespace {
 		if (url_seeds && url_seeds.type() == bdecode_node::string_t
 			&& url_seeds.string_length() > 0)
 		{
-			web_seed_entry ent(maybe_url_encode(url_seeds.string_value())
-				, web_seed_entry::url_seed);
+			web_seed_entry ent(maybe_url_encode(url_seeds.string_value()));
 			if ((m_flags & multifile) && num_files() > 1)
 				ensure_trailing_slash(ent.url);
 			m_web_seeds.push_back(std::move(ent));
@@ -1645,34 +1646,11 @@ namespace {
 				bdecode_node const url = url_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t) continue;
 				if (url.string_length() == 0) continue;
-				web_seed_entry ent(maybe_url_encode(url.string_value())
-					, web_seed_entry::url_seed);
+				web_seed_entry ent(maybe_url_encode(url.string_value()));
 				if ((m_flags & multifile) && num_files() > 1)
 					ensure_trailing_slash(ent.url);
 				if (!unique.insert(ent.url).second) continue;
 				m_web_seeds.push_back(std::move(ent));
-			}
-		}
-
-		// if there are any http-seeds, extract them
-		bdecode_node const http_seeds = torrent_file.dict_find("httpseeds");
-		if (http_seeds && http_seeds.type() == bdecode_node::string_t
-			&& http_seeds.string_length() > 0)
-		{
-			m_web_seeds.emplace_back(maybe_url_encode(http_seeds.string_value())
-				, web_seed_entry::http_seed);
-		}
-		else if (http_seeds && http_seeds.type() == bdecode_node::list_t)
-		{
-			// only add a URL once
-			std::set<std::string> unique;
-			for (int i = 0, end(http_seeds.list_size()); i < end; ++i)
-			{
-				bdecode_node const url = http_seeds.list_at(i);
-				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
-				std::string u = maybe_url_encode(url.string_value());
-				if (!unique.insert(u).second) continue;
-				m_web_seeds.emplace_back(std::move(u), web_seed_entry::http_seed);
 			}
 		}
 
@@ -1716,28 +1694,17 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
-namespace {
-
-	struct filter_web_seed_type
-	{
-		explicit filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}
-		void operator() (web_seed_entry const& w)
-		{ if (w.type == t) urls.push_back(w.url); }
-		std::vector<std::string> urls;
-		web_seed_entry::type_t t;
-	};
-}
-
 	std::vector<std::string> torrent_info::url_seeds() const
 	{
-		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
-			, filter_web_seed_type(web_seed_entry::url_seed)).urls;
+		std::vector<std::string> ret;
+		for (auto const& w : m_web_seeds)
+			ret.push_back(w.url);
+		return ret;
 	}
 
 	std::vector<std::string> torrent_info::http_seeds() const
 	{
-		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
-			, filter_web_seed_type(web_seed_entry::http_seed)).urls;
+		return {};
 	}
 #endif // TORRENT_ABI_VERSION
 
@@ -1745,17 +1712,16 @@ namespace {
 		, std::string const& ext_auth
 		, web_seed_entry::headers_t const& ext_headers)
 	{
-		m_web_seeds.emplace_back(url, web_seed_entry::url_seed
-			, ext_auth, ext_headers);
+		m_web_seeds.emplace_back(url, ext_auth, ext_headers);
 	}
 
-	void torrent_info::add_http_seed(std::string const& url
-		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
+#if TORRENT_ABI_VERSION < 4
+	void torrent_info::add_http_seed(std::string const&
+		, std::string const&
+		, web_seed_entry::headers_t const&)
 	{
-		m_web_seeds.emplace_back(url, web_seed_entry::http_seed
-			, auth, extra_headers);
 	}
+#endif
 
 	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
 	{

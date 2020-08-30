@@ -101,42 +101,6 @@ class http_handler(BaseHTTPRequestHandler):
             s.end_headers()
             s.wfile.write(response)
             s.request.close()
-        elif os.path.split(s.path)[1].startswith('seed?'):
-            query = s.path[6:]
-            args_raw = query.split('&')
-            args = {}
-            for a in args_raw:
-                kvp = a.split('=')
-                args[kvp[0]] = kvp[1]
-            piece = int(args['piece'])
-            ranges = args['ranges'].split('-')
-
-            filename = ''
-            try:
-                filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
-                print('filename = %s' % filename)
-                sys.stdout.flush()
-                f = open(filename, 'rb')
-                f.seek(piece * 32 * 1024 + int(ranges[0]))
-                data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
-                f.close()
-
-                s.send_response(200)
-                print('sending %d bytes' % len(data))
-                sys.stdout.flush()
-                s.send_header("Content-Length", "%d" % len(data))
-                s.end_headers()
-                s.wfile.write(data)
-            except Exception as e:
-                print('FILE ERROR: ', filename, e)
-                traceback.print_exc(file=sys.stdout)
-                sys.stdout.flush()
-                s.send_response(404)
-                s.send_header("Content-Length", "0")
-                try:
-                    s.end_headers()
-                except Exception:
-                    pass
         else:
             filename = ''
             try:

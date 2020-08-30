@@ -173,9 +173,6 @@ namespace libtorrent {
 		entry::list_type& url_list = ret["url-list"].list();
 		std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 
-		entry::list_type& httpseeds_list = ret["httpseeds"].list();
-		std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
-
 		// write have bitmask
 		entry::string_type& pieces = ret["pieces"].string();
 		pieces.resize(aux::numeric_cast<std::size_t>(std::max(

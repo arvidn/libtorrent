@@ -60,7 +60,6 @@ see LICENSE file.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/aux_/web_peer_connection.hpp"
-#include "libtorrent/aux_/http_seed_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -136,10 +135,10 @@ bool is_downloading_state(int const st)
 		peer_info.web_seed = true;
 	}
 
-	web_seed_t::web_seed_t(std::string const& url_, web_seed_entry::type_t type_
+	web_seed_t::web_seed_t(std::string const& url_
 		, std::string const& auth_
 		, web_seed_entry::headers_t const& extra_headers_)
-		: web_seed_entry(url_, type_, auth_, extra_headers_)
+		: web_seed_entry(url_, auth_, extra_headers_)
 	{
 		peer_info.web_seed = true;
 	}
@@ -271,20 +270,13 @@ bool is_downloading_state(int const st)
 
 		for (auto const& u : p.url_seeds)
 		{
-			ws.emplace_back(web_seed_t(u, web_seed_entry::url_seed));
+			ws.emplace_back(u);
 
 			// correct URLs to end with a "/" for multi-file torrents
 			if (multi_file)
 				ensure_trailing_slash(ws.back().url);
 			if (!m_torrent_file->is_valid())
 				m_torrent_file->add_url_seed(ws.back().url);
-		}
-
-		for (auto const& e : p.http_seeds)
-		{
-			ws.emplace_back(e, web_seed_entry::http_seed);
-			if (!m_torrent_file->is_valid())
-				m_torrent_file->add_http_seed(e);
 		}
 
 		aux::random_shuffle(ws);
@@ -6457,15 +6449,7 @@ namespace {
 			, aux::generate_peer_id(settings())
 		};
 
-		std::shared_ptr<peer_connection> c;
-		if (web->type == web_seed_entry::url_seed)
-		{
-			c = std::make_shared<web_peer_connection>(pack, *web);
-		}
-		else if (web->type == web_seed_entry::http_seed)
-		{
-			c = std::make_shared<http_seed_connection>(pack, *web);
-		}
+		auto c = std::make_shared<web_peer_connection>(pack, *web);
 		if (!c) return;
 
 #if TORRENT_USE_ASSERTS
@@ -6706,10 +6690,7 @@ namespace {
 		for (auto const& ws : m_web_seeds)
 		{
 			if (ws.removed || ws.ephemeral) continue;
-			if (ws.type == web_seed_entry::url_seed)
-				ret.url_seeds.push_back(ws.url);
-			else if (ws.type == web_seed_entry::http_seed)
-				ret.http_seeds.push_back(ws.url);
+			ret.url_seeds.push_back(ws.url);
 		}
 
 		// write have bitmask
@@ -9205,12 +9186,11 @@ namespace {
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
 	web_seed_t* torrent::add_web_seed(std::string const& url
-		, web_seed_entry::type_t const type
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers
 		, web_seed_flag_t const flags)
 	{
-		web_seed_t ent(url, type, auth, extra_headers);
+		web_seed_t ent(url, auth, extra_headers);
 		ent.ephemeral = bool(flags & ephemeral);
 
 		// don't add duplicates
@@ -10545,7 +10525,7 @@ namespace {
 	}
 #endif // TORRENT_DISABLE_STREAMING
 
-	std::set<std::string> torrent::web_seeds(web_seed_entry::type_t const type) const
+	std::set<std::string> torrent::web_seeds() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::set<std::string> ret;
@@ -10553,16 +10533,15 @@ namespace {
 		{
 			if (s.peer_info.banned) continue;
 			if (s.removed) continue;
-			if (s.type != type) continue;
 			ret.insert(s.url);
 		}
 		return ret;
 	}
 
-	void torrent::remove_web_seed(std::string const& url, web_seed_entry::type_t const type)
+	void torrent::remove_web_seed(std::string const& url)
 	{
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, [&] (web_seed_t const& w) { return w.url == url && w.type == type; });
+			, [&] (web_seed_t const& w) { return w.url == url; });
 
 		if (i != m_web_seeds.end())
 		{

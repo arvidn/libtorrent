@@ -1559,10 +1559,6 @@ examples:
 					std::set<std::string> seeds = h.url_seeds();
 					for (auto const& s : seeds)
 						h.remove_url_seed(s);
-
-					seeds = h.http_seeds();
-					for (auto const& s : seeds)
-						h.remove_http_seed(s);
 				}
 
 				if (c == 'D' && h.is_valid())

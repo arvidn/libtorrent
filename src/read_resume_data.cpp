@@ -271,31 +271,16 @@ namespace {
 		// the resume file to take precedence. If there aren't even any fields in
 		// the resume data though, keep the ones from the torrent
 		bdecode_node const url_list = rd.dict_find_list("url-list");
-		bdecode_node const httpseeds = rd.dict_find_list("httpseeds");
-		if (url_list || httpseeds)
+		if (url_list)
 		{
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
 			ret.flags |= torrent_flags::override_web_seeds;
-		}
-
-		if (url_list)
-		{
 			for (int i = 0; i < url_list.list_size(); ++i)
 			{
 				auto url = url_list.list_string_value_at(i);
 				if (url.empty()) continue;
 				ret.url_seeds.emplace_back(url);
-			}
-		}
-
-		if (httpseeds)
-		{
-			for (int i = 0; i < httpseeds.list_size(); ++i)
-			{
-				auto url = httpseeds.list_string_value_at(i);
-				if (url.empty()) continue;
-				ret.http_seeds.emplace_back(url);
 			}
 		}
 

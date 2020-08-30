@@ -17,23 +17,13 @@ using namespace lt;
 const int proxy = lt::settings_pack::none;
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(http_seed_ssl)
-{
-	run_http_suite(proxy, "https", 0, 0, 1);
-}
-
 TORRENT_TEST(url_seed_ssl)
 {
-	run_http_suite(proxy, "https", 1, 0, 1);
+	run_http_suite(proxy, "https", 0, 1);
 }
 #endif
 
-TORRENT_TEST(http_seed)
-{
-	run_http_suite(proxy, "http", 0, 0, 1);
-}
-
 TORRENT_TEST(url_seed)
 {
-	run_http_suite(proxy, "http", 1, 0, 1);
+	run_http_suite(proxy, "http", 0, 1);
 }

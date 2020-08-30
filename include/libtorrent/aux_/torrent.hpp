@@ -130,7 +130,7 @@ namespace aux {
 	struct web_seed_t : web_seed_entry
 	{
 		explicit web_seed_t(web_seed_entry const& wse);
-		web_seed_t(std::string const& url_, web_seed_entry::type_t type_
+		web_seed_t(std::string const& url_
 			, std::string const& auth_ = std::string()
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
 
@@ -622,12 +622,11 @@ namespace aux {
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
 		web_seed_t* add_web_seed(std::string const& url
-			, web_seed_t::type_t type
 			, std::string const& auth = std::string()
 			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t()
 			, web_seed_flag_t flags = {});
 
-		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
+		void remove_web_seed(std::string const& url);
 		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, boost::optional<seconds32> retry = boost::none);
@@ -635,7 +634,7 @@ namespace aux {
 		void remove_web_seed_conn(peer_connection* p, error_code const& ec
 			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal);
 
-		std::set<std::string> web_seeds(web_seed_entry::type_t type) const;
+		std::set<std::string> web_seeds() const;
 
 		bool free_upload_slots() const
 		{ return m_num_uploads < m_max_uploads; }

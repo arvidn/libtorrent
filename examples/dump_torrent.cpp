@@ -156,11 +156,7 @@ int main(int argc, char const* argv[]) try
 	}
 	std::printf("web seeds:\n");
 	for (auto const& ws : t.web_seeds())
-	{
-		std::printf("%s %s\n"
-			, ws.type == lt::web_seed_entry::url_seed ? "BEP19" : "BEP17"
-			, ws.url.c_str());
-	}
+		std::printf("%s\n", ws.url.c_str());
 
 	return 0;
 }

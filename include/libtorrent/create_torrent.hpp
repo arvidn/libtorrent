@@ -250,10 +250,12 @@ namespace libtorrent {
 		// content as the file of the torrent. For a multi-file torrent, it should point to
 		// a directory containing a directory with the same name as this torrent, and all the
 		// files of the torrent in it.
-		//
-		// The second function, ``add_http_seed()`` adds an HTTP seed instead.
 		void add_url_seed(string_view url);
+
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED
 		void add_http_seed(string_view url);
+#endif
 
 		// This adds a DHT node to the torrent. This especially useful if you're creating a
 		// tracker less torrent. It can be used by clients to bootstrap their DHT node from.
@@ -331,7 +333,6 @@ namespace libtorrent {
 		std::vector<std::pair<std::string, int>> m_urls;
 
 		std::vector<std::string> m_url_seeds;
-		std::vector<std::string> m_http_seeds;
 
 		aux::vector<sha1_hash, piece_index_t> m_piece_hash;
 

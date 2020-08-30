@@ -485,13 +485,18 @@ namespace aux {
 		void remove_url_seed(std::string const& url) const;
 		std::set<std::string> url_seeds() const;
 
+#if TORRENT_ABI_VERSION < 4
 		// These functions are identical as the ``*_url_seed()`` variants, but
 		// they operate on `BEP 17`_ web seeds instead of `BEP 19`_.
 		//
 		// See http-seeding_ for more information.
+		TORRENT_DEPRECATED
 		void add_http_seed(std::string const& url) const;
+		TORRENT_DEPRECATED
 		void remove_http_seed(std::string const& url) const;
+		TORRENT_DEPRECATED
 		std::set<std::string> http_seeds() const;
+#endif
 
 		// add the specified extension to this torrent. The ``ext`` argument is
 		// a function that will be called from within libtorrent's context
