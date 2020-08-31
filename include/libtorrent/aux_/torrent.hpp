@@ -97,10 +97,6 @@ POSSIBILITY OF SUCH DAMAGE.
     #include "libtorrent/aux_/rtc_stream.hpp"
 #endif
 
-#if TORRENT_COMPLETE_TYPES_REQUIRED
-#include "libtorrent/peer_connection.hpp"
-#endif
-
 // define as 0 to disable. 1 enables debug output of the pieces and requested
 // blocks. 2 also enables trace output of the time critical piece picking
 // logic

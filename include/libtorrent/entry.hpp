@@ -281,15 +281,8 @@ namespace libtorrent {
 	private:
 
 		aux::aligned_union<1
-#if TORRENT_COMPLETE_TYPES_REQUIRED
-			// for implementations that require complete types, use char and hope
-			// for the best
-			, std::list<char>
-			, std::map<std::string, char>
-#else
 			, list_type
 			, dictionary_type
-#endif
 			, preformatted_type
 			, string_type
 			, integer_type

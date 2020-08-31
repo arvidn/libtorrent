@@ -62,17 +62,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
 #endif
 
-#if defined __GNUC__
-
-#ifdef _GLIBCXX_CONCEPT_CHECKS
-#define TORRENT_COMPLETE_TYPES_REQUIRED 1
-#endif
-
 // ======= SUNPRO =========
 
-#elif defined __SUNPRO_CC
-
-#define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#if defined __SUNPRO_CC
 
 // ======= MSVC =========
 
@@ -414,10 +406,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_MADVISE
 #define TORRENT_USE_MADVISE 0
-#endif
-
-#ifndef TORRENT_COMPLETE_TYPES_REQUIRED
-#define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
 
 #ifndef TORRENT_USE_FDATASYNC
