@@ -95,10 +95,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #endif
 
-#if TORRENT_COMPLETE_TYPES_REQUIRED
-#include "libtorrent/peer_connection.hpp"
-#endif
-
 #include <algorithm>
 #include <vector>
 #include <set>
@@ -120,6 +116,7 @@ TORRENT_VERSION_NAMESPACE_3_END
 	struct lsd;
 	struct alert;
 	struct torrent_handle;
+	struct peer_connection;
 
 namespace dht {
 
