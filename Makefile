@@ -577,7 +577,6 @@ HEADERS = \
   aux_/byteswap.hpp                 \
   aux_/container_wrapper.hpp        \
   aux_/chained_buffer.hpp           \
-  aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
   aux_/deferred_handler.hpp         \
   aux_/deprecated.hpp               \
