@@ -319,8 +319,7 @@ namespace libtorrent {
 		// or http seed.
 		//
 		// ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-		// url/http seeds. Currently, the only transport protocol supported for
-		// the url is http.
+		// url/http seeds.
 		//
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
