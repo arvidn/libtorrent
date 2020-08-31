@@ -198,7 +198,6 @@ set(libtorrent_aux_include_files
 	keepalive
 	byteswap
 	chained_buffer
-	cppint_import_export
 	cpuid
 	deferred_handler
 	deprecated
