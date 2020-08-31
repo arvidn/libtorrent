@@ -3,9 +3,13 @@
 
 import glob
 import copyright
+import os
 
 
 def update_file(name):
+    if os.path.split(name)[1] in ['puff.cpp', 'puff.hpp', 'sha1.cpp', 'sha1.hpp', 'route.h']:
+        return
+
     new_header = copyright.get_authors(name)
     subst = ''
     f = open(name)
@@ -38,6 +42,7 @@ def update_file(name):
 
 for i in glob.glob('src/*.cpp') + \
         glob.glob('include/libtorrent/*.hpp') + \
+        glob.glob('include/libtorrent/aux_/*.hpp') + \
         glob.glob('include/libtorrent/extensions/*.hpp') + \
         glob.glob('include/libtorrent/kademlia/*.hpp') + \
         glob.glob('src/kademlia/*.cpp') + \
