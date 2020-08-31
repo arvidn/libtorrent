@@ -15,24 +15,26 @@ def update_file(name):
     f = open(name)
 
     substitution_state = 0
-    added = False
-    found = False
     for line in f:
-        if line.strip() == '/*':
+        if substitution_state == 0 and line.strip() == '/*':
+            subst = '/*\n\n'
             substitution_state += 1
+            continue
         elif substitution_state == 1:
             if line.strip().lower().startswith('copyright'):
-                # remove the existing copyright
-                found = True
                 existing_author = line.split(',')[-1]
-                if existing_author in new_header or existing_author.strip() == 'Not Committed Yet':
-                    continue
-                print('preserving: %s' % line)
-            elif not added and found:
-                subst += new_header
-                added = True
-        elif line.strip() == '*/':
-            substitution_state += 1
+                if existing_author not in new_header and not existing_author.strip() == 'Not Committed Yet':
+                    print('preserving: %s' % line)
+                    subst += line
+            elif line.strip() == '*/':
+                subst += new_header + '''All rights reserved.
+
+You may use, distribute and modify this code under the terms of the BSD license,
+see LICENSE file.
+*/
+'''
+                substitution_state += 1
+            continue
 
         subst += line
 
