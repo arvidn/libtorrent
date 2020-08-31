@@ -25,8 +25,6 @@ import dummy_data
 if os.name != 'nt':
     import pty
 
-HAVE_DEPRECATED_APIS = hasattr(lt, 'version')
-
 settings = {
     'alert_mask': lt.alert.category_t.all_categories,
     'enable_dht': False, 'enable_lsd': False, 'enable_natpmp': False,
@@ -99,6 +97,12 @@ class test_torrent_handle(unittest.TestCase):
         self.ti = lt.torrent_info('url_seed_multi.torrent')
         with self.assertRaises(RuntimeError):
             self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd(), 'info_hashes': b'abababababababababab'})
+
+    def test_move_storage(self):
+        self.setup()
+        self.h.move_storage(u'test-dir')
+        self.h.move_storage(b'test-dir2')
+        self.h.move_storage('test-dir3')
 
     def test_torrent_handle(self):
         self.setup()
@@ -309,8 +313,6 @@ class test_torrent_handle(unittest.TestCase):
         # piece priorities weren't set explicitly, but they were updated by the
         # file priorities being set
         self.assertEqual(self.h.get_piece_priorities(), [1])
-        if HAVE_DEPRECATED_APIS:
-            self.assertEqual(self.ti.merkle_tree(), [])
         self.assertEqual(self.st.verified_pieces, [])
 
 
@@ -372,13 +374,6 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
 
-    def test_sha1_constructor(self):
-        if not HAVE_DEPRECATED_APIS:
-            return
-        info = lt.torrent_info(lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
-        self.assertEqual(info.info_hash(), lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
-        self.assertEqual(info.info_hashes().v1, lt.sha1_hash('aaaaaaaaaaaaaaaaaaaa'))
-
     def test_load_decode_depth_limit(self):
         self.assertRaises(RuntimeError, lambda: lt.torrent_info(
             {'test': {'test': {'test': {'test': {'test': {}}}}}, 'info': {
@@ -400,15 +395,6 @@ class test_torrent_info(unittest.TestCase):
                 'piece length': 16 * 1024,
                 'pieces': 'aaaaaaaaaaaaaaaaaaaa'}}, {'max_buffer_size': 1}))
 
-    def test_metadata(self):
-        if not HAVE_DEPRECATED_APIS:
-            return
-
-        ti = lt.torrent_info('base.torrent')
-
-        self.assertTrue(len(ti.metadata()) != 0)
-        self.assertTrue(len(ti.hash_for_piece(0)) != 0)
-
     def test_info_section(self):
         ti = lt.torrent_info('base.torrent')
 
@@ -427,25 +413,6 @@ class test_torrent_info(unittest.TestCase):
             self.assertEqual(web_seeds[i]["url"], ws[i]["url"])
             self.assertEqual(web_seeds[i]["auth"], ws[i]["auth"])
             self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
-
-    def test_iterable_files(self):
-        # the file_strage object is only iterable for backwards compatibility
-        if not HAVE_DEPRECATED_APIS:
-            return
-
-        lt.session(settings)
-        ti = lt.torrent_info('url_seed_multi.torrent')
-        files = ti.files()
-
-        idx = 0
-        expected = ['bar.txt', 'var.txt']
-        for f in files:
-            print(f.path)
-
-            self.assertEqual(os.path.split(f.path)[1], expected[idx])
-            self.assertEqual(os.path.split(f.path)[0],
-                             os.path.join('temp', 'foo'))
-            idx += 1
 
     def test_announce_entry(self):
         ae = lt.announce_entry('test')
@@ -489,9 +456,7 @@ class test_alerts(unittest.TestCase):
         print(st.progress)
         print(st.num_pieces)
         print(st.distributed_copies)
-        if HAVE_DEPRECATED_APIS:
-            print(st.paused)
-        print(st.info_hash)
+        print(st.info_hashes)
         print(st.seeding_duration)
         print(st.last_upload)
         print(st.last_download)

@@ -63,6 +63,8 @@ int main(int argc, char* argv[])
 
 #else
 
+namespace {
+
 std::string to_hex(lt::span<char const> key)
 {
 	std::string out;
@@ -70,7 +72,7 @@ std::string to_hex(lt::span<char const> key)
 	{
 		char buf[3]{};
 		std::snprintf(buf, sizeof(buf), "%02x", static_cast<unsigned char>(b));
-		out += (char*)buf;
+		out += static_cast<char const*>(buf);
 	}
 	return out;
 }
@@ -100,8 +102,7 @@ bool from_hex(span<char const> in, span<char> out)
 	return true;
 }
 
-namespace {
-void usage()
+[[noreturn]] void usage()
 {
 	std::fprintf(stderr,
 		"USAGE:\ndht <command> <arg>\n\nCOMMANDS:\n"

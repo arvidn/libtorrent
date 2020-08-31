@@ -563,7 +563,6 @@ HEADERS = \
   aux_/container_wrapper.hpp        \
   aux_/chained_buffer.hpp           \
   aux_/choker.hpp                   \
-  aux_/cppint_import_export.hpp     \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
   aux_/deferred_handler.hpp         \
@@ -652,6 +651,8 @@ HEADERS = \
   aux_/vector.hpp                   \
   aux_/web_connection_base.hpp      \
   aux_/web_peer_connection.hpp      \
+  aux_/windows.hpp                  \
+  aux_/win_cng.hpp                  \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
   aux_/rtc_signaling.hpp            \
@@ -1039,7 +1040,9 @@ TEST_TORRENTS = \
   v2_piece_size.torrent \
   v2_zero_root.torrent \
   v2_zero_root_small.torrent \
-  v2_hybrid.torrent
+  v2_hybrid.torrent \
+  zero.torrent \
+  zero2.torrent
 
 MUTABLE_TEST_TORRENTS = \
   test1.torrent \

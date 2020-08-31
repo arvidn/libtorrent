@@ -447,7 +447,10 @@ void bind_alert()
 
     class_<torrent_removed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_removed_alert", no_init)
+#if TORRENT_ABI_VERSION < 3
         .def_readonly("info_hash", &torrent_removed_alert::info_hash)
+#endif
+        .def_readonly("info_hashes", &torrent_removed_alert::info_hashes)
         ;
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
@@ -569,7 +572,10 @@ void bind_alert()
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
         "torrent_deleted_alert", no_init)
+#if TORRENT_ABI_VERSION < 3
         .def_readonly("info_hash", &torrent_deleted_alert::info_hash)
+#endif
+        .def_readonly("info_hashes", &torrent_deleted_alert::info_hashes)
     ;
 
     class_<torrent_paused_alert, bases<torrent_alert>, noncopyable>(
@@ -877,7 +883,10 @@ void bind_alert()
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
 #endif
         .def_readonly("error", &torrent_delete_failed_alert::error)
+#if TORRENT_ABI_VERSION < 3
         .def_readonly("info_hash", &torrent_delete_failed_alert::info_hash)
+#endif
+        .def_readonly("info_hashes", &torrent_delete_failed_alert::info_hashes)
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(

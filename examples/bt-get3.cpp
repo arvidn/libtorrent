@@ -48,11 +48,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
+namespace {
+
 using clk = std::chrono::steady_clock;
 
 // return the name of a torrent status enum
 char const* state(lt::torrent_status::state_t s)
 {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
 	switch(s) {
 		case lt::torrent_status::checking_files: return "checking";
 		case lt::torrent_status::downloading_metadata: return "dl metadata";
@@ -63,6 +69,9 @@ char const* state(lt::torrent_status::state_t s)
 		case lt::torrent_status::checking_resume_data: return "checking resume";
 		default: return "<>";
 	}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 std::vector<char> load_file(char const* filename)
@@ -76,6 +85,8 @@ std::vector<char> load_file(char const* filename)
 std::atomic<bool> shut_down{false};
 
 void sighandler(int) { shut_down = true; }
+
+} // anonymous namespace
 
 int main(int argc, char const* argv[]) try
 {
@@ -148,7 +159,7 @@ int main(int argc, char const* argv[]) try
 				std::ofstream of(".resume_file", std::ios_base::binary);
 				of.unsetf(std::ios_base::skipws);
 				auto const b = write_resume_data_buf(rd->params);
-				of.write(b.data(), b.size());
+				of.write(b.data(), int(b.size()));
 				if (done) goto done;
 			}
 
@@ -190,7 +201,7 @@ done:
 		of.unsetf(std::ios_base::skipws);
 		auto const b = write_session_params_buf(ses.session_state()
 			, lt::save_state_flags_t::all());
-		of.write(b.data(), b.size());
+		of.write(b.data(), int(b.size()));
 	}
 
 	std::cout << "\ndone, shutting down" << std::endl;

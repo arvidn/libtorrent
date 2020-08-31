@@ -468,7 +468,7 @@ namespace {
 	{
 		// if the local codepage is already UTF-8, no need to convert
 		static UINT const cp = GetACP();
-		if (cp == 65001 || cp == CP_UTF8) return s;
+		if (cp == CP_UTF8) return s;
 
 		std::wstring ws;
 		ws.resize(s.size() + 1);
@@ -505,9 +505,16 @@ namespace {
 			&& s.substr(s.size() - suffix.size()) == suffix;
 	}
 
+	bool has_utf8_locale()
+	{
+		char const* lang = std::getenv("LANG");
+		if (lang == nullptr) return false;
+		return ends_with(lang, ".UTF-8");
+	}
+
 	bool need_conversion()
 	{
-		static bool const ret = ends_with(std::locale("").name(), ".UTF-8");
+		static bool const ret = has_utf8_locale();
 		return !ret;
 	}
 }

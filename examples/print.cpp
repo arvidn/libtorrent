@@ -96,7 +96,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 		std::snprintf(code, sizeof(code), "\x1b[3%dm", c);
 		bar = code;
 		std::fill_n(std::back_inserter(bar), progress_chars, fill);
-		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
+		std::fill_n(std::back_inserter(bar), std::size_t(width) - progress_chars, bg);
 		bar += esc("39");
 	}
 	else
@@ -128,10 +128,12 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
+namespace {
 int get_piece(lt::bitfield const& p, int index)
 {
 	if (index < 0 || index >= p.size()) return 0;
 	return p.get_bit(index) ? 1 : 0;
+}
 }
 
 std::string const& piece_bar(lt::bitfield const& p, int width)
@@ -146,7 +148,10 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 	double const piece_per_char = p.size() / double(width);
 	static std::string bar;
 	bar.clear();
-	bar.reserve(width * 6);
+
+	if (width <= 0) return bar;
+
+	bar.reserve(std::size_t(width) * 6);
 	bar += "[";
 	if (p.size() == 0)
 	{
@@ -209,11 +214,13 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 // to print 4 pieces per character.
 std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 {
+	if (width <= 0) return {};
+
 	// print two rows of pieces at a time
 	int piece = 0;
 	++*height;
 	std::string ret;
-	ret.reserve((p.size() + width * 2 - 1) / width / 2 * 4);
+	ret.reserve(std::size_t((p.size() + width * 2 - 1) / width / 2 * 4));
 	while (piece < p.size())
 	{
 		for (int i = 0; i < width; ++i)

@@ -662,7 +662,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	int port = 10000 + static_cast<int>(lt::random(50000));
+	int port = 10000 + static_cast<int>(std::rand() % 50000);
 	error_code ec;
 	io_context ios;
 
@@ -1109,7 +1109,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
 {
-	int port = 2000 + static_cast<int>(lt::random(6000));
+	int port = 2000 + static_cast<int>(std::rand() % 6000);
 	error_code ec;
 	io_context ios;
 

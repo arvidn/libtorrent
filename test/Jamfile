@@ -100,9 +100,19 @@ exe enum_if : enum_if.cpp
 
 install stage_enum_if : enum_if : <location>. ;
 
+install stage_dependencies
+	: /torrent//torrent
+	  libtorrent_test
+	: <location>dependencies
+	<install-dependencies>on
+	<install-type>SHARED_LIB
+	: $(default-build)
+	;
+
 explicit test_natpmp ;
 explicit enum_if ;
 explicit stage_enum_if ;
+explicit stage_dependencies ;
 
 run test_listen_socket.cpp
 	: : : <crypto>openssl:<library>/torrent//ssl

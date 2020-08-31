@@ -943,7 +943,7 @@ explicit install ;
 local header_targets ;
 for local target in $(headers)
 {
-	if ! [ path.basename $(target) ] in storage.hpp windows.hpp win_util.hpp win_crypto_provider.hpp torrent_impl.hpp cppint_import_export.hpp io_service.hpp
+	if ! [ path.basename $(target) ] in storage.hpp windows.hpp win_util.hpp win_crypto_provider.hpp torrent_impl.hpp io_service.hpp
 	{
 		# this cast tells boost build that the header files really *are* cpp files
 		# otherwise the object rule doesn't know which language to interpret them as

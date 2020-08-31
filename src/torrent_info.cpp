@@ -1417,6 +1417,14 @@ namespace {
 		if (info.dict_find_string("ssl-cert"))
 			m_flags |= ssl_torrent;
 
+		if (files.total_size() == 0)
+		{
+			ec = errors::torrent_invalid_length;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
+
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
 		m_files.swap(files);

@@ -210,6 +210,7 @@ int run_test(disk_test_mode_t const flags
 				disk_io->async_read(t, req
 					, [&](lt::disk_buffer_holder h, lt::storage_error const& ec)
 					{
+						TORRENT_UNUSED(h);
 						--outstanding;
 						++job_counter;
 						if (ec) throw std::runtime_error("async_read failed " + ec.ec.message());
@@ -293,7 +294,7 @@ catch (std::exception const& e)
 	return 1;
 }
 
-int main(int argc, char const* argv[])
+int main(int, char const*[])
 {
 	TORRENT_UNUSED(argc);
 	TORRENT_UNUSED(argv);

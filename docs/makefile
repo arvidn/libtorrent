@@ -1,7 +1,9 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 # (python-docutils) as well as aafigure (python-aafigure)
 
+ifndef WEB_PATH
 WEB_PATH = ~/web/products/libtorrent
+endif
 
 ifndef RST2HTML
 RST2HTML:=rst2html
@@ -74,27 +76,33 @@ FIGURES = $(addprefix img/, \
 	storage \
 	troubleshooting \
 	troubleshooting_thumb \
-	screenshot \
 	screenshot_thumb \
 	logo-color \
 	logo-bw \
+	our_delay_base_thumb \
+	delays_thumb \
+	cwnd_thumb \
+)
+
+STAGE_IMG = $(addprefix img/, \
 	logo-color-text \
+	screenshot \
 	bitcoin \
 	ip_id_v4 \
 	ip_id_v6 \
 	hash_distribution \
 	complete_bit_prefixes \
 	our_delay_base \
-	our_delay_base_thumb \
 	delays \
-	delays_thumb \
 	cwnd \
-	cwnd_thumb \
 )
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico
+ORIG_HEADERS = $(wildcard ../include/libtorrent/*.hpp)
+HEADERS = $(ORIG_HEADERS:../%=%)
 
-stage: $(addprefix $(WEB_PATH)/, $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico style.css)
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico $(HEADERS)
+
+stage: $(addprefix $(WEB_PATH)/, $(TARGETS:=.html) $(FIGURES:=.png) todo.html favicon.ico style.css $(HEADERS) $(STAGE_IMG:=.png))
 
 rst: $(TARGETS:=.rst) todo.html
 
@@ -179,6 +187,10 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 %.png:%.diagram
 	$(AAFIGURE) --scale 0.6 -o $@ $< || { rm $@; exit 1; }
 
+include/libtorrent/%.hpp: ../include/libtorrent/%.hpp
+	mkdir -p include/libtorrent >/dev/null
+	cp $< $@
+
 # stage rules
 
 $(WEB_PATH)/%.html:%.rst template.txt template2.txt
@@ -202,6 +214,14 @@ $(WEB_PATH)/%.html: %.html
 	cp $< $@
 
 $(WEB_PATH)/%.ico: %.ico
+	cp $< $@
+
+$(WEB_PATH)/include/libtorrent/%.hpp: ../include/libtorrent/%.hpp
+	mkdir -p $(WEB_PATH)/include/libtorrent
+	cp $< $@
+
+$(WEB_PATH)/img/%.png: img/%.png
+	mkdir -p $(WEB_PATH)/img >/dev/null
 	cp $< $@
 
 clean:

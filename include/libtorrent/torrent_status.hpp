@@ -257,11 +257,15 @@ TORRENT_VERSION_NAMESPACE_3
 		// the number of bytes we have downloaded, only counting the pieces that
 		// we actually want to download. i.e. excluding any pieces that we have
 		// but have priority 0 (i.e. not wanted).
+		// Once a torrent becomes seed, any piece- and file priorities are
+		// forgotten and all bytes are considered "wanted".
 		std::int64_t total_wanted_done = 0;
 
 		// The total number of bytes we want to download. This may be smaller
 		// than the total torrent size in case any pieces are prioritized to 0,
-		// i.e.  not wanted
+		// i.e.  not wanted.
+		// Once a torrent becomes seed, any piece- and file priorities are
+		// forgotten and all bytes are considered "wanted".
 		std::int64_t total_wanted = 0;
 
 		// are accumulated upload and download payload byte counters. They are
