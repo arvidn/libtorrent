@@ -13,7 +13,6 @@ see LICENSE file.
 #define TORRENT_SOCKET_TYPE
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/aligned_union.hpp"
 #include "libtorrent/aux_/polymorphic_socket.hpp"
 #include "libtorrent/aux_/rtc_stream.hpp"
 #include "libtorrent/aux_/utp_stream.hpp"
