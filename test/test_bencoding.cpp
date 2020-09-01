@@ -195,7 +195,15 @@ TORRENT_TEST(print_deep_dict)
 	e["ints"].list().push_back(entry(2));
 	e["ints"].list().push_back(entry(3));
 	e["a"] = "foobar";
-	TEST_EQUAL(e.to_string(), "{\n 'a': 'foobar',\n 'ints': [\n   1,\n   2,\n   3 ],\n 'strings': [\n   'foo',\n   'bar' ] }");
+	TEST_EQUAL(e.to_string(), R"({
+ 'a': 'foobar',
+ 'ints': [
+  1,
+  2,
+  3 ],
+ 'strings': [
+  'foo',
+  'bar' ] })");
 }
 
 TORRENT_TEST(dict_constructor)
@@ -203,7 +211,9 @@ TORRENT_TEST(dict_constructor)
 	entry::dictionary_type e{{std::string("foo"), std::string("bar")},
 		{std::string("bar"), 1234}};
 
-	TEST_EQUAL(entry(e).to_string(), "{\n 'bar': 1234,\n 'foo': 'bar' }");
+	TEST_EQUAL(entry(e).to_string(), R"({
+ 'bar': 1234,
+ 'foo': 'bar' })");
 }
 
 TORRENT_TEST(integer_to_str)

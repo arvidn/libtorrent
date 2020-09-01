@@ -110,7 +110,7 @@ struct entry_from_python
                 {
                     result.dict().insert(
                         std::make_pair(
-                            extract<char const*>(items[i][0])(),
+                            extract<std::string>(items[i][0])(),
                             construct0(items[i][1])
                         )
                     );

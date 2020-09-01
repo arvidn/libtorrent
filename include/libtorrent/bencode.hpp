@@ -114,61 +114,70 @@ namespace aux {
 		}
 	}
 
-	template<class OutIt>
-	int bencode_recursive(OutIt& out, const entry& e)
+	template <typename OutIt>
+	struct bencode_visitor
 	{
-		int ret = 0;
-		switch(e.type())
+		OutIt& out;
+
+		int operator()(entry::integer_type i)
 		{
-		case entry::int_t:
 			write_char(out, 'i');
-			ret += write_integer(out, e.integer());
+			int const ret = write_integer(out, i);
 			write_char(out, 'e');
-			ret += 2;
-			break;
-		case entry::string_t:
-			ret += write_integer(out, e.string().length());
+			return ret + 2;
+		}
+
+		int operator()(entry::string_type const& str)
+		{
+			int ret = write_integer(out, str.length());
 			write_char(out, ':');
-			ret += write_string(e.string(), out);
-			ret += 1;
-			break;
-		case entry::list_t:
+			ret += write_string(str, out);
+			return ret + 1;
+		}
+
+		int operator()(entry::list_type const& l)
+		{
 			write_char(out, 'l');
-			for (auto const& i : e.list())
-				ret += bencode_recursive(out, i);
+			int ret = 2;
+			for (auto const& i : l)
+				ret += std::visit(*this, static_cast<entry::variant_type const&>(i));
 			write_char(out, 'e');
-			ret += 2;
-			break;
-		case entry::dictionary_t:
+			return ret;
+		}
+
+		int operator()(entry::dictionary_type const& d)
+		{
 			write_char(out, 'd');
-			for (auto const& i : e.dict())
+			int ret = 2;
+			for (auto const& i : d)
 			{
 				// write key
 				ret += write_integer(out, i.first.length());
 				write_char(out, ':');
 				ret += write_string(i.first, out);
 				// write value
-				ret += bencode_recursive(out, i.second);
+				ret += std::visit(*this, static_cast<entry::variant_type const&>(i.second));
 				ret += 1;
 			}
 			write_char(out, 'e');
-			ret += 2;
-			break;
-		case entry::preformatted_t:
-			std::copy(e.preformatted().begin(), e.preformatted().end(), out);
-			ret += static_cast<int>(e.preformatted().size());
-			break;
-		case entry::undefined_t:
+			return ret;
+		}
 
+		int operator()(entry::preformatted_type const& pre)
+		{
+			std::copy(pre.begin(), pre.end(), out);
+			return static_cast<int>(pre.size());
+		}
+
+		int operator()(entry::uninitialized_type const&)
+		{
 			// empty string
 			write_char(out, '0');
 			write_char(out, ':');
-
-			ret += 2;
-			break;
+			return 2;
 		}
-		return ret;
-	}
+	};
+
 #if TORRENT_ABI_VERSION == 1
 	template<class InIt>
 	void bdecode_recursive(InIt& in, InIt end, entry& ret, bool& err, int depth)
@@ -182,9 +191,6 @@ namespace aux {
 		if (in == end)
 		{
 			err = true;
-#if TORRENT_USE_ASSERTS
-			ret.m_type_queried = false;
-#endif
 			return;
 		}
 		switch (*in)
@@ -202,9 +208,6 @@ namespace aux {
 			ret = entry(entry::int_t);
 			char* end_pointer;
 			ret.integer() = std::strtoll(val.c_str(), &end_pointer, 10);
-#if TORRENT_USE_ASSERTS
-			ret.m_type_queried = false;
-#endif
 			if (end_pointer == val.c_str())
 			{
 				err = true;
@@ -225,23 +228,14 @@ namespace aux {
 				bdecode_recursive(in, end, e, err, depth + 1);
 				if (err)
 				{
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
 					return;
 				}
 				if (in == end)
 				{
 					err = true;
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
 					return;
 				}
 			}
-#if TORRENT_USE_ASSERTS
-			ret.m_type_queried = false;
-#endif
 			TORRENT_ASSERT(*in == 'e');
 			++in; // 'e'
 			break;
@@ -255,34 +249,16 @@ namespace aux {
 			{
 				entry key;
 				bdecode_recursive(in, end, key, err, depth + 1);
-				if (err || key.type() != entry::string_t)
-				{
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
-					return;
-				}
+				if (err || key.type() != entry::string_t) return;
 				entry& e = ret[key.string()];
 				bdecode_recursive(in, end, e, err, depth + 1);
-				if (err)
-				{
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
-					return;
-				}
+				if (err) return;
 				if (in == end)
 				{
 					err = true;
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
 					return;
 				}
 			}
-#if TORRENT_USE_ASSERTS
-			ret.m_type_queried = false;
-#endif
 			TORRENT_ASSERT(*in == 'e');
 			++in; // 'e'
 			break;
@@ -294,37 +270,19 @@ namespace aux {
 			if (is_digit(char(*in)))
 			{
 				std::string len_s = read_until(in, end, ':', err);
-				if (err)
-				{
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
-					return;
-				}
+				if (err) return;
 				TORRENT_ASSERT(*in == ':');
 				++in; // ':'
 				int len = atoi(len_s.c_str());
 				ret = entry(entry::string_t);
 				read_string(in, end, len, ret.string(), err);
-				if (err)
-				{
-#if TORRENT_USE_ASSERTS
-					ret.m_type_queried = false;
-#endif
-					return;
-				}
+				if (err) return;
 			}
 			else
 			{
 				err = true;
-#if TORRENT_USE_ASSERTS
-				ret.m_type_queried = false;
-#endif
 				return;
 			}
-#if TORRENT_USE_ASSERTS
-			ret.m_type_queried = false;
-#endif
 		}
 	}
 #endif // TORRENT_ABI_VERSION
@@ -350,7 +308,7 @@ namespace aux {
 	// .. _back_insert_iterator: https://en.cppreference.com/w/cpp/iterator/back_insert_iterator
 	template<class OutIt> int bencode(OutIt out, const entry& e)
 	{
-		return aux::bencode_recursive(out, e);
+		return std::visit(aux::bencode_visitor<OutIt>{out}, static_cast<entry::variant_type const&>(e));
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -361,7 +319,6 @@ namespace aux {
 		entry e;
 		bool err = false;
 		aux::bdecode_recursive(start, end, e, err, 0);
-		TORRENT_ASSERT(e.m_type_queried == false);
 		if (err) return entry();
 		return e;
 	}

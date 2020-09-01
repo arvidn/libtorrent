@@ -20,7 +20,7 @@ see LICENSE file.
 
 namespace libtorrent {
 
-class entry;
+struct entry;
 
 namespace aux {
 struct listen_socket_handle;

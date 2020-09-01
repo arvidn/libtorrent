@@ -1,3 +1,4 @@
+	* the entry class is now a standard variant type
 	* use std::string_view instead of boost counterpart
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
