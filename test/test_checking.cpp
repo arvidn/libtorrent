@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2013-2019, Arvid Norberg
-Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2013-2020, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
 Copyright (c) 2018, d-komarov
 Copyright (c) 2018, Alden Torres
 All rights reserved.
@@ -109,7 +109,6 @@ void test_checking(int const flags)
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
-	std::srand(10);
 	int const piece_size = (flags & single_file) ? 0x8000 : 0x4000;
 
 	auto const file_sizes = (flags & single_file)

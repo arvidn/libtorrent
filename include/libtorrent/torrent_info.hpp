@@ -1,13 +1,14 @@
 /*
 
-Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2003-2011, 2013-2020, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2018, 2020, Alden Torres
 Copyright (c) 2016, Markus
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017-2019, Steven Siloti
 Copyright (c) 2017, 2019, Andrei Kurushin
 Copyright (c) 2019, Amir Abrams
+Copyright (c) 2020, Mike Tzou
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -315,8 +316,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// or http seed.
 		//
 		// ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-		// url/http seeds. Currently, the only transport protocol supported for
-		// the url is http.
+		// url/http seeds.
 		//
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.

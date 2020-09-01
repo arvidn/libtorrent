@@ -1,10 +1,11 @@
 /*
 
-Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2014-2020, Arvid Norberg
 Copyright (c) 2015, Thomas Yuan
-Copyright (c) 2016, Steven Siloti
 Copyright (c) 2016, Alden Torres
+Copyright (c) 2016, Steven Siloti
 Copyright (c) 2019, Amir Abrams
+Copyright (c) 2020, FranciscoPombal
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,6 +64,8 @@ int main(int argc, char* argv[])
 
 #else
 
+namespace {
+
 std::string to_hex(lt::span<char const> key)
 {
 	std::string out;
@@ -70,7 +73,7 @@ std::string to_hex(lt::span<char const> key)
 	{
 		char buf[3]{};
 		std::snprintf(buf, sizeof(buf), "%02x", static_cast<unsigned char>(b));
-		out += (char*)buf;
+		out += static_cast<char const*>(buf);
 	}
 	return out;
 }
@@ -100,8 +103,7 @@ bool from_hex(span<char const> in, span<char> out)
 	return true;
 }
 
-namespace {
-void usage()
+[[noreturn]] void usage()
 {
 	std::fprintf(stderr,
 		"USAGE:\ndht <command> <arg>\n\nCOMMANDS:\n"

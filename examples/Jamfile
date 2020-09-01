@@ -19,6 +19,7 @@ project client_test
 	#        with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268
 	<toolset>msvc:<cflags>/wd4373
+	<conditional>@warnings
 	: default-build
 	<link>static
 	<cxxstd>17
@@ -43,8 +44,16 @@ exe upnp_test : upnp_test.cpp ;
 explicit stage_client_test ;
 explicit stage_connection_tester ;
 explicit stage ;
+explicit stage_dependencies ;
 
 install stage : client_test connection_tester make_torrent dump_torrent upnp_test stats_counters bt-get bt-get2 simple_client dump_bdecode : <location>. ;
 install stage_client_test : client_test : <location>. ;
 install stage_connection_tester : connection_tester : <location>. ;
+
+install stage_dependencies
+	: /torrent//torrent
+	: <location>dependencies
+	<install-dependencies>on
+	<install-type>SHARED_LIB
+	;
 

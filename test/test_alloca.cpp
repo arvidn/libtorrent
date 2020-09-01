@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg
+Copyright (c) 2017, 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -69,5 +69,14 @@ TORRENT_TEST(alloca_destruct)
 		TORRENT_ALLOCA(vec, B, 3);
 	}
 	TEST_EQUAL(destructed, 3);
+}
+
+TORRENT_TEST(alloca_large)
+{
+	// this is something like 256 kiB of allocation
+	// it should be made on the heap and always succeed
+	TORRENT_ALLOCA(vec, A, 65536);
+	for (auto const& a : vec)
+		TEST_EQUAL(a.val, 1337);
 }
 

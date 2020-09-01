@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2017, 2019, Arvid Norberg
+Copyright (c) 2017, 2019-2020, Arvid Norberg
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
 Copyright (c) 2018, Alden Torres
 All rights reserved.
@@ -40,6 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "settings.hpp"
+#include "setup_transfer.hpp"
+
+#include <fstream>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -50,6 +53,16 @@ std::string file(std::string name)
 {
 	return combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", name));
+}
+
+void print_alerts(lt::session& ses)
+{
+	std::vector<alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (auto a : alerts)
+	{
+		std::printf("[%s] %s\n", a->what(), a->message().c_str());
+	}
 }
 
 void test_add_and_get_flags(torrent_flags_t const flags)
@@ -71,6 +84,7 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
 	TEST_EQUAL(h.flags() & flags, flags);
+	print_alerts(ses);
 }
 
 void test_set_after_add(torrent_flags_t const flags)
@@ -88,6 +102,7 @@ void test_set_after_add(torrent_flags_t const flags)
 	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 	h.set_flags(flags);
 	TEST_EQUAL(h.flags() & flags, flags);
+	print_alerts(ses);
 }
 
 void test_unset_after_add(torrent_flags_t const flags)
@@ -105,6 +120,7 @@ void test_unset_after_add(torrent_flags_t const flags)
 	TEST_EQUAL(h.flags() & flags, flags);
 	h.unset_flags(flags);
 	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
+	print_alerts(ses);
 }
 
 } // anonymous namespace
@@ -188,7 +204,9 @@ TORRENT_TEST(flag_sequential_download)
 TORRENT_TEST(flag_stop_when_ready)
 {
 	// stop-when-ready
-	test_add_and_get_flags(torrent_flags::stop_when_ready);
+	// TODO: this test is flaky, since the torrent will become ready before
+	// asking for the flags, and by then stop_when_ready will have been cleared
+	//test_add_and_get_flags(torrent_flags::stop_when_ready);
 	// setting stop-when-ready when already stopped has no effect.
 	// TODO: change to a different test setup. currently always paused.
 	//test_set_after_add(torrent_flags::stop_when_ready);

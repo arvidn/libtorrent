@@ -181,7 +181,6 @@ set(libtorrent_aux_include_files
 	byteswap
 	chained_buffer
 	choker
-	cppint_import_export
 	cpuid
 	crc32c
 	deferred_handler

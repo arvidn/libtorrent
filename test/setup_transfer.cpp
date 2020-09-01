@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2006-2019, Arvid Norberg
+Copyright (c) 2006-2020, Arvid Norberg
 Copyright (c) 2015-2017, Alden Torres
 Copyright (c) 2016-2018, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
-Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2018, d-komarov
 All rights reserved.
 
@@ -662,7 +662,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	int port = 10000 + static_cast<int>(lt::random(50000));
+	int port = 10000 + static_cast<int>(std::rand() % 50000);
 	error_code ec;
 	io_context ios;
 
@@ -1109,7 +1109,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
 {
-	int port = 2000 + static_cast<int>(lt::random(6000));
+	int port = 2000 + static_cast<int>(std::rand() % 6000);
 	error_code ec;
 	io_context ios;
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019, Arvid Norberg
+Copyright (c) 2019-2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ std::atomic_bool quit(false);
 
 void stop(int) { quit = true; }
 
-void usage()
+[[noreturn]] void usage()
 {
 	std::cerr << "USAGE: dht-sample\n";
 	exit(1);

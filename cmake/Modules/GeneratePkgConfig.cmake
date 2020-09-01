@@ -146,6 +146,14 @@ function(generate_and_install_pkg_config_file _target _packageName)
 	set(_generate_target_dir "${CMAKE_CURRENT_BINARY_DIR}/${_target}-pkgconfig")
 	set(_pkg_config_file_template_filename "${_GeneratePkGConfigDir}/pkg-config.cmake.in")
 
+	# Since CMake 3.18 FindThreads may include a generator expression requiring a target, which gets propagated to us through INTERFACE_OPTIONS.
+	# Before CMake 3.19 there's no way to solve this in a general way, so we work around the specific case. See #4956 and CMake bug #21074.
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+		set(_target_arg TARGET ${_target})
+	else()
+		string(REPLACE "<COMPILE_LANG_AND_ID:CUDA,NVIDIA>" "<COMPILE_LANGUAGE:CUDA>" _interface_compile_options "${_interface_compile_options}")
+	endif()
+
 	# put target and project properties into a file
 	configure_file("${_GeneratePkGConfigDir}/target-compile-settings.cmake.in"
 		"${_generate_target_dir}/compile-settings.cmake" @ONLY)
@@ -154,7 +162,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 	if (NOT _isMultiConfig)
 		set(_variables_file_name "${_generate_target_dir}/compile-settings-expanded.cmake")
 
-		file(GENERATE OUTPUT "${_variables_file_name}" INPUT "${_generate_target_dir}/compile-settings.cmake")
+		file(GENERATE OUTPUT "${_variables_file_name}" INPUT "${_generate_target_dir}/compile-settings.cmake" ${_target_arg})
 
 		configure_file("${_GeneratePkGConfigDir}/generate-pkg-config.cmake.in"
 			"${_generate_target_dir}/generate-pkg-config.cmake" @ONLY)
@@ -164,7 +172,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 		foreach(cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
 			set(_variables_file_name "${_generate_target_dir}/${cfg}/compile-settings-expanded.cmake")
 
-			file(GENERATE OUTPUT "${_variables_file_name}" INPUT "${_generate_target_dir}/compile-settings.cmake" CONDITION "$<CONFIG:${cfg}>")
+			file(GENERATE OUTPUT "${_variables_file_name}" INPUT "${_generate_target_dir}/compile-settings.cmake" CONDITION "$<CONFIG:${cfg}>" ${_target_arg})
 
 			configure_file("${_GeneratePkGConfigDir}/generate-pkg-config.cmake.in"
 				"${_generate_target_dir}/${cfg}/generate-pkg-config.cmake" @ONLY)

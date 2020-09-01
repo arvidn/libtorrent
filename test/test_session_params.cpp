@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, 2019, Arvid Norberg
+Copyright (c) 2016-2017, 2019-2020, Arvid Norberg
 Copyright (c) 2016, Alden Torres
 Copyright (c) 2017, Steven Siloti
 All rights reserved.
@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+
+#include <fstream>
 
 using namespace lt;
 using dht::dht_storage_interface;

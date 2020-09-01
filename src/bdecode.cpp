@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2019, Arvid Norberg
+Copyright (c) 2015-2020, Arvid Norberg
 Copyright (c) 2016-2017, Steven Siloti
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016-2017, 2019, Alden Torres
@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <algorithm> // for any_of
 
 #ifndef BOOST_SYSTEM_NOEXCEPT
 #define BOOST_SYSTEM_NOEXCEPT throw()

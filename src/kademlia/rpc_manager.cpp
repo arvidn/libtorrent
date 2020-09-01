@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2017, 2019, Arvid Norberg
+Copyright (c) 2006-2017, 2019-2020, Arvid Norberg
 Copyright (c) 2015, Thomas
 Copyright (c) 2015, 2017, Steven Siloti
 Copyright (c) 2016-2018, Alden Torres
@@ -378,17 +378,17 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	constexpr int short_timeout = 1;
-	constexpr int timeout = 15;
+	constexpr auto short_timeout = seconds(1);
+	constexpr auto timeout = seconds(15);
 
 	// look for observers that have timed out
 
-	if (m_transactions.empty()) return seconds(short_timeout);
+	if (m_transactions.empty()) return short_timeout;
 
 	std::vector<observer_ptr> timeouts;
 	std::vector<observer_ptr> short_timeouts;
 
-	time_duration ret = seconds(short_timeout);
+	time_duration ret = short_timeout;
 	time_point now = aux::time_now();
 
 	for (auto i = m_transactions.begin(); i != m_transactions.end();)
@@ -396,7 +396,7 @@ time_duration rpc_manager::tick()
 		observer_ptr o = i->second;
 
 		time_duration diff = now - o->sent();
-		if (diff >= seconds(timeout))
+		if (diff >= timeout)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log->should_log(dht_logger::rpc_manager))
@@ -413,7 +413,7 @@ time_duration rpc_manager::tick()
 
 		// don't call short_timeout() again if we've
 		// already called it once
-		if (diff >= seconds(short_timeout) && !o->has_short_timeout())
+		if (diff >= short_timeout && !o->has_short_timeout())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log->should_log(dht_logger::rpc_manager))
@@ -429,7 +429,7 @@ time_duration rpc_manager::tick()
 			continue;
 		}
 
-		ret = std::min(seconds(timeout) - diff, ret);
+		ret = std::min(duration_cast<time_duration>(timeout - diff), ret);
 		++i;
 	}
 

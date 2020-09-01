@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2017-2018, Steven Siloti
-Copyright (c) 2019, Arvid Norberg
+Copyright (c) 2019-2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
+namespace {
+
 // -- example begin
 struct temp_storage
 {
@@ -56,14 +58,14 @@ struct temp_storage
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
-		};
+		}
 		if (int(i->second.size()) <= offset)
 		{
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
 		}
-		return { i->second.data() + offset, int(i->second.size() - offset) };
+		return { i->second.data() + offset, int(i->second.size()) - offset };
 	}
 	void writev(lt::span<char const> const b, lt::piece_index_t const piece, int const offset)
 	{
@@ -73,10 +75,10 @@ struct temp_storage
 			// allocate the whole piece, otherwise we'll invalidate the pointers
 			// we have returned back to libtorrent
 			int const size = piece_size(piece);
-			data.resize(size);
+			data.resize(std::size_t(size));
 		}
 		TORRENT_ASSERT(offset + b.size() <= int(data.size()));
-		std::memcpy(data.data() + offset, b.data(), b.size());
+		std::memcpy(data.data() + offset, b.data(), std::size_t(b.size()));
 	}
 	lt::sha1_hash hash(lt::piece_index_t const piece
 		, lt::span<lt::sha256_hash> const block_hashes, lt::storage_error& ec) const
@@ -87,7 +89,7 @@ struct temp_storage
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
-		};
+		}
 		if (!block_hashes.empty())
 		{
 			int const piece_size2 = m_files.piece_size2(piece);
@@ -114,7 +116,7 @@ struct temp_storage
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
-		};
+		}
 
 		int const piece_size = m_files.piece_size2(piece);
 
@@ -136,14 +138,12 @@ private:
 	std::map<lt::piece_index_t, std::vector<char>> m_file_data;
 };
 
-namespace {
 lt::storage_index_t pop(std::vector<lt::storage_index_t>& q)
 {
 	TORRENT_ASSERT(!q.empty());
 	lt::storage_index_t const ret = q.back();
 	q.pop_back();
 	return ret;
-}
 }
 
 struct temp_disk_io final : lt::disk_interface
@@ -304,6 +304,8 @@ std::unique_ptr<lt::disk_interface> temp_disk_constructor(
 	return std::make_unique<temp_disk_io>(ioc);
 }
 // -- example end
+
+} // anonymous namespace
 
 int main(int argc, char* argv[]) try
 {

@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2003-2019, Arvid Norberg
-Copyright (c) 2004, Magnus Jonsson
-Copyright (c) 2015, 2017-2018, Steven Siloti
 Copyright (c) 2016, Falcosc
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2004, Magnus Jonsson
+Copyright (c) 2016-2018, 2020, Alden Torres
+Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 

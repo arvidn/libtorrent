@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2008-2019, Arvid Norberg
+Copyright (c) 2008-2020, Arvid Norberg
 Copyright (c) 2009, Georg Rudoy
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2018, 2020, Alden Torres
 Copyright (c) 2017-2019, Steven Siloti
 All rights reserved.
 

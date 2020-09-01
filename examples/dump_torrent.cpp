@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2003-2004, 2008-2010, 2013, 2015-2019, Arvid Norberg
-Copyright (c) 2016, 2018, Alden Torres
 Copyright (c) 2018, Steven Siloti
+Copyright (c) 2003-2004, 2008-2010, 2013, 2015-2020, Arvid Norberg
+Copyright (c) 2018, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 
-void print_usage()
+namespace {
+
+[[noreturn]] void print_usage()
 {
 	std::cerr << R"(usage: dump_torrent torrent-file [options]
     OPTIONS:
@@ -57,6 +59,8 @@ void print_usage()
     --max-size <size in MiB> reject files larger than this size limit
 )";
 	std::exit(1);
+}
+
 }
 
 int main(int argc, char const* argv[]) try

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2019, Arvid Norberg
+Copyright (c) 2013-2020, Arvid Norberg
 Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2016, Pavel Pimenov
 Copyright (c) 2016-2018, Alden Torres

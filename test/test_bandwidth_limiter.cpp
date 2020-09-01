@@ -2,7 +2,7 @@
 
 Copyright (c) 2007-2009, 2014-2019, Arvid Norberg
 Copyright (c) 2016-2017, Andrei Kurushin
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2018, 2020, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

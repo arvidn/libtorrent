@@ -1,12 +1,13 @@
 /*
 
-Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2019, Amir Abrams
+Copyright (c) 2003-2020, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2015, 2018, Steven Siloti
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2017, Alden Torres
 Copyright (c) 2017, Falcosc
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
-Copyright (c) 2019, Amir Abrams
+Copyright (c) 2019, ghbplayer
 Copyright (c) 2019, Andrei Kurushin
 All rights reserved.
 

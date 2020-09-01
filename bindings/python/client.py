@@ -159,11 +159,13 @@ def add_torrent(ses, filename, options):
     if filename.startswith('magnet:'):
         atp = lt.parse_magnet_uri(filename)
     else:
-        atp.ti = lt.torrent_info(filename)
+        ti = lt.torrent_info(filename)
+        resume_file = os.path.join(options.save_path, ti.name() + '.fastresume')
         try:
-            atp.resume_data = open(os.path.join(options.save_path, atp.info.name() + '.fastresume'), 'rb').read()
-        except Exception:
-            pass
+            atp = lt.read_resume_data(open(resume_file, 'rb').read())
+        except Exception as e:
+            print('failed to open resume file "%s": %s' % (resume_file, e))
+        atp.ti = ti
 
     atp.save_path = options.save_path
     atp.storage_mode = lt.storage_mode_t.storage_mode_sparse
@@ -285,7 +287,7 @@ def main():
                 % (add_suffix(t.upload_rate), add_suffix(t.total_upload))
 
             if t.state != lt.torrent_status.seeding:
-                out += 'info-hash: %s\n' % t.info_hash
+                out += 'info-hash: %s\n' % t.info_hashes
                 out += 'next announce: %s\n' % t.next_announce
                 out += 'tracker: %s\n' % t.current_tracker
 

@@ -1,11 +1,11 @@
 /*
 
-Copyright (c) 2007-2019, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
-Copyright (c) 2015, 2018, Steven Siloti
+Copyright (c) 2007-2020, Arvid Norberg
+Copyright (c) 2015, Steven Siloti
 Copyright (c) 2016-2018, Alden Torres
-Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

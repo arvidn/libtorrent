@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2007-2012, 2014-2019, Arvid Norberg
-Copyright (c) 2015-2018, Steven Siloti
+Copyright (c) 2007-2012, 2014-2020, Arvid Norberg
+Copyright (c) 2015-2018, 2020, Steven Siloti
 Copyright (c) 2015-2018, Alden Torres
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2018, Alexandre Janniaux
@@ -155,7 +155,7 @@ namespace libtorrent {
 
 namespace {
 
-#ifndef TORRENT_WINDOWS
+#if !defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 	struct socket_closer
 	{
 		socket_closer(int s) : m_socket(s) {}

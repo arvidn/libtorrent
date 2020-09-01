@@ -1,9 +1,11 @@
 /*
 
-Copyright (c) 2009-2019, Arvid Norberg
+Copyright (c) 2009-2020, Arvid Norberg
 Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2015-2019, Steven Siloti
 Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2020, Fonic
+Copyright (c) 2020, FranciscoPombal
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -346,7 +348,7 @@ struct announce_item
 		: next(nxt)
 		, num_peers(num)
 	{
-		num_peers = (rand() % 5) + 2;
+		num_peers = int(lt::random(5) + 2);
 		ent["next"] = next.to_string();
 		ent["A"] = "a";
 		ent["B"] = "b";
@@ -1251,7 +1253,7 @@ void test_put(address(&rand_addr)())
 	init_rand_address();
 	udp::endpoint eps[1000];
 	for (int i = 0; i < 1000; ++i)
-		eps[i] = udp::endpoint(rand_addr(), (rand() % 16534) + 1);
+		eps[i] = udp::endpoint(rand_addr(), std::uint16_t(random(16534) + 1));
 
 	announce_immutable_items(t.dht_node, eps, items, sizeof(items)/sizeof(items[0]));
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014-2015, 2017-2019, Arvid Norberg
+Copyright (c) 2014-2015, 2017-2020, Arvid Norberg
 Copyright (c) 2016, Alden Torres
 All rights reserved.
 
@@ -101,11 +101,11 @@ private:
 	// pointers into m_all_handles of the remaining torrents after filtering
 	std::vector<lt::torrent_status const*> m_filtered_handles;
 
-	mutable int m_active_torrent; // index into m_filtered_handles
-	int m_scroll_position;
-	int m_torrent_filter;
-	int m_width;
-	int m_height;
+	mutable int m_active_torrent = 0; // index into m_filtered_handles
+	int m_scroll_position = 0;
+	int m_torrent_filter = 0;
+	int m_width = 80;
+	int m_height = 30;
 };
 
 #endif // TORRENT_VIEW_HPP_

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2003-2020, Arvid Norberg
 Copyright (c) 2016-2017, Pavel Pimenov
 Copyright (c) 2016-2019, Steven Siloti
 Copyright (c) 2016-2018, Alden Torres
@@ -1416,6 +1416,14 @@ namespace {
 
 		if (info.dict_find_string("ssl-cert"))
 			m_flags |= ssl_torrent;
+
+		if (files.total_size() == 0)
+		{
+			ec = errors::torrent_invalid_length;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
+			return false;
+		}
 
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.

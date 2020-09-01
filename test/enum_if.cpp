@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2007-2009, 2016-2019, Arvid Norberg
 Copyright (c) 2018, Steven Siloti
+Copyright (c) 2007-2008, 2016-2017, 2019-2020, Arvid Norberg
 Copyright (c) 2018, Alden Torres
 All rights reserved.
 
@@ -75,7 +75,7 @@ char const* print_state(if_state const s)
 		case if_state::notpresent: return "notpresent";
 		case if_state::testing: return "testing";
 		case if_state::unknown: return "unknown";
-	};
+	}
 	return "unknown";
 }
 

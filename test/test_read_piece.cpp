@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2013, 2015-2019, Arvid Norberg
-Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2013, 2015-2020, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
 Copyright (c) 2018, Alden Torres
 All rights reserved.
 
@@ -72,7 +72,6 @@ void test_read_piece(int flags)
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
-	std::srand(10);
 	int piece_size = 0x4000;
 
 	static std::array<const int, 2> const file_sizes{{ 100000, 10000 }};

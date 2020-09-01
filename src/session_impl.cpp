@@ -1,10 +1,10 @@
 /*
 
 Copyright (c) 2003, Magnus Jonsson
-Copyright (c) 2006-2019, Arvid Norberg
+Copyright (c) 2006-2020, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
-Copyright (c) 2014-2019, Steven Siloti
-Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2014-2020, Steven Siloti
+Copyright (c) 2015-2020, Alden Torres
 Copyright (c) 2015, Thomas
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016, Falcosc
@@ -12,6 +12,8 @@ Copyright (c) 2016-2017, Pavel Pimenov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, sledgehammer_999
 Copyright (c) 2018, Xiyue Deng
+Copyright (c) 2020, Fonic
+Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2721,11 +2723,12 @@ namespace {
 			// TODO: this size need to be capped
 			auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(c))).first;
 
+			auto sock = iter->get();
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 			std::get<ssl_stream<tcp::socket>>(**iter).async_accept_handshake(
-				std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
+				[this, sock] (error_code const& err) { ssl_handshake(err, sock); });
 		}
 		else
 #endif
@@ -2744,12 +2747,13 @@ namespace {
 
 		// TODO: this size need to be capped
 		auto iter = m_incoming_sockets.emplace(std::make_unique<socket_type>(std::move(s))).first;
+		auto sock = iter->get();
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 		std::get<ssl_stream<utp_stream>>(**iter).async_accept_handshake(
-			std::bind(&session_impl::ssl_handshake, this, _1, iter->get()));
+			[this, sock] (error_code const& err) { ssl_handshake(err, sock); });
 	}
 
 	// to test SSL connections, one can use this openssl command template:

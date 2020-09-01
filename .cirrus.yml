@@ -4,7 +4,7 @@ freebsd_instance:
 task:
   install_script: |
     pkg update
-    pkg install -U -y git boost-jam boost-libs unzip wget
+    pkg install -U -y git boost-jam boost-libs unzip wget openssl cmake ninja
     wget "https://github.com/boostorg/build/archive/develop.zip"
     unzip develop.zip
     git clone --depth=1 --single-branch --branch boost-1.74.0 https://github.com/boostorg/build.git
@@ -13,9 +13,19 @@ task:
     echo "using clang ;" > ~/user-config.jam
   submodules_script: |
     git submodule update --init --recursive
+  build_cmake_script: |
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -G Ninja .
+    cmake --build . --parallel 2
+  cmake_tests_script: |
+    ctest -j2
   tests_script: |
-    echo ${PWD}
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
     cd test
-    bjam -j2 -l250 warnings-as-errors=on warnings=all deterministic-tests
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl deterministic-tests
+  enum_if_script: |
+    export BOOST_BUILD_PATH=${PWD}/build-develop
+    export PATH=${PWD}/build-develop:$PATH
+    cd test
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies
+    LD_LIBRARY_PATH=./dependencies ./enum_if
