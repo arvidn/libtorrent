@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2004, 2006-2007, 2009-2011, 2013-2019, Arvid Norberg
+Copyright (c) 2004, 2006-2007, 2009-2011, 2013, 2015-2020, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016-2017, Alden Torres

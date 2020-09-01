@@ -1,13 +1,13 @@
 /*
 
-Copyright (c) 2003-2019, Arvid Norberg
+Copyright (c) 2003-2020, Arvid Norberg
 Copyright (c) 2003, Daniel Wallin
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2008, Andrew Resch
 Copyright (c) 2015, Mikhail Titov
-Copyright (c) 2015-2019, Steven Siloti
+Copyright (c) 2015-2020, Steven Siloti
 Copyright (c) 2016, Jonathan McDougall
-Copyright (c) 2016-2019, Alden Torres
+Copyright (c) 2016-2020, Alden Torres
 Copyright (c) 2016-2018, Pavel Pimenov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, Falcosc
@@ -16,6 +16,7 @@ Copyright (c) 2017, ximply
 Copyright (c) 2018, Fernando Rodriguez
 Copyright (c) 2018, d-komarov
 Copyright (c) 2018, airium
+Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
