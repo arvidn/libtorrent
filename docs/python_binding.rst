@@ -30,9 +30,7 @@ Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_73_0 and create 
 
 Navigate to ``BOOST_ROOT``, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_73_0/"
 	
-Move the file ``user-config.jam`` from ``%BOOST_BUILD_PATH%/example/`` to ``%BOOST_BUILD_PATH%/user-config.jam`` and add this at the end:
-
-::
+Create a file ``user-config.jam`` in tour home directory and add this::
 
 	using msvc : 14.0 : : /std:c++14 ;
 	using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
@@ -49,14 +47,11 @@ This will create the file libtorrent.pyd inside build/lib/ that contains the bin
 	
 building using boost build (others)
 -----------------------------------
+
 To set up your build environment, you need to add some settings to your
-``$BOOST_BUILD_PATH/user-config.jam``.
+``user-config.jam`` (in your home directory).
 
-A similar line to this line should be in the file (could be another python version)::
-
-	#using python : 2.3 ;
-
-Uncomment it and change it with the version of python you have installed or want to use. If
+Declare the version(s) of python you have installed or want to use. If
 you've installed python in a non-standard location, you have to add the prefix
 path used when you installed python as a second option. Like this::
 
@@ -82,6 +77,24 @@ For example::
 This will produce a ``libtorrent`` python module in the current directory (file
 name extension depends on operating system). The libraries the python module depends
 on will be copied into ``./dependencies``.
+
+static linking
+==============
+
+A python module is a shared library. Specifying ``link=static`` when building
+the binding won't work, as it would try to produce a static library.
+
+Instead, control whether the libtorrent main library or boost is linked
+statically with ``libtorrent-link=static`` and ``boost-link=static``
+respectively.
+
+Building and linking boost as static library is only possibly by building it
+from source. Specify the ``BOOST_ROOT`` environment variable to point to the
+root directory of the boost source distribution.
+
+For example, to build a self-contained python module::
+
+	b2 -j30 libtorrent-link=static boost-link=static stage_module
 
 using libtorrent in python
 ==========================

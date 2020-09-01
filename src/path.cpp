@@ -194,25 +194,43 @@ namespace {
 		native_path_string f = convert_to_native_path_string(inf);
 #ifdef TORRENT_WINDOWS
 
-		TORRENT_UNUSED(flags);
-
-		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
-		HANDLE h = CreateFileW(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
-			| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-		if (h == INVALID_HANDLE_VALUE)
+		WIN32_FILE_ATTRIBUTE_DATA data;
+		if (!GetFileAttributesExW(f.c_str(), GetFileExInfoStandard, &data))
 		{
 			ec.assign(GetLastError(), system_category());
 			TORRENT_ASSERT(ec);
 			return;
 		}
 
-		BY_HANDLE_FILE_INFORMATION data;
-		if (!GetFileInformationByHandle(h, &data))
+		// Fallback to GetFileInformationByHandle for symlinks
+		if (!(flags & dont_follow_links) && (data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
 		{
-			ec.assign(GetLastError(), system_category());
-			TORRENT_ASSERT(ec);
+			// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
+			HANDLE h = CreateFileW(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
+				| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+			if (h == INVALID_HANDLE_VALUE)
+			{
+				ec.assign(GetLastError(), system_category());
+				TORRENT_ASSERT(ec);
+				return;
+			}
+
+			BY_HANDLE_FILE_INFORMATION handle_data;
+			if (!GetFileInformationByHandle(h, &handle_data))
+			{
+				ec.assign(GetLastError(), system_category());
+				TORRENT_ASSERT(ec);
+				CloseHandle(h);
+				return;
+			}
 			CloseHandle(h);
-			return;
+
+			data.dwFileAttributes = handle_data.dwFileAttributes;
+			data.ftCreationTime = handle_data.ftCreationTime;
+			data.ftLastAccessTime = handle_data.ftLastAccessTime;
+			data.ftLastWriteTime = handle_data.ftLastWriteTime;
+			data.nFileSizeHigh = handle_data.nFileSizeHigh;
+			data.nFileSizeLow = handle_data.nFileSizeLow;
 		}
 
 		s->file_size = (std::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
@@ -224,7 +242,6 @@ namespace {
 			? file_status::directory
 			: (data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
 			? file_status::character_special : file_status::regular_file;
-		CloseHandle(h);
 #else
 
 		// posix version

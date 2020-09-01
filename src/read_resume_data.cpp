@@ -53,7 +53,7 @@ namespace {
 		, char const* name
 		, torrent_flags_t const flag)
 	{
-		if (n.dict_find_int_value(name, 0) == 0)
+		if (n.dict_find_int_value(name, (flag & torrent_flags::default_flags) ? 1 : 0) == 0)
 		{
 			current_flags &= ~flag;
 		}

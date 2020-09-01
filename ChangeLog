@@ -29,6 +29,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* improve stat_file() performance on Windows
 	* fix issue with loading invalid torrents with only 0-sized files
 	* fix to avoid large stack allocations
 
