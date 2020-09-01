@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014-2019, Arvid Norberg
+Copyright (c) 2014-2020, Arvid Norberg
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2018, d-komarov
 All rights reserved.

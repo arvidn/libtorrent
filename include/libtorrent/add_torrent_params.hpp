@@ -1,8 +1,9 @@
 /*
 
-Copyright (c) 2009-2019, Arvid Norberg
-Copyright (c) 2015, 2017-2018, Steven Siloti
+Copyright (c) 2009-2020, Arvid Norberg
 Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2019, ghbplayer
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

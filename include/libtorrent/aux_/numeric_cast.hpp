@@ -1,6 +1,8 @@
 /*
 
-Copyright (c) 2017, Arvid Norberg, Alden Torres
+Copyright (c) 2017, Alden Torres
+Copyright (c) 2018, Steven Siloti
+Copyright (c) 2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,5 +1,8 @@
 /*
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2005, 2007, 2009, 2013-2020, Arvid Norberg
+Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2017, Tim Niederhausen
+Copyright (c) 2019, Fabrice Fontaine
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

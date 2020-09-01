@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005, 2007-2009, 2013, 2016-2019, Arvid Norberg
+Copyright (c) 2005, 2008-2009, 2013, 2016-2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

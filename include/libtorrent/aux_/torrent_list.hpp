@@ -1,6 +1,8 @@
 /*
 
+Copyright (c) 2018, Steven Siloti
 Copyright (c) 2019, Arvid Norberg
+Copyright (c) 2019, Pavel Pimenov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

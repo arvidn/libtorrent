@@ -1,8 +1,9 @@
 /*
 
-Copyright (c) 2007-2011, 2013-2019, Arvid Norberg
-Copyright (c) 2016, Alden Torres
+Copyright (c) 2007-2011, 2013-2015, 2017-2019, Arvid Norberg
+Copyright (c) 2016, 2019, Alden Torres
 Copyright (c) 2017, Jan Berkel
+Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
