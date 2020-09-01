@@ -161,7 +161,6 @@ set(libtorrent_extensions_include_files
 set(libtorrent_aux_include_files
 	alert_manager
 	aligned_storage
-	aligned_union
 	alloca
 	allocating_handler
 	array

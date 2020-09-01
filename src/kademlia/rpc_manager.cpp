@@ -30,7 +30,6 @@ see LICENSE file.
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
-#include <libtorrent/aux_/aligned_union.hpp>
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v6
 
 #include <type_traits>
@@ -113,17 +112,20 @@ void observer::set_id(node_id const& id)
 	if (m_algorithm) m_algorithm->resort_result(this);
 }
 
-using observer_storage = aux::aligned_union<1
-	, find_data_observer
-	, announce_observer
-	, put_data_observer
-	, direct_observer
-	, get_item_observer
-	, get_peers_observer
-	, obfuscated_get_peers_observer
-	, sample_infohashes_observer
-	, null_observer
-	, traversal_observer>::type;
+namespace {
+
+	std::size_t const observer_storage_size = std::max(
+	{sizeof(find_data_observer)
+	, sizeof(announce_observer)
+	, sizeof(put_data_observer)
+	, sizeof(direct_observer)
+	, sizeof(get_item_observer)
+	, sizeof(get_peers_observer)
+	, sizeof(obfuscated_get_peers_observer)
+	, sizeof(sample_infohashes_observer)
+	, sizeof(null_observer)
+	, sizeof(traversal_observer)});
+}
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, aux::session_settings const& settings
@@ -131,7 +133,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, aux::listen_socket_handle sock
 	, socket_manager* sock_man
 	, dht_logger* log)
-	: m_pool_allocator(sizeof(observer_storage), 10)
+	: m_pool_allocator(observer_storage_size, 10)
 	, m_sock(std::move(sock))
 	, m_sock_man(sock_man)
 #ifndef TORRENT_DISABLE_LOGGING
@@ -177,7 +179,7 @@ void rpc_manager::free_observer(void* ptr)
 #if TORRENT_USE_ASSERTS
 size_t rpc_manager::allocation_size() const
 {
-	return sizeof(observer_storage);
+	return observer_storage_size;
 }
 #endif
 #if TORRENT_USE_INVARIANT_CHECKS
