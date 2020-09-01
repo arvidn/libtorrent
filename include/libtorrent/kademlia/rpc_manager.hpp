@@ -27,7 +27,7 @@ see LICENSE file.
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 
 namespace libtorrent {
-class entry;
+struct entry;
 namespace aux {
 	struct session_settings;
 }

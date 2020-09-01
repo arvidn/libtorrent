@@ -86,16 +86,8 @@ namespace aux {
 } // aux
 
 namespace {
-
-	[[noreturn]] inline void throw_error()
-	{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
-
-	template <class T>
-	void call_destructor(T* o)
-	{
-		TORRENT_ASSERT(o);
-		o->~T();
-	}
+[[noreturn]] inline void throw_error()
+{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 } // anonymous
 
 	entry& entry::operator[](string_view key)
@@ -152,251 +144,104 @@ namespace {
 
 	entry::data_type entry::type() const
 	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return entry::data_type(m_type);
+		return static_cast<entry::data_type>(index());
 	}
 
-	entry::~entry() { destruct(); }
+	entry::~entry() = default;
 
-	entry& entry::operator=(const entry& e) &
+	entry& entry::operator=(entry const& e) & = default;
+	entry& entry::operator=(entry&& e) & = default;
+
+	entry& entry::operator=(dictionary_type d) & { emplace<dictionary_type>(std::move(d)); return *this; }
+	entry& entry::operator=(span<char const> str) & { emplace<string_type>(str.data(), str.size()); return *this; }
+	entry& entry::operator=(string_view str) & { emplace<string_type>(str.data(), str.size()); return *this; }
+	entry& entry::operator=(string_type str) & { emplace<string_type>(std::move(str)); return *this; }
+	entry& entry::operator=(list_type i) & { emplace<list_type>(std::move(i)); return *this; }
+	entry& entry::operator=(integer_type i) & { emplace<integer_type>(i); return *this; }
+	entry& entry::operator=(preformatted_type d) & { emplace<preformatted_type>(std::move(d)); return *this; }
+
+	template <typename U, typename Cond>
+	entry& entry::operator=(U v) &
 	{
-		if (&e == this) return *this;
-		destruct();
-		copy(e);
+		emplace<string_type>(v);
 		return *this;
 	}
 
-	entry& entry::operator=(entry&& e) & noexcept
+	// explicit template instantiation
+	template TORRENT_EXPORT
+	entry& entry::operator=(char const*) &;
+
+	template <typename T>
+	T& entry::get()
 	{
-		if (&e == this) return *this;
-		destruct();
-		const auto t = e.type();
+		if (std::holds_alternative<uninitialized_type>(*this)) emplace<T>();
+		else if (!std::holds_alternative<T>(*this)) throw_error();
+		return std::get<T>(*this);
+	}
+
+	template <typename T>
+	T const& entry::get() const
+	{
+		if (!std::holds_alternative<T>(*this)) throw_error();
+		return std::get<T>(*this);
+	}
+
+	entry::integer_type& entry::integer() { return get<integer_type>(); }
+	entry::integer_type const& entry::integer() const { return get<integer_type>(); }
+	entry::string_type& entry::string() { return get<string_type>(); }
+	entry::string_type const& entry::string() const { return get<string_type>(); }
+	entry::list_type& entry::list() { return get<list_type>(); }
+	entry::list_type const& entry::list() const { return get<list_type>(); }
+	entry::dictionary_type& entry::dict() { return get<dictionary_type>(); }
+	entry::dictionary_type const& entry::dict() const { return get<dictionary_type>(); }
+	entry::preformatted_type& entry::preformatted() { return get<preformatted_type>(); }
+	entry::preformatted_type const& entry::preformatted() const { return get<preformatted_type>(); }
+
+	entry::entry() : variant_type(std::in_place_type<uninitialized_type>) {}
+	entry::entry(data_type t) : variant_type(std::in_place_type<uninitialized_type>)
+	{
 		switch (t)
 		{
-		case int_t:
-			new (&data) integer_type(std::move(e.integer()));
-			break;
-		case string_t:
-			new (&data) string_type(std::move(e.string()));
-			break;
-		case list_t:
-			new (&data) list_type(std::move(e.list()));
-			break;
-		case dictionary_t:
-			new (&data) dictionary_type(std::move(e.dict()));
-			break;
-		case undefined_t:
-			break;
-		case preformatted_t:
-			new (&data) preformatted_type(std::move(e.preformatted()));
-			break;
+		case int_t: emplace<integer_type>(); break;
+		case string_t: emplace<string_type>(); break;
+		case list_t: emplace<list_type>(); break;
+		case dictionary_t: emplace<dictionary_type>(); break;
+		case undefined_t: emplace<uninitialized_type>(); break;
+		case preformatted_t: emplace<preformatted_type>(); break;
 		}
-		m_type = t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
 	}
 
-	entry::integer_type& entry::integer()
-	{
-		if (m_type == undefined_t) construct(int_t);
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		if (m_type != int_t) throw_error();
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<integer_type*>(&data);
-	}
-
-	entry::integer_type const& entry::integer() const
-	{
-		if (m_type != int_t) throw_error();
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<const integer_type*>(&data);
-	}
-
-	entry::string_type& entry::string()
-	{
-		if (m_type == undefined_t) construct(string_t);
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		if (m_type != string_t) throw_error();
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<string_type*>(&data);
-	}
-
-	entry::string_type const& entry::string() const
-	{
-		if (m_type != string_t) throw_error();
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<const string_type*>(&data);
-	}
-
-	entry::list_type& entry::list()
-	{
-		if (m_type == undefined_t) construct(list_t);
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		if (m_type != list_t) throw_error();
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<list_type*>(&data);
-	}
-
-	entry::list_type const& entry::list() const
-	{
-		if (m_type != list_t) throw_error();
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<const list_type*>(&data);
-	}
-
-	entry::dictionary_type& entry::dict()
-	{
-		if (m_type == undefined_t) construct(dictionary_t);
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		if (m_type != dictionary_t) throw_error();
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<dictionary_type*>(&data);
-	}
-
-	entry::dictionary_type const& entry::dict() const
-	{
-		if (m_type != dictionary_t) throw_error();
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<const dictionary_type*>(&data);
-	}
-
-	entry::preformatted_type& entry::preformatted()
-	{
-		if (m_type == undefined_t) construct(preformatted_t);
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		if (m_type != preformatted_t) throw_error();
-		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<preformatted_type*>(&data);
-	}
-
-	entry::preformatted_type const& entry::preformatted() const
-	{
-		if (m_type != preformatted_t) throw_error();
-#ifdef BOOST_NO_EXCEPTIONS
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<const preformatted_type*>(&data);
-	}
-
-	entry::entry()
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-	}
-
-	entry::entry(data_type t)
-		: m_type(undefined_t)
-	{
-		construct(t);
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-	}
-
-	entry::entry(const entry& e)
-		: m_type(undefined_t)
-	{
-		copy(e);
-#if TORRENT_USE_ASSERTS
-		m_type_queried = e.m_type_queried;
-#endif
-	}
-
-	entry::entry(entry&& e) noexcept
-		: m_type(undefined_t)
-	{
-		this->operator=(std::move(e));
-	}
+	entry::entry(const entry& e) = default;
+	entry::entry(entry&& e) noexcept = default;
 
 	entry::entry(bdecode_node const& n)
-		: m_type(undefined_t)
+		: variant_type(std::in_place_type<uninitialized_type>)
 	{
 		this->operator=(n);
 	}
 
-	entry::entry(dictionary_type v)
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		new(&data) dictionary_type(std::move(v));
-		m_type = dictionary_t;
-	}
+	entry::entry(dictionary_type v) : variant_type(std::move(v)) {}
+	entry::entry(list_type v) : variant_type(std::move(v)) {}
+	entry::entry(span<char const> v) : variant_type(std::in_place_type<string_type>, v.data(), v.size()) {}
+	entry::entry(string_view v) : variant_type(std::in_place_type<string_type>, v.data(), v.size()) {}
+	entry::entry(string_type s) : variant_type(std::move(s)) {}
 
-	entry::entry(span<char const> v)
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		new(&data) string_type(v.data(), std::size_t(v.size()));
-		m_type = string_t;
-	}
+	template <typename U, typename Cond>
+	entry::entry(U v) // NOLINT
+			: variant_type(std::in_place_type<string_type>, std::move(v))
+	{}
 
-	entry::entry(list_type v)
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		new(&data) list_type(std::move(v));
-		m_type = list_t;
-	}
+	// explicit template instantiation
+	template TORRENT_EXPORT
+	entry::entry(char const*);
 
-	entry::entry(integer_type v)
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		new(&data) integer_type(std::move(v));
-		m_type = int_t;
-	}
-
-	entry::entry(preformatted_type v)
-		: m_type(undefined_t)
-	{
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		new(&data) preformatted_type(std::move(v));
-		m_type = preformatted_t;
-	}
+	entry::entry(integer_type v) : variant_type(std::move(v)) {}
+	entry::entry(preformatted_type v) : variant_type(std::move(v)) {}
 
 	// convert a bdecode_node into an old school entry
 	entry& entry::operator=(bdecode_node const& e) &
 	{
-		destruct();
+		emplace<uninitialized_type>();
 		switch (e.type())
 		{
 			case bdecode_node::string_t:
@@ -431,229 +276,10 @@ namespace {
 		return *this;
 	}
 
-	entry& entry::operator=(preformatted_type v) &
-	{
-		destruct();
-		new(&data) preformatted_type(std::move(v));
-		m_type = preformatted_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
-	}
-
-	entry& entry::operator=(dictionary_type v) &
-	{
-		destruct();
-		new(&data) dictionary_type(std::move(v));
-		m_type = dictionary_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
-	}
-
-	entry& entry::operator=(span<char const> v) &
-	{
-		destruct();
-		new(&data) string_type(v.data(), std::size_t(v.size()));
-		m_type = string_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
-	}
-
-	entry& entry::operator=(list_type v) &
-	{
-		destruct();
-		new(&data) list_type(std::move(v));
-		m_type = list_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
-	}
-
-	entry& entry::operator=(integer_type v) &
-	{
-		destruct();
-		new(&data) integer_type(std::move(v));
-		m_type = int_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-		return *this;
-	}
-
 	bool operator==(entry const& lhs, entry const& rhs)
 	{
-		if (lhs.type() != rhs.type()) return false;
-
-		switch (lhs.type())
-		{
-		case entry::int_t:
-			return lhs.integer() == rhs.integer();
-		case entry::string_t:
-			return lhs.string() == rhs.string();
-		case entry::list_t:
-			return lhs.list() == rhs.list();
-		case entry::dictionary_t:
-			return lhs.dict() == rhs.dict();
-		case entry::preformatted_t:
-			return lhs.preformatted() == rhs.preformatted();
-		case entry::undefined_t:
-			return true;
-		}
-		return false;
-	}
-
-	void entry::construct(data_type t)
-	{
-		switch (t)
-		{
-		case int_t:
-			new (&data) integer_type(0);
-			break;
-		case string_t:
-			new (&data) string_type;
-			break;
-		case list_t:
-			new (&data) list_type;
-			break;
-		case dictionary_t:
-			new (&data) dictionary_type;
-			break;
-		case undefined_t:
-			break;
-		case preformatted_t:
-			new (&data) preformatted_type;
-			break;
-		}
-		m_type = t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-	}
-
-	void entry::copy(entry const& e)
-	{
-		switch (e.type())
-		{
-		case int_t:
-			new (&data) integer_type(e.integer());
-			break;
-		case string_t:
-			new (&data) string_type(e.string());
-			break;
-		case list_t:
-			new (&data) list_type(e.list());
-			break;
-		case dictionary_t:
-			new (&data) dictionary_type(e.dict());
-			break;
-		case undefined_t:
-			TORRENT_ASSERT(e.type() == undefined_t);
-			break;
-		case preformatted_t:
-			new (&data) preformatted_type(e.preformatted());
-			break;
-		}
-		m_type = e.type();
-#if TORRENT_USE_ASSERTS
-		m_type_queried = true;
-#endif
-	}
-
-	void entry::destruct()
-	{
-		switch(m_type)
-		{
-		case int_t:
-			call_destructor(reinterpret_cast<integer_type*>(&data));
-			break;
-		case string_t:
-			call_destructor(reinterpret_cast<string_type*>(&data));
-			break;
-		case list_t:
-			call_destructor(reinterpret_cast<list_type*>(&data));
-			break;
-		case dictionary_t:
-			call_destructor(reinterpret_cast<dictionary_type*>(&data));
-			break;
-		case preformatted_t:
-			call_destructor(reinterpret_cast<preformatted_type*>(&data));
-			break;
-		default:
-			TORRENT_ASSERT(m_type == undefined_t);
-			break;
-		}
-		m_type = undefined_t;
-#if TORRENT_USE_ASSERTS
-		m_type_queried = false;
-#endif
-	}
-
-	void entry::swap(entry& e)
-	{
-		bool clear_this = false;
-		bool clear_that = false;
-
-		if (m_type == undefined_t && e.m_type == undefined_t)
-			return;
-
-		if (m_type == undefined_t)
-		{
-			construct(data_type(e.m_type));
-			clear_that = true;
-		}
-
-		if (e.m_type == undefined_t)
-		{
-			e.construct(data_type(m_type));
-			clear_this = true;
-		}
-
-		if (m_type == e.m_type)
-		{
-			switch (m_type)
-			{
-			case int_t:
-				std::swap(*reinterpret_cast<integer_type*>(&data)
-					, *reinterpret_cast<integer_type*>(&e.data));
-				break;
-			case string_t:
-				std::swap(*reinterpret_cast<string_type*>(&data)
-					, *reinterpret_cast<string_type*>(&e.data));
-				break;
-			case list_t:
-				std::swap(*reinterpret_cast<list_type*>(&data)
-					, *reinterpret_cast<list_type*>(&e.data));
-				break;
-			case dictionary_t:
-				std::swap(*reinterpret_cast<dictionary_type*>(&data)
-					, *reinterpret_cast<dictionary_type*>(&e.data));
-				break;
-			case preformatted_t:
-				std::swap(*reinterpret_cast<preformatted_type*>(&data)
-					, *reinterpret_cast<preformatted_type*>(&e.data));
-				break;
-			default:
-				break;
-			}
-
-			if (clear_this)
-				destruct();
-
-			if (clear_that)
-				e.destruct();
-		}
-		else
-		{
-			// currently, only swapping entries of the same type or where one
-			// of the entries is uninitialized is supported.
-			TORRENT_ASSERT_FAIL();
-		}
+		return static_cast<entry::variant_type const&>(lhs)
+			== static_cast<entry::variant_type const&>(rhs);
 	}
 
 namespace {
@@ -674,77 +300,77 @@ namespace {
 		out.resize(out.size() + size_t(indent), ' ');
 	}
 
-	void print_list(std::string&, entry const&, int, bool);
-	void print_dict(std::string&, entry const&, int, bool);
-
-	void to_string_impl(std::string& out, entry const& e, int const indent
-		, bool const single_line)
+	struct to_string_visitor
 	{
-		TORRENT_ASSERT(indent >= 0);
-		switch (e.type())
+		std::string& out;
+		int indent;
+		bool single_line;
+
+		void operator()(entry::integer_type i) const
 		{
-		case entry::int_t:
-			out += libtorrent::to_string(e.integer()).data();
-			break;
-		case entry::string_t:
+			out += libtorrent::to_string(i).data();
+		}
+
+		void operator()(entry::string_type const& s) const
+		{
 			out += "'";
-			out += print_string(e.string());
+			out += print_string(s);
 			out += "'";
-			break;
-		case entry::list_t:
-			print_list(out, e, indent + 1, single_line);
-			break;
-		case entry::dictionary_t:
-			print_dict(out, e, indent + 1, single_line);
-			break;
-		case entry::preformatted_t:
+		}
+
+		void operator()(entry::dictionary_type const& d)
+		{
+			out += single_line ? "{ " : "{\n";
+			bool first = true;
+			++indent;
+			for (auto const& item : d)
+			{
+				if (!first) out += single_line ? ", " : ",\n";
+				first = false;
+				if (!single_line) add_indent(out, indent);
+				out += "'";
+				out += print_string(item.first);
+				out += "': ";
+
+				std::visit(*this, static_cast<entry::variant_type const&>(item.second));
+			}
+			--indent;
+			out += " }";
+		}
+
+		void operator()(entry::list_type const& l)
+		{
+			out += single_line ? "[ " : "[\n";
+			bool first = true;
+			++indent;
+			for (auto const& item : l)
+			{
+				if (!first) out += single_line ? ", " : ",\n";
+				first = false;
+				if (!single_line) add_indent(out, indent);
+
+				std::visit(*this, static_cast<entry::variant_type const&>(item));
+			}
+			out += " ]";
+			--indent;
+		}
+
+		void operator()(entry::preformatted_type const&) const
+		{
 			out += "<preformatted>";
-			break;
-		case entry::undefined_t:
+		}
+
+		void operator()(entry::uninitialized_type const&) const
+		{
 			out += "<uninitialized>";
-			break;
 		}
-	}
-
-	void print_list(std::string& out, entry const& e
-		, int const indent, bool const single_line)
-	{
-		out += single_line ? "[ " : "[\n";
-		bool first = true;
-		for (auto const& item : e.list())
-		{
-			if (!first) out += single_line ? ", " : ",\n";
-			first = false;
-			if (!single_line) add_indent(out, indent);
-			to_string_impl(out, item, indent, single_line);
-		}
-		out += " ]";
-	}
-
-	void print_dict(std::string& out, entry const& e
-		, int const indent, bool const single_line)
-	{
-		out += single_line ? "{ " : "{\n";
-		bool first = true;
-		for (auto const& item : e.dict())
-		{
-			if (!first) out += single_line ? ", " : ",\n";
-			first = false;
-			if (!single_line) add_indent(out, indent);
-			out += "'";
-			out += print_string(item.first);
-			out += "': ";
-
-			to_string_impl(out, item.second, indent+1, single_line);
-		}
-		out += " }";
-	}
+	};
 }
 
 	std::string entry::to_string(bool const single_line) const
 	{
 		std::string ret;
-		to_string_impl(ret, *this, 0, single_line);
+		std::visit(to_string_visitor{ret, 0, single_line}, static_cast<entry::variant_type const&>(*this));
 		return ret;
 	}
 

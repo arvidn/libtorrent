@@ -261,7 +261,8 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	e["t"] = t;
 	e["y"] = "q";
 	e["a"] = args.a;
-	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
+	// this will only insert the "id" if it wasn't already added by args.a
+	e["a"].dict().insert(std::pair<std::string, lt::entry>("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 
@@ -306,7 +307,8 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	e["t"] = std::string(request.dict_find_string_value("t"));
 //	e["ip"] = endpoint_to_bytes(ep);
 	e["r"] = args.a;
-	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
+	// this will only insert the "id" if it wasn't already added by args.a
+	e["r"].dict().insert(std::pair<std::string, lt::entry>("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int const size = bencode(msg_buf, e);
 
@@ -2764,7 +2766,7 @@ TORRENT_TEST(multi_home)
 	e["q"] = "ping";
 	e["t"] = "10";
 	e["y"] = "q";
-	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
+	e["a"]["id"] = generate_next().to_string();
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 

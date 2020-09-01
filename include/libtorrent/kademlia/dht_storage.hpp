@@ -24,7 +24,7 @@ see LICENSE file.
 #include <libtorrent/string_view.hpp>
 
 namespace libtorrent {
-	class entry;
+	struct entry;
 	struct settings_interface;
 }
 

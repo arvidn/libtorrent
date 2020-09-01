@@ -152,7 +152,7 @@ struct storage_holder;
 struct disk_observer;
 
 // include/libtorrent/entry.hpp
-class entry;
+struct entry;
 
 // include/libtorrent/error_code.hpp
 struct storage_error;
