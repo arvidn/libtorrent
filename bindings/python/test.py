@@ -101,6 +101,10 @@ class test_torrent_handle(unittest.TestCase):
         self.h.move_storage(u'test-dir')
         self.h.move_storage(b'test-dir2')
         self.h.move_storage('test-dir3')
+        self.h.move_storage(u'test-dir', flags=lt.move_flags_t.dont_replace)
+        self.h.move_storage(u'test-dir', flags=2)
+        self.h.move_storage(b'test-dir2', flags=2)
+        self.h.move_storage('test-dir3', flags=2)
 
     def test_torrent_handle(self):
         self.setup()
