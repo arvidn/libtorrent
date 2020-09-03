@@ -14,10 +14,9 @@ task:
   submodules_script: |
     git submodule update --init --recursive
   build_cmake_script: |
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -G Ninja .
+    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -G Ninja .
     cmake --build . --parallel 2
-  cmake_tests_script: |
-    ctest -j2
+    ./test/test_primitives
   tests_script: |
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
