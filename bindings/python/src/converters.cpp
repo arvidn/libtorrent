@@ -23,6 +23,7 @@
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/pex_flags.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/storage_defs.hpp"
 #include <vector>
 #include <map>
 
@@ -341,6 +342,30 @@ struct to_strong_typedef
     }
 };
 
+template<typename T>
+struct to_enum_class
+{
+   using underlying_type = typename std::underlying_type<T>::type;
+
+   to_enum_class()
+   {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<T>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyNumber_Check(x) ? x : nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        data->convertible = new (storage) T(static_cast<T>(static_cast<underlying_type>(extract<underlying_type>(object(borrowed(x))))));
+    }
+};
+
 template<class T>
 struct from_bitfield_flag
 {
@@ -499,6 +524,7 @@ void bind_converters()
     to_strong_typedef<lt::file_index_t>();
     to_strong_typedef<lt::port_mapping_t>();
     to_strong_typedef<lt::peer_class_t>();
+    to_enum_class<lt::move_flags_t>();
     to_bitfield_flag<lt::torrent_flags_t>();
     to_bitfield_flag<lt::peer_flags_t>();
     to_bitfield_flag<lt::peer_source_flags_t>();
