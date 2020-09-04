@@ -162,7 +162,7 @@ rule linking ( properties * )
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
-		result += <linkflags>-export-dynamic <linkflags>-rdynamic ;
+		result += <linkflags>-Wl,-export-dynamic <linkflags>-rdynamic ;
 	}
 
 	if <boost-link>static in $(properties)
