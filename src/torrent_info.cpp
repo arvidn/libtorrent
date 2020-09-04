@@ -138,7 +138,7 @@ namespace aux {
 				valid_encoding = false;
 			}
 
-			ptr = ptr.substr(std::size_t(len));
+			ptr = ptr.substr(std::min(std::size_t(len), ptr.size()));
 
 			// encode codepoint into utf-8
 			append_utf8_codepoint(tmp_path, codepoint);
