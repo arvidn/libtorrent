@@ -25,7 +25,7 @@ see LICENSE file.
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_context.hpp>
-#include <libtorrent/udp_socket.hpp>
+#include <libtorrent/aux_/udp_socket.hpp>
 #include <libtorrent/entry.hpp>
 
 namespace libtorrent {
@@ -48,7 +48,7 @@ namespace dht {
 	{
 		using send_fun_t = std::function<void(
 			aux::listen_socket_handle const&, udp::endpoint const&
-			, span<char const>, error_code&, udp_send_flags_t)>;
+			, span<char const>, error_code&, aux::udp_send_flags_t)>;
 
 		dht_tracker(dht_observer* observer
 			, io_context& ios

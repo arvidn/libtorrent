@@ -104,7 +104,7 @@ see LICENSE file.
 #endif // TORRENT_DISABLE_DHT
 
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/aux_/udp_tracker_connection.hpp"
 
 #endif // TORRENT_DISABLE_LOGGING
 

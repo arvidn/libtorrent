@@ -46,7 +46,7 @@ see LICENSE file.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/bandwidth_manager.hpp"
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"

@@ -19,16 +19,16 @@ see LICENSE file.
 #include <memory>
 #include <map>
 
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
-	friend class tracker_manager;
+	friend class lt::tracker_manager;
 	public:
 
 		udp_tracker_connection(

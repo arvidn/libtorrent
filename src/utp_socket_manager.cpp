@@ -11,7 +11,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/utp_stream.hpp"
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"

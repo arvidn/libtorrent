@@ -13,7 +13,7 @@ see LICENSE file.
 #ifndef TORRENT_UTP_STREAM_HPP_INCLUDED
 #define TORRENT_UTP_STREAM_HPP_INCLUDED
 
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"

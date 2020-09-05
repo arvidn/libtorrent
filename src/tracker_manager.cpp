@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/ssl.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/aux_/udp_tracker_connection.hpp"
 
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/websocket_tracker_connection.hpp"
@@ -233,7 +233,7 @@ namespace libtorrent {
 		}
 	}
 
-	void tracker_manager::remove_request(udp_tracker_connection const* c)
+	void tracker_manager::remove_request(aux::udp_tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_udp_conns.erase(c->transaction_id());
@@ -249,7 +249,7 @@ namespace libtorrent {
 #endif
 
 	void tracker_manager::update_transaction_id(
-		std::shared_ptr<udp_tracker_connection> c
+		std::shared_ptr<aux::udp_tracker_connection> c
 		, std::uint32_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -296,7 +296,7 @@ namespace libtorrent {
 		}
 		else if (protocol == "udp")
 		{
-			auto con = std::make_shared<udp_tracker_connection>(ios, *this, std::move(req), c);
+			auto con = std::make_shared<aux::udp_tracker_connection>(ios, *this, std::move(req), c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;
@@ -375,7 +375,7 @@ namespace libtorrent {
 			return false;
 		}
 
-		std::shared_ptr<udp_tracker_connection> const p = i->second;
+		auto const p = i->second;
 		// on_receive() may remove the tracker connection from the list
 		return p->on_receive(ep, buf);
 	}
@@ -414,14 +414,14 @@ namespace libtorrent {
 			return false;
 		}
 
-		std::shared_ptr<udp_tracker_connection> const p = i->second;
+		auto const p = i->second;
 		// on_receive() may remove the tracker connection from the list
 		return p->on_receive_hostname(hostname, buf);
 	}
 
 	void tracker_manager::send_hostname(aux::listen_socket_handle const& sock
 		, char const* hostname, int const port
-		, span<char const> p, error_code& ec, udp_send_flags_t const flags)
+		, span<char const> p, error_code& ec, aux::udp_send_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_fun_hostname(sock, hostname, port, p, ec, flags);
@@ -430,7 +430,7 @@ namespace libtorrent {
 	void tracker_manager::send(aux::listen_socket_handle const& sock
 		, udp::endpoint const& ep
 		, span<char const> p
-		, error_code& ec, udp_send_flags_t const flags)
+		, error_code& ec, aux::udp_send_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_fun(sock, ep, p, ec, flags);
@@ -445,7 +445,7 @@ namespace libtorrent {
 
 		m_abort = true;
 		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
-		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
+		std::vector<std::shared_ptr<aux::udp_tracker_connection>> close_udp_connections;
 
 		for (auto const& c : m_queued)
 		{
@@ -534,4 +534,3 @@ namespace libtorrent {
 			);
 	}
 }
-
