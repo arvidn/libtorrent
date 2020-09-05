@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/performance_counters.hpp"
@@ -86,8 +86,8 @@ struct obs : dht::dht_observer
 #endif
 };
 
-void send_packet(lt::udp_socket& sock, lt::aux::listen_socket_handle const&, udp::endpoint const& ep
-	, span<char const> p, error_code& ec, udp_send_flags_t const flags)
+void send_packet(lt::aux::udp_socket& sock, lt::aux::listen_socket_handle const&, udp::endpoint const& ep
+	, span<char const> p, error_code& ec, lt::aux::udp_send_flags_t const flags)
 {
 	sock.send(ep, p, ec, flags);
 }
@@ -103,7 +103,7 @@ TORRENT_TEST(dht_rate_limit)
 	asio::io_context dht_ios(sim, make_address_v4("40.30.20.10"));
 
 	// receiver (the DHT under test)
-	lt::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
+	lt::aux::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
 	obs o;
 	auto ls = std::make_shared<lt::aux::listen_socket_t>();
 	ls->external_address.cast_vote(make_address_v4("40.30.20.10")
@@ -131,9 +131,9 @@ TORRENT_TEST(dht_rate_limit)
 		= [&](error_code const& ec)
 	{
 		if (ec) return;
-		udp_socket::packet p;
+		lt::aux::udp_socket::packet p;
 		error_code err;
-		int const num = int(sock.read(lt::span<udp_socket::packet>(&p, 1), err));
+		int const num = int(sock.read(lt::span<lt::aux::udp_socket::packet>(&p, 1), err));
 		if (num) dht->incoming_packet(ls, p.from, p.data);
 		if (stop || err) return;
 		sock.async_read(on_read);
@@ -229,7 +229,7 @@ TORRENT_TEST(dht_delete_socket)
 	sim::simulation sim(cfg);
 	sim::asio::io_context dht_ios(sim, lt::make_address_v4("40.30.20.10"));
 
-	lt::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
+	lt::aux::udp_socket sock(dht_ios, lt::aux::listen_socket_handle{});
 	error_code ec;
 	sock.bind(udp::endpoint(make_address_v4("40.30.20.10"), 8888), ec);
 

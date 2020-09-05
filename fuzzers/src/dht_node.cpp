@@ -55,7 +55,7 @@ io_context ios;
 dht::dht_tracker dht_node(&o
 	, ios
 	, [](aux::listen_socket_handle const&, udp::endpoint const&
-		, span<char const>, error_code&, udp_send_flags_t) {}
+		, span<char const>, error_code&, aux::udp_send_flags_t) {}
 	, sett
 	, cnt
 	, *dht_storage
@@ -76,4 +76,3 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 	dht_node.incoming_packet(s, ep, {reinterpret_cast<char const*>(data), int(size)});
 	return 0;
 }
-

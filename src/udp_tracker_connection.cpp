@@ -17,7 +17,7 @@ see LICENSE file.
 #include <tuple>
 
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/aux_/udp_tracker_connection.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	std::map<address, udp_tracker_connection::connection_cache_entry>
 		udp_tracker_connection::m_connection_cache;
@@ -496,7 +496,7 @@ namespace libtorrent {
 			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s ]"
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
-					: (m_hostname + ":" + to_string(m_target.port()).data()).c_str()
+					: (m_hostname + ":" + lt::to_string(m_target.port()).data()).c_str()
 				, aux::to_hex(tracker_req().info_hash).c_str());
 		}
 #endif

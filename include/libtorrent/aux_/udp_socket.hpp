@@ -24,9 +24,9 @@ see LICENSE file.
 #include <array>
 #include <memory>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
-namespace aux { struct alert_manager; }
+	struct alert_manager;
 	struct socks5;
 
 	using udp_send_flags_t = flags::bitfield_flag<std::uint8_t, struct udp_send_flags_tag>;

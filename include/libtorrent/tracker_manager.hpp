@@ -41,7 +41,7 @@ see LICENSE file.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
-#include "libtorrent/udp_socket.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/ssl.hpp"
 
@@ -53,7 +53,6 @@ namespace libtorrent {
 
 	class tracker_manager;
 	struct timeout_handler;
-	class udp_tracker_connection;
 	class http_tracker_connection;
 	struct resolver_interface;
 	struct counters;
@@ -64,6 +63,7 @@ namespace aux {
 	struct session_logger;
 	struct session_settings;
 	struct resolver_interface;
+	class udp_tracker_connection;
 #if TORRENT_USE_RTC
 	struct websocket_tracker_connection;
 #endif
@@ -308,11 +308,11 @@ enum class event_t : std::uint8_t
 		using send_fun_t = std::function<void(aux::listen_socket_handle const&
 			, udp::endpoint const&
 			, span<char const>
-			, error_code&, udp_send_flags_t)>;
+			, error_code&, aux::udp_send_flags_t)>;
 		using send_fun_hostname_t = std::function<void(aux::listen_socket_handle const&
 			, char const*, int
 			, span<char const>
-			, error_code&, udp_send_flags_t)>;
+			, error_code&, aux::udp_send_flags_t)>;
 
 		tracker_manager(send_fun_t send_fun
 			, send_fun_hostname_t send_fun_hostname
@@ -344,7 +344,7 @@ enum class event_t : std::uint8_t
 		void abort_all_requests(bool all = false);
 
 		void remove_request(http_tracker_connection const* c);
-		void remove_request(udp_tracker_connection const* c);
+		void remove_request(aux::udp_tracker_connection const* c);
 #if TORRENT_USE_RTC
 		void remove_request(aux::websocket_tracker_connection const* c);
 #endif
@@ -364,7 +364,7 @@ enum class event_t : std::uint8_t
 		bool incoming_packet(char const* hostname, span<char const> buf);
 
 		void update_transaction_id(
-			std::shared_ptr<udp_tracker_connection> c
+			std::shared_ptr<aux::udp_tracker_connection> c
 			, std::uint32_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
@@ -372,18 +372,18 @@ enum class event_t : std::uint8_t
 
 		void send_hostname(aux::listen_socket_handle const& sock
 			, char const* hostname, int port, span<char const> p
-			, error_code& ec, udp_send_flags_t flags = {});
+			, error_code& ec, aux::udp_send_flags_t flags = {});
 
 		void send(aux::listen_socket_handle const& sock
 			, udp::endpoint const& ep, span<char const> p
-			, error_code& ec, udp_send_flags_t flags = {});
+			, error_code& ec, aux::udp_send_flags_t flags = {});
 
 	private:
 
 		// maps transactionid to the udp_tracker_connection
 		// These must use shared_ptr to avoid a dangling reference
 		// if a connection is erased while a timeout event is in the queue
-		std::unordered_map<std::uint32_t, std::shared_ptr<udp_tracker_connection>> m_udp_conns;
+		std::unordered_map<std::uint32_t, std::shared_ptr<aux::udp_tracker_connection>> m_udp_conns;
 
 		std::vector<std::shared_ptr<http_tracker_connection>> m_http_conns;
 		std::deque<std::shared_ptr<http_tracker_connection>> m_queued;
