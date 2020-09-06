@@ -336,6 +336,7 @@ namespace {
 			int const num_leafs = 1 << base;
 
 			bool done = false;
+			if (first_leaf >= m_num_blocks) break;
 			for (int j = 0; j < std::min(num_leafs, m_num_blocks - first_leaf); ++j)
 			{
 				if (m_tree[file_first_leaf + first_leaf + j].is_all_zeros())
