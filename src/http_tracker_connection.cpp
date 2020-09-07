@@ -289,7 +289,7 @@ namespace libtorrent {
 
 		if (endpoints.empty())
 		{
-			fail(error_code(boost::system::errc::host_unreachable, system_category())
+			fail(error_code(boost::system::errc::host_unreachable, generic_category())
 				, operation_t::get_interface);
 			return;
 		}
