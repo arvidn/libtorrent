@@ -282,7 +282,7 @@ namespace libtorrent {
 
 		if (endpoints.empty())
 		{
-			fail(error_code(boost::system::errc::host_unreachable, system_category()));
+			fail(lt::errors::announce_skipped);
 			return;
 		}
 

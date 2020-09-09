@@ -428,6 +428,9 @@ namespace libtorrent {
 			invalid_tracker_transaction_id,
 			// invalid action field in UDP tracker response
 			invalid_tracker_action,
+			// skipped announce (because it's assumed to be unreachable over the
+			// given source network interface)
+			announce_skipped,
 
 #if TORRENT_ABI_VERSION == 1
 			// expected string in bencoded string
