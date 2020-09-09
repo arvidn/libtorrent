@@ -150,6 +150,7 @@ OPTIONS:
               this means aligning large files and pad them in order
               for piece hashes to uniquely indentify a file without
               overlap
+-T            Include file timestamps in the .torrent file.
 )";
 }
 
@@ -200,6 +201,9 @@ int main(int argc_, char const* argv_[]) try
 				continue;
 			case 'l':
 				flags |= lt::create_torrent::symlinks;
+				continue;
+			case 'T':
+				flags |= lt::create_torrent::modification_time;
 				continue;
 		}
 
