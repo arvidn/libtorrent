@@ -66,7 +66,7 @@ namespace libtorrent {
 		file_entry(file_entry const&) = default;
 		file_entry& operator=(file_entry const&) & = default;
 		file_entry(file_entry&&) noexcept = default;
-		file_entry& operator=(file_entry&&) & noexcept = default;
+		file_entry& operator=(file_entry&&) & = default;
 
 #if defined __GNUC__
 #pragma GCC diagnostic pop
