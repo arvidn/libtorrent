@@ -1122,7 +1122,7 @@ namespace {
 //				, p.piece, p.start, p.length);
 #endif
 
-		if (recv_pos - received < header_size && recv_pos >= header_size)
+		if (recv_pos - received < header_size)
 		{
 			// call this once, the first time the entire header
 			// has been received
