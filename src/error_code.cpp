@@ -248,8 +248,7 @@ namespace libtorrent {
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
-#if TORRENT_ABI_VERSION == 1
-			"",
+			"skipping tracker announce (unreachable)",
 			"",
 			"",
 			"",
@@ -260,6 +259,7 @@ namespace libtorrent {
 			"",
 			"",
 
+#if TORRENT_ABI_VERSION == 1
 // bdecode errors
 			"expected string in bencoded string",
 			"expected colon in bencoded string",
@@ -272,7 +272,8 @@ namespace libtorrent {
 			"",
 			"",
 #else
-			"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+			"", "", "", "", "",
+			"", "", "", "", "",
 #endif
 			"random number generator failed",
 			"",

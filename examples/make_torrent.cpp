@@ -145,6 +145,7 @@ OPTIONS:
               in the same collection is expected to share files
               with this one.
 -2            Only generate V2 metadata
+-T            Include file timestamps in the .torrent file.
 )";
 	std::exit(1);
 }
@@ -189,6 +190,9 @@ int main(int argc_, char const* argv_[]) try
 				continue;
 			case '2':
 				flags |= lt::create_torrent::v2_only;
+				continue;
+			case 'T':
+				flags |= lt::create_torrent::modification_time;
 				continue;
 		}
 

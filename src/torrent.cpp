@@ -11580,7 +11580,8 @@ namespace {
 #endif
 					// don't try to announce from this endpoint again
 					if (ec == boost::system::errc::address_family_not_supported
-						|| ec == boost::system::errc::host_unreachable)
+						|| ec == boost::system::errc::host_unreachable
+						|| ec == lt::errors::announce_skipped)
 					{
 						aep->enabled = false;
 #ifndef TORRENT_DISABLE_LOGGING
