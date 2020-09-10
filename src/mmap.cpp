@@ -215,7 +215,9 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
 	}
 
-	if ((mode & open_mode::truncate) && !(mode & aux::open_mode::sparse))
+	if ((mode & open_mode::truncate)
+		&& !(mode & aux::open_mode::sparse)
+		&& (mode & aux::open_mode::allow_set_file_valid_data))
 	{
 		LARGE_INTEGER sz;
 		sz.QuadPart = size;

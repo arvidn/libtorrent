@@ -1,3 +1,6 @@
+	* disable use of SetFileValidData() by default (windows). A new setting
+	  allows enabling it
+
 2.0 release
 
 	* dropped depenency on iconv

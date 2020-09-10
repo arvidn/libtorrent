@@ -217,6 +217,7 @@ namespace libtorrent {
 		SET(dht_read_only, false, nullptr),
 		SET(piece_extent_affinity, false, nullptr),
 		SET(validate_https_trackers, false, &session_impl::update_validate_https),
+		SET(enable_set_file_valid_data, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
