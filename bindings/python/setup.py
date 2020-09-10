@@ -57,19 +57,19 @@ def bjam_build():
 
     try:
         os.mkdir('build')
-    except BaseException:
+    except FileExistsError:
         pass
     try:
         shutil.rmtree('build/lib')
-    except BaseException:
+    except FileNotFoundError:
         pass
     try:
         os.mkdir('build/lib')
-    except BaseException:
+    except FileExistsError:
         pass
     try:
         os.mkdir('libtorrent')
-    except BaseException:
+    except FileExistsError:
         pass
     for f in glob.glob('libtorrent*.' + file_ext):
         shutil.copyfile(f, 'build/lib/libtorrent' + file_ext)
