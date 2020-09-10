@@ -164,15 +164,15 @@ Also make sure to optimize for size when compiling.
 Another way of reducing the executable size is to disable code that isn't used.
 There are a number of ``TORRENT_*`` macros that control which features are included
 in libtorrent. If these macros are used to strip down libtorrent, make sure the same
-macros are defined when building libtorrent as when linking against it. If these
-are different the structures will look different from the libtorrent side and from
-the client side and memory corruption will follow.
+macros are defined when building libtorrent as when linking against it. Some of
+these macros may affect ABI (although they are not intended to).
 
 One, probably, safe macro to define is ``TORRENT_NO_DEPRECATE`` which removes all
 deprecated functions and struct members. As long as no deprecated functions are
-relied upon, this should be a simple way to eliminate a little bit of code.
+relied upon, this should be a simple way to shave off some size from the executable.
 
-For all available options, see the `building libtorrent`_ section.
+For all available options, see the `building libtorrent`_ section. Look
+specifically for the ``TORRENT_DISABLE_*`` macros.
 
 .. _`building libtorrent`: building.html
 
@@ -261,11 +261,11 @@ hashing
 -------
 
 When downloading at very high rates, it is possible to have the CPU be the
-bottleneck for passing every downloaded byte through SHA-1 and/or SHA-256. In order to enable
-computing hashes in parallel, on multi-core systems, set
-settings_pack::aio_threads to the number of threads libtorrent should
-perform I/O and do hashing in. Only if that thread is close to saturating
-one core does it make sense to increase the number of threads.
+bottleneck for passing every downloaded byte through SHA-1 and/or SHA-256. In
+order to enable computing hashes in parallel, on multi-core systems, set
+settings_pack::aio_threads to the number of threads libtorrent should perform
+I/O and settings_pack::hashing_threads to the number of threads to compute piece
+hashes in.
 
 scalability
 ===========
@@ -287,16 +287,6 @@ flag set. When post_torrent_updates() is called, a state_update_alert alert
 is posted, with all the torrents that have updated since the last time this
 function was called. The client have to keep its own state of all torrents, and
 update it based on this alert.
-
-benchmarking
-============
-
-There is a bunch of built-in instrumentation of libtorrent that can be used to get an insight
-into what it's doing and how well it performs. This instrumentation is enabled by defining
-preprocessor symbols when building.
-
-There are also a number of scripts that parses the log files and generates graphs (requires
-gnuplot and python).
 
 understanding the disk threads
 ==============================
