@@ -940,6 +940,14 @@ namespace aux {
 			// HTTPS trackers to fail.
 			validate_https_trackers,
 
+			// when set to true, enables the attempt to use SetFileValidData()
+			// to pre-allocate disk space. This system call will only work when
+			// running with Administrator privileges on Windows, and so this
+			// setting is only relevant in that scenario. Using
+			// SetFileValidData() poses a security risk, as it may reveal
+			// previously deleted information from the disk.
+			enable_set_file_valid_data,
+
 			max_bool_setting_internal
 		};
 

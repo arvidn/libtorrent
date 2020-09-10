@@ -802,6 +802,13 @@ namespace libtorrent {
 			mode |= (m_file_created[file] == false) ? aux::open_mode::truncate : aux::open_mode::read_only;
 		}
 
+#ifdef _WIN32
+		if (sett.get_bool(settings_pack::enable_set_file_valid_data))
+		{
+			mode |= aux::open_mode::allow_set_file_valid_data;
+		}
+#endif
+
 		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec.ec);
 		if ((mode & aux::open_mode::write)
 			&& ec.ec == boost::system::errc::no_such_file_or_directory)
