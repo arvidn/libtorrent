@@ -1247,7 +1247,7 @@ namespace {
 
 				m_flags &= ~multifile;
 			}
-			else if (version >= 2)
+			else
 			{
 				// this is a v2 only torrent so clear the v1 info hash to make sure no one uses it
 				m_info_hash.v1.clear();

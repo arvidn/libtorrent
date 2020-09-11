@@ -509,7 +509,7 @@ If you enabled test in the configuration step, to run them, run::
 building with VCPKG
 -------------------
 
-You can download and install libtorrent using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager::
+You can download and install libtorrent using the vcpkg_ dependency manager::
 
 	git clone https://github.com/Microsoft/vcpkg.git
 	cd vcpkg
@@ -517,8 +517,12 @@ You can download and install libtorrent using the [vcpkg](https://github.com/Mic
 	./vcpkg integrate install
 	./vcpkg install libtorrent
 
+.. _vcpkg: https://github.com/Microsoft/vcpkg/
+
 The libtorrent port in vcpkg is kept up to date by Microsoft team members and community contributors.
-If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+If the version is out of date, please `create an issue or pull request`__ on the vcpkg repository.
+
+__ https://github.com/Microsoft/vcpkg
 
 building with other build systems
 ---------------------------------

@@ -37,7 +37,7 @@ namespace libtorrent { namespace aux {
 #if defined _MSC_VER || defined __MINGW64__
 
 	// windows
-#ifndef NDEBUG
+#if _HAS_ITERATOR_DEBUGGING > 0
 	constexpr std::size_t debug_read_iter = 34 * sizeof(void*);
 	constexpr std::size_t debug_write_iter = 34 * sizeof(void*);
 	constexpr std::size_t debug_tick = 4 * sizeof(void*);
@@ -47,18 +47,18 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t debug_tick = 0;
 #endif
 #if TORRENT_USE_SSL
-	constexpr std::size_t openssl_read_cost = 94;
-	constexpr std::size_t openssl_write_cost = 94;
+	constexpr std::size_t openssl_read_cost = 26 + 14 * sizeof(void*);
+	constexpr std::size_t openssl_write_cost = 26 + 14 * sizeof(void*);
 #else
 	constexpr std::size_t openssl_read_cost = 0;
 	constexpr std::size_t openssl_write_cost = 0;
 #endif
 
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 130;
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 130;
-	constexpr std::size_t udp_handler_max_size = tracking + debug_tick + 160;
-	constexpr std::size_t utp_handler_max_size = tracking + debug_tick + 184;
-	constexpr std::size_t tick_handler_max_size = tracking + debug_tick + 112;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + 102 + 8 * sizeof(void*);
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + 102 + 8 * sizeof(void*);
+	constexpr std::size_t udp_handler_max_size = tracking + debug_tick + 128 + 8 * sizeof(void*);
+	constexpr std::size_t utp_handler_max_size = tracking + debug_tick + 152 + 8 * sizeof(void*);
+	constexpr std::size_t tick_handler_max_size = tracking + debug_tick + 144;
 	constexpr std::size_t abort_handler_max_size = tracking + debug_tick + 104;
 	constexpr std::size_t submit_handler_max_size = tracking + debug_tick + 104;
 	constexpr std::size_t deferred_handler_max_size = tracking + debug_tick + 112;

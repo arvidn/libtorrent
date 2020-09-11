@@ -33,6 +33,8 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* use a different error code than host-unreachable, when skipping tracker announces
+
 1.2.10 released
 
 	* fix regression in python binding for move_storage()

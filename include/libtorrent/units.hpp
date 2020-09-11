@@ -112,7 +112,9 @@ namespace aux {
 	// this type represents a piece index in a torrent.
 	using piece_index_t = aux::strong_typedef<std::int32_t, aux::piece_index_tag>;
 
-	// this type represents an index to a file in a torrent
+	// this type represents an index to a file in a torrent. Any specific torrent
+	// file has a well defined and immutable file list, and a file index into it
+	// always refers to the same file.
 	using file_index_t = aux::strong_typedef<std::int32_t, aux::file_index_tag>;
 
 } // namespace libtorrent

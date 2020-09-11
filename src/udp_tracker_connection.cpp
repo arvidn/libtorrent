@@ -199,8 +199,7 @@ namespace libtorrent::aux {
 
 		if (m_endpoints.empty())
 		{
-			fail(error_code(boost::system::errc::host_unreachable, generic_category())
-				, operation_t::hostname_lookup);
+			fail(lt::errors::announce_skipped, operation_t::hostname_lookup);
 			return;
 		}
 
