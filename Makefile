@@ -861,6 +861,7 @@ TEST_SOURCES = \
   test_lsd.cpp \
   test_magnet.cpp \
   test_merkle.cpp \
+  test_merkle_tree.cpp \
   test_mmap.cpp \
   test_packet_buffer.cpp \
   test_part_file.cpp \

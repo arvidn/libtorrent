@@ -133,6 +133,7 @@ run test_timestamp_history.cpp ;
 run test_bloom_filter.cpp ;
 run test_identify_client.cpp ;
 run test_merkle.cpp ;
+run test_merkle_tree.cpp ;
 run test_resolve_links.cpp ;
 run test_heterogeneous_queue.cpp ;
 run test_ip_voter.cpp ;
@@ -269,6 +270,7 @@ alias deterministic-tests :
 	test_listen_socket
 	test_magnet
 	test_merkle
+	test_merkle_tree
 	test_mmap
 	test_packet_buffer
 	test_part_file
