@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include "libtorrent/span.hpp"
 #include <mutex> // for call_once
@@ -173,6 +174,8 @@ namespace {
 }
 #endif
 
+namespace aux {
+
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
 	{
@@ -257,6 +260,8 @@ namespace {
 		}
 #endif
 	}
+
+} // namespace aux
 
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE) {}
 

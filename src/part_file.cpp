@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 #include <functional> // for std::function
 #include <cstdint>

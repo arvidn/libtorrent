@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 namespace libtorrent {
 

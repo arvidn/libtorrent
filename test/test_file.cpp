@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/string_view.hpp"
@@ -138,7 +139,7 @@ TORRENT_TEST(directory)
 	touch_file(combine_path("file_test_dir", "ghi"), 1000);
 
 	std::set<std::string> files;
-	for (directory i("file_test_dir", ec); !i.done(); i.next(ec))
+	for (aux::directory i("file_test_dir", ec); !i.done(); i.next(ec))
 	{
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
@@ -155,7 +156,7 @@ TORRENT_TEST(directory)
 
 	recursive_copy("file_test_dir", "file_test_dir2", ec);
 
-	for (directory i("file_test_dir2", ec); !i.done(); i.next(ec))
+	for (aux::directory i("file_test_dir2", ec); !i.done(); i.next(ec))
 	{
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
@@ -651,7 +652,7 @@ TORRENT_TEST(unc_tests)
 
 	std::set<std::string> files;
 
-	for (lt::directory i(long_dir_name, ec); !i.done(); i.next(ec))
+	for (lt::aux::directory i(long_dir_name, ec); !i.done(); i.next(ec))
 	{
 		std::string f = i.file();
 		files.insert(f);
