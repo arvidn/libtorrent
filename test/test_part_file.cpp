@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 
 #include "test.hpp"
-#include "libtorrent/part_file.hpp"
+#include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
 
@@ -60,7 +60,7 @@ TORRENT_TEST(part_file)
 		create_directory(combine_path(cwd, "partfile_test_dir2"), ec);
 		if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 
-		part_file pf(combine_path(cwd, "partfile_test_dir"), "partfile.parts", 100, piece_size);
+		aux::posix_part_file pf(combine_path(cwd, "partfile_test_dir"), "partfile.parts", 100, piece_size);
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
 
@@ -74,7 +74,7 @@ TORRENT_TEST(part_file)
 
 		iovec_t v = buf;
 		pf.writev(v, piece_index_t(10), 0, ec);
-		if (ec) std::printf("part_file::writev: %s\n", ec.message().c_str());
+		if (ec) std::printf("posix_part_file::writev: %s\n", ec.message().c_str());
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -91,8 +91,9 @@ TORRENT_TEST(part_file)
 
 		buf.fill(0);
 
-		pf.readv(v, piece_index_t(10), 0, ec);
-		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
+		int const read = pf.readv(v, piece_index_t(10), 0, ec);
+		TEST_EQUAL(read, int(buf.size()));
+		if (ec) std::printf("posix_part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < int(buf.size()); ++i)
 			TEST_CHECK(buf[std::size_t(i)] == char(i));
@@ -101,20 +102,20 @@ TORRENT_TEST(part_file)
 
 		hasher ph;
 		pf.hashv(ph, sizeof(buf), piece_index_t(10), 0, ec);
-		if (ec) std::printf("part_file::hashv: %s\n", ec.message().c_str());
+		if (ec) std::printf("posix_part_file::hashv: %s\n", ec.message().c_str());
 
 		TEST_CHECK(ph.final() == cmp_hash);
 	}
 
 	{
 		// load the part file back in
-		part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
+		aux::posix_part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
 
 		buf.fill(0);
 
 		iovec_t v = buf;
 		pf.readv(v, piece_index_t(10), 0, ec);
-		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
+		if (ec) std::printf("posix_part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
 			TEST_CHECK(buf[std::size_t(i)] == static_cast<char>(i));
@@ -122,7 +123,7 @@ TORRENT_TEST(part_file)
 		// test exporting the piece to a file
 
 		std::string output_filename = combine_path(combine_path(cwd, "partfile_test_dir")
-			, "part_file_test_export");
+			, "posix_part_file_test_export");
 
 		pf.export_file([](std::int64_t file_offset, span<char> buf_data)
 		{

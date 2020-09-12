@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hex.hpp"
 #include "simulator/simulator.hpp"

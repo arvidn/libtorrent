@@ -368,6 +368,7 @@ SOURCES = \
   piece_picker.cpp                \
   platform_util.cpp               \
   posix_disk_io.cpp               \
+  posix_part_file.cpp             \
   posix_storage.cpp               \
   proxy_base.cpp                  \
   proxy_settings.cpp              \
@@ -622,6 +623,7 @@ HEADERS = \
   aux_/path.hpp                     \
   aux_/polymorphic_socket.hpp       \
   aux_/portmap.hpp                  \
+  aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
   aux_/range.hpp                    \

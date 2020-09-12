@@ -543,7 +543,7 @@ namespace aux {
 				{
 					ec.file(idx);
 					ec.operation = operation_t::mkdir;
-					return nullptr;
+					return file_pointer{};
 				}
 
 				// now that we've created the directories, try again
@@ -560,14 +560,14 @@ namespace aux {
 					ec.ec.assign(errno, generic_category());
 					ec.file(idx);
 					ec.operation = operation_t::file_open;
-					return nullptr;
+					return file_pointer{};
 				}
 			}
 			else
 			{
 				ec.file(idx);
 				ec.operation = operation_t::file_open;
-				return nullptr;
+				return file_pointer{};
 			}
 		}
 
@@ -582,11 +582,11 @@ namespace aux {
 				ec.ec.assign(errno, generic_category());
 				ec.file(idx);
 				ec.operation = operation_t::file_seek;
-				return nullptr;
+				return file_pointer{};
 			}
 		}
 
-		return f;
+		return file_pointer{f};
 	}
 
 	bool posix_storage::use_partfile(file_index_t const index) const
