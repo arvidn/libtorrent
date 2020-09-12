@@ -582,6 +582,7 @@ HEADERS = \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \
   aux_/dev_random.hpp               \
+  aux_/directory.hpp                \
   aux_/disable_deprecation_warnings_push.hpp \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
@@ -594,6 +595,7 @@ HEADERS = \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
+  aux_/file_pointer.hpp             \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \
   aux_/generate_peer_id.hpp         \

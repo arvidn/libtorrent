@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
-#include "libtorrent/file.hpp" // for directory
+#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/disk_interface.hpp"
 
 #include <sys/types.h>
@@ -120,7 +120,7 @@ namespace {
 
 		if (recurse)
 		{
-			for (directory i(f, ec); !i.done(); i.next(ec))
+			for (aux::directory i(f, ec); !i.done(); i.next(ec))
 			{
 				std::string const leaf = i.file();
 				if (ignore_subdir(leaf)) continue;

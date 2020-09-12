@@ -72,7 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp" // for directory
+#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/string_util.hpp"
 #include <cstring>
 
@@ -412,7 +412,7 @@ namespace {
 		{
 			create_directory(new_path, ec);
 			if (ec) return;
-			for (directory i(old_path, ec); !i.done(); i.next(ec))
+			for (aux::directory i(old_path, ec); !i.done(); i.next(ec))
 			{
 				std::string f = i.file();
 				if (f == ".." || f == ".") continue;
@@ -917,7 +917,7 @@ namespace {
 
 		if (s.mode & file_status::directory)
 		{
-			for (directory i(f, ec); !i.done(); i.next(ec))
+			for (aux::directory i(f, ec); !i.done(); i.next(ec))
 			{
 				if (ec) return;
 				std::string p = i.file();
