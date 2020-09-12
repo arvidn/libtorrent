@@ -80,7 +80,11 @@ namespace libtorrent {
 
 		at = std::find(start, url.end(), '@');
 		colon = std::find(start, url.end(), ':');
-		end = std::find(start, url.end(), '/');
+		end = std::min({
+			std::find(start, url.end(), '/')
+			, std::find(start, url.end(), '?')
+			, std::find(start, url.end(), '#')
+			});
 
 		if (at != url.end()
 			&& colon != url.end()

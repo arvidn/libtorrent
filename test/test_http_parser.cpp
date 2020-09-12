@@ -397,6 +397,24 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
 		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
+	TEST_CHECK(parse_url_components("http://test.com:42", ec)
+		== std::make_tuple("http", "", "test.com", 42, ""));
+
+	TEST_CHECK(parse_url_components("http://test.com:42/", ec)
+		== std::make_tuple("http", "", "test.com", 42, "/"));
+
+	TEST_CHECK(parse_url_components("http://test.com:42?query=string", ec)
+		== std::make_tuple("http", "", "test.com", 42, "?query=string"));
+
+	TEST_CHECK(parse_url_components("http://test.com:42/?query=string", ec)
+		== std::make_tuple("http", "", "test.com", 42, "/?query=string"));
+
+	TEST_CHECK(parse_url_components("http://test.com:42#fragment", ec)
+		== std::make_tuple("http", "", "test.com", 42, "#fragment"));
+
+	TEST_CHECK(parse_url_components("http://test.com:42/#fragment", ec)
+		== std::make_tuple("http", "", "test.com", 42, "/#fragment"));
+
 	// leading spaces are supposed to be stripped
 	TEST_CHECK(parse_url_components(" \thttp://[2001:ff00::1]:42/path/to/file", ec)
 		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
@@ -411,6 +429,9 @@ TORRENT_TEST(http_parser)
 	parse_url_components("http:", ec);
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
 	ec.clear();
+
+	parse_url_components("http://test.com:42abc", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_port));
 
 	// test split_url
 
