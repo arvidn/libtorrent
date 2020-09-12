@@ -1,3 +1,4 @@
+	* fix issue in URL parser, causing issues with certain tracker URLs
 	* use a different error code than host-unreachable, when skipping tracker announces
 
 1.2.10 released
