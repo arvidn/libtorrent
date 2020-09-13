@@ -913,6 +913,7 @@ TEST_SOURCES = \
   test_torrent_info.cpp \
   test_torrent_list.cpp \
   test_tracker.cpp \
+  test_tracker_manager.cpp \
   test_transfer.cpp \
   test_upnp.cpp \
   test_url_seed.cpp \
