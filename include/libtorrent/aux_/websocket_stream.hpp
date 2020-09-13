@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/ssl.hpp"
 #include "libtorrent/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/tcp.hpp>

@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 
 #include <cstring>
 

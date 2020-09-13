@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/string_util.hpp" // for to_string
 #include "libtorrent/socket_io.hpp"
 

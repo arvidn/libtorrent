@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/i2p_stream.hpp"

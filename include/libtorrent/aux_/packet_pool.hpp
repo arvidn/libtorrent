@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/debug.hpp" // for single_threaded
+#include "libtorrent/aux_/debug.hpp" // for single_threaded
 
 #include <cstdlib>
 #include <memory> // for unique_ptr

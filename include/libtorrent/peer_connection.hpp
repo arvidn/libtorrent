@@ -39,7 +39,7 @@ see LICENSE file.
 #include "libtorrent/aux_/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/peer_info.hpp"

@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "setup_transfer.hpp"
 
 #include "test.hpp"
@@ -1144,7 +1144,7 @@ void test_seed_mode(test_mode_t const flags)
 	if (flags & test_mode::extended_files)
 	{
 		error_code ec;
-		file("test_resume" SEP "tmp2", aux::open_mode::write, ec).set_size(128 * 1024 + 10, ec);
+		aux::file("test_resume" SEP "tmp2", aux::open_mode::write, ec).set_size(128 * 1024 + 10, ec);
 		TEST_CHECK(!ec);
 	}
 

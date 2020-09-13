@@ -57,7 +57,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #ifdef TORRENT_WINDOWS
 	using handle_type = HANDLE;

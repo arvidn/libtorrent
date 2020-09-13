@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 
 using namespace lt;
 
@@ -33,7 +33,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	std::array<char, 16000> random_data;
 	aux::random_bytes(random_data);
-	file f("test_file", aux::open_mode::write, ec);
+	aux::file f("test_file", aux::open_mode::write, ec);
 	if (ec)
 	{
 		std::printf("failed to create file \"test_file\": (%d) %s\n"

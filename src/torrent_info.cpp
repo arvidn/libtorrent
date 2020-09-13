@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
@@ -635,7 +635,7 @@ namespace {
 		, error_code& ec, int const max_buffer_size = 80000000)
 	{
 		ec.clear();
-		file f;
+		aux::file f;
 		if (!f.open(filename, aux::open_mode::read_only, ec)) return -1;
 		std::int64_t const s = f.get_size(ec);
 		if (ec) return -1;

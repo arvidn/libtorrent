@@ -439,7 +439,6 @@ HEADERS = \
   copy_ptr.hpp                 \
   create_torrent.hpp           \
   deadline_timer.hpp           \
-  debug.hpp                    \
   disabled_disk_io.hpp         \
   disk_buffer_holder.hpp       \
   disk_interface.hpp           \
@@ -450,7 +449,6 @@ HEADERS = \
   error.hpp                    \
   error_code.hpp               \
   extensions.hpp               \
-  file.hpp                     \
   file_storage.hpp             \
   fingerprint.hpp              \
   flags.hpp                    \
@@ -562,6 +560,7 @@ HEADERS = \
   aux_/choker.hpp                   \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
+  aux_/debug.hpp                    \
   aux_/deferred_handler.hpp         \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \
@@ -578,6 +577,7 @@ HEADERS = \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
+  aux_/file.hpp                     \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \
   aux_/generate_peer_id.hpp         \

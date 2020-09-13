@@ -34,7 +34,7 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
 #include "test.hpp"
@@ -808,7 +808,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 
 		int to_write = file_sizes[i];
 		if (fs) fs->add_file(full_path, to_write);
-		file f(full_path, aux::open_mode::write, ec);
+		aux::file f(full_path, aux::open_mode::write, ec);
 		if (ec) std::printf("failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
 		std::int64_t offset = 0;

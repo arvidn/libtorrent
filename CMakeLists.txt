@@ -30,7 +30,6 @@ set(libtorrent_include_files
 	copy_ptr
 	create_torrent
 	deadline_timer
-	debug
 	disk_buffer_holder
 	disk_interface
 	disk_observer
@@ -40,7 +39,6 @@ set(libtorrent_include_files
 	error
 	error_code
 	extensions
-	file
 	file_storage
 	fingerprint
 	flags
@@ -181,6 +179,7 @@ set(libtorrent_aux_include_files
 	choker
 	cpuid
 	crc32c
+	debug
 	deferred_handler
 	deprecated
 	deque
@@ -196,6 +195,7 @@ set(libtorrent_aux_include_files
 	escape_string
 	export
 	ffs
+	file
 	file_progress
 	file_view_pool
 	has_block

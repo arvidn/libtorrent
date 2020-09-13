@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -131,7 +131,7 @@ TORRENT_EXTRA_EXPORT void find_ip_address(int type, string_view string
 // TODO: support using the windows API for UPnP operations as well
 struct TORRENT_EXTRA_EXPORT upnp final
 	: std::enable_shared_from_this<upnp>
-	, single_threaded
+	, aux::single_threaded
 {
 	upnp(io_context& ios
 		, aux::session_settings const& settings

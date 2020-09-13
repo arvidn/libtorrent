@@ -9,7 +9,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent {

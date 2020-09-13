@@ -241,10 +241,10 @@ namespace libtorrent {
 		return ret;
 	}
 
-	file part_file::open_file(aux::open_mode_t const mode, error_code& ec)
+	aux::file part_file::open_file(aux::open_mode_t const mode, error_code& ec)
 	{
 		std::string const fn = combine_path(m_path, m_name);
-		file f(fn, mode, ec);
+		aux::file f(fn, mode, ec);
 		if ((mode & aux::open_mode::write)
 			&& ec == boost::system::errc::no_such_file_or_directory)
 		{
@@ -254,7 +254,7 @@ namespace libtorrent {
 			create_directories(m_path, ec);
 
 			if (ec) return {};
-			f = file(fn, mode, ec);
+			f = aux::file(fn, mode, ec);
 		}
 		if (ec) return {};
 		return f;

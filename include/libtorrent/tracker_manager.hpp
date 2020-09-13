@@ -38,7 +38,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/udp_socket.hpp"
@@ -54,7 +54,6 @@ namespace libtorrent {
 	class tracker_manager;
 	struct timeout_handler;
 	class http_tracker_connection;
-	struct resolver_interface;
 	struct counters;
 #if TORRENT_USE_I2P
 	class i2p_connection;
@@ -301,7 +300,7 @@ enum class event_t : std::uint8_t
 	};
 
 	class TORRENT_EXTRA_EXPORT tracker_manager final
-		: single_threaded
+		: aux::single_threaded
 	{
 	public:
 

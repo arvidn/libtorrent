@@ -1508,7 +1508,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	create_directory(combine_path(save_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1"))), ec);
 	TEST_EQUAL(ec, boost::system::errc::success);
-	file f;
+	aux::file f;
 	f.open(combine_path(save_path, combine_path("temp_storage", "alien1.tmp"))
 		, aux::open_mode::write, ec);
 	f.close();

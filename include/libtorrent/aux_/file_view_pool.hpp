@@ -21,7 +21,7 @@ see LICENSE file.
 #include <vector>
 #include <memory>
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"

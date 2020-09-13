@@ -11,7 +11,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/string_view.hpp"
@@ -35,7 +35,7 @@ int touch_file(std::string const& filename, int size)
 	for (int i = 0; i < size; ++i)
 		v[std::size_t(i)] = char(i & 255);
 
-	file f;
+	aux::file f;
 	error_code ec;
 	if (!f.open(filename, aux::open_mode::write, ec)) return -1;
 	TEST_EQUAL(ec, error_code());
@@ -115,7 +115,7 @@ TORRENT_TEST(directory)
 	touch_file(combine_path("file_test_dir", "ghi"), 1000);
 
 	std::set<std::string> files;
-	for (directory i("file_test_dir", ec); !i.done(); i.next(ec))
+	for (aux::directory i("file_test_dir", ec); !i.done(); i.next(ec))
 	{
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
@@ -132,7 +132,7 @@ TORRENT_TEST(directory)
 
 	recursive_copy("file_test_dir", "file_test_dir2", ec);
 
-	for (directory i("file_test_dir2", ec); !i.done(); i.next(ec))
+	for (aux::directory i("file_test_dir2", ec); !i.done(); i.next(ec))
 	{
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
@@ -364,7 +364,7 @@ TORRENT_TEST(split_path_pos)
 TORRENT_TEST(file)
 {
 	error_code ec;
-	file f;
+	aux::file f;
 #if TORRENT_USE_UNC_PATHS || !defined _WIN32
 	std::string const test_file_name = "con";
 #else
@@ -420,7 +420,7 @@ TORRENT_TEST(hard_link)
 	// create a file, write some stuff to it, create a hard link to that file,
 	// read that file and assert we get the same stuff we wrote to the first file
 	error_code ec;
-	file f;
+	aux::file f;
 	TEST_CHECK(f.open("original_file", aux::open_mode::write, ec));
 	if (ec)
 		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -662,7 +662,7 @@ TORRENT_TEST(unc_paths)
 	std::string const reserved_name = "con";
 	error_code ec;
 	{
-		file f;
+		aux::file f;
 		TEST_CHECK(f.open(reserved_name, aux::open_mode::write, ec) && !ec);
 	}
 	remove(reserved_name, ec);

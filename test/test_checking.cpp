@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 
 namespace {
 
@@ -123,7 +123,7 @@ void test_checking(int const flags)
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
 
-			file f(path, aux::open_mode::write, ec);
+			aux::file f(path, aux::open_mode::write, ec);
 			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 			if (flags & extended_files)

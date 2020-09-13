@@ -20,7 +20,7 @@ see LICENSE file.
 #include <memory>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
@@ -59,7 +59,7 @@ namespace libtorrent {
 
 	private:
 
-		file open_file(aux::open_mode_t mode, error_code& ec);
+		aux::file open_file(aux::open_mode_t mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const

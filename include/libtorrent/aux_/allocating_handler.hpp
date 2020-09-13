@@ -17,14 +17,10 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 
-#include "libtorrent/debug.hpp" // for TORRENT_ASSERT
+#include "libtorrent/aux_/debug.hpp" // for TORRENT_ASSERT
 
 #include <type_traits>
 #include <memory> // for shared_ptr
-
-#ifdef TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 namespace libtorrent { namespace aux {
 

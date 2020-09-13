@@ -15,12 +15,12 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/random.hpp"
 
@@ -138,7 +138,7 @@ void write_test_file()
 {
 	aux::random_bytes(data_buffer);
 	error_code ec;
-	file test_file("test_file", aux::open_mode::write, ec);
+	aux::file test_file("test_file", aux::open_mode::write, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("file error: %s\n", ec.message().c_str());
 	iovec_t const b = { data_buffer, 3216};
