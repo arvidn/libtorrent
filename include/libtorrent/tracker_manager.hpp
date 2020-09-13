@@ -53,8 +53,6 @@ namespace libtorrent {
 
 	class tracker_manager;
 	struct timeout_handler;
-	class http_tracker_connection;
-	struct resolver_interface;
 	struct counters;
 #if TORRENT_USE_I2P
 	class i2p_connection;
@@ -63,6 +61,7 @@ namespace aux {
 	struct session_logger;
 	struct session_settings;
 	struct resolver_interface;
+	class http_tracker_connection;
 	class udp_tracker_connection;
 #if TORRENT_USE_RTC
 	struct websocket_tracker_connection;
@@ -343,7 +342,7 @@ enum class event_t : std::uint8_t
 				= std::weak_ptr<request_callback>()) = delete;
 		void abort_all_requests(bool all = false);
 
-		void remove_request(http_tracker_connection const* c);
+		void remove_request(aux::http_tracker_connection const* c);
 		void remove_request(aux::udp_tracker_connection const* c);
 #if TORRENT_USE_RTC
 		void remove_request(aux::websocket_tracker_connection const* c);
@@ -385,8 +384,8 @@ enum class event_t : std::uint8_t
 		// if a connection is erased while a timeout event is in the queue
 		std::unordered_map<std::uint32_t, std::shared_ptr<aux::udp_tracker_connection>> m_udp_conns;
 
-		std::vector<std::shared_ptr<http_tracker_connection>> m_http_conns;
-		std::deque<std::shared_ptr<http_tracker_connection>> m_queued;
+		std::vector<std::shared_ptr<aux::http_tracker_connection>> m_http_conns;
+		std::deque<std::shared_ptr<aux::http_tracker_connection>> m_queued;
 
 #if TORRENT_USE_RTC
 		// websocket connections by URL

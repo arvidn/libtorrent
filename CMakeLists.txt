@@ -49,7 +49,6 @@ set(libtorrent_include_files
 	hasher
 	hex
 	http_stream
-	http_tracker_connection
 	i2p_stream
 	identify_client
 	index_range
@@ -203,6 +202,7 @@ set(libtorrent_aux_include_files
 	heterogeneous_queue
 	http_connection
 	http_parser
+	http_tracker_connection
 	invariant_check
 	instantiate_connection
 	io

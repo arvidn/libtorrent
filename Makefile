@@ -459,7 +459,6 @@ HEADERS = \
   hasher.hpp                   \
   hex.hpp                      \
   http_stream.hpp              \
-  http_tracker_connection.hpp  \
   i2p_stream.hpp               \
   identify_client.hpp          \
   index_range.hpp              \
@@ -587,6 +586,7 @@ HEADERS = \
   aux_/heterogeneous_queue.hpp      \
   aux_/http_connection.hpp          \
   aux_/http_parser.hpp              \
+  aux_/http_tracker_connection.hpp  \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \

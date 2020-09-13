@@ -27,7 +27,7 @@ see LICENSE file.
 #include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/aux_/http_tracker_connection.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
@@ -38,7 +38,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	http_tracker_connection::http_tracker_connection(
 		io_context& ios
@@ -85,7 +85,7 @@ namespace libtorrent {
 			url += "?";
 
 		url += "info_hash=";
-		url += escape_string({tracker_req().info_hash.data(), 20});
+		url += lt::escape_string({tracker_req().info_hash.data(), 20});
 
 		if (!(tracker_req().kind & tracker_request::scrape_request))
 		{
@@ -104,7 +104,7 @@ namespace libtorrent {
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, escape_string({tracker_req().pid.data(), 20}).c_str()
+				, lt::escape_string({tracker_req().pid.data(), 20}).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
 				, tracker_req().listen_port
@@ -125,12 +125,12 @@ namespace libtorrent {
 			if (settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
-				url += to_string(tracker_req().redundant).data();
+				url += lt::to_string(tracker_req().redundant).data();
 			}
 			if (!tracker_req().trackerid.empty())
 			{
 				url += "&trackerid=";
-				url += escape_string(tracker_req().trackerid);
+				url += lt::escape_string(tracker_req().trackerid);
 			}
 
 #if TORRENT_USE_I2P
@@ -154,7 +154,7 @@ namespace libtorrent {
 				std::string const& announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
-					url += "&ip=" + escape_string(announce_ip);
+					url += "&ip=" + lt::escape_string(announce_ip);
 				}
 			}
 		}
@@ -165,7 +165,7 @@ namespace libtorrent {
 			{
 				std::string const ip = v4.to_string();
 				url += "&ipv4=";
-				url += escape_string(ip);
+				url += lt::escape_string(ip);
 			}
 		}
 		if (!tracker_req().ipv6.empty() && !i2p)
@@ -174,7 +174,7 @@ namespace libtorrent {
 			{
 				std::string const ip = v6.to_string();
 				url += "&ipv6=";
-				url += escape_string(ip);
+				url += lt::escape_string(ip);
 			}
 		}
 
