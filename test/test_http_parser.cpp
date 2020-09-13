@@ -397,20 +397,21 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
 		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
+	// if there is no path component, "/" is added
 	TEST_CHECK(parse_url_components("http://test.com:42", ec)
-		== std::make_tuple("http", "", "test.com", 42, ""));
+		== std::make_tuple("http", "", "test.com", 42, "/"));
 
 	TEST_CHECK(parse_url_components("http://test.com:42/", ec)
 		== std::make_tuple("http", "", "test.com", 42, "/"));
 
 	TEST_CHECK(parse_url_components("http://test.com:42?query=string", ec)
-		== std::make_tuple("http", "", "test.com", 42, "?query=string"));
+		== std::make_tuple("http", "", "test.com", 42, "/?query=string"));
 
 	TEST_CHECK(parse_url_components("http://test.com:42/?query=string", ec)
 		== std::make_tuple("http", "", "test.com", 42, "/?query=string"));
 
 	TEST_CHECK(parse_url_components("http://test.com:42#fragment", ec)
-		== std::make_tuple("http", "", "test.com", 42, "#fragment"));
+		== std::make_tuple("http", "", "test.com", 42, "/#fragment"));
 
 	TEST_CHECK(parse_url_components("http://test.com:42/#fragment", ec)
 		== std::make_tuple("http", "", "test.com", 42, "/#fragment"));
