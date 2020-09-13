@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/aux_/http_tracker_connection.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/ssl.hpp"
@@ -205,11 +205,11 @@ namespace libtorrent {
 		m_stats_counters.inc_stats_counter(counters::recv_tracker_bytes, bytes);
 	}
 
-	void tracker_manager::remove_request(http_tracker_connection const* c)
+	void tracker_manager::remove_request(aux::http_tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		auto const i = std::find_if(m_http_conns.begin(), m_http_conns.end()
-			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+			, [c] (std::shared_ptr<aux::http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
@@ -225,7 +225,7 @@ namespace libtorrent {
 		}
 
 		auto const j = std::find_if(m_queued.begin(), m_queued.end()
-			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+			, [c] (std::shared_ptr<aux::http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (j != m_queued.end())
 		{
 			m_queued.erase(j);
@@ -281,7 +281,7 @@ namespace libtorrent {
 		if (protocol == "http")
 #endif
 		{
-			auto con = std::make_shared<http_tracker_connection>(ios, *this, std::move(req), c);
+			auto con = std::make_shared<aux::http_tracker_connection>(ios, *this, std::move(req), c);
 			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
 			{
 				m_http_conns.push_back(std::move(con));
@@ -444,7 +444,7 @@ namespace libtorrent {
 		// removes all connections except 'event=stopped'-requests
 
 		m_abort = true;
-		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
+		std::vector<std::shared_ptr<aux::http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<aux::udp_tracker_connection>> close_udp_connections;
 
 		for (auto const& c : m_queued)
