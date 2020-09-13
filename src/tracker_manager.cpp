@@ -529,7 +529,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		return int(m_http_conns.size() + m_udp_conns.size()
 #if TORRENT_USE_RTC
-			+ m_websocket_conns.empty()
+			+ m_websocket_conns.size()
 #endif
 			);
 	}

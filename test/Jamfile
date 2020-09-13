@@ -200,6 +200,7 @@ run test_ssl.cpp : :
 	: <crypto>openssl:<library>/torrent//ssl
 	<crypto>openssl:<library>/torrent//crypto ;
 run test_tracker.cpp ;
+run test_tracker_manager.cpp ;
 run test_checking.cpp ;
 run test_url_seed.cpp ;
 run test_web_seed.cpp ;
