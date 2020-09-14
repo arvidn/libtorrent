@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 #include <string>
+#include <functional>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
@@ -44,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
 
@@ -79,7 +81,7 @@ namespace aux {
 	move_storage(file_storage const& f
 		, std::string save_path
 		, std::string const& destination_save_path
-		, part_file* pf
+		, std::function<void(std::string const&, lt::error_code&)> const& move_partfile
 		, move_flags_t flags, storage_error& ec);
 
 	// deletes the files on fs from save_path according to options. Options may

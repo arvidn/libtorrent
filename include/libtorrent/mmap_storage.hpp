@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/part_file.hpp"
+#include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
@@ -191,7 +191,11 @@ namespace aux {
 		aux::file_view_pool& m_pool;
 
 		// used for skipped files
-		std::unique_ptr<part_file> m_part_file;
+		// TODO: use a different part file implementation that use an mmaped
+		// file. It could use a file from the file_view_pool, and we would no
+		// longer need to tick() the storage. The posix_part_file does not need
+		// to be thread-safe either, if it's only used by posix_storage
+		std::unique_ptr<aux::posix_part_file> m_part_file;
 
 		// this is a bitfield with one bit per file. A bit being set means
 		// we've written to that file previously. If we do write to a file

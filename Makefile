@@ -355,7 +355,6 @@ SOURCES = \
   natpmp.cpp                      \
   packet_buffer.cpp               \
   parse_url.cpp                   \
-  part_file.cpp                   \
   path.cpp                        \
   pe_crypto.cpp                   \
   peer_class.cpp                  \
@@ -487,7 +486,6 @@ HEADERS = \
   operations.hpp               \
   optional.hpp                 \
   parse_url.hpp                \
-  part_file.hpp                \
   pe_crypto.hpp                \
   peer.hpp                     \
   peer_class.hpp               \

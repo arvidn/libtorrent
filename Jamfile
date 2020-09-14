@@ -768,7 +768,6 @@ SOURCES =
 	version
 	peer_class
 	peer_class_set
-	part_file
 	stat_cache
 	request_blocks
 	session_stats

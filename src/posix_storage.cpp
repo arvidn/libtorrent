@@ -71,7 +71,7 @@ namespace aux {
 	{
 		if (m_part_file) return;
 
-		m_part_file = std::make_unique<part_file>(
+		m_part_file = std::make_unique<posix_part_file>(
 			m_save_path, m_part_file_name
 			, files().num_pieces(), files().piece_length());
 	}
@@ -327,8 +327,14 @@ namespace aux {
 		, move_flags_t const flags, storage_error& ec)
 	{
 		lt::status_t ret;
+		auto move_partfile = [&](std::string const& new_save_path, error_code& e)
+		{
+			if (!m_part_file) return;
+			m_part_file->move_partfile(new_save_path, e);
+		};
+
 		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
-			, m_part_file.get(), flags, ec);
+			, move_partfile, flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
