@@ -692,7 +692,6 @@ SOURCES =
 	file_storage
 	escape_string
 	string_util
-	file
 	path
 	fingerprint
 	gzip

@@ -44,7 +44,6 @@ set(libtorrent_include_files
 	error
 	error_code
 	extensions
-	file
 	file_storage
 	fingerprint
 	flags
@@ -301,7 +300,6 @@ set(sources
 	generate_peer_id
 	escape_string
 	string_util
-	file
 	path
 	fingerprint
 	gzip

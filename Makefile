@@ -323,7 +323,6 @@ SOURCES = \
   error_code.cpp                  \
   escape_string.cpp               \
   ffs.cpp                         \
-  file.cpp                        \
   file_progress.cpp               \
   file_storage.cpp                \
   file_view_pool.cpp              \
@@ -453,7 +452,6 @@ HEADERS = \
   error.hpp                    \
   error_code.hpp               \
   extensions.hpp               \
-  file.hpp                     \
   file_storage.hpp             \
   fingerprint.hpp              \
   flags.hpp                    \
