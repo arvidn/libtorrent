@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional> // for bind
 
 #include <iostream>
-#include <fstream>
 
 #include <boost/variant/get.hpp>
 
@@ -530,15 +529,10 @@ void test_check_files(std::string const& test_path
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
 
-	std::ofstream f;
-	f.open(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str()
-		, std::ios::trunc | std::ios::binary);
-	f.write(piece0.data(), piece_size_check);
-	f.close();
-	f.open(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str()
-		, std::ios::trunc | std::ios::binary);
-	f.write(piece2.data(), piece_size_check);
-	f.close();
+	ofstream(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str())
+		.write(piece0.data(), piece_size_check);
+	ofstream(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str())
+		.write(piece2.data(), piece_size_check);
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -695,7 +689,7 @@ void test_fastresume(bool const test_deprecated)
 	create_directory(combine_path(test_path, "tmp1"), ec);
 	if (ec) std::cout << "create_directory '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
-	std::ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
+	ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(complete("tmp1/temporary")));
@@ -894,7 +888,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 	delete_dirs("tmp2");
 	create_directory(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
-	std::ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
+	ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/temporary")));
@@ -1533,15 +1527,9 @@ TORRENT_TEST(dont_move_intermingled_files)
 	create_directory(combine_path(save_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1"))), ec);
 	TEST_EQUAL(ec, boost::system::errc::success);
-	file f;
-	f.open(combine_path(save_path, combine_path("temp_storage", "alien1.tmp"))
-		, aux::open_mode::write, ec);
-	f.close();
-	TEST_EQUAL(ec, boost::system::errc::success);
-	f.open(combine_path(save_path, combine_path("temp_storage"
-		, combine_path("folder1", "alien2.tmp"))), aux::open_mode::write, ec);
-	f.close();
-	TEST_EQUAL(ec, boost::system::errc::success);
+
+	ofstream(combine_path(save_path, combine_path("temp_storage", "alien1.tmp")).c_str());
+	ofstream(combine_path(save_path, combine_path("temp_storage", combine_path("folder1", "alien2.tmp"))).c_str());
 
 	s->move_storage(test_path, move_flags_t::always_replace_files, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);

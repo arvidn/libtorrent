@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 #include <vector>
 #include <set>
 #include <thread>
@@ -50,26 +52,14 @@ using namespace lt;
 
 namespace {
 
-int touch_file(std::string const& filename, int size)
+void touch_file(std::string const& filename, int size)
 {
-	using namespace lt;
-
 	std::vector<char> v;
 	v.resize(aux::numeric_cast<std::size_t>(size));
 	for (int i = 0; i < size; ++i)
 		v[std::size_t(i)] = char(i & 255);
 
-	file f;
-	error_code ec;
-	if (!f.open(filename, aux::open_mode::write, ec)) return -1;
-	TEST_EQUAL(ec, error_code());
-	if (ec) return -1;
-	iovec_t b = {v};
-	std::int64_t written = f.writev(0, b, ec);
-	if (written != int(v.size())) return -3;
-	if (ec) return -3;
-	TEST_EQUAL(ec, error_code());
-	return 0;
+	ofstream(filename.c_str()).write(v.data(), lt::aux::numeric_cast<std::streamsize>(v.size()));
 }
 
 } // anonymous namespace
@@ -443,21 +433,10 @@ TORRENT_TEST(hard_link)
 
 	// create a file, write some stuff to it, create a hard link to that file,
 	// read that file and assert we get the same stuff we wrote to the first file
+	lt::span<char const> str = "abcdefghijklmnopqrstuvwxyz";
+	ofstream("original_file").write(str.data(), str.size());
+
 	error_code ec;
-	file f;
-	TEST_CHECK(f.open("original_file", aux::open_mode::write, ec));
-	if (ec)
-		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-
-	char str[] = "abcdefghijklmnopqrstuvwxyz";
-	iovec_t b = { str, 26 };
-	TEST_EQUAL(f.writev(0, b, ec), 26);
-	if (ec)
-		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-	f.close();
-
 	hard_link("original_file", "second_link", ec);
 
 	if (ec)
@@ -465,19 +444,9 @@ TORRENT_TEST(hard_link)
 	TEST_EQUAL(ec, error_code());
 
 
-	TEST_CHECK(f.open("second_link", aux::open_mode::write, ec));
-	if (ec)
-		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-
 	char test_buf[27] = {};
-	b = { test_buf, 27 };
-	TEST_EQUAL(f.readv(0, b, ec), 26);
-	if (ec)
-		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
+	std::ifstream("second_link").read(test_buf, 27);
 	TEST_CHECK(test_buf == "abcdefghijklmnopqrstuvwxyz"_sv);
-	f.close();
 
 	remove("original_file", ec);
 	if (ec)

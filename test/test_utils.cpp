@@ -35,6 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h> // for _O_WRONLY
+#endif
+
 namespace libtorrent
 {
 	char const* time_now_string()
@@ -75,5 +80,25 @@ aux::vector<sha256_hash> build_tree(int const size)
 
 	merkle_fill_tree(full_tree, num_leafs);
 	return full_tree;
+}
+
+#ifdef _WIN32
+int EXPORT truncate(char const* file, std::int64_t size)
+{
+	int fd = ::_open(file, _O_WRONLY);
+	if (fd < 0) return -1;
+	int const err = ::_chsize_s(fd, size);
+	::_close(fd);
+	if (err == 0) return 0;
+	errno = err;
+	return -1;
+}
+#endif
+
+ofstream::ofstream(char const* filename)
+{
+	exceptions(std::ofstream::failbit);
+	native_path_string const name = convert_to_native_path_string(filename);
+	open(name.c_str(), std::fstream::out | std::fstream::binary);
 }
 

@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/file.hpp"
 
 namespace {
 
@@ -146,19 +145,16 @@ void test_checking(int const flags)
 			std::string path = combine_path("test_torrent_dir", dirname);
 			path = combine_path(path, name);
 
-			file f(path, aux::open_mode::write, ec);
-			if (ec) std::printf("ERROR: opening file \"%s\": (%d) %s\n"
-				, path.c_str(), ec.value(), ec.message().c_str());
-			if (flags & extended_files)
+			std::int64_t const new_len = (flags & extended_files)
+				? file_sizes[i] + 10
+				: file_sizes[i] * 2 / 3;
+
+			int const ret = ::truncate(path.c_str(), new_len);
+			if (ret < 0)
 			{
-				f.set_size(file_sizes[i] + 10, ec);
+				std::printf("ERROR: truncating file \"%s\": (%d) %s\n"
+					, path.c_str(), errno, strerror(errno));
 			}
-			else
-			{
-				f.set_size(file_sizes[i] * 2 / 3, ec);
-			}
-			if (ec) std::printf("ERROR: truncating file \"%s\": (%d) %s\n"
-				, path.c_str(), ec.value(), ec.message().c_str());
 		}
 	}
 

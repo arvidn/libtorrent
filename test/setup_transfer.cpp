@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <fstream>
 #include <map>
 #include <tuple>
 #include <functional>
@@ -56,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
-#include "libtorrent/file.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
 #include "test.hpp"
@@ -82,9 +80,9 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 		create_directories("test_resume", ec);
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
-		std::ofstream("test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
-		std::ofstream("test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
+		ofstream("test_resume/tmp1").write(a.data(), std::streamsize(a.size()));
+		ofstream("test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
+		ofstream("test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
@@ -830,17 +828,12 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 
 		int to_write = file_sizes[i];
 		if (fs) fs->add_file(full_path, to_write);
-		file f(full_path, aux::open_mode::write, ec);
-		if (ec) std::printf("failed to create file \"%s\": (%d) %s\n"
-			, full_path.c_str(), ec.value(), ec.message().c_str());
+		ofstream f(full_path.c_str());
 		std::int64_t offset = 0;
 		while (to_write > 0)
 		{
 			int const s = std::min(to_write, static_cast<int>(random_data.size()));
-			iovec_t const b = { random_data.data(), s};
-			f.writev(offset, b, ec);
-			if (ec) std::printf("failed to write file \"%s\": (%d) %s\n"
-				, full_path.c_str(), ec.value(), ec.message().c_str());
+			f.write(random_data.data(), s);
 			offset += s;
 			to_write -= s;
 		}
@@ -974,7 +967,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
 		std::string const file_path = combine_path("tmp1" + suffix, "temporary");
-		std::ofstream file(file_path.c_str());
+		ofstream file(file_path.c_str());
 		t = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
 		file.close();
 		if (clear_files)
