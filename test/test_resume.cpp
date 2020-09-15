@@ -44,16 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
-
-#include <fstream>
 
 #ifdef TORRENT_WINDOWS
 #define SEP "\\"
@@ -436,9 +434,9 @@ TORRENT_TEST(piece_slots)
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
@@ -495,9 +493,9 @@ void test_piece_slots_seed(settings_pack const& sett)
 	{
 		std::vector<char> a(128 * 1024 * 8);
 		std::vector<char> b(128 * 1024);
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
-		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
+		ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
 	}
 
 	add_torrent_params p;
@@ -1176,9 +1174,8 @@ void test_seed_mode(test_mode_t const flags)
 
 	if (flags & test_mode::extended_files)
 	{
-		error_code ec;
-		file("test_resume" SEP "tmp2", aux::open_mode::write, ec).set_size(128 * 1024 + 10, ec);
-		TEST_CHECK(!ec);
+		int const ret = ::truncate("test_resume" SEP "tmp2", 128 * 1024 + 10);
+		TEST_EQUAL(ret, 0);
 	}
 
 	entry rd;

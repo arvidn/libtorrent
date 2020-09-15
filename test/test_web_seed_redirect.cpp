@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 #include "settings.hpp"
@@ -41,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/file.hpp"
 
 using namespace lt;
 
@@ -56,16 +56,8 @@ TORRENT_TEST(web_seed_redirect)
 
 	std::array<char, 16000> random_data;
 	aux::random_bytes(random_data);
-	file f("test_file", aux::open_mode::write, ec);
-	if (ec)
-	{
-		std::printf("failed to create file \"test_file\": (%d) %s\n"
-			, ec.value(), ec.message().c_str());
-		TEST_ERROR("failed to create file");
-		return;
-	}
-	iovec_t b = random_data;
-	f.writev(0, b, ec);
+
+	ofstream("test_file").write(random_data.data(), random_data.size());
 	fs.add_file("test_file", 16000);
 
 	int port = start_web_server();

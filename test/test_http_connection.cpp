@@ -38,16 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
-#include "libtorrent/file.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/random.hpp"
 
-#include <fstream>
 #include <iostream>
 #include <boost/optional.hpp>
 
@@ -158,20 +155,6 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void write_test_file()
-{
-	aux::random_bytes(data_buffer);
-	error_code ec;
-	file test_file("test_file", aux::open_mode::write, ec);
-	TEST_CHECK(!ec);
-	if (ec) std::printf("file error: %s\n", ec.message().c_str());
-	iovec_t const b = { data_buffer, 3216};
-	test_file.writev(0, b, ec);
-	TEST_CHECK(!ec);
-	if (ec) std::printf("file error: %s\n", ec.message().c_str());
-	test_file.close();
-}
-
 enum suite_flags_t
 {
 	flag_chunked_encoding = 1,
@@ -182,7 +165,8 @@ void run_suite(std::string const& protocol
 	, settings_pack::proxy_type_t proxy_type
 	, int flags = flag_keepalive)
 {
-	write_test_file();
+	aux::random_bytes(data_buffer);
+	ofstream("test_file").write(data_buffer, 3216);
 
 	// starting the web server will also generate test_file.gz (from test_file)
 	// so it has to happen after we write test_file

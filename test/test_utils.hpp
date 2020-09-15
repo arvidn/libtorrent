@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include <vector>
+#include <fstream>
 
 namespace libtorrent
 {
@@ -53,6 +55,15 @@ inline lt::download_priority_t operator "" _pri(unsigned long long const p)
 }
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
+
+#ifdef _WIN32
+int EXPORT truncate(char const* file, std::int64_t size);
+#endif
+
+struct EXPORT ofstream : std::ofstream
+{
+	ofstream(char const* filename);
+};
 
 #endif
 
