@@ -1,3 +1,5 @@
+	* make all alerts posted after a torrent has been removed with an invalid
+	  torrent_handle
 	* fix issue in URL parser, causing issues with certain tracker URLs
 	* use a different error code than host-unreachable, when skipping tracker announces
 

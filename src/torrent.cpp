@@ -1525,7 +1525,7 @@ bool is_downloading_state(int const st)
 	void torrent::add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
-		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
+		std::shared_ptr<torrent_plugin> tp(ext(torrent_handle(shared_from_this()), userdata));
 		if (!tp) return;
 
 		add_extension(tp);
@@ -7900,6 +7900,7 @@ bool is_downloading_state(int const st)
 	torrent_handle torrent::get_handle()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		if (m_abort) return torrent_handle();
 		return torrent_handle(shared_from_this());
 	}
 

@@ -4731,7 +4731,7 @@ namespace {
 		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
 			std::shared_ptr<torrent_plugin> tp(e->new_torrent(
-				torrent_ptr->get_handle(), userdata));
+				torrent_handle(torrent_ptr), userdata));
 			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
 	}
