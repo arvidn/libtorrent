@@ -66,7 +66,7 @@ using namespace lt;
 #include <conio.h>
 #endif
 
-std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
+std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const with_hashes)
 {
 	if (with_files)
 	{
@@ -90,11 +90,19 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	t.add_url_seed("http://torrent_file_url_seed.com/");
 
 	TEST_CHECK(t.num_pieces() > 0);
-	for (auto const i : fs.piece_range())
+	if (with_hashes)
 	{
-		sha1_hash ph;
-		aux::random_bytes(ph);
-		t.set_hash(i, ph);
+		lt::set_piece_hashes(t, "."
+			, [] (lt::piece_index_t) {});
+	}
+	else
+	{
+		for (auto const i : fs.piece_range())
+		{
+			sha1_hash ph;
+			aux::random_bytes(ph);
+			t.set_hash(i, ph);
+		}
 	}
 
 	std::vector<char> buf;
