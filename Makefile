@@ -309,6 +309,7 @@ SOURCES = \
   cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
+  directory.cpp                   \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
