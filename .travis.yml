@@ -75,6 +75,7 @@ before_install:
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
       travis_retry brew install ccache boost-build boost-python3;
+      ls -la /usr/local/lib;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
