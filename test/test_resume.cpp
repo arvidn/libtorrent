@@ -1576,3 +1576,78 @@ TORRENT_TEST(paused)
 	// more than just the torrent_status from test_resume_flags. Also http seeds
 	// and trackers for instance
 }
+
+template <typename Fun>
+void test_unfinished_pieces(Fun f)
+{
+	// create a torrent and complete files
+	std::shared_ptr<torrent_info> ti = generate_torrent(true, true);
+
+	add_torrent_params p;
+	p.info_hash = ti->info_hash();
+	p.have_pieces.resize(ti->num_pieces(), true);
+	p.ti = ti;
+	p.save_path = ".";
+
+	f(*ti, p);
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(p);
+	torrent_status s = h.status();
+	TEST_EQUAL(s.info_hash, ti->info_hash());
+
+	if (s.state == torrent_status::seeding) return;
+
+	print_alerts(ses, "ses");
+
+	for (int i = 0; i < 30; ++i)
+	{
+		std::this_thread::sleep_for(lt::milliseconds(100));
+		s = h.status();
+		print_alerts(ses, "ses");
+		if (s.state == torrent_status::seeding) return;
+	}
+
+	TEST_EQUAL(s.state, torrent_status::seeding);
+}
+
+TORRENT_TEST(unfinished_pieces_purse_seed)
+{
+	test_unfinished_pieces([](torrent_info const&, add_torrent_params&){});
+}
+
+TORRENT_TEST(unfinished_pieces_check_all)
+{
+	test_unfinished_pieces([](torrent_info const&, add_torrent_params& atp)
+	{
+		atp.have_pieces.clear();
+	});
+}
+
+
+TORRENT_TEST(unfinished_pieces_finished)
+{
+	// make sure that a piece that isn't maked as "have", but whose blocks are
+	// all downloaded gets checked and turn into "have".
+	test_unfinished_pieces([](torrent_info const& ti, add_torrent_params& atp)
+	{
+		atp.have_pieces.clear_bit(piece_index_t{0});
+		atp.unfinished_pieces[lt::piece_index_t{0}].resize(ti.piece_length() / 0x4000, true);
+	});
+}
+
+TORRENT_TEST(unfinished_pieces_all_finished)
+{
+	// make sure that a piece that isn't maked as "have", but whose blocks are
+	// all downloaded gets checked and turn into "have".
+	test_unfinished_pieces([](torrent_info const& ti, add_torrent_params& atp)
+	{
+		// we have none of the pieces
+		atp.have_pieces.clear_all();
+		int const blocks_per_piece = ti.piece_length() / 0x4000;
+
+		// but all pieces are downloaded
+		for (piece_index_t p : ti.piece_range())
+			atp.unfinished_pieces[p].resize(blocks_per_piece, true);
+	});
+}
