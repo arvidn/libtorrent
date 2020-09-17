@@ -6379,7 +6379,8 @@ bool is_downloading_state(int const st)
 				auto const info = m_picker->blocks_for_piece(dp);
 				for (int i = 0; i < int(info.size()); ++i)
 				{
-					if (info[i].state == piece_picker::block_info::state_finished)
+					if (info[i].state == piece_picker::block_info::state_finished
+						|| info[i].state == piece_picker::block_info::state_writing)
 						bitmask.set_bit(i);
 				}
 				ret.unfinished_pieces.emplace(dp.index, std::move(bitmask));
