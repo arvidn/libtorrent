@@ -31,11 +31,30 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "swarm_suite.hpp"
+#include "setup_transfer.hpp"
+#include "settings.hpp"
+#include "libtorrent/download_priority.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 TORRENT_TEST(time_crititcal)
 {
-	// with time critical pieces
 	test_swarm(test_flags::time_critical);
 }
 
+TORRENT_TEST(time_crititcal_zero_prio)
+{
+	auto ti = generate_torrent();
+
+	lt::session ses(settings());
+
+	lt::add_torrent_params atp;
+	atp.ti = ti;
+	atp.piece_priorities.resize(std::size_t(ti->num_pieces()), lt::dont_download);
+	atp.save_path = ".";
+	auto h = ses.add_torrent(atp);
+
+	wait_for_downloading(ses, "");
+
+	h.set_piece_deadline(lt::piece_index_t{0}, 0, lt::torrent_handle::alert_when_available);
+}
 

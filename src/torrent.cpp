@@ -4782,9 +4782,14 @@ bool is_downloading_state(int const st)
 				--i;
 			}
 			// just in case this piece had priority 0
-			download_priority_t prev_prio = m_picker->piece_priority(piece);
-			m_picker->set_piece_priority(piece, top_priority);
-			if (prev_prio == dont_download) update_gauge();
+			download_priority_t const prev_prio = m_picker->piece_priority(piece);
+			bool const was_finished = is_finished();
+			bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+			if (prev_prio == dont_download)
+			{
+				update_gauge();
+				if (filter_updated) update_peer_interest(was_finished);
+			}
 			return;
 		}
 
@@ -4802,9 +4807,14 @@ bool is_downloading_state(int const st)
 		m_time_critical_pieces.insert(critical_piece_it, p);
 
 		// just in case this piece had priority 0
-		download_priority_t prev_prio = m_picker->piece_priority(piece);
-		m_picker->set_piece_priority(piece, top_priority);
-		if (prev_prio == dont_download) update_gauge();
+		download_priority_t const prev_prio = m_picker->piece_priority(piece);
+		bool const was_finished = is_finished();
+		bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+		if (prev_prio == dont_download)
+		{
+			update_gauge();
+			if (filter_updated) update_peer_interest(was_finished);
+		}
 
 		piece_picker::downloading_piece pi;
 		m_picker->piece_info(piece, pi);
