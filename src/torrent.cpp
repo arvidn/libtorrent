@@ -3991,6 +3991,7 @@ namespace {
 
 		set_need_save_resume();
 		state_updated();
+		update_want_tick();
 
 		if (m_ses.alerts().should_post<piece_finished_alert>())
 			m_ses.alerts().emplace_alert<piece_finished_alert>(get_handle(), index);
@@ -4927,9 +4928,14 @@ namespace {
 				--i;
 			}
 			// just in case this piece had priority 0
-			download_priority_t prev_prio = m_picker->piece_priority(piece);
-			m_picker->set_piece_priority(piece, top_priority);
-			if (prev_prio == dont_download) update_gauge();
+			download_priority_t const prev_prio = m_picker->piece_priority(piece);
+			bool const was_finished = is_finished();
+			bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+			if (prev_prio == dont_download)
+			{
+				update_gauge();
+				if (filter_updated) update_peer_interest(was_finished);
+			}
 			return;
 		}
 
@@ -4947,9 +4953,14 @@ namespace {
 		m_time_critical_pieces.insert(critical_piece_it, p);
 
 		// just in case this piece had priority 0
-		download_priority_t prev_prio = m_picker->piece_priority(piece);
-		m_picker->set_piece_priority(piece, top_priority);
-		if (prev_prio == dont_download) update_gauge();
+		download_priority_t const prev_prio = m_picker->piece_priority(piece);
+		bool const was_finished = is_finished();
+		bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+		if (prev_prio == dont_download)
+		{
+			update_gauge();
+			if (filter_updated) update_peer_interest(was_finished);
+		}
 
 		piece_picker::downloading_piece pi;
 		m_picker->piece_info(piece, pi);
@@ -6647,7 +6658,8 @@ namespace {
 				auto const info = m_picker->blocks_for_piece(dp);
 				for (int i = 0; i < int(info.size()); ++i)
 				{
-					if (info[i].state == piece_picker::block_info::state_finished)
+					if (info[i].state == piece_picker::block_info::state_finished
+						|| info[i].state == piece_picker::block_info::state_writing)
 						bitmask.set_bit(i);
 				}
 				ret.unfinished_pieces.emplace(dp.index, std::move(bitmask));

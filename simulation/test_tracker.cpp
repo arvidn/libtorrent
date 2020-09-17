@@ -794,6 +794,40 @@ TORRENT_TEST(test_error)
 		});
 }
 
+TORRENT_TEST(test_no_announce_path)
+{
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session&) {
+			p.trackers.push_back("http://tracker.com:8080");
+			return 5;
+		},
+		[](std::string method, std::string req, std::map<std::string, std::string>&)
+		{
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			int const size = std::snprintf(response, sizeof(response), "d5:peers6:aaaaaae");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](torrent_handle h)
+		{
+			std::vector<announce_entry> tr = h.trackers();
+
+			TEST_EQUAL(tr.size(), 1);
+			announce_entry const& ae = tr[0];
+			TEST_EQUAL(ae.url, "http://tracker.com:8080");
+			TEST_EQUAL(ae.endpoints.size(), 2);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].message, "");
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].last_error, error_code());
+				TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
+			}
+		}
+		, [](torrent_handle){}
+		, "/");
+}
+
 TORRENT_TEST(test_warning)
 {
 	announce_entry_test(

@@ -72,7 +72,7 @@ using namespace lt;
 #include <conio.h>
 #endif
 
-std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
+std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const with_hashes)
 {
 	if (with_files)
 	{
@@ -96,19 +96,27 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files)
 	t.add_url_seed("http://torrent_file_url_seed.com/");
 
 	TEST_CHECK(t.num_pieces() > 0);
-	for (auto const i : fs.piece_range())
+	if (with_hashes)
 	{
-		sha1_hash ph;
-		aux::random_bytes(ph);
-		t.set_hash(i, ph);
+		lt::set_piece_hashes(t, "."
+			, [] (lt::piece_index_t) {});
 	}
-
-	for (piece_index_t i : fs.piece_range())
+	else
 	{
-		sha256_hash ph;
-		aux::random_bytes(ph);
-		file_index_t const f(fs.file_index_at_piece(i));
-		t.set_hash2(f, i - fs.piece_index_at_file(f), ph);
+		for (auto const i : fs.piece_range())
+		{
+			sha1_hash ph;
+			aux::random_bytes(ph);
+			t.set_hash(i, ph);
+		}
+
+		for (piece_index_t i : fs.piece_range())
+		{
+			sha256_hash ph;
+			aux::random_bytes(ph);
+			file_index_t const f(fs.file_index_at_piece(i));
+			t.set_hash2(f, i - fs.piece_index_at_file(f), ph);
+		}
 	}
 
 	std::vector<char> buf;
