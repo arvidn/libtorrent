@@ -585,6 +585,7 @@ libgnutls
 0x200000
 golang
 img
+SetFileValidData
 google
 WebTorrent
 WebRTC

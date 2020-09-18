@@ -18,8 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
-
-#include <fstream>
+#include "test_utils.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -52,9 +51,8 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 		std::ref(ec));
 	if (flags & torrent_flags::seed_mode)
 	{
-		std::ofstream file("temp");
 		std::vector<char> temp(425);
-		file.write(temp.data(), std::streamsize(temp.size()));
+		ofstream("temp").write(temp.data(), std::streamsize(temp.size()));
 	}
 	TEST_CHECK(!ec);
 	p.flags = flags;

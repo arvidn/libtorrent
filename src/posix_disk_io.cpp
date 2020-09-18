@@ -64,6 +64,9 @@ namespace {
 		storage_holder new_torrent(storage_params const& params
 			, std::shared_ptr<void> const&) override
 		{
+			// make sure we can remove this torrent without causing a memory
+			// allocation, by causing the allocation now instead
+			m_free_slots.reserve(m_torrents.size() + 1);
 			storage_index_t const idx = m_free_slots.empty()
 				? m_torrents.end_index()
 				: pop(m_free_slots);

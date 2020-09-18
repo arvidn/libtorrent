@@ -27,7 +27,6 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
-#include <fstream>
 #include <iostream>
 
 using namespace lt;
@@ -101,7 +100,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	error_code ec;
 	create_directory("tmp1_priority", ec);
-	std::ofstream file("tmp1_priority/temporary");
+	ofstream file("tmp1_priority/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
@@ -500,7 +499,7 @@ TORRENT_TEST(export_file_while_seed)
 
 	error_code ec;
 	create_directory("tmp2_priority", ec);
-	std::ofstream file("tmp2_priority/temporary");
+	ofstream file("tmp2_priority/temporary");
 	auto t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 

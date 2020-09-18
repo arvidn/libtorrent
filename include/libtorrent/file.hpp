@@ -65,28 +65,6 @@ namespace libtorrent {
 	using handle_type = int;
 #endif
 
-	struct TORRENT_EXTRA_EXPORT directory
-	{
-		directory(std::string const& path, error_code& ec);
-		~directory();
-
-		directory(directory const&) = delete;
-		directory& operator=(directory const&) = delete;
-
-		void next(error_code& ec);
-		std::string file() const;
-		bool done() const { return m_done; }
-	private:
-#ifdef TORRENT_WINDOWS
-		HANDLE m_handle;
-		WIN32_FIND_DATAW m_fd;
-#else
-		DIR* m_handle;
-		std::string m_name;
-#endif
-		bool m_done;
-	};
-
 	struct TORRENT_EXTRA_EXPORT file
 	{
 		file();

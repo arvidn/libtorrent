@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
+#include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/part_file.hpp"
 #include <memory>
 #include <string>
@@ -65,7 +66,7 @@ namespace aux {
 
 	private:
 
-		FILE* open_file(file_index_t idx, open_mode_t mode, std::int64_t offset
+		file_pointer open_file(file_index_t idx, open_mode_t mode, std::int64_t offset
 			, storage_error& ec);
 
 		void need_partfile();

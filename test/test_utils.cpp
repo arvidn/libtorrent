@@ -10,6 +10,12 @@ see LICENSE file.
 
 #include "test_utils.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/aux_/merkle.hpp"
+
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h> // for _O_WRONLY
+#endif
 
 namespace libtorrent
 {
@@ -33,5 +39,43 @@ namespace libtorrent
 		std::snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
 		return ret;
 	}
+}
+
+using namespace lt;
+
+aux::vector<sha256_hash> build_tree(int const size)
+{
+	int const num_leafs = merkle_num_leafs(size);
+	aux::vector<sha256_hash> full_tree(merkle_num_nodes(num_leafs));
+
+	for (int i = 0; i < size; i++)
+	{
+		std::uint32_t hash[32 / 4];
+		std::fill(std::begin(hash), std::end(hash), i + 1);
+		full_tree[full_tree.end_index() - num_leafs + i] = sha256_hash(reinterpret_cast<char*>(hash));
+	}
+
+	merkle_fill_tree(full_tree, num_leafs);
+	return full_tree;
+}
+
+#ifdef _WIN32
+int EXPORT truncate(char const* file, std::int64_t size)
+{
+	int fd = ::_open(file, _O_WRONLY);
+	if (fd < 0) return -1;
+	int const err = ::_chsize_s(fd, size);
+	::_close(fd);
+	if (err == 0) return 0;
+	errno = err;
+	return -1;
+}
+#endif
+
+ofstream::ofstream(char const* filename)
+{
+	exceptions(std::ofstream::failbit);
+	native_path_string const name = convert_to_native_path_string(filename);
+	open(name.c_str(), std::fstream::out | std::fstream::binary);
 }
 

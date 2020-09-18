@@ -58,7 +58,11 @@ namespace libtorrent {
 
 		at = std::find(start, url.end(), '@');
 		colon = std::find(start, url.end(), ':');
-		end = std::find(start, url.end(), '/');
+		end = std::min({
+			std::find(start, url.end(), '/')
+			, std::find(start, url.end(), '?')
+			, std::find(start, url.end(), '#')
+			});
 
 		if (at != url.end()
 			&& colon != url.end()
@@ -104,11 +108,19 @@ namespace libtorrent {
 
 		start = end;
 exit:
+		std::string path_component(start, url.end());
+		if (path_component.empty()
+			|| path_component.front() == '?'
+			|| path_component.front() == '#')
+		{
+			path_component.insert(path_component.begin(), '/');
+		}
+
 		return std::make_tuple(std::move(protocol)
 			, std::move(auth)
 			, std::move(hostname)
 			, port
-			, std::string(start, url.end()));
+			, path_component);
 	}
 
 	// splits a url into the base url and the path

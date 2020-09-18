@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/posix_storage.hpp"
 #include "libtorrent/aux_/path.hpp" // for bufs_size
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/utf8.hpp"
@@ -77,14 +77,13 @@ namespace aux {
 					m_part_file->export_file([this, i, &ec](std::int64_t file_offset, span<char> buf)
 					{
 						// move stuff out of the part file
-						FILE* const f = open_file(i, open_mode::write, file_offset, ec);
+						file_pointer const f = open_file(i, open_mode::write, file_offset, ec);
 						if (ec) return;
-						auto sc = scope_end([f]{ fclose(f); });
 						int const r = static_cast<int>(fwrite(buf.data(), 1
-							, static_cast<std::size_t>(buf.size()), f));
+							, static_cast<std::size_t>(buf.size()), f.file()));
 						if (r != buf.size())
 						{
-							if (ferror(f)) ec.ec.assign(errno, generic_category());
+							if (ferror(f.file())) ec.ec.assign(errno, generic_category());
 							else ec.ec.assign(errors::file_too_short, libtorrent_category());
 							return;
 						}
@@ -157,10 +156,9 @@ namespace aux {
 				return ret;
 			}
 
-			FILE* const f = open_file(file_index, open_mode::read_only
+			file_pointer const f = open_file(file_index, open_mode::read_only
 				, file_offset, ec);
 			if (ec.ec) return -1;
-			auto sc = scope_end([f]{ fclose(f); });
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -170,10 +168,10 @@ namespace aux {
 			for (auto buf : vec)
 			{
 				int const r = static_cast<int>(fread(buf.data(), 1
-					, static_cast<std::size_t>(buf.size()), f));
+					, static_cast<std::size_t>(buf.size()), f.file()));
 				if (r == 0)
 				{
-					if (ferror(f)) ec.ec.assign(errno, generic_category());
+					if (ferror(f.file())) ec.ec.assign(errno, generic_category());
 					else ec.ec.assign(errors::file_too_short, libtorrent_category());
 					break;
 				}
@@ -234,10 +232,9 @@ namespace aux {
 				return ret;
 			}
 
-			FILE* const f = open_file(file_index, open_mode::write
+			file_pointer const f = open_file(file_index, open_mode::write
 				, file_offset, ec);
 			if (ec.ec) return -1;
-			auto sc = scope_end([f]{ fclose(f); });
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -247,10 +244,10 @@ namespace aux {
 			for (auto buf : vec)
 			{
 				auto const r = static_cast<int>(fwrite(buf.data(), 1
-					, static_cast<std::size_t>(buf.size()), f));
+					, static_cast<std::size_t>(buf.size()), f.file()));
 				if (r != buf.size())
 				{
-					if (ferror(f)) ec.ec.assign(errno, generic_category());
+					if (ferror(f.file())) ec.ec.assign(errno, generic_category());
 					else ec.ec.assign(errors::file_too_short, libtorrent_category());
 					break;
 				}
@@ -475,21 +472,20 @@ namespace aux {
 					// there's a race here and some other process truncates the file,
 					// it's not a problem, we won't access empty files ever again
 					ec.ec.clear();
-					FILE* f = open_file(file_index, aux::open_mode::write, 0, ec);
+					file_pointer f = open_file(file_index, aux::open_mode::write, 0, ec);
 					if (ec)
 					{
 						ec.file(file_index);
 						ec.operation = operation_t::file_fallocate;
 						return;
 					}
-					fclose(f);
 				}
 			}
 			ec.ec.clear();
 		}
 	}
 
-	FILE* posix_storage::open_file(file_index_t idx, open_mode_t const mode
+	file_pointer posix_storage::open_file(file_index_t idx, open_mode_t const mode
 		, std::int64_t const offset, storage_error& ec)
 	{
 		std::string const fn = files().file_path(idx, m_save_path);
@@ -564,7 +560,6 @@ namespace aux {
 				ec.ec.assign(errno, generic_category());
 				ec.file(idx);
 				ec.operation = operation_t::file_seek;
-				fclose(f);
 				return nullptr;
 			}
 		}

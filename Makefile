@@ -309,6 +309,7 @@ SOURCES = \
   cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
+  directory.cpp                   \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
@@ -565,6 +566,7 @@ HEADERS = \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \
   aux_/dev_random.hpp               \
+  aux_/directory.hpp                \
   aux_/disable_deprecation_warnings_push.hpp \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
@@ -577,6 +579,7 @@ HEADERS = \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
+  aux_/file_pointer.hpp             \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \
   aux_/generate_peer_id.hpp         \
@@ -868,6 +871,7 @@ TEST_SOURCES = \
   test_lsd.cpp \
   test_magnet.cpp \
   test_merkle.cpp \
+  test_merkle_tree.cpp \
   test_mmap.cpp \
   test_packet_buffer.cpp \
   test_part_file.cpp \

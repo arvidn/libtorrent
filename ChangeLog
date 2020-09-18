@@ -2,6 +2,9 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* disable use of SetFileValidData() by default (windows). A new setting
+	  allows enabling it
+
 2.0 release
 
 	* dropped depenency on iconv
@@ -33,6 +36,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* record blocks in the disk queue as downloaded in the resume data
+	* fix bug in set_piece_deadline() when set in a zero-priority piece
+	* fix issue in URL parser, causing issues with certain tracker URLs
 	* use a different error code than host-unreachable, when skipping tracker announces
 
 1.2.10 released

@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
@@ -31,6 +31,7 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -40,6 +41,7 @@ see LICENSE file.
 #include <unordered_map>
 #include <unordered_set>
 #include <cstdint>
+#include <cstdio>
 #include <cinttypes>
 #include <iterator>
 #include <algorithm>
@@ -635,20 +637,47 @@ namespace {
 		, error_code& ec, int const max_buffer_size = 80000000)
 	{
 		ec.clear();
-		file f;
-		if (!f.open(filename, aux::open_mode::read_only, ec)) return -1;
-		std::int64_t const s = f.get_size(ec);
-		if (ec) return -1;
+		aux::file_pointer f(std::fopen(filename.c_str(), "rb"));
+		if (f.file() == nullptr)
+		{
+			ec.assign(errno, generic_category());
+			return -1;
+		}
+
+		if (std::fseek(f.file(), 0, SEEK_END) < 0)
+		{
+			ec.assign(errno, generic_category());
+			return -1;
+		}
+		std::int64_t const s = std::ftell(f.file());
+		if (s < 0)
+		{
+			ec.assign(errno, generic_category());
+			return -1;
+		}
 		if (s > max_buffer_size)
 		{
 			ec = errors::metadata_too_large;
 			return -1;
 		}
+		if (std::fseek(f.file(), 0, SEEK_SET) < 0)
+		{
+			ec.assign(errno, generic_category());
+			return -1;
+		}
 		v.resize(std::size_t(s));
 		if (s == 0) return 0;
-		std::int64_t const read = f.readv(0, {v}, ec);
-		if (read != s) return -3;
-		if (ec) return -3;
+		std::size_t const read = std::fread(v.data(), 1, v.size(), f.file());
+		if (read != std::size_t(s))
+		{
+			if (std::feof(f.file()))
+			{
+				v.resize(read);
+				return 0;
+			}
+			ec.assign(errno, generic_category());
+			return -1;
+		}
 		return 0;
 	}
 

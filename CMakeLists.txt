@@ -184,6 +184,7 @@ set(libtorrent_aux_include_files
 	deprecated
 	deque
 	dev_random
+	directory
 	disable_warnings_pop
 	disable_warnings_push
 	disk_buffer_pool
@@ -293,6 +294,7 @@ set(sources
 	cpuid
 	crc32c
 	create_torrent
+	directory
 	disk_buffer_holder
 	entry
 	error_code
