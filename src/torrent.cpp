@@ -6371,7 +6371,8 @@ bool is_downloading_state(int const st)
 			// info for each unfinished piece
 			for (auto const& dp : q)
 			{
-				if (dp.finished == 0) continue;
+				if (dp.finished == 0 && dp.writing == 0)
+					continue;
 
 				bitfield bitmask;
 				bitmask.resize(num_blocks_per_piece, false);
