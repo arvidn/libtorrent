@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "setup_transfer.hpp"
 
 #include "test.hpp"
@@ -1624,7 +1625,6 @@ TORRENT_TEST(unfinished_pieces_check_all)
 	});
 }
 
-
 TORRENT_TEST(unfinished_pieces_finished)
 {
 	// make sure that a piece that isn't maked as "have", but whose blocks are
@@ -1651,3 +1651,42 @@ TORRENT_TEST(unfinished_pieces_all_finished)
 			atp.unfinished_pieces[p].resize(blocks_per_piece, true);
 	});
 }
+
+TORRENT_TEST(resume_data_have_pieces)
+{
+	file_storage fs;
+	fs.add_file("tmp1", 128 * 1024 * 8);
+	lt::create_torrent t(fs, 128 * 1024, 6);
+
+	TEST_CHECK(t.num_pieces() > 0);
+
+	std::vector<char> piece_data(std::size_t(fs.piece_length()), 0);
+	aux::random_bytes(piece_data);
+
+	sha1_hash const ph = lt::hasher(piece_data).final();
+	for (auto const i : fs.piece_range())
+		t.set_hash(i, ph);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	auto ti = std::make_shared<torrent_info>(buf, from_span);
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp;
+	atp.ti = ti;
+	atp.flags &= ~torrent_flags::paused;
+	atp.save_path = ".";
+	auto h = ses.add_torrent(atp);
+	wait_for_downloading(ses, "");
+	h.add_piece(piece_index_t{0}, piece_data.data());
+	lt::torrent_status s = h.status(torrent_handle::query_pieces);
+
+	ses.pause();
+	h.save_resume_data();
+
+	auto const* rs = static_cast<save_resume_data_alert const*>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type));
+	TEST_CHECK(rs != nullptr);
+	TEST_EQUAL(rs->params.unfinished_pieces.size(), 1);
+}
+
