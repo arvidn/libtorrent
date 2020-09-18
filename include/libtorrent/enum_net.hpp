@@ -59,10 +59,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// internal
 using interface_flags = flags::bitfield_flag<std::uint32_t, struct interface_flags_tag>;
 
 namespace if_flags {
 
+	// internal
 	constexpr interface_flags up = 0_bit;
 	constexpr interface_flags broadcast = 1_bit;
 	constexpr interface_flags loopback = 2_bit;
@@ -79,6 +81,7 @@ namespace if_flags {
 	constexpr interface_flags dormant = 13_bit;
 }
 
+// internal
 enum class if_state : std::uint8_t {
 
 	up,
@@ -90,6 +93,7 @@ enum class if_state : std::uint8_t {
 	unknown
 };
 
+// internal
 	struct ip_interface
 	{
 		address interface_address;
@@ -105,6 +109,7 @@ enum class if_state : std::uint8_t {
 		if_state state = if_state::unknown;
 	};
 
+// internal
 	struct ip_route
 	{
 		address destination;
