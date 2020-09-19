@@ -1476,7 +1476,7 @@ namespace libtorrent {
 		// used to post a message to defer disconnecting peers
 		std::vector<std::shared_ptr<peer_connection>> m_peers_to_disconnect;
 		aux::deferred_handler m_deferred_disconnect;
-		aux::handler_storage<96> m_deferred_handler_storage;
+		aux::handler_storage<104> m_deferred_handler_storage;
 
 		// these are the peer IDs we've used for our outgoing peer connections for
 		// this torrent. If we get an incoming peer claiming to have one of these,

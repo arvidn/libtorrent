@@ -123,6 +123,7 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_UNUSED(size);
 			TORRENT_ASSERT_VAL(size <= Size, size);
+			if (size > Size) std::abort();
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(!ctx->storage.used);
 			ctx->storage.used = true;
@@ -138,6 +139,7 @@ namespace libtorrent { namespace aux {
 			TORRENT_UNUSED(ctx);
 
 			TORRENT_ASSERT_VAL(size <= Size, size);
+			if (size > Size) std::abort();
 			TORRENT_ASSERT(ptr == &ctx->storage.bytes);
 #if TORRENT_USE_ASSERTS
 			ctx->storage.used = false;
