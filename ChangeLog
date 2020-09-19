@@ -1,3 +1,4 @@
+	* allow saving resume data before metadata has been downloaded (for magnet links)
 	* record blocks in the disk queue as downloaded in the resume data
 	* fix bug in set_piece_deadline() when set in a zero-priority piece
 	* fix issue in URL parser, causing issues with certain tracker URLs
