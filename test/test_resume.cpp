@@ -1578,6 +1578,26 @@ TORRENT_TEST(paused)
 	// and trackers for instance
 }
 
+TORRENT_TEST(no_metadata)
+{
+	lt::session ses(settings());
+
+	add_torrent_params p;
+	p.info_hash = sha1_hash("abababababababababab");
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& atp = ra->params;
+		TEST_EQUAL(atp.info_hash, p.info_hash);
+	}
+}
+
 template <typename Fun>
 void test_unfinished_pieces(Fun f)
 {

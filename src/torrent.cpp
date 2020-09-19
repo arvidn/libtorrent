@@ -210,7 +210,6 @@ bool is_downloading_state(int const st)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
 		, m_max_uploads((1 << 24) - 1)
-		, m_save_resume_flags()
 		, m_num_uploads(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_magnet_link(false)
@@ -6322,7 +6321,7 @@ bool is_downloading_state(int const st)
 				aep.enabled = true;
 	}
 
-	void torrent::write_resume_data(add_torrent_params& ret) const
+	void torrent::write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const
 	{
 		ret.version = LIBTORRENT_VERSION_NUM;
 		ret.storage_mode = storage_mode();
@@ -6341,7 +6340,7 @@ bool is_downloading_state(int const st)
 		ret.num_incomplete = m_incomplete;
 		ret.num_downloaded = m_downloaded;
 
-		ret.flags = flags();
+		ret.flags = this->flags();
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;
@@ -6358,7 +6357,7 @@ bool is_downloading_state(int const st)
 
 		if (valid_metadata())
 		{
-			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
+			if (m_magnet_link || (flags & torrent_handle::save_info_dict))
 			{
 				ret.ti = m_torrent_file;
 			}
@@ -6455,7 +6454,8 @@ bool is_downloading_state(int const st)
 		}
 
 		// write renamed files
-		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
+		if (valid_metadata()
+			&& &m_torrent_file->files() != &m_torrent_file->orig_files()
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
 			file_storage const& fs = m_torrent_file->files();
@@ -6537,7 +6537,7 @@ bool is_downloading_state(int const st)
 			ret.file_priorities = m_file_priority;
 		}
 
-		if (has_picker())
+		if (valid_metadata() && has_picker())
 		{
 			// write piece priorities
 			// but only if they are not set to the default
@@ -8564,13 +8564,6 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (!valid_metadata())
-		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, errors::no_metadata);
-			return;
-		}
-
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -8579,7 +8572,6 @@ bool is_downloading_state(int const st)
 		}
 
 		m_need_save_resume_data = false;
-		m_save_resume_flags = flags;
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
@@ -8588,7 +8580,7 @@ bool is_downloading_state(int const st)
 		state_updated();
 
 		add_torrent_params atp;
-		write_resume_data(atp);
+		write_resume_data(flags, atp);
 		alerts().emplace_alert<save_resume_data_alert>(std::move(atp), get_handle());
 	}
 
