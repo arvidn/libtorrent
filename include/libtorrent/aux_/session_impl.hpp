@@ -1261,9 +1261,9 @@ namespace aux {
 
 			// abort may not fail and cannot allocate memory
 #if defined BOOST_ASIO_ENABLE_HANDLER_TRACKING
-			aux::handler_storage<100> m_abort_handler_storage;
+			aux::handler_storage<104> m_abort_handler_storage;
 #else
-			aux::handler_storage<88> m_abort_handler_storage;
+			aux::handler_storage<96> m_abort_handler_storage;
 #endif
 
 			// torrents are announced on the local network in a
