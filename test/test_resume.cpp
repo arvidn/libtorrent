@@ -138,7 +138,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	, bool const test_deprecated = false)
 {
 	std::shared_ptr<torrent_info> ti = generate_torrent(
-		bool(flags & torrent_flags::seed_mode));
+		bool((flags & torrent_flags::seed_mode) && !(flags & torrent_flags::no_verify_files)));
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
@@ -1504,6 +1504,23 @@ TORRENT_TEST(seed_mode)
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
+	TEST_EQUAL(s.connections_limit, 1345);
+	TEST_EQUAL(s.uploads_limit, 1346);
+}
+
+TORRENT_TEST(seed_mode_no_verify_files)
+{
+	lt::session ses(settings());
+	torrent_status s = test_resume_flags(ses
+		, torrent_flags::seed_mode | torrent_flags::no_verify_files).status();
+	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
+	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
+	// note taht torrent_flags::no_verify_files is NOT set here
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
