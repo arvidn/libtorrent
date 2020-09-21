@@ -1,4 +1,31 @@
 ---
+# checks to review for inclusion:
+# modernize-avoid-c-arrays
+# cppcoreguidelines-avoid-c-arrays
+# cppcoreguidelines-pro-type-member-init
+# cppcoreguidelines-avoid-magic-numbers
+# modernize-concat-nested-namespaces
+# hicpp-signed-bitwise
+# hicpp-no-array-decay
+# cppcoreguidelines-pro-bounds-pointer-arithmetic
+# cppcoreguidelines-pro-bounds-array-to-pointer-decay
+# modernize-use-nodiscard
+# readability-else-after-return
+# cppcoreguidelines-macro-usage
+# hicpp-member-init
+# bugprone-narrowing-conversions
+# cppcoreguidelines-narrowing-conversions
+# modernize-use-equals-default
+# cppcoreguidelines-init-variables
+# hicpp-noexcept-move
+# performance-noexcept-move-constructor
+# cppcoreguidelines-pro-type-const-cast
+# bugprone-exception-escape
+# performance-unnecessary-value-param
+# readability-isolate-declaration
+# google-build-using-namespace
+# modernize-use-emplace
+
 Checks:          '-clang-analyzer-core.*,readability-redundant-smartptr-get,readability-redundant-declaration,readability-redundant-control-flow,readability-delete-null-pointer,performance-faster-string-find,misc-uniqueptr-reset-release,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,modernize-redundant-void-arg,google-runtime-operator,modernize-use-equals-delete,modernize-use-using,modernize-use-nullptr,readability-const-return-type,modernize-use-noexcept,readability-avoid-const-params-in-decls,readability-redundant-string-cstr,readability-redundant-member-init,modernize-pass-by-value,modernize-use-auto,modernize-use-default-member-init,hicpp-deprecated-headers,readability-inconsistent-declaration-parameter-name,modernize-return-braced-init-list,readability-redundant-preprocessor'
 CheckOptions:
   - key:             cert-dcl16-c.NewSuffixes
