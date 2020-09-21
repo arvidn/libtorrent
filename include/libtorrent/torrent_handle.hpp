@@ -264,7 +264,10 @@ namespace aux {
 #endif
 
 		// instruct libtorrent to overwrite any data that may already have been
-		// downloaded with the data of the new piece being added.
+		// downloaded with the data of the new piece being added. Using this
+		// flag when adding a piece that is actively being downloaded from other
+		// peers may have some unexpected consequences, as blocks currently
+		// being downloaded from peers may not be replaced.
 		static constexpr add_piece_flags_t overwrite_existing = 0_bit;
 
 		// This function will write ``data`` to the storage as piece ``piece``,

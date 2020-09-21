@@ -1412,8 +1412,21 @@ bool is_downloading_state(int const st)
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			piece_block const block(piece, i);
-			if (!(flags & torrent_handle::overwrite_existing)
-				&& picker().is_finished(block))
+
+			bool const finished = picker().is_finished(block);
+
+			// if this block is already finished, only resume if we have the
+			// flag set to overwrite existing data.
+			if (!(flags & torrent_handle::overwrite_existing) && finished)
+				continue;
+
+			bool const downloaded = picker().is_downloaded(block);
+
+			// however, if the block is downloaded by not written to disk yet,
+			// we can't (easily) replace it. We would have to synchronize with
+			// the disk in a clear_piece() call. Instead, just ignore such
+			// blocks.
+			if (downloaded && !finished)
 				continue;
 
 			p.length = std::min(piece_size - p.start, block_size());
