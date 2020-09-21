@@ -115,14 +115,8 @@ namespace libtorrent::aux {
 
 	torrent_peer::torrent_peer(std::uint16_t port_, bool conn
 		, peer_source_flags_t const src)
-		: prev_amount_upload(0)
-		, prev_amount_download(0)
-		, connection(nullptr)
-		, peer_rank(0)
-		, last_optimistically_unchoked(0)
-		, last_connected(0)
+		: connection(nullptr)
 		, port(port_)
-		, hashfails(0)
 		, failcount(0)
 		, connectable(conn)
 		, optimistically_unchoked(false)
@@ -188,7 +182,7 @@ namespace libtorrent::aux {
 		}
 		else
 		{
-			return std::int64_t(prev_amount_download) << 10;
+			return std::int64_t(prev_amount_download) * 1024;
 		}
 	}
 
@@ -202,7 +196,7 @@ namespace libtorrent::aux {
 		}
 		else
 		{
-			return std::int64_t(prev_amount_upload) << 10;
+			return std::int64_t(prev_amount_upload) * 1024;
 		}
 	}
 

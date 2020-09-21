@@ -71,8 +71,8 @@ namespace libtorrent::aux {
 		// with byte-precision, they specify the number
 		// of kiB. i.e. shift left 10 bits to compare to
 		// byte counters.
-		std::uint32_t prev_amount_upload;
-		std::uint32_t prev_amount_download;
+		std::uint32_t prev_amount_upload = 0;
+		std::uint32_t prev_amount_download = 0;
 
 		// if the torrent_peer is connected now, this
 		// will refer to a valid peer_connection
@@ -81,7 +81,7 @@ namespace libtorrent::aux {
 		// as computed by hashing our IP with the remote
 		// IP of this peer
 		// calculated lazily
-		mutable std::uint32_t peer_rank;
+		mutable std::uint32_t peer_rank = 0;
 
 		// the time when this torrent_peer was optimistically unchoked
 		// the last time. in seconds since session was created
@@ -89,19 +89,19 @@ namespace libtorrent::aux {
 		// when the session time reaches 18 hours, it jumps back by
 		// 9 hours, and all peers' times are updated to be
 		// relative to that new time offset
-		std::uint16_t last_optimistically_unchoked;
+		std::uint16_t last_optimistically_unchoked = 0;
 
 		// the time when the torrent_peer connected to us
 		// or disconnected if it isn't connected right now
 		// in number of seconds since session was created
-		std::uint16_t last_connected;
+		std::uint16_t last_connected = 0;
 
 		// the port this torrent_peer is or was connected on
 		std::uint16_t port;
 
 		// the number of times this torrent_peer has been
 		// part of a piece that failed the hash check
-		std::uint8_t hashfails;
+		std::uint8_t hashfails = 0;
 
 		// the number of failed connection attempts
 		// this torrent_peer has
