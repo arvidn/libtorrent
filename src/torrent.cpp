@@ -5959,8 +5959,8 @@ namespace {
 
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
-			pp->prev_amount_download += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_download() >> 10);
-			pp->prev_amount_upload += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_upload() >> 10);
+			pp->prev_amount_download += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_download() / 1024);
+			pp->prev_amount_upload += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_upload() / 1024);
 
 			// only decrement the seed count if the peer completed attaching to the torrent
 			// otherwise the seed count did not get incremented for this peer
@@ -6502,8 +6502,8 @@ namespace {
 		web->peer_info.in_use = true;
 #endif
 
-		c->add_stat(std::int64_t(web->peer_info.prev_amount_download) << 10
-			, std::int64_t(web->peer_info.prev_amount_upload) << 10);
+		c->add_stat(std::int64_t(web->peer_info.prev_amount_download) * 1024
+			, std::int64_t(web->peer_info.prev_amount_upload) * 1024);
 		web->peer_info.prev_amount_download = 0;
 		web->peer_info.prev_amount_upload = 0;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -7208,8 +7208,8 @@ namespace {
 		c->m_in_constructor = false;
 #endif
 
-		c->add_stat(std::int64_t(peerinfo->prev_amount_download) << 10
-			, std::int64_t(peerinfo->prev_amount_upload) << 10);
+		c->add_stat(std::int64_t(peerinfo->prev_amount_download) * 1024
+			, std::int64_t(peerinfo->prev_amount_upload) * 1024);
 		peerinfo->prev_amount_download = 0;
 		peerinfo->prev_amount_upload = 0;
 

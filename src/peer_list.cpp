@@ -709,7 +709,7 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(i);
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == nullptr);
-		c.add_stat(std::int64_t(i->prev_amount_download) << 10, std::int64_t(i->prev_amount_upload) << 10);
+		c.add_stat(std::int64_t(i->prev_amount_download) * 1024, std::int64_t(i->prev_amount_upload) * 1024);
 
 		i->prev_amount_download = 0;
 		i->prev_amount_upload = 0;
