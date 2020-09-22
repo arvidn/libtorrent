@@ -1729,3 +1729,30 @@ TORRENT_TEST(resume_data_have_pieces)
 	TEST_EQUAL(rs->params.unfinished_pieces.size(), 1);
 }
 
+// See https://github.com/arvidn/libtorrent/issues/5174
+TORRENT_TEST(removed)
+{
+	lt::session ses(settings());
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	// we're _likely_ to trigger the condition, but not guaranteed. loop
+	// until we do.
+	bool triggered = false;
+	for (int i = 0; i < 10; i++) {
+		torrent_handle h = ses.add_torrent(p);
+		// this is asynchronous
+		ses.remove_torrent(h);
+		try {
+			h.save_resume_data();
+			triggered = true;
+		} catch (std::exception const&) {
+			std::printf("failed to trigger condition, retrying\n");
+		}
+	}
+	TEST_CHECK(triggered);
+	if (!triggered) return;
+	alert const* a = wait_for_alert(ses, save_resume_data_failed_alert::alert_type);
+	TEST_CHECK(a != nullptr);
+}
