@@ -4754,13 +4754,15 @@ namespace {
 
 		auto t = m_torrent.lock();
 
-		int warning = 0;
+		std::uint8_t warning = 0;
 		// drain the IP overhead from the bandwidth limiters
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead) && t)
 		{
-			warning |= m_ses.use_quota_overhead(*this, m_statistics.download_ip_overhead()
+			warning |= m_ses.use_quota_overhead(*this
+				, m_statistics.download_ip_overhead()
 				, m_statistics.upload_ip_overhead());
-			warning |= m_ses.use_quota_overhead(*t, m_statistics.download_ip_overhead()
+			warning |= m_ses.use_quota_overhead(*t
+				, m_statistics.download_ip_overhead()
 				, m_statistics.upload_ip_overhead());
 		}
 
@@ -4768,7 +4770,7 @@ namespace {
 		{
 			for (int channel = 0; channel < 2; ++channel)
 			{
-				if ((warning & (1 << channel)) == 0) continue;
+				if (((warning >> channel) & 1u) == 0) continue;
 				t->alerts().emplace_alert<performance_alert>(t->get_handle()
 					, channel == peer_connection::download_channel
 					? performance_alert::download_limit_too_low

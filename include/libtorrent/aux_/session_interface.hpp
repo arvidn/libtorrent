@@ -211,7 +211,7 @@ namespace aux {
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
 		virtual int copy_pertinent_channels(peer_class_set const& set
 			, int channel, bandwidth_channel** dst, int m) = 0;
-		virtual int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) = 0;
+		virtual std::uint8_t use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) = 0;
 
 		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
 
