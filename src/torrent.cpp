@@ -8566,6 +8566,13 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+		if (m_abort)
+		{
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::torrent_removed);
+			return;
+		}
+
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
