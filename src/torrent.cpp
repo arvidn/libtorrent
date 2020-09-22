@@ -6347,6 +6347,8 @@ bool is_downloading_state(int const st)
 
 		ret.save_path = m_save_path;
 
+		if (m_name) ret.name = *m_name;
+
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		ret.url = m_url;
