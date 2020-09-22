@@ -549,7 +549,7 @@ namespace aux {
 			bool ignore_unchoke_slots_set(peer_class_set const& set) const override;
 			int copy_pertinent_channels(peer_class_set const& set
 				, int channel, bandwidth_channel** dst, int m) override;
-			int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) override;
+			std::uint8_t use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) override;
 			bool use_quota_overhead(bandwidth_channel* ch, int amount);
 
 			peer_class_t create_peer_class(char const* name);

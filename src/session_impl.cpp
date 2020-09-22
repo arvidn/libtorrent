@@ -1345,9 +1345,9 @@ namespace {
 		return (ch->throttle() > 0 && ch->throttle() < amount);
 	}
 
-	int session_impl::use_quota_overhead(peer_class_set& set, int const amount_down, int const amount_up)
+	std::uint8_t session_impl::use_quota_overhead(peer_class_set& set, int const amount_down, int const amount_up)
 	{
-		int ret = 0;
+		std::uint8_t ret = 0;
 		int const num = set.num_classes();
 		for (int i = 0; i < num; ++i)
 		{
@@ -1356,10 +1356,10 @@ namespace {
 
 			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
 			if (use_quota_overhead(ch, amount_down))
-				ret |= 1 << peer_connection::download_channel;
+				ret |= 1u << peer_connection::download_channel;
 			ch = &p->channel[peer_connection::upload_channel];
 			if (use_quota_overhead(ch, amount_up))
-				ret |= 1 << peer_connection::upload_channel;
+				ret |= 1u << peer_connection::upload_channel;
 		}
 		return ret;
 	}
