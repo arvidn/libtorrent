@@ -642,10 +642,10 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	int cmd = read_uint8(in);
+	std::uint8_t cmd = read_uint8(in);
 	if (version == version_pcp)
 	{
-		cmd &= 0x7f;
+		cmd &= 0x7fu;
 	}
 	int result;
 	if (version == version_pcp)
@@ -692,7 +692,7 @@ void natpmp::on_reply(error_code const& e
 	if (version == version_pcp) in += 12; // reserved
 	TORRENT_UNUSED(time);
 
-	if (version == version_natpmp && cmd == 128)
+	if (version == version_natpmp && cmd == 0x80)
 	{
 		// public IP request response
 		m_external_ip = read_v4_address(in);
