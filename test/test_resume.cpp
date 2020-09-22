@@ -1585,6 +1585,7 @@ TORRENT_TEST(no_metadata)
 	add_torrent_params p;
 	p.info_hash = sha1_hash("abababababababababab");
 	p.save_path = ".";
+	p.name = "foobar";
 	torrent_handle h = ses.add_torrent(p);
 	h.save_resume_data(torrent_handle::save_info_dict);
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -1595,6 +1596,7 @@ TORRENT_TEST(no_metadata)
 	{
 		auto const& atp = ra->params;
 		TEST_EQUAL(atp.info_hash, p.info_hash);
+		TEST_EQUAL(atp.name, "foobar");
 	}
 }
 
