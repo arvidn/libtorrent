@@ -543,12 +543,12 @@ namespace libtorrent { namespace {
 				//        flag is received from a peer, it can be
 				//        used as a rendezvous point in case direct
 				//        connections to the peer fail
-				int flags = p->is_seed() ? 2 : 0;
+				std::uint8_t flags = p->is_seed() ? 2u : 0u;
 #if !defined TORRENT_DISABLE_ENCRYPTION
-				flags |= p->supports_encryption() ? 1 : 0;
+				flags |= p->supports_encryption() ? 1u : 0u;
 #endif
-				flags |= is_utp(p->get_socket()) ? 4 :  0;
-				flags |= p->supports_holepunch() ? 8 : 0;
+				flags |= is_utp(p->get_socket()) ? 4u : 0u;
+				flags |= p->supports_holepunch() ? 8u : 0u;
 
 				tcp::endpoint remote = peer->remote();
 
