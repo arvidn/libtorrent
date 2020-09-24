@@ -47,7 +47,7 @@ namespace libtorrent {
 	using session_flags_t = flags::bitfield_flag<std::uint8_t, struct session_flags_tag>;
 #endif
 
-	// hidden
+	// The flags type used to specify options to removing files of torrents
 	using remove_flags_t = flags::bitfield_flag<std::uint8_t, struct remove_flags_tag>;
 
 	// hidden

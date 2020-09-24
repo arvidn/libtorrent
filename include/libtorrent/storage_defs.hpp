@@ -100,7 +100,9 @@ namespace libtorrent {
 	};
 #endif
 
-	struct TORRENT_EXTRA_EXPORT storage_params
+	// a parameter pack used to construct the storage for a torrent, used in
+	// disk_interface
+	struct TORRENT_EXPORT storage_params
 	{
 		storage_params(file_storage const& f, file_storage const* mf
 			, std::string const& sp, storage_mode_t const sm
