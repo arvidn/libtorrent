@@ -110,7 +110,7 @@ void test_offers()
 		success = true;
 	};
 
-	auto handler = [&](peer_id const&, rtc_stream_init) {};
+	auto handler = [&](rtc_stream_init) {};
 
 	sig = std::make_shared<rtc_signaling>(io_context, &tor, handler);
 
@@ -159,7 +159,7 @@ void test_connectivity()
 		sig2->process_offer(offer);
 	};
 
-	auto handler1 = [&](peer_id const&, rtc_stream_init init) {
+	auto handler1 = [&](rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
 		init1 = std::move(init);
@@ -174,7 +174,7 @@ void test_connectivity()
 		}
 	};
 
-	auto handler2 = [&](peer_id const&, rtc_stream_init init) {
+	auto handler2 = [&](rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
 		init2 = std::move(init);
@@ -283,7 +283,7 @@ void test_stream()
 		}
 	};
 
-	auto handler1 = [&](peer_id const&, rtc_stream_init init) {
+	auto handler1 = [&](rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
 
@@ -294,7 +294,7 @@ void test_stream()
 		stream1->async_read_some(read_buffer, read_handler);
 	};
 
-	auto handler2 = [&](peer_id const&, rtc_stream_init init) {
+	auto handler2 = [&](rtc_stream_init init) {
 		TEST_CHECK(init.peer_connection);
 		TEST_CHECK(init.data_channel);
 

@@ -220,13 +220,13 @@ namespace libtorrent::aux {
 #if TORRENT_USE_RTC
 	struct TORRENT_EXTRA_EXPORT rtc_peer : torrent_peer
 	{
-		rtc_peer(string_view pid_, peer_source_flags_t src);
+		rtc_peer(tcp::endpoint const& ep, peer_source_flags_t src);
 		rtc_peer(rtc_peer const&) = delete;
 		rtc_peer& operator=(rtc_peer const&) = delete;
 		rtc_peer(rtc_peer&&) = default;
 		rtc_peer& operator=(rtc_peer&&) & = default;
 
-		aux::string_ptr pid;
+		tcp::endpoint endpoint;
 	};
 #endif
 
@@ -250,7 +250,7 @@ namespace libtorrent::aux {
 			return lhs < rhs->address();
 		}
 
-#if TORRENT_USE_I2P || TORRENT_USE_RTC
+#if TORRENT_USE_I2P
 		bool operator()(torrent_peer const* lhs, string_view rhs) const
 		{
 			return lhs->dest().compare(rhs) < 0;
@@ -264,15 +264,8 @@ namespace libtorrent::aux {
 
 		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
-#if TORRENT_USE_I2P || TORRENT_USE_RTC
-			if (	true
 #if TORRENT_USE_I2P
-					&& rhs->is_i2p_addr == lhs->is_i2p_addr
-#endif
-#if TORRENT_USE_RTC
-					&& rhs->is_rtc_addr == lhs->is_rtc_addr
-#endif
-			)
+			if (rhs->is_i2p_addr == lhs->is_i2p_addr)
 				return lhs->dest().compare(rhs->dest()) < 0;
 #endif
 			return lhs->address() < rhs->address();

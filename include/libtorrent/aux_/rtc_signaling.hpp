@@ -73,7 +73,7 @@ struct rtc_offer
 struct TORRENT_EXTRA_EXPORT rtc_signaling final : std::enable_shared_from_this<rtc_signaling>
 {
 	using offers_handler = std::function<void(error_code const&, std::vector<rtc_offer> const&)>;
-	using rtc_stream_handler = std::function<void(peer_id const &pid, rtc_stream_init)>;
+	using rtc_stream_handler = std::function<void(rtc_stream_init)>;
 
 	explicit rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler);
 	~rtc_signaling();

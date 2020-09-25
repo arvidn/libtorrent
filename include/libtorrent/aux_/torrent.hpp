@@ -708,7 +708,7 @@ namespace aux {
 			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override;
 		void on_rtc_offer(aux::rtc_offer const& offer) override;
 		void on_rtc_answer(aux::rtc_answer const& answer) override;
-		void on_rtc_stream(peer_id const& pid, aux::rtc_stream_init stream_init);
+		void on_rtc_stream(aux::rtc_stream_init stream_init);
 #endif
 		void remove_connection(peer_connection const* p);
 	public:
