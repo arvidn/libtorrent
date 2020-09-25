@@ -93,6 +93,8 @@ namespace libtorrent {
 
 		ret["save_path"] = atp.save_path;
 
+		if (!atp.name.empty()) ret["name"] = atp.name;
+
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 		if (!atp.url.empty()) ret["url"] = atp.url;

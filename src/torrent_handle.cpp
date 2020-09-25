@@ -741,7 +741,7 @@ namespace libtorrent {
 	{
 		add_torrent_params params;
 		auto retr = std::ref(params);
-		sync_call(&torrent::write_resume_data, retr);
+		sync_call(&torrent::write_resume_data, resume_data_flags_t{}, retr);
 		return libtorrent::write_resume_data(params);
 	}
 
