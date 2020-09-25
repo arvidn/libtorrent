@@ -109,6 +109,9 @@ TORRENT_VERSION_NAMESPACE_2
 
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
+	//
+	// Note that by the time the client receives a torrent_alert, its
+	// ``handle`` member may be invalid.
 	struct TORRENT_EXPORT torrent_alert : alert
 	{
 		// internal
@@ -247,9 +250,17 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 
 	// The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
-	// the torrent handle in its base class will always be invalid (since the torrent
+	// the torrent handle in its base class will usually be invalid (since the torrent
 	// is already removed) it has the info hash as a member, to identify it.
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
+	//
+	// Note that the ``handle`` remains valid for some time after
+	// torrent_removed_alert is posted, as long as some internal libtorrent
+	// task (such as an I/O task) refers to it. Additionally, other alerts like
+	// save_resume_data_alert may be posted after torrent_removed_alert.
+	// To synchronize on whether the torrent has been removed or not, call
+	// torrent_handle::in_session(). This will return true before
+	// torrent_removed_alert is posted, and false afterward.
 	//
 	// Even though the ``handle`` member doesn't point to an existing torrent anymore,
 	// it is still useful for comparing to other handles, which may also no
@@ -1336,17 +1347,15 @@ TORRENT_VERSION_NAMESPACE_2
 	// .. code:: c++
 	//
 	//	torrent_handle h = alert->handle();
-	//	if (h.is_valid()) {
-	//		std::shared_ptr<torrent_info const> ti = h.torrent_file();
-	//		create_torrent ct(*ti);
-	//		entry te = ct.generate();
-	//		std::vector<char> buffer;
-	//		bencode(std::back_inserter(buffer), te);
-	//		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "wb+");
-	//		if (f) {
-	//			fwrite(&buffer[0], 1, buffer.size(), f);
-	//			fclose(f);
-	//		}
+	//	std::shared_ptr<torrent_info const> ti = h.torrent_file();
+	//	create_torrent ct(*ti);
+	//	entry te = ct.generate();
+	//	std::vector<char> buffer;
+	//	bencode(std::back_inserter(buffer), te);
+	//	FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "wb+");
+	//	if (f) {
+	//		fwrite(&buffer[0], 1, buffer.size(), f);
+	//		fclose(f);
 	//	}
 	//
 	struct TORRENT_EXPORT metadata_received_alert final : torrent_alert
