@@ -5824,7 +5824,7 @@ namespace {
 		{
 			m_rtc_signaling = std::make_shared<aux::rtc_signaling>(m_ses.get_context()
 				, this
-				, std::bind(&torrent::on_rtc_stream, this, _1, _2));
+				, std::bind(&torrent::on_rtc_stream, this, _1));
 		}
 
 		m_rtc_signaling->generate_offers(count, std::move(handler));
@@ -5842,19 +5842,18 @@ namespace {
 		if(m_rtc_signaling) m_rtc_signaling->process_answer(answer);
 	}
 
-	void torrent::on_rtc_stream(peer_id const& pid, aux::rtc_stream_init stream_init)
+	void torrent::on_rtc_stream(aux::rtc_stream_init stream_init)
 	{
 		aux::socket_type s(aux::rtc_stream(m_ses.get_context(), stream_init));
-
-		need_peer_list();
-		torrent_state st = get_peer_list_state();
-		torrent_peer* peerinfo = m_peer_list->add_rtc_peer(pid.to_string(), peer_source_flags_t{}, {}, &st);
 
 		error_code ec;
 		auto endpoint = s.remote_endpoint(ec);
 		TORRENT_ASSERT(!ec);
 		if(ec) return;
 
+		need_peer_list();
+		torrent_state st = get_peer_list_state();
+		torrent_peer* peerinfo = m_peer_list->add_rtc_peer(endpoint, peer_source_flags_t{}, {}, &st);
 		create_peer_connection(peerinfo, std::move(s), std::move(endpoint));
 	}
 #endif
@@ -7041,6 +7040,15 @@ namespace {
 		TORRENT_ASSERT(peerinfo);
 		TORRENT_ASSERT(peerinfo->connection == nullptr);
 
+#if TORRENT_USE_RTC
+		if (peerinfo->is_rtc_addr)
+		{
+			// unsollicited connection is not possible
+			TORRENT_ASSERT_FAIL();
+			return false;
+		}
+#endif
+
 		if (m_abort) return false;
 
 		peerinfo->last_connected = m_ses.session_time();
@@ -7049,20 +7057,13 @@ namespace {
 #if TORRENT_USE_I2P
 			&& !peerinfo->is_i2p_addr
 #endif
-#if TORRENT_USE_RTC
-			&& !peerinfo->is_rtc_addr
-#endif
 		)
 		{
 			// this asserts that we don't have duplicates in the peer_list's peer list
 			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
 				, [peerinfo] (peer_connection const* p)
 				{
-					return !p->is_disconnecting() && p->remote() == peerinfo->ip()
-#if TORRENT_USE_RTC
-						&& p->peer_info_struct() && !p->peer_info_struct()->is_rtc_addr
-#endif
-						;
+					return !p->is_disconnecting() && p->remote() == peerinfo->ip();
 				});
 
 			TORRENT_ASSERT(i_ == m_connections.end()
@@ -7095,15 +7096,6 @@ namespace {
 					alerts().emplace_alert<i2p_alert>(errors::no_i2p_router);
 				return false;
 			}
-		}
-		else
-#endif
-#if TORRENT_USE_RTC
-		if (peerinfo->is_rtc_addr)
-		{
-			// unsollicited connection is not possible
-			TORRENT_ASSERT_FAIL();
-			return false;
 		}
 		else
 #endif

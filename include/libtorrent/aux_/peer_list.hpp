@@ -97,7 +97,7 @@ namespace libtorrent::aux {
 #endif
 
 #if TORRENT_USE_RTC
-        torrent_peer* add_rtc_peer(string_view peer_id
+        torrent_peer* add_rtc_peer(tcp::endpoint const& remote
             , peer_source_flags_t src, pex_flags_t flags
             , torrent_state* state);
 #endif

@@ -164,10 +164,7 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(in_use);
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return std::string(dest());
-#endif // TORRENT_USE_I2P
-#if TORRENT_USE_RTC
-		if (is_rtc_addr) return std::string(dest());
-#endif // TORRENT_USE_RTC
+#endif
 		return address().to_string();
 	}
 #endif
@@ -232,9 +229,9 @@ namespace libtorrent::aux {
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_RTC
-	rtc_peer::rtc_peer(string_view pid_, peer_source_flags_t src)
+	rtc_peer::rtc_peer(tcp::endpoint const& ep, peer_source_flags_t src)
 		: torrent_peer(0, false, src)
-		, pid(pid_)
+		, endpoint(ep)
 	{
 		is_v6_addr = false;
 #if TORRENT_USE_I2P
@@ -260,18 +257,13 @@ namespace libtorrent::aux {
 
 	ipv6_peer::ipv6_peer(ipv6_peer const&) = default;
 
-#if TORRENT_USE_I2P || TORRENT_USE_RTC
+#if TORRENT_USE_I2P
 	string_view torrent_peer::dest() const
 	{
-#if TORRENT_USE_I2P
 		if (is_i2p_addr)
 			return *static_cast<i2p_peer const*>(this)->destination;
-#endif
-#if TORRENT_USE_RTC
-		if (is_rtc_addr)
-			return *static_cast<rtc_peer const*>(this)->pid;
-#endif
-		return "";
+		else
+			return "";
 	}
 #endif
 
@@ -286,7 +278,7 @@ namespace libtorrent::aux {
 		else
 #endif
 #if TORRENT_USE_RTC
-		if (is_rtc_addr) return {};
+		if (is_rtc_addr) return static_cast<rtc_peer const*>(this)->endpoint.address();
 		else
 #endif
 		return static_cast<ipv4_peer const*>(this)->addr;

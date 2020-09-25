@@ -375,7 +375,7 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	connection conn = std::move(it->second);
 	m_connections.erase(it);
 
-	if (ec || !conn.pid)
+	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** RTC negotiation failed");
@@ -388,7 +388,7 @@ void rtc_signaling::on_data_channel(error_code const& ec
 #endif
 
 	TORRENT_ASSERT(dc);
-	m_rtc_stream_handler(*conn.pid, rtc_stream_init{conn.peer_connection, dc});
+	m_rtc_stream_handler(rtc_stream_init{conn.peer_connection, dc});
 }
 
 rtc_signaling::offer_batch::offer_batch(int count, rtc_signaling::offers_handler handler)
