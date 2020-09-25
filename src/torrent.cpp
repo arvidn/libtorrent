@@ -5853,8 +5853,8 @@ namespace {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		torrent_peer* peerinfo = m_peer_list->add_rtc_peer(endpoint, peer_source_flags_t{}, {}, &st);
-		create_peer_connection(peerinfo, std::move(s), std::move(endpoint));
+		if(torrent_peer* peerinfo = m_peer_list->add_rtc_peer(endpoint, peer_source_flags_t{}, {}, &st))
+			create_peer_connection(peerinfo, std::move(s), std::move(endpoint));
 	}
 #endif
 
