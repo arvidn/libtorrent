@@ -9,7 +9,7 @@ see LICENSE file.
 
 #include <memory>
 #include <iostream>
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
@@ -197,7 +197,7 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	g_ioc.restart();
-	boost::optional<lt::session> ses(lt::session{g_params, g_ioc});
+	std::optional<lt::session> ses(lt::session{g_params, g_ioc});
 
 	lt::add_torrent_params atp = generate_atp(data, size);
 
@@ -216,5 +216,3 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
 	return 0;
 }
-
-

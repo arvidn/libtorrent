@@ -14,9 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_ABI_VERSION == 1
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <optional>
 #endif
 
 #include "libtorrent/peer_id.hpp"
@@ -51,7 +49,7 @@ namespace aux {
 	// not be able to identify peers with non- standard encodings. Only Azureus
 	// style, Shadow's style and Mainline style.
 	TORRENT_DEPRECATED_EXPORT
-	boost::optional<fingerprint>
+	std::optional<fingerprint>
 		client_fingerprint(peer_id const& p);
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

@@ -18,7 +18,6 @@ see LICENSE file.
 
 using namespace lt;
 using namespace lt::aux;
-using boost::none;
 
 TORRENT_TEST(is_local)
 {
@@ -167,8 +166,8 @@ TORRENT_TEST(get_gateway_basic)
 	TEST_CHECK(get_gateway(ip("2a02::4567", "eth0"), routes) == make_address("2a02::1234"));
 
 	// the device name does not match the route
-	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth1"), routes) == none);
-	TEST_CHECK(get_gateway(ip("2a02::4567", "eth1"), routes) == none);
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth1"), routes) == std::nullopt);
+	TEST_CHECK(get_gateway(ip("2a02::4567", "eth1"), routes) == std::nullopt);
 
 	// for IPv6, the address family and device name matches, so it's a match
 	TEST_CHECK(get_gateway(ip("2a02:8000::0123:4567", "eth0"), routes) == make_address("2a02::1234"));
@@ -182,8 +181,8 @@ TORRENT_TEST(get_gateway_no_default_route)
 	};
 
 	// no default route
-	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == none);
-	TEST_CHECK(get_gateway(ip("2a02::1234", "eth0"), routes) == none);
+	TEST_CHECK(get_gateway(ip("192.168.1.130", "eth0"), routes) == std::nullopt);
+	TEST_CHECK(get_gateway(ip("2a02::1234", "eth0"), routes) == std::nullopt);
 }
 
 TORRENT_TEST(get_gateway_local_v6)
@@ -193,7 +192,7 @@ TORRENT_TEST(get_gateway_local_v6)
 	};
 
 	// local IPv6 addresses never have a gateway
-	TEST_CHECK(get_gateway(ip("fe80::1234", "eth0"), routes) == none);
+	TEST_CHECK(get_gateway(ip("fe80::1234", "eth0"), routes) == std::nullopt);
 }
 
 // an odd, imaginary setup, where the loopback network has a gateway
@@ -209,7 +208,7 @@ TORRENT_TEST(get_gateway_loopback)
 	TEST_CHECK(get_gateway(ip("127.0.0.1", "lo"), routes) == make_address("127.1.1.1"));
 
 	// with IPv6, there are no gateways for local or loopback addresses
-	TEST_CHECK(get_gateway(ip("::1", "lo"), routes) == none);
+	TEST_CHECK(get_gateway(ip("::1", "lo"), routes) == std::nullopt);
 }
 
 TORRENT_TEST(get_gateway_multi_homed)

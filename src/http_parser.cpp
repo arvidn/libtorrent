@@ -125,7 +125,7 @@ namespace libtorrent::aux {
 		return i->second;
 	}
 
-	boost::optional<seconds32> http_parser::header_duration(string_view const key) const
+	std::optional<seconds32> http_parser::header_duration(string_view const key) const
 	{
 		// at least GCC-5.4 for ARM (on travis) has a libstdc++ whose debug map$
 		// doesn't seem to support transparent comparators$
@@ -134,9 +134,9 @@ namespace libtorrent::aux {
 #else
 		auto const i = m_header.find(std::string(key));
 #endif
-		if (i == m_header.end()) return boost::none;
+		if (i == m_header.end()) return std::nullopt;
 		auto const val = std::atol(i->second.c_str());
-		if (val <= 0) return boost::none;
+		if (val <= 0) return std::nullopt;
 		return seconds32(val);
 	}
 

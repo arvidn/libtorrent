@@ -20,7 +20,7 @@ see LICENSE file.
 #include <sys/socket.h> // for SO_BINDTODEVICE
 #endif
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -119,7 +119,7 @@ enum class if_state : std::uint8_t {
 
 	// return the gateway for the given ip_interface, if there is one. Otherwise
 	// return nullopt.
-	TORRENT_EXTRA_EXPORT boost::optional<address> get_gateway(
+	TORRENT_EXTRA_EXPORT std::optional<address> get_gateway(
 		ip_interface const& iface, span<ip_route const> routes);
 
 	// returns whether there is a route to the specified device for for any global

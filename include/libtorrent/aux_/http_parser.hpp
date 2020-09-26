@@ -18,12 +18,12 @@ see LICENSE file.
 #include <vector>
 #include <cstdint>
 #include <tuple>
+#include <optional>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/time.hpp" // for seconds32
-#include "libtorrent/optional.hpp"
 #include "libtorrent/aux_/strview_less.hpp"
 
 namespace libtorrent::aux {
@@ -44,7 +44,7 @@ namespace libtorrent::aux {
 		explicit http_parser(int flags = 0);
 		~http_parser();
 		std::string const& header(string_view key) const;
-		boost::optional<seconds32> header_duration(string_view key) const;
+		std::optional<seconds32> header_duration(string_view key) const;
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
 		std::string const& method() const { return m_method; }

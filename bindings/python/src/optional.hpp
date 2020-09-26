@@ -6,7 +6,7 @@
 # define OPTIONAL_070108_HPP
 
 # include "boost_python.hpp"
-# include <boost/optional.hpp>
+# include <optional>
 
 template <class T>
 struct optional_to_python
@@ -14,11 +14,11 @@ struct optional_to_python
     optional_to_python()
     {
         boost::python::to_python_converter<
-            boost::optional<T>, optional_to_python<T>
+            std::optional<T>, optional_to_python<T>
         >();
     }
 
-    static PyObject* convert(boost::optional<T> const& x)
+    static PyObject* convert(std::optional<T> const& x)
     {
         if (!x)
             return boost::python::incref(Py_None);
@@ -28,4 +28,3 @@ struct optional_to_python
 };
 
 #endif // OPTIONAL_070108_HPP
-

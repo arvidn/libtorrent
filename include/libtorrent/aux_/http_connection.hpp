@@ -17,6 +17,7 @@ see LICENSE file.
 #include <functional>
 #include <vector>
 #include <string>
+#include <optional>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -27,7 +28,6 @@ see LICENSE file.
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
-#include "libtorrent/optional.hpp"
 #include "libtorrent/ssl.hpp"
 
 namespace libtorrent::aux {
@@ -78,7 +78,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, aux::proxy_settings const* ps = nullptr, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
-		, boost::optional<address> const& bind_addr = boost::optional<address>()
+		, std::optional<address> const& bind_addr = std::optional<address>()
 		, aux::resolver_flags resolve_flags = aux::resolver_flags{}, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = nullptr
@@ -88,7 +88,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	void start(std::string const& hostname, int port
 		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = nullptr
 		, bool ssl = false, int handle_redirect = 5
-		, boost::optional<address> const& bind_addr = boost::optional<address>()
+		, std::optional<address> const& bind_addr = std::optional<address>()
 		, aux::resolver_flags resolve_flags = aux::resolver_flags{}
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = nullptr
@@ -133,7 +133,7 @@ private:
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	boost::optional<aux::socket_type> m_sock;
+	std::optional<aux::socket_type> m_sock;
 
 #if TORRENT_USE_SSL
 	ssl::context* m_ssl_ctx;
@@ -164,7 +164,7 @@ private:
 	aux::proxy_settings m_proxy;
 
 	// the address to bind to. unset means do not bind
-	boost::optional<address> m_bind_addr;
+	std::optional<address> m_bind_addr;
 
 	// if username password was passed in, remember it in case we need to
 	// re-issue the request for a redirect

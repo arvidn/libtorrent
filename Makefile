@@ -475,7 +475,6 @@ HEADERS = \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
-  optional.hpp                 \
   parse_url.hpp                \
   part_file.hpp                \
   pe_crypto.hpp                \

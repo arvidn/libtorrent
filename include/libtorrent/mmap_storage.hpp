@@ -18,6 +18,7 @@ see LICENSE file.
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
@@ -28,10 +29,6 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
@@ -140,9 +137,9 @@ namespace aux {
 		mutable aux::stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::optional<aux::file_view> open_file(settings_interface const&, file_index_t
+		std::optional<aux::file_view> open_file(settings_interface const&, file_index_t
 			, aux::open_mode_t, storage_error&) const;
-		boost::optional<aux::file_view> open_file_impl(settings_interface const&
+		std::optional<aux::file_view> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, error_code&) const;
 
 		bool use_partfile(file_index_t index) const;

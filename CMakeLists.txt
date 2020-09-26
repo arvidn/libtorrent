@@ -62,7 +62,6 @@ set(libtorrent_include_files
 	natpmp
 	netlink
 	operations
-	optional
 	parse_url
 	part_file
 	pe_crypto

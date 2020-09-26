@@ -18,10 +18,7 @@ see LICENSE file.
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <optional>
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
@@ -38,11 +35,11 @@ namespace {
 		return c - 'A' + 10;
 	}
 
-	// takes a peer id and returns a valid boost::optional
+	// takes a peer id and returns a valid std::optional
 	// object if the peer id matched the azureus style encoding
 	// the returned fingerprint contains information about the
 	// client's id
-	boost::optional<fingerprint> parse_az_style(const peer_id& id)
+	std::optional<fingerprint> parse_az_style(const peer_id& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
@@ -50,7 +47,7 @@ namespace {
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
-			return boost::optional<fingerprint>();
+			return std::optional<fingerprint>();
 
 		ret.name[0] = char(id[1]);
 		ret.name[1] = char(id[2]);
@@ -59,23 +56,23 @@ namespace {
 		ret.revision_version = decode_digit(id[5]);
 		ret.tag_version = decode_digit(id[6]);
 
-		return boost::optional<fingerprint>(ret);
+		return std::optional<fingerprint>(ret);
 	}
 
 	// checks if a peer id can possibly contain a shadow-style
 	// identification
-	boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
+	std::optional<fingerprint> parse_shadow_style(const peer_id& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
 		if (!is_alpha(char(id[0])) && !is_digit(char(id[0])))
-			return boost::optional<fingerprint>();
+			return std::optional<fingerprint>();
 
 		if (std::equal(id.begin() + 4, id.begin() + 6, "--"))
 		{
 			if ((id[1] < '0') || (id[2] < '0')
 				|| (id[3] < '0'))
-				return boost::optional<fingerprint>();
+				return std::optional<fingerprint>();
 			ret.major_version = decode_digit(id[1]);
 			ret.minor_version = decode_digit(id[2]);
 			ret.revision_version = decode_digit(id[3]);
@@ -83,7 +80,7 @@ namespace {
 		else
 		{
 			if (id[8] != 0 || id[1] > 127 || id[2] > 127 || id[3] > 127)
-				return boost::optional<fingerprint>();
+				return std::optional<fingerprint>();
 			ret.major_version = id[1];
 			ret.minor_version = id[2];
 			ret.revision_version = id[3];
@@ -93,12 +90,12 @@ namespace {
 		ret.name[1] = 0;
 
 		ret.tag_version = 0;
-		return boost::optional<fingerprint>(ret);
+		return std::optional<fingerprint>(ret);
 	}
 
 	// checks if a peer id can possibly contain a mainline-style
 	// identification
-	boost::optional<fingerprint> parse_mainline_style(const peer_id& id)
+	std::optional<fingerprint> parse_mainline_style(const peer_id& id)
 	{
 		char ids[21];
 		std::copy(id.begin(), id.end(), ids);
@@ -106,12 +103,12 @@ namespace {
 		fingerprint ret("..", 0, 0, 0, 0);
 		ret.name[1] = 0;
 		ret.tag_version = 0;
-		if (sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
+		if (std::sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
 			|| !is_print(ret.name[0]))
-			return boost::optional<fingerprint>();
+			return std::optional<fingerprint>();
 
-		return boost::optional<fingerprint>(ret);
+		return std::optional<fingerprint>(ret);
 	}
 
 	struct map_entry
@@ -334,10 +331,10 @@ namespace libtorrent {
 
 #if TORRENT_ABI_VERSION == 1
 
-	boost::optional<fingerprint> client_fingerprint(peer_id const& p)
+	std::optional<fingerprint> client_fingerprint(peer_id const& p)
 	{
 		// look for azureus style id
-		boost::optional<fingerprint> f;
+		std::optional<fingerprint> f;
 		f = parse_az_style(p);
 		if (f) return f;
 
@@ -390,7 +387,7 @@ namespace aux {
 			return "Experimental 3.1";
 
 		// look for azureus style id
-		boost::optional<fingerprint> f = parse_az_style(p);
+		std::optional<fingerprint> f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id

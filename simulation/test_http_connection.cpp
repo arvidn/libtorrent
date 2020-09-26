@@ -187,7 +187,7 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 #endif
 		);
 
-	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", boost::none
+	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", std::nullopt
 		, lt::aux::resolver_flags{}, auth);
 	return h;
 }
@@ -658,4 +658,3 @@ TORRENT_TEST(http_connection_ssl_proxy)
 // TODO: test socks5 with password
 // TODO: test SSL
 // TODO: test keepalive
-
