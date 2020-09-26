@@ -25,9 +25,9 @@ see LICENSE file.
 #include <set>
 #include <functional>
 #include <cstdio>
+#include <optional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
 
 #if TORRENT_HAS_SYMLINK
 #include <unistd.h> // for symlink()
@@ -107,7 +107,7 @@ namespace libtorrent {
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
-				boost::optional<aux::file_view> f = open_file(sett, i, aux::open_mode::write, ec);
+				std::optional<aux::file_view> f = open_file(sett, i, aux::open_mode::write, ec);
 				if (ec)
 				{
 					prio = m_file_priority;
@@ -763,7 +763,7 @@ namespace libtorrent {
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
 	// directories have been created and retries
-	boost::optional<aux::file_view> mmap_storage::open_file(settings_interface const& sett
+	std::optional<aux::file_view> mmap_storage::open_file(settings_interface const& sett
 		, file_index_t const file
 		, aux::open_mode_t mode, storage_error& ec) const
 	{
@@ -786,7 +786,7 @@ namespace libtorrent {
 		}
 #endif
 
-		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec.ec);
+		std::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec.ec);
 		if ((mode & aux::open_mode::write)
 			&& ec.ec == boost::system::errc::no_such_file_or_directory)
 		{
@@ -828,7 +828,7 @@ namespace libtorrent {
 		return h;
 	}
 
-	boost::optional<aux::file_view> mmap_storage::open_file_impl(settings_interface const& sett
+	std::optional<aux::file_view> mmap_storage::open_file_impl(settings_interface const& sett
 		, file_index_t file
 		, aux::open_mode_t mode
 		, error_code& ec) const

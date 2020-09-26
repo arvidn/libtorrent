@@ -1007,7 +1007,7 @@ namespace aux {
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
-			boost::optional<socket_type> m_i2p_listen_socket;
+			std::optional<socket_type> m_i2p_listen_socket;
 #endif
 
 #if TORRENT_USE_SSL

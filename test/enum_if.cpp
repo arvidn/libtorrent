@@ -97,7 +97,7 @@ int main()
 
 	for (auto const& i : net)
 	{
-		boost::optional<address> const gateway = get_gateway(i, routes);
+		std::optional<address> const gateway = get_gateway(i, routes);
 		std::printf("%-34s%-45s%-20s%-20s%-15s%-20s%s %s\n"
 			, i.interface_address.to_string().c_str()
 			, i.netmask.to_string().c_str()

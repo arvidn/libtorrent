@@ -68,7 +68,7 @@ struct bytes_from_python
 #if TORRENT_ABI_VERSION == 1
 object client_fingerprint_(peer_id const& id)
 {
-    boost::optional<fingerprint> result = client_fingerprint(id);
+    std::optional<fingerprint> result = client_fingerprint(id);
     return result ? object(*result) : object();
 }
 #endif

@@ -85,7 +85,7 @@ http_connection::~http_connection() = default;
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, boost::optional<address> const& bind_addr, aux::resolver_flags const resolve_flags, std::string const& auth_
+	, std::optional<address> const& bind_addr, aux::resolver_flags const resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -193,7 +193,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
-	, boost::optional<address> const& bind_addr
+	, std::optional<address> const& bind_addr
 	, aux::resolver_flags const resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
@@ -427,7 +427,7 @@ void http_connection::close(bool force)
 #if TORRENT_USE_I2P
 void http_connection::connect_i2p_tracker(char const* destination)
 {
-	TORRENT_ASSERT(std::get_if<i2p_stream>(m_sock.get_ptr()));
+	TORRENT_ASSERT(std::get_if<i2p_stream>(&*m_sock));
 #if TORRENT_USE_SSL
 	TORRENT_ASSERT(m_ssl == false);
 #endif
@@ -522,13 +522,13 @@ void http_connection::connect()
 #if TORRENT_USE_SSL
 			if (m_ssl)
 			{
-				TORRENT_ASSERT(std::get_if<ssl_stream<socks5_stream>>(m_sock.get_ptr()));
+				TORRENT_ASSERT(std::get_if<ssl_stream<socks5_stream>>(&*m_sock));
 				std::get<ssl_stream<socks5_stream>>(*m_sock).next_layer().set_dst_name(m_hostname);
 			}
 			else
 #endif
 			{
-				TORRENT_ASSERT(std::get_if<socks5_stream>(m_sock.get_ptr()));
+				TORRENT_ASSERT(std::get_if<socks5_stream>(&*m_sock));
 				std::get<socks5_stream>(*m_sock).set_dst_name(m_hostname);
 			}
 		}

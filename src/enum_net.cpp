@@ -25,11 +25,11 @@ see LICENSE file.
 
 #include <functional>
 #include <cstdlib> // for wcstombscstombs
+#include <optional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/asio/ip/host_name.hpp>
-#include <boost/optional.hpp>
 
 #if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
@@ -980,7 +980,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return ret;
 	}
 
-	boost::optional<address> get_gateway(ip_interface const& iface, span<ip_route const> routes)
+	std::optional<address> get_gateway(ip_interface const& iface, span<ip_route const> routes)
 	{
 		bool const v4 = iface.interface_address.is_v4();
 
