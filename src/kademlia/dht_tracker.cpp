@@ -128,6 +128,8 @@ namespace libtorrent { namespace dht {
 			, std::bind(&dht_tracker::get_node, this, _1, _2)
 			, m_storage));
 
+		update_storage_node_ids();
+
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_log->should_log(dht_logger::tracker))
 		{
@@ -151,6 +153,8 @@ namespace libtorrent { namespace dht {
 	void dht_tracker::delete_socket(aux::listen_socket_handle const& s)
 	{
 		m_nodes.erase(s);
+
+		update_storage_node_ids();
 	}
 
 	void dht_tracker::start(find_data::nodes_callback const& f)
