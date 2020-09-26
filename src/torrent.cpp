@@ -5848,8 +5848,14 @@ namespace {
 
 		error_code ec;
 		auto endpoint = s.remote_endpoint(ec);
-		TORRENT_ASSERT(!ec);
-		if(ec) return;
+		if(ec)
+		{
+			// This can happen if the peer immediately disconnects
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("failed to get RTC stream remote endpoint: %s", ec.message().c_str());
+#endif
+			return;
+		}
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
