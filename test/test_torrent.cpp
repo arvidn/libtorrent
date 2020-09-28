@@ -877,3 +877,16 @@ TORRENT_TEST(redundant_add_piece)
 	h.add_piece(piece_index_t{0}, piece_data.data());
 	std::this_thread::sleep_for(lt::seconds(2));
 }
+
+TORRENT_TEST(test_in_session)
+{
+	lt::session ses(settings());
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.in_session());
+	ses.remove_torrent(h);
+	TEST_CHECK(!h.in_session());
+}

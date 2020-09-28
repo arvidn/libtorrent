@@ -898,6 +898,9 @@ namespace libtorrent {
 		return t ? t->get_userdata() : client_data_t{};
 	}
 
+	bool torrent_handle::in_session() const
+	{ return !sync_call_ret<bool>(false, &torrent::is_aborted); }
+
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
 		, "should be nothrow move constructible");
 	static_assert(std::is_nothrow_move_assignable<torrent_handle>::value
