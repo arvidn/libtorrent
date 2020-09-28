@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/session_params.hpp"
+#include "libtorrent/random.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -819,3 +820,50 @@ TORRENT_TEST(symlinks_restore)
 	TEST_EQUAL(aux::get_symlink_path(f), "Versions/A/SDL2");
 }
 #endif
+
+TORRENT_TEST(redundant_add_piece)
+{
+	file_storage fs;
+	fs.add_file("tmp1", 128 * 1024 * 8);
+	lt::create_torrent t(fs, 128 * 1024);
+
+	TEST_CHECK(t.num_pieces() > 0);
+
+	std::vector<char> piece_data(std::size_t(fs.piece_length()), 0);
+	aux::random_bytes(piece_data);
+
+	sha1_hash const ph = lt::hasher(piece_data).final();
+	for (auto const i : fs.piece_range())
+		t.set_hash(i, ph);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	auto ti = std::make_shared<torrent_info>(buf, from_span);
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp;
+	atp.ti = ti;
+	atp.flags &= ~torrent_flags::paused;
+	atp.save_path = ".";
+	auto h = ses.add_torrent(atp);
+	wait_for_downloading(ses, "");
+
+	h.add_piece(piece_index_t{0}, piece_data.data());
+	h.set_piece_deadline(piece_index_t{0}, 0, torrent_handle::alert_when_available);
+	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(ti->num_pieces()), lt::dont_download));
+	h.add_piece(piece_index_t{0}, piece_data.data());
+	std::this_thread::sleep_for(lt::seconds(2));
+}
+
+TORRENT_TEST(test_in_session)
+{
+	lt::session ses(settings());
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.in_session());
+	ses.remove_torrent(h);
+	TEST_CHECK(!h.in_session());
+}

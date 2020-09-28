@@ -688,7 +688,7 @@ namespace libtorrent {
 	{
 		add_torrent_params params;
 		auto retr = std::ref(params);
-		sync_call(&aux::torrent::write_resume_data, retr);
+		sync_call(&aux::torrent::write_resume_data, resume_data_flags_t{}, retr);
 		return libtorrent::write_resume_data(params);
 	}
 
@@ -844,6 +844,9 @@ namespace libtorrent {
 		auto t = m_torrent.lock();
 		return t ? t->get_userdata() : client_data_t{};
 	}
+
+	bool torrent_handle::in_session() const
+	{ return !sync_call_ret<bool>(false, &aux::torrent::is_aborted); }
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
 		, "should be nothrow move constructible");

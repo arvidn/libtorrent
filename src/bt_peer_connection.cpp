@@ -725,7 +725,7 @@ namespace {
 
 		// this is a v1 peer in a hybrid torrent
 		// indicate that we support upgrading to v2
-		if (!peer_info_struct()->protocol_v2 && t->torrent_file().info_hashes().has_v2())
+		if (!peer_info_struct()->protocol_v2 && t->info_hash().has_v2())
 		{
 			*(ptr + 7) |= 0x10;
 		}
@@ -2880,7 +2880,7 @@ namespace {
 			{
 				if (!t)
 				{
-					attach_to_torrent(ti->torrent_file().info_hashes());
+					attach_to_torrent(ti->info_hash());
 					if (is_disconnecting()) return;
 					TORRENT_ASSERT(!is_disconnecting());
 
@@ -3409,8 +3409,8 @@ namespace {
 				// the client isn't attempting to use a protocol version the torrent
 				// doesn't support
 				if (std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-					, t->torrent_file().info_hashes().get(protocol_version::V2).data())
-					&& t->torrent_file().info_hashes().has_v2())
+					, t->info_hash().get(protocol_version::V2).data())
+					&& t->info_hash().has_v2())
 				{
 					peer_info_struct()->protocol_v2 = true;
 				}

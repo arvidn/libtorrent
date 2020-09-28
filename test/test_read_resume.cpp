@@ -290,6 +290,13 @@ TORRENT_TEST(round_trip_trackers)
 	test_roundtrip(atp);
 }
 
+TORRENT_TEST(round_trip_name)
+{
+	add_torrent_params atp;
+	atp.name = "foobar";
+	test_roundtrip(atp);
+}
+
 TORRENT_TEST(round_trip_flags)
 {
 	torrent_flags_t const flags[] = {

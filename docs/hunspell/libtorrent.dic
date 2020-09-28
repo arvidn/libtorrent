@@ -586,6 +586,9 @@ libgnutls
 golang
 img
 SetFileValidData
+Qt5
+DownZemAll
+LGPL
 google
 WebTorrent
 WebRTC

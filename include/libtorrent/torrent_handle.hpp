@@ -238,7 +238,10 @@ namespace aux {
 #endif
 
 		// instruct libtorrent to overwrite any data that may already have been
-		// downloaded with the data of the new piece being added.
+		// downloaded with the data of the new piece being added. Using this
+		// flag when adding a piece that is actively being downloaded from other
+		// peers may have some unexpected consequences, as blocks currently
+		// being downloaded from peers may not be replaced.
 		static inline constexpr add_piece_flags_t overwrite_existing = 0_bit;
 
 		// This function will write ``data`` to the storage as piece ``piece``,
@@ -524,12 +527,20 @@ namespace aux {
 
 		// Returns true if this handle refers to a valid torrent and false if it
 		// hasn't been initialized or if the torrent it refers to has been
-		// aborted. Note that a handle may become invalid after it has been added
-		// to the session. Usually this is because the storage for the torrent is
-		// somehow invalid or if the filenames are not allowed (and hence cannot
-		// be opened/created) on your filesystem. If such an error occurs, a
-		// file_error_alert is generated and all handles that refers to that
-		// torrent will become invalid.
+		// removed from the session AND destructed.
+		//
+		// To tell if the torrent_handle is in the session, use
+		// torrent_handle::in_session(). This will return true before
+		// session_handle::remove_torrent() is called, and false
+		// afterward.
+		//
+		// Clients should only use is_valid() to determine if the result of
+		// session::find_torrent() was successful.
+		//
+		// Unlike other member functions which return a value, is_valid()
+		// completes immediately, without blocking on a result from the
+		// network thread. Also unlike other functions, it never throws
+		// the system_error exception.
 		bool is_valid() const;
 
 		// will delay the disconnect of peers that we're still downloading
@@ -673,14 +684,17 @@ namespace aux {
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();
 		//	ses.pause();
-		//	for (torrent_handle const& h : handles)
+		//	for (torrent_handle const& h : handles) try
 		//	{
-		//		if (!h.is_valid()) continue;
 		//		torrent_status s = h.status();
 		//		if (!s.has_metadata || !s.need_save_resume_data()) continue;
 		//
 		//		h.save_resume_data();
 		//		++outstanding_resume_data;
+		//	}
+		//	catch (lt::system_error const& e)
+		//	{
+		//		// the handle was invalid, ignore this one and move to the next
 		//	}
 		//
 		//	while (outstanding_resume_data > 0)
@@ -1244,6 +1258,13 @@ namespace aux {
 
 		// returns the userdata pointer as set in add_torrent_params
 		client_data_t userdata() const;
+
+		// Returns true if the torrent is in the session. It returns true before
+		// session::remove_torrent() is called, and false afterward.
+		//
+		// Note that this is a blocking function, unlike torrent_handle::is_valid()
+		// which returns immediately.
+		bool in_session() const;
 
 	private:
 

@@ -21,6 +21,8 @@ see LICENSE file.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/file.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
@@ -1588,6 +1590,28 @@ TORRENT_TEST(paused)
 	// and trackers for instance
 }
 
+TORRENT_TEST(no_metadata)
+{
+	lt::session ses(settings());
+
+	add_torrent_params p;
+	p.info_hashes.v1 = sha1_hash("abababababababababab");
+	p.save_path = ".";
+	p.name = "foobar";
+	torrent_handle h = ses.add_torrent(p);
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		auto const& atp = ra->params;
+		TEST_EQUAL(atp.info_hashes, p.info_hashes);
+		TEST_EQUAL(atp.name, "foobar");
+	}
+}
+
 template <typename Fun>
 void test_unfinished_pieces(Fun f)
 {
@@ -1661,3 +1685,52 @@ TORRENT_TEST(unfinished_pieces_all_finished)
 			atp.unfinished_pieces[p].resize(blocks_per_piece, true);
 	});
 }
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+// this test relies on (and tests) the disk I/O being asynchronous. Since the
+// posix_disk_io isn't, this test won't pass
+TORRENT_TEST(resume_data_have_pieces)
+{
+	if (sizeof(void*) < 8)
+	{
+		// disable this test when disk I/O is not async
+		return;
+	}
+
+	file_storage fs;
+	fs.add_file("tmp1", 128 * 1024 * 8);
+	lt::create_torrent t(fs, 128 * 1024);
+
+	TEST_CHECK(t.num_pieces() > 0);
+
+	std::vector<char> piece_data(std::size_t(fs.piece_length()), 0);
+	aux::random_bytes(piece_data);
+
+	sha1_hash const ph = lt::hasher(piece_data).final();
+	for (auto const i : fs.piece_range())
+		t.set_hash(i, ph);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	auto ti = std::make_shared<torrent_info>(buf, from_span);
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp;
+	atp.ti = ti;
+	atp.flags &= ~torrent_flags::paused;
+	atp.save_path = ".";
+	auto h = ses.add_torrent(atp);
+	wait_for_downloading(ses, "");
+	h.add_piece(piece_index_t{0}, piece_data.data());
+	lt::torrent_status s = h.status(torrent_handle::query_pieces);
+
+	ses.pause();
+	h.save_resume_data();
+
+	auto const* rs = static_cast<save_resume_data_alert const*>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type));
+	TEST_CHECK(rs != nullptr);
+	TEST_EQUAL(rs->params.unfinished_pieces.size(), 1);
+}
+#endif
+

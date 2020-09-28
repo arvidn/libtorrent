@@ -1129,7 +1129,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-
 		j->storage->release_files(j->error);
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}

@@ -1235,8 +1235,21 @@ bool is_downloading_state(int const st)
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			piece_block const block(piece, i);
-			if (!(flags & torrent_handle::overwrite_existing)
-				&& picker().is_finished(block))
+
+			bool const finished = picker().is_finished(block);
+
+			// if this block is already finished, only resume if we have the
+			// flag set to overwrite existing data.
+			if (!(flags & torrent_handle::overwrite_existing) && finished)
+				continue;
+
+			bool const downloaded = picker().is_downloaded(block);
+
+			// however, if the block is downloaded by not written to disk yet,
+			// we can't (easily) replace it. We would have to synchronize with
+			// the disk in a clear_piece() call. Instead, just ignore such
+			// blocks.
+			if (downloaded && !finished)
 				continue;
 
 			p.length = std::min(piece_size - p.start, block_size());
@@ -6627,7 +6640,7 @@ namespace {
 				aep.enabled = true;
 	}
 
-	void torrent::write_resume_data(add_torrent_params& ret) const
+	void torrent::write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const
 	{
 		ret.version = LIBTORRENT_VERSION_NUM;
 		ret.storage_mode = storage_mode();
@@ -6646,7 +6659,7 @@ namespace {
 		ret.num_incomplete = m_incomplete;
 		ret.num_downloaded = m_downloaded;
 
-		ret.flags = flags();
+		ret.flags = this->flags();
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;
@@ -6654,6 +6667,7 @@ namespace {
 		ret.save_path = m_save_path;
 
 		ret.info_hashes = torrent_file().info_hashes();
+		if (m_name) ret.name = *m_name;
 
 #if TORRENT_ABI_VERSION < 3
 		ret.info_hash = ret.info_hashes.get_best();
@@ -6661,7 +6675,7 @@ namespace {
 
 		if (valid_metadata())
 		{
-			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
+			if (m_magnet_link || (flags & torrent_handle::save_info_dict))
 			{
 				ret.ti = m_torrent_file;
 			}
@@ -6680,7 +6694,8 @@ namespace {
 			// info for each unfinished piece
 			for (auto const& dp : q)
 			{
-				if (dp.finished == 0) continue;
+				if (dp.finished == 0 && dp.writing == 0)
+					continue;
 
 				bitfield bitmask;
 				bitmask.resize(num_blocks_per_piece, false);
@@ -6747,7 +6762,8 @@ namespace {
 		}
 
 		// write renamed files
-		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
+		if (valid_metadata()
+			&& &m_torrent_file->files() != &m_torrent_file->orig_files()
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
 			file_storage const& fs = m_torrent_file->files();
@@ -6829,7 +6845,7 @@ namespace {
 			ret.file_priorities = m_file_priority;
 		}
 
-		if (has_picker())
+		if (valid_metadata() && has_picker())
 		{
 			// write piece priorities
 			// but only if they are not set to the default
@@ -8954,13 +8970,6 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (!valid_metadata())
-		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, errors::no_metadata);
-			return;
-		}
-
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -8969,7 +8978,6 @@ namespace {
 		}
 
 		m_need_save_resume_data = false;
-		m_save_resume_flags = flags;
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
@@ -8981,7 +8989,7 @@ namespace {
 		state_updated();
 
 		add_torrent_params atp;
-		write_resume_data(atp);
+		write_resume_data(flags, atp);
 		alerts().emplace_alert<save_resume_data_alert>(std::move(atp), get_handle());
 	}
 

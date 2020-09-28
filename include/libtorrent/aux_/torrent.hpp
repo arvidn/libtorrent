@@ -1051,7 +1051,7 @@ namespace aux {
 
 		torrent_handle get_handle();
 
-		void write_resume_data(add_torrent_params&) const;
+		void write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const;
 
 		void seen_complete() { m_last_seen_complete = ::time(nullptr); }
 		int time_since_complete() const { return int(::time(nullptr) - m_last_seen_complete); }
@@ -1600,9 +1600,7 @@ namespace aux {
 		// the maximum number of uploads for this torrent
 		std::uint32_t m_max_uploads:24;
 
-		// these are the flags sent in on a call to save_resume_data
-		// we need to save them to check them in write_resume_data
-		resume_data_flags_t m_save_resume_flags;
+		// 8 bits free
 
 // ----
 

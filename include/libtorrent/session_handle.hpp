@@ -780,12 +780,27 @@ namespace aux { struct torrent; }
 		// the swarm. This operation cannot fail. When it completes, you will
 		// receive a torrent_removed_alert.
 		//
+		// remove_torrent() is non-blocking, but will remove the torrent from the
+		// session synchronously. Calling session_handle::add_torrent() immediately
+		// afterward with the same torrent will succeed. Note that this creates a
+		// new handle which is not equal to the removed one.
+		//
 		// The optional second argument ``options`` can be used to delete all the
 		// files downloaded by this torrent. To do so, pass in the value
-		// ``session_handle::delete_files``. The removal of the torrent is asynchronous,
-		// there is no guarantee that adding the same torrent immediately after
-		// it was removed will not throw a system_error exception. Once
-		// the torrent is deleted, a torrent_deleted_alert is posted.
+		// ``session_handle::delete_files``. Once the torrent is deleted, a
+		// torrent_deleted_alert is posted.
+		//
+		// The torrent_handle remains valid for some time after remove_torrent() is
+		// called. It will become invalid only after all libtorrent tasks (such as
+		// I/O tasks) release their references to the torrent. Until this happens,
+		// torrent_handle::is_valid() will return true, and other calls such
+		// as torrent_handle::status() will succeed. Because of this, and because
+		// remove_torrent() is non-blocking, the following sequence usually
+		// succeeds (does not throw system_error):
+		// .. code:: c++
+		//
+		//	session.remove_handle(handle);
+		//	handle.save_resume_data();
 		//
 		// Note that when a queued or downloading torrent is removed, its position
 		// in the download queue is vacated and every subsequent torrent in the

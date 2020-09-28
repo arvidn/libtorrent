@@ -134,6 +134,9 @@ namespace {
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
 		auto t = m_torrent.lock();
 
+		// the protocol_v2 flag should not be set for non-v2 torrents
+		TORRENT_ASSERT(!t || t->info_hash().has_v2() || !m_peer_info->protocol_v2);
+
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
 		else if (m_connecting)
@@ -1082,8 +1085,13 @@ namespace {
 	sha1_hash peer_connection::associated_info_hash() const
 	{
 		auto t = associated_torrent().lock();
-		return t->torrent_file().info_hashes().get(
-			peer_info_struct()->protocol_v2 ? protocol_version::V2 : protocol_version::V1);
+		TORRENT_ASSERT(t);
+		auto const& ih = t->info_hash();
+		// if protocol_v2 is set on the peer, this better be a v2 torrent,
+		// otherwise something isn't right
+		TORRENT_ASSERT(ih.has_v2() || !peer_info_struct()->protocol_v2);
+		return ih.get((ih.has_v2() && peer_info_struct()->protocol_v2)
+			? protocol_version::V2 : protocol_version::V1);
 	}
 
 	void peer_connection::received_bytes(int const bytes_payload, int const bytes_protocol)
@@ -1235,7 +1243,7 @@ namespace {
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
 					, "Delay loaded torrent: %s:"
-					, aux::to_hex(t->torrent_file().info_hashes().get_best()).c_str());
+					, aux::to_hex(t->info_hash().get_best()).c_str());
 			}
 #endif
 		}
@@ -5230,10 +5238,10 @@ namespace {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (t->torrent_file().info_hashes().has_v1())
+				if (t->info_hash().has_v1())
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
-				if (t->torrent_file().info_hashes().has_v2())
+				if (t->info_hash().has_v2())
 					hashes.resize(t->torrent_file().orig_files().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
@@ -5334,13 +5342,13 @@ namespace {
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->torrent_file().info_hashes().has_v1())
+			&& t->info_hash().has_v1())
 		{
 			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
 
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->torrent_file().info_hashes().has_v2())
+			&& t->info_hash().has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 
@@ -6554,6 +6562,10 @@ namespace {
 #endif
 			return;
 		}
+
+		auto const& ih = t->info_hash();
+		if (peer_info_struct() && peer_info_struct()->protocol_v2)
+			TORRENT_ASSERT(ih.has_v2());
 
 		if (t->ready_for_connections() && m_initialized)
 			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
