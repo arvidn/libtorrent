@@ -79,6 +79,10 @@ namespace libtorrent {
 
 	void http_seed_connection::on_connected()
 	{
+		peer_id pid;
+		aux::random_bytes(pid);
+		set_pid(pid);
+
 		// this is always a seed
 		incoming_have_all();
 		web_connection_base::on_connected();
@@ -328,13 +332,9 @@ namespace libtorrent {
 
 				std::string const& server_version = m_parser.header("server");
 				if (!server_version.empty())
-				{
-					m_server_string = "URL seed @ ";
-					m_server_string += m_host;
-					m_server_string += " (";
-					m_server_string += server_version;
-					m_server_string += ")";
-				}
+					m_server_string = server_version;
+				else
+					m_server_string = m_host;
 
 				m_response_left = atol(m_parser.header("content-length").c_str());
 				if (m_response_left == -1)
