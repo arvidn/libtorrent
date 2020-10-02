@@ -47,6 +47,7 @@ namespace libtorrent {
 	constexpr peer_flags_t peer_info::remote_choked;
 	constexpr peer_flags_t peer_info::supports_extensions;
 	constexpr peer_flags_t peer_info::local_connection;
+	constexpr peer_flags_t peer_info::outgoing_connection;
 	constexpr peer_flags_t peer_info::handshake;
 	constexpr peer_flags_t peer_info::connecting;
 #if TORRENT_ABI_VERSION == 1

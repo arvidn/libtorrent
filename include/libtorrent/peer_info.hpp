@@ -131,6 +131,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// address of this peer. If this flag is not set, this
 		// peer connection was opened by this peer connecting to
 		// us.
+		static constexpr peer_flags_t outgoing_connection = 5_bit;
+
+		// deprecated synonym for outgoing_connection
 		static constexpr peer_flags_t local_connection = 5_bit;
 
 		// The connection is opened, and waiting for the
