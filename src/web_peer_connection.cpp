@@ -140,6 +140,10 @@ std::string escape_file_path(file_storage const& storage, file_index_t index)
 
 void web_peer_connection::on_connected()
 {
+	peer_id pid;
+	aux::random_bytes(pid);
+	set_pid(pid);
+
 	if (m_web->have_files.empty())
 	{
 		incoming_have_all();
@@ -514,17 +518,10 @@ namespace {
 
 	std::string get_peer_name(http_parser const& p, std::string const& host)
 	{
-		std::string ret = "URL seed @ ";
-		ret += host;
-
 		std::string const& server_version = p.header("server");
 		if (!server_version.empty())
-		{
-			ret += " (";
-			ret += server_version;
-			ret += ")";
-		}
-		return ret;
+			return server_version;
+		return host;
 	}
 
 	std::tuple<std::int64_t, std::int64_t> get_range(

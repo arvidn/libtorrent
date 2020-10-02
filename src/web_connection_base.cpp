@@ -91,8 +91,7 @@ namespace libtorrent {
 		if (!m_basic_auth.empty())
 			m_basic_auth = base64encode(m_basic_auth);
 
-		m_server_string = "URL seed @ ";
-		m_server_string += m_host;
+		m_server_string = m_host;
 	}
 
 	int web_connection_base::timeout() const
