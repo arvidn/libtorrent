@@ -3679,9 +3679,7 @@ namespace {
 	bt_peer_connection::hit_send_barrier(
 		span<span<char>> iovec)
 	{
-		int next_barrier;
-		span<span<char const>> out_iovec;
-		std::tie(next_barrier, out_iovec) = m_enc_handler.encrypt(iovec);
+		auto const [next_barrier, out_iovec] = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)
 			peer_log(peer_log_alert::outgoing, "SEND_BARRIER"

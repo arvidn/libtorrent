@@ -171,9 +171,7 @@ int dump_key(char const* filename)
 		return 1;
 	}
 
-	public_key pk;
-	secret_key sk;
-	std::tie(pk, sk) = ed25519_create_keypair(seed);
+	auto const [pk, sk] = ed25519_create_keypair(seed);
 
 	std::printf("public key: %s\nprivate key: %s\n"
 		, to_hex(pk.bytes).c_str()
@@ -310,9 +308,7 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		public_key pk;
-		secret_key sk;
-		std::tie(pk, sk) = ed25519_create_keypair(seed);
+		auto const [pk, sk] = ed25519_create_keypair(seed);
 		std::string salt;
 
 		if (argc > 1) salt = argv[1];

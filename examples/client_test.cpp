@@ -1428,9 +1428,7 @@ examples:
 		ses.post_session_stats();
 		ses.post_dht_stats();
 
-		int terminal_width = 80;
-		int terminal_height = 50;
-		std::tie(terminal_width, terminal_height) = terminal_size();
+		auto const [terminal_width, terminal_height] = terminal_size();
 
 		// the ratio of torrent-list and details below depend on the number of
 		// torrents we have in the session

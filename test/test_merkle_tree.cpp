@@ -147,10 +147,7 @@ void test_roundtrip(aux::merkle_tree const& t
 	, int const block_count
 	, int const blocks_per_piece)
 {
-	// TODO: use structured bindings in C++17
-	aux::vector<bool> mask;
-	std::vector<sha256_hash> tree;
-	std::tie(tree, mask) = t.build_sparse_vector();
+	auto const [tree, mask] = t.build_sparse_vector();
 
 	aux::merkle_tree t2(block_count, blocks_per_piece, f[0].data());
 	t2.load_sparse_tree(tree, mask);

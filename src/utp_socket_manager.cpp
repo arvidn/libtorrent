@@ -198,8 +198,7 @@ namespace aux {
 				str = std::get_if<utp_stream>(&c);
 
 			TORRENT_ASSERT(str);
-			int link_mtu, utp_mtu;
-			std::tie(link_mtu, utp_mtu) = mtu_for_dest(ep.address());
+			auto const [link_mtu, utp_mtu] = mtu_for_dest(ep.address());
 			str->get_impl()->init_mtu(link_mtu, utp_mtu);
 			str->get_impl()->m_sock = std::move(socket);
 			bool const ret = str->get_impl()->incoming_packet(p, ep, receive_time);

@@ -358,14 +358,10 @@ namespace {
 		m_tree[block_tree_index] = h;
 
 		// to avoid wasting a lot of time hashing nodes only to discover they
-		// cannot be verrified, check first to see if the root of the largest
+		// cannot be verified, check first to see if the root of the largest
 		// computable subtree is known
 
-		// TODO: use structured binding in C++17
-		int leafs_start;
-		int leafs_size;
-		int root_index;
-		std::tie(leafs_start, leafs_size, root_index) =
+		auto const [leafs_start, leafs_size, root_index] =
 			merkle_find_known_subtree(m_tree, block_index, m_num_blocks);
 
 		// if the root node is unknown the hashes cannot be verified yet

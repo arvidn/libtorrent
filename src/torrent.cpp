@@ -5479,9 +5479,7 @@ namespace {
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
 			// already set (to avoid problems with overlapping pieces)
-			piece_index_t start;
-			piece_index_t end;
-			std::tie(start, end) = file_piece_range_inclusive(fs, i);
+			auto const [start, end] = file_piece_range_inclusive(fs, i);
 
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
@@ -6873,10 +6871,7 @@ namespace {
 			ret.merkle_trees.reserve(m_torrent_file->internal_merkle_trees().size());
 			for (auto const& t : m_torrent_file->internal_merkle_trees())
 			{
-				// use stuctured binding in C++17
-				aux::vector<bool> mask;
-				std::vector<sha256_hash> sparse_tree;
-				std::tie(sparse_tree, mask) = t.build_sparse_vector();
+				auto [sparse_tree, mask] = t.build_sparse_vector();
 				ret.merkle_trees.emplace_back(std::move(sparse_tree));
 				ret.merkle_tree_mask.emplace_back(std::move(mask));
 			}

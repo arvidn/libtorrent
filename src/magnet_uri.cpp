@@ -188,9 +188,7 @@ namespace libtorrent {
 			// the number has no meaning, just strip it
 			// if the characters after the period are not digits, don't strip
 			// anything
-			string_view number;
-			string_view stripped_name;
-			std::tie(stripped_name, number) = split_string(name, '.');
+			auto const [stripped_name, number] = split_string(name, '.');
 			if (std::all_of(number.begin(), number.end(), [](char const c) { return is_digit(c); } ))
 				name = stripped_name;
 

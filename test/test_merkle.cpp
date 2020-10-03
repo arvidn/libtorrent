@@ -750,10 +750,7 @@ TORRENT_TEST(merkle_check_proofs_right_left)
 	// verify against ah.
 	std::vector<sha256_hash> uncles{d, ab, eh};
 
-	// TODO: use strucutured bindings here in C++17
-	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
-	sha256_hash tree_root;
-	std::tie(proofs, tree_root) = merkle_check_proofs(c, uncles, 2);
+	auto const [proofs, tree_root] = merkle_check_proofs(c, uncles, 2);
 
 	TEST_CHECK(tree_root == ah);
 	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{c, d}, {ab, cd}, {ad, eh}}));
@@ -773,10 +770,7 @@ TORRENT_TEST(merkle_check_proofs_left_right)
 	// verify against ah.
 	std::vector<sha256_hash> uncles{c, ab, eh};
 
-	// TODO: use strucutured bindings here in C++17
-	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
-	sha256_hash tree_root;
-	std::tie(proofs, tree_root) = merkle_check_proofs(d, uncles, 3);
+	auto const [proofs, tree_root] = merkle_check_proofs(d, uncles, 3);
 
 	TEST_CHECK(tree_root == ah);
 	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{c, d}, {ab, cd}, {ad, eh}}));
@@ -796,10 +790,7 @@ TORRENT_TEST(merkle_check_proofs_far_left)
 	// verify against ah.
 	std::vector<sha256_hash> uncles{b, cd, eh};
 
-	// TODO: use strucutured bindings here in C++17
-	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
-	sha256_hash tree_root;
-	std::tie(proofs, tree_root) = merkle_check_proofs(a, uncles, 0);
+	auto const [proofs, tree_root] = merkle_check_proofs(a, uncles, 0);
 
 	TEST_CHECK(tree_root == ah);
 	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{a, b}, {ab, cd}, {ad, eh}}));
@@ -819,10 +810,7 @@ TORRENT_TEST(merkle_check_proofs_far_right)
 	// verify against ah.
 	std::vector<sha256_hash> uncles{g, ef, ad};
 
-	// TODO: use strucutured bindings here in C++17
-	aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
-	sha256_hash tree_root;
-	std::tie(proofs, tree_root) = merkle_check_proofs(h, uncles, 7);
+	auto const [proofs, tree_root] = merkle_check_proofs(h, uncles, 7);
 
 	TEST_CHECK(tree_root == ah);
 	TEST_CHECK((proofs == std::vector<std::pair<sha256_hash, sha256_hash>>{{g, h}, {ef, gh}, {ad, eh}}));

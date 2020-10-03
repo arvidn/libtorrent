@@ -273,10 +273,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (base_layer_idx <= 0)
 			return add_hashes_result(false);
 
-		// TODO: use strucutured bindings here in C++17
-		aux::vector<std::pair<sha256_hash, sha256_hash>> proofs;
-		sha256_hash tree_root;
-		std::tie(proofs, tree_root) = merkle_check_proofs(
+		auto const [proofs, tree_root] = merkle_check_proofs(
 			tree[0], uncle_hashes, req.index >> base_num_layers);
 
 		int const total_add_layers = std::max(req.proof_layers + 1, base_num_layers);
@@ -345,11 +342,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			return set_block_hash_result::block_hash_failed();
 		}
 
-		// TODO: use structured bindings in C++17
-		aux::merkle_tree::set_block_result result;
-		int leafs_index;
-		int leafs_size;
-		std::tie(result, leafs_index, leafs_size) = merkle_tree.set_block(block_index, h);
+		auto const [result, leafs_index, leafs_size] = merkle_tree.set_block(block_index, h);
 
 		if (result == aux::merkle_tree::set_block_result::unknown)
 			return set_block_hash_result::unknown();

@@ -71,11 +71,7 @@ void test_pex()
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);
 
-	torrent_handle tor1;
-	torrent_handle tor2;
-	torrent_handle tor3;
-
-	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
+	auto const [tor1, tor2, tor3] = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
 
 	ses2.apply_settings(pack);
 

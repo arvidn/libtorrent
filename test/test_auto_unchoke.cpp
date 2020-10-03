@@ -75,11 +75,7 @@ void test_swarm()
 
 	lt::session ses3(pack);
 
-	torrent_handle tor1;
-	torrent_handle tor2;
-	torrent_handle tor3;
-
-	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");
+	auto const [tor1, tor2, tor3] = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");
 
 	std::map<std::string, std::int64_t> cnt = get_counters(ses1);
 

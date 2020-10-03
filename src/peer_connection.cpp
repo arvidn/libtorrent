@@ -5702,9 +5702,7 @@ namespace {
 			// limit outgoing crypto messages to 1MB
 			int const send_bytes = std::min(m_send_buffer.size(), 1024 * 1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
-			int next_barrier;
-			span<span<char const>> inject_vec;
-			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
+			auto const [next_barrier, inject_vec] = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
 				// this const_cast is a here because chained_buffer need to be

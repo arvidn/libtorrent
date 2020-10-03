@@ -131,9 +131,7 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 		{
 			for (int i = 0; i < ext.dict_size(); ++i)
 			{
-				bdecode_node val;
-				string_view key;
-				std::tie(key, val) = ext.dict_at(i);
+				auto const [key, val] = ext.dict_at(i);
 				if (val.type() != bdecode_node::string_t) continue;
 				params.ext_state[std::string(key)] = std::string(val.string_value());
 			}
@@ -228,9 +226,7 @@ entry write_session_params(session_params const& sp, save_state_flags_t const fl
 
 	if (flags & session_handle::save_ip_filter)
 	{
-		std::vector<ip_range<address_v4>> v4;
-		std::vector<ip_range<address_v6>> v6;
-		std::tie(v4, v6) = sp.ip_filter.export_filter();
+		auto const [v4, v6] = sp.ip_filter.export_filter();
 		if (!v4.empty())
 		{
 			auto& v4_list = e["ip_filter4"].list();
