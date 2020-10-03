@@ -25,9 +25,7 @@ void test_utf8_roundtrip(std::int32_t const codepoint)
 	std::string utf8;
 	append_utf8_codepoint(utf8, codepoint);
 
-	int len;
-	std::int32_t cp;
-	std::tie(cp, len) = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = parse_utf8_codepoint(utf8);
 
 	TEST_EQUAL(len, int(utf8.size()));
 	TEST_EQUAL(cp, codepoint);
@@ -35,9 +33,7 @@ void test_utf8_roundtrip(std::int32_t const codepoint)
 
 void test_parse_utf8(lt::string_view utf8)
 {
-	int len;
-	std::int32_t cp;
-	std::tie(cp, len) = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = parse_utf8_codepoint(utf8);
 	TEST_EQUAL(len, int(utf8.size()));
 
 	std::string out;
@@ -47,9 +43,7 @@ void test_parse_utf8(lt::string_view utf8)
 
 void parse_error(lt::string_view utf8)
 {
-	int len;
-	std::int32_t cp;
-	std::tie(cp, len) = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = parse_utf8_codepoint(utf8);
 	TEST_EQUAL(cp, -1);
 	TEST_CHECK(len >= 1);
 	TEST_CHECK(len <= int(utf8.size()));

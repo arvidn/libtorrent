@@ -94,14 +94,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	m_user_agent = user_agent;
 	m_resolve_flags = resolve_flags;
 
-	std::string protocol;
-	std::string auth;
-	std::string hostname;
-	std::string path;
 	error_code ec;
-	int port;
 
-	std::tie(protocol, auth, hostname, port, path)
+	auto [protocol, auth, hostname, port, path]
 		= parse_url_components(url, ec);
 
 	if (auth.empty()) auth = auth_;

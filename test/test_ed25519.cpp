@@ -200,9 +200,7 @@ TORRENT_TEST(add_scalar)
 	// client
 	std::array<char, 32> s1 = ed25519_create_seed();
 
-	public_key pk1;
-	secret_key sk1;
-	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
+	auto [pk1, sk1] = ed25519_create_keypair(s1);
 
 	// client sends to server the public key
 
@@ -233,18 +231,14 @@ TORRENT_TEST(key_exchange)
 	// user A
 	std::array<char, 32> s1 = ed25519_create_seed();
 
-	public_key pk1;
-	secret_key sk1;
-	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
+	auto const [pk1, sk1] = ed25519_create_keypair(s1);
 
 	// user A sends to user B the public key
 
 	// user B
 	std::array<char, 32> s2 = ed25519_create_seed();
 
-	public_key pk2;
-	secret_key sk2;
-	std::tie(pk2, sk2) = ed25519_create_keypair(s2);
+	auto const [pk2, sk2] = ed25519_create_keypair(s2);
 
 	// user B performs the key exchange
 	std::array<char, 32> secretB = ed25519_key_exchange(pk1, sk2);

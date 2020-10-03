@@ -280,10 +280,7 @@ void routing_table::status(std::vector<dht_routing_bucket>& s) const
 // TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
-	int dht_nodes;
-	int dht_node_cache;
-	int ignore;
-	std::tie(dht_nodes, dht_node_cache, ignore) = size();
+	auto const [dht_nodes, dht_node_cache, ignore] = size();
 	s.dht_nodes += dht_nodes;
 	s.dht_node_cache += dht_node_cache;
 	// TODO: arvidn note
@@ -618,10 +615,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// a response with a correct transaction ID, i.e. it is verified to not
 		// be the result of a poisoned routing table
 
-		node_entry * existing;
-		routing_table::table_t::iterator existing_bucket;
-		bucket_t* bucket;
-		std::tie(existing, existing_bucket, bucket) = find_node(e.ep());
+		auto const [existing, existing_bucket, bucket] = find_node(e.ep());
 		if (existing == nullptr)
 		{
 			// the node we're trying to add is not a match with an existing node. we

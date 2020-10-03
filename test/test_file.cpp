@@ -540,9 +540,7 @@ TORRENT_TEST(unc_tests)
 		TEST_CHECK(!lt::exists(special_name));
 	}
 
-	int maximum_component_length;
-	bool support_hard_links;
-	std::tie(maximum_component_length, support_hard_links) = current_directory_caps();
+	auto [maximum_component_length, support_hard_links] = current_directory_caps();
 
 	std::cout << "max file path component length: " << maximum_component_length << "\n"
 		<< "support hard links: " << (support_hard_links?"yes":"no") << "\n";

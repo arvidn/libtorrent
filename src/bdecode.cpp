@@ -528,9 +528,7 @@ namespace aux {
 
 	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int const i) const
 	{
-		bdecode_node key;
-		bdecode_node value;
-		std::tie(key, value) = dict_at_node(i);
+		auto const [key, value] = dict_at_node(i);
 		return {key.string_value(), value};
 	}
 

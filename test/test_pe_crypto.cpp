@@ -40,20 +40,15 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 
 		{
 			lt::span<char> iovec(buf.data(), buf_len);
-			int next_barrier;
-			lt::span<lt::span<char const>> iovec_out;
-			std::tie(next_barrier, iovec_out) = a.encrypt(iovec);
+			auto const [next_barrier, iovec_out] = a.encrypt(iovec);
 			TEST_CHECK(buf != cmp_buf);
 			TEST_EQUAL(iovec_out.size(), 0);
 			TEST_EQUAL(next_barrier, int(buf_len));
 		}
 
 		{
-			int consume = 0;
-			int produce = 0;
-			int packet_size = 0;
 			lt::span<char> iovec(buf.data(), buf_len);
-			std::tie(consume, produce, packet_size) = b.decrypt(iovec);
+			auto const [consume, produce, packet_size] = b.decrypt(iovec);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
 			TEST_EQUAL(produce, int(buf_len));
@@ -62,18 +57,13 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 
 		{
 			lt::span<char> iovec(buf.data(), buf_len);
-			int next_barrier;
-			lt::span<lt::span<char const>> iovec_out;
-			std::tie(next_barrier, iovec_out) = b.encrypt(iovec);
+			auto const [next_barrier, iovec_out] = b.encrypt(iovec);
 			TEST_EQUAL(iovec_out.size(), 0);
 			TEST_CHECK(buf != cmp_buf);
 			TEST_EQUAL(next_barrier, int(buf_len));
 
-			int consume = 0;
-			int produce = 0;
-			int packet_size = 0;
 			lt::span<char> iovec2(buf.data(), buf_len);
-			std::tie(consume, produce, packet_size) = a.decrypt(iovec2);
+			auto const [consume, produce, packet_size] = a.decrypt(iovec2);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
 			TEST_EQUAL(produce, int(buf_len));

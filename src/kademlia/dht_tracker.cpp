@@ -45,8 +45,7 @@ namespace libtorrent { namespace dht {
 
 	void add_dht_counters(node const& dht, counters& c)
 	{
-		int nodes, replacements, allocated_observers;
-		std::tie(nodes, replacements, allocated_observers) = dht.get_stats_counters();
+		auto const [nodes, replacements, allocated_observers] = dht.get_stats_counters();
 
 		c.inc_stats_counter(counters::dht_nodes, nodes);
 		c.inc_stats_counter(counters::dht_node_cache, replacements);

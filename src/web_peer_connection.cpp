@@ -647,10 +647,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// TODO: 3 this could be made more efficient for the case when we use an
 		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
 		// we could just make the redirect table contain full URLs.
-		std::string redirect_base;
-		std::string redirect_path;
 		error_code ec;
-		std::tie(redirect_base, redirect_path) = split_url(location, ec);
+		auto const [redirect_base, redirect_path] = split_url(location, ec);
 
 		if (ec)
 		{
@@ -865,10 +863,8 @@ void web_peer_connection::on_receive(error_code const& error
 		// despite the HTTP range being inclusive, range_start and range_end are
 		// exclusive to fit better into C++. i.e. range_end points one byte past
 		// the end of the payload
-		std::int64_t range_start;
-		std::int64_t range_end;
 		error_code ec;
-		std::tie(range_start, range_end) = get_range(m_parser, ec);
+		auto const [range_start, range_end] = get_range(m_parser, ec);
 		if (ec)
 		{
 			received_bytes(0, int(recv_buffer.size()));

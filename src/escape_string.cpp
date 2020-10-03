@@ -184,10 +184,8 @@ namespace libtorrent {
 
 	std::string maybe_url_encode(string_view url)
 	{
-		std::string protocol, host, auth, path;
-		int port;
 		error_code ec;
-		std::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
+		auto const [protocol, auth, host, port, path] = parse_url_components(url, ec);
 		if (ec) return std::string(url);
 
 		// first figure out if this url contains unencoded characters
@@ -505,11 +503,8 @@ namespace {
 		string_view ptr = s;
 		while (!ptr.empty())
 		{
-			std::int32_t codepoint;
-			int len;
-
 			// decode a single utf-8 character
-			std::tie(codepoint, len) = parse_utf8_codepoint(ptr);
+			auto [codepoint, len] = parse_utf8_codepoint(ptr);
 
 			if (codepoint == -1)
 				codepoint = '.';

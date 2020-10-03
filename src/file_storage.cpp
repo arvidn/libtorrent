@@ -128,9 +128,7 @@ namespace {
 
 		// split the string into the leaf filename
 		// and the branch path
-		string_view leaf;
-		string_view branch_path;
-		std::tie(branch_path, leaf) = rsplit_path(path);
+		auto [branch_path, leaf] = rsplit_path(path);
 
 		if (branch_path.empty())
 		{

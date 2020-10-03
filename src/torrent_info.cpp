@@ -96,11 +96,8 @@ namespace aux {
 		string_view ptr = target;
 		while (!ptr.empty())
 		{
-			std::int32_t codepoint;
-			int len;
-
 			// decode a single utf-8 character
-			std::tie(codepoint, len) = parse_utf8_codepoint(ptr);
+			auto [codepoint, len] = parse_utf8_codepoint(ptr);
 
 			// this was the last character, and nothing was
 			// written to the destination buffer (i.e. the source character was

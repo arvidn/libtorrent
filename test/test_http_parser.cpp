@@ -549,10 +549,8 @@ TORRENT_TEST(chunked_encoding_overflow)
 		"7FFFFFFFFFFFFFBF\r\n";
 
 	aux::http_parser parser;
-	int payload;
-	int protocol;
 	bool error = false;
-	std::tie(payload, protocol) = parser.incoming(chunked_input, error);
+	parser.incoming(chunked_input, error);
 
 	// it should have encountered an error
 	TEST_CHECK(error == true);
