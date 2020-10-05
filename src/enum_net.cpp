@@ -83,6 +83,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/windows.hpp"
 #include <iphlpapi.h>
 #include <ifdef.h> // for IF_OPER_STATUS
+#ifdef TORRENT_WINRT
+#include <netioapi.h>
+#endif
 #endif
 
 #if TORRENT_USE_NETLINK

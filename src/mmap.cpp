@@ -181,6 +181,38 @@ namespace {
 		return (mode & open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING;
 	}
 
+#ifdef TORRENT_WINRT
+
+	DWORD file_flags(open_mode_t const mode)
+	{
+		return ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
+			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+			;
+	}
+
+	DWORD file_attributes(open_mode_t const mode)
+	{
+		return (mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL;
+	}
+
+	auto create_file(const native_path_string & name, open_mode_t const mode)
+	{
+		CREATEFILE2_EXTENDED_PARAMETERS Extended
+		{
+			sizeof(CREATEFILE2_EXTENDED_PARAMETERS),
+			file_attributes(mode),
+			file_flags(mode)
+		};
+
+		return CreateFile2(name.c_str()
+			, file_access(mode)
+			, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
+			, file_create(mode)
+			, &Extended);
+	}
+
+#else
+
 	DWORD file_flags(open_mode_t const mode)
 	{
 		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
@@ -192,18 +224,25 @@ namespace {
 			;
 	}
 
+	auto create_file(const native_path_string & name, open_mode_t const mode)
+	{
+		return CreateFileW(name.c_str()
+			, file_access(mode)
+			, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
+			, nullptr
+			, file_create(mode)
+			, file_flags(mode)
+			, nullptr);
+	}
+
+#endif
+
 } // anonymous
 
 file_handle::file_handle(string_view name, std::int64_t const size
 	, open_mode_t const mode)
-	: m_fd(CreateFileW(convert_to_native_path_string(name.to_string()).c_str()
-		, file_access(mode)
-		, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
-		, nullptr
-		, file_create(mode)
-		, file_flags(mode)
-		, nullptr))
-		, m_open_mode(mode)
+	: m_fd(create_file(convert_to_native_path_string(name.to_string()), mode))
+	, m_open_mode(mode)
 {
 	if (m_fd == invalid_handle) throw_ex<system_error>(error_code(GetLastError(), system_category()));
 
@@ -226,6 +265,8 @@ file_handle::file_handle(string_view name, std::int64_t const size
 
 		if (::SetEndOfFile(m_fd) == FALSE)
 			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+
+#ifndef TORRENT_WINRT
 		// Enable privilege required by SetFileValidData()
 		// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
 		std::call_once(g_once_flag, acquire_manage_volume_privs);
@@ -234,6 +275,7 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		// the file with zeroes, but just fill it with
 		// garbage instead
 		SetFileValidData(m_fd, size);
+#endif
 	}
 }
 
