@@ -208,12 +208,24 @@ namespace {
 		native_path_string file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
+#ifdef TORRENT_WINRT
+
+		const auto handle = CreateFile2(file_path.c_str()
+			, (mode & aux::open_mode::write) ? GENERIC_WRITE | GENERIC_READ : GENERIC_READ
+			, FILE_SHARE_READ | FILE_SHARE_WRITE
+			, (mode & aux::open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING
+			, nullptr);
+
+#else
+
 		handle_type handle = CreateFileW(file_path.c_str()
 			, (mode & aux::open_mode::write) ? GENERIC_WRITE | GENERIC_READ : GENERIC_READ
 			, FILE_SHARE_READ | FILE_SHARE_WRITE
 			, nullptr
 			, (mode & aux::open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING
 			, 0, nullptr);
+
+#endif
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
