@@ -78,6 +78,10 @@ python_add_module(python-libtorrent
 	src/error_code.cpp
 )
 
+if (MSVC)
+	target_compile_options(python-libtorrent PRIVATE /bigobj)
+endif()
+
 set_target_properties(python-libtorrent
 	PROPERTIES
 		OUTPUT_NAME libtorrent
