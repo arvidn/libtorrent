@@ -1380,13 +1380,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto SetThreadInformation =
 			aux::get_library_procedure<aux::kernel32, SetThreadInformation_t>("SetThreadInformation");
 		if (SetThreadInformation) {
-			typedef struct _MEMORY_PRIORITY_INFORMATION {
+			// MEMORY_PRIORITY_INFORMATION
+			struct MPI {
 				ULONG MemoryPriority;
-			} MEMORY_PRIORITY_INFORMATION;
+			};
 #ifndef MEMORY_PRIORITY_BELOW_NORMAL
 			ULONG const MEMORY_PRIORITY_BELOW_NORMAL = 4;
 #endif
-			MEMORY_PRIORITY_INFORMATION info{MEMORY_PRIORITY_BELOW_NORMAL};
+			MPI info{MEMORY_PRIORITY_BELOW_NORMAL};
 			SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority
 				, &info, sizeof(info));
 		}
