@@ -133,7 +133,7 @@ int run_test(disk_test_mode_t const flags
 	std::int64_t const total_size = fs.total_size();
 	int const piece_size = 0x8000;
 	int const blocks_per_piece = std::max(1, piece_size / lt::default_block_size);
-	int const num_pieces = (total_size + piece_size - 1) / piece_size;
+	int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
 	fs.set_num_pieces(num_pieces);
 	fs.set_piece_length(piece_size);
 
@@ -237,7 +237,7 @@ int run_test(disk_test_mode_t const flags
 					if (ec) throw std::runtime_error("async_write failed " + ec.ec.message());
 					if (flags & test_mode::read_random_order)
 					{
-						std::uniform_int_distribution<> d(0, blocks_to_read.size());
+						std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
 						blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
 					}
 					else
@@ -248,7 +248,7 @@ int run_test(disk_test_mode_t const flags
 					// read queue
 					for (int i = 1; i < read_multiplier; ++i)
 					{
-						std::uniform_int_distribution<> d(0, blocks_to_read.size());
+						std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
 						blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
 					}
 				});
