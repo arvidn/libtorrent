@@ -1887,14 +1887,22 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_outstanding_check_files = true;
 #endif
-		m_ses.disk_thread().async_check_files(
-			m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-			, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
-			{ self->on_resume_data_checked(st, error); });
+
+		if (!m_add_torrent_params || !(m_add_torrent_params->flags & torrent_flags::no_verify_files))
+		{
+			m_ses.disk_thread().async_check_files(
+				m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
+				, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
+				{ self->on_resume_data_checked(st, error); });
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("init, async_check_files");
+			debug_log("init, async_check_files");
 #endif
-		m_ses.deferred_submit_jobs();
+			m_ses.deferred_submit_jobs();
+		}
+		else
+		{
+			on_resume_data_checked(status_t::no_error, storage_error{});
+		}
 
 		update_want_peers();
 		update_want_tick();
@@ -8926,6 +8934,13 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
+
+		if (m_abort)
+		{
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::torrent_removed);
+			return;
+		}
 
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{

@@ -272,6 +272,11 @@ Build features:
 |                          | * ``on`` - default. logging alerts available,      |
 |                          |   still need to be enabled by the alert mask.      |
 +--------------------------+----------------------------------------------------+
+| ``alert-msg``            | * ``on`` - (default) return human readable         |
+|                          |   messages from the ``alert::message()`` call.     |
+|                          | * ``off`` - Always return empty strings from       |
+|                          |   ``alert::message()``, and save binary size.      |
++--------------------------+----------------------------------------------------+
 | ``dht``                  | * ``on`` - build with DHT support                  |
 |                          | * ``off`` - build without DHT support.             |
 +--------------------------+----------------------------------------------------+
@@ -557,6 +562,10 @@ own code that compiles and links with libtorrent.
 |                                        | alerts, like log_alert, torrent_log_alert and   |
 |                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_ALERT_MSG``          | Human readable messages returned from the alert |
+|                                        | ``message()`` member functions will return      |
+|                                        | empty strings.                                  |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_SUPERSEEDING``       | This macro will disable support for super       |
 |                                        | seeding. The settings will exist, but will not  |

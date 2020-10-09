@@ -638,6 +638,7 @@ TORRENT_TEST(tracker_proxy)
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+#ifndef TORRENT_DISABLE_ALERT_MSG
 namespace {
 void test_stop_tracker_timeout(int const timeout)
 {
@@ -727,4 +728,5 @@ TORRENT_TEST(stop_tracker_timeout_zero_timeout)
 	std::printf("\n\nexpect to NOT get a request with &event=stopped\n\n");
 	test_stop_tracker_timeout(0);
 }
+#endif
 #endif

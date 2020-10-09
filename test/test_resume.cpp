@@ -140,7 +140,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	, bool const test_deprecated = false)
 {
 	std::shared_ptr<torrent_info> ti = generate_torrent(
-		bool(flags & torrent_flags::seed_mode));
+		bool((flags & torrent_flags::seed_mode) && !(flags & torrent_flags::no_verify_files)));
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
@@ -1552,6 +1552,18 @@ TORRENT_TEST(seed_mode)
 	TEST_EQUAL(s.uploads_limit, 1346);
 }
 
+TORRENT_TEST(seed_mode_no_verify_files)
+{
+	lt::session ses(settings());
+	torrent_status s = test_resume_flags(ses
+		, torrent_flags::seed_mode | torrent_flags::no_verify_files).status();
+	default_tests(s);
+	// note taht torrent_flags::no_verify_files is NOT set here
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
+	TEST_EQUAL(s.connections_limit, 1345);
+	TEST_EQUAL(s.uploads_limit, 1346);
+}
+
 TORRENT_TEST(upload_mode)
 {
 	lt::session ses(settings());
@@ -1767,3 +1779,30 @@ TORRENT_TEST(resume_data_have_pieces)
 }
 #endif
 
+// See https://github.com/arvidn/libtorrent/issues/5174
+TORRENT_TEST(removed)
+{
+	lt::session ses(settings());
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	// we're _likely_ to trigger the condition, but not guaranteed. loop
+	// until we do.
+	bool triggered = false;
+	for (int i = 0; i < 10; i++) {
+		torrent_handle h = ses.add_torrent(p);
+		// this is asynchronous
+		ses.remove_torrent(h);
+		try {
+			h.save_resume_data();
+			triggered = true;
+		} catch (std::exception const&) {
+			std::printf("failed to trigger condition, retrying\n");
+		}
+	}
+	TEST_CHECK(triggered);
+	if (!triggered) return;
+	alert const* a = wait_for_alert(ses, save_resume_data_failed_alert::alert_type);
+	TEST_CHECK(a != nullptr);
+}
