@@ -39,10 +39,8 @@ else
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	# we can't add /usr/local/lib to the search path on mac, as that will
-	# interfere with system libraries (specifically libjpeg)
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) <search>/usr/local/lib
-		: : $(boost-include-path) <include>/usr/local/include ;
+	lib boost_system : : <name>boost_system $(boost-lib-search-path)
+		: : $(boost-include-path) ;
 }
 
 VERSION = 1.2.10 ;
@@ -549,7 +547,7 @@ lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
 lib gcc : : <name>gcc <link>static ;
 
 # when using iconv
-lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
+lib libiconv : : <name>iconv <link>shared ;
 
 # openssl on linux/bsd etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
@@ -730,9 +728,6 @@ local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
-# freebsd doesn't seem to include this automatically
-# and iconv.h is installed there
-	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64
 # enable cancel support in asio
