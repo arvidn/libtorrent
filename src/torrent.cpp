@@ -10645,6 +10645,8 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		TORRENT_ASSERT(info_hash().has_v2() || !(flags & pex_lt_v2));
+
 #ifndef TORRENT_DISABLE_DHT
 		if (source != peer_info::resume_data)
 		{
