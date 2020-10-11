@@ -719,9 +719,12 @@ else()
 endif()
 
 # Boost
-find_public_dependency(Boost REQUIRED COMPONENTS system)
+find_public_dependency(Boost REQUIRED)
 target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
+if (Boost_VERSION VERSION_LESS 106900)  # CMP0093 OLD behavior
+	find_package(Boost REQUIRED COMPONENTS system)
+	target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
+endif()
 
 if (exceptions)
 	if (MSVC)
