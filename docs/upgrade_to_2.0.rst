@@ -211,7 +211,7 @@ is returned. Note that the type has to be identical in CV-qualifiers as well.
 
 This userdata field affects the plugin APIs that has this field passed into it.
 
-Additionally, there's now a way to as a torrent_handle for the userdata, so it is
+Additionally, there's now a way to ask a torrent_handle for the userdata, so it is
 associated with the torrent itself.
 
 Adding torrents by URL no longer supported
@@ -228,7 +228,7 @@ One used to be able to add a torrent by specifying an HTTP URL in the
 to load the file as a .torrent file. The torrent_handle in this mode would
 not represent a torrent, but a *potential* torrent. Its info-hash was the hash of
 the URL until the torrent file could be loaded, at which point the info hash *changed*.
-The corresponding torrent_update_alert has also been removed. In libtorrent 2.0
+The corresponding ``torrent_update_alert`` has also been removed. In libtorrent 2.0
 info-hashes cannot change. (Although they can be amended with bittorrent v1 or v2
 info-hashes).
 
@@ -269,7 +269,7 @@ by the kernel. This greatly simplifies the disk code and also has the potential
 of making a lot more efficient use of modern disks as well as physical memory.
 
 In this new system, the customization point is the whole disk I/O subsystem.
-Instead of configuring a custom storage (implementing storage_interface) when
+Instead of configuring a custom storage (implementing ``storage_interface``) when
 adding a torrent, you can now configure a disk subsystem (implementing
 disk_interface) when creating a session.
 
@@ -278,7 +278,7 @@ Systems that don't support memory mapped files can still be used with a simple
 and generally more primitive than the memory mapped file one.
 
 Clients that need to customize storage should implement the disk_interface and
-configure it at session creation time instead of storage_interface configured
+configure it at session creation time instead of ``storage_interface`` configured
 in add_torrent_params. add_torrent_params no longer has a storage_constructor
 member.
 
