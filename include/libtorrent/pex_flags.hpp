@@ -42,18 +42,18 @@ namespace libtorrent {
 	using pex_flags_t = flags::bitfield_flag<std::uint8_t, struct pex_flags_tag>;
 
 	// the peer supports protocol encryption
-	constexpr pex_flags_t pex_encryption = 1_bit;
+	constexpr pex_flags_t pex_encryption = 0_bit;
 
 	// the peer is a seed
-	constexpr pex_flags_t pex_seed = 2_bit;
+	constexpr pex_flags_t pex_seed = 1_bit;
 
 	// the peer supports the uTP, transport protocol over UDP.
-	constexpr pex_flags_t pex_utp = 3_bit;
+	constexpr pex_flags_t pex_utp = 2_bit;
 
 	// the peer supports the holepunch extension If this flag is received from a
 	// peer, it can be used as a rendezvous point in case direct connections to
 	// the peer fail
-	constexpr pex_flags_t pex_holepunch = 4_bit;
+	constexpr pex_flags_t pex_holepunch = 3_bit;
 }
 
 #endif
