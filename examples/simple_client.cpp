@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) try
 
 	lt::session s;
 	lt::add_torrent_params p;
-	p.save_path = "./";
+	p.save_path = ".";
 	p.ti = std::make_shared<lt::torrent_info>(argv[1]);
 	s.add_torrent(p);
 

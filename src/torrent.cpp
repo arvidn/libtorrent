@@ -2216,8 +2216,6 @@ bool is_downloading_state(int const st)
 		// now.
 		leave_seed_mode(seed_mode_t::skip_checking);
 
-		m_ses.disk_thread().async_release_files(m_storage);
-
 		// forget that we have any pieces
 		m_have_all = false;
 
@@ -9296,19 +9294,19 @@ namespace {
 
 		clear_error();
 
-		if (m_state == torrent_status::checking_files)
+		if (m_state == torrent_status::checking_files
+			&& m_auto_managed)
 		{
-			if (m_auto_managed) m_ses.trigger_auto_manage();
-			if (should_check_files()) start_checking();
+			m_ses.trigger_auto_manage();
 		}
+
+		if (should_check_files()) start_checking();
 
 		state_updated();
 		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
 		update_gauge();
-
-		if (should_check_files()) start_checking();
 
 		if (m_state == torrent_status::checking_files) return;
 

@@ -41,10 +41,8 @@ else
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	# we can't add /usr/local/lib to the search path on mac, as that will
-	# interfere with system libraries (specifically libjpeg)
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) <search>/usr/local/lib
-		: : $(boost-include-path) <include>/usr/local/include ;
+	lib boost_system : : <name>boost_system $(boost-lib-search-path)
+		: : $(boost-include-path) ;
 }
 
 use-project /try_signal : ./deps/try_signal ;
