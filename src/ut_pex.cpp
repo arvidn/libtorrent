@@ -319,8 +319,8 @@ namespace libtorrent { namespace {
 					auto const adr = aux::read_v4_endpoint<tcp::endpoint>(in);
 					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
 
-					if (m_pc.peer_info_struct()->protocol_v2)
-						flags |= pex_lt_v2;
+					// this is an internal flag. disregard it from the internet
+					flags &= ~pex_lt_v2;
 
 					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
@@ -372,8 +372,8 @@ namespace libtorrent { namespace {
 					auto const adr = aux::read_v6_endpoint<tcp::endpoint>(in);
 					pex_flags_t flags(static_cast<std::uint8_t>(*fin++));
 
-					if (m_pc.peer_info_struct()->protocol_v2)
-						flags |= pex_lt_v2;
+					// this is an internal flag. disregard it from the internet
+					flags &= ~pex_lt_v2;
 
 					// ignore local addresses unless the peer is local to us
 					if (aux::is_local(adr.address()) && !aux::is_local(m_pc.remote().address())) continue;

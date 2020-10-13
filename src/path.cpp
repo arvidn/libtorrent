@@ -142,6 +142,44 @@ namespace {
 		// convert to seconds
 		return time_t(ft / 10000000 - posix_time_offset);
 	}
+
+	void fill_file_status(file_status & s, LARGE_INTEGER file_size, DWORD file_attributes, FILETIME creation_time, FILETIME last_access, FILETIME last_write)
+	{
+		s.file_size = file_size.QuadPart;
+		s.ctime = file_time_to_posix(creation_time);
+		s.atime = file_time_to_posix(last_access);
+		s.mtime = file_time_to_posix(last_write);
+
+		s.mode = (file_attributes & FILE_ATTRIBUTE_DIRECTORY)
+			? file_status::directory
+			: (file_attributes & FILE_ATTRIBUTE_DEVICE)
+			? file_status::character_special : file_status::regular_file;
+	}
+
+	void fill_file_status(file_status & s, DWORD file_size_low, DWORD file_size_high, DWORD file_attributes, FILETIME creation_time, FILETIME last_access, FILETIME last_write)
+	{
+		LARGE_INTEGER file_size;
+		file_size.HighPart = static_cast<LONG>(file_size_high);
+		file_size.LowPart = file_size_low;
+
+		fill_file_status(s, file_size, file_attributes, creation_time, last_access, last_write);
+	}
+
+#ifdef TORRENT_WINRT
+	FILETIME to_file_time(LARGE_INTEGER i)
+	{
+		FILETIME time;
+		time.dwHighDateTime = i.HighPart;
+		time.dwLowDateTime = i.LowPart;
+
+		return time;
+	}
+
+	void fill_file_status(file_status & s, LARGE_INTEGER file_size, DWORD file_attributes, LARGE_INTEGER creation_time, LARGE_INTEGER last_access, LARGE_INTEGER last_write)
+	{
+		fill_file_status(s, file_size, file_attributes, to_file_time(creation_time), to_file_time(last_access), to_file_time(last_write));
+	}
+#endif
 #endif
 } // anonymous namespace
 
@@ -183,6 +221,45 @@ namespace {
 		// Fallback to GetFileInformationByHandle for symlinks
 		if (!(flags & dont_follow_links) && (data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
 		{
+#ifdef TORRENT_WINRT
+
+			CREATEFILE2_EXTENDED_PARAMETERS Extended
+			{
+				sizeof(CREATEFILE2_EXTENDED_PARAMETERS),
+				0, // no file attributes
+				FILE_FLAG_BACKUP_SEMANTICS // in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
+			};
+
+			const auto h = CreateFile2(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
+				| FILE_SHARE_WRITE, OPEN_EXISTING, &Extended);
+
+			if (h == INVALID_HANDLE_VALUE)
+			{
+				ec.assign(GetLastError(), system_category());
+				TORRENT_ASSERT(ec);
+				return;
+			}
+
+			FILE_BASIC_INFO Basic;
+			FILE_STANDARD_INFO Standard;
+
+			if (
+				!GetFileInformationByHandleEx(h, FILE_INFO_BY_HANDLE_CLASS::FileBasicInfo, &Basic, sizeof(FILE_BASIC_INFO)) ||
+				!GetFileInformationByHandleEx(h, FILE_INFO_BY_HANDLE_CLASS::FileStandardInfo, &Standard, sizeof(FILE_STANDARD_INFO))
+			)
+			{
+				ec.assign(GetLastError(), system_category());
+				TORRENT_ASSERT(ec);
+				CloseHandle(h);
+				return;
+			}
+			CloseHandle(h);
+
+			fill_file_status(*s, Standard.EndOfFile, Basic.FileAttributes, Basic.CreationTime, Basic.LastAccessTime, Basic.LastWriteTime);
+			return;
+
+#else
+
 			// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
 			HANDLE h = CreateFileW(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
 				| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
@@ -203,23 +280,14 @@ namespace {
 			}
 			CloseHandle(h);
 
-			data.dwFileAttributes = handle_data.dwFileAttributes;
-			data.ftCreationTime = handle_data.ftCreationTime;
-			data.ftLastAccessTime = handle_data.ftLastAccessTime;
-			data.ftLastWriteTime = handle_data.ftLastWriteTime;
-			data.nFileSizeHigh = handle_data.nFileSizeHigh;
-			data.nFileSizeLow = handle_data.nFileSizeLow;
+			fill_file_status(*s, handle_data.nFileSizeLow, handle_data.nFileSizeHigh, handle_data.dwFileAttributes, handle_data.ftCreationTime, handle_data.ftLastAccessTime, handle_data.ftLastWriteTime);
+			return;
+
+#endif
 		}
 
-		s->file_size = (std::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
-		s->ctime = file_time_to_posix(data.ftCreationTime);
-		s->atime = file_time_to_posix(data.ftLastAccessTime);
-		s->mtime = file_time_to_posix(data.ftLastWriteTime);
+		fill_file_status(*s, data.nFileSizeLow, data.nFileSizeHigh, data.dwFileAttributes, data.ftCreationTime, data.ftLastAccessTime, data.ftLastWriteTime);
 
-		s->mode = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			? file_status::directory
-			: (data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
-			? file_status::character_special : file_status::regular_file;
 #else
 
 		// posix version
@@ -319,6 +387,7 @@ namespace {
 		native_path_string n_exist = convert_to_native_path_string(file);
 		native_path_string n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
+#ifndef TORRENT_WINRT
 
 		BOOL ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
 		if (ret)
@@ -337,6 +406,7 @@ namespace {
 		}
 
 		// fall back to making a copy
+#endif
 #else
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());

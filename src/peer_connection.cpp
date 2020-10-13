@@ -1277,6 +1277,9 @@ namespace {
 			return;
 		}
 
+		// if this peer supports v2, this better be a v2 torrent
+		TORRENT_ASSERT(t->info_hash().has_v2() || !(peer_info_struct() && peer_info_struct()->protocol_v2));
+
 		if (t->is_paused()
 			&& t->is_auto_managed()
 			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
@@ -1336,6 +1339,7 @@ namespace {
 			|| t->info_hash().v2 == ih.v2))
 		{
 			peer_info_struct()->protocol_v2 = true;
+			TORRENT_ASSERT(t->info_hash().has_v2());
 		}
 
 		if (m_exceeded_limit)

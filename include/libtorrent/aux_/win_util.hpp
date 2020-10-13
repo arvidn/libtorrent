@@ -15,6 +15,10 @@ see LICENSE file.
 
 namespace libtorrent { namespace aux {
 
+#ifdef TORRENT_WINRT
+	using LoadLibraryASignature = HMODULE WINAPI(_In_ LPCSTR lpLibFileName);
+#endif
+
 	template <typename Library>
 	HMODULE get_library_handle()
 	{
@@ -23,8 +27,26 @@ namespace libtorrent { namespace aux {
 
 		if (!handle_checked)
 		{
-			handle = LoadLibraryA(Library::library_name);
 			handle_checked = true;
+
+#ifdef TORRENT_WINRT
+			MEMORY_BASIC_INFORMATION Information;
+
+			if (::VirtualQuery(&VirtualQuery, &Information, sizeof(Information)) == 0)
+			{
+				return nullptr;
+			}
+
+			const auto SyscallBegin = static_cast<HMODULE>(Information.AllocationBase);
+			const auto LoadLibraryA = reinterpret_cast<LoadLibraryASignature *>(::GetProcAddress(SyscallBegin, "LoadLibraryA"));
+
+			if (LoadLibraryA == nullptr)
+			{
+				return nullptr;
+			}
+#endif
+
+			handle = LoadLibraryA(Library::library_name);
 		}
 		return handle;
 	}

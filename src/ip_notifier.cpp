@@ -25,6 +25,9 @@ see LICENSE file.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <iphlpapi.h>
+#ifdef TORRENT_WINRT
+#include <netioapi.h>
+#endif
 #include <mutex>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif

@@ -251,6 +251,15 @@ namespace torrent_flags {
 	// set this flag to disable peer exchange for this torrent.
 	constexpr torrent_flags_t disable_pex = 21_bit;
 
+	// if this flag is set, the resume data will be assumed to be correct
+	// without validating it against any files on disk. This may be used when
+	// restoring a session by loading resume data from disk. It will save time
+	// and also delay any hard disk errors until files are actually needed. If
+	// the resume data cannot be trusted, or if a torrent is added for the first
+	// time to some save path that may already have some of the files, this flag
+	// should not be set.
+	constexpr torrent_flags_t no_verify_files = 22_bit;
+
 	// all torrent flags combined. Can conveniently be used when creating masks
 	// for flags
 	constexpr torrent_flags_t all = torrent_flags_t::all();

@@ -21,10 +21,10 @@ task:
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
     cd test
-    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl deterministic-tests
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl deterministic-tests include=/usr/local/include library-path=/usr/local/lib
   enum_if_script: |
     export BOOST_BUILD_PATH=${PWD}/build-develop
     export PATH=${PWD}/build-develop:$PATH
     cd test
-    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies
+    bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies include=/usr/local/include library-path=/usr/local/lib
     LD_LIBRARY_PATH=./dependencies ./enum_if

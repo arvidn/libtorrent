@@ -1861,14 +1861,22 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_outstanding_check_files = true;
 #endif
-		m_ses.disk_thread().async_check_files(
-			m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-			, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
-			{ self->on_resume_data_checked(st, error); });
+
+		if (!m_add_torrent_params || !(m_add_torrent_params->flags & torrent_flags::no_verify_files))
+		{
+			m_ses.disk_thread().async_check_files(
+				m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
+				, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
+				{ self->on_resume_data_checked(st, error); });
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("init, async_check_files");
+			debug_log("init, async_check_files");
 #endif
-		m_ses.deferred_submit_jobs();
+			m_ses.deferred_submit_jobs();
+		}
+		else
+		{
+			on_resume_data_checked(status_t::no_error, storage_error{});
+		}
 
 		update_want_peers();
 		update_want_tick();
@@ -2180,8 +2188,6 @@ bool is_downloading_state(int const st)
 		// we're checking everything anyway, no point in assuming we are a seed
 		// now.
 		leave_seed_mode(seed_mode_t::skip_checking);
-
-		m_ses.disk_thread().async_release_files(m_storage);
 
 		// forget that we have any pieces
 		m_have_all = false;
@@ -8965,6 +8971,13 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+		if (m_abort)
+		{
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::torrent_removed);
+			return;
+		}
+
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -9318,19 +9331,19 @@ namespace {
 
 		clear_error();
 
-		if (m_state == torrent_status::checking_files)
+		if (m_state == torrent_status::checking_files
+			&& m_auto_managed)
 		{
-			if (m_auto_managed) m_ses.trigger_auto_manage();
-			if (should_check_files()) start_checking();
+			m_ses.trigger_auto_manage();
 		}
+
+		if (should_check_files()) start_checking();
 
 		state_updated();
 		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
 		update_gauge();
-
-		if (should_check_files()) start_checking();
 
 		if (m_state == torrent_status::checking_files) return;
 
@@ -10665,6 +10678,8 @@ namespace {
 		, peer_source_flags_t const source, pex_flags_t flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		TORRENT_ASSERT(info_hash().has_v2() || !(flags & pex_lt_v2));
 
 #ifndef TORRENT_DISABLE_DHT
 		if (source != peer_info::resume_data)
