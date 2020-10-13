@@ -493,7 +493,6 @@ namespace {
 
 		if (make_v2)
 		{
-			auto const& file_trees = ti.internal_merkle_trees();
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
 			for (auto const i : m_files.file_range())
@@ -502,17 +501,17 @@ namespace {
 				if (m_files.pad_file_at(i)) continue;
 
 				auto const file_size = m_files.file_size(i);
-				if (file_size < m_files.piece_length())
+				if (file_size <= m_files.piece_length())
 				{
 					set_hash2(i, piece_index_t::diff_type{0}, m_files.root(i));
 					continue;
 				}
 
-				aux::vector<sha256_hash> pieces = file_trees[i].get_piece_layer();
+				span<char const> pieces = ti.piece_layer(i);
 
 				piece_index_t::diff_type p{0};
-				for (auto const& ph : pieces)
-					set_hash2(i, p++, ph);
+				for (int h = 0; h < int(pieces.size()); h += int(sha256_hash::size()))
+					set_hash2(i, p++, sha256_hash(pieces.data() + h));
 			}
 		}
 

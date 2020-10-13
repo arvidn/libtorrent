@@ -401,6 +401,9 @@ namespace libtorrent {
 		// it will initialize the storage and the piece-picker
 		void init();
 
+		void load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
+			, aux::vector<std::vector<bool>, file_index_t> mask);
+
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
 		// can send a rendezvous connect message
@@ -1058,6 +1061,8 @@ namespace libtorrent {
 
 		std::shared_ptr<const torrent_info> get_torrent_copy();
 
+		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
+
 		std::vector<announce_entry> trackers() const;
 
 		// this sets all the "enabled" states on all trackers, giving them
@@ -1115,6 +1120,8 @@ namespace libtorrent {
 		{ return m_torrent_file->is_valid(); }
 		bool are_files_checked() const
 		{ return m_files_checked; }
+
+		void initialize_merkle_trees();
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -1374,6 +1381,9 @@ namespace libtorrent {
 		// separate class (to use as memeber here instead)
 		std::vector<piece_index_t> m_predictive_pieces;
 #endif
+
+		// v2 merkle tree for each file
+		aux::vector<aux::merkle_tree, file_index_t> m_merkle_trees;
 
 		// the performance counters of this session
 		counters& m_stats_counters;
@@ -1650,6 +1660,10 @@ namespace libtorrent {
 		// flapping. If the state changes back during this period, we cancel the
 		// quarantine
 		bool m_pending_active_change:1;
+
+		// this is set to true if all piece layers were successfully loaded and
+		// validated. Only for v2 torrents
+		bool m_v2_piece_layers_validated:1;
 
 // ----
 
