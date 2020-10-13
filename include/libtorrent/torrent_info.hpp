@@ -469,6 +469,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return bool(m_flags & i2p); }
 
+		// internal
 		bool v2_piece_hashes_verified() const { return bool(m_flags & v2_has_piece_hashes); }
 
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
@@ -588,11 +589,16 @@ TORRENT_VERSION_NAMESPACE_3
 		boost::shared_array<char> metadata() const;
 #endif
 
-		// internal
-		aux::vector<aux::merkle_tree, file_index_t>& internal_merkle_trees();
-		aux::vector<aux::merkle_tree, file_index_t> const& internal_merkle_trees() const;
-		void internal_load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
-			, aux::vector<std::vector<bool>, file_index_t> mask);
+		// return the bytes of the piece layer hashes for the specified file. If
+		// the file doesn't have a piece layer, an empty span is returned.
+		// The span size is divisible by 32, the size of a SHA-256 hash.
+		span<char const> piece_layer(file_index_t) const;
+
+		// clears the piece layers from the torrent_info. This is done by the
+		// session when a torrent is added, to avoid storing it twice. The piece
+		// layer (or other hashes part of the merkle tree) are stored in the
+		// internal torrent object.
+		void free_piece_layers();
 
 		// internal
 		void internal_set_creator(string_view);
@@ -681,18 +687,11 @@ TORRENT_VERSION_NAMESPACE_3
 #endif
 
 		// v2 merkle tree for each file
-		// technically this state belongs in the torrent object, but there are
-		// some practical reasons to keep it in the torrent_info object.
-		// the piece_layers, if present, are parsed out of the .torrent file, and
-		// they are not part of the info-dict. This means they have to be parsed
-		// out and stored in the torrent_info object in order to be preserved when
-		// a torrent is added.
-		// For the merkle trees to be owned by the torrent object, the piece
-		// layers would either have to be stored twice (once in torrent_info and
-		// once in torrent), or they would have to be moved out of torrent_info as
-		// the torrent is added. Storing it twice can use a lot of memory. Moving
-		// it out leaves a "one-time-use" API on torrent_info class.
-		aux::vector<aux::merkle_tree, file_index_t> m_merkle_trees;
+		// start index and length into m_piece_layer_hashes
+		aux::vector<std::pair<int, int>, file_index_t> m_piece_layers;
+
+		// the actual hashes. Is always divisible by 32 (sha256_hash::size())
+		aux::vector<char> m_piece_layer_hashes;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to

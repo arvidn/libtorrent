@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
+#include "libtorrent/span.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -1080,38 +1081,6 @@ namespace {
 	}
 #endif
 
-	aux::vector<aux::merkle_tree, file_index_t>& torrent_info::internal_merkle_trees()
-	{
-		return m_merkle_trees;
-	}
-
-	aux::vector<aux::merkle_tree, file_index_t> const& torrent_info::internal_merkle_trees() const
-	{
-		return m_merkle_trees;
-	}
-
-	void torrent_info::internal_load_merkle_trees(
-		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
-		, aux::vector<std::vector<bool>, file_index_t> mask)
-	{
-		for (file_index_t i{0}; i < orig_files().end_file(); ++i)
-		{
-			if (orig_files().pad_file_at(i) || orig_files().file_size(i) == 0)
-				continue;
-
-			if (i >= trees_import.end_index()) break;
-			if (i < mask.end_index() && !mask[i].empty())
-			{
-				mask[i].resize(m_merkle_trees[i].size(), false);
-				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i]);
-			}
-			else
-			{
-				m_merkle_trees[i].load_tree(trees_import[i]);
-			}
-		}
-	}
-
 	string_view torrent_info::ssl_cert() const
 	{
 		if (!(m_flags & ssl_torrent)) return "";
@@ -1400,20 +1369,6 @@ namespace {
 			TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
 		}
 
-		// set up the merkle_trees and initialize the roots
-		if (m_info_hash.has_v2())
-		{
-			m_merkle_trees.reserve(files.num_files());
-			for (file_index_t i{0}; i < files.end_file(); ++i)
-			{
-				if (files.pad_file_at(i) || files.file_size(i) == 0)
-					m_merkle_trees.emplace_back();
-				else
-					m_merkle_trees.emplace_back(files.file_num_blocks(i)
-						, files.piece_length() / default_block_size, files.root_ptr(i));
-			}
-		}
-
 		m_flags |= (info.dict_find_int_value("private", 0) != 0)
 			? private_torrent : torrent_info_flags_t{};
 
@@ -1487,9 +1442,9 @@ namespace {
 			piece_layers.emplace(sha256_hash(f.first), f.second.string_value());
 		}
 
-		m_merkle_trees.resize(orig_files().num_files());
+		m_piece_layers.resize(orig_files().num_files(), std::make_pair(0, 0));
 
-		for (file_index_t i(0); i != orig_files().end_file(); ++i)
+		for (file_index_t i : orig_files().file_range())
 		{
 			if (orig_files().file_size(i) <= orig_files().piece_length())
 				continue;
@@ -1509,15 +1464,40 @@ namespace {
 				return false;
 			}
 
-			if (!m_merkle_trees[i].load_piece_layer(piece_layer->second))
-			{
+			auto const hashes = piece_layer->second;
+			if ((hashes.size() % sha256_hash::size()) != 0) {
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
+
+			int const start = m_piece_layer_hashes.end_index();
+
+			m_piece_layer_hashes.resize(m_piece_layer_hashes.size() + hashes.size());
+			std::copy(hashes.begin(), hashes.end(), m_piece_layer_hashes.begin() + start);
+			m_piece_layers[i] = std::make_pair(start, int(hashes.size()));
 		}
 
 		m_flags |= v2_has_piece_hashes;
 		return true;
+	}
+
+	span<char const> torrent_info::piece_layer(file_index_t f) const
+	{
+		TORRENT_ASSERT_PRECOND(f >= file_index_t(0));
+		if (f >= m_piece_layers.end_index()) return {};
+		auto const indices = m_piece_layers[f];
+		return {m_piece_layer_hashes.data() + indices.first, indices.second};
+	}
+
+	void torrent_info::free_piece_layers()
+	{
+		m_piece_layers.clear();
+		m_piece_layers.shrink_to_fit();
+
+		m_piece_layer_hashes.clear();
+		m_piece_layer_hashes.shrink_to_fit();
+
+		m_flags &= ~v2_has_piece_hashes;
 	}
 
 	void torrent_info::internal_set_creator(string_view const c)

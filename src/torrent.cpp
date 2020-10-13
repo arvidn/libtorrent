@@ -222,6 +222,7 @@ bool is_downloading_state(int const st)
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
+		, m_v2_piece_layers_validated(false)
 		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
@@ -263,6 +264,9 @@ bool is_downloading_state(int const st)
 
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
+
+		if (m_torrent_file->is_valid())
+			initialize_merkle_trees();
 
 		// --- WEB SEEDS ---
 
@@ -385,7 +389,7 @@ bool is_downloading_state(int const st)
 		if (m_torrent_file->is_valid() && m_torrent_file->info_hashes().has_v2())
 		{
 			if (!p.merkle_trees.empty())
-				m_torrent_file->internal_load_merkle_trees(
+				load_merkle_trees(
 					std::move(p.merkle_trees), std::move(p.merkle_tree_mask));
 
 			// we really don't want to store extra copies of the trees
@@ -406,6 +410,30 @@ bool is_downloading_state(int const st)
 
 		// TODO: 3 we could probably get away with just saving a few fields here
 		m_add_torrent_params = std::make_unique<add_torrent_params>(std::move(p));
+	}
+
+	void torrent::load_merkle_trees(
+		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
+		, aux::vector<std::vector<bool>, file_index_t> mask)
+	{
+		auto const& fs = m_torrent_file->orig_files();
+
+		for (file_index_t i{0}; i < fs.end_file(); ++i)
+		{
+			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
+				continue;
+
+			if (i >= trees_import.end_index()) break;
+			if (i < mask.end_index() && !mask[i].empty())
+			{
+				mask[i].resize(m_merkle_trees[i].size(), false);
+				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i]);
+			}
+			else
+			{
+				m_merkle_trees[i].load_tree(trees_import[i]);
+			}
+		}
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -1190,8 +1218,11 @@ bool is_downloading_state(int const st)
 		//INVARIANT_CHECK;
 
 		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
-			, m_torrent_file->internal_merkle_trees(), std::move(verified)
-			, m_torrent_file->v2_piece_hashes_verified()
+			, m_merkle_trees, std::move(verified)
+			// if we have all the piece layers and the piece size is the same as
+			// the block size, we have all the hashes we need already. This
+			// means "have all hashes".
+			, m_v2_piece_layers_validated
 				&& m_torrent_file->piece_length() == default_block_size));
 	}
 
@@ -6522,7 +6553,7 @@ namespace {
 		if (!m_torrent_file->is_valid()) return {};
 		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
 
-		auto const& f = m_torrent_file->internal_merkle_trees()[req.file];
+		auto const& f = m_merkle_trees[req.file];
 
 		return f.get_hashes(req.base, req.index, req.count, req.proof_layers);
 	}
@@ -6598,6 +6629,14 @@ namespace {
 	{
 		if (!m_torrent_file->is_valid()) return {};
 		return m_torrent_file;
+	}
+
+	std::vector<std::vector<sha256_hash>> torrent::get_piece_layers() const
+	{
+		std::vector<std::vector<sha256_hash>> ret;
+		for (auto const& tree : m_merkle_trees)
+			ret.emplace_back(tree.get_piece_layer());
+		return ret;
 	}
 
 	void torrent::enable_all_trackers()
@@ -6840,8 +6879,8 @@ namespace {
 		if (m_torrent_file->info_hashes().has_v2())
 		{
 			ret.merkle_trees.clear();
-			ret.merkle_trees.reserve(m_torrent_file->internal_merkle_trees().size());
-			for (auto const& t : m_torrent_file->internal_merkle_trees())
+			ret.merkle_trees.reserve(m_merkle_trees.size());
+			for (auto const& t : m_merkle_trees)
 			{
 				// use stuctured binding in C++17
 				aux::vector<bool> mask;
@@ -7229,6 +7268,44 @@ namespace {
 		return peerinfo->connection != nullptr;
 	}
 
+	void torrent::initialize_merkle_trees()
+	{
+		if (!info_hash().has_v2()) return;
+
+		bool valid = m_torrent_file->v2_piece_hashes_verified();
+
+		file_storage const& fs = m_torrent_file->orig_files();
+		m_merkle_trees.reserve(fs.num_files());
+		for (file_index_t i : fs.file_range())
+		{
+			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
+			{
+				m_merkle_trees.emplace_back();
+				continue;
+			}
+			m_merkle_trees.emplace_back(fs.file_num_blocks(i)
+				, fs.piece_length() / default_block_size, fs.root_ptr(i));
+			auto const piece_layer = m_torrent_file->piece_layer(i);
+			if (piece_layer.empty())
+			{
+				valid = false;
+				continue;
+			}
+
+			if (!m_merkle_trees[i].load_piece_layer(piece_layer))
+			{
+				set_error(errors::torrent_invalid_piece_layer
+					, torrent_status::error_file_metadata);
+				valid = false;
+				m_merkle_trees[i] = aux::merkle_tree();
+			}
+		}
+
+		m_v2_piece_layers_validated = valid;
+
+		m_torrent_file->free_piece_layers();
+	}
+
 	bool torrent::set_metadata(span<char const> metadata_buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -7313,6 +7390,8 @@ namespace {
 		m_info_hash = m_torrent_file->info_hashes();
 
 		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
+
+		initialize_merkle_trees();
 
 		update_gauge();
 		update_want_tick();
