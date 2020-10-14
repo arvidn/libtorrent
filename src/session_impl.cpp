@@ -956,7 +956,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all tracker requests");
 #endif
-		m_tracker_manager.abort_all_requests();
+		m_tracker_manager.stop();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all connections (%d)", int(m_connections.size()));

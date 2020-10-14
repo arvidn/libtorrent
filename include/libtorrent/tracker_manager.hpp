@@ -371,6 +371,7 @@ namespace libtorrent {
 			, std::weak_ptr<request_callback> c
 				= std::weak_ptr<request_callback>()) = delete;
 		void abort_all_requests(bool all = false);
+		void stop();
 
 		void remove_request(http_tracker_connection const* c);
 		void remove_request(udp_tracker_connection const* c);
