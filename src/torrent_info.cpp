@@ -1053,6 +1053,9 @@ namespace {
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
 
+	sha256_hash torrent_info::hash2_for_piece(piece_index_t const index) const
+	{ return sha256_hash(hash2_for_piece_ptr(index)); }
+
 	void torrent_info::copy_on_write()
 	{
 		TORRENT_ASSERT(is_loaded());

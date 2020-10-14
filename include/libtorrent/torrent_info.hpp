@@ -493,6 +493,23 @@ TORRENT_VERSION_NAMESPACE_3
 			return &m_info_section[std::ptrdiff_t(m_piece_hashes) + idx * 20];
 		}
 
+		// ``hash2_for_piece()`` takes a piece-index and returns the 32-bytes
+		// sha256-hash for that piece.
+		// ``hash2_for_piece_ptr()`` returns a pointer to the 32 byte sha256 digest
+		// for the piece. Note that the string is not 0-terminated.
+		sha256_hash hash2_for_piece(piece_index_t index) const;
+		char const* hash2_for_piece_ptr(piece_index_t const index) const
+		{
+			TORRENT_ASSERT_PRECOND(index >= piece_index_t(0));
+			TORRENT_ASSERT_PRECOND(index < m_files.end_piece());
+			TORRENT_ASSERT(is_loaded());
+			int const idx = static_cast<int>(index);
+			TORRENT_ASSERT(m_piece_hashes > 0);
+			TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
+			TORRENT_ASSERT(idx < int((m_info_section_size - m_piece_hashes) / 32));
+			return &m_info_section[std::ptrdiff_t(m_piece_hashes) + idx * 32];
+		}
+
 		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #if TORRENT_ABI_VERSION <= 2
