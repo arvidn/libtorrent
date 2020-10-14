@@ -4242,8 +4242,11 @@ namespace {
 		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
 
-		m_stats_counters.set_value(counters::num_unchoke_slots
-			, allowed_upload_slots);
+		if (m_settings.get_int(settings_pack::choking_algorithm) != settings_pack::fixed_slots_choker)
+		{
+			m_stats_counters.set_value(counters::num_unchoke_slots
+				, allowed_upload_slots);
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
