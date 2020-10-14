@@ -111,6 +111,11 @@ namespace
         return bytes(ti.hash_for_piece(i).to_string());
     }
 
+    bytes hash2_for_piece(torrent_info const& ti, piece_index_t i)
+    {
+        return bytes(ti.hash2_for_piece(i).to_string());
+    }
+
 #if TORRENT_ABI_VERSION <= 2
     bytes metadata(torrent_info const& ti)
     {
