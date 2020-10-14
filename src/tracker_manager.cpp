@@ -425,6 +425,12 @@ namespace libtorrent {
 		m_send_fun(sock, ep, p, ec, flags);
 	}
 
+	void tracker_manager::stop()
+	{
+		abort_all_requests();
+		m_abort = true;
+	}
+
 	void tracker_manager::abort_all_requests(bool all)
 	{
 		// this is called from the destructor too, which is not subject to the
@@ -432,7 +438,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(all || is_single_thread());
 		// removes all connections except 'event=stopped'-requests
 
-		m_abort = true;
 		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
