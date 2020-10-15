@@ -818,7 +818,7 @@ string(REPLACE ";" "\n" _find_dependency_calls "${_find_dependency_calls}")
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
 	VERSION ${libtorrent_VERSION}
-	COMPATIBILITY SameMinorVersion
+	COMPATIBILITY AnyNewerVersion
 )
 
 export(EXPORT LibtorrentRasterbarTargets
