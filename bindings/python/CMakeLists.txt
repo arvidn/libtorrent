@@ -87,10 +87,23 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	endif()
 endif()
 
-message(STATUS "Python 3 site packages: ${Python3_SITEARCH}")
+if (python-install-system-dir)
+	set(_PYTHON3_SITE_ARCH "${Python3_SITEARCH}")
+else()
+	execute_process(
+		COMMAND "${Python3_EXECUTABLE}" -c [=[
+import distutils.sysconfig
+print(distutils.sysconfig.get_python_lib(prefix='', plat_specific=True))
+]=]
+		OUTPUT_VARIABLE _PYTHON3_SITE_ARCH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+endif()
+
+message(STATUS "Python 3 site packages: ${_PYTHON3_SITE_ARCH}")
 message(STATUS "Python 3 extension suffix: ${Python3_SOABI}")
 
-install(TARGETS python-libtorrent DESTINATION "${Python3_SITEARCH}")
+install(TARGETS python-libtorrent DESTINATION "${_PYTHON3_SITE_ARCH}")
 
 if (python-egg-info)
 	set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake.in")
@@ -108,5 +121,5 @@ if (python-egg-info)
 
 	add_custom_target(python_bindings ALL DEPENDS ${OUTPUT})
 
-	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent.egg-info" DESTINATION "${Python3_SITEARCH}")
+	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent.egg-info" DESTINATION "${_PYTHON3_SITE_ARCH}")
 endif()
