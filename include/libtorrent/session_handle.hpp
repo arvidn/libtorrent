@@ -806,6 +806,10 @@ namespace libtorrent {
 		static constexpr session_flags_t TORRENT_DEPRECATED_MEMBER start_default_features = 1_bit;
 #endif
 
+		// when set, the session will start paused. Call
+		// session_handle::resume() to start
+		static constexpr session_flags_t paused = 2_bit;
+
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in
 		// the swarm. This operation cannot fail. When it completes, you will

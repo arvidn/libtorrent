@@ -462,7 +462,8 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_service& ios, settings_pack const& pack)
+	session_impl::session_impl(io_service& ios, settings_pack const& pack
+		, session_flags_t const flags)
 		: m_settings(pack)
 		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
@@ -518,6 +519,7 @@ namespace aux {
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_close_file_timer(m_io_service)
+		, m_paused(flags & session::paused)
 	{
 	}
 

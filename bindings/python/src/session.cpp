@@ -888,6 +888,7 @@ void bind_session()
     {
         scope s = class_<dummy10>("session_flags_t");
         s.attr("add_default_plugins") = lt::session::add_default_plugins;
+        s.attr("paused") = lt::session::paused;
 #if TORRENT_ABI_VERSION == 1
         s.attr("start_default_features") = lt::session::start_default_features;
 #endif

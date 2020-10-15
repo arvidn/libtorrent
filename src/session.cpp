@@ -314,7 +314,14 @@ namespace {
 		return params;
 	}
 
+	// This is here for backwards compatibility
 	void session::start(session_params&& params, io_service* ios)
+	{
+		start({}, std::move(params), ios);
+	}
+
+	void session::start(session_flags_t const flags, session_params&& params
+		, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -325,7 +332,7 @@ namespace {
 			ios = m_io_service.get();
 		}
 
-		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios), std::ref(params.settings));
+		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios), std::ref(params.settings), flags);
 		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -378,7 +385,7 @@ namespace {
 
 	void session::start(session_flags_t const flags, settings_pack&& sp, io_service* ios)
 	{
-		start({std::move(sp),
+		start(flags, {std::move(sp),
 			default_plugins(!(flags & add_default_plugins))}, ios);
 	}
 
