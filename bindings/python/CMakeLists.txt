@@ -90,21 +90,23 @@ endif()
 message(STATUS "Python 3 site packages: ${Python3_SITEARCH}")
 message(STATUS "Python 3 extension suffix: ${Python3_SOABI}")
 
-set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake.in")
-set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
-set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
-set(DEPS        python-libtorrent "${SETUP_PY}")
-
-configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
-
-add_custom_command(OUTPUT ${OUTPUT}
-                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build -b "${CMAKE_CURRENT_SOURCE_DIR}"
-                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} egg_info -b "${CMAKE_CURRENT_SOURCE_DIR}"
-                   COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-                   DEPENDS ${DEPS})
-
-add_custom_target(python_bindings ALL DEPENDS ${OUTPUT})
-
-
 install(TARGETS python-libtorrent DESTINATION "${Python3_SITEARCH}")
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent.egg-info" DESTINATION "${Python3_SITEARCH}")
+
+if (python-egg-info)
+	set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake.in")
+	set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
+	set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
+	set(DEPS        python-libtorrent "${SETUP_PY}")
+
+	configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
+
+	add_custom_command(OUTPUT ${OUTPUT}
+	                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build -b "${CMAKE_CURRENT_SOURCE_DIR}"
+	                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} egg_info -b "${CMAKE_CURRENT_SOURCE_DIR}"
+	                   COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
+	                   DEPENDS ${DEPS})
+
+	add_custom_target(python_bindings ALL DEPENDS ${OUTPUT})
+
+	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent.egg-info" DESTINATION "${Python3_SITEARCH}")
+endif()
