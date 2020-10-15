@@ -71,6 +71,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 	constexpr session_flags_t session_handle::start_default_features;
 #endif
+	constexpr session_flags_t session_handle::paused;
 
 	constexpr remove_flags_t session_handle::delete_files;
 	constexpr remove_flags_t session_handle::delete_partfile;
@@ -433,7 +434,7 @@ namespace {
 		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
-		, bool paused
+		, bool add_paused
 		, storage_constructor_type sc)
 	{
 		add_torrent_params p(std::move(sc));
@@ -444,7 +445,7 @@ namespace {
 			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
-		if (paused) p.flags |= add_torrent_params::flag_paused;
+		if (add_paused) p.flags |= add_torrent_params::flag_paused;
 		else p.flags &= ~add_torrent_params::flag_paused;
 		return add_torrent(p);
 	}
@@ -456,7 +457,7 @@ namespace {
 		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
-		, bool paused
+		, bool add_paused
 		, storage_constructor_type sc
 		, void* userdata)
 	{
@@ -468,7 +469,7 @@ namespace {
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
 
-		if (paused) p.flags |= add_torrent_params::flag_paused;
+		if (add_paused) p.flags |= add_torrent_params::flag_paused;
 		else p.flags &= ~add_torrent_params::flag_paused;
 
 		p.userdata = userdata;

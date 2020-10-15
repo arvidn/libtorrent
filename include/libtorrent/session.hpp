@@ -184,14 +184,22 @@ namespace aux {
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
+		// The overloads taking ``flags`` can be used to start a session in
+		// paused mode (by passing in ``session::paused``). Note that
+		// ``add_default_plugins`` do not have an affect on constructors that
+		// take a session_params object. It already contains the plugins to use.
 		explicit session(session_params const& params)
-		{ start(session_params(params), nullptr); }
+		{ start({}, session_params(params), nullptr); }
 		explicit session(session_params&& params)
-		{ start(std::move(params), nullptr); }
+		{ start({}, std::move(params), nullptr); }
+		explicit session(session_params const& params, session_flags_t const flags)
+		{ start(flags, session_params(params), nullptr); }
+		explicit session(session_params&& params, session_flags_t const flags)
+		{ start(flags, std::move(params), nullptr); }
 		session()
 		{
 			session_params params;
-			start(std::move(params), nullptr);
+			start({}, std::move(params), nullptr);
 		}
 
 		// Overload of the constructor that takes an external io_service to run
@@ -208,9 +216,9 @@ namespace aux {
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
 		session(session_params&& params, io_service& ios)
-		{ start(std::move(params), &ios); }
+		{ start({}, std::move(params), &ios); }
 		session(session_params const& params, io_service& ios)
-		{ start(session_params(params), &ios); }
+		{ start({}, session_params(params), &ios); }
 
 		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
@@ -362,7 +370,10 @@ namespace aux {
 
 	private:
 
+		// This is here for backwards compatibility
 		void start(session_params&& params, io_service* ios);
+
+		void start(session_flags_t flags, session_params&& params, io_service* ios);
 		void start(session_flags_t flags, settings_pack&& sp, io_service* ios);
 
 		void start(session_params const& params, io_service* ios) = delete;

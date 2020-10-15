@@ -337,7 +337,7 @@ namespace aux {
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
-			session_impl(io_service& ios, settings_pack const& pack);
+			session_impl(io_service& ios, settings_pack const& pack, session_flags_t);
 			~session_impl() override;
 
 			void start_session();
