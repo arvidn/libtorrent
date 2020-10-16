@@ -153,7 +153,16 @@ install:
   - ccache --show-stats
   - ccache --zero-stats
 
+  # CMake from Kitware is installed in /usr/bin. TravisCI installs its own cmake to another location
+  # which overrides other installations if they don't call the new binary directly
+  # Install and prepend a symlink to the latest version to PATH so that it gets used instead.
   - if [[ "$cmake" == "1" ]]; then
+      wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null;
+      sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main';
+      sudo apt install cmake;
+      sudo mkdir -p /usr/local/cmake-latest/bin;
+      sudo ln -s /usr/bin/cmake /usr/local/cmake-latest/bin/cmake;
+      PATH=/usr/local/cmake-latest/bin:$PATH;
       which cmake;
       cmake --version;
     fi
