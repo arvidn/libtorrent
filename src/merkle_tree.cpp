@@ -65,6 +65,7 @@ namespace aux {
 		merkle_validate_copy(t, m_tree, root());
 
 		optimize_storage();
+		optimize_storage_piece_layer();
 	}
 
 	void merkle_tree::clear()
@@ -407,7 +408,10 @@ namespace {
 			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
 		}
 
-		optimize_storage();
+		// attempting to optimize storage is quite costly, only do it if we have
+		// a reason to believe it might have an effect
+		if (block_index == m_num_blocks - 1 || !m_tree[block_tree_index + 1].is_all_zeros())
+			optimize_storage();
 
 		return std::make_tuple(set_block_result::ok, leafs_start, leafs_size);
 	}
@@ -623,17 +627,22 @@ namespace {
 			return;
 		}
 
-		if (merkle_validate_single_layer(m_tree))
+		int const start = block_layer_start();
+		if (std::none_of(m_tree.begin() + start, m_tree.begin() + start + m_num_blocks
+			, [](sha256_hash const& h) { return h.is_all_zeros(); }))
 		{
-			int const start = block_layer_start();
 			aux::vector<sha256_hash> new_tree(m_tree.begin() + start, m_tree.begin() + start + m_num_blocks);
 
 			m_tree = std::move(new_tree);
 			m_mode = mode_t::block_layer;
 			return;
 		}
+	}
 
-		// TODO: this part is only really useful in load_tree()
+	void merkle_tree::optimize_storage_piece_layer()
+	{
+		if (m_mode != mode_t::full_tree) return;
+
 		// if we have *any* blocks, we can't transition into piece layer mode,
 		// since we would lose those hashes
 		int const piece_layer_size = merkle_num_leafs(num_pieces());

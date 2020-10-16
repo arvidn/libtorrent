@@ -1,3 +1,4 @@
+	* fix performance regression in checking files
 	* disable use of SetFileValidData() by default (windows). A new setting
 	  allows enabling it
 
