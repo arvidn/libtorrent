@@ -1310,10 +1310,17 @@ sections = \
 
 
 def print_toc(out, categories, s):
+
+    main_toc = False
+
     for cat in categories:
         if (s != 2 and cat not in sections) or \
                 (cat in sections and sections[cat] != s):
             continue
+
+        if not main_toc:
+            out.write('.. container:: main-toc\n\n')
+            main_toc = True
 
         print('\t.. rubric:: %s\n' % cat, file=out)
 
@@ -1514,7 +1521,6 @@ reference documentation
 
     for i in range(4):
 
-        out.write('.. container:: main-toc\n\n')
         print_toc(out, categories, i)
 
     out.close()
