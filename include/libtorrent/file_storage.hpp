@@ -220,7 +220,7 @@ namespace libtorrent {
 		file_storage(file_storage const&);
 		file_storage& operator=(file_storage const&);
 		file_storage(file_storage&&) noexcept;
-		file_storage& operator=(file_storage&&) = default;
+		file_storage& operator=(file_storage&&);
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
