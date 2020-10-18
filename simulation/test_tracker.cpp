@@ -62,12 +62,6 @@ bool eq(Tp1 const lhs, Tp2 const rhs)
 	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 1;
 }
 
-template <class T>
-std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
-{
-	return std::make_shared<T>(*ptr);
-}
-
 void test_interval(int interval)
 {
 	using sim::asio::ip::address_v4;

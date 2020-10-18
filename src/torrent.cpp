@@ -260,14 +260,6 @@ bool is_downloading_state(int const st)
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
 
-		// in case we added the torrent via magnet link, make sure to preserve any
-		// DHT nodes passed in on the URI in the torrent file itself
-		if (!m_torrent_file->is_valid())
-		{
-			for (auto const& n : p.dht_nodes)
-				m_torrent_file->add_node(n);
-		}
-
 		// --- WEB SEEDS ---
 
 		// if override web seed flag is set, don't load any web seeds from the
