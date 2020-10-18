@@ -581,6 +581,8 @@ namespace libtorrent {
 
 		// ``metadata()`` returns a the raw info section of the torrent file. The size
 		// of the metadata is returned by ``metadata_size()``.
+		// Even though the bytes returned by ``metadata()`` are not ``const``,
+		// they must not be modified.
 		int metadata_size() const { return m_info_section_size; }
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }

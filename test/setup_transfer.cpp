@@ -691,12 +691,6 @@ int start_proxy(int proxy_type)
 
 using namespace lt;
 
-template <class T>
-std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
-{
-	return std::make_shared<T>(*ptr);
-}
-
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {
 	using namespace lt;
@@ -924,7 +918,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	param.flags &= ~torrent_flags::paused;
 	param.flags &= ~torrent_flags::auto_managed;
 	if (p) param = *p;
-	param.ti = clone_ptr(t);
+	param.ti = t;
 	param.save_path = "tmp1" + suffix;
 	param.flags |= torrent_flags::seed_mode;
 	error_code ec;
@@ -949,7 +943,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 	if (ses3)
 	{
-		param.ti = clone_ptr(t);
+		param.ti = t;
 		param.save_path = "tmp3" + suffix;
 		tor3 = ses3->add_torrent(param, ec);
 		TEST_CHECK(!ses3->get_torrents().empty());
@@ -962,11 +956,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	}
 	else if (torrent2)
 	{
-		param.ti = clone_ptr(*torrent2);
+		param.ti = *torrent2;
 	}
 	else
 	{
-		param.ti = clone_ptr(t);
+		param.ti = t;
 	}
 	param.save_path = "tmp2" + suffix;
 
