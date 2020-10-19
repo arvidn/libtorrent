@@ -459,7 +459,7 @@ constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 432;
 # else
 // internal
 // if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 342;
+constexpr std::size_t TORRENT_READ_HANDLER_MAX_SIZE = 400;
 # endif
 #endif
 
@@ -470,7 +470,7 @@ constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 432;
 # else
 // internal
 // if this is not divisible by 8, we're wasting space
-constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 342;
+constexpr std::size_t TORRENT_WRITE_HANDLER_MAX_SIZE = 400;
 # endif
 #endif
 
