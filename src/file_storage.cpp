@@ -1157,6 +1157,7 @@ namespace {
 		swap(ti.m_total_size, m_total_size);
 		swap(ti.m_num_pieces, m_num_pieces);
 		swap(ti.m_piece_length, m_piece_length);
+		swap(ti.m_v2, m_v2);
 	}
 
 	void file_storage::canonicalize()
