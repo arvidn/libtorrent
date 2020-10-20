@@ -1461,6 +1461,8 @@ namespace {
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
 		m_files.swap(files);
+
+		TORRENT_ASSERT(m_info_hash.has_v2() == m_files.v2());
 		return true;
 	}
 
