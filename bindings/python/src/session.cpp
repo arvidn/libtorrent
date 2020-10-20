@@ -176,18 +176,11 @@ namespace
 	}
 
 	std::shared_ptr<lt::session> make_session(boost::python::dict sett
-#if TORRENT_ABI_VERSION <= 2
-		, session_flags_t flags
-#endif
-	)
+		, session_flags_t const flags)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
-		return std::make_shared<lt::session>(p
-#if TORRENT_ABI_VERSION <= 2
-			, flags
-#endif
-		);
+		return std::make_shared<lt::session>(p, flags);
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
@@ -867,15 +860,16 @@ void bind_session()
         s.attr("delete_files") = lt::session::delete_files;
     }
 
-#if TORRENT_ABI_VERSION <= 2
     {
         scope s = class_<dummy10>("session_flags_t");
+        s.attr("paused") = lt::session::paused;
+#if TORRENT_ABI_VERSION <= 2
         s.attr("add_default_plugins") = lt::session::add_default_plugins;
+#endif
 #if TORRENT_ABI_VERSION == 1
         s.attr("start_default_features") = lt::session::start_default_features;
 #endif
     }
-#endif
 
     {
     scope s = class_<dummy1>("torrent_flags");
@@ -964,11 +958,7 @@ void bind_session()
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
-                , (arg("settings")
-#if TORRENT_ABI_VERSION <= 2
-                , arg("flags")=lt::session::add_default_plugins
-#endif
-                )
+                , (arg("settings"), arg("flags")=lt::session_flags_t{})
               )
         )
 #if TORRENT_ABI_VERSION == 1

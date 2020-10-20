@@ -577,6 +577,11 @@ TORRENT_VERSION_NAMESPACE_3
 		// swap the content of this and ``ti``.
 		TORRENT_DEPRECATED
 		void swap(torrent_info& ti);
+
+		// ``metadata()`` returns a the raw info section of the torrent file. The size
+		// of the metadata is returned by ``metadata_size()``.
+		// Even though the bytes returned by ``metadata()`` are not ``const``,
+		// they must not be modified.
 		TORRENT_DEPRECATED
 		int metadata_size() const { return m_info_section_size; }
 		TORRENT_DEPRECATED

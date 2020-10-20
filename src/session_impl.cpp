@@ -496,7 +496,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif // TORRENT_SSL_PEERS
 
 	session_impl::session_impl(io_context& ioc, settings_pack const& pack
-		, disk_io_constructor_type disk_io_constructor)
+		, disk_io_constructor_type disk_io_constructor
+		, session_flags_t const flags)
 		: m_settings(pack)
 		, m_io_context(ioc)
 #if TORRENT_USE_SSL
@@ -550,6 +551,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		, m_timer(m_io_context)
 		, m_lsd_announce_timer(m_io_context)
 		, m_close_file_timer(m_io_context)
+		, m_paused(flags & session::paused)
 	{
 	}
 
@@ -1050,7 +1052,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all tracker requests");
 #endif
-		m_tracker_manager.abort_all_requests();
+		m_tracker_manager.stop();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all connections (%d)", int(m_connections.size()));
@@ -4345,8 +4347,11 @@ namespace {
 		int const allowed_upload_slots = unchoke_sort(peers
 			, unchoke_interval, m_settings);
 
-		m_stats_counters.set_value(counters::num_unchoke_slots
-			, allowed_upload_slots);
+		if (m_settings.get_int(settings_pack::choking_algorithm) != settings_pack::fixed_slots_choker)
+		{
+			m_stats_counters.set_value(counters::num_unchoke_slots
+				, allowed_upload_slots);
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())

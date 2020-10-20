@@ -79,6 +79,7 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 	constexpr session_flags_t session_handle::start_default_features;
 #endif
+	constexpr session_flags_t session_handle::paused;
 
 	constexpr remove_flags_t session_handle::delete_files;
 	constexpr remove_flags_t session_handle::delete_partfile;
@@ -401,6 +402,11 @@ namespace {
 		params.info_hash = params.info_hashes.get_best();
 #endif
 
+		// the internal torrent object keeps and mutates state in the
+		// torrent_info object. We can't let that leak back to the client
+		if (params.ti)
+			params.ti = std::make_shared<torrent_info>(*params.ti);
+
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(params);
 #endif
@@ -424,6 +430,11 @@ namespace {
 #if TORRENT_ABI_VERSION < 3
 		params.info_hash = params.info_hashes.get_best();
 #endif
+
+		// the internal torrent object keeps and mutates state in the
+		// torrent_info object. We can't let that leak back to the client
+		if (params.ti)
+			params.ti = std::make_shared<torrent_info>(*params.ti);
 
 		ec.clear();
 #if TORRENT_ABI_VERSION == 1
@@ -451,6 +462,11 @@ namespace {
 		params.info_hash = params.info_hashes.get_best();
 #endif
 
+		// the internal torrent object keeps and mutates state in the
+		// torrent_info object. We can't let that leak back to the client
+		if (params.ti)
+			params.ti = std::make_shared<torrent_info>(*params.ti);
+
 		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
 		// pointer for now. async_call uses a lambda expression to post the call
 		// to the main thread
@@ -475,7 +491,7 @@ namespace {
 		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
-		, bool paused)
+		, bool const add_paused)
 	{
 		add_torrent_params p;
 		p.ti = std::make_shared<torrent_info>(ti);
@@ -485,7 +501,7 @@ namespace {
 			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
-		if (paused) p.flags |= add_torrent_params::flag_paused;
+		if (add_paused) p.flags |= add_torrent_params::flag_paused;
 		else p.flags &= ~add_torrent_params::flag_paused;
 		return add_torrent(p);
 	}
@@ -497,7 +513,7 @@ namespace {
 		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
-		, bool paused
+		, bool const add_paused
 		, client_data_t userdata)
 	{
 		TORRENT_ASSERT_PRECOND(!save_path.empty());
@@ -508,7 +524,7 @@ namespace {
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
 
-		if (paused) p.flags |= add_torrent_params::flag_paused;
+		if (add_paused) p.flags |= add_torrent_params::flag_paused;
 		else p.flags &= ~add_torrent_params::flag_paused;
 
 		p.userdata = userdata;

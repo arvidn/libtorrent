@@ -255,7 +255,7 @@ namespace {
 		return set;
 	}
 
-	void session::start(session_params&& params, io_context* ios)
+	void session::start(session_flags_t const flags, session_params&& params, io_context* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -309,7 +309,8 @@ namespace {
 
 		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios)
 			, std::move(params.settings)
-			, std::move(params.disk_io_constructor));
+			, std::move(params.disk_io_constructor)
+			, flags);
 		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -349,12 +350,12 @@ namespace {
 		if (flags & add_default_plugins)
 		{
 			session_params sp_(std::move(sp));
-			start(std::move(sp_), ios);
+			start(flags, std::move(sp_), ios);
 		}
 		else
 		{
 			session_params sp_(std::move(sp), {});
-			start(std::move(sp_), ios);
+			start(flags, std::move(sp_), ios);
 		}
 	}
 #endif
@@ -363,29 +364,50 @@ namespace {
 
 	session::session(session_params const& params)
 	{
-		start(session_params(params), nullptr);
+		start({}, session_params(params), nullptr);
 	}
 
 	session::session(session_params&& params)
 	{
-		start(std::move(params), nullptr);
+		start({}, std::move(params), nullptr);
+	}
+
+	session::session(session_params const& params, session_flags_t const flags)
+	{
+		start(flags, session_params(params), nullptr);
+	}
+
+	session::session(session_params&& params, session_flags_t const flags)
+	{
+		start(flags, std::move(params), nullptr);
 	}
 
 	session::session()
 	{
 		session_params params;
-		start(std::move(params), nullptr);
+		start({}, std::move(params), nullptr);
 	}
 
 	session::session(session_params&& params, io_context& ios)
 	{
-		start(std::move(params), &ios);
+		start({}, std::move(params), &ios);
 	}
 
 	session::session(session_params const& params, io_context& ios)
 	{
-		start(session_params(params), &ios);
+		start({}, session_params(params), &ios);
 	}
+
+	session::session(session_params&& params, io_context& ios, session_flags_t const flags)
+	{
+		start(flags, std::move(params), &ios);
+	}
+
+	session::session(session_params const& params, io_context& ios, session_flags_t const flags)
+	{
+		start(flags, session_params(params), &ios);
+	}
+
 
 #if TORRENT_ABI_VERSION <= 2
 	session::session(settings_pack&& pack, session_flags_t const flags)
