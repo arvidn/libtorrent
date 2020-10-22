@@ -712,9 +712,9 @@ namespace {
 		if (!m_multifile)
 		{
 			file_index_t const first(0);
-			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 			if (make_v1)
 			{
+				if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 				info["length"] = m_files.file_size(first);
 				file_flags_t const flags = m_files.file_flags(first);
 				if (flags & (file_storage::flag_pad_file
@@ -750,6 +750,7 @@ namespace {
 				auto& tree_file = info["file tree"][m_files.name()].dict()[{}];
 				tree_file["length"] = m_files.file_size(first);
 				tree_file["pieces root"] = m_fileroots[first];
+				if (m_include_mtime) tree_file["mtime"] = m_files.mtime(first);
 			}
 		}
 		else
