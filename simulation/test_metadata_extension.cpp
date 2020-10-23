@@ -95,15 +95,19 @@ void run_metadata_test(int flags)
 		default_add_torrent.flags |= torrent_flags::upload_mode;
 	}
 
+	std::shared_ptr<lt::torrent_info> ti;
+
 	setup_swarm(2, (flags & reverse) ? swarm_test::upload : swarm_test::download
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {
+		, [&ti](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
 			error_code ec;
+			ti = params.ti;
+			params.ti.reset();
 			add_torrent_params const p = parse_magnet_uri(
-				lt::make_magnet_uri(*params.ti), ec);
+				lt::make_magnet_uri(*ti), ec);
 			TEST_CHECK(!ec);
 			params.name = p.name;
 			params.trackers = p.trackers;
@@ -114,7 +118,6 @@ void run_metadata_test(int flags)
 #ifndef TORRENT_DISABLE_DHT
 			params.dht_nodes = p.dht_nodes;
 #endif
-			params.ti.reset();
 			params.flags &= ~torrent_flags::upload_mode;
 		}
 		// on alert
@@ -123,9 +126,6 @@ void run_metadata_test(int flags)
 			if (alert_cast<metadata_received_alert>(a))
 			{
 				metadata_alerts += 1;
-
-				auto ti = std::make_shared<torrent_info>(
-					*ses.get_torrents()[0].torrent_file());
 
 				if (flags & disconnect)
 				{

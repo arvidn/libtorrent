@@ -468,10 +468,7 @@ void bind_converters()
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>>();
     to_python_converter<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>, map_to_dict<lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>>();
     to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<std::map<lt::file_index_t, std::string>>>();
-
-#if TORRENT_ABI_VERSION <= 2
     to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
-#endif
 
 #if TORRENT_ABI_VERSION == 1
     to_python_converter<std::vector<char>, vector_to_list<std::vector<char>>>();
@@ -529,8 +526,5 @@ void bind_converters()
     to_bitfield_flag<lt::pex_flags_t>();
     to_bitfield_flag<lt::reannounce_flags_t>();
     to_string_view();
-
-#if TORRENT_ABI_VERSION <= 2
     to_bitfield_flag<lt::session_flags_t>();
-#endif
 }

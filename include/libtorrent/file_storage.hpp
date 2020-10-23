@@ -101,11 +101,6 @@ namespace aux {
 	struct file_entry
 	{
 		friend class ::lt::file_storage;
-#if TORRENT_USE_INVARIANT_CHECKS
-		// for torrent_info::invariant_check
-//		friend class ::lt::torrent_info;
-#endif
-
 		file_entry();
 		file_entry(file_entry const& fe);
 		file_entry& operator=(file_entry const& fe) &;
@@ -200,7 +195,6 @@ namespace aux {
 	// file structure.
 	class TORRENT_EXPORT file_storage
 	{
-	friend class torrent_info;
 	public:
 		// hidden
 		file_storage();
@@ -209,7 +203,7 @@ namespace aux {
 		file_storage(file_storage const&);
 		file_storage& operator=(file_storage const&) &;
 		file_storage(file_storage&&) noexcept;
-		file_storage& operator=(file_storage&&) & = default;
+		file_storage& operator=(file_storage&&) &;
 
 		// internal limitations restrict file sizes to not be larger than this
 		static constexpr std::int64_t max_file_size = (std::int64_t(1) << 48) - 1;
@@ -585,6 +579,8 @@ namespace aux {
 		// are updated to point to themselves.
 		void sanitize_symlinks();
 
+		// internal
+		bool v2() const { return m_v2; }
 	private:
 
 		std::string internal_file_path(file_index_t index) const;

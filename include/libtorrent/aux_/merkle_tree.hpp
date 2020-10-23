@@ -108,6 +108,7 @@ private:
 	int num_leafs() const;
 
 	void optimize_storage();
+	void optimize_storage_piece_layer();
 	void allocate_full();
 
 	// a pointer to the root hash for this file.

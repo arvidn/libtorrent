@@ -830,8 +830,18 @@ namespace aux {
 		// If the torrent doesn't have metadata, the pointer will not be
 		// initialized (i.e. a nullptr). The torrent may be in a state
 		// without metadata only if it was started without a .torrent file, e.g.
-		// by being added by magnet link
+		// by being added by magnet link.
+		// Note that the torrent_info object returned here may be a different
+		// instance than the one added to the session, with different attributes
+		// like piece layers, dht nodes and trackers. A torrent_info object does
+		// not round-trip cleanly when added to a session.
 		std::shared_ptr<const torrent_info> torrent_file() const;
+
+		// returns the piece layers for all files in the torrent. If this is a
+		// v1 torrent (and doesn't have any piece layers) it returns an empty
+		// vector. This is a blocking call that will synchronize with the
+		// libtorrent network thread.
+		std::vector<std::vector<sha256_hash>> piece_layers() const;
 
 #if TORRENT_ABI_VERSION == 1
 

@@ -179,7 +179,7 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 	rst2pdf $< -o $@ --stylesheets stylesheet
 
 %.html:%.rst template.txt template2.txt
-	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
+	$(RST2HTML) --title=libtorrent --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
 
 %.png:%.dot
 	dot -Tpng $< >$@ || { rm $@; exit 1; }
@@ -195,7 +195,7 @@ include/libtorrent/%.hpp: ../include/libtorrent/%.hpp
 
 $(WEB_PATH)/%.html:%.rst template.txt template2.txt
 	mkdir -p $(WEB_PATH) >/dev/null
-	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
+	$(RST2HTML) ---title=libtorrent -exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $< > $@ || { rm $@; exit 1; }
 
 $(WEB_PATH)/img/%.png: img/%.png
 	mkdir -p $(WEB_PATH)/img >/dev/null

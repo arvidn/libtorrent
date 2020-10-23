@@ -334,7 +334,7 @@ namespace aux {
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 
-			session_impl(io_context&, settings_pack const&, disk_io_constructor_type);
+			session_impl(io_context&, settings_pack const&, disk_io_constructor_type, session_flags_t);
 			~session_impl() override;
 
 			session_impl(session_impl const&) = delete;

@@ -666,6 +666,12 @@ namespace libtorrent {
 			std::shared_ptr<const torrent_info>(), &aux::torrent::get_torrent_copy);
 	}
 
+	std::vector<std::vector<sha256_hash>> torrent_handle::piece_layers() const
+	{
+		return sync_call_ret<std::vector<std::vector<sha256_hash>>>({}
+			, &aux::torrent::get_piece_layers);
+	}
+
 #if TORRENT_ABI_VERSION == 1
 	// this function should either be removed, or return
 	// reference counted handle to the torrent_info which

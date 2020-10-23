@@ -51,6 +51,7 @@ namespace libtorrent {
 	file_storage::file_storage(file_storage const&) = default;
 	file_storage& file_storage::operator=(file_storage const&) & = default;
 	file_storage::file_storage(file_storage&&) noexcept = default;
+	file_storage& file_storage::operator=(file_storage&&) & = default;
 
 	void file_storage::reserve(int num_files)
 	{
@@ -1117,6 +1118,7 @@ namespace {
 		swap(ti.m_total_size, m_total_size);
 		swap(ti.m_num_pieces, m_num_pieces);
 		swap(ti.m_piece_length, m_piece_length);
+		swap(ti.m_v2, m_v2);
 	}
 
 	void file_storage::canonicalize()

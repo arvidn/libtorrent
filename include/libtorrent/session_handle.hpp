@@ -40,6 +40,7 @@ see LICENSE file.
 #endif
 
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/session_types.hpp" // for session_flags_t
 
 namespace libtorrent {
 
@@ -774,6 +775,10 @@ namespace aux { struct torrent; }
 		// and NAT-PMP.
 		TORRENT_DEPRECATED static inline constexpr session_flags_t start_default_features = 1_bit;
 #endif
+
+		// when set, the session will start paused. Call
+		// session_handle::resume() to start
+		static inline constexpr session_flags_t paused = 2_bit;
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in
