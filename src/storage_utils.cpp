@@ -498,7 +498,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 #ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
 		TORRENT_UNUSED(links);
 #else
-		// TODO: this should probably be moved to default_storage::initialize
+		bool added_files = false;
 		if (!links.empty())
 		{
 			TORRENT_ASSERT(int(links.size()) == fs.num_files());
@@ -517,18 +517,39 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 				error_code err;
 				std::string file_path = fs.file_path(idx, save_path);
 				hard_link(s, file_path, err);
+				if (err == boost::system::errc::no_such_file_or_directory)
+				{
+					// we create directories lazily, so it's possible it hasn't
+					// been created yet. Create the directories now and try
+					// again
+					create_directories(parent_path(file_path), err);
+
+					if (err)
+					{
+						ec.file(idx);
+						ec.operation = operation_t::mkdir;
+						return false;
+					}
+
+					hard_link(s, file_path, err);
+				}
 
 				// if the file already exists, that's not an error
+				if (err == boost::system::errc::file_exists)
+					continue;
+
 				// TODO: 2 is this risky? The upper layer will assume we have the
 				// whole file. Perhaps we should verify that at least the size
 				// of the file is correct
-				if (!err || err == boost::system::errc::file_exists)
-					continue;
-
-				ec.ec = err;
-				ec.file(idx);
-				ec.operation = operation_t::file_hard_link;
-				return false;
+				if (err)
+				{
+					ec.ec = err;
+					ec.file(idx);
+					ec.operation = operation_t::file_hard_link;
+					return false;
+				}
+				added_files = true;
+				stat.set_dirty(idx);
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -565,6 +586,10 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			}
 			return true;
 		}
+
+		// always trigger a full recheck when we pull in files from other
+		// torrents, via hard links
+		if (added_files) return false;
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist

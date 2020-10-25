@@ -1,4 +1,5 @@
 
+	* fix bugs in mutable-torrent support (reusing identical files from different torrents)
 	* fix incorrectly inlined move-assignment of file_storage
 	* add session::paused flag, and the ability to construct a session in paused mode
 	* fix session-pause causing tracker announces to fail
