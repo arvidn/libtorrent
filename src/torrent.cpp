@@ -2016,11 +2016,12 @@ bool is_downloading_state(int const st)
 			std::vector<resolve_links::link_t> const& l = res.get_links();
 			if (!l.empty())
 			{
+				links.resize(m_torrent_file->files().num_files());
 				for (auto const& i : l)
 				{
 					if (!i.ti) continue;
-					links.push_back(combine_path(i.save_path
-						, i.ti->files().file_path(i.file_idx)));
+					links[i.file_idx] = combine_path(i.save_path
+						, i.ti->files().file_path(i.file_idx));
 				}
 			}
 		}
