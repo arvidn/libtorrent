@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/session.hpp"
+
+#include "make_torrent.hpp"
+#include "setup_transfer.hpp" // for wait_for_seeding
 
 #include <functional>
 
@@ -170,6 +174,50 @@ TORRENT_TEST(range_lookup_duplicated_files)
 		, std::bind(&resolve_links::link_t::ti, _1));
 
 	TEST_EQUAL(num_matches, 1);
+}
+
+TORRENT_TEST(pick_up_existing_file)
+{
+	lt::settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, 0xffffff);
+	lt::session ses(pack);
+
+	auto a = torrent_args()
+		.file("34092,name=cruft-1")
+		.file("31444,padfile")
+		.file("9000000,name=dupliicate-file")
+		.file("437184,padfile")
+		.file("1348,name=cruft-2")
+		.name("test-1")
+		.collection("test-collection");
+	auto seeding_torrent = make_test_torrent(a);
+	generate_files(*seeding_torrent, ".");
+
+	lt::add_torrent_params atp;
+	atp.ti = seeding_torrent;
+	atp.save_path = ".";
+	ses.add_torrent(atp);
+
+	wait_for_seeding(ses, "add-seed");
+
+	auto b = torrent_args()
+		.file("52346,name=cruft-3")
+		.file("13190,padfile")
+		.file("9000000,name=dupliicate-file-with-different-name")
+		.file("437184,padfile")
+		.file("40346,name=cruft-4")
+		.name("test-2")
+		.collection("test-collection");
+	auto downloading_torrent = make_test_torrent(b);
+
+	atp.ti = downloading_torrent;
+	auto handle = ses.add_torrent(atp);
+
+	wait_for_downloading(ses, "add-downloader");
+
+	std::vector<std::int64_t> file_progress;
+	handle.file_progress(file_progress);
+	TEST_CHECK(file_progress[2] == 9000000);
 }
 
 #else

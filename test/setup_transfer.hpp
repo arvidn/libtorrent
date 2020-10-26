@@ -81,6 +81,7 @@ EXPORT bool print_alerts(lt::session& ses, char const* name
 
 EXPORT void wait_for_listen(lt::session& ses, char const* name);
 EXPORT void wait_for_downloading(lt::session& ses, char const* name);
+EXPORT void wait_for_seeding(lt::session& ses, char const* name);
 
 EXPORT std::vector<char> generate_piece(lt::piece_index_t idx, int piece_size = 0x4000);
 EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
