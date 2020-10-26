@@ -316,16 +316,11 @@ struct wrap_allocator_t
 		m_handler(std::forward<A>(a)..., std::move(m_underlying_handler));
 	}
 
-	// rebind the underlying allocator to this wrapped type, since we need to use
-	// it to allocate a larger handler context/closure.
-	using allocator_type = typename std::allocator_traits<
-		typename boost::asio::associated_allocator<UnderlyingHandler>::type>::
-			template rebind_alloc<wrap_allocator_t>;
-
+	using allocator_type = typename boost::asio::associated_allocator<UnderlyingHandler>::type;
 	using executor_type = typename boost::asio::associated_executor<UnderlyingHandler>::type;
 
 	allocator_type get_allocator() const noexcept
-	{ return allocator_type{boost::asio::get_associated_allocator(m_underlying_handler)}; }
+	{ return boost::asio::get_associated_allocator(m_underlying_handler); }
 
 	executor_type get_executor() const noexcept
 	{
