@@ -121,6 +121,12 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 		e["httpseeds"] = args.m_http_seed;
 	}
 
+	if (!args.m_collection.empty())
+	{
+		auto& l = info["collections"].list();
+		l.push_back(args.m_collection);
+	}
+
 	std::string piece_hashes;
 
 	int num_pieces = (total_size + piece_length - 1) / piece_length;
@@ -154,8 +160,7 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 	info["pieces"] = piece_hashes;
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-	bencode(out, e);
+	bencode(std::back_inserter(tmp), e);
 
 	FILE* f = fopen("test.torrent", "w+");
 	fwrite(&tmp[0], 1, tmp.size(), f);

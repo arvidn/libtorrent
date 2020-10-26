@@ -293,8 +293,6 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 		create_directories(combine_path(save_path, "torrent_dir"), ec);
 
-		torrent_args args;
-
 		// test case 1
 		test_cases.push_back(torrent_args().file("0").file("5,padfile").file("11")
 			.file("16000").file("368,padfile")

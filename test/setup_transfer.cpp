@@ -388,12 +388,37 @@ void wait_for_downloading(lt::session& ses, char const* name)
 			}, false);
 		if (downloading_done) break;
 		if (total_seconds(clock_type::now() - start) > 10) break;
-		a = ses.wait_for_alert(seconds(2));
+		a = ses.wait_for_alert(seconds(5));
 	} while (a);
 	if (!downloading_done)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
 			"the torrent is downloading. waited: %d ms\n"
+			, name, int(total_milliseconds(clock_type::now() - start)));
+	}
+}
+
+void wait_for_seeding(lt::session& ses, char const* name)
+{
+	time_point start = clock_type::now();
+	bool seeding = false;
+	alert const* a = nullptr;
+	do
+	{
+		seeding = print_alerts(ses, name, true, true
+			, [](lt::alert const* al)
+			{
+				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+				return sc && sc->state == torrent_status::seeding;
+			}, false);
+		if (seeding) break;
+		if (total_seconds(clock_type::now() - start) > 10) break;
+		a = ses.wait_for_alert(seconds(5));
+	} while (a);
+	if (!seeding)
+	{
+		std::printf("%s: did not receive a state_changed_alert indicating "
+			"the torrent is seeding. waited: %d ms\n"
 			, name, int(total_milliseconds(clock_type::now() - start)));
 	}
 }
