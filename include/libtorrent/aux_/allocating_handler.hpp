@@ -285,7 +285,7 @@ namespace libtorrent { namespace aux {
 #endif
 		}
 
-		using allocator_type = handler_allocator<allocating_handler<Handler, Size, Name>, Size, Name>;
+		using allocator_type = handler_allocator<int, Size, Name>;
 
 		allocator_type get_allocator() const noexcept
 		{ return allocator_type{storage}; }
