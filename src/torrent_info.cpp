@@ -551,31 +551,7 @@ namespace {
 	{
 	}
 
-	torrent_info::torrent_info(torrent_info const& t)
-		: m_files(t.m_files)
-		, m_orig_files(t.m_orig_files)
-		, m_urls(t.m_urls)
-		, m_web_seeds(t.m_web_seeds)
-		, m_nodes(t.m_nodes)
-		, m_merkle_tree(t.m_merkle_tree)
-		, m_info_section(t.m_info_section)
-		, m_piece_hashes(t.m_piece_hashes)
-		, m_comment(t.m_comment)
-		, m_created_by(t.m_created_by)
-		, m_creation_date(t.m_creation_date)
-		, m_info_hash(t.m_info_hash)
-		, m_info_section_size(t.m_info_section_size)
-		, m_merkle_first_leaf(t.m_merkle_first_leaf)
-		, m_flags(t.m_flags)
-	{
-#if TORRENT_USE_INVARIANT_CHECKS
-		t.check_invariant();
-#endif
-		if (m_info_section_size == 0) return;
-		TORRENT_ASSERT(m_piece_hashes);
-		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-	}
+	torrent_info::torrent_info(torrent_info const& t) = default;
 
 	void torrent_info::resolve_duplicate_filenames()
 	{
