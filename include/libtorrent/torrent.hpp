@@ -1620,16 +1620,10 @@ namespace libtorrent {
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// 3 unused bits
+		// 4 unused bits
 
 		// when this is true, this torrent supports peer exchange
 		bool m_enable_pex:1;
-
-		// this is set to true if the torrent was started without
-		// metadata. It is used to save metadata in the resume file
-		// by default for such torrents. It does not necessarily
-		// have to be a magnet link.
-		bool m_magnet_link:1;
 
 		// set to true if the session IP filter applies to this
 		// torrent or not. Defaults to true.
