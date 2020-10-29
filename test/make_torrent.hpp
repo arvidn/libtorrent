@@ -51,12 +51,14 @@ struct torrent_args
 	torrent_args& url_seed(char const* u) { m_url_seed = u; return *this; }
 	torrent_args& http_seed(char const* u) { m_http_seed = u; return *this; }
 	torrent_args& priv() { m_priv = true; return *this; }
+	torrent_args& collection(std::string c) { m_collection = c; return *this; }
 
 	bool m_priv;
 	std::string m_name;
 	std::vector<std::string> m_files;
 	std::string m_url_seed;
 	std::string m_http_seed;
+	std::string m_collection;
 };
 
 EXPORT std::shared_ptr<lt::torrent_info>

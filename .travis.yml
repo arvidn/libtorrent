@@ -94,7 +94,8 @@ before_install:
       sysctl hw.ncpu;
     fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-      travis_retry brew install ccache boost-build boost-python3;
+      travis_retry brew install ccache boost-build boost-python3 "python@3.9" ;
+      export PYTHON_INCLUDE=`echo /usr/local/Cellar/python@3.9/*/Frameworks/Python.framework/Versions/3.9/include/python3.9` ;
     fi'
   # we have to use python from brew rather than the system provided python
   # because of OSX System Integrity Protection, which prevents injecting
@@ -154,10 +155,10 @@ install:
        <linkflags>\"-arch armv7\"
        <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
     fi'
-  - 'echo "using python : : $(which python3) : /usr/local/Frameworks/Python.framework/Headers : : <target-os>darwin ;" >> ~/user-config.jam'
+  - 'echo "using python : 3.9 : /usr/local/opt/python@3.9/bin/python3 : $(PYTHON_INCLUDE) : /usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin : <target-os>darwin ;" >> ~/user-config.jam'
   - 'echo "using python : : $(which python3) : : : <target-os>linux ;" >> ~/user-config.jam'
-  - cat ~/user-config.jam
   - if [ "$docs" == "1" ]; then rst2html --version; fi
+
   - 'if [ "$pylint" == "1" ]; then
       sudo pip3 install flake8;
       python3 -m flake8 --version;

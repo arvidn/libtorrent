@@ -77,16 +77,20 @@ else
 		<include>/usr/sfw/include
 	;
 
-	# the names are decorated in brew
-	lib boost_python : : <target-os>darwin <name>boost_python27-mt
-		: : $(boost-include-path) ;
-	lib boost_python3 : : <target-os>darwin <name>boost_python38-mt
-		: : $(boost-include-path) ;
+	rule boost_python_version ( name : type ? : properties * )
+	{
+		local py-version = [ $(properties).get <python> ] ;
+		local boost-python-lib = "boost_python" [ SPLIT_BY_CHARACTERS $(py-version) : "." ] ;
 
-	lib boost_python : : <name>boost_python
-		: : $(boost-include-path) ;
-	lib boost_python3 : : <name>boost_python38
-		: : $(boost-include-path) ;
+		if $(type) in SEARCHED_LIB
+		{
+			return $(boost-python-lib:J) ;
+		}
+		return ;
+	}
+
+	lib boost_python : : <tag>@boost_python_version : : $(boost-include-path) ;
+	alias boost_python3 : boost_python ;
 }
 
 
