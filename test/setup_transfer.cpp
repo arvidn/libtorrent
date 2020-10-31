@@ -66,6 +66,12 @@ using namespace lt;
 #include <conio.h>
 #endif
 
+#if defined TORRENT_WINDOWS
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
 std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const with_hashes)
 {
 	if (with_files)
@@ -677,25 +683,25 @@ int start_proxy(int proxy_type)
 		case settings_pack::socks4:
 			type = "socks4";
 			auth = " --allow-v4";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::socks5:
 			type = "socks5";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::socks5_pw:
 			type = "socks5";
 			auth = " --username testuser --password testpass";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::http:
 			type = "http";
-			cmd = "../http_proxy.py";
+			cmd = ".." SEPARATOR "http_proxy.py";
 			break;
 		case settings_pack::http_pw:
 			type = "http";
 			auth = " --basic-auth testuser:testpass";
-			cmd = "../http_proxy.py";
+			cmd = ".." SEPARATOR "http_proxy.py";
 			break;
 	}
 	std::string python_exe = get_python();
@@ -1073,7 +1079,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 	std::string python_exe = get_python();
 
 	char buf[200];
-	std::snprintf(buf, sizeof(buf), "%s ../web_server.py %d %d %d %d %d"
+	std::snprintf(buf, sizeof(buf), "%s .." SEPARATOR "web_server.py %d %d %d %d %d"
 		, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
 
 	std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
