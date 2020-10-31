@@ -99,7 +99,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on win-tests
+    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
