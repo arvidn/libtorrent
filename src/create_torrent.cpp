@@ -595,7 +595,8 @@ namespace {
 			{
 				entry& sympath_e = info["symlink path"];
 
-				for (auto elems = lsplit_path(m_files.symlink(first)); !elems.first.empty();
+				std::string const link = lexically_relative("", m_files.internal_symlink(first));
+				for (auto elems = lsplit_path(link); !elems.first.empty();
 					elems = lsplit_path(elems.second))
 					sympath_e.list().emplace_back(elems.first);
 			}
@@ -645,7 +646,8 @@ namespace {
 					{
 						entry& sympath_e = file_e["symlink path"];
 
-						for (auto elems = lsplit_path(m_files.symlink(i)); !elems.first.empty();
+						std::string const link = lexically_relative("", m_files.internal_symlink(i));
+						for (auto elems = lsplit_path(link); !elems.first.empty();
 							elems = lsplit_path(elems.second))
 							sympath_e.list().emplace_back(elems.first);
 					}

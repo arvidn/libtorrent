@@ -680,6 +680,15 @@ namespace {
 		return ret;
 	}
 
+	std::string const& file_storage::internal_symlink(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		internal_file_entry const& fe = m_files[index];
+		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
+
+		return m_symlinks[fe.symlink_index];
+	}
+
 	std::time_t file_storage::mtime(file_index_t const index) const
 	{
 		if (index >= m_mtime.end_index()) return 0;

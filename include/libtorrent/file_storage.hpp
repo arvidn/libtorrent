@@ -564,6 +564,10 @@ namespace libtorrent {
 		// are updated to point to themselves.
 		void sanitize_symlinks();
 
+		// internal
+		// this is an optimization for create_torrent
+		std::string const& internal_symlink(file_index_t index) const;
+
 	private:
 
 		std::string internal_file_path(file_index_t index) const;
