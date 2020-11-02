@@ -1,3 +1,4 @@
+	* add function to ask a file_storage whether it's v2 or not
 	* fix mtime field when creating single-file v2 torrents
 	* fix performance regression in checking files
 	* disable use of SetFileValidData() by default (windows). A new setting
