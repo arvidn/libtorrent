@@ -78,6 +78,17 @@ This will produce a ``libtorrent`` python module in the current directory (file
 name extension depends on operating system). The libraries the python module depends
 on will be copied into ``./dependencies``.
 
+python version
+==============
+
+If you have multiple versions of python installed, and configured in
+``user-config.jam``, you can specify which version to build the module against
+with the ``python`` feature.
+
+e.g.::
+
+	b2 python=3.9
+
 static linking
 ==============
 
@@ -88,6 +99,8 @@ Instead, control whether the libtorrent main library or boost is linked
 statically with ``libtorrent-link=static`` and ``boost-link=static``
 respectively.
 
+By default both are built and linked as shared libraries.
+
 Building and linking boost as static library is only possibly by building it
 from source. Specify the ``BOOST_ROOT`` environment variable to point to the
 root directory of the boost source distribution.
@@ -95,6 +108,28 @@ root directory of the boost source distribution.
 For example, to build a self-contained python module::
 
 	b2 -j30 libtorrent-link=static boost-link=static stage_module
+
+installing python module
+========================
+
+To install the python module, build it with the following command::
+
+	b2 install_module
+
+By default the module will be installed to the python user site. This can be
+changed with the ``python-install-scope`` feature. The valid values are ``user``
+(default) and ``system``. e.g.::
+
+	b2 install_module python-install-scope=system
+
+The python interpreter and the python site used, depends on your python
+configuration in ``user-config.jam`` and which version of python the module is
+being built for.
+
+To specify a custom installation path for the python module, specify the desired
+path with the ``python-install-path`` feature. e.g.::
+
+	b2 install_module python-install-path=/home/foobar/python-site/
 
 using libtorrent in python
 ==========================
