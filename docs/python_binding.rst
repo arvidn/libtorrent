@@ -96,6 +96,16 @@ For example, to build a self-contained python module::
 
 	b2 -j30 libtorrent-link=static boost-link=static stage_module
 
+installing python module
+========================
+
+To install the python module, build it with the following command::
+
+	b2 install_module
+
+The install path will be determined by the output from
+``python -c "import sys; print(sys.path[4])"``.
+
 using libtorrent in python
 ==========================
 

@@ -232,6 +232,18 @@ my-python-extension libtorrent
 	<suppress-import-lib>false
 	;
 
+rule python-install-dir ( properties * )
+{
+	local python_path = [ SHELL "python -c \"import sys; print(sys.path[4])\"" ] ;
+	return <location>$(python_path) ;
+}
+
+install install_module
+	: libtorrent
+	: <conditional>@python-install-dir
+	<install-type>PYTHON_EXTENSION
+	;
+
 install stage_module
 	: libtorrent
 	: <location>.
