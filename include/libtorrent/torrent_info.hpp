@@ -687,11 +687,8 @@ TORRENT_VERSION_NAMESPACE_3
 #endif
 
 		// v2 merkle tree for each file
-		// start index and length into m_piece_layer_hashes
-		aux::vector<std::pair<int, int>, file_index_t> m_piece_layers;
-
-		// the actual hashes. Is always divisible by 32 (sha256_hash::size())
-		aux::vector<char> m_piece_layer_hashes;
+		// the actual hash buffers are always divisible by 32 (sha256_hash::size())
+		aux::vector<aux::vector<char>, file_index_t> m_piece_layers;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
