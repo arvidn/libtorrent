@@ -269,19 +269,11 @@ rule python-install-dir-system ( properties * )
     
     if [ on $(<) return $(python_path_set) ]
     {
-        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1], end = '')\"" ] ;   
+        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1], end = '')\"" ] ; 
     }
     else
     {
-        if $(python_v) = 2
-        {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[5], end = '')\"" ] ;
-        }
-        
-        if $(python_v) = 3
-        {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[3], end = '')\"" ] ;
-        } 
+        python_path = [ SHELL "python$(python_v) -c \"import sysconfig; print(sysconfig.get_config_var('DESTSHARED'), end = '')\"" ] ;
     }
 	return <location>$(python_path) ;
 }
