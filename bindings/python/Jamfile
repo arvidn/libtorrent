@@ -243,6 +243,8 @@ rule python-install-dir-custom ( properties * )
         Echo "Warning: The PYTHON_LIB_PATH cannot be empty when used with install_module_custom" ;
         Echo ;
         Echo "Make sure you set this variable: export PYTHON_LIB_PATH=\"/path/to/install\"" ;
+        Echo ;
+        Echo "If you use a relative path like 'path/to/lib' this path will become 'bindings/python/path/to/lib'" ;
         Exit ;
     }
 	return <location>$(python_path) ;
@@ -253,7 +255,7 @@ rule python-install-dir-local ( properties * )
     local pythons_versions = [ feature.values python ] ;
     local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
     local python_v = $(split_python_versions[1]) ;
-    local python_path = [ SHELL "python$(python_v) -m site --user-site | tr -d '\n'" ] ;
+    local python_path = [ SHELL "python$(python_v) -c \"import site; print(site.USER_SITE, end = '')\"" ] ;
     
 	return <location>$(python_path) ;
 }
@@ -267,18 +269,18 @@ rule python-install-dir-system ( properties * )
     
     if [ on $(<) return $(python_path_set) ]
     {
-        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1])\" | tr -d '\n'" ] ;
+        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1], end = '')\"" ] ;   
     }
     else
     {
         if $(python_v) = 2
         {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[5])\" | tr -d '\n'" ] ;
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[5], end = '')\"" ] ;
         }
         
         if $(python_v) = 3
         {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[3])\" | tr -d '\n'" ] ;
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[3], end = '')\"" ] ;
         } 
     }
 	return <location>$(python_path) ;
