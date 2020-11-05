@@ -253,7 +253,7 @@ rule python-install-dir-local ( properties * )
     local pythons_versions = [ feature.values python ] ;
     local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
     local python_v = $(split_python_versions[1]) ;
-    local python_path = [ SHELL "python$(python_v) -m site --user-site" ] ;
+    local python_path = [ SHELL "python$(python_v) -m site --user-site | tr -d '\n'" ] ;
     
 	return <location>$(python_path) ;
 }
@@ -267,18 +267,18 @@ rule python-install-dir-system ( properties * )
     
     if [ on $(<) return $(python_path_set) ]
     {
-        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1])\"" ] ;
+        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1])\" | tr -d '\n'" ] ;
     }
     else
     {
         if $(python_v) = 2
         {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[6])\"" ] ;
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[5])\" | tr -d '\n'" ] ;
         }
         
         if $(python_v) = 3
         {
-            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[4])\"" ] ;
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[3])\" | tr -d '\n'" ] ;
         } 
     }
 	return <location>$(python_path) ;
