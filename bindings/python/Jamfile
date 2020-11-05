@@ -5,6 +5,7 @@ import project ;
 import targets ;
 import "class" : new ;
 import modules ;
+import os ;
 
 use-project /torrent : ../.. ;
 
@@ -232,15 +233,72 @@ my-python-extension libtorrent
 	<suppress-import-lib>false
 	;
 
-rule python-install-dir ( properties * )
+rule python-install-dir-custom ( properties * )
 {
-	local python_path = [ SHELL "python -c \"import sys; print(sys.path[4])\"" ] ;
+    local python_path = [ os.environ PYTHON_LIB_PATH ] ;
+    
+    if ! [ on $(<) return $(python_path) ] 
+    {
+        Echo ;
+        Echo "Warning: The PYTHON_LIB_PATH cannot be empty when used with install_module_custom" ;
+        Echo ;
+        Echo "Make sure you set this variable: export PYTHON_LIB_PATH=\"/path/to/install\"" ;
+        Exit ;
+    }
 	return <location>$(python_path) ;
 }
 
-install install_module
+rule python-install-dir-local ( properties * )
+{
+    local pythons_versions = [ feature.values python ] ;
+    local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
+    local python_v = $(split_python_versions[1]) ;
+    local python_path = [ SHELL "python$(python_v) -m site --user-site" ] ;
+    
+	return <location>$(python_path) ;
+}
+
+rule python-install-dir-system ( properties * )
+{
+    local python_path_set = [ os.environ PYTHONPATH ] ;
+    local pythons_versions = [ feature.values python ] ;
+    local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
+    local python_v = $(split_python_versions[1]) ;
+    
+    if [ on $(<) return $(python_path_set) ]
+    {
+        python_path = [ SHELL "python$(python_v) -c \"import sys; print(sys.path[1])\"" ] ;
+    }
+    else
+    {
+        if $(python_v) = 2
+        {
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[6])\"" ] ;
+        }
+        
+        if $(python_v) = 3
+        {
+            python_path = [ SHELL "env -i python$(python_v) -c \"import sys; print(sys.path[4])\"" ] ;
+        } 
+    }
+	return <location>$(python_path) ;
+}
+   
+install install_module_custom
 	: libtorrent
-	: <conditional>@python-install-dir
+	: <conditional>@python-install-dir-custom
+	<install-type>PYTHON_EXTENSION
+	;
+    
+install install_module_local
+	: libtorrent
+	: <conditional>@python-install-dir-local
+	<install-type>PYTHON_EXTENSION
+	;
+    
+install install_module_system
+	: libtorrent
+	: <conditional>@python-install-dir-system
 	<install-type>PYTHON_EXTENSION
 	;
 
@@ -261,4 +319,3 @@ install stage_dependencies
 
 explicit stage_module ;
 explicit stage_dependencies ;
-
