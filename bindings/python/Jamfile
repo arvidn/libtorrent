@@ -25,7 +25,7 @@ feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 feature python-install-path : : free path ;
 
 # when not specifying a custom install path, this controls whether to install
-# the python module in the system directory or user-specifc directory
+# the python module in the system directory or user-specific directory
 feature python-install-scope : user system : ;
 
 # this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
@@ -241,68 +241,44 @@ my-python-extension libtorrent
 	<suppress-import-lib>false
 	;
 
-rule python-install-dir-custom ( properties * )
+rule python-install-dir ( properties * )
 {
-    local python_path = [ os.environ PYTHON_LIB_PATH ] ;
+	local python_custom_path = [ feature.get-values python-install-path : $(properties) ] ;
+	if ( $(python_custom_path)  != "" )
+	{
+		# if the user has provided an install location, use that one
+		return <location>$(python_custom_path) ;
+	}
 
-    if ! [ on $(<) return $(python_path) ]
-    {
-        Echo ;
-        Echo "Warning: The PYTHON_LIB_PATH cannot be empty when used with install_module_custom" ;
-        Echo ;
-        Echo "Make sure you set this variable: export PYTHON_LIB_PATH=\"/path/to/install\"" ;
-        Echo ;
-        Echo "If you use a relative path like 'path/to/lib' this path will become 'bindings/python/path/to/lib'" ;
-        Exit ;
-    }
-	return <location>$(python_path) ;
-}
-
-rule python-install-dir-local ( properties * )
-{
-    local pythons_versions = [ feature.values python ] ;
-    local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
-    local python_v = $(split_python_versions[1]) ;
-    local python_path = [ SHELL "python$(python_v) -c \"import sys; import site; sys.stdout.write(site.USER_SITE)\"" ] ;
-
-	return <location>$(python_path) ;
-}
-
-rule python-install-dir-system ( properties * )
-{
-    local python_path_set = [ os.environ PYTHONPATH ] ;
+    local pythonpath_set = [ os.environ PYTHONPATH ] ;
     local pythons_versions = [ feature.values python ] ;
     local split_python_versions = [ SPLIT_BY_CHARACTERS $(pythons_versions) : "." ] ;
     local python_v = $(split_python_versions[1]) ;
 
-    if [ on $(<) return $(python_path_set) ]
+	if <python-install-scope>system in $(properties)
     {
-        python_path = [ SHELL "python$(python_v) -c \"import sys; sys.stdout.write(sys.path[1])\"" ] ;
+        if [ on $(<) return $(pythonpath_set) ]
+        {
+            python_system_path = [ SHELL "python$(python_v) -c \"import sys; sys.stdout.write(sys.path[1])\"" ] ;
+        }
+        else
+        {
+            python_system_path = [ SHELL "python$(python_v) -c \"import sys; import sysconfig; sys.stdout.write(sysconfig.get_config_var('DESTSHARED'))\"" ] ;
+        }
+        return <location>$(python_system_path) ;
     }
-    else
-    {
-        python_path = [ SHELL "python$(python_v) -c \"import sys; import sysconfig; sys.stdout.write(sysconfig.get_config_var('DESTSHARED'))\"" ] ;
-    }
-	return <location>$(python_path) ;
+    
+    local python_user_path = [ SHELL "python$(python_v) -c \"import sys; import site; sys.stdout.write(site.USER_SITE)\"" ] ;
+    return <location>$(python_user_path) ;
 }
 
-install install_module_custom
+install install_module
 	: libtorrent
-	: <conditional>@python-install-dir-custom
+	: <conditional>@python-install-dir
 	<install-type>PYTHON_EXTENSION
 	;
 
-install install_module_local
-	: libtorrent
-	: <conditional>@python-install-dir-local
-	<install-type>PYTHON_EXTENSION
-	;
-
-install install_module_system
-	: libtorrent
-	: <conditional>@python-install-dir-system
-	<install-type>PYTHON_EXTENSION
-	;
+explicit install_module ;
 
 install stage_module
 	: libtorrent
