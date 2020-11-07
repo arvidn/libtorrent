@@ -129,7 +129,9 @@ void bind_torrent_status()
         .value("downloading", torrent_status::downloading)
         .value("finished", torrent_status::finished)
         .value("seeding", torrent_status::seeding)
+#if TORRENT_ABI_VERSION == 1
         .value("allocating", torrent_status::allocating)
+#endif
         .value("checking_resume_data", torrent_status::checking_resume_data)
         .export_values()
         ;

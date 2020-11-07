@@ -3950,8 +3950,7 @@ namespace libtorrent {
 		// we can't download pieces in these states
 		if (t->state() == torrent_status::checking_files
 			|| t->state() == torrent_status::checking_resume_data
-			|| t->state() == torrent_status::downloading_metadata
-			|| t->state() == torrent_status::allocating)
+			|| t->state() == torrent_status::downloading_metadata)
 			return;
 
 		if (int(m_download_queue.size()) >= m_desired_queue_size
