@@ -121,7 +121,11 @@ TORRENT_VERSION_NAMESPACE_2
 			// If the torrent was started in full allocation mode, this
 			// indicates that the (disk) storage for the torrent is
 			// allocated.
-			allocating,
+#if TORRENT_ABI_VERSION == 1
+			allocating TORRENT_DEPRECATED_ENUM,
+#else
+			unused_enum_for_backwards_compatibility_allocating,
+#endif
 
 			// The torrent is currently checking the fast resume data and
 			// comparing it to the files on disk. This is typically

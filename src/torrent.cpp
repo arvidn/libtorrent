@@ -117,7 +117,6 @@ bool is_downloading_state(int const st)
 	switch (st)
 	{
 		case torrent_status::checking_files:
-		case torrent_status::allocating:
 		case torrent_status::checking_resume_data:
 			return false;
 		case torrent_status::downloading_metadata:
@@ -7277,8 +7276,7 @@ bool is_downloading_state(int const st)
 
 		if (is_auto_managed() && !has_error())
 		{
-			if (m_state == torrent_status::checking_files
-				|| m_state == torrent_status::allocating)
+			if (m_state == torrent_status::checking_files)
 			{
 				is_checking = true;
 			}
@@ -7565,8 +7563,7 @@ bool is_downloading_state(int const st)
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_state != torrent_status::checking_resume_data
-			&& m_state != torrent_status::checking_files
-			&& m_state != torrent_status::allocating);
+			&& m_state != torrent_status::checking_files);
 
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
@@ -7989,8 +7986,7 @@ bool is_downloading_state(int const st)
 
 		if (is_auto_managed() && !has_error())
 		{
-			if (m_state == torrent_status::checking_files
-				|| m_state == torrent_status::allocating)
+			if (m_state == torrent_status::checking_files)
 			{
 				is_checking = true;
 			}

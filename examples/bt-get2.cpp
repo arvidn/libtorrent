@@ -57,7 +57,6 @@ char const* state(lt::torrent_status::state_t s)
 		case lt::torrent_status::downloading: return "downloading";
 		case lt::torrent_status::finished: return "finished";
 		case lt::torrent_status::seeding: return "seeding";
-		case lt::torrent_status::allocating: return "allocating";
 		case lt::torrent_status::checking_resume_data: return "checking resume";
 		default: return "<>";
 	}
