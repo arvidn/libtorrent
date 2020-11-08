@@ -32,7 +32,7 @@ Navigate to ``BOOST_ROOT``, execute "bootstrap.bat" and add to the path "c:/Libr
 	
 Create a file ``user-config.jam`` in tour home directory and add this::
 
-	using msvc : 14.0 : : /std:c++14 ;
+	using msvc : 14.0 : : <cxxflags>/std:c++11 ;
 	using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
 
 (change the python path for yours)

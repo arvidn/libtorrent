@@ -45,10 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 
 #include <cstring>
+#include <iostream>
+#include <fstream>
 
 constexpr lt::file_index_t operator""_file (unsigned long long int const v)
 { return lt::file_index_t{static_cast<int>(v)}; }
-
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
@@ -276,6 +277,68 @@ TORRENT_TEST(v2_only_set_hash)
 
 	TEST_THROW(t.set_hash(lt::piece_index_t(0), lt::sha1_hash::max()));
 }
+
+#if TORRENT_HAS_SYMLINK
+
+namespace {
+
+void check(int ret)
+{
+	if (ret == 0) return;
+	lt::error_code ec(errno, lt::generic_category());
+	std::cerr << "call failed: " << ec.message() << '\n';
+	throw std::runtime_error(ec.message());
+}
+
+}
+
+TORRENT_TEST(create_torrent_symlink)
+{
+	lt::error_code ec;
+	lt::create_directories("test-torrent/a/b/c", ec);
+	lt::create_directories("test-torrent/d/", ec);
+	std::ofstream f1("test-torrent/a/b/c/file-1");
+	check(::truncate("test-torrent/a/b/c/file-1", 1000));
+	std::ofstream f2("test-torrent/d/file-2");
+	check(::truncate("test-torrent/d/file-2", 1000));
+	check(::symlink("../a/b/c/file-1", "test-torrent/d/test-link-1"));
+	check(::symlink("a/b/c/file-1", "test-torrent/test-link-2"));
+	check(::symlink("a/b/c/file-1", "test-torrent/a/b/c/test-link-3"));
+	check(::symlink("../../../d/file-2", "test-torrent/a/b/c/test-link-4"));
+
+	lt::file_storage fs;
+	lt::add_files(fs, "test-torrent"
+		, [](std::string n){ std::cout << n << '\n'; return true; }, lt::create_torrent::symlinks);
+
+	lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::symlinks);
+	lt::set_piece_hashes(t, ".", [] (lt::piece_index_t) {});
+
+	std::vector<char> torrent;
+	lt::bencode(back_inserter(torrent), t.generate());
+
+	lt::torrent_info ti(torrent, lt::from_span);
+
+	int found = 0;
+	for (auto i : ti.files().file_range())
+	{
+		auto const filename = ti.files().file_path(i);
+
+		if (filename == "test-torrent/d/test-link-1"
+			|| filename == "test-torrent/test-link-2"
+			|| filename == "test-torrent/a/b/c/test-link-3")
+		{
+			TEST_EQUAL(ti.files().symlink(i), "test-torrent/a/b/c/file-1");
+			++found;
+		}
+		else if (filename == "test-torrent/a/b/c/test-link-4")
+		{
+			TEST_EQUAL(ti.files().symlink(i), "test-torrent/d/file-2");
+			++found;
+		}
+	}
+}
+
+#endif
 
 TORRENT_TEST(v1_only_set_hash2)
 {

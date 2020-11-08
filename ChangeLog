@@ -35,6 +35,8 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* deprecate torrent_status::allocating. This state is no longer used
+	* fix bug creating torrents with symbolic links
 	* remove special case to save metadata in resume data unconditionally when added throught magnet link
 	* fix bugs in mutable-torrent support (reusing identical files from different torrents)
 	* fix incorrectly inlined move-assignment of file_storage
