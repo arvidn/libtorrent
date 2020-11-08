@@ -16,7 +16,6 @@ env:
   BUILD_VARIANT: "shared"
   LIBT_STATIC_RT: "OFF"
   LIBT_BSL: "ON"
-  LIBT_TESTS: "ON"
   LIBT_DEPR_FUN: "ON"
   LIBT_PY_BINDINGS: "ON"
 
@@ -34,7 +33,6 @@ jobs:
         build_config: [rel, dbg]
         build_variant: [shared, static]
         deprecated_functions: [depr, nodepr]
-        build_tests: [tests, notests]
         python_bindings: [py, nopy]
         exclude:
           # python bindings require building with shared libs
@@ -45,10 +43,6 @@ jobs:
           - build_variant: shared
             build_config: dbg
             python_bindings: py
-          # static debug build with tests is too big
-          - build_variant: static
-            build_config: dbg
-            build_tests: tests
       fail-fast: false
 
     runs-on: windows-2019
@@ -71,12 +65,6 @@ jobs:
       shell: bash
       run: |
         echo "LIBT_DEPR_FUN=OFF" >> $GITHUB_ENV
-
-    - name: setup environment - don't build tests
-      if: matrix.build_tests == 'notests'
-      shell: bash
-      run: |
-        echo "LIBT_TESTS=OFF" >> $GITHUB_ENV
 
     - name: setup environment - don't build with python bindings
       if: matrix.python_bindings == 'nopy'
@@ -129,7 +117,7 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_DEST_WIN }}\scripts\buildsystems\vcpkg.cmake ^
           -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }} ^
           -Dbuild_examples=ON -Dbuild_tools=ON ^
-          -Dbuild_tests=${{ env.LIBT_TESTS }} -Ddeprecated-functions=${{ env.LIBT_DEPR_FUN }} ^
+          -Dbuild_tests=ON -Ddeprecated-functions=${{ env.LIBT_DEPR_FUN }} ^
           -DBUILD_SHARED_LIBS=${{ env.LIBT_BSL }} -Dstatic_runtime=${{ env.LIBT_STATIC_RT }} ^
           -Dpython-bindings=${{ env.LIBT_PY_BINDINGS }} -Dskip-python-runtime-test=ON ^
           -Dboost-python-module-name="python38" ^
@@ -137,14 +125,13 @@ jobs:
         cmake --build cmake-build-dir
 
     - name: run ctest
-      if: matrix.build_tests == 'tests'
       run: |
         cd cmake-build-dir && ctest --output-on-failure -j 2
 
     - name: upload artifact as zip
       uses: actions/upload-artifact@v2.2.0
       with:
-        name: libtorrent_RC_1_2-CI-Windows_x64-${{ matrix.build_variant }}-${{ matrix.build_config }}-${{ matrix.deprecated_functions }}-${{ matrix.build_tests }}-${{ matrix.python_bindings }}
+        name: libtorrent_RC_1_2-CI-Windows_x64-${{ matrix.build_variant }}-${{ matrix.build_config }}-${{ matrix.deprecated_functions }}-${{ matrix.python_bindings }}
         path: |
           cmake-build-dir/compile_commands.json
           cmake-build-dir/target_graph.dot*
