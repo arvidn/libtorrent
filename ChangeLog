@@ -1,3 +1,4 @@
+	* fix padding for empty files in v2 torrent creation
 	* add function to ask a file_storage whether it's v2 or not
 	* fix mtime field when creating single-file v2 torrents
 	* fix performance regression in checking files

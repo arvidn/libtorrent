@@ -988,7 +988,7 @@ namespace {
 		aux::file_entry const& fe = m_files[index];
 
 		if (fe.path_index != aux::file_entry::path_is_absolute
-		 && fe.path_index != aux::file_entry::no_path)
+			&& fe.path_index != aux::file_entry::no_path)
 		{
 			std::string ret;
 			std::string const& p = m_paths[fe.path_index];
@@ -1222,7 +1222,7 @@ namespace {
 		std::int64_t off = 0;
 		for (file_index_t i : new_order)
 		{
-			if ((off % piece_length()) != 0)
+			if ((off % piece_length()) != 0 && m_files[i].size > 0)
 			{
 				auto const pad_size = piece_length() - (off % piece_length());
 				TORRENT_ASSERT(pad_size < piece_length());
