@@ -590,9 +590,13 @@ namespace aux {
 			deprecated_broadcast_lsd,
 #endif
 
-			// when set to true, libtorrent will try to make outgoing utp
-			// connections controls whether libtorrent will accept incoming
-			// connections or make outgoing connections of specific type.
+			// Enables incoming and outgoing, TCP and uTP peer connections.
+			// ``false`` is disabled and ``true`` is enabled. When outgoing
+			// connections are disabled, libtorrent will simply not make
+			// outgoing peer connections with the specific transport protocol.
+			// Disabled incoming peer connections will simply be rejected.
+			// These options only apply to peer connections, not tracker- or any
+			// other kinds of connections.
 			enable_outgoing_utp,
 			enable_incoming_utp,
 			enable_outgoing_tcp,

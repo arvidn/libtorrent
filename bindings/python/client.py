@@ -269,7 +269,7 @@ def main():
             if t.state != lt.torrent_status.seeding:
                 state_str = ['queued', 'checking', 'downloading metadata',
                              'downloading', 'finished', 'seeding',
-                             'allocating', 'checking fastresume']
+                             '', 'checking fastresume']
                 out += state_str[t.state] + ' '
 
                 out += '%5.4f%% ' % (t.progress * 100)

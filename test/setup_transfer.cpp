@@ -50,6 +50,12 @@ using namespace lt;
 #include <conio.h>
 #endif
 
+#if defined TORRENT_WINDOWS
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
 std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const with_hashes)
 {
 	if (with_files)
@@ -403,12 +409,37 @@ void wait_for_downloading(lt::session& ses, char const* name)
 			}, false);
 		if (downloading_done) break;
 		if (total_seconds(clock_type::now() - start) > 10) break;
-		a = ses.wait_for_alert(seconds(2));
+		a = ses.wait_for_alert(seconds(5));
 	} while (a);
 	if (!downloading_done)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
 			"the torrent is downloading. waited: %d ms\n"
+			, name, int(total_milliseconds(clock_type::now() - start)));
+	}
+}
+
+void wait_for_seeding(lt::session& ses, char const* name)
+{
+	time_point start = clock_type::now();
+	bool seeding = false;
+	alert const* a = nullptr;
+	do
+	{
+		seeding = print_alerts(ses, name, true, true
+			, [](lt::alert const* al)
+			{
+				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+				return sc && sc->state == torrent_status::seeding;
+			}, false);
+		if (seeding) break;
+		if (total_seconds(clock_type::now() - start) > 10) break;
+		a = ses.wait_for_alert(seconds(5));
+	} while (a);
+	if (!seeding)
+	{
+		std::printf("%s: did not receive a state_changed_alert indicating "
+			"the torrent is seeding. waited: %d ms\n"
 			, name, int(total_milliseconds(clock_type::now() - start)));
 	}
 }
@@ -670,25 +701,25 @@ int start_proxy(int proxy_type)
 		case settings_pack::socks4:
 			type = "socks4";
 			auth = " --allow-v4";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::socks5:
 			type = "socks5";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::socks5_pw:
 			type = "socks5";
 			auth = " --username testuser --password testpass";
-			cmd = "../socks.py";
+			cmd = ".." SEPARATOR "socks.py";
 			break;
 		case settings_pack::http:
 			type = "http";
-			cmd = "../http_proxy.py";
+			cmd = ".." SEPARATOR "http_proxy.py";
 			break;
 		case settings_pack::http_pw:
 			type = "http";
 			auth = " --basic-auth testuser:testpass";
-			cmd = "../http_proxy.py";
+			cmd = ".." SEPARATOR "http_proxy.py";
 			break;
 	}
 	std::vector<std::string> python_exes = get_python();
@@ -1101,7 +1132,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 	for (auto const& python_exe : python_exes)
 	{
 		char buf[200];
-		std::snprintf(buf, sizeof(buf), "%s ../web_server.py %d %d %d %d %d"
+		std::snprintf(buf, sizeof(buf), "%s .." SEPARATOR "web_server.py %d %d %d %d %d"
 			, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
 
 		std::printf("%s starting web_server on port %d...\n", time_now_string(), port);

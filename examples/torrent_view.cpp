@@ -29,7 +29,7 @@ std::string torrent_state(lt::torrent_status const& s)
 {
 	static char const* state_str[] =
 		{"checking (q)", "checking", "dl metadata"
-		, "downloading", "finished", "seeding", "allocating", "checking (r)"};
+		, "downloading", "finished", "seeding", "", "checking (r)"};
 
 	if (s.errc) return s.errc.message();
 	std::string ret;

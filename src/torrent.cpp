@@ -113,7 +113,6 @@ bool is_downloading_state(int const st)
 	switch (st)
 	{
 		case torrent_status::checking_files:
-		case torrent_status::allocating:
 		case torrent_status::checking_resume_data:
 			return false;
 		case torrent_status::downloading_metadata:
@@ -200,7 +199,6 @@ bool is_downloading_state(int const st)
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
-		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
 		, m_v2_piece_layers_validated(false)
@@ -232,15 +230,6 @@ bool is_downloading_state(int const st)
 		if (!m_apply_ip_filter)
 		{
 			inc_stats_counter(counters::non_filter_torrents);
-		}
-
-		if (!p.ti || !p.ti->is_valid())
-		{
-			// we don't have metadata for this torrent. We'll download
-			// it either through the URL passed in, or through a metadata
-			// extension. Make sure that when we save resume data for this
-			// torrent, we also save the metadata
-			m_magnet_link = true;
 		}
 
 		if (!m_torrent_file)
@@ -1870,11 +1859,12 @@ bool is_downloading_state(int const st)
 			std::vector<resolve_links::link_t> const& l = res.get_links();
 			if (!l.empty())
 			{
+				links.resize(m_torrent_file->files().num_files());
 				for (auto const& i : l)
 				{
 					if (!i.ti) continue;
-					links.push_back(combine_path(i.save_path
-						, i.ti->files().file_path(i.file_idx)));
+					links[i.file_idx] = combine_path(i.save_path
+						, i.ti->files().file_path(i.file_idx));
 				}
 			}
 		}
@@ -6708,12 +6698,9 @@ namespace {
 		ret.info_hash = ret.info_hashes.get_best();
 #endif
 
-		if (valid_metadata())
+		if (valid_metadata() && (flags & torrent_handle::save_info_dict))
 		{
-			if (m_magnet_link || (flags & torrent_handle::save_info_dict))
-			{
-				ret.ti = m_torrent_file;
-			}
+			ret.ti = m_torrent_file;
 		}
 
 		// if this torrent is a seed, we won't have a piece picker
@@ -7770,8 +7757,7 @@ namespace {
 
 		if (is_auto_managed() && !has_error())
 		{
-			if (m_state == torrent_status::checking_files
-				|| m_state == torrent_status::allocating)
+			if (m_state == torrent_status::checking_files)
 			{
 				is_checking = true;
 			}
@@ -8063,8 +8049,7 @@ namespace {
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_state != torrent_status::checking_resume_data
-			&& m_state != torrent_status::checking_files
-			&& m_state != torrent_status::allocating);
+			&& m_state != torrent_status::checking_files);
 
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
@@ -8493,8 +8478,7 @@ namespace {
 
 		if (is_auto_managed() && !has_error())
 		{
-			if (m_state == torrent_status::checking_files
-				|| m_state == torrent_status::allocating)
+			if (m_state == torrent_status::checking_files)
 			{
 				is_checking = true;
 			}

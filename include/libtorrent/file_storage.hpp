@@ -579,8 +579,13 @@ namespace aux {
 		// are updated to point to themselves.
 		void sanitize_symlinks();
 
-		// internal
+		// returns true if this torrent contains v2 metadata.
 		bool v2() const { return m_v2; }
+
+		// internal
+		// this is an optimization for create_torrent
+		std::string const& internal_symlink(file_index_t index) const;
+
 	private:
 
 		std::string internal_file_path(file_index_t index) const;
