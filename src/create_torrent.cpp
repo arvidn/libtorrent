@@ -712,22 +712,23 @@ namespace {
 		if (!m_multifile)
 		{
 			file_index_t const first(0);
+			std::string attr;
+			file_flags_t const flags = m_files.file_flags(first);
+			if (flags & (file_storage::flag_pad_file
+				| file_storage::flag_hidden
+				| file_storage::flag_executable
+				| file_storage::flag_symlink))
+			{
+				if (flags & file_storage::flag_pad_file) attr += 'p';
+				if (flags & file_storage::flag_hidden) attr += 'h';
+				if (flags & file_storage::flag_executable) attr += 'x';
+				if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+			}
 			if (make_v1)
 			{
 				if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 				info["length"] = m_files.file_size(first);
-				file_flags_t const flags = m_files.file_flags(first);
-				if (flags & (file_storage::flag_pad_file
-					| file_storage::flag_hidden
-					| file_storage::flag_executable
-					| file_storage::flag_symlink))
-				{
-					std::string& attr = info["attr"].string();
-					if (flags & file_storage::flag_pad_file) attr += 'p';
-					if (flags & file_storage::flag_hidden) attr += 'h';
-					if (flags & file_storage::flag_executable) attr += 'x';
-					if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-				}
+				if (!attr.empty()) info["attr"] = attr;
 				if (m_include_symlinks
 					&& (flags & file_storage::flag_symlink))
 				{
@@ -752,6 +753,7 @@ namespace {
 				tree_file["length"] = m_files.file_size(first);
 				tree_file["pieces root"] = m_fileroots[first];
 				if (m_include_mtime) tree_file["mtime"] = m_files.mtime(first);
+				if (!attr.empty()) tree_file["attr"] = attr;
 			}
 		}
 		else
