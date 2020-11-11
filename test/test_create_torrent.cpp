@@ -278,8 +278,6 @@ TORRENT_TEST(v2_only_set_hash)
 	TEST_THROW(t.set_hash(lt::piece_index_t(0), lt::sha1_hash::max()));
 }
 
-#if TORRENT_HAS_SYMLINK
-
 namespace {
 
 void check(int ret)
@@ -291,6 +289,8 @@ void check(int ret)
 }
 
 }
+
+#if TORRENT_HAS_SYMLINK
 
 TORRENT_TEST(create_torrent_symlink)
 {
@@ -338,6 +338,29 @@ TORRENT_TEST(create_torrent_symlink)
 	}
 }
 
+#endif
+
+#ifndef TORRENT_WINDOWS
+
+TORRENT_TEST(v2_attributes)
+{
+	std::ofstream f1("file-1");
+	check(::truncate("file-1", 1000));
+	check(::chmod("file-1", S_IWUSR | S_IRUSR | S_IXUSR));
+
+	lt::file_storage fs;
+	lt::add_files(fs, "file-1", [](std::string){ return true; }, {});
+
+	lt::create_torrent t(fs, 16 * 1024, {});
+	lt::set_piece_hashes(t, ".", [] (lt::piece_index_t) {});
+
+	lt::entry e = t.generate();
+
+	std::cout << e.to_string() << '\n';
+
+	TEST_EQUAL(e["info"]["attr"].string(), "x");
+	TEST_EQUAL(e["info"]["file tree"]["file-1"][""]["attr"].string(), "x");
+}
 #endif
 
 TORRENT_TEST(v1_only_set_hash2)
