@@ -558,6 +558,32 @@ namespace {
 		return !std::any_of(piece_hash.begin(), piece_hash.end()
 			, [](sha1_hash const& h) { return h.is_all_zeros(); });
 	}
+
+	void add_file_attrs(entry& e, file_flags_t const flags, bool const include_symlinks)
+	{
+		if (!(flags & (file_storage::flag_pad_file
+			| file_storage::flag_hidden
+			| file_storage::flag_executable
+			| file_storage::flag_symlink)))
+		{
+			return;
+		}
+		std::string& attr = e["attr"].string();
+		if (flags & file_storage::flag_pad_file) attr += 'p';
+		if (flags & file_storage::flag_hidden) attr += 'h';
+		if (flags & file_storage::flag_executable) attr += 'x';
+		if (include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+	}
+
+	void add_symlink_path(entry& e, std::string symlink_path)
+	{
+		entry& sympath_e = e["symlink path"];
+
+		std::string const link = lexically_relative("", symlink_path);
+		for (auto elems = lsplit_path(link); !elems.first.empty();
+			elems = lsplit_path(elems.second))
+			sympath_e.list().emplace_back(elems.first);
+	}
 }
 
 	entry create_torrent::generate() const
@@ -717,26 +743,11 @@ namespace {
 				if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 				info["length"] = m_files.file_size(first);
 				file_flags_t const flags = m_files.file_flags(first);
-				if (flags & (file_storage::flag_pad_file
-					| file_storage::flag_hidden
-					| file_storage::flag_executable
-					| file_storage::flag_symlink))
-				{
-					std::string& attr = info["attr"].string();
-					if (flags & file_storage::flag_pad_file) attr += 'p';
-					if (flags & file_storage::flag_hidden) attr += 'h';
-					if (flags & file_storage::flag_executable) attr += 'x';
-					if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-				}
+				add_file_attrs(info, flags, m_include_symlinks);
 				if (m_include_symlinks
 					&& (flags & file_storage::flag_symlink))
 				{
-					entry& sympath_e = info["symlink path"];
-
-					std::string const link = lexically_relative("", m_files.internal_symlink(first));
-					for (auto elems = lsplit_path(link); !elems.first.empty();
-						elems = lsplit_path(elems.second))
-						sympath_e.list().emplace_back(elems.first);
+					add_symlink_path(info, m_files.internal_symlink(first));
 				}
 #if TORRENT_ABI_VERSION < 3
 				if (!m_filehashes.empty())
@@ -770,24 +781,11 @@ namespace {
 					}
 
 					file_flags_t const flags = m_files.file_flags(i);
-					if (flags)
-					{
-						std::string& attr = file_e["attr"].string();
-						if (flags & file_storage::flag_pad_file) attr += 'p';
-						if (flags & file_storage::flag_hidden) attr += 'h';
-						if (flags & file_storage::flag_executable) attr += 'x';
-						if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-					}
+					add_file_attrs(file_e, flags, m_include_symlinks);
 
-					if (m_include_symlinks
-						&& (flags & file_storage::flag_symlink))
+					if (m_include_symlinks && (flags & file_storage::flag_symlink))
 					{
-						entry& sympath_e = file_e["symlink path"];
-
-						std::string const link = lexically_relative("", m_files.internal_symlink(i));
-						for (auto elems = lsplit_path(link); !elems.first.empty();
-							elems = lsplit_path(elems.second))
-							sympath_e.list().emplace_back(elems.first);
+						add_symlink_path(file_e, m_files.internal_symlink(i));
 					}
 #if TORRENT_ABI_VERSION < 3
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
@@ -844,24 +842,11 @@ namespace {
 				if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
 
 				file_flags_t const flags = m_files.file_flags(i);
-				if (flags & (file_storage::flag_hidden
-					| file_storage::flag_executable
-					| file_storage::flag_symlink))
-				{
-					std::string& attr = file_e["attr"].string();
-					if (flags & file_storage::flag_hidden) attr += 'h';
-					if (flags & file_storage::flag_executable) attr += 'x';
-					if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-				}
+				add_file_attrs(file_e, flags, m_include_symlinks);
 
 				if (m_include_symlinks && (flags & file_storage::flag_symlink))
 				{
-					entry& sympath_e = file_e["symlink path"];
-
-					std::string const link = lexically_relative("", m_files.internal_symlink(i));
-					for (auto elems = lsplit_path(link); !elems.first.empty();
-						elems = lsplit_path(elems.second))
-						sympath_e.list().emplace_back(elems.first);
+					add_symlink_path(file_e, m_files.internal_symlink(i));
 				}
 				else
 				{
