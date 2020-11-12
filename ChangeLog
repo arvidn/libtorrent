@@ -1,4 +1,5 @@
 
+	* fix issue with moving the session object
 	* deprecate torrent_status::allocating. This state is no longer used
 	* fix bug creating torrents with symbolic links
 	* remove special case to save metadata in resume data unconditionally when added throught magnet link
