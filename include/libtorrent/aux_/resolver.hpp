@@ -62,6 +62,8 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 
 	void set_cache_timeout(seconds timeout) override;
 
+	int num_outstanding_lookups() const;
+
 private:
 
 	void on_lookup(error_code const& ec, tcp::resolver::results_type ips

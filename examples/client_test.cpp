@@ -1200,6 +1200,9 @@ examples:
 
 } // anonymous namespace
 
+lt::session_proxy run_session(lt::session ses, int loop_limit
+	, lt::time_duration const refresh_delay);
+
 int main(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -1216,9 +1219,6 @@ int main(int argc, char* argv[])
 
 	using lt::settings_pack;
 	using lt::session_handle;
-
-	torrent_view view;
-	session_view ses_view;
 
 	lt::session_params params;
 
@@ -1254,10 +1254,7 @@ int main(int argc, char* argv[])
 	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;
 
-	std::deque<std::string> events;
 	int loop_limit = -1;
-
-	lt::time_point next_dir_scan = lt::clock_type::now();
 
 	// load the torrents given on the commandline
 	std::vector<lt::string_view> torrents;
@@ -1401,6 +1398,38 @@ int main(int argc, char* argv[])
 		else add_torrent(ses, i.to_string());
 	}
 
+#ifndef _WIN32
+	signal(SIGTERM, signal_handler);
+	signal(SIGINT, signal_handler);
+#endif
+
+	lt::session_proxy p = run_session(std::move(ses), loop_limit, refresh_delay);
+
+	lt::shutdown_status s = p.status();
+	while (!s.done)
+	{
+		std::printf("\rutp: %4d ssl/utp: %4d dead: %4d dns: %4d"
+			, s.utp_sockets, s.ssl_utp_sockets, s.dead_peers, s.hostname_lookups);
+		std::this_thread::sleep_for(lt::milliseconds(500));
+		s = p.status();
+	}
+
+	return 0;
+}
+
+lt::session_proxy run_session(lt::session ses, int loop_limit
+	, lt::time_duration const refresh_delay)
+{
+	torrent_view view;
+	session_view ses_view;
+
+	std::deque<std::string> events;
+
+	lt::time_point next_dir_scan = lt::clock_type::now();
+
+	std::vector<lt::peer_info> peers;
+
+	// load resume data asynchronously
 	std::thread resume_data_loader([&ses]
 	{
 		// load resume files
@@ -1442,13 +1471,6 @@ int main(int argc, char* argv[])
 	});
 
 	// main loop
-	std::vector<lt::peer_info> peers;
-
-#ifndef _WIN32
-	signal(SIGTERM, signal_handler);
-	signal(SIGINT, signal_handler);
-#endif
-
 	while (!quit && loop_limit != 0)
 	{
 		if (loop_limit > 0) --loop_limit;
@@ -2117,7 +2139,6 @@ done:
 #endif
 
 	std::printf("closing session\n");
-
-	return 0;
+	return ses.abort();
 }
 

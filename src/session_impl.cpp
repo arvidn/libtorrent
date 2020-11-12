@@ -1110,6 +1110,25 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_work.reset();
 	}
 
+	shutdown_status session_impl::end_status() const
+	{
+		shutdown_status ret;
+		ret.shutting_down = m_abort;
+		ret.utp_sockets = m_utp_socket_manager.num_sockets();
+#ifdef TORRENT_SSL_PEERS
+		ret.ssl_utp_sockets = m_ssl_utp_socket_manager.num_sockets();
+#else
+		ret.ssl_utp_sockets = 0;
+#endif
+		ret.dead_peers = int(m_undead_peers.size());
+		ret.hostname_lookups = m_host_resolver.num_outstanding_lookups();
+		ret.done = ret.utp_sockets == 0
+			&& ret.ssl_utp_sockets == 0
+			&& ret.dead_peers == 0
+			&& ret.hostname_lookups == 0;
+		return ret;
+	}
+
 	bool session_impl::has_connection(peer_connection* p) const
 	{
 		return m_connections.find(p->self()) != m_connections.end();

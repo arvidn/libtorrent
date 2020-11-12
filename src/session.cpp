@@ -531,6 +531,32 @@ namespace {
 		}
 	}
 
+	shutdown_status session_proxy::status() const
+	{
+		// this is the flag to indicate the call has completed
+		// capture them by pointer to allow everything to be captured by value
+		// and simplify the capture expression
+		bool done = false;
+
+		shutdown_status ret;
+
+		std::exception_ptr ex;
+		dispatch(*m_io_service, [&]() mutable
+		{
+			ret = m_impl->end_status();
+			std::unique_lock<std::mutex> l(m_impl->mut);
+			done = true;
+			m_impl->cond.notify_all();
+		});
+
+		aux::torrent_wait(done, *m_impl);
+		return ret;
+	}
+
+	shutdown_status::shutdown_status() = default;
+	shutdown_status::shutdown_status(shutdown_status const&) = default;
+	shutdown_status& shutdown_status::operator=(shutdown_status const&) & = default;
+
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{

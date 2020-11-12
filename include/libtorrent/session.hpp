@@ -106,6 +106,36 @@ namespace aux {
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const&, counters& cnt);
 
+	struct TORRENT_EXPORT shutdown_status
+	{
+		shutdown_status();
+		shutdown_status(shutdown_status const&);
+		shutdown_status& operator=(shutdown_status const&) &;
+
+		// true once shutdown has started (i.e. the session object is destructed)
+		bool shutting_down;
+
+		// set to true when the session has completed shutdown, and destructing
+		// the session_proxy will not block
+		bool done;
+
+		// the number of open uTP sockets still open
+		int utp_sockets;
+
+		// the number of open SSL/uTP sockets still open
+		int ssl_utp_sockets;
+
+		// the number of peer connection objects still kept alive by outstanding
+		// asynchronous operations on them
+		int dead_peers;
+
+		// the number of hostname lookups in flight
+		int hostname_lookups;
+
+		// internal
+		int padding[5];
+	};
+
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
 	// synchronize the completion of the shutdown. The lifetime of this object
@@ -123,6 +153,9 @@ namespace aux {
 		session_proxy& operator=(session_proxy const&) &;
 		session_proxy(session_proxy&&) noexcept;
 		session_proxy& operator=(session_proxy&&) & noexcept;
+
+		shutdown_status status() const;
+
 	private:
 		session_proxy(
 			std::shared_ptr<io_context> ios

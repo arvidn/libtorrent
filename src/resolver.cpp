@@ -172,5 +172,10 @@ namespace aux {
 		else
 			m_timeout = seconds(0);
 	}
+
+	int resolver::num_outstanding_lookups() const
+	{
+		return int(m_callbacks.size());
+	}
 }
 }
