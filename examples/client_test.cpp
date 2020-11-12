@@ -2074,9 +2074,7 @@ done:
 	std::vector<torrent_status> const temp = ses.get_torrent_status(
 		[](torrent_status const& st)
 		{
-			if (!st.handle.is_valid() || !st.has_metadata || !st.need_save_resume)
-				return false;
-			return true;
+			return st.handle.is_valid() && st.has_metadata && st.need_save_resume;
 		}, {});
 
 	int idx = 0;
