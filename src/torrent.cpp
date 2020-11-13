@@ -4023,6 +4023,7 @@ bool is_downloading_state(int const st)
 				recalc_share_mode();
 #endif
 		}
+		update_want_tick();
 	}
 
 	// this is called when the piece hash is checked as correct. Note
@@ -4107,7 +4108,6 @@ bool is_downloading_state(int const st)
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
-		update_want_tick();
 	}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -7490,6 +7490,7 @@ bool is_downloading_state(int const st)
 	// pieces have been downloaded)
 	void torrent::finished()
 	{
+		update_want_tick();
 		update_state_list();
 
 		INVARIANT_CHECK;
