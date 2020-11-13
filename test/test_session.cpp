@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
+#include <functional>
+#include <thread>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -346,6 +348,23 @@ TORRENT_TEST(pop_alert_clear)
 		if (alerts.empty()) break;
 	}
 	TEST_CHECK(alerts.empty());
+}
+
+namespace {
+
+lt::session_proxy test_move_session(lt::session ses)
+{
+	std::this_thread::sleep_for(lt::milliseconds(100));
+	auto t = ses.get_torrents();
+	return ses.abort();
+}
+}
+
+TORRENT_TEST(move_session)
+{
+	lt::settings_pack pack;
+	lt::session ses(pack);
+	lt::session_proxy p = test_move_session(std::move(ses));
 }
 
 #if !defined TORRENT_DISABLE_LOGGING

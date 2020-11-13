@@ -4065,6 +4065,7 @@ namespace {
 				recalc_share_mode();
 #endif
 		}
+		update_want_tick();
 	}
 
 	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
@@ -4241,7 +4242,6 @@ namespace {
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
-		update_want_tick();
 	}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -7935,6 +7935,7 @@ namespace {
 	// pieces have been downloaded)
 	void torrent::finished()
 	{
+		update_want_tick();
 		update_state_list();
 
 		INVARIANT_CHECK;
