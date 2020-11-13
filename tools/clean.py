@@ -44,6 +44,8 @@ def clean():
         'config.report',
         'config.log',
         '.lib',
+        'CMakeFiles',
+        'CMakeCache.txt',
     ]
 
     directories = [
