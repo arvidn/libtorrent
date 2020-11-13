@@ -1232,7 +1232,6 @@ int main(int argc, char* argv[])
 #endif
 
 	auto& settings = params.settings;
-	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask
