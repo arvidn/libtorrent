@@ -1,4 +1,4 @@
-VERSION=2.0.0
+VERSION=2.0.1
 
 NCORES=1
 ifneq ($(OS),Windows_NT)
