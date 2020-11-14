@@ -108,7 +108,7 @@ if '--help' not in sys.argv \
 
 setup(
     name='python-libtorrent',
-    version='2.0.0',
+    version='2.0.1',
     author='Arvid Norberg',
     author_email='arvid@libtorrent.org',
     description='Python bindings for libtorrent-rasterbar',
