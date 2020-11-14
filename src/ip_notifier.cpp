@@ -2,8 +2,9 @@
 
 Copyright (c) 2016, 2020, Steven Siloti
 Copyright (c) 2016-2017, Alden Torres
-Copyright (c) 2017, Tim Niederhausen
 Copyright (c) 2017-2020, Arvid Norberg
+Copyright (c) 2017, Tim Niederhausen
+Copyright (c) 2020, Tiger Wang
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

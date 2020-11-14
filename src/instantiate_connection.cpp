@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, 2010-2011, 2014-2019, Arvid Norberg
+Copyright (c) 2007, 2010-2011, 2014-2020, Arvid Norberg
 Copyright (c) 2018, Alden Torres
 Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.

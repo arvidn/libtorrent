@@ -11,6 +11,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Fonic
 Copyright (c) 2020, Viktor Elofsson
+Copyright (c) 2020, AllSeeingEyeTolledEweSew
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
