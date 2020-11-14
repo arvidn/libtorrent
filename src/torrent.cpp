@@ -11,7 +11,7 @@ Copyright (c) 2016-2020, Alden Torres
 Copyright (c) 2016-2018, Pavel Pimenov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, Falcosc
-Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, ximply
 Copyright (c) 2018, Fernando Rodriguez
 Copyright (c) 2018, d-komarov

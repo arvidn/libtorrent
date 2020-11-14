@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, 2014, 2016-2019, Arvid Norberg
+Copyright (c) 2010, 2014, 2016-2020, Arvid Norberg
 Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2020, Alden Torres
 All rights reserved.
