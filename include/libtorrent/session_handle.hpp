@@ -3,6 +3,7 @@
 Copyright (c) 2014-2018, Steven Siloti
 Copyright (c) 2015-2020, Arvid Norberg
 Copyright (c) 2015-2018, 2020, Alden Torres
+Copyright (c) 2020, AllSeeingEyeTolledEweSew
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

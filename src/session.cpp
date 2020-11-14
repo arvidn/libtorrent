@@ -291,8 +291,9 @@ namespace {
 		if (internal_executor)
 		{
 			// start a thread for the message pump
+			auto s = m_io_service;
 			m_thread = std::make_shared<std::thread>(
-				[&] { m_io_service->run(); });
+				[=] { s->run(); });
 		}
 	}
 

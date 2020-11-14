@@ -1101,22 +1101,13 @@ bool is_resume_file(std::string const& s)
 	return true;
 }
 
-} // anonymous namespace
-
-int main(int argc, char* argv[])
+void print_usage()
 {
-#ifndef _WIN32
-	// sets the terminal to single-character mode
-	// and resets when destructed
-	set_keypress s_;
-#endif
-
-	if (argc == 1)
-	{
-		std::fprintf(stderr, R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL]
+	std::fprintf(stderr, R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL]
 OPTIONS:
 
 CLIENT OPTIONS
+  -h                    print this message
   -f <log file>         logs all events to the given file
   -s <path>             sets the save path for downloads. This also determines
                         the resume data save directory. Torrents from the resume
@@ -1182,6 +1173,21 @@ examples:
   --alert_mask=error,dht,dht_log,dht_operation
   --alert_mask=all
 )") ;
+}
+
+} // anonymous namespace
+
+int main(int argc, char* argv[])
+{
+#ifndef _WIN32
+	// sets the terminal to single-character mode
+	// and resets when destructed
+	set_keypress s_;
+#endif
+
+	if (argc == 1)
+	{
+		print_usage();
 		return 0;
 	}
 
@@ -1203,7 +1209,6 @@ examples:
 #endif
 
 	auto& settings = params.settings;
-	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask
@@ -1267,28 +1272,40 @@ examples:
 			continue;
 		}
 
+		// command line switches that don't take an argument
+		switch (argv[i][1])
+		{
+			case 'k': settings = lt::high_performance_seed(); continue;
+			case 'G': seed_mode = true; continue;
+			case 'O': stats_enabled = true; continue;
+			case '1': exit_on_finish = true; continue;
+#ifdef TORRENT_UTP_LOG_ENABLE
+			case 'q':
+				lt::set_utp_stream_logging(true);
+				continue;
+#endif
+			case 'Q': share_mode = true; continue;
+			case 'Y': rate_limit_locals = true; continue;
+			case '0': params.disk_io_constructor = lt::disabled_disk_io_constructor; continue;
+			case 'h': print_usage(); return 0;
+		}
+
 		// if there's a flag but no argument following, ignore it
-		if (argc == i) continue;
+		if (argc == i + 1)
+		{
+			std::fprintf(stderr, "invalid command line argument or missing parameter: %s\n", argv[i]);
+			return 1;
+		}
 		char const* arg = argv[i+1];
 		if (arg == nullptr) arg = "";
 
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
-			case 'k': settings = lt::high_performance_seed(); --i; break;
-			case 'G': seed_mode = true; --i; break;
 			case 's': save_path = make_absolute_path(arg); break;
-			case 'O': stats_enabled = true; --i; break;
-			case '1': exit_on_finish = true; --i; break;
-#ifdef TORRENT_UTP_LOG_ENABLE
-			case 'q':
-				lt::set_utp_stream_logging(true);
-				break;
-#endif
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = make_absolute_path(arg); break;
-			case 'Q': share_mode = true; --i; break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = lt::milliseconds(atoi(arg)); break;
 			case 'a': allocation_mode = (arg == std::string("sparse"))
@@ -1318,18 +1335,6 @@ examples:
 				break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
 			case 'r': peer = arg; break;
-			case 'Y':
-				{
-					--i;
-					rate_limit_locals = true;
-					break;
-				}
-			case '0':
-				{
-					params.disk_io_constructor = lt::disabled_disk_io_constructor;
-					--i;
-					break;
-				}
 			case 'e':
 				{
 					loop_limit = atoi(arg);
@@ -2045,9 +2050,7 @@ done:
 	std::vector<torrent_status> const temp = ses.get_torrent_status(
 		[](torrent_status const& st)
 		{
-			if (!st.handle.is_valid() || !st.has_metadata || !st.need_save_resume)
-				return false;
-			return true;
+			return st.handle.is_valid() && st.has_metadata && st.need_save_resume;
 		}, {});
 
 	int idx = 0;

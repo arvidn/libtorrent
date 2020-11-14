@@ -16,6 +16,14 @@ feature libtorrent-link : shared static : composite propagated ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
 feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
+# when invoking the install_module target, this feature can be specified to
+# install the python module to a specific directory
+feature python-install-path : : free path ;
+
+# when not specifying a custom install path, this controls whether to install
+# the python module in the system directory or user-specifc directory
+feature python-install-scope : user system : ;
+
 # this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
 feature libtorrent-python : on ;
 
@@ -231,6 +239,50 @@ my-python-extension libtorrent
 	: # usage-requirements
 	<suppress-import-lib>false
 	;
+
+rule python-install-dir ( properties * )
+{
+	local install-dir = [ feature.get-values python-install-path : $(properties) ] ;
+	if ( $(install-dir) != "" )
+	{
+		# if the user has provided an install location, use that one
+		return <location>$(install-dir) ;
+	}
+
+	local python-interpreter = [ feature.get-values python.interpreter : $(properties) ] ;
+	if ( $(python-interpreter) = "" )
+	{
+		return <location>. ;
+	}
+
+	# sys.path are defined differently between python2 and python3
+
+	local python-path ;
+	if <python-install-scope>system in $(properties)
+	{
+		python-path = [ SHELL "$(python-interpreter) -c \"import distutils.sysconfig; import sys; sys.stdout.write(distutils.sysconfig.get_python_lib())\"" ] ;
+	}
+	else
+	{
+		python-path = [ SHELL "$(python-interpreter) -c \"import site; import sys; sys.stdout.write(site.USER_SITE)\"" ] ;
+	}
+
+	if $(python-path) = ""
+	{
+		return <location>. ;
+	}
+
+	ECHO "python install directory:" $(python-path) ;
+	return <location>$(python-path) ;
+}
+
+install install_module
+	: libtorrent
+	: <conditional>@python-install-dir
+	<install-type>PYTHON_EXTENSION
+	;
+
+explicit install_module ;
 
 install stage_module
 	: libtorrent

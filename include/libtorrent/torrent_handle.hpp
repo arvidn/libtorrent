@@ -6,7 +6,7 @@ Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2015, 2018, Steven Siloti
 Copyright (c) 2016-2017, 2020, Alden Torres
 Copyright (c) 2017, Falcosc
-Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2019, Andrei Kurushin
 All rights reserved.

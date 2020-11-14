@@ -512,6 +512,32 @@ namespace {
 		return !std::any_of(piece_hash.begin(), piece_hash.end()
 			, [](sha1_hash const& h) { return h.is_all_zeros(); });
 	}
+
+	void add_file_attrs(entry& e, file_flags_t const flags, bool const include_symlinks)
+	{
+		if (!(flags & (file_storage::flag_pad_file
+			| file_storage::flag_hidden
+			| file_storage::flag_executable
+			| file_storage::flag_symlink)))
+		{
+			return;
+		}
+		std::string& attr = e["attr"].string();
+		if (flags & file_storage::flag_pad_file) attr += 'p';
+		if (flags & file_storage::flag_hidden) attr += 'h';
+		if (flags & file_storage::flag_executable) attr += 'x';
+		if (include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+	}
+
+	void add_symlink_path(entry& e, std::string symlink_path)
+	{
+		entry& sympath_e = e["symlink path"];
+
+		std::string const link = lexically_relative("", symlink_path);
+		for (auto elems = lsplit_path(link); !elems.first.empty();
+			elems = lsplit_path(elems.second))
+			sympath_e.list().emplace_back(elems.first);
+	}
 }
 
 	entry create_torrent::generate() const
@@ -647,34 +673,19 @@ namespace {
 
 		if (m_private) info["private"] = 1;
 
-		if (!m_multifile)
+		if (make_v1)
 		{
-			file_index_t const first(0);
-			if (make_v1)
+			if (!m_multifile)
 			{
+				file_index_t const first(0);
 				if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 				info["length"] = m_files.file_size(first);
 				file_flags_t const flags = m_files.file_flags(first);
-				if (flags & (file_storage::flag_pad_file
-					| file_storage::flag_hidden
-					| file_storage::flag_executable
-					| file_storage::flag_symlink))
-				{
-					std::string& attr = info["attr"].string();
-					if (flags & file_storage::flag_pad_file) attr += 'p';
-					if (flags & file_storage::flag_hidden) attr += 'h';
-					if (flags & file_storage::flag_executable) attr += 'x';
-					if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-				}
+				add_file_attrs(info, flags, m_include_symlinks);
 				if (m_include_symlinks
 					&& (flags & file_storage::flag_symlink))
 				{
-					entry& sympath_e = info["symlink path"];
-
-					std::string const link = lexically_relative("", m_files.internal_symlink(first));
-					for (auto elems = lsplit_path(link); !elems.first.empty();
-						elems = lsplit_path(elems.second))
-						sympath_e.list().emplace_back(elems.first);
+					add_symlink_path(info, m_files.internal_symlink(first));
 				}
 #if TORRENT_ABI_VERSION < 3
 				if (!m_filehashes.empty())
@@ -683,18 +694,7 @@ namespace {
 				}
 #endif
 			}
-
-			if (make_v2 && !info.find_key("file tree"))
-			{
-				auto& tree_file = info["file tree"][m_files.name()].dict()[{}];
-				tree_file["length"] = m_files.file_size(first);
-				tree_file["pieces root"] = m_fileroots[first];
-				if (m_include_mtime) tree_file["mtime"] = m_files.mtime(first);
-			}
-		}
-		else
-		{
-			if (make_v1 && !info.find_key("files"))
+			else
 			{
 				entry& files = info["files"];
 
@@ -719,24 +719,11 @@ namespace {
 					}
 
 					file_flags_t const flags = m_files.file_flags(i);
-					if (flags)
-					{
-						std::string& attr = file_e["attr"].string();
-						if (flags & file_storage::flag_pad_file) attr += 'p';
-						if (flags & file_storage::flag_hidden) attr += 'h';
-						if (flags & file_storage::flag_executable) attr += 'x';
-						if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-					}
+					add_file_attrs(file_e, flags, m_include_symlinks);
 
-					if (m_include_symlinks
-						&& (flags & file_storage::flag_symlink))
+					if (m_include_symlinks && (flags & file_storage::flag_symlink))
 					{
-						entry& sympath_e = file_e["symlink path"];
-
-						std::string const link = lexically_relative("", m_files.internal_symlink(i));
-						for (auto elems = lsplit_path(link); !elems.first.empty();
-							elems = lsplit_path(elems.second))
-							sympath_e.list().emplace_back(elems.first);
+						add_symlink_path(file_e, m_files.internal_symlink(i));
 					}
 #if TORRENT_ABI_VERSION < 3
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
@@ -746,80 +733,67 @@ namespace {
 #endif
 				}
 			}
-
-			if (make_v2 && !info.find_key("file tree"))
-			{
-				auto& tree = info["file tree"];
-
-				for (file_index_t i : m_files.file_range())
-				{
-					if (files().file_flags(i) & file_storage::flag_pad_file) continue;
-
-					entry* file_e_ptr = &tree;
-
-					{
-						std::string const file_path = m_files.file_path(i);
-						auto const split = lsplit_path(file_path);
-						TORRENT_ASSERT(split.first == m_files.name());
-
-						for (auto e = lsplit_path(split.second);
-							!e.first.empty();
-							e = lsplit_path(e.second))
-						{
-							file_e_ptr = &(*file_e_ptr)[e.first];
-							if (file_e_ptr->dict().find({}) != file_e_ptr->dict().end())
-							{
-								// path conflict
-								// there is already a file with this name
-								// refuse to generate a torrent with such a conflict
-								aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
-							}
-						}
-					}
-
-					if (!file_e_ptr->dict().empty())
-					{
-						// path conflict
-						// there is already a directory with this name
-						// refuse to generate a torrent with such a conflict
-						aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
-					}
-
-					entry& file_e = (*file_e_ptr)[{}];
-
-					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
-
-					file_flags_t const flags = m_files.file_flags(i);
-					if (flags & (file_storage::flag_hidden
-						| file_storage::flag_executable
-						| file_storage::flag_symlink))
-					{
-						std::string& attr = file_e["attr"].string();
-						if (flags & file_storage::flag_hidden) attr += 'h';
-						if (flags & file_storage::flag_executable) attr += 'x';
-						if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
-					}
-
-					if (m_include_symlinks && (flags & file_storage::flag_symlink))
-					{
-						entry& sympath_e = file_e["symlink path"];
-
-						std::string const link = lexically_relative("", m_files.internal_symlink(i));
-						for (auto elems = lsplit_path(link); !elems.first.empty();
-							elems = lsplit_path(elems.second))
-							sympath_e.list().emplace_back(elems.first);
-					}
-					else
-					{
-						file_e["pieces root"] = m_fileroots[i];
-						file_e["length"] = m_files.file_size(i);
-					}
-				}
-			}
 		}
 
 		if (make_v2)
+		{
+			auto& tree = info["file tree"];
+
+			for (file_index_t i : m_files.file_range())
+			{
+				if (files().file_flags(i) & file_storage::flag_pad_file) continue;
+
+				entry* file_e_ptr = &tree;
+
+				{
+					std::string const file_path = m_files.file_path(i);
+					auto const split = m_multifile
+						? lsplit_path(file_path)
+						: std::pair<string_view, string_view>(file_path, file_path);
+					TORRENT_ASSERT(split.first == m_files.name());
+
+					for (auto e = lsplit_path(split.second);
+						!e.first.empty();
+						e = lsplit_path(e.second))
+					{
+						file_e_ptr = &(*file_e_ptr)[e.first];
+						if (file_e_ptr->dict().find({}) != file_e_ptr->dict().end())
+						{
+							// path conflict
+							// there is already a file with this name
+							// refuse to generate a torrent with such a conflict
+							aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
+						}
+					}
+				}
+
+				if (!file_e_ptr->dict().empty())
+				{
+					// path conflict
+					// there is already a directory with this name
+					// refuse to generate a torrent with such a conflict
+					aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
+				}
+
+				entry& file_e = (*file_e_ptr)[{}];
+
+				if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
+
+				file_flags_t const flags = m_files.file_flags(i);
+				add_file_attrs(file_e, flags, m_include_symlinks);
+
+				if (m_include_symlinks && (flags & file_storage::flag_symlink))
+				{
+					add_symlink_path(file_e, m_files.internal_symlink(i));
+				}
+				else
+				{
+					file_e["pieces root"] = m_fileroots[i];
+					file_e["length"] = m_files.file_size(i);
+				}
+			}
 			info["meta version"] = 2;
+		}
 
 		info["piece length"] = m_files.piece_length();
 

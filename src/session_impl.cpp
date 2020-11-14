@@ -4310,7 +4310,12 @@ namespace {
 		int const allowed_upload_slots = unchoke_sort(peers
 			, unchoke_interval, m_settings);
 
-		if (m_settings.get_int(settings_pack::choking_algorithm) != settings_pack::fixed_slots_choker)
+		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
+		{
+			int const upload_slots = get_int_setting(settings_pack::unchoke_slots_limit);
+			m_stats_counters.set_value(counters::num_unchoke_slots, upload_slots);
+		}
+		else
 		{
 			m_stats_counters.set_value(counters::num_unchoke_slots
 				, allowed_upload_slots);

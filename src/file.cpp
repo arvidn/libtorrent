@@ -2,9 +2,10 @@
 
 Copyright (c) 2018, d-komarov
 Copyright (c) 2004-2020, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 Copyright (c) 2016-2017, Steven Siloti
 Copyright (c) 2016-2017, Andrei Kurushin
-Copyright (c) 2016-2017, 2019, Alden Torres
+Copyright (c) 2020, Tiger Wang
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

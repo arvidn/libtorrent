@@ -838,6 +838,10 @@ target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
 target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
 endif()
 
+if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+	file(RELATIVE_PATH CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}" "${CMAKE_INSTALL_LIBDIR}")
+endif()
+
 install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

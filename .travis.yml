@@ -114,6 +114,7 @@ before_install:
 
   - 'if [ "$docs" == "1" ]; then
       ${PIP} install aafigure;
+      ${PIP} install pillow;
     fi'
 
   - if [ "$coverage" == "1" ]; then
@@ -314,7 +315,7 @@ script:
   - cd $TRAVIS_BUILD_DIR;
   - if [[ "$dist" == "1" ]]; then
       make dist &&
-      cd libtorrent-rasterbar-2.0.0 &&
+      cd libtorrent-rasterbar-2.0.1 &&
       make &&
       make python-binding tools examples &&
       cmake -GNinja . &&

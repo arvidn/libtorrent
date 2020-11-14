@@ -11,6 +11,7 @@ Copyright (c) 2016-2020, Alden Torres
 Copyright (c) 2016-2018, Pavel Pimenov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, Falcosc
+Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, ximply
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
 Copyright (c) 2018, d-komarov
@@ -4051,6 +4052,7 @@ namespace {
 				recalc_share_mode();
 #endif
 		}
+		update_want_tick();
 	}
 
 	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
@@ -4227,7 +4229,6 @@ namespace {
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
-		update_want_tick();
 	}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -7975,6 +7976,7 @@ namespace {
 	// pieces have been downloaded)
 	void torrent::finished()
 	{
+		update_want_tick();
 		update_state_list();
 
 		INVARIANT_CHECK;

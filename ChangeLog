@@ -3,6 +3,9 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+* 2.0.1 released
+
+	* fix attribute in single-file v2 torrent creation
 	* fix padding for empty files in v2 torrent creation
 	* add function to ask a file_storage whether it's v2 or not
 	* fix mtime field when creating single-file v2 torrents
@@ -10,7 +13,7 @@
 	* disable use of SetFileValidData() by default (windows). A new setting
 	  allows enabling it
 
-2.0 release
+2.0 released
 
 	* dropped depenency on iconv
 	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
@@ -41,6 +44,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.11 released
+
+	* fix issue with moving the session object
 	* deprecate torrent_status::allocating. This state is no longer used
 	* fix bug creating torrents with symbolic links
 	* remove special case to save metadata in resume data unconditionally when added throught magnet link
