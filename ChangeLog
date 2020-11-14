@@ -1,4 +1,6 @@
 
+1.2.11 released
+
 	* fix issue with moving the session object
 	* deprecate torrent_status::allocating. This state is no longer used
 	* fix bug creating torrents with symbolic links
