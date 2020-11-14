@@ -42,6 +42,8 @@ def clean():
         'config.report',
         'config.log',
         '.lib',
+        'CMakeFiles',
+        'CMakeCache.txt',
         'checking_benchmark',
         'cpu_benchmark',
     ]
