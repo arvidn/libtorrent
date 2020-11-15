@@ -787,6 +787,7 @@ SOURCES =
 	mmap_disk_io
 	mmap_storage
 	posix_disk_io
+	posix_part_file
 	posix_storage
 	ssl
 

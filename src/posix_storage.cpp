@@ -71,7 +71,7 @@ namespace aux {
 	{
 		if (m_part_file) return;
 
-		m_part_file = std::make_unique<part_file>(
+		m_part_file = std::make_unique<posix_part_file>(
 			m_save_path, m_part_file_name
 			, files().num_pieces(), files().piece_length());
 	}
@@ -548,7 +548,7 @@ namespace aux {
 				{
 					ec.file(idx);
 					ec.operation = operation_t::mkdir;
-					return nullptr;
+					return file_pointer{};
 				}
 
 				// now that we've created the directories, try again
@@ -565,14 +565,14 @@ namespace aux {
 					ec.ec.assign(errno, generic_category());
 					ec.file(idx);
 					ec.operation = operation_t::file_open;
-					return nullptr;
+					return file_pointer{};
 				}
 			}
 			else
 			{
 				ec.file(idx);
 				ec.operation = operation_t::file_open;
-				return nullptr;
+				return file_pointer{};
 			}
 		}
 
@@ -587,11 +587,11 @@ namespace aux {
 				ec.ec.assign(errno, generic_category());
 				ec.file(idx);
 				ec.operation = operation_t::file_seek;
-				return nullptr;
+				return file_pointer{};
 			}
 		}
 
-		return f;
+		return file_pointer{f};
 	}
 
 	bool posix_storage::use_partfile(file_index_t const index) const
