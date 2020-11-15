@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/aux_/file_pointer.hpp"
-#include "libtorrent/part_file.hpp"
+#include "libtorrent/aux_/posix_part_file.hpp"
 #include <memory>
 #include <string>
 
@@ -114,7 +114,7 @@ namespace aux {
 		aux::vector<bool, file_index_t> m_use_partfile;
 
 		std::string m_part_file_name;
-		std::unique_ptr<part_file> m_part_file;
+		std::unique_ptr<posix_part_file> m_part_file;
 	};
 }
 }

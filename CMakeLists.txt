@@ -235,6 +235,7 @@ set(libtorrent_aux_include_files
 	path
 	polymorphic_socket
 	portmap
+	posix_part_file
 	proxy_settings
 	range
 	receive_buffer
@@ -398,6 +399,7 @@ set(sources
 	mmap_disk_io
 	mmap_storage
 	posix_disk_io
+	posix_part_file
 	posix_storage
 	ssl
 
