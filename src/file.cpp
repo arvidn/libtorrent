@@ -190,22 +190,25 @@ namespace {
 		return *this;
 	}
 
+	file::~file()
+	{
+		if (m_file_handle == INVALID_HANDLE_VALUE) return;
+
+#ifdef TORRENT_WINDOWS
+		CloseHandle(m_file_handle);
+#else
+		if (m_file_handle != INVALID_HANDLE_VALUE)
+			::close(m_file_handle);
+#endif
+
+		m_file_handle = INVALID_HANDLE_VALUE;
+	}
+
 	file::file(std::string const& path, aux::open_mode_t const mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 	{
 		// the return value is not important, since the
 		// error code contains the same information
-		open(path, mode, ec);
-	}
-
-	file::~file()
-	{
-		close();
-	}
-
-	bool file::open(std::string const& path, aux::open_mode_t mode, error_code& ec)
-	{
-		close();
 		native_path_string file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
@@ -232,7 +235,7 @@ namespace {
 		{
 			ec.assign(GetLastError(), system_category());
 			TORRENT_ASSERT(ec);
-			return false;
+			return;
 		}
 
 		m_file_handle = handle;
@@ -251,28 +254,13 @@ namespace {
 		{
 			ec.assign(errno, system_category());
 			TORRENT_ASSERT(ec);
-			return false;
+			return;
 		}
 
 		m_file_handle = handle;
 #endif
 
 		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
-		return true;
-	}
-
-	void file::close()
-	{
-		if (m_file_handle == INVALID_HANDLE_VALUE) return;
-
-#ifdef TORRENT_WINDOWS
-		CloseHandle(m_file_handle);
-#else
-		if (m_file_handle != INVALID_HANDLE_VALUE)
-			::close(m_file_handle);
-#endif
-
-		m_file_handle = INVALID_HANDLE_VALUE;
 	}
 
 namespace {
@@ -364,56 +352,5 @@ namespace {
 		std::int64_t ret = iov(&write, m_file_handle, file_offset, bufs, ec);
 
 		return ret;
-	}
-
-	bool file::set_size(std::int64_t s, error_code& ec)
-	{
-		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
-		TORRENT_ASSERT(s >= 0);
-
-#ifdef TORRENT_WINDOWS
-
-		LARGE_INTEGER offs;
-		offs.QuadPart = s;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
-		{
-			ec.assign(GetLastError(), system_category());
-			return false;
-		}
-		if (::SetEndOfFile(m_file_handle) == FALSE)
-		{
-			ec.assign(GetLastError(), system_category());
-			return false;
-		}
-
-#else // NON-WINDOWS
-		if (::ftruncate(m_file_handle, s) < 0)
-		{
-			ec.assign(errno, system_category());
-			return false;
-		}
-#endif // TORRENT_WINDOWS
-		return true;
-	}
-
-	std::int64_t file::get_size(error_code& ec) const
-	{
-#ifdef TORRENT_WINDOWS
-		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(m_file_handle, &file_size))
-		{
-			ec.assign(GetLastError(), system_category());
-			return -1;
-		}
-		return file_size.QuadPart;
-#else
-		struct stat fs = {};
-		if (::fstat(m_file_handle, &fs) != 0)
-		{
-			ec.assign(errno, system_category());
-			return -1;
-		}
-		return fs.st_size;
-#endif
 	}
 }
