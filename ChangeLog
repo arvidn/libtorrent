@@ -1,3 +1,4 @@
+	* improve client_data_t ergonomics
 	* fix issue with concurrent access to part files
 
 * 2.0.1 released
