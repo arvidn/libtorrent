@@ -53,7 +53,6 @@ namespace libtorrent {
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		disk_io_job* ptr = static_cast<disk_io_job*>(m_job_pool.malloc());
 		m_job_pool.set_next_size(100);
-		if (ptr == nullptr) return nullptr;
 		++m_jobs_in_use;
 		if (type == job_action_t::read) ++m_read_jobs;
 		else if (type == job_action_t::write) ++m_write_jobs;

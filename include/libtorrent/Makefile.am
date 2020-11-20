@@ -218,6 +218,7 @@ nobase_include_HEADERS = \
   aux_/instantiate_connection.hpp   \
   aux_/range.hpp                    \
   aux_/windows.hpp                  \
+  aux_/pool.hpp                     \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
