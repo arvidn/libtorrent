@@ -49,6 +49,9 @@ namespace libtorrent {
 
 namespace {
 
+	static_assert(int('0') == 48, "this code relies on ASCII compatible source encoding");
+	static_assert(int('9') == 57, "this code relies on ASCII compatible source encoding");
+
 	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does
@@ -148,12 +151,16 @@ namespace detail {
 	// non-digit in the range, a parse error is reported in 'ec'. If the value
 	// cannot be represented by the variable 'val' and overflow error is reported
 	// by 'ec'.
+	// WARNING: the val is an out-parameter that is expected to be initialized
+	// to 0 or a *positive* number.
 	char const* parse_int(char const* start, char const* end, char delimiter
 		, std::int64_t& val, bdecode_errors::error_code_enum& ec)
 	{
+		TORRENT_ASSERT(val >= 0);
 		while (start < end && *start != delimiter)
 		{
-			if (!numeric(*start))
+			char const c = *start;
+			if (!numeric(c))
 			{
 				ec = bdecode_errors::expected_digit;
 				return start;
@@ -164,7 +171,7 @@ namespace detail {
 				return start;
 			}
 			val *= 10;
-			int digit = *start - '0';
+			int const digit = c - '0';
 			if (val > std::numeric_limits<std::int64_t>::max() - digit)
 			{
 				ec = bdecode_errors::overflow;
