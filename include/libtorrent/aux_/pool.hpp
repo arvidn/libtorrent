@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2018, Arvid Norberg
+Copyright (c) 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,43 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISK_JOB_POOL
-#define TORRENT_DISK_JOB_POOL
+#ifndef TORRENT_POOL_HPP
+#define TORRENT_POOL_HPP
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/disk_io_job.hpp" // for job_action_t
-#include "libtorrent/aux_/pool.hpp"
-#include <mutex>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/pool/pool.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
-	struct disk_io_job;
+struct allocator_new_delete
+{
+	using size_type = std::size_t;
+	using difference_type = std::ptrdiff_t;
 
-	struct TORRENT_EXTRA_EXPORT disk_job_pool
-	{
-		disk_job_pool();
-		~disk_job_pool();
+	// TODO: ensure the alignment is good here
+	static char* malloc(size_type const bytes)
+	{ return new char[bytes]; }
+	static void free(char* const block)
+	{ delete [] block; }
+};
 
-		disk_io_job* allocate_job(job_action_t type);
-		void free_job(disk_io_job* j);
-		void free_jobs(disk_io_job** j, int num);
+using pool = boost::pool<allocator_new_delete>;
 
-		int jobs_in_use() const { return m_jobs_in_use; }
-		int read_jobs_in_use() const { return m_read_jobs; }
-		int write_jobs_in_use() const { return m_write_jobs; }
-
-	private:
-
-		// total number of in-use jobs
-		int m_jobs_in_use;
-		// total number of in-use read jobs
-		int m_read_jobs;
-		// total number of in-use write jobs
-		int m_write_jobs;
-
-		std::mutex m_job_mutex;
-		aux::pool m_job_pool;
-	};
+}
 }
 
-#endif // TORRENT_DISK_JOB_POOL
+#endif

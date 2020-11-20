@@ -240,6 +240,7 @@ set(libtorrent_aux_include_files
 	numeric_cast
 	openssl
 	path
+	pool
 	portmap
 	proxy_settings
 	range
