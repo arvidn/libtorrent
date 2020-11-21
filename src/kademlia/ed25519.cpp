@@ -39,7 +39,7 @@ namespace libtorrent { namespace dht {
 	std::array<char, 32> ed25519_create_seed()
 	{
 		std::array<char, 32> seed;
-		aux::random_bytes(seed);
+		aux::crypto_random_bytes(seed);
 		return seed;
 	}
 
