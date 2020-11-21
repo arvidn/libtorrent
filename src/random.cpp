@@ -57,9 +57,7 @@ extern "C" {
 }
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#endif
-
-#if TORRENT_USE_DEV_RANDOM
+#elif TORRENT_USE_DEV_RANDOM
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
 
@@ -107,30 +105,37 @@ namespace aux {
 		{
 #ifdef TORRENT_BUILD_SIMULATOR
 			// simulator
-
 			for (auto& b : buffer) b = char(random(0xff));
+#else
+			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
+#endif
+		}
 
+		void crypto_random_bytes(span<char> buffer)
+		{
+#ifdef TORRENT_BUILD_SIMULATOR
+			// In the simulator we want deterministic random numbers
+			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
 #elif TORRENT_USE_CRYPTOAPI
 			// windows
-
 			aux::crypt_gen_random(buffer);
-
-#elif TORRENT_USE_DEV_RANDOM
-			// /dev/random
-
-			static dev_random dev;
-			dev.read(buffer);
-
 #elif defined TORRENT_USE_LIBCRYPTO
 			// openssl
-
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+#elif TORRENT_USE_DEV_RANDOM
+			// /dev/random
+			static dev_random dev;
+			dev.read(buffer);
 #else
-			// fallback
 
+#ifdef TORRENT_I_WANT_INSECURE_RANDOM_NUMBERS
 			std::generate(buffer.begin(), buffer.end(), [] { return char(random(0xff)); });
+#else
+#error "no secure entropy source available. If you really want insecure random numbers, define TORRENT_I_WANT_INSECURE_RANDOM_NUMBERS"
+#endif
+
 #endif
 		}
 	}
@@ -142,4 +147,5 @@ namespace aux {
 #endif
 		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}
+
 }

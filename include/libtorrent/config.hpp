@@ -215,6 +215,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
+#define TORRENT_USE_DEV_RANDOM 0
 
 #ifdef NTDDI_VERSION
 # if (NTDDI_VERSION > NTDDI_WINXPSP2)
@@ -242,6 +243,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
+#define TORRENT_USE_DEV_RANDOM 0
 
 #ifdef NTDDI_VERSION
 # if (NTDDI_VERSION > NTDDI_WINXPSP2)
@@ -395,7 +397,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef TORRENT_USE_DEV_RANDOM
-#define TORRENT_USE_DEV_RANDOM 0
+#define TORRENT_USE_DEV_RANDOM 1
 #endif
 
 #ifndef TORRENT_HAVE_MMAP

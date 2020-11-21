@@ -44,8 +44,11 @@ namespace libtorrent { namespace aux {
 
 	struct dev_random
 	{
+		// the choice of /dev/urandom over /dev/random is based on:
+		// https://www.mail-archive.com/cryptography@randombit.net/msg04763.html
+		// https://security.stackexchange.com/questions/3936/is-a-rand-from-dev-urandom-secure-for-a-login-key/3939#3939
 		dev_random()
-			: m_fd(open("/dev/random", O_RDONLY))
+			: m_fd(::open("/dev/urandom", O_RDONLY))
 		{
 			if (m_fd < 0)
 			{
@@ -65,7 +68,7 @@ namespace libtorrent { namespace aux {
 			}
 		}
 
-		~dev_random() { close(m_fd); }
+		~dev_random() { ::close(m_fd); }
 
 	private:
 		int m_fd;
