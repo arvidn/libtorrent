@@ -261,7 +261,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (transaction_id.empty()) return false;
 
 	auto ptr = transaction_id.begin();
-	int tid = transaction_id.size() != 2 ? -1 : detail::read_uint16(ptr);
+	std::uint16_t tid = transaction_id.size() != 2 ? std::uint64_t(0xffff) : detail::read_uint16(ptr);
 
 	observer_ptr o;
 	auto range = m_transactions.equal_range(tid);
@@ -464,7 +464,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	std::uint16_t const tid = std::uint16_t(random(0x7fff));
+	std::uint16_t const tid = std::uint16_t(random(0xffff));
 	detail::write_uint16(tid, out);
 	e["t"] = transaction_id;
 
@@ -491,7 +491,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 
 	if (m_sock_man->send_packet(m_sock, e, target_addr))
 	{
-		m_transactions.insert(std::make_pair(tid, o));
+		m_transactions.emplace(tid, o);
 #if TORRENT_USE_ASSERTS
 		o->m_was_sent = true;
 #endif
