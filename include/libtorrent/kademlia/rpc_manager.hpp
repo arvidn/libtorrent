@@ -122,7 +122,7 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-	std::unordered_multimap<int, observer_ptr> m_transactions;
+	std::unordered_multimap<std::uint16_t, observer_ptr> m_transactions;
 
 	aux::listen_socket_handle m_sock;
 	socket_manager* m_sock_man;
