@@ -51,7 +51,7 @@ namespace aux {
 		std::shuffle(range.data(), range.data() + range.size(), random_engine());
 	}
 
-	// Fills the buffer with random bytes.
+	// Fills the buffer with pseudo random bytes.
 	//
 	// This functions perform differently under different setups
 	// For Windows and all platforms when compiled with libcrypto, it
@@ -59,6 +59,10 @@ namespace aux {
 	// If the above conditions are not true, then a standard
 	// fill of bytes is used.
 	TORRENT_EXTRA_EXPORT void random_bytes(span<char> buffer);
+
+	// Fills the buffer with random bytes from a strong entropy source. This can
+	// be used to generate secrets.
+	TORRENT_EXTRA_EXPORT void crypto_random_bytes(span<char> buffer);
 }
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
