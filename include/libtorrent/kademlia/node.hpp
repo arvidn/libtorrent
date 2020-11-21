@@ -270,7 +270,7 @@ private:
 	time_point m_last_self_refresh;
 
 	// secret random numbers used to create write tokens
-	std::uint32_t m_secret[2];
+	std::array<char, 4> m_secret[2];
 
 	counters& m_counters;
 
