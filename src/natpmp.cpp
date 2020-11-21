@@ -356,7 +356,7 @@ port_mapping_t natpmp::add_mapping(portmap_protocol const p, int const external_
 		m_mappings.push_back(mapping_t());
 		i = m_mappings.end() - 1;
 	}
-	aux::random_bytes(i->nonce);
+	aux::crypto_random_bytes(i->nonce);
 	i->protocol = p;
 	i->external_port = external_port;
 	i->local_port = local_ep.port();
