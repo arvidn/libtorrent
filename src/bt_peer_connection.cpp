@@ -552,9 +552,7 @@ namespace {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "ENCRYPTION"
-				, "writing synchash %s secret: %s"
-				, aux::to_hex(sync_hash).c_str()
-				, aux::to_hex(secret).c_str());
+				, "writing synchash");
 		}
 #endif
 
