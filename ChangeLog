@@ -1,3 +1,4 @@
+	* introduce mitigation for Server Side Request Forgery in tracker announces
 	* fix error handling for pool allocation failure
 
 1.2.11 released

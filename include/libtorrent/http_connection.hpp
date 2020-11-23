@@ -130,6 +130,8 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 
+	std::string const& url() const { return m_url; }
+
 private:
 
 #if TORRENT_USE_I2P
