@@ -302,6 +302,13 @@ struct sim_config : sim::default_config
 				result.push_back(address_v6::from_string("ff::dead:beef"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
+		if (hostname == "localhost")
+		{
+			result.push_back(address_v4::from_string("127.0.0.1"));
+			if (ipv6)
+				result.push_back(address_v6::from_string("::1"));
+			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(1));
+		}
 
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
@@ -607,17 +614,25 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	sim::asio::io_service tracker_ios(sim, address_v4::from_string("123.0.0.2"));
 	sim::asio::io_service tracker_ios6(sim, address_v6::from_string("ff::dead:beef"));
 
+	sim::asio::io_service tracker_lo_ios(sim, address_v4::from_string("127.0.0.1"));
+	sim::asio::io_service tracker_lo_ios6(sim, address_v6::from_string("::1"));
+
 	// listen on port 8080
 	sim::http_server http(tracker_ios, 8080);
 	sim::http_server http6(tracker_ios6, 8080);
+	sim::http_server http_lo(tracker_lo_ios, 8080);
+	sim::http_server http6_lo(tracker_lo_ios6, 8080);
 
 	http.register_handler(url_path, a);
 	http6.register_handler(url_path, a);
+	http_lo.register_handler(url_path, a);
+	http6_lo.register_handler(url_path, a);
 
 	lt::session_proxy zombie;
 
 	asio::io_service ios(sim, { address_v4::from_string("123.0.0.3")
 		, address_v6::from_string("ffff::1337") });
+
 	lt::settings_pack sett = settings();
 	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
 
@@ -1317,6 +1332,52 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 		, [](torrent_handle h) {}
 		, [](torrent_handle h) {});
 	TEST_EQUAL(got_announce, true);
+}
+
+void test_ssrf(char const* announce_path, bool const feature_on
+	, char const* tracker_url, bool const expect_announce)
+{
+	bool got_announce = false;
+	tracker_test(
+		[&](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::tracker_ssrf_mitigation, feature_on);
+			ses.apply_settings(pack);
+			p.trackers.emplace_back(tracker_url);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {}
+		, announce_path);
+	TEST_EQUAL(got_announce, expect_announce);
+}
+
+TORRENT_TEST(tracker_ssrf_localhost)
+{
+	test_ssrf("/announce", true, "http://localhost:8080/announce", true);
+	test_ssrf("/unusual-announce-path", true, "http://localhost:8080/unusual-announce-path", false);
+	test_ssrf("/unusual-announce-path", false, "http://localhost:8080/unusual-announce-path", true);
+}
+
+TORRENT_TEST(tracker_ssrf_IPv4)
+{
+	test_ssrf("/announce", true, "http://127.0.0.1:8080/announce", true);
+	test_ssrf("/unusual-announce-path", true, "http://127.0.0.1:8080/unusual-announce-path", false);
+	test_ssrf("/unusual-announce-path", false, "http://127.0.0.1:8080/unusual-announce-path", true);
+}
+
+TORRENT_TEST(tracker_ssrf_IPv6)
+{
+	test_ssrf("/announce", true, "http://[::1]:8080/announce", true);
+	test_ssrf("/unusual-announce-path", true, "http://[::1]:8080/unusual-announce-path", false);
+	test_ssrf("/unusual-announce-path", false, "http://[::1]:8080/unusual-announce-path", true);
 }
 
 // This test sets up two peers, one seed an one downloader. The downloader has

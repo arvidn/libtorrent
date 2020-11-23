@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/parse_url.hpp"
 
 namespace libtorrent {
 
@@ -284,6 +285,46 @@ namespace libtorrent {
 		{
 			fail(lt::errors::announce_skipped);
 			return;
+		}
+
+		aux::session_settings const& settings = m_man.settings();
+		bool const ssrf_mitigation = settings.get_bool(settings_pack::tracker_ssrf_mitigation);
+		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
+			, [](tcp::endpoint const& ep) { return is_loopback(ep.address()); }) != endpoints.end())
+		{
+			// there is at least one loopback address in here. If the request
+			// path for this tracker is not /announce. filter all loopback
+			// addresses.
+			std::string path;
+
+			error_code ec;
+			std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path)
+				= parse_url_components(c.url(), ec);
+			if (ec)
+			{
+				fail(ec);
+				return;
+			}
+
+			// this is mitigation for Server Side request forgery. Any tracker
+			// announce to localhost need to look like a standard BitTorrent
+			// announce
+			if (path.substr(0, 9) != "/announce")
+			{
+				for (auto i = endpoints.begin(); i != endpoints.end();)
+				{
+					if (is_loopback(i->address()))
+						i = endpoints.erase(i);
+					else
+						++i;
+				}
+			}
+
+			if (endpoints.empty())
+			{
+				fail(errors::banned_by_ip_filter);
+				return;
+			}
 		}
 
 		TORRENT_UNUSED(c);
