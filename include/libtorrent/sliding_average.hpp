@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for std::abs
 #include <limits>
+#include <type_traits> // for is_integral
 
 #include "libtorrent/assert.hpp"
 
