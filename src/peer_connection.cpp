@@ -2595,7 +2595,7 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_last_piece = aux::time_now();
-		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
+		TORRENT_ASSERT_VAL(m_outstanding_bytes >= bytes, m_outstanding_bytes - bytes);
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 		std::shared_ptr<torrent> t = associated_torrent().lock();
