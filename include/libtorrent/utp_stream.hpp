@@ -264,9 +264,9 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	static void on_connect(void* self, error_code const& ec, bool kill);
 	static void on_close_reason(void* self, close_reason_t reason);
 
-	void add_read_buffer(void* buf, std::size_t len);
+	void add_read_buffer(void* buf, int len);
 	void issue_read();
-	void add_write_buffer(void const* buf, std::size_t len);
+	void add_write_buffer(void const* buf, int len);
 	void issue_write();
 	std::size_t read_some(bool clear_buffers);
 
@@ -324,7 +324,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
-		std::size_t bytes_added = 0;
+		int bytes_added = 0;
 #if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
@@ -333,11 +333,12 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			, end(buffers.end()); i != end; ++i)
 #endif
 		{
-			if (buffer_size(*i) == 0) continue;
 			using boost::asio::buffer_cast;
 			using boost::asio::buffer_size;
-			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
+			int const sz = static_cast<int>(buffer_size(*i));
+			if (sz <= 0) continue;
+			add_read_buffer(buffer_cast<void*>(*i), sz);
+			bytes_added += sz;
 		}
 		if (bytes_added == 0)
 		{
@@ -394,10 +395,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			ec = boost::asio::error::would_block;
 			return 0;
 		}
-#if TORRENT_USE_ASSERTS
-		size_t buf_size = 0;
-#endif
-
+		int buf_size = 0;
 #if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
@@ -408,13 +406,15 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			using boost::asio::buffer_cast;
 			using boost::asio::buffer_size;
-			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-#if TORRENT_USE_ASSERTS
-			buf_size += buffer_size(*i);
-#endif
+			int const sz = static_cast<int>(buffer_size(*i));
+			if (sz <= 0) continue;
+			add_read_buffer(buffer_cast<void*>(*i), sz);
+			buf_size += sz;
 		}
+		if (buf_size <= 0) return 0;
+
 		std::size_t ret = read_some(true);
-		TORRENT_ASSERT(ret <= buf_size);
+		TORRENT_ASSERT(ret <= std::size_t(buf_size));
 		TORRENT_ASSERT(ret > 0);
 		return ret;
 	}
@@ -467,7 +467,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return;
 		}
 
-		std::size_t bytes_added = 0;
+		int bytes_added = 0;
 #if BOOST_VERSION >= 106600
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
@@ -476,11 +476,12 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			, end(buffers.end()); i != end; ++i)
 #endif
 		{
-			if (buffer_size(*i) == 0) continue;
 			using boost::asio::buffer_cast;
 			using boost::asio::buffer_size;
-			add_write_buffer(buffer_cast<void const*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
+			int const sz = static_cast<int>(buffer_size(*i));
+			if (sz <= 0) continue;
+			add_write_buffer(buffer_cast<void const*>(*i), sz);
+			bytes_added += sz;
 		}
 		if (bytes_added == 0)
 		{
