@@ -234,6 +234,7 @@ set(libtorrent_aux_include_files
 	packet_pool
 	path
 	polymorphic_socket
+	pool
 	portmap
 	posix_part_file
 	proxy_settings

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/io_context.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include <cstdint>
 #include <limits>
 
@@ -437,7 +438,7 @@ void utp_stream::on_connect(utp_stream* s, error_code const& ec, bool const shut
 	}
 }
 
-void utp_stream::add_read_buffer(void* buf, std::size_t const len)
+void utp_stream::add_read_buffer(void* buf, int const len)
 {
 	TORRENT_ASSERT(m_impl);
 	TORRENT_ASSERT(len < INT_MAX);
@@ -449,7 +450,7 @@ void utp_stream::add_read_buffer(void* buf, std::size_t const len)
 // this is the wrapper to add a user provided write buffer to the
 // utp_socket_impl. It makes sure the m_write_buffer_size is kept
 // up to date
-void utp_stream::add_write_buffer(void const* buf, std::size_t const len)
+void utp_stream::add_write_buffer(void const* buf, int const len)
 {
 	TORRENT_ASSERT(m_impl);
 	TORRENT_ASSERT(len < INT_MAX);
@@ -494,40 +495,41 @@ void utp_stream::do_connect(tcp::endpoint const& ep)
 
 // =========== utp_socket_impl ============
 
-void utp_socket_impl::add_read_buffer(void* buf, std::size_t const len)
+void utp_socket_impl::add_read_buffer(void* buf, int const len)
 {
-	m_read_buffer.emplace_back(buf, len);
-	m_read_buffer_size += int(len);
-
-	UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(this), int(len));
+	UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(this), len);
+	if (len <= 0) return;
+	m_read_buffer.emplace_back(reinterpret_cast<char*>(buf), len);
+	m_read_buffer_size += len;
 }
 
-void utp_socket_impl::add_write_buffer(void const* buf, std::size_t const len)
+void utp_socket_impl::add_write_buffer(void const* buf, int const len)
 {
+	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void const*>(m_impl), len);
+	if (len <= 0) return;
+
 #if TORRENT_USE_ASSERTS
-	int write_buffer_size = 0;
+	std::ptrdiff_t write_buffer_size = 0;
 	for (auto const& i : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
-		write_buffer_size += int(i.len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - i.size() > write_buffer_size);
+		write_buffer_size += i.size();
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
 
-	m_write_buffer.emplace_back(const_cast<void*>(buf), len);
-	m_write_buffer_size += int(len);
+	m_write_buffer.emplace_back(reinterpret_cast<char const*>(buf), len);
+	m_write_buffer_size += len;
 
 #if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
 	for (auto const& i : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
-		write_buffer_size += int(i.len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - i.size() > write_buffer_size);
+		write_buffer_size += i.size();
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
-
-	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void*>(this), int(len));
 }
 
 void utp_socket_impl::issue_read()
@@ -553,7 +555,8 @@ void utp_socket_impl::issue_read()
 
 std::size_t utp_socket_impl::read_some(bool const clear_buffers)
 {
-	if (m_receive_buffer_size == 0)
+	TORRENT_ASSERT(m_receive_buffer_size >= 0);
+	if (m_receive_buffer_size <= 0)
 	{
 		if (clear_buffers)
 		{
@@ -584,24 +587,29 @@ std::size_t utp_socket_impl::read_some(bool const clear_buffers)
 #endif
 
 		packet* const p = i->get();
-		int const to_copy = std::min(p->size - p->header_size, aux::numeric_cast<int>(target->len));
+
+		// the number of bytes to copy is added to the 16 bit header field
+		// p->header_size, so we have to make sure we stay within that limit
+		int const to_copy = static_cast<int>(std::min({
+			std::ptrdiff_t(p->size - p->header_size)
+			, target->size()
+			, std::ptrdiff_t(std::numeric_limits<std::uint16_t>::max() - p->header_size)}));
 		TORRENT_ASSERT(to_copy >= 0);
-		std::memcpy(target->buf, p->buf + p->header_size, std::size_t(to_copy));
+		std::memcpy(target->data(), p->buf + p->header_size, std::size_t(to_copy));
 		ret += std::size_t(to_copy);
-		target->buf = static_cast<char*>(target->buf) + to_copy;
-		TORRENT_ASSERT(target->len >= std::size_t(to_copy));
-		target->len -= std::size_t(to_copy);
+		TORRENT_ASSERT(target->size() >= to_copy);
+		*target = target->subspan(to_copy);
+
+		TORRENT_ASSERT(m_receive_buffer_size >= to_copy);
 		m_receive_buffer_size -= to_copy;
 		TORRENT_ASSERT(m_read_buffer_size >= to_copy);
 		m_read_buffer_size -= to_copy;
 		p->header_size += std::uint16_t(to_copy);
-		if (target->len == 0) target = m_read_buffer.erase(target);
+		if (target->size() == 0) target = m_read_buffer.erase(target);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_receive_buffers();
 #endif
-
-		TORRENT_ASSERT(m_receive_buffer_size >= 0);
 
 		// Consumed entire packet
 		if (p->header_size == p->size)
@@ -612,7 +620,8 @@ std::size_t utp_socket_impl::read_some(bool const clear_buffers)
 			++i;
 		}
 
-		if (m_receive_buffer_size == 0)
+		TORRENT_ASSERT(m_receive_buffer_size >= 0);
+		if (m_receive_buffer_size <= 0)
 		{
 			UTP_LOGV("%8p: Didn't fill entire target: %d bytes left in buffer\n"
 				, static_cast<void*>(this), m_receive_buffer_size);
@@ -1178,11 +1187,11 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 	INVARIANT_CHECK;
 
 #if TORRENT_USE_ASSERTS
-	int write_buffer_size = 0;
+	std::ptrdiff_t write_buffer_size = 0;
 	for (auto const& i : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
-		write_buffer_size += int(i.len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - i.size() > write_buffer_size);
+		write_buffer_size += i.size();
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
@@ -1190,24 +1199,25 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 	TORRENT_ASSERT(m_write_buffer_size >= size);
 	auto i = m_write_buffer.begin();
 
-	if (size == 0) return;
+	if (size <= 0) return;
 
 	int buffers_to_clear = 0;
 	while (size > 0)
 	{
+		TORRENT_ASSERT(i != m_write_buffer.end());
+
 		// i points to the iovec we'll start copying from
-		int to_copy = std::min(size, int(i->len));
+		int const to_copy = static_cast<int>(std::min(std::ptrdiff_t(size), i->size()));
 		TORRENT_ASSERT(to_copy >= 0);
 		TORRENT_ASSERT(to_copy < INT_MAX / 2 && m_written < INT_MAX / 2);
-		std::memcpy(ptr, static_cast<char const*>(i->buf), std::size_t(to_copy));
+		std::memcpy(ptr, i->data(), std::size_t(to_copy));
 		size -= to_copy;
 		m_written += to_copy;
 		ptr += to_copy;
-		i->len -= std::size_t(to_copy);
+		*i = i->subspan(to_copy);
 		TORRENT_ASSERT(m_write_buffer_size >= to_copy);
 		m_write_buffer_size -= to_copy;
-		i->buf = static_cast<char*>(i->buf) + to_copy;
-		if (i->len == 0) ++buffers_to_clear;
+		if (i->size() == 0) ++buffers_to_clear;
 		++i;
 	}
 
@@ -1219,8 +1229,8 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 	write_buffer_size = 0;
 	for (auto const& j : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(j.len) > write_buffer_size);
-		write_buffer_size += int(j.len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - j.size() > write_buffer_size);
+		write_buffer_size += j.size();
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
@@ -1958,6 +1968,14 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
 	INVARIANT_CHECK;
 #endif
 
+	TORRENT_ASSERT(size > 0);
+	if (size <= 0) return;
+
+	// if a packet, p, is passed in here, the buf argument is ignored, and size
+	// is redundant, as it must match p->size
+	TORRENT_ASSERT(!p || p->size - p->header_size == size);
+	TORRENT_ASSERT(!p || !buf);
+
 	while (!m_read_buffer.empty())
 	{
 		UTP_LOGV("%8p: incoming: have user buffer (%d)\n", static_cast<void*>(this), m_read_buffer_size);
@@ -1968,18 +1986,17 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
 		}
 		iovec_t* target = &m_read_buffer.front();
 
-		int const to_copy = std::min(size, aux::numeric_cast<int>(target->len));
+		int const to_copy = static_cast<int>(std::min(std::ptrdiff_t(size), target->size()));
 		TORRENT_ASSERT(to_copy >= 0);
-		std::memcpy(target->buf, buf, std::size_t(to_copy));
+		std::memcpy(target->data(), buf, std::size_t(to_copy));
 		m_read += to_copy;
-		target->buf = reinterpret_cast<std::uint8_t*>(target->buf) + to_copy;
-		target->len -= std::size_t(to_copy);
+		*target = target->subspan(to_copy);
 		buf += to_copy;
-		UTP_LOGV("%8p: copied %d bytes into user receive buffer\n", static_cast<void*>(this), to_copy);
 		TORRENT_ASSERT(m_read_buffer_size >= to_copy);
 		m_read_buffer_size -= to_copy;
 		size -= to_copy;
-		if (target->len == 0) m_read_buffer.erase(m_read_buffer.begin());
+		UTP_LOGV("%8p: copied %d bytes into user receive buffer\n", static_cast<void*>(this), to_copy);
+		if (target->size() == 0) m_read_buffer.erase(m_read_buffer.begin());
 		if (p)
 		{
 			p->header_size += std::uint16_t(to_copy);

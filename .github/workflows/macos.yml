@@ -1,0 +1,111 @@
+name: MacOS
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
+
+jobs:
+
+   test:
+      name: Tests
+      runs-on: macos-latest
+      continue-on-error: true
+
+      strategy:
+         matrix:
+            config: [ crypto=openssl, deprecated-functions=off ]
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          brew install boost-build boost
+          echo "using darwin ;" >>~/user-config.jam
+
+      - name: build and run tests
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 1
+          max_attempts: 3
+          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 debug-iterators=on invariant-checks=full asserts=on)
+
+
+
+   sim:
+      name: Simulations
+      runs-on: macos-latest
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          brew install boost-build boost
+          echo "using darwin ;" >>~/user-config.jam
+
+      - name: build and run simulations
+        run: |
+          cd simulation
+          b2 -j2 -l400 debug-iterators=on invariant-checks=full asserts=on
+
+
+   build:
+      name: Build
+      runs-on: macos-latest
+      continue-on-error: true
+
+      strategy:
+         matrix:
+            config: [ crypto=openssl, release ]
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          brew install boost-build boost
+          echo "using darwin ;" >>~/user-config.jam
+
+      - name: build library
+        run: |
+          b2 ${{ matrix.config }} -j2 -l400 cxxstd=14
+
+
+   python:
+      name: Python bindings
+      runs-on: macos-latest
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          brew install boost-build boost boost-python3 python@3.9
+          export PYTHON_INCLUDE=`echo /usr/local/Cellar/python@3.9/*/Frameworks/Python.framework/Versions/3.9/include/python3.9` ;
+          echo "using darwin ;" >>~/user-config.jam
+          echo "using python : 3.9 : /usr/local/opt/python@3.9/bin/python3 : $(PYTHON_INCLUDE) : /usr/local/opt/python@3.9/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin : <target-os>darwin ;" >> ~/user-config.jam
+
+      - name: build python module
+        run: |
+          cd bindings/python
+          b2 -j2 stage_module stage_dependencies
+
+      - name: run python tests
+        run: |
+          cd bindings/python
+          DYLD_LIBRARY_PATH=./dependencies python3 test.py

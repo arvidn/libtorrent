@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 #include <functional>
 
@@ -248,9 +249,9 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	static void on_connect(utp_stream* self, error_code const& ec, bool shutdown);
 	static void on_close_reason(utp_stream* self, close_reason_t reason);
 
-	void add_read_buffer(void* buf, std::size_t len);
+	void add_read_buffer(void* buf, int len);
 	void issue_read();
-	void add_write_buffer(void const* buf, std::size_t len);
+	void add_write_buffer(void const* buf, int len);
 	void issue_write();
 	std::size_t read_some(bool clear_buffers);
 	std::size_t write_some(bool clear_buffers);
@@ -312,7 +313,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
 		{
 			if (i->size() == 0) continue;
-			add_read_buffer(i->data(), i->size());
+			add_read_buffer(i->data(), int(i->size()));
 			bytes_added += i->size();
 		}
 		if (bytes_added == 0)
@@ -357,7 +358,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
 		{
-			add_read_buffer(i->data(), i->size());
+			add_read_buffer(i->data(), int(i->size()));
 #if TORRENT_USE_ASSERTS
 			buf_size += i->size();
 #endif
@@ -385,7 +386,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		for (auto i = buffer_sequence_begin(buffers)
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
 		{
-			add_write_buffer(i->data(), i->size());
+			add_write_buffer(i->data(), int(i->size()));
 #if TORRENT_USE_ASSERTS
 			buf_size += i->size();
 #endif
@@ -445,7 +446,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			, end(buffer_sequence_end(buffers)); i != end; ++i)
 		{
 			if (i->size() == 0) continue;
-			add_write_buffer(i->data(), i->size());
+			add_write_buffer(i->data(), int(i->size()));
 			bytes_added += i->size();
 		}
 		if (bytes_added == 0)
@@ -625,8 +626,8 @@ struct utp_socket_impl
 	// TODO: it would be nice to make this private
 	std::weak_ptr<utp_socket_interface> m_sock;
 
-	void add_write_buffer(void const* buf, std::size_t len);
-	void add_read_buffer(void* buf, std::size_t len);
+	void add_write_buffer(void const* buf, int len);
+	void add_read_buffer(void* buf, int len);
 
 	int send_delay() const { return m_send_delay; }
 	int recv_delay() const { return m_recv_delay; }
@@ -705,18 +706,6 @@ private:
 	// i.e. transition to the state_t::deleting state
 	utp_stream* m_userdata;
 
-	// This is a platform-independent replacement
-	// for the regular iovec type in posix. Since
-	// it's not used in any system call, we might as
-	// well define our own type instead of wrapping
-	// the system's type.
-	struct iovec_t
-	{
-		iovec_t(void* b, std::size_t l): buf(b), len(l) {}
-		void* buf;
-		std::size_t len;
-	};
-
 	// if there's currently an async read or write
 	// operation in progress, these buffers are initialized
 	// and used, otherwise any bytes received are stuck in
@@ -724,7 +713,7 @@ private:
 	// as we flush from the write buffer, individual iovecs
 	// are updated to only refer to unflushed portions of the
 	// buffers. Buffers that empty are erased from the vector.
-	std::vector<iovec_t> m_write_buffer;
+	std::vector<span<char const>> m_write_buffer;
 
 	// if this is non nullptr, it's a packet. This packet was held off because
 	// of NAGLE. We couldn't send it immediately. It's left

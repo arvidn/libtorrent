@@ -594,9 +594,11 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			return true;
 		}
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		// always trigger a full recheck when we pull in files from other
 		// torrents, via hard links
 		if (added_files) return false;
+#endif
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist

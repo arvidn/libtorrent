@@ -42,6 +42,8 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix error handling for pool allocation failure
+
 1.2.11 released
 
 	* fix issue with moving the session object

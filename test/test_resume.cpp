@@ -140,8 +140,8 @@ torrent_handle test_resume_flags(lt::session& ses
 	, char const* file_priorities = "1111", char const* resume_file_prio = ""
 	, bool const test_deprecated = false)
 {
-	std::shared_ptr<torrent_info> ti = generate_torrent(
-		bool((flags & torrent_flags::seed_mode) && !(flags & torrent_flags::no_verify_files)));
+	bool const with_files = (flags & torrent_flags::seed_mode) && !(flags & torrent_flags::no_verify_files);
+	std::shared_ptr<torrent_info> ti = generate_torrent(with_files);
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
@@ -167,7 +167,8 @@ torrent_handle test_resume_flags(lt::session& ses
 
 	p.ti = ti;
 	p.flags = flags;
-	if (flags & torrent_flags::seed_mode)
+
+	if (with_files)
 	{
 		p.save_path = ".";
 	}

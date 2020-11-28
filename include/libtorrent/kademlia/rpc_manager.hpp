@@ -39,15 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 #include <cstdint>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/pool/pool.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <libtorrent/socket.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/aux_/listen_socket_handle.hpp>
+#include <libtorrent/aux_/pool.hpp>
 
 namespace libtorrent {
 class entry;
@@ -128,9 +125,9 @@ private:
 	void* allocate_observer();
 	void free_observer(void* ptr);
 
-	mutable boost::pool<> m_pool_allocator;
+	mutable lt::aux::pool m_pool_allocator;
 
-	std::unordered_multimap<int, observer_ptr> m_transactions;
+	std::unordered_multimap<std::uint16_t, observer_ptr> m_transactions;
 
 	aux::listen_socket_handle m_sock;
 	socket_manager* m_sock_man;
