@@ -103,7 +103,7 @@ struct store_buffer
 		return false;
 	}
 
-	void insert(torrent_location const loc, char* buf)
+	void insert(torrent_location const loc, char const* buf)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 		m_store_buffer.insert({loc, buf});
@@ -120,7 +120,7 @@ struct store_buffer
 private:
 
 	std::mutex m_mutex;
-	std::unordered_map<torrent_location, char*> m_store_buffer;
+	std::unordered_map<torrent_location, char const*> m_store_buffer;
 };
 
 }
