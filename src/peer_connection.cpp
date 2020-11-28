@@ -5226,12 +5226,13 @@ namespace libtorrent {
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
-			peer_request& r = m_requests[i];
+			peer_request const& r = m_requests[i];
 
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
-			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
+			TORRENT_ASSERT(r.length > 0);
+			TORRENT_ASSERT(r.start >= 0);
 
 			if (t->is_deleted())
 			{

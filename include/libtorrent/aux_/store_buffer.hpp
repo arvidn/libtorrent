@@ -94,13 +94,28 @@ struct store_buffer
 	bool get(torrent_location const loc, Fun f)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		auto it = m_store_buffer.find(loc);
+		auto const it = m_store_buffer.find(loc);
 		if (it != m_store_buffer.end())
 		{
 			f(it->second);
 			return true;
 		}
 		return false;
+	}
+
+	template <typename Fun>
+	int get2(torrent_location const loc1, torrent_location const loc2, Fun f)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+		auto const it1 = m_store_buffer.find(loc1);
+		auto const it2 = m_store_buffer.find(loc2);
+		char const* buf1 = (it1 == m_store_buffer.end()) ? nullptr : it1->second;
+		char const* buf2 = (it2 == m_store_buffer.end()) ? nullptr : it2->second;
+
+		if (buf1 == nullptr && buf2 == nullptr)
+			return 0;
+
+		return f(buf1, buf2);
 	}
 
 	void insert(torrent_location const loc, char const* buf)
