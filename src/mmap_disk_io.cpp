@@ -692,7 +692,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		disk_buffer_holder buffer;
 
-		if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char* buf)
+		if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
 		{
 			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 			if (!buffer)
@@ -959,7 +959,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			hasher256 h2;
 
 			if (!m_store_buffer.get({ j->storage->storage_index(), j->piece, offset }
-				, [&](char* buf)
+				, [&](char const* buf)
 				{
 					if (v1)
 					{
@@ -1028,7 +1028,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		std::ptrdiff_t const len = std::min(default_block_size, piece_size - j->d.io.offset);
 
 		if (!m_store_buffer.get({ j->storage->storage_index(), j->piece, j->d.io.offset }
-			, [&](char* buf)
+			, [&](char const* buf)
 		{
 			h.update({ buf, len });
 			ret = int(len);
