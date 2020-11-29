@@ -833,10 +833,11 @@ namespace aux {
 			// small piece sizes
 			piece_extent_affinity,
 
-			// when set to true, the certificate of HTTPS trackers will be
-			// validated against the system's certificate store (as defined by
-			// OpenSSL). If the system does not have one, enabling this may cause
-			// HTTPS trackers to fail.
+			// when set to true, the certificate of HTTPS trackers and HTTPS web
+			// seeds will be validated against the system's certificate store
+			// (as defined by OpenSSL). If the system does not have a
+			// certificate store, this option may have to be disabled in order
+			// to get trackers and web seeds to work).
 			validate_https_trackers,
 
 			// when enabled, any HTTP(S) tracker requests to localhost (loopback)

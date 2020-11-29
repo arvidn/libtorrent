@@ -210,7 +210,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
 		SET(dht_prefer_verified_node_ids, true, &session_impl::update_dht_settings),
 		SET(piece_extent_affinity, false, nullptr),
-		SET(validate_https_trackers, false, &session_impl::update_validate_https),
+		SET(validate_https_trackers, true, &session_impl::update_validate_https),
 		SET(tracker_ssrf_mitigation, true, nullptr),
 		SET(allow_idna, false, nullptr),
 	}});
