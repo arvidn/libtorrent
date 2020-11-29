@@ -179,6 +179,7 @@ run test_alert_manager.cpp ;
 run test_alert_types.cpp ;
 run test_magnet.cpp ;
 run test_storage.cpp ;
+run test_store_buffer.cpp ;
 run test_mmap.cpp ;
 run test_session.cpp ;
 run test_session_params.cpp ;
@@ -306,4 +307,5 @@ alias deterministic-tests :
 	test_torrent_list
 	test_utf8
 	test_xml
+	test_store_buffer
 	;

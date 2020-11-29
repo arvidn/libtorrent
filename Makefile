@@ -898,6 +898,7 @@ TEST_SOURCES = \
   test_stack_allocator.cpp \
   test_stat_cache.cpp \
   test_storage.cpp \
+  test_store_buffer.cpp \
   test_string.cpp \
   test_tailqueue.cpp \
   test_threads.cpp \

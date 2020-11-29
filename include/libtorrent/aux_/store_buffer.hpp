@@ -91,7 +91,7 @@ namespace aux {
 struct store_buffer
 {
 	template <typename Fun>
-	bool get(torrent_location const loc, Fun f)
+	bool get(torrent_location const loc, Fun f) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		auto const it = m_store_buffer.find(loc);
@@ -104,7 +104,7 @@ struct store_buffer
 	}
 
 	template <typename Fun>
-	int get2(torrent_location const loc1, torrent_location const loc2, Fun f)
+	int get2(torrent_location const loc1, torrent_location const loc2, Fun f) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		auto const it1 = m_store_buffer.find(loc1);
@@ -134,7 +134,7 @@ struct store_buffer
 
 private:
 
-	std::mutex m_mutex;
+	mutable std::mutex m_mutex;
 	std::unordered_map<torrent_location, char const*> m_store_buffer;
 };
 
