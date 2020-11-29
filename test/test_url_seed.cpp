@@ -41,23 +41,23 @@ const int proxy = lt::settings_pack::none;
 #ifdef TORRENT_USE_OPENSSL
 TORRENT_TEST(url_seed_ssl_keepalive)
 {
-		run_http_suite(proxy, "https", 1, 0, 0, 1);
+	run_http_suite(proxy, "https", 1, 0, 0, 1);
 }
 
 TORRENT_TEST(url_seed_ssl)
 {
-		run_http_suite(proxy, "https", 1, 0, 0, 0);
+	run_http_suite(proxy, "https", 1, 0, 0, 0);
 }
 #endif
 
 TORRENT_TEST(url_seed_keepalive)
 {
-		run_http_suite(proxy, "http", 1, 0, 0, 1);
+	run_http_suite(proxy, "http", 1, 0, 0, 1);
 }
 
 TORRENT_TEST(url_seed)
 {
-		run_http_suite(proxy, "http", 1, 0, 0, 0);
+	run_http_suite(proxy, "http", 1, 0, 0, 0);
 }
 
 TORRENT_TEST(url_seed_keepalive_rename)
