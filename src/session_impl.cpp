@@ -171,6 +171,10 @@ namespace {
 }
 #endif
 
+#ifdef TORRENT_WINDOWS
+#include <wincrypt.h>
+#endif
+
 #endif // TORRENT_USE_OPENSSL
 
 #ifdef TORRENT_WINDOWS
@@ -559,6 +563,33 @@ namespace aux {
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 		m_ssl_ctx.set_default_verify_paths(ec);
 		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+#ifdef TORRENT_WINDOWS
+		// load certificates from the windows system certificate store
+		X509_STORE* store = X509_STORE_new();
+		if (store)
+		{
+			HCERTSTORE system_store = CertOpenSystemStoreA(0, "ROOT");
+			// this is best effort
+			if (system_store)
+			{
+				CERT_CONTEXT const* ctx = nullptr;
+				while ((ctx = CertEnumCertificatesInStore(system_store, ctx)) != nullptr)
+				{
+					unsigned char const* cert_ptr = reinterpret_cast<unsigned char const*>(ctx->pbCertEncoded);
+					X509* x509 = d2i_X509(nullptr, &cert_ptr, ctx->cbCertEncoded);
+					// this is best effort
+					if (!x509) continue;
+					X509_STORE_add_cert(store, x509);
+					X509_free(x509);
+				}
+				CertFreeCertificateContext(ctx);
+				CertCloseStore(system_store, 0);
+			}
+		}
+
+		SSL_CTX* ssl_ctx = m_ssl_ctx.native_handle();
+		SSL_CTX_set_cert_store(ssl_ctx, store);
+#endif
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
 			, servername_callback);
