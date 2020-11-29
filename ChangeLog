@@ -1,3 +1,4 @@
+	* load SSL certificates from windows system certificate store, to authenticate trackers
 	* introduce mitigation for Server Side Request Forgery in tracker announces
 	* fix error handling for pool allocation failure
 
