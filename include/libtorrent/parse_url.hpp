@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
 
@@ -50,6 +51,10 @@ namespace libtorrent {
 	// split a URL in its base and path parts
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>
 		split_url(std::string url, error_code& ec);
+
+	// returns true if the hostname contains any IDNA (internationalized domain
+	// name) labels.
+	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
 }
 
 #endif
