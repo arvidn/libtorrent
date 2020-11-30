@@ -212,6 +212,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(piece_extent_affinity, false, nullptr),
 		SET(validate_https_trackers, false, &session_impl::update_validate_https),
 		SET(tracker_ssrf_mitigation, true, nullptr),
+		SET(allow_idna, false, nullptr),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings

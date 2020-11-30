@@ -66,6 +66,7 @@ http_connection::http_connection(io_service& ios
 	, int max_bottled_buffer_size
 	, http_connect_handler const& ch
 	, http_filter_handler const& fh
+	, hostname_filter_handler const& hfh
 #ifdef TORRENT_USE_OPENSSL
 	, ssl::context* ssl_ctx
 #endif
@@ -82,6 +83,7 @@ http_connection::http_connection(io_service& ios
 	, m_handler(handler)
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
+	, m_hostname_filter_handler(hfh)
 	, m_timer(ios)
 	, m_completion_timeout(seconds(5))
 	, m_limiter_timer(ios)
@@ -136,6 +138,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
+		lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
+			, me, ec, span<char>{}));
+		return;
+	}
+
+	if (m_hostname_filter_handler && !m_hostname_filter_handler(*this, hostname))
+	{
+		ec.assign(errors::banned_by_ip_filter, libtorrent_category());
 		lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;

@@ -845,6 +845,12 @@ namespace aux {
 			// tracker request to loopback will be ignored.
 			tracker_ssrf_mitigation,
 
+			// when disabled, any tracker or web seed with an IDNA hostname
+			// (internationalized domain name) is ignored. This is a security
+			// precaution to avoid various unicode encoding attacks that might
+			// happen at the application level.
+			allow_idna,
+
 			max_bool_setting_internal
 		};
 

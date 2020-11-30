@@ -184,6 +184,7 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 			std::printf("CONNECTED: %s\n", url.c_str());
 		}
 		, lt::http_filter_handler()
+		, lt::hostname_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
 		, &ssl_ctx
 #endif
@@ -655,6 +656,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 		}
 		, true, 1024*1024, lt::http_connect_handler()
 		, http_filter_handler()
+		, hostname_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
 		, &ssl_ctx
 #endif
