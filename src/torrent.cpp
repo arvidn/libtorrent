@@ -745,6 +745,7 @@ bool is_downloading_state(int const st)
 				, settings().get_int(settings_pack::max_http_recv_buffer_size)
 				, http_connect_handler()
 				, http_filter_handler()
+				, hostname_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
 				, m_ssl_ctx.get()
 #endif
@@ -5824,6 +5825,23 @@ bool is_downloading_state(int const st)
 		error_code ec;
 		std::tie(protocol, auth, hostname, port, path)
 			= parse_url_components(web->url, ec);
+
+		if (!settings().get_bool(settings_pack::allow_idna) && is_idna(hostname))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				debug_log("IDNA disallowed in web seeds: %s", web->url.c_str());
+#endif
+			if (m_ses.alerts().should_post<url_seed_alert>())
+			{
+				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
+					, web->url, error_code(errors::banned_by_ip_filter));
+			}
+			// never try it again
+			remove_web_seed_iter(web);
+			return;
+		}
+
 		if (port == -1)
 		{
 			port = protocol == "http" ? 80 : 443;
@@ -6176,6 +6194,22 @@ bool is_downloading_state(int const st)
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url, ec);
+			return;
+		}
+
+		if (!settings().get_bool(settings_pack::allow_idna) && is_idna(hostname))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				debug_log("IDNA disallowed in web seeds: %s", web->url.c_str());
+#endif
+			if (m_ses.alerts().should_post<url_seed_alert>())
+			{
+				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
+					, web->url, error_code(errors::banned_by_ip_filter));
+			}
+			// never try it again
+			remove_web_seed_iter(web);
 			return;
 		}
 

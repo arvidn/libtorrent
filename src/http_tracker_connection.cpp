@@ -208,6 +208,7 @@ namespace libtorrent {
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
 			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
+			, std::bind(&http_tracker_connection::on_filter_hostname, shared_from_this(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif
@@ -348,6 +349,15 @@ namespace libtorrent {
 #endif
 		if (endpoints.empty())
 			fail(errors::banned_by_ip_filter);
+	}
+
+	// returns true if the hostname is allowed
+	bool http_tracker_connection::on_filter_hostname(http_connection&
+		, string_view hostname)
+	{
+		aux::session_settings const& settings = m_man.settings();
+		if (settings.get_bool(settings_pack::allow_idna)) return true;
+		return !is_idna(hostname);
 	}
 
 	void http_tracker_connection::on_connect(http_connection& c)

@@ -98,6 +98,43 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 	ret.save_path = ".";
 	return ret;
 }
+
+struct sim_config : sim::default_config
+{
+	explicit sim_config() {}
+
+	chrono::high_resolution_clock::duration hostname_lookup(
+		asio::ip::address const& requestor
+		, std::string hostname
+		, std::vector<asio::ip::address>& result
+		, boost::system::error_code& ec) override
+	{
+		auto const ret = duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+		if (hostname == "2.server.com")
+		{
+			result.push_back(address_v4::from_string("2.2.2.2"));
+			return ret;
+		}
+		if (hostname == "2.xn--server-.com")
+		{
+			result.push_back(address_v4::from_string("2.2.2.2"));
+			return ret;
+		}
+		if (hostname == "3.server.com")
+		{
+			result.push_back(address_v4::from_string("3.3.3.3"));
+			return ret;
+		}
+		if (hostname == "3.xn--server-.com")
+		{
+			result.push_back(address_v4::from_string("3.3.3.3"));
+			return ret;
+		}
+
+		return default_config::hostname_lookup(requestor, hostname, result, ec);
+	}
+};
+
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
 // arguments (Setup), run the test and verify the end state (Test)
@@ -108,7 +145,7 @@ void run_test(Setup const& setup
 	, lt::seconds const timeout = lt::seconds{100})
 {
 	// setup the simulation
-	sim::default_config network_cfg;
+	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
 	lt::session_proxy zombie;
@@ -632,5 +669,80 @@ TORRENT_TEST(web_seed_connection_limit)
 
 	// make sure we only connected to 2 of the web seeds, since that's the limit
 	TEST_CHECK(std::accumulate(expected.begin(), expected.end(), 0) == 2);
+}
+
+bool test_idna(char const* url, char const* redirect, bool allow_idna)
+{
+	using namespace lt;
+	file_storage fs;
+	fs.add_file("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(fs);
+	params.url_seeds.emplace_back(url);
+
+	bool seeding = false;
+
+	error_code ignore;
+	remove("1", ignore);
+
+	run_test(
+		[&](lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::allow_idna, allow_idna);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[&](lt::session&, lt::alert const* alert) {
+			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
+				seeding = true;
+		},
+		[&](sim::simulation& sim, lt::session&)
+		{
+			// http1 is the root web server that will just redirect requests to
+			// other servers
+			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::http_server http1(web_server1, 8080);
+			// redirect file 1 and file 2 to the same servers
+			if (redirect)
+				http1.register_redirect("/1", redirect);
+
+			// server for serving the content
+			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::http_server http2(web_server2, 8080);
+			serve_content_for(http2, "/1", fs, file_index_t(0));
+
+			sim.run();
+		}
+	);
+
+	return seeding;
+}
+
+TORRENT_TEST(idna)
+{
+	// disallow IDNA hostnames
+	TEST_EQUAL(test_idna("http://3.server.com:8080", nullptr, false), true);
+	TEST_EQUAL(test_idna("http://3.xn--server-.com:8080", nullptr, false), false);
+
+	// allow IDNA hostnames
+	TEST_EQUAL(test_idna("http://3.server.com:8080", nullptr, true), true);
+	TEST_EQUAL(test_idna("http://3.xn--server-.com:8080", nullptr, true), true);
+}
+
+TORRENT_TEST(idna_redirect)
+{
+	// disallow IDNA hostnames
+	TEST_EQUAL(test_idna("http://2.server.com:8080", "http://3.server.com:8080/1", false), true);
+	TEST_EQUAL(test_idna("http://2.server.com:8080", "http://3.xn--server-.com:8080/1", false), false);
+
+	TEST_EQUAL(test_idna("http://2.xn--server-.com:8080", "http://3.server.com:8080/1", false), false);
+	TEST_EQUAL(test_idna("http://2.xn--server-.com:8080", "http://3.xn--server-.com:8080/1", false), false);
+
+	// allow IDNA hostnames
+	TEST_EQUAL(test_idna("http://2.server.com:8080", "http://3.server.com:8080/1", true), true);
+	TEST_EQUAL(test_idna("http://2.server.com:8080", "http://3.xn--server-.com:8080/1", true), true);
+
+	TEST_EQUAL(test_idna("http://2.xn--server-.com:8080", "http://3.server.com:8080/1", true), true);
+	TEST_EQUAL(test_idna("http://2.xn--server-.com:8080", "http://3.xn--server-.com:8080/1", true), true);
 }
 

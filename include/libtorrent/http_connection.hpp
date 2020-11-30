@@ -73,6 +73,7 @@ using http_handler = std::function<void(error_code const&
 using http_connect_handler = std::function<void(http_connection&)>;
 
 using http_filter_handler = std::function<void(http_connection&, std::vector<tcp::endpoint>&)>;
+using hostname_filter_handler = std::function<bool(http_connection&, string_view)>;
 
 // when bottled, the last two arguments to the handler
 // will always be 0
@@ -86,6 +87,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, int max_bottled_buffer_size
 		, http_connect_handler const& ch
 		, http_filter_handler const& fh
+		, hostname_filter_handler const& hfh
 #ifdef TORRENT_USE_OPENSSL
 		, ssl::context* ssl_ctx
 #endif
@@ -178,6 +180,7 @@ private:
 	http_handler m_handler;
 	http_connect_handler m_connect_handler;
 	http_filter_handler m_filter_handler;
+	hostname_filter_handler m_hostname_filter_handler;
 	deadline_timer m_timer;
 
 	time_duration m_completion_timeout;

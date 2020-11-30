@@ -129,6 +129,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
 		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
 		, http_filter_handler()
+		, hostname_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
 		, &ssl_ctx
 #endif
