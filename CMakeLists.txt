@@ -589,7 +589,7 @@ if (WIN32)
 	target_link_libraries(torrent-rasterbar
 		PRIVATE
 			bcrypt wsock32 ws2_32 Iphlpapi
-			debug dbghelp
+			debug dbghelp crypt32
 	)
 
 	add_definitions(-D_WIN32_WINNT=0x0600) # target Windows Vista or later

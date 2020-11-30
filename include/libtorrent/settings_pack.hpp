@@ -944,6 +944,12 @@ namespace aux {
 			// HTTPS trackers to fail.
 			validate_https_trackers,
 
+			// when enabled, any HTTP(S) tracker requests to localhost (loopback)
+			// must have the request path start with "/announce". This is the
+			// conventional bittorrent tracker request. Any other HTTP(S)
+			// tracker request to loopback will be ignored.
+			tracker_ssrf_mitigation,
+
 			// when set to true, enables the attempt to use SetFileValidData()
 			// to pre-allocate disk space. This system call will only work when
 			// running with Administrator privileges on Windows, and so this
