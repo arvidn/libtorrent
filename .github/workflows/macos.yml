@@ -33,7 +33,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
 
 
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -j2 -l400 cxxstd=14
+          b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on cxxstd=14
 
 
    python:

@@ -230,6 +230,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-c++11-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
+		result += <cflags>-Wno-poison-system-directories ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cflags>-Wno-exit-time-destructors ;
@@ -839,7 +840,6 @@ ED25519_SOURCES =
 local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
-	<include>/usr/sfw/include
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64
 # enable cancel support in asio
