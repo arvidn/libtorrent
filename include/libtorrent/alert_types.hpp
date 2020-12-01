@@ -1750,7 +1750,8 @@ TORRENT_VERSION_NAMESPACE_2
 			privileged_ports,
 			utp_disabled,
 			tcp_disabled,
-			invalid_local_interface
+			invalid_local_interface,
+			ssrf_mitigation
 		};
 
 		// the reason for the peer being blocked. Is one of the values from the

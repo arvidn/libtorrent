@@ -1356,7 +1356,7 @@ bool test_ssrf(char const* announce_path, bool const feature_on
 		[&](lt::add_torrent_params& p, lt::session& ses)
 		{
 			settings_pack pack;
-			pack.set_bool(settings_pack::tracker_ssrf_mitigation, feature_on);
+			pack.set_bool(settings_pack::ssrf_mitigation, feature_on);
 			ses.apply_settings(pack);
 			p.trackers.emplace_back(tracker_url);
 			return 60;
@@ -1373,7 +1373,7 @@ bool test_ssrf(char const* announce_path, bool const feature_on
 	return got_announce;
 }
 
-TORRENT_TEST(tracker_ssrf_localhost)
+TORRENT_TEST(ssrf_localhost)
 {
 	TEST_CHECK(test_ssrf("/announce", true, "http://localhost:8080/announce"));
 	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://localhost:8080/unusual-announce-path"));
@@ -1383,14 +1383,14 @@ TORRENT_TEST(tracker_ssrf_localhost)
 	TEST_CHECK(test_ssrf("/short", false, "http://localhost:8080/short"));
 }
 
-TORRENT_TEST(tracker_ssrf_IPv4)
+TORRENT_TEST(ssrf_IPv4)
 {
 	TEST_CHECK(test_ssrf("/announce", true, "http://127.0.0.1:8080/announce"));
 	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://127.0.0.1:8080/unusual-announce-path"));
 	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://127.0.0.1:8080/unusual-announce-path"));
 }
 
-TORRENT_TEST(tracker_ssrf_IPv6)
+TORRENT_TEST(ssrf_IPv6)
 {
 	TEST_CHECK(test_ssrf("/announce", true, "http://[::1]:8080/announce"));
 	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://[::1]:8080/unusual-announce-path"));

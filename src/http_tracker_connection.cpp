@@ -289,7 +289,7 @@ namespace libtorrent {
 		}
 
 		aux::session_settings const& settings = m_man.settings();
-		bool const ssrf_mitigation = settings.get_bool(settings_pack::tracker_ssrf_mitigation);
+		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
 		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
 			, [](tcp::endpoint const& ep) { return is_loopback(ep.address()); }) != endpoints.end())
 		{
