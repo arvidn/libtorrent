@@ -130,6 +130,11 @@ struct sim_config : sim::default_config
 			result.push_back(address_v4::from_string("3.3.3.3"));
 			return ret;
 		}
+		if (hostname == "local-network.com")
+		{
+			result.push_back(address_v4::from_string("192.168.1.13"));
+			return ret;
+		}
 
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
@@ -746,3 +751,76 @@ TORRENT_TEST(idna_redirect)
 	TEST_EQUAL(test_idna("http://2.xn--server-.com:8080", "http://3.xn--server-.com:8080/1", true), true);
 }
 
+bool test_ssrf(char const* url, char const* redirect, bool enable_feature)
+{
+	using namespace lt;
+	file_storage fs;
+	fs.add_file("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(fs);
+	params.url_seeds.emplace_back(url);
+
+	bool seeding = false;
+
+	error_code ignore;
+	remove("1", ignore);
+
+	run_test(
+		[&](lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::ssrf_mitigation, enable_feature);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[&](lt::session&, lt::alert const* alert) {
+			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
+				seeding = true;
+		},
+		[&](sim::simulation& sim, lt::session&)
+		{
+			// http1 is the root web server that will just redirect requests to
+			// other servers
+			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::http_server http1(web_server1, 8080);
+			// redirect file 1 and file 2 to the same servers
+			if (redirect)
+				http1.register_redirect("/1", redirect);
+
+			// server for serving the content. This is on the local network
+			sim::asio::io_service web_server2(sim, address_v4::from_string("192.168.1.13"));
+			sim::http_server http2(web_server2, 8080);
+			serve_content_for(http2, "/1", fs, file_index_t(0));
+			serve_content_for(http2, "/1?query_string=1", fs, file_index_t(0));
+
+			sim.run();
+		}
+	);
+
+	return seeding;
+}
+
+TORRENT_TEST(ssrf_mitigation)
+{
+	TEST_CHECK(test_ssrf("http://192.168.1.13:8080/1", nullptr, true));
+	TEST_CHECK(test_ssrf("http://192.168.1.13:8080/1", nullptr, false));
+	TEST_CHECK(test_ssrf("http://local-network.com:8080/1", nullptr, true));
+	TEST_CHECK(test_ssrf("http://local-network.com:8080/1", nullptr, false));
+
+	TEST_CHECK(!test_ssrf("http://192.168.1.13:8080/1?query_string=1", nullptr, true));
+	TEST_CHECK(test_ssrf("http://192.168.1.13:8080/1?query_string=1", nullptr, false));
+	TEST_CHECK(!test_ssrf("http://local-network.com:8080/1?query_string=1", nullptr, true));
+	TEST_CHECK(test_ssrf("http://local-network.com:8080/1?query_string=1", nullptr, false));
+}
+
+TORRENT_TEST(ssrf_mitigation_redirect)
+{
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1", false));
+
+	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1?query_string=1", false));
+	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1?query_string=1", false));
+}
