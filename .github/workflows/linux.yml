@@ -14,7 +14,7 @@ jobs:
 
       strategy:
          matrix:
-            config: [ asio-debugging=on picker-debugging=on, extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off, crypto=gcrypt ]
+            config: [ asio-debugging=on picker-debugging=on, extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off, crypto=gcrypt, mmap-disk-io=off ]
 
       steps:
       - name: checkout
@@ -42,7 +42,7 @@ jobs:
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} -j2
+          b2 ${{ matrix.config }} -j2 warnings-as-errors=on
 
 
 
@@ -62,10 +62,10 @@ jobs:
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using clang : 9 : clang++-9 ;" >>~/user-config.jam
 
-      - name: build library
+      - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang -j2 cxxstd=14
+          b2 clang -j2 cxxstd=14 warnings-as-errors=on
 
 
 
@@ -86,7 +86,7 @@ jobs:
 
       - name: compile header files individually
         run: |
-          b2 -j2 check-headers cxxstd=14
+          b2 -j2 check-headers cxxstd=14 warnings-as-errors=on
 
 
 
@@ -121,7 +121,7 @@ jobs:
 
       strategy:
          matrix:
-            config: [ crypto=openssl, toolset=clang, deprecated-functions=off ]
+            config: [ crypto=openssl address-sanitizer=norecover undefined-sanitizer=norecover, toolset=clang address-sanitizer=norecover undefined-sanitizer=norecover, deprecated-functions=off ]
 
       steps:
       - name: checkout
@@ -141,7 +141,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
 
 
 
