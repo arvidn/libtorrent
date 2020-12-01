@@ -1348,8 +1348,8 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 	TEST_EQUAL(got_announce, true);
 }
 
-void test_ssrf(char const* announce_path, bool const feature_on
-	, char const* tracker_url, bool const expect_announce)
+bool test_ssrf(char const* announce_path, bool const feature_on
+	, char const* tracker_url)
 {
 	bool got_announce = false;
 	tracker_test(
@@ -1370,28 +1370,31 @@ void test_ssrf(char const* announce_path, bool const feature_on
 		, [](torrent_handle h) {}
 		, [](torrent_handle h) {}
 		, announce_path);
-	TEST_EQUAL(got_announce, expect_announce);
+	return got_announce;
 }
 
 TORRENT_TEST(tracker_ssrf_localhost)
 {
-	test_ssrf("/announce", true, "http://localhost:8080/announce", true);
-	test_ssrf("/unusual-announce-path", true, "http://localhost:8080/unusual-announce-path", false);
-	test_ssrf("/unusual-announce-path", false, "http://localhost:8080/unusual-announce-path", true);
+	TEST_CHECK(test_ssrf("/announce", true, "http://localhost:8080/announce"));
+	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://localhost:8080/unusual-announce-path"));
+	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://localhost:8080/unusual-announce-path"));
+
+	TEST_CHECK(!test_ssrf("/short", true, "http://localhost:8080/short"));
+	TEST_CHECK(test_ssrf("/short", false, "http://localhost:8080/short"));
 }
 
 TORRENT_TEST(tracker_ssrf_IPv4)
 {
-	test_ssrf("/announce", true, "http://127.0.0.1:8080/announce", true);
-	test_ssrf("/unusual-announce-path", true, "http://127.0.0.1:8080/unusual-announce-path", false);
-	test_ssrf("/unusual-announce-path", false, "http://127.0.0.1:8080/unusual-announce-path", true);
+	TEST_CHECK(test_ssrf("/announce", true, "http://127.0.0.1:8080/announce"));
+	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://127.0.0.1:8080/unusual-announce-path"));
+	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://127.0.0.1:8080/unusual-announce-path"));
 }
 
 TORRENT_TEST(tracker_ssrf_IPv6)
 {
-	test_ssrf("/announce", true, "http://[::1]:8080/announce", true);
-	test_ssrf("/unusual-announce-path", true, "http://[::1]:8080/unusual-announce-path", false);
-	test_ssrf("/unusual-announce-path", false, "http://[::1]:8080/unusual-announce-path", true);
+	TEST_CHECK(test_ssrf("/announce", true, "http://[::1]:8080/announce"));
+	TEST_CHECK(!test_ssrf("/unusual-announce-path", true, "http://[::1]:8080/unusual-announce-path"));
+	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://[::1]:8080/unusual-announce-path"));
 }
 
 bool test_idna(char const* tracker_url, char const* redirect
