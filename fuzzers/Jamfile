@@ -72,6 +72,8 @@ fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
+fuzzer idna ;
+fuzzer parse_url ;
 
 local LARGE_TARGETS =
 	torrent_info
