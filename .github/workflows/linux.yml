@@ -106,7 +106,7 @@ jobs:
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev
-          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-unix.*\" : <cxxflags>-std=c++11 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-unix.*\" : <cxxflags>-std=c++14 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
 
       - name: analyze
         run: |
@@ -196,3 +196,34 @@ jobs:
         run: |
           cd bindings/python
           LD_LIBRARY_PATH=./dependencies python3 test.py
+
+   dist:
+      name: build dist
+      runs-on: ubuntu-20.04
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
+          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          python -m pip install aafigure
+          echo "using gcc ;" >>~/user-config.jam
+
+      - name: build tarball
+        run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: tarball
+          path: libtorrent-rasterbar-*.tar.gz
+
+      - name: test-tarball
+        run: |
+          tar xvzf libtorrent-rasterbar-*.tar.gz
+          cd libtorrent-rasterbar-*/test
+          b2 link=static -j2 cxxstd=14 testing.execute=off

@@ -1424,7 +1424,8 @@ namespace {
 			"privileged_ports",
 			"utp_disabled",
 			"tcp_disabled",
-			"invalid_local_interface"
+			"invalid_local_interface",
+			"ssrf_mitigation"
 		};
 
 		std::snprintf(ret, sizeof(ret), "%s: blocked peer [%s]"

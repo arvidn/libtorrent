@@ -175,4 +175,20 @@ exit:
 		return std::make_tuple(std::move(base), std::move(path));
 	}
 
+	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname)
+	{
+		for (;;)
+		{
+			auto dot = hostname.find('.');
+			string_view const label = (dot == string_view::npos) ? hostname : hostname.substr(0, dot);
+			if (label.size() >= 4
+				&& (label[0] == 'x' || label[0] == 'X')
+				&& (label[1] == 'n' || label[1] == 'N')
+				&& label.substr(2, 2) == "--"_sv)
+				return true;
+			if (dot == string_view::npos) return false;
+			hostname = hostname.substr(dot + 1);
+		}
+	}
+
 }

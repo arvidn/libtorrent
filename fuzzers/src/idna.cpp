@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2009, 2014, 2016-2017, 2019, Arvid Norberg
+Copyright (c) 2020, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,31 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_PARSE_URL_HPP_INCLUDED
-#define TORRENT_PARSE_URL_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-
-#include <tuple>
-#include <string>
-
-#include "libtorrent/error_code.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent {
+#include <cstdint>
 
-	// returns protocol, auth, hostname, port, path
-	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string
-		, std::string, int, std::string>
-		parse_url_components(std::string url, error_code& ec);
-
-	// split a URL in its base and path parts
-	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>
-		split_url(std::string url, error_code& ec);
-
-	// returns true if the hostname contains any IDNA (internationalized domain
-	// name) labels.
-	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
+extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
+{
+    lt::is_idna(lt::string_view(reinterpret_cast<char const*>(data), size));
+    return 0;
 }
-
-#endif

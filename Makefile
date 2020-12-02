@@ -622,6 +622,7 @@ HEADERS = \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
   aux_/polymorphic_socket.hpp       \
+  aux_/pool.hpp                     \
   aux_/portmap.hpp                  \
   aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \

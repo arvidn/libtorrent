@@ -72,6 +72,8 @@ fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
+fuzzer idna ;
+fuzzer parse_url ;
 fuzzer session_params ;
 fuzzer add_torrent ;
 

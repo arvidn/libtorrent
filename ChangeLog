@@ -43,8 +43,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* validate HTTPS certificates by default (trackers and web seeds)
 	* load SSL certificates from windows system certificate store, to authenticate trackers
-	* introduce mitigation for Server Side Request Forgery in tracker announces
+	* introduce mitigation for Server Side Request Forgery in tracker and web seed URLs
 	* fix error handling for pool allocation failure
 
 1.2.11 released

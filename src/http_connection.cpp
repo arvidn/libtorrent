@@ -71,6 +71,7 @@ http_connection::http_connection(io_context& ios
 	, int max_bottled_buffer_size
 	, http_connect_handler ch
 	, http_filter_handler fh
+	, hostname_filter_handler hfh
 #if TORRENT_USE_SSL
 	, ssl::context* ssl_ctx
 #endif
@@ -87,6 +88,7 @@ http_connection::http_connection(io_context& ios
 	, m_handler(std::move(handler))
 	, m_connect_handler(std::move(ch))
 	, m_filter_handler(std::move(fh))
+	, m_hostname_filter_handler(std::move(hfh))
 	, m_timer(ios)
 	, m_completion_timeout(seconds(5))
 	, m_limiter_timer(ios)
@@ -143,6 +145,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		post(m_ios, std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
+		return;
+	}
+
+	if (m_hostname_filter_handler && !m_hostname_filter_handler(*this, hostname))
+	{
+		error_code err(errors::banned_by_ip_filter);
+		post(m_ios, std::bind(&http_connection::callback
+			, me, err, span<char>{}));
 		return;
 	}
 

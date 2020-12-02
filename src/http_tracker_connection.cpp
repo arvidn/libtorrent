@@ -215,6 +215,7 @@ namespace libtorrent {
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
 			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
+			, std::bind(&http_tracker_connection::on_filter_hostname, shared_from_this(), _1, _2)
 #if TORRENT_USE_SSL
 			, tracker_req().ssl_ctx
 #endif
@@ -295,7 +296,7 @@ namespace libtorrent {
 		}
 
 		aux::session_settings const& settings = m_man.settings();
-		bool const ssrf_mitigation = settings.get_bool(settings_pack::tracker_ssrf_mitigation);
+		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
 		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
 			, [](tcp::endpoint const& ep) { return ep.address().is_loopback(); }) != endpoints.end())
 		{
@@ -355,6 +356,15 @@ namespace libtorrent {
 #endif
 		if (endpoints.empty())
 			fail(errors::banned_by_ip_filter, operation_t::bittorrent);
+	}
+
+	// returns true if the hostname is allowed
+	bool http_tracker_connection::on_filter_hostname(http_connection&
+		, string_view hostname)
+	{
+		aux::session_settings const& settings = m_man.settings();
+		if (settings.get_bool(settings_pack::allow_idna)) return true;
+		return !is_idna(hostname);
 	}
 
 	void http_tracker_connection::on_connect(http_connection& c)
