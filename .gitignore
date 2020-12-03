@@ -69,6 +69,17 @@ dist
 # python binary
 bindings/python/compile_cmd
 
+# python build and test data
+bindings/python/COPYING
+bindings/python/LICENSE
+bindings/python/bin
+bindings/python/build
+bindings/python/dist
+bindings/python/dependencies
+bindings/python/libtorrent
+bindings/python/libtorrent.*
+bindings/python/**/*.torrent
+
 # binaries in the examples directory
 examples/bt_get
 examples/bt_get2

@@ -23,6 +23,29 @@ feature python-install-path : : free path ;
 # the python module in the system directory or user-specifc directory
 feature python-install-scope : user system : ;
 
+# this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
+feature libtorrent-python : on ;
+
+if $(LIBTORRENT_PYTHON_INTERPRETER)
+{
+	ECHO "using python interpreter at: " $(LIBTORRENT_PYTHON_INTERPRETER) ;
+	using python : : "$(LIBTORRENT_PYTHON_INTERPRETER)" : : : <libtorrent-python>on ;
+}
+
+local versions = [ feature.values python ] ;
+local version ;
+for local v in $(versions)
+{
+	version = $(v) ;
+}
+
+local lib-version = 3 ;
+if $(version)
+{
+	ECHO "using python version: " $(version) ;
+	lib-version = [ SHELL "printf $(version) | sed -e 's/\\.//g' | xargs printf" ] ;
+}
+
 # copied from boost 1.63's boost python jamfile
 rule find-py3-version
 {
@@ -75,20 +98,16 @@ else
 		<include>/usr/sfw/include
 	;
 
-	rule boost_python_version ( name : type ? : properties * )
-	{
-		local py-version = [ $(properties).get <python> ] ;
-		local boost-python-lib = "boost_python" [ SPLIT_BY_CHARACTERS $(py-version) : "." ] ;
+	# the names are decorated in brew
+	lib boost_python : : <target-os>darwin <name>boost_python$(lib-version)-mt
+		: : $(boost-include-path) ;
+	lib boost_python3 : : <target-os>darwin <name>boost_python$(lib-version)-mt
+		: : $(boost-include-path) ;
 
-		if $(type) in SEARCHED_LIB
-		{
-			return $(boost-python-lib:J) ;
-		}
-		return ;
-	}
-
-	lib boost_python : : <tag>@boost_python_version : : $(boost-include-path) ;
-	alias boost_python3 : boost_python ;
+	lib boost_python : : <name>boost_python$(lib-version)
+		: : $(boost-include-path) ;
+	lib boost_python3 : : <name>boost_python$(lib-version)
+		: : $(boost-include-path) ;
 }
 
 
@@ -156,6 +175,7 @@ rule libtorrent_linking ( properties * )
 	else
 	{
 		result += <library>$(boost_python_lib)/<link>static/<warnings>off ;
+		result += <define>BOOST_PYTHON_STATIC_LIB ;
 	}
 
 	if <libtorrent-link>shared in $(properties)
@@ -293,4 +313,3 @@ install stage_dependencies
 
 explicit stage_module ;
 explicit stage_dependencies ;
-

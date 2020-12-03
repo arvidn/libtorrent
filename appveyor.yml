@@ -141,7 +141,7 @@ test_script:
   # we use 64 bit python build
   - if defined python (
     copy dependencies\*.* .
-    & c:\Python36-x64\python.exe test.py -b
+    & c:\Python36-x64\python.exe test/test.py -b
     )
 
   - if defined cmake (

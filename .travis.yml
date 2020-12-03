@@ -272,9 +272,9 @@ script:
   - 'if [[ "$python" == "1" ]]; then
       ${B2} -j2 ${B2_ARGS} stage_module stage_dependencies libtorrent-link=shared boost-link=shared &&
       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-        DYLD_LIBRARY_PATH=./dependencies python3 test.py -b;
+        DYLD_LIBRARY_PATH=./dependencies python3 test/test.py -b;
       else
-        LD_LIBRARY_PATH=./dependencies python3 test.py -b;
+        LD_LIBRARY_PATH=./dependencies python3 test/test.py -b;
       fi;
     fi'
   - 'if [[ "$python_dist" == "1" ]]; then

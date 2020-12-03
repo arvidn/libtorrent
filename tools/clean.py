@@ -46,6 +46,7 @@ def clean():
         'CMakeCache.txt',
         'checking_benchmark',
         'cpu_benchmark',
+        '*.egg-info',
     ]
 
     directories = [

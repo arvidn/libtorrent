@@ -1,15 +1,60 @@
+#!/usr/bin/env python3
+
+
 from setuptools import setup
-import platform
+
+
+try:
+    from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+
+    class bdist_wheel(_bdist_wheel):
+        def finalize_options(self):
+            _bdist_wheel.finalize_options(self)
+            self.root_is_pure = False
+except ImportError:
+    bdist_wheel = None
+
+try:
+    from distutils.command.install import install as _install
+
+    class install(_install):
+        def finalize_options(self):
+            self.install_lib = self.install_platlib
+            _install.finalize_options(self)
+except ImportError:
+    install = None
+
 
 setup(
     name='libtorrent',
+    description='Python bindings for libtorrent-rasterbar',
+    long_description=None,
+    license='BSD',
+
     version='@libtorrent_VERSION@',
+    package_dir={'': '@CMAKE_CURRENT_BINARY_DIR@'},
+
     author='Arvid Norberg',
     author_email='arvid@libtorrent.org',
-    description='Python bindings for libtorrent-rasterbar',
-    long_description='Python bindings for libtorrent-rasterbar',
     url='http://libtorrent.org',
-    platforms=[platform.system() + '-' + platform.machine()],
-    license='BSD',
-    package_dir = {'': '@CMAKE_CURRENT_BINARY_DIR@'}
+    keywords='bittorrent, libtorrent, cpp-bindings',
+
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Topic :: Communications :: File Sharing',
+        'Topic :: Internet',
+        'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: System :: Networking',
+        'Topic :: Utilities',
+    ],
+
+    cmdclass={
+        'bdist_wheel': bdist_wheel,
+        'install': install,
+    },
 )

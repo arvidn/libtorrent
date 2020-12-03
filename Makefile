@@ -43,7 +43,16 @@ clean: FORCE
     bin \
     examples/bin \
     tools/bin \
+    bindings/python/COPYING \
+    bindings/python/LICENSE \
     bindings/python/bin \
+    bindings/python/build \
+    bindings/python/dist \
+    bindings/python/dependencies \
+    bindings/python/libtorrent \
+    bindings/python/libtorrent.* \
+    bindings/python/**/*.torrent \
+    bindings/python/*.torrent \
     test/bin \
     simulation/bin \
     simulator/libsimulator/bin
@@ -200,11 +209,12 @@ EXTRA_DIST = \
 PYTHON_FILES= \
   CMakeLists.txt            \
   Jamfile                   \
-  client.py                 \
-  make_torrent.py           \
+  README.rst                \
   setup.py                  \
   setup.py.cmake.in         \
-  simple_client.py          \
+  examples/client.py        \
+  examples/make_torrent.py  \
+  examples/simple_client.py \
   src/alert.cpp             \
   src/boost_python.hpp      \
   src/bytes.hpp             \

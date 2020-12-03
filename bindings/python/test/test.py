@@ -2,8 +2,6 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 
-import libtorrent as lt
-
 import unittest
 import time
 import datetime
@@ -18,6 +16,12 @@ import tempfile
 import socket
 import select
 
+
+bindings = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.putenv('PYTHONPATH', bindings)
+sys.path.append(bindings)
+
+import libtorrent as lt
 import dummy_data
 
 # include terminal interface for travis parallel executions of scripts which use
@@ -721,7 +725,7 @@ class test_example_client(unittest.TestCase):
             my_stdin = slave_fd
 
         process = sub.Popen(
-            [sys.executable, "client.py", "url_seed_multi.torrent"],
+            [sys.executable, bindings + "/examples/client.py", "url_seed_multi.torrent"],
             stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE)
         # python2 has no Popen.wait() timeout
         time.sleep(5)
@@ -743,7 +747,7 @@ class test_example_client(unittest.TestCase):
 
     def test_execute_simple_client(self):
         process = sub.Popen(
-            [sys.executable, "simple_client.py", "url_seed_multi.torrent"],
+            [sys.executable, bindings + "/examples/simple_client.py", "url_seed_multi.torrent"],
             stdout=sub.PIPE, stderr=sub.PIPE)
         # python2 has no Popen.wait() timeout
         time.sleep(5)
@@ -765,7 +769,7 @@ class test_example_client(unittest.TestCase):
 
     def test_execute_make_torrent(self):
         process = sub.Popen(
-            [sys.executable, "make_torrent.py", "url_seed_multi.torrent",
+            [sys.executable, bindings + "/examples/make_torrent.py", "url_seed_multi.torrent",
              "http://test.com/test"], stdout=sub.PIPE, stderr=sub.PIPE)
         returncode = process.wait()
         # python2 has no Popen.wait() timeout
@@ -836,10 +840,10 @@ class test_peer_info(unittest.TestCase):
 
 if __name__ == '__main__':
     print(lt.__version__)
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+    shutil.copy(os.path.join(bindings, '..', '..', 'test', 'test_torrents',
                              'url_seed_multi.torrent'), '.')
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+    shutil.copy(os.path.join(bindings, '..', '..', 'test', 'test_torrents',
                              'base.torrent'), '.')
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+    shutil.copy(os.path.join(bindings, '..', '..', 'test', 'test_torrents',
                              'unordered.torrent'), '.')
     unittest.main()

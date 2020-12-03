@@ -289,6 +289,8 @@ Retz
 BEP5
 librt
 toolset
+toolsets
+toolset's
 Wojciechowski
 GTK
 cmake
@@ -304,7 +306,6 @@ hydri
 BBv2
 DLL
 gettime
-toolsets
 libgcrypt
 LibTomCrypt
 CommonCrypto
@@ -591,3 +592,13 @@ Qt5
 DownZemAll
 LGPL
 OSS
+GitHub
+PyPI
+PyPy
+CPython
+pyconfig
+auditwheel
+delocate
+manylinux2014
+pip3
+pip

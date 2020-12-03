@@ -1,49 +1,116 @@
 name: Python bindings
 
-on:
-   push:
-      branches: [ RC_1_2 RC_2_0 master ]
-   pull_request:
+on: [push, pull_request]
+
+env:
+  CIBW_ENVIRONMENT_LINUX: CCACHE_DIR=/host/home/runner/.ccache
+  CIBW_ENVIRONMENT_WINDOWS: PATH="$PATH;C:\\Boost\\bin" LIB="$LIB;C:\\Boost\\lib" INCLUDE="C:\\Boost\\include" VSCMD_ARG_TGT_ARCH=""
+  CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.14
+
+  CIBW_BEFORE_ALL: bash {package}/bindings/python/tools/install_compiler_cache.sh
+  CIBW_BEFORE_BUILD: bash {package}/bindings/python/tools/install_boost.sh {package}
+  CIBW_TEST_COMMAND: python {package}/bindings/python/test/test.py -b
+
+  CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+  CIBW_MANYLINUX_I686_IMAGE: manylinux2014
+
+  CIBW_SKIP: cp27-* pp*
 
 jobs:
   build:
-    name: build
-    runs-on: ${{ matrix.os }}
+    name: Building and testing on ${{ matrix.config.os }} ${{ matrix.config.architecture }}
+    runs-on: ${{ matrix.config.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        config:
+        - {os: ubuntu-latest, architecture: "*x86_64" }
+        - {os: ubuntu-latest, architecture: "*i686" }
+        - {os: windows-latest, architecture: "*amd64" }
+        - {os: windows-latest, architecture: "*win32" }
+        - {os: macos-latest, architecture: "*x86_64" }
+
+    env:
+      CIBW_BUILD: ${{ matrix.config.architecture }}
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
       with:
         submodules: recursive
 
-    - name: dependencies (macos)
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Use development version for package
+      if: startsWith(github.event.ref, 'refs/heads') || github.event_name == 'pull_request'
+      run: bash bindings/python/tools/update_development_version.sh bindings/python/setup.py
+
+    - name: Cache with ccache on Linux
+      if: runner.os == 'Linux'
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-${{ matrix.config.architecture }}-ccache-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-${{ matrix.config.architecture }}-ccache-
+
+    - name: Cache Boost on Windows
+      if: runner.os == 'Windows'
+      uses: actions/cache@v2
+      with:
+        path: C:\\Boost
+        key: windows-boost-173
+
+    - name: Cache Boost on macOS
       if: runner.os == 'macOS'
-      run: |
-        brew install boost-build boost boost-python3 python@3.9
+      uses: actions/cache@v2
+      with:
+        path: |
+          /usr/local/Cellar/boost-build/1.73.0
+          /usr/local/Cellar/boost/1.73.0
+          /usr/local/opt/boost
+          /usr/local/include/boost
+          /usr/local/lib/libboost_*
+          /usr/local/share/boost-build
+          /usr/local/bin/b2
+        key: macos-boost-173
 
-    - name: update package lists
-      if: runner.os == 'Linux'
-      continue-on-error: true
-      run: |
-        sudo apt update
+    - name: Install Visual C++ Developer Command Prompt
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
 
-    - name: dependencies (linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools
+    - name: Install cibuildwheel
+      run: python -m pip install cibuildwheel
 
-    - name: build/install
-      run: |
-        cd bindings/python
-        # Homebrew's python "framework" sets a prefix via distutils config.
-        # --prefix conflicts with --user, so null out prefix so we have one
-        # command that works everywhere
-        python3 setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
+    - name: Build and test wheels
+      run: python -m cibuildwheel
 
-    - name: tests
-      run: |
-        cd bindings/python
-        python3 test.py
+    - name: Upload artifacts to storage
+      if: success() || failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: ./wheelhouse/*.whl
+
+  publish:
+    name: Publishing package to PyPI
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    needs: [build]
+
+    steps:
+    - name: Download artifacts from storage
+      uses: actions/download-artifact@v2
+      with:
+        name: wheels
+        path: dist
+
+    - name: Publish artifacts to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_TOKEN }}
