@@ -275,13 +275,14 @@ namespace libtorrent {
 }
 
 namespace std {
-	template <>
-	struct hash<libtorrent::sha1_hash>
+	template <std::ptrdiff_t N>
+	struct hash<libtorrent::digest32<N>>
 	{
-		std::size_t operator()(libtorrent::sha1_hash const& k) const
+		std::size_t operator()(libtorrent::digest32<N> const& k) const
 		{
 			std::size_t ret;
-			// this is OK because sha1_hash is already a hash
+			static_assert(N >= sizeof(ret) * 8, "hash is not defined for small digests");
+			// this is OK because digest32<N> is already a hash
 			std::memcpy(&ret, k.data(), sizeof(ret));
 			return ret;
 		}

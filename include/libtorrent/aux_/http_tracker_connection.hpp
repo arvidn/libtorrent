@@ -54,6 +54,7 @@ namespace aux {
 		}
 
 		void on_filter(aux::http_connection& c, std::vector<tcp::endpoint>& endpoints);
+		bool on_filter_hostname(aux::http_connection& c, string_view hostname);
 		void on_connect(aux::http_connection& c);
 		void on_response(error_code const& ec, aux::http_parser const& parser
 			, span<char const> data);

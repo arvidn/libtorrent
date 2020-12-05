@@ -191,6 +191,7 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	// this submits all queued up jobs to the thread
 	void submit_jobs() override;
 
+	status_t do_partial_read(aux::disk_io_job* j);
 	status_t do_read(aux::disk_io_job* j);
 	status_t do_write(aux::disk_io_job* j);
 	status_t do_hash(aux::disk_io_job* j);
@@ -488,7 +489,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	using disk_io_fun_t = status_t (mmap_disk_io::*)(aux::disk_io_job* j);
 
 	// this is a jump-table for disk I/O jobs
-	std::array<disk_io_fun_t, 12> const job_functions =
+	std::array<disk_io_fun_t, 13> const job_functions =
 	{{
 		&mmap_disk_io::do_read,
 		&mmap_disk_io::do_write,
@@ -501,7 +502,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		&mmap_disk_io::do_rename_file,
 		&mmap_disk_io::do_stop_torrent,
 		&mmap_disk_io::do_file_priority,
-		&mmap_disk_io::do_clear_piece
+		&mmap_disk_io::do_clear_piece,
+		&mmap_disk_io::do_partial_read,
 	}};
 
 	} // anonymous namespace
@@ -566,6 +568,35 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		j->ret = ret;
 
 		completed_jobs.push_back(j);
+	}
+
+	status_t mmap_disk_io::do_partial_read(aux::disk_io_job* j)
+	{
+		auto& buffer = std::get<disk_buffer_holder>(j->argument);
+		TORRENT_ASSERT(buffer);
+
+		time_point const start_time = clock_type::now();
+
+		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		iovec_t b = {buffer.data() + j->d.io.buffer_offset, j->d.io.buffer_size};
+
+		int const ret = j->storage->readv(m_settings, b
+			, j->piece, j->d.io.offset, file_flags, j->error);
+
+		TORRENT_ASSERT(ret >= 0 || j->error.ec);
+		TORRENT_UNUSED(ret);
+
+		if (!j->error.ec)
+		{
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+			m_stats_counters.inc_stats_counter(counters::num_read_back);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		}
+		return status_t::no_error;
 	}
 
 	status_t mmap_disk_io::do_read(aux::disk_io_job* j)
@@ -646,44 +677,122 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
-
-		// in case r.start is not aligned to a block, calculate that offset,
-		// since that's how the store_buffer is indexed
-		int const block_offset = r.start - (r.start % default_block_size);
-		// this is the offset into the block that we're reading from
-		int const read_offset = r.start - block_offset;
+		TORRENT_ASSERT(r.length > 0);
+		TORRENT_ASSERT(r.start >= 0);
 
 		storage_error ec;
-		if (read_offset + r.length > default_block_size || r.length <= 0)
+		if (r.length <= 0 || r.start < 0)
 		{
-			// this is an invalid read request. We don't support read requests
-			// spanning multiple blocks
+			// this is an invalid read request.
 			ec.ec = errors::invalid_request;
 			ec.operation = operation_t::file_read;
 			handler(disk_buffer_holder{}, ec);
 			return;
 		}
 
-		DLOG("async_read piece: %d block: %d\n", static_cast<int>(r.piece)
-			, block_offset / default_block_size);
+		// in case r.start is not aligned to a block, calculate that offset,
+		// since that's how the store_buffer is indexed. block_offset is the
+		// aligned offset to the first block this read touches. In the case the
+		// request is aligned, it's the same as r.start
+		int const block_offset = r.start - (r.start % default_block_size);
+		// this is the offset into the block that we're reading from
+		int const read_offset = r.start - block_offset;
+
+		DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
+			, block_offset / default_block_size, read_offset);
 
 		disk_buffer_holder buffer;
 
-		if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char* buf)
+		if (read_offset + r.length > default_block_size)
 		{
-			buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
-			if (!buffer)
+			// This is an unaligned request spanning two blocks. One of the two
+			// blocks may be in the store buffer, or neither.
+			// If neither is in the store buffer, we can just issue a normal
+			// read job for the unaligned request.
+
+			aux::torrent_location const loc1{storage, r.piece, block_offset};
+			aux::torrent_location const loc2{storage, r.piece, block_offset + default_block_size};
+			std::ptrdiff_t const len1 = default_block_size - read_offset;
+
+			TORRENT_ASSERT(r.length > len1);
+
+			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
 			{
-				ec.ec = error::no_memory;
-				ec.operation = operation_t::alloc_cache_piece;
+				buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				if (!buffer)
+				{
+					ec.ec = error::no_memory;
+					ec.operation = operation_t::alloc_cache_piece;
+					return 3;
+				}
+
+				if (buf1)
+					std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
+				if (buf2)
+					std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
+				return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
+			});
+
+			if (ret == 3)
+			{
+				// both sides were found in the store buffer and the read request
+				// was satisfied immediately
+				handler(std::move(buffer), ec);
 				return;
 			}
 
-			std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
-		}))
+			if (ret != 0)
+			{
+				TORRENT_ASSERT(ret == 1 || ret == 2);
+				// only one side of the read request was found in the store
+				// buffer, and we need to issue a partial read for the remaining
+				// bytes
+				aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::partial_read);
+				j->argument = std::move(buffer);
+				j->storage = m_torrents[storage]->shared_from_this();
+				j->piece = r.piece;
+				j->d.io.offset = (ret == 1) ? r.start : block_offset + default_block_size;
+				j->d.io.buffer_size = std::uint16_t((ret == 1) ? len1 : r.length - len1);
+				j->d.io.buffer_offset = std::uint16_t((ret == 1) ? 0 : len1);
+				j->flags = flags;
+				j->callback = std::move(handler);
+
+				if (j->storage->is_blocked(j))
+				{
+					// this means the job was queued up inside storage
+					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
+					DLOG("blocked job: %s (torrent: %d total: %d)\n"
+						, job_name(j->action), j->storage ? j->storage->num_blocked() : 0
+						, int(m_stats_counters[counters::blocked_disk_jobs]));
+				}
+				else
+				{
+					add_job(j);
+				}
+				return;
+			}
+
+			// if we couldn't find any block in the store buffer, just post it
+			// as a normal read job
+		}
+		else
 		{
-			handler(std::move(buffer), ec);
-			return;
+			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
+			{
+				buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				if (!buffer)
+				{
+					ec.ec = error::no_memory;
+					ec.operation = operation_t::alloc_cache_piece;
+					return;
+				}
+
+				std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
+			}))
+			{
+				handler(std::move(buffer), ec);
+				return;
+			}
 		}
 
 		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::read);
@@ -719,6 +828,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
+		TORRENT_ASSERT(r.start % default_block_size == 0);
+		TORRENT_ASSERT(r.length <= default_block_size);
+
 		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::write);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = r.piece;
@@ -727,8 +839,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		j->argument = std::move(buffer);
 		j->callback = std::move(handler);
 		j->flags = flags;
-
-		TORRENT_ASSERT((r.start % default_block_size) == 0);
 
 		m_store_buffer.insert({j->storage->storage_index(), j->piece, j->d.io.offset}
 			, std::get<disk_buffer_holder>(j->argument).data());
@@ -936,7 +1046,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			hasher256 h2;
 
 			if (!m_store_buffer.get({ j->storage->storage_index(), j->piece, offset }
-				, [&](char* buf)
+				, [&](char const* buf)
 				{
 					if (v1)
 					{
@@ -1005,7 +1115,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		std::ptrdiff_t const len = std::min(default_block_size, piece_size - j->d.io.offset);
 
 		if (!m_store_buffer.get({ j->storage->storage_index(), j->piece, j->d.io.offset }
-			, [&](char* buf)
+			, [&](char const* buf)
 		{
 			h.update({ buf, len });
 			ret = int(len);

@@ -220,7 +220,9 @@ set(libtorrent_aux_include_files
 	path
 	peer_list
 	polymorphic_socket
+	pool
 	portmap
+	posix_part_file
 	proxy_settings
 	range
 	receive_buffer
@@ -397,6 +399,7 @@ set(sources
 	mmap_disk_io
 	mmap_storage
 	posix_disk_io
+	posix_part_file
 	posix_storage
 	ssl
 	rtc_signaling
@@ -581,7 +584,7 @@ if (WIN32)
 	target_link_libraries(torrent-rasterbar
 		PRIVATE
 			bcrypt wsock32 ws2_32 Iphlpapi
-			debug dbghelp
+			debug dbghelp crypt32
 	)
 
 	add_definitions(-D_WIN32_WINNT=0x0600) # target Windows Vista or later

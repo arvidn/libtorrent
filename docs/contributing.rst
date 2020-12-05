@@ -19,8 +19,12 @@ enumerated on this page, please contact arvid@libtorrent.org or the `mailing lis
 	report any issue to the bug tracker at `github`_.
 
 	New features that need testing are streaming (``set_piece_deadline()``), the different
-	choking algorithms (especially the new BitTyrant choker), the disk cache options (such
-	as ``explicit_cache``).
+	choking algorithms (like the rate-based choker).
+
+	Additional fuzzers are also always welcome. Find a libtorrent interface
+	that's not already covered by a fuzzer (see the ``fuzzers`` directory in the
+	root) and add a new fuzzer to it. Alternatively, improve an existing fuzzer by
+	producing inputs that gets coverage deeper in to libtorrent.
 
 .. _`github`: https://github.com/arvidn/libtorrent/issues
 

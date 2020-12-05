@@ -239,6 +239,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-c++11-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
+		result += <cflags>-Wno-poison-system-directories ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cflags>-Wno-exit-time-destructors ;
@@ -636,10 +637,13 @@ lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 lib bcrypt : : <name>bcrypt ;
+lib crypt32 : : <name>crypt32 ;
 lib z : : <link>shared <name>z ;
 
 # openssl libraries on windows
-alias ssl-deps : advapi32 user32 shell32 gdi32 ;
+# technically, crypt32 is not an OpenSSL dependency, but libtorrent needs it on
+# windows to access the system certificate store, for authenticating trackers
+alias ssl-deps : advapi32 user32 shell32 gdi32 crypt32 ;
 
 # pre OpenSSL 1.1 windows
 lib crypto : ssl-deps : <target-os>windows <openssl-version>pre1.1 <name>libeay32
@@ -648,9 +652,9 @@ lib ssl : ssl-deps : <target-os>windows <openssl-version>pre1.1 <name>ssleay32
 	<use>crypto <conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
 # OpenSSL 1.1+ windows
-lib crypto : ssl-deps : <toolset>msvc <openssl-version>1.1 <name>libcrypto
+lib crypto : ssl-deps : <target-os>windows <openssl-version>1.1 <name>libcrypto
 	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
-lib ssl : ssl-deps : <toolset>msvc <openssl-version>1.1 <name>libssl <use>crypto
+lib ssl : ssl-deps : <target-os>windows <openssl-version>1.1 <name>libssl <use>crypto
 	<conditional>@openssl-lib-path : : <conditional>@openssl-include-path ;
 
 # generic OpenSSL
@@ -807,6 +811,7 @@ SOURCES =
 	mmap_disk_io
 	mmap_storage
 	posix_disk_io
+	posix_part_file
 	posix_storage
 	ssl
 	rtc_signaling
@@ -859,7 +864,6 @@ ED25519_SOURCES =
 local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
-	<include>/usr/sfw/include
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64
 # enable cancel support in asio

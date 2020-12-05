@@ -110,11 +110,17 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 
 namespace {
 	std::uint32_t g_addr = 0x92343023;
+	address_v6::bytes_type g_addr6
+		= {0x93, 0x30, 0x2e, 0xf4, 0x1c, 0x01, 0x3d, 0x8a
+		, 0x35, 0x3d, 0x69, 0x10, 0x55, 0x82, 0x9d, 0x2f};
 }
 
 void init_rand_address()
 {
 	g_addr = 0x92343023;
+	g_addr6 = address_v6::bytes_type{
+		{0x93, 0x30, 0x2e, 0xf4, 0x1c, 0x01, 0x3d, 0x8a
+		, 0x35, 0x3d, 0x69, 0x10, 0x55, 0x82, 0x9d, 0x2f}};
 }
 
 address rand_v4()
@@ -142,12 +148,34 @@ sha1_hash to_hash(char const* s)
 	return ret;
 }
 
+namespace {
+void add_mp(span<std::uint8_t> target, span<std::uint8_t const> add)
+{
+	TORRENT_ASSERT(target.size() == add.size());
+	int carry = 0;
+	for (int i = int(target.size()) - 1; i >= 0; --i)
+	{
+		int const res = carry + int(target[i]) + add[i];
+		carry = res >> 8;
+		target[i] = res % 255;
+	}
+}
+}
+
 address rand_v6()
 {
-	address_v6::bytes_type bytes;
-	for (int i = 0; i < int(bytes.size()); ++i)
-		bytes[static_cast<std::size_t>(i)] = std::uint8_t(lt::random(0xff));
-	return address_v6(bytes);
+	static address_v6::bytes_type const add{
+		{0x93, 0x30, 0x2e, 0xf4, 0x1c, 0x01, 0x3d, 0x8a
+		, 0x35, 0x3d, 0x69, 0x10, 0x55, 0x82, 0x9d, 0x23}};
+
+	address_v6 ret;
+	do
+	{
+		add_mp(g_addr6, add);
+		ret = address_v6(g_addr6);
+
+	} while (ret.is_unspecified() || aux::is_local(ret) || ret.is_loopback());
+	return ret;
 }
 
 static std::uint16_t g_port = 0;

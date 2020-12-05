@@ -33,6 +33,8 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -1533,3 +1535,209 @@ TORRENT_TEST(dont_move_intermingled_files)
 		, combine_path("_folder3", "alien_folder1")))));
 }
 #endif
+
+namespace {
+
+void sync(lt::io_context& ioc, int& outstanding)
+{
+	while (outstanding > 0)
+	{
+		ioc.run_one();
+		ioc.restart();
+	}
+}
+
+template <typename Fun>
+void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
+{
+	lt::io_context ioc;
+	lt::counters cnt;
+	lt::settings_pack pack;
+	pack.set_int(lt::settings_pack::aio_threads, 1);
+	pack.set_int(lt::settings_pack::file_pool_size, 2);
+
+	std::unique_ptr<lt::disk_interface> disk_io
+		= constructor(ioc, pack, cnt);
+
+	lt::file_storage fs;
+	fs.add_file("test", lt::default_block_size * 2);
+	fs.set_num_pieces(1);
+	fs.set_piece_length(lt::default_block_size * 2);
+
+	std::string const save_path = complete("save_path");
+	delete_dirs(combine_path(save_path, "test"));
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
+	lt::storage_params params(fs, nullptr
+		, save_path
+		, lt::storage_mode_sparse
+		, prios
+		, lt::sha1_hash("01234567890123456789"));
+
+	lt::storage_holder t = disk_io->new_torrent(params, {});
+
+	int outstanding = 0;
+	lt::add_torrent_params atp;
+	disk_io->async_check_files(t, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
+		, [&](lt::status_t, lt::storage_error const&) { --outstanding; });
+	++outstanding;
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+
+	fun(disk_io.get(), t, ioc, outstanding);
+
+	disk_io->remove_torrent(t);
+	disk_io->abort(true);
+}
+
+struct write_handler
+{
+	write_handler(int& outstanding) : m_out(&outstanding) {}
+	void operator()(lt::storage_error const& ec) const
+	{
+		--(*m_out);
+		if (ec) std::cout << "async_write failed " << ec.ec.message() << '\n';
+		TEST_CHECK(!ec);
+	}
+	int* m_out;
+};
+
+struct read_handler
+{
+	read_handler(int& outstanding, lt::span<char const> expected) : m_out(&outstanding), m_exp(expected) {}
+	void operator()(lt::disk_buffer_holder h, lt::storage_error const& ec) const
+	{
+		--(*m_out);
+		if (ec) std::cout << "async_read failed " << ec.ec.message() << '\n';
+		TEST_CHECK(!ec);
+		TEST_CHECK(m_exp == lt::span<char const>(h.data(), h.size()));
+	}
+	int* m_out;
+	lt::span<char const> m_exp;
+};
+
+void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
+{
+	std::vector<char> write_buffer(lt::default_block_size * 2);
+	aux::random_bytes(write_buffer);
+
+	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
+	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+
+	// this is the unaligned read request
+	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+
+	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
+		, write_buffer.begin() + req2.start + req2.length);
+
+	++outstanding;
+	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
+	++outstanding;
+	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
+	++outstanding;
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+}
+
+void first_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
+{
+	std::vector<char> write_buffer(lt::default_block_size * 2);
+	aux::random_bytes(write_buffer);
+
+	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
+	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+
+	// this is the unaligned read request
+	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+
+	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
+		, write_buffer.begin() + req2.start + req2.length);
+
+	++outstanding;
+	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
+
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+
+	++outstanding;
+	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
+	++outstanding;
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+}
+
+void second_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
+{
+	std::vector<char> write_buffer(lt::default_block_size * 2);
+	aux::random_bytes(write_buffer);
+
+	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
+	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+
+	// this is the unaligned read request
+	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+
+	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
+		, write_buffer.begin() + req2.start + req2.length);
+
+	++outstanding;
+	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+
+	++outstanding;
+	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
+	++outstanding;
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+}
+
+void none_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
+{
+	std::vector<char> write_buffer(lt::default_block_size * 2);
+	aux::random_bytes(write_buffer);
+
+	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
+	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+
+	// this is the unaligned read request
+	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+
+	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
+		, write_buffer.begin() + req2.start + req2.length);
+
+	++outstanding;
+	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
+	++outstanding;
+	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+
+	++outstanding;
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+}
+
+}
+
+#if TORRENT_HAVE_MMAP
+TORRENT_TEST(mmap_unaligned_read_both_store_buffer)
+{
+	test_unaligned_read(lt::mmap_disk_io_constructor, both_sides_from_store_buffer);
+	test_unaligned_read(lt::mmap_disk_io_constructor, first_side_from_store_buffer);
+	test_unaligned_read(lt::mmap_disk_io_constructor, second_side_from_store_buffer);
+	test_unaligned_read(lt::mmap_disk_io_constructor, none_from_store_buffer);
+}
+#endif
+
+TORRENT_TEST(posix_unaligned_read_both_store_buffer)
+{
+	test_unaligned_read(lt::posix_disk_io_constructor, both_sides_from_store_buffer);
+	test_unaligned_read(lt::posix_disk_io_constructor, first_side_from_store_buffer);
+	test_unaligned_read(lt::posix_disk_io_constructor, second_side_from_store_buffer);
+	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
+}

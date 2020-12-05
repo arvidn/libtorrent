@@ -366,6 +366,7 @@ SOURCES = \
   piece_picker.cpp                \
   platform_util.cpp               \
   posix_disk_io.cpp               \
+  posix_part_file.cpp             \
   posix_storage.cpp               \
   proxy_base.cpp                  \
   proxy_settings.cpp              \
@@ -609,7 +610,9 @@ HEADERS = \
   aux_/path.hpp                     \
   aux_/peer_list.hpp                \
   aux_/polymorphic_socket.hpp       \
+  aux_/pool.hpp                     \
   aux_/portmap.hpp                  \
+  aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
   aux_/range.hpp                    \
@@ -890,6 +893,7 @@ TEST_SOURCES = \
   test_remove_torrent.cpp \
   test_resolve_links.cpp \
   test_resume.cpp \
+  test_rtc.cpp \
   test_session.cpp \
   test_session_params.cpp \
   test_settings_pack.cpp \
@@ -901,6 +905,7 @@ TEST_SOURCES = \
   test_stack_allocator.cpp \
   test_stat_cache.cpp \
   test_storage.cpp \
+  test_store_buffer.cpp \
   test_string.cpp \
   test_tailqueue.cpp \
   test_threads.cpp \
@@ -955,7 +960,8 @@ TEST_SOURCES = \
   settings.hpp \
   make_torrent.hpp \
   bittorrent_peer.hpp \
-  print_alerts.hpp
+  print_alerts.hpp \
+  session_mock.hpp
 
 TEST_TORRENTS = \
   absolute_filename.torrent \

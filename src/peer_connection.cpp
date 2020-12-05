@@ -2587,7 +2587,7 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_last_piece.set(m_connect, aux::time_now());
-		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
+		TORRENT_ASSERT_VAL(m_outstanding_bytes >= bytes, m_outstanding_bytes - bytes);
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 		auto t = associated_torrent().lock();
@@ -5201,12 +5201,13 @@ namespace {
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
-			peer_request& r = m_requests[i];
+			peer_request const& r = m_requests[i];
 
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
-			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
+			TORRENT_ASSERT(r.length > 0);
+			TORRENT_ASSERT(r.start >= 0);
 
 			if (t->is_deleted())
 			{

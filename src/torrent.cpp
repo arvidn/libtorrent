@@ -6104,6 +6104,23 @@ namespace {
 		error_code ec;
 		std::tie(protocol, auth, hostname, port, path)
 			= parse_url_components(web->url, ec);
+
+		if (!settings().get_bool(settings_pack::allow_idna) && is_idna(hostname))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				debug_log("IDNA disallowed in web seeds: %s", web->url.c_str());
+#endif
+			if (m_ses.alerts().should_post<url_seed_alert>())
+			{
+				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
+					, web->url, error_code(errors::banned_by_ip_filter));
+			}
+			// never try it again
+			remove_web_seed_iter(web);
+			return;
+		}
+
 		if (port == -1)
 		{
 			port = protocol == "http" ? 80 : 443;
@@ -6441,14 +6458,55 @@ namespace {
 		}
 
 		std::string hostname;
+		std::string path;
 		error_code ec;
 		using std::ignore;
-		std::tie(ignore, ignore, hostname, ignore, ignore)
+		std::tie(ignore, ignore, hostname, ignore, path)
 			= parse_url_components(web->url, ec);
 		if (ec)
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url, ec);
+			return;
+		}
+
+		if (!settings().get_bool(settings_pack::allow_idna) && is_idna(hostname))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				debug_log("IDNA disallowed in web seeds: %s", web->url.c_str());
+#endif
+			if (m_ses.alerts().should_post<url_seed_alert>())
+			{
+				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
+					, web->url, error_code(errors::banned_by_ip_filter));
+			}
+			// never try it again
+			remove_web_seed_iter(web);
+			return;
+		}
+
+		// The SSRF mitigation for web seeds is that any HTTP server on the
+		// local network may not use any query string parameters
+		if (settings().get_bool(settings_pack::ssrf_mitigation)
+			&& aux::is_local(web->peer_info.addr)
+			&& path.find('?') != std::string::npos)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				debug_log("*** SSRF MITIGATION BLOCKED WEB SEED: %s"
+					, web->url.c_str());
+			}
+#endif
+			if (m_ses.alerts().should_post<url_seed_alert>())
+				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
+					, web->url, errors::banned_by_ip_filter);
+			if (m_ses.alerts().should_post<peer_blocked_alert>())
+				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
+					, a, peer_blocked_alert::ssrf_mitigation);
+			// never try it again
+			remove_web_seed_iter(web);
 			return;
 		}
 

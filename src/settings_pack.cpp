@@ -195,7 +195,9 @@ namespace libtorrent {
 		SET(dht_ignore_dark_internet, true, nullptr),
 		SET(dht_read_only, false, nullptr),
 		SET(piece_extent_affinity, false, nullptr),
-		SET(validate_https_trackers, false, &session_impl::update_validate_https),
+		SET(validate_https_trackers, true, &session_impl::update_validate_https),
+		SET(ssrf_mitigation, true, nullptr),
+		SET(allow_idna, false, nullptr),
 		SET(enable_set_file_valid_data, false, nullptr),
 	}});
 

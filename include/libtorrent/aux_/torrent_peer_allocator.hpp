@@ -14,12 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/torrent_peer.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/pool/pool.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/pool.hpp"
 
 namespace libtorrent::aux {
 
@@ -63,13 +58,13 @@ namespace libtorrent::aux {
 		// to have tens of thousands of peers, and a pool
 		// saves significant overhead
 
-		boost::pool<> m_ipv4_peer_pool{sizeof(ipv4_peer), 500};
-		boost::pool<> m_ipv6_peer_pool{sizeof(ipv6_peer), 500};
+		aux::pool m_ipv4_peer_pool{sizeof(ipv4_peer), 500};
+		aux::pool m_ipv6_peer_pool{sizeof(ipv6_peer), 500};
 #if TORRENT_USE_I2P
-		boost::pool<> m_i2p_peer_pool{sizeof(i2p_peer), 500};
+		aux::pool m_i2p_peer_pool{sizeof(i2p_peer), 500};
 #endif
 #if TORRENT_USE_RTC
-		boost::pool<> m_rtc_peer_pool{sizeof(rtc_peer), 500};
+		aux::pool m_rtc_peer_pool{sizeof(rtc_peer), 500};
 #endif
 		// the total number of bytes allocated (cumulative)
 		std::uint64_t m_total_bytes = 0;

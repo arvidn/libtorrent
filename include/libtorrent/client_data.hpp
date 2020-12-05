@@ -48,10 +48,9 @@ struct TORRENT_EXPORT client_data_t
 		if (m_type_ptr != type<T>()) return nullptr;
 		return static_cast<T*>(m_client_ptr);
 	}
-	template <typename T>
+	template <typename T, typename U = typename std::enable_if<std::is_pointer<T>::value>::type>
 	explicit operator T() const
 	{
-		static_assert(std::is_pointer<T>::value, "client_data_t can only be cast to a pointer");
 		if (m_type_ptr != type<typename std::remove_pointer<T>::type>()) return nullptr;
 		return static_cast<T>(m_client_ptr);
 	}

@@ -49,6 +49,7 @@ namespace aux {
 		, stop_torrent
 		, file_priority
 		, clear_piece
+		, partial_read
 		, num_job_ids
 	};
 
@@ -158,6 +159,11 @@ namespace aux {
 
 			// number of bytes 'buffer' points to. Used for read & write
 			std::uint16_t buffer_size;
+
+			// this is used for partial_read. It's the number of bytes to skip
+			// into the buffer that we're reading into.
+			std::uint16_t buffer_offset;
+
 			} io;
 		} d;
 

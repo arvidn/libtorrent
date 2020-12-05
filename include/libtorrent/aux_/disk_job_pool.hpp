@@ -13,11 +13,8 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/disk_io_job.hpp" // for job_action_t
+#include "libtorrent/aux_/pool.hpp"
 #include <mutex>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/pool/pool.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -47,7 +44,7 @@ namespace aux {
 		int m_write_jobs;
 
 		std::mutex m_job_mutex;
-		boost::pool<> m_job_pool;
+		aux::pool m_job_pool;
 	};
 }
 }

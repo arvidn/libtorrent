@@ -15,7 +15,6 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/throw.hpp"
-#include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
@@ -23,6 +22,7 @@ see LICENSE file.
 
 #include <cstdlib>
 #include <memory> // for unique_ptr
+#include <vector>
 
 namespace libtorrent {
 namespace aux {

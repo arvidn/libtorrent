@@ -76,16 +76,10 @@ namespace libtorrent {
 		file(file const&) = delete;
 		file& operator=(file const&) = delete;
 
-		bool open(std::string const& p, aux::open_mode_t m, error_code& ec);
-		void close();
-		bool set_size(std::int64_t size, error_code& ec);
-
 		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
 			, error_code& ec, aux::open_mode_t flags = {});
 		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
 			, error_code& ec, aux::open_mode_t flags = {});
-
-		std::int64_t get_size(error_code& ec) const;
 
 	private:
 		handle_type m_file_handle;

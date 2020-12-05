@@ -3,6 +3,10 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* fix unaligned piece requests in mmap_storage
+	* improve client_data_t ergonomics
+	* fix issue with concurrent access to part files
+
 * 2.0.1 released
 
 	* fix attribute in single-file v2 torrent creation
@@ -43,6 +47,11 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
+
+	* validate HTTPS certificates by default (trackers and web seeds)
+	* load SSL certificates from windows system certificate store, to authenticate trackers
+	* introduce mitigation for Server Side Request Forgery in tracker and web seed URLs
+	* fix error handling for pool allocation failure
 
 1.2.11 released
 

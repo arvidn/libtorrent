@@ -40,5 +40,5 @@ TORRENT_TEST(url_seed)
 
 TORRENT_TEST(url_seed_keepalive_rename)
 {
-	run_http_suite(proxy, "http", 0, 0, 1, 1);
+	run_http_suite(proxy, "http", 0, 1, 1);
 }

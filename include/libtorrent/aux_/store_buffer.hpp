@@ -68,10 +68,10 @@ namespace aux {
 struct store_buffer
 {
 	template <typename Fun>
-	bool get(torrent_location const loc, Fun f)
+	bool get(torrent_location const loc, Fun f) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		auto it = m_store_buffer.find(loc);
+		auto const it = m_store_buffer.find(loc);
 		if (it != m_store_buffer.end())
 		{
 			f(it->second);
@@ -80,7 +80,22 @@ struct store_buffer
 		return false;
 	}
 
-	void insert(torrent_location const loc, char* buf)
+	template <typename Fun>
+	int get2(torrent_location const loc1, torrent_location const loc2, Fun f) const
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+		auto const it1 = m_store_buffer.find(loc1);
+		auto const it2 = m_store_buffer.find(loc2);
+		char const* buf1 = (it1 == m_store_buffer.end()) ? nullptr : it1->second;
+		char const* buf2 = (it2 == m_store_buffer.end()) ? nullptr : it2->second;
+
+		if (buf1 == nullptr && buf2 == nullptr)
+			return 0;
+
+		return f(buf1, buf2);
+	}
+
+	void insert(torrent_location const loc, char const* buf)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 		m_store_buffer.insert({loc, buf});
@@ -96,8 +111,8 @@ struct store_buffer
 
 private:
 
-	std::mutex m_mutex;
-	std::unordered_map<torrent_location, char*> m_store_buffer;
+	mutable std::mutex m_mutex;
+	std::unordered_map<torrent_location, char const*> m_store_buffer;
 };
 
 }

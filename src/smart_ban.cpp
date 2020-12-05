@@ -50,7 +50,6 @@ namespace {
 	{
 		explicit smart_ban_plugin(aux::torrent& t)
 			: m_torrent(t)
-			, m_salt(random(0xffffffff))
 		{}
 
 		// explicitly disallow assignment, to silence msvc warning
@@ -167,7 +166,6 @@ namespace {
 
 			hasher h;
 			h.update({buffer.data(), block_size});
-			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
 			auto const range = m_torrent.find_peers(a);
 
@@ -248,7 +246,6 @@ namespace {
 
 			hasher h;
 			h.update({buffer.data(), block_size});
-			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 			sha1_hash const ok_digest = h.final();
 
 			if (b.second.digest == ok_digest) return;
@@ -293,12 +290,6 @@ namespace {
 		// pair) to a peer and the block CRC. The CRC is calculated
 		// from the data in the block + the salt
 		std::map<piece_block, block_entry> m_block_hashes;
-
-		// This salt is a random value used to calculate the block CRCs
-		// Since the CRC function that is used is not a one way function
-		// the salt is required to avoid attacks where bad data is sent
-		// that is forged to match the CRC of the good data.
-		std::uint32_t const m_salt;
 	};
 
 } }

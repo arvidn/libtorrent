@@ -351,58 +351,6 @@ TORRENT_TEST(split_path_pos)
 	TEST_CHECK(lsplit_path("b/c/d", 5) == r("b/c/d", ""));
 }
 
-// file class
-TORRENT_TEST(file)
-{
-	error_code ec;
-	file f;
-#if TORRENT_USE_UNC_PATHS || !defined _WIN32
-	std::string const test_file_name = "con";
-#else
-	std::string const test_file_name = "test_file";
-#endif
-	TEST_CHECK(f.open(test_file_name, aux::open_mode::write, ec));
-	if (ec)
-		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-	if (ec) std::printf("%s\n", ec.message().c_str());
-	char test[] = "test";
-	int const test_word_size = int(sizeof(test)) - 1;
-	iovec_t b = {test, test_word_size};
-	TEST_EQUAL(f.writev(0, b, ec), test_word_size);
-	if (ec)
-		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_CHECK(!ec);
-	char test_buf[test_word_size + 1] = {0};
-	b = { test_buf, test_word_size };
-	TEST_EQUAL(f.readv(0, b, ec), test_word_size);
-	if (ec)
-		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(test_buf == "test"_sv);
-	f.close();
-
-	TEST_CHECK(f.open(test_file_name, aux::open_mode::read_only, ec));
-	if (ec)
-		std::printf("open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-	if (ec) std::printf("%s\n", ec.message().c_str());
-
-	char test_buf2[test_word_size + 1] = {0};
-	std::memset(test_buf, 0, sizeof(test_buf));
-	iovec_t two_buffers[2] {
-			{test_buf, test_word_size},
-			{test_buf2, test_word_size}
-	};
-
-	TEST_EQUAL(f.readv(0, two_buffers, ec), test_word_size);
-	if (ec)
-		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(test_buf == "test"_sv);
-	f.close();
-}
-
 TORRENT_TEST(hard_link)
 {
 	// try to create a hard link to see what happens
@@ -630,8 +578,8 @@ TORRENT_TEST(unc_paths)
 	std::string const reserved_name = "con";
 	error_code ec;
 	{
-		file f;
-		TEST_CHECK(f.open(reserved_name, aux::open_mode::write, ec) && !ec);
+		file f(reserved_name, aux::open_mode::write, ec);
+		TEST_CHECK(!ec);
 	}
 	remove(reserved_name, ec);
 	TEST_CHECK(!ec);

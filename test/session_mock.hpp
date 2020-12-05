@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/ssl.hpp"
 #endif
 
-#include <boost/asio.hpp>
+#include "libtorrent/io_context.hpp"
 
 #include <cstdio>
 

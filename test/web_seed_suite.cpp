@@ -77,6 +77,11 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		, keepalive ? "yes" : "no");
 
 	int proxy_port = 0;
+	settings_pack pack;
+	// we use a self-signed cert for HTTPS trackers, the test would fail if we
+	// tried to validate it.
+	if (protocol == "https"_sv)
+		pack.set_bool(settings_pack::validate_https_trackers, false);
 	if (proxy)
 	{
 		proxy_port = start_proxy(proxy);
@@ -85,26 +90,23 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 			std::printf("failed to start proxy");
 			return;
 		}
-		settings_pack pack;
 		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
 		pack.set_str(settings_pack::proxy_username, "testuser");
 		pack.set_str(settings_pack::proxy_password, "testpass");
 		pack.set_int(settings_pack::proxy_type, proxy);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
 		pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
-		ses.apply_settings(pack);
 	}
 	else
 	{
-		settings_pack pack;
 		pack.set_str(settings_pack::proxy_hostname, "");
 		pack.set_str(settings_pack::proxy_username, "");
 		pack.set_str(settings_pack::proxy_password, "");
 		pack.set_int(settings_pack::proxy_type, settings_pack::none);
 		pack.set_int(settings_pack::proxy_port, 0);
 		pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
-		ses.apply_settings(pack);
 	}
+	ses.apply_settings(pack);
 
 	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
