@@ -52,6 +52,10 @@ extern "C" {
 }
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#elif TORRENT_USE_GETRANDOM
+
+#include <sys/random.h>
+
 #elif TORRENT_USE_DEV_RANDOM
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
@@ -121,6 +125,10 @@ namespace aux {
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
+#elif TORRENT_USE_GETRANDOM
+			ssize_t const r = ::getrandom(buffer.data(), buffer.size(), 0);
+			if (r == -1) aux::throw_ex<system_error>(error_code(errno, generic_category()));
+			if (r != buffer.size()) aux::throw_ex<system_error>(errors::no_entropy);
 #elif TORRENT_USE_DEV_RANDOM
 			// /dev/random
 			static dev_random dev;
