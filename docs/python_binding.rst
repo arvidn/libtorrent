@@ -113,31 +113,7 @@ Step 3: Configure Boost for Python
 
 When building bindings using ``setup.py`` script or ``pip``, Boost will by
 default use Python executable that was used to run ``setup.py`` or ``pip``, and
-guess Python include and library path. However, due to `issue with Boost
-<https://github.com/boostorg/build/pull/250>`_, it might not always guess the
-correct include path. You can know this is happening if you get errors that
-headers like ``pyconfig.h`` were not found.
-
-In this case, you will need to manually define the Python version, executable and
-include and library paths. You will also need to do this in case you've
-installed Python to a non-standard location that Boost can't find.
-
-To do so, you will need to create and edit ``user-config.jam`` in your user
-profile directory and provide information in this format::
-
-    using python : [version] : [executable] : [includes] : [libraries] ;
-
-On Windows with Python 3.5, this *might* be::
-
-    using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/python.exe : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
-
-On Linux with Python 3.8, this *might* be::
-
-    using python : 3.8 : /usr/bin/python3 : /usr/include/python3.8 : /usr/lib/python3.8 ;
-
-Note that actual paths may be different, even for the same platform and Python
-version.
-
+guess Python include and library path.
 
 Building and creating wheel
 ---------------------------
@@ -164,14 +140,14 @@ other systems with the same platform and Python version.
 
 libtorrent will be by default linked statically, which means you won't have to
 install it separately. In case you do want to link libtorrent as a shared
-library, you can provide ``--libtorrent-link=shared`` argument to ``setup.py`` when
+library, you can provide ``--libtorrent-link=shared`` argument to ``build_ext`` when
 building wheel. In this case, libtorrent will have to be in library path on
 every system where you want to import package.
 
 Unless you build the wheel on Windows, Boost libraries will by default be linked
 as shared libraries. This means they will need to be installed on every system
 where you want to use package. You can provide ``--boost-link=static`` argument
-to ``setup.py`` to force linking Boost statically on all systems. Building and
+to ``build_ext`` to force linking Boost statically on all systems. Building and
 linking Boost as static library is only possibly by building it from source and
 requires at least Boost 1.74.0. To do this, specify the ``BOOST_ROOT`` environment
 variable to point to the root directory of the Boost source distribution before
@@ -179,6 +155,9 @@ running the build.
 
 Alternatively, Python tools like auditwheel and delocate can be used to detect
 shared libraries and statically include them into the wheel.
+
+The build script will auto-detect toolset for the current system. You can also
+specify `--toolset` argument to force a different toolset.
 
 Building and installing package
 -------------------------------
@@ -203,7 +182,7 @@ The package will be installed along with other installed Python packages, either
 globally or into a virtual environment. It can be imported and used just like any
 other Python package.
 
-The same linking principles apply as when just creating the wheel. See the above
+The same linking and toolset configuration principles apply as when just creating the wheel. See the above
 section for more details.
 
 Building directly using Boost Build

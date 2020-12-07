@@ -24,13 +24,6 @@ feature python-install-path : : free path ;
 feature python-install-scope : user system : ;
 
 # this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
-feature libtorrent-python : on ;
-
-if $(LIBTORRENT_PYTHON_INTERPRETER)
-{
-	ECHO "using python interpreter at: " $(LIBTORRENT_PYTHON_INTERPRETER) ;
-	using python : : "$(LIBTORRENT_PYTHON_INTERPRETER)" : : : <libtorrent-python>on ;
-}
 
 local versions = [ feature.values python ] ;
 local version ;

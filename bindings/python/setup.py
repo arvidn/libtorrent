@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import distutils.debug
 import multiprocessing
 import os
@@ -19,7 +17,7 @@ def get_msvc_toolset():
         return "msvc-9.0"
     if major_minor in ((3, 3), (3, 4)):
         return "msvc-10.0"
-    if major_minor in ((3, 5), (3, 6), (3, 7), (3, 8), (3, 9)):
+    if major_minor in ((3, 5), (3, 6)):
         return "msvc-14.1"  # libtorrent requires VS 2017 or newer
     # unknown python version
     return "msvc"
@@ -103,7 +101,6 @@ def write_b2_python_config(target, config):
     print(using)
     write(using)
 
-
 BuildExtBase = _build_ext_lib.build_ext
 
 
@@ -152,9 +149,9 @@ class LibtorrentBuildExt(BuildExtBase):
 
     def build_extension_with_b2(self):
         if os.name == "nt":
-            self.toolset = get_msvc_toolset()
-            self.libtorrent_link = "static"
-            self.boost_link = "static"
+            self.toolset = get_msvc_toolset() if not self.toolset else self.toolset
+            self.libtorrent_link = "static" if not self.libtorrent_link else self.libtorrent_link
+            self.boost_link = "static" if not self.boost_link else self.boost_link
 
         args = []
 
@@ -172,6 +169,8 @@ class LibtorrentBuildExt(BuildExtBase):
             args.append(f"-j{self.parallel}")
         else:
             args.append(f"-j{multiprocessing.cpu_count()}")
+        if self.toolset:
+            args.append(f"toolset={self.toolset}")
         if self.libtorrent_link:
             args.append(f"libtorrent-link={self.libtorrent_link}")
         if self.boost_link:
