@@ -62,21 +62,23 @@ jobs:
       uses: actions/cache@v2
       with:
         path: C:\\Boost
-        key: windows-boost-173
+        key: windows-boost-174
+        restore-keys: windows-boost-174
 
     - name: Cache Boost on macOS
       if: runner.os == 'macOS'
       uses: actions/cache@v2
       with:
         path: |
-          /usr/local/Cellar/boost-build/1.73.0
-          /usr/local/Cellar/boost/1.73.0
+          /usr/local/Cellar/boost-build/1.74.0
+          /usr/local/Cellar/boost/1.74.0
           /usr/local/opt/boost
           /usr/local/include/boost
           /usr/local/lib/libboost_*
           /usr/local/share/boost-build
           /usr/local/bin/b2
-        key: macos-boost-173
+        key: macos-boost-174
+        restore-keys: macos-boost-174
 
     - name: Install Visual C++ Developer Command Prompt
       if: runner.os == 'Windows'
