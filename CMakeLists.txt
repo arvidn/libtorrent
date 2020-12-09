@@ -466,6 +466,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-ftemplate-depth=512)
 elseif(MSVC)
 	add_compile_options(
+		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+		/Zc:__cplusplus
 		/W4
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
