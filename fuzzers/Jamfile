@@ -74,6 +74,7 @@ fuzzer resume_data ;
 fuzzer peer_conn ;
 fuzzer idna ;
 fuzzer parse_url ;
+fuzzer http_tracker ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -87,6 +88,7 @@ local LARGE_TARGETS =
 	sanitize_path
 	upnp
 	peer_conn
+	http_tracker
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
