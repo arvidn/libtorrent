@@ -848,7 +848,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
 
-#if _WIN32_WINNT >= 0x0501
+#if _WIN32_WINNT >= 0x0600
 		using GetAdaptersAddresses_t = ULONG (WINAPI *)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
 		// Get GetAdaptersAddresses() pointer
 		auto GetAdaptersAddresses =
