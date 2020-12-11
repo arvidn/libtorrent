@@ -3,6 +3,7 @@ import shutil
 import hashlib
 from random import shuffle
 import struct
+import random
 
 corpus_dirs = [
     'torrent_info', 'upnp', 'gzip', 'base32decode', 'base32encode',
@@ -10,7 +11,7 @@ corpus_dirs = [
     'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file',
     'http_parser', 'lazy_bdecode', 'parse_int', 'parse_magnet_uri', 'resume_data',
     'sanitize_path', 'utf8_codepoint', 'utp',
-    'verify_encoding', 'peer_conn', 'add_torrent', 'idna', 'parse_url']
+    'verify_encoding', 'peer_conn', 'add_torrent', 'idna', 'parse_url', 'http_tracker']
 
 for p in corpus_dirs:
     try:
@@ -51,6 +52,49 @@ urls = ['https://user:password@example.com:8080/path?query']
 counter = 0
 for i in urls:
     open(os.path.join('corpus', 'parse_url', '%d' % counter), 'w+').write(i)
+    counter += 1
+
+counter = 0
+tracker_fields = ['interval', 'min interval', 'tracker id', 'failure reason',
+    'warning message', 'complete', 'incomplete', 'downloaded', 'downloaders', 'external ip']
+tracker_values = ['i-1e', 'i0e', 'i1800e', '6:foobar', 'de', '0:', 'le']
+peer_fields = ['peer id', 'ip', 'port']
+peer_values = ['i-1e', 'i0e', 'i1800e', '6:foobar', 'de', '0:', 'le', '9:127.0.0.1']
+
+for i in range(1000):
+    tracker_msg = 'd'
+    for f in tracker_fields:
+        tracker_msg += '%d:' % len(f) + f
+        tracker_msg += random.choice(tracker_values)
+
+    tracker_msg += '5:filesd20:ababababababababababd'
+    for f in tracker_fields:
+        tracker_msg += '%d:' % len(f) + f
+        tracker_msg += random.choice(tracker_values)
+    tracker_msg += 'ee'
+
+    tracker_msg += '5:peers'
+    if random.getrandbits(1) == 0:
+        tracker_msg += 'l'
+        for k in range(10):
+            tracker_msg += 'd'
+            for f in peer_fields:
+                tracker_msg += '%d:' % len(f) + f
+                tracker_msg += random.choice(peer_values)
+            tracker_msg += 'e'
+        tracker_msg += 'e'
+    else:
+        tracker_msg += '60:'
+        for k in range(6*10):
+            tracker_msg += chr(random.getrandbits(8))
+
+    tracker_msg += '6:peers6'
+    tracker_msg += '180:'
+    for k in range(18*10):
+        tracker_msg += chr(random.getrandbits(8))
+
+    tracker_msg += 'e'
+    open(os.path.join('corpus', 'http_tracker', '%d' % counter), 'w+').write(tracker_msg)
     counter += 1
 
 # generate peer protocol messages

@@ -134,8 +134,8 @@ node::node(aux::listen_socket_handle const& sock, socket_manager* sock_man
 	, m_counters(cnt)
 	, m_storage(storage)
 {
-	m_secret[0] = random(0xffffffff);
-	m_secret[1] = random(0xffffffff);
+	aux::crypto_random_bytes(m_secret[0]);
+	aux::crypto_random_bytes(m_secret[1]);
 }
 
 node::~node() = default;
@@ -185,7 +185,7 @@ bool node::verify_token(string_view token, sha1_hash const& info_hash
 	hasher h1;
 	std::string const address = addr.address().to_string();
 	h1.update(address);
-	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
+	h1.update(m_secret[0]);
 	h1.update(info_hash);
 
 	sha1_hash h = h1.final();
@@ -194,7 +194,7 @@ bool node::verify_token(string_view token, sha1_hash const& info_hash
 
 	hasher h2;
 	h2.update(address);
-	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
+	h2.update(m_secret[1]);
 	h2.update(info_hash);
 	h = h2.final();
 	return std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0]));
@@ -208,7 +208,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	hasher h;
 	std::string const address = addr.address().to_string();
 	h.update(address);
-	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
+	h.update(m_secret[0]);
 	h.update(info_hash);
 
 	sha1_hash const hash = h.final();
@@ -253,7 +253,7 @@ int node::bucket_size(int bucket)
 void node::new_write_key()
 {
 	m_secret[1] = m_secret[0];
-	m_secret[0] = random(0xffffffff);
+	aux::crypto_random_bytes(m_secret[0]);
 }
 
 void node::unreachable(udp::endpoint const& ep)

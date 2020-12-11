@@ -19,6 +19,6 @@ for name in os.listdir(root):
     if len(name) == 40 and all(c in string.hexdigits for c in name):
         continue
 
-    new_name = hashlib.sha1(open(f, 'r').read()).hexdigest()
+    new_name = hashlib.sha1(open(f, 'rb').read()).hexdigest()
     print('%s -> %s' % (f, new_name))
     os.rename(f, os.path.join(root, new_name))

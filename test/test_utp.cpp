@@ -47,12 +47,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include <fstream>
 
+#ifdef TORRENT_UTP_LOG_ENABLE
+#include "libtorrent/utp_stream.hpp"
+#endif
+
 using namespace lt;
 
 namespace {
 
 void test_transfer()
 {
+#ifdef TORRENT_UTP_LOG_ENABLE
+	lt::set_utp_stream_logging(true);
+#endif
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_utp", ec);

@@ -74,6 +74,7 @@ fuzzer resume_data ;
 fuzzer peer_conn ;
 fuzzer idna ;
 fuzzer parse_url ;
+fuzzer http_tracker ;
 fuzzer session_params ;
 fuzzer add_torrent ;
 
@@ -88,6 +89,7 @@ local LARGE_TARGETS =
 	sanitize_path
 	upnp
 	peer_conn
+	http_tracker
 	session_params
 	add_torrent
 	;
