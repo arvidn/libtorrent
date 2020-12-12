@@ -93,7 +93,7 @@ namespace libtorrent {
 		// if request-string already contains
 		// some parameters, append an ampersand instead
 		// of a question mark
-		std::size_t arguments_start = url.find('?');
+		auto const arguments_start = url.find('?');
 		if (arguments_start != std::string::npos)
 		{
 			// tracker URLs that come pre-baked with query string arguments will be
