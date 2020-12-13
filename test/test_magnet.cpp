@@ -245,6 +245,12 @@ TORRENT_TEST(parse_invalid_escaped_hash_parameter)
 	TEST_EQUAL(ec, error_code(errors::invalid_escaped_string));
 }
 
+TORRENT_TEST(parse_magnet_uri_quoted)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?\"foo=bar&xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+}
+
 TORRENT_TEST(throwing_overload)
 {
 	TEST_THROW(parse_magnet_uri("magnet:?xt=urn%%3A"));
