@@ -38,6 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/sha1_hash.hpp"
 
+#if TORRENT_USE_IOSTREAM
+#include <ostream>
+#endif // TORRENT_USE_IOSTREAM
+
 namespace libtorrent
 {
 	// BitTorrent version enumerator
