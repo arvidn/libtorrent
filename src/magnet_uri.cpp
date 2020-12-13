@@ -195,12 +195,12 @@ namespace libtorrent {
 			if (std::all_of(number.begin(), number.end(), [](char const c) { return is_digit(c); } ))
 				name = stripped_name;
 
-			if (name == "dn"_sv) // display name
+			if (string_equal_no_case(name, "dn"_sv)) // display name
 			{
 				error_code e;
 				display_name = unescape_string(value, e);
 			}
-			else if (name == "tr"_sv) // tracker
+			else if (string_equal_no_case(name, "tr"_sv)) // tracker
 			{
 				// since we're about to assign tiers to the trackers, make sure the two
 				// vectors are aligned
@@ -214,13 +214,13 @@ namespace libtorrent {
 					p.tracker_tiers.push_back(tier++);
 				}
 			}
-			else if (name == "ws"_sv) // web seed
+			else if (string_equal_no_case(name, "ws"_sv)) // web seed
 			{
 				error_code e;
 				std::string webseed = unescape_string(value, e);
 				if (!e) p.url_seeds.push_back(std::move(webseed));
 			}
-			else if (name == "xt"_sv)
+			else if (string_equal_no_case(name, "xt"_sv))
 			{
 				std::string unescaped_btih;
 				if (value.find('%') != string_view::npos)
@@ -253,7 +253,7 @@ namespace libtorrent {
 				p.info_hash = info_hash;
 				has_ih = true;
 			}
-			else if (name == "so"_sv) // select-only (files)
+			else if (string_equal_no_case(name, "so"_sv)) // select-only (files)
 			{
 				// accept only digits, '-' and ','
 				if (std::any_of(value.begin(), value.end(), [](char c)
@@ -305,14 +305,14 @@ namespace libtorrent {
 
 				} while (!value.empty());
 			}
-			else if (name == "x.pe")
+			else if (string_equal_no_case(name, "x.pe"_sv))
 			{
 				error_code e;
 				tcp::endpoint endp = parse_endpoint(value, e);
 				if (!e) p.peers.push_back(std::move(endp));
 			}
 #ifndef TORRENT_DISABLE_DHT
-			else if (name == "dht"_sv)
+			else if (string_equal_no_case(name, "dht"_sv))
 			{
 				auto const divider = value.find_last_of(':');
 				if (divider != std::string::npos)

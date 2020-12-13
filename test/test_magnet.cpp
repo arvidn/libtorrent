@@ -238,6 +238,15 @@ TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
 	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
+TORRENT_TEST(parse_mixed_case)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?XT=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64&dN=foobar&Ws=http://foo.com/bar");
+	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(p.name, "foobar");
+	TEST_EQUAL(p.url_seeds.size(), 1);
+	TEST_EQUAL(p.url_seeds[0], "http://foo.com/bar");
+}
+
 TORRENT_TEST(parse_invalid_escaped_hash_parameter)
 {
 	error_code ec;
