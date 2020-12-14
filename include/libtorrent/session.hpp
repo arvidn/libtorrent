@@ -129,15 +129,12 @@ namespace aux {
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
-		//
-		// The overloads taking ``flags`` can be used to start a session in
-		// paused mode (by passing in ``session::paused``). Note that
-		// ``add_default_plugins`` do not have an affect on constructors that
-		// take a session_params object. It already contains the plugins to use.
 		explicit session(session_params const& params);
 		explicit session(session_params&& params);
-		session(session_params const& params, session_flags_t flags);
-		session(session_params&& params, session_flags_t flags);
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED session(session_params const& params, session_flags_t flags);
+		TORRENT_DEPRECATED session(session_params&& params, session_flags_t flags);
+#endif
 		session();
 
 		// Overload of the constructor that takes an external io_context to run
@@ -155,8 +152,10 @@ namespace aux {
 		// 	destruct the session_proxy object.
 		session(session_params&& params, io_context& ios);
 		session(session_params const& params, io_context& ios);
-		session(session_params&& params, io_context& ios, session_flags_t);
-		session(session_params const& params, io_context& ios, session_flags_t);
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED session(session_params&& params, io_context& ios, session_flags_t);
+		TORRENT_DEPRECATED session(session_params const& params, io_context& ios, session_flags_t);
+#endif
 
 		// hidden
 		session(session&&);

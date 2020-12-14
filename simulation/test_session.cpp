@@ -224,7 +224,8 @@ TORRENT_TEST(tie_listen_ports)
 
 // make sure passing in the session::paused flag does indeed start the session
 // paused
-TORRENT_TEST(construct_paused_session)
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(construct_paused_session_deprecated)
 {
 	using namespace libtorrent;
 
@@ -242,6 +243,38 @@ TORRENT_TEST(construct_paused_session)
 		| alert_category::torrent_log);
 
 	auto ses = std::make_shared<lt::session>(pack, ios, session::paused);
+
+	sim::timer t(sim, lt::seconds(30), [&](boost::system::error_code const&)
+	{
+		TEST_CHECK(ses->is_paused());
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+#endif
+
+TORRENT_TEST(construct_paused_session)
+{
+	using namespace libtorrent;
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, addr("50.0.0.1")};
+
+	lt::session_proxy zombie;
+
+	// create session
+	lt::session_params p;
+	p.settings = settings();
+	p.settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:0");
+	p.settings.set_int(settings_pack::alert_mask, alert_category::error
+		| alert_category::status
+		| alert_category::torrent_log);
+	p.flags |= session::paused;
+
+	auto ses = std::make_shared<lt::session>(p, ios);
 
 	sim::timer t(sim, lt::seconds(30), [&](boost::system::error_code const&)
 	{
