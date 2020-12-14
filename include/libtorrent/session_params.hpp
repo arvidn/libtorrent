@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/session_types.hpp" // for session_flags_t
 
 #if TORRENT_ABI_VERSION <= 2
 #include "libtorrent/kademlia/dht_settings.hpp"
@@ -73,19 +74,12 @@ struct TORRENT_EXPORT session_params
 	// The settings to configure the session with
 	settings_pack settings;
 
+	// specifies flags affecting the session construction. E.g. they can be used
+	// to start a session in paused mode (by passing in ``session::paused``).
+	session_flags_t flags{};
+
 	// the plugins to add to the session as it is constructed
 	std::vector<std::shared_ptr<plugin>> extensions;
-
-#if TORRENT_ABI_VERSION <= 2
-
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-
-	// this is deprecated. Use the dht_* settings instead.
-	dht::dht_settings dht_settings;
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#endif
 
 	// DHT node ID and node addresses to bootstrap the DHT with.
 	dht::dht_state dht_state;
@@ -105,6 +99,17 @@ struct TORRENT_EXPORT session_params
 	// the IP filter to use for the session. This restricts which peers are allowed
 	// to connect. As if passed to set_ip_filter().
 	libtorrent::ip_filter ip_filter;
+
+#if TORRENT_ABI_VERSION <= 2
+
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
+	// this is deprecated. Use the dht_* settings instead.
+	dht::dht_settings dht_settings;
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#endif
 };
 
 TORRENT_VERSION_NAMESPACE_3_END

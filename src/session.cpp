@@ -259,6 +259,7 @@ namespace {
 #endif
 #endif
 
+		// TODO: start() should just use flags out of the session_params object,
 		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios)
 			, std::move(params.settings)
 			, std::move(params.disk_io_constructor)
@@ -317,14 +318,15 @@ namespace {
 
 	session::session(session_params const& params)
 	{
-		start({}, session_params(params), nullptr);
+		start(params.flags, session_params(params), nullptr);
 	}
 
 	session::session(session_params&& params)
 	{
-		start({}, std::move(params), nullptr);
+		start(params.flags, std::move(params), nullptr);
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	session::session(session_params const& params, session_flags_t const flags)
 	{
 		start(flags, session_params(params), nullptr);
@@ -334,23 +336,25 @@ namespace {
 	{
 		start(flags, std::move(params), nullptr);
 	}
+#endif
 
 	session::session()
 	{
 		session_params params;
-		start({}, std::move(params), nullptr);
+		start(params.flags, std::move(params), nullptr);
 	}
 
 	session::session(session_params&& params, io_context& ios)
 	{
-		start({}, std::move(params), &ios);
+		start(params.flags, std::move(params), &ios);
 	}
 
 	session::session(session_params const& params, io_context& ios)
 	{
-		start({}, session_params(params), &ios);
+		start(params.flags, session_params(params), &ios);
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	session::session(session_params&& params, io_context& ios, session_flags_t const flags)
 	{
 		start(flags, std::move(params), &ios);
@@ -360,7 +364,7 @@ namespace {
 	{
 		start(flags, session_params(params), &ios);
 	}
-
+#endif
 
 #if TORRENT_ABI_VERSION <= 2
 	session::session(settings_pack&& pack, session_flags_t const flags)
