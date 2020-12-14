@@ -5,7 +5,7 @@
   :backlinks: none
 
 downloading and building
-========================
+------------------------
 
 To download the latest version of libtorrent, clone the `github repository`__.
 
@@ -46,8 +46,8 @@ __ https://github.com/arvidn/libtorrent/releases/latest
 	git clone --recurse-submodules https://github.com/arvidn/libtorrent.git
 
 
-building with BBv2
-------------------
+building with boost build
+-------------------------
 
 The primary reason to use boost-build is that it will automatically build the
 dependent boost libraries with the correct compiler settings, in order to
@@ -64,6 +64,37 @@ usually not set by the package installer).
 If you want to build against an installed copy of boost, you can skip directly
 to step 3 (assuming you also have boost build installed).
 
+
+build commands
+~~~~~~~~~~~~~~
+
+Linux::
+
+	sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+	echo "using gcc ;" >>~/user-config.jam
+	b2 -j2 crypto=openssl cxxstd=14
+
+Mac OS::
+
+	brew install boost-build boost openssl@1.1
+	echo "using darwin ;" >>~/user-config.jam
+	b2 -j2 crypto=openssl cxxstd=14
+
+Windows (assuming the boost package is saved to ``C:\boost_1_69_0``)::
+
+	set BOOST_ROOT=c:\boost_1_69_0
+	set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
+	(cd %BOOST_ROOT% && .\bootstrap.bat)
+	echo using msvc ; >>%HOMEDRIVE%%HOMEPATH%\user-config.jam
+	%BOOST_ROOT%\b2.exe --hash -j2 cxxstd=14
+
+docker file
+~~~~~~~~~~~
+
+A Docker file is available that's used to build and run the fuzzers, at
+OSS-Fuzz__.
+
+__ https://github.com/google/oss-fuzz/tree/master/projects/libtorrent
 
 Step 1: Download boost
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -254,6 +285,10 @@ Build features:
 +--------------------------+----------------------------------------------------+
 | boost build feature      | values                                             |
 +==========================+====================================================+
+| ``cxxstd``               | The version of C++ to use, e.g. ``11``, ``14``,    |
+|                          | ``17``, ``20``. The C++ version *may* affect the   |
+|                          | libtorrent ABI (the ambition is to avoid that).    |
++--------------------------+----------------------------------------------------+
 | ``boost-link``           | * ``static`` - links statically against the boost  |
 |                          |   libraries.                                       |
 |                          | * ``shared`` - links dynamically against the boost |

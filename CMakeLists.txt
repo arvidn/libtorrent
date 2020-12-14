@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR) # Configurable policies: <= CMP0094
+
+cmake_policy(SET CMP0092 NEW)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 include(LibtorrentMacros)
@@ -496,6 +498,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-ftemplate-depth=512")
 elseif(MSVC)
 	add_compile_options(
+		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+		/Zc:__cplusplus
 		/W4
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
