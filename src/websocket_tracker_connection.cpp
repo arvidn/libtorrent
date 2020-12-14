@@ -253,8 +253,7 @@ void websocket_tracker_connection::do_read()
 {
 	if (!is_open()) return;
 
-	// Can be replaced by m_read_buffer.clear() with boost 1.70+
-	if (m_read_buffer.size() > 0) m_read_buffer.consume(m_read_buffer.size());
+	if (m_read_buffer.size() > 0) m_read_buffer.clear();
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_read");
 	m_websocket->async_read(m_read_buffer
