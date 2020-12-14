@@ -47,10 +47,8 @@ struct ssl_stream
 	using lowest_layer_type = typename Stream::lowest_layer_type;
 	using endpoint_type = typename Stream::endpoint_type;
 	using protocol_type = typename Stream::protocol_type;
-#if BOOST_VERSION >= 106600
 	using executor_type = typename sock_type::executor_type;
 	executor_type get_executor() { return m_sock->get_executor(); }
-#endif
 
 	ssl::stream_handle_type handle()
 	{

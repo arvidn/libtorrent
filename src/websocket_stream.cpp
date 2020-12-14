@@ -226,18 +226,11 @@ void websocket_stream::do_handshake()
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_handshake");
 	std::visit([&](auto& stream)
 		{
-#if BOOST_VERSION >= 107000
 			stream.set_option(websocket::stream_base::decorator(user_agent_handler));
 			stream.async_handshake(host
 				, m_target
 				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));
-#else
-			stream.async_handshake_ex(host
-				, m_target
-				, user_agent_handler
-				, std::bind(&websocket_stream::on_handshake, shared_from_this(), _1));
-#endif
-	}
+		}
 	, m_stream);
 }
 
@@ -282,4 +275,3 @@ void websocket_stream::on_close(error_code)
 }
 
 #endif // TORRENT_USE_RTC
-

@@ -11,10 +11,7 @@
 
 #include <boost/bind/placeholders.hpp>
 
-// in boost 1.60, placeholders moved into a namespace, just like std
-#if BOOST_VERSION >= 106000
 using namespace boost::placeholders;
-#endif
 
 #include <boost/python/stl_iterator.hpp>
 #include <boost/get_pointer.hpp>
@@ -34,4 +31,3 @@ using namespace boost::placeholders;
 #endif
 
 #endif
-

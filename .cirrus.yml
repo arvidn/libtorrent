@@ -7,7 +7,7 @@ task:
     pkg install -U -y git boost-jam boost-libs unzip wget openssl cmake ninja
     wget "https://github.com/boostorg/build/archive/develop.zip"
     unzip develop.zip
-    git clone --depth=1 --single-branch --branch boost-1.74.0 https://github.com/boostorg/build.git
+    git clone --depth=1 --single-branch --branch boost-1.75.0 https://github.com/boostorg/build.git
     cd build-develop
     ./bootstrap.sh
     echo "using clang ;" > ~/user-config.jam
