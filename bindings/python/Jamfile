@@ -37,7 +37,6 @@ if $(BOOST_ROOT)
 {
 	use-project /boost : $(BOOST_ROOT) ;
 	alias boost_python : /boost/python//boost_python : : : <include>$(BOOST_ROOT) ;
-	alias boost_python3 : boost_python ;
 }
 else
 {
@@ -68,7 +67,6 @@ else
 	}
 
 	lib boost_python : : <tag>@boost_python_version : : $(boost-include-path) ;
-	alias boost_python3 : boost_python ;
 }
 
 
@@ -103,30 +101,13 @@ rule libtorrent_linking ( properties * )
 		ECHO "WARNING: you probably want to specify libtorrent-link=static rather than link=static" ;
 	}
 
-	local boost_python_lib ;
-
-	for local prop in $(properties)
-	{
-		switch $(prop)
-		{
-			case <python>2.* : boost_python_lib = boost_python ;
-			case <python>3.* : boost_python_lib = boost_python3 ;
-		}
-	}
-
-	if ! $(boost_python_lib)
-	{
-		ECHO "WARNING: unknown python version" ;
-		boost_python_lib = boost_python ;
-	}
-
 	if <boost-link>shared in $(properties)
 	{
-		result += <library>$(boost_python_lib)/<link>shared/<warnings>off ;
+		result += <library>boost_python/<link>shared/<warnings>off ;
 	}
 	else
 	{
-		result += <library>$(boost_python_lib)/<link>static/<warnings>off ;
+		result += <library>boost_python/<link>static/<warnings>off ;
 	}
 
 	if <libtorrent-link>shared in $(properties)
@@ -255,7 +236,6 @@ install stage_module
 install stage_dependencies
 	: /torrent//torrent
 	boost_python
-	boost_python3
 	: <location>dependencies
 	<install-dependencies>on
 	<install-type>SHARED_LIB
