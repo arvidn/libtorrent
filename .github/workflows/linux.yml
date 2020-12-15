@@ -192,6 +192,7 @@ jobs:
         run: |
           cd bindings/python
           b2 -j2 stage_module stage_dependencies
+          b2 -j2 deprecated-functions=off
 
       - name: run python tests
         run: |

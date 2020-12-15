@@ -42,6 +42,7 @@ namespace
       return ret;
   }
 
+#if TORRENT_ABI_VERSION < 4
   list http_seeds(torrent_handle& handle)
   {
       list ret;
@@ -56,6 +57,7 @@ namespace
           ret.append(*i);
       return ret;
   }
+#endif
 
   list piece_availability(torrent_handle& handle)
   {
@@ -491,9 +493,11 @@ void bind_torrent_handle()
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
         .def("url_seeds", url_seeds)
+#if TORRENT_ABI_VERSION < 4
         .def("add_http_seed", _(&torrent_handle::add_http_seed))
         .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
         .def("http_seeds", http_seeds)
+#endif
         .def("torrent_file", _(&torrent_handle::torrent_file))
         .def("set_metadata", set_metadata)
         .def("is_valid", _(&torrent_handle::is_valid))
