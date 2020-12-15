@@ -324,7 +324,9 @@ void bind_torrent_info()
 
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
         .def("add_url_seed", &torrent_info::add_url_seed)
+#if TORRENT_ABI_VERSION < 4
         .def("add_http_seed", &torrent_info::add_http_seed)
+#endif
         .def("web_seeds", get_web_seeds)
         .def("set_web_seeds", set_web_seeds)
 

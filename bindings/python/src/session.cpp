@@ -309,12 +309,14 @@ namespace
                 p.url_seeds = extract<std::vector<std::string>>(value);
                 continue;
             }
+#if TORRENT_ABI_VERSION < 4
             else if(key == "http_seeds")
             {
                 p.http_seeds =
                     extract<decltype(add_torrent_params::http_seeds)>(value);
                 continue;
             }
+#endif
             else if(key == "dht_nodes")
             {
                 p.dht_nodes =
@@ -831,7 +833,9 @@ void bind_session()
         .def_readwrite("info_hash", &add_torrent_params::info_hash)
 #endif
         .def_readwrite("info_hashes", &add_torrent_params::info_hashes)
+#if TORRENT_ABI_VERSION < 4
         .add_property("http_seeds", PROP(&add_torrent_params::http_seeds))
+#endif
         .add_property("url_seeds", PROP(&add_torrent_params::url_seeds))
         .add_property("peers", PROP(&add_torrent_params::peers))
         .add_property("banned_peers", PROP(&add_torrent_params::banned_peers))
