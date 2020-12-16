@@ -15,6 +15,10 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
 
+      - name: update package lists
+        run: |
+          sudo apt update
+
       - name: install dependencies
         run: |
           sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
