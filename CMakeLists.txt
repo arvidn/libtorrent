@@ -629,6 +629,38 @@ if (APPLE)
 	target_link_libraries(torrent-rasterbar PRIVATE "-framework CoreFoundation" "-framework SystemConfiguration")
 endif()
 
+# check if we need to link with libatomic (not needed on MSVC)
+if (NOT Windows)
+	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
+	include(CheckCXXSourceCompiles)
+
+	set(ATOMICS_TEST_SOURCE [=[
+		#include <atomic>
+		#include <cstdint>
+		std::atomic<int> x{0};
+		int main() {
+			x.fetch_add(1, std::memory_order_relaxed);
+			return 0;
+		}
+	]=])
+	string(REPLACE "std::atomic<int>" "std::atomic<std::int64_t>" ATOMICS64_TEST_SOURCE "${ATOMICS_TEST_SOURCE}")
+
+	check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITHOUT_LIB)
+	check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITHOUT_LIB)
+	if((NOT HAVE_CXX_ATOMICS_WITHOUT_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB))
+		set(CMAKE_REQUIRED_LIBRARIES "atomic")
+		check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITH_LIB)
+		check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITH_LIB)
+		if ((NOT HAVE_CXX_ATOMICS_WITH_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITH_LIB))
+			message(FATAL_ERROR "No native support for std::atomic, or libatomic not found!")
+		else()
+			message(STATUS "Linking with libatomic for atomics support")
+			unset(CMAKE_REQUIRED_LIBRARIES)
+			target_link_libraries(torrent-rasterbar PUBLIC atomic)
+		endif()
+	endif()
+endif()
+
 feature_option(build_tests "build tests" OFF)
 feature_option(build_examples "build examples" OFF)
 feature_option(build_tools "build tools" OFF)
