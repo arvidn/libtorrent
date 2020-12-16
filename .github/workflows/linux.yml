@@ -9,7 +9,7 @@ jobs:
 
    build:
       name: build
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
       continue-on-error: true
 
       strategy:
@@ -48,7 +48,7 @@ jobs:
 
    fuzzers:
       name: Fuzzers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
       continue-on-error: true
 
       steps:
@@ -71,7 +71,7 @@ jobs:
 
    check_headers:
       name: check headers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
 
       steps:
       - name: checkout
@@ -92,7 +92,7 @@ jobs:
 
    clang_tidy:
       name: clang-tidy
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
 
       steps:
       - name: checkout
@@ -116,7 +116,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
       continue-on-error: true
 
       strategy:
@@ -147,7 +147,7 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
 
       steps:
       - name: checkout
@@ -169,7 +169,7 @@ jobs:
 
    python:
       name: Python bindings
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
 
       steps:
       - name: checkout
@@ -199,7 +199,7 @@ jobs:
 
    dist:
       name: build dist
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-latest
 
       steps:
       - name: checkout
