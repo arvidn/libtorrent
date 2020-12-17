@@ -134,6 +134,12 @@ namespace libtorrent {
 	// return value is an empty string_view.
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string(string_view last, char sep);
 
+	// same as split_string, but if one sub-string starts with a double quote
+	// (") separators are ignored until the end double-quote. Unless if the
+	// separator itself is a double quote.
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string_quotes(
+		string_view last, char const sep);
+
 	// removes whitespaces at the beginning of the string, in-place
 	TORRENT_EXTRA_EXPORT void ltrim(std::string& s);
 

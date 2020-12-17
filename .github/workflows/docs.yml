@@ -17,6 +17,7 @@ jobs:
 
       - name: install dependencies
         run: |
+          sudo apt-get update
           sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
           python -m pip install aafigure
           ~/.local/bin/aafigure --version

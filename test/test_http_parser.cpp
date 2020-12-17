@@ -832,3 +832,24 @@ TORRENT_TEST(idna)
 	TEST_CHECK(!is_idna("xn-."));
 	TEST_CHECK(!is_idna("-xn--."));
 }
+
+TORRENT_TEST(has_tracker_query_string)
+{
+	TEST_CHECK(has_tracker_query_string("foo=bar&info_hash=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("info_hash=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("&&info_hash=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&info_hash=abc"_sv));
+
+	TEST_CHECK(has_tracker_query_string("foo=bar&port=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&event=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&downloaded=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&key=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&uploaded=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&corrupt=abc&a=b"_sv));
+	TEST_CHECK(has_tracker_query_string("foo=bar&peer_id=abc&a=b"_sv));
+
+	TEST_CHECK(!has_tracker_query_string("foo=bar&a=b"_sv));
+	TEST_CHECK(!has_tracker_query_string(""_sv));
+	TEST_CHECK(!has_tracker_query_string("info_hash1=abc"_sv));
+	TEST_CHECK(!has_tracker_query_string("&1port=abc"_sv));
+}
