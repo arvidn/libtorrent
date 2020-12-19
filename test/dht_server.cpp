@@ -89,7 +89,7 @@ struct dht_server
 			return;
 		}
 
-		std::printf("%s: DHT initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: DHT initialized on port %d\n", time_now_string().c_str(), m_port);
 
 		m_thread = std::make_shared<std::thread>(&dht_server::thread_fun, this);
 	}

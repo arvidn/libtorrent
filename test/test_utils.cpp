@@ -35,10 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	char const* time_now_string()
+	std::string time_now_string()
 	{
 		static const time_point start = clock_type::now();
-		static char ret[200];
+		char ret[200];
 		int t = int(total_milliseconds(clock_type::now() - start));
 		int h = t / 1000 / 60 / 60;
 		t -= h * 60 * 60 * 1000;

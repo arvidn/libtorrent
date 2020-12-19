@@ -99,7 +99,7 @@ void on_piece_checked(piece_index_t, sha1_hash const&
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %s\n"
-		, time_now_string(), call, ret, ec.ec.message().c_str()
+		, time_now_string().c_str(), call, ret, ec.ec.message().c_str()
 		, static_cast<int>(ec.file()), operation_name(ec.operation));
 }
 

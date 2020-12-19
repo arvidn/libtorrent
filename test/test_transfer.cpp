@@ -340,7 +340,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
-			std::printf("%s: reconnecting peer\n", time_now_string());
+			std::printf("%s: reconnecting peer\n", time_now_string().c_str());
 			error_code ec2;
 			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec2)
 				, ses1.listen_port()));
@@ -348,7 +348,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			TEST_CHECK(tor2.status().is_finished == false);
 			std::printf("disconnects: %d\n", peer_disconnects);
 			TEST_CHECK(peer_disconnects >= 2);
-			std::printf("%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
+			std::printf("%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string().c_str());
 			peer_disconnects = 0;
 			continue;
 		}
