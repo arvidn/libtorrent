@@ -233,7 +233,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 			, udp_tracker_url) == accepted_trackers.end());
 	}
 
-	std::printf("%s: ~session\n", time_now_string());
+	std::printf("%s: ~session\n", time_now_string().c_str());
 	session_proxy pr = s->abort();
 	s.reset();
 
