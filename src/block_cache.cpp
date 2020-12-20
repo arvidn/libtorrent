@@ -294,7 +294,6 @@ static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_
 cached_piece_entry::cached_piece_entry()
 	: num_dirty(0)
 	, num_blocks(0)
-	, blocks_in_piece(0)
 	, hashing(0)
 	, hashing_done(0)
 	, marked_for_deletion(false)
