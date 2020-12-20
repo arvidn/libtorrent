@@ -109,7 +109,7 @@ build_script:
     b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10 libtorrent-link=shared stage_module stage_dependencies
     )
   - if defined python_dist (
-    c:\Python35-x64\python.exe setup.py bdist --format=msi
+    c:\Python36-x64\python.exe setup.py bdist --format=msi
     )
 
   # simulations
