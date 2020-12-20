@@ -749,10 +749,10 @@ namespace libtorrent {
 			mode |= open_mode::sparse;
 		}
 
-		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= open_mode::no_atime;
+		if (m_settings.load() && settings().get_bool(settings_pack::no_atime_storage)) mode |= open_mode::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (m_settings
+		if (m_settings.load()
 			&& settings().get_int(settings_pack::disk_io_write_mode)
 			== settings_pack::disable_os_cache)
 		{

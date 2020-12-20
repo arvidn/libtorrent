@@ -279,7 +279,7 @@ namespace libtorrent {
 		virtual ~storage_interface() {}
 
 		// initialized in disk_io_thread::perform_async_job
-		aux::session_settings const* m_settings = nullptr;
+		std::atomic<aux::session_settings const*> m_settings{nullptr};
 
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }

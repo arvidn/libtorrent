@@ -1174,7 +1174,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
 		// each access to the settings won't require a std::mutex to be held.
-		if (storage && storage->m_settings == nullptr)
+		if (storage && storage->m_settings.load() == nullptr)
 			storage->m_settings = &m_settings;
 
 		TORRENT_ASSERT(static_cast<int>(j->action) < int(job_functions.size()));
