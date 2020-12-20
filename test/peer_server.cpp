@@ -89,7 +89,7 @@ struct peer_server
 			return;
 		}
 
-		std::printf("%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: PEER peer initialized on port %d\n", time_now_string().c_str(), m_port);
 
 		m_thread = std::make_shared<std::thread>(&peer_server::thread_fun, this);
 	}
@@ -137,7 +137,7 @@ struct peer_server
 				return;
 			}
 
-			std::printf("%s: PEER incoming peer connection\n", time_now_string());
+			std::printf("%s: PEER incoming peer connection\n", time_now_string().c_str());
 			++m_peer_requests;
 			socket.close(ec);
 		}

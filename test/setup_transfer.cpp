@@ -309,7 +309,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 			auto a = *i;
 			if (should_print(a))
 			{
-				std::printf("%s: %s: [%s] %s\n", time_now_string(), name
+				std::printf("%s: %s: [%s] %s\n", time_now_string().c_str(), name
 					, a->what(), a->message().c_str());
 			}
 			if (a->type() == type)
@@ -397,7 +397,7 @@ bool print_alerts(lt::session& ses, char const* name
 	{
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::printf("%s: %s: [%s] (%s): %s\n", time_to_string(a->timestamp())
+			std::printf("%s: %s: [%s] (%s): %s\n", time_to_string(a->timestamp()).c_str()
 				, name, a->what()
 				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
 		}
@@ -413,7 +413,7 @@ bool print_alerts(lt::session& ses, char const* name
 		}
 		else if (should_print(a) && !no_output)
 		{
-			std::printf("%s: %s: [%s] %s\n", time_now_string(), name, a->what(), a->message().c_str());
+			std::printf("%s: %s: [%s] %s\n", time_now_string().c_str(), name, a->what(), a->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == nullptr || allow_failed_fastresume);
@@ -778,13 +778,13 @@ int start_proxy(int proxy_type)
 		char buf[1024];
 		std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
 
-		std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+		std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string().c_str(), port, type, auth);
 		std::printf("%s\n", buf);
 		pid_type r = async_run(buf);
 		if (r == 0) continue;
 		proxy_t t = { r, proxy_type };
 		running_proxies.insert(std::make_pair(port, t));
-		std::printf("%s launched\n", time_now_string());
+		std::printf("%s launched\n", time_now_string().c_str());
 		std::this_thread::sleep_for(lt::milliseconds(500));
 		wait_for_port(port);
 		return port;
@@ -1112,17 +1112,17 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		if (use_ssl_ports)
 		{
 			port = ses2->ssl_listen_port();
-			std::printf("%s: ses2->ssl_listen_port(): %d\n", time_now_string(), port);
+			std::printf("%s: ses2->ssl_listen_port(): %d\n", time_now_string().c_str(), port);
 		}
 
 		if (port == 0)
 		{
 			port = ses2->listen_port();
-			std::printf("%s: ses2->listen_port(): %d\n", time_now_string(), port);
+			std::printf("%s: ses2->listen_port(): %d\n", time_now_string().c_str(), port);
 		}
 
 		std::printf("%s: ses1: connecting peer port: %d\n"
-			, time_now_string(), port);
+			, time_now_string().c_str(), port);
 		tor1.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec)
 			, std::uint16_t(port)));
 
@@ -1185,13 +1185,13 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_in
 		std::snprintf(buf, sizeof(buf), "%s .." SEPARATOR "web_server.py %d %d %d %d %d"
 			, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
 
-		std::printf("%s starting web_server on port %d...\n", time_now_string(), port);
+		std::printf("%s starting web_server on port %d...\n", time_now_string().c_str(), port);
 
 		std::printf("%s\n", buf);
 		pid_type r = async_run(buf);
 		if (r == 0) continue;
 		web_server_pid = r;
-		std::printf("%s launched\n", time_now_string());
+		std::printf("%s launched\n", time_now_string().c_str());
 		std::this_thread::sleep_for(lt::milliseconds(1000));
 		wait_for_port(port);
 		return port;

@@ -80,7 +80,7 @@ void log(char const* fmt, ...)
 	va_end(v);
 
 	std::printf("\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
-		, time_now_string(), buf);
+		, time_now_string().c_str(), buf);
 }
 
 void print_session_log(lt::session& ses)

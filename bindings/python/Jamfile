@@ -10,7 +10,6 @@ use-project /torrent : ../.. ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 # this is used to make bjam use the same version of python which is executing setup.py
-LIBTORRENT_PYTHON_INTERPRETER = [ modules.peek : LIBTORRENT_PYTHON_INTERPRETER ] ;
 
 feature libtorrent-link : shared static : composite propagated ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
@@ -23,15 +22,6 @@ feature python-install-path : : free path ;
 # when not specifying a custom install path, this controls whether to install
 # the python module in the system directory or user-specifc directory
 feature python-install-scope : user system : ;
-
-# this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
-feature libtorrent-python : on ;
-
-if $(LIBTORRENT_PYTHON_INTERPRETER)
-{
-	echo "using python interpreter at: " $(LIBTORRENT_PYTHON_INTERPRETER) ;
-	using python : : "$(LIBTORRENT_PYTHON_INTERPRETER)" : : : <libtorrent-python>on ;
-}
 
 # copied from boost 1.63's boost python jamfile
 rule find-py3-version
