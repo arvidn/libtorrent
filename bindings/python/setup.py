@@ -7,6 +7,7 @@ import platform
 import sys
 import sysconfig
 import tempfile
+import multiprocessing
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
@@ -14,7 +15,7 @@ import setuptools.command.build_ext as _build_ext_lib
 
 def get_msvc_toolset():
     # Reference: https://wiki.python.org/moin/WindowsCompilers
-    major_minor = sys.version_info()[0:2]
+    major_minor = sys.version_info[0:2]
     if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
         return "msvc-9.0"
     if major_minor in ((3, 3), (3, 4)):
@@ -64,7 +65,11 @@ class StubExtension(setuptools.Extension):
         super().__init__(name, sources=[])
 
 
-def write_b2_python_config(config):
+def escape(string):
+    return '"' + string.replace('\\', '\\\\') + '"'
+
+
+def write_b2_python_config(target, config):
     write = config.write
     # b2 normally keys python environments by X.Y version, but since we may
     # have a duplicates, we also key on a special property. It's always-on, so
@@ -84,22 +89,20 @@ def write_b2_python_config(config):
     paths = sysconfig.get_paths()
     includes = [paths["include"], paths["platinclude"]]
 
-    write("using python")
-    write(f" : {sysconfig.get_python_version()}")
-    write(f' : "{sys.executable}"')
-    write(" : ")
-    write(" ".join(f'"{path}"' for path in includes))
-    write(" :")  # libraries
-    write(" : <libtorrent-python>on")
     # Note that on debian, the extension suffix is overwritten, but it's
     # necessary everywhere else, or else b2 will just build "libtorrent.so".
     # python.jam appends SHLIB_SUFFIX on its own.
-    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
-    shlib_suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
-    ext_suffix = ext_suffix[: -len(shlib_suffix)]
-    write(f' : "{ext_suffix}"')
-    write(" ;\n")
+    target = target.name.split("libtorrent")[1]
+    if os.name == "nt":
+        suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    else:
+        suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
+    if suffix != None and target.endswith(suffix):
+        target = target[:-len(suffix)]
 
+    using = f'using python : {sysconfig.get_python_version()} : {escape(sys.executable)} : {" ".join(escape(path) for path in includes)} : : <libtorrent-python>on : "{target}" ;\n'
+    print(using)
+    write(using)
 
 BuildExtBase = _build_ext_lib.build_ext
 
@@ -169,6 +172,8 @@ class LibtorrentBuildExt(BuildExtBase):
 
         if self.parallel:
             args.append(f"-j{self.parallel}")
+        else:
+            args.append(f"-j{multiprocessing.cpu_count()}")
         if self.libtorrent_link:
             args.append(f"libtorrent-link={self.libtorrent_link}")
         if self.boost_link:
@@ -185,20 +190,22 @@ class LibtorrentBuildExt(BuildExtBase):
         # Jamfile hack to copy the module to our target directory
         target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
         args.append(f"python-install-path={target.parent}")
+        args.append("libtorrent-python=on")
         args.append("install_module")
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
         config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
-            write_b2_python_config(config)
+            write_b2_python_config(target, config)
             config.seek(0)
             self.announce("project-config.jam contents:")
             self.announce(config.read())
-            config.close()
+            args.append(f"python={sysconfig.get_python_version()}")
             args.append(f"--project-config={config.name}")
             self.spawn(["b2"] + args)
         finally:
+            config.close()
             os.unlink(config.name)
 
 
