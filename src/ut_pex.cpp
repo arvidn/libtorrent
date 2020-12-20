@@ -424,31 +424,8 @@ namespace libtorrent { namespace {
 #endif
 				return;
 			}
-			static time_point global_last = min_time();
-
 			int const num_peers = m_torrent.num_peers();
 			if (num_peers <= 1) return;
-
-			// don't send pex messages more often than 1 every 100 ms, and
-			// allow pex messages to be sent 5 seconds apart if there isn't
-			// contention
-			int const delay = std::min(std::max(60000 / num_peers, 100), 3000);
-
-			if (now - milliseconds(delay) < global_last)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-//				m_pc.peer_log(peer_log_alert::info, "PEX", "global-wait: %d"
-//					, int(total_seconds(milliseconds(delay) - (now - global_last))));
-#endif
-				return;
-			}
-
-			// this will allow us to catch up, even if our timer
-			// has lower resolution than delay
-			if (global_last == min_time())
-				global_last = now;
-			else
-				global_last += milliseconds(delay);
 
 			m_last_msg = now;
 
