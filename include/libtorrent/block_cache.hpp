@@ -239,6 +239,11 @@ namespace aux {
 
 		// ---- 64 bit boundary ----
 
+		// this is the number of threads that are currently holding
+		// a reference to this piece. A piece may not be removed from
+		// the cache while this is > 0
+		std::uint8_t piece_refcount = 0;
+
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to 1
 		// When the operation returns, this is set to 0.
@@ -297,11 +302,6 @@ namespace aux {
 		};
 
 		std::uint16_t cache_state:3;
-
-		// this is the number of threads that are currently holding
-		// a reference to this piece. A piece may not be removed from
-		// the cache while this is > 0
-		std::uint16_t piece_refcount:7;
 
 		// if this is set to one, it means there is an outstanding
 		// flush_hashed job for this piece, and there's no need to
