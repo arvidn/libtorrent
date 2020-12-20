@@ -1,195 +1,219 @@
 #!/usr/bin/env python3
 
-
-from distutils.core import setup, Extension
-from distutils.sysconfig import get_config_vars
+import distutils.debug
 import os
+import pathlib
 import platform
 import sys
-import shutil
-import multiprocessing
+import sysconfig
+import tempfile
+
+import setuptools
+import setuptools.command.build_ext as _build_ext_lib
 
 
-class flags_parser:
-    def __init__(self):
-        self.include_dirs = []
-        self.library_dirs = []
-        self.libraries = []
-
-    def parse(self, args):
-        """Parse out the -I -L -l directives
-
-        Returns:
-            list: All other arguments
-        """
-        ret = []
-        for token in args.split():
-            prefix = token[:2]
-            if prefix == '-I':
-                self.include_dirs.append(token[2:])
-            elif prefix == '-L':
-                self.library_dirs.append(token[2:])
-            elif prefix == '-l':
-                self.libraries.append(token[2:])
-            else:
-                ret.append(token)
-        return ret
+def get_msvc_toolset():
+    # Reference: https://wiki.python.org/moin/WindowsCompilers
+    major_minor = sys.version_info()[0:2]
+    if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
+        return "msvc-9.0"
+    if major_minor in ((3, 3), (3, 4)):
+        return "msvc-10.0"
+    if major_minor in ((3, 5), (3, 6)):
+        return "msvc-14.1"  # libtorrent requires VS 2017 or newer
+    # unknown python version
+    return "msvc"
 
 
-def arch():
-    if platform.system() == 'Darwin':
-        __, __, machine = platform.mac_ver()
-        if machine.startswith('ppc'):
-            return ['-arch', machine]
-    return []
+def b2_bool(value):
+    if value:
+        return "on"
+    return "off"
 
 
-def target_specific():
-    if platform.system() == 'Darwin':
-        # On mavericks, clang will fail when unknown arguments are passed in.
-        # python distutils will pass in arguments it doesn't know about.
-        return ['-Wno-error=unused-command-line-argument-hard-error-in-future']
-    return []
+# Frustratingly, the "bdist_*" unconditionally (re-)run "build" without
+# args, even ignoring "build_*" earlier on the same command line. This
+# means "build_*" must be a no-op if some build output exists, even if that
+# output might have been generated with different args (like
+# "--define=FOO"). b2 does not know how to be "naively idempotent" like
+# this; it will only generate outputs that exactly match the build request.
+#
+# It doesn't work to short-circuit initialize_options() / finalize_options(),
+# as this doesn't play well with the way options are externally manipulated by
+# distutils.
+#
+# It DOES work to short-circuit Distribution.reinitialize_command(), so we do
+# that here.
 
 
-try:
-    with open('compile_flags') as _file:
-        extra_cmd = _file.read()
-except Exception:
-    extra_cmd = None
+class B2Distribution(setuptools.Distribution):
+    def reinitialize_command(self, command, reinit_subcommands=0):
+        if command == "build_ext":
+            return self.get_command_obj("build_ext")
+        return super().reinitialize_command(
+            command, reinit_subcommands=reinit_subcommands
+        )
 
-try:
-    with open('link_flags') as _file:
-        ldflags = _file.read()
-except Exception:
-    ldflags = None
 
-# this is to pull out compiler arguments from the CXX flags set up by the
-# configure script. Specifically, the -std=c++11 flag is added to CXX and here
-# we pull out everything starting from the first flag (i.e. something starting
-# with a '-'). The actual command to call the compiler may be more than one
-# word, for instance "ccache g++".
-try:
-    with open('compile_cmd') as _file:
-        cmd = _file.read().split(' ')
-        while len(cmd) > 0 and not cmd[0].startswith('-'):
-            cmd = cmd[1:]
-        extra_cmd += ' '.join(cmd)
-except Exception:
-    pass
+# Various setuptools logic expects us to provide Extension instances for each
+# extension in the distro.
+class StubExtension(setuptools.Extension):
+    def __init__(self, name):
+        # An empty sources list ensures the base build_ext command won't build
+        # anything
+        super().__init__(name, sources=[])
 
-ext = None
-packages = None
 
-if '--bjam' in sys.argv:
-    del sys.argv[sys.argv.index('--bjam')]
+def write_b2_python_config(config):
+    write = config.write
+    # b2 normally keys python environments by X.Y version, but since we may
+    # have a duplicates, we also key on a special property. It's always-on, so
+    # any python versions configured with this as a condition will always be
+    # picked.
+    # Note that python.jam actually modifies the condition for the build
+    # request, so that <define>TORRENT_FOO becomes something like
+    # <define>TORRENT_FOO,<python>3.7,<target-os>linux:... which causes chaos.
+    # We should always define a custom feature for the condition.
+    write("import feature ;\n")
+    write("feature.feature libtorrent-python : on ;\n")
 
-    if '--help' not in sys.argv \
-            and '--help-commands' not in sys.argv:
+    # python.jam tries to determine correct include and library paths. Per
+    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=691378 , include
+    # detection is broken, but debian's fix is also broken (invokes a global
+    # pythonX.Y instead of the passed interpreter)
+    paths = sysconfig.get_paths()
+    includes = [paths["include"], paths["platinclude"]]
 
-        toolset = ''
-        file_ext = '.so'
+    write("using python")
+    write(f" : {sysconfig.get_python_version()}")
+    write(f' : "{sys.executable}"')
+    write(" : ")
+    write(" ".join(f'"{path}"' for path in includes))
+    write(" :")  # libraries
+    write(" : <libtorrent-python>on")
+    # Note that on debian, the extension suffix is overwritten, but it's
+    # necessary everywhere else, or else b2 will just build "libtorrent.so".
+    # python.jam appends SHLIB_SUFFIX on its own.
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    shlib_suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
+    ext_suffix = ext_suffix[: -len(shlib_suffix)]
+    write(f' : "{ext_suffix}"')
+    write(" ;\n")
 
-        if platform.system() == 'Windows':
-            file_ext = '.pyd'
-            # See https://wiki.python.org/moin/WindowsCompilers for a table of msvc versions
-            # used for each python version
-            # Specify the full version number for 9.0 and 10.0 because apparently
-            # older versions of boost don't support only specifying the major number and
-            # there was only one version of msvc with those majors.
-            # Only specify the major for msvc-14 so that 14.1, 14.11, etc can be used.
-            # Hopefully people building with msvc-14 are using a new enough version of boost
-            # for this to work.
-            if sys.version_info[0:2] in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
-                toolset = ' toolset=msvc-9.0'
-            elif sys.version_info[0:2] in ((3, 3), (3, 4)):
-                toolset = ' toolset=msvc-10.0'
-            elif sys.version_info[0:2] in ((3, 5), (3, 6)):
-                toolset = ' toolset=msvc-14'
-            else:
-                # unknown python version, lets hope the user has the right version of msvc configured
-                toolset = ' toolset=msvc'
 
-        parallel_builds = ' -j%d' % multiprocessing.cpu_count()
-        if sys.maxsize > 2**32:
-            address_model = ' address-model=64'
-        else:
-            address_model = ' address-model=32'
+BuildExtBase = _build_ext_lib.build_ext
 
-        # add extra quoting around the path to prevent bjam from parsing it as a list
-        # if the path has spaces
-        os.environ['LIBTORRENT_PYTHON_INTERPRETER'] = '"' + sys.executable + '"'
 
-        # build libtorrent using bjam and build the installer with distutils
-        cmdline = ('b2 libtorrent-link=static boost-link=static release '
-                   'optimization=space stage_module --abbreviate-paths' +
-                   address_model + toolset + parallel_builds)
-        print(cmdline)
-        if os.system(cmdline) != 0:
-            print('build failed')
-            sys.exit(1)
+class LibtorrentBuildExt(BuildExtBase):
 
-        try:
-            os.mkdir('build')
-        except Exception:
-            pass
-        try:
-            shutil.rmtree('build/lib')
-        except Exception:
-            pass
-        try:
-            os.mkdir('build/lib')
-        except Exception:
-            pass
-        try:
-            os.mkdir('libtorrent')
-        except Exception:
-            pass
-        shutil.copyfile('libtorrent' + file_ext,
-                        'build/lib/libtorrent' + file_ext)
-
-    packages = ['libtorrent']
-
-else:
-    # Remove '-Wstrict-prototypes' compiler option, which isn't valid for C++.
-    cfg_vars = get_config_vars()
-    for key, value in list(cfg_vars.items()):
-        if isinstance(value, str):
-            cfg_vars[key] = value.replace('-Wstrict-prototypes', '')
-
-    src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
-    source_list = [os.path.join(src_dir, s) for s in os.listdir(src_dir) if s.endswith(".cpp")]
-
-    flags = flags_parser()
-    ext_extra = {}
-
-    if ldflags:
-        # ldflags parsed first to ensure the correct library search path order
-        ext_extra["extra_link_args"] = flags.parse(ldflags) + arch()
-
-    if extra_cmd:
-        ext_extra["extra_compile_args"] = flags.parse(extra_cmd) + arch() + target_specific()
-
-    ext = [Extension(
-        'libtorrent',
-        sources=sorted(source_list),
-        language='c++',
-        include_dirs=flags.include_dirs,
-        library_dirs=flags.library_dirs,
-        libraries=['torrent-rasterbar'] + flags.libraries,
-        **ext_extra)
+    user_options = BuildExtBase.user_options + [
+        (
+            "libtorrent-link=",
+            None,
+            "how to link to libtorrent ('static' or 'shared')",
+        ),
+        (
+            "boost-link=",
+            None,
+            "how to link to boost-python ('static' or 'shared')",
+        ),
+        ("toolset=", None, "b2 toolset"),
+        ("pic", None, "whether to compile with -fPIC"),
+        ("optimization=", None, "b2 optimization mode"),
+        (
+            "hash",
+            None,
+            "use a property hash for the build directory, rather than "
+            "property subdirectories",
+        ),
+        ("cxxstd=", None, "boost cxxstd value (11, 14, 17, etc)"),
     ]
 
-setup(
-    name='python-libtorrent',
-    version='1.2.11',
-    author='Arvid Norberg',
-    author_email='arvid@libtorrent.org',
-    description='Python bindings for libtorrent-rasterbar',
-    long_description='Python bindings for libtorrent-rasterbar',
-    url='http://libtorrent.org',
-    platforms=[platform.system() + '-' + platform.machine()],
-    license='BSD',
-    packages=packages,
-    ext_modules=ext
+    boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
+
+    def initialize_options(self):
+        self.libtorrent_link = None
+        self.boost_link = None
+        self.toolset = None
+        self.pic = None
+        self.optimization = None
+        self.hash = None
+        if platform.system() == "Darwin":
+            self.cxxstd = "11"
+        else:
+            self.cxxstd = None
+        return super().initialize_options()
+
+    def run(self):
+        # The current jamfile layout just supports one extension
+        self.build_extension_with_b2()
+        return super().run()
+
+    def build_extension_with_b2(self):
+        if os.name == "nt":
+            self.toolset = get_msvc_toolset()
+            self.libtorrent_link = "static"
+            self.boost_link = "static"
+
+        args = []
+
+        if distutils.debug.DEBUG:
+            args.append("--debug-configuration")
+            args.append("--debug-building")
+            args.append("--debug-generators")
+
+        variant = "debug" if self.debug else "release"
+        args.append(variant)
+        bits = 64 if sys.maxsize > 2 ** 32 else 32
+        args.append(f"address-model={bits}")
+
+        if self.parallel:
+            args.append(f"-j{self.parallel}")
+        if self.libtorrent_link:
+            args.append(f"libtorrent-link={self.libtorrent_link}")
+        if self.boost_link:
+            args.append(f"boost-link={self.boost_link}")
+        if self.pic:
+            args.append(f"libtorrent-python-pic={b2_bool(self.pic)}")
+        if self.optimization:
+            args.append(f"optimization={self.optimization}")
+        if self.hash:
+            args.append("--hash")
+        if self.cxxstd:
+            args.append(f"cxxstd={self.cxxstd}")
+
+        # Jamfile hack to copy the module to our target directory
+        target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
+        args.append(f"python-install-path={target.parent}")
+        args.append("install_module")
+
+        # We use a "project-config.jam" to instantiate a python environment
+        # to exactly match the running one.
+        config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+        try:
+            write_b2_python_config(config)
+            config.seek(0)
+            self.announce("project-config.jam contents:")
+            self.announce(config.read())
+            config.close()
+            args.append(f"--project-config={config.name}")
+            self.spawn(["b2"] + args)
+        finally:
+            os.unlink(config.name)
+
+
+setuptools.setup(
+    name="python-libtorrent",
+    version="1.2.11",
+    author="Arvid Norberg",
+    author_email="arvid@libtorrent.org",
+    description="Python bindings for libtorrent-rasterbar",
+    long_description="Python bindings for libtorrent-rasterbar",
+    url="http://libtorrent.org",
+    license="BSD",
+    ext_modules=[StubExtension("libtorrent")],
+    cmdclass={
+        "build_ext": LibtorrentBuildExt,
+    },
+    distclass=B2Distribution,
 )

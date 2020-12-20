@@ -1,0 +1,44 @@
+name: Python bindings
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: build
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: dependencies (macos)
+      if: runner.os == 'macOS'
+      run: |
+        brew install boost-build boost boost-python3 python@3.9
+
+    - name: update package lists
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+
+    - name: dependencies (linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools
+
+    - name: build/install
+      run: |
+        cd bindings/python
+        # Homebrew's python "framework" sets a prefix via distutils config.
+        # --prefix conflicts with --user, so null out prefix so we have one
+        # command that works everywhere
+        python3 setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
+
+    - name: tests
+      run: |
+        cd bindings/python
+        python3 test.py
