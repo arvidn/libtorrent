@@ -227,42 +227,48 @@ namespace aux {
 
 		piece_index_t piece{0};
 
-		// the number of dirty blocks in this piece
-		std::uint64_t num_dirty:14;
-
-		// the number of blocks in the cache for this piece
-		std::uint64_t num_blocks:14;
-
 		// the total number of blocks in this piece (and the number
 		// of elements in the blocks array)
-		std::uint64_t blocks_in_piece:14;
-
-		// ---- 64 bit boundary ----
+		// this field doesn't change for the lifetime of the cached_piece_entry
+		// and may be read by multiple threads without synchronization.
+		// Therefore this field may not be mixed with any other fields in a
+		// bitfield
+		std::uint16_t blocks_in_piece = 0;
 
 		// this is the number of threads that are currently holding
 		// a reference to this piece. A piece may not be removed from
 		// the cache while this is > 0
 		std::uint8_t piece_refcount = 0;
 
+		// 8 bytes padding
+
+		// ---- 64 bit boundary ----
+
+		// the number of dirty blocks in this piece
+		std::uint32_t num_dirty:14;
+
+		// the number of blocks in the cache for this piece
+		std::uint32_t num_blocks:14;
+
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to 1
 		// When the operation returns, this is set to 0.
-		std::uint16_t hashing:1;
+		std::uint32_t hashing:1;
 
 		// if we've completed at least one hash job on this
 		// piece, and returned it. This is set to one
-		std::uint16_t hashing_done:1;
+		std::uint32_t hashing_done:1;
 
 		// if this is true, whenever refcount hits 0,
 		// this piece should be deleted from the cache
 		// (not just demoted)
-		std::uint16_t marked_for_deletion:1;
+		std::uint32_t marked_for_deletion:1;
 
 		// this is set to true once we flush blocks past
 		// the hash cursor. Once this happens, there's
 		// no point in keeping cache blocks around for
 		// it in avoid_readback mode
-		std::uint16_t need_readback:1;
+		std::uint32_t need_readback:1;
 
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
@@ -301,12 +307,12 @@ namespace aux {
 			num_lrus
 		};
 
-		std::uint16_t cache_state:3;
+		std::uint32_t cache_state:3;
 
 		// if this is set to one, it means there is an outstanding
 		// flush_hashed job for this piece, and there's no need to
 		// issue another one.
-		std::uint16_t outstanding_flush:1;
+		std::uint32_t outstanding_flush:1;
 
 		// as long as there is a read operation outstanding on this
 		// piece, this is set to 1. Otherwise 0.
@@ -314,7 +320,7 @@ namespace aux {
 		// the same blocks at the same time. If a new read job is
 		// added when this is 1, that new job should be hung on the
 		// read job queue (read_jobs).
-		std::uint16_t outstanding_read:1;
+		std::uint32_t outstanding_read:1;
 
 		// this is set when the piece should be evicted as soon as there
 		// no longer are any references to it. Evicted here means demoted
