@@ -2946,11 +2946,6 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 
 			m_generic_io_jobs.m_queued_jobs.push_front(fj);
 		}
-		else
-		{
-			TORRENT_ASSERT(!(fj->flags & disk_io_job::in_progress));
-			TORRENT_ASSERT(fj->blocked);
-		}
 
 		if (num_threads() == 0 && user_add)
 			immediate_execute();
