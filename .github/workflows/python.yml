@@ -1,5 +1,9 @@
 name: Python bindings
-on: [push, pull_request]
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
 
 jobs:
   build:
