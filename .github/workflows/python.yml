@@ -26,6 +26,7 @@ jobs:
 
     - name: update package lists
       if: runner.os == 'Linux'
+      continue-on-error: true
       run: |
         sudo apt update
 
