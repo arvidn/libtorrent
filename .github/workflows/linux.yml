@@ -23,6 +23,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -62,6 +63,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -88,6 +90,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -113,6 +116,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -146,6 +150,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -176,6 +181,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
@@ -201,6 +207,7 @@ jobs:
            submodules: recursive
 
       - name: update package lists
+        continue-on-error: true
         run: |
           sudo apt update
 
