@@ -1,7 +1,6 @@
 import os
 import shutil
 import hashlib
-from random import shuffle
 import struct
 import random
 
@@ -204,7 +203,7 @@ for i in range(256):
 mixes = []
 
 for i in range(200):
-    shuffle(messages)
+    random.shuffle(messages)
     mixes.append(b''.join(messages[1:20]))
 
 messages += mixes
