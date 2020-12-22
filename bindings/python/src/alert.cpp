@@ -92,7 +92,7 @@ dict dht_immutable_item(dht_immutable_item_alert const& alert)
 {
     dict d;
     d["key"] = alert.target;
-    d["value"] = bytes(alert.item.to_string());
+    d["value"] = bytes(alert.item.string());
     return d;
 }
 
@@ -100,7 +100,7 @@ dict dht_mutable_item(dht_mutable_item_alert const& alert)
 {
     dict d;
     d["key"] = bytes(alert.key.data(), alert.key.size());
-    d["value"] = bytes(alert.item.to_string());
+    d["value"] = bytes(alert.item.string());
     d["signature"] = bytes(alert.signature.data(), alert.signature.size());
     d["seq"] = alert.seq;
     d["salt"] = bytes(alert.salt);
