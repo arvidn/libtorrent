@@ -132,13 +132,24 @@ class LibtorrentBuildExt(BuildExtBase):
     boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
 
     def initialize_options(self):
+
+        default_cxxstd = '11'
+
+        try:
+            with open('compile_flags') as f:
+                opts = f.read()
+                if '-std=c++' in opts:
+                    default_cxxstd = opts.split('-std=c++')[-1].split()[0]
+        except:
+            pass
+
         self.libtorrent_link = None
         self.boost_link = None
         self.toolset = None
         self.pic = None
         self.optimization = None
         self.hash = None
-        self.cxxstd = "11"
+        self.cxxstd = default_cxxstd
         return super().initialize_options()
 
     def run(self):
