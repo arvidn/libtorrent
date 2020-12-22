@@ -138,10 +138,7 @@ class LibtorrentBuildExt(BuildExtBase):
         self.pic = None
         self.optimization = None
         self.hash = None
-        if platform.system() == "Darwin":
-            self.cxxstd = "11"
-        else:
-            self.cxxstd = None
+        self.cxxstd = "11"
         return super().initialize_options()
 
     def run(self):
