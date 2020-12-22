@@ -314,15 +314,14 @@ rule building ( properties * )
 
 rule tag ( name : type ? : property-set )
 {
-	name = [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
-
 	if $(type) = SHARED_LIB &&
 		( ! ( [ $(property-set).get <target-os> ] in windows cygwin ) )
 	{
-		name = $(name).$(VERSION) ;
+		local name = [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
+		return $(name).$(VERSION) ;
 	}
 
-	return $(name) ;
+	return [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
 }
 
 # the search path to pick up the openssl libraries from. This is the <search>
