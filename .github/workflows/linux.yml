@@ -196,42 +196,6 @@ jobs:
           b2 -j2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
 
 
-
-   python:
-      name: Python bindings
-      runs-on: ubuntu-20.04
-
-      steps:
-      - name: checkout
-        uses: actions/checkout@v2.3.3
-        with:
-           submodules: recursive
-
-      - name: update package lists
-        continue-on-error: true
-        run: |
-          sudo apt update
-
-      - name: install boost
-        run: |
-          sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
-          echo "using gcc ;" >>~/user-config.jam
-          echo "using python ;" >>~/user-config.jam
-
-      - name: install python
-        run: |
-          sudo apt install python3
-
-      - name: build python module
-        run: |
-          cd bindings/python
-          b2 -j2 stage_module stage_dependencies
-
-      - name: run python tests
-        run: |
-          cd bindings/python
-          LD_LIBRARY_PATH=./dependencies python3 test.py
-
    dist:
       name: build dist
       runs-on: ubuntu-20.04
