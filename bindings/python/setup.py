@@ -102,13 +102,22 @@ def write_b2_python_config(config):
     write(" :")  # libraries
     write(" : <libtorrent-python>on")
 
+    # Note that all else being equal, we'd like to exactly control the output
+    # filename, so distutils can find it. However:
+    # 1. We can only control part of the filename; the prefix is controlled by
+    #    our Jamfile and the final suffix is controlled by python.jam.
+    # 2. Debian patched python.jam to disregard the configured ext_suffix
+    #    anyway; they always override it with the same sysconfig var we use,
+    #    found by invoking the executable.
+
+    # So instead of applying an arbitrary name, we just try to guarantee that
+    # b2 produces a name that distutils would expect, on all platforms. In
+    # other words we apply debian's override everywhere, and hope no other
+    # overrides ever disagree with us.
+
     # Note that sysconfig and distutils.sysconfig disagree here, especially on
     # windows.
     ext_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
-
-    # Note that debian currently disregards ext_suffix, but it overrides it
-    # using the same logic we use. Hopefully any system-specific patches would
-    # do the same thing.
 
     # python.jam appends the platform-specific final suffix on its own. I can't
     # find a consistent value from sysconfig or distutils.sysconfig for this.
@@ -223,7 +232,8 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # b2 doesn't provide a way to signal the name or paths of its outputs.
         # We try to convince python.jam to name its output file like our target
-        # and copy it to our target directory.
+        # and copy it to our target directory. See comments in
+        # write_b2_python_config for limitations on controlling the filename.
 
         # Jamfile hack to copy the module to our target directory
         args.append(f"python-install-path={target.parent}")
