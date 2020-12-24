@@ -85,7 +85,9 @@ node_id calculate_node_id(node_id const& nid, aux::listen_socket_handle const& s
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
 	if (external_address.is_unspecified())
 	{
-		return generate_random_id();
+		return nid.is_all_zeros()
+			? generate_random_id()
+			: nid;
 	}
 
 	if (nid.is_all_zeros() || !verify_id(nid, external_address))
