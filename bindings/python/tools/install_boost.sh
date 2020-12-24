@@ -35,9 +35,9 @@ fi
 
 # Download Boost sources if they are not already downloaded
 # They are needed for Boost.Python libraries, even on macOS
-if [[ ! -d /tmp/boost_1_74_0 ]]
+if [[ ! -d /tmp/boost_1_75_0 ]]
 then
-  curl -L https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz -o /tmp/boost.tar.gz
+  curl -L https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz -o /tmp/boost.tar.gz
   tar xzf /tmp/boost.tar.gz -C /tmp
 fi
 
@@ -65,16 +65,15 @@ fi
 if [[ "$OSTYPE" != "darwin"* ]] && ! ([[ -f /usr/local/bin/b2 ]] || [[ -f /c/Boost/bin/b2.exe ]])
 then
   # Install Boost.System
-  cd /tmp/boost_1_74_0
+  cd /tmp/boost_1_75_0
   rm -f project-config.jam
   ./bootstrap.sh --with-libraries=system $prefix
   ./b2 install release $toolset $threading $link $layout $prefix -j$cores
 
   # Install Boost.Build
-  cd /tmp/boost_1_74_0/tools/build
+  cd /tmp/boost_1_75_0/tools/build
   ./bootstrap.sh
   ./b2 install release $toolset -j$cores
-
 
   # Create boost-build.jam file
   # This is needed because Boost Build since 1.74 does not auto-generate it
@@ -88,7 +87,7 @@ fi
 
 # Install Boost.Python
 # Check if this version was already installed is not needed, because it happens at the start of the file
-cd /tmp/boost_1_74_0
+cd /tmp/boost_1_75_0
 rm -f project-config.jam
 ./bootstrap.sh --with-libraries=python --with-python=python3 $prefix
 $root ./b2 install release $toolset $threading $link $layout $prefix -j$cores

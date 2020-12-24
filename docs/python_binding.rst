@@ -14,7 +14,7 @@ Installation
 Requirements
 ------------
 
-The bindings require *at least* Python 2.2. However, only Python 3.5 and newer
+The bindings require *at least* Python 2.2. However, only Python 3.6 and newer
 versions are officially supported and tested, so it is not recommended to use
 older ones.
 
