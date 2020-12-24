@@ -94,12 +94,13 @@ def write_b2_python_config(target, config):
         suffix = sysconfig.get_config_var("EXT_SUFFIX")
     else:
         suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
-    if suffix != None and target.endswith(suffix):
+    if suffix is not None and target.endswith(suffix):
         target = target[:-len(suffix)]
 
     using = f'using python : {sysconfig.get_python_version()} : {escape(sys.executable)} : {" ".join(escape(path) for path in includes)} : : <libtorrent-python>on : "{target}" ;\n'
     print(using)
     write(using)
+
 
 BuildExtBase = _build_ext_lib.build_ext
 
@@ -152,6 +153,9 @@ class LibtorrentBuildExt(BuildExtBase):
             self.toolset = get_msvc_toolset() if not self.toolset else self.toolset
             self.libtorrent_link = "static" if not self.libtorrent_link else self.libtorrent_link
             self.boost_link = "static" if not self.boost_link else self.boost_link
+        else:
+            self.libtorrent_link = "static" if not self.libtorrent_link else self.libtorrent_link
+            self.boost_link = "shared" if not self.boost_link else self.boost_link
 
         args = []
 
