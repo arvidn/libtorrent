@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from distutils import log
 import distutils.debug
 import distutils.sysconfig
 import multiprocessing
@@ -237,8 +238,8 @@ class LibtorrentBuildExt(BuildExtBase):
         try:
             write_b2_python_config(config)
             config.seek(0)
-            self.announce("project-config.jam contents:")
-            self.announce(config.read())
+            log.info("project-config.jam contents:")
+            log.info(config.read())
             config.close()
             args.append(f"--project-config={config.name}")
             self.spawn(["b2"] + args)
