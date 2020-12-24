@@ -1,3 +1,4 @@
+	* fix python binding regression in session constructor flags
 	* fix unaligned piece requests in mmap_storage
 	* improve client_data_t ergonomics
 	* fix issue with concurrent access to part files

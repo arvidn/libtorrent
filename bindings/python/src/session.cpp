@@ -180,7 +180,20 @@ namespace
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
-		return std::make_shared<lt::session>(p, flags);
+#if TORRENT_ABI_VERSION <= 2
+		if (flags & lt::session::add_default_plugins)
+		{
+#endif
+			session_params params(std::move(p));
+			return std::make_shared<lt::session>(std::move(params), flags);
+#if TORRENT_ABI_VERSION <= 2
+		}
+		else
+		{
+			session_params params(std::move(p), {});
+			return std::make_shared<lt::session>(std::move(params), flags);
+		}
+#endif
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
@@ -961,9 +974,14 @@ void bind_session()
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
-                , (arg("settings"), arg("flags")=lt::session_flags_t{})
+                , (arg("settings"), arg("flags")=
+#if TORRENT_ABI_VERSION <= 2
+                    lt::session::add_default_plugins
+#else
+                    lt::session_flags_t{}
+#endif
+                    ))
               )
-        )
 #if TORRENT_ABI_VERSION == 1
         .def(
             init<fingerprint, session_flags_t, alert_category_t>((
