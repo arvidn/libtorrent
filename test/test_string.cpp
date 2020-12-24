@@ -418,15 +418,27 @@ TORRENT_TEST(parse_interface)
 	test_parse_interface("foo,bar,0.0.0.0:6881", {{"0.0.0.0", 6881, false, false}}, {"foo", "bar"}, "0.0.0.0:6881");
 }
 
+TORRENT_TEST(split_string_quotes)
+{
+	TEST_CHECK(split_string_quotes("a b"_sv, ' ') == std::make_pair("a"_sv, "b"_sv));
+	TEST_CHECK(split_string_quotes("\"a b\" c"_sv, ' ') == std::make_pair("\"a b\""_sv, "c"_sv));
+	TEST_CHECK(split_string_quotes("\"a b\"foobar c"_sv, ' ') == std::make_pair("\"a b\"foobar"_sv, "c"_sv));
+	TEST_CHECK(split_string_quotes("a\nb foobar"_sv, ' ') == std::make_pair("a\nb"_sv, "foobar"_sv));
+	TEST_CHECK(split_string_quotes("a b\"foo\"bar"_sv, '"') == std::make_pair("a b"_sv, "foo\"bar"_sv));
+	TEST_CHECK(split_string_quotes("a"_sv, ' ') == std::make_pair("a"_sv, ""_sv));
+	TEST_CHECK(split_string_quotes("\"a b"_sv, ' ') == std::make_pair("\"a b"_sv, ""_sv));
+	TEST_CHECK(split_string_quotes(""_sv, ' ') == std::make_pair(""_sv, ""_sv));
+}
+
 TORRENT_TEST(split_string)
 {
 	TEST_CHECK(split_string("a b"_sv, ' ') == std::make_pair("a"_sv, "b"_sv));
-	TEST_CHECK(split_string("\"a b\" c"_sv, ' ') == std::make_pair("\"a b\""_sv, "c"_sv));
-	TEST_CHECK(split_string("\"a b\"foobar c"_sv, ' ') == std::make_pair("\"a b\"foobar"_sv, "c"_sv));
+	TEST_CHECK(split_string("\"a b\" c"_sv, ' ') == std::make_pair("\"a"_sv, "b\" c"_sv));
+	TEST_CHECK(split_string("\"a b\"foobar c"_sv, ' ') == std::make_pair("\"a"_sv, "b\"foobar c"_sv));
 	TEST_CHECK(split_string("a\nb foobar"_sv, ' ') == std::make_pair("a\nb"_sv, "foobar"_sv));
 	TEST_CHECK(split_string("a b\"foo\"bar"_sv, '"') == std::make_pair("a b"_sv, "foo\"bar"_sv));
 	TEST_CHECK(split_string("a"_sv, ' ') == std::make_pair("a"_sv, ""_sv));
-	TEST_CHECK(split_string("\"a b"_sv, ' ') == std::make_pair("\"a b"_sv, ""_sv));
+	TEST_CHECK(split_string("\"a b"_sv, ' ') == std::make_pair("\"a"_sv, "b"_sv));
 	TEST_CHECK(split_string(""_sv, ' ') == std::make_pair(""_sv, ""_sv));
 }
 

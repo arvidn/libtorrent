@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR) # Configurable policies: <= CMP0094
 
+cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
@@ -518,8 +519,12 @@ elseif(MSVC)
 endif()
 
 if(static_runtime)
-	include(ucm_flags)
-	ucm_set_runtime(STATIC)
+	if (MSVC)
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	else()
+		include(ucm_flags)
+		ucm_set_runtime(STATIC)
+	endif()
 	set(Boost_USE_MULTITHREADED ON)
 	set(Boost_USE_STATIC_RUNTIME ON)
 	set(OPENSSL_MSVC_STATIC_RT ON)
@@ -620,6 +625,38 @@ endif()
 if (APPLE)
 	# for ip_notifier
 	target_link_libraries(torrent-rasterbar PRIVATE "-framework CoreFoundation" "-framework SystemConfiguration")
+endif()
+
+# check if we need to link with libatomic (not needed on MSVC)
+if (NOT Windows)
+	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
+	include(CheckCXXSourceCompiles)
+
+	set(ATOMICS_TEST_SOURCE [=[
+		#include <atomic>
+		#include <cstdint>
+		std::atomic<int> x{0};
+		int main() {
+			x.fetch_add(1, std::memory_order_relaxed);
+			return 0;
+		}
+	]=])
+	string(REPLACE "std::atomic<int>" "std::atomic<std::int64_t>" ATOMICS64_TEST_SOURCE "${ATOMICS_TEST_SOURCE}")
+
+	check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITHOUT_LIB)
+	check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITHOUT_LIB)
+	if((NOT HAVE_CXX_ATOMICS_WITHOUT_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB))
+		set(CMAKE_REQUIRED_LIBRARIES "atomic")
+		check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITH_LIB)
+		check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITH_LIB)
+		if ((NOT HAVE_CXX_ATOMICS_WITH_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITH_LIB))
+			message(FATAL_ERROR "No native support for std::atomic, or libatomic not found!")
+		else()
+			message(STATUS "Linking with libatomic for atomics support")
+			unset(CMAKE_REQUIRED_LIBRARIES)
+			target_link_libraries(torrent-rasterbar PUBLIC atomic)
+		endif()
+	endif()
 endif()
 
 feature_option(build_tests "build tests" OFF)

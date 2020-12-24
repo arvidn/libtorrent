@@ -183,7 +183,7 @@ namespace libtorrent {
 		while (!rest.empty())
 		{
 			string_view element;
-			std::tie(element, rest) = split_string(rest, ',');
+			std::tie(element, rest) = split_string_quotes(rest, ',');
 
 			element = strip_string(element);
 			if (element.size() > 1 && element.front() == '"' && element.back() == '"')
@@ -335,6 +335,13 @@ namespace libtorrent {
 	}
 
 	std::pair<string_view, string_view> split_string(string_view last, char const sep)
+	{
+		auto const pos = last.find(sep);
+		if (pos == string_view::npos) return {last, {}};
+		else return {last.substr(0, pos), last.substr(pos + 1)};
+	}
+
+	std::pair<string_view, string_view> split_string_quotes(string_view last, char const sep)
 	{
 		if (last.empty()) return {{}, {}};
 

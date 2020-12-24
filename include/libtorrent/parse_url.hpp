@@ -33,6 +33,12 @@ namespace libtorrent {
 	// returns true if the hostname contains any IDNA (internationalized domain
 	// name) labels.
 	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
+
+	// the query string is the part of the URL immediately following "?", i.e.
+	// the query string arguments. This function returns true if any of the
+	// arguments are "info_hash", "port", "key", "event", "uploaded",
+	// "downloaded", "left" or "corrupt".
+	TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
 }
 
 #endif

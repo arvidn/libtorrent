@@ -113,7 +113,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 
 	test_config_t const& test = test_config[test_idx];
 
-	std::printf("\n%s TEST: %s Protocol: %s\n\n", time_now_string()
+	std::printf("\n%s TEST: %s Protocol: %s\n\n", time_now_string().c_str()
 		, test.name, use_utp ? "uTP": "TCP");
 
 	// in case the previous run was terminated
@@ -211,7 +211,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	// connect the peers after setting the certificates
 	if (test.use_ssl_ports == false) port += 20;
 	std::printf("\n\n%s: ses1: connecting peer port: %d\n\n\n"
-		, time_now_string(), port);
+		, time_now_string().c_str(), port);
 	tor1.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec)
 		, std::uint16_t(port)));
 
@@ -274,9 +274,9 @@ void test_ssl(int const test_idx, bool const use_utp)
 		TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
 	}
 
-	char const* now = time_now_string();
-	std::printf("%s: EXPECT: %s\n", now, test.expected_to_complete ? "SUCCEESS" : "FAILURE");
-	std::printf("%s: RESULT: %s\n", now, tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
+	std::string const now = time_now_string();
+	std::printf("%s: EXPECT: %s\n", now.c_str(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	std::printf("%s: RESULT: %s\n", now.c_str(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel

@@ -1408,6 +1408,20 @@ TORRENT_TEST(ssrf_IPv6)
 	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://[::1]:8080/unusual-announce-path"));
 }
 
+TORRENT_TEST(ssrf_query_string)
+{
+	// tracker URLs that come pre-baked with query string arguments will be
+	// rejected when SSRF-mitigation is enabled
+	TEST_CHECK(!test_ssrf("/announce", true, "http://tracker.com:8080/announce?info_hash=abc"));
+	TEST_CHECK(!test_ssrf("/announce", true, "http://tracker.com:8080/announce?iNfo_HaSh=abc"));
+	TEST_CHECK(!test_ssrf("/announce", true, "http://tracker.com:8080/announce?event=abc"));
+	TEST_CHECK(!test_ssrf("/announce", true, "http://tracker.com:8080/announce?EvEnT=abc"));
+
+	TEST_CHECK(test_ssrf("/announce", false, "http://tracker.com:8080/announce?info_hash=abc"));
+	TEST_CHECK(test_ssrf("/announce", false, "http://tracker.com:8080/announce?iNfo_HaSh=abc"));
+	TEST_CHECK(test_ssrf("/announce", false, "http://tracker.com:8080/announce?event=abc"));
+}
+
 bool test_idna(char const* tracker_url, char const* redirect
 	, bool const feature_on)
 {

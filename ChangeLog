@@ -49,6 +49,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix bug in python binding for dht_put_mutable_item
 	* fix uTP issue acking FIN packets
 	* validate HTTPS certificates by default (trackers and web seeds)
 	* load SSL certificates from windows system certificate store, to authenticate trackers

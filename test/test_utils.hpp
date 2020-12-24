@@ -10,6 +10,8 @@ see LICENSE file.
 #ifndef TEST_UTILS_HPP
 #define TEST_UTILS_HPP
 
+#include <string>
+
 #include "test.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/download_priority.hpp"
@@ -22,8 +24,8 @@ see LICENSE file.
 
 namespace libtorrent
 {
-	EXPORT char const* time_now_string();
-	EXPORT char const* time_to_string(lt::time_point const tp);
+	EXPORT std::string time_now_string();
+	EXPORT std::string time_to_string(lt::time_point const tp);
 }
 
 inline lt::download_priority_t operator "" _pri(unsigned long long const p)

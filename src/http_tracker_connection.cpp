@@ -79,11 +79,23 @@ namespace libtorrent::aux {
 		// if request-string already contains
 		// some parameters, append an ampersand instead
 		// of a question mark
-		std::size_t arguments_start = url.find('?');
+		auto const arguments_start = url.find('?');
 		if (arguments_start != std::string::npos)
+		{
+			// tracker URLs that come pre-baked with query string arguments will be
+			// rejected when SSRF-mitigation is enabled
+			bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
+			if (ssrf_mitigation && has_tracker_query_string(string_view(url).substr(arguments_start + 1)))
+			{
+				fail(errors::banned_by_ip_filter, operation_t::bittorrent);
+				return;
+			}
 			url += "&";
+		}
 		else
+		{
 			url += "?";
+		}
 
 		url += "info_hash=";
 		url += lt::escape_string({tracker_req().info_hash.data(), 20});
