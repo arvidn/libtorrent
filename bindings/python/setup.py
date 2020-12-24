@@ -135,6 +135,7 @@ class LibtorrentBuildExt(BuildExtBase):
     boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
 
     def initialize_options(self):
+
         self.libtorrent_link = None
         self.boost_link = None
         self.toolset = None
