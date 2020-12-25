@@ -456,7 +456,7 @@ namespace {
 
 		int get_infohashes_sample(entry& item) override
 		{
-			item["interval"] = aux::clamp(m_settings.get_int(settings_pack::dht_sample_infohashes_interval)
+			item["interval"] = std::clamp(m_settings.get_int(settings_pack::dht_sample_infohashes_interval)
 				, 0, sample_infohashes_interval_max);
 			item["num"] = int(m_map.size());
 
@@ -554,10 +554,10 @@ namespace {
 		void refresh_infohashes_sample()
 		{
 			time_point const now = aux::time_now();
-			int const interval = aux::clamp(m_settings.get_int(settings_pack::dht_sample_infohashes_interval)
+			int const interval = std::clamp(m_settings.get_int(settings_pack::dht_sample_infohashes_interval)
 				, 0, sample_infohashes_interval_max);
 
-			int const max_count = aux::clamp(m_settings.get_int(settings_pack::dht_max_infohashes_sample_count)
+			int const max_count = std::clamp(m_settings.get_int(settings_pack::dht_max_infohashes_sample_count)
 				, 0, infohashes_sample_count_max);
 			int const count = std::min(max_count, int(m_map.size()));
 

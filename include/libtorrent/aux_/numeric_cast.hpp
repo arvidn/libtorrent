@@ -17,7 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	template <class T, class In, typename Cond = typename std::enable_if<
 		std::is_integral<T>::value && std::is_integral<In>::value>::type>
@@ -32,16 +32,6 @@ namespace libtorrent { namespace aux {
 		return r;
 	}
 
-	// in C++ 17 you can use std::clamp
-	template <class T>
-	T clamp(T v, T lo, T hi)
-	{
-		TORRENT_ASSERT(lo <= hi);
-		if (v < lo) return lo;
-		if (hi < v) return hi;
-		return v;
-	}
-
-}}
+}
 
 #endif
