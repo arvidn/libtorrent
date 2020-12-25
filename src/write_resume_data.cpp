@@ -10,6 +10,7 @@ see LICENSE file.
 */
 
 #include <cstdint>
+#include <algorithm>
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/write_resume_data.hpp"
@@ -18,7 +19,6 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
-#include "libtorrent/aux_/numeric_cast.hpp" // for clamp
 
 namespace libtorrent {
 
@@ -162,7 +162,7 @@ namespace libtorrent {
 			for (std::string const& tr : atp.trackers)
 			{
 				if (tier_it != atp.tracker_tiers.end())
-					tier = aux::clamp(std::size_t(*tier_it++), std::size_t{0}, std::size_t{1024});
+					tier = std::clamp(std::size_t(*tier_it++), std::size_t{0}, std::size_t{1024});
 
 				if (tr_list.size() <= tier)
 					tr_list.resize(tier + 1);

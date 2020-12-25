@@ -12,6 +12,7 @@ see LICENSE file.
 */
 
 #include <cstdint>
+#include <algorithm>
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/read_resume_data.hpp"
@@ -228,7 +229,7 @@ namespace {
 			for (int i = 0; i < num_files; ++i)
 			{
 				auto const idx = static_cast<std::size_t>(i);
-				ret.file_priorities[idx] = aux::clamp(
+				ret.file_priorities[idx] = std::clamp(
 					download_priority_t(static_cast<std::uint8_t>(
 						file_priority.list_int_value_at(i
 							, static_cast<std::uint8_t>(default_priority))))
@@ -309,7 +310,7 @@ namespace {
 			ret.piece_priorities.resize(aux::numeric_cast<std::size_t>(piece_priority.string_length()));
 			for (std::size_t i = 0; i < ret.piece_priorities.size(); ++i)
 			{
-				ret.piece_priorities[i] = download_priority_t(aux::clamp(
+				ret.piece_priorities[i] = download_priority_t(std::clamp(
 					static_cast<std::uint8_t>(prio_str[i])
 					, static_cast<std::uint8_t>(dont_download)
 					, static_cast<std::uint8_t>(top_priority)));
