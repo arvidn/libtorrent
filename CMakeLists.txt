@@ -597,8 +597,8 @@ target_link_libraries(torrent-rasterbar
 # Unconditional platform-specific settings
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
-		PRIVATE
-			bcrypt wsock32 ws2_32 Iphlpapi
+		PUBLIC
+			bcrypt mswsock ws2_32 Iphlpapi
 			debug dbghelp crypt32
 	)
 
