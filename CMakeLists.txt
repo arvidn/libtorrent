@@ -478,6 +478,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-c++98-compat-pedantic
 		-Wno-c++11-compat-pedantic
 		-Wno-padded
+		-Wno-alloca
 		-Wno-global-constructors
 		-Wno-exit-time-destructors
 		-Wno-weak-vtables
