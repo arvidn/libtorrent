@@ -64,7 +64,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using namespace std::placeholders;
 using namespace lt;
