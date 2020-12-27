@@ -3,7 +3,6 @@
 import distutils.debug
 import os
 import pathlib
-import platform
 import sys
 import sysconfig
 import tempfile
