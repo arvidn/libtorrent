@@ -15,6 +15,7 @@ env:
   CIBW_MANYLINUX_I686_IMAGE: manylinux2014
 
   CIBW_SKIP: cp27-* cp35-* pp*
+  CIBW_BUILD_VERBOSITY: 3
 
 jobs:
   build:
