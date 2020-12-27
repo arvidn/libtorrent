@@ -641,7 +641,8 @@ namespace {
 		if (!m_comment.empty())
 			dict["comment"] = m_comment;
 
-		dict["creation date"] = m_creation_date;
+		if (m_creation_date != 0)
+			dict["creation date"] = m_creation_date;
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
@@ -968,5 +969,10 @@ namespace {
 	{
 		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
+	}
+
+	void create_torrent::set_creation_date(std::time_t timestamp)
+	{
+		m_creation_date = timestamp;
 	}
 }

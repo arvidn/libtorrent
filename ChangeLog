@@ -1,3 +1,5 @@
+	* add v1() and v2() functions to torrent_info
+	* fix piece_layers() to work for single-piece files
 	* fix python binding regression in session constructor flags
 	* fix unaligned piece requests in mmap_storage
 	* improve client_data_t ergonomics

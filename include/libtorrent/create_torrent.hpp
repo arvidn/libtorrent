@@ -232,6 +232,12 @@ namespace libtorrent {
 		// This is optional.
 		void set_creator(char const* str);
 
+		// sets the "creation time" field. Defaults to the system clock at the
+		// time of construction of the create_torrent object. The timestamp is
+		// specified in seconds, posix time. If the creation date is set to 0,
+		// the "creation date" field will be omitted from the generated torrent.
+		void set_creation_date(std::time_t timestamp);
+
 		// This sets the SHA-1 hash for the specified piece (``index``). You are required
 		// to set the hash for every piece in the torrent before generating it. If you have
 		// the files on disk, you can use the high level convenience function to do this.
