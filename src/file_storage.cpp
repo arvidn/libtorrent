@@ -807,6 +807,9 @@ namespace aux {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
 		aux::file_entry const& fe = m_files[index];
+		if (fe.symlink_index == aux::file_entry::not_a_symlink)
+			return {};
+
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 
 		auto const& link = m_symlinks[fe.symlink_index];
