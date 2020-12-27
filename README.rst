@@ -54,6 +54,10 @@ libtorrent `ABI report`_.
 
 .. _`ABI report`: https://abi-laboratory.pro/index.php?view=timeline&l=libtorrent
 
+libtorrent package versions in linux distributions, on repology_.
+
+.. _repology: https://repology.org/project/libtorrent-rasterbar/versions
+
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
 
