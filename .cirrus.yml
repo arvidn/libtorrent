@@ -5,10 +5,10 @@ task:
   install_script: |
     pkg update
     pkg install -U -y git boost-jam boost-libs unzip wget openssl cmake ninja
-    wget "https://github.com/boostorg/build/archive/develop.zip"
-    unzip develop.zip
+    wget "https://github.com/boostorg/build/archive/boost-1.74.0.zip"
+    unzip boost-1.74.0.zip
     git clone --depth=1 --single-branch --branch boost-1.74.0 https://github.com/boostorg/build.git
-    cd build-develop
+    cd build-boost-1.74.0
     ./bootstrap.sh
     echo "using clang ;" > ~/user-config.jam
   submodules_script: |
@@ -18,13 +18,13 @@ task:
     cmake --build . --parallel 2
     ./test/test_primitives
   tests_script: |
-    export BOOST_BUILD_PATH=${PWD}/build-develop
-    export PATH=${PWD}/build-develop:$PATH
+    export BOOST_BUILD_PATH=${PWD}/build-boost-1.74.0
+    export PATH=${PWD}/build-boost-1.74.0:$PATH
     cd test
     bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl deterministic-tests include=/usr/local/include library-path=/usr/local/lib
   enum_if_script: |
-    export BOOST_BUILD_PATH=${PWD}/build-develop
-    export PATH=${PWD}/build-develop:$PATH
+    export BOOST_BUILD_PATH=${PWD}/build-boost-1.74.0
+    export PATH=${PWD}/build-boost-1.74.0:$PATH
     cd test
     bjam -j2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies include=/usr/local/include library-path=/usr/local/lib
     LD_LIBRARY_PATH=./dependencies ./enum_if
