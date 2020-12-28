@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+from distutils import log
 import distutils.debug
+import distutils.sysconfig
+import multiprocessing
 import os
 import pathlib
 import sys
 import sysconfig
 import tempfile
-import multiprocessing
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
@@ -64,18 +66,22 @@ class StubExtension(setuptools.Extension):
         super().__init__(name, sources=[])
 
 
-def escape(string):
-    return '"' + string.replace('\\', '\\\\') + '"'
+def b2_escape(value):
+    value = value.replace("\\", "\\\\")
+    value = value.replace('"', '\\"')
+    return f'"{value}"'
 
 
-def write_b2_python_config(target, config):
+def write_b2_python_config(config):
     write = config.write
-    # b2 normally keys python environments by X.Y version, but since we may
-    # have a duplicates, we also key on a special property. It's always-on, so
-    # any python versions configured with this as a condition will always be
-    # picked.
-    # Note that python.jam actually modifies the condition for the build
-    # request, so that <define>TORRENT_FOO becomes something like
+    # b2 keys python environments by X.Y version, breaking ties by matching
+    # a property list, called the "condition" of the environment. To ensure
+    # b2 always picks the environment we define here, we define a special
+    # feature for the condition and include that in the build request.
+
+    # Note that we might try to reuse a property we know will be set, like
+    # <define>TORRENT_FOO. But python.jam actually modifies the build request
+    # in this case, so that <define>TORRENT_FOO becomes something like
     # <define>TORRENT_FOO,<python>3.7,<target-os>linux:... which causes chaos.
     # We should always define a custom feature for the condition.
     write("import feature ;\n")
@@ -88,20 +94,40 @@ def write_b2_python_config(target, config):
     paths = sysconfig.get_paths()
     includes = [paths["include"], paths["platinclude"]]
 
-    # Note that on debian, the extension suffix is overwritten, but it's
-    # necessary everywhere else, or else b2 will just build "libtorrent.so".
-    # python.jam appends SHLIB_SUFFIX on its own.
-    target = target.name.split("libtorrent")[1]
-    if os.name == "nt":
-        suffix = sysconfig.get_config_var("EXT_SUFFIX")
-    else:
-        suffix = sysconfig.get_config_var("SHLIB_SUFFIX")
-    if suffix != None and target.endswith(suffix):
-        target = target[:-len(suffix)]
+    write("using python")
+    write(f" : {sysconfig.get_python_version()}")
+    write(f" : {b2_escape(sys.executable)}")
+    write(" : ")
+    write(" ".join(b2_escape(path) for path in includes))
+    write(" :")  # libraries
+    write(" : <libtorrent-python>on")
 
-    using = f'using python : {sysconfig.get_python_version()} : {escape(sys.executable)} : {" ".join(escape(path) for path in includes)} : : <libtorrent-python>on : "{target}" ;\n'
-    print(using)
-    write(using)
+    # Note that all else being equal, we'd like to exactly control the output
+    # filename, so distutils can find it. However:
+    # 1. We can only control part of the filename; the prefix is controlled by
+    #    our Jamfile and the final suffix is controlled by python.jam.
+    # 2. Debian patched python.jam to disregard the configured ext_suffix
+    #    anyway; they always override it with the same sysconfig var we use,
+    #    found by invoking the executable.
+
+    # So instead of applying an arbitrary name, we just try to guarantee that
+    # b2 produces a name that distutils would expect, on all platforms. In
+    # other words we apply debian's override everywhere, and hope no other
+    # overrides ever disagree with us.
+
+    # Note that sysconfig and distutils.sysconfig disagree here, especially on
+    # windows.
+    ext_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+
+    # python.jam appends the platform-specific final suffix on its own. I can't
+    # find a consistent value from sysconfig or distutils.sysconfig for this.
+    for plat_suffix in (".pyd", ".dll", ".so", ".sl"):
+        if ext_suffix.endswith(plat_suffix):
+            ext_suffix = ext_suffix[: -len(plat_suffix)]
+            break
+    write(f" : {b2_escape(ext_suffix)}")
+    write(" ;\n")
+
 
 BuildExtBase = _build_ext_lib.build_ext
 
@@ -184,24 +210,39 @@ class LibtorrentBuildExt(BuildExtBase):
         if self.cxxstd:
             args.append(f"cxxstd={self.cxxstd}")
 
-        # Jamfile hack to copy the module to our target directory
-        target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
-        args.append(f"python-install-path={target.parent}")
+        # Jamfile hacks to ensure we select the python environment defined in
+        # our project-config.jam
         args.append("libtorrent-python=on")
+        args.append(f"python={sysconfig.get_python_version()}")
+
+        # Our goal is to produce an artifact at this path. If we do this, the
+        # distutils build system will skip trying to build it.
+        target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
+        self.announce(f"target: {target}")
+
+        # b2 doesn't provide a way to signal the name or paths of its outputs.
+        # We try to convince python.jam to name its output file like our target
+        # and copy it to our target directory. See comments in
+        # write_b2_python_config for limitations on controlling the filename.
+
+        # Jamfile hack to copy the module to our target directory
+        args.append(f"python-install-path={target.parent}")
         args.append("install_module")
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
         config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
-            write_b2_python_config(target, config)
+            write_b2_python_config(config)
             config.seek(0)
-            self.announce("project-config.jam contents:")
-            self.announce(config.read())
-            args.append(f"python={sysconfig.get_python_version()}")
+            log.info("project-config.jam contents:")
+            log.info(config.read())
+            config.close()
             args.append(f"--project-config={config.name}")
             self.spawn(["b2"] + args)
         finally:
+            # If we errored while writing config, windows may complain about
+            # unlinking a file "in use"
             config.close()
             os.unlink(config.name)
 

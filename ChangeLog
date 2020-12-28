@@ -46,6 +46,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.12 released
+
+	* fix loading of DHT node ID from previous session on startup
 	* use getrandom(), when available, and fall back to /dev/urandom
 	* fix python binding for "value" in dht put alerts
 	* fix bug in python binding for dht_put_mutable_item
