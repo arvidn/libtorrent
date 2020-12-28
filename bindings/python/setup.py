@@ -10,6 +10,7 @@ import platform
 import sys
 import sysconfig
 import tempfile
+import subprocess
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
@@ -228,7 +229,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # Our goal is to produce an artifact at this path. If we do this, the
         # distutils build system will skip trying to build it.
-        target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
+        target = pathlib.Path(self.get_ext_fullpath("libtorrent")).absolute()
         self.announce(f"target: {target}")
 
         # b2 doesn't provide a way to signal the name or paths of its outputs.
@@ -250,7 +251,10 @@ class LibtorrentBuildExt(BuildExtBase):
             log.info(config.read())
             config.close()
             args.append(f"--project-config={config.name}")
-            self.spawn(["b2"] + args)
+
+            python_binding_dir = pathlib.Path(__file__).parent.absolute()
+            log.info(" ".join(["b2"] + args))
+            subprocess.run(["b2"] + args, cwd=python_binding_dir, check=True)
         finally:
             # If we errored while writing config, windows may complain about
             # unlinking a file "in use"

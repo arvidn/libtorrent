@@ -444,7 +444,7 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
   ["yes"], [
       AC_MSG_RESULT([yes])
 
-      AM_PATH_PYTHON([2.4], [], AC_MSG_ERROR([Python interpreter not found.]))
+      AM_PATH_PYTHON([3.6], [], AC_MSG_ERROR([Python interpreter not found.]))
       AX_PYTHON_DEVEL([>= '2.4'])
       AX_BOOST_PYTHON()
 
