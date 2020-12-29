@@ -259,6 +259,8 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->info_hashes().has_v1(), true);
 			TEST_EQUAL(ti->info_hashes().has_v2(), true);
 			TEST_EQUAL(aux::to_hex(ti->info_hashes().v2), "597b180c1a170a585dfc5e85d834d69013ceda174b8f357d5bb1a0ca509faf0a"_sv);
+			TEST_CHECK(ti->v2());
+			TEST_CHECK(ti->v1());
 		}
 	},
 	{ "v2_multipiece_file.torrent", [](torrent_info const* ti) {
@@ -279,6 +281,8 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->info_hashes().has_v1(), false);
 			TEST_EQUAL(ti->info_hashes().has_v2(), true);
 			TEST_EQUAL(aux::to_hex(ti->info_hashes().v2), "95e04d0c4bad94ab206efa884666fd89777dbe4f7bd9945af1829037a85c6192"_sv);
+			TEST_CHECK(ti->v2());
+			TEST_CHECK(!ti->v1());
 		}
 	},
 	{ "v2_invalid_filename.torrent", [](torrent_info const* ti) {
@@ -928,6 +932,8 @@ TORRENT_TEST(parse_torrents)
 		piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
 
 		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
+		TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());
+		TEST_EQUAL(ti->v2(), ti->info_hashes().has_v2());
 
 		if (t.test) t.test(ti.get());
 

@@ -4,6 +4,9 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* add v1() and v2() functions to torrent_info
+	* fix piece_layers() to work for single-piece files
+	* fix python binding regression in session constructor flags
 	* fix unaligned piece requests in mmap_storage
 	* improve client_data_t ergonomics
 	* fix issue with concurrent access to part files
@@ -49,6 +52,11 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.12 released
+
+	* fix loading of DHT node ID from previous session on startup
+	* use getrandom(), when available, and fall back to /dev/urandom
+	* fix python binding for "value" in dht put alerts
 	* fix bug in python binding for dht_put_mutable_item
 	* fix uTP issue acking FIN packets
 	* validate HTTPS certificates by default (trackers and web seeds)

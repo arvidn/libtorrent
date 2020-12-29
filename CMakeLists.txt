@@ -481,6 +481,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-c++98-compat-pedantic \
 		-Wno-c++11-compat-pedantic \
 		-Wno-padded \
+		-Wno-alloca \
 		-Wno-global-constructors \
 		-Wno-exit-time-destructors \
 		-Wno-weak-vtables \
@@ -591,8 +592,8 @@ target_link_libraries(torrent-rasterbar
 # Unconditional platform-specific settings
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
-		PRIVATE
-			bcrypt wsock32 ws2_32 Iphlpapi
+		PUBLIC
+			bcrypt mswsock ws2_32 Iphlpapi
 			debug dbghelp crypt32
 	)
 

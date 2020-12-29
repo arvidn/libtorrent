@@ -1437,7 +1437,8 @@ namespace {
 			}
 
 			auto const hashes = piece_layer->second;
-			if ((hashes.size() % sha256_hash::size()) != 0) {
+			if ((hashes.size() % sha256_hash::size()) != 0)
+			{
 				ec = errors::torrent_invalid_piece_layer;
 				return false;
 			}
@@ -1453,6 +1454,14 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(f >= file_index_t(0));
 		if (f >= m_piece_layers.end_index()) return {};
+		if (m_files.pad_file_at(f)) return {};
+
+		if (m_files.file_size(f) <= piece_length())
+		{
+			auto const root_ptr = m_files.root_ptr(f);
+			if (root_ptr == nullptr) return {};
+			return {root_ptr, lt::sha256_hash::size()};
+		}
 		return m_piece_layers[f];
 	}
 
@@ -1788,6 +1797,9 @@ namespace {
 	{
 		return m_info_hash.get_best();
 	}
+
+	bool torrent_info::v1() const { return m_piece_hashes != 0; }
+	bool torrent_info::v2() const { return !m_piece_layers.empty(); }
 
 TORRENT_VERSION_NAMESPACE_3_END
 

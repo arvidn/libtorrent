@@ -24,6 +24,9 @@ see LICENSE file.
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <string>
+
+using namespace std::literals::string_literals;
 
 constexpr lt::file_index_t operator""_file (unsigned long long int const v)
 { return lt::file_index_t{static_cast<int>(v)}; }
@@ -399,4 +402,103 @@ TORRENT_TEST(implicit_v1_only)
 	TEST_EQUAL(info.files().pad_file_at(1_file), true);
 	TEST_EQUAL(info.files().file_name(2_file), "B");
 	TEST_EQUAL(info.name(), "test");
+}
+
+namespace {
+
+template <typename Fun>
+lt::torrent_info test_field(Fun f)
+{
+	lt::file_storage fs;
+	fs.add_file("A", 0x4000);
+	lt::create_torrent t(fs, 0x4000);
+	for (lt::piece_index_t i : fs.piece_range())
+		t.set_hash(i, lt::sha1_hash::max());
+
+	f(t);
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	return lt::torrent_info(buffer, lt::from_span);
+}
+}
+
+TORRENT_TEST(no_creation_date)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_creation_date(0);
+	});
+	TEST_EQUAL(info.creation_date(), 0);
+}
+
+TORRENT_TEST(creation_date)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_creation_date(1337);
+	});
+	TEST_EQUAL(info.creation_date(), 1337);
+}
+
+TORRENT_TEST(comment)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_comment("foobar");
+	});
+	TEST_EQUAL(info.comment(), "foobar");
+}
+
+TORRENT_TEST(creator)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_creator("foobar");
+	});
+	TEST_EQUAL(info.creator(), "foobar");
+}
+
+TORRENT_TEST(dht_nodes)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.add_node({"foobar"s, 1337});
+	});
+	using nodes = std::vector<std::pair<std::string, int>>;
+	TEST_CHECK((info.nodes() == nodes{{"foobar", 1337}}));
+}
+
+TORRENT_TEST(ssl_cert)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_root_cert("foobar");
+	});
+	TEST_EQUAL(info.ssl_cert(), "foobar");
+}
+
+TORRENT_TEST(priv)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_priv(true);
+	});
+	TEST_CHECK(info.priv());
+}
+
+TORRENT_TEST(piece_layer)
+{
+	lt::file_storage fs;
+	fs.add_file("test/large", 0x8000);
+	fs.add_file("test/small-1", 0x4000);
+	fs.add_file("test/small-2", 0x3fff);
+	lt::create_torrent t(fs, 0x4000);
+
+	using p = lt::piece_index_t::diff_type;
+	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(1), p(0), lt::sha256_hash::max());
+	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
+
+	std::vector<char> buffer;
+	lt::bencode(std::back_inserter(buffer), t.generate());
+	lt::torrent_info info(buffer, lt::from_span);
+
+	TEST_CHECK(info.piece_layer(lt::file_index_t(0)).size() == lt::sha256_hash::size() * 2);
+	TEST_CHECK(info.piece_layer(lt::file_index_t(1)).size() == lt::sha256_hash::size());
+	TEST_CHECK(info.piece_layer(lt::file_index_t(2)).size() == lt::sha256_hash::size());
 }

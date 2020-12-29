@@ -136,7 +136,10 @@ see LICENSE file.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_FDATASYNC 1
+
+#if defined __GLIBC__ && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ > 24))
 #define TORRENT_USE_GETRANDOM 1
+#endif
 
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__

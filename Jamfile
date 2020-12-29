@@ -238,6 +238,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
 		result += <cxxflags>-Wno-c++11-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
+		result += <cflags>-Wno-alloca ;
 		result += <cflags>-Wno-global-constructors ;
 		result += <cflags>-Wno-poison-system-directories ;
 # this warns on any global static object, which are used for error_category

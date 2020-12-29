@@ -41,6 +41,8 @@ extern "C" {
 #elif TORRENT_USE_GETRANDOM
 
 #include <sys/random.h>
+// this is the fall-back in case getrandom() fails
+#include "libtorrent/aux_/dev_random.hpp"
 
 #elif TORRENT_USE_DEV_RANDOM
 #include "libtorrent/aux_/dev_random.hpp"
@@ -121,10 +123,11 @@ namespace aux {
 			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
 #elif TORRENT_USE_GETRANDOM
 			ssize_t const r = ::getrandom(buffer.data(), static_cast<std::size_t>(buffer.size()), 0);
-			if (r == -1) aux::throw_ex<system_error>(error_code(errno, generic_category()));
-			if (r != buffer.size()) aux::throw_ex<system_error>(errors::no_entropy);
+			if (r == ssize_t(buffer.size())) return;
+			if (r == -1 && errno != ENOSYS) aux::throw_ex<system_error>(error_code(errno, generic_category()));
+			static dev_random dev;
+			dev.read(buffer);
 #elif TORRENT_USE_DEV_RANDOM
-			// /dev/random
 			static dev_random dev;
 			dev.read(buffer);
 #else

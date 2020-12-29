@@ -29,6 +29,7 @@ lib libtorrent_test
 	<target-os>windows:<library>advapi32
 	<library>/torrent//torrent
 	<export-extra>on
+	<toolset>clang:<cflags>-Wno-implicit-int-float-conversion
 	<conditional>@warnings
 
 	: # default build
@@ -71,6 +72,7 @@ project
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#        with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268
+	<toolset>clang:<cflags>-Wno-implicit-int-float-conversion
 	<conditional>@warnings
 	<export-extra>on
 	: default-build

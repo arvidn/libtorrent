@@ -606,6 +606,21 @@ TORRENT_TEST(query_symlinks)
 	TEST_CHECK(ret3 != ret4);
 }
 
+TORRENT_TEST(query_symlinks2)
+{
+	file_storage fs;
+	fs.set_piece_length(1024);
+	fs.add_file("test/0", 10);
+	fs.add_file("test/1", 10);
+	fs.add_file("test/2", 10);
+	fs.add_file("test/3", 10);
+
+	TEST_CHECK(fs.symlink(file_index_t{0}).empty());
+	TEST_CHECK(fs.symlink(file_index_t{1}).empty());
+	TEST_CHECK(fs.symlink(file_index_t{2}).empty());
+	TEST_CHECK(fs.symlink(file_index_t{3}).empty());
+}
+
 TORRENT_TEST(files_equal)
 {
 	file_storage fs1;

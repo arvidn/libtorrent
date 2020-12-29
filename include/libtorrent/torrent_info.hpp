@@ -358,6 +358,12 @@ TORRENT_VERSION_NAMESPACE_3
 		sha1_hash info_hash() const noexcept;
 		info_hash_t const& info_hashes() const { return m_info_hash; }
 
+		// returns whether this torrent has v1 and/or v2 metadata, respectively.
+		// Hybrid torrents have both. These are shortcuts for
+		// info_hashes().has_v1() and info_hashes().has_v2() calls.
+		bool v1() const;
+		bool v2() const;
+
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.0. Use the variants that take an index instead
 		// internal_file_entry is no longer exposed in the API
@@ -505,8 +511,8 @@ TORRENT_VERSION_NAMESPACE_3
 		const std::string& name() const { return m_files.name(); }
 
 		// ``creation_date()`` returns the creation date of the torrent as time_t
-		// (`posix time`_). If there's no time stamp in the torrent file, the
-		// optional object will be uninitialized.
+		// (`posix time`_). If there's no time stamp in the torrent file, 0 is
+		// returned.
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 		std::time_t creation_date() const
 		{ return m_creation_date; }
@@ -577,6 +583,10 @@ TORRENT_VERSION_NAMESPACE_3
 		// return the bytes of the piece layer hashes for the specified file. If
 		// the file doesn't have a piece layer, an empty span is returned.
 		// The span size is divisible by 32, the size of a SHA-256 hash.
+		// If the size of the file is smaller than or equal to the piece size,
+		// the files "root hash" is the hash of the file and is not saved
+		// separately in the "piece layers" field, but this function still
+		// returns the root hash of the file in that case.
 		span<char const> piece_layer(file_index_t) const;
 
 		// clears the piece layers from the torrent_info. This is done by the

@@ -179,6 +179,10 @@ namespace
 		, session_flags_t const flags)
 	{
 		session_params p;
+#if TORRENT_ABI_VERSION <= 2
+		if (!(flags & lt::session::add_default_plugins))
+			p.extensions.clear();
+#endif
 		make_settings_pack(p.settings, sett);
 		p.flags = flags;
 		return std::make_shared<lt::session>(std::move(p));
@@ -966,9 +970,14 @@ void bind_session()
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
-                , (arg("settings"), arg("flags")=lt::session_flags_t{})
+                , (arg("settings"), arg("flags")=
+#if TORRENT_ABI_VERSION <= 2
+                    lt::session::add_default_plugins
+#else
+                    lt::session_flags_t{}
+#endif
+                    ))
               )
-        )
 #if TORRENT_ABI_VERSION == 1
         .def(
             init<fingerprint, session_flags_t, alert_category_t>((
