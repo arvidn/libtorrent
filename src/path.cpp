@@ -51,7 +51,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/directory.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include <cstring>
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
@@ -588,7 +588,7 @@ namespace {
 		if (f == "\\\\") return true;
 		int i = 0;
 		// match the xx:\ or xx:/ form
-		while (f[i] && is_alpha(f[i])) ++i;
+		while (f[i] && aux::is_alpha(f[i])) ++i;
 		if (i == int(f.size()-2) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
 		// match network paths \\computer_name\ form
@@ -793,8 +793,8 @@ namespace {
 
 			string_view base_element;
 			string_view target_element;
-			std::tie(base_element, base) = split_string(base, TORRENT_SEPARATOR_CHAR);
-			std::tie(target_element, target) = split_string(target, TORRENT_SEPARATOR_CHAR);
+			std::tie(base_element, base) = aux::split_string(base, TORRENT_SEPARATOR_CHAR);
+			std::tie(target_element, target) = aux::split_string(target, TORRENT_SEPARATOR_CHAR);
 			if (base_element == target_element) continue;
 
 			base = prev_base;
@@ -805,7 +805,7 @@ namespace {
 		// count number of path elements left in base, and prepend that number of
 		// "../" to target
 
-		// base alwaus points to a directory. There's an implied directory
+		// base always points to a directory. There's an implied directory
 		// separator at the end of it
 		int const num_steps = static_cast<int>(std::count(
 			base.begin(), base.end(), TORRENT_SEPARATOR_CHAR)) + (base.empty() ? 0 : 1);
@@ -1042,7 +1042,7 @@ namespace {
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		int i = 0;
 		// match the xx:\ or xx:/ form
-		while (i < int(f.size()) && is_alpha(f[i])) ++i;
+		while (i < int(f.size()) && aux::is_alpha(f[i])) ++i;
 		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
 

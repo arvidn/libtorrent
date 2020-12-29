@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
@@ -99,10 +99,10 @@ struct parse_state
 	{
 		auto i = tag_stack.rbegin();
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(*i, str2)) return false;
+		if (!aux::string_equal_no_case(*i, str2)) return false;
 		++i;
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(*i, str1)) return false;
+		if (!aux::string_equal_no_case(*i, str1)) return false;
 		return true;
 	}
 };

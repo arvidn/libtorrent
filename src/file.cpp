@@ -66,7 +66,7 @@ struct iovec
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include <cstring>
 
 #include "libtorrent/assert.hpp"

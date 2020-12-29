@@ -38,7 +38,7 @@ see LICENSE file.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/io_bytes.hpp" // for write_string
-#include "libtorrent/string_util.hpp" // for is_digit
+#include "libtorrent/aux_/string_util.hpp" // for is_digit
 
 namespace libtorrent {
 

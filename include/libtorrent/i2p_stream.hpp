@@ -21,7 +21,7 @@ see LICENSE file.
 #include <functional>
 
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/assert.hpp"
@@ -115,7 +115,7 @@ struct i2p_stream : proxy_base
 		// 2. connect to SAM bridge
 		// 4 send command message (CONNECT/ACCEPT)
 
-		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), wrap_allocator(
+		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), wrap_allocator(
 			[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
 				do_connect(ec, std::move(ips), std::move(hn));
 			}, std::move(h)));
@@ -261,11 +261,11 @@ private:
 		string_view remaining(m_buffer.data(), m_buffer.size());
 		string_view token;
 
-		std::tie(token, remaining) = split_string(remaining, ' ');
+		std::tie(token, remaining) = aux::split_string(remaining, ' ');
 		if (expect1.empty() || expect1 != token)
 		{ handle_error(invalid_response, h); return; }
 
-		std::tie(token, remaining) = split_string(remaining, ' ');
+		std::tie(token, remaining) = aux::split_string(remaining, ' ');
 		if (expect2.empty() || expect2 != token)
 		{ handle_error(invalid_response, h); return; }
 
@@ -274,10 +274,10 @@ private:
 		for(;;)
 		{
 			string_view name;
-			std::tie(name, remaining) = split_string(remaining, '=');
+			std::tie(name, remaining) = aux::split_string(remaining, '=');
 			if (name.empty()) break;
 			string_view value;
-			std::tie(value, remaining) = split_string(remaining, ' ');
+			std::tie(value, remaining) = aux::split_string(remaining, ' ');
 			if (value.empty()) { handle_error(invalid_response, h); return; }
 
 			if ("RESULT"_sv == name)

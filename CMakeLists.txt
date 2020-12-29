@@ -110,7 +110,6 @@ set(libtorrent_include_files
 	span
 	ssl_stream
 	storage_defs
-	string_util
 	string_view
 	tailqueue
 	time
@@ -245,6 +244,7 @@ set(libtorrent_aux_include_files
 	stat_cache
 	storage_utils
 	string_ptr
+	string_util
 	strview_less
 	suggest_piece
 	throw

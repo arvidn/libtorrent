@@ -29,7 +29,7 @@ see LICENSE file.
 
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-#include "libtorrent/string_util.hpp" // for to_string
+#include "libtorrent/aux_/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
@@ -212,7 +212,7 @@ namespace libtorrent {
 		if (port != -1)
 		{
 			msg.append(":");
-			msg.append(to_string(port).data());
+			msg.append(aux::to_string(port).data());
 		}
 		msg.append(escaped_path);
 

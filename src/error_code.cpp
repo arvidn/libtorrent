@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/string_util.hpp" // for to_string()
+#include "libtorrent/aux_/string_util.hpp" // for to_string()
 
 #include <sstream>
 
@@ -291,7 +291,7 @@ namespace libtorrent {
 		std::string message(int ev) const override
 		{
 			std::string ret;
-			ret += to_string(ev).data();
+			ret += aux::to_string(ev).data();
 			ret += ' ';
 			switch (ev)
 			{

@@ -11,7 +11,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 
 using namespace lt;
 
@@ -463,7 +463,7 @@ TORRENT_TEST(expand_unspecified_loopback)
 }
 
 namespace {
-std::vector<aux::listen_endpoint_t> to_endpoint(listen_interface_t const& iface
+std::vector<aux::listen_endpoint_t> to_endpoint(aux::listen_interface_t const& iface
 	, span<ip_interface const> const ifs)
 {
 	std::vector<aux::listen_endpoint_t> ret;
@@ -473,7 +473,7 @@ std::vector<aux::listen_endpoint_t> to_endpoint(listen_interface_t const& iface
 
 using eps = std::vector<aux::listen_endpoint_t>;
 
-listen_interface_t ift(char const* dev, int const port, bool const ssl = false
+aux::listen_interface_t ift(char const* dev, int const port, bool const ssl = false
 	, bool const local = false)
 {
 	return {std::string(dev), port, ssl, local};

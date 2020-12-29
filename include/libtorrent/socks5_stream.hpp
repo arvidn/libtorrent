@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/string_util.hpp" // for to_string
+#include "libtorrent/aux_/string_util.hpp" // for to_string
 #include "libtorrent/socket_io.hpp"
 
 namespace libtorrent {
@@ -148,7 +148,7 @@ public:
 		// 4. send SOCKS command message
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::name_lookup");
-		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), wrap_allocator(
+		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), wrap_allocator(
 			[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
 				name_lookup(ec, std::move(ips), std::move(hn));
 			}, std::move(handler)));

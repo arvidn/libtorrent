@@ -11,18 +11,16 @@ see LICENSE file.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-#include <cstdlib> // for malloc
-#include <cstring> // for strlen
 #include <algorithm> // for search
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	// We need well defined results that don't depend on locale
 	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
@@ -38,7 +36,7 @@ namespace libtorrent {
 			? std::numeric_limits<std::uint64_t>::max() - std::uint64_t(n) + 1
 			: std::uint64_t(n);
 		do {
-			*--p = '0' + un % 10;
+			*--p = char('0' + un % 10);
 			un /= 10;
 		} while (un);
 		if (n < 0) *--p = '-';
@@ -63,7 +61,7 @@ namespace libtorrent {
 
 	char to_lower(char c)
 	{
-		return (c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c;
+		return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c;
 	}
 
 	bool string_begins_no_case(char const* s1, char const* s2)
@@ -291,11 +289,11 @@ namespace libtorrent {
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
 				while (soft_end > start
-					&& is_space(in[soft_end-1]))
+					&& is_space(in[soft_end - 1]))
 					--soft_end;
 
 				// in case this is an IPv6 address, strip off the square brackets
-				// to make it more easily parseable into an ip::address
+				// to make it more easily parsable into an ip::address
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 

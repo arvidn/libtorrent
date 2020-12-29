@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent {
@@ -286,7 +286,7 @@ namespace {
 	bool is_binary(std::string const& str)
 	{
 		return std::any_of(str.begin(), str.end()
-			, [](char const c) { return !is_print(c); });
+			, [](char const c) { return !aux::is_print(c); });
 	}
 
 	std::string print_string(std::string const& str)
@@ -308,7 +308,7 @@ namespace {
 
 		void operator()(entry::integer_type i) const
 		{
-			out += libtorrent::to_string(i).data();
+			out += aux::to_string(i).data();
 		}
 
 		void operator()(entry::string_type const& s) const

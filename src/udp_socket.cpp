@@ -510,7 +510,7 @@ void socks5::start(aux::proxy_settings const& ps)
 
 	// TODO: use the system resolver_interface here
 	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
-	m_resolver.async_resolve(ps.hostname, lt::to_string(ps.port).data(), std::bind(
+	m_resolver.async_resolve(ps.hostname, to_string(ps.port).data(), std::bind(
 		&socks5::on_name_lookup, self(), _1, _2));
 }
 

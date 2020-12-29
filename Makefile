@@ -524,7 +524,6 @@ HEADERS = \
   ssl_stream.hpp               \
   storage.hpp                  \
   storage_defs.hpp             \
-  string_util.hpp              \
   string_view.hpp              \
   tailqueue.hpp                \
   time.hpp                     \
@@ -635,6 +634,7 @@ HEADERS = \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \
+  aux_/string_util.hpp              \
   aux_/strview_less.hpp             \
   aux_/suggest_piece.hpp            \
   aux_/throw.hpp                    \

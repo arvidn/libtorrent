@@ -11,7 +11,7 @@ see LICENSE file.
 #include <algorithm>
 
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent {
@@ -32,7 +32,7 @@ namespace libtorrent {
 		// PARSE URL
 		auto start = url.begin();
 		// remove white spaces in front of the url
-		while (start != url.end() && is_space(*start))
+		while (start != url.end() && aux::is_space(*start))
 			++start;
 		auto end = std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
@@ -100,7 +100,7 @@ namespace libtorrent {
 			++port_pos;
 			for (auto i = port_pos; i < end; ++i)
 			{
-				if (is_digit(*i)) continue;
+				if (aux::is_digit(*i)) continue;
 				ec = errors::invalid_port;
 				goto exit;
 			}
@@ -178,12 +178,12 @@ exit:
 		while (!query_string.empty())
 		{
 			string_view arg;
-			std::tie(arg, query_string) = split_string(query_string, '&');
+			std::tie(arg, query_string) = aux::split_string(query_string, '&');
 
-			auto const name = split_string(arg, '=').first;
+			auto const name = aux::split_string(arg, '=').first;
 			for (auto const& tracker_arg : tracker_args)
 			{
-				if (string_equal_no_case(name, tracker_arg))
+				if (aux::string_equal_no_case(name, tracker_arg))
 					return true;
 			}
 		}

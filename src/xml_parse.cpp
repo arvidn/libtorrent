@@ -11,7 +11,7 @@ see LICENSE file.
 #include <cstring>
 
 #include "libtorrent/aux_/xml_parse.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 
 namespace libtorrent::aux {
 
