@@ -163,13 +163,13 @@ class LibtorrentBuildExt(BuildExtBase):
 
     def initialize_options(self):
 
-        default_cxxstd = '11'
+        self.cxxflags = None
 
         try:
             with open('compile_flags') as f:
                 opts = f.read()
                 if '-std=c++' in opts:
-                    default_cxxstd = opts.split('-std=c++')[-1].split()[0]
+                    self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
         except:
             pass
 
@@ -179,7 +179,10 @@ class LibtorrentBuildExt(BuildExtBase):
         self.pic = None
         self.optimization = None
         self.hash = None
-        self.cxxstd = default_cxxstd
+        if platform.system() == "Darwin":
+            self.cxxstd = '11'
+        else:
+            self.cxxstd = None
         return super().initialize_options()
 
     def run(self):
@@ -221,6 +224,8 @@ class LibtorrentBuildExt(BuildExtBase):
             args.append("--hash")
         if self.cxxstd:
             args.append(f"cxxstd={self.cxxstd}")
+        if self.cxxflags:
+            args.append(f"cxxflags={self.cxxflags}")
 
         # Jamfile hacks to ensure we select the python environment defined in
         # our project-config.jam
