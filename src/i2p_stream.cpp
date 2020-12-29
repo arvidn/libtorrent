@@ -18,13 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/string_util.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/random.hpp"
-#include "libtorrent/hex.hpp" // for to_hex
-#include "libtorrent/debug.hpp"
-
-#include <cstring>
 
 namespace libtorrent {
 

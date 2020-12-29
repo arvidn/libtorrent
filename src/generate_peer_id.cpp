@@ -10,11 +10,11 @@ see LICENSE file.
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/string_util.hpp" // for url_random
+#include "libtorrent/aux_/string_util.hpp" // for url_random
 
 #include <string>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 peer_id generate_peer_id(session_settings const& sett)
 {
@@ -30,4 +30,4 @@ peer_id generate_peer_id(session_settings const& sett)
 	return ret;
 }
 
-}}
+}

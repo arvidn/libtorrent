@@ -19,7 +19,7 @@ see LICENSE file.
 #include <algorithm>
 
 #include "libtorrent/fwd.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include "libtorrent/aux_/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/request_blocks.hpp" // for source_rank
 
 #include "libtorrent/aux_/torrent_peer.hpp"

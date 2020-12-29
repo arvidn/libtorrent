@@ -495,7 +495,7 @@ namespace libtorrent::aux {
 			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s ]"
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
-					: (m_hostname + ":" + lt::to_string(m_target.port()).data()).c_str()
+					: (m_hostname + ":" + to_string(m_target.port()).data()).c_str()
 				, aux::to_hex(tracker_req().info_hash).c_str());
 		}
 #endif

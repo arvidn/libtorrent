@@ -32,7 +32,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/string_util.hpp" // for is_i2p_url
+#include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -138,7 +138,7 @@ namespace libtorrent::aux {
 			if (settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
-				url += lt::to_string(tracker_req().redundant).data();
+				url += to_string(tracker_req().redundant).data();
 			}
 			if (!tracker_req().trackerid.empty())
 			{

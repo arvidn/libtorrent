@@ -22,7 +22,7 @@ see LICENSE file.
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace {
@@ -31,7 +31,7 @@ namespace {
 
 	int decode_digit(std::uint8_t c)
 	{
-		if (is_digit(char(c))) return c - '0';
+		if (aux::is_digit(char(c))) return c - '0';
 		return c - 'A' + 10;
 	}
 
@@ -43,7 +43,7 @@ namespace {
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !is_print(char(id[1])) || (id[2] < '0')
+		if (id[0] != '-' || !aux::is_print(char(id[1])) || (id[2] < '0')
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
@@ -65,7 +65,7 @@ namespace {
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (!is_alpha(char(id[0])) && !is_digit(char(id[0])))
+		if (!aux::is_alpha(char(id[0])) && !aux::is_digit(char(id[0])))
 			return std::optional<fingerprint>();
 
 		if (std::equal(id.begin() + 4, id.begin() + 6, "--"))
@@ -105,7 +105,7 @@ namespace {
 		ret.tag_version = 0;
 		if (std::sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
-			|| !is_print(ret.name[0]))
+			|| !aux::is_print(ret.name[0]))
 			return std::optional<fingerprint>();
 
 		return std::optional<fingerprint>(ret);

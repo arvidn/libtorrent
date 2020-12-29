@@ -11,7 +11,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include "libtorrent/aux_/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -313,7 +313,7 @@ namespace aux {
 		}
 		else
 		{
-			name = allocate_string_copy(n);
+			name = aux::allocate_string_copy(n);
 			name_len = name_is_owned;
 		}
 	}
@@ -803,7 +803,7 @@ namespace {
 		void process_string_lowercase(CRC& crc, string_view str)
 		{
 			for (char const c : str)
-				crc.process_byte(to_lower(c) & 0xff);
+				crc.process_byte(aux::to_lower(c) & 0xff);
 		}
 
 		template <class CRC>
@@ -816,7 +816,7 @@ namespace {
 			{
 				if (c == TORRENT_SEPARATOR)
 					table.insert(crc.checksum());
-				crc.process_byte(to_lower(c) & 0xff);
+				crc.process_byte(aux::to_lower(c) & 0xff);
 			}
 			table.insert(crc.checksum());
 		}

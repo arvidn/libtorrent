@@ -13,7 +13,7 @@ see LICENSE file.
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 
@@ -67,7 +67,7 @@ public:
 		// 3. send HTTP CONNECT method and possibly username+password
 		// 4. read CONNECT response
 
-		m_resolver.async_resolve(m_hostname, to_string(m_port).data(), wrap_allocator(
+		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), wrap_allocator(
 				[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
 				name_lookup(ec, std::move(ips), std::move(hn));
 			}, std::move(handler)));

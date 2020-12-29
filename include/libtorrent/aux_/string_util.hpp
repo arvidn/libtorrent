@@ -24,12 +24,12 @@ see LICENSE file.
 #include <limits>
 #include <array> // for std::array
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT
-		std::array<char, 4+std::numeric_limits<std::int64_t>::digits10>
+		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
 		to_string(std::int64_t n);
 
 	// internal
@@ -115,7 +115,7 @@ namespace libtorrent {
 	// (") separators are ignored until the end double-quote. Unless if the
 	// separator itself is a double quote.
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string_quotes(
-		string_view last, char const sep);
+		string_view last, char sep);
 
 	// removes whitespaces at the beginning of the string, in-place
 	TORRENT_EXTRA_EXPORT void ltrim(std::string& s);

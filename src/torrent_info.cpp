@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/string_util.hpp" // is_space, is_i2p_url
+#include "libtorrent/aux_/string_util.hpp" // is_space, is_i2p_url
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
@@ -731,7 +731,7 @@ namespace {
 	void process_string_lowercase(CRC& crc, string_view str)
 	{
 		for (char const c : str)
-			crc.process_byte(to_lower(c) & 0xff);
+			crc.process_byte(aux::to_lower(c) & 0xff);
 	}
 
 	struct name_entry
@@ -770,7 +770,7 @@ namespace {
 				{
 					if (c == TORRENT_SEPARATOR)
 						files.insert({local_crc.checksum(), {path_index, count}});
-					local_crc.process_byte(to_lower(c) & 0xff);
+					local_crc.process_byte(aux::to_lower(c) & 0xff);
 					++count;
 				}
 				files.insert({local_crc.checksum(), {path_index, int(path.size())}});
@@ -792,7 +792,7 @@ namespace {
 				std::string const other_name = o.second.idx < file_index_t{}
 					? combine_path(m_files.name(), paths[std::size_t(-static_cast<int>(o.second.idx)-1)].substr(0, std::size_t(o.second.length)))
 					: m_files.file_path(o.second.idx);
-				return string_equal_no_case(other_name, m_files.file_path(i));
+				return aux::string_equal_no_case(other_name, m_files.file_path(i));
 			});
 
 			if (match == range.second)
@@ -1578,13 +1578,13 @@ namespace {
 				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
 					announce_entry e(tier.list_string_value_at(k));
-					ltrim(e.url);
+					aux::ltrim(e.url);
 					if (e.url.empty()) continue;
 					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
 #if TORRENT_USE_I2P
-					if (is_i2p_url(e.url)) m_flags |= i2p;
+					if (aux::is_i2p_url(e.url)) m_flags |= i2p;
 #endif
 					m_urls.push_back(e);
 				}
@@ -1605,9 +1605,9 @@ namespace {
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
-			ltrim(e.url);
+			aux::ltrim(e.url);
 #if TORRENT_USE_I2P
-			if (is_i2p_url(e.url)) m_flags |= i2p;
+			if (aux::is_i2p_url(e.url)) m_flags |= i2p;
 #endif
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
@@ -1643,7 +1643,7 @@ namespace {
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds.string_value()));
 			if ((m_flags & multifile) && num_files() > 1)
-				ensure_trailing_slash(ent.url);
+				aux::ensure_trailing_slash(ent.url);
 			m_web_seeds.push_back(std::move(ent));
 		}
 		else if (url_seeds && url_seeds.type() == bdecode_node::list_t)
@@ -1657,7 +1657,7 @@ namespace {
 				if (url.string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url.string_value()));
 				if ((m_flags & multifile) && num_files() > 1)
-					ensure_trailing_slash(ent.url);
+					aux::ensure_trailing_slash(ent.url);
 				if (!unique.insert(ent.url).second) continue;
 				m_web_seeds.push_back(std::move(ent));
 			}

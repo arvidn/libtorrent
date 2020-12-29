@@ -11,7 +11,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/announce_entry.hpp"
-#include "libtorrent/string_util.hpp" // for is_space
+#include "libtorrent/aux_/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
@@ -139,7 +139,7 @@ TORRENT_VERSION_NAMESPACE_2
 
 	void announce_entry::trim()
 	{
-		while (!url.empty() && is_space(url[0]))
+		while (!url.empty() && aux::is_space(url[0]))
 			url.erase(url.begin());
 	}
 #endif
