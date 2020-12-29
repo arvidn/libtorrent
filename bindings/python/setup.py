@@ -204,12 +204,13 @@ class LibtorrentBuildExt(BuildExtBase):
         return super().run()
 
     def build_extension_with_b2(self):
+        args = []
+
         if os.name == "nt":
             self.toolset = get_msvc_toolset()
             self.libtorrent_link = "static"
             self.boost_link = "static"
-
-        args = []
+            args.append('--abbreviate-paths')
 
         if distutils.debug.DEBUG:
             args.append("--debug-configuration")
