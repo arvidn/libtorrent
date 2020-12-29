@@ -80,8 +80,37 @@ else
 
 	rule boost_python_version ( name : type ? : properties * )
 	{
+		# examples of names for the boost_python library:
+		# ubuntu bionic (1.65.1): libboost_python3-py36.so.1.65.1
+		# ubuntu bionic (1.65):   libboost_python-py36.so
+		#                         libboost_python3-py36.so
+		#                         libboost_python3.so
+		# ubuntu bionic (1.62.0): libboost_python-py36.so.1.62.0
+		# ubuntu focal (1.67.0):  libboost_python38.so.1.67.0
+		# ubuntu focal (1.71.0):  libboost_python38.so
+		# ubuntu groovy (1.71.0): libboost_python38.so
+		# ubuntu hirsute(1.71.0): libboost_python39.so
+		# debian buster (1.67.0): libboost_python37.so
+		#                         libboost_python3.so
+		#                         libboost_python3-py37.so
+		# debian sid (1.74.0):    libboost_python39.so
+		# debian sid (1.71.0):    libboost_python39.so
+		# debian bullseye (1.71): libboost_python39.so
+		# devian buster-backports (1.71): libboost_python37.so
+		# debian buster (1.67):   libboost_python37.so.1.67.0
+		# debian stretch (1.62.0): libboost_python-py35.so.1.62.0
+		# debian stretch (1.62):  libboost_python-py35.so
+		# debian jessie (1.55.0): libboost_python-py34.so.1.55.0
+		# boost Jamfile:          libboost_python38.so.1.73.0
+
 		local py-version = [ $(properties).get <python> ] ;
-		local boost-python-lib = "boost_python" [ SPLIT_BY_CHARACTERS $(py-version) : "." ] ;
+
+		local infix = "" ;
+		if $(py-version) < 3.7 && [ $(properties).get <target-os> ] = linux
+		{
+			infix = "-py" ;
+		}
+		local boost-python-lib = "boost_python" $(infix) [ SPLIT_BY_CHARACTERS $(py-version) : "." ] ;
 
 		if $(type) in SEARCHED_LIB
 		{
