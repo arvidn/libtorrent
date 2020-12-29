@@ -268,23 +268,25 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
-        config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+        python_binding_dir = pathlib.Path(__file__).parent.absolute()
+        config = open(python_binding_dir / 'project-config.jam', 'w+')
+#        config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
             write_b2_python_config(config)
             config.seek(0)
             log.info("project-config.jam contents:")
             log.info(config.read())
             config.close()
-            args.append(f"--project-config={config.name}")
+#            args.append(f"--project-config={config.name}")
 
-            python_binding_dir = pathlib.Path(__file__).parent.absolute()
             log.info(" ".join(["b2"] + args))
             subprocess.run(["b2"] + args, cwd=python_binding_dir, check=True)
         finally:
             # If we errored while writing config, windows may complain about
             # unlinking a file "in use"
             config.close()
-            os.unlink(config.name)
+#            os.unlink(config.name)
+            os.unlink(python_binding_dir / 'project-config.jam')
 
 
 setuptools.setup(
