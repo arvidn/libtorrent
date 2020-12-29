@@ -140,7 +140,7 @@ class LibtorrentBuildExt(BuildExtBase):
         (
             "libtorrent-link=",
             None,
-            "how to link to libtorrent ('static' or 'shared')",
+            "how to link to libtorrent ('static', 'shared' or 'prebuilt')",
         ),
         (
             "boost-link=",
@@ -164,6 +164,7 @@ class LibtorrentBuildExt(BuildExtBase):
     def initialize_options(self):
 
         self.cxxflags = None
+        self.linkflags = None
 
         try:
             with open('compile_flags') as f:
@@ -173,7 +174,19 @@ class LibtorrentBuildExt(BuildExtBase):
         except:
             pass
 
-        self.libtorrent_link = None
+        try:
+            with open('link_flags') as f:
+                opts = f.read().split(' ')
+                opts = [x for x in opts if x.startswith('-L')]
+                if len(opts):
+                    self.linkflags = opts
+        except:
+            pass
+
+        if os.name == "nt":
+            self.libtorrent_link = 'static'
+        else:
+            self.libtorrent_link = 'prebuilt'
         self.boost_link = None
         self.toolset = None
         self.pic = None
@@ -225,7 +238,14 @@ class LibtorrentBuildExt(BuildExtBase):
         if self.cxxstd:
             args.append(f"cxxstd={self.cxxstd}")
         if self.cxxflags:
-            args.append(f"cxxflags={self.cxxflags}")
+            args.append(f"cxxflags=\"{self.cxxflags}\"")
+        if self.linkflags:
+            # since b2 may be running with a different directory as cwd, relative
+            # paths need to be converted to absolute
+            for lf in self.linkflags:
+                if lf[2] != '/':
+                    lf = '-L' + str(pathlib.Path(lf[2:]).absolute())
+                args.append(f"linkflags=\"{lf}\"")
 
         # Jamfile hacks to ensure we select the python environment defined in
         # our project-config.jam

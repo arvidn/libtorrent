@@ -14,7 +14,7 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 feature lt-visibility : default hidden : composite propagated ;
 feature.compose <lt-visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
-feature libtorrent-link : shared static : composite propagated ;
+feature libtorrent-link : shared static prebuilt : composite propagated ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
 feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
@@ -94,6 +94,8 @@ else
 	alias boost_python3 : boost_python ;
 }
 
+lib prebuilt_libtorrent : : <name>torrent-rasterbar : : <include>../../include ;
+lib prebuilt_libtorrent : : <target-os>windows <name>torrent : : <include>../../include ;
 
 rule libtorrent_linking ( properties * )
 {
@@ -163,9 +165,13 @@ rule libtorrent_linking ( properties * )
 	{
 		result += <library>/torrent//torrent/<link>shared ;
 	}
-	else
+	else if <libtorrent-link>static in $(properties)
 	{
 		result += <library>/torrent//torrent/<link>static ;
+	}
+	else
+	{
+		result += <library>prebuilt_libtorrent ;
 	}
 
 	return $(result) ;
