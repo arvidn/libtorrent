@@ -198,7 +198,11 @@ jobs:
 
    dist:
       name: build dist
-      runs-on: ubuntu-20.04
+      runs-on: ${{ matrix.os }}
+
+      strategy:
+         matrix:
+            os: [ubuntu-20.04, ubuntu-18.04]
 
       steps:
       - name: checkout
@@ -230,8 +234,19 @@ jobs:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz
 
-      - name: test-tarball
+      - name: test-tarball (make)
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
-          cd libtorrent-rasterbar-*/test
-          b2 link=static -j2 cxxstd=11
+          cd libtorrent-rasterbar-*/
+          ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes
+          make -j2
+
+      - name: test-tarball (bjam)
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 1
+          max_attempts: 3
+          command: |
+            cd libtorrent-rasterbar-*/test
+            b2 link=static -j2 cxxflags=-std=c++11
