@@ -211,10 +211,10 @@ jobs:
         run: |
           sudo apt update
 
-      - name: install boost
+      - name: install dependencies
         run: |
           sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
-          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick python3-setuptools
           python -m pip install aafigure
           echo "using gcc ;" >>~/user-config.jam
 
