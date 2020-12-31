@@ -536,7 +536,6 @@ HEADERS = \
   units.hpp                    \
   upnp.hpp                     \
   utf8.hpp                     \
-  vector_utils.hpp             \
   version.hpp                  \
   write_resume_data.hpp        \
   \
@@ -651,6 +650,7 @@ HEADERS = \
   aux_/utp_socket_manager.hpp       \
   aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \
+  aux_/vector_utils.hpp             \
   aux_/web_connection_base.hpp      \
   aux_/web_peer_connection.hpp      \
   aux_/windows.hpp                  \
