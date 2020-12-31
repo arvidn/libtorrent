@@ -122,7 +122,6 @@ set(libtorrent_include_files
 	units
 	upnp
 	utf8
-	vector_utils
 	version
 	write_resume_data
 	ssl)
@@ -261,6 +260,7 @@ set(libtorrent_aux_include_files
 	utp_socket_manager
 	utp_stream
 	vector
+	vector_utils
 	web_connection_base
 	web_peer_connection
 	win_crypto_provider
