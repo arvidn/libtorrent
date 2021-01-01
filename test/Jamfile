@@ -207,6 +207,7 @@ run test_tracker.cpp ;
 run test_tracker_manager.cpp ;
 run test_checking.cpp ;
 run test_url_seed.cpp ;
+run test_vector_utils.cpp ;
 run test_web_seed.cpp ;
 run test_web_seed_redirect.cpp ;
 run test_web_seed_socks4.cpp ;
@@ -313,4 +314,5 @@ alias deterministic-tests :
 	test_utf8
 	test_xml
 	test_store_buffer
+	test_vector_utils
 	;
