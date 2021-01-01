@@ -1519,7 +1519,7 @@ void block_cache::check_invariant() const
 		for (list_iterator<cached_piece_entry> p = m_lru[i].iterate(); p.get(); p.next())
 		{
 			cached_piece_entry* pe = p.get();
-			TORRENT_PIECE_ASSERT(pe->cache_state == i, pe);
+			TORRENT_PIECE_ASSERT(int(pe->cache_state) == i, pe);
 			if (pe->num_dirty > 0)
 				TORRENT_PIECE_ASSERT(i == cached_piece_entry::write_lru, pe);
 
@@ -1602,10 +1602,10 @@ void block_cache::check_invariant() const
 			}
 			num_refcount += p.blocks[k].refcount;
 		}
-		TORRENT_PIECE_ASSERT(num_blocks == p.num_blocks, &p);
+		TORRENT_PIECE_ASSERT(num_blocks == int(p.num_blocks), &p);
 		TORRENT_PIECE_ASSERT(num_pending <= p.refcount, &p);
 		TORRENT_PIECE_ASSERT(num_refcount == p.refcount, &p);
-		TORRENT_PIECE_ASSERT(num_dirty == p.num_dirty, &p);
+		TORRENT_PIECE_ASSERT(num_dirty == int(p.num_dirty), &p);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
