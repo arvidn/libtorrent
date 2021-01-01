@@ -89,7 +89,6 @@ set(libtorrent_include_files
 	puff
 	random
 	read_resume_data
-	request_blocks
 	resolve_links
 	session
 	session_handle
@@ -227,6 +226,7 @@ set(libtorrent_aux_include_files
 	proxy_settings
 	range
 	receive_buffer
+	request_blocks
 	resolver
 	resolver_interface
 	route

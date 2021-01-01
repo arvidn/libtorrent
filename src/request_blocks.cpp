@@ -14,13 +14,13 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
-#include "libtorrent/request_blocks.hpp"
+#include "libtorrent/aux_/request_blocks.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 
 #include <vector>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	int source_rank(peer_source_flags_t const source_bitmask)
 	{
@@ -38,7 +38,7 @@ namespace libtorrent {
 	// infinite loop, fighting to request the same blocks.
 	// returns false if the function is aborted by an early-exit
 	// condition.
-	bool request_a_block(aux::torrent& t, peer_connection& c)
+	bool request_a_block(torrent& t, peer_connection& c)
 	{
 		if (t.is_seed()) return false;
 		if (c.no_download()) return false;

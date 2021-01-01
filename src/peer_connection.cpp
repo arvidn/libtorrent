@@ -44,7 +44,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/bandwidth_manager.hpp"
-#include "libtorrent/request_blocks.hpp" // for request_a_block
+#include "libtorrent/aux_/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/ip_filter.hpp"
@@ -1604,7 +1604,7 @@ namespace {
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
-			if (request_a_block(*t, *this))
+			if (aux::request_a_block(*t, *this))
 				m_counters.inc_stats_counter(counters::reject_piece_picks);
 		}
 

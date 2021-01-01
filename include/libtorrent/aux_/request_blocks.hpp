@@ -13,16 +13,17 @@ see LICENSE file.
 
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent {
+namespace libtorrent { struct peer_connection; }
 
-namespace aux { struct torrent; }
-	struct peer_connection;
+namespace libtorrent::aux {
+
+	struct torrent;
 
 	// returns false if the piece picker was not invoked, because
 	// of an early exit condition. In this case, the stats counter
 	// shouldn't be incremented, since it won't use any significant
 	// amount of CPU
-	bool request_a_block(aux::torrent& t, peer_connection& c);
+	bool request_a_block(torrent& t, peer_connection& c);
 
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
