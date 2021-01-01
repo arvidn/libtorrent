@@ -922,6 +922,7 @@ TEST_SOURCES = \
   test_url_seed.cpp \
   test_utf8.cpp \
   test_utp.cpp \
+  test_vector_utils.cpp \
   test_web_seed.cpp \
   test_web_seed_ban.cpp \
   test_web_seed_chunked.cpp \
