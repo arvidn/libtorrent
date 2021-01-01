@@ -501,7 +501,6 @@ HEADERS = \
   puff.hpp                     \
   random.hpp                   \
   read_resume_data.hpp         \
-  request_blocks.hpp           \
   resolve_links.hpp            \
   session.hpp                  \
   session_handle.hpp           \
@@ -615,6 +614,7 @@ HEADERS = \
   aux_/proxy_settings.hpp           \
   aux_/range.hpp                    \
   aux_/receive_buffer.hpp           \
+  aux_/request_blocks.hpp           \
   aux_/resolver.hpp                 \
   aux_/resolver_interface.hpp       \
   aux_/route.h                      \
