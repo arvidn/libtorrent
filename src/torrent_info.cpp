@@ -1397,7 +1397,8 @@ namespace {
 
 				if (str.type() != bdecode_node::string_t) continue;
 
-				m_collections.emplace_back(str.string_offset() - info_offset, str.string_length());
+				m_collections.emplace_back(std::int32_t(str.string_offset() - info_offset)
+					, str.string_length());
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
