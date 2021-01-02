@@ -257,7 +257,7 @@ struct peer_conn
 		char* h = static_cast<char*>(malloc(sizeof(handshake)));
 		memcpy(h, handshake, sizeof(handshake));
 		std::memcpy(h + 28, info_hash, 20);
-		std::generate(h + 48, h + 68, &rand);
+		std::generate(h + 48, h + 68, [] { return char(rand()); });
 		// for seeds, don't send the interested message
 		boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
 			, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
