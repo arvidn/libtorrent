@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum

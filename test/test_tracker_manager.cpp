@@ -57,8 +57,8 @@ struct tracker_manager_handler : aux::session_logger {
 
 #if TORRENT_USE_ASSERTS
 	bool is_single_thread() const override { return false; }
-	bool has_peer(peer_connection const*) const override { return false; }
-	bool any_torrent_has_peer(peer_connection const*) const override { return false; }
+	bool has_peer(aux::peer_connection const*) const override { return false; }
+	bool any_torrent_has_peer(aux::peer_connection const*) const override { return false; }
 	bool is_posting_torrent_updates() const override { return false; }
 #endif
 

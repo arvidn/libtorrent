@@ -44,8 +44,9 @@ namespace libtorrent {
 namespace aux {
 	struct torrent;
 	struct torrent_peer;
-}
 	struct peer_connection;
+}
+
 	template <typename Index>
 	struct typed_bitfield;
 	struct counters;

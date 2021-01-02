@@ -15,7 +15,7 @@ see LICENSE file.
 #include <string>
 #include <cstdint>
 
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"

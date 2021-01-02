@@ -13,10 +13,9 @@ see LICENSE file.
 
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent { struct peer_connection; }
-
 namespace libtorrent::aux {
 
+	struct peer_connection;
 	struct torrent;
 
 	// returns false if the piece picker was not invoked, because

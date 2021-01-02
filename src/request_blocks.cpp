@@ -10,7 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags

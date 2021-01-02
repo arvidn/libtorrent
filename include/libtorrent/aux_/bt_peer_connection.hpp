@@ -24,7 +24,7 @@ see LICENSE file.
 
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/buffer.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/stat.hpp"
