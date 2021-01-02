@@ -5642,7 +5642,7 @@ namespace {
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
 
-		if (!m_trackers.empty()) announce_with_tracker();
+		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 
 		set_need_save_resume();
 	}
