@@ -6,25 +6,25 @@ on:
    pull_request:
 
 jobs:
-  build:
+  test:
     name: build
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-20.04, macos-latest, windows-2019 ]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
 
-    - name: dependencies (macos)
+    - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
         brew install boost-build boost boost-python3 python@3.9
 
-    - name: update package lists
+    - name: update package lists (linux)
       if: runner.os == 'Linux'
       continue-on-error: true
       run: |
@@ -35,7 +35,38 @@ jobs:
       run: |
         sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools
 
+    # there appears to be a bug in boost-build where referring to a
+    # dependency that's on a different drive fails, deep in boost-build
+    # while concatenating paths
+    - name: setup boost (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
+        mklink /J boost %BOOST_ROOT_1_72_0%
+        cd boost
+        b2 headers
+
+    - name: build/install (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        set BOOST_ROOT=%CD%\boost
+        set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
+        set PATH=%BOOST_ROOT%;%PATH%
+
+        cd bindings\python
+        python setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
+
+    - name: tests (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd bindings\python
+        python test.py
+
     - name: build/install
+      if: runner.os != 'Windows'
       run: |
         cd bindings/python
         # Homebrew's python "framework" sets a prefix via distutils config.
@@ -44,6 +75,7 @@ jobs:
         python3 setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
 
     - name: tests
+      if: runner.os != 'Windows'
       run: |
         cd bindings/python
         python3 test.py

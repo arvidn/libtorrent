@@ -474,9 +474,9 @@ std::vector<aux::listen_endpoint_t> to_endpoint(aux::listen_interface_t const& i
 using eps = std::vector<aux::listen_endpoint_t>;
 
 aux::listen_interface_t ift(char const* dev, int const port, bool const ssl = false
-	, bool const local = false)
+	, bool const l = false)
 {
-	return {std::string(dev), port, ssl, local};
+	return {std::string(dev), port, ssl, l};
 }
 }
 using ls = aux::listen_socket_t;
