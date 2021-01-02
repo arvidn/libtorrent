@@ -12,9 +12,9 @@ see LICENSE file.
 #define TORRENT_HAS_BLOCK_HPP_INCLUDED
 
 #include "libtorrent/piece_block.hpp"
-#include "libtorrent/peer_connection.hpp" // for pending_block
+#include "libtorrent/aux_/peer_connection.hpp" // for pending_block
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 	struct has_block
 	{
@@ -29,6 +29,6 @@ namespace libtorrent { namespace aux {
 		piece_block const& block;
 	};
 
-}}
+}
 
 #endif

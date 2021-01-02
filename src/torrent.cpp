@@ -58,7 +58,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/aux_/web_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"

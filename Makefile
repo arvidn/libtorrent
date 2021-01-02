@@ -483,7 +483,6 @@ HEADERS = \
   peer_class.hpp               \
   peer_class_set.hpp           \
   peer_class_type_filter.hpp   \
-  peer_connection.hpp          \
   peer_connection_handle.hpp   \
   peer_connection_interface.hpp \
   peer_id.hpp                  \
@@ -605,6 +604,7 @@ HEADERS = \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
+  aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
   aux_/polymorphic_socket.hpp       \
   aux_/pool.hpp                     \

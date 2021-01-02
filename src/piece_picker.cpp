@@ -31,7 +31,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #if TORRENT_USE_ASSERTS
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/torrent_peer.hpp"
 #endif
@@ -363,7 +363,7 @@ namespace libtorrent {
 					aux::torrent_peer* p = bl.peer;
 					TORRENT_ASSERT(p->in_use);
 					TORRENT_ASSERT(p->connection == nullptr
-						|| static_cast<peer_connection*>(p->connection)->m_in_use);
+						|| static_cast<aux::peer_connection*>(p->connection)->m_in_use);
 				}
 			}
 		}

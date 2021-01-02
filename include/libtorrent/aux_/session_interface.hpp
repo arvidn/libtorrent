@@ -36,7 +36,6 @@ see LICENSE file.
 
 namespace libtorrent {
 
-	struct peer_connection;
 	struct peer_class_set;
 	struct peer_class_pool;
 	struct disk_observer;
@@ -46,6 +45,7 @@ namespace libtorrent {
 	struct counters;
 
 namespace aux {
+	struct peer_connection;
 	struct utp_socket_manager;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
@@ -92,8 +92,8 @@ namespace aux {
 
 #if TORRENT_USE_ASSERTS
 		virtual bool is_single_thread() const = 0;
-		virtual bool has_peer(peer_connection const* p) const = 0;
-		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
+		virtual bool has_peer(aux::peer_connection const* p) const = 0;
+		virtual bool any_torrent_has_peer(aux::peer_connection const* p) const = 0;
 		virtual bool is_posting_torrent_updates() const = 0;
 #endif
 	protected:

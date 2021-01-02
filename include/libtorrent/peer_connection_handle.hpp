@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/peer_connection.hpp" // for connection_type
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent {
@@ -29,7 +29,7 @@ namespace aux { struct bt_peer_connection; }
 // may not be stable across libtorrent versions
 struct TORRENT_EXPORT peer_connection_handle
 {
-	explicit peer_connection_handle(std::weak_ptr<peer_connection> impl)
+	explicit peer_connection_handle(std::weak_ptr<aux::peer_connection> impl)
 		: m_connection(std::move(impl))
 	{}
 
@@ -94,17 +94,17 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool operator<(peer_connection_handle const& o) const
 	{ return lt(m_connection, o.m_connection); }
 
-	std::shared_ptr<peer_connection> native_handle() const
+	std::shared_ptr<aux::peer_connection> native_handle() const
 	{
 		return m_connection.lock();
 	}
 
 private:
-	std::weak_ptr<peer_connection> m_connection;
+	std::weak_ptr<aux::peer_connection> m_connection;
 
 	// copied from boost::weak_ptr
-	bool lt(std::weak_ptr<peer_connection> const& a
-		, std::weak_ptr<peer_connection> const& b) const
+	bool lt(std::weak_ptr<aux::peer_connection> const& a
+		, std::weak_ptr<aux::peer_connection> const& b) const
 	{
 		return a.owner_before(b);
 	}

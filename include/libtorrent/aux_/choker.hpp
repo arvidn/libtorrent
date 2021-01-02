@@ -15,13 +15,10 @@ see LICENSE file.
 #include "libtorrent/time.hpp" // for time_duration
 #include <vector>
 
-namespace libtorrent {
-
-	struct peer_connection;
-
-namespace aux {
+namespace libtorrent::aux {
 
 	struct session_settings;
+	struct peer_connection;
 
 	// sorts the vector of peers in-place. When returning, the top unchoke slots
 	// elements are the peers we should unchoke. This is similar to a partial
@@ -33,7 +30,6 @@ namespace aux {
 		, time_duration unchoke_interval
 		, aux::session_settings const& sett);
 
-}
 }
 
 #endif // TORRENT_CHOKER_INCLUDED

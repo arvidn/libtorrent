@@ -25,6 +25,13 @@ namespace libtorrent {
 		class stat;
 	}
 
+	enum class connection_type : std::uint8_t
+	{
+		bittorrent,
+		url_seed,
+		http_seed
+	};
+
 	using disconnect_severity_t = aux::strong_typedef<std::uint8_t, struct disconnect_severity_tag>;
 
 	// TODO: make this interface smaller!

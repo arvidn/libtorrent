@@ -65,8 +65,9 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct peer_plugin;
 #endif
+}
 
-namespace aux {
+namespace libtorrent::aux {
 
 	struct session_interface;
 	struct torrent;
@@ -100,7 +101,6 @@ namespace aux {
 		if (v > int(limit)) return limit;
 		return static_cast<T>(v);
 	}
-}
 
 	struct pending_block
 	{
@@ -244,13 +244,6 @@ namespace aux {
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
-	};
-
-	enum class connection_type : std::uint8_t
-	{
-		bittorrent,
-		url_seed,
-		http_seed
 	};
 
 	using request_flags_t = flags::bitfield_flag<std::uint8_t, struct request_flags_tag>;

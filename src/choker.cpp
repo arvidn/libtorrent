@@ -12,7 +12,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/choker.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/torrent.hpp"
@@ -21,8 +21,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -286,5 +285,4 @@ namespace {
 		return upload_slots;
 	}
 
-}
 }

@@ -13,6 +13,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
@@ -38,7 +39,7 @@ namespace libtorrent { namespace {
 		max_peer_entries = 100
 	};
 
-	bool send_peer(peer_connection const& p)
+	bool send_peer(aux::peer_connection const& p)
 	{
 		// don't send out those peers that we haven't connected to
 		// (that have connected to us) and that aren't sharing their
@@ -205,7 +206,7 @@ namespace libtorrent { namespace {
 	struct ut_pex_peer_plugin final
 		: aux::ut_pex_peer_store, peer_plugin
 	{
-		ut_pex_peer_plugin(aux::torrent& t, peer_connection& pc, ut_pex_plugin& tp)
+		ut_pex_peer_plugin(aux::torrent& t, aux::peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
@@ -571,7 +572,7 @@ namespace libtorrent { namespace {
 		}
 
 		aux::torrent& m_torrent;
-		peer_connection& m_pc;
+		aux::peer_connection& m_pc;
 		ut_pex_plugin& m_tp;
 
 		// the last pex messages we received

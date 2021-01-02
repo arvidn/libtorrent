@@ -72,7 +72,6 @@ set(libtorrent_include_files
 	peer_class
 	peer_class_set
 	peer_class_type_filter
-	peer_connection
 	peer_connection_handle
 	peer_connection_interface
 	peer_id
@@ -218,6 +217,7 @@ set(libtorrent_aux_include_files
 	packet_buffer
 	packet_pool
 	path
+	peer_connection
 	peer_list
 	polymorphic_socket
 	pool

@@ -20,7 +20,6 @@ see LICENSE file.
 #include <numeric>
 #include <cstdio>
 
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"

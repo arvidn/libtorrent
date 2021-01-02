@@ -55,8 +55,8 @@ struct session_mock : aux::session_interface
 	boost::asio::io_context& get_context() override { return _io_context; }
 	aux::resolver_interface& get_resolver() override { return _resolver; }
 
-	bool has_connection(peer_connection*) const override { return false; }
-	void insert_peer(std::shared_ptr<peer_connection> const&) override {}
+	bool has_connection(aux::peer_connection*) const override { return false; }
+	void insert_peer(std::shared_ptr<aux::peer_connection> const&) override {}
 
 	void remove_torrent(torrent_handle const&, remove_flags_t) override {}
 	void remove_torrent_impl(std::shared_ptr<aux::torrent>, remove_flags_t) override {}
@@ -75,13 +75,13 @@ struct session_mock : aux::session_interface
 
 	std::weak_ptr<aux::torrent> find_torrent(info_hash_t const&) const override { return std::weak_ptr<aux::torrent>(); }
 	std::weak_ptr<aux::torrent> find_disconnect_candidate_torrent() const override { return std::weak_ptr<aux::torrent>(); }
-	std::shared_ptr<aux::torrent> delay_load_torrent(info_hash_t const&, peer_connection*) override { return nullptr; }
+	std::shared_ptr<aux::torrent> delay_load_torrent(info_hash_t const&, aux::peer_connection*) override { return nullptr; }
 	void insert_torrent(info_hash_t const&, std::shared_ptr<aux::torrent> const&) override {}
 	void update_torrent_info_hash(std::shared_ptr<aux::torrent> const&, info_hash_t const&) override {}
 	void set_queue_position(aux::torrent*, queue_position_t) override {}
 	int num_torrents() const override { return 1; }
 
-	void close_connection(peer_connection*) noexcept override {}
+	void close_connection(aux::peer_connection*) noexcept override {}
 	int num_connections() const override { return 0; }
 
 	void deferred_submit_jobs() override {}
@@ -166,8 +166,8 @@ struct session_mock : aux::session_interface
 #if TORRENT_USE_ASSERTS
 	bool verify_queue_position(aux::torrent const*, queue_position_t) override { return false; }
 	bool is_single_thread() const override { return true; }
-	bool has_peer(peer_connection const*) const override { return false; }
-	bool any_torrent_has_peer(peer_connection const*) const override { return false; }
+	bool has_peer(aux::peer_connection const*) const override { return false; }
+	bool any_torrent_has_peer(aux::peer_connection const*) const override { return false; }
 	bool is_posting_torrent_updates() const override { return false; }
 #endif
 
