@@ -14,7 +14,10 @@ jobs:
    tests:
       name: Test
       runs-on: windows-2019
-      continue-on-error: true
+
+      strategy:
+         matrix:
+           config: [ address-model=32, address-model=64, release ]
 
       steps:
       - name: checkout
@@ -32,18 +35,33 @@ jobs:
           cd boost
           b2 headers
 
-      - name: tests
+      - name: tests (deterministic)
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           set PYTHON_INTERPRETER=python
           cd test
-          b2 -j %NUMBER_OF_PROCESSORS% -l400 warnings=all warnings-as-errors=on
+          b2 -j %NUMBER_OF_PROCESSORS% -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} deterministic-tests
+
+
+      - name: tests (flaky)
+        run: |
+          set BOOST_ROOT=%CD%\boost
+          set PATH=%BOOST_ROOT%;%PATH%
+          set PYTHON_INTERPRETER=python
+          cd test
+          set c=3
+          :retry
+          if %c%==0 exit /B 1
+          set /a c = %c% -1
+          b2 -j %NUMBER_OF_PROCESSORS% -l400 warnings=all warnings-as-errors=on ${{ matrix.config }}
+          if %errorlevel%==0 exit /B 0
+          if %c% gtr 0 goto retry
+          exit /B 1
 
    simulations:
       name: Sims
       runs-on: windows-2019
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -72,17 +90,15 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --abbreviate-paths -j %NUMBER_OF_PROCESSORS% -l400 link=static debug-iterators=off picker-debugging=on invariant-checks=full crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --abbreviate-paths -j %NUMBER_OF_PROCESSORS% -l500 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build
-      runs-on: ${{ matrix.os }}
-      continue-on-error: true
+      runs-on: windows-2019
 
       strategy:
          matrix:
-           os: [ windows-2019, windows-2016 ]
-           config: [ asio-debugging=on picker-debugging=on, mmap-disk-io=off ]
+           config: [ asio-debugging=on picker-debugging=on windows-version=vista, windows-api=store windows-version=win10 ]
 
       steps:
       - name: checkout
@@ -107,6 +123,7 @@ jobs:
           b2 -j %NUMBER_OF_PROCESSORS% ${{ matrix.config }} cxxstd=14 warnings=all warnings-as-errors=on
 
       - name: build examples
+        if: ${{ ! contains(matrix.config, 'windows-api=store') }}
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
@@ -114,6 +131,7 @@ jobs:
           b2 -j %NUMBER_OF_PROCESSORS% ${{ matrix.config }} warnings=all warnings-as-errors=on
 
       - name: build tools
+        if: ${{ ! contains(matrix.config, 'windows-api=store') }}
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
