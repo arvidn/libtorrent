@@ -1026,7 +1026,7 @@ namespace libtorrent {
 			&& has_piece(index))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED"
+			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPPRESSED"
 				, static_cast<int>(index));
 #endif
 			return;
@@ -2343,7 +2343,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not superseeded "
+				peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not super-seeded "
 					"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
 					, m_peer_interested
 					, valid_piece_index

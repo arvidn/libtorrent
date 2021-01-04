@@ -2045,7 +2045,7 @@ namespace {
 			return msg;
 		}
 
-		std::snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
+		std::snprintf(msg, sizeof(msg), "DHT put complete (success=%d hash=%s)"
 			, num_success
 			, aux::to_hex(target).c_str());
 		return msg;
