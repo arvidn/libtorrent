@@ -2587,6 +2587,8 @@ namespace libtorrent {
 			TORRENT_ASSERT(t->valid_metadata());
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
+			TORRENT_ASSERT(r.length <= default_block_size);
+			TORRENT_ASSERT(r.length > 0);
 
 			m_requests.push_back(r);
 
@@ -5496,6 +5498,8 @@ namespace libtorrent {
 		, peer_request const& r, time_point const issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(r.length >= 0);
+
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
@@ -6556,6 +6560,16 @@ namespace libtorrent {
 			}
 
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
+		}
+
+		for (auto const& r : m_requests)
+		{
+			TORRENT_ASSERT(r.piece >= piece_index_t(0));
+			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
+			if (t) TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
+			TORRENT_ASSERT(r.length > 0);
+			TORRENT_ASSERT(r.length <= default_block_size);
+			TORRENT_ASSERT(r.start >= 0);
 		}
 
 		std::set<piece_block> unique;
