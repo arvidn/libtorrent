@@ -130,13 +130,6 @@ See the contribute_ page for other ways to help out.
 	<a href="bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg">bitcoin:373ZDeQgQSQNuxdinNAPnQ63CRNn4iEXzg</a>
 	</span>
 
-	<span style="display:block;text-align:center;margin-top:1em">
-	<span style="display:inline-block">
-	<a class="FlattrButton" style="display:none;" href="https://libtorrent.org"></a>
-	<noscript><a href="https://flattr.com/thing/95662/libtorrent" target="_blank">
-	<img src="https://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
-	</span>
-
 	<span style="display:inline-block">
 	<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
 	<input type="hidden" name="cmd" value="_donations">
@@ -145,8 +138,7 @@ See the contribute_ page for other ways to help out.
 	<input type="hidden" name="item_name" value="libtorrent">
 	<input type="hidden" name="currency_code" value="USD">
 	<input type="hidden" name="bn" value="PP-DonationsBF:btn_donate_LG.gif:NonHosted">
-	<input type="image" src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-medium.png" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-	<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+	<input type="image" src="img/pp-acceptance-medium.png" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 	</form>
 	</span>
 	</span>
