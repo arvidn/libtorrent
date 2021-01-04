@@ -80,7 +80,6 @@ set(libtorrent_include_files
 	performance_counters
 	pex_flags
 	piece_block
-	piece_block_progress
 	piece_picker
 	platform_util
 	portmap
@@ -219,6 +218,7 @@ set(libtorrent_aux_include_files
 	path
 	peer_connection
 	peer_list
+	piece_block_progress
 	polymorphic_socket
 	pool
 	portmap

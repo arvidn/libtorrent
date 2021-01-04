@@ -20,7 +20,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/web_connection_base.hpp"
-#include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
 
