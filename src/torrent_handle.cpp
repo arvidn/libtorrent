@@ -22,13 +22,11 @@ see LICENSE file.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/torrent.hpp"
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/utf8.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/torrent_flags.hpp"

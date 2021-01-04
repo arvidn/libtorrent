@@ -118,7 +118,6 @@ set(libtorrent_include_files
 	union_endpoint
 	units
 	upnp
-	utf8
 	version
 	write_resume_data
 	ssl)
@@ -257,6 +256,7 @@ set(libtorrent_aux_include_files
 	udp_socket
 	udp_tracker_connection
 	unique_ptr
+	utf8
 	utp_socket_manager
 	utp_stream
 	vector

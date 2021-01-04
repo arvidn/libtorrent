@@ -16,9 +16,6 @@ see LICENSE file.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
-#ifdef TORRENT_WINDOWS
-#include "libtorrent/utf8.hpp"
-#endif
 
 #if TORRENT_HAS_SYMLINK
 #include <unistd.h> // for symlink()
@@ -587,4 +584,3 @@ namespace aux {
 
 }
 }
-

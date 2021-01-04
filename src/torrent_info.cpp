@@ -19,14 +19,12 @@ see LICENSE file.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/utf8.hpp"
+#include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
-#include "libtorrent/aux_/merkle.hpp" // for merkle_*
 #include "libtorrent/aux_/throw.hpp"
-#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex

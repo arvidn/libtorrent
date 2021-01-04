@@ -13,14 +13,11 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include <iterator>
-#include "libtorrent/utf8.hpp"
+#include <stdexcept>
+#include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/aux_/throw.hpp"
-#include "libtorrent/aux_/numeric_cast.hpp"
 
-
-namespace libtorrent {
+namespace libtorrent::aux {
 
 namespace {
 	// return the number of bytes in the UTF-8 sequence starting with this
