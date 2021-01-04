@@ -39,7 +39,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/ip_notifier.hpp"
 #include "libtorrent/session_status.hpp"

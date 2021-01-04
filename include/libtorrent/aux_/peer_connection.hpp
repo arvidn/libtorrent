@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/chained_buffer.hpp"

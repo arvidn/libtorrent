@@ -491,7 +491,6 @@ HEADERS = \
   performance_counters.hpp     \
   pex_flags.hpp                \
   piece_block.hpp              \
-  piece_block_progress.hpp     \
   piece_picker.hpp             \
   platform_util.hpp            \
   portmap.hpp                  \
@@ -606,6 +605,7 @@ HEADERS = \
   aux_/path.hpp                     \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
+  aux_/piece_block_progress.hpp     \
   aux_/polymorphic_socket.hpp       \
   aux_/pool.hpp                     \
   aux_/portmap.hpp                  \

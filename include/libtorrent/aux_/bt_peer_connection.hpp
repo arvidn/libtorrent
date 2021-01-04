@@ -31,7 +31,7 @@ see LICENSE file.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
