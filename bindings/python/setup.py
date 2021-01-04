@@ -9,6 +9,7 @@ import pathlib
 import sys
 import sysconfig
 import tempfile
+import subprocess
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
@@ -138,7 +139,7 @@ class LibtorrentBuildExt(BuildExtBase):
         (
             "libtorrent-link=",
             None,
-            "how to link to libtorrent ('static' or 'shared')",
+            "how to link to libtorrent ('static', 'shared' or 'prebuilt')",
         ),
         (
             "boost-link=",
@@ -161,7 +162,11 @@ class LibtorrentBuildExt(BuildExtBase):
 
     def initialize_options(self):
 
-        self.libtorrent_link = None
+        if os.name == "nt":
+            self.libtorrent_link = "static"
+        else:
+            self.libtorrent_link = None
+
         self.boost_link = None
         self.toolset = None
         self.pic = None
@@ -176,12 +181,12 @@ class LibtorrentBuildExt(BuildExtBase):
         return super().run()
 
     def build_extension_with_b2(self):
+        args = []
+
         if os.name == "nt":
             self.toolset = get_msvc_toolset()
-            self.libtorrent_link = "static"
             self.boost_link = "static"
-
-        args = []
+            args.append('--abbreviate-paths')
 
         if distutils.debug.DEBUG:
             args.append("--debug-configuration")
@@ -217,7 +222,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # Our goal is to produce an artifact at this path. If we do this, the
         # distutils build system will skip trying to build it.
-        target = pathlib.Path(self.get_ext_fullpath("libtorrent"))
+        target = pathlib.Path(self.get_ext_fullpath("libtorrent")).absolute()
         self.announce(f"target: {target}")
 
         # b2 doesn't provide a way to signal the name or paths of its outputs.
@@ -231,6 +236,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
+        python_binding_dir = pathlib.Path(__file__).parent.absolute()
         config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
             write_b2_python_config(config)
@@ -239,7 +245,9 @@ class LibtorrentBuildExt(BuildExtBase):
             log.info(config.read())
             config.close()
             args.append(f"--project-config={config.name}")
-            self.spawn(["b2"] + args)
+
+            log.info(" ".join(["b2"] + args))
+            subprocess.run(["b2"] + args, cwd=python_binding_dir, check=True)
         finally:
             # If we errored while writing config, windows may complain about
             # unlinking a file "in use"
