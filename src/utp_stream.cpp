@@ -1970,7 +1970,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
 	INVARIANT_CHECK;
 #endif
 
-	TORRENT_ASSERT(size > 0);
+	TORRENT_ASSERT(size >= 0);
 	if (size <= 0) return;
 
 	// if a packet, p, is passed in here, the buf argument is ignored, and size
