@@ -75,6 +75,7 @@ DOCS_IMAGES = \
   docs/img/utp_stack.png              \
   docs/img/bitcoin.png                \
   docs/img/logo-color-text.png        \
+  docs/img/pp-acceptance-medium.png   \
   docs/style.css
 
 DOCS_PAGES = \
