@@ -12,7 +12,6 @@ see LICENSE file.
 */
 
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/utf8.hpp"
 #include "libtorrent/mmap_disk_io.hpp" // for hasher_thread_divisor
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*()
@@ -23,7 +22,6 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/aux_/directory.hpp"
-#include "libtorrent/disk_interface.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>

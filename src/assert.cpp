@@ -136,7 +136,6 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 #elif defined _WIN32 && !defined TORRENT_WINRT
 
 #include "libtorrent/aux_/windows.hpp"
-#include "libtorrent/utf8.hpp"
 #include <mutex>
 
 #include <WinBase.h>
@@ -381,4 +380,3 @@ TORRENT_EXPORT void assert_fail(char const*, int, char const*
 #endif
 
 } // libtorrent namespace
-

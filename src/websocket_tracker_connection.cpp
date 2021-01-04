@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/websocket_tracker_connection.hpp"
-#include "libtorrent/utf8.hpp"
+#include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
@@ -43,8 +43,7 @@ see LICENSE file.
 #include <string_view>
 #include <vector>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 using namespace std::placeholders;
 namespace errc = boost::system::errc;
@@ -56,7 +55,7 @@ namespace {
 // Overload for JSON strings
 std::string utf8_latin1(json::string_view sv)
 {
-	return libtorrent::utf8_latin1(std::string_view{sv.data(), sv.size()});
+	return aux::utf8_latin1(std::string_view{sv.data(), sv.size()});
 }
 
 }
@@ -489,7 +488,5 @@ catch(std::exception const& e)
 }
 
 }
-}
 
 #endif // TORRENT_USE_RTC
-

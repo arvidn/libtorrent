@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);

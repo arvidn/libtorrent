@@ -532,7 +532,6 @@ HEADERS = \
   union_endpoint.hpp           \
   units.hpp                    \
   upnp.hpp                     \
-  utf8.hpp                     \
   version.hpp                  \
   write_resume_data.hpp        \
   \
@@ -647,6 +646,7 @@ HEADERS = \
   aux_/udp_socket.hpp               \
   aux_/udp_tracker_connection.hpp   \
   aux_/unique_ptr.hpp               \
+  aux_/utf8.hpp                     \
   aux_/utp_socket_manager.hpp       \
   aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \

@@ -11,7 +11,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
-#include "libtorrent/utf8.hpp"
+#include "libtorrent/aux_/utf8.hpp"
 #include "setup_transfer.hpp" // for load_file
 #include "libtorrent/aux_/path.hpp" // for combine_path
 
@@ -23,9 +23,9 @@ namespace {
 void test_utf8_roundtrip(std::int32_t const codepoint)
 {
 	std::string utf8;
-	append_utf8_codepoint(utf8, codepoint);
+	aux::append_utf8_codepoint(utf8, codepoint);
 
-	auto const [cp, len] = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = aux::parse_utf8_codepoint(utf8);
 
 	TEST_EQUAL(len, int(utf8.size()));
 	TEST_EQUAL(cp, codepoint);
@@ -33,17 +33,17 @@ void test_utf8_roundtrip(std::int32_t const codepoint)
 
 void test_parse_utf8(lt::string_view utf8)
 {
-	auto const [cp, len] = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = aux::parse_utf8_codepoint(utf8);
 	TEST_EQUAL(len, int(utf8.size()));
 
 	std::string out;
-	append_utf8_codepoint(out, cp);
+	aux::append_utf8_codepoint(out, cp);
 	TEST_EQUAL(out, utf8);
 }
 
 void parse_error(lt::string_view utf8)
 {
-	auto const [cp, len] = parse_utf8_codepoint(utf8);
+	auto const [cp, len] = aux::parse_utf8_codepoint(utf8);
 	TEST_EQUAL(cp, -1);
 	TEST_CHECK(len >= 1);
 	TEST_CHECK(len <= int(utf8.size()));
@@ -85,8 +85,8 @@ TORRENT_TEST(utf8_latin1)
 
 	std::string utf8;
 	std::copy(utf8_latin1_source.begin(), utf8_latin1_source.end(), std::back_inserter(utf8));
-	std::string const latin1 = utf8_latin1(utf8);
-	std::string const identity = latin1_utf8(latin1);
+	std::string const latin1 = aux::utf8_latin1(utf8);
+	std::string const identity = aux::latin1_utf8(latin1);
 
 	TEST_EQUAL(utf8, identity);
 }

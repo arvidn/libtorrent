@@ -66,7 +66,6 @@ see LICENSE file.
 #ifdef TORRENT_WINDOWS
 // windows part
 
-#include "libtorrent/utf8.hpp"
 #include "libtorrent/aux_/win_util.hpp"
 
 #include "libtorrent/aux_/windows.hpp"
