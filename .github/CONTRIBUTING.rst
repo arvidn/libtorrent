@@ -33,7 +33,7 @@ pull request checklist
 
 When creating a pull request, please consider the following checklist:
 
-* make sure both travis-CI and appveyor builds are green. Note that on gcc and
+* make sure both CI is green ("Checks" on github). Note that on gcc and
   clang warnings are treated as errors. Some tests may be flapping, if so,
   please issue a rebuild of the specific build configuration. (I'm working on
   making all tests deterministic)
@@ -46,3 +46,6 @@ When creating a pull request, please consider the following checklist:
   please pay as much care to tests as you would production code.
 * if your patch adds a new file, please make sure it's added to
   the ``Jamfile``, ``Makefile`` and ``CMakeList.txt``.
+* Changes that alter the ABI (size, order or number of fields on public classes)
+  should target the ``master`` branch. The stable branches (``RC_*_*``) may not
+  change ABI.
