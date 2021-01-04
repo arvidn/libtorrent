@@ -191,7 +191,6 @@ EXTRA_DIST = \
   COPYING \
   AUTHORS \
   NEWS \
-  CONTRIBUTING.rst \
   README.rst \
   ChangeLog \
   $(DOCS_PAGES) \
