@@ -44,6 +44,7 @@ see LICENSE file.
 #include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/ssl.hpp"
+#include "libtorrent/tracker_event.hpp" // for event_t enum
 
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/rtc_signaling.hpp"
@@ -51,13 +52,16 @@ see LICENSE file.
 
 namespace libtorrent {
 
-	class tracker_manager;
-	struct timeout_handler;
 	struct counters;
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
-namespace aux {
+}
+
+namespace libtorrent::aux {
+
+	class tracker_manager;
+	struct timeout_handler;
 	struct session_logger;
 	struct session_settings;
 	struct resolver_interface;
@@ -66,19 +70,8 @@ namespace aux {
 #if TORRENT_USE_RTC
 	struct websocket_tracker_connection;
 #endif
-}
 
 using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
-
-// internal
-enum class event_t : std::uint8_t
-{
-	none,
-	completed,
-	started,
-	stopped,
-	paused
-};
 
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{

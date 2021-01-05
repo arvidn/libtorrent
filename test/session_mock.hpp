@@ -105,7 +105,7 @@ struct session_mock : aux::session_interface
 	void apply_settings_pack(std::shared_ptr<settings_pack>) override {}
 	aux::session_settings const& settings() const override { return _session_settings; }
 
-	void queue_tracker_request(tracker_request, std::weak_ptr<request_callback>) override {}
+	void queue_tracker_request(aux::tracker_request, std::weak_ptr<aux::request_callback>) override {}
 
 	void set_peer_classes(peer_class_set*, address const&, socket_type_t) override {}
 	peer_class_pool const& peer_classes() const override { return _peer_class_pool; }

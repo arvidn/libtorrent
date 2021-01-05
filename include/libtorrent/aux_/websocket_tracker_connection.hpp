@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
-#include "libtorrent/tracker_manager.hpp" // for tracker_connection
+#include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
 #include "libtorrent/ssl.hpp"
 
 #include <boost/beast/core/flat_buffer.hpp>
@@ -33,8 +33,7 @@ see LICENSE file.
 #include <variant>
 #include <optional>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 struct tracker_answer
 {
@@ -104,9 +103,7 @@ TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 	parse_websocket_tracker_response(span<char const> message, error_code &ec);
 
 }
-}
 
 #endif // TORRENT_USE_RTC
 
 #endif // TORRENT_WEBSOCKET_TRACKER_CONNECTION_HPP_INCLUDED
-

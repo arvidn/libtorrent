@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/http_tracker_connection.hpp" // for parse_tracker_response
 #include "libtorrent/aux_/websocket_tracker_connection.hpp" // for parse_websocket_tracker_response
 #include "libtorrent/torrent_info.hpp"
@@ -33,6 +33,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp"
 
 using namespace lt;
+using namespace lt::aux;
 
 // TODO: test scrape requests
 // TODO: test parse peers6

@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/system_error.hpp>

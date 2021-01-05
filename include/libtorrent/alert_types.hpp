@@ -42,7 +42,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stack_allocator.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/portmap.hpp" // for portmap_transport
-#include "libtorrent/tracker_manager.hpp" // for event_t
+#include "libtorrent/tracker_event.hpp" // for event_t enum
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/client_data.hpp"
 #include "libtorrent/aux_/deprecated.hpp"

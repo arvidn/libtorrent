@@ -44,7 +44,7 @@ see LICENSE file.
 #include "libtorrent/ssl.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"

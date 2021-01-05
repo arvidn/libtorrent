@@ -20,7 +20,7 @@ see LICENSE file.
 #include <map>
 
 #include "libtorrent/aux_/udp_socket.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
@@ -28,7 +28,7 @@ namespace libtorrent::aux {
 
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
-	friend class lt::tracker_manager;
+	friend class tracker_manager;
 	public:
 
 		udp_tracker_connection(

@@ -17,11 +17,10 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/tracker_manager.hpp" // for tracker_connection
+#include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
 
 namespace libtorrent {
 
-	class tracker_manager;
 	struct bdecode_node;
 	struct peer_entry;
 

@@ -9,12 +9,13 @@ see LICENSE file.
 */
 
 #include "test.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 
 using namespace lt;
+using namespace lt::aux;
 using namespace std::placeholders;
 
 struct tracker_manager_handler : aux::session_logger {

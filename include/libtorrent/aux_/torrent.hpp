@@ -41,7 +41,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/peer_list.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
@@ -80,12 +80,9 @@ see LICENSE file.
 // logic
 #define TORRENT_DEBUG_STREAMING 0
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct tracker_request;
-
-namespace aux {
-
 	class http_parser;
 	struct bt_peer_connection;
 
@@ -1758,7 +1755,6 @@ namespace aux {
 		std::shared_ptr<aux::rtc_signaling> m_rtc_signaling;
 #endif
 	};
-}
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED
