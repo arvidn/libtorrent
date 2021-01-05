@@ -5630,7 +5630,7 @@ namespace {
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
 
-		if (!m_trackers.empty()) announce_with_tracker();
+		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 
 		set_need_save_resume();
 	}
@@ -11660,10 +11660,10 @@ namespace {
 		TORRENT_ASSERT(static_cast<int>(reason) >= 0);
 		TORRENT_ASSERT(static_cast<int>(reason) < static_cast<int>(waste_reason::max));
 
-		if (m_total_redundant_bytes <= std::numeric_limits<std::int32_t>::max() - b)
+		if (m_total_redundant_bytes <= std::numeric_limits<std::int64_t>::max() - b)
 			m_total_redundant_bytes += b;
 		else
-			m_total_redundant_bytes = std::numeric_limits<std::int32_t>::max();
+			m_total_redundant_bytes = std::numeric_limits<std::int64_t>::max();
 
 		// the stats counters are 64 bits, so we don't check for overflow there
 		m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
@@ -11674,10 +11674,10 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
-		if (m_total_failed_bytes <= std::numeric_limits<std::int32_t>::max() - b)
+		if (m_total_failed_bytes <= std::numeric_limits<std::int64_t>::max() - b)
 			m_total_failed_bytes += b;
 		else
-			m_total_failed_bytes = std::numeric_limits<std::int32_t>::max();
+			m_total_failed_bytes = std::numeric_limits<std::int64_t>::max();
 
 		// the stats counters are 64 bits, so we don't check for overflow there
 		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);

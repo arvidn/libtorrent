@@ -20,7 +20,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
@@ -60,7 +60,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
@@ -87,7 +87,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
@@ -113,7 +113,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
@@ -179,7 +179,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
@@ -199,24 +199,28 @@ jobs:
 
    dist:
       name: build dist
-      runs-on: ubuntu-20.04
+      runs-on: ${{ matrix.os }}
+
+      strategy:
+         matrix:
+            os: [ubuntu-20.04 ]
 
       steps:
       - name: checkout
         uses: actions/checkout@v2.3.3
         with:
-           submodules: recursive
+           submodules: true
 
       - name: update package lists
         continue-on-error: true
         run: |
           sudo apt update
 
-      - name: install boost
+      - name: install dependencies
         run: |
           sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
-          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
-          python -m pip install aafigure
+          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick python3-setuptools
+          python3 -m pip install aafigure
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build tarball
@@ -227,8 +231,10 @@ jobs:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz
 
-      - name: test-tarball
+      - name: test-tarball (b2)
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/test
-          b2 link=static -j2 cxxstd=17 testing.execute=off
+          b2 link=static -j2 testing.execute=off
+          cd ..
+          python3 bindings/python/setup.py build

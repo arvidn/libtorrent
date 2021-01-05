@@ -2589,6 +2589,7 @@ namespace {
 
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
+		TORRENT_ASSERT(r.length >= 0);
 
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);

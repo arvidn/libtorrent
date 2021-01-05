@@ -984,7 +984,7 @@ namespace {
 			&& has_piece(index))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED"
+			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPPRESSED"
 				, static_cast<int>(index));
 #endif
 			return;
@@ -2334,7 +2334,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not superseeded "
+				peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not super-seeded "
 					"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
 					, m_peer_interested
 					, valid_piece_index
@@ -2553,6 +2553,8 @@ namespace {
 			TORRENT_ASSERT(t->valid_metadata());
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
+			TORRENT_ASSERT(r.length <= default_block_size);
+			TORRENT_ASSERT(r.length > 0);
 
 			m_requests.push_back(r);
 
@@ -5471,6 +5473,8 @@ namespace {
 		, peer_request const& r, time_point const issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(r.length >= 0);
+
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
@@ -6534,6 +6538,16 @@ namespace {
 			}
 
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
+		}
+
+		for (auto const& r : m_requests)
+		{
+			TORRENT_ASSERT(r.piece >= piece_index_t(0));
+			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
+			if (t) TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
+			TORRENT_ASSERT(r.length > 0);
+			TORRENT_ASSERT(r.length <= default_block_size);
+			TORRENT_ASSERT(r.start >= 0);
 		}
 
 		std::set<piece_block> unique;
