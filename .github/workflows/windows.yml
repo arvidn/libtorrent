@@ -77,7 +77,7 @@ jobs:
           exit /B 1
 
    simulations:
-      name: Sims
+      name: Simulations
       runs-on: windows-2019
 
       steps:
@@ -107,11 +107,12 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --abbreviate-paths -j %NUMBER_OF_PROCESSORS% -l500 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --abbreviate-paths -j %NUMBER_OF_PROCESSORS% -l250 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build
       runs-on: windows-2019
+      continue-on-error: true
 
       strategy:
          matrix:
