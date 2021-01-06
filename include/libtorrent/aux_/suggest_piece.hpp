@@ -15,10 +15,10 @@ see LICENSE file.
 #include <algorithm>
 
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 struct suggest_piece
 {
@@ -100,6 +100,6 @@ private:
 	sliding_average<int, 30> m_availability;
 };
 
-}}
+}
 
 #endif

@@ -12,7 +12,7 @@ see LICENSE file.
 #define TORRENT_DISK_JOB_FENCE_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/tailqueue.hpp"
+#include "libtorrent/aux_/tailqueue.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -20,8 +20,9 @@ see LICENSE file.
 namespace libtorrent {
 
 struct counters;
+}
 
-namespace aux {
+namespace libtorrent::aux {
 
 	struct disk_io_job;
 
@@ -89,7 +90,6 @@ namespace aux {
 	};
 
 
-}}
+}
 
 #endif
-

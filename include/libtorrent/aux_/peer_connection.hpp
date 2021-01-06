@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"

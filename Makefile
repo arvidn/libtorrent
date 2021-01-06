@@ -511,7 +511,6 @@ HEADERS = \
   sha1.hpp                     \
   sha1_hash.hpp                \
   sha256.hpp                   \
-  sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
   socket_type.hpp              \
@@ -522,7 +521,6 @@ HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   string_view.hpp              \
-  tailqueue.hpp                \
   time.hpp                     \
   torrent_flags.hpp            \
   torrent_handle.hpp           \
@@ -625,6 +623,7 @@ HEADERS = \
   aux_/session_udp_sockets.hpp      \
   aux_/set_socket_buffer.hpp        \
   aux_/sha512.hpp                   \
+  aux_/sliding_average.hpp          \
   aux_/socket_type.hpp              \
   aux_/stack_allocator.hpp          \
   aux_/stat.hpp                     \
@@ -635,6 +634,7 @@ HEADERS = \
   aux_/string_util.hpp              \
   aux_/strview_less.hpp             \
   aux_/suggest_piece.hpp            \
+  aux_/tailqueue.hpp                \
   aux_/throw.hpp                    \
   aux_/time.hpp                     \
   aux_/timestamp_history.hpp        \

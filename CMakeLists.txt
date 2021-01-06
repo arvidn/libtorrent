@@ -99,7 +99,6 @@ set(libtorrent_include_files
 	sha1
 	sha1_hash
 	sha256
-	sliding_average
 	socket
 	socket_io
 	socket_type
@@ -108,7 +107,6 @@ set(libtorrent_include_files
 	ssl_stream
 	storage_defs
 	string_view
-	tailqueue
 	time
 	torrent_flags
 	torrent_handle
@@ -236,6 +234,7 @@ set(libtorrent_aux_include_files
 	session_settings
 	session_udp_sockets
 	set_socket_buffer
+	sliding_average
 	socket_type
 	stack_allocator
 	stat
@@ -245,6 +244,7 @@ set(libtorrent_aux_include_files
 	string_util
 	strview_less
 	suggest_piece
+	tailqueue
 	throw
 	time
 	timestamp_history

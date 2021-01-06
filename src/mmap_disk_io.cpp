@@ -126,7 +126,7 @@ namespace {
 	}
 } // anonymous namespace
 
-using jobqueue_t = tailqueue<aux::disk_io_job>;
+using jobqueue_t = aux::tailqueue<aux::disk_io_job>;
 
 // this is a singleton consisting of the thread and a queue
 // of disk io jobs

@@ -9,21 +9,21 @@ see LICENSE file.
 */
 
 #include "test.hpp"
-#include "libtorrent/tailqueue.hpp"
+#include "libtorrent/aux_/tailqueue.hpp"
 
 using namespace lt;
 
 namespace {
 
-struct test_node : tailqueue_node<test_node>
+struct test_node : aux::tailqueue_node<test_node>
 {
 	explicit test_node(char n) : name(n) {}
 	char name;
 };
 
-void check_chain(tailqueue<test_node>& chain, char const* expected)
+void check_chain(aux::tailqueue<test_node>& chain, char const* expected)
 {
-	tailqueue_iterator<test_node> i = chain.iterate();
+	aux::tailqueue_iterator<test_node> i = chain.iterate();
 
 	while (i.get())
 	{
@@ -38,7 +38,7 @@ void check_chain(tailqueue<test_node>& chain, char const* expected)
 	TEST_EQUAL(expected[0], 0);
 }
 
-void free_chain(tailqueue<test_node>& q)
+void free_chain(aux::tailqueue<test_node>& q)
 {
 	test_node* chain = static_cast<test_node*>(q.get_all());
 	while(chain)
@@ -49,7 +49,7 @@ void free_chain(tailqueue<test_node>& q)
 	}
 }
 
-void build_chain(tailqueue<test_node>& q, char const* str)
+void build_chain(aux::tailqueue<test_node>& q, char const* str)
 {
 	free_chain(q);
 
@@ -67,8 +67,8 @@ void build_chain(tailqueue<test_node>& q, char const* str)
 
 TORRENT_TEST(tailqueue)
 {
-	tailqueue<test_node> t1;
-	tailqueue<test_node> t2;
+	aux::tailqueue<test_node> t1;
+	aux::tailqueue<test_node> t2;
 
 	// test prepend
 	build_chain(t1, "abcdef");
