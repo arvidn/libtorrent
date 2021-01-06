@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/timestamp_history.hpp"
-#include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
@@ -33,8 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 #ifndef TORRENT_UTP_LOG_ENABLE
 	#define TORRENT_UTP_LOG 0
@@ -942,7 +941,6 @@ private:
 	bool m_confirmed:1;
 };
 
-}
 }
 
 #endif

@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/tailqueue.hpp"
+#include "libtorrent/aux_/tailqueue.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -31,8 +31,9 @@ see LICENSE file.
 namespace libtorrent {
 
 	struct mmap_storage;
+}
 
-namespace aux {
+namespace libtorrent::aux {
 
 	// internal
 	enum class job_action_t : std::uint8_t
@@ -201,7 +202,6 @@ namespace aux {
 #endif
 	};
 
-}
 }
 
 #endif // TORRENT_DISK_IO_JOB_HPP
