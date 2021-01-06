@@ -33,6 +33,7 @@ jobs:
           echo "using gcc ;" >>~/user-config.jam
 
       - name: install gcrypt
+        if: ${{ contains(matrix.config, 'crypto=gcrypt') }}
         run: sudo apt install libgcrypt20-dev
 
       - name: build library
@@ -158,6 +159,11 @@ jobs:
         continue-on-error: true
         run: |
           sudo apt update
+
+      - name: install gnutls
+        if: ${{ contains(matrix.config, 'crypto=gnutls') }}
+        run: |
+          sudp apt install libgnutls28-dev
 
       - name: install boost
         run: |
