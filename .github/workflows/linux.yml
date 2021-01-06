@@ -141,7 +141,12 @@ jobs:
 
       strategy:
          matrix:
-            config: [ address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl, toolset=clang address-sanitizer=norecover undefined-sanitizer=norecover, thread-sanitizer=norecover crypto=openssl release debug-symbols=on, deprecated-functions=off ]
+            include:
+               - config: address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
+               - config: toolset=clang address-sanitizer=norecover undefined-sanitizer=norecover
+               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on
+               - config: crypto=gnutls
+               - config: deprecated-functions=off
 
       steps:
       - name: checkout
