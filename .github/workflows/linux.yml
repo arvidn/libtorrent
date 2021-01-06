@@ -163,7 +163,7 @@ jobs:
       - name: install gnutls
         if: ${{ contains(matrix.config, 'crypto=gnutls') }}
         run: |
-          sudp apt install libgnutls28-dev
+          sudo apt install libgnutls28-dev
 
       - name: install boost
         run: |
