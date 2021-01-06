@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/ssl.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/udp_tracker_connection.hpp"
 
 #if TORRENT_USE_RTC
@@ -28,7 +28,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())

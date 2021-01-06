@@ -528,7 +528,7 @@ HEADERS = \
   torrent_handle.hpp           \
   torrent_info.hpp             \
   torrent_status.hpp           \
-  tracker_manager.hpp          \
+  tracker_event.hpp            \
   union_endpoint.hpp           \
   units.hpp                    \
   upnp.hpp                     \
@@ -643,6 +643,7 @@ HEADERS = \
   aux_/torrent_list.hpp             \
   aux_/torrent_peer.hpp             \
   aux_/torrent_peer_allocator.hpp   \
+  aux_/tracker_manager.hpp          \
   aux_/udp_socket.hpp               \
   aux_/udp_tracker_connection.hpp   \
   aux_/unique_ptr.hpp               \

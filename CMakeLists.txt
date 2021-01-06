@@ -114,7 +114,7 @@ set(libtorrent_include_files
 	torrent_handle
 	torrent_info
 	torrent_status
-	tracker_manager
+	tracker_event
 	union_endpoint
 	units
 	upnp
@@ -253,6 +253,7 @@ set(libtorrent_aux_include_files
 	torrent_list
 	torrent_peer
 	torrent_peer_allocator
+	tracker_manager
 	udp_socket
 	udp_tracker_connection
 	unique_ptr

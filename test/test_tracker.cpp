@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/http_tracker_connection.hpp" // for parse_tracker_response
 #include "libtorrent/aux_/websocket_tracker_connection.hpp" // for parse_websocket_tracker_response
 #include "libtorrent/torrent_info.hpp"
@@ -52,7 +52,7 @@ TORRENT_TEST(parse_hostname_peers)
 		"2:ip13:test_hostname4:porti1000eed"
 		"7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -76,7 +76,7 @@ TORRENT_TEST(parse_peers4)
 	char const response[] = "d5:peers12:\x01\x02\x03\x04\x30\x10"
 		"\x09\x08\x07\x06\x20\x10" "e";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -140,9 +140,9 @@ TORRENT_TEST(parse_i2p_peers)
 		0xc2, 0x8a, 0x22, 0x6b, 0x47, 0xc1, 0xd1, 0x52, 0x61, 0x66,
 		0xa0, 0x75, 0xab, 0x65 };
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(
+	aux::tracker_response resp = aux::parse_tracker_response(
 		{ reinterpret_cast<char const*>(response), sizeof(response) }
-		, ec, tracker_request::i2p, sha1_hash());
+		, ec, aux::tracker_request::i2p, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 11);
@@ -161,7 +161,7 @@ TORRENT_TEST(parse_interval)
 {
 	char const response[] = "d8:intervali1042e12:min intervali10e5:peers0:e";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -175,7 +175,7 @@ TORRENT_TEST(parse_warning)
 {
 	char const response[] = "d5:peers0:15:warning message12:test messagee";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -187,7 +187,7 @@ TORRENT_TEST(parse_failure_reason)
 {
 	char const response[] = "d5:peers0:14:failure reason12:test messagee";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, errors::tracker_failure);
@@ -200,8 +200,8 @@ TORRENT_TEST(parse_scrape_response)
 	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad"
 		"8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
-		, ec, tracker_request::scrape_request, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
+	aux::tracker_response resp = aux::parse_tracker_response(response
+		, ec, aux::tracker_request::scrape_request, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.complete, 1);
@@ -215,8 +215,8 @@ TORRENT_TEST(parse_scrape_response_with_zero)
 	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad"
 		"8:completei4e10:incompletei5e10:downloadedi6eeee";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
-		, ec, tracker_request::scrape_request, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
+	aux::tracker_response resp = aux::parse_tracker_response(response
+		, ec, aux::tracker_request::scrape_request, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.complete, 4);
@@ -229,7 +229,7 @@ TORRENT_TEST(parse_external_ip)
 {
 	char const response[] = "d5:peers0:11:external ip4:\x01\x02\x03\x04" "e";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -242,7 +242,7 @@ TORRENT_TEST(parse_external_ip6)
 	char const response[] = "d5:peers0:11:external ip"
 		"16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
 	error_code ec;
-	tracker_response resp = aux::parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());

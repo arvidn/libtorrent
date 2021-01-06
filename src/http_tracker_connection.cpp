@@ -26,7 +26,6 @@ see LICENSE file.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/aux_/http_tracker_connection.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
