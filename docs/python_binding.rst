@@ -107,7 +107,7 @@ root directory of the boost source distribution.
 
 For example, to build a self-contained python module::
 
-	b2 -j30 libtorrent-link=static boost-link=static stage_module
+	b2 libtorrent-link=static boost-link=static stage_module
 
 installing python module
 ========================

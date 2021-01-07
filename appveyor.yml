@@ -81,25 +81,25 @@ build_script:
   # just the library
   - cd %ROOT_DIRECTORY%
   - if defined lib (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 cxxstd=14
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 cxxstd=17
     )
 
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined examples (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined tools (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined tests (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 testing.execute=off
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 testing.execute=off
     )
 
   # python binding
@@ -108,7 +108,7 @@ build_script:
   # boost.python itself doesn't build warning free, so we can't build
   # with warnings-as-errors
   - if defined python (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 libtorrent-link=shared stage_module stage_dependencies
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 libtorrent-link=shared stage_module stage_dependencies
     )
   - if defined python_dist (
     c:\Python36-x64\python.exe setup.py bdist --format=msi
@@ -117,7 +117,7 @@ build_script:
   # simulations
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+    b2.exe --hash warnings=all warnings-as-errors=on %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
     )
 
   # minimal support for cmake build
@@ -136,7 +136,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined tests (
-    appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 deterministic-tests
+    appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 deterministic-tests
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
@@ -159,5 +159,5 @@ test_script:
   # certain unexpected terminations (through exceptions)
   - cd %ROOT_DIRECTORY%\simulation
   - if defined sim (
-    b2.exe --hash warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+    b2.exe --hash warnings-as-errors=on %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
     )

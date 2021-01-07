@@ -58,7 +58,7 @@ jobs:
           set PATH=%BOOST_ROOT%;%PATH%
           set PYTHON_INTERPRETER=python
           cd test
-          b2 -j %NUMBER_OF_PROCESSORS% -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} deterministic-tests
+          b2 -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} deterministic-tests
 
 
       - name: tests (flaky)
@@ -71,7 +71,7 @@ jobs:
           :retry
           if %c%==0 exit /B 1
           set /a c = %c% -1
-          b2 -j %NUMBER_OF_PROCESSORS% -l400 warnings=all warnings-as-errors=on ${{ matrix.config }}
+          b2 -l400 warnings=all warnings-as-errors=on ${{ matrix.config }}
           if %errorlevel%==0 exit /B 0
           if %c% gtr 0 goto retry
           exit /B 1
@@ -107,7 +107,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --abbreviate-paths -j %NUMBER_OF_PROCESSORS% -l250 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --abbreviate-paths -l250 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build
@@ -141,7 +141,7 @@ jobs:
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
-          b2 -j %NUMBER_OF_PROCESSORS% ${{ matrix.config }} cxxstd=17 warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=17 warnings=all warnings-as-errors=on
 
       - name: build examples
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -149,7 +149,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd examples
-          b2 -j %NUMBER_OF_PROCESSORS% ${{ matrix.config }} warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} warnings=all warnings-as-errors=on
 
       - name: build tools
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -157,5 +157,5 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd tools
-          b2 -j %NUMBER_OF_PROCESSORS% ${{ matrix.config }} warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} warnings=all warnings-as-errors=on
 

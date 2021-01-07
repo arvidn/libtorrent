@@ -45,7 +45,7 @@ building
 
 To build the fuzzers::
 
-	b2 clang stage -j4
+	b2 clang stage
 
 The fuzzers binaries are placed in a directory called `fuzzers`.
 

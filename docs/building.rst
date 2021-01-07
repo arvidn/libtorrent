@@ -72,13 +72,13 @@ Linux::
 
 	sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
 	echo "using gcc ;" >>~/user-config.jam
-	b2 -j2 crypto=openssl cxxstd=14
+	b2 crypto=openssl cxxstd=14
 
 Mac OS::
 
 	brew install boost-build boost openssl@1.1
 	echo "using darwin ;" >>~/user-config.jam
-	b2 -j2 crypto=openssl cxxstd=14
+	b2 crypto=openssl cxxstd=14
 
 Windows (assuming the boost package is saved to ``C:\boost_1_69_0``)::
 
@@ -86,7 +86,7 @@ Windows (assuming the boost package is saved to ``C:\boost_1_69_0``)::
 	set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
 	(cd %BOOST_ROOT% && .\bootstrap.bat)
 	echo using msvc ; >>%HOMEDRIVE%%HOMEPATH%\user-config.jam
-	%BOOST_ROOT%\b2.exe --hash -j2 cxxstd=14
+	%BOOST_ROOT%\b2.exe --hash cxxstd=14
 
 docker file
 ~~~~~~~~~~~
@@ -538,13 +538,11 @@ Step 2: Building libtorrent
 
 In the terminal, run::
 
-	ninja -j8
-
-in the build directory the number after ``-j`` specifies the number of parallel jobs to build in; you may omit this option to let ``ninja`` use all your cores).
+	ninja
 
 If you enabled test in the configuration step, to run them, run::
 
-	ctest -j8
+	ctest
 
 building with VCPKG
 -------------------

@@ -35,7 +35,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
 
 
 
@@ -57,7 +57,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -j2 -l400 debug-iterators=on invariant-checks=full asserts=on
+          b2 -l400 debug-iterators=on invariant-checks=full asserts=on
 
 
    build:
@@ -82,4 +82,41 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on cxxstd=14
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14
+
+
+   ios_build:
+      name: Build iOS
+      runs-on: macos-latest
+      continue-on-error: true
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: true
+
+      - name: install boost
+        run: |
+          brew install boost-build boost
+          echo "using darwin : ios_sim : clang++ : <compileflags>-Wno-deprecated-declarations
+          <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+          <compileflags>-mios-simulator-version-min=7
+          <compileflags>-fobjc-abi-version=2
+          <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+          <linkflags>-mios-simulator-version-min=7
+          <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
+
+          echo "using darwin : ios : clang++ : <compileflags>-Wno-deprecated-declarations
+          <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+          <compileflags>-mios-version-min=7
+          <compileflags>\"-arch armv7\"
+          <compileflags>-fobjc-abi-version=2
+          <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
+          <linkflags>-mios-version-min=7
+          <linkflags>\"-arch armv7\"
+          <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
+
+      - name: build library
+        run: |
+          b2 -l400 warnings-as-errors=on cxxstd=14 darwin-ios darwin-ios_sim link=static

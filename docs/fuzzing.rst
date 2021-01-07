@@ -28,7 +28,7 @@ Clang must be configured in your `user-config.jam`, for example::
 When building, you most likely want to stage the resulting binaries into a
 well known location. Invoke `b2` like this::
 
-	b2 clang stage -j$(nproc)
+	b2 clang stage
 
 This will build and stage all fuzzers into the `fuzzers/fuzzers` directory.
 
@@ -70,7 +70,7 @@ a lot of CPU into long running fuzzing, it is better spent on large fuzz targets
 For this reason, there's another alias in the `Jamfile` to only build and stage
 large fuzz targets. Call `b2` like this::
 
-	b2 clang stage-large -j$(nproc)
+	b2 clang stage-large
 
 fast+slow
 ---------
@@ -84,7 +84,7 @@ fuzzer.
 To build the fuzzers in this "fast" mode, there's a build variant `build_coverage`.
 Invoke `b2` like this::
 
-	b2 clang stage build_coverage -j$(nproc)
+	b2 clang stage build_coverage
 
 For more details on "fast + slow" see `Paul Dreik's talk`_.
 

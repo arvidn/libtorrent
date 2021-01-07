@@ -12,14 +12,14 @@ toolset = ''
 if len(sys.argv) > 1:
     toolset = sys.argv[1]
 
-ret = os.system('cd ../examples && b2 -j %d profile %s stage_client_test'
-                % (multiprocessing.cpu_count(), toolset))
+ret = os.system('cd ../examples && b2 profile %s stage_client_test'
+                % toolset)
 if ret != 0:
     print('ERROR: build failed: %d' % ret)
     sys.exit(1)
 
-ret = os.system('cd ../examples && b2 -j %d release %s stage_connection_tester'
-                % (multiprocessing.cpu_count(), toolset))
+ret = os.system('cd ../examples && b2 release %s stage_connection_tester'
+                % toolset)
 if ret != 0:
     print('ERROR: build failed: %d' % ret)
     sys.exit(1)

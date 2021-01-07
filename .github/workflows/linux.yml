@@ -33,21 +33,22 @@ jobs:
           echo "using gcc ;" >>~/user-config.jam
 
       - name: install gcrypt
+        if: ${{ contains(matrix.config, 'crypto=gcrypt') }}
         run: sudo apt install libgcrypt20-dev
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -j2 cxxstd=17
+          b2 ${{ matrix.config }} cxxstd=17
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} -j2
+          b2 ${{ matrix.config }}
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} -j2 warnings-as-errors=on
+          b2 ${{ matrix.config }} warnings-as-errors=on
 
 
 
@@ -75,7 +76,7 @@ jobs:
       - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang -j2 cxxstd=17 warnings-as-errors=on
+          b2 clang cxxstd=17 warnings-as-errors=on
 
 
 
@@ -101,7 +102,7 @@ jobs:
 
       - name: compile header files individually
         run: |
-          b2 -j2 check-headers cxxstd=17 warnings-as-errors=on
+          b2 check-headers cxxstd=17 warnings-as-errors=on
 
 
 
@@ -130,7 +131,7 @@ jobs:
 
       - name: analyze
         run: |
-          b2 -a -j2 clang_tidy
+          b2 -a clang_tidy
 
 
 
@@ -141,7 +142,12 @@ jobs:
 
       strategy:
          matrix:
-            config: [ webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl, toolset=clang address-sanitizer=norecover undefined-sanitizer=norecover, thread-sanitizer=norecover crypto=openssl release debug-symbols=on, deprecated-functions=off ]
+            include:
+               - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
+               - config: toolset=clang address-sanitizer=norecover undefined-sanitizer=norecover
+               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on
+               - config: crypto=gnutls
+               - config: deprecated-functions=off
 
       steps:
       - name: checkout
@@ -153,6 +159,11 @@ jobs:
         continue-on-error: true
         run: |
           sudo apt update
+
+      - name: install gnutls
+        if: ${{ contains(matrix.config, 'crypto=gnutls') }}
+        run: |
+          sudo apt install libgnutls28-dev
 
       - name: install boost
         run: |
@@ -167,7 +178,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
 
 
 
@@ -194,7 +205,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -j2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
+          b2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
 
 
    dist:
@@ -235,6 +246,6 @@ jobs:
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/test
-          b2 link=static -j2 testing.execute=off
+          b2 link=static testing.execute=off
           cd ..
           python3 bindings/python/setup.py build

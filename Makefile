@@ -1,17 +1,6 @@
-VERSION=2.0.1
+VERSION=2.0.2
 
-NCORES=1
-ifneq ($(OS),Windows_NT)
-	UNAME=$(shell uname -s)
-	ifeq ($(UNAME), Darwin)
-		NCORES=$(shell sysctl -n hw.ncpu)
-	endif
-	ifeq ($(UNAME), Linux)
-		NCORES=$(shell nproc)
-	endif
-endif
-
-BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64 -j${NCORES}
+BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64
 
 ifeq (${PREFIX},)
 PREFIX=/usr/local/
@@ -36,7 +25,7 @@ sim: FORCE
 	(cd simulation; BOOST_ROOT="" b2 $(filter-out crypto=openssl,${BUILD_CONFIG}) crypto=built-in)
 
 check: FORCE
-	(cd test; BOOST_ROOT="" b2 crypto=openssl warnings=off -j${NCORES})
+	(cd test; BOOST_ROOT="" b2 crypto=openssl warnings=off)
 
 clean: FORCE
 	rm -rf \
