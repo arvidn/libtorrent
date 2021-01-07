@@ -23,20 +23,18 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/part_file.hpp"
+#include "libtorrent/aux_/part_file.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
-namespace aux {
 	struct session_settings;
 	struct file_view_pool;
 	struct file_view;
-}
 
 	struct TORRENT_EXTRA_EXPORT mmap_storage
 		: std::enable_shared_from_this<mmap_storage>

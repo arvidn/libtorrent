@@ -15,7 +15,7 @@ see LICENSE file.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
-#include "libtorrent/mmap_storage.hpp"
+#include "libtorrent/aux_/mmap_storage.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -330,7 +330,7 @@ private:
 
 	// storages that have had write activity recently and will get ticked
 	// soon, for deferred actions (say, flushing partfile metadata)
-	std::vector<std::pair<time_point, std::weak_ptr<mmap_storage>>> m_need_tick;
+	std::vector<std::pair<time_point, std::weak_ptr<aux::mmap_storage>>> m_need_tick;
 	std::mutex m_need_tick_mutex;
 
 	// this is protected by the completed_jobs_mutex. It's true whenever
@@ -339,7 +339,7 @@ private:
 	// completion callbacks in m_completed jobs
 	bool m_job_completions_in_flight = false;
 
-	aux::vector<std::shared_ptr<mmap_storage>, storage_index_t> m_torrents;
+	aux::vector<std::shared_ptr<aux::mmap_storage>, storage_index_t> m_torrents;
 
 	// indices into m_torrents to empty slots
 	std::vector<storage_index_t> m_free_slots;
@@ -386,7 +386,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-		auto storage = std::make_shared<mmap_storage>(params, m_file_pool);
+		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
 		storage->set_storage_index(idx);
 		storage->set_owner(owner);
 		if (idx == m_torrents.end_index())
@@ -526,7 +526,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 #endif
 
-		std::shared_ptr<mmap_storage> storage = j->storage;
+		std::shared_ptr<aux::mmap_storage> storage = j->storage;
 
 		TORRENT_ASSERT(static_cast<int>(j->action) < int(job_functions.size()));
 
@@ -1502,7 +1502,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					std::unique_lock<std::mutex> l2(m_need_tick_mutex);
 					while (!m_need_tick.empty() && m_need_tick.front().first < now)
 					{
-						std::shared_ptr<mmap_storage> st = m_need_tick.front().second.lock();
+						std::shared_ptr<aux::mmap_storage> st = m_need_tick.front().second.lock();
 						m_need_tick.erase(m_need_tick.begin());
 						if (st)
 						{

@@ -472,12 +472,10 @@ HEADERS = \
   lsd.hpp                      \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \
-  mmap_storage.hpp             \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
   parse_url.hpp                \
-  part_file.hpp                \
   pe_crypto.hpp                \
   peer.hpp                     \
   peer_class.hpp               \
@@ -594,11 +592,13 @@ HEADERS = \
   aux_/merkle.hpp                   \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
+  aux_/mmap_storage.hpp             \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \
   aux_/open_mode.hpp                \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
+  aux_/part_file.hpp                \
   aux_/path.hpp                     \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \

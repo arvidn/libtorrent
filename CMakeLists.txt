@@ -61,12 +61,10 @@ set(libtorrent_include_files
 	lsd
 	magnet_uri
 	mmap_disk_io
-	mmap_storage
 	natpmp
 	netlink
 	operations
 	parse_url
-	part_file
 	pe_crypto
 	peer
 	peer_class
@@ -208,10 +206,12 @@ set(libtorrent_aux_include_files
 	lsd
 	merkle
 	merkle_tree
+	mmap_storage
 	noexcept_movable
 	numeric_cast
 	packet_buffer
 	packet_pool
+	part_file
 	path
 	peer_connection
 	peer_list
