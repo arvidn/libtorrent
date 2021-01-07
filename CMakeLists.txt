@@ -51,7 +51,6 @@ set(libtorrent_include_files
 	gzip
 	hasher
 	hex
-	http_stream
 	i2p_stream
 	identify_client
 	index_range
@@ -102,7 +101,6 @@ set(libtorrent_include_files
 	socket_type
 	socks5_stream
 	span
-	ssl_stream
 	storage_defs
 	string_view
 	time
@@ -194,6 +192,7 @@ set(libtorrent_aux_include_files
 	heterogeneous_queue
 	http_connection
 	http_parser
+	http_stream
 	http_tracker_connection
 	invariant_check
 	instantiate_connection
@@ -236,6 +235,7 @@ set(libtorrent_aux_include_files
 	set_socket_buffer
 	sliding_average
 	socket_type
+	ssl_stream
 	stack_allocator
 	stat
 	stat_cache

@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 class http_stream : public proxy_base
 {

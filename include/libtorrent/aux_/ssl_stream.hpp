@@ -26,7 +26,7 @@ see LICENSE file.
 
 #include <functional>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 template <class Stream>
 struct ssl_stream

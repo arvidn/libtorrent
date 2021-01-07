@@ -460,7 +460,6 @@ HEADERS = \
   gzip.hpp                     \
   hasher.hpp                   \
   hex.hpp                      \
-  http_stream.hpp              \
   i2p_stream.hpp               \
   identify_client.hpp          \
   index_range.hpp              \
@@ -515,7 +514,6 @@ HEADERS = \
   socks5_stream.hpp            \
   span.hpp                     \
   ssl.hpp                      \
-  ssl_stream.hpp               \
   storage.hpp                  \
   storage_defs.hpp             \
   string_view.hpp              \
@@ -578,6 +576,7 @@ HEADERS = \
   aux_/heterogeneous_queue.hpp      \
   aux_/http_connection.hpp          \
   aux_/http_parser.hpp              \
+  aux_/http_stream.hpp              \
   aux_/http_tracker_connection.hpp  \
   aux_/instantiate_connection.hpp   \
   aux_/invariant_check.hpp          \
@@ -625,6 +624,7 @@ HEADERS = \
   aux_/sha512.hpp                   \
   aux_/sliding_average.hpp          \
   aux_/socket_type.hpp              \
+  aux_/ssl_stream.hpp               \
   aux_/stack_allocator.hpp          \
   aux_/stat.hpp                     \
   aux_/stat_cache.hpp               \

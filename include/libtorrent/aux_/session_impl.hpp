@@ -29,7 +29,7 @@ see LICENSE file.
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 
 #ifdef TORRENT_SSL_PEERS
-#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/ssl_stream.hpp"
 #endif
 
 #include "libtorrent/session.hpp" // for user_load_function_t
