@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/rtc_stream.hpp"
 #include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/http_stream.hpp"
+#include "libtorrent/aux_/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
@@ -25,13 +25,12 @@ see LICENSE file.
 #include "libtorrent/socks5_stream.hpp"
 
 #if TORRENT_USE_SSL
-#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/ssl_stream.hpp"
 #endif
 
 #include "libtorrent/debug.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	using socket_type = polymorphic_socket<
 		tcp::socket
@@ -82,7 +81,6 @@ namespace aux {
 
 	// properly shuts down SSL sockets. holder keeps s alive
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
-}
 }
 
 #endif

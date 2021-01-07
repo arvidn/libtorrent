@@ -45,7 +45,7 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent.hpp"
 
 #ifdef TORRENT_SSL_PEERS
-#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/ssl_stream.hpp"
 #include "libtorrent/ssl.hpp"
 #endif // TORRENT_SSL_PEERS
 

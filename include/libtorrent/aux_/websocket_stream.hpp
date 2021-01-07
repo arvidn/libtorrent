@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ssl.hpp"
-#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 
@@ -64,8 +64,7 @@ void async_teardown(role_type
 } // beast
 } // boost
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 namespace websocket = boost::beast::websocket;
 
@@ -195,9 +194,7 @@ private:
 };
 
 }
-}
 
 #endif // TORRENT_USE_RTC
 
 #endif // TORRENT_WEBSOCKET_STREAM_HPP_INCLUDED
-
