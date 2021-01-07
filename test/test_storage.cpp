@@ -17,7 +17,7 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "settings.hpp"
 
-#include "libtorrent/mmap_storage.hpp"
+#include "libtorrent/aux_/mmap_storage.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/hasher.hpp"
@@ -54,6 +54,7 @@ namespace aux {
 
 namespace {
 
+using lt::aux::mmap_storage;
 using lt::aux::posix_storage;
 using lt::aux::disk_io_job;
 

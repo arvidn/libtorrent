@@ -41,7 +41,7 @@ see LICENSE file.
 
 */
 
-#include "libtorrent/part_file.hpp"
+#include "libtorrent/aux_/part_file.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -58,7 +58,7 @@ namespace {
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	part_file::part_file(std::string path, std::string name
 		, int const num_pieces, int const piece_size)

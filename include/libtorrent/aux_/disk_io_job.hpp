@@ -28,12 +28,9 @@ see LICENSE file.
 #include <memory>
 #include <functional>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct mmap_storage;
-}
-
-namespace libtorrent::aux {
 
 	// internal
 	enum class job_action_t : std::uint8_t

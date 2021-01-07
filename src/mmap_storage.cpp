@@ -35,7 +35,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/mmap_storage.hpp"
+#include "libtorrent/aux_/mmap_storage.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
@@ -47,7 +47,7 @@ see LICENSE file.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
@@ -881,6 +881,6 @@ namespace libtorrent {
 
 		return false;
 	}
-} // namespace libtorrent
+} // namespace libtorrent::aux
 
 #endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
