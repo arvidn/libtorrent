@@ -56,7 +56,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\python
-        python setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
+        python setup.py build_ext --libtorrent-link=static install --user --prefix=
 
     - name: tests (windows)
       if: runner.os == 'Windows'
@@ -72,7 +72,7 @@ jobs:
         # Homebrew's python "framework" sets a prefix via distutils config.
         # --prefix conflicts with --user, so null out prefix so we have one
         # command that works everywhere
-        python3 setup.py build_ext -j3 --libtorrent-link=static install --user --prefix=
+        python3 setup.py build_ext --libtorrent-link=static install --user --prefix=
 
     - name: tests
       if: runner.os != 'Windows'

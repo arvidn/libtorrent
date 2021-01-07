@@ -200,8 +200,6 @@ class LibtorrentBuildExt(BuildExtBase):
 
         if self.parallel:
             args.append(f"-j{self.parallel}")
-        else:
-            args.append(f"-j{multiprocessing.cpu_count()}")
         if self.libtorrent_link:
             args.append(f"libtorrent-link={self.libtorrent_link}")
         if self.boost_link:
