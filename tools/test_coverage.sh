@@ -7,7 +7,7 @@ function run_test {
 	set -e
 	if [[ ! -f test-coverage/coverage_$1_full ]]; then
 		cd test
-		B2_ARGS='sanitize=off asserts=off invariant-checks=off link=static deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off -j4'
+		B2_ARGS='sanitize=off asserts=off invariant-checks=off link=static deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off'
 		bjam $B2_ARGS $1 testing.execute=off
 		EXE_PATH=$(ls -d bin/$1.test/*/debug/debug-iterators-off/deprecated-functions-off/export-extra-on/link-static/test-coverage-on/threading-multi)
 

@@ -38,17 +38,17 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -j2 cxxstd=14
+          b2 ${{ matrix.config }} cxxstd=14
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} -j2
+          b2 ${{ matrix.config }}
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} -j2 warnings-as-errors=on
+          b2 ${{ matrix.config }} warnings-as-errors=on
 
 
 
@@ -76,7 +76,7 @@ jobs:
       - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang -j2 cxxstd=14 warnings-as-errors=on
+          b2 clang cxxstd=14 warnings-as-errors=on
 
 
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: compile header files individually
         run: |
-          b2 -j2 check-headers cxxstd=14 warnings-as-errors=on
+          b2 check-headers cxxstd=14 warnings-as-errors=on
 
 
 
@@ -131,7 +131,7 @@ jobs:
 
       - name: analyze
         run: |
-          b2 -a -j2 clang_tidy
+          b2 -a clang_tidy
 
 
 
@@ -177,7 +177,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -j2 -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
 
 
 
@@ -204,7 +204,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -j2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
+          b2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
 
 
    dist:
@@ -245,6 +245,6 @@ jobs:
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/test
-          b2 link=static -j2 testing.execute=off
+          b2 link=static testing.execute=off
           cd ..
           python3 bindings/python/setup.py build
