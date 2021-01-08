@@ -22,12 +22,13 @@ see LICENSE file.
 namespace libtorrent {
 
 	struct bdecode_node;
-	struct peer_entry;
+}
 
-namespace aux {
+namespace libtorrent::aux {
 
 	struct http_connection;
 	class http_parser;
+	struct peer_entry;
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -71,6 +72,6 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
-}}
+}
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED

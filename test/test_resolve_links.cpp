@@ -15,7 +15,7 @@ see LICENSE file.
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/resolve_links.hpp"
+#include "libtorrent/aux_/resolve_links.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
@@ -91,13 +91,13 @@ TORRENT_TEST(resolve_links)
 		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
 
 		std::printf("resolving\n");
-		resolve_links l(ti1);
+		aux::resolve_links l(ti1);
 		l.match(ti2, ".");
 
-		aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
+		aux::vector<aux::resolve_links::link_t, file_index_t> const& links = l.get_links();
 
 		auto const num_matches = std::size_t(std::count_if(links.begin(), links.end()
-			, std::bind(&resolve_links::link_t::ti, _1)));
+			, std::bind(&aux::resolve_links::link_t::ti, _1)));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
@@ -148,13 +148,13 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	auto ti2 = std::make_shared<torrent_info>(tmp2, from_span);
 
 	std::printf("resolving\n");
-	resolve_links l(ti1);
+	aux::resolve_links l(ti1);
 	l.match(ti2, ".");
 
-	aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
+	aux::vector<aux::resolve_links::link_t, file_index_t> const& links = l.get_links();
 
 	auto const num_matches = std::count_if(links.begin(), links.end()
-		, std::bind(&resolve_links::link_t::ti, _1));
+		, std::bind(&aux::resolve_links::link_t::ti, _1));
 
 	TEST_EQUAL(num_matches, 1);
 }

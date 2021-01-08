@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/fwd.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	// this class is used for mutable torrents, to discover identical files
