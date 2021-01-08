@@ -972,6 +972,7 @@ TEST_TORRENTS = \
   base.torrent \
   creation_date.torrent \
   duplicate_files.torrent \
+  duplicate_files2.torrent \
   duplicate_web_seeds.torrent \
   empty_httpseed.torrent \
   empty_path.torrent \

@@ -356,6 +356,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
 	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
 	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
+	{ "duplicate_files2.torrent", errors::too_many_duplicate_filenames},
 };
 
 } // anonymous namespace

@@ -696,7 +696,8 @@ TORRENT_VERSION_NAMESPACE_3
 	torrent_info::torrent_info(torrent_info const&) = default;
 	torrent_info& torrent_info::operator=(torrent_info&&) = default;
 
-	void torrent_info::resolve_duplicate_filenames()
+	bool torrent_info::resolve_duplicate_filenames(int const max_duplicate_filenames
+		, error_code& ec)
 	{
 		INVARIANT_CHECK;
 
@@ -717,10 +718,10 @@ TORRENT_VERSION_NAMESPACE_3
 				// This filename appears to already exist!
 				// If this happens, just start over and do it the slow way,
 				// comparing full file names and come up with new names
-				resolve_duplicate_filenames_slow();
-				return;
+				return resolve_duplicate_filenames_slow(max_duplicate_filenames, ec);
 			}
 		}
+		return true;
 	}
 
 namespace {
@@ -739,7 +740,8 @@ namespace {
 	};
 }
 
-	void torrent_info::resolve_duplicate_filenames_slow()
+	bool torrent_info::resolve_duplicate_filenames_slow(
+		int const max_duplicate_filenames, error_code& ec)
 	{
 		INVARIANT_CHECK;
 
@@ -828,16 +830,19 @@ namespace {
 					break;
 				}
 				++num_collisions;
-				if (num_collisions > 100)
+				if (num_collisions > max_duplicate_filenames)
 				{
-				// TODO: this should be considered a failure, and the .torrent file
-				// rejected
+					ec = errors::too_many_duplicate_filenames;
+					// mark the torrent as invalid
+					m_files.set_piece_length(0);
+					return false;
 				}
 			}
 
 			copy_on_write();
 			m_files.rename_file(i, filename);
 		}
+		return true;
 	}
 
 	void torrent_info::remap_files(file_storage const& f)
@@ -875,10 +880,10 @@ namespace {
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}))
 			aux::throw_ex<system_error>(ec);
 #else
-		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
+		parse_torrent_file(e, ec, load_torrent_limits{});
 #endif
 		INVARIANT_CHECK;
 	}
@@ -888,7 +893,7 @@ namespace {
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
 	{
 		error_code ec;
-		if (!parse_torrent_file(torrent_file, ec, load_torrent_limits{}.max_pieces))
+		if (!parse_torrent_file(torrent_file, ec, load_torrent_limits{}))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -900,7 +905,7 @@ namespace {
 		bdecode_node e = bdecode(buffer, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -916,7 +921,7 @@ namespace {
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
+		if (!parse_torrent_file(e, ec, load_torrent_limits{}))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -926,7 +931,7 @@ namespace {
 		, load_torrent_limits const& cfg)
 	{
 		error_code ec;
-		if (!parse_torrent_file(torrent_file, ec, cfg.max_pieces))
+		if (!parse_torrent_file(torrent_file, ec, cfg))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -940,7 +945,7 @@ namespace {
 			, cfg.max_decode_depth, cfg.max_decode_tokens);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, cfg.max_pieces))
+		if (!parse_torrent_file(e, ec, cfg))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -958,7 +963,7 @@ namespace {
 			, cfg.max_decode_tokens);
 		if (ec) aux::throw_ex<system_error>(ec);
 
-		if (!parse_torrent_file(e, ec, cfg.max_pieces))
+		if (!parse_torrent_file(e, ec, cfg))
 			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
@@ -982,7 +987,7 @@ namespace {
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, error_code& ec)
 	{
-		parse_torrent_file(torrent_file, ec, load_torrent_limits{}.max_pieces);
+		parse_torrent_file(torrent_file, ec, load_torrent_limits{});
 		INVARIANT_CHECK;
 	}
 
@@ -991,7 +996,7 @@ namespace {
 	{
 		bdecode_node e = bdecode(buffer, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
+		parse_torrent_file(e, ec, load_torrent_limits{});
 
 		INVARIANT_CHECK;
 	}
@@ -1004,7 +1009,7 @@ namespace {
 
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces);
+		parse_torrent_file(e, ec, load_torrent_limits{});
 
 		INVARIANT_CHECK;
 	}
@@ -1070,7 +1075,7 @@ namespace {
 #if TORRENT_ABI_VERSION < 3
 	bool torrent_info::parse_info_section(bdecode_node const& info, error_code& ec)
 	{
-		return parse_info_section(info, ec, 0x200000);
+		return parse_info_section(info, ec, load_torrent_limits{}.max_pieces);
 	}
 #endif
 
@@ -1493,7 +1498,7 @@ namespace {
 	}
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
-		, error_code& ec, int const piece_limit)
+		, error_code& ec, load_torrent_limits const& cfg)
 	{
 		if (torrent_file.type() != bdecode_node::dict_t)
 		{
@@ -1522,8 +1527,8 @@ namespace {
 			return false;
 		}
 
-		if (!parse_info_section(info, ec, piece_limit)) return false;
-		resolve_duplicate_filenames();
+		if (!parse_info_section(info, ec, cfg.max_pieces)) return false;
+		if (!resolve_duplicate_filenames(cfg.max_duplicate_filenames, ec)) return false;
 
 		if (m_info_hash.has_v2() && !parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
 		{

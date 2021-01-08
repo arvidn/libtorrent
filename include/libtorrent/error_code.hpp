@@ -367,6 +367,9 @@ namespace errors {
 		// specifying the flag to only save when there's anything new to save
 		// (torrent_handle::only_if_modified) and there wasn't anything changed.
 		resume_data_not_modified,
+		// The torrent contained too many duplicate filenames, exceeding the
+		// configured limit.
+		too_many_duplicate_filenames,
 
 
 		// The HTTP header was not correctly formatted
