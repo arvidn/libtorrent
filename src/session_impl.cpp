@@ -75,7 +75,7 @@ see LICENSE file.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/choker.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/platform_util.hpp"
+#include "libtorrent/aux_/platform_util.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/scope_end.hpp"

@@ -77,10 +77,8 @@ set(libtorrent_include_files
 	pex_flags
 	piece_block
 	piece_picker
-	platform_util
 	portmap
 	proxy_base
-	puff
 	random
 	read_resume_data
 	session
@@ -107,7 +105,6 @@ set(libtorrent_include_files
 	torrent_info
 	torrent_status
 	tracker_event
-	union_endpoint
 	units
 	upnp
 	version
@@ -214,11 +211,13 @@ set(libtorrent_aux_include_files
 	peer_connection
 	peer_list
 	piece_block_progress
+	platform_util
 	polymorphic_socket
 	pool
 	portmap
 	posix_part_file
 	proxy_settings
+	puff
 	range
 	receive_buffer
 	request_blocks
@@ -256,6 +255,7 @@ set(libtorrent_aux_include_files
 	tracker_manager
 	udp_socket
 	udp_tracker_connection
+	union_endpoint
 	unique_ptr
 	utf8
 	utp_socket_manager

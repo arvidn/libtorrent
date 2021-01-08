@@ -10,7 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/platform_util.hpp"
+#include "libtorrent/aux_/platform_util.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -39,7 +39,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	int max_open_files()
 	{

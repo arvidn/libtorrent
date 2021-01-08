@@ -477,11 +477,9 @@ HEADERS = \
   pex_flags.hpp                \
   piece_block.hpp              \
   piece_picker.hpp             \
-  platform_util.hpp            \
   portmap.hpp                  \
   posix_disk_io.hpp            \
   proxy_base.hpp               \
-  puff.hpp                     \
   random.hpp                   \
   read_resume_data.hpp         \
   session.hpp                  \
@@ -510,7 +508,6 @@ HEADERS = \
   torrent_info.hpp             \
   torrent_status.hpp           \
   tracker_event.hpp            \
-  union_endpoint.hpp           \
   units.hpp                    \
   upnp.hpp                     \
   version.hpp                  \
@@ -590,12 +587,14 @@ HEADERS = \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
   aux_/piece_block_progress.hpp     \
+  aux_/platform_util.hpp            \
   aux_/polymorphic_socket.hpp       \
   aux_/pool.hpp                     \
   aux_/portmap.hpp                  \
   aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
+  aux_/puff.hpp                     \
   aux_/range.hpp                    \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \
@@ -635,6 +634,7 @@ HEADERS = \
   aux_/tracker_manager.hpp          \
   aux_/udp_socket.hpp               \
   aux_/udp_tracker_connection.hpp   \
+  aux_/union_endpoint.hpp           \
   aux_/unique_ptr.hpp               \
   aux_/utf8.hpp                     \
   aux_/utp_socket_manager.hpp       \

@@ -84,7 +84,7 @@
 
 #include <csetjmp>             /* for setjmp(), longjmp(), and jmp_buf */
 #include <cstring>             /* for nullptr */
-#include "libtorrent/puff.hpp"             /* prototype for puff() */
+#include "libtorrent/aux_/puff.hpp"             /* prototype for puff() */
 
 #define local static            /* for local function definitions */
 
