@@ -124,6 +124,12 @@ namespace aux {
 
 		// the max number of bdecode tokens
 		int max_decode_tokens = 3000000;
+
+		// the max number of files with same filename allowed in the torrent.
+		// Files with the same filename are disambiguated by appending a
+		// counter. This operation is not cheap and a malicious torrent may pose
+		// a DoS attack, stalling torrent parsing.
+		int max_duplicate_filenames = 500;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
@@ -626,12 +632,14 @@ TORRENT_VERSION_NAMESPACE_3
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
-		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec, int piece_limit);
+		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec
+			, load_torrent_limits const&);
 
-		void resolve_duplicate_filenames();
+		bool resolve_duplicate_filenames(int max_duplicate_filenames, error_code& ec);
 
 		// the slow path, in case we detect/suspect a name collision
-		void resolve_duplicate_filenames_slow();
+		bool resolve_duplicate_filenames_slow(int max_duplicate_filenames
+			, error_code& ec);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend struct ::lt::invariant_access;
