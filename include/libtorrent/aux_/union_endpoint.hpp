@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct union_address
 	{

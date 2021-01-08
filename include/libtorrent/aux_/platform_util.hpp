@@ -1,11 +1,13 @@
 #ifndef TORRENT_PLATFORM_UTIL_HPP
 #define TORRENT_PLATFORM_UTIL_HPP
 
+#include "libtorrent/aux_/export.hpp"
+
 #include <cstdint>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
-	int max_open_files();
+	TORRENT_EXTRA_EXPORT int max_open_files();
 
 }
 

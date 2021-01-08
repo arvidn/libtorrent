@@ -15,12 +15,11 @@ see LICENSE file.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/union_endpoint.hpp"
+#include "libtorrent/aux_/union_endpoint.hpp"
 #include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/aux_/time.hpp" // for time_now
 
-namespace libtorrent {
-namespace dht {
+namespace libtorrent::dht {
 
 struct TORRENT_EXTRA_EXPORT node_entry
 {
@@ -55,7 +54,7 @@ struct TORRENT_EXTRA_EXPORT node_entry
 
 	node_id id{nullptr};
 
-	union_endpoint endpoint;
+	aux::union_endpoint endpoint;
 
 	// the average RTT of this node
 	std::uint16_t rtt = 0xffff;
@@ -68,7 +67,6 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	bool verified = false;
 };
 
-} // namespace dht
-} // namespace libtorrent
+} // namespace libtorrent::dht
 
 #endif

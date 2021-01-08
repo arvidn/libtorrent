@@ -9,7 +9,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/puff.hpp"
+#include "libtorrent/aux_/puff.hpp"
 #include "libtorrent/gzip.hpp"
 
 #include <string>
