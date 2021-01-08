@@ -56,7 +56,7 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/peer.hpp"
+#include "libtorrent/aux_/peer.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/aux_/web_peer_connection.hpp"
@@ -79,7 +79,7 @@ see LICENSE file.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/alloca.hpp"
-#include "libtorrent/resolve_links.hpp"
+#include "libtorrent/aux_/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"

@@ -59,8 +59,8 @@ TORRENT_TEST(parse_hostname_peers)
 	TEST_EQUAL(resp.peers.size(), 2);
 	if (resp.peers.size() == 2)
 	{
-		peer_entry const& e0 = resp.peers[0];
-		peer_entry const& e1 = resp.peers[1];
+		aux::peer_entry const& e0 = resp.peers[0];
+		aux::peer_entry const& e1 = resp.peers[1];
 		TEST_EQUAL(e0.hostname, "test_hostname");
 		TEST_EQUAL(e0.port, 1000);
 		TEST_EQUAL(e0.pid, peer_id("aaaaaaaaaaaaaaaaaaaa"));
@@ -83,8 +83,8 @@ TORRENT_TEST(parse_peers4)
 	TEST_EQUAL(resp.peers4.size(), 2);
 	if (resp.peers.size() == 2)
 	{
-		ipv4_peer_entry const& e0 = resp.peers4[0];
-		ipv4_peer_entry const& e1 = resp.peers4[1];
+		aux::ipv4_peer_entry const& e0 = resp.peers4[0];
+		aux::ipv4_peer_entry const& e1 = resp.peers4[1];
 		TEST_CHECK(e0.ip == addr4("1.2.3.4").to_bytes());
 		TEST_EQUAL(e0.port, 0x3010);
 
@@ -251,10 +251,10 @@ TORRENT_TEST(parse_external_ip6)
 }
 
 namespace {
-peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
+aux::peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
 {
 	error_code ec;
-	peer_entry result;
+	aux::peer_entry result;
 	bdecode_node n;
 	bdecode(peer_field, peer_field + strlen(peer_field)
 		, n, ec, nullptr, 1000, 1000);
@@ -268,7 +268,7 @@ peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool exp
 
 TORRENT_TEST(extract_peer)
 {
-	peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcd4:porti1337ee"
+	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcd4:porti1337ee"
 		, error_code(), true);
 	TEST_EQUAL(result.hostname, "abcd");
 	TEST_EQUAL(result.pid, peer_id("abababababababababab"));
@@ -277,7 +277,7 @@ TORRENT_TEST(extract_peer)
 
 TORRENT_TEST(extract_peer_hostname)
 {
-	peer_entry result = extract_peer("d2:ip11:example.com4:porti1ee"
+	aux::peer_entry result = extract_peer("d2:ip11:example.com4:porti1ee"
 		, error_code(), true);
 	TEST_EQUAL(result.hostname, "example.com");
 	TEST_EQUAL(result.pid, peer_id::min());
@@ -287,21 +287,21 @@ TORRENT_TEST(extract_peer_hostname)
 TORRENT_TEST(extract_peer_not_a_dictionary)
 {
 	// not a dictionary
-	peer_entry result = extract_peer("2:ip11:example.com"
+	aux::peer_entry result = extract_peer("2:ip11:example.com"
 		, errors::invalid_peer_dict, false);
 }
 
 TORRENT_TEST(extract_peer_missing_ip)
 {
 	// missing IP
-	peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
+	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
 		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(extract_peer_missing_port)
 {
 	// missing port
-	peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
+	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
 		, errors::invalid_tracker_response, false);
 }
 

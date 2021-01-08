@@ -465,7 +465,6 @@ HEADERS = \
   operations.hpp               \
   parse_url.hpp                \
   pe_crypto.hpp                \
-  peer.hpp                     \
   peer_class.hpp               \
   peer_class_set.hpp           \
   peer_class_type_filter.hpp   \
@@ -485,7 +484,6 @@ HEADERS = \
   puff.hpp                     \
   random.hpp                   \
   read_resume_data.hpp         \
-  resolve_links.hpp            \
   session.hpp                  \
   session_handle.hpp           \
   session_params.hpp           \
@@ -588,6 +586,7 @@ HEADERS = \
   aux_/packet_pool.hpp              \
   aux_/part_file.hpp                \
   aux_/path.hpp                     \
+  aux_/peer.hpp                     \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
   aux_/piece_block_progress.hpp     \
@@ -600,6 +599,7 @@ HEADERS = \
   aux_/range.hpp                    \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \
+  aux_/resolve_links.hpp            \
   aux_/resolver.hpp                 \
   aux_/resolver_interface.hpp       \
   aux_/route.h                      \

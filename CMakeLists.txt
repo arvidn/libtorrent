@@ -65,7 +65,6 @@ set(libtorrent_include_files
 	operations
 	parse_url
 	pe_crypto
-	peer
 	peer_class
 	peer_class_set
 	peer_class_type_filter
@@ -84,7 +83,6 @@ set(libtorrent_include_files
 	puff
 	random
 	read_resume_data
-	resolve_links
 	session
 	session_handle
 	session_params
@@ -212,6 +210,7 @@ set(libtorrent_aux_include_files
 	packet_pool
 	part_file
 	path
+	peer
 	peer_connection
 	peer_list
 	piece_block_progress
@@ -223,6 +222,7 @@ set(libtorrent_aux_include_files
 	range
 	receive_buffer
 	request_blocks
+	resolve_links
 	resolver
 	resolver_interface
 	route

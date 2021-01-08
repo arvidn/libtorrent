@@ -8,11 +8,11 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/resolve_links.hpp"
+#include "libtorrent/aux_/resolve_links.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
@@ -109,4 +109,4 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 }
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-} // namespace libtorrent
+} // namespace libtorrent::aux
