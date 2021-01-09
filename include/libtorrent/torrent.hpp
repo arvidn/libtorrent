@@ -202,6 +202,11 @@ namespace libtorrent {
 		// saved in the resume data
 		bool ephemeral = false;
 
+		// this is set to true when this web seed was created from a redirect
+		// from a global IP, and SSRF mitigation is enabled. It prevents this
+		// web seed from resolving to any local network IPs.
+		bool no_local_ips = false;
+
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
@@ -232,6 +237,7 @@ namespace libtorrent {
 			resolving = std::move(rhs.resolving);
 			removed = std::move(rhs.removed);
 			ephemeral = std::move(rhs.ephemeral);
+			no_local_ips = std::move(rhs.no_local_ips);
 			restart_request = std::move(rhs.restart_request);
 			restart_piece = std::move(rhs.restart_piece);
 			redirects = std::move(rhs.redirects);
@@ -650,6 +656,7 @@ namespace libtorrent {
 		// PEER MANAGEMENT
 
 		static constexpr web_seed_flag_t ephemeral = 0_bit;
+		static constexpr web_seed_flag_t no_local_ips = 1_bit;
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry

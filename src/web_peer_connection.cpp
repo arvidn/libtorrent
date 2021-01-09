@@ -654,6 +654,13 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	bool const single_file_request = !m_path.empty()
 		&& m_path[m_path.size() - 1] != '/';
 
+	// when SSRF mitigation is enabled, a web seed on the internet (is_global())
+	// is not allowed to redirect to a server on the local network, so we set
+	// the no_local_ip flag
+	auto const web_seed_flags = torrent::ephemeral
+		| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
+			? torrent::no_local_ip : web_seed_flags_t{});
+
 	// add the redirected url and remove the current one
 	if (!single_file_request)
 	{
@@ -690,7 +697,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
 		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
-			, m_external_auth, m_extra_headers, torrent::ephemeral);
+			, m_external_auth, m_extra_headers, web_seed_flags);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -736,7 +743,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
 		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth
-			, m_extra_headers, torrent::ephemeral);
+			, m_extra_headers, web_seed_flags);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session

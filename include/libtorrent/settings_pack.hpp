@@ -958,6 +958,9 @@ namespace aux {
 			// private IP address range) may not include query string arguments.
 			// This applies to web seeds redirecting to the local network as
 			// well.
+			//
+			// Web seeds on global IPs (i.e. not local network) may not redirect
+			// to a local network address
 			ssrf_mitigation,
 
 			// when disabled, any tracker or web seed with an IDNA hostname
