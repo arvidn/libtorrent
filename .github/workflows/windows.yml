@@ -102,12 +102,19 @@ jobs:
   # termination
   # the IOCP backend in asio appears to have an issue where it hangs under
   # certain unexpected terminations (through exceptions)
-      - name: simulations
+      - name: build sims
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --abbreviate-paths -l250 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --hash address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+
+      - name: run sims
+        run: |
+          set BOOST_ROOT=%CD%\boost
+          set PATH=%BOOST_ROOT%;%PATH%
+          cd simulation
+          b2 --hash -l350 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build
