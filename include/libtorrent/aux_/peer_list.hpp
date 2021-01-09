@@ -23,7 +23,6 @@ see LICENSE file.
 #include "libtorrent/aux_/request_blocks.hpp" // for source_rank
 
 #include "libtorrent/aux_/torrent_peer.hpp"
-#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"

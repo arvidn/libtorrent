@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
-#include "libtorrent/piece_picker.hpp"
+#include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #include <iostream>
@@ -930,7 +930,7 @@ TORRENT_TEST(parse_torrents)
 		int const blocks_in_last_piece
 			= ((ti->total_size() % ti->piece_length())
 			+ block_size - 1) / block_size;
-		piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
+		aux::piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
 
 		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
 		TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());

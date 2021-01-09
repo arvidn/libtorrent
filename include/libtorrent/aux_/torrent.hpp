@@ -44,7 +44,7 @@ see LICENSE file.
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/piece_picker.hpp"
+#include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/aux_/hash_picker.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/bandwidth_limit.hpp"

@@ -73,7 +73,6 @@ set(libtorrent_include_files
 	performance_counters
 	pex_flags
 	piece_block
-	piece_picker
 	portmap
 	proxy_base
 	random
@@ -211,6 +210,7 @@ set(libtorrent_aux_include_files
 	peer_connection
 	peer_list
 	piece_block_progress
+	piece_picker
 	platform_util
 	polymorphic_socket
 	pool

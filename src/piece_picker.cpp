@@ -20,7 +20,7 @@ see LICENSE file.
 #include <functional>
 #include <tuple>
 
-#include "libtorrent/piece_picker.hpp"
+#include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
@@ -84,12 +84,16 @@ namespace libtorrent {
 	}
 }
 #endif // TORRENT_PICKER_LOG
+
 namespace libtorrent {
 
 	// TODO: find a better place for this
 	const piece_block piece_block::invalid(
 		std::numeric_limits<piece_index_t>::max()
 		, std::numeric_limits<int>::max());
+}
+
+namespace libtorrent::aux {
 
 	// the max number of blocks to create an affinity for
 	constexpr int max_piece_affinity_extent = 4 * 1024 * 1024 / default_block_size;

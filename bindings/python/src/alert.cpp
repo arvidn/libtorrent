@@ -5,7 +5,7 @@
 #include "boost_python.hpp"
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
-#include <libtorrent/piece_picker.hpp> // for piece_block
+#include <libtorrent/piece_block.hpp>
 #include <libtorrent/session_stats.hpp>
 #include <libtorrent/operations.hpp>
 #include <memory>

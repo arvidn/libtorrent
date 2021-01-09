@@ -45,7 +45,7 @@ see LICENSE file.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/piece_picker.hpp" // for picker_options_t
+#include "libtorrent/aux_/piece_picker.hpp" // for picker_options_t
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 

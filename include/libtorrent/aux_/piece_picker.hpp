@@ -40,16 +40,16 @@ see LICENSE file.
 #include "libtorrent/index_range.hpp"
 
 namespace libtorrent {
-
-namespace aux {
-	struct torrent;
-	struct torrent_peer;
-	struct peer_connection;
-}
-
 	template <typename Index>
 	struct typed_bitfield;
 	struct counters;
+}
+
+namespace libtorrent::aux {
+
+	struct torrent;
+	struct torrent_peer;
+	struct peer_connection;
 
 	using prio_index_t = aux::strong_typedef<int, struct prio_index_tag_t>;
 	using picker_options_t = flags::bitfield_flag<std::uint16_t, struct picker_options_tag>;
