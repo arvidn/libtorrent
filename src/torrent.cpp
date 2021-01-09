@@ -52,7 +52,7 @@ see LICENSE file.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"

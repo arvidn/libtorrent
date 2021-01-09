@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/gzip.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for async_shutdown
 #include "libtorrent/aux_/resolver_interface.hpp"

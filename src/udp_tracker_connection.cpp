@@ -16,7 +16,7 @@ see LICENSE file.
 #include <functional>
 #include <tuple>
 
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/udp_tracker_connection.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/random.hpp"

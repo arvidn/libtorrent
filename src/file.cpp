@@ -64,7 +64,7 @@ struct iovec
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
 #include <cstring>
@@ -121,7 +121,7 @@ static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required"
 #define INVALID_HANDLE_VALUE (-1)
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #ifdef TORRENT_WINDOWS
 namespace {

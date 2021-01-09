@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/hex.hpp" // for hex_to_int
 #include "libtorrent/assert.hpp"
-#include "libtorrent/parse_url.hpp" // for parse_url_components
+#include "libtorrent/aux_/parse_url.hpp" // for parse_url_components
 #include "libtorrent/aux_/string_util.hpp" // for ensure_trailing_slash, to_lower
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
 #include "libtorrent/time.hpp" // for seconds32

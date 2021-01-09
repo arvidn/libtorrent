@@ -427,7 +427,6 @@ HEADERS = \
   client_data.hpp              \
   close_reason.hpp             \
   config.hpp                   \
-  copy_ptr.hpp                 \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \
@@ -441,7 +440,6 @@ HEADERS = \
   error.hpp                    \
   error_code.hpp               \
   extensions.hpp               \
-  file.hpp                     \
   file_storage.hpp             \
   fingerprint.hpp              \
   flags.hpp                    \
@@ -463,7 +461,6 @@ HEADERS = \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
-  parse_url.hpp                \
   pe_crypto.hpp                \
   peer_class.hpp               \
   peer_class_set.hpp           \
@@ -531,6 +528,7 @@ HEADERS = \
   aux_/container_wrapper.hpp        \
   aux_/chained_buffer.hpp           \
   aux_/choker.hpp                   \
+  aux_/copy_ptr.hpp                 \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
   aux_/deferred_handler.hpp         \
@@ -550,6 +548,7 @@ HEADERS = \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
+  aux_/file.hpp                     \
   aux_/file_pointer.hpp             \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \
@@ -581,6 +580,7 @@ HEADERS = \
   aux_/open_mode.hpp                \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
+  aux_/parse_url.hpp                \
   aux_/part_file.hpp                \
   aux_/path.hpp                     \
   aux_/peer.hpp                     \

@@ -10,12 +10,13 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/string_view.hpp"
 
 #include <tuple>
 
 using namespace lt;
+using namespace lt::aux;
 
 namespace {
 

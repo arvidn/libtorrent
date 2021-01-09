@@ -11,7 +11,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -578,7 +578,7 @@ TORRENT_TEST(unc_paths)
 	std::string const reserved_name = "con";
 	error_code ec;
 	{
-		file f(reserved_name, aux::open_mode::write, ec);
+		aux::file f(reserved_name, aux::open_mode::write, ec);
 		TEST_CHECK(!ec);
 	}
 	remove(reserved_name, ec);

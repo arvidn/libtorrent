@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 
 #include <cstdint>
 #include <string>
@@ -38,6 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 {
 	lt::error_code ec;
-	lt::parse_url_components(std::string(reinterpret_cast<char const*>(data), size), ec);
+	lt::aux::parse_url_components(std::string(reinterpret_cast<char const*>(data), size), ec);
 	return 0;
 }

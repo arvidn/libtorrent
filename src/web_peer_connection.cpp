@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager

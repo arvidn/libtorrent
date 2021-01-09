@@ -30,13 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/string_view.hpp"
 
 #include <cstdint>
 
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 {
-    lt::is_idna(lt::string_view(reinterpret_cast<char const*>(data), size));
+    lt::aux::is_idna(lt::string_view(reinterpret_cast<char const*>(data), size));
     return 0;
 }

@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/random.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -26,8 +26,7 @@ see LICENSE file.
 #include <algorithm>
 #include <tuple>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 namespace http = boost::beast::http;
 namespace error = boost::asio::error;
@@ -279,7 +278,5 @@ void websocket_stream::on_close(error_code)
 }
 
 }
-}
 
 #endif // TORRENT_USE_RTC
-

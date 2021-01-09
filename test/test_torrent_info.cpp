@@ -1195,8 +1195,8 @@ struct A
 
 TORRENT_TEST(copy_ptr)
 {
-	copy_ptr<A> a(new A{4});
-	copy_ptr<A> b(a);
+	aux::copy_ptr<A> a(new A{4});
+	aux::copy_ptr<A> b(a);
 
 	TEST_EQUAL(a->val, b->val);
 	TEST_CHECK(&*a != &*b);
