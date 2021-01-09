@@ -454,14 +454,12 @@ HEADERS = \
   io_context.hpp               \
   io_service.hpp               \
   ip_filter.hpp                \
-  link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \
   natpmp.hpp                   \
   netlink.hpp                  \
   operations.hpp               \
-  pe_crypto.hpp                \
   peer_class.hpp               \
   peer_class_set.hpp           \
   peer_class_type_filter.hpp   \
@@ -568,6 +566,7 @@ HEADERS = \
   aux_/ip_notifier.hpp              \
   aux_/ip_voter.hpp                 \
   aux_/keepalive.hpp                \
+  aux_/link.hpp                     \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
   aux_/merkle.hpp                   \
@@ -582,6 +581,7 @@ HEADERS = \
   aux_/parse_url.hpp                \
   aux_/part_file.hpp                \
   aux_/path.hpp                     \
+  aux_/pe_crypto.hpp                \
   aux_/peer.hpp                     \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \

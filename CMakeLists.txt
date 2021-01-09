@@ -54,14 +54,12 @@ set(libtorrent_include_files
 	index_range
 	io_service
 	ip_filter
-	link
 	lsd
 	magnet_uri
 	mmap_disk_io
 	natpmp
 	netlink
 	operations
-	pe_crypto
 	peer_class
 	peer_class_set
 	peer_class_type_filter
@@ -194,6 +192,7 @@ set(libtorrent_aux_include_files
 	ip_helpers
 	ip_notifier
 	ip_voter
+	link
 	listen_socket_handle
 	lsd
 	merkle
@@ -206,6 +205,7 @@ set(libtorrent_aux_include_files
 	parse_url
 	part_file
 	path
+	pe_crypto
 	peer
 	peer_connection
 	peer_list

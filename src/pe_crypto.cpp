@@ -18,20 +18,15 @@ see LICENSE file.
 #include <random>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/multiprecision/integer.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
-#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
-namespace libtorrent {
-
-	namespace mp = boost::multiprecision;
+namespace libtorrent::aux {
 
 	namespace {
 		// TODO: it would be nice to get the literal working
@@ -385,6 +380,6 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 	return n;
 }
 
-} // namespace libtorrent
+} // namespace libtorrent::aux
 
 #endif // TORRENT_DISABLE_ENCRYPTION
