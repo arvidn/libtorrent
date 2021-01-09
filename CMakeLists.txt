@@ -30,7 +30,6 @@ set(libtorrent_include_files
 	client_data
 	close_reason
 	config
-	copy_ptr
 	create_torrent
 	deadline_timer
 	debug
@@ -43,7 +42,6 @@ set(libtorrent_include_files
 	error
 	error_code
 	extensions
-	file
 	file_storage
 	fingerprint
 	flags
@@ -63,7 +61,6 @@ set(libtorrent_include_files
 	natpmp
 	netlink
 	operations
-	parse_url
 	pe_crypto
 	peer_class
 	peer_class_set
@@ -162,6 +159,7 @@ set(libtorrent_aux_include_files
 	byteswap
 	chained_buffer
 	choker
+	copy_ptr
 	cpuid
 	crc32c
 	deferred_handler
@@ -180,6 +178,7 @@ set(libtorrent_aux_include_files
 	escape_string
 	export
 	ffs
+	file
 	file_progress
 	file_view_pool
 	has_block
@@ -205,6 +204,7 @@ set(libtorrent_aux_include_files
 	numeric_cast
 	packet_buffer
 	packet_pool
+	parse_url
 	part_file
 	path
 	peer

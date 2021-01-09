@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/xml_parse.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()

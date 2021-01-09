@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"

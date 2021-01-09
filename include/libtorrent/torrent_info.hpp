@@ -32,7 +32,7 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/copy_ptr.hpp"
+#include "libtorrent/aux_/copy_ptr.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -655,7 +655,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// filenames are preserved.
 		// the original filenames are required to build URLs for web seeds for
 		// instance
-		copy_ptr<const file_storage> m_orig_files;
+		aux::copy_ptr<const file_storage> m_orig_files;
 
 		// the URLs to the trackers
 		aux::vector<announce_entry> m_urls;

@@ -20,7 +20,7 @@ see LICENSE file.
 #include <memory>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"

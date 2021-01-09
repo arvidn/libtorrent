@@ -25,7 +25,7 @@ see LICENSE file.
 #endif
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 
 #include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
@@ -185,7 +185,7 @@ namespace libtorrent {
 	std::string maybe_url_encode(string_view url)
 	{
 		error_code ec;
-		auto const [protocol, auth, host, port, path] = parse_url_components(url, ec);
+		auto const [protocol, auth, host, port, path] = aux::parse_url_components(url, ec);
 		if (ec) return std::string(url);
 
 		// first figure out if this url contains unencoded characters

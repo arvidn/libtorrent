@@ -18,7 +18,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/web_connection_base.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
 namespace libtorrent::aux {

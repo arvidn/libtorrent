@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 

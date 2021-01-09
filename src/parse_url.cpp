@@ -10,11 +10,11 @@ see LICENSE file.
 
 #include <algorithm>
 
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	// returns protocol, auth, hostname, port, path
 	std::tuple<std::string, std::string, std::string, int, std::string>
