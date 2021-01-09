@@ -1,3 +1,5 @@
+	* strengthen SSRF mitigation for web seeds
+
 * 2.0.2 released
 
 	* add v1() and v2() functions to torrent_info

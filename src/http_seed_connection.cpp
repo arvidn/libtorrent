@@ -324,8 +324,15 @@ namespace libtorrent {
 						return;
 					}
 
+					// when SSRF mitigation is enabled, a web seed on the internet (is_global())
+					// is not allowed to redirect to a server on the local network, so we set
+					// the no_local_ip flag
+					auto const web_seed_flags = torrent::ephemeral
+						| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
+							? torrent::no_local_ip : web_seed_flags_t{});
+
 					// add the redirected url and remove the current one
-					t->add_web_seed(location, web_seed_entry::http_seed);
+					t->add_web_seed(location, web_seed_entry::http_seed, web_seed_flags);
 					t->remove_web_seed_conn(this, errors::redirecting, operation_t::bittorrent, peer_error);
 					return;
 				}
