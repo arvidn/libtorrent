@@ -172,6 +172,11 @@ jobs:
           echo "using clang : 9 : clang++-9 ;" >>~/user-config.jam
 
       - name: build and run tests
+        run: |
+          cd test
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+
+      - name: run tests (flaky)
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 30
