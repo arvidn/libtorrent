@@ -3,7 +3,6 @@
 from distutils import log
 import distutils.debug
 import distutils.sysconfig
-import multiprocessing
 import os
 import pathlib
 import sys

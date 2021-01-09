@@ -5,7 +5,6 @@ import os
 import shutil
 import subprocess
 import sys
-import multiprocessing
 
 toolset = ''
 if len(sys.argv) > 1:
