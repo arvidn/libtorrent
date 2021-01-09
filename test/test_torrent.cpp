@@ -766,37 +766,37 @@ file_storage test_fs()
 TORRENT_TEST(test_calc_bytes_pieces)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{2, 0, false}), 2 * piece_size);
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{2, 0, false}), 2 * piece_size);
 }
 
 TORRENT_TEST(test_calc_bytes_pieces_last)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{2, 0, true}), piece_size + fs.total_size() % piece_size);
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{2, 0, true}), piece_size + fs.total_size() % piece_size);
 }
 
 TORRENT_TEST(test_calc_bytes_no_pieces)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{0, 0, false}), 0);
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{0, 0, false}), 0);
 }
 
 TORRENT_TEST(test_calc_bytes_all_pieces)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{fs.num_pieces(), 0, true}), fs.total_size());
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{fs.num_pieces(), 0, true}), fs.total_size());
 }
 
 TORRENT_TEST(test_calc_bytes_all_pieces_one_pad)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{fs.num_pieces(), 1, true}), fs.total_size() - 0x4000);
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{fs.num_pieces(), 1, true}), fs.total_size() - 0x4000);
 }
 
 TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(aux::calc_bytes(fs, piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
+	TEST_EQUAL(aux::calc_bytes(fs, aux::piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
 }
 
 #if TORRENT_HAS_SYMLINK

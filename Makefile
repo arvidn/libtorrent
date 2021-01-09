@@ -473,7 +473,6 @@ HEADERS = \
   performance_counters.hpp     \
   pex_flags.hpp                \
   piece_block.hpp              \
-  piece_picker.hpp             \
   portmap.hpp                  \
   posix_disk_io.hpp            \
   proxy_base.hpp               \
@@ -587,6 +586,7 @@ HEADERS = \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
   aux_/piece_block_progress.hpp     \
+  aux_/piece_picker.hpp             \
   aux_/platform_util.hpp            \
   aux_/polymorphic_socket.hpp       \
   aux_/pool.hpp                     \

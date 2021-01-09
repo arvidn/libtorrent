@@ -30,11 +30,12 @@ see LICENSE file.
 #endif
 
 namespace libtorrent {
-
-struct piece_picker;
 class file_storage;
+}
 
-namespace aux {
+namespace libtorrent::aux {
+
+	struct piece_picker;
 
 	struct TORRENT_EXTRA_EXPORT file_progress
 	{
@@ -72,6 +73,6 @@ namespace aux {
 		vector<std::int64_t, file_index_t> m_file_sizes;
 #endif
 	};
-} }
+}
 
 #endif

@@ -11,7 +11,7 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/piece_picker.hpp"
+#include "libtorrent/aux_/piece_picker.hpp"
 
 using namespace lt;
 
@@ -34,7 +34,7 @@ TORRENT_TEST(init)
 
 	for (auto const idx : fs.piece_range())
 	{
-		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+		aux::piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
 		aux::file_progress fp;
@@ -65,7 +65,7 @@ TORRENT_TEST(init2)
 
 	for (auto const idx : fs.piece_range())
 	{
-		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+		aux::piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
 		aux::vector<std::int64_t, file_index_t> vec;
@@ -93,7 +93,7 @@ TORRENT_TEST(update_simple_sequential)
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
-	piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+	aux::piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
 
 	aux::file_progress fp;
 

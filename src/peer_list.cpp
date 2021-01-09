@@ -23,7 +23,6 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/extensions.hpp"
