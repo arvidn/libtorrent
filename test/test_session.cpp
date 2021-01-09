@@ -489,7 +489,7 @@ TORRENT_TEST(reopen_network_sockets)
 	{
 		int count_listen = 0;
 		int count_portmap = 0;
-		int num = 50; // this number is adjusted per version, an estimate
+		int num = 60; // this number is adjusted per version, an estimate
 		time_point const end_time = clock_type::now() + seconds(1);
 		while (true)
 		{
@@ -518,7 +518,8 @@ TORRENT_TEST(reopen_network_sockets)
 				break;
 		}
 
-		std::printf("count_listen: %d, count_portmap: %d\n", count_listen, count_portmap);
+		std::printf("count_listen: %d (expect: %d), count_portmap: %d (expect: %d)\n"
+			, count_listen, listen, count_portmap, portmap);
 		return count_listen == listen && count_portmap == portmap;
 	};
 
