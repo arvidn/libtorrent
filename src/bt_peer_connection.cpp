@@ -51,7 +51,7 @@ see LICENSE file.
 #include "libtorrent/aux_/generate_peer_id.hpp"
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
-#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 #endif
 

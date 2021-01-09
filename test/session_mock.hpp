@@ -122,7 +122,7 @@ struct session_mock : aux::session_interface
 	void sent_syn(bool) override {}
 	void received_synack(bool) override {}
 
-	aux::vector<aux::torrent*>& torrent_list(torrent_list_index_t) override { return _torrent_list; }
+	aux::vector<aux::torrent*>& torrent_list(aux::torrent_list_index_t) override { return _torrent_list; }
 
 	bool has_lsd() const override { return false; }
 	void announce_lsd(sha1_hash const&, int) override {}

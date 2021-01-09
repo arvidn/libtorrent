@@ -55,7 +55,7 @@ see LICENSE file.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_class_set.hpp"
-#include "libtorrent/link.hpp"
+#include "libtorrent/aux_/link.hpp"
 #include "libtorrent/aux_/vector_utils.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block.hpp"

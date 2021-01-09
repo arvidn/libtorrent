@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/hash_picker.hpp"
 

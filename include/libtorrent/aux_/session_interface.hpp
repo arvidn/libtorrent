@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_udp_sockets.hpp" // for transport
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/flags.hpp"
-#include "libtorrent/link.hpp" // for torrent_list_index_t
+#include "libtorrent/aux_/link.hpp" // for torrent_list_index_t
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/ssl.hpp"
@@ -71,8 +71,7 @@ namespace dht {
 #endif
 }
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	struct proxy_settings;
 	struct session_settings;
@@ -288,6 +287,6 @@ namespace aux {
 
 		virtual ~session_interface() {}
 	};
-}}
+}
 
 #endif

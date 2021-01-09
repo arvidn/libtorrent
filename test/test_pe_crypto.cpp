@@ -14,7 +14,7 @@ see LICENSE file.
 #include <iostream>
 
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/span.hpp"
 
@@ -82,7 +82,7 @@ TORRENT_TEST(diffie_hellman)
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		dh_key_exchange DH1, DH2;
+		aux::dh_key_exchange DH1, DH2;
 
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
@@ -113,10 +113,10 @@ TORRENT_TEST(rc4)
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
 	std::printf("testing RC4 handler\n");
-	rc4_handler rc41;
+	aux::rc4_handler rc41;
 	rc41.set_incoming_key(test2_key);
 	rc41.set_outgoing_key(test1_key);
-	rc4_handler rc42;
+	aux::rc4_handler rc42;
 	rc42.set_incoming_key(test1_key);
 	rc42.set_outgoing_key(test2_key);
 	test_enc_handler(rc41, rc42);

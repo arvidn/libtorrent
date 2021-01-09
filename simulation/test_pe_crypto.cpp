@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 
-#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
 
 #include "setup_transfer.hpp"
