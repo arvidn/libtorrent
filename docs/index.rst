@@ -23,6 +23,7 @@ Documentation
 * troubleshooting_
 * tuning_
 * fuzzing_
+* `security audit (2020)`_
 * `projects using libtorrent`_
 
 --------
@@ -79,6 +80,7 @@ Bindings
 .. _troubleshooting: troubleshooting.html
 .. _tuning: tuning-ref.html
 .. _fuzzing: fuzzing.html
+.. _`security audit (2020)`: security-audit.html
 .. _uTP: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`libtorrent plugins`: reference-Plugins.html
