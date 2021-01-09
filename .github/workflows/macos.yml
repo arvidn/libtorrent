@@ -28,13 +28,15 @@ jobs:
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build and run tests
+        run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests)
+
+      - name: run tests (flaky)
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
           command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
-
 
 
    sim:
