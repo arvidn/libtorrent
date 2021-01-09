@@ -118,6 +118,7 @@ DOCS_PAGES = \
   docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
   docs/upgrade_to_2.0-ref.html    \
+  docs/security-audit.html        \
   docs/reference.html             \
   docs/reference-Core.html        \
   docs/reference-DHT.html         \
