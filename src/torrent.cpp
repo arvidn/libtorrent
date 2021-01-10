@@ -6349,7 +6349,7 @@ namespace {
 		{
 			// if this is set, we don't allow this web seed to have resolved to a
 			// local IP
-			if (web->no_local_ip && !aux::is_global(addr)) continue;
+			if (web->no_local_ips && !aux::is_global(addr)) continue;
 
 			// fill in the peer struct's address field
 			web->endpoints.emplace_back(addr, std::uint16_t(port));
