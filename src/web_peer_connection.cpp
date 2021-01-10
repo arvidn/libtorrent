@@ -656,10 +656,10 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 	// when SSRF mitigation is enabled, a web seed on the internet (is_global())
 	// is not allowed to redirect to a server on the local network, so we set
-	// the no_local_ip flag
+	// the no_local_ips flag
 	auto const web_seed_flags = torrent::ephemeral
 		| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
-			? torrent::no_local_ip : web_seed_flags_t{});
+			? torrent::no_local_ips : web_seed_flag_t{});
 
 	// add the redirected url and remove the current one
 	if (!single_file_request)
