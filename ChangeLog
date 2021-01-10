@@ -1,3 +1,4 @@
+	* fix issue in python binding interpreting int settings > INT_MAX
 	* Fix cxxflags and linkflags injection via environment variables
 
 1.2.12 released
