@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socks5_stream.hpp" // for socks_error
 #include "libtorrent/aux_/keepalive.hpp"
 
+#include "libtorrent/packet_pool.hpp"
+
 #include <cstdlib>
 #include <functional>
 
@@ -331,6 +333,8 @@ void udp_socket::send(udp::endpoint const& ep, span<char const> p
 	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& is_v4(ep));
 
+	TORRENT_ASSERT(p.size() <= TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER);
+	TORRENT_ASSERT(p.size() <= 1472);
 	m_socket.send_to(boost::asio::buffer(p.data(), static_cast<std::size_t>(p.size())), ep, 0, ec);
 }
 
@@ -355,6 +359,8 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	// set the DF flag for the socket and clear it again in the destructor
 	set_dont_frag df(m_socket, (flags & dont_fragment) && is_v4(ep));
 
+	TORRENT_ASSERT(iovec[0].size() + iovec[1].size() <= TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER);
+	TORRENT_ASSERT(iovec[0].size() + iovec[1].size() <= 1472);
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
@@ -383,6 +389,8 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	set_dont_frag df(m_socket, (flags & dont_fragment)
 		&& is_v4(m_socket.local_endpoint(ec)));
 
+	TORRENT_ASSERT(iovec[0].size() + iovec[1].size() <= TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER);
+	TORRENT_ASSERT(iovec[0].size() + iovec[1].size() <= 1472);
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
