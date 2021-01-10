@@ -10,38 +10,21 @@ clone_depth: 1
 environment:
   matrix:
     - variant: debug
-      compiler: msvc
-      model: 64
-      api: store
-      lib: 1
-    - variant: debug
-      compiler: msvc
-      model: 32
-      lib: 1
-    - variant: debug
       compiler: gcc
       model: 32
       crypto: openssl
       ssl_lib: /usr/local/include
       ssl_include: /usr/local/lib
       lib: 1
-    - variant: debug
-      compiler: msvc
-      model: 64
-      sim: 1
     - cmake: 1
     - variant: release
       compiler: msvc
       model: 64
-      python: 1
-      python_dist: 1
       crypto: openssl
       ssl_lib: c:\OpenSSL-v111-Win64\lib
       ssl_include: c:\OpenSSL-v111-Win64\include
       webtorrent: on
       tests: 1
-      examples: 1
-      tools: 1
 
 artifacts:
   - path: bindings/python/dist/*
@@ -84,18 +67,6 @@ build_script:
     b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 cxxstd=17
     )
 
-  # examples
-  - cd %ROOT_DIRECTORY%\examples
-  - if defined examples (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
-    )
-
-  # tools
-  - cd %ROOT_DIRECTORY%\tools
-  - if defined tools (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10
-    )
-
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined tests (
@@ -112,12 +83,6 @@ build_script:
     )
   - if defined python_dist (
     c:\Python36-x64\python.exe setup.py bdist --format=msi
-    )
-
-  # simulations
-  - cd %ROOT_DIRECTORY%\simulation
-  - if defined sim (
-    b2.exe --hash warnings=all warnings-as-errors=on %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
     )
 
   # minimal support for cmake build
@@ -139,25 +104,6 @@ test_script:
     appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 deterministic-tests
     )
 
-  - cd %ROOT_DIRECTORY%\bindings\python
-  # we use 64 bit python build
-  - if defined python (
-    copy dependencies\*.* .
-    & c:\Python36-x64\python.exe test.py -b
-    )
-
   - if defined cmake (
     appveyor-retry ctest
-    )
-
-  # simulation tests
-  # debug iterators are turned off here because msvc has issues with noexcept
-  # specifiers when debug iterators are enabled. Specifically, constructors that
-  # allocate memory are still marked as noexcept. That results in program
-  # termination
-  # the IOCP backend in asio appears to have an issue where it hangs under
-  # certain unexpected terminations (through exceptions)
-  - cd %ROOT_DIRECTORY%\simulation
-  - if defined sim (
-    b2.exe --hash warnings-as-errors=on %compiler% address-model=%model% debug-iterators=off picker-debugging=on invariant-checks=full debug boost-link=default link=static crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
     )
