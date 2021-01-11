@@ -1844,6 +1844,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 	std::uint8_t* ptr = nullptr;
 	utp_header* h = nullptr;
 
+#if TORRENT_USE_ASSERTS
+	bool from_nagle = false;
+#endif
+
 	// payload size being zero means we're just sending
 	// an force. We should not pick up the nagle packet
 	if (!m_nagle_packet || (payload_size == 0 && force))
@@ -1906,33 +1910,47 @@ bool utp_socket_impl::send_pkt(int const flags)
 		else
 			sack = 0;
 
-		std::int32_t const size_left = std::min(p->allocated - p->size
-			, m_write_buffer_size);
+		// if the nagle packet is already large enough to fill one packet, don't
+		// append any more payload to it.
+		if (p->size < effective_mtu) {
+			// this is the number of payload bytes we can add to the nagle
+			// packet. It's restricted by the allocation size of the packet and
+			// the current effective MTU. The MTU is the packet size including
+			// the uTP header, so it has to be deducted. The p->size *includes*
+			// the the uTP header already.
+			std::int32_t const size_left = std::min({
+				p->allocated - p->size
+				, m_write_buffer_size
+				, effective_mtu - p->header_size});
 
-		write_payload(p->buf + p->size, size_left);
-		p->size += std::uint16_t(size_left);
+			write_payload(p->buf + p->size, size_left);
+			p->size += std::uint16_t(size_left);
 
-		if (size_left > 0)
-		{
-			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-				, static_cast<void*>(this), size_left, p->size, p->allocated);
+			if (size_left > 0)
+			{
+				UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+					, static_cast<void*>(this), size_left, p->size, p->allocated);
+			}
+
+			// did we fill up the whole mtu?
+			// if we didn't, we may still send it if there's
+			// no bytes in flight
+			if (m_bytes_in_flight > 0
+				&& p->size < std::min(p->allocated, std::uint16_t(effective_mtu))
+				&& !force
+				&& m_nagle)
+			{
+				// the packet is still not a full MSS, so put it back into the nagle
+				// packet
+				m_nagle_packet = std::move(p);
+				return false;
+			}
+
+			payload_size = p->size - p->header_size;
 		}
-
-		// did we fill up the whole mtu?
-		// if we didn't, we may still send it if there's
-		// no bytes in flight
-		if (m_bytes_in_flight > 0
-			&& p->size < std::min(p->allocated, m_mtu_floor)
-			&& !force
-			&& m_nagle)
-		{
-			// the packet is still not a full MSS, so put it back into the nagle
-			// packet
-			m_nagle_packet = std::move(p);
-			return false;
-		}
-
-		payload_size = p->size - p->header_size;
+#if TORRENT_USE_ASSERTS
+		from_nagle = true;
+#endif
 	}
 
 	if (sack)
@@ -1952,7 +1970,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	if (m_bytes_in_flight > 0
-		&& p->size < p->allocated
+		&& p->size < std::min(std::uint16_t(effective_mtu), p->allocated)
 		&& !force
 		&& m_nagle)
 	{
@@ -2011,6 +2029,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 		, std::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe)
 		, h->extension);
 #endif
+
+	TORRENT_ASSERT(p->size <= m_mtu_ceiling || from_nagle);
 
 	error_code ec;
 	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
@@ -3236,6 +3256,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 					"get_microseconds:%u "
 					"cur_window_packets:%u "
 					"packet_size:%d "
+					"min_packet_size:%d "
+					"max_packet_size:%d "
 					"their_delay_base:%s "
 					"their_actual_delay:%u "
 					"seq_nr:%u "
@@ -3269,6 +3291,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 					, int(total_microseconds(receive_time.time_since_epoch()))
 					, m_outbuf.size()
 					, m_mtu
+					, m_mtu_floor
+					, m_mtu_ceiling
 					, their_delay_base
 					, std::uint32_t(m_reply_micro)
 					, m_seq_nr
