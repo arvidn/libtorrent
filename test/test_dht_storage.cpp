@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 
@@ -252,7 +252,7 @@ TORRENT_TEST(peer_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(n1, {rand_v4(), std::uint16_t(lt::random(0xffff))}
+		s->announce_peer(n1, {rand_v4(), std::uint16_t(aux::random(0xffff))}
 			, "torrent_name", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.peers <= 42);
@@ -269,7 +269,7 @@ TORRENT_TEST(torrent_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(rand_hash(), {rand_v4(), std::uint16_t(lt::random(0xffff))}
+		s->announce_peer(rand_hash(), {rand_v4(), std::uint16_t(aux::random(0xffff))}
 			, "", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.torrents <= 42);

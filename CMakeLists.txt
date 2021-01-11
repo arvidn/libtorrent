@@ -73,7 +73,6 @@ set(libtorrent_include_files
 	piece_block
 	portmap
 	proxy_base
-	random
 	read_resume_data
 	session
 	session_handle
@@ -218,6 +217,7 @@ set(libtorrent_aux_include_files
 	posix_part_file
 	proxy_settings
 	puff
+	random
 	range
 	receive_buffer
 	request_blocks

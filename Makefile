@@ -474,7 +474,6 @@ HEADERS = \
   portmap.hpp                  \
   posix_disk_io.hpp            \
   proxy_base.hpp               \
-  random.hpp                   \
   read_resume_data.hpp         \
   session.hpp                  \
   session_handle.hpp           \
@@ -595,6 +594,7 @@ HEADERS = \
   aux_/posix_storage.hpp            \
   aux_/proxy_settings.hpp           \
   aux_/puff.hpp                     \
+  aux_/random.hpp                   \
   aux_/range.hpp                    \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \

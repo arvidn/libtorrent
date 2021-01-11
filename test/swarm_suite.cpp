@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include <iostream>
@@ -75,7 +75,7 @@ void test_swarm(test_flags_t const flags)
 	// three peers before finishing.
 	float const rate_limit = 100000;
 
-	int const port = static_cast<int>(lt::random(100));
+	int const port = static_cast<int>(aux::random(100));
 	char iface[50];
 	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));

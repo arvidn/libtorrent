@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -380,7 +380,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		{
 			int piece = aux::read_int32(ptr);
 			if (pieces.empty()) pieces.push_back(piece);
-			else pieces.insert(pieces.begin() + static_cast<int>(lt::random(static_cast<std::uint32_t>(pieces.size()))), piece);
+			else pieces.insert(pieces.begin() + static_cast<int>(aux::random(static_cast<std::uint32_t>(pieces.size()))), piece);
 		}
 		else if (msg == 5) // bitfield
 		{

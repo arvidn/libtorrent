@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_params.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 #include <fstream>
 #include <chrono>

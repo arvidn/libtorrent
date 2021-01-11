@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/socket_io.hpp"
 
 #include "test.hpp"

@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/rtc_signaling.hpp"
 #include "libtorrent/aux_/rtc_stream.hpp"

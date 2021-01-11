@@ -22,7 +22,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/range.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters

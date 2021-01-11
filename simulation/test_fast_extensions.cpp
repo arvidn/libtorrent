@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for ep()
 #include "simulator/utils.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 using namespace lt::literals;
 

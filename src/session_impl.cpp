@@ -68,7 +68,7 @@ see LICENSE file.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/torrent_peer.hpp"

@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
@@ -421,7 +421,7 @@ namespace {
 
 		void failed_hash_check(time_point const& now)
 		{
-			m_request_limit = now + seconds(20 + random(50));
+			m_request_limit = now + seconds(20 + aux::random(50));
 		}
 
 		// explicitly disallow assignment, to silence msvc warning

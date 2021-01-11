@@ -18,8 +18,7 @@ see LICENSE file.
 #include <random>
 #include <algorithm>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
 
@@ -41,7 +40,6 @@ namespace aux {
 	// Fills the buffer with random bytes from a strong entropy source. This can
 	// be used to generate secrets.
 	TORRENT_EXTRA_EXPORT void crypto_random_bytes(span<char> buffer);
-}
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
 }

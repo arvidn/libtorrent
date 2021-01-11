@@ -11,7 +11,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/random.hpp" // for random()
+#include "libtorrent/aux_/random.hpp" // for random()
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_local() etc.
 

@@ -41,7 +41,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/merkle.hpp"

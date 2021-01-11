@@ -9,7 +9,7 @@ see LICENSE file.
 */
 
 #include <libtorrent/kademlia/ed25519.hpp>
-#include <libtorrent/random.hpp>
+#include <libtorrent/aux_/random.hpp>
 #include <libtorrent/aux_/ed25519.hpp>
 
 namespace libtorrent { namespace dht {

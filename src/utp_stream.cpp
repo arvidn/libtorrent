@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/io_context.hpp"

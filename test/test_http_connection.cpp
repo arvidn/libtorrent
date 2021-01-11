@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 #include <iostream>
 #include <optional>

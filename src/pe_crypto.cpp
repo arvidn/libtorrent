@@ -21,7 +21,7 @@ see LICENSE file.
 #include <boost/multiprecision/integer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"

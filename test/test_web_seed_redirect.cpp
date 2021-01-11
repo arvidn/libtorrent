@@ -14,7 +14,7 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 #include "settings.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_params.hpp"
