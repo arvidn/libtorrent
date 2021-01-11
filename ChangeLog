@@ -1,3 +1,5 @@
+	* Fix cxxflags and linkflags injection via environment variables
+
 1.2.12 released
 
 	* fix loading of DHT node ID from previous session on startup
