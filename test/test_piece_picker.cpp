@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/units.hpp"
 
 #include <memory>

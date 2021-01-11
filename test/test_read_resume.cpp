@@ -16,7 +16,7 @@ see LICENSE file.
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/add_torrent_params.hpp"

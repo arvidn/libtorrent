@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/aux_/throw.hpp"

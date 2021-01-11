@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
@@ -1191,7 +1191,7 @@ pid_type websocket_server_pid = 0;
 
 int start_websocket_server(bool ssl, int min_interval)
 {
-	int port = 2000 + static_cast<int>(lt::random(6000));
+	int port = 2000 + static_cast<int>(aux::random(6000));
 	error_code ec;
 	io_context ios;
 

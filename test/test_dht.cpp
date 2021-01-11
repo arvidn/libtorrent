@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/bloom_filter.hpp"
@@ -327,7 +327,7 @@ struct announce_item
 		: next(nxt)
 		, num_peers(num)
 	{
-		num_peers = int(lt::random(5) + 2);
+		num_peers = int(aux::random(5) + 2);
 		ent["next"] = next.to_string();
 		ent["A"] = "a";
 		ent["B"] = "b";
@@ -1232,7 +1232,7 @@ void test_put(address(&rand_addr)())
 	init_rand_address();
 	udp::endpoint eps[1000];
 	for (int i = 0; i < 1000; ++i)
-		eps[i] = udp::endpoint(rand_addr(), std::uint16_t(random(16534) + 1));
+		eps[i] = udp::endpoint(rand_addr(), std::uint16_t(aux::random(16534) + 1));
 
 	announce_immutable_items(t.dht_node, eps, items, sizeof(items)/sizeof(items[0]));
 

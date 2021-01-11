@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/error.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/connect.hpp>

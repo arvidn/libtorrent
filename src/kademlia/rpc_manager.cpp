@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/aux_/io_bytes.hpp>
-#include <libtorrent/random.hpp>
+#include <libtorrent/aux_/random.hpp>
 #include <libtorrent/aux_/invariant_check.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -437,7 +437,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	std::uint16_t const tid = std::uint16_t(random(0xffff));
+	std::uint16_t const tid = std::uint16_t(aux::random(0xffff));
 	aux::write_uint16(tid, out);
 	e["t"] = transaction_id;
 

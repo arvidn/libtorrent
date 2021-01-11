@@ -25,7 +25,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include <csignal>
 
@@ -394,7 +394,7 @@ int EXPORT main(int argc, char const* argv[])
 	std::string const root_dir = current_working_directory();
 	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
-		, executable, unit_dir_prefix.c_str(), lt::random(0xffffffff));
+		, executable, unit_dir_prefix.c_str(), aux::random(0xffffffff));
 
 	if (_g_num_unit_tests == 0)
 	{

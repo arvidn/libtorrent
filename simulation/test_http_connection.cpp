@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 
 #include "make_proxy_settings.hpp"
 

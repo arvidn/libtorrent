@@ -10,7 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
@@ -57,8 +57,7 @@ namespace {
 }
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 		std::mt19937& random_engine()
 		{
@@ -146,7 +145,6 @@ namespace aux {
 
 #endif
 		}
-}
 
 	std::uint32_t random(std::uint32_t const max)
 	{

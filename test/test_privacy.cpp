@@ -18,7 +18,7 @@ see LICENSE file.
 #include "settings.hpp"
 
 #include "libtorrent/alert.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -80,10 +80,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
-	static int listen_port = 10000 + int(lt::random(50000));
+	static int listen_port = 10000 + int(aux::random(50000));
 	char iface[200];
 	std::snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
-	listen_port += lt::random(10) + 1;
+	listen_port += aux::random(10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 
 	// if we don't do this, the peer connection test

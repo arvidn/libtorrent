@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/span.hpp"
 
 #include "test.hpp"
@@ -29,7 +29,7 @@ void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 	int const repcount = 128;
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		std::ptrdiff_t const buf_len = lt::random(512 * 1024);
+		std::ptrdiff_t const buf_len = lt::aux::random(512 * 1024);
 		std::vector<char> buf(static_cast<std::size_t>(buf_len));
 		std::vector<char> cmp_buf(static_cast<std::size_t>(buf_len));
 

@@ -27,7 +27,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/debug.hpp"
 

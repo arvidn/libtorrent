@@ -16,7 +16,7 @@ see LICENSE file.
 
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
@@ -55,7 +55,7 @@ lsd::lsd(io_context& ios, aux::lsd_callback& cb
 	, m_netmask(netmask)
 	, m_socket(ios)
 	, m_broadcast_timer(ios)
-	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
+	, m_cookie((aux::random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
 {
 }
 

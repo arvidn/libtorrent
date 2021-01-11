@@ -17,8 +17,6 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/random.hpp"
-#include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/hasher.hpp"

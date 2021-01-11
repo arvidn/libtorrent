@@ -29,7 +29,7 @@ see LICENSE file.
 #include <libtorrent/session_status.hpp>
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include <libtorrent/assert.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include "libtorrent/aux_/throw.hpp"

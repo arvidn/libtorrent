@@ -15,11 +15,11 @@ see LICENSE file.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_local et.al
-#include "libtorrent/random.hpp" // for random
+#include "libtorrent/aux_/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/crc32c.hpp" // for crc32c
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
@@ -105,9 +105,9 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 
 	id[0] = (c >> 24) & 0xff;
 	id[1] = (c >> 16) & 0xff;
-	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
+	id[2] = (((c >> 8) & 0xf8) | aux::random(0x7)) & 0xff;
 
-	for (int i = 3; i < 19; ++i) id[i] = random(0xff) & 0xff;
+	for (int i = 3; i < 19; ++i) id[i] = aux::random(0xff) & 0xff;
 	id[19] = r & 0xff;
 
 	return id;
@@ -117,9 +117,9 @@ static std::uint32_t secret = 0;
 
 void make_id_secret(node_id& in)
 {
-	if (secret == 0) secret = random(0xfffffffe) + 1;
+	if (secret == 0) secret = aux::random(0xfffffffe) + 1;
 
-	std::uint32_t const rand = random(0xffffffff);
+	std::uint32_t const rand = aux::random(0xffffffff);
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
@@ -168,7 +168,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, random(0xffffffff));
+	return generate_id_impl(ip, aux::random(0xffffffff));
 }
 
 bool matching_prefix(node_id const& nid, int mask, int prefix, int offset)
@@ -189,4 +189,4 @@ node_id generate_prefix_mask(int const bits)
 	return mask;
 }
 
-} }  // namespace libtorrent::dht
+} // namespace libtorrent::dht

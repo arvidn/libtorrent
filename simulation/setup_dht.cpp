@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory> // for unique_ptr
 #include <random>
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 #include "libtorrent/aux_/listen_socket_handle.hpp"
@@ -65,7 +65,7 @@ namespace {
 	asio::ip::address addr6_from_int(int /* idx */)
 	{
 		asio::ip::address_v6::bytes_type bytes;
-		for (uint8_t& b : bytes) b = uint8_t(lt::random(0xff));
+		for (uint8_t& b : bytes) b = uint8_t(lt::aux::random(0xff));
 		return asio::ip::address_v6(bytes);
 	}
 
@@ -192,7 +192,7 @@ struct dht_node final : lt::dht::socket_manager
 
 		while (!order.empty())
 		{
-			auto const idx = lt::random(static_cast<uint32_t>(order.size() - 1));
+			auto const idx = lt::aux::random(static_cast<uint32_t>(order.size() - 1));
 			assert(idx >= 0 && idx < order.size());
 			auto const& n = nodes[order[idx]];
 			if (idx < order.size() - 1) order[idx] = order.back();
@@ -210,7 +210,7 @@ struct dht_node final : lt::dht::socket_manager
 			// there are no more slots in this bucket, just move on
 			if (nodes_per_bucket[bucket] == 0) continue;
 			--nodes_per_bucket[bucket];
-			bool const added = dht().m_table.node_seen(n.first, n.second, lt::random(300) + 10);
+			bool const added = dht().m_table.node_seen(n.first, n.second, lt::aux::random(300) + 10);
 			TEST_CHECK(added);
 			if (m_add_dead_nodes)
 			{
@@ -219,7 +219,7 @@ struct dht_node final : lt::dht::socket_manager
 				udp::endpoint const ep = rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4);
 				dht::node_id target = dht::generate_id_impl(ep.address(), 0) & ~mask;
 				target |= id & mask;
-				dht().m_table.node_seen(target, ep, lt::random(300) + 10);
+				dht().m_table.node_seen(target, ep, lt::aux::random(300) + 10);
 			}
 		}
 /*

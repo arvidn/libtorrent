@@ -27,7 +27,7 @@ see LICENSE file.
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
 #include <libtorrent/aux_/bloom_filter.hpp>
-#include <libtorrent/random.hpp>
+#include <libtorrent/aux_/random.hpp>
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
@@ -252,7 +252,7 @@ namespace {
 
 					// pick this peer with probability
 					// <peers left to pick> / <peers left in the set>
-					if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+					if (aux::random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
 						continue;
 
 					pe.emplace_back();
@@ -582,7 +582,7 @@ namespace {
 
 				// pick this key with probability
 				// <keys left to pick> / <keys left in the set>
-				if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+				if (aux::random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
 					continue;
 
 				samples.push_back(t.first);

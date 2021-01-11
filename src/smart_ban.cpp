@@ -27,7 +27,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 
 #ifndef TORRENT_DISABLE_LOGGING

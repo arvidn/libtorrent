@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/session_params.hpp"
-#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
