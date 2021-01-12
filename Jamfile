@@ -13,11 +13,6 @@ import cast ;
 VERSION = 2.0 ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
-CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
-LDFLAGS = [ modules.peek : LDFLAGS ] ;
-
-ECHO "CXXFLAGS =" $(CXXFLAGS) ;
-ECHO "LDFLAGS =" $(LDFLAGS) ;
 ECHO "OS =" [ os.name ] ;
 
 if $(BOOST_ROOT)
@@ -883,8 +878,6 @@ local usage-requirements =
 
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
 	<define>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
-
-	<cxxflags>"$(CXXFLAGS:J= )"
 	;
 
 project torrent ;
@@ -915,7 +908,6 @@ lib torrent
 	<tag>@tag
 
 	$(usage-requirements)
-	<linkflags>"$(LDFLAGS:J= )"
 
 	: # default build
 	<threading>multi
