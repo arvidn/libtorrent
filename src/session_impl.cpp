@@ -86,7 +86,7 @@ see LICENSE file.
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
 // for logging stat layout
 #include "libtorrent/aux_/stat.hpp"

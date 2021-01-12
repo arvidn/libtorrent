@@ -12,10 +12,9 @@ see LICENSE file.
 #define KADEMLIA_IO_HPP
 
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
-namespace libtorrent {
-namespace dht {
+namespace libtorrent::dht {
 
 	struct node_endpoint
 	{
@@ -36,7 +35,6 @@ namespace dht {
 		return ep;
 	}
 
-}
 }
 
 #endif

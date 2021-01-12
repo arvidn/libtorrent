@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/aux_/socket_io.hpp" // for hash_address
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/kademlia/ed25519.hpp"

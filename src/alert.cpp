@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/performance_counters.hpp"

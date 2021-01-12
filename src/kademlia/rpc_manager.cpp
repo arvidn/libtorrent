@@ -28,7 +28,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/sample_infohashes.hpp>
 #include <libtorrent/aux_/session_settings.hpp>
 
-#include <libtorrent/socket_io.hpp> // for print_endpoint
+#include <libtorrent/aux_/socket_io.hpp> // for print_endpoint
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v6
 
@@ -41,7 +41,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 dht_observer* observer::get_observer() const
 {
@@ -198,7 +198,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	if (m_log->should_log(dht_logger::rpc_manager))
 	{
 		m_log->log(dht_logger::rpc_manager, "PORT_UNREACHABLE [ ip: %s ]"
-			, print_endpoint(ep).c_str());
+			, aux::print_endpoint(ep).c_str());
 	}
 #endif
 
@@ -252,7 +252,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		if (m_table.native_endpoint(m.addr) && m_log->should_log(dht_logger::rpc_manager))
 		{
 			m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
-				, int(transaction_id.size()), print_endpoint(m.addr).c_str());
+				, int(transaction_id.size()), aux::print_endpoint(m.addr).c_str());
 		}
 #endif
 		// this isn't necessarily because the other end is doing
@@ -273,7 +273,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		m_log->log(dht_logger::rpc_manager, "[%u] round trip time(ms): %" PRId64 " from %s"
 			, o->algorithm()->id(), total_milliseconds(now - o->sent())
-			, print_endpoint(m.addr).c_str());
+			, aux::print_endpoint(m.addr).c_str());
 	}
 #endif
 
@@ -290,14 +290,14 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] reply with error from %s: (%" PRId64 ") %s"
 					, o->algorithm()->id()
-					, print_endpoint(m.addr).c_str()
+					, aux::print_endpoint(m.addr).c_str()
 					, err.list_int_value_at(0)
 					, std::string(err.list_string_value_at(1)).c_str());
 			}
 			else
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] reply with (malformed) error from %s"
-					, o->algorithm()->id(), print_endpoint(m.addr).c_str());
+					, o->algorithm()->id(), aux::print_endpoint(m.addr).c_str());
 			}
 		}
 #endif
@@ -340,7 +340,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		m_log->log(dht_logger::rpc_manager, "[%u] reply with transaction id: %d from %s"
 			, o->algorithm()->id(), int(transaction_id.size())
-			, print_endpoint(m.addr).c_str());
+			, aux::print_endpoint(m.addr).c_str());
 	}
 #endif
 	o->reply(m);
@@ -382,7 +382,7 @@ time_duration rpc_manager::tick()
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] timing out transaction id: %d from: %s"
 					, o->algorithm()->id(), i->first
-					, print_endpoint(o->target_ep()).c_str());
+					, aux::print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			i = m_transactions.erase(i);
@@ -399,7 +399,7 @@ time_duration rpc_manager::tick()
 			{
 				m_log->log(dht_logger::rpc_manager, "[%u] short-timing out transaction id: %d from: %s"
 					, o->algorithm()->id(), i->first
-					, print_endpoint(o->target_ep()).c_str());
+					, aux::print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			++i;
@@ -458,7 +458,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	{
 		m_log->log(dht_logger::rpc_manager, "[%u] invoking %s -> %s"
 			, o->algorithm()->id(), e["q"].string().c_str()
-			, print_endpoint(target_addr).c_str());
+			, aux::print_endpoint(target_addr).c_str());
 	}
 #endif
 
@@ -487,4 +487,4 @@ observer::~observer()
 #endif
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

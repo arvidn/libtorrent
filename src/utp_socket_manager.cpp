@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/socket.hpp" // for TORRENT_HAS_DONT_FRAGMENT
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_teredo
 #include "libtorrent/aux_/random.hpp"
@@ -24,8 +24,7 @@ see LICENSE file.
 
 // #define TORRENT_DEBUG_MTU 1135
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	utp_socket_manager::utp_socket_manager(
 		send_fun_t send_fun
@@ -318,5 +317,4 @@ namespace aux {
 		m_utp_sockets.emplace(recv_id, std::move(impl));
 		return ret;
 	}
-}
 }

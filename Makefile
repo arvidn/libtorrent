@@ -487,7 +487,6 @@ HEADERS = \
   sha1_hash.hpp                \
   sha256.hpp                   \
   socket.hpp                   \
-  socket_io.hpp                \
   socket_type.hpp              \
   socks5_stream.hpp            \
   span.hpp                     \
@@ -611,6 +610,7 @@ HEADERS = \
   aux_/set_socket_buffer.hpp        \
   aux_/sha512.hpp                   \
   aux_/sliding_average.hpp          \
+  aux_/socket_io.hpp                \
   aux_/socket_type.hpp              \
   aux_/ssl_stream.hpp               \
   aux_/stack_allocator.hpp          \

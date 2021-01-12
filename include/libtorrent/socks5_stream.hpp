@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for to_string
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
 namespace libtorrent {
 

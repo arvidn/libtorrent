@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -87,7 +87,7 @@ struct fake_peer
 
 		m_info_hash = ih;
 
-		std::printf("fake_peer::connect_to(%s)\n", lt::print_endpoint(ep).c_str());
+		std::printf("fake_peer::connect_to(%s)\n", lt::aux::print_endpoint(ep).c_str());
 		m_socket.async_connect(ep, std::bind(&fake_peer::write_handshake
 			, this, _1, ih));
 	}
@@ -140,7 +140,7 @@ private:
 
 		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
 		std::printf("fake_peer::connect(%s) -> (%d) %s\n"
-			, lt::print_endpoint(ep).c_str()
+			, lt::aux::print_endpoint(ep).c_str()
 			, ec.value(), ec.message().c_str());
 		if (ec) return;
 
@@ -157,7 +157,7 @@ private:
 			, size_t /* bytes_transferred */)
 		{
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
-				, lt::print_endpoint(ep).c_str(), ec.value()
+				, lt::aux::print_endpoint(ep).c_str(), ec.value()
 				, ec.message().c_str());
 			if (!m_send_buffer.empty())
 			{

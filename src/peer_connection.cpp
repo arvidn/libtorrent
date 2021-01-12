@@ -63,7 +63,7 @@ see LICENSE file.
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cstdarg> // for va_start, va_end
 #include <cstdio> // for vsnprintf
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 

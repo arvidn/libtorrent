@@ -12,13 +12,13 @@ see LICENSE file.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/escape_string.hpp" // for trim
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	std::string print_address(address const& addr)
 	{

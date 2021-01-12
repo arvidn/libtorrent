@@ -11,11 +11,11 @@ see LICENSE file.
 #include "libtorrent/kademlia/dos_blocker.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/socket_io.hpp" // for print_address
+#include "libtorrent/aux_/socket_io.hpp" // for print_address
 #include "libtorrent/kademlia/dht_observer.hpp" // for dht_logger
 #endif
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 	dos_blocker::dos_blocker()
 		: m_message_rate_limit(5)
@@ -59,7 +59,7 @@ namespace libtorrent { namespace dht {
 						if (logger != nullptr && logger->should_log(dht_logger::tracker))
 						{
 							logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %d ms count: %d ]"
-								, print_address(addr).c_str()
+								, aux::print_address(addr).c_str()
 								, int(total_milliseconds((now - match->limit) + seconds(10)))
 								, match->count);
 						}
@@ -88,4 +88,4 @@ namespace libtorrent { namespace dht {
 		}
 		return true;
 	}
-}}
+}

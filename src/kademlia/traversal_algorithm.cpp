@@ -17,7 +17,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/dht_observer.hpp> // for dht_logger
 #include <libtorrent/kademlia/dht_settings.hpp>
 #include <libtorrent/kademlia/io.hpp>
-#include <libtorrent/socket_io.hpp> // for read_*_endpoint
+#include <libtorrent/aux_/socket_io.hpp> // for read_*_endpoint
 #include <libtorrent/alert_types.hpp> // for dht_lookup
 #include <libtorrent/aux_/time.hpp>
 
@@ -27,8 +27,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
-namespace dht {
+namespace libtorrent::dht {
 
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
@@ -137,7 +136,7 @@ void traversal_algorithm::add_entry(node_id const& id
 		{
 			logger->log(dht_logger::traversal
 				, "[%u] ADD (no-id) id: %s addr: %s distance: %d invoke-count: %d type: %s"
-				, m_id, aux::to_hex(id).c_str(), print_endpoint(addr).c_str()
+				, m_id, aux::to_hex(id).c_str(), aux::print_endpoint(addr).c_str()
 				, distance_exp(m_target, id), m_invoke_count, name());
 		}
 #endif
@@ -190,7 +189,7 @@ void traversal_algorithm::add_entry(node_id const& id
 				{
 					logger->log(dht_logger::traversal
 						, "[%u] traversal DUPLICATE node. id: %s addr: %s type: %s"
-						, m_id, aux::to_hex(o->id()).c_str(), print_address(o->target_addr()).c_str(), name());
+						, m_id, aux::to_hex(o->id()).c_str(), aux::print_address(o->target_addr()).c_str(), name());
 				}
 #endif
 				return;
@@ -208,7 +207,7 @@ void traversal_algorithm::add_entry(node_id const& id
 			{
 				logger->log(dht_logger::traversal
 					, "[%u] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
-					, m_id, aux::to_hex(id).c_str(), print_endpoint(addr).c_str()
+					, m_id, aux::to_hex(id).c_str(), aux::print_endpoint(addr).c_str()
 					, distance_exp(m_target, id), m_invoke_count, name());
 			}
 #endif
@@ -381,7 +380,7 @@ void traversal_algorithm::log_timeout(observer_ptr const& o, char const* prefix)
 			, "[%u] %sTIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 			"invoke-count: %d type: %s"
 			, m_id, prefix, aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
-			, print_address(o->target_addr()).c_str(), m_branch_factor
+			, aux::print_address(o->target_addr()).c_str(), m_branch_factor
 			, m_invoke_count, name());
 	}
 
@@ -416,7 +415,7 @@ void traversal_algorithm::done()
 			logger->log(dht_logger::traversal
 				, "[%u] id: %s distance: %d addr: %s"
 				, m_id, aux::to_hex(o->id()).c_str(), closest_target
-				, print_endpoint(o->target_ep()).c_str());
+				, aux::print_endpoint(o->target_ep()).c_str());
 
 			--results_target;
 			int const dist = distance_exp(m_target, o->id());
@@ -501,7 +500,7 @@ bool traversal_algorithm::add_requests()
 				"distance: %d id: %s addr: %s type: %s"
 				, m_id, int(m_results.end() - i), outstanding, int(m_invoke_count)
 				, int(m_branch_factor), distance_exp(m_target, o->id()), aux::to_hex(o->id()).c_str()
-				, print_address(o->target_addr()).c_str(), name());
+				, aux::print_address(o->target_addr()).c_str(), name());
 		}
 #endif
 
@@ -622,7 +621,7 @@ void traversal_observer::reply(msg const& m)
 		logger->log(dht_logger::traversal
 			, "[%u] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
 			, algorithm()->id(), hex_id, algorithm()->invoke_count()
-			, print_endpoint(target_ep()).c_str(), algorithm()->name());
+			, aux::print_endpoint(target_ep()).c_str(), algorithm()->name());
 	}
 #endif
 
@@ -646,4 +645,4 @@ void traversal_observer::reply(msg const& m)
 	set_id(node_id(id.string_ptr()));
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

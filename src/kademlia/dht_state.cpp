@@ -12,9 +12,9 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_state.hpp"
 
 #include <libtorrent/bdecode.hpp>
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 	node_ids_t extract_node_ids(bdecode_node const& e, string_view key)
 	{
@@ -109,4 +109,4 @@ namespace {
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 		return ret;
 	}
-}}
+}

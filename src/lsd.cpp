@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
-#include "libtorrent/socket_io.hpp" // for print_address
+#include "libtorrent/aux_/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -296,7 +296,7 @@ void lsd::on_announce(error_code const& ec)
 			if (should_log())
 			{
 				debug_log("<== LSD: %s:%d ih: %s"
-					, print_address(from.address()).c_str()
+					, aux::print_address(from.address()).c_str()
 					, int(port), ih_str.c_str());
 			}
 #endif

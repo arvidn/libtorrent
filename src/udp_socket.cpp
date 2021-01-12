@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/udp_socket.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/time.hpp"

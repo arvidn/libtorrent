@@ -31,7 +31,7 @@ see LICENSE file.
 #include "libtorrent/operations.hpp" // for operation_t enum
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
@@ -202,7 +202,7 @@ namespace {
 							, static_cast<int>(b.piece_index), b.block_index, client
 							, aux::to_hex(i->second.digest).c_str()
 							, aux::to_hex(e.digest).c_str()
-							, print_endpoint(p->ip()).c_str());
+							, aux::print_endpoint(p->ip()).c_str());
 					}
 #endif
 					m_torrent.ban_peer(p);
@@ -230,7 +230,7 @@ namespace {
 					" | digest: %s | ip: %s ]"
 					, static_cast<int>(b.piece_index), b.block_index, client
 					, aux::to_hex(e.digest).c_str()
-					, print_address(p->ip().address()).c_str());
+					, aux::print_address(p->ip().address()).c_str());
 			}
 #endif
 		}
@@ -276,7 +276,7 @@ namespace {
 					, static_cast<int>(b.first.piece_index), b.first.block_index, client
 					, aux::to_hex(ok_digest).c_str()
 					, aux::to_hex(b.second.digest).c_str()
-					, print_address(p->ip().address()).c_str());
+					, aux::print_address(p->ip().address()).c_str());
 			}
 #endif
 			m_torrent.ban_peer(p);

@@ -10,7 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/entry.hpp"
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/hex.hpp" // from_hex
@@ -101,19 +101,19 @@ TORRENT_TEST(address_to_from_string)
 TORRENT_TEST(address_endpoint_io)
 {
 	// test print_endpoint, print_address
-	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
-	TEST_EQUAL(print_address(addr4("241.124.23.5")), "241.124.23.5");
+	TEST_EQUAL(aux::print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
+	TEST_EQUAL(aux::print_address(addr4("241.124.23.5")), "241.124.23.5");
 
-	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
-	TEST_EQUAL(print_address(addr6("2001:ff::1")), "2001:ff::1");
+	TEST_EQUAL(aux::print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
+	TEST_EQUAL(aux::print_address(addr6("2001:ff::1")), "2001:ff::1");
 
 	// test address_to_bytes
-	TEST_EQUAL(address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");
-	TEST_EQUAL(address_to_bytes(addr4("16.5.127.1")), "\x10\x05\x7f\x01");
+	TEST_EQUAL(aux::address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(aux::address_to_bytes(addr4("16.5.127.1")), "\x10\x05\x7f\x01");
 
 	// test endpoint_to_bytes
-	TEST_EQUAL(endpoint_to_bytes(uep("10.11.12.13", 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
-	TEST_EQUAL(endpoint_to_bytes(uep("16.5.127.1", 12345)), "\x10\x05\x7f\x01\x30\x39");
+	TEST_EQUAL(aux::endpoint_to_bytes(uep("10.11.12.13", 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(aux::endpoint_to_bytes(uep("16.5.127.1", 12345)), "\x10\x05\x7f\x01\x30\x39");
 }
 
 TORRENT_TEST(gen_fingerprint)

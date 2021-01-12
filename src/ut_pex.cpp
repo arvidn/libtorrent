@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for is_utp
 #include "libtorrent/performance_counters.hpp" // for counters

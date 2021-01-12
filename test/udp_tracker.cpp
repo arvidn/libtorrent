@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
@@ -52,7 +52,7 @@ struct udp_tracker
 
 		if (bytes_transferred < 16)
 		{
-			std::printf("%s: UDP message too short (from: %s)\n", time_now_string().c_str(), print_endpoint(*from).c_str());
+			std::printf("%s: UDP message too short (from: %s)\n", time_now_string().c_str(), aux::print_endpoint(*from).c_str());
 			return;
 		}
 
@@ -81,7 +81,7 @@ struct udp_tracker
 					return;
 				}
 				std::printf("%s: UDP connect from %s\n", time_now_string().c_str()
-					, print_endpoint(*from).c_str());
+					, aux::print_endpoint(*from).c_str());
 				ptr = buffer;
 				aux::write_uint32(0, ptr); // action = connect
 				aux::write_uint32(transaction_id, ptr); // transaction_id
@@ -90,7 +90,7 @@ struct udp_tracker
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string().c_str(), e.message().c_str());
 				else std::printf("%s: UDP sent response to: %s\n"
-					, time_now_string().c_str(), print_endpoint(*from).c_str());
+					, time_now_string().c_str(), aux::print_endpoint(*from).c_str());
 				break;
 
 			case 1: // announce
@@ -136,7 +136,7 @@ struct udp_tracker
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string().c_str(), e.message().c_str());
 				else std::printf("%s: UDP sent response to: %s\n"
-					, time_now_string().c_str(), print_endpoint(*from).c_str());
+					, time_now_string().c_str(), aux::print_endpoint(*from).c_str());
 				break;
 			case 2:
 				// ignore scrapes
