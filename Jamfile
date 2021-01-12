@@ -857,8 +857,7 @@ local usage-requirements =
 	<target-os>windows:<define>_SCL_SECURE_NO_DEPRECATE
 	<target-os>windows:<define>_CRT_SECURE_NO_DEPRECATE
 
-	<cxxflags>$(CXXFLAGS)
-	<linkflags>$(LDFLAGS)
+	<cxxflags>"$(CXXFLAGS:J= )"
 	;
 
 project torrent ;
@@ -880,11 +879,11 @@ lib torrent
 
 	<conditional>@building
 	<conditional>@warnings
-	<cxxflags>$(CXXFLAGS)
 
 	<tag>@tag
 
 	$(usage-requirements)
+	<linkflags>"$(LDFLAGS:J= )"
 
 	: # default build
 	<threading>multi
