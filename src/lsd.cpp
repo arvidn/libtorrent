@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/aux_/socket_io.hpp" // for print_address
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/enum_net.hpp"

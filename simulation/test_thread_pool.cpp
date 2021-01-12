@@ -128,7 +128,7 @@ TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 
 	// first just kill one thread
 	threads.set_active_threads(2);
-	lt::deadline_timer idle_delay(ios);
+	lt::aux::deadline_timer idle_delay(ios);
 	// the thread will be killed the second time the reaper runs and we need
 	// to wait one extra minute to make sure the check runs after the reaper
 	idle_delay.expires_after(std::chrono::minutes(3));

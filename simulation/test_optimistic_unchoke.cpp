@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 
 #include <memory>
 

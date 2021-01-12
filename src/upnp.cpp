@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/ssl.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

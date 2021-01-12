@@ -12,7 +12,7 @@ see LICENSE file.
 #if TORRENT_USE_RTC
 
 #include "libtorrent/aux_/websocket_stream.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/parse_url.hpp"

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
@@ -282,7 +282,7 @@ void setup_swarm(int num_nodes
 	std::vector<std::shared_ptr<lt::session>> nodes;
 	std::vector<std::shared_ptr<sim::asio::io_context>> io_context;
 	std::vector<lt::session_proxy> zombies;
-	lt::deadline_timer timer(ios);
+	lt::aux::deadline_timer timer(ios);
 
 	lt::error_code ec;
 	int const swarm_id = test_counter();

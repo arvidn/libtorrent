@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl_stream.hpp"
 #endif
 
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 
 namespace libtorrent::aux {
 

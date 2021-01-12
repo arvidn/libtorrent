@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"

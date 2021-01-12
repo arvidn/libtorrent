@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>

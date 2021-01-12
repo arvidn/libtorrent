@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "settings.hpp"
 #include "utils.hpp"
 #include "create_torrent.hpp"
