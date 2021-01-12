@@ -4,6 +4,8 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* strengthen SSRF mitigation for web seeds
+
 * 2.0.2 released
 
 	* add v1() and v2() functions to torrent_info
@@ -53,6 +55,9 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
+
+	* fix issue in python binding interpreting int settings > INT_MAX
+	* Fix cxxflags and linkflags injection via environment variables
 
 1.2.12 released
 

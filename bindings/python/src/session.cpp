@@ -130,6 +130,8 @@ namespace
 
 			TORRENT_TRY
 			{
+				// if the dictionary doesn't contain "key", it will throw, hence
+				// the try-catch here
 				object const value = sett_dict[key];
 				switch (sett & settings_pack::type_mask)
 				{
@@ -137,8 +139,15 @@ namespace
 						p.set_str(sett, extract<std::string>(value));
 						break;
 					case settings_pack::int_type_base:
-						p.set_int(sett, extract<int>(value));
+					{
+						std::int64_t const val = extract<std::int64_t>(value);
+						// deliberately truncate and sign-convert here. If we
+						// extract an int directly, unsigned ints may throw
+						// an exception otherwise, if it doesn't fit. Notably for a
+						// flag-type with all bits set.
+						p.set_int(sett, static_cast<int>(val));
 						break;
+					}
 					case settings_pack::bool_type_base:
 						p.set_bool(sett, extract<bool>(value));
 						break;

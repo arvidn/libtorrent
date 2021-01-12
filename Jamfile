@@ -884,8 +884,7 @@ local usage-requirements =
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
 	<define>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
 
-	<cxxflags>$(CXXFLAGS)
-	<linkflags>$(LDFLAGS)
+	<cxxflags>"$(CXXFLAGS:J= )"
 	;
 
 project torrent ;
@@ -912,11 +911,11 @@ lib torrent
 
 	<conditional>@building
 	<conditional>@warnings
-	<cxxflags>$(CXXFLAGS)
 
 	<tag>@tag
 
 	$(usage-requirements)
+	<linkflags>"$(LDFLAGS:J= )"
 
 	: # default build
 	<threading>multi

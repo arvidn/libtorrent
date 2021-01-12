@@ -602,6 +602,12 @@ class test_peer_class(unittest.TestCase):
 
 class test_session(unittest.TestCase):
 
+    def test_settings(self):
+        sett = { 'alert_mask': lt.alert.category_t.all_categories }
+        s = lt.session(sett)
+        sett = s.get_settings()
+        self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
     def test_add_torrent(self):
         s = lt.session(settings)
         s.add_torrent({'ti': lt.torrent_info('base.torrent'),

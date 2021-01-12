@@ -797,6 +797,17 @@ bool test_ssrf(char const* url, char const* redirect, bool enable_feature)
 			serve_content_for(http2, "/1", fs, file_index_t(0));
 			serve_content_for(http2, "/1?query_string=1", fs, file_index_t(0));
 
+			sim::asio::io_context web_server3(sim, make_address_v4("3.3.3.3"));
+			sim::http_server http3(web_server3, 8080);
+			serve_content_for(http3, "/1", fs, file_index_t(0));
+			serve_content_for(http3, "/1?query_string=1", fs, file_index_t(0));
+
+			// a local network server that redurects
+			sim::asio::io_context web_server4(sim, make_address_v4("192.168.1.14"));
+			sim::http_server http4(web_server4, 8080);
+			if (redirect)
+				http4.register_redirect("/1", redirect);
+
 			sim.run();
 		}
 	);
@@ -819,13 +830,40 @@ TORRENT_TEST(ssrf_mitigation)
 
 TORRENT_TEST(ssrf_mitigation_redirect)
 {
-	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1", true));
+	// All Global-IP -> Local-IP redirects are prevented by SSRF mitigation
+	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1", true));
 	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1", false));
-	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1", true));
+	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1", true));
 	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1", false));
-
 	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1?query_string=1", true));
 	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://192.168.1.13:8080/1?query_string=1", false));
 	TEST_CHECK(!test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1?query_string=1", true));
-	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://local-network.com:8080/1?query_string=1", false));
+
+
+	// Global-IP -> Global-IP is OK
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1?query_string=1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.server.com:8080/1?query_string=1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1?query_string=1", false));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://2.2.2.2:8080/1", "http://3.3.3.3:8080/1?query_string=1", false));
+
+	// Local-IP -> Local-IP are OK, with the normal query string restrictions
+	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1", true));
+	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1", false));
+	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://local-network.com:8080/1", true));
+	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://local-network.com:8080/1", false));
+	TEST_CHECK(!test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1?query_string=1", true));
+	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1?query_string=1", false));
+	TEST_CHECK(!test_ssrf("http://192.168.1.14:8080/1", "http://local-network.com:8080/1?query_string=1", true));
 }
