@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 #include <libtorrent/session_status.hpp>
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
@@ -53,7 +53,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 namespace {
 
@@ -390,7 +390,7 @@ void node::add_router_node(udp::endpoint const& router)
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		m_observer->log(dht_logger::node, "adding router node: %s"
-			, print_endpoint(router).c_str());
+			, aux::print_endpoint(router).c_str());
 	}
 #endif
 	m_table.add_router_node(router);
@@ -564,7 +564,7 @@ void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		m_observer->log(dht_logger::node, "starting sample_infohashes for [ node: %s, target: %s ]"
-			, print_endpoint(ep).c_str(), aux::to_hex(target).c_str());
+			, aux::print_endpoint(ep).c_str(), aux::to_hex(target).c_str());
 	}
 #endif
 
@@ -786,7 +786,7 @@ void node::incoming_request(msg const& m, entry& e)
 		return;
 	}
 
-	e["ip"] = endpoint_to_bytes(m.addr);
+	e["ip"] = aux::endpoint_to_bytes(m.addr);
 
 	bdecode_node const arg_ent = top_level[2];
 	bool const read_only = top_level[1] && top_level[1].int_value() != 0;
@@ -1225,4 +1225,4 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp const prot
 	return *iter;
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

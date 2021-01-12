@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 #include <functional>
@@ -34,7 +34,7 @@ namespace
 				<< "mapping: " << mapping
 				<< ", port: " << port
 				<< ", protocol: " << static_cast<int>(protocol)
-				<< ", external-IP: " << print_address(ip)
+				<< ", external-IP: " << aux::print_address(ip)
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 #ifndef TORRENT_DISABLE_LOGGING

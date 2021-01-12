@@ -32,11 +32,11 @@ see LICENSE file.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 
 #if TORRENT_USE_ASSERTS
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 #endif
 
 using namespace std::placeholders;

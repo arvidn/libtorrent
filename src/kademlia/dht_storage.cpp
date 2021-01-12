@@ -23,7 +23,7 @@ see LICENSE file.
 #include <set>
 #include <string>
 
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
 #include <libtorrent/aux_/bloom_filter.hpp>
@@ -33,7 +33,7 @@ see LICENSE file.
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
 #include <libtorrent/bdecode.hpp>
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 namespace {
 
 	// this is the entry for every peer
@@ -107,7 +107,7 @@ namespace {
 		f.last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
-		sha1_hash const iphash = hash_address(addr);
+		sha1_hash const iphash = aux::hash_address(addr);
 		if (!f.ips.find(iphash))
 		{
 			f.ips.set(iphash);
@@ -217,7 +217,7 @@ namespace {
 
 				for (auto const& p : peersv)
 				{
-					sha1_hash const iphash = hash_address(p.addr.address());
+					sha1_hash const iphash = aux::hash_address(p.addr.address());
 					if (p.seed) seeds.set(iphash);
 					else downloaders.set(iphash);
 				}
@@ -609,4 +609,4 @@ std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
 	return std::make_unique<dht_default_storage>(settings);
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

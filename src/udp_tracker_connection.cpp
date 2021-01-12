@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #endif
 
 namespace libtorrent::aux {

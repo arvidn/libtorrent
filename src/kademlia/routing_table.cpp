@@ -32,14 +32,14 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/array.hpp"
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 namespace {
 
@@ -213,7 +213,7 @@ routing_table::add_node_status_t replace_node_impl(node_entry const& e
 		if (log != nullptr && log->should_log(dht_logger::routing_table))
 		{
 			log->log(dht_logger::routing_table, "replacing node with better one: %s %s [%s %dms %d] vs. [%s %dms %d]"
-				, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
+				, aux::to_hex(e.id).c_str(), aux::print_address(e.addr()).c_str()
 				, e.verified ? "verified" : "not-verified", e.rtt
 				, classify_prefix(bucket_index, last_bucket, bucket_size_limit, e.id)
 				, j->verified ? "verified" : "not-verified", j->rtt
@@ -629,7 +629,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 				{
 					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-						, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
+						, aux::to_hex(e.id).c_str(), aux::print_address(e.addr()).c_str());
 				}
 #endif
 				return failed_to_add;
@@ -674,7 +674,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
 				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
-					, aux::to_hex(existing->id).c_str(), aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
+					, aux::to_hex(existing->id).c_str(), aux::to_hex(e.id).c_str(), aux::print_address(e.addr()).c_str());
 			}
 #endif
 
@@ -767,8 +767,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
 			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-				, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
-				, aux::to_hex(j->id).c_str(), print_address(j->addr()).c_str());
+				, aux::to_hex(e.id).c_str(), aux::print_address(e.addr()).c_str()
+				, aux::to_hex(j->id).c_str(), aux::print_address(j->addr()).c_str());
 		}
 #endif
 		return failed_to_add;
@@ -1195,7 +1195,7 @@ void routing_table::log_node_failed(node_id const& nid, node_entry const& ne) co
 	if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 	{
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, aux::to_hex(nid).c_str(), print_endpoint(ne.ep()).c_str()
+			, aux::to_hex(nid).c_str(), aux::print_endpoint(ne.ep()).c_str()
 			, ne.fail_count()
 			, int(ne.pinged())
 			, int(total_seconds(aux::time_now() - ne.first_seen)));
@@ -1203,4 +1203,4 @@ void routing_table::log_node_failed(node_id const& nid, node_entry const& ne) co
 }
 #endif
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

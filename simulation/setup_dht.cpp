@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <memory> // for unique_ptr
 #include <random>
-#include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // print_endpoint
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket

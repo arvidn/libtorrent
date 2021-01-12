@@ -50,7 +50,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/socket_io.hpp" // for print_address
+#include "libtorrent/aux_/socket_io.hpp" // for print_address
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"
 #include "libtorrent/aux_/bloom_filter.hpp"

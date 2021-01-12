@@ -36,7 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/io.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_types.hpp"

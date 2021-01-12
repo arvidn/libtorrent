@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // print_endpoint
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/aux_/random.hpp"

@@ -15,9 +15,9 @@ see LICENSE file.
 #include <libtorrent/kademlia/io.hpp>
 #include <libtorrent/performance_counters.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 
-namespace libtorrent { namespace dht
+namespace libtorrent::dht
 {
 
 sample_infohashes::sample_infohashes(node& dht_node
@@ -135,4 +135,4 @@ void sample_infohashes_observer::reply(msg const& m)
 	flags |= flag_done;
 }
 
-}} // namespace libtorrent::dht
+} // namespace libtorrent::dht

@@ -73,7 +73,7 @@ see LICENSE file.
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/peer_class.hpp" // for peer_class
-#include "libtorrent/socket_io.hpp" // for read_*_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for read_*_endpoint
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/request_blocks.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters

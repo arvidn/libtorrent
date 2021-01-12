@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dos_blocker.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 #include <cstdarg>
 
 using namespace lt;
@@ -46,7 +46,7 @@ struct log_t : lt::dht::dht_logger
 		std::printf("%s", msg.c_str());
 
 		char const* prefix[2] = { "<==", "==>"};
-		std::printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
+		std::printf("%s [%s] %s", prefix[dir], aux::print_endpoint(node).c_str()
 			, msg.c_str());
 	}
 

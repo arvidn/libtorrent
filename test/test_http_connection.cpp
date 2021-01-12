@@ -16,7 +16,7 @@ see LICENSE file.
 #include "test_utils.hpp"
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // print_endpoint
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
@@ -55,7 +55,7 @@ void http_connect_handler_test(aux::http_connection& c)
 	TEST_CHECK(c.socket().is_open());
 	error_code ec;
 	std::cout << time_now_string() << " connected to: "
-		<< print_endpoint(c.socket().remote_endpoint(ec)) << std::endl;
+		<< aux::print_endpoint(c.socket().remote_endpoint(ec)) << std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == make_address("127.0.0.1", ec));
 }

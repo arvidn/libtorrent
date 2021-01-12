@@ -31,7 +31,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"

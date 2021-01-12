@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/random.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "setup_transfer.hpp" // for rand_v4, supports_ipv6
 
@@ -26,12 +26,12 @@ bool cast_vote(aux::ip_voter& ipv, address ext_ip, address voter)
 {
 	bool new_ip = ipv.cast_vote(ext_ip, aux::session_interface::source_dht, voter);
 	std::printf("%15s -> %-15s\n"
-		, print_address(voter).c_str()
-		, print_address(ext_ip).c_str());
+		, aux::print_address(voter).c_str()
+		, aux::print_address(ext_ip).c_str());
 	if (new_ip)
 	{
 		std::printf("   \x1b[1mnew external IP: %s\x1b[0m\n"
-			, print_address(ipv.external_address()).c_str());
+			, aux::print_address(ipv.external_address()).c_str());
 	}
 	return new_ip;
 }

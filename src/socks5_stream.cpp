@@ -10,7 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/socks5_stream.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
 using namespace std::placeholders;
 

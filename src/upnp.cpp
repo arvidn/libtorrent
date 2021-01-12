@@ -17,7 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/parse_url.hpp"

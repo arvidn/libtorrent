@@ -16,13 +16,13 @@ see LICENSE file.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/aux_/io_bytes.hpp>
 #include <libtorrent/socket.hpp>
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 void find_data_observer::reply(msg const& m)
 {
@@ -138,7 +138,7 @@ void find_data::done()
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
 				logger->log(dht_logger::traversal, "[%u] not alive: %s"
-					, id(), print_endpoint(o->target_ep()).c_str());
+					, id(), aux::print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			continue;
@@ -150,7 +150,7 @@ void find_data::done()
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
 				logger->log(dht_logger::traversal, "[%u] no write token: %s"
-					, id(), print_endpoint(o->target_ep()).c_str());
+					, id(), aux::print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			continue;
@@ -160,7 +160,7 @@ void find_data::done()
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			logger->log(dht_logger::traversal, "[%u] %s"
-				, id(), print_endpoint(o->target_ep()).c_str());
+				, id(), aux::print_endpoint(o->target_ep()).c_str());
 		}
 #endif
 		--num_results;
@@ -171,4 +171,4 @@ void find_data::done()
 	traversal_algorithm::done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

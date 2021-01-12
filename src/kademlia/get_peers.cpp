@@ -15,7 +15,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/get_peers.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
-#include <libtorrent/socket_io.hpp>
+#include <libtorrent/aux_/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
 
@@ -23,7 +23,7 @@ see LICENSE file.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 void get_peers_observer::reply(msg const& m)
 {
@@ -83,7 +83,7 @@ void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int cons
 						, algorithm()->id()
 						, algorithm()->invoke_count()
 						, algorithm()->branch_factor()
-						, print_endpoint(m.addr).c_str()
+						, aux::print_endpoint(m.addr).c_str()
 						, aux::to_hex({id.string_ptr(), id.string_length()}).c_str()
 						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 						, size);
@@ -306,4 +306,4 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace libtorrent::dht

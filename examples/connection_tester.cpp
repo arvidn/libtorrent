@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disk_interface.hpp"

@@ -34,11 +34,10 @@ see LICENSE file.
 #if TORRENT_UTP_LOG
 #include <cstdarg>
 #include <cinttypes> // for PRId64 et.al.
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 #if TORRENT_UTP_LOG
 
@@ -3307,5 +3306,4 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
-}
 }

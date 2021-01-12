@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/socket_io.hpp" // for write_*_endpoint()
+#include "libtorrent/aux_/socket_io.hpp" // for write_*_endpoint()
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"

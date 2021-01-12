@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
 namespace libtorrent {
 
@@ -328,7 +328,7 @@ namespace libtorrent {
 			else if (aux::string_equal_no_case(name, "x.pe"_sv))
 			{
 				error_code e;
-				tcp::endpoint endp = parse_endpoint(value, e);
+				tcp::endpoint endp = aux::parse_endpoint(value, e);
 				if (!e) p.peers.push_back(std::move(endp));
 			}
 #ifndef TORRENT_DISABLE_DHT

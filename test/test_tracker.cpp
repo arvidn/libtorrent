@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 
 using namespace lt;
 
@@ -380,8 +380,8 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	}
 
 	std::printf("peer_ep: %s expected: %s\n"
-		, lt::print_endpoint(peer_ep).c_str()
-		, lt::print_endpoint(expected_peer).c_str());
+		, aux::print_endpoint(peer_ep).c_str()
+		, aux::print_endpoint(expected_peer).c_str());
 	TEST_CHECK(peer_ep == expected_peer);
 	std::printf("destructing session\n");
 

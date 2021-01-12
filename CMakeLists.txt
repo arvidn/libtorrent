@@ -86,7 +86,6 @@ set(libtorrent_include_files
 	sha1_hash
 	sha256
 	socket
-	socket_io
 	socket_type
 	socks5_stream
 	span
@@ -233,6 +232,7 @@ set(libtorrent_aux_include_files
 	session_udp_sockets
 	set_socket_buffer
 	sliding_average
+	socket_io
 	socket_type
 	ssl_stream
 	stack_allocator

@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/aux_/socket_io.hpp" // print_endpoint
 #include "libtorrent/aux_/http_parser.hpp"
 #include "broadcast_socket.hpp"
 #include "test.hpp"
@@ -60,7 +60,7 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 	if (error || !p.header_finished())
 	{
 		std::cout << "*** malformed HTTP from "
-			<< print_endpoint(from) << std::endl;
+			<< aux::print_endpoint(from) << std::endl;
 		return;
 	}
 
@@ -90,7 +90,7 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 	error_code ec;
 	sock->send_to(buf, len, from, ec);
 
-	std::cout << "> sending response to " << print_endpoint(from) << std::endl;
+	std::cout << "> sending response to " << aux::print_endpoint(from) << std::endl;
 
 	if (ec) std::cout << "*** error sending " << ec.message() << std::endl;
 }

@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/bdecode.hpp"
-#include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/aux_/socket_io.hpp" // for hash_address
 #include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/random.hpp"
@@ -721,7 +721,7 @@ void print_state(std::ostream& os, routing_table const& table)
 			}
 
 			cursor += std::snprintf(BUFFER_CURSOR_POS
-				, " ip: %s\n", print_endpoint(j->ep()).c_str());
+				, " ip: %s\n", aux::print_endpoint(j->ep()).c_str());
 			if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
 		}
 	}
@@ -1108,7 +1108,7 @@ TORRENT_TEST(bloom_filter)
 		char adr[50];
 		std::snprintf(adr, sizeof(adr), "192.0.2.%d", i);
 		address a = addr(adr);
-		sha1_hash const iphash = hash_address(a);
+		sha1_hash const iphash = aux::hash_address(a);
 		test.set(iphash);
 	}
 
@@ -1119,7 +1119,7 @@ TORRENT_TEST(bloom_filter)
 			char adr[50];
 			std::snprintf(adr, sizeof(adr), "2001:db8::%x", i);
 			address a = addr(adr);
-			sha1_hash const iphash = hash_address(a);
+			sha1_hash const iphash = aux::hash_address(a);
 			test.set(iphash);
 		}
 	}

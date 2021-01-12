@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "settings.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 
