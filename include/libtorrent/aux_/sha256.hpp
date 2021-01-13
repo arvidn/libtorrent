@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct sha256_ctx
 	{

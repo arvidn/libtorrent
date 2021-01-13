@@ -80,9 +80,7 @@ set(libtorrent_include_files
 	session_status
 	session_types
 	settings_pack
-	sha1
 	sha1_hash
-	sha256
 	socket
 	socket_type
 	socks5_stream
@@ -231,6 +229,9 @@ set(libtorrent_aux_include_files
 	session_settings
 	session_udp_sockets
 	set_socket_buffer
+	sha1
+	sha256
+	sha512
 	sliding_average
 	socket_io
 	socket_type

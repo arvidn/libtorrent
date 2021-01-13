@@ -34,7 +34,7 @@ see LICENSE file.
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
 #if !TORRENT_USE_CRYPTOAPI_SHA_512
-#include "libtorrent/sha256.hpp"
+#include "libtorrent/aux_/sha256.hpp"
 #endif
 
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -44,8 +44,8 @@ extern "C" {
 }
 
 #else
-#include "libtorrent/sha1.hpp"
-#include "libtorrent/sha256.hpp"
+#include "libtorrent/aux_/sha1.hpp"
+#include "libtorrent/aux_/sha256.hpp"
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -110,7 +110,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else
-		sha1_ctx m_context;
+		aux::sha1_ctx m_context;
 #endif
 	};
 
@@ -152,7 +152,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_CTX m_context;
 #else
-		sha256_ctx m_context;
+		aux::sha256_ctx m_context;
 #endif
 	};
 

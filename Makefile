@@ -481,9 +481,7 @@ HEADERS = \
   session_status.hpp           \
   session_types.hpp            \
   settings_pack.hpp            \
-  sha1.hpp                     \
   sha1_hash.hpp                \
-  sha256.hpp                   \
   socket.hpp                   \
   socket_type.hpp              \
   socks5_stream.hpp            \
@@ -608,6 +606,8 @@ HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_udp_sockets.hpp      \
   aux_/set_socket_buffer.hpp        \
+  aux_/sha1.hpp                     \
+  aux_/sha256.hpp                   \
   aux_/sha512.hpp                   \
   aux_/sliding_average.hpp          \
   aux_/socket_io.hpp                \

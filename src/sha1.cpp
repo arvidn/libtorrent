@@ -10,7 +10,7 @@ By Steve Reid <sreid@sea-to-sky.net>
 changelog at the end of the file.
 */
 
-#include "libtorrent/sha1.hpp"
+#include "libtorrent/aux_/sha1.hpp"
 
 #if !defined TORRENT_USE_LIBGCRYPT \
 	&& !TORRENT_USE_COMMONCRYPTO \
@@ -25,7 +25,7 @@ changelog at the end of the file.
 #include <boost/predef/other/endian.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 namespace {
 

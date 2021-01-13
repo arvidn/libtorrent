@@ -30,7 +30,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
-		SHA1_init(&m_context);
+		aux::SHA1_init(&m_context);
 #endif
 	}
 
@@ -85,7 +85,7 @@ TORRENT_CRYPTO_NAMESPACE
 		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #else
-		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+		aux::SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #endif
 		return *this;
@@ -106,7 +106,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
-		SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+		aux::SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
 		return digest;
 	}
@@ -124,7 +124,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
-		SHA1_init(&m_context);
+		aux::SHA1_init(&m_context);
 #endif
 	}
 
@@ -146,7 +146,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
 #else
-		SHA256_init(m_context);
+		aux::SHA256_init(m_context);
 #endif
 	}
 
@@ -201,7 +201,7 @@ TORRENT_CRYPTO_NAMESPACE
 		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #else
-		SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
+		aux::SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #endif
 		return *this;
@@ -222,7 +222,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
-		SHA256_final(reinterpret_cast<unsigned char*>(digest.data()), m_context);
+		aux::SHA256_final(reinterpret_cast<unsigned char*>(digest.data()), m_context);
 #endif
 		return digest;
 	}
@@ -240,7 +240,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
 #else
-		SHA256_init(m_context);
+		aux::SHA256_init(m_context);
 #endif
 	}
 
