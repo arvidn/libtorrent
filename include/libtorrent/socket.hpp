@@ -177,6 +177,8 @@ namespace libtorrent {
 
 #if defined IP_DONTFRAG || defined IP_MTU_DISCOVER || defined IP_DONTFRAGMENT
 #define TORRENT_HAS_DONT_FRAGMENT
+#else
+#warning "uTP MTU discovery won't work"
 #endif
 
 #ifdef TORRENT_HAS_DONT_FRAGMENT

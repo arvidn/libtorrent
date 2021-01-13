@@ -170,7 +170,7 @@ private:
 };
 #else
 struct set_dont_frag
-{ set_dont_frag(udp::socket&, int) {} };
+{ set_dont_frag(udp::socket&, bool) {} };
 #endif
 
 udp_socket::udp_socket(io_service& ios, aux::listen_socket_handle ls)
