@@ -35,7 +35,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht {
+namespace libtorrent::dht {
 
 	namespace {
 
@@ -228,7 +228,7 @@ namespace libtorrent { namespace dht {
 
 		tracker_node& n = it->second;
 		time_duration const d = n.dht.connection_timeout();
-		deadline_timer& timer = n.connection_timer;
+		aux::deadline_timer& timer = n.connection_timer;
 		timer.expires_after(d);
 		ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
 		timer.async_wait(std::bind(&dht_tracker::connection_timeout, self(), s, _1));
@@ -685,4 +685,4 @@ namespace {
 		return true;
 	}
 
-}}
+}

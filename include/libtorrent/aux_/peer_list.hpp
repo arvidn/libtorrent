@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/aux_/deque.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t

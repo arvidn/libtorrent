@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/node.hpp"

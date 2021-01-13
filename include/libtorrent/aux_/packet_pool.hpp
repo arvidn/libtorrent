@@ -18,14 +18,13 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/debug.hpp" // for single_threaded
+#include "libtorrent/aux_/debug.hpp" // for single_threaded
 
 #include <cstdlib>
 #include <memory> // for unique_ptr
 #include <vector>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	// internal: some MTU and protocol header sizes constants
 	constexpr int TORRENT_IPV4_HEADER = 20;
@@ -197,7 +196,6 @@ namespace aux {
 		packet_slab m_mtu_floor_slab;
 		packet_slab m_mtu_ceiling_slab;
 	};
-}
 }
 
 #endif // TORRENT_PACKET_POOL_HPP

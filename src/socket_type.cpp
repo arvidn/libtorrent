@@ -13,9 +13,9 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/ssl.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 
 namespace libtorrent {
 

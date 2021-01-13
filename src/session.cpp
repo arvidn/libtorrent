@@ -28,14 +28,14 @@ namespace {
 	void wait_for_asio_handlers()
 	{
 		int counter = 0;
-		while (log_async())
+		while (aux::log_async())
 		{
 			std::this_thread::sleep_for(milliseconds(300));
 			++counter;
 			std::printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
 				, counter);
 		}
-		async_dec_threads();
+		aux::async_dec_threads();
 
 		std::fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
 	}

@@ -17,16 +17,16 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
 
-#include "libtorrent/debug.hpp" // for TORRENT_ASSERT
+#include "libtorrent/aux_/debug.hpp" // for TORRENT_ASSERT
 
 #include <type_traits>
 #include <memory> // for shared_ptr
 
 #ifdef TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 #ifdef BOOST_ASIO_ENABLE_HANDLER_TRACKING
 	constexpr std::size_t tracking = 8;
@@ -333,7 +333,6 @@ namespace libtorrent { namespace aux {
 		allocator_type get_allocator() const noexcept
 		{ return allocator_type{&(ptr_.get()->*Storage)}; }
 	};
-}
 }
 
 #endif

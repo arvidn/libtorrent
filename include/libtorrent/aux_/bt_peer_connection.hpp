@@ -22,7 +22,7 @@ see LICENSE file.
 #include <array>
 #include <cstdint>
 
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/socket.hpp"

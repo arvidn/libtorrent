@@ -22,7 +22,7 @@ see LICENSE file.
 
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 #include <libtorrent/socket.hpp>
-#include <libtorrent/deadline_timer.hpp>
+#include <libtorrent/aux_/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_context.hpp>
 #include <libtorrent/aux_/udp_socket.hpp>
@@ -39,8 +39,7 @@ namespace aux {
 }
 }
 
-namespace libtorrent {
-namespace dht {
+namespace libtorrent::dht {
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: socket_manager
@@ -152,7 +151,7 @@ namespace dht {
 			tracker_node(tracker_node&&) = delete;
 
 			node dht;
-			deadline_timer connection_timer;
+			aux::deadline_timer connection_timer;
 		};
 		using tracker_nodes_t = std::map<aux::listen_socket_handle, tracker_node>;
 
@@ -184,8 +183,8 @@ namespace dht {
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
-		deadline_timer m_key_refresh_timer;
-		deadline_timer m_refresh_timer;
+		aux::deadline_timer m_key_refresh_timer;
+		aux::deadline_timer m_refresh_timer;
 		aux::session_settings const& m_settings;
 
 		bool m_running;
@@ -199,7 +198,6 @@ namespace dht {
 
 		io_context& m_ioc;
 	};
-} // namespace dht
-} // namespace libtorrent
+} // namespace libtorrent::dht
 
 #endif

@@ -14,7 +14,7 @@ see LICENSE file.
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/bitfield.hpp"

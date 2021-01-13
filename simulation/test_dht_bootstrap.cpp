@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "fake_peer.hpp" // for fake_node
 #include "libtorrent/time.hpp"
 #include "settings.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "setup_transfer.hpp" // for addr()
 
 using namespace sim;
@@ -82,7 +82,7 @@ TORRENT_TEST(dht_bootstrap)
 	sim::asio::io_context ios(sim, addr("10.0.0.1"));
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
 
-	lt::deadline_timer timer(ios);
+	lt::aux::deadline_timer timer(ios);
 	timer.expires_after(lt::seconds(10));
 	timer.async_wait([&](lt::error_code const&) {
 		zombies.push_back(ses->abort());

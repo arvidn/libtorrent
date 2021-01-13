@@ -155,7 +155,7 @@ namespace boost {
 }
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
@@ -167,8 +167,6 @@ namespace libtorrent {
 	std::mutex _handler_storage_mutex;
 	bool _handler_logger_registered = false;
 #endif
-
-namespace aux {
 
 void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 {
@@ -7209,4 +7207,4 @@ namespace {
 		}
 		catch (std::exception const&) {}
 #endif // TORRENT_DISABLE_LOGGING
-}}
+}

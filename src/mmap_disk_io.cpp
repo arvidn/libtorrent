@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/aux_/disk_io_job.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/disk_job_pool.hpp"

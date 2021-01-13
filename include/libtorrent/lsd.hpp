@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
@@ -55,7 +55,7 @@ private:
 
 	// used to resend udp packets in case
 	// they time out
-	deadline_timer m_broadcast_timer;
+	aux::deadline_timer m_broadcast_timer;
 
 	// this is a random (presumably unique)
 	// ID for this LSD node. It is used to

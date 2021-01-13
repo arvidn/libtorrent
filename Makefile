@@ -428,8 +428,6 @@ HEADERS = \
   close_reason.hpp             \
   config.hpp                   \
   create_torrent.hpp           \
-  deadline_timer.hpp           \
-  debug.hpp                    \
   disabled_disk_io.hpp         \
   disk_buffer_holder.hpp       \
   disk_interface.hpp           \
@@ -526,6 +524,8 @@ HEADERS = \
   aux_/copy_ptr.hpp                 \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
+  aux_/deadline_timer.hpp           \
+  aux_/debug.hpp                    \
   aux_/deferred_handler.hpp         \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \

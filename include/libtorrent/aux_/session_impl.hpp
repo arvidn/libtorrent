@@ -38,7 +38,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/ip_notifier.hpp"
@@ -49,7 +49,7 @@ see LICENSE file.
 #include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/aux_/socket_io.hpp" // for print_address
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/utp_socket_manager.hpp"

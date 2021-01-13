@@ -31,8 +31,6 @@ set(libtorrent_include_files
 	close_reason
 	config
 	create_torrent
-	deadline_timer
-	debug
 	disk_buffer_holder
 	disk_interface
 	disk_observer
@@ -157,6 +155,8 @@ set(libtorrent_aux_include_files
 	copy_ptr
 	cpuid
 	crc32c
+	deadline_timer
+	debug
 	deferred_handler
 	deprecated
 	deque

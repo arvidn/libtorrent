@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/peer_request.hpp"

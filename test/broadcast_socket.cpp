@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
 #include "broadcast_socket.hpp"

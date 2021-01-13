@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/export.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
 
@@ -22,8 +22,7 @@ see LICENSE file.
 #include <mutex>
 #include <atomic>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	struct disk_io_thread_pool;
 
@@ -121,7 +120,6 @@ namespace aux {
 
 		io_context& m_ioc;
 	};
-}
-} // namespace libtorrent
+} // namespace libtorrent::aux
 
 #endif

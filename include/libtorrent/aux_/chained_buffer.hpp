@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/aligned_storage.hpp"
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/buffer.hpp"
 
 #include <deque>
@@ -31,8 +31,7 @@ see LICENSE file.
 #define TORRENT_CPP98_DEQUE 0
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	// TODO: 2 this type should probably be renamed to send_buffer
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
@@ -206,7 +205,6 @@ namespace aux {
 		bool m_destructed;
 #endif
 	};
-}
 }
 
 #endif
