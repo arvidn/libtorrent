@@ -23,7 +23,7 @@ changelog at the end of sha1.cpp
 
 #include <cstdint>
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 	struct sha1_ctx
 	{

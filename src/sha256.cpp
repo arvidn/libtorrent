@@ -1,5 +1,5 @@
 // SHA-256. Adapted from LibTomCrypt. This code is Public Domain
-#include "libtorrent/sha256.hpp"
+#include "libtorrent/aux_/sha256.hpp"
 
 #if !defined TORRENT_USE_LIBGCRYPT \
 	&& !TORRENT_USE_COMMONCRYPTO \
@@ -9,7 +9,9 @@
 
 #include <cstring>
 
-namespace libtorrent { namespace {
+namespace libtorrent::aux {
+
+namespace {
 
 	using u32 = std::uint32_t;
 	using u64 = std::uint64_t;

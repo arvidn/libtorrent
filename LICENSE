@@ -90,7 +90,7 @@ ed25519 implementation based on public domain version of https://github.com/orlp
 
 ------------------------------------------------------------------------------
 
-src/sha1.cpp include/libtorrent/sha1.hpp
+src/sha1.cpp include/libtorrent/aux_/sha1.hpp
 
 SHA-1 in C
 By Steve Reid <sreid@sea-to-sky.net>
