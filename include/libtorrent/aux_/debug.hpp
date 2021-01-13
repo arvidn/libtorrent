@@ -200,8 +200,8 @@ namespace libtorrent::aux {
 	}
 }
 
-#define ADD_OUTSTANDING_ASYNC(x) add_outstanding_async(x)
-#define COMPLETE_ASYNC(x) complete_async(x)
+#define ADD_OUTSTANDING_ASYNC(x) aux::add_outstanding_async(x)
+#define COMPLETE_ASYNC(x) aux::complete_async(x)
 
 #else
 
