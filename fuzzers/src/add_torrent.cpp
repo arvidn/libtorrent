@@ -206,10 +206,10 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 	g_ioc.run_for(seconds(2));
 
 #if defined TORRENT_ASIO_DEBUGGING
-	lt::log_async();
-	lt::_async_ops.clear();
-	lt::_async_ops_nthreads = 0;
-	lt::_wakeups.clear();
+	lt::aux::log_async();
+	lt::aux::_async_ops.clear();
+	lt::aux::_async_ops_nthreads = 0;
+	lt::aux::_wakeups.clear();
 #endif
 
 	return 0;
