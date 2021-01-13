@@ -23,7 +23,7 @@ see LICENSE file.
 #include <memory> // for shared_ptr
 
 #ifdef TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/debug.hpp"
 #endif
 
 namespace libtorrent::aux {
