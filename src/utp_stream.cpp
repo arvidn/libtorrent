@@ -1973,7 +1973,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// for ST_DATA packets, payload size is 0. Such packets do not have unique
 	// sequence numbers and should never be used as mtu probes
-	if ((mtu_probe || p->mtu_probe) && payload_size > m_mtu_floor)
+	if ((mtu_probe || p->mtu_probe) && payload_size >= m_mtu_floor)
 	{
 		p->mtu_probe = true;
 		m_mtu_seq = m_seq_nr;
