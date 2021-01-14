@@ -1753,14 +1753,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// under these conditions, the next packet we send should be an MTU probe.
 	// MTU probes get to use the mid-point packet size, whereas other packets
-	// use a conservative packet size of the largest known to work. The reason
-	// for the cwnd condition is to make sure the probe is surrounded by non-
-	// probes, to be able to distinguish a loss of the probe vs. just loss in
-	// general.
-	bool const mtu_probe = (m_mtu_seq == 0
-		&& m_write_buffer_size >= m_mtu_floor * 3
-		&& m_seq_nr != 0
-		&& (m_cwnd >> 16) > m_mtu_floor * 3);
+	// use a conservative packet size of the largest known to work.
+	bool const mtu_probe = (m_mtu_seq == 0 && m_seq_nr != 0;
+
 	// for non MTU-probes, use the conservative packet size
 	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 
@@ -1991,7 +1986,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// for ST_DATA packets, payload size is 0. Such packets do not have unique
 	// sequence numbers and should never be used as mtu probes
-	if ((mtu_probe || p->mtu_probe) && payload_size > m_mtu_floor)
+	if ((mtu_probe || p->mtu_probe) && payload_size >= m_mtu_floor)
 	{
 		p->mtu_probe = true;
 		m_mtu_seq = m_seq_nr;
