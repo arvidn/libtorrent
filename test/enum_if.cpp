@@ -24,20 +24,20 @@ std::string operator "" _s(char const* str, size_t len) { return std::string(str
 std::string print_flags(aux::interface_flags const f)
 {
 	return
-		((f & if_flags::up) ? "UP "_s : ""_s)
-		+ ((f & if_flags::broadcast) ? "BROADCAST "_s : ""_s)
-		+ ((f & if_flags::loopback) ? "LOOP "_s : ""_s)
-		+ ((f & if_flags::pointopoint) ? "PPP "_s : ""_s)
-		+ ((f & if_flags::running) ? "RUN "_s : ""_s)
-		+ ((f & if_flags::noarp) ? "NOARP "_s : ""_s)
-		+ ((f & if_flags::promisc) ? "PROMISC "_s : ""_s)
-		+ ((f & if_flags::allmulti) ? "ALLMULTI "_s : ""_s)
-		+ ((f & if_flags::master) ? "MASTER "_s : ""_s)
-		+ ((f & if_flags::slave) ? "SLAVE "_s : ""_s)
-		+ ((f & if_flags::multicast) ? "MULTICAST "_s : ""_s)
-		+ ((f & if_flags::dynamic) ? "SYN "_s : ""_s)
-		+ ((f & if_flags::lower_up) ? "LWR_UP "_s : ""_s)
-		+ ((f & if_flags::dormant) ? "DORMANT "_s : ""_s)
+		((f & aux::if_flags::up) ? "UP "_s : ""_s)
+		+ ((f & aux::if_flags::broadcast) ? "BROADCAST "_s : ""_s)
+		+ ((f & aux::if_flags::loopback) ? "LOOP "_s : ""_s)
+		+ ((f & aux::if_flags::pointopoint) ? "PPP "_s : ""_s)
+		+ ((f & aux::if_flags::running) ? "RUN "_s : ""_s)
+		+ ((f & aux::if_flags::noarp) ? "NOARP "_s : ""_s)
+		+ ((f & aux::if_flags::promisc) ? "PROMISC "_s : ""_s)
+		+ ((f & aux::if_flags::allmulti) ? "ALLMULTI "_s : ""_s)
+		+ ((f & aux::if_flags::master) ? "MASTER "_s : ""_s)
+		+ ((f & aux::if_flags::slave) ? "SLAVE "_s : ""_s)
+		+ ((f & aux::if_flags::multicast) ? "MULTICAST "_s : ""_s)
+		+ ((f & aux::if_flags::dynamic) ? "SYN "_s : ""_s)
+		+ ((f & aux::if_flags::lower_up) ? "LWR_UP "_s : ""_s)
+		+ ((f & aux::if_flags::dormant) ? "DORMANT "_s : ""_s)
 		;
 }
 
@@ -45,13 +45,13 @@ char const* print_state(aux::if_state const s)
 {
 	switch (s)
 	{
-		case if_state::up: return "up";
-		case if_state::dormant: return "dormant";
-		case if_state::lowerlayerdown: return "lowerlayerdown";
-		case if_state::down: return "down";
-		case if_state::notpresent: return "notpresent";
-		case if_state::testing: return "testing";
-		case if_state::unknown: return "unknown";
+		case aux::if_state::up: return "up";
+		case aux::if_state::dormant: return "dormant";
+		case aux::if_state::lowerlayerdown: return "lowerlayerdown";
+		case aux::if_state::down: return "down";
+		case aux::if_state::notpresent: return "notpresent";
+		case aux::if_state::testing: return "testing";
+		case aux::if_state::unknown: return "unknown";
 	}
 	return "unknown";
 }
