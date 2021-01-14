@@ -21,7 +21,7 @@ namespace {
 
 std::string operator "" _s(char const* str, size_t len) { return std::string(str, len); }
 
-std::string print_flags(interface_flags const f)
+std::string print_flags(aux::interface_flags const f)
 {
 	return
 		((f & if_flags::up) ? "UP "_s : ""_s)
@@ -41,7 +41,7 @@ std::string print_flags(interface_flags const f)
 		;
 }
 
-char const* print_state(if_state const s)
+char const* print_state(aux::if_state const s)
 {
 	switch (s)
 	{
@@ -64,7 +64,7 @@ int main()
 	error_code ec;
 
 	std::printf("=========== Routes ===========\n");
-	auto const routes = enum_routes(ios, ec);
+	auto const routes = aux::enum_routes(ios, ec);
 	if (ec)
 	{
 		std::printf("enum_routes: %s\n", ec.message().c_str());
@@ -86,7 +86,7 @@ int main()
 
 	std::printf("========= Interfaces =========\n");
 
-	auto const net = enum_net_interfaces(ios, ec);
+	auto const net = aux::enum_net_interfaces(ios, ec);
 	if (ec)
 	{
 		std::printf("enum_ifs: %s\n", ec.message().c_str());
