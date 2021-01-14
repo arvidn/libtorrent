@@ -717,7 +717,21 @@ void utp_socket_impl::update_mtu_limits()
 {
 	INVARIANT_CHECK;
 
-	if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
+	if (m_mtu_floor > m_mtu_ceiling)
+	{
+		// this is the case where we drop an MTU probe once we're in steady
+		// state. Assume the probe was lost by chance, and don't decrement the
+		// ceiling. We're still restarting the Path MTU discovery, so if the MTU
+		// did in fact chance, we'll be notified again, when not in steady
+		// state.
+		m_mtu_ceiling = m_mtu_floor;
+
+		// the path MTU may have changed. Perform another search
+		// dont' start all the way from start, just half way down.
+		m_mtu_floor = ((TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER) + m_mtu_ceiling) / 2;
+
+		UTP_LOGV("%8p: reducing MTU floor\n", static_cast<void*>(this));
+	}
 
 	m_mtu = (m_mtu_floor + m_mtu_ceiling) / 2;
 
@@ -2031,7 +2045,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// since we'd have to repacketize
 		TORRENT_ASSERT(p->mtu_probe);
 		m_mtu_ceiling = p->size - 1;
-		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 		update_mtu_limits();
 		// resend the packet immediately without
 		// it being an MTU probe
