@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/debug.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/tcp.hpp>
@@ -148,6 +149,8 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 			return;
 		}
 
+		m_keepalive_timer.cancel();
+
 		ADD_OUTSTANDING_ASYNC("websocket_stream::on_write");
 		std::visit([&](auto &stream)
 		{
@@ -172,6 +175,9 @@ private:
 	void on_read(error_code ec, std::size_t bytes_read, read_handler handler);
 	void on_write(error_code ec, std::size_t bytes_written, write_handler handler);
 	void on_close(error_code ec);
+	void on_keepalive(error_code ec);
+	void on_ping(error_code ec);
+	void arm_keepalive();
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;
@@ -191,6 +197,7 @@ private:
 	connect_handler m_connect_handler;
 
 	bool m_open;
+	deadline_timer m_keepalive_timer;
 };
 
 }
