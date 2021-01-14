@@ -20,7 +20,7 @@ see LICENSE file.
 #include <vector>
 #include <functional>
 
-#include "libtorrent/proxy_base.hpp"
+#include "libtorrent/aux_/proxy_base.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
@@ -77,7 +77,7 @@ namespace libtorrent {
 	{ return i2p_category(); }
 #endif
 
-struct i2p_stream : proxy_base
+struct i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
 	i2p_stream(i2p_stream&&) noexcept = default;
@@ -530,7 +530,7 @@ private:
 		TORRENT_ASSERT(m_state == sam_idle);
 		m_state = sam_name_lookup;
 		m_sam_socket->set_name_lookup(name.c_str());
-		m_sam_socket->send_name_lookup(wrap_allocator(
+		m_sam_socket->send_name_lookup(aux::wrap_allocator(
 			[this,s=m_sam_socket](error_code const& ec, Handler hn) {
 				on_name_lookup(ec, s, std::move(hn));
 			}, std::move(handler)));

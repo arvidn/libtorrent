@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/string_util.hpp"

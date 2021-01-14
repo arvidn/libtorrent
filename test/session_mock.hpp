@@ -107,12 +107,12 @@ struct session_mock : aux::session_interface
 
 	void queue_tracker_request(aux::tracker_request, std::weak_ptr<aux::request_callback>) override {}
 
-	void set_peer_classes(peer_class_set*, address const&, socket_type_t) override {}
+	void set_peer_classes(aux::peer_class_set*, address const&, socket_type_t) override {}
 	peer_class_pool const& peer_classes() const override { return _peer_class_pool; }
 	peer_class_pool& peer_classes() override { return _peer_class_pool; }
-	bool ignore_unchoke_slots_set(peer_class_set const&) const override { return false; }
-	int copy_pertinent_channels(peer_class_set const&, int, aux::bandwidth_channel**, int) override { return 0; }
-	std::uint8_t use_quota_overhead(peer_class_set&, int, int) override { return 0; }
+	bool ignore_unchoke_slots_set(aux::peer_class_set const&) const override { return false; }
+	int copy_pertinent_channels(aux::peer_class_set const&, int, aux::bandwidth_channel**, int) override { return 0; }
+	std::uint8_t use_quota_overhead(aux::peer_class_set&, int, int) override { return 0; }
 
 	aux::bandwidth_manager* get_bandwidth_manager(int) override { return nullptr; }
 

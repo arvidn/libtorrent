@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include <functional>
 
-#include "libtorrent/proxy_base.hpp"
+#include "libtorrent/aux_/proxy_base.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
@@ -70,7 +70,7 @@ inline boost::system::error_category& get_socks_category()
 { return socks_category(); }
 #endif
 
-class socks5_stream : public proxy_base
+class socks5_stream : public aux::proxy_base
 {
 public:
 

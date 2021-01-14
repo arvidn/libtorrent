@@ -11,7 +11,7 @@ see LICENSE file.
 
 #include <cstdio>
 #include <string>
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 

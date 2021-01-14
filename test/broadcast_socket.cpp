@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
@@ -41,7 +41,7 @@ namespace libtorrent {
 	{
 		m_on_receive = std::move(handler);
 
-		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
+		std::vector<aux::ip_interface> interfaces = aux::enum_net_interfaces(ios, ec);
 
 		if (aux::is_v6(m_multicast_endpoint))
 			open_multicast_socket(ios, address_v6::any(), loopback, ec);

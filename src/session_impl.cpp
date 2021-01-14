@@ -62,7 +62,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/types.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
 #endif
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/lsd.hpp"

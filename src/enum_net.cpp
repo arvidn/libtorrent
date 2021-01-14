@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/span.hpp"
@@ -133,7 +133,7 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 namespace {
 

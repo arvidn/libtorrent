@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "setup_transfer.hpp" // for supports_ipv6
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/error_code.hpp"

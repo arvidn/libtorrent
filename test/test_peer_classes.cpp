@@ -10,9 +10,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/peer_class.hpp"
-#include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
-#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session.hpp"
 

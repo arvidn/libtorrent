@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 struct proxy_base
 {
