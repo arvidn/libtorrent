@@ -115,7 +115,7 @@ struct i2p_stream : aux::proxy_base
 		// 2. connect to SAM bridge
 		// 4 send command message (CONNECT/ACCEPT)
 
-		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), wrap_allocator(
+		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), aux::wrap_allocator(
 			[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
 				do_connect(ec, std::move(ips), std::move(hn));
 			}, std::move(h)));
@@ -132,7 +132,7 @@ struct i2p_stream : aux::proxy_base
 		char cmd[1024];
 		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -154,7 +154,7 @@ private:
 
 		auto i = ips.begin();
 		ADD_OUTSTANDING_ASYNC("i2p_stream::connected");
-		m_sock.async_connect(i->endpoint(), wrap_allocator(
+		m_sock.async_connect(i->endpoint(), aux::wrap_allocator(
 			[this](error_code const& ec, Handler hn) {
 				connected(ec, std::move(hn));
 			}, std::move(h)));
@@ -172,7 +172,7 @@ private:
 		static const char cmd[] = "HELLO VERSION MIN=3.0 MAX=3.0\n";
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -187,7 +187,7 @@ private:
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 		m_buffer.resize(1);
-		async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+		async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -208,12 +208,12 @@ private:
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
-			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
+			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
 
-			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
+			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -365,7 +365,7 @@ private:
 			m_command = cmd_incoming;
 			m_buffer.resize(1);
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
-			async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+			async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 				[this](error_code const& err, std::size_t, Handler hn) {
 					read_line(err, std::move(hn));
 				}, std::move(h)));
@@ -382,7 +382,7 @@ private:
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -396,7 +396,7 @@ private:
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -411,7 +411,7 @@ private:
 		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
@@ -482,7 +482,7 @@ public:
 		m_sam_socket->set_session_id(m_session_id.c_str());
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::on_sam_connect");
-		m_sam_socket->async_connect(tcp::endpoint(), wrap_allocator(
+		m_sam_socket->async_connect(tcp::endpoint(), aux::wrap_allocator(
 			[this,s=m_sam_socket](error_code const& ec, Handler hn) {
 				on_sam_connect(ec, s, std::move(hn));
 			}, std::move(handler)));
@@ -516,7 +516,7 @@ private:
 			return;
 		}
 
-		do_name_lookup("ME", wrap_allocator(
+		do_name_lookup("ME", aux::wrap_allocator(
 			[this](error_code const& e, char const* dst, Handler hn) {
 				set_local_endpoint(e, dst, std::move(hn));
 			}, std::move(h)));
