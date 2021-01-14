@@ -144,7 +144,49 @@ AS_ECHO "Checking for boost libraries:"
 
 AX_BOOST_BASE([1.58])
 
-AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+AC_ARG_WITH(
+  [cxx-standard],
+  [AS_HELP_STRING(
+    [--with-cxx-standard[=ARG]],
+    [specify C++ standard (e.g., 11, 14 or 17) [default=11]])],
+  [[ARG_CXX_STANDARD=$withval]],
+  [[ARG_CXX_STANDARD=default]]
+)
+
+AC_MSG_CHECKING([which c++ standard to use])
+if test "x${ARG_CXX_STANDARD}" = "x17" ; then
+  AX_CXX_COMPILE_STDCXX(17, [noext], [mandatory])
+elif test "x${ARG_CXX_STANDARD}" = "x14" ; then
+  AX_CXX_COMPILE_STDCXX(14, [noext], [mandatory])
+elif test "x${ARG_CXX_STANDARD}" = "x11" ; then
+  AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+elif test "x${ARG_CXX_STANDARD}" != "xdefault" -a "${ARG_CXX_STANDARD}" -lt "11" ; then
+  dnl force 11 if user specified out of bounds, regardless of compiler default
+  ARG_CXX_STANDARD="11"
+  AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+elif test "x${ARG_CXX_STANDARD}" != "xdefault" -a "${ARG_CXX_STANDARD}" -gt "17" ; then
+  dnl force 11 if user specified out of bounds, regardless of compiler default
+  ARG_CXX_STANDARD="11"
+  AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+else
+  dnl nothing specified so use compiler default
+
+  echo '#include <iostream>' > cpp_standard.cpp
+  echo 'using std::cout; using std::endl; int main() { switch (__cplusplus) { case 201103L: cout << 11 << endl; break; case 201402L: cout << 14 << endl; break; case 201703L: cout << 17 << endl; break; default: cout << 1 << endl; } }' >> cpp_standard.cpp
+  ${CXX} cpp_standard.cpp -o cpp_standard
+  DEFAULT_CXX_STANDARD=`./cpp_standard`
+  echo $DEFAULT_CXX_STANDARD
+  if test "x${DEFAULT_CXX_STANDARD}" = "x17" ; then
+    ARG_CXX_STANDARD="17"
+    AX_CXX_COMPILE_STDCXX(17, [noext], [mandatory])
+  elif test "x${DEFAULT_CXX_STANDARD}" = "x14" ; then
+    ARG_CXX_STANDARD="14"
+    AX_CXX_COMPILE_STDCXX(14, [noext], [mandatory])
+  else
+    ARG_CXX_STANDARD="11"
+    AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+  fi
+fi
 
 AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
@@ -590,6 +632,7 @@ Build options:
   debug build:          ${ARG_ENABLE_DEBUG:-no}
   invariant checks:     ${ARG_ENABLE_INVARIANT:-no}
   logging support:      ${ARG_ENABLE_LOGGING:-yes}
+  cxx standard:         ${ARG_CXX_STANDARD:-default}
 
 Features:
   encryption support:   ${ARG_ENABLE_ENCRYPTION:-yes}
