@@ -23,7 +23,7 @@ std::string operator "" _s(char const* str, size_t len) { return std::string(str
 
 std::string print_flags(aux::interface_flags const f)
 {
-	using if_flags = aux::if_flags;
+	namespace if_flags = aux::if_flags;
 
 	return
 		((f & if_flags::up) ? "UP "_s : ""_s)
