@@ -564,7 +564,7 @@ struct utp_socket_impl
 	~utp_socket_impl();
 
 	void tick(time_point now);
-	void init_mtu(int link_mtu, int utp_mtu);
+	void init_mtu(int mtu);
 	bool incoming_packet(span<char const> buf
 		, udp::endpoint const& ep, time_point receive_time);
 	void writable();
