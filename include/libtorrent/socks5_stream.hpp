@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include <functional>
 
-#include "libtorrent/proxy_base.hpp"
+#include "libtorrent/aux_/proxy_base.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
@@ -70,7 +70,7 @@ inline boost::system::error_category& get_socks_category()
 { return socks_category(); }
 #endif
 
-class socks5_stream : public proxy_base
+class socks5_stream : public aux::proxy_base
 {
 public:
 
@@ -148,7 +148,7 @@ public:
 		// 4. send SOCKS command message
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::name_lookup");
-		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), wrap_allocator(
+		m_resolver.async_resolve(m_hostname, aux::to_string(m_port).data(), aux::wrap_allocator(
 			[this](error_code const& ec, tcp::resolver::results_type ips, Handler hn) {
 				name_lookup(ec, std::move(ips), std::move(hn));
 			}, std::move(handler)));
@@ -174,7 +174,7 @@ private:
 		// TODO: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
-		m_sock.async_connect(i->endpoint(), wrap_allocator(
+		m_sock.async_connect(i->endpoint(), aux::wrap_allocator(
 			[this](error_code const& ec, Handler hn)
 			{ connected(ec, std::move(hn)); }, std::move(h)));
 	}
@@ -204,7 +204,7 @@ private:
 				write_uint8(2, p); // username/password
 			}
 			ADD_OUTSTANDING_ASYNC("socks5_stream::handshake1");
-			async_write(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+			async_write(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 				[this](error_code const& ec, std::size_t, Handler hn) {
 					handshake1(ec, std::move(hn));
 				}, std::move(h)));
@@ -227,7 +227,7 @@ private:
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake2");
 		m_buffer.resize(2);
-		async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+		async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				handshake2(ec, std::move(hn));
 			}, std::move(h)));
@@ -275,7 +275,7 @@ private:
 			write_string(m_password, p);
 
 			ADD_OUTSTANDING_ASYNC("socks5_stream::handshake3");
-			async_write(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+			async_write(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 				[this](error_code const& ec, std::size_t const, Handler hn) {
 					handshake3(ec, std::move(hn));
 				}, std::move(h)));
@@ -295,7 +295,7 @@ private:
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake4");
 		m_buffer.resize(2);
-		async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+		async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				handshake4(ec, std::move(hn));
 			}, std::move(h)));
@@ -387,7 +387,7 @@ private:
 		}
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connect1");
-		async_write(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+		async_write(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				connect1(ec, std::move(hn));
 			}, std::move(h)));
@@ -405,7 +405,7 @@ private:
 			m_buffer.resize(8);
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connect2");
-		async_read(m_sock, boost::asio::buffer(m_buffer), wrap_allocator(
+		async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				connect2(ec, std::move(hn));
 			}, std::move(h)));
@@ -477,7 +477,7 @@ private:
 			ADD_OUTSTANDING_ASYNC("socks5_stream::connect3");
 			TORRENT_ASSERT(extra_bytes > 0);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
-				, wrap_allocator([this](error_code const& ec, std::size_t, Handler hn) {
+				, aux::wrap_allocator([this](error_code const& ec, std::size_t, Handler hn) {
 					connect3(ec, std::move(hn));
 				}, std::move(h)));
 		}

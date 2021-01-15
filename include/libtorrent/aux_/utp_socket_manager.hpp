@@ -18,7 +18,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/packet_pool.hpp"

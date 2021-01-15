@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp"
 
 using namespace lt;
+using namespace lt::aux;
 
 namespace
 {
@@ -510,4 +511,3 @@ TORRENT_TEST(interface_to_endpoint)
 	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs2)
 		== eps{ep("10.0.1.1", 1234, "eth0", ls::was_expanded | ls::accept_incoming)}));
 }
-

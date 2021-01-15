@@ -36,7 +36,6 @@ set(libtorrent_include_files
 	disk_observer
 	download_priority
 	entry
-	enum_net
 	error
 	error_code
 	extensions
@@ -59,7 +58,6 @@ set(libtorrent_include_files
 	netlink
 	operations
 	peer_class
-	peer_class_set
 	peer_class_type_filter
 	peer_connection_handle
 	peer_connection_interface
@@ -70,7 +68,6 @@ set(libtorrent_include_files
 	pex_flags
 	piece_block
 	portmap
-	proxy_base
 	read_resume_data
 	session
 	session_handle
@@ -168,6 +165,7 @@ set(libtorrent_aux_include_files
 	disk_job_fence
 	disk_job_pool
 	ed25519
+	enum_net
 	escape_string
 	export
 	ffs
@@ -203,6 +201,7 @@ set(libtorrent_aux_include_files
 	path
 	pe_crypto
 	peer
+	peer_class_set
 	peer_connection
 	peer_list
 	piece_block_progress
@@ -212,6 +211,8 @@ set(libtorrent_aux_include_files
 	pool
 	portmap
 	posix_part_file
+	posix_storage
+	proxy_base
 	proxy_settings
 	puff
 	random

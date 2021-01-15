@@ -135,18 +135,18 @@ std::list<callback_info> callbacks;
 	#endif
 	};
 
-ip_interface pick_upnp_interface()
+aux::ip_interface pick_upnp_interface()
 {
 	lt::io_context ios;
 	error_code ec;
-	std::vector<ip_route> const routes = enum_routes(ios, ec);
+	auto const routes = aux::enum_routes(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate routes: " << ec.message() << '\n';
 		TEST_CHECK(false);
 		return {};
 	}
-	std::vector<ip_interface> const ifs = enum_net_interfaces(ios, ec);
+	auto const ifs = aux::enum_net_interfaces(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate network interfaces: " << ec.message() << '\n';
@@ -175,18 +175,18 @@ ip_interface pick_upnp_interface()
 			, r.name);
 	}
 
-	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
+	auto const iface = std::find_if(ifs.begin(), ifs.end(), [&](aux::ip_interface const& face)
 		{
 			if (!face.interface_address.is_v4()) return false;
-			if (!(face.flags & if_flags::up)) return false;
-			if (!(face.flags & if_flags::multicast)) return false;
-			if (face.state != if_state::up && face.state != if_state::unknown) return false;
+			if (!(face.flags & aux::if_flags::up)) return false;
+			if (!(face.flags & aux::if_flags::multicast)) return false;
+			if (face.state != aux::if_state::up && face.state != aux::if_state::unknown) return false;
 
-			auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+			auto const route = std::find_if(routes.begin(), routes.end(), [&](aux::ip_route const& r)
 			{
 				if (!r.destination.is_v4()) return false;
 				if (string_view(face.name) != r.name) return false;
-				return match_addr_mask(make_address_v4("239.255.255.250")
+				return aux::match_addr_mask(make_address_v4("239.255.255.250")
 					, r.destination.to_v4()
 					, r.netmask);
 			});

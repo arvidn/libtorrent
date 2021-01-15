@@ -434,7 +434,6 @@ HEADERS = \
   disk_observer.hpp            \
   download_priority.hpp        \
   entry.hpp                    \
-  enum_net.hpp                 \
   error.hpp                    \
   error_code.hpp               \
   extensions.hpp               \
@@ -459,7 +458,6 @@ HEADERS = \
   netlink.hpp                  \
   operations.hpp               \
   peer_class.hpp               \
-  peer_class_set.hpp           \
   peer_class_type_filter.hpp   \
   peer_connection_handle.hpp   \
   peer_connection_interface.hpp \
@@ -471,7 +469,6 @@ HEADERS = \
   piece_block.hpp              \
   portmap.hpp                  \
   posix_disk_io.hpp            \
-  proxy_base.hpp               \
   read_resume_data.hpp         \
   session.hpp                  \
   session_handle.hpp           \
@@ -538,6 +535,7 @@ HEADERS = \
   aux_/disk_job_fence.hpp           \
   aux_/disk_job_pool.hpp            \
   aux_/ed25519.hpp                  \
+  aux_/enum_net.hpp                 \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
@@ -579,6 +577,7 @@ HEADERS = \
   aux_/path.hpp                     \
   aux_/pe_crypto.hpp                \
   aux_/peer.hpp                     \
+  aux_/peer_class_set.hpp           \
   aux_/peer_connection.hpp          \
   aux_/peer_list.hpp                \
   aux_/piece_block_progress.hpp     \
@@ -589,6 +588,7 @@ HEADERS = \
   aux_/portmap.hpp                  \
   aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
+  aux_/proxy_base.hpp               \
   aux_/proxy_settings.hpp           \
   aux_/puff.hpp                     \
   aux_/random.hpp                   \

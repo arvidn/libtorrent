@@ -36,13 +36,13 @@ see LICENSE file.
 
 namespace libtorrent {
 
-	struct peer_class_set;
 	struct peer_class_pool;
 	struct disk_observer;
 	struct disk_interface;
 	struct counters;
 
 namespace aux {
+	struct peer_class_set;
 	struct tracker_request;
 	struct request_callback;
 	struct peer_connection;

@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
-#include "libtorrent/enum_net.hpp" // for ip_interface
+#include "libtorrent/aux_/enum_net.hpp" // for ip_interface
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 
 namespace libtorrent {
@@ -68,7 +68,7 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 {
 	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
 
-	void start(ip_interface const& ip);
+	void start(aux::ip_interface const& ip);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped

@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
-#include "libtorrent/peer_class_set.hpp"
+#include "libtorrent/aux_/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"

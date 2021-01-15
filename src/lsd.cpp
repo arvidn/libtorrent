@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/enum_net.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/multicast.hpp>
@@ -199,7 +199,7 @@ void lsd::on_announce(error_code const& ec)
 	m_socket.async_wait(udp::socket::wait_read
 		, std::bind(&lsd::on_announce, self(), _1));
 
-	if (!match_addr_mask(from.address(), m_listen_address, m_netmask))
+	if (!aux::match_addr_mask(from.address(), m_listen_address, m_netmask))
 	{
 		// we don't care about this network. Ignore this packet
 #ifndef TORRENT_DISABLE_LOGGING
