@@ -881,7 +881,9 @@ add_subdirectory(bindings)
 
 if(webtorrent)
 target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
-target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
+# this is to access json/include/boost/json.hpp in case we're linking to
+# boost < 1.75
+target_include_directories(torrent-rasterbar PRIVATE deps)
 target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
 endif()
 

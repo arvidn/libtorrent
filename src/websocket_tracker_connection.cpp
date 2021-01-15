@@ -26,9 +26,12 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/system_error.hpp>
-#include <boost/json.hpp>
 #if BOOST_VERSION >= 107500
+#include <boost/json.hpp>
 #include <boost/json/src.hpp>
+#else
+#include "json/include/boost/json.hpp"
+#include "json/include/boost/json/src.hpp"
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

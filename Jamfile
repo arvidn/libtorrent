@@ -892,7 +892,10 @@ lib torrent
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
-	<include>./deps/json/include
+
+	# this is to access json/include/boost/json.hpp in case we're linking to
+	# boost < 1.75
+	<webtorrent>on:<include>./deps
 	<define>BOOST_JSON_HEADER_ONLY
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
