@@ -27,7 +27,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/aux_/debug.hpp"
@@ -106,7 +106,7 @@ upnp::upnp(io_context& ios
 	, m_listen_handle(std::move(ls))
 {
 #if TORRENT_USE_SSL
-	m_ssl_ctx.set_verify_mode(ssl::context::verify_none);
+	m_ssl_ctx.set_verify_mode(aux::ssl::context::verify_none);
 #endif
 }
 

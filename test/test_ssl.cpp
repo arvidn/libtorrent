@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/time.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -79,8 +79,8 @@ bool on_alert(alert const* a)
 	{
 		++peer_disconnects;
 		string_view const cat = e->error.category().name();
-		if (cat == ssl::error::get_ssl_category().name()
-			|| cat == ssl::error::get_stream_category().name())
+		if (cat == aux::ssl::error::get_ssl_category().name()
+			|| cat == aux::ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -93,8 +93,8 @@ bool on_alert(alert const* a)
 		++peer_errors;
 
 		string_view const cat = e->error.category().name();
-		if (cat == ssl::error::get_ssl_category().name()
-			|| cat == ssl::error::get_stream_category().name())
+		if (cat == aux::ssl::error::get_ssl_category().name()
+			|| cat == aux::ssl::error::get_stream_category().name())
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -323,7 +323,7 @@ const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 bool try_connect(lt::session& ses1, int port
 	, std::shared_ptr<torrent_info> const& t, std::uint32_t flags)
 {
-	using ssl::context;
+	using aux::ssl::context;
 
 	std::printf("\nMALICIOUS PEER TEST: ");
 	if (flags & invalid_certificate) std::printf("invalid-certificate ");
@@ -417,7 +417,7 @@ bool try_connect(lt::session& ses1, int port
 		}
 	}
 
-	ssl::stream<tcp::socket> ssl_sock(ios, ctx);
+	aux::ssl::stream<tcp::socket> ssl_sock(ios, ctx);
 
 	std::printf("connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
@@ -436,7 +436,7 @@ bool try_connect(lt::session& ses1, int port
 	{
 		std::string name = aux::to_hex(t->info_hashes().v1);
 		std::printf("SNI: %s\n", name.c_str());
-		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
+		aux::ssl::set_host_name(aux::ssl::get_handle(ssl_sock), name, ec);
 		TEST_CHECK(!ec);
 	}
 	else if (flags & invalid_sni_hash)
@@ -448,12 +448,12 @@ bool try_connect(lt::session& ses1, int port
 			name += hex_alphabet[std::rand() % 16];
 
 		std::printf("SNI: %s\n", name.c_str());
-		ssl::set_host_name(ssl::get_handle(ssl_sock), name, ec);
+		aux::ssl::set_host_name(aux::ssl::get_handle(ssl_sock), name, ec);
 		TEST_CHECK(!ec);
 	}
 
 	std::printf("SSL handshake\n");
-	ssl_sock.handshake(ssl::stream_base::client, ec);
+	ssl_sock.handshake(aux::ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, &on_alert);
 	if (ec)
@@ -609,4 +609,3 @@ TORRENT_TEST(tcp_config8) { test_ssl(8, false); }
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_SSL_PEERS
-

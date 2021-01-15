@@ -31,12 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/hasher512.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	hasher512::hasher512()
 	{
@@ -144,5 +142,4 @@ namespace aux {
 	hasher512::~hasher512() = default;
 #endif
 
-}
 }

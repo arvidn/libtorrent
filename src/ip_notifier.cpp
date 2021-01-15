@@ -17,7 +17,7 @@ see LICENSE file.
 #if defined TORRENT_BUILD_SIMULATOR
 // TODO: simulator support
 #elif TORRENT_USE_NETLINK
-#include "libtorrent/netlink.hpp"
+#include "libtorrent/aux_/netlink.hpp"
 #include "libtorrent/socket.hpp"
 #include <array>
 #elif TORRENT_USE_SYSTEMCONFIGURATION
@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -423,4 +423,4 @@ private:
 	{
 		return std::make_unique<ip_change_notifier_impl>(ios);
 	}
-}}
+}

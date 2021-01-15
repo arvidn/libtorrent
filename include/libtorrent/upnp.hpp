@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #include <memory>
 #include <functional>
@@ -348,7 +348,7 @@ private:
 	std::string m_device;
 
 #if TORRENT_USE_SSL
-	ssl::context m_ssl_ctx;
+	aux::ssl::context m_ssl_ctx;
 #endif
 
 	aux::listen_socket_handle m_listen_handle;
