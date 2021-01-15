@@ -29,7 +29,7 @@ see LICENSE file.
 #include "libtorrent/aux_/link.hpp" // for torrent_list_index_t
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #include <functional>
 #include <memory>

@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/debug.hpp"
@@ -46,7 +46,7 @@ namespace websocket {
 
 template<class Stream>
 void teardown(role_type
-	, libtorrent::ssl::stream<Stream>& stream
+	, libtorrent::aux::ssl::stream<Stream>& stream
 	, error_code& ec)
 {
     stream.shutdown(ec);
@@ -54,7 +54,7 @@ void teardown(role_type
 
 template<class Stream, class Handler>
 void async_teardown(role_type
-	, libtorrent::ssl::stream<Stream>& stream
+	, libtorrent::aux::ssl::stream<Stream>& stream
 	, Handler&& handler)
 {
     stream.async_shutdown(std::forward<Handler>(handler));

@@ -455,7 +455,6 @@ HEADERS = \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \
   natpmp.hpp                   \
-  netlink.hpp                  \
   operations.hpp               \
   peer_class.hpp               \
   peer_class_type_filter.hpp   \
@@ -483,7 +482,6 @@ HEADERS = \
   socket_type.hpp              \
   socks5_stream.hpp            \
   span.hpp                     \
-  ssl.hpp                      \
   storage.hpp                  \
   storage_defs.hpp             \
   string_view.hpp              \
@@ -567,6 +565,7 @@ HEADERS = \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
   aux_/mmap_storage.hpp             \
+  aux_/netlink.hpp                  \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \
   aux_/open_mode.hpp                \
@@ -612,6 +611,7 @@ HEADERS = \
   aux_/sliding_average.hpp          \
   aux_/socket_io.hpp                \
   aux_/socket_type.hpp              \
+  aux_/ssl.hpp                      \
   aux_/ssl_stream.hpp               \
   aux_/stack_allocator.hpp          \
   aux_/stat.hpp                     \

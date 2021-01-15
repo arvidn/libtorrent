@@ -9,7 +9,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #if TORRENT_USE_SSL
 
@@ -21,8 +21,7 @@ see LICENSE file.
 #include <gnutls/x509.h>
 #endif
 
-namespace libtorrent {
-namespace ssl {
+namespace libtorrent::aux::ssl {
 
 void set_trust_certificate(native_context_type nc, string_view pem, error_code &ec)
 {
@@ -183,8 +182,6 @@ namespace {
 }
 #endif
 
-} // ssl
-} // libtorrent
+} // libtorrent::aux::ssl
 
 #endif
-

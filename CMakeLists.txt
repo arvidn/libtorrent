@@ -55,7 +55,6 @@ set(libtorrent_include_files
 	magnet_uri
 	mmap_disk_io
 	natpmp
-	netlink
 	operations
 	peer_class
 	peer_class_type_filter
@@ -93,8 +92,7 @@ set(libtorrent_include_files
 	units
 	upnp
 	version
-	write_resume_data
-	ssl)
+	write_resume_data)
 
 set(libtorrent_kademlia_include_files
 	announce_flags
@@ -192,6 +190,7 @@ set(libtorrent_aux_include_files
 	merkle
 	merkle_tree
 	mmap_storage
+	netlink
 	noexcept_movable
 	numeric_cast
 	packet_buffer
@@ -236,6 +235,7 @@ set(libtorrent_aux_include_files
 	sliding_average
 	socket_io
 	socket_type
+	ssl
 	ssl_stream
 	stack_allocator
 	stat

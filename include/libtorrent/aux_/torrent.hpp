@@ -68,7 +68,7 @@ see LICENSE file.
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #if TORRENT_USE_RTC
     #include "libtorrent/aux_/rtc_signaling.hpp"

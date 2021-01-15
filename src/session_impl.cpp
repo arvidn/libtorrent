@@ -41,7 +41,7 @@ see LICENSE file.
 #include <boost/asio/ts/executor.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"

@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/http_tracker_connection.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/udp_tracker_connection.hpp"
 

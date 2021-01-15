@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 namespace libtorrent::aux {
 
