@@ -880,9 +880,17 @@ include(CheckCXXCompilerFlag)
 add_subdirectory(bindings)
 
 if(webtorrent)
-target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
-target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
-target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
+	target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
+
+	# Boost.JSON was added to Boost in version 1.75
+	find_package(Boost OPTIONAL_COMPONENTS json)
+	if(Boost_JSON_FOUND)
+		target_link_libraries(torrent-rasterbar PUBLIC ${Boost_JSON_LIBRARY})
+	else()
+		# Fallback to the submodule
+		target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
+		target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
+	endif()
 endif()
 
 if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
