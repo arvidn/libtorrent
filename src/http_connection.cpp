@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #include <functional>
 #include <string>

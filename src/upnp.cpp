@@ -27,7 +27,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/aux_/debug.hpp"

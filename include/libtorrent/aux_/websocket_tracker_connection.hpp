@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 
 #include <boost/beast/core/flat_buffer.hpp>
 

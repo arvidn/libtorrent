@@ -43,7 +43,7 @@ see LICENSE file.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/tracker_event.hpp" // for event_t enum
 
 #if TORRENT_USE_RTC

@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/peer_class.hpp"
 
 #if TORRENT_USE_SSL
-#include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/ssl.hpp"
 #endif
 
 #include "libtorrent/io_context.hpp"
@@ -36,7 +36,7 @@ struct session_mock : aux::session_interface
 	session_mock(boost::asio::io_context& ioc)
 		: _io_context(ioc)
 #if TORRENT_USE_SSL
-		, _ssl_context(ssl::context::tls_client)
+		, _ssl_context(aux::ssl::context::tls_client)
 #endif
 		, _alerts(1000, alert_category::all)
 		, _resolver(_io_context)
@@ -134,7 +134,7 @@ struct session_mock : aux::session_interface
 	std::vector<block_info>& block_info_storage() override { return _block_info_list; }
 
 #if TORRENT_USE_SSL
-	ssl::context* ssl_ctx() override { return &_ssl_context; }
+	aux::ssl::context* ssl_ctx() override { return &_ssl_context; }
 #endif
 
 	counters& stats_counters() override { return _counters; }
@@ -206,7 +206,7 @@ struct session_mock : aux::session_interface
 
 	boost::asio::io_context& _io_context;
 #if TORRENT_USE_SSL
-	ssl::context _ssl_context;
+	aux::ssl::context _ssl_context;
 #endif
 
 	mutable aux::alert_manager _alerts;
