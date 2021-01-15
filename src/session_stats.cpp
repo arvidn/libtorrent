@@ -467,19 +467,46 @@ namespace {
 		METRIC(dht, dht_invalid_get)
 		METRIC(dht, dht_invalid_sample_infohashes)
 
-		// uTP counters. Each counter represents the number of time each event
-		// has occurred.
+		// The number of times a lost packet has been interpreted as congestion,
+		// cutting the congestion window in half. Some lost packets are not
+		// interpreted as congestion, notably MTU-probes
 		METRIC(utp, utp_packet_loss)
+
+		// The number of timeouts experienced. This is when a connection doesn't
+		// hear back from the other end within a sliding average RTT + 2 average
+		// deviations from the mean (approximately). The actual time out is
+		// configurable and also depends on the state of the socket.
 		METRIC(utp, utp_timeout)
+
+		// The total number of packets sent and received
 		METRIC(utp, utp_packets_in)
 		METRIC(utp, utp_packets_out)
+
+		// The number of packets lost but re-sent by the fast-retransmit logic.
+		// This logic is triggered after 3 duplicate ACKs.
 		METRIC(utp, utp_fast_retransmit)
+
+		// The number of packets that were re-sent, for whatever reason
 		METRIC(utp, utp_packet_resend)
+
+		// The number of incoming packets where the delay samples were above
+		// and below the delay target, respectively. The delay target is
+		// configurable and is a parameter to the LEDBAT congestion control.
 		METRIC(utp, utp_samples_above_target)
 		METRIC(utp, utp_samples_below_target)
+
+		// The total number of packets carrying payload received and sent,
+		// respectively.
 		METRIC(utp, utp_payload_pkts_in)
 		METRIC(utp, utp_payload_pkts_out)
+
+		// The number of packets received that are not valid uTP packets (but
+		// were sufficiently similar to not be treated as DHT or UDP tracker
+		// packets).
 		METRIC(utp, utp_invalid_pkts_in)
+
+		// The number of duplicate payload packets received. This may happen if
+		// the outgoing ACK is lost.
 		METRIC(utp, utp_redundant_pkts_in)
 
 		// the number of uTP sockets in each respective state

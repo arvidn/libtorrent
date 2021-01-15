@@ -78,9 +78,15 @@ namespace {
 typedef sim::chrono::high_resolution_clock::duration duration;
 using sim::chrono::milliseconds;
 
+dsl_config::dsl_config(int kb_per_second, int send_queue_size)
+	: m_rate(kb_per_second)
+	, m_queue_size(send_queue_size)
+{}
+
 sim::route dsl_config::incoming_route(asio::ip::address ip)
 {
-	int rate = transfer_rate(ip);
+	int const rate = m_rate > 0 ? m_rate : transfer_rate(ip);
+	int const queue_size = m_queue_size > 0 ? m_queue_size : 200000;
 
 	auto it = m_incoming.find(ip);
 	if (it != m_incoming.end()) return sim::route().append(it->second);
@@ -88,19 +94,21 @@ sim::route dsl_config::incoming_route(asio::ip::address ip)
 		m_sim->get_io_context()
 		, rate * 1000
 		, lt::duration_cast<duration>(milliseconds(rate / 2))
-		, 200 * 1000, "DSL modem in")));
+		, queue_size, "DSL modem in")));
 	return sim::route().append(it->second);
 }
 
 sim::route dsl_config::outgoing_route(asio::ip::address ip)
 {
-	int rate = transfer_rate(ip);
+	int const rate = m_rate > 0 ? m_rate : transfer_rate(ip);
+	int const queue_size = m_queue_size > 0 ? m_queue_size : 200000;
 
 	auto it = m_outgoing.find(ip);
 	if (it != m_outgoing.end()) return sim::route().append(it->second);
 	it = m_outgoing.insert(it, std::make_pair(ip, std::make_shared<queue>(
 		m_sim->get_io_context(), rate * 1000
-		, lt::duration_cast<duration>(milliseconds(rate / 2)), 200 * 1000, "DSL modem out")));
+		, lt::duration_cast<duration>(milliseconds(rate / 2))
+		, queue_size, "DSL modem out")));
 	return sim::route().append(it->second);
 }
 

@@ -104,8 +104,12 @@ void enable_enc(lt::settings_pack& pack);
 
 struct dsl_config : sim::default_config
 {
+	dsl_config(int kb_per_second = 0, int send_queue_size = 0);
 	virtual sim::route incoming_route(lt::address ip) override;
 	virtual sim::route outgoing_route(lt::address ip) override;
+private:
+	int m_rate; // kilobytes per second
+	int m_queue_size; // bytes
 };
 
 #endif
