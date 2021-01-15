@@ -519,7 +519,7 @@ void utp_socket_impl::add_read_buffer(void* buf, int const len)
 
 void utp_socket_impl::add_write_buffer(void const* buf, int const len)
 {
-	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void const*>(m_impl), len);
+	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void const*>(this), len);
 	if (len <= 0) return;
 
 #if TORRENT_USE_ASSERTS
