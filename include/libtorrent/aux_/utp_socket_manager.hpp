@@ -115,7 +115,7 @@ namespace aux {
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
 		int cwnd_reduce_timer() const { return m_sett.get_int(settings_pack::utp_cwnd_reduce_timer); }
 
-		std::pair<int, int> mtu_for_dest(address const& addr);
+		int mtu_for_dest(address const& addr) const;
 		int num_sockets() const { return int(m_utp_sockets.size()); }
 
 		void defer_ack(utp_socket_impl* s);

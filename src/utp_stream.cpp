@@ -687,9 +687,8 @@ std::size_t utp_socket_impl::write_some(bool const clear_buffers)
 
 void utp_socket_impl::do_connect(tcp::endpoint const& ep)
 {
-	int link_mtu, utp_mtu;
-	std::tie(link_mtu, utp_mtu) = m_sm.mtu_for_dest(ep.address());
-	init_mtu(link_mtu, utp_mtu);
+	int const mtu = m_sm.mtu_for_dest(ep.address());
+	init_mtu(mtu);
 	TORRENT_ASSERT(m_connect_handler == false);
 	m_remote_address = ep.address();
 	m_port = ep.port();
@@ -2207,25 +2206,17 @@ bool utp_socket_impl::test_socket_state()
 	return false;
 }
 
-void utp_socket_impl::init_mtu(int const link_mtu, int utp_mtu)
+void utp_socket_impl::init_mtu(int const mtu)
 {
 	INVARIANT_CHECK;
 
-	if (link_mtu > TORRENT_ETHERNET_MTU)
-	{
-		// we can't use larger packets than this since we're
-		// not allocating any more memory for socket buffers
-		int const decrease = link_mtu - TORRENT_ETHERNET_MTU;
-		utp_mtu -= decrease;
-	}
-
 	// set the ceiling to what we found out from the interface
-	m_mtu_ceiling = std::uint16_t(utp_mtu);
+	m_mtu_ceiling = std::uint16_t(mtu);
 
 	// start in the middle of the PMTU search space
 	m_mtu = (m_mtu_ceiling + m_mtu_floor) / 2;
 	if (m_mtu > m_mtu_ceiling) m_mtu = m_mtu_ceiling;
-	if (m_mtu_floor > utp_mtu) m_mtu_floor = std::uint16_t(utp_mtu);
+	if (m_mtu_floor > mtu) m_mtu_floor = std::uint16_t(mtu);
 
 	// if the window size is smaller than one packet size
 	// set it to one
