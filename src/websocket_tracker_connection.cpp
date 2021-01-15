@@ -27,9 +27,6 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/system_error.hpp>
 #include <boost/json.hpp>
-#if BOOST_VERSION >= 107500
-#include <boost/json/src.hpp>
-#endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
@@ -207,11 +204,7 @@ void websocket_tracker_connection::do_send(tracker_request const& req)
 		offers_array.emplace_back(std::move(payload_offer));
 	}
 
-#if BOOST_VERSION >= 107500
 	std::string const data = json::serialize(payload);
-#else
-	json::string const data = json::to_string(payload);
-#endif
 	m_write_data.assign(data.begin(), data.end());
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -238,11 +231,7 @@ void websocket_tracker_connection::do_send(tracker_answer const& ans)
 	obj["type"] = "answer";
 	obj["sdp"] = ans.answer.sdp;
 
-#if BOOST_VERSION >= 107500
 	std::string const data = json::serialize(payload);
-#else
-	json::string const data = json::to_string(payload);
-#endif
 	m_write_data.assign(data.begin(), data.end());
 
 #ifndef TORRENT_DISABLE_LOGGING
