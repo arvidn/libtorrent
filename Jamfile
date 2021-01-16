@@ -20,7 +20,7 @@ if $(BOOST_ROOT)
 	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
 
 	use-project /boost : $(BOOST_ROOT) ;
-	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
+	alias boost_system : /boost/system//boost_system ;
 }
 else
 {
@@ -38,7 +38,12 @@ else
 
 	lib boost_system : : <name>boost_system $(boost-lib-search-path)
 		: : $(boost-include-path) ;
+
+	lib system_boost_json : : <name>boost_json $(boost-lib-search-path)
+		: : $(boost-include-path) ;
 }
+
+alias shipped_boost_json : : <define>BOOST_JSON_HEADER_ONLY : : <include>./deps/json/include <define>BOOST_JSON_HEADER_ONLY ;
 
 use-project /try_signal : ./deps/try_signal ;
 use-project /libdatachannel : ./deps/libdatachannel ;
@@ -158,6 +163,24 @@ rule linking ( properties * )
 		result += <linkflags>-Wl,-export-dynamic <linkflags>-rdynamic ;
 	}
 
+	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
+	local json ;
+	if $(BOOST_VERSION_TAG) >= 1_75
+	{
+		if $(BOOST_ROOT)
+		{
+			json = /boost/json//boost_json ;
+		}
+		else
+		{
+			json = system_boost_json ;
+		}
+	}
+	else
+	{
+		json = shipped_boost_json ;
+	}
+
 	if <boost-link>static in $(properties)
 	{
 		if <link>shared in $(properties)
@@ -168,10 +191,12 @@ rule linking ( properties * )
 			# library, so that it properly exports its symbols
 			result += <define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			result += <library>$(json)/<link>static/<define>BOOST_ALL_DYN_LINK ;
 		}
 		else
 		{
 			result += <library>boost_system/<link>static ;
+			result += <library>$(json)/<link>static ;
 		}
 
 		if <toolset>gcc in $(properties)
@@ -185,10 +210,12 @@ rule linking ( properties * )
 	else if <boost-link>shared in $(properties)
 	{
 		result += <library>boost_system/<link>shared ;
+		result += <library>$(json)/<link>shared ;
 	}
 	else
 	{
 		result += <library>boost_system ;
+		result += <library>$(json) ;
 	}
 
 	result += <define>BOOST_ALL_NO_LIB
@@ -892,8 +919,6 @@ lib torrent
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
-	<include>./deps/json/include
-	<define>BOOST_JSON_HEADER_ONLY
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	# https://github.com/chriskohlhoff/asio/issues/290#issuecomment-377727614
