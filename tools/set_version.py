@@ -49,6 +49,8 @@ def substitute_file(name):
             line = '    version="%d.%d.%d",\n' % (version[0], version[1], version[2])
         elif '"-LT' in line and name.endswith('settings_pack.cpp'):
             line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
+        elif 'local FULL_VERSION = ' in line and name == 'Jamfile':
+            line = '\tlocal FULL_VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
 
         subst += line
 
