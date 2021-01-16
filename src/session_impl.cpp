@@ -65,7 +65,7 @@ see LICENSE file.
 #include "libtorrent/aux_/enum_net.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/natpmp.hpp"
-#include "libtorrent/lsd.hpp"
+#include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/random.hpp"

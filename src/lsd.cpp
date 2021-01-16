@@ -14,7 +14,7 @@ see LICENSE file.
 #include <functional>
 #include <cstdio> // for vsnprintf
 
-#include "libtorrent/lsd.hpp"
+#include "libtorrent/aux_/lsd.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
@@ -30,7 +30,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -314,4 +314,4 @@ void lsd::close()
 	m_disabled = true;
 }
 
-} // libtorrent namespace
+} // libtorrent::aux namespace
