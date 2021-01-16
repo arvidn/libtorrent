@@ -451,7 +451,6 @@ HEADERS = \
   io_context.hpp               \
   io_service.hpp               \
   ip_filter.hpp                \
-  lsd.hpp                      \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \
   natpmp.hpp                   \
