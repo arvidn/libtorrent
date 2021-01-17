@@ -668,7 +668,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		// 80% of the available file descriptors should go to connections
 		m_settings.set_int(settings_pack::connections_limit, std::min(
 			m_settings.get_int(settings_pack::connections_limit)
-			, std::max(5, (max_files - 20) * 8 / 10)));
+			, std::max(5, ((max_files - 20) / 10) * 8)));
 		// 20% goes towards regular files (see disk_io_thread)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
