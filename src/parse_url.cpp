@@ -203,7 +203,7 @@ exit:
 			std::tie(arg, query_string) = split_string(query_string, '&');
 
 			auto const name = split_string(arg, '=').first;
-			for (auto const tracker_arg : tracker_args)
+			for (auto const& tracker_arg : tracker_args)
 			{
 				if (string_equal_no_case(name, tracker_arg))
 					return true;
