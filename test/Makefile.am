@@ -14,7 +14,6 @@ test_programs = \
   test_http_connection       \
   test_lsd                   \
   test_pe_crypto             \
-  test_pex                   \
   test_read_piece            \
   test_receive_buffer        \
   test_resume                \
