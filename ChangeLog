@@ -50,6 +50,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix overflow issue when rlimit_nofile is set to infinity
 	* fix issue in python binding interpreting int settings > INT_MAX
 	* Fix cxxflags and linkflags injection via environment variables
 

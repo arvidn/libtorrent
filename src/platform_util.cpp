@@ -70,14 +70,14 @@ namespace libtorrent {
 		return 256;
 #elif TORRENT_USE_RLIMIT
 
+		int const inf = 10000000;
+
 		struct rlimit rl{};
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
-			if (rl.rlim_cur == rlim_infinity)
-				return std::numeric_limits<int>::max();
-
-			return rl.rlim_cur <= static_cast<rlim_t>(std::numeric_limits<int>::max())
-				? static_cast<int>(rl.rlim_cur) : std::numeric_limits<int>::max();
+			if (rl.rlim_cur == rlim_infinity) return inf;
+			return rl.rlim_cur <= static_cast<rlim_t>(inf)
+				? static_cast<int>(rl.rlim_cur) : inf;
 		}
 		return 1024;
 #else

@@ -225,7 +225,6 @@ run test_http_connection.cpp : :
 	;
 run test_transfer.cpp ;
 run test_time_critical.cpp ;
-run test_pex.cpp ;
 run test_priority.cpp ;
 
 run test_upnp.cpp ;
