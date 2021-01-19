@@ -27,9 +27,9 @@ see LICENSE file.
 #include <algorithm>
 #include <tuple>
 
-#define WEBSOCKET_KEEPALIVE_PERIOD 10 // seconds
-
 namespace libtorrent::aux {
+
+constexpr seconds WEBSOCKET_KEEPALIVE_PERIOD(10);
 
 namespace http = boost::beast::http;
 namespace error = boost::asio::error;
@@ -311,7 +311,7 @@ void websocket_stream::on_ping(error_code ec)
 
 void websocket_stream::arm_keepalive()
 {
-	m_keepalive_timer.expires_after(seconds(WEBSOCKET_KEEPALIVE_PERIOD));
+	m_keepalive_timer.expires_after(WEBSOCKET_KEEPALIVE_PERIOD);
 	m_keepalive_timer.async_wait(std::bind(&websocket_stream::on_keepalive, shared_from_this(), _1));
 }
 
