@@ -288,7 +288,7 @@ void websocket_stream::on_close(error_code)
 
 void websocket_stream::on_keepalive(error_code ec)
 {
-	if (ec) return;
+	if (ec || !m_open) return;
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_ping");
 	std::visit([&](auto& stream)
