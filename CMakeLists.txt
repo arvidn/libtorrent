@@ -776,6 +776,7 @@ endif()
 
 if (webtorrent)
 	option(NO_WEBSOCKET "Disable WebSocket support in libdatachannel" ON)
+	option(NO_MEDIA "Disable media transport support in libdatachannel" ON)
 	if(GNUTLS_FOUND)
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" ON)
 	else()
