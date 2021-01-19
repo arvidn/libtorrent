@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/io_context.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/random.hpp"
 
@@ -27,6 +28,8 @@ see LICENSE file.
 #include <tuple>
 
 namespace libtorrent::aux {
+
+constexpr seconds WEBSOCKET_KEEPALIVE_PERIOD(10);
 
 namespace http = boost::beast::http;
 namespace error = boost::asio::error;
@@ -41,6 +44,7 @@ websocket_stream::websocket_stream(io_context& ios
 	, m_ssl_context(ssl_ctx)
 	, m_stream(std::in_place_type_t<stream_type>{}, ios)
 	, m_open(false)
+	, m_keepalive_timer(ios)
 {
 
 }
@@ -49,6 +53,8 @@ void websocket_stream::close()
 {
 	if (auto handler = std::exchange(m_connect_handler, nullptr))
 		post(m_io_service, std::bind(std::move(handler), error::operation_aborted));
+
+	m_keepalive_timer.cancel();
 
 	if (m_open)
 	{
@@ -251,6 +257,7 @@ void websocket_stream::on_handshake(error_code const& ec)
 	}
 
 	m_open = true;
+	arm_keepalive();
 
 	if (handler) post(m_io_service, std::bind(std::move(handler), ec));
 	else close();
@@ -269,12 +276,43 @@ void websocket_stream::on_write(error_code ec, std::size_t bytes_written, write_
 {
 	COMPLETE_ASYNC("websocket_stream::on_write");
 
+	if (!ec) arm_keepalive();
+
 	post(m_io_service, std::bind(std::move(handler), ec, bytes_written));
 }
 
 void websocket_stream::on_close(error_code)
 {
 	COMPLETE_ASYNC("websocket_stream::on_close");
+}
+
+void websocket_stream::on_keepalive(error_code ec)
+{
+	if (ec || !m_open) return;
+
+	ADD_OUTSTANDING_ASYNC("websocket_stream::on_ping");
+	std::visit([&](auto& stream)
+		{
+			stream.async_ping({}, std::bind(&websocket_stream::on_ping
+				, shared_from_this(), _1));
+		}
+		, m_stream);
+
+}
+
+void websocket_stream::on_ping(error_code ec)
+{
+	COMPLETE_ASYNC("websocket_stream::on_ping");
+
+	if (ec) return;
+
+	arm_keepalive();
+}
+
+void websocket_stream::arm_keepalive()
+{
+	m_keepalive_timer.expires_after(WEBSOCKET_KEEPALIVE_PERIOD);
+	m_keepalive_timer.async_wait(std::bind(&websocket_stream::on_keepalive, shared_from_this(), _1));
 }
 
 }
