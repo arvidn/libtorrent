@@ -691,6 +691,11 @@ namespace libtorrent {
 		return sync_call_ret<storage_interface*>(nullptr, &torrent::get_storage_impl);
 	}
 
+    void torrent_handle::set_sequential_start(piece_index_t piece) const
+    {
+        async_call(&torrent::set_sequential_start, piece);
+    }
+
 	bool torrent_handle::is_valid() const
 	{
 		return !m_torrent.expired();

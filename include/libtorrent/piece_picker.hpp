@@ -403,6 +403,8 @@ namespace libtorrent {
 		void get_download_queue_sizes(int* partial
 			, int* full, int* finished, int* zero_prio) const;
 
+		void set_sequential_start(piece_index_t piece);
+
 		torrent_peer* get_downloader(piece_block block) const;
 
 
@@ -850,6 +852,7 @@ namespace libtorrent {
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered = 0;
 
+		piece_index_t sequential_start {0};
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
 		piece_index_t m_cursor{0};

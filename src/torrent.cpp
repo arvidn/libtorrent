@@ -1293,6 +1293,12 @@ bool is_downloading_state(int const st)
 		return m_ses.disk_thread().get_torrent(m_storage);
 	}
 
+    void torrent::set_sequential_start(piece_index_t piece)
+    {
+        if (!m_picker) return;
+        m_picker->set_sequential_start(piece);
+    }
+
 	void torrent::need_picker()
 	{
 		if (m_picker) return;
