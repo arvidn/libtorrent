@@ -852,7 +852,7 @@ namespace libtorrent {
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered = 0;
 
-		piece_index_t sequential_start {0};
+		piece_index_t m_sequential_start {0};
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
 		piece_index_t m_cursor{0};

@@ -369,7 +369,7 @@ namespace libtorrent {
 
     void piece_picker::set_sequential_start(piece_index_t const piece)
     {
-        sequential_start = piece;
+        m_sequential_start = piece;
     }
 
 	span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
@@ -2083,7 +2083,7 @@ namespace {
 		{
 			if (m_dirty) update_pieces();
 			TORRENT_ASSERT(!m_dirty);
-            //The piece priority logic may be removed in the future.
+
 			for (auto i = m_pieces.begin();
 				i != m_pieces.end() && piece_priority(*i) == top_priority; ++i)
 			{
@@ -2122,7 +2122,7 @@ namespace {
 				}
 				else
 				{
-					for (piece_index_t i = m_cursor > sequential_start ? m_cursor : sequential_start; i < m_reverse_cursor; ++i)
+					for (piece_index_t i = m_cursor > m_sequential_start ? m_cursor : m_sequential_start; i < m_reverse_cursor; ++i)
 					{
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
