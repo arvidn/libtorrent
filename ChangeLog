@@ -1,3 +1,4 @@
+	* fix integer overflow in hash_picker and properly restrict max file sizes in torrents
 	* strengthen SSRF mitigation for web seeds
 
 * 2.0.2 released

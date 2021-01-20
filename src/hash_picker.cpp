@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hash_picker.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent
 {
@@ -340,9 +341,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		auto const f = m_files.file_index_at_piece(piece);
 		auto& merkle_tree = m_merkle_trees[f];
 		piece_index_t const file_first_piece = m_files.piece_index_at_file(f);
-		int const block_offset = static_cast<int>(static_cast<int>(piece) * std::int64_t(m_files.piece_length())
-			+ offset - m_files.file_offset(f));
-		int const block_index = block_offset / default_block_size;
+		std::int64_t const block_offset = static_cast<int>(piece) * std::int64_t(m_files.piece_length())
+			+ offset - m_files.file_offset(f);
+		int const block_index = aux::numeric_cast<int>(block_offset / default_block_size);
 		int const first_block_index = m_files.file_first_block_node(f);
 		int const block_tree_index = first_block_index + block_index;
 

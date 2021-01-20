@@ -763,31 +763,38 @@ TORRENT_TEST(files_equal_symlink)
 	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
 }
 
+std::int64_t const int_max = std::numeric_limits<int>::max();
+
 TORRENT_TEST(large_files)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	TEST_THROW(fs1.add_file("test/0", std::int64_t(1) << 48));
+	TEST_THROW(fs1.add_file("test/0", int_max / 2 * lt::default_block_size + 1));
 
 	error_code ec;
-	fs1.add_file(ec, "test/0", (std::int64_t(1) << 48));
+	fs1.add_file(ec, "test/0", int_max * lt::default_block_size + 1);
 	TEST_EQUAL(ec, make_error_code(boost::system::errc::file_too_large));
 
 	// should not throw
-	TEST_NOTHROW(fs1.add_file("test/1", (std::int64_t(1) << 48) - 1));
+	TEST_NOTHROW(fs1.add_file("test/0", int_max / 2 * lt::default_block_size));
 }
 
 TORRENT_TEST(large_offset)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", (std::int64_t(1) << 48) - 10);
-	// 11 bytes + (2^48 - 10) exceeds the limit
-	TEST_THROW(fs1.add_file("test/1", 11));
+	for (int i = 0; i < 16; ++i)
+		fs1.add_file(("test/" + std::to_string(i)).c_str(), int_max / 2 * lt::default_block_size);
+
+	// this exceeds the 2^48-1 limit
+	TEST_THROW(fs1.add_file("test/16", 262144));
 
 	error_code ec;
-	fs1.add_file(ec, "test/1", 11);
+	fs1.add_file(ec, "test/8", 262144);
 	TEST_EQUAL(ec, make_error_code(errors::torrent_invalid_length));
+
+	// this should be OK, but just
+	fs1.add_file("test/8", 262143);
 }
 
 TORRENT_TEST(large_filename)
