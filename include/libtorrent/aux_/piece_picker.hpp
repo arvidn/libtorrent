@@ -412,6 +412,8 @@ namespace libtorrent::aux {
 
 		aux::torrent_peer* get_downloader(piece_block block) const;
 
+		void set_sequential_start(piece_index_t piece);
+
 
 		// piece states
 		//
@@ -857,6 +859,7 @@ namespace libtorrent::aux {
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered = 0;
 
+		piece_index_t sequential_start {0};
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
 		piece_index_t m_cursor{0};

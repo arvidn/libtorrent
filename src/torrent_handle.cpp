@@ -653,6 +653,11 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece, piece);
 	}
 
+    void torrent_handle::set_sequential_start(piece_index_t piece) const
+    {
+        async_call(&torrent::set_sequential_start, piece);
+    }
+
 	bool torrent_handle::is_valid() const
 	{
 		return !m_torrent.expired();
