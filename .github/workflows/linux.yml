@@ -249,7 +249,8 @@ jobs:
           max_attempts: 3
           command: |
             cd libtorrent-rasterbar-*/test
-            b2 link=static cxxflags=-std=c++11
+            b2 cxxflags=-std=c++11 testing.execute=off
+            b2 cxxflags=-std=c++11 test_torrent_info
 
       - name: test-tarball (make)
         run: |
