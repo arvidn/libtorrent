@@ -651,7 +651,7 @@ namespace aux {
 			return;
 		}
 
-		if (max_file_size - m_total_size < file_size)
+		if (max_file_offset - m_total_size < file_size)
 		{
 			ec = make_error_code(errors::torrent_invalid_length);
 			return;
