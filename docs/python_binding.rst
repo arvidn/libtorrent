@@ -29,7 +29,7 @@ Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_73_0 and create 
 2. BOOST_ROOT: "c:/Libraries/boost_1_73_0/"
 
 Navigate to ``BOOST_ROOT``, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_73_0/"
-	
+
 Create a file ``user-config.jam`` in tour home directory and add this::
 
 	using msvc : 14.0 : : <cxxflags>/std:c++11 ;
@@ -39,12 +39,12 @@ Create a file ``user-config.jam`` in tour home directory and add this::
 
 Navigate to bindings/python and execute::
 	python setup.py build --bjam
-	
+
 Note: If you are using 64 bits python you should edit setup.py and add this to the b2 command:
 ``address-model=64``
 
 This will create the file libtorrent.pyd inside build/lib/ that contains the binding.
-	
+
 building using boost build (others)
 -----------------------------------
 

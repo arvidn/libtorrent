@@ -5,8 +5,8 @@
 |                  |                  |               |                   | "send buffer" |
 +------------------+                  +---------------+                   +---------------+
         ^                                                                   |
-        | "read() from file"                            "write() to socket" | 
-        | "(copy)"               "user space"           "(copy)"            | 
+        | "read() from file"                            "write() to socket" |
+        | "(copy)"               "user space"           "(copy)"            |
 - - - - + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - + - - -
         |                       "kernel space"                              |
         |                                                                   v

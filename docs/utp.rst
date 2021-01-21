@@ -19,7 +19,7 @@ that their internet "stops working". This can be caused by a number of things,
 for example:
 
 1.  a home router that crashes or slows down when its NAT pin-hole
-    table overflows, triggered by DHT or simply many TCP connections. 
+    table overflows, triggered by DHT or simply many TCP connections.
 
 2. a home router that crashes or slows down by UDP traffic (caused by
    the DHT)
@@ -92,7 +92,7 @@ packet that is successfully transferred will increase cwnd.
 	            cwnd
 	send_rate = ----
 	            RTT
-	
+
 
 Send rate is proportional to cwnd divided by RTT. A smaller cwnd will cause
 the send rate to be lower and a larger cwnd will cause the send rate to be
