@@ -790,10 +790,6 @@ if (webtorrent)
 			-Wno-unused-variable
 			-Wno-format-nonliteral)
 	endif()
-	if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-		target_compile_options(usrsctp-static PRIVATE
-			-Wno-format-truncation)
-	endif()
 endif()
 
 # Boost
