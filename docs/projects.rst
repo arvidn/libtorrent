@@ -54,10 +54,10 @@ Folx
 ----
 
 Folx_ is a torrent client and download manager for macOS.
-The Free version of Folx has all the basic functionality of the torrent 
+The Free version of Folx has all the basic functionality of the torrent
 client, which allows users to download and create torrent files.
-Folx PRO (available for a small fee) features the possibility to search 
-for torrent files just from Folx interface. So there is no need to 
+Folx PRO (available for a small fee) features the possibility to search
+for torrent files just from Folx interface. So there is no need to
 browse through multiple torrent trackers searching for particular file.
 
 .. _folx: http://www.mac-downloader.com/

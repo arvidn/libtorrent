@@ -38,7 +38,7 @@ project tools
 	<link>static
 	<cxxstd>17
 	<address-model>64
-   ;  
+   ;
 
 exe dht : dht_put.cpp : <include>../ed25519/src ;
 exe dht-sample : dht_sample.cpp : <include>../ed25519/src ;

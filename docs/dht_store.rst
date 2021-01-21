@@ -289,7 +289,7 @@ The error message (as specified by BEP5_) looks like this:
 		"y": "e",
 	}
 
-In addition to the error codes defined in BEP5_, this specification defines 
+In addition to the error codes defined in BEP5_, this specification defines
 some additional error codes.
 
 +------------+-----------------------------+
@@ -396,7 +396,7 @@ test 1 (mutable)
 ................
 
 value::
-	
+
 	12:Hello World!
 
 buffer being signed::
@@ -413,7 +413,7 @@ private key::
 	b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
 
 **target ID**::
-	
+
 	4a533d47ec9c7d95b1ad75f576cffc641853b750
 
 **signature**::
@@ -425,11 +425,11 @@ test 2 (mutable with salt)
 ..........................
 
 value::
-	
+
 	12:Hello World!
 
 salt::
-	
+
 	foobar
 
 buffer being signed::
@@ -446,7 +446,7 @@ private key::
 	b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
 
 **target ID**::
-	
+
 	411eba73b6f087ca51a3795d9c8c938d365e32c1
 
 **signature**::
@@ -458,11 +458,11 @@ test 3 (immutable)
 ..................
 
 value::
-	
+
 	12:Hello World!
 
 **target ID**::
-	
+
 	e5f96f6f38320f0f33959cb4d3d656452117aadb
 
 resources

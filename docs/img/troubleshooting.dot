@@ -51,7 +51,7 @@ digraph no_download {
 	node_end_flash_crowd [label="The torrent might have a very large number\nof peers and only very few seeds. This sometimes\nhappens with torrents that gain popularity\nvery fast, much faster than the initial seed\nand early peers can keep up distributing\nto. Typically when this happens all your peers,\nand you, will get pieces in lock-step."];
 
 	node_end_no_download [label="This means the torrent is configured to not\ndownload anything. If you want to download,\ntake the torrent out of upload only mode. If\nthe disk the torrent is downloading to is full,\nor if writing to the disk failed in some way, the\ntorrent may have switched into upload mode\nautomatically"];
-	
+
 	node_peers -> node_error [label="no"];
 	node_peers -> node_unchoked [label="yes"];
 
