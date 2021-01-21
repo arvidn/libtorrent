@@ -1,0 +1,26 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+exclude: |
+    (?x)^(
+        # These files are vendored from elsewhere, don't process them
+        LICENSE|
+        docs/hunspell/.*|
+        src/ed25519/.*|
+        include/libtorrent/aux_/route\.h|
+        test/.*\.xml|
+        test/ssl/.*\.pem
+    )$
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+    #-   id: trailing-whitespace
+    #-   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-ast
+    -   id: check-case-conflict
+    #-   id: check-executables-have-shebangs
+    -   id: check-xml
+    -   id: debug-statements
+    -   id: check-symlinks
