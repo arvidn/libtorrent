@@ -8236,6 +8236,7 @@ bool is_downloading_state(int const st)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
+		if (!sd) set_sequential_start(piece_index_t(0));
 		m_sequential_download = sd;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);
