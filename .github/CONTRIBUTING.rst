@@ -37,6 +37,11 @@ When creating a pull request, please consider the following checklist:
   clang warnings are treated as errors. Some tests may be flapping, if so,
   please issue a rebuild of the specific build configuration. (I'm working on
   making all tests deterministic)
+* libtorrent now uses https://pre-commit.com. These checks are run in CI, but
+  you may find it useful to run pre-commit locally without waiting for CI.
+  To set up pre-commit, ``cd`` to your libtorrent repo and run::
+    pip install pre-commit
+    pre-commit install
 * please make sure to add appropriate comments. For client-facing changes,
   update the documentation comments in the public header (accepts restructured
   text)
