@@ -92,17 +92,6 @@ namespace aux {
 		if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 		else mtu = TORRENT_ETHERNET_MTU;
 
-#if defined __APPLE__
-		// apple has a very strange loopback. It appears you can't
-		// send messages of the reported MTU size, and you don't get
-		// EWOULDBLOCK either.
-		if (addr.is_loopback())
-		{
-			if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
-			else mtu = TORRENT_ETHERNET_MTU;
-		}
-#endif
-
 		mtu -= TORRENT_UDP_HEADER;
 
 		if (m_sett.get_int(settings_pack::proxy_type) == settings_pack::socks5

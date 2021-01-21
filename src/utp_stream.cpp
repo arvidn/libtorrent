@@ -247,7 +247,21 @@ void utp_socket_impl::update_mtu_limits()
 {
 	INVARIANT_CHECK;
 
-	if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
+	if (m_mtu_floor > m_mtu_ceiling)
+	{
+		// this is the case where we drop an MTU probe once we're in steady
+		// state. Assume the probe was lost by chance, and don't decrement the
+		// ceiling. We're still restarting the Path MTU discovery, so if the MTU
+		// did in fact chance, we'll be notified again, when not in steady
+		// state.
+		m_mtu_ceiling = m_mtu_floor;
+
+		// the path MTU may have changed. Perform another search
+		// dont' start all the way from start, just half way down.
+		m_mtu_floor = ((TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER) + m_mtu_ceiling) / 2;
+
+		UTP_LOGV("%8p: reducing MTU floor\n", static_cast<void*>(this));
+	}
 
 	m_mtu = (m_mtu_floor + m_mtu_ceiling) / 2;
 
@@ -1335,7 +1349,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// probes, to be able to distinguish a loss of the probe vs. just loss in
 	// general.
 	bool const mtu_probe = (m_mtu_seq == 0
-		&& m_write_buffer_size >= m_mtu_floor * 3
 		&& m_seq_nr != 0
 		&& (m_cwnd >> 16) > m_mtu_floor * 3);
 	// for non MTU-probes, use the conservative packet size
@@ -1361,7 +1374,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		+ (sack ? sack + 2 : 0)
 		+ (close_reason ? 6 : 0);
 
-	// for non MTU-probes, use the conservative packet size
 	int payload_size = std::min(m_write_buffer_size
 		, effective_mtu - header_size);
 	TORRENT_ASSERT(payload_size >= 0);
@@ -1483,23 +1495,27 @@ bool utp_socket_impl::send_pkt(int const flags)
 		else
 			sack = 0;
 
-		std::int32_t const size_left = std::min(p->allocated - p->size
-			, m_write_buffer_size);
+		std::int32_t const size_left = std::min({
+			p->allocated - p->size
+			, m_write_buffer_size
+			, effective_mtu - p->size});
 
-		write_payload(p->buf + p->size, size_left);
-		p->size += std::uint16_t(size_left);
+		if (size_left > 0) {
+			write_payload(p->buf + p->size, size_left);
+			p->size += std::uint16_t(size_left);
 
-		if (size_left > 0)
-		{
-			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-				, static_cast<void*>(this), size_left, p->size, p->allocated);
+			if (size_left > 0)
+			{
+				UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+					, static_cast<void*>(this), size_left, p->size, p->allocated);
+			}
 		}
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
 		// no bytes in flight
 		if (m_bytes_in_flight > 0
-			&& p->size < std::min(p->allocated, m_mtu_floor)
+			&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 			&& !force
 			&& m_nagle)
 		{
@@ -1509,7 +1525,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 			return false;
 		}
 
+#if TORRENT_USE_ASSERTS
 		payload_size = p->size - p->header_size;
+#endif
 	}
 
 	if (sack)
@@ -1529,7 +1547,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	if (m_bytes_in_flight > 0
-		&& p->size < p->allocated
+		&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 		&& !force
 		&& m_nagle)
 	{
@@ -1550,7 +1568,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// for ST_DATA packets, payload size is 0. Such packets do not have unique
 	// sequence numbers and should never be used as mtu probes
-	if ((mtu_probe || p->mtu_probe) && payload_size > m_mtu_floor)
+	if ((mtu_probe || p->mtu_probe) && p->size >= m_mtu_floor)
 	{
 		p->mtu_probe = true;
 		m_mtu_seq = m_seq_nr;
@@ -1608,7 +1626,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// since we'd have to repacketize
 		TORRENT_ASSERT(p->mtu_probe);
 		m_mtu_ceiling = p->size - 1;
-		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 		update_mtu_limits();
 		// resend the packet immediately without
 		// it being an MTU probe

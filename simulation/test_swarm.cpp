@@ -680,7 +680,7 @@ void test_settings(SettingsFun fun)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 80)
+			if (ticks > 89)
 			{
 				TEST_ERROR("timeout");
 				return true;

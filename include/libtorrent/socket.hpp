@@ -230,7 +230,7 @@ struct udp : boost::asio::ip::udp {
 	struct dont_fragment
 	{
 		explicit dont_fragment(bool val)
-			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
+			: m_value(val ? IP_PMTUDISC_PROBE : IP_PMTUDISC_DONT) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>

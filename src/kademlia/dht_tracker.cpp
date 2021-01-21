@@ -640,14 +640,31 @@ namespace {
 		time_duration const delta = now - m_last_tick;
 		m_last_tick = now;
 
-		// add any new quota we've accrued since last time
-		m_send_quota += int(std::int64_t(m_settings.get_int(settings_pack::dht_upload_rate_limit))
-			* total_microseconds(delta) / 1000000);
+		std::int64_t const limit = m_settings.get_int(settings_pack::dht_upload_rate_limit);
 
 		// allow 3 seconds worth of burst
-		if (m_send_quota > 3 * m_settings.get_int(settings_pack::dht_upload_rate_limit))
-			m_send_quota = 3 * m_settings.get_int(settings_pack::dht_upload_rate_limit);
+		std::int64_t const max_accrue = std::min(3 * limit, std::int64_t(std::numeric_limits<int>::max()));
 
+		if (delta >= seconds(3)
+			|| delta >= microseconds(std::numeric_limits<int>::max() / limit))
+		{
+			m_send_quota = aux::numeric_cast<int>(max_accrue);
+			return true;
+		}
+
+		int const add = aux::numeric_cast<int>(limit * total_microseconds(delta) / 1000000);
+
+		if (max_accrue - m_send_quota < add)
+		{
+			m_send_quota = aux::numeric_cast<int>(max_accrue);
+			return true;
+		}
+		else
+		{
+			// add any new quota we've accrued since last time
+			m_send_quota += add;
+		}
+		TORRENT_ASSERT(m_send_quota <= max_accrue);
 		return m_send_quota > 0;
 	}
 

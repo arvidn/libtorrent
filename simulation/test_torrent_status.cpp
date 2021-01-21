@@ -47,7 +47,7 @@ time_point32 time_now()
 template <typename Tp1, typename Tp2>
 bool eq(Tp1 const lhs, Tp2 const rhs)
 {
-	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 1;
+	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 2;
 }
 
 // this is a test for torrent_status time counters are correct
@@ -140,7 +140,7 @@ TORRENT_TEST(status_timers_last_upload)
 			}
 
 			torrent_status st = handle.status();
-			// uploadtime is 0 seconds behind now
+			// upload time is 0 seconds behind now
 			TEST_CHECK(eq(st.last_upload, time_now()));
 			// does not download in seeding mode
 			TEST_CHECK(st.last_download == time_point(seconds(0)));
