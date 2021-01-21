@@ -20,7 +20,7 @@ repos:
     -   id: check-yaml
     -   id: check-ast
     -   id: check-case-conflict
-    #-   id: check-executables-have-shebangs
+    -   id: check-executables-have-shebangs
     -   id: check-xml
     -   id: debug-statements
     -   id: check-symlinks
