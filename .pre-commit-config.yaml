@@ -11,6 +11,8 @@ exclude: |
         test/.*\.xml|
         test/ssl/.*\.pem
     )$
+default_language_version:
+    python: python3
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
@@ -18,7 +20,6 @@ repos:
     -   id: trailing-whitespace
     #-   id: end-of-file-fixer
     -   id: check-yaml
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-executables-have-shebangs
     -   id: check-xml
@@ -29,3 +30,16 @@ repos:
   hooks:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
+- repo: https://gitlab.com/pycqa/flake8.git
+  rev: 3.8.4
+  hooks:
+  - id: flake8
+    exclude: |
+        (?x)^(
+            # Enable these later, avoid bloating this PR
+            bindings/c/tools/gen_alert_header.py|
+            bindings/c/tools/gen_header.py|
+            fuzzers/tools/generate_initial_corpus.py|
+            test/websocket_server.py|
+            tools/benchmark_checking.py
+        )$
