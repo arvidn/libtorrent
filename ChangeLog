@@ -1,3 +1,4 @@
+	* add std::hash<> specialization for info_hash_t
 	* fix integer overflow in hash_picker and properly restrict max file sizes in torrents
 	* strengthen SSRF mitigation for web seeds
 
