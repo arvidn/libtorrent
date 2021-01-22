@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/sha1_hash.hpp"
 
+#include <unordered_set>
+
 using namespace lt;
 
 namespace {
@@ -132,4 +134,31 @@ TORRENT_TEST(has)
 		TEST_EQUAL(a.has(protocol_version::V2), true);
 		TEST_EQUAL(a.get_best(), ones1);
 	}
+}
+
+TORRENT_TEST(std_hash)
+{
+	std::unordered_set<lt::info_hash_t> test;
+
+	test.emplace(none1, none2);
+	test.emplace(none1, zeroes2);
+	test.emplace(none1, ones2);
+	test.emplace(none1, twos2);
+
+	test.emplace(zeroes1, none2);
+	test.emplace(zeroes1, zeroes2);
+	test.emplace(zeroes1, ones2);
+	test.emplace(zeroes1, twos2);
+
+	test.emplace(ones1, none2);
+	test.emplace(ones1, zeroes2);
+	test.emplace(ones1, ones2);
+	test.emplace(ones1, twos2);
+
+	test.emplace(twos1, none2);
+	test.emplace(twos1, zeroes2);
+	test.emplace(twos1, ones2);
+	test.emplace(twos1, twos2);
+
+	TEST_EQUAL(test.size(), 16);
 }

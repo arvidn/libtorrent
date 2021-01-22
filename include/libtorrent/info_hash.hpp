@@ -151,4 +151,16 @@ namespace {
 
 }
 
+namespace std {
+	template <>
+	struct hash<libtorrent::info_hash_t>
+	{
+		std::size_t operator()(libtorrent::info_hash_t const& k) const
+		{
+			return std::hash<lt::sha1_hash>{}(k.v1)
+				^ std::hash<lt::sha256_hash>{}(k.v2) ;
+		}
+	};
+}
+
 #endif
