@@ -811,7 +811,7 @@ rule generate-pkg-config ( properties * )
 	# however, boost build's versioning scheme changed in boost-1.71 to version
 	# 4.0
 	local boost-build-version = [ SPLIT_BY_CHARACTERS [ version.boost-build ] : "-" ] ;
-	if [ version.version-less [ SPLIT_BY_CHARACTERS $(boost-build-version[1]) : "." ] : 2018 01 ]
+	if [ version.version-less [ SPLIT_BY_CHARACTERS $(boost-build-version[1]) : "." ] : 2018 03 ]
 	{
 		import option ;
 		import property ;
