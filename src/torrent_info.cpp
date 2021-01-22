@@ -667,7 +667,11 @@ namespace {
 		, error_code& ec, int const max_buffer_size = 80000000)
 	{
 		ec.clear();
+#ifdef TORRENT_WINDOWS
+		aux::file_pointer f(::_wfopen(convert_to_native_path_string(filename).c_str(), L"rb"));
+#else
 		aux::file_pointer f(std::fopen(filename.c_str(), "rb"));
+#endif
 		if (f.file() == nullptr)
 		{
 			ec.assign(errno, generic_category());
