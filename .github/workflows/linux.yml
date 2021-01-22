@@ -246,10 +246,20 @@ jobs:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz
 
-      - name: test-tarball (b2)
+      - name: test-tarball (b2 install)
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
+          cd libtorrent-rasterbar-*/
+          b2 install cxxstd=14 --prefix=test-install-root
+          cat test-install-root/share/pkgconfig/libtorrent-rasterbar.pc
+
+      - name: test-tarball (b2 tests)
+        run: |
           cd libtorrent-rasterbar-*/test
-          b2 link=static testing.execute=off
-          cd ..
+          b2 testing.execute=off
+          b2 test_torrent_info
+
+      - name: test-tarball (python bindings)
+        run: |
+          cd libtorrent-rasterbar-*/
           python3 bindings/python/setup.py build
