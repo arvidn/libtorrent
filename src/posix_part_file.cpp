@@ -308,8 +308,15 @@ namespace aux {
 	file_pointer posix_part_file::open_file(open_mode const mode, error_code& ec)
 	{
 		std::string const fn = combine_path(m_path, m_name);
+#ifdef TORRENT_WINDOWS
+		wchar_t const* mode_str[] = {L"rb", L"rb+"};
+		file_pointer ret(::_wfopen(convert_to_native_path_string(fn).c_str()
+			, mode_str[static_cast<std::uint8_t>(mode)]));
+#else
 		char const* mode_str[] = {"rb", "rb+"};
-		file_pointer ret(::fopen(fn.c_str(), mode_str[static_cast<std::uint8_t>(mode)]));
+		file_pointer ret(::fopen(fn.c_str()
+			, mode_str[static_cast<std::uint8_t>(mode)]));
+#endif
 		if (ret.file() == nullptr)
 			ec.assign(errno, generic_category());
 
@@ -323,7 +330,11 @@ namespace aux {
 
 			if (ec) return {};
 
+#ifdef TORRENT_WINDOWS
+			ret = file_pointer(::_wfopen(convert_to_native_path_string(fn).c_str(), L"wb+"));
+#else
 			ret = file_pointer(::fopen(fn.c_str(), "wb+"));
+#endif
 			if (ret.file() == nullptr)
 				ec.assign(errno, generic_category());
 		}
