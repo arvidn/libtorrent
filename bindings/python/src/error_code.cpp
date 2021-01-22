@@ -107,8 +107,6 @@ namespace {
 				ec.assign(value, boost::asio::error::get_addrinfo_category());
 			else if (category == "asio.misc")
 				ec.assign(value, boost::asio::error::get_misc_category());
-			else if (category == "asio.misc")
-				ec.assign(value, boost::asio::error::get_misc_category());
 #if defined TORRENT_USE_OPENSSL
 			else if (category == "asio.ssl")
 				ec.assign(value, boost::asio::error::get_ssl_category());
