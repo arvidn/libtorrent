@@ -6,6 +6,7 @@ import distutils.cmd
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
+import functools
 import os
 import pathlib
 import re
@@ -14,11 +15,13 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from typing import Callable
 from typing import cast
 from typing import IO
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Set
 import warnings
 
@@ -76,7 +79,9 @@ def b2_escape(value: str) -> str:
     return f'"{value}"'
 
 
-def write_b2_python_config(config: IO[str]) -> None:
+def write_b2_python_config(
+    include_dirs: Sequence[str], library_dirs: Sequence[str], config: IO[str]
+) -> None:
     write = config.write
     # b2 keys python environments by X.Y version, breaking ties by matching
     # a property list, called the "condition" of the environment. To ensure
@@ -91,19 +96,28 @@ def write_b2_python_config(config: IO[str]) -> None:
     write("import feature ;\n")
     write("feature.feature libtorrent-python : on ;\n")
 
-    # python.jam tries to determine correct include and library paths. Per
-    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=691378 , include
-    # detection is broken, but debian's fix is also broken (invokes a global
-    # pythonX.Y instead of the passed interpreter)
-    paths = sysconfig.get_paths()
-    includes = [paths["include"], paths["platinclude"]]
+    # python.jam's autodetection of library paths and include paths has various
+    # bugs, and has very poor support of non-system python environments,
+    # such as pyenv or virtualenvs. distutils' autodetection is much more
+    # robust, and we trust it more. In case distutils gives empty results,
+    # feed garbage values to boost to block its autodetection.
 
     write("using python")
     write(f" : {sysconfig.get_python_version()}")
     write(f" : {b2_escape(sys.executable)}")
     write(" : ")
-    write(" ".join(b2_escape(path) for path in includes))
-    write(" :")  # libraries
+    if include_dirs:
+        write(" ".join(b2_escape(path) for path in include_dirs))
+    else:
+        write("__BLOCK_AUTODETECTION__")
+    write(" : ")
+    if library_dirs:
+        # Note that python.jam only accepts one library dir! We depend on
+        # passing other library dirs by other means. Not sure if we should
+        # do something smarter here, like pass the first directory that exists.
+        write(b2_escape(library_dirs[0]))
+    else:
+        write("__BLOCK_AUTODETECTION__")
     write(" : <libtorrent-python>on")
 
     # Note that all else being equal, we'd like to exactly control the output
@@ -344,15 +358,24 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
-        override_project_config = False
+        config_writers: List[Callable[[IO[str]], None]] = []
         if self._should_add_arg("--project-config"):
             if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
-
-                override_project_config = True
+                config_writers.append(
+                    functools.partial(
+                        write_b2_python_config, self.include_dirs, self.library_dirs
+                    )
+                )
 
                 # Jamfile hacks to ensure we select the python environment defined in
                 # our project-config.jam
                 self._maybe_add_arg("libtorrent-python=on")
+
+                # python.jam only allows ONE library dir! distutils may autodetect
+                # multiple, and finding the "right" one isn't straightforward. We just
+                # pass them all here and hopefully the right thing happens.
+                for path in self.library_dirs:
+                    self._b2_args_split.append(f"library-path={b2_escape(path)}")
 
         # Our goal is to produce an artifact at this path. If we do this, the
         # distutils build system will skip trying to build it.
@@ -368,12 +391,13 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self._maybe_add_arg(f"python-install-path={target.parent}")
         self._maybe_add_arg("install_module")
 
-        # We use a "project-config.jam" to instantiate a python environment
-        # to exactly match the running one.
-        if override_project_config:
+        # Two paths depending on whether or not we use a generated
+        # project-config.jam or not.
+        if config_writers:
             config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
             try:
-                write_b2_python_config(config)
+                for writer in config_writers:
+                    writer(config)
                 config.seek(0)
                 log.info("project-config.jam contents:")
                 log.info(config.read())
