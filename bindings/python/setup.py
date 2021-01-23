@@ -167,11 +167,7 @@ class LibtorrentBuildExt(BuildExtBase):
             None,
             "(DEPRECATED; use --b2-args=libtorrent-link=...) ",
         ),
-        (
-            "boost-link=",
-            None,
-            "(DEPRECATED; use --b2-args=boost-link=...) "
-        ),
+        ("boost-link=", None, "(DEPRECATED; use --b2-args=boost-link=...) "),
         ("toolset=", None, "(DEPRECATED; use --b2-args=toolset=...) b2 toolset"),
         (
             "pic",
