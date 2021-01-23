@@ -2,7 +2,9 @@
 
 import contextlib
 from distutils import log
+import distutils.cmd
 import distutils.debug
+import distutils.errors
 import distutils.sysconfig
 import os
 import pathlib
@@ -12,13 +14,19 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from typing import cast
+from typing import IO
+from typing import Iterator
+from typing import List
+from typing import Optional
+from typing import Set
 import warnings
 
 import setuptools
-import setuptools.command.build_ext as _build_ext_lib
+import setuptools.command.build_ext as build_ext_lib
 
 
-def get_msvc_toolset():
+def get_msvc_toolset() -> str:
     # Reference: https://wiki.python.org/moin/WindowsCompilers
     major_minor = sys.version_info[0:2]
     if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
@@ -31,7 +39,7 @@ def get_msvc_toolset():
     return "msvc"
 
 
-def b2_bool(value):
+def b2_bool(value: bool) -> str:
     if value:
         return "on"
     return "off"
@@ -53,30 +61,35 @@ def b2_bool(value):
 
 
 class B2Distribution(setuptools.Distribution):
-    def reinitialize_command(self, command, reinit_subcommands=0):
+    def reinitialize_command(
+        self, command: str, reinit_subcommands: int = 0
+    ) -> distutils.cmd.Command:
         if command == "build_ext":
-            return self.get_command_obj("build_ext")
-        return super().reinitialize_command(
-            command, reinit_subcommands=reinit_subcommands
+            return cast(distutils.cmd.Command, self.get_command_obj("build_ext"))
+        return cast(
+            distutils.cmd.Command,
+            super().reinitialize_command(
+                command, reinit_subcommands=reinit_subcommands
+            ),
         )
 
 
 # Various setuptools logic expects us to provide Extension instances for each
 # extension in the distro.
 class StubExtension(setuptools.Extension):
-    def __init__(self, name):
+    def __init__(self, name: str):
         # An empty sources list ensures the base build_ext command won't build
         # anything
         super().__init__(name, sources=[])
 
 
-def b2_escape(value):
+def b2_escape(value: str) -> str:
     value = value.replace("\\", "\\\\")
     value = value.replace('"', '\\"')
     return f'"{value}"'
 
 
-def write_b2_python_config(config):
+def write_b2_python_config(config: IO[str]) -> None:
     write = config.write
     # b2 keys python environments by X.Y version, breaking ties by matching
     # a property list, called the "condition" of the environment. To ensure
@@ -122,6 +135,7 @@ def write_b2_python_config(config):
     # Note that sysconfig and distutils.sysconfig disagree here, especially on
     # windows.
     ext_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+    ext_suffix = str(ext_suffix or "")
 
     # python.jam appends the platform-specific final suffix on its own. I can't
     # find a consistent value from sysconfig or distutils.sysconfig for this.
@@ -133,16 +147,13 @@ def write_b2_python_config(config):
     write(" ;\n")
 
 
-BuildExtBase = _build_ext_lib.build_ext
-
-
-class LibtorrentBuildExt(BuildExtBase):
+class LibtorrentBuildExt(build_ext_lib.build_ext):
 
     CONFIG_MODE_DISTUTILS = "distutils"
     CONFIG_MODE_B2 = "b2"
     CONFIG_MODES = (CONFIG_MODE_DISTUTILS, CONFIG_MODE_B2)
 
-    user_options = BuildExtBase.user_options + [
+    user_options = build_ext_lib.build_ext.user_options + [
         (
             "config-mode=",
             None,
@@ -180,11 +191,7 @@ class LibtorrentBuildExt(BuildExtBase):
             None,
             "(DEPRECATED; use --b2-args=libtorrent-link=...) ",
         ),
-        (
-            "boost-link=",
-            None,
-            "(DEPRECATED; use --b2-args=boost-link=...) "
-        ),
+        ("boost-link=", None, "(DEPRECATED; use --b2-args=boost-link=...) "),
         ("toolset=", None, "(DEPRECATED; use --b2-args=toolset=...) b2 toolset"),
         (
             "pic",
@@ -212,9 +219,16 @@ class LibtorrentBuildExt(BuildExtBase):
         ),
     ]
 
-    boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
+    boolean_options = build_ext_lib.build_ext.boolean_options + ["pic", "hash"]
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
+        self.libtorrent_link: Optional[str] = None
+        self.boost_link: Optional[str] = None
+        self.toolset: Optional[str] = None
+        self.pic: Optional[bool] = None
+        self.optimization: Optional[str] = None
+        self.hash: Optional[bool] = None
+        self.cxxstd: Optional[str] = None
 
         self.config_mode = self.CONFIG_MODE_DISTUTILS
         self.b2_args = ""
@@ -226,21 +240,21 @@ class LibtorrentBuildExt(BuildExtBase):
         # TODO: this is for backwards compatibility
         # loading these files will be removed in libtorrent-2.0
         try:
-            with open('compile_flags') as f:
+            with open("compile_flags") as f:
                 opts = f.read()
-                if '-std=c++' in opts:
-                    self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
+                if "-std=c++" in opts:
+                    self.cxxflags = "-std=c++" + opts.split("-std=c++")[-1].split()[0]
         except OSError:
             pass
 
         # TODO: this is for backwards compatibility
         # loading these files will be removed in libtorrent-2.0
         try:
-            with open('link_flags') as f:
-                opts = f.read().split(' ')
-                opts = [x for x in opts if x.startswith('-L')]
-                if len(opts):
-                    self.linkflags = opts
+            with open("link_flags") as f:
+                flags = f.read().split(" ")
+                flags = [x for x in flags if x.startswith("-L")]
+                if len(flags):
+                    self.linkflags = flags
         except OSError:
             pass
 
@@ -255,12 +269,12 @@ class LibtorrentBuildExt(BuildExtBase):
         self.hash = None
         self.cxxstd = None
 
-        self._b2_args_split = []
-        self._b2_args_configured = set()
+        self._b2_args_split: List[str] = []
+        self._b2_args_configured: Set[str] = set()
 
-        return super().initialize_options()
+        super().initialize_options()
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         super().finalize_options()
 
         if self.config_mode not in self.CONFIG_MODES:
@@ -318,7 +332,7 @@ class LibtorrentBuildExt(BuildExtBase):
             warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
             self._maybe_add_arg(f"cxxstd={self.cxxstd}")
 
-    def _should_add_arg(self, arg):
+    def _should_add_arg(self, arg: str) -> bool:
         m = re.match(r"(-\w).*", arg)
         if m:
             name = m.group(1)
@@ -326,18 +340,18 @@ class LibtorrentBuildExt(BuildExtBase):
             name = arg.split("=", 1)[0]
         return name not in self._b2_args_configured
 
-    def _maybe_add_arg(self, arg):
+    def _maybe_add_arg(self, arg: str) -> bool:
         if self._should_add_arg(arg):
             self._b2_args_split.append(arg)
             return True
         return False
 
-    def run(self):
+    def run(self) -> None:
         # The current jamfile layout just supports one extension
         self._build_extension_with_b2()
-        return super().run()
+        super().run()
 
-    def _build_extension_with_b2(self):
+    def _build_extension_with_b2(self) -> None:
         python_binding_dir = pathlib.Path(__file__).parent.absolute()
         with self._configure_b2():
             if self.linkflags:
@@ -351,7 +365,7 @@ class LibtorrentBuildExt(BuildExtBase):
             subprocess.run(command, cwd=python_binding_dir, check=True)
 
     @contextlib.contextmanager
-    def _configure_b2(self):
+    def _configure_b2(self) -> Iterator[None]:
         if self.config_mode == self.CONFIG_MODE_DISTUTILS:
             # If we're using distutils mode, we'll auto-configure a lot of args
             # and write temporary config.
@@ -360,7 +374,7 @@ class LibtorrentBuildExt(BuildExtBase):
             # If we're using b2 mode, no configuration needed
             yield
 
-    def _configure_b2_with_distutils(self):
+    def _configure_b2_with_distutils(self) -> Iterator[None]:
         if os.name == "nt":
             self._maybe_add_arg("--abbreviate-paths")
             self._maybe_add_arg("boost-link=static")
