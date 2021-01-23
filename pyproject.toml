@@ -1,0 +1,4 @@
+[tool.isort]
+profile = "google"
+single_line_exclusions = []
+src_paths = ["."]
