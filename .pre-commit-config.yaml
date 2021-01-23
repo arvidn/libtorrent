@@ -67,6 +67,51 @@ repos:
   hooks:
     - id: autoflake
       args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
+- repo: https://github.com/python/black
+  rev: 20.8b1
+  hooks:
+    - id: black
+      # Avoiding PR bloat
+      exclude: |
+          (?x)^(
+               bindings/c/tools/gen_alert_header.py|
+               bindings/c/tools/gen_header.py|
+               bindings/python/client.py|
+               bindings/python/dummy_data.py|
+               bindings/python/make_torrent.py|
+               bindings/python/simple_client.py|
+               bindings/python/test.py|
+               docs/filter-rst.py|
+               docs/gen_reference_doc.py|
+               docs/gen_settings_doc.py|
+               docs/gen_stats_doc.py|
+               docs/gen_todo.py|
+               docs/join_rst.py|
+               examples/run_benchmarks.py|
+               fuzzers/tools/generate_initial_corpus.py|
+               fuzzers/tools/unify_corpus_names.py|
+               test/http_proxy.py|
+               test/socks.py|
+               test/web_server.py|
+               test/websocket_server.py|
+               tools/benchmark_checking.py|
+               tools/clean.py|
+               tools/copyright.py|
+               tools/dht_flood.py|
+               tools/gen_convenience_header.py|
+               tools/gen_fwd.py|
+               tools/parse_dht_log.py|
+               tools/parse_dht_rtt.py|
+               tools/parse_dht_stats.py|
+               tools/parse_lookup_log.py|
+               tools/parse_peer_log.py|
+               tools/parse_sample.py|
+               tools/parse_session_stats.py|
+               tools/parse_utp_log.py|
+               tools/run_benchmark.py|
+               tools/set_version.py|
+               tools/update_copyright.py
+          )$
 - repo: https://gitlab.com/pycqa/flake8.git
   rev: 3.8.4
   hooks:
@@ -76,7 +121,27 @@ repos:
             # Enable these later, avoid bloating this PR
             bindings/c/tools/gen_alert_header.py|
             bindings/c/tools/gen_header.py|
+            bindings/python/client.py|
+            bindings/python/test.py|
+            docs/gen_todo.py|
+            docs/gen_reference_doc.py|
+            docs/gen_settings_doc.py|
+            docs/gen_stats_doc.py|
+            examples/run_benchmarks.py|
             fuzzers/tools/generate_initial_corpus.py|
+            test/socks.py|
             test/websocket_server.py|
-            tools/benchmark_checking.py
+            test/web_server.py|
+            tools/benchmark_checking.py|
+            tools/dht_flood.py|
+            tools/gen_fwd.py|
+            tools/parse_dht_stats.py|
+            tools/parse_dht_log.py|
+            tools/parse_lookup_log.py|
+            tools/parse_peer_log.py|
+            tools/parse_session_stats.py|
+            tools/parse_utp_log.py|
+            tools/run_benchmark.py|
+            tools/set_version.py|
+            tools/update_copyright.py
         )$

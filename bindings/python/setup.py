@@ -180,11 +180,7 @@ class LibtorrentBuildExt(BuildExtBase):
             None,
             "(DEPRECATED; use --b2-args=libtorrent-link=...) ",
         ),
-        (
-            "boost-link=",
-            None,
-            "(DEPRECATED; use --b2-args=boost-link=...) "
-        ),
+        ("boost-link=", None, "(DEPRECATED; use --b2-args=boost-link=...) "),
         ("toolset=", None, "(DEPRECATED; use --b2-args=toolset=...) b2 toolset"),
         (
             "pic",
@@ -226,19 +222,19 @@ class LibtorrentBuildExt(BuildExtBase):
         # TODO: this is for backwards compatibility
         # loading these files will be removed in libtorrent-2.0
         try:
-            with open('compile_flags') as f:
+            with open("compile_flags") as f:
                 opts = f.read()
-                if '-std=c++' in opts:
-                    self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
+                if "-std=c++" in opts:
+                    self.cxxflags = "-std=c++" + opts.split("-std=c++")[-1].split()[0]
         except OSError:
             pass
 
         # TODO: this is for backwards compatibility
         # loading these files will be removed in libtorrent-2.0
         try:
-            with open('link_flags') as f:
-                opts = f.read().split(' ')
-                opts = [x for x in opts if x.startswith('-L')]
+            with open("link_flags") as f:
+                opts = f.read().split(" ")
+                opts = [x for x in opts if x.startswith("-L")]
                 if len(opts):
                     self.linkflags = opts
         except OSError:
