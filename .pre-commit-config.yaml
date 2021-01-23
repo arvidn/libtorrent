@@ -25,11 +25,43 @@ repos:
     -   id: check-xml
     -   id: debug-statements
     -   id: check-symlinks
+    -   id: check-toml
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.7.0
   hooks:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
+- repo: https://github.com/PyCQA/isort
+  rev: 5.7.0
+  hooks:
+    - id: isort
+      exclude: |
+          (?x)^(
+            # Enable these later, avoid bloating this PR
+            bindings/python/client.py|
+            bindings/python/dummy_data.py|
+            bindings/python/make_torrent.py|
+            bindings/python/simple_client.py|
+            bindings/python/test.py|
+            docs/gen_reference_doc.py|
+            examples/run_benchmarks.py|
+            fuzzers/tools/generate_initial_corpus.py|
+            fuzzers/tools/unify_corpus_names.py|
+            test/socks.py|
+            test/web_server.py|
+            test/websocket_server.py|
+            tools/clean.py|
+            tools/copyright.py|
+            tools/dht_flood.py|
+            tools/parse_dht_log.py|
+            tools/parse_dht_rtt.py|
+            tools/parse_dht_stats.py|
+            tools/parse_session_stats.py|
+            tools/parse_utp_log.py|
+            tools/run_benchmark.py|
+            tools/set_version.py|
+            tools/update_copyright.py
+          )$
 - repo: https://gitlab.com/pycqa/flake8.git
   rev: 3.8.4
   hooks:

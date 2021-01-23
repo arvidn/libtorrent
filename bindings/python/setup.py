@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
+import contextlib
 from distutils import log
 import distutils.debug
 import distutils.sysconfig
 import os
 import pathlib
+import re
+import shlex
+import subprocess
 import sys
 import sysconfig
 import tempfile
-import subprocess
-import contextlib
 import warnings
-import re
-import shlex
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
