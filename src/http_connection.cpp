@@ -145,7 +145,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (m_hostname_filter_handler && !m_hostname_filter_handler(*this, hostname))
 	{
-		ec.assign(errors::banned_by_ip_filter, libtorrent_category());
+		ec.assign(errors::blocked_by_idna, libtorrent_category());
 		lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
 			, me, ec, span<char>{}));
 		return;
