@@ -11,18 +11,51 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      # on linux and mac, the boost libraries are fixed to a python version.
+      # since we install boost from repos on those systems, we must use the
+      # matching python versions
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-2019 ]
+        include:
+          - os: ubuntu-20.04
+            python-version: 3.8
+          - os: macos-latest
+            python-version: 3.9
+          - os: windows-2019
+            python-version: 3.6
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
 
+    # Note:
+    #  - on mac and linux images, 'python' is python2 and 'python3' is
+    #    python3
+    #  - on windows, neither 'python' nor 'python3' is in PATH by default
+    #  - setup-python sets up PATH so 'python' and 'python3' point to the
+    #    requested version on mac and linux, but on windows it only sets up
+    #    'python'.
+    - uses: actions/setup-python@v2
+      with:
+         python-version: ${{ matrix.python-version }}
+
+    # given the above, link 'python3' -> 'python' on windows so we have a
+    # consistent command. per
+    # https://github.com/actions/setup-python/issues/123
+    - name: link python3 (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: mklink "%pythonLocation%\python3.exe" "%pythonLocation%\python.exe"
+
+    - name: install tox
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade tox
+
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.9
+        brew install boost-build boost boost-python3
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -33,7 +66,7 @@ jobs:
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools
+        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
 
     # there appears to be a bug in boost-build where referring to a
     # dependency that's on a different drive fails, deep in boost-build
@@ -42,40 +75,16 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
+        echo on
         echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
         mklink /J boost %BOOST_ROOT_1_72_0%
         cd boost
         b2 headers
+        cd ..
+        echo BOOST_ROOT=%CD%\boost>>%GITHUB_ENV%
+        echo BOOST_BUILD_PATH=%CD%\boost\tools\build>>%GITHUB_ENV%
+        echo %CD%\boost>>%GITHUB_PATH%
 
-    - name: build/install (windows)
-      if: runner.os == 'Windows'
-      shell: cmd
+    - name: build/test with tox
       run: |
-        set BOOST_ROOT=%CD%\boost
-        set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
-        set PATH=%BOOST_ROOT%;%PATH%
-
-        cd bindings\python
-        python setup.py build_ext install --user --prefix=
-
-    - name: tests (windows)
-      if: runner.os == 'Windows'
-      shell: cmd
-      run: |
-        cd bindings\python
-        python test.py
-
-    - name: build/install
-      if: runner.os != 'Windows'
-      run: |
-        cd bindings/python
-        # Homebrew's python "framework" sets a prefix via distutils config.
-        # --prefix conflicts with --user, so null out prefix so we have one
-        # command that works everywhere
-        python3 setup.py build_ext --b2-args="libtorrent-link=static" install --user --prefix=
-
-    - name: tests
-      if: runner.os != 'Windows'
-      run: |
-        cd bindings/python
-        python3 test.py
+        tox -e py
