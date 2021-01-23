@@ -234,12 +234,12 @@ jobs:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz
 
-      - name: test-tarball (make)
+      - name: test-tarball (install)
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/
-          ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes
-          make -j2
+          b2 install cxxflags=-std=c++11 --prefix=test-install-root
+          cat test-install-root/share/pkgconfig/libtorrent-rasterbar.pc
 
       - name: test-tarball (bjam)
         uses: nick-invision/retry@v2
@@ -249,4 +249,11 @@ jobs:
           max_attempts: 3
           command: |
             cd libtorrent-rasterbar-*/test
-            b2 link=static -j2 cxxflags=-std=c++11
+            b2 cxxflags=-std=c++11 testing.execute=off
+            b2 cxxflags=-std=c++11 test_torrent_info
+
+      - name: test-tarball (make)
+        run: |
+          cd libtorrent-rasterbar-*/
+          ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes
+          make -j2
