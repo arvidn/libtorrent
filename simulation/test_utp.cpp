@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 
 #include "test.hpp"
+#include "utils.hpp"
 #include "setup_swarm.hpp"
 #include "settings.hpp"
 #include <fstream>
