@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
 
 namespace libtorrent
@@ -45,9 +47,25 @@ namespace libtorrent
 	struct alert;
 }
 
-void utp_only(lt::session& ses);
-void enable_enc(lt::session& ses);
+// adds an IP filter to disallow 50.0.0.1 and 50.0.0.2
 void filter_ips(lt::session& ses);
+
+bool has_metadata(lt::session& ses);
+bool is_seed(lt::session& ses);
+bool is_finished(lt::session& ses);
+int completed_pieces(lt::session& ses);
+void add_extra_peers(lt::session& ses);
+lt::torrent_status get_status(lt::session& ses);
+
+// disable TCP and enable uTP
+void utp_only(lt::session& ses);
+void utp_only(lt::settings_pack& pack);
+
+// force encrypted connections
+void enable_enc(lt::session& ses);
+void enable_enc(lt::settings_pack& pack);
+
+std::string save_path(int swarm_id, int idx);
 
 std::unique_ptr<sim::asio::io_context> make_io_context(
 	sim::simulation& sim, int i);

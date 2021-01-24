@@ -112,73 +112,6 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 	return sim::route().append(it->second);
 }
 
-std::string save_path(int swarm_id, int idx)
-{
-	char path[200];
-	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
-		, swarm_id, idx);
-	return path;
-}
-
-void add_extra_peers(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	auto h = handles[0];
-
-	for (int i = 0; i < 30; ++i)
-	{
-		char ep[30];
-		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
-		h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
-	}
-}
-
-lt::torrent_status get_status(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	if (handles.empty()) return lt::torrent_status();
-	auto h = handles[0];
-	return h.status();
-}
-
-bool has_metadata(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	if (handles.empty()) return false;
-	auto h = handles[0];
-	return h.status().has_metadata;
-}
-
-bool is_seed(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	if (handles.empty()) return false;
-	auto h = handles[0];
-	return h.status().is_seeding;
-}
-
-bool is_finished(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	if (handles.empty()) return false;
-	auto h = handles[0];
-	return h.status().is_finished;
-}
-
-int completed_pieces(lt::session& ses)
-{
-	auto handles = ses.get_torrents();
-	TEST_EQUAL(handles.size(), 1);
-	if (handles.empty()) return 0;
-	auto h = handles[0];
-	return h.status().num_pieces;
-}
-
 namespace {
 bool should_print(lt::alert* a)
 {
@@ -201,24 +134,6 @@ bool should_print(lt::alert* a)
 	}
 	return true;
 }
-}
-
-void utp_only(lt::settings_pack& p)
-{
-	using namespace lt;
-	p.set_bool(settings_pack::enable_outgoing_tcp, false);
-	p.set_bool(settings_pack::enable_incoming_tcp, false);
-	p.set_bool(settings_pack::enable_outgoing_utp, true);
-	p.set_bool(settings_pack::enable_incoming_utp, true);
-}
-
-void enable_enc(lt::settings_pack& p)
-{
-	using namespace lt;
-	p.set_bool(settings_pack::prefer_rc4, true);
-	p.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
-	p.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
-	p.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
 }
 
 void setup_swarm(int num_nodes
