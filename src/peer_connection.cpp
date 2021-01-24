@@ -1147,6 +1147,7 @@ namespace libtorrent {
 			}
 		}
 #endif
+		if (bytes_payload > 0) m_last_sent_payload = clock_type::now();
 		if (m_ignore_stats) return;
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
@@ -4863,16 +4864,19 @@ namespace libtorrent {
 			}
 		}
 
-		// if we can't read, it means we're blocked on the rate-limiter
-		// or the disk, not the peer itself. In this case, don't blame
-		// the peer and disconnect it
-		bool const may_timeout = bool(m_channel_state[download_channel] & peer_info::bw_network);
+		// if the bw_network flag isn't set, it means we are not even trying to
+		// read from this peer's socket. Most likely because we're applying a
+		// rate limit. If the peer is "slow" because we are rate limiting it,
+		// don't enforce timeouts. However, as soon as we *do* read from the
+		// socket, we expect to receive data, and not have timed out. Then we
+		// can enforce the timeouts.
+		bool const reading_socket = bool(m_channel_state[download_channel] & peer_info::bw_network);
 
 		// TODO: 2 use a deadline_timer for timeouts. Don't rely on second_tick()!
 		// Hook this up to connect timeout as well. This would improve performance
 		// because of less work in second_tick(), and might let use remove ticking
 		// entirely eventually
-		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
+		if (reading_socket && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
 			&& can_disconnect(errors::timed_out_inactivity))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4888,7 +4892,7 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		timeout *= is_i2p(*m_socket) ? 4 : 1;
 #endif
-		if (may_timeout
+		if (reading_socket
 			&& !m_connecting
 			&& in_handshake()
 			&& d > seconds(timeout))
@@ -4908,7 +4912,7 @@ namespace libtorrent {
 		d = now - std::max(std::max(m_last_unchoke, m_last_incoming_request)
 			, m_last_sent_payload);
 
-		if (may_timeout
+		if (reading_socket
 			&& !m_connecting
 			&& m_requests.empty()
 			&& m_reading_bytes == 0
@@ -4937,7 +4941,7 @@ namespace libtorrent {
 		// don't bother disconnect peers we haven't been interested
 		// in (and that hasn't been interested in us) for a while
 		// unless we have used up all our connection slots
-		if (may_timeout
+		if (reading_socket
 			&& !m_interesting
 			&& !m_peer_interested
 			&& d1 > time_limit
@@ -4957,7 +4961,7 @@ namespace libtorrent {
 			return;
 		}
 
-		if (may_timeout
+		if (reading_socket
 			&& !m_download_queue.empty()
 			&& m_quota[download_channel] > 0
 			&& now > m_requested + seconds(request_timeout()))
