@@ -1,3 +1,4 @@
+	* fix issue with paths starting with ./
 	* fix integer overflow when setting a high DHT upload rate limit
 	* improve Path MTU discovery logic in uTP
 	* fix overflow issue when rlimit_nofile is set to infinity
