@@ -1007,6 +1007,9 @@ namespace libtorrent::aux {
 			if (!p->is_rtc_addr)
 				return nullptr; // prefer the non-rtc peer
 
+			if (p->connection)
+				return nullptr; // the peer is already connected
+
 			// update and return it
 			p->port = remote.port();
 			return p;
