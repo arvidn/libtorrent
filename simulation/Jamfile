@@ -56,4 +56,5 @@ run test_fast_extensions.cpp ;
 #run test_file_pool.cpp ;
 run test_save_resume.cpp ;
 run test_error_handling.cpp ;
+run test_timeout.cpp ;
 

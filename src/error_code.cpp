@@ -276,8 +276,8 @@ namespace libtorrent {
 			"", "", "", "", "",
 #endif
 			"random number generator failed",
-			"",
-			"",
+			"blocked by SSRF mitigation",
+			"blocked by IDNA ban",
 			"",
 			"",
 			"",

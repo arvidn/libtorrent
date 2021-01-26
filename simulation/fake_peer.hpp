@@ -105,6 +105,19 @@ struct fake_peer
 		lt::aux::write_uint8(2, ptr);
 	}
 
+	void send_request(lt::piece_index_t p, int block)
+	{
+		int const len = 4 + 1 + 4 * 3;
+		m_send_buffer.resize(m_send_buffer.size() + len);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - len;
+
+		lt::aux::write_uint32(len - 4, ptr);
+		lt::aux::write_uint8(6, ptr);
+		lt::aux::write_uint32(static_cast<int>(p), ptr);
+		lt::aux::write_uint32(block * 0x4000, ptr);
+		lt::aux::write_uint32(0x4000, ptr);
+	}
+
 	void send_bitfield(std::vector<bool> const& pieces)
 	{
 		int const bytes = (int(pieces.size()) + 7) / 8;
@@ -208,12 +221,12 @@ private:
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
-	void on_read(lt::error_code const& ec, size_t /* bytes_transferred */)
+	void on_read(lt::error_code const& ec, size_t bytes_transferred)
 	{
 		using namespace std::placeholders;
 
-		std::printf("fake_peer::on_read -> (%d) %s\n"
-			, ec.value(), ec.message().c_str());
+		std::printf("fake_peer::on_read(%d bytes) -> (%d) %s\n"
+			, int(bytes_transferred), ec.value(), ec.message().c_str());
 		if (ec)
 		{
 			std::printf("  closing\n");

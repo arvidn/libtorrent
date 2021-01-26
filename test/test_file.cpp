@@ -263,6 +263,12 @@ TORRENT_TEST(paths)
 #endif
 
 	TEST_EQUAL(complete("."), current_working_directory());
+
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(complete(".\\foobar"), current_working_directory() + "\\foobar");
+#else
+	TEST_EQUAL(complete("./foobar"), current_working_directory() + "/foobar");
+#endif
 }
 
 TORRENT_TEST(path_compare)

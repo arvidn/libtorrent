@@ -110,7 +110,7 @@ namespace libtorrent {
 			bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
 			if (ssrf_mitigation && has_tracker_query_string(string_view(url).substr(arguments_start + 1)))
 			{
-				fail(errors::banned_by_ip_filter, operation_t::bittorrent);
+				fail(errors::ssrf_mitigation, operation_t::bittorrent);
 				return;
 			}
 			url += "&";
@@ -342,7 +342,7 @@ namespace libtorrent {
 
 			if (endpoints.empty())
 			{
-				fail(errors::banned_by_ip_filter, operation_t::bittorrent);
+				fail(errors::ssrf_mitigation, operation_t::bittorrent);
 				return;
 			}
 		}

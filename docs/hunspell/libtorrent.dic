@@ -570,6 +570,8 @@ CANCELIO
 fd
 socketpair
 fileno
+SSRF
+IDNA
 destructors
 fclose
 fopen

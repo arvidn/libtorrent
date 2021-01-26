@@ -150,7 +150,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (m_hostname_filter_handler && !m_hostname_filter_handler(*this, hostname))
 	{
-		error_code err(errors::banned_by_ip_filter);
+		error_code err(errors::blocked_by_idna);
 		post(m_ios, std::bind(&http_connection::callback
 			, me, err, span<char>{}));
 		return;

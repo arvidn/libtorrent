@@ -75,7 +75,7 @@ namespace {
 
 } // anonymous namespace
 
-typedef sim::chrono::high_resolution_clock::duration duration;
+using duration = sim::chrono::high_resolution_clock::duration;
 using sim::chrono::milliseconds;
 
 dsl_config::dsl_config(int kb_per_second, int send_queue_size)

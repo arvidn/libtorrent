@@ -352,7 +352,6 @@ namespace errors {
 		deprecated_124,
 #endif
 
-
 		// The resume data file is missing the ``file sizes`` entry
 		missing_file_sizes = 130,
 		// The resume data file ``file sizes`` entry is empty
@@ -453,6 +452,10 @@ namespace errors {
 
 		// random number generation failed
 		no_entropy = 200,
+		// blocked by SSRF mitigation
+		ssrf_mitigation,
+		// blocked because IDNA host names are banned
+		blocked_by_idna,
 
 		// the torrent file has an unknown meta version
 		torrent_unknown_version = 210,
