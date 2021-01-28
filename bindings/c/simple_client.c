@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent.h>
 #include <stdio.h>
 #include <signal.h>
+#ifdef WIN32
+#include <Windows.h>
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 
 int quit = 0;
@@ -79,7 +83,9 @@ int main(int argc, char* argv[])
 
 	signal(SIGINT, &stop);
 	signal(SIGABRT, &stop);
+#ifndef WIN32
 	signal(SIGQUIT, &stop);
+#endif
 
 	while (quit == 0)
 	{
@@ -119,7 +125,11 @@ int main(int argc, char* argv[])
 		}
 
 		fflush(stdout);
+#ifdef WIN32
+		Sleep(1000);
+#else
 		usleep(1000000);
+#endif
 	}
 	printf("\nclosing\n");
 
