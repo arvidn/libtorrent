@@ -1,0 +1,65 @@
+name: C bindings
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
+
+jobs:
+  test:
+    name: build
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-latest, windows-2019 ]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: dependencies (MacOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install boost-build boost
+
+    - name: update package lists (linux)
+      if: runner.os == 'Linux'
+      continue-on-error: true
+      run: |
+        sudo apt update
+
+    - name: dependencies (linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+
+    # there appears to be a bug in boost-build where referring to a
+    # dependency that's on a different drive fails, deep in boost-build
+    # while concatenating paths
+    - name: setup boost (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
+        mklink /J boost %BOOST_ROOT_1_72_0%
+        cd boost
+        b2 headers
+
+    - name: build (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        set BOOST_ROOT=%CD%\boost
+        set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
+        set PATH=%BOOST_ROOT%;%PATH%
+
+        cd bindings\c
+        b2
+
+    - name: build
+      if: runner.os != 'Windows'
+      run: |
+        cd bindings/c
+        b2
