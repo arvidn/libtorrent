@@ -24,17 +24,16 @@ lib torrentc
 
 	: # requirements
 	<conditional>@libtorrent_linking
-	<library>/torrent//torrent/<link>static
+	<library>/torrent//torrent
 	<include>include
-	<threading>multi
+	<cxxstd>17
 
 	: # default build
 	<link>static
-	<cxxstd>17
 
 	: # usage-requirements
 	<include>include
 ;
 
-exe simple_client : simple_client.c torrentc ;
+exe simple_client : simple_client.c : <library>torrentc ;
 
