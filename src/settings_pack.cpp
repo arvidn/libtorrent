@@ -141,7 +141,7 @@ namespace libtorrent {
 		SET(disable_hash_checks, false, nullptr),
 		SET(allow_i2p_mixed, false, nullptr),
 		DEPRECATED_SET(low_prio_disk, true, nullptr),
-		SET(volatile_read_cache, false, nullptr),
+		DEPRECATED_SET(volatile_read_cache, false, nullptr),
 		DEPRECATED_SET(guided_read_cache, false, nullptr),
 		SET(no_atime_storage, true, nullptr),
 		SET(incoming_starts_queued_torrents, false, nullptr),

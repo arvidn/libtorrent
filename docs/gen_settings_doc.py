@@ -85,6 +85,8 @@ for line in f:
         mode += 'skip'
     if '#if TORRENT_ABI_VERSION <= 2' in line:
         mode += 'skip'
+    if '#if TORRENT_ABI_VERSION <= 3' in line:
+        mode += 'skip'
     if '#endif' in line:
         mode = mode[0:-4]
 
