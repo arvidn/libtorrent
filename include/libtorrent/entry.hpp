@@ -54,7 +54,6 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
-#include "libtorrent/aux_/strview_less.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/container/map.hpp>
@@ -71,7 +70,7 @@ namespace libtorrent {
 
 	namespace entry_types {
 
-		using dictionary_type = boost::container::map<std::string, entry, aux::strview_less>;
+		using dictionary_type = std::map<std::string, entry, std::less<>>;
 		using string_type = std::string;
 		using list_type = std::vector<entry>;
 		using integer_type = std::int64_t;

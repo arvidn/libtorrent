@@ -24,7 +24,6 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/time.hpp" // for seconds32
-#include "libtorrent/aux_/strview_less.hpp"
 
 namespace libtorrent::aux {
 
@@ -94,7 +93,7 @@ namespace libtorrent::aux {
 
 		bool connection_close() const { return m_connection_close; }
 
-		std::multimap<std::string, std::string, aux::strview_less> const& headers() const { return m_header; }
+		std::multimap<std::string, std::string, std::less<>> const& headers() const { return m_header; }
 		std::vector<std::pair<std::int64_t, std::int64_t>> const& chunks() const { return m_chunked_ranges; }
 
 	private:
@@ -108,7 +107,7 @@ namespace libtorrent::aux {
 		std::int64_t m_range_start = -1;
 		std::int64_t m_range_end = -1;
 
-		std::multimap<std::string, std::string, aux::strview_less> m_header;
+		std::multimap<std::string, std::string, std::less<>> m_header;
 		span<char const> m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response

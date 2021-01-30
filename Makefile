@@ -619,7 +619,6 @@ HEADERS = \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \
   aux_/string_util.hpp              \
-  aux_/strview_less.hpp             \
   aux_/suggest_piece.hpp            \
   aux_/tailqueue.hpp                \
   aux_/throw.hpp                    \
