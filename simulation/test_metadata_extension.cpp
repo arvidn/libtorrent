@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 #include "settings.hpp"
 #include "setup_swarm.hpp"
+#include "utils.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"

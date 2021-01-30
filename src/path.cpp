@@ -1031,7 +1031,8 @@ namespace {
 	std::string complete(string_view f)
 	{
 		if (is_complete(f)) return std::string(f);
-		if (f == ".") return current_working_directory();
+		auto parts = lsplit_path(f);
+		if (parts.first == ".") f = parts.second;
 		return combine_path(current_working_directory(), f);
 	}
 

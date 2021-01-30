@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/time.hpp"
 #include "settings.hpp"
@@ -47,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/nat.hpp"
 #include "simulator/queue.hpp"
 #include "utils.hpp"
+
+#include <fstream>
 
 using namespace lt;
 
@@ -677,7 +680,7 @@ void test_settings(SettingsFun fun)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 80)
+			if (ticks > 89)
 			{
 				TEST_ERROR("timeout");
 				return true;
@@ -863,6 +866,161 @@ TORRENT_TEST(settings_stress_test)
 	}
 }
 
+TORRENT_TEST(pex)
+{
+	// we create 3 nodes. Node 0 seeds and node 1 and 2 are downloaders.
+	// node 0 is initially only connected to node 1. The test ensures that node
+	// 0 eventually is connected to node 2, as it should have been introduced
+	// via PEX
+
+	dsl_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	asio::io_context ios(sim);
+	lt::time_point start_time(lt::clock_type::now());
+
+	std::vector<std::shared_ptr<lt::session>> nodes;
+	std::vector<std::shared_ptr<sim::asio::io_context>> io_service;
+	std::vector<lt::session_proxy> zombies;
+	lt::aux::deadline_timer timer(ios);
+
+	lt::error_code ec;
+	int const swarm_id = test_counter();
+	std::string path = save_path(swarm_id, 0);
+
+	lt::create_directory(path, ec);
+	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
+		, path.c_str(), ec.message().c_str());
+	std::ofstream file(lt::combine_path(path, "temporary").c_str());
+	auto ti = ::create_torrent(&file, "temporary", 0x4000, 50, false);
+	file.close();
+
+	int const num_nodes = 3;
+
+	bool done = false;
+
+	// session 0 is the seeding one.
+	// the IPs are 50.0.0.1, 50.0.0.2 and 50.0.0.3
+	for (int i = 0; i < num_nodes; ++i)
+	{
+		// create a new io_service
+		char ep[30];
+		std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+		io_service.push_back(std::make_shared<sim::asio::io_context>(sim, addr(ep)));
+
+		lt::settings_pack pack = settings();
+
+		// make sure the sessions have different peer ids
+		lt::peer_id pid;
+		lt::aux::random_bytes(pid);
+		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
+		std::shared_ptr<lt::session> ses =
+			std::make_shared<lt::session>(pack, *io_service.back());
+		nodes.push_back(ses);
+
+		lt::add_torrent_params p;
+		p.flags &= ~lt::torrent_flags::paused;
+		p.flags &= ~lt::torrent_flags::auto_managed;
+
+		// node 0 and 1 are downloaders and node 2 is a seed
+		// save path 0 is where the files are, so that's for seeds
+		// It's important that node 1 and 2 want to stay connected, otherwise
+		// node 1 won't be able to gossip about 2 to 0.
+		p.save_path = save_path(swarm_id, i > 1 ? 0 : 1);
+		p.ti = ti;
+		ses->async_add_torrent(p);
+
+		ses->set_alert_notify([&, i]() {
+			// this function is called inside libtorrent and we cannot perform work
+			// immediately in it. We have to notify the outside to pull all the alerts
+			post(*io_service[i], [&,i]()
+			{
+				lt::session* ses = nodes[i].get();
+
+				// when shutting down, we may have destructed the session
+				if (ses == nullptr) return;
+
+				std::vector<lt::alert*> alerts;
+				ses->pop_alerts(&alerts);
+
+				for (lt::alert* a : alerts)
+				{
+					// only print alerts from the session under test
+					lt::time_duration d = a->timestamp() - start_time;
+					std::uint32_t const millis = std::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
+
+					if (i == 0) {
+					std::printf("%4d.%03d: %-25s %s\n"
+						, millis / 1000, millis % 1000
+						, a->what()
+						, a->message().c_str());
+					}
+
+					// if a torrent was added save the torrent handle
+					if (lt::add_torrent_alert* at = lt::alert_cast<lt::add_torrent_alert>(a))
+					{
+						lt::torrent_handle h = at->handle;
+
+						if (i == 0)
+						{
+							// node only connects to node 1
+							h.connect_peer(lt::tcp::endpoint(addr("50.0.0.2"), 6881));
+						}
+						else
+						{
+							// other nodes connect to each other
+							for (int k = 1; k < num_nodes; ++k)
+							{
+								char ep[30];
+								std::snprintf(ep, sizeof(ep), "50.0.%d.%d"
+									, (k + 1) >> 8, (k + 1) & 0xff);
+								h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
+							}
+						}
+					}
+
+					if (i == 0)
+					{
+						// if node 0 was connected to 50.0.0.3, we're done
+						if (lt::peer_connect_alert* ca = lt::alert_cast<lt::peer_connect_alert>(a))
+						{
+							if (ca->endpoint.address() == addr("50.0.0.3"))
+								done = true;
+						}
+						if (lt::incoming_connection_alert* ca = lt::alert_cast<lt::incoming_connection_alert>(a))
+						{
+							if (ca->endpoint.address() == addr("50.0.0.3"))
+								done = true;
+						}
+					}
+				}
+			});
+		});
+	}
+
+	std::function<void(lt::error_code const&)> on_done
+		= [&](lt::error_code const& ec)
+	{
+		if (ec) return;
+
+		std::printf("TERMINATING\n");
+
+		// terminate simulation
+		for (int i = 0; i < int(nodes.size()); ++i)
+		{
+			zombies.push_back(nodes[i]->abort());
+			nodes[i].reset();
+		}
+	};
+
+	timer.expires_after(lt::seconds(65));
+	timer.async_wait(on_done);
+
+	sim.run();
+
+	TEST_EQUAL(done, true);
+}
 
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections

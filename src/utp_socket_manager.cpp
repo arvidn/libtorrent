@@ -62,24 +62,11 @@ namespace libtorrent::aux {
 		}
 	}
 
-	std::pair<int, int> utp_socket_manager::mtu_for_dest(address const& addr)
+	int utp_socket_manager::mtu_for_dest(address const& addr) const
 	{
 		int mtu = 0;
 		if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 		else mtu = TORRENT_ETHERNET_MTU;
-
-#if defined __APPLE__
-		// apple has a very strange loopback. It appears you can't
-		// send messages of the reported MTU size, and you don't get
-		// EWOULDBLOCK either.
-		if (addr.is_loopback())
-		{
-			if (aux::is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
-			else mtu = TORRENT_ETHERNET_MTU;
-		}
-#endif
-
-		int const link_mtu = mtu;
 
 		mtu -= TORRENT_UDP_HEADER;
 
@@ -103,7 +90,7 @@ namespace libtorrent::aux {
 			else mtu -= TORRENT_IPV6_HEADER;
 		}
 
-		return std::make_pair(link_mtu, std::min(mtu, restrict_mtu()));
+		return std::min(mtu, restrict_mtu());
 	}
 
 	void utp_socket_manager::send_packet(std::weak_ptr<utp_socket_interface> sock
@@ -197,8 +184,8 @@ namespace libtorrent::aux {
 				str = std::get_if<utp_stream>(&c);
 
 			TORRENT_ASSERT(str);
-			auto const [link_mtu, utp_mtu] = mtu_for_dest(ep.address());
-			str->get_impl()->init_mtu(link_mtu, utp_mtu);
+			int const mtu = mtu_for_dest(ep.address());
+			str->get_impl()->init_mtu(mtu);
 			str->get_impl()->m_sock = std::move(socket);
 			bool const ret = str->get_impl()->incoming_packet(p, ep, receive_time);
 			if (!ret) return false;

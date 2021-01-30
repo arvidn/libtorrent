@@ -869,7 +869,6 @@ TEST_SOURCES = \
   test_peer_classes.cpp \
   test_peer_list.cpp \
   test_peer_priority.cpp \
-  test_pex.cpp \
   test_piece_picker.cpp \
   test_primitives.cpp \
   test_priority.cpp \

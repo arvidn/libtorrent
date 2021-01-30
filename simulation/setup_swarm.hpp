@@ -87,25 +87,14 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<bool(int, lt::session&)> terminate);
 
-bool has_metadata(lt::session& ses);
-bool is_seed(lt::session& ses);
-bool is_finished(lt::session& ses);
-int completed_pieces(lt::session& ses);
-void add_extra_peers(lt::session& ses);
-lt::torrent_status get_status(lt::session& ses);
-
-std::string save_path(int swarm_id, int idx);
-
-// disable TCP and enable uTP
-void utp_only(lt::settings_pack& pack);
-
-// force encrypted connections
-void enable_enc(lt::settings_pack& pack);
-
 struct dsl_config : sim::default_config
 {
+	dsl_config(int kb_per_second = 0, int send_queue_size = 0);
 	virtual sim::route incoming_route(lt::address ip) override;
 	virtual sim::route outgoing_route(lt::address ip) override;
+private:
+	int m_rate; // kilobytes per second
+	int m_queue_size; // bytes
 };
 
 #endif

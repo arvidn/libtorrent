@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_swarm.hpp"
+#include "utils.hpp"
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 

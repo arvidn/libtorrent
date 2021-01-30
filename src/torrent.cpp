@@ -6112,7 +6112,7 @@ namespace {
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
-					, web->url, error_code(errors::banned_by_ip_filter));
+					, web->url, error_code(errors::blocked_by_idna));
 			}
 			// never try it again
 			remove_web_seed_iter(web);
@@ -6494,7 +6494,7 @@ namespace {
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
-					, web->url, error_code(errors::banned_by_ip_filter));
+					, web->url, error_code(errors::blocked_by_idna));
 			}
 			// never try it again
 			remove_web_seed_iter(web);
@@ -6516,7 +6516,7 @@ namespace {
 #endif
 			if (m_ses.alerts().should_post<url_seed_alert>())
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
-					, web->url, errors::banned_by_ip_filter);
+					, web->url, errors::ssrf_mitigation);
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, a, peer_blocked_alert::ssrf_mitigation);

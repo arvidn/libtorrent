@@ -128,6 +128,19 @@ rule libtorrent_linking ( properties * )
 {
 	local result ;
 
+	# allow larger .obj files (with more sections)
+	if <toolset>msvc in $(properties) || <toolset>intel-win in $(properties)
+	{
+		# allow larger .obj files (with more sections)
+		result += <cflags>/bigobj ;
+	}
+
+	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
+	{
+		# allow larger .obj files (with more sections)
+		result += <cflags>-Wa,-mbig-obj ;
+	}
+
 	if ! <target-os>windows in $(properties)
 		&& <toolset>gcc in $(properties)
 		&& <libtorrent-link>static in $(properties)

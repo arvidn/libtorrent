@@ -22,7 +22,6 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/session_stats.hpp"
 #include "settings.hpp"
 
 #include <functional>
@@ -204,6 +203,11 @@ TORRENT_TEST(session_stats)
 
 	TEST_EQUAL(lt::find_metric_idx("peer.incoming_connections")
 		, lt::counters::incoming_connections);
+
+	TEST_EQUAL(lt::find_metric_idx("utp.utp_packet_resend")
+		, lt::counters::utp_packet_resend);
+	TEST_EQUAL(lt::find_metric_idx("utp.utp_fast_retransmit")
+		, lt::counters::utp_fast_retransmit);
 }
 
 TORRENT_TEST(paused_session)
