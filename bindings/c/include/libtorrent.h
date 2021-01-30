@@ -36,6 +36,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent_settings.h"
 #include <stdint.h>
 
+#if defined _MSC_VER || defined __MINGW32__
+# define LIBTORRENT_C_EXPORT __declspec(dllexport)
+# define LIBTORRENT_C_IMPORT __declspec(dllimport)
+#elif __GNU__ >= 4
+# define LIBTORRENT_C_EXPORT __attribute__((visibility("default")))
+# define LIBTORRENT_C_IMPORT __attribute__((visibility("default")))
+#else
+# define LIBTORRENT_C_EXPORT
+# define LIBTORRENT_C_IMPORT
+#endif
+
+#ifdef LIBTORRENT_C_BUILDING_LIBRARY
+#define LIBTORRENT_C_DECL LIBTORRENT_C_EXPORT
+#else
+#define LIBTORRENT_C_DECL LIBTORRENT_C_IMPORT
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -222,67 +239,67 @@ struct libtorrent_session;
 // ``session_close()``.
 
 // use SET_* tags in tag list to configure the session.
-struct libtorrent_session* session_create(int first_tag, ...);
-void session_close(struct libtorrent_session* ses);
+LIBTORRENT_C_DECL struct libtorrent_session* session_create(int first_tag, ...);
+LIBTORRENT_C_DECL void session_close(struct libtorrent_session* ses);
 
 // use TOR_* tags in tag list
 // returns a torrent handle, or a negative value if an error prevented the
 // torrent from being added.
-int session_add_torrent(struct libtorrent_session* ses, int first_tag, ...);
+LIBTORRENT_C_DECL int session_add_torrent(struct libtorrent_session* ses, int first_tag, ...);
 
 // remove specitied torrent from specified session. flags from remove_flags enum
-void session_remove_torrent(struct libtorrent_session* ses, int tor, int flags);
+LIBTORRENT_C_DECL void session_remove_torrent(struct libtorrent_session* ses, int tor, int flags);
 
 // pass in an array of (possibly uninitialized) pointers to opaque type
 // libtorrent_alert. Pass in the number of elements the array can hold, in
 // in-out parameter ``array_size``. The number of valid alert pointers stored in
 // the array is returned back via the value ``array_size`` points to.
-int session_pop_alerts(struct libtorrent_session* ses, struct libtorrent_alert const** dest, int* array_size);
+LIBTORRENT_C_DECL int session_pop_alerts(struct libtorrent_session* ses, struct libtorrent_alert const** dest, int* array_size);
 
 // updates session settings. use ``SET_*`` tags.
-int session_set_settings(struct libtorrent_session* ses, int first_tag, ...);
+LIBTORRENT_C_DECL int session_set_settings(struct libtorrent_session* ses, int first_tag, ...);
 
 // reads one session setting. use ``SET_*`` tag. For string, the value buffer
 // must be large enough to hold the full string, or it will be truncated.
 // the size of the returned value will be written to the ``value_size`` out
 // parameter. Returns non-zero on failure.
-int session_get_setting(struct libtorrent_session* ses, int tag, void* value, int* value_size);
+LIBTORRENT_C_DECL int session_get_setting(struct libtorrent_session* ses, int tag, void* value, int* value_size);
 
 // TODO: remove this in favor of post_torrent_updates()
-int torrent_get_status(int tor, struct torrent_status* s, int struct_size);
+LIBTORRENT_C_DECL int torrent_get_status(int tor, struct torrent_status* s, int struct_size);
 
 // prints the alert's human readable message into buf, truncating it at ``size``
-int alert_message(struct libtorrent_alert const* alert, char* buf, int size);
+LIBTORRENT_C_DECL int alert_message(struct libtorrent_alert const* alert, char* buf, int size);
 
 // returns the timestamp of when the alert was posted. The timestamp is the
 // number of microseconds since epoch.
-int64_t alert_timestamp(struct libtorrent_alert const* alert);
+LIBTORRENT_C_DECL int64_t alert_timestamp(struct libtorrent_alert const* alert);
 
 // returns the type of the alert. defined in libtorrent_alerts.h
-int alert_type(struct libtorrent_alert const* alert);
+LIBTORRENT_C_DECL int alert_type(struct libtorrent_alert const* alert);
 
 // returns the category of the alert. This is a bitmask with one or more bits
 // set from the category_t enum.
-uint32_t alert_category(struct libtorrent_alert const* alert);
+LIBTORRENT_C_DECL uint32_t alert_category(struct libtorrent_alert const* alert);
 
 // if this is an alert with an associated torrent handle, return that handle.
 // Otherwise, return -1.
-int alert_torrent_handle(struct libtorrent_alert const* alert);
+LIBTORRENT_C_DECL int alert_torrent_handle(struct libtorrent_alert const* alert);
 
 // if ``alert`` refers to a session_stats_alert, returns a pointer to session
 // counters and NULL otherwise. The ``count`` out parameter is set to the number
 // of counters in the array. The returned array is valid until the next call to
 // session_pop_alerts(). To find a value in the array, use
 // ``find_metric_idx()``.
-int64_t const* alert_stats_counters(struct libtorrent_alert const* alert, int* count);
+LIBTORRENT_C_DECL int64_t const* alert_stats_counters(struct libtorrent_alert const* alert, int* count);
 
-int find_metric_idx(char const* name);
+LIBTORRENT_C_DECL int find_metric_idx(char const* name);
 
 // set a torrent specific setting. ``tor`` is the torrent handle whose setting
 // to change. This call can change multiple settings in a single call. The
 // variadic parameters is tag list of pairs of ``TSET_*`` enum values and the
 // corresponding ``int`` value to set.
-int torrent_set_settings(int tor, int first_tag, ...);
+LIBTORRENT_C_DECL int torrent_set_settings(int tor, int first_tag, ...);
 
 // get a torrent specific setting. ``tor`` is the torrent handle, ``tag``
 // is a value from the ``TSET_*`` enum, indicating which setting to read.
@@ -290,11 +307,15 @@ int torrent_set_settings(int tor, int first_tag, ...);
 // the size of the value written to the buffer is
 // returned in the in-out-parameter ``value_size``, which need to be initialized
 // to the buffer size.
-int torrent_get_setting(int tor, int tag, void* value, int* value_size);
+LIBTORRENT_C_DECL int torrent_get_setting(int tor, int tag, void* value, int* value_size);
 
 #ifdef __cplusplus
 }
 #endif
+
+#undef LIBTORRENT_C_DECL
+#undef LIBTORRENT_C_IMPORT
+#undef LIBTORRENT_C_EXPORT
 
 #endif
 

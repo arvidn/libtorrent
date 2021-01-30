@@ -27,6 +27,7 @@ lib torrentc
 	<library>/torrent//torrent
 	<include>include
 	<cxxstd>17
+	<define>LIBTORRENT_C_BUILDING_LIBRARY
 
 	: # default build
 	<link>static
