@@ -564,3 +564,5 @@ DOPENSSL
 fd
 socketpair
 fileno
+SSRF
+IDNA

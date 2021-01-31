@@ -172,8 +172,8 @@ namespace libtorrent {
 			"banned by port filter",
 			"invalid session handle used",
 			"listen socket has been closed",
-			"",
-			"",
+			"blocked by SSRF mitigation",
+			"blocked by IDNA ban",
 			"",
 
 // natpmp errors

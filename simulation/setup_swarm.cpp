@@ -75,7 +75,7 @@ namespace {
 
 } // anonymous namespace
 
-typedef sim::chrono::high_resolution_clock::duration duration;
+using duration = sim::chrono::high_resolution_clock::duration;
 using sim::chrono::milliseconds;
 
 sim::route dsl_config::incoming_route(asio::ip::address ip)
