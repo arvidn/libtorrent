@@ -161,6 +161,7 @@ rule linking ( properties * )
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
 		result += <linkflags>-Wl,-export-dynamic <linkflags>-rdynamic ;
+		result += <local-visibility>global ;
 	}
 
 	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
@@ -354,27 +355,6 @@ rule building ( properties * )
 	if <encryption>on in $(properties)
 	{
 		result += <source>src/pe_crypto.cpp ;
-	}
-
-	if ( <toolset>darwin in $(properties)
-		|| <toolset>gcc in $(properties)
-		|| <toolset>clang in $(properties)
-		|| <toolset>clang-darwin in $(properties) )
-		# on GCC, enabling debugging in libstdc++
-		# breaks the ABI and its ability to appear
-		# in shared object interfaces, so when it's
-		# enabled, just export everything (since we're)
-		# probably not a production build anyway
-		&& ! <debug-iterators>on in $(properties)
-	{
-		# hide non-external symbols
-		result += <cflags>-fvisibility=hidden ;
-		result += <cxxflags>-fvisibility-inlines-hidden ;
-
-		if ( <toolset>gcc in $(properties) )
-		{
-			result += <linkflags>-Wl,-Bsymbolic ;
-		}
 	}
 
 	return $(result) ;
@@ -937,6 +917,7 @@ lib torrent
 	: # default build
 	<threading>multi
 	<c++-template-depth>512
+	<local-visibility>hidden
 
 	: # usage requirements
 	$(usage-requirements)
