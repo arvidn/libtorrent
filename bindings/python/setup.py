@@ -157,9 +157,10 @@ class LibtorrentBuildExt(BuildExtBase):
             "property subdirectories",
         ),
         ("cxxstd=", None, "boost cxxstd value (11, 14, 17, etc)"),
+        ("dont-configure-python", None, "use python configuration from Jamroot.jam or user-config.jam"),
     ]
 
-    boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
+    boolean_options = BuildExtBase.boolean_options + ["pic", "hash", "dont-configure-python"]
 
     def initialize_options(self):
 
@@ -196,6 +197,7 @@ class LibtorrentBuildExt(BuildExtBase):
             self.cxxstd = '11'
         else:
             self.cxxstd = None
+        self.dont_configure_python = False
         return super().initialize_options()
 
     def run(self):
@@ -219,8 +221,10 @@ class LibtorrentBuildExt(BuildExtBase):
 
         variant = "debug" if self.debug else "release"
         args.append(variant)
-        bits = 64 if sys.maxsize > 2 ** 32 else 32
-        args.append(f"address-model={bits}")
+
+        if not self.dont_configure_python:
+            bits = 64 if sys.maxsize > 2 ** 32 else 32
+            args.append(f"address-model={bits}")
 
         if self.parallel:
             args.append(f"-j{self.parallel}")
@@ -248,10 +252,11 @@ class LibtorrentBuildExt(BuildExtBase):
                     lf = '-L' + str(pathlib.Path(lf[2:]).absolute())
                 args.append(f"linkflags=\"{lf}\"")
 
-        # Jamfile hacks to ensure we select the python environment defined in
-        # our project-config.jam
-        args.append("libtorrent-python=on")
-        args.append(f"python={sysconfig.get_python_version()}")
+        if not self.dont_configure_python:
+            # Jamfile hacks to ensure we select the python environment defined in
+            # our project-config.jam
+            args.append("libtorrent-python=on")
+            args.append(f"python={sysconfig.get_python_version()}")
 
         # Our goal is to produce an artifact at this path. If we do this, the
         # distutils build system will skip trying to build it.
@@ -270,24 +275,28 @@ class LibtorrentBuildExt(BuildExtBase):
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
         python_binding_dir = pathlib.Path(__file__).parent.absolute()
-        config = open(python_binding_dir / 'project-config.jam', 'w+')
-#        config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+
+        if not self.dont_configure_python:
+            config = open(python_binding_dir / 'project-config.jam', 'w+')
+#            config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
-            write_b2_python_config(config)
-            config.seek(0)
-            log.info("project-config.jam contents:")
-            log.info(config.read())
-            config.close()
-#            args.append(f"--project-config={config.name}")
+            if not self.dont_configure_python:
+                write_b2_python_config(config)
+                config.seek(0)
+                log.info("project-config.jam contents:")
+                log.info(config.read())
+                config.close()
+#                args.append(f"--project-config={config.name}")
 
             log.info(" ".join(["b2"] + args))
             subprocess.run(["b2"] + args, cwd=python_binding_dir, check=True)
         finally:
             # If we errored while writing config, windows may complain about
             # unlinking a file "in use"
-            config.close()
-#            os.unlink(config.name)
-            os.unlink(python_binding_dir / 'project-config.jam')
+            if not self.dont_configure_python:
+                config.close()
+#                os.unlink(config.name)
+                os.unlink(python_binding_dir / 'project-config.jam')
 
 
 setuptools.setup(
