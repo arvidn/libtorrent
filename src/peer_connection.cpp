@@ -2416,8 +2416,6 @@ namespace libtorrent {
 			// we shouldn't get a request
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "we don't have metadata yet");
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x no metadata"
-				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2433,8 +2431,6 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "incoming request queue full %d"
 				, int(m_requests.size()));
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x too many requests"
-				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2501,10 +2497,6 @@ namespace libtorrent {
 					, t->has_piece_passed(r.piece)
 					, t->block_size());
 			}
-
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
-				, "piece: %d s: %d l: %d invalid request"
-				, static_cast<int>(r.piece), r.start , r.length);
 #endif
 
 			write_reject_request(r);
@@ -2561,8 +2553,6 @@ namespace libtorrent {
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "REJECTING REQUEST", "peer choked and piece not in allowed fast set");
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %d l: %d peer choked"
-				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			m_counters.inc_stats_counter(counters::choked_piece_requests);
 			write_reject_request(r);
@@ -3267,10 +3257,6 @@ namespace libtorrent {
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x cancelled"
-				, static_cast<int>(r.piece), r.start , r.length);
-#endif
 			write_reject_request(r);
 		}
 		else
@@ -3820,11 +3806,6 @@ namespace libtorrent {
 			}
 			peer_request const& r = *i;
 			m_counters.inc_stats_counter(counters::choked_piece_requests);
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
-				, "piece: %d s: %d l: %d choking"
-				, static_cast<int>(r.piece), r.start , r.length);
-#endif
 			write_reject_request(r);
 			i = m_requests.erase(i);
 
@@ -5224,6 +5205,18 @@ namespace libtorrent {
 		}
 #endif
 
+		if (t->is_deleted())
+		{
+			// can this happen here?
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "TORRENT_ABORTED", "");
+#endif
+			for (peer_request const& r : m_requests)
+				write_reject_request(r);
+			m_requests.clear();
+			return;
+		}
+
 		// don't just pop the front element here, since in seed mode one request may
 		// be blocked because we have to verify the hash first, so keep going with the
 		// next request. However, only let each peer have one hash verification outstanding
@@ -5239,17 +5232,6 @@ namespace libtorrent {
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0);
 			TORRENT_ASSERT(r.start >= 0);
-
-			if (t->is_deleted())
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
-					, "piece: %d s: %x l: %x torrent deleted"
-					, static_cast<int>(r.piece), r.start , r.length);
-#endif
-				write_reject_request(r);
-				continue;
-			}
 
 			bool const seed_mode = t->seed_mode();
 
@@ -5299,8 +5281,8 @@ namespace libtorrent {
 				if (t->is_predictive_piece(r.piece)) continue;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
-					, "piece: %d s: %x l: %x piece not passed hash check"
+				peer_log(peer_log_alert::info, "PIECE_FAILED"
+					, "piece: %d s: %x l: %x piece failed hash check"
 					, static_cast<int>(r.piece), r.start , r.length);
 #endif
 				write_reject_request(r);
