@@ -269,7 +269,7 @@ namespace libtorrent::aux {
 		if (m_abort && req.event != event_t::stopped) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if(auto cb = c.lock())
+		if (auto cb = c.lock())
 			cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]", req.listen_port);
 #endif
 
@@ -305,16 +305,26 @@ namespace libtorrent::aux {
         else if (protocol == "ws" || protocol == "wss")
         {
 			std::shared_ptr<request_callback> cb = c.lock();
-			if(!cb) return;
+			if (!cb) return;
 
 			// TODO: introduce a setting for max_offers
 			const int max_offers = 10;
 			req.num_want = std::min(req.num_want, max_offers);
+			if (req.num_want == 0)
+			{
+				// when we're shutting down, we don't really want to
+				// re-establish the persistent websocket connection just to
+				// announce "stopped", and advertize 0 offers. It may hang
+				// shutdown.
+				post(ios, std::bind(&request_callback::tracker_request_error, cb, std::move(req)
+					, errors::torrent_aborted, operation_t::connect
+					, "", seconds32(0)));
+			}
 			cb->generate_rtc_offers(req.num_want
 				, [this, &ios, req = std::move(req), c](error_code const& ec
 					, std::vector<aux::rtc_offer> offers) mutable
 			{
-				if(!ec) req.offers = std::move(offers);
+				if (!ec) req.offers = std::move(offers);
 
 				auto it = m_websocket_conns.find(req.url);
 				if (it != m_websocket_conns.end() && it->second->is_started()) {
