@@ -5845,12 +5845,13 @@ namespace {
 	}
 
 #if TORRENT_USE_RTC
-	void torrent::generate_rtc_offers(int count
-			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
+	void torrent::generate_rtc_offers(int const count
+		, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
 	{
 		// rtc_signaling is created lazily
-		if(!m_rtc_signaling)
+		if (!m_rtc_signaling)
 		{
+			TORRENT_ASSERT(count > 0);
 			m_rtc_signaling = std::make_shared<aux::rtc_signaling>(m_ses.get_context()
 				, this
 				, std::bind(&torrent::on_rtc_stream, this, _1));
