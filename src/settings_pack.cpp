@@ -232,7 +232,7 @@ namespace libtorrent {
 		SET(piece_timeout, 20, nullptr),
 		SET(request_timeout, 60, nullptr),
 		SET(request_queue_time, 3, nullptr),
-		SET(max_allowed_in_request_queue, 500, nullptr),
+		SET(max_allowed_in_request_queue, 2000, nullptr),
 		SET(max_out_request_queue, 500, nullptr),
 		SET(whole_pieces_threshold, 20, nullptr),
 		SET(peer_timeout, 120, nullptr),
