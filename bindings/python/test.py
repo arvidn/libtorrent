@@ -1,14 +1,9 @@
-#!/usr/bin/env python3
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-
-
 import libtorrent as lt
 
 import unittest
 import time
 import datetime
 import os
-import shutil
 import binascii
 import subprocess as sub
 import sys
@@ -380,10 +375,6 @@ class TestAddPiece(unittest.TestCase):
 class test_torrent_info(unittest.TestCase):
 
     def test_non_ascii_file(self):
-        try:
-            shutil.copy('base.torrent', 'base-\u745E\u5177.torrent')
-        except shutil.SameFileError:
-            pass
         ti = lt.torrent_info('base-\u745E\u5177.torrent')
 
         self.assertTrue(len(ti.info_section()) != 0)
@@ -1096,23 +1087,3 @@ class test_peer_info(unittest.TestCase):
         print(p.local_endpoint)
         print(p.read_state)
         print(p.write_state)
-
-
-if __name__ == '__main__':
-    print(lt.__version__)
-    try:
-        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                                 'url_seed_multi.torrent'), '.')
-    except shutil.SameFileError:
-        pass
-    try:
-        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                                 'base.torrent'), '.')
-    except shutil.SameFileError:
-        pass
-    try:
-        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                                 'unordered.torrent'), '.')
-    except shutil.SameFileError:
-        pass
-    unittest.main()
