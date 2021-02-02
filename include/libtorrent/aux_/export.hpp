@@ -66,7 +66,7 @@ see LICENSE file.
 # if defined _MSC_VER || defined __MINGW32__
 #  define BOOST_SYMBOL_EXPORT __declspec(dllexport)
 #  define BOOST_SYMBOL_IMPORT __declspec(dllimport)
-# elif __GNU__ >= 4
+# elif __GNUC__ >= 4
 #  define BOOST_SYMBOL_EXPORT __attribute__((visibility("default")))
 #  define BOOST_SYMBOL_IMPORT __attribute__((visibility("default")))
 # else
@@ -76,7 +76,7 @@ see LICENSE file.
 #endif
 
 #if !defined TORRENT_EXPORT_EXTRA \
-  && ((defined __GNU__ && __GNU__ >= 4) || defined __clang__)
+  && ((defined __GNUC__ && __GNUC__ >= 4) || defined __clang__)
 # define TORRENT_UNEXPORT __attribute__((visibility("hidden")))
 #else
 # define TORRENT_UNEXPORT
