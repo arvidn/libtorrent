@@ -7159,7 +7159,7 @@ namespace {
 #if TORRENT_USE_RTC
 		if (peerinfo->is_rtc_addr)
 		{
-			// unsollicited connection is not possible
+			// unsolicited connection is not possible
 			TORRENT_ASSERT_FAIL();
 			return false;
 		}
