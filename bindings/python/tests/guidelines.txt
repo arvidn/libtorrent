@@ -1,0 +1,82 @@
+* There should mostly be a one-to-one correspondence between:
+    bindings/python/src/foo.cpp -> bindings/python/tests/foo_test.py
+  The exceptions are internal functions, like converters.cpp.
+
+* Tests should be *isolated* as much as possible. They shouldn't interact with
+  the network or the filesystem.
+  * When creating a session, use the settings from get_isolated_settings() in
+    lib.py.
+  * When writing any data to the filesystem, including dummy torrent downloads,
+    always create a temporary directory with tempfile.TemporaryDirectory()
+  * When adding a dummy torrent, *always* create a temporary directory, even if
+    it does not download any data. This is so that it doesn't pick up data
+    unexpectedly
+  * As an exception, fixture data may be used. It should live in
+    bindings/python/tests/data
+
+* In general, we don't need to test correctness (e.g. network protocol
+  interactions)
+* In general, we don't need to test that TypeError is raised for unsupported
+  types of input
+
+* Things we should test:
+  * For attributes that can be set (like add_torrent_params), test that
+    attributes can be set, and getting the attribute has the expected value
+  * For attributes that can't be set, test with assertIsInstance or
+    assertIsEqual
+  * For enums, treat these as un-settable attributes, and test with
+    assertIsInstance
+  * For any functions with kwargs, test invocation *using* kwargs. It's not
+    necessary to test that positional args work as kwargs.
+  * For any application errors, test that these are raised in the expected
+    places, with assertRaises
+  * For non-trivial code within the python bindings (like add_torrent(dict)),
+    do more extensive tests for correctness of the code, including any
+    exceptions raised in this code
+  * For any types instantiated in python which may then be "owned" by
+    libtorrent (notably torrent_info), test memory management, especially
+    trying to force libtorrent to release the type
+  * For deprecated code, test that it still functions, wrapped with
+    assertWarns(DeprecationWarning). The wrapping should be as narrow as
+    possible, just like assertRaises or try/catch
+  * For tests that don't currently work, do write the test but mark it with
+    @unittest.skip("url-of-a-github-issue")
+
+* Don't use time.sleep() for synchronization. It is not a synchronization tool.
+  Make use of loop_until_timeout().
+
+* Guidelines for testing particular data types:
+
+* sha1_hash and sha256_hash are meant to be implicitly convertible
+  to info_hash_t. So:
+  * For info_hash_t inputs, test that sha1_hash and sha256_hash are valid
+
+* URLs, and related HTTP protocol elements like headers, are required to be
+  ASCII. Non-ASCII data should be treated as malformed. So:
+  * For URLs/headers inputs, test that str is valid and bytes is invalid
+
+* For inputs which are paths to a file on the local filesystem, test that the
+  python bindings handle these with filesystem encoding semantics
+  * Test ascii str input (ex: "foo.txt")
+  * Test ascii bytes input (ex: b"foo.txt")
+  * Test non-ascii str input (ex: "\u1234.txt")
+  * Test non-ascii bytes input (ex: os.fsencode("\u1234.txt"))
+  * Test surrogate str input (ex: "\udcff.txt")
+  * Test surrogate bytes input (ex: os.fsencode("\udcff.txt"))
+  * Test non-unicode str input (ex: os.fsdecode(b"\xff.txt"))
+  * Test non-unicode bytes input (ex: b"\xff.txt")
+  * The surrogate and non-unicode cases should be gated by uses_{foo}_paths from
+    lib.py
+  * In all cases, it's important to test that the data round-trips correctly.
+    It's not sufficient to just test that the function completes without error
+
+* Note that torrent_info, create_torrent and file_storage are intended to
+  sanitize their inputs, especially to unicode. So these don't need to conform
+  to filesystem encoding semantics. They should only take str as input
+
+* For all other string inputs, consider carefully whether str, bytes or both
+  kinds of input should be allowed. Things to consider:
+  * Is the interface for low-level data translation (like bencode/bdecode), or
+    a high-level convenience interface (like create_torrent)?
+  * Does the string always represent a local file path? If so, use filesystem
+    semantics above.
