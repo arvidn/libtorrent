@@ -165,7 +165,14 @@ namespace libtorrent {
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp)) use_partfile(i, false);
+				if (exists(fp, ec.ec)) use_partfile(i, false);
+				if (ec.ec)
+				{
+					ec.file(i);
+					ec.operation = operation_t::file_stat;
+					prio = m_file_priority;
+					return;
+				}
 /*
 				auto f = open_file(sett, i, aux::open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)

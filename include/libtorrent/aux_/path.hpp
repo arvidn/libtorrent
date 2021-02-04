@@ -115,7 +115,6 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path

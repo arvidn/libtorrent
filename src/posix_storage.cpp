@@ -133,7 +133,14 @@ namespace aux {
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp)) use_partfile(i, false);
+				if (exists(fp, ec.ec)) use_partfile(i, false);
+				if (ec.ec)
+				{
+					ec.file(i);
+					ec.operation = operation_t::file_stat;
+					prio = m_file_priority;
+					return;
+				}
 			}
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;

@@ -930,12 +930,6 @@ namespace {
 		return true;
 	}
 
-	bool exists(std::string const& f)
-	{
-		error_code ec;
-		return exists(f, ec);
-	}
-
 	void remove(std::string const& inf, error_code& ec)
 	{
 		ec.clear();

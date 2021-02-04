@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 
