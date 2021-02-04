@@ -51,8 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winioctl.h>
 #include <sys/types.h>
 #else
-// posix part
-#define _FILE_OFFSET_BITS 64
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -67,8 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
-
-#undef _FILE_OFFSET_BITS
 
 #endif
 

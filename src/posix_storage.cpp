@@ -48,6 +48,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent::flags; // for flag operators
 
+// make sure the _FILE_OFFSET_BITS define worked
+// on this platform. It's supposed to make file
+// related functions support 64-bit offsets.
+static_assert(sizeof(ftello(nullptr)) >= 8, "64 bit file operations are required");
+static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
+
 namespace libtorrent {
 namespace aux {
 

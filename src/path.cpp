@@ -48,11 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 
-// these defines are just in case the system we're on needs them for 64 bit file
-// support
-#define _FILE_OFFSET_BITS 64
-#define _LARGE_FILES 1
-
 // on mingw this is necessary to enable 64-bit time_t, specifically used for
 // the stat struct. Without this, modification times returned by stat may be
 // incorrect and consistently fail resume data
@@ -327,6 +322,11 @@ namespace {
 			ec.assign(errno, system_category());
 			return;
 		}
+
+		// make sure the _FILE_OFFSET_BITS define worked
+		// on this platform. It's supposed to make file
+		// related functions support 64-bit offsets.
+		static_assert(sizeof(ret.st_size) >= 8, "64 bit file operations are required");
 
 		s->file_size = ret.st_size;
 		s->atime = std::uint64_t(ret.st_atime);

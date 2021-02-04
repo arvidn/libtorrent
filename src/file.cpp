@@ -52,11 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 
-// these defines are just in case the system we're on needs them for 64 bit file
-// support
-#define _FILE_OFFSET_BITS 64
-#define _LARGE_FILES 1
-
 #ifndef TORRENT_WINDOWS
 #include <sys/uio.h> // for iovec
 #else
@@ -128,13 +123,6 @@ struct iovec
 #endif
 
 #endif
-
-// make sure the _FILE_OFFSET_BITS define worked
-// on this platform. It's supposed to make file
-// related functions support 64-bit offsets.
-// this test makes sure lseek() returns a type
-// at least 64 bits wide
-static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required");
 
 #endif // posix part
 
