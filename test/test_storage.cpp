@@ -636,17 +636,10 @@ void run_test()
 
 	// make sure the files have the correct size
 	std::string const base = complete("temp_storage");
-	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
-	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
 
 	// these files should have been allocated as 0 size
 	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
-	TEST_CHECK(file_size(combine_path(base, "test3.tmp")) == 0);
-	TEST_CHECK(file_size(combine_path(base, "test4.tmp")) == 0);
-
-	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
-	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 
 	delete_dirs("temp_storage");
 }
