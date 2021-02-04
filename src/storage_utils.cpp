@@ -283,7 +283,8 @@ namespace libtorrent { namespace aux {
 			std::string const old_path = combine_path(save_path, f.file_path(i));
 			std::string const new_path = combine_path(new_save_path, f.file_path(i));
 
-			if (flags == move_flags_t::dont_replace && exists(new_path))
+			error_code ignore;
+			if (flags == move_flags_t::dont_replace && exists(new_path, ignore))
 			{
 				if (ret == status_t::no_error) ret = status_t::need_full_check;
 				continue;

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"

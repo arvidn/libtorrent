@@ -102,3 +102,8 @@ ofstream::ofstream(char const* filename)
 	open(name.c_str(), std::fstream::out | std::fstream::binary);
 }
 
+bool exists(std::string const& f)
+{
+	lt::error_code ec;
+	return lt::exists(f, ec);
+}
