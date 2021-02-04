@@ -917,16 +917,6 @@ namespace {
 		return ret;
 	}
 #endif
-
-	std::int64_t file_size(std::string const& f)
-	{
-		error_code ec;
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return 0;
-		return s.file_size;
-	}
-
 	bool exists(std::string const& f, error_code& ec)
 	{
 		file_status s;
