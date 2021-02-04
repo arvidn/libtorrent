@@ -6,6 +6,7 @@ import distutils.cmd
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
+import functools
 import os
 import pathlib
 import re
@@ -14,6 +15,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from typing import Callable
 from typing import cast
 from typing import IO
 from typing import Iterator
@@ -25,19 +27,6 @@ import warnings
 
 import setuptools
 import setuptools.command.build_ext as build_ext_lib
-
-
-def get_msvc_toolset() -> str:
-    # Reference: https://wiki.python.org/moin/WindowsCompilers
-    major_minor = sys.version_info[0:2]
-    if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
-        return "msvc-9.0"
-    if major_minor in ((3, 3), (3, 4)):
-        return "msvc-10.0"
-    if major_minor in ((3, 5), (3, 6)):
-        return "msvc-14.1"  # libtorrent requires VS 2017 or newer
-    # unknown python version
-    return "msvc"
 
 
 def b2_bool(value: bool) -> str:
@@ -91,7 +80,9 @@ def b2_escape(value: str) -> str:
 
 
 def write_b2_python_config(
-    config: IO[str], include_dirs: Sequence[str], library_dirs: Sequence[str]
+    include_dirs: Sequence[str],
+    library_dirs: Sequence[str],
+    config: IO[str],
 ) -> None:
     write = config.write
     # b2 keys python environments by X.Y version, breaking ties by matching
@@ -239,30 +230,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self.b2_args = ""
         self.no_autoconf = ""
 
-        self.cxxflags = None
-        self.linkflags = None
-
-        # TODO: this is for backwards compatibility
-        # loading these files will be removed in libtorrent-2.0
-        try:
-            with open("compile_flags") as fp:
-                opts = fp.read()
-                if "-std=c++" in opts:
-                    self.cxxflags = "-std=c++" + opts.split("-std=c++")[-1].split()[0]
-        except OSError:
-            pass
-
-        # TODO: this is for backwards compatibility
-        # loading these files will be removed in libtorrent-2.0
-        try:
-            with open("link_flags") as fp:
-                opt_list = fp.read().split(" ")
-                opt_list = [x for x in opt_list if x.startswith("-L")]
-                if opt_list:
-                    self.linkflags = opt_list
-        except OSError:
-            pass
-
         self.toolset: Optional[str] = None
         self.libtorrent_link: Optional[str] = None
         self.boost_link: Optional[str] = None
@@ -270,8 +237,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self.optimization: Optional[str] = None
         self.hash: Optional[bool] = None
         self.cxxstd: Optional[str] = None
-        if os.name == "nt":
-            self.toolset = get_msvc_toolset()
 
         self._b2_args_split: List[str] = []
         self._b2_args_configured: Set[str] = set()
@@ -358,12 +323,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
     def _build_extension_with_b2(self) -> None:
         python_binding_dir = pathlib.Path(__file__).parent.absolute()
         with self._configure_b2():
-            if self.linkflags:
-                for f in self.linkflags:
-                    self._b2_args_split.append("linkflags=" + f)
-            if self.cxxflags:
-                for f in self.cxxflags:
-                    self._b2_args_split.append("cxxflags=" + f)
             command = ["b2"] + self._b2_args_split
             log.info(" ".join(command))
             subprocess.run(command, cwd=python_binding_dir, check=True)
@@ -381,11 +340,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
     def _configure_b2_with_distutils(self) -> Iterator[None]:
         if os.name == "nt":
             self._maybe_add_arg("--abbreviate-paths")
-            self._maybe_add_arg("boost-link=static")
-        else:
-            self._maybe_add_arg("boost-link=shared")
-
-        self._maybe_add_arg("libtorrent-link=static")
 
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
@@ -394,6 +348,8 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         # Default feature configuration
         self._maybe_add_arg("deprecated-functions=on")
+        self._maybe_add_arg("boost-link=static")
+        self._maybe_add_arg("libtorrent-link=static")
 
         variant = "debug" if self.debug else "release"
         self._maybe_add_arg(f"variant={variant}")
@@ -403,13 +359,17 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         if self.parallel:
             self._maybe_add_arg(f"-j{self.parallel}")
 
+        config_writers: List[Callable[[IO[str]], None]] = []
+
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
-        override_project_config = False
         if self._should_add_arg("--project-config"):
             if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
-
-                override_project_config = True
+                config_writers.append(
+                    functools.partial(
+                        write_b2_python_config, self.include_dirs, self.library_dirs
+                    )
+                )
 
                 # Jamfile hacks to ensure we select the python environment defined in
                 # our project-config.jam
@@ -435,24 +395,26 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self._maybe_add_arg(f"python-install-path={target.parent}")
         self._maybe_add_arg("install_module")
 
-        # We use a "project-config.jam" to instantiate a python environment
-        # to exactly match the running one.
-        try:
-            if override_project_config:
-                config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
-                write_b2_python_config(config, self.include_dirs, self.library_dirs)
-                config.seek(0)
+        # Two different paths depending on whether we're creating a custom
+        # project-config.jam or not
+        if config_writers:
+            config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+            try:
+                for writer in config_writers:
+                    writer(config)
                 log.info("project-config.jam contents:")
+                config.seek(0)
                 log.info(config.read())
+                self._maybe_add_arg(f"--project-config={config.name}")
                 config.close()
-                self._b2_args_split.append(f"--project-config={config.name}")
+                yield
+            finally:
+                # If we errored while writing config, windows may complain about
+                # unlinking a file "in use"
+                config.close()
+                os.unlink(config.name)
+        else:
             yield
-
-        finally:
-            # If we errored while writing config, windows may complain about
-            # unlinking a file "in use"
-            config.close()
-            os.unlink(config.name)
 
 
 setuptools.setup(
