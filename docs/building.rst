@@ -307,6 +307,9 @@ Build features:
 |                          | * ``on`` - default. logging alerts available,      |
 |                          |   still need to be enabled by the alert mask.      |
 +--------------------------+----------------------------------------------------+
+| ``lto``                  | * ``on`` - enables link time optimization, also    |
+|                          |   known as whole program optimization.             |
++--------------------------+----------------------------------------------------+
 | ``alert-msg``            | * ``on`` - (default) return human readable         |
 |                          |   messages from the ``alert::message()`` call.     |
 |                          | * ``off`` - Always return empty strings from       |
@@ -475,6 +478,63 @@ To install libtorrent run ``b2`` with the ``install`` target::
 
 Change the value of the ``--prefix`` argument to install it in a different location.
 
+
+Custom build flags
+~~~~~~~~~~~~~~~~~~
+
+Custom build flags can be passed to the command line via the ``cflags``,
+``cxxflags`` and ``linkflags`` features. When specifying custom flags, make sure
+to build everything from scratch, to not accidentally mix incompatible flags.
+Example::
+
+	b2 cxxflags=-msse4.1
+
+Custom flags can also be configured in the toolset, in ``~/user-config.jam``,
+``Jamroot.jam`` or ``project-config.jam``. Example::
+
+	using gcc : sse41 : g++ : <cxxflags>-msse4.1 ;
+
+
+Cross compiling
+~~~~~~~~~~~~~~~
+
+To cross compile libtorrent, configure a new toolset for ``b2`` to use. Toolsets
+can be configured in ``~/user-config.jam``, ``Jamroot.jam`` or
+``project-config.jam``. The last two live in the libtorrent root directory.
+
+A toolset configuration is in this form:
+
+.. parsed-literal::
+
+	using *toolset* : *version* : *command-line* : *features* ;
+
+Toolset is essentially the family of compiler you're setting up, choose from `this list`__.
+
+__ https://boostorg.github.io/build/manual/master/index.html#bbv2.reference.tools.compilers
+
+Perhaps the most common ones would be ``gcc``, ``clang``, ``msvc`` and
+``darwin`` (Apple's version of clang).
+
+The version can be left empty to be auto configured, or a custom name can be
+used to identify this toolset.
+
+The *command-line* is what to execute to run the compiler. This is also an
+opportunity to insert a call to ``ccache`` for example.
+
+*features* are boost-build features. Typical features to set here are
+``<compileflags>``, ``<cflags>`` and ``<cxxflags>``. For the ``gcc`` toolset,
+the ``<archiver>`` can be set to specify which tool to use to create a static
+library/archive. This is especially handy when cross compiling.
+
+Here's an example toolset for cross compiling for ARM Linux::
+
+	using gcc : arm : arm-linux-gnueabihf-g++ : <archiver>arm-linux-gnueabihf-ar ;
+
+To build using this toolset, specify ``gcc-arm`` as the toolset on the ``b2`` command line. For example::
+
+	b2 toolset=gcc-arm
+
+
 building with cmake
 -------------------
 
@@ -561,13 +621,6 @@ The libtorrent port in vcpkg is kept up to date by Microsoft team members and co
 If the version is out of date, please `create an issue or pull request`__ on the vcpkg repository.
 
 __ https://github.com/Microsoft/vcpkg
-
-building with other build systems
----------------------------------
-
-If you're building in MS Visual Studio, you may have to set the compiler
-options "force conformance in for loop scope", "treat wchar_t as built-in
-type" and "Enable Run-Time Type Info" to Yes.
 
 build configurations
 --------------------

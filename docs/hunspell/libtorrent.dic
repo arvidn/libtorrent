@@ -235,6 +235,7 @@ cancelled
 bitcoin
 Jamfile
 Jamfiles
+Jamroot
 NDEBUG
 Solaris
 BitTorrent
@@ -593,3 +594,9 @@ Qt5
 DownZemAll
 LGPL
 OSS
+ccache
+compileflags
+cflags
+cxxflags
+linkflags
+lto
