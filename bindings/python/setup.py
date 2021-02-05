@@ -209,6 +209,8 @@ class LibtorrentBuildExt(BuildExtBase):
             args.append(f"optimization={self.optimization}")
         if self.hash:
             args.append("--hash")
+        if not self.debug:
+            args.append('lto=on')
         if self.cxxstd:
             args.append(f"cxxstd={self.cxxstd}")
 
