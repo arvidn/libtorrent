@@ -261,6 +261,9 @@ struct stats_metric;
 struct settings_interface;
 struct settings_pack;
 
+// include/libtorrent/storage_defs.hpp
+struct storage_params;
+
 // include/libtorrent/torrent_handle.hpp
 struct block_info;
 struct partial_piece_info;
