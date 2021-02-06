@@ -1,3 +1,4 @@
+	* add convenience header libtorrent/libtorrent.hpp
 	* increase default max_allowed_in_request_queue
 	* fix loading non-ascii filenames on windows with torrent_info constructor (2.0 regression)
 	* add std::hash<> specialization for info_hash_t

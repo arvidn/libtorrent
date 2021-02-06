@@ -466,6 +466,7 @@ HEADERS = \
   io_service.hpp               \
   ip_filter.hpp                \
   ip_voter.hpp                 \
+  libtorrent.hpp               \
   link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \
