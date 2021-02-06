@@ -22,6 +22,7 @@ see LICENSE file.
 #include <tuple>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "swarm_suite.hpp"

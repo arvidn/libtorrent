@@ -31,7 +31,6 @@ see LICENSE file.
 #include <sys/types.h>
 #else
 // posix part
-#define _FILE_OFFSET_BITS 64
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -46,8 +45,6 @@ see LICENSE file.
 #include <fcntl.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
-
-#undef _FILE_OFFSET_BITS
 
 #endif
 

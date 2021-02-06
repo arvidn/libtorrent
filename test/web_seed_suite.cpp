@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "web_seed_suite.hpp"

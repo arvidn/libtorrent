@@ -28,8 +28,6 @@ see LICENSE file.
 #include <winioctl.h>
 #include <sys/types.h>
 #else
-// posix part
-#define _FILE_OFFSET_BITS 64
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -44,8 +42,6 @@ see LICENSE file.
 #include <fcntl.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
-
-#undef _FILE_OFFSET_BITS
 
 #endif
 
@@ -96,8 +92,6 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::int64_t file_size(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path

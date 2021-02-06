@@ -25,11 +25,6 @@ see LICENSE file.
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 
-// these defines are just in case the system we're on needs them for 64 bit file
-// support
-#define _FILE_OFFSET_BITS 64
-#define _LARGE_FILES 1
-
 // on mingw this is necessary to enable 64-bit time_t, specifically used for
 // the stat struct. Without this, modification times returned by stat may be
 // incorrect and consistently fail resume data
@@ -303,6 +298,11 @@ namespace {
 			ec.assign(errno, system_category());
 			return;
 		}
+
+		// make sure the _FILE_OFFSET_BITS define worked
+		// on this platform. It's supposed to make file
+		// related functions support 64-bit offsets.
+		static_assert(sizeof(ret.st_size) >= 8, "64 bit file operations are required");
 
 		s->file_size = ret.st_size;
 		s->atime = std::uint64_t(ret.st_atime);
@@ -893,16 +893,6 @@ namespace {
 		return ret;
 	}
 #endif
-
-	std::int64_t file_size(std::string const& f)
-	{
-		error_code ec;
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return 0;
-		return s.file_size;
-	}
-
 	bool exists(std::string const& f, error_code& ec)
 	{
 		file_status s;
@@ -914,12 +904,6 @@ namespace {
 			return false;
 		}
 		return true;
-	}
-
-	bool exists(std::string const& f)
-	{
-		error_code ec;
-		return exists(f, ec);
 	}
 
 	void remove(std::string const& inf, error_code& ec)

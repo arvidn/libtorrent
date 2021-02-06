@@ -1,12 +1,13 @@
 /*
 
 Copyright (c) 2017-2018, Steven Siloti
-Copyright (c) 2017-2020, Arvid Norberg
+Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
+
 */
 
 #ifndef TORRENT_FWD_HPP
@@ -237,6 +238,9 @@ struct stats_metric;
 // include/libtorrent/settings_pack.hpp
 struct settings_interface;
 struct settings_pack;
+
+// include/libtorrent/storage_defs.hpp
+struct storage_params;
 
 // include/libtorrent/torrent_handle.hpp
 struct block_info;

@@ -20,6 +20,7 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "settings.hpp"
 
 #include <iostream>

@@ -51,6 +51,7 @@ set(libtorrent_include_files
 	index_range
 	io_service
 	ip_filter
+	libtorrent
 	magnet_uri
 	mmap_disk_io
 	natpmp

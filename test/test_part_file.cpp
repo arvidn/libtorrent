@@ -12,6 +12,7 @@ see LICENSE file.
 #include <array>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/aux_/part_file.hpp"
 #include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"

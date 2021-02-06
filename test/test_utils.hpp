@@ -44,5 +44,7 @@ struct EXPORT ofstream : std::ofstream
 	ofstream(char const* filename);
 };
 
+EXPORT bool exists(std::string const& f);
+
 #endif
 
