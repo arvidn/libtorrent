@@ -102,7 +102,7 @@ jobs:
 
       - name: compile header files individually
         run: |
-          b2 check-headers cxxstd=14 warnings-as-errors=on deprecated-functions=off
+          b2 check-headers cxxstd=14 warnings-as-errors=on
 
 
 

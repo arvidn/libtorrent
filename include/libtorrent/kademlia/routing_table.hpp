@@ -164,7 +164,9 @@ public:
 	routing_table& operator=(routing_table const&) = delete;
 
 #if TORRENT_ABI_VERSION == 1
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 	void status(session_status& s) const;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 	void status(std::vector<dht_routing_bucket>& s) const;

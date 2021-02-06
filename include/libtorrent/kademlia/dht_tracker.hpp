@@ -150,7 +150,9 @@ namespace dht {
 			, std::function<void(msg const&)> f);
 
 #if TORRENT_ABI_VERSION == 1
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		void dht_status(session_status& s);
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 		std::vector<lt::dht::dht_status> dht_status() const;
 		void update_stats_counters(counters& c) const;
