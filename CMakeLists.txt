@@ -68,6 +68,7 @@ set(libtorrent_include_files
 	io_service
 	ip_filter
 	ip_voter
+	libtorrent
 	link
 	lsd
 	magnet_uri
