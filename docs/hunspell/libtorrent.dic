@@ -566,3 +566,10 @@ socketpair
 fileno
 SSRF
 IDNA
+toolchain
+distutils
+virtualenv
+virtualenvs
+pyenv
+tox
+args
