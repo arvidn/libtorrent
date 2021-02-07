@@ -4,23 +4,32 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 from __future__ import print_function
 
-import libtorrent as lt
-import time
 import sys
+import time
 
-ses = lt.session({'listen_interfaces': '0.0.0.0:6881'})
+import libtorrent as lt
+
+ses = lt.session({"listen_interfaces": "0.0.0.0:6881"})
 
 info = lt.torrent_info(sys.argv[1])
-h = ses.add_torrent({'ti': info, 'save_path': '.'})
+h = ses.add_torrent({"ti": info, "save_path": "."})
 s = h.status()
-print('starting', s.name)
+print("starting", s.name)
 
-while (not s.is_seeding):
+while not s.is_seeding:
     s = h.status()
 
-    print('\r%.2f%% complete (down: %.1f kB/s up: %.1f kB/s peers: %d) %s' % (
-        s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000,
-        s.num_peers, s.state), end=' ')
+    print(
+        "\r%.2f%% complete (down: %.1f kB/s up: %.1f kB/s peers: %d) %s"
+        % (
+            s.progress * 100,
+            s.download_rate / 1000,
+            s.upload_rate / 1000,
+            s.num_peers,
+            s.state,
+        ),
+        end=" ",
+    )
 
     alerts = ses.pop_alerts()
     for a in alerts:
@@ -31,4 +40,4 @@ while (not s.is_seeding):
 
     time.sleep(1)
 
-print(h.status().name, 'complete')
+print(h.status().name, "complete")
