@@ -137,9 +137,9 @@ use the following toolsets::
 
 Note that the spaces around the semi-colons and colons are important!
 
-Also see the `official installation instructions`_.
+Also see the `boost-build documentation`_.
 
-.. _`official installation instructions`: https://www.boost.org/doc/html/bbv2/installation.html
+.. _`boost-build documentation`: https://boostorg.github.io/build/
 
 
 Step 3: Building libtorrent
@@ -237,7 +237,8 @@ compiling in 64-bit.
 To customize the library path and include path for openssl, set the features
 ``openssl-lib`` and ``openssl-include`` respectively.
 
-Build features:
+Build features
+~~~~~~~~~~~~~~
 
 +--------------------------+----------------------------------------------------+
 | boost build feature      | values                                             |
