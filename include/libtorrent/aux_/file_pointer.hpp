@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio>
 #include <utility> // for swap
+#include <cstdint>
+
+#include "libtorrent/config.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -56,6 +59,18 @@ struct file_pointer
 private:
 	FILE* ptr;
 };
+
+inline int portable_fseeko(FILE* const f, std::int64_t const offset, int const whence)
+{
+#ifdef TORRENT_WINDOWS
+	return ::_fseeki64(f, offset, whence);
+#elif TORRENT_HAS_FSEEKO
+	return ::fseeko(f, offset, whence);
+#else
+	int const fd = ::fileno(f);
+	return ::lseek64(fd, offset, whence) == -1 ? -1 : 0;
+#endif
+}
 
 }
 }
