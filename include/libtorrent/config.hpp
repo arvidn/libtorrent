@@ -175,6 +175,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __ANDROID__
 #define TORRENT_ANDROID
 #define TORRENT_HAS_FALLOCATE 0
+#if __ANDROID_API__ < 24
+#define TORRENT_HAS_FSEEKO 0
+#endif
+
 #else // ANDROID
 
 // posix_fallocate() is not available in glibc under these condition
@@ -389,6 +393,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
+#endif
+
+#ifndef TORRENT_HAS_FSEEKO
+#define TORRENT_HAS_FSEEKO 1
 #endif
 
 #ifndef TORRENT_USE_COMMONCRYPTO

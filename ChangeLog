@@ -1,3 +1,4 @@
+	* add work-around for systems without fseeko() (such as Android)
 	* add convenience header libtorrent/libtorrent.hpp
 	* increase default max_allowed_in_request_queue
 	* fix loading non-ascii filenames on windows with torrent_info constructor (2.0 regression)

@@ -82,10 +82,6 @@ namespace {
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-#ifdef _MSC_VER
-#define fseeko _fseeki64
-#endif
-
 namespace libtorrent {
 namespace aux {
 
@@ -193,7 +189,7 @@ namespace aux {
 		slot_index_t const slot = (i == m_piece_map.end())
 			? allocate_slot(piece) : i->second;
 
-		if (::fseeko(f.file(), slot_offset(slot) + offset, SEEK_SET) != 0)
+		if (portable_fseeko(f.file(), slot_offset(slot) + offset, SEEK_SET) != 0)
 		{
 			ec.assign(errno, generic_category());
 			return -1;
@@ -231,7 +227,7 @@ namespace aux {
 		auto f = open_file(open_mode::read_only, ec);
 		if (ec) return -1;
 
-		if (::fseeko(f.file(), slot_offset(slot) + offset, SEEK_SET) != 0)
+		if (portable_fseeko(f.file(), slot_offset(slot) + offset, SEEK_SET) != 0)
 		{
 			ec.assign(errno, generic_category());
 			return -1;
@@ -290,7 +286,7 @@ namespace aux {
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		if (::fseeko(f.file(), slot_offset + offset, SEEK_SET) != 0)
+		if (portable_fseeko(f.file(), slot_offset + offset, SEEK_SET) != 0)
 		{
 			ec.assign(errno, generic_category());
 			return -1;
@@ -408,7 +404,7 @@ namespace aux {
 
 				if (!buf) buf.reset(new char[std::size_t(m_piece_size)]);
 
-				if (::fseeko(file.file(), slot_offset(slot) + piece_offset, SEEK_SET) != 0)
+				if (portable_fseeko(file.file(), slot_offset(slot) + piece_offset, SEEK_SET) != 0)
 				{
 					ec.assign(errno, generic_category());
 					return;
