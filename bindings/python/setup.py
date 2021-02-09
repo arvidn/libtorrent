@@ -9,6 +9,10 @@ import sys
 import sysconfig
 import tempfile
 import subprocess
+import contextlib
+import warnings
+import re
+import shlex
 
 import setuptools
 import setuptools.command.build_ext as _build_ext_lib
@@ -134,88 +138,265 @@ BuildExtBase = _build_ext_lib.build_ext
 
 class LibtorrentBuildExt(BuildExtBase):
 
+    CONFIG_MODE_DISTUTILS = "distutils"
+    CONFIG_MODE_B2 = "b2"
+    CONFIG_MODES = (CONFIG_MODE_DISTUTILS, CONFIG_MODE_B2)
+
     user_options = BuildExtBase.user_options + [
+        (
+            "config-mode=",
+            None,
+            "'b2' or 'distutils' (default). "
+            "In b2 mode, setup.py will just invoke b2 using --b2-args. "
+            "It will not attempt to auto-configure b2 or override any "
+            "args. "
+            "In distutils mode, setup.py will attempt to configure "
+            "and invoke b2 to match the expectations and behavior of "
+            "distutils (libtorrent will be built against the invoking "
+            "python, etc; note not all behaviors are currently supported). "
+            "The feature set will match the version found on pypi. "
+            "You can selectively override the auto-configuration in "
+            "this mode with --no-autoconf or --b2-args. For example "
+            "--b2-args=python=x.y or --no-autoconf=python will prevent "
+            "python from being auto-configured. "
+            "Note that --b2-args doesn't currently understand implicit features. "
+            "Be sure to include their names, e.g. --b2-args=variant=debug",
+        ),
+        (
+            "b2-args=",
+            None,
+            "The full argument string to pass to b2. This is parsed with shlex, to "
+            "support arguments with spaces. For example: --b2-args 'variant=debug "
+            '"my-feature=a value with spaces"\'',
+        ),
+        (
+            "no-autoconf=",
+            None,
+            "Space-separated list of b2 arguments that should not be "
+            "auto-configured in distutils mode.",
+        ),
         (
             "libtorrent-link=",
             None,
-            "how to link to libtorrent ('static', 'shared' or 'prebuilt')",
+            "(DEPRECATED; use --b2-args=libtorrent-link=...) ",
         ),
         (
             "boost-link=",
             None,
-            "how to link to boost-python ('static' or 'shared')",
+            "(DEPRECATED; use --b2-args=boost-link=...) "
         ),
-        ("toolset=", None, "b2 toolset"),
-        ("pic", None, "whether to compile with -fPIC"),
-        ("optimization=", None, "b2 optimization mode"),
+        ("toolset=", None, "(DEPRECATED; use --b2-args=toolset=...) b2 toolset"),
+        (
+            "pic",
+            None,
+            "(DEPRECATED; use --b2-args=libtorrent-python-pic=on) "
+            "whether to compile with -fPIC",
+        ),
+        (
+            "optimization=",
+            None,
+            "(DEPRECATED; use --b2-args=optimization=...) " "b2 optimization mode",
+        ),
         (
             "hash",
             None,
+            "(DEPRECATED; use --b2-args=--hash) "
             "use a property hash for the build directory, rather than "
             "property subdirectories",
         ),
-        ("cxxstd=", None, "boost cxxstd value (14, 17, 20, etc.)"),
+        (
+            "cxxstd=",
+            None,
+            "(DEPRECATED; use --b2-args=cxxstd=...) "
+            "boost cxxstd value (14, 17, 20, etc.)",
+        ),
     ]
 
     boolean_options = BuildExtBase.boolean_options + ["pic", "hash"]
 
     def initialize_options(self):
 
-        if os.name == "nt":
-            self.libtorrent_link = "static"
-        else:
-            self.libtorrent_link = None
+        self.config_mode = self.CONFIG_MODE_DISTUTILS
+        self.b2_args = ""
+        self.no_autoconf = ""
 
+        self.cxxflags = None
+        self.linkflags = None
+
+        # TODO: this is for backwards compatibility
+        # loading these files will be removed in libtorrent-2.0
+        try:
+            with open('compile_flags') as f:
+                opts = f.read()
+                if '-std=c++' in opts:
+                    self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
+        except:
+            pass
+
+        # TODO: this is for backwards compatibility
+        # loading these files will be removed in libtorrent-2.0
+        try:
+            with open('link_flags') as f:
+                opts = f.read().split(' ')
+                opts = [x for x in opts if x.startswith('-L')]
+                if len(opts):
+                    self.linkflags = opts
+        except:
+            pass
+
+        if os.name == "nt":
+            self.toolset = get_msvc_toolset()
+        else:
+            self.toolset = None
+        self.libtorrent_link = None
         self.boost_link = None
-        self.toolset = None
         self.pic = None
         self.optimization = None
         self.hash = None
         self.cxxstd = None
+
+        self._b2_args_split = []
+        self._b2_args_configured = set()
+
         return super().initialize_options()
+
+    def finalize_options(self):
+        super().finalize_options()
+
+        if self.config_mode not in self.CONFIG_MODES:
+            raise distutils.errors.DistutilsOptionError(
+                f"--config-mode must be one of {self.CONFIG_MODES}"
+            )
+
+        # shlex the args here to warn early on bad config
+        self._b2_args_split = shlex.split(self.b2_args or "")
+        self._b2_args_configured.update(shlex.split(self.no_autoconf or ""))
+
+        # In b2's arg system only single-character args can consume the next
+        # arg, but it may also be concatenated. So we may have "-x",
+        # "-x value", or "-xvalue". All --long args which take a value must
+        # appear as "--long=value"
+        i = 0
+        while i < len(self._b2_args_split):
+            arg = self._b2_args_split[i]
+            m = re.match(r"(-[dfjlmopst])(.*)", arg)
+            if m:
+                name = m.group(1)
+                # An arg that takes a value but wasn't concatenated. Treat the
+                # next option as the value
+                if not m.group(2):
+                    i += 1
+            else:
+                name = arg.split("=", 1)[0]
+            self._b2_args_configured.add(name)
+            i += 1
+
+        # Add deprecated args
+        if self.libtorrent_link:
+            warnings.warn(
+                "--libtorrent-link is deprecated; use --b2-args=libtorrent-link=..."
+            )
+            self._maybe_add_arg(f"libtorrent-link={self.libtorrent_link}")
+        if self.boost_link:
+            warnings.warn("--boost-link is deprecated; use --b2-args=boost-link=...")
+            self._maybe_add_arg(f"boost-link={self.boost_link}")
+        if self.toolset:
+            warnings.warn("--toolset is deprecated; use --b2-args=toolset=...")
+            self._maybe_add_arg(f"toolset={self.toolset}")
+        if self.pic:
+            warnings.warn("--pic is deprecated; use --b2-args=libtorrent-python-pic=on")
+            self._maybe_add_arg("libtorrent-python-pic=on")
+        if self.optimization:
+            warnings.warn(
+                "--optimization is deprecated; use --b2-args=optimization=..."
+            )
+            self._maybe_add_arg(f"optimization={self.optimization}")
+        if self.hash:
+            warnings.warn("--hash is deprecated; use --b2-args=--hash")
+            self._maybe_add_arg("--hash")
+        if self.cxxstd:
+            warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
+            self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+
+
+    def _should_add_arg(self, arg):
+        m = re.match(r"(-\w).*", arg)
+        if m:
+            name = m.group(1)
+        else:
+            name = arg.split("=", 1)[0]
+        return name not in self._b2_args_configured
+
+    def _maybe_add_arg(self, arg):
+        if self._should_add_arg(arg):
+            self._b2_args_split.append(arg)
+            return True
+        return False
 
     def run(self):
         # The current jamfile layout just supports one extension
-        self.build_extension_with_b2()
+        self._build_extension_with_b2()
         return super().run()
 
-    def build_extension_with_b2(self):
-        args = []
+    def _build_extension_with_b2(self):
+        python_binding_dir = pathlib.Path(__file__).parent.absolute()
+        with self._configure_b2():
+            if self.linkflags:
+                for f in self.linkflags:
+                    self._b2_args_split.append("linkflags=" + f)
+            if self.cxxflags:
+                for f in self.cxxflags:
+                    self._b2_args_split.append("cxxflags=" + f)
+            command = ["b2"] + self._b2_args_split
+            log.info(" ".join(command))
+            subprocess.run(command, cwd=python_binding_dir, check=True)
 
+    @contextlib.contextmanager
+    def _configure_b2(self):
+        if self.config_mode == self.CONFIG_MODE_DISTUTILS:
+            # If we're using distutils mode, we'll auto-configure a lot of args
+            # and write temporary config.
+            yield from self._configure_b2_with_distutils()
+        else:
+            # If we're using b2 mode, no configuration needed
+            yield
+
+    def _configure_b2_with_distutils(self):
         if os.name == "nt":
-            self.toolset = get_msvc_toolset()
-            self.boost_link = "static"
-            args.append('--abbreviate-paths')
+            self._maybe_add_arg("--abbreviate-paths")
+            self._maybe_add_arg("boost-link=static")
+        else:
+            self._maybe_add_arg("boost-link=shared")
+
+        self._maybe_add_arg("libtorrent-link=static")
 
         if distutils.debug.DEBUG:
-            args.append("--debug-configuration")
-            args.append("--debug-building")
-            args.append("--debug-generators")
+            self._maybe_add_arg("--debug-configuration")
+            self._maybe_add_arg("--debug-building")
+            self._maybe_add_arg("--debug-generators")
+
+        # Default feature configuration
+        self._maybe_add_arg("deprecated-functions=on")
 
         variant = "debug" if self.debug else "release"
-        args.append(variant)
+        self._maybe_add_arg(f"variant={variant}")
         bits = 64 if sys.maxsize > 2 ** 32 else 32
-        args.append(f"address-model={bits}")
+        self._maybe_add_arg(f"address-model={bits}")
 
         if self.parallel:
-            args.append(f"-j{self.parallel}")
-        if self.libtorrent_link:
-            args.append(f"libtorrent-link={self.libtorrent_link}")
-        if self.boost_link:
-            args.append(f"boost-link={self.boost_link}")
-        if self.pic:
-            args.append(f"libtorrent-python-pic={b2_bool(self.pic)}")
-        if self.optimization:
-            args.append(f"optimization={self.optimization}")
-        if self.hash:
-            args.append("--hash")
-        if self.cxxstd:
-            args.append(f"cxxstd={self.cxxstd}")
+            self._maybe_add_arg(f"-j{self.parallel}")
 
-        # Jamfile hacks to ensure we select the python environment defined in
-        # our project-config.jam
-        args.append("libtorrent-python=on")
-        args.append(f"python={sysconfig.get_python_version()}")
+        # We use a "project-config.jam" to instantiate a python environment
+        # to exactly match the running one.
+        override_project_config = False
+        if self._should_add_arg("--project-config"):
+            if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
+
+                override_project_config = True
+
+                # Jamfile hacks to ensure we select the python environment defined in
+                # our project-config.jam
+                self._maybe_add_arg("libtorrent-python=on")
 
         # Our goal is to produce an artifact at this path. If we do this, the
         # distutils build system will skip trying to build it.
@@ -228,23 +409,22 @@ class LibtorrentBuildExt(BuildExtBase):
         # write_b2_python_config for limitations on controlling the filename.
 
         # Jamfile hack to copy the module to our target directory
-        args.append(f"python-install-path={target.parent}")
-        args.append("install_module")
+        self._maybe_add_arg(f"python-install-path={target.parent}")
+        self._maybe_add_arg("install_module")
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
-        python_binding_dir = pathlib.Path(__file__).parent.absolute()
-        config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
         try:
-            write_b2_python_config(config)
-            config.seek(0)
-            log.info("project-config.jam contents:")
-            log.info(config.read())
-            config.close()
-            args.append(f"--project-config={config.name}")
+            if override_project_config:
+                config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+                write_b2_python_config(config)
+                config.seek(0)
+                log.info("project-config.jam contents:")
+                log.info(config.read())
+                config.close()
+                self._b2_args_split.append(f"--project-config={config.name}")
+            yield
 
-            log.info(" ".join(["b2"] + args))
-            subprocess.run(["b2"] + args, cwd=python_binding_dir, check=True)
         finally:
             # If we errored while writing config, windows may complain about
             # unlinking a file "in use"

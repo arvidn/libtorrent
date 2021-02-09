@@ -56,6 +56,8 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.13 released
+
 	* fix issue with paths starting with ./
 	* fix integer overflow when setting a high DHT upload rate limit
 	* improve Path MTU discovery logic in uTP

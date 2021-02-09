@@ -11,86 +11,140 @@ libtorrent python binding
 building
 ========
 
-Building the libtorrent python bindings will produce a shared library (DLL)
-which is a python module that can be imported in a python program.
+libtorrent can be built as a python module.
 
-building using boost build (windows)
+The best way to build the python bindings is using ``setup.py``. This invokes
+``b2`` under the hood, so you must have all of libtorrent's build dependencies
+installed.
+
+If you just want to build the shared library python extension without python
+packaging semantics, you can also invoke ``b2`` directly.
+
+prerequisites
+=============
+
+Whether building with ``setup.py`` or directly invoking ``b2``, you must
+install the build prerequisites on your system:
+
+1. All `the build prerequisites for the main libtorrent library`__, including
+   boost libraries and ``b2``, and your building toolchain (``gcc``, visual
+   studio, etc).
+2. Boost.Python, if not otherwise included in your boost installation
+3. Python 3.6+. Older versions may work, but are not tested.
+
+.. __: building.html
+
+environment variables
+---------------------
+
+``b2`` is very sensitive to environment variables. At least the following are
+required:
+
+1. ``BOOST_ROOT``
+2. ``BOOST_BUILD_PATH``
+
+``b2`` is also known to reference dozens of other environment variables when
+detecting toolsets. Keep this in mind if you are building in an isolation
+environment like ``tox``.
+
+building with setup.py
+======================
+
+By default, ``setup.py`` will invoke ``b2`` to build libtorrent::
+
+	python setup.py build
+
+``setup.py`` is a normal ``distutils``-based setup script.
+
+To install into your python environment::
+
+	python setup.py install
+
+To build a binary wheel package::
+
+	python -m pip install wheel
+	python setup.py bdist_wheel
+
+build for a different python version
 ------------------------------------
 
-Download and install `Visual C++ 2015 Build Tools`__
+``setup.py`` will target the running interpreter. To build for different python
+versions, you must change how you invoke ``setup.py``::
 
-.. __: http://landinghub.visualstudio.com/visual-cpp-build-tools
+	# build for python3.6
+	python3.6 setup.py build
+	# build for python3.7
+	python3.7 setup.py build
 
-Download `Boost libraries`__ Extract it to c:/Libraries/boost_1_73_0 and create these environmental vars:
 
-.. __: http://www.boost.org/users/history/
+customizing the build
+---------------------
 
-1. BOOST_BUILD_PATH: "c:/Libraries/boost_1_73_0/tools/build/"
-2. BOOST_ROOT: "c:/Libraries/boost_1_73_0/"
+You can customize the build by passing options to the ``build_ext`` step of
+``setup.py`` by passing arguments directly to ``b2`` via ``--b2-args=``::
 
-Navigate to ``BOOST_ROOT``, execute "bootstrap.bat" and add to the path "c:/Libraries/boost_1_73_0/"
-	
-Create a file ``user-config.jam`` in tour home directory and add this::
+	python setup.py build_ext --b2-args="toolset=msvc-14.2 linkflags=-L../../src/.libs"
 
-	using msvc : 14.0 : : <cxxflags>/std:c++11 ;
-	using python : 3.5 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python35/libs ;
+For a full list of ``b2`` build options, see `libtorrent build features`_.
 
-(change the python path for yours)
+.. _`libtorrent build features`: building.html#build-features
 
-Navigate to bindings/python and execute::
-	python setup.py build --bjam
-	
-Note: If you are using 64 bits python you should edit setup.py and add this to the b2 command:
-``address-model=64``
+Here, it's important to note that ``build_ext`` has no "memory" of the build
+config and arguments you passed to it before. This is *different* from the way
+``distutils`` normally works. Consider::
 
-This will create the file libtorrent.pyd inside build/lib/ that contains the binding.
-	
-building using boost build (others)
------------------------------------
+	python setup.py build_ext --b2-args="optimization=space"
+	# the following will build with DEFAULT optimization
+	python setup.py install
 
-To set up your build environment, you need to add some settings to your
-``user-config.jam`` (in your home directory).
+In order to customize the build *and* run other steps like installation, you
+should run the steps inline with ``build_ext``::
 
-Declare the version(s) of python you have installed or want to use. If
-you've installed python in a non-standard location, you have to add the prefix
-path used when you installed python as a second option. Like this::
+	python setup.py build_ext --b2-args="optimization=space" install
 
-	using python : 2.6 : /usr/bin/python2.6 : /usr/include/python2.6 : /usr/lib/python2.6 ;
 
-The bindings require *at least* python version 2.2.
+building with b2
+================
 
-For more information on how to install and set up boost-build, see the
-`building libtorrent`__ section.
+You will need to update your ``user-config.jam`` so ``b2`` can find your python
+installation.
 
-.. __: building.html#step-2-setup-bbv2
+``b2`` has some auto-detection capabilities. You may be able to do just this::
 
-Once you have boost-build set up, you cd to the ``bindings/python``
-directory and invoke ``b2`` with the appropriate settings. For the available
-build variants, see `libtorrent build options`_.
+	using python : 3.6 ;
 
-.. _`libtorrent build options`: building.html#step-3-building-libtorrent
+However you may need to specify full paths. On windows, it make look like
+this::
 
-For example::
+	using python : 3.6 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/libs ;
 
-	$ b2 stage_module stage_dependencies
+Or on Linux, like this::
 
-This will produce a ``libtorrent`` python module in the current directory (file
-name extension depends on operating system). The libraries the python module depends
-on will be copied into ``./dependencies``.
+	using python : 3.6 : /usr/bin/python3.6 : /usr/include/python3.6 : /usr/lib/python3.6 ;
 
-python version
-==============
+Note that ``b2``'s python path detection is known to only work for global
+python installations. It is known to be broken for virtualenvs or ``pyenv``. If
+you are using ``pyenv`` to manage your python versions, you must specify full
+include and library paths yourself.
 
-If you have multiple versions of python installed, and configured in
-``user-config.jam``, you can specify which version to build the module against
-with the ``python`` feature.
+invoking b2
+-----------
 
-e.g.::
+Build the bindings like so::
 
-	b2 python=3.9
+	cd bindings/python
+	b2 release python=3.6 address-model=64
+
+Note that ``address-model`` should match the python installation you are
+building for.
+
+For other build features, see `libtorrent build options`_.
+
+.. _`libtorrent build options`: building.html#build-features
+
 
 static linking
-==============
+--------------
 
 A python module is a shared library. Specifying ``link=static`` when building
 the binding won't work, as it would try to produce a static library.
@@ -107,29 +161,33 @@ root directory of the boost source distribution.
 
 For example, to build a self-contained python module::
 
-	b2 libtorrent-link=static boost-link=static stage_module
+	b2 release python=3.6 libtorrent-link=static boost-link=static
 
-installing python module
-========================
+helper targets
+--------------
+
+There are some targets for placing the build artifact in a helpful location::
+
+	$ b2 release python=3.6 stage_module stage_dependencies
+
+This will produce a ``libtorrent`` python module in the current directory (file
+name extension depends on operating system). The libraries the python module depends
+on will be copied into ``./dependencies``.
 
 To install the python module, build it with the following command::
 
-	b2 install_module
+	b2 release python=3.6 install_module
 
 By default the module will be installed to the python user site. This can be
 changed with the ``python-install-scope`` feature. The valid values are ``user``
 (default) and ``system``. e.g.::
 
-	b2 install_module python-install-scope=system
-
-The python interpreter and the python site used, depends on your python
-configuration in ``user-config.jam`` and which version of python the module is
-being built for.
+	b2 release python=3.6 install_module python-install-scope=system
 
 To specify a custom installation path for the python module, specify the desired
 path with the ``python-install-path`` feature. e.g.::
 
-	b2 install_module python-install-path=/home/foobar/python-site/
+	b2 release python=3.6 install_module python-install-path=/home/foobar/python-site/
 
 using libtorrent in python
 ==========================
