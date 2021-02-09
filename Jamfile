@@ -809,7 +809,7 @@ rule generate-pkg-config ( properties * )
 	local props = [ $(t).generate [ property-set.create $(properties) ] ] ;
 	props = $(props[1]) ;
 
-	local FULL_VERSION = 1.2.12 ;
+	local FULL_VERSION = 1.2.13 ;
 	local libdir ;
 	local includedir ;
 
