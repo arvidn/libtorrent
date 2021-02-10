@@ -235,6 +235,7 @@ cancelled
 bitcoin
 Jamfile
 Jamfiles
+Jamroot
 NDEBUG
 Solaris
 BitTorrent
@@ -572,6 +573,13 @@ socketpair
 fileno
 SSRF
 IDNA
+toolchain
+distutils
+virtualenv
+virtualenvs
+pyenv
+tox
+args
 destructors
 fclose
 fopen
@@ -593,6 +601,12 @@ Qt5
 DownZemAll
 LGPL
 OSS
+ccache
+compileflags
+cflags
+cxxflags
+linkflags
+lto
 google
 WebTorrent
 WebRTC

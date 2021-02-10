@@ -3,7 +3,7 @@ freebsd_instance:
 
 task:
   install_script: |
-    pkg update
+    IGNORE_OSVERSION=yes pkg update
     pkg install -U -y git boost_build boost-libs unzip wget openssl cmake ninja
     echo "using clang ;" > ~/user-config.jam
   submodules_script: |
