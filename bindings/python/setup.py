@@ -363,11 +363,6 @@ class LibtorrentBuildExt(BuildExtBase):
     def _configure_b2_with_distutils(self):
         if os.name == "nt":
             self._maybe_add_arg("--abbreviate-paths")
-            self._maybe_add_arg("boost-link=static")
-        else:
-            self._maybe_add_arg("boost-link=shared")
-
-        self._maybe_add_arg("libtorrent-link=static")
 
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
@@ -376,6 +371,8 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # Default feature configuration
         self._maybe_add_arg("deprecated-functions=on")
+        self._maybe_add_arg("boost-link=static")
+        self._maybe_add_arg("libtorrent-link=static")
 
         variant = "debug" if self.debug else "release"
         self._maybe_add_arg(f"variant={variant}")
