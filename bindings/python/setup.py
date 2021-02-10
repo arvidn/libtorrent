@@ -26,19 +26,6 @@ import setuptools
 import setuptools.command.build_ext as build_ext_lib
 
 
-def get_msvc_toolset() -> str:
-    # Reference: https://wiki.python.org/moin/WindowsCompilers
-    major_minor = sys.version_info[0:2]
-    if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
-        return "msvc-9.0"
-    if major_minor in ((3, 3), (3, 4)):
-        return "msvc-10.0"
-    if major_minor in ((3, 5), (3, 6)):
-        return "msvc-14.1"  # libtorrent requires VS 2017 or newer
-    # unknown python version
-    return "msvc"
-
-
 def b2_bool(value: bool) -> str:
     if value:
         return "on"
@@ -234,41 +221,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self.b2_args = ""
         self.no_autoconf = ""
 
-        self.cxxflags = None
-        self.linkflags = None
-
-        # TODO: this is for backwards compatibility
-        # loading these files will be removed in libtorrent-2.0
-        try:
-            with open("compile_flags") as f:
-                opts = f.read()
-                if "-std=c++" in opts:
-                    self.cxxflags = "-std=c++" + opts.split("-std=c++")[-1].split()[0]
-        except OSError:
-            pass
-
-        # TODO: this is for backwards compatibility
-        # loading these files will be removed in libtorrent-2.0
-        try:
-            with open("link_flags") as f:
-                flags = f.read().split(" ")
-                flags = [x for x in flags if x.startswith("-L")]
-                if len(flags):
-                    self.linkflags = flags
-        except OSError:
-            pass
-
-        if os.name == "nt":
-            self.toolset = get_msvc_toolset()
-        else:
-            self.toolset = None
-        self.libtorrent_link = None
-        self.boost_link = None
-        self.pic = None
-        self.optimization = None
-        self.hash = None
-        self.cxxstd = None
-
         self._b2_args_split: List[str] = []
         self._b2_args_configured: Set[str] = set()
 
@@ -354,12 +306,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
     def _build_extension_with_b2(self) -> None:
         python_binding_dir = pathlib.Path(__file__).parent.absolute()
         with self._configure_b2():
-            if self.linkflags:
-                for f in self.linkflags:
-                    self._b2_args_split.append("linkflags=" + f)
-            if self.cxxflags:
-                for f in self.cxxflags:
-                    self._b2_args_split.append("cxxflags=" + f)
             command = ["b2"] + self._b2_args_split
             log.info(" ".join(command))
             subprocess.run(command, cwd=python_binding_dir, check=True)
