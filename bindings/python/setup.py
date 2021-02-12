@@ -414,22 +414,23 @@ class LibtorrentBuildExt(BuildExtBase):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
-        try:
-            if override_project_config:
-                config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+        if override_project_config:
+            config = tempfile.NamedTemporaryFile(mode="w+", delete=False)
+            try:
                 write_b2_python_config(config)
                 config.seek(0)
                 log.info("project-config.jam contents:")
                 log.info(config.read())
                 config.close()
                 self._b2_args_split.append(f"--project-config={config.name}")
+                yield
+            finally:
+                # If we errored while writing config, windows may complain about
+                # unlinking a file "in use"
+                config.close()
+                os.unlink(config.name)
+        else:
             yield
-
-        finally:
-            # If we errored while writing config, windows may complain about
-            # unlinking a file "in use"
-            config.close()
-            os.unlink(config.name)
 
 
 setuptools.setup(
