@@ -350,11 +350,9 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		if (!(mode & open_mode::sparse))
 		{
 #if TORRENT_HAS_FALLOCATE
-			// if fallocate failed, we have to use posix_fallocate
-			// which can be painfully slow
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
-			int const ret = posix_fallocate(m_fd, 0, size);
+			int const ret = ::posix_fallocate(m_fd, 0, size);
 			// posix_allocate fails with EINVAL in case the underlying
 			// filesystem does not support this operation
 			if (ret != 0 && ret != EINVAL)
@@ -416,14 +414,11 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 
-#ifdef POSIX_FADV_RANDOM
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_RANDOM)
 	if (mode & aux::open_mode::random_access)
 	{
 		// disable read-ahead
-		// NOTE: in android this function was introduced in API 21,
-		// but the constant POSIX_FADV_RANDOM is there for lower
-		// API levels, just don't add :: to allow a macro workaround
-		posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+		::posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
 	}
 #endif
 }

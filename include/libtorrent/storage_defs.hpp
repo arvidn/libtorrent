@@ -51,8 +51,8 @@ namespace libtorrent {
 	enum storage_mode_t
 	{
 		// All pieces will be written to their final position, all files will be
-		// allocated in full when the torrent is first started. This is done with
-		// ``fallocate()`` and similar calls. This mode minimizes fragmentation.
+		// allocated in full when the torrent is first started. This mode minimizes
+		// fragmentation but could be a costly operation.
 		storage_mode_allocate,
 
 		// All pieces will be written to the place where they belong and sparse files

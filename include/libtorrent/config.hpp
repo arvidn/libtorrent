@@ -174,11 +174,13 @@ POSSIBILITY OF SUCH DAMAGE.
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
 #define TORRENT_ANDROID
-#define TORRENT_HAS_FALLOCATE 0
+#if __ANDROID_API__ < 21
+#define TORRENT_HAS_FADVISE 0
+#endif // API < 21
 #if __ANDROID_API__ < 24
 #define TORRENT_HAS_FSEEKO 0
 #define TORRENT_HAS_FTELLO 0
-#endif
+#endif // API < 24
 
 #else // ANDROID
 
@@ -394,6 +396,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
+#endif
+
+#ifndef TORRENT_HAS_FADVISE
+#define TORRENT_HAS_FADVISE 1
 #endif
 
 #ifndef TORRENT_HAS_FSEEKO
