@@ -245,7 +245,11 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	: m_fd(create_file(convert_to_native_path_string(name.to_string()), mode))
 	, m_open_mode(mode)
 {
-	if (m_fd == invalid_handle) throw_ex<system_error>(error_code(GetLastError(), system_category()));
+	if (m_fd == invalid_handle)
+	{
+		throw_ex<storage_error>(error_code(GetLastError(), system_category())
+			, operation_t::file_open);
+	}
 
 	// try to make the file sparse if supported
 	// only set this flag if the file is opened for writing
@@ -262,10 +266,10 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		LARGE_INTEGER sz;
 		sz.QuadPart = size;
 		if (SetFilePointerEx(m_fd, sz, nullptr, FILE_BEGIN) == FALSE)
-			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+			throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_seek);
 
 		if (::SetEndOfFile(m_fd) == FALSE)
-			throw_ex<system_error>(error_code(GetLastError(), system_category()));
+			throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_truncate);
 
 #ifndef TORRENT_WINRT
 		// Enable privilege required by SetFileValidData()
@@ -330,7 +334,7 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			, file_flags(mode & ~open_mode::no_atime), 0755);
 	}
 #endif
-	if (m_fd < 0) throw_ex<system_error>(error_code(errno, system_category()));
+	if (m_fd < 0) throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_open);
 
 #ifdef DIRECTIO_ON
 	// for solaris
@@ -340,11 +344,12 @@ file_handle::file_handle(string_view name, std::int64_t const size
 
 	if (mode & open_mode::truncate)
 	{
+		static_assert(sizeof(off_t) >= sizeof(size), "There seems to be a large-file issue in truncate()");
 		if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
 		{
 			int const err = errno;
 			::close(m_fd);
-			throw_ex<system_error>(error_code(err, system_category()));
+			throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_truncate);
 		}
 
 		if (!(mode & open_mode::sparse))
@@ -358,7 +363,7 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			if (ret != 0 && ret != EINVAL)
 			{
 				::close(m_fd);
-				throw_ex<system_error>(error_code(ret, system_category()));
+				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
 			}
 #elif defined F_ALLOCSP64
 			flock64 fl64;
@@ -369,7 +374,7 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			{
 				int const err = errno;
 				::close(m_fd);
-				throw_ex<system_error>(error_code(err, system_category()));
+				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
 			}
 #elif defined F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, size, 0};
@@ -384,7 +389,8 @@ file_handle::file_handle(string_view name, std::int64_t const size
 					{
 						int const err = errno;
 						::close(m_fd);
-						throw_ex<system_error>(error_code(err, system_category()));
+						throw_ex<storage_error>(error_code(err, system_category())
+							, operation_t::file_fallocate);
 					}
 					// ok, let's try to allocate non contiguous space then
 					f.fst_flags = F_ALLOCATEALL;
@@ -392,7 +398,8 @@ file_handle::file_handle(string_view name, std::int64_t const size
 					{
 						int const err = errno;
 						::close(m_fd);
-						throw_ex<system_error>(error_code(err, system_category()));
+						throw_ex<storage_error>(error_code(err, system_category())
+							, operation_t::file_fallocate);
 					}
 				}
 			}
@@ -476,12 +483,12 @@ std::int64_t file_handle::get_size() const
 #if TORRENT_HAVE_MMAP
 	struct ::stat fs;
 	if (::fstat(fd(), &fs) != 0)
-		throw_ex<system_error>(error_code(errno, system_category()));
+		throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_stat);
 	return fs.st_size;
 #else
 	LARGE_INTEGER file_size;
 	if (GetFileSizeEx(fd(), &file_size) == 0)
-		throw_ex<system_error>(error_code(GetLastError(), system_category()));
+		throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_stat);
 	return file_size.QuadPart;
 #endif
 }
@@ -558,7 +565,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 	// still need to create the empty file.
 	if (file_size > 0 && m_mapping == map_failed)
 	{
-		throw_ex<system_error>(error_code(errno, system_category()));
+		throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_mmap);
 	}
 
 #if TORRENT_USE_MADVISE
@@ -607,7 +614,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 	// you can't create an mmap of size 0, so we just set it to null. We
 	// still need to create the empty file.
 	if (m_size > 0 && m_mapping == nullptr)
-		throw_ex<system_error>(error_code(GetLastError(), system_category()));
+		throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_mmap);
 }
 
 void file_mapping::close()

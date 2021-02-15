@@ -166,7 +166,7 @@ namespace aux {
 		boost::optional<aux::file_view> open_file(settings_interface const&, file_index_t
 			, aux::open_mode_t, storage_error&) const;
 		boost::optional<aux::file_view> open_file_impl(settings_interface const&
-			, file_index_t, aux::open_mode_t, error_code&) const;
+			, file_index_t, aux::open_mode_t, storage_error&) const;
 
 		bool use_partfile(file_index_t index) const;
 		void use_partfile(file_index_t index, bool b);

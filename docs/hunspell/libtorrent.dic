@@ -607,3 +607,4 @@ cflags
 cxxflags
 linkflags
 lto
+SetEndOfFile

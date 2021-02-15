@@ -517,12 +517,7 @@ namespace aux {
 					// it's not a problem, we won't access empty files ever again
 					ec.ec.clear();
 					file_pointer f = open_file(file_index, aux::open_mode::write, 0, ec);
-					if (ec)
-					{
-						ec.file(file_index);
-						ec.operation = operation_t::file_fallocate;
-						return;
-					}
+					if (ec) return;
 				}
 			}
 			ec.ec.clear();

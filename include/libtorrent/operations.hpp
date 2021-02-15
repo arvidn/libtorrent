@@ -182,6 +182,12 @@ namespace libtorrent {
 
 		// an async wait operation on a timer
 		timer,
+
+		// call to mmap() (or windows counterpart)
+		file_mmap,
+
+		// call to ftruncate() (or SetEndOfFile() on windows)
+		file_truncate,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)

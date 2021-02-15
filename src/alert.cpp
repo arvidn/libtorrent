@@ -1080,6 +1080,8 @@ namespace {
 			case o::enum_route: return -1;
 			case o::file_seek: return -1;
 			case o::timer: return -1;
+			case o::file_mmap: return -1;
+			case o::file_truncate: return -1;
 		}
 		return -1;
 	}
@@ -1875,6 +1877,8 @@ namespace {
 			"enum_route",
 			"file_seek",
 			"timer",
+			"file_mmap",
+			"file_truncate",
 		};
 
 		int const idx = static_cast<int>(op);
