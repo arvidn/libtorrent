@@ -710,13 +710,7 @@ TORRENT_VERSION_NAMESPACE_3
 		static constexpr alert_category_t static_category = alert_category::tracker;
 		std::string message() const override;
 
-		// specifies what event was sent to the tracker. It is defined as:
-		//
-		// 0. None
-		// 1. Completed
-		// 2. Started
-		// 3. Stopped
-		// 4. Paused
+		// specifies what event was sent to the tracker. See event_t.
 		event_t const event;
 	};
 
