@@ -1138,11 +1138,6 @@ bool is_downloading_state(int const st)
 		if (m_peer_list) m_peer_list->clear();
 	}
 
-	storage_interface* torrent::get_storage_impl() const
-	{
-		return m_ses.disk_thread().get_torrent(m_storage);
-	}
-
 	void torrent::set_sequential_start(piece_index_t piece)
 	{
 		if (!m_picker) return;

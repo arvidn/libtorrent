@@ -655,7 +655,7 @@ namespace libtorrent {
 
     void torrent_handle::set_sequential_start(piece_index_t piece) const
     {
-        async_call(&torrent::set_sequential_start, piece);
+        async_call(&aux::torrent::set_sequential_start, piece);
     }
 
 	bool torrent_handle::is_valid() const
