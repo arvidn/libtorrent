@@ -187,3 +187,36 @@ repos:
             tools/set_version.py|
             tools/update_copyright.py
         )$
+- repo: local
+  hooks:
+  - id: gen_header
+    name: gen_header
+    language: system
+    entry: ./bindings/c/tools/gen_header.py
+    files: ^include/libtorrent/settings_pack.hpp$
+  - id: gen_alert_header
+    name: gen_alert_header
+    language: system
+    entry: ./bindings/c/tools/gen_alert_header.py
+    files: ^include/libtorrent/alert_types.hpp$
+  - id: gen_fwd
+    name: gen_fwd
+    language: system
+    entry: ./tools/gen_fwd.py
+    always_run: true
+  - id: gen_convenience_header
+    name: gen_convenience_header
+    language: system
+    entry: ./tools/gen_convenience_header.py
+    files: |
+      (?x)^(
+        include/libtorrent/[^/]*\.hpp|
+        include/libtorrent/kademlia/[^/]*\.hpp|
+        include/libtorrent/extensions/[^/]*\.hpp
+      )$
+    exclude: |
+      (?x)/(
+        libtorrent.hpp|
+        storage.hpp|
+        io_service.hpp
+      )$

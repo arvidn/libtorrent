@@ -32,7 +32,6 @@ enum settings_tags_t {
 	SET_PREFER_UDP_TRACKERS, // int (0 or 1)
 	SET_DISABLE_HASH_CHECKS, // int (0 or 1)
 	SET_ALLOW_I2P_MIXED, // int (0 or 1)
-	SET_VOLATILE_READ_CACHE, // int (0 or 1)
 	SET_NO_ATIME_STORAGE, // int (0 or 1)
 	SET_INCOMING_STARTS_QUEUED_TORRENTS, // int (0 or 1)
 	SET_REPORT_TRUE_DOWNLOADED, // int (0 or 1)
@@ -76,6 +75,9 @@ enum settings_tags_t {
 	SET_DHT_READ_ONLY, // int (0 or 1)
 	SET_PIECE_EXTENT_AFFINITY, // int (0 or 1)
 	SET_VALIDATE_HTTPS_TRACKERS, // int (0 or 1)
+	SET_SSRF_MITIGATION, // int (0 or 1)
+	SET_ALLOW_IDNA, // int (0 or 1)
+	SET_ENABLE_SET_FILE_VALID_DATA, // int (0 or 1)
 	SET_TRACKER_COMPLETION_TIMEOUT, // int
 	SET_TRACKER_RECEIVE_TIMEOUT, // int
 	SET_STOP_TRACKER_TIMEOUT, // int
