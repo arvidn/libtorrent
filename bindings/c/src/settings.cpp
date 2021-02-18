@@ -37,7 +37,6 @@ int settings_key(int const tag)
 		case SET_PREFER_UDP_TRACKERS: return sp::prefer_udp_trackers;
 		case SET_DISABLE_HASH_CHECKS: return sp::disable_hash_checks;
 		case SET_ALLOW_I2P_MIXED: return sp::allow_i2p_mixed;
-		case SET_VOLATILE_READ_CACHE: return sp::volatile_read_cache;
 		case SET_NO_ATIME_STORAGE: return sp::no_atime_storage;
 		case SET_INCOMING_STARTS_QUEUED_TORRENTS: return sp::incoming_starts_queued_torrents;
 		case SET_REPORT_TRUE_DOWNLOADED: return sp::report_true_downloaded;
@@ -81,6 +80,9 @@ int settings_key(int const tag)
 		case SET_DHT_READ_ONLY: return sp::dht_read_only;
 		case SET_PIECE_EXTENT_AFFINITY: return sp::piece_extent_affinity;
 		case SET_VALIDATE_HTTPS_TRACKERS: return sp::validate_https_trackers;
+		case SET_SSRF_MITIGATION: return sp::ssrf_mitigation;
+		case SET_ALLOW_IDNA: return sp::allow_idna;
+		case SET_ENABLE_SET_FILE_VALID_DATA: return sp::enable_set_file_valid_data;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;
