@@ -2118,8 +2118,10 @@ namespace {
 				else
 				{
 					piece_index_t last_piece = m_reverse_cursor;
-					if (-1 != m_sequential_end && m_sequential_end < m_reverse_cursor)
-						last_piece = m_sequential_end + 1;
+					if (-1 != m_sequential_end && m_sequential_end < m_reverse_cursor) {
+						last_piece = m_sequential_end;
+						++last_piece;
+					}
 					for (piece_index_t i = m_cursor > m_sequential_start ? m_cursor : m_sequential_start; i < last_piece; ++i)
 					{
 						if (!is_piece_free(i, pieces)) continue;
