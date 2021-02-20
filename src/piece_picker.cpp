@@ -333,9 +333,10 @@ namespace libtorrent::aux {
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-    void piece_picker::set_sequential_start(piece_index_t const piece)
+    void piece_picker::set_sequential_start(piece_index_t const start_piece, piece_index_t const end_piece)
     {
-        m_sequential_start = piece;
+        m_sequential_start = start_piece;
+		m_sequential_end = end_piece;
     }
 
 	span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
@@ -2116,7 +2117,10 @@ namespace {
 				}
 				else
 				{
-					for (piece_index_t i = m_cursor > m_sequential_start ? m_cursor : m_sequential_start; i < m_reverse_cursor; ++i)
+					piece_index_t last_piece = m_reverse_cursor;
+					if (-1 != m_sequential_end && m_sequential_end < m_reverse_cursor)
+						last_piece = m_sequential_end + 1;
+					for (piece_index_t i = m_cursor > m_sequential_start ? m_cursor : m_sequential_start; i < last_piece; ++i)
 					{
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces

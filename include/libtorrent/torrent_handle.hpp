@@ -276,11 +276,11 @@ namespace aux {
 		// guaranteed to finish in the same order as you initiated them.
 		void read_piece(piece_index_t piece) const;
 
-		// This function sets the starting piece for the piece picker. It helps to
-		// start loading from the required piece in sequential mode. This only works
-		// in sequential mode. If no piece picker has been created, then the
-		// function does nothing.
-		void set_sequential_start(piece_index_t piece) const;
+		// This function sets the starting piece (and optionally the ending piece)
+		// for the piece picker. It helps to start loading from the required piece
+		// in sequential mode. This only works in sequential mode. If no piece
+		// picker has been created, then the function does nothing.
+		void set_sequential_start(piece_index_t start_piece, piece_index_t end_piece = -1) const;
 		// Returns true if this piece has been completely downloaded and written
 		// to disk, and false otherwise.
 		bool have_piece(piece_index_t piece) const;

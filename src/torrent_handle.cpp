@@ -653,9 +653,9 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece, piece);
 	}
 
-    void torrent_handle::set_sequential_start(piece_index_t piece) const
+    void torrent_handle::set_sequential_start(piece_index_t start_piece, piece_index_t end_piece) const
     {
-        async_call(&aux::torrent::set_sequential_start, piece);
+        async_call(&aux::torrent::set_sequential_start, start_piece, end_piece);
     }
 
 	bool torrent_handle::is_valid() const
