@@ -1567,9 +1567,8 @@ namespace libtorrent::aux {
 		// does not count when the torrent is stopped or paused.
 		seconds32 m_finished_time{0};
 
-		// in case the piece picker hasn't been constructed
-		// when this settings is set, this variable will keep
-		// its value until the piece picker is created
+		// this variable keeps track of whether the torrent
+		// has been set to be downloaded sequentially.
 		bool m_sequential_download:1;
 
 		// this is set if the auto_sequential setting is true and this swarm

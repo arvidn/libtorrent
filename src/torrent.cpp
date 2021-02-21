@@ -1140,10 +1140,7 @@ bool is_downloading_state(int const st)
 
 	void torrent::set_sequential_start(piece_index_t start_piece, piece_index_t end_piece)
 	{
-		if (!m_picker) {
-			m_sequential_download = true;
-			return;
-		}
+		if (!m_picker) return;
 		m_picker->set_sequential_start(start_piece, end_piece);
 	}
 
@@ -8812,8 +8809,7 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
 		if (!sd) set_sequential_start(piece_index_t(0), piece_index_t(-1));
-		if (!m_picker)
-			m_sequential_download = sd;
+		m_sequential_download = sd;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);
 #endif

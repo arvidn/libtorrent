@@ -335,7 +335,7 @@ namespace libtorrent::aux {
 
     void piece_picker::set_sequential_start(piece_index_t const start_piece, piece_index_t const end_piece)
     {
-        m_sequential_start = start_piece;
+		m_sequential_start = start_piece;
 		m_sequential_end = end_piece;
     }
 
