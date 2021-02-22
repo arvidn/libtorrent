@@ -103,7 +103,11 @@ def print_classes(out, classes, keyword):
             out.write(content)
 
 
-os.remove('include/libtorrent/fwd.hpp')
+try:
+    os.remove('include/libtorrent/fwd.hpp')
+except FileNotFoundError:
+    pass
+
 with open('include/libtorrent/fwd.hpp', 'w+') as f:
     f.write(file_header)
 
