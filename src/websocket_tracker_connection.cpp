@@ -420,6 +420,8 @@ try {
 		auto sdp = payload_offer["sdp"].as_string();
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (pid.size() != 20)
+			throw std::invalid_argument("invalid peer_id size " + std::to_string(pid.size()));
 
 		aux::rtc_offer_id oid{span<char const>(id)};
 		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
@@ -431,6 +433,8 @@ try {
 		auto sdp = payload_answer["sdp"].as_string();
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (pid.size() != 20)
+			throw std::invalid_argument("invalid peer_id size " + std::to_string(pid.size()));
 
 		aux::rtc_offer_id oid{span<char const>(id)};
 		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
