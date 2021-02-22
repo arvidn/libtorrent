@@ -1,5 +1,6 @@
 1.2.13 released
 
+	* fix incoming TCP connections when using tracker-only proxy
 	* fix issue with paths starting with ./
 	* fix integer overflow when setting a high DHT upload rate limit
 	* improve Path MTU discovery logic in uTP

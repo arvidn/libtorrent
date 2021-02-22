@@ -2646,7 +2646,8 @@ namespace {
 
 		// don't accept any connections from our local sockets if we're using a
 		// proxy
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
 			return;
 
 		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
@@ -2731,6 +2732,12 @@ namespace {
 	void session_impl::incoming_connection(std::shared_ptr<socket_type> const& s)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		// don't accept any connections from our local sockets if we're using a
+		// proxy
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
+			return;
 
 		if (m_paused)
 		{
@@ -5509,7 +5516,8 @@ namespace {
 			return std::uint16_t(sock->tcp_external_port());
 		}
 
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none)
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
 			return 0;
 
 		for (auto const& s : m_listen_sockets)
