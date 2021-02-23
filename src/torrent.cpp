@@ -10323,8 +10323,7 @@ namespace {
 		, int const timed_out)
 	{
 		std::vector<piece_block> interesting_blocks;
-		std::vector<piece_block> backup1;
-		std::vector<piece_block> backup2;
+		std::vector<piece_block> backup;
 		std::vector<piece_index_t> ignore;
 
 		time_point const now = aux::time_now();
@@ -10359,20 +10358,17 @@ namespace {
 			peer_connection& c = **p;
 
 			interesting_blocks.clear();
-			backup1.clear();
-			backup2.clear();
+			backup.clear();
 
 			// specifically request blocks with no affinity towards fast or slow
 			// pieces. If we would, the picked block might end up in one of
 			// the backup lists
 			picker->add_blocks(i->piece, c.get_bitfield(), interesting_blocks
-				, backup1, backup2, blocks_in_piece, 0, c.peer_info_struct()
+				, backup, blocks_in_piece, 0, c.peer_info_struct()
 				, ignore, {});
 
 			interesting_blocks.insert(interesting_blocks.end()
-				, backup1.begin(), backup1.end());
-			interesting_blocks.insert(interesting_blocks.end()
-				, backup2.begin(), backup2.end());
+				, backup.begin(), backup.end());
 
 			bool busy_mode = false;
 

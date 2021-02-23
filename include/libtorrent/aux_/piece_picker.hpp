@@ -301,7 +301,6 @@ namespace libtorrent::aux {
 		// that are being downloaded
 		int add_blocks(piece_index_t piece, typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks
-			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
 			, aux::torrent_peer* peer, std::vector<piece_index_t> const& ignore
@@ -311,7 +310,6 @@ namespace libtorrent::aux {
 		int add_blocks_downloading(downloading_piece const& dp
 			, typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks
-			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
 			, aux::torrent_peer* peer
