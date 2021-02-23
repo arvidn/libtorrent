@@ -322,14 +322,32 @@ rule building ( properties * )
 
 rule tag ( name : type ? : property-set )
 {
-	if $(type) = SHARED_LIB &&
-		( ! ( [ $(property-set).get <target-os> ] in windows cygwin ) )
+	# we only care about the names of our output static- or shared library, not
+	# other targets like object files
+	if $(type) != SHARED_LIB && $(type) != STATIC_LIB
+	{
+		return [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
+	}
+
+	# static libraries are not versioned
+	if $(type) = STATIC_LIB
+	{
+		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
+	}
+
+	# shared libraries have the version number before the filename extension on
+	# windows
+	if [ $(property-set).get <target-os> ] in windows cygwin
+	{
+		# TODO: add version on windows too
+		# return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar-$(VERSION) : $(type) : $(property-set) ] ;
+		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
+	}
+	else
 	{
 		local name = [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
 		return $(name).$(VERSION) ;
 	}
-
-	return [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
 }
 
 # the search path to pick up the openssl libraries from. This is the <search>
