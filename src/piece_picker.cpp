@@ -1973,7 +1973,6 @@ namespace {
 		// this will be filled with blocks that we should not request
 		// unless we can't find num_blocks among the other ones.
 		std::vector<piece_block> backup_blocks;
-		std::vector<piece_block> backup_blocks2;
 		static const std::vector<piece_index_t> empty_vector;
 
 		// When prefer_contiguous_blocks is set (usually set when downloading from
@@ -2034,19 +2033,14 @@ namespace {
 				ret |= picker_log_alert::prioritize_partials;
 
 				num_blocks = add_blocks_downloading(*ordered_partials[i], pieces
-					, interesting_blocks, backup_blocks, backup_blocks2
+					, interesting_blocks, backup_blocks
 					, num_blocks, prefer_contiguous_blocks, peer, options);
 				if (num_blocks <= 0) return ret;
-				if (int(backup_blocks.size()) >= num_blocks
-					&& int(backup_blocks2.size()) >= num_blocks)
+				if (int(backup_blocks.size()) >= num_blocks)
 					break;
 			}
 
 			num_blocks = append_blocks(interesting_blocks, backup_blocks
-				, num_blocks);
-			if (num_blocks <= 0) return ret;
-
-			num_blocks = append_blocks(interesting_blocks, backup_blocks2
 				, num_blocks);
 			if (num_blocks <= 0) return ret;
 		}
@@ -2066,8 +2060,8 @@ namespace {
 				ret |= picker_log_alert::suggested_pieces;
 
 				num_blocks = add_blocks(i, pieces
-					, interesting_blocks, backup_blocks
-					, backup_blocks2, num_blocks
+					, interesting_blocks
+					, backup_blocks, num_blocks
 					, prefer_contiguous_blocks, peer, empty_vector
 					, options);
 				if (num_blocks <= 0) return ret;
@@ -2087,8 +2081,8 @@ namespace {
 				ret |= picker_log_alert::prio_sequential_pieces;
 
 				num_blocks = add_blocks(*i, pieces
-					, interesting_blocks, backup_blocks
-					, backup_blocks2, num_blocks
+					, interesting_blocks
+					, backup_blocks, num_blocks
 					, prefer_contiguous_blocks, peer, suggested_pieces
 					, options);
 				if (num_blocks <= 0) return ret;
@@ -2108,8 +2102,8 @@ namespace {
 						ret |= picker_log_alert::reverse_sequential;
 
 						num_blocks = add_blocks(i, pieces
-							, interesting_blocks, backup_blocks
-							, backup_blocks2, num_blocks
+							, interesting_blocks
+							, backup_blocks, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
@@ -2126,8 +2120,8 @@ namespace {
 						ret |= picker_log_alert::sequential_pieces;
 
 						num_blocks = add_blocks(i, pieces
-							, interesting_blocks, backup_blocks
-							, backup_blocks2, num_blocks
+							, interesting_blocks
+							, backup_blocks, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
@@ -2159,8 +2153,8 @@ namespace {
 						ret |= picker_log_alert::reverse_rarest_first;
 
 						num_blocks = add_blocks(m_pieces[p], pieces
-							, interesting_blocks, backup_blocks
-							, backup_blocks2, num_blocks
+							, interesting_blocks
+							, backup_blocks, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
@@ -2187,8 +2181,8 @@ namespace {
 							ret |= picker_log_alert::extent_affinity;
 
 							num_blocks = add_blocks(p, pieces
-								, interesting_blocks, backup_blocks
-								, backup_blocks2, num_blocks
+								, interesting_blocks
+								, backup_blocks, num_blocks
 								, prefer_contiguous_blocks, peer, suggested_pieces
 								, options);
 							if (num_blocks <= 0)
@@ -2221,8 +2215,8 @@ namespace {
 					ret |= picker_log_alert::rarest_first;
 
 					num_blocks = add_blocks(i, pieces
-						, interesting_blocks, backup_blocks
-						, backup_blocks2, num_blocks
+						, interesting_blocks
+						, backup_blocks, num_blocks
 						, prefer_contiguous_blocks, peer, suggested_pieces
 						, options);
 					if (num_blocks <= 0) return ret;
@@ -2241,8 +2235,8 @@ namespace {
 				ret |= picker_log_alert::time_critical;
 
 				num_blocks = add_blocks(*i, pieces
-					, interesting_blocks, backup_blocks
-					, backup_blocks2, num_blocks
+					, interesting_blocks
+					, backup_blocks, num_blocks
 					, prefer_contiguous_blocks, peer, suggested_pieces
 					, options);
 				if (num_blocks <= 0) return ret;
@@ -2305,8 +2299,8 @@ namespace {
 					ret |= picker_log_alert::random_pieces;
 
 					num_blocks = add_blocks(piece, pieces
-						, interesting_blocks, backup_blocks
-						, backup_blocks2, num_blocks
+						, interesting_blocks
+						, backup_blocks, num_blocks
 						, prefer_contiguous_blocks, peer, empty_vector
 						, options);
 					++piece;
@@ -2324,15 +2318,10 @@ get_out:
 #if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(interesting_blocks, pieces);
 		verify_pick(backup_blocks, pieces);
-		verify_pick(backup_blocks2, pieces);
 #endif
 
 		ret |= picker_log_alert::backup1;
 		num_blocks = append_blocks(interesting_blocks, backup_blocks, num_blocks);
-		if (num_blocks <= 0) return ret;
-
-		ret |= picker_log_alert::backup2;
-		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
 		if (num_blocks <= 0) return ret;
 
 		// ===== THIS IS FOR END-GAME MODE =====
@@ -2635,7 +2624,6 @@ get_out:
 		, typed_bitfield<piece_index_t> const& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
-		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
 		, aux::torrent_peer* peer, std::vector<piece_index_t> const& ignore
 		, picker_options_t const options) const
@@ -2661,7 +2649,7 @@ get_out:
 			TORRENT_ASSERT(i != m_downloads[state].end());
 
 			return add_blocks_downloading(*i, pieces
-				, interesting_blocks, backup_blocks, backup_blocks2
+				, interesting_blocks, backup_blocks
 				, num_blocks, prefer_contiguous_blocks, peer, options);
 		}
 
@@ -2706,7 +2694,6 @@ get_out:
 		, typed_bitfield<piece_index_t> const& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
-		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
 		, aux::torrent_peer* peer, picker_options_t const options) const
 	{
@@ -2750,7 +2737,7 @@ get_out:
 			&& !exclusive_active
 			&& !(options & on_parole))
 		{
-			if (int(backup_blocks2.size()) >= num_blocks)
+			if (int(backup_blocks.size()) >= num_blocks)
 				return num_blocks;
 
 			for (int j = 0; j < num_blocks_in_piece; ++j)
@@ -2760,7 +2747,7 @@ get_out:
 				block_info const& info = binfo[block_idx];
 				TORRENT_ASSERT(info.piece_index == dp.index);
 				if (info.state != block_info::state_none) continue;
-				backup_blocks2.emplace_back(dp.index, block_idx);
+				backup_blocks.emplace_back(dp.index, block_idx);
 			}
 			return num_blocks;
 		}
@@ -2790,11 +2777,6 @@ get_out:
 		if (num_blocks <= 0) return 0;
 		if (options & on_parole) return num_blocks;
 
-		if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		verify_pick(backup_blocks, pieces);
-#endif
 		return num_blocks;
 	}
 
