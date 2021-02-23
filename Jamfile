@@ -827,11 +827,12 @@ rule generate-pkg-config ( properties * )
 
 	# these are the properties we're using to build it with
 	local props = [ $(t).generate [ property-set.create $(properties) ] ] ;
+	local libname = [ $(props[2]).name ] ;
 	props = $(props[1]) ;
 
 	local FULL_VERSION = 1.2.13 ;
 	local libdir ;
-	local includedir ;
+	local includes ;
 
 	# package.paths was introduced in boost-1.70 (2018.02)
 	# however, boost build's versioning scheme changed in boost-1.71 to version
@@ -850,40 +851,83 @@ rule generate-pkg-config ( properties * )
 			else if [ modules.peek : UNIX ] { prefix = /usr/local ; }
 		}
 
-		libdir = $(prefix)/lib ;
-		includedir = $(prefix)/include ;
+		libdir += $(prefix)/lib ;
+		includes = $(prefix)/include ;
 	}
 	else
 	{
 		local p = [ package.paths libtorrent : $(properties) ] ;
-		libdir = [ $(p).libdir ] ;
-		includedir = [ $(p).includedir ] ;
+		libdir += [ $(p).libdir ] ;
+		includes = [ $(p).includedir ] ;
 	}
 
-	local libname = [ virtual-target.add-prefix-and-suffix "torrent-rasterbar" : SHARED_LIB : $(props) ] ;
-	libname = "$(libname).$(VERSION)" ;
-
 	local defines ;
-	for d in [ $(props).raw ] {
+	local shared_deps ;
+	local private_deps ;
+	for d in [ feature.expand $(properties) ] [ $(props).raw ] {
 		switch $(d)
 		{
 			case \<define\>TORRENT_* : {
 				d = [ SPLIT_BY_CHARACTERS $(d) : ">" ] ;
-				defines += " -D$(d[2])" ;
+				defines += $(d[2]) ;
 			}
 			case \<define\>BOOST_* : {
 				d = [ SPLIT_BY_CHARACTERS $(d) : ">" ] ;
-				defines += " -D$(d[2])" ;
+				defines += $(d[2]) ;
+			}
+			case \<include\>* : {
+				d = [ SPLIT_BY_CHARACTERS $(d) : ">" ] ;
+				d = $(d[2]) ;
+				if ( [ path.is-rooted $(d) ] )
+				{
+					includes += $(d) ;
+				}
+			}
+			case \<library\>* : {
+				d = [ SPLIT_BY_CHARACTERS $(d) : ">" ] ;
+				# this is the target
+				local t = $(d[2]) ;
+				if [ $(t).type ] = SHARED_LIB
+				{
+					local path = [ $(t).path ] ;
+					if $(path) != ""
+					{
+						libdir += $(path) ;
+					}
+					shared_deps += [ $(t).name ] ;
+				}
+				else if [ $(t).type ] = SEARCHED_LIB
+				{
+					local path = [ $(t).search ] ;
+					if $(path) != ""
+					{
+						libdir += $(path) ;
+					}
+					shared_deps += [ $(t).name ] ;
+				}
+				else if ( [ $(t).type ] = STATIC_LIB )
+				{
+					private_deps += [ $(t).name ] ;
+				}
 			}
 		}
 	}
 
+	# TODO: use $(libname) in future versions
 	local config = "Name: libtorrent-rasterbar"
 		"\nDescription: libtorrent is an open source C++ library implementing the BitTorrent protocol"
 		"\nURL: https://libtorrent.org"
 		"\nVersion: $(FULL_VERSION)"
-		"\nLibs: -L$(libdir) -l$(libname) -lboost_system"
-		"\nCflags: -I$(includedir) $(defines:J=)"
+		"\nLibs:"
+		" -L\"$(libdir)\""
+		" -ltorrent-rasterbar"
+		" -l$(shared_deps)"
+		"\nLibs.private:"
+		" -L\"$(libdir)\""
+		" -l$(private_deps)"
+		"\nCflags:"
+		" -D$(defines)"
+		" -I\"$(includes)\""
 		"\n"
 		;
 
