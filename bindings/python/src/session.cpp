@@ -514,8 +514,13 @@ namespace
 
     list get_torrent_status(lt::session& s, object pred, int const flags)
     {
+        // keep a reference to the predicate here, in the python thread, to
+        // ensure it's freed in this thread at the end. If we move it into the
+        // libtorrent thread the python predicate will be freed from that
+        // thread, which won't work
+        auto wrapped_pred = std::bind(&wrap_pred, pred, std::placeholders::_1);
         std::vector<torrent_status> torrents
-            = s.get_torrent_status(std::bind(&wrap_pred, pred, std::placeholders::_1), status_flags_t(flags));
+            = s.get_torrent_status(std::ref(wrapped_pred), status_flags_t(flags));
 
         list ret;
         for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
