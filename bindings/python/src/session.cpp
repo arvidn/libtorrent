@@ -371,10 +371,10 @@ namespace
         allow_threading_guard guard;
 
 #ifndef BOOST_NO_EXCEPTIONS
-        return s.add_torrent(p);
+        return s.add_torrent(std::move(p));
 #else
         error_code ec;
-        return s.add_torrent(p, ec);
+        return s.add_torrent(std::move(p), ec);
 #endif
     }
 
@@ -385,7 +385,34 @@ namespace
 
         allow_threading_guard guard;
 
-        s.async_add_torrent(p);
+        s.async_add_torrent(std::move(p));
+    }
+
+    torrent_handle wrap_add_torrent(lt::session& s, lt::add_torrent_params const& p)
+    {
+        add_torrent_params atp = p;
+        if (p.ti)
+            atp.ti = std::make_shared<torrent_info>(*p.ti);
+
+        allow_threading_guard guard;
+
+#ifndef BOOST_NO_EXCEPTIONS
+        return s.add_torrent(std::move(p));
+#else
+        error_code ec;
+        return s.add_torrent(std::move(p), ec);
+#endif
+    }
+
+    void wrap_async_add_torrent(lt::session& s, lt::add_torrent_params const& p)
+    {
+        add_torrent_params atp = p;
+        if (p.ti)
+            atp.ti = std::make_shared<torrent_info>(*p.ti);
+
+        allow_threading_guard guard;
+
+        s.async_add_torrent(std::move(p));
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -1069,8 +1096,8 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
-        .def("async_add_torrent", static_cast<void (session_handle::*)(lt::add_torrent_params const&)>(&lt::session::async_add_torrent))
-        .def("add_torrent", allow_threads(static_cast<lt::torrent_handle (session_handle::*)(add_torrent_params const&)>(&lt::session::add_torrent)))
+        .def("async_add_torrent", &wrap_async_add_torrent)
+        .def("add_torrent", &wrap_add_torrent)
 #ifndef BOOST_NO_EXCEPTIONS
 #if TORRENT_ABI_VERSION == 1
         .def(
