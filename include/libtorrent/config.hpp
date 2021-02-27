@@ -178,8 +178,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_HAS_FADVISE 0
 #endif // API < 21
-#if __ANDROID_API__ < 24
+
+// android 32 bits has real problems with fseeko
+#if (__ANDROID_API__ < 24) || defined __arm__ || defined __i386__
 #define TORRENT_HAS_FSEEKO 0
+#endif
+
+#if __ANDROID_API__ < 24
 #define TORRENT_HAS_FTELLO 0
 #endif // API < 24
 
