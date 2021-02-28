@@ -302,27 +302,32 @@ class LibtorrentBuildExt(BuildExtBase):
                 "--libtorrent-link is deprecated; use --b2-args=libtorrent-link=..."
             )
             self._maybe_add_arg(f"libtorrent-link={self.libtorrent_link}")
+            self._b2_args_configured.add("libtorrent-link")
         if self.boost_link:
             warnings.warn("--boost-link is deprecated; use --b2-args=boost-link=...")
             self._maybe_add_arg(f"boost-link={self.boost_link}")
+            self._b2_args_configured.add("boost-link")
         if self.toolset:
             warnings.warn("--toolset is deprecated; use --b2-args=toolset=...")
             self._maybe_add_arg(f"toolset={self.toolset}")
+            self._b2_args_configured.add("toolset")
         if self.pic:
             warnings.warn("--pic is deprecated; use --b2-args=libtorrent-python-pic=on")
             self._maybe_add_arg("libtorrent-python-pic=on")
+            self._b2_args_configured.add("libtorrent-python-pic")
         if self.optimization:
             warnings.warn(
                 "--optimization is deprecated; use --b2-args=optimization=..."
             )
             self._maybe_add_arg(f"optimization={self.optimization}")
+            self._b2_args_configured.add("optimization")
         if self.hash:
             warnings.warn("--hash is deprecated; use --b2-args=--hash")
             self._maybe_add_arg("--hash")
         if self.cxxstd:
             warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
             self._maybe_add_arg(f"cxxstd={self.cxxstd}")
-
+            self._b2_args_configured.add("cxxstd")
 
     def _should_add_arg(self, arg):
         m = re.match(r"(-\w).*", arg)
