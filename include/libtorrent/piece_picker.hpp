@@ -288,23 +288,28 @@ namespace libtorrent {
 		// returns the current piece priorities for all pieces
 		void piece_priorities(std::vector<download_priority_t>&) const;
 
-		// pieces should be the vector that represents the pieces a
-		// client has. It returns a list of all pieces that this client
-		// has and that are interesting to download. It returns them in
-		// priority order. It doesn't care about the download flag.
-		// The user of this function must lookup if any piece is
-		// marked as being downloaded. If the user of this function
-		// decides to download a piece, it must mark it as being downloaded
-		// itself, by using the mark_as_downloading() member function.
-		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
+		// This function returns a list of all blocks in pieces that this client
+		// has and that are interesting to download, in the
+		// ``interesting_blocks`` out-parameter. The blocks are returned in
+		// priority order.
+		//
+		// If the caller of this function decides to download a block, it must
+		// mark it as being downloaded itself, by using the
+		// mark_as_downloading() member function. THIS IS DONE BY THE
+		// peer_connection::send_request() MEMBER FUNCTION!
+		//
+		// ``pieces`` should be the bitfield of all pieces, indicating which
+		// pieces the client has, that can be requested from it.
+		//
 		// The last argument is the torrent_peer pointer for the peer that
 		// we'll download from.
-		// prefer_contiguous_blocks indicates how many blocks we would like
+		//
+		// ``prefer_contiguous_blocks`` indicates how many blocks we would like
 		// to request contiguously. The blocks are not merged by the piece
-		// picker, but may be coalesced later by the peer_connection.
-		// this feature is used by web_peer_connection to request larger blocks
-		// at a time to mitigate limited pipelining and lack of keep-alive
-		// (i.e. higher overhead per request).
+		// picker, but may be coalesced later by the caller. This feature is
+		// used by web_peer_connection to request larger blocks at a time to
+		// mitigate limited pipelining and lack of keep-alive (i.e. higher
+		// overhead per request).
 		picker_flags_t pick_pieces(typed_bitfield<piece_index_t> const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_contiguous_blocks, torrent_peer* peer
