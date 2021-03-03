@@ -701,7 +701,7 @@ namespace aux {
 			{
 				// you cannot mix v1 and v2 files when building torrent_storage. Either
 				// all files are v1 or all files are v2
-					ec = m_v2 ? make_error_code(errors::torrent_missing_pieces_root)
+				ec = m_v2 ? make_error_code(errors::torrent_missing_pieces_root)
 					: make_error_code(errors::torrent_inconsistent_files);
 				return;
 			}

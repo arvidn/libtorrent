@@ -624,7 +624,7 @@ TORRENT_TEST(stop_when_ready)
 				{
 					if (sc->state == torrent_status::seeding)
 					{
-						// once we turn into beeing a seed. we should have been paused
+						// once we turn into being a seed. we should have been paused
 						// already.
 						TEST_EQUAL(num_paused, 1);
 					}
