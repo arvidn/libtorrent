@@ -230,7 +230,7 @@ class LibtorrentBuildExt(BuildExtBase):
                 opts = f.read()
                 if '-std=c++' in opts:
                     self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
-        except:
+        except OSError:
             pass
 
         # TODO: this is for backwards compatibility
@@ -241,7 +241,7 @@ class LibtorrentBuildExt(BuildExtBase):
                 opts = [x for x in opts if x.startswith('-L')]
                 if len(opts):
                     self.linkflags = opts
-        except:
+        except OSError:
             pass
 
         if os.name == "nt":
