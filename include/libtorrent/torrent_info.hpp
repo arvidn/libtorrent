@@ -340,15 +340,20 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
 		void set_web_seeds(std::vector<web_seed_entry> seeds);
 
-		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
-		// total number of bytes the torrent-file represents (all the files in
-		// it), the number of byte for each piece and the total number of pieces,
-		// respectively. The difference between ``piece_size()`` and
-		// ``piece_length()`` is that ``piece_size()`` takes the piece index as
-		// argument and gives you the exact size of that piece. It will always be
-		// the same as ``piece_length()`` except in the case of the last piece,
-		// which may be smaller.
+		// ``total_size()`` returns the total number of bytes the torrent-file
+		// represents. Note that this is the number of pieces times the piece
+		// size (modulo the last piece possibly being smaller). With pad files,
+		// the total size will be larger than the sum of all (regular) file
+		// sizes.
 		std::int64_t total_size() const { return m_files.total_size(); }
+
+		// ``piece_length()`` and ``num_pieces()`` returns the number of byte
+		// for each piece and the total number of pieces, respectively. The
+		// difference between ``piece_size()`` and ``piece_length()`` is that
+		// ``piece_size()`` takes the piece index as argument and gives you the
+		// exact size of that piece. It will always be the same as
+		// ``piece_length()`` except in the case of the last piece, which may be
+		// smaller.
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 

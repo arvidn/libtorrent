@@ -679,7 +679,7 @@
 	* fix support for torrents with > 500'000 pieces
 	* fix ip filter bug when banning peers
 	* fix IPv6 IP address resolution in URLs
-	* introduce run-time check for torrent info-sections beeing too large
+	* introduce run-time check for torrent info-sections being too large
 	* fix web seed bug when using proxy and proxy-peer-connections=false
 	* fix bug in magnet link parser
 	* introduce add_torrent_params flags to merge web seeds with resume data
