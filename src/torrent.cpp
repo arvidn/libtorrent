@@ -5471,6 +5471,7 @@ bool is_downloading_state(int const st)
 			{ return lhs.tier < rhs.tier; });
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
+		set_need_save_resume();
 		if (k->source == 0) k->source = announce_entry::source_client;
 		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 		return true;
