@@ -333,10 +333,10 @@ namespace libtorrent::aux {
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-    void piece_picker::set_sequential_range(piece_index_t const start_piece, piece_index_t const end_piece)
+    void piece_picker::set_sequential_range(int const start_piece, int const end_piece)
     {
-		m_reverse_cursor = end_piece == -1 ? m_piece_map.end_index() : end_piece;
-		m_cursor = start_piece;
+		m_reverse_cursor = piece_index_t(end_piece == -1 ? m_piece_map.end_index() : end_piece);
+		m_cursor = piece_index_t(start_piece);
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
 			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
 			++i, ++m_cursor);
