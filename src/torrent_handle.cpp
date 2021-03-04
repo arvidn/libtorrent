@@ -653,9 +653,11 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece, piece);
 	}
 
-    void torrent_handle::set_sequential_start(piece_index_t start_piece, piece_index_t end_piece) const
+    void torrent_handle::set_sequential_range(piece_index_t start_piece, piece_index_t end_piece) const
     {
-        async_call(&aux::torrent::set_sequential_start, start_piece, end_piece);
+		TORRENT_ASSERT_PRECOND(start_piece >= 0 && (end_piece == -1 || end_piece >= start_piece));
+		if (start_piece >= 0 && (end_piece == -1 || end_piece >= start_piece))
+			async_call(&aux::torrent::set_sequential_range, start_piece, end_piece);
     }
 
 	bool torrent_handle::is_valid() const

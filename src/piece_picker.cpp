@@ -333,10 +333,17 @@ namespace libtorrent::aux {
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-    void piece_picker::set_sequential_start(piece_index_t const start_piece, piece_index_t const end_piece)
+    void piece_picker::set_sequential_range(piece_index_t const start_piece, piece_index_t const end_piece)
     {
-		m_sequential_start = start_piece;
-		m_sequential_end = end_piece;
+		m_reverse_cursor = end_piece == -1 ? m_piece_map.end_index() : end_piece;
+		m_cursor = start_piece;
+		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
+			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+			++i, ++m_cursor);
+
+		for (auto i = m_piece_map.rend() - static_cast<int>(m_reverse_cursor);
+			m_reverse_cursor > piece_index_t(0) && (i->have() || i->filtered());
+			++i, --m_reverse_cursor);
     }
 
 	span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
@@ -1610,8 +1617,6 @@ namespace libtorrent::aux {
 		else
 		{
 			// update cursors
-			if (index < m_cursor) m_cursor = index;
-			if (index >= m_reverse_cursor) m_reverse_cursor = next(index);
 			if (m_reverse_cursor == m_cursor)
 			{
 				m_reverse_cursor = piece_index_t(0);
@@ -1819,8 +1824,6 @@ namespace libtorrent::aux {
 				TORRENT_ASSERT(m_num_filtered > 0);
 				--m_num_filtered;
 				// update cursors
-				if (index < m_cursor) m_cursor = index;
-				if (index >= m_reverse_cursor) m_reverse_cursor = next(index);
 				if (m_reverse_cursor == m_cursor)
 				{
 					m_reverse_cursor = piece_index_t(0);
@@ -2117,12 +2120,7 @@ namespace {
 				}
 				else
 				{
-					piece_index_t last_piece = m_reverse_cursor;
-					if (-1 != m_sequential_end && m_sequential_end < m_reverse_cursor) {
-						last_piece = m_sequential_end;
-						++last_piece;
-					}
-					for (piece_index_t i = m_cursor > m_sequential_start ? m_cursor : m_sequential_start; i < last_piece; ++i)
+					for (piece_index_t i = m_cursor; i < m_reverse_cursor; ++i)
 					{
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
