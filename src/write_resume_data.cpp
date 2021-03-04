@@ -262,7 +262,7 @@ namespace libtorrent {
 		ret["upload_rate_limit"] = atp.upload_limit;
 		ret["download_rate_limit"] = atp.download_limit;
 		ret["max_connections"] = atp.max_connections;
-		ret["max_uploads"] = atp.upload_limit;
+		ret["max_uploads"] = atp.max_uploads;
 
 		if (!atp.file_priorities.empty())
 		{

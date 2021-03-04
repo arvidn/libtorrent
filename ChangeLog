@@ -59,6 +59,10 @@
 
 1.2.13 released
 
+	* fix data race in python binding of session::get_torrent_status()
+	* fix need_save_resume_data() for renaming files, share-mode, upload-mode,
+	  disable- pex, lsd, and dht.
+	* fix incoming TCP connections when using tracker-only proxy
 	* fix issue with paths starting with ./
 	* fix integer overflow when setting a high DHT upload rate limit
 	* improve Path MTU discovery logic in uTP

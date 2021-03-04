@@ -9,6 +9,13 @@ import modules ;
 use-project /torrent : ../.. ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
+LDFLAGS = [ modules.peek : LDFLAGS ] ;
+
+ECHO "CXXFLAGS =" $(CXXFLAGS) ;
+ECHO "LDFLAGS =" $(LDFLAGS) ;
+
 # this is used to make bjam use the same version of python which is executing setup.py
 
 feature libtorrent-link : shared static prebuilt : composite propagated ;
@@ -269,6 +276,8 @@ my-python-extension libtorrent
 	<conditional>@libtorrent_linking
 	<crypto>openssl:<library>/torrent//ssl
 	<crypto>openssl:<library>/torrent//crypto
+	<cxxflags>"$(CXXFLAGS:J= )"
+	<linkflags>"$(LDFLAGS:J= )"
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#		with compiler generated default constructor fills the object with zeros
 	<toolset>msvc:<cflags>/wd4268

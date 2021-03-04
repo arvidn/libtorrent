@@ -399,10 +399,10 @@ namespace
         allow_threading_guard guard;
 
 #ifndef BOOST_NO_EXCEPTIONS
-        return s.add_torrent(p);
+        return s.add_torrent(std::move(p));
 #else
         error_code ec;
-        return s.add_torrent(p, ec);
+        return s.add_torrent(std::move(p), ec);
 #endif
     }
 
@@ -413,7 +413,34 @@ namespace
 
         allow_threading_guard guard;
 
-        s.async_add_torrent(p);
+        s.async_add_torrent(std::move(p));
+    }
+
+    torrent_handle wrap_add_torrent(lt::session& s, lt::add_torrent_params const& p)
+    {
+        add_torrent_params atp = p;
+        if (p.ti)
+            atp.ti = std::make_shared<torrent_info>(*p.ti);
+
+        allow_threading_guard guard;
+
+#ifndef BOOST_NO_EXCEPTIONS
+        return s.add_torrent(std::move(p));
+#else
+        error_code ec;
+        return s.add_torrent(std::move(p), ec);
+#endif
+    }
+
+    void wrap_async_add_torrent(lt::session& s, lt::add_torrent_params const& p)
+    {
+        add_torrent_params atp = p;
+        if (p.ti)
+            atp.ti = std::make_shared<torrent_info>(*p.ti);
+
+        allow_threading_guard guard;
+
+        s.async_add_torrent(std::move(p));
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -515,8 +542,13 @@ namespace
 
     list get_torrent_status(lt::session& s, object pred, int const flags)
     {
+        // keep a reference to the predicate here, in the python thread, to
+        // ensure it's freed in this thread at the end. If we move it into the
+        // libtorrent thread the python predicate will be freed from that
+        // thread, which won't work
+        auto wrapped_pred = std::bind(&wrap_pred, pred, std::placeholders::_1);
         std::vector<torrent_status> torrents
-            = s.get_torrent_status(std::bind(&wrap_pred, pred, std::placeholders::_1), status_flags_t(flags));
+            = s.get_torrent_status(std::ref(wrapped_pred), status_flags_t(flags));
 
         list ret;
         for (std::vector<torrent_status>::iterator i = torrents.begin(); i != torrents.end(); ++i)
@@ -1029,8 +1061,8 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
-        .def("async_add_torrent", static_cast<void (session_handle::*)(lt::add_torrent_params const&)>(&lt::session::async_add_torrent))
-        .def("add_torrent", allow_threads(static_cast<lt::torrent_handle (session_handle::*)(add_torrent_params const&)>(&lt::session::add_torrent)))
+        .def("async_add_torrent", &wrap_async_add_torrent)
+        .def("add_torrent", &wrap_add_torrent)
 #ifndef BOOST_NO_EXCEPTIONS
 #if TORRENT_ABI_VERSION == 1
         .def(
