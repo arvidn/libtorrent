@@ -412,7 +412,7 @@ namespace libtorrent::aux {
 
 		aux::torrent_peer* get_downloader(piece_block block) const;
 
-		void set_sequential_range(int start_piece, int end_piece);
+		void set_sequential_range(piece_index_t start_piece, piece_index_t end_piece);
 
 
 		// piece states
