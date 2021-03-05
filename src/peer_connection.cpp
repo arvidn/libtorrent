@@ -1048,11 +1048,14 @@ namespace libtorrent {
 	bool peer_connection::has_piece(piece_index_t const i) const
 	{
 		TORRENT_ASSERT(is_single_thread());
+#if TORRENT_USE_ASSERTS
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->valid_metadata());
 		TORRENT_ASSERT(i >= piece_index_t(0));
 		TORRENT_ASSERT(i < t->torrent_file().end_piece());
+#endif
+		if (m_have_piece.empty()) return false;
 		return m_have_piece[i];
 	}
 
