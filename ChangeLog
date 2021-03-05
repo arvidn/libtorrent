@@ -59,6 +59,7 @@
 
 1.2.13 released
 
+	* fix super-seeding issue that could cause a segfault
 	* fix data race in python binding of session::get_torrent_status()
 	* fix need_save_resume_data() for renaming files, share-mode, upload-mode,
 	  disable- pex, lsd, and dht.

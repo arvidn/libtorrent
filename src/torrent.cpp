@@ -5714,6 +5714,7 @@ namespace {
 		k->trackerid = url.trackerid;
 		k->tier = url.tier;
 		k->fail_limit = url.fail_limit;
+		set_need_save_resume();
 		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 		return true;
 	}
