@@ -74,6 +74,7 @@ namespace libtorrent {
 #endif
 	constexpr create_flags_t create_torrent::v2_only;
 	constexpr create_flags_t create_torrent::v1_only;
+	constexpr create_flags_t create_torrent::canonical_files;
 
 namespace {
 
@@ -439,7 +440,7 @@ namespace {
 		}
 
 		m_files.set_piece_length(piece_size);
-		if (!(flags & v1_only))
+		if (!(flags & v1_only) || (flags & canonical_files))
 			m_files.canonicalize();
 		m_files.set_num_pieces(aux::calc_num_pieces(m_files));
 		TORRENT_ASSERT(m_files.piece_length() > 0);

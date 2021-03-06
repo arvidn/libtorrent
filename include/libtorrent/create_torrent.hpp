@@ -168,6 +168,13 @@ namespace libtorrent {
 		// this flag set.
 		static constexpr create_flags_t v1_only = 6_bit;
 
+		// This flag only affects v1-only torrents, and is only relevant
+		// together with the v1_only_flag. This flag will force the
+		// same file order and padding as a v2 (or hybrid) torrent would have.
+		// It has the effect of ordering files and inserting pad files to align
+		// them with piece boundaries.
+		static constexpr create_flags_t canonical_files = 7_bit;
+
 		// The ``piece_size`` is the size of each piece in bytes. It must be a
 		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
 		// specified, a piece_size will be set automatically.

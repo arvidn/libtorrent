@@ -228,6 +228,8 @@ void bind_create_torrent()
         s.attr("merkle") = create_torrent::merkle;
 #endif
         s.attr("v2_only") = create_torrent::v2_only;
+        s.attr("v1_only") = create_torrent::v1_only;
+        s.attr("canonical_files") = create_torrent::canonical_files;
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }
