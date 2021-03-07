@@ -191,6 +191,8 @@ namespace aux {
 	// hidden
 	using file_flags_t = flags::bitfield_flag<std::uint8_t, struct file_flags_tag>;
 
+TORRENT_VERSION_NAMESPACE_4
+
 	// The ``file_storage`` class represents a file list and the piece
 	// size. Everything necessary to interpret a regular bittorrent storage
 	// file structure.
@@ -275,20 +277,37 @@ namespace aux {
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
 #ifndef BOOST_NO_EXCEPTIONS
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED
 		void add_file_borrow(string_view filename
 			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}, char const* filehash = nullptr
+			, file_flags_t file_flags, char const* filehash
 			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
+#endif
+		void add_file_borrow(string_view filename
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, std::int64_t mtime = 0
+			, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 #endif // BOOST_NO_EXCEPTIONS
+
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED
 		void add_file_borrow(error_code& ec, string_view filename
 			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}, char const* filehash = nullptr
+			, file_flags_t file_flags, char const* filehash
 			, std::int64_t mtime = 0, string_view symlink_path = string_view()
+			, char const* root_hash = nullptr);
+#endif
+		void add_file_borrow(error_code& ec, string_view filename
+			, std::string const& path, std::int64_t file_size
+			, file_flags_t file_flags = {}, std::int64_t mtime = 0
+			, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
@@ -430,12 +449,16 @@ namespace aux {
 		// by BEP 52
 		void canonicalize();
 
-		// These functions are used to query attributes of files at
-		// a given index.
-		//
+#if TORRENT_ABI_VERSION < 4
 		// The ``hash()`` is a SHA-1 hash of the file, or 0 if none was
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
+		TORRENT_DEPRECATED
+		sha1_hash hash(file_index_t index) const;
+#endif
+
+		// These functions are used to query attributes of files at
+		// a given index.
 		//
 		// ``root()`` returns the SHA-256 merkle tree root of the specified file,
 		// in case this is a v2 torrent. Otherwise returns zeros.
@@ -462,7 +485,6 @@ namespace aux {
 		// ``file_offset()`` returns the byte offset within the torrent file
 		// where this file starts. It can be used to map the file to a piece
 		// index (given the piece size).
-		sha1_hash hash(file_index_t index) const;
 		sha256_hash root(file_index_t index) const;
 		char const* root_ptr(file_index_t const index) const;
 		std::string symlink(file_index_t index) const;
@@ -594,6 +616,15 @@ namespace aux {
 
 	private:
 
+		void add_file_borrow_impl(error_code& ec, string_view filename
+			, std::string const& path, std::int64_t const file_size
+			, file_flags_t const file_flags
+#if TORRENT_ABI_VERSION < 4
+			, char const* filehash
+#endif
+			, std::int64_t const mtime, string_view const symlink_path
+			, char const* root_hash);
+
 		std::string internal_file_path(file_index_t index) const;
 		file_index_t last_file() const noexcept;
 
@@ -616,6 +647,7 @@ namespace aux {
 		// the list of files that this torrent consists of
 		aux::vector<aux::file_entry, file_index_t> m_files;
 
+#if TORRENT_ABI_VERSION < 4
 		// if there are sha1 hashes for each individual file there are as many
 		// entries in this array as the m_files array. Each entry in m_files has
 		// a corresponding hash pointer in this array. The reason to split it up
@@ -626,6 +658,7 @@ namespace aux {
 		// a non-owning pointer. It is the user's responsibility that the hash
 		// stays valid throughout the lifetime of this file_storage object.
 		aux::vector<char const*, file_index_t> m_file_hashes;
+#endif
 
 		// for files that are symlinks, the symlink
 		// path_index in the aux::file_entry indexes
@@ -652,6 +685,7 @@ namespace aux {
 		// the sum of all file sizes
 		std::int64_t m_total_size = 0;
 	};
+TORRENT_VERSION_NAMESPACE_4_END
 
 namespace aux {
 

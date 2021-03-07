@@ -47,7 +47,9 @@ def print_classes(out, classes, keyword):
     # also ignore any header in the aux_ directory, those are private
     classes = [x for x in classes if x[0].endswith('.hpp') and not x[0].endswith('/fwd.hpp') and '/aux_/' not in x[0]]
 
-    namespaces = ['TORRENT_VERSION_NAMESPACE_3',
+    namespaces = ['TORRENT_VERSION_NAMESPACE_4',
+                  'TORRENT_VERSION_NAMESPACE_4_END',
+                  'TORRENT_VERSION_NAMESPACE_3',
                   'TORRENT_VERSION_NAMESPACE_3_END',
                   'TORRENT_VERSION_NAMESPACE_2',
                   'TORRENT_VERSION_NAMESPACE_2_END',

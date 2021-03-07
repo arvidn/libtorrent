@@ -944,8 +944,14 @@ TORRENT_TEST(parse_torrents)
 			piece_index_t const first = ti->map_file(idx, 0, 0).piece;
 			piece_index_t const last = ti->map_file(idx, std::max(fs.file_size(idx)-1, std::int64_t(0)), 0).piece;
 			file_flags_t const flags = fs.file_flags(idx);
+#if TORRENT_ABI_VERSION < 4
 			sha1_hash const ih = fs.hash(idx);
-			std::printf("  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
+#endif
+			std::printf("  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u "
+#if TORRENT_ABI_VERSION < 4
+				"%s "
+#endif
+				"%s %s%s\n"
 				, fs.file_size(idx)
 				, (flags & file_storage::flag_pad_file)?'p':'-'
 				, (flags & file_storage::flag_executable)?'x':'-'
@@ -953,7 +959,9 @@ TORRENT_TEST(parse_torrents)
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, static_cast<int>(first), static_cast<int>(last)
 				, std::uint32_t(fs.mtime(idx))
+#if TORRENT_ABI_VERSION < 4
 				, ih != sha1_hash(nullptr) ? aux::to_hex(ih).c_str() : ""
+#endif
 				, fs.file_path(idx).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""
 				, flags & file_storage::flag_symlink ? fs.symlink(idx).c_str() : "");
@@ -1152,12 +1160,14 @@ TORRENT_TEST(copy)
 		"sample/text_file.txt",
 	};
 
+#if TORRENT_ABI_VERSION < 4
 	aux::vector<sha1_hash, file_index_t> file_hashes =
 	{
 		sha1_hash(nullptr),
 		sha1_hash(nullptr),
 		sha1_hash("abababababababababab")
 	};
+#endif
 
 	file_storage const& fs = a->files();
 	for (auto const i : fs.file_range())
@@ -1167,7 +1177,9 @@ TORRENT_TEST(copy)
 		TEST_EQUAL(p, expected_files[i]);
 		std::printf("%s\n", p.c_str());
 
+#if TORRENT_ABI_VERSION < 4
 		TEST_EQUAL(a->files().hash(i), file_hashes[i]);
+#endif
 	}
 
 	// copy the torrent_info object
@@ -1184,7 +1196,9 @@ TORRENT_TEST(copy)
 		TEST_EQUAL(p, expected_files[i]);
 		std::printf("%s\n", p.c_str());
 
+#if TORRENT_ABI_VERSION < 4
 		TEST_EQUAL(fs2.hash(i), file_hashes[i]);
+#endif
 	}
 }
 
