@@ -168,6 +168,7 @@ void bind_create_torrent()
         .def("file_flags", file_storage_file_flags)
 
         .def("total_size", &file_storage::total_size)
+        .def("size_on_disk", &file_storage::size_on_disk)
         .def("set_num_pieces", &file_storage::set_num_pieces)
         .def("num_pieces", &file_storage::num_pieces)
         .def("set_piece_length", &file_storage::set_piece_length)

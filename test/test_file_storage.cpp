@@ -52,6 +52,7 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.file_offset(file_index_t{3}), 60000);
 
 	TEST_EQUAL(st.total_size(), 100000);
+	TEST_EQUAL(st.size_on_disk(), 100000);
 	TEST_EQUAL(st.piece_length(), 0x4000);
 	std::printf("%d\n", st.num_pieces());
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
@@ -264,6 +265,7 @@ TORRENT_TEST(canonicalize_pad)
 	fs.add_file(combine_path("s", "2"), 0x7000);
 	fs.add_file(combine_path("s", "1"), 1);
 	fs.add_file(combine_path("s", "3"), 0x7001);
+	TEST_EQUAL(fs.size_on_disk(), 0x7000 + 1 + 0x7001);
 
 	fs.canonicalize();
 
@@ -286,6 +288,7 @@ TORRENT_TEST(canonicalize_pad)
 	TEST_EQUAL(fs.file_size(file_index_t(4)), 0x7001);
 	TEST_EQUAL(fs.file_name(file_index_t(4)), "3");
 	TEST_EQUAL(fs.pad_file_at(file_index_t(4)), false);
+	TEST_EQUAL(fs.size_on_disk(), 0x7000 + 1 + 0x7001);
 }
 
 // make sure canonicalize sorts by path correctly
@@ -1027,6 +1030,28 @@ TORRENT_TEST(file_index_for_root)
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("33333333333333333333333333333333")), file_index_t{2});
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("44444444444444444444444444444444")), file_index_t{3});
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("55555555555555555555555555555555")), file_index_t{-1});
+}
+
+TORRENT_TEST(size_on_disk)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+
+	std::int64_t size_on_disk = 0;
+	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
+	fs.add_file("test/0", 100, {}, 0, {}, "11111111111111111111111111111111");
+	size_on_disk += 100;
+	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
+	fs.add_file("test/1", 800, {}, 0, {}, "22222222222222222222222222222222");
+	size_on_disk += 800;
+	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
+	fs.add_file("test/2", 333, {}, 0, {}, "33333333333333333333333333333333");
+	size_on_disk += 333;
+	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
+	fs.add_file("test/3", 1337, {}, 0, {}, "44444444444444444444444444444444");
+	size_on_disk += 1337;
+	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
+	TEST_CHECK(fs.size_on_disk() < fs.total_size());
 }
 
 // TODO: test file attributes

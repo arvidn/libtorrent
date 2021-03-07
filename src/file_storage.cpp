@@ -740,6 +740,8 @@ namespace aux {
 		}
 
 		m_total_size += e.size;
+		m_size_on_disk += e.size;
+		TORRENT_ASSERT(m_total_size >= m_size_on_disk);
 	}
 
 	sha1_hash file_storage::hash(file_index_t const index) const
@@ -1127,6 +1129,7 @@ namespace {
 		swap(ti.m_paths, m_paths);
 		swap(ti.m_name, m_name);
 		swap(ti.m_total_size, m_total_size);
+		swap(ti.m_size_on_disk, m_size_on_disk);
 		swap(ti.m_num_pieces, m_num_pieces);
 		swap(ti.m_piece_length, m_piece_length);
 		swap(ti.m_v2, m_v2);
@@ -1182,6 +1185,7 @@ namespace {
 
 		// re-compute offsets and insert pad files as necessary
 		std::int64_t off = 0;
+		std::int64_t on_disk = 0;
 		for (file_index_t i : new_order)
 		{
 			if ((off % piece_length()) != 0 && m_files[i].size > 0)
@@ -1223,6 +1227,7 @@ namespace {
 			TORRENT_ASSERT(off < max_file_offset - static_cast<std::int64_t>(file.size));
 			file.offset = static_cast<std::uint64_t>(off);
 			off += file.size;
+			on_disk += file.size;
 		}
 
 		m_files = std::move(new_files);
@@ -1230,6 +1235,8 @@ namespace {
 		m_mtime = std::move(new_mtime);
 
 		m_total_size = off;
+		m_size_on_disk = on_disk;
+		TORRENT_ASSERT(m_total_size >= m_size_on_disk);
 	}
 
 	void file_storage::sanitize_symlinks()
