@@ -2790,7 +2790,7 @@ namespace {
 
 		// if there are outgoing interfaces specified, verify this
 		// peer is correctly bound to one of them
-		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
+		if (!m_outgoing_interfaces.empty())
 		{
 			tcp::endpoint local = s->local_endpoint(ec);
 			if (ec)
