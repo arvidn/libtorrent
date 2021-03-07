@@ -241,10 +241,12 @@ namespace aux {
 			// This controls which IP address outgoing TCP peer connections are bound
 			// to, in addition to controlling whether such connections are also
 			// bound to a specific network interface/adapter (*bind-to-device*).
+			//
 			// This string is a comma-separated list of IP addresses and
 			// interface names. An empty string will not bind TCP sockets to a
-			// device, and let the network stack assign the local address. A
-			// list of names will be used to bind outgoing TCP sockets in a
+			// device, and let the network stack assign the local address.
+			//
+			// A list of names will be used to bind outgoing TCP sockets in a
 			// round-robin fashion. An IP address will simply be used to `bind()`
 			// the socket. An interface name will attempt to bind the socket to
 			// that interface. If that fails, or is unsupported, one of the IP
@@ -256,6 +258,15 @@ namespace aux {
 			// clients that are multi-homed. Binding an outgoing connection to a
 			// local IP does not necessarily make the connection via the
 			// associated NIC/Adapter.
+			//
+			// When outgoing interfaces are specified, incoming connections or
+			// packets sent to a local interface or IP that's *not* in this list
+			// will be rejected with a peer_blocked_alert with
+			// ``invalid_local_interface`` as the reason.
+			//
+			// Note that these are just interface/adapter names or IP addresses.
+			// There are no ports specified in this list. IPv6 addresses without
+			// port should be specified without enclosing ``[``, ``]``.
 			outgoing_interfaces,
 
 			// a comma-separated list of (IP or device name, port) pairs. These are
