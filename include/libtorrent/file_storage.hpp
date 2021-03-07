@@ -379,7 +379,11 @@ namespace aux {
 		index_range<file_index_t> file_range() const noexcept;
 
 		// returns the total number of bytes all the files in this torrent spans
+		// including pad files
 		std::int64_t total_size() const { return m_total_size; }
+
+		// returns the sum of all non pad file sizes
+		std::int64_t size_on_disk() const { return m_size_on_disk; }
 
 		// set and get the number of pieces in the torrent
 		void set_num_pieces(int n) { m_num_pieces = n; }
@@ -651,6 +655,9 @@ namespace aux {
 
 		// the sum of all file sizes
 		std::int64_t m_total_size = 0;
+
+		// the sum of all non-pad file sizes
+		std::int64_t m_size_on_disk = 0;
 	};
 
 namespace aux {

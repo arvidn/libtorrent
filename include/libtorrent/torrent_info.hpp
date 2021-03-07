@@ -338,6 +338,10 @@ TORRENT_VERSION_NAMESPACE_3
 		// sizes.
 		std::int64_t total_size() const { return m_files.total_size(); }
 
+		// returns the sum of all non-pad file sizes. i.e. the files that will
+		// actually be saved to disk by this torrent.
+		std::int64_t size_on_disk() const { return m_files.size_on_disk(); }
+
 		// ``piece_length()`` and ``num_pieces()`` returns the number of byte
 		// for each piece and the total number of pieces, respectively. The
 		// difference between ``piece_size()`` and ``piece_length()`` is that
