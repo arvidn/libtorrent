@@ -1,3 +1,3 @@
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.2.12
+:Version: 1.2.13
 
