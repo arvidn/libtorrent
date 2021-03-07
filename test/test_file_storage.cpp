@@ -165,11 +165,17 @@ TORRENT_TEST(pointer_offset)
 	file_storage st;
 	st.set_piece_length(16 * 1024);
 	char const filename[] = "test1fooba";
+#if TORRENT_ABI_VERSION < 4
 	char const filehash[] = "01234567890123456789-----";
+#endif
 	char const roothash[] = "01234567890123456789012345678912-----";
 
 	st.add_file_borrow({filename, 5}, combine_path("test-torrent-1", "test1")
-		, 10, file_flags_t{}, filehash, 0, {}, roothash);
+		, 10, file_flags_t{}
+#if TORRENT_ABI_VERSION < 4
+		, filehash
+#endif
+		, 0, {}, roothash);
 
 	// test filename_ptr and filename_len
 #if TORRENT_ABI_VERSION <= 2
@@ -177,7 +183,9 @@ TORRENT_TEST(pointer_offset)
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
 #endif
 	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
+#if TORRENT_ABI_VERSION < 4
 	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash));
+#endif
 	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash));
 
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test-torrent-1", "test1"));

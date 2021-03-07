@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/fwd.hpp" // for file_storage
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include "libtorrent/bitfield.hpp"
@@ -28,10 +29,6 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/bitfield.hpp"
 #endif
-
-namespace libtorrent {
-class file_storage;
-}
 
 namespace libtorrent::aux {
 

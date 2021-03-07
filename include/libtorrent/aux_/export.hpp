@@ -17,12 +17,26 @@ see LICENSE file.
 
 #include "libtorrent/aux_/deprecated.hpp"
 
+// TORRENT_ABI_VERSION numbers
+// 1: libtorrent-1.1
+// 2: libtorrent-1.2
+// 3: libtorrent-2.0
+// 4: libtorrent-2.1
+
 #if !defined TORRENT_ABI_VERSION
 # ifdef TORRENT_NO_DEPRECATE
 #  define TORRENT_ABI_VERSION 4
 # else
 #  define TORRENT_ABI_VERSION 1
 # endif
+#endif
+
+#if TORRENT_ABI_VERSION >= 4
+# define TORRENT_VERSION_NAMESPACE_4 inline namespace v2_1 {
+# define TORRENT_VERSION_NAMESPACE_4_END  }
+#else
+# define TORRENT_VERSION_NAMESPACE_4
+# define TORRENT_VERSION_NAMESPACE_4_END
 #endif
 
 #if TORRENT_ABI_VERSION >= 3

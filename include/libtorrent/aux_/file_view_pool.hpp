@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/aux_/mmap.hpp"
+#include "libtorrent/fwd.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -37,12 +38,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-
-class file_storage;
-struct open_file_state;
-
-namespace aux {
+namespace libtorrent::aux {
 
 	namespace mi = boost::multi_index;
 
@@ -142,7 +138,6 @@ namespace aux {
 		mutable std::mutex m_destruction_mutex;
 	};
 
-}
 }
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE

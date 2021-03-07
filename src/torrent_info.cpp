@@ -381,7 +381,7 @@ namespace {
 			}
 		}
 
-		files.add_file_borrow(ec, name, path, file_size, file_flags, nullptr
+		files.add_file_borrow(ec, name, path, file_size, file_flags
 			, mtime, symlink_path, pieces_root);
 		return !ec;
 	}
@@ -497,10 +497,12 @@ namespace {
 		if (path.find("_____padding_file_") != std::string::npos)
 			file_flags |= file_storage::flag_pad_file;
 
+#if TORRENT_ABI_VERSION < 4
 		bdecode_node const fh = dict.dict_find_string("sha1");
 		char const* filehash = nullptr;
 		if (fh && fh.string_length() == 20)
 			filehash = info_buffer + (fh.string_offset() - info_offset);
+#endif
 
 		std::string symlink_path;
 		if (file_flags & file_storage::flag_symlink)
@@ -532,7 +534,10 @@ namespace {
 			filename = {};
 		}
 
-		files.add_file_borrow(ec, filename, path, file_size, file_flags, filehash
+		files.add_file_borrow(ec, filename, path, file_size, file_flags
+#if TORRENT_ABI_VERSION < 4
+			, filehash
+#endif
 			, mtime, symlink_path);
 		return !ec;
 	}

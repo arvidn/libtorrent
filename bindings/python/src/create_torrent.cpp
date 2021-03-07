@@ -136,7 +136,9 @@ void bind_create_torrent()
     void (*add_files0)(file_storage&, std::string const&, create_flags_t) = add_files;
 
     std::string (file_storage::*file_storage_symlink)(file_index_t) const = &file_storage::symlink;
+#if TORRENT_ABI_VERSION < 4
     sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
+#endif
     std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
     string_view (file_storage::*file_storage_file_name)(file_index_t) const = &file_storage::file_name;
     std::int64_t (file_storage::*file_storage_file_size)(file_index_t) const = &file_storage::file_size;
@@ -159,7 +161,9 @@ void bind_create_torrent()
         .def("__iter__", boost::python::range(&begin_files, &end_files))
         .def("__len__", &file_storage::num_files)
 #endif // TORRENT_ABI_VERSION
+#if TORRENT_ABI_VERSION < 4
         .def("hash", file_storage_hash)
+#endif
         .def("symlink", file_storage_symlink)
         .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
         .def("file_name", file_storage_file_name)
