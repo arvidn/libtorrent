@@ -11,6 +11,7 @@
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/tracker_event.hpp" // for event_t
 #include "bytes.hpp"
 
 #ifdef _MSC_VER
@@ -425,6 +426,14 @@ void bind_torrent_info()
         .def("reset", &announce_entry::reset)
         .def("trim", &announce_entry::trim)
 #endif
+        ;
+
+    enum_<event_t>("event_t")
+        .value("none", event_t::none)
+        .value("completed", event_t::completed)
+        .value("started", event_t::started)
+        .value("stopped", event_t::stopped)
+        .value("paused", event_t::paused)
         ;
 
     implicitly_convertible<std::shared_ptr<torrent_info>, std::shared_ptr<const torrent_info>>();

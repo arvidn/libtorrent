@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path etc.
 #include "libtorrent/fwd.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #include <vector>
 #include <string>
@@ -453,14 +454,14 @@ namespace aux {
 	{
 		error_code ec;
 		set_piece_hashes(t, p, aux::nop, ec);
-		if (ec) throw system_error(ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 	}
 	inline void set_piece_hashes(create_torrent& t, std::string const& p
 		, std::function<void(piece_index_t)> const& f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
-		if (ec) throw system_error(ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 	}
 	inline void set_piece_hashes(create_torrent& t, std::string const& p
 		, settings_interface const& settings
@@ -468,7 +469,7 @@ namespace aux {
 	{
 		error_code ec;
 		set_piece_hashes(t, p, settings, f, ec);
-		if (ec) throw system_error(ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 	}
 #endif
 

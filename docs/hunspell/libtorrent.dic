@@ -607,6 +607,7 @@ cflags
 cxxflags
 linkflags
 lto
+SetEndOfFile
 google
 WebTorrent
 WebRTC

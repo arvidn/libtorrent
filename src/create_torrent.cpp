@@ -328,6 +328,9 @@ namespace {
 #else
 		ios.run();
 #endif
+		if (st.ec) {
+			ec = st.ec;
+		}
 	}
 
 	create_torrent::~create_torrent() = default;

@@ -4,6 +4,8 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* fix issue where set_piece_hashes() would not propagate file errors
+	* add missing python binding for event_t
 	* add work-around for systems without fseeko() (such as Android)
 	* add convenience header libtorrent/libtorrent.hpp
 	* increase default max_allowed_in_request_queue
@@ -64,6 +66,12 @@
 
 1.2.13 released
 
+	* fix issue when failing to parse outgoing_interfaces setting
+	* fix super-seeding issue that could cause a segfault
+	* fix data race in python binding of session::get_torrent_status()
+	* fix need_save_resume_data() for renaming files, share-mode, upload-mode,
+	  disable- pex, lsd, and dht.
+	* fix incoming TCP connections when using tracker-only proxy
 	* fix issue with paths starting with ./
 	* fix integer overflow when setting a high DHT upload rate limit
 	* improve Path MTU discovery logic in uTP
@@ -684,7 +692,7 @@
 	* fix support for torrents with > 500'000 pieces
 	* fix ip filter bug when banning peers
 	* fix IPv6 IP address resolution in URLs
-	* introduce run-time check for torrent info-sections beeing too large
+	* introduce run-time check for torrent info-sections being too large
 	* fix web seed bug when using proxy and proxy-peer-connections=false
 	* fix bug in magnet link parser
 	* introduce add_torrent_params flags to merge web seeds with resume data
