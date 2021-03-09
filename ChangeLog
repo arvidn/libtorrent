@@ -1,5 +1,6 @@
 1.2.13 released
 
+	* fix issue where a DHT message would count as an incoming connection
 	* fix issue when failing to parse outgoing_interfaces setting
 	* fix super-seeding issue that could cause a segfault
 	* fix data race in python binding of session::get_torrent_status()
