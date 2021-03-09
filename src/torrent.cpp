@@ -8816,7 +8816,7 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
-		if (sd) set_sequential_range(piece_index_t(0), piece_index_t(-1));
+		if (!sd && m_picker) m_picker->set_sequential_range(piece_index_t(0), piece_index_t(-1));
 		m_sequential_download = sd;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);
