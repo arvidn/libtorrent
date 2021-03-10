@@ -12,7 +12,7 @@ env:
 
 jobs:
 
-   android_arm_build:
+   android_arm32_build:
       name: Build Android Arm 32bits
       runs-on: ubuntu-20.04
 
@@ -62,4 +62,56 @@ jobs:
           <cxxflags>-fPIC
           <cxxflags>-march=armv7-a
           <cxxflags>-mfpu=neon ;" >>~/user-config.jam;
-          ${BOOST_ROOT}/b2 warnings-as-errors=on cxxstd=14 toolset=clang-linux-arm target-os=android link=static crypto=openssl openssl-include=${OPENSSL_ROOT}/include openssl-lib=${OPENSSL_ROOT}/lib
+          ${BOOST_ROOT}/b2 warnings-as-errors=on cxxstd=17 toolset=clang-linux-arm target-os=android link=static crypto=openssl openssl-include=${OPENSSL_ROOT}/include openssl-lib=${OPENSSL_ROOT}/lib
+
+   android_arm32_webtorrent_build:
+      name: Build Android Arm 32bits with WebTorrent
+      runs-on: ubuntu-20.04
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v2.3.3
+        with:
+           submodules: recursive
+
+      - name: install boost
+        run: |
+          git clone --depth=1 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          git submodule update --init --depth=1
+          ./bootstrap.sh
+          ./b2 headers
+          cd ..
+
+      - name: install ndk
+        run: |
+          wget -nv -O android-ndk.zip https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip
+          unzip -qq android-ndk.zip
+          export NDK=${PWD}/android-ndk-${NDK_VERSION}
+          ${NDK}/build/tools/make_standalone_toolchain.py --arch arm --api 28 --stl libc++ --install-dir android-toolchain
+
+      - name: install openssl
+        run: |
+          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
+          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
+          export CC=${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang
+          wget -nv -O openssl.tar.gz https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+          tar xzf openssl.tar.gz
+          cd openssl-${OPENSSL_VERSION}
+          ./Configure linux-armv4 ${OPENSSL_OPTS} -march=armv7-a -mfpu=neon -fPIC --prefix=${PWD}/../openssl
+          make &> /dev/null
+          make install_sw &> /dev/null
+          cd ..
+
+      - name: build library
+        run: |
+          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
+          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
+          export BOOST_ROOT=${PWD}/boost
+          export OPENSSL_ROOT=${PWD}/openssl
+          echo "boost-build ${BOOST_ROOT}/tools/build/src ;" > boost-build.jam
+          echo "using clang-linux : arm : ${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang++
+          <cxxflags>-fPIC
+          <cxxflags>-march=armv7-a
+          <cxxflags>-mfpu=neon ;" >>~/user-config.jam;
+          ${BOOST_ROOT}/b2 warnings-as-errors=on cxxstd=17 toolset=clang-linux-arm target-os=android link=static crypto=openssl openssl-include=${OPENSSL_ROOT}/include openssl-lib=${OPENSSL_ROOT}/lib webtorrent=on
