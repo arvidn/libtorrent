@@ -1383,8 +1383,8 @@ examples:
 			, [](lt::string_view p) { return p.size() > 7 && p.substr(p.size() - 7) == ".resume"; }, ec);
 		if (ec)
 		{
-		std::fprintf(stderr, "failed to list resume directory \"%s\": (%s : %d) %s\n"
-			, resume_dir.c_str(), ec.category().name(), ec.value(), ec.message().c_str());
+			std::fprintf(stderr, "failed to list resume directory \"%s\": (%s : %d) %s\n"
+				, resume_dir.c_str(), ec.category().name(), ec.value(), ec.message().c_str());
 		}
 		else
 		{
