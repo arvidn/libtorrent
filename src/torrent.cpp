@@ -8112,8 +8112,18 @@ bool is_downloading_state(int const st)
 			if (p.is_connecting() && p.peer_info_struct()->seed)
 				++num_connecting_seeds;
 
-			if (p.peer_info_struct() && p.peer_info_struct()->seed)
-				++seeds;
+			if (p.peer_info_struct())
+			{
+				if (p.peer_info_struct()->seed)
+				{
+					++seeds;
+					TORRENT_ASSERT(!p.m_bitfield_received || p.is_seed());
+				}
+				else
+				{
+					TORRENT_ASSERT(!p.is_seed());
+				}
+			}
 
 			for (auto const& j : p.request_queue())
 			{
@@ -10410,18 +10420,16 @@ bool is_downloading_state(int const st)
 
 	void torrent::set_seed(torrent_peer* p, bool const s)
 	{
-		if (p->seed != s)
+		if (p->seed == s) return;
+		if (s)
 		{
-			if (s)
-			{
-				TORRENT_ASSERT(m_num_seeds < 0xffff);
-				++m_num_seeds;
-			}
-			else
-			{
-				TORRENT_ASSERT(m_num_seeds > 0);
-				--m_num_seeds;
-			}
+			TORRENT_ASSERT(m_num_seeds < 0xffff);
+			++m_num_seeds;
+		}
+		else
+		{
+			TORRENT_ASSERT(m_num_seeds > 0);
+			--m_num_seeds;
 		}
 
 		need_peer_list();

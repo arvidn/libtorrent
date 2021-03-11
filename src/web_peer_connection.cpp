@@ -170,6 +170,7 @@ void web_peer_connection::on_connected()
 			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k)
 				have.clear_bit(k);
 		}
+		t->set_seed(peer_info_struct(), false);
 		if (have.none_set())
 		{
 			incoming_have_none();
