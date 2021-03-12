@@ -4584,7 +4584,6 @@ namespace libtorrent {
 		p.flags = {};
 		get_specific_peer_info(p);
 
-		if (is_seed()) p.flags |= peer_info::seed;
 		if (m_snubbed) p.flags |= peer_info::snubbed;
 		if (m_upload_only) p.flags |= peer_info::upload_only;
 		if (m_endgame_mode) p.flags |= peer_info::endgame_mode;
@@ -4598,9 +4597,11 @@ namespace libtorrent {
 			p.num_hashfails = pi->hashfails;
 			if (pi->on_parole) p.flags |= peer_info::on_parole;
 			if (pi->optimistically_unchoked) p.flags |= peer_info::optimistic_unchoke;
+			if (pi->seed) p.flags |= peer_info::seed;
 		}
 		else
 		{
+			if (is_seed()) p.flags |= peer_info::seed;
 			p.source = {};
 			p.failcount = 0;
 			p.num_hashfails = 0;
