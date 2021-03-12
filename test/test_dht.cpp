@@ -2740,8 +2740,8 @@ TORRENT_TEST(dht_dual_stack)
 
 	// v6 node requesting both v4 and v6 nodes
 
-	send_dht_request(node6, "find_nodes", source, &response
-		, msg_args().info_hash("0101010101010101010101010101010101010101")
+	send_dht_request(node6, "find_node", source, &response
+		, msg_args().target(sha1_hash("0101010101010101010101010101010101010101"))
 			.want("n4")
 			.want("n6"));
 
@@ -4053,7 +4053,6 @@ TORRENT_TEST(all_in_same_bucket)
 }
 
 namespace {
-
 void test_rate_limit(aux::session_settings const& sett, std::function<void(lt::dht::socket_manager&)> f)
 {
 	io_context ios;

@@ -347,8 +347,13 @@ class LibtorrentBuildExt(BuildExtBase):
         python_binding_dir = pathlib.Path(__file__).parent.absolute()
         with self._configure_b2():
             if self.linkflags:
-                for f in self.linkflags:
-                    self._b2_args_split.append("linkflags=" + f)
+                for lf in self.linkflags:
+                    # since b2 may be running with a different directory as cwd,
+                    # relative
+                    # paths need to be converted to absolute
+                    if lf[2] != '/':
+                        lf = '-L' + str(pathlib.Path(lf[2:]).absolute())
+                    self._b2_args_split.append("linkflags=" + lf)
             if self.cxxflags:
                 for f in self.cxxflags:
                     self._b2_args_split.append("cxxflags=" + f)

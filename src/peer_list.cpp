@@ -1120,6 +1120,10 @@ namespace libtorrent {
 		// this should hold because find_connect_candidates should have done this
 		TORRENT_ASSERT(bool(m_finished) == state->is_finished);
 
+		// if we're finished, p->seed must be 0. We shouldn't be connecting to
+		// seeds in that case
+		TORRENT_ASSERT(m_finished == 0 || p->seed == 0);
+
 		TORRENT_ASSERT(is_connect_candidate(*p));
 		return p;
 	}
