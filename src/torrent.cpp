@@ -1307,6 +1307,7 @@ bool is_downloading_state(int const st)
 
 	storage_interface* torrent::get_storage_impl() const
 	{
+		if (!m_storage) return nullptr;
 		return m_ses.disk_thread().get_torrent(m_storage);
 	}
 
