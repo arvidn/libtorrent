@@ -2470,10 +2470,6 @@ namespace {
 #endif
 			m_utp_socket_manager;
 
-		auto listen_socket = ls.lock();
-		if (listen_socket)
-			listen_socket->incoming_connection = true;
-
 		for (;;)
 		{
 			aux::array<udp_socket::packet, 50> p;
@@ -2506,6 +2502,7 @@ namespace {
 					// socket
 					bool handled = false;
 #ifndef TORRENT_DISABLE_DHT
+					auto listen_socket = ls.lock();
 					if (m_dht && buf.size() > 20
 						&& buf.front() == 'd'
 						&& buf.back() == 'e'

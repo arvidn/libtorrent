@@ -39,8 +39,11 @@ std::string torrent_state(lt::torrent_status const& s)
 		ret += "queued ";
 	}
 
-	if ((s.flags & lt::torrent_flags::upload_mode)) ret += "upload mode";
-	else ret += state_str[s.state];
+	if (s.state == lt::torrent_status::downloading
+		&& (s.flags & lt::torrent_flags::upload_mode))
+		ret += "upload mode";
+	else
+		ret += state_str[s.state];
 
 	if (!(s.flags & lt::torrent_flags::auto_managed))
 	{
