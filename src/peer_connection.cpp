@@ -776,7 +776,10 @@ namespace libtorrent {
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 
 		if (m_have_all)
+		{
 			m_num_pieces = t->torrent_file().num_pieces();
+			m_have_piece.set_all();
+		}
 
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_initialized);
