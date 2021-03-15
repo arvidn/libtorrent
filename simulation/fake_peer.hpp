@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/bdecode.hpp"
+#include "libtorrent/random.hpp"
 
 using namespace sim;
 
@@ -118,6 +119,26 @@ struct fake_peer
 		lt::detail::write_uint32(0x4000, ptr);
 	}
 
+	void send_keepalive()
+	{
+		int const len = 4;
+		m_send_buffer.resize(m_send_buffer.size() + len);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - len;
+
+		lt::detail::write_uint32(0, ptr);
+		flush_send_buffer();
+	}
+
+	void send_not_interested()
+	{
+		m_send_buffer.resize(m_send_buffer.size() + 5);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
+
+		lt::detail::write_uint32(1, ptr);
+		lt::detail::write_uint8(3, ptr);
+		flush_send_buffer();
+	}
+
 	void send_bitfield(std::vector<bool> const& pieces)
 	{
 		int const bytes = (int(pieces.size()) + 7) / 8;
@@ -146,6 +167,19 @@ struct fake_peer
 
 private:
 
+	void flush_send_buffer()
+	{
+		TORRENT_ASSERT(!m_writing);
+		m_writing = true;
+		asio::async_write(m_socket,asio::const_buffers_1(m_send_buffer.data(), m_send_buffer.size())
+			, [this](boost::system::error_code const& ec , size_t len)
+			{
+				TORRENT_ASSERT(m_writing);
+				m_writing = false;
+				m_send_buffer.clear();
+			});
+	}
+
 	void write_handshake(boost::system::error_code const& ec
 		, lt::sha1_hash ih)
 	{
@@ -164,18 +198,24 @@ private:
 		int const len = sizeof(handshake) - 1;
 		memcpy(m_out_buffer, handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
+		lt::aux::random_bytes({&m_out_buffer[48], 20});
 
+		TORRENT_ASSERT(!m_writing);
+		m_writing = true;
 		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
 			, len), [this, ep](boost::system::error_code const& ec
 			, size_t /* bytes_transferred */)
 		{
+			TORRENT_ASSERT(m_writing);
+			m_writing = false;
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
 				, lt::print_endpoint(ep).c_str(), ec.value()
 				, ec.message().c_str());
 			if (!m_send_buffer.empty())
 			{
-				asio::async_write(m_socket, asio::const_buffers_1(
-					m_send_buffer.data(), m_send_buffer.size())
+				TORRENT_ASSERT(!m_writing);
+				m_writing = true;
+				asio::async_write(m_socket, asio::const_buffers_1(m_send_buffer.data(), m_send_buffer.size())
 					, std::bind(&fake_peer::write_send_buffer, this, _1, _2));
 			}
 			else
@@ -250,6 +290,11 @@ private:
 		printf("fake_peer::write_send_buffer() -> (%d) %s\n"
 			, ec.value(), ec.message().c_str());
 
+		TORRENT_ASSERT(m_writing);
+		m_writing = false;
+
+		m_send_buffer.clear();
+
 		asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
 			, std::bind(&fake_peer::read_handshake, this, _1, _2));
 	}
@@ -270,6 +315,10 @@ private:
 
 	// set to true if this peer has been disconnected by the other end
 	bool m_disconnected = false;
+
+	// set to true while there's an outstanding asyn write operation on the
+	// socket
+	bool m_writing = false;
 
 	std::vector<char> m_send_buffer;
 };

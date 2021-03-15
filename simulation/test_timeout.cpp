@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <functional>
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -56,7 +58,6 @@ disconnects_t test_timeout(sim::configuration& cfg)
 	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
 	lt::session_proxy zombie;
 
-	// setup settings pack to use for the session (customization point)
 	lt::session_params sp;
 	sp.settings = settings();
 	sp.settings.set_int(settings_pack::alert_mask, alert_category::all & ~alert_category::stats);
@@ -110,7 +111,7 @@ disconnects_t test_timeout(sim::configuration& cfg)
 
 // the inactive timeout is 60 seconds. If we don't receive a request from a peer
 // that's interested in us for 60 seconds, we disconnect them.
-TORRENT_TEST(inactive_timeout)
+TORRENT_TEST(no_request_timeout)
 {
 	sim::default_config network_cfg;
 	auto disconnects = test_timeout(network_cfg);
@@ -140,12 +141,158 @@ struct slow_upload : sim::default_config
 };
 
 // if the upload capacity is so low, that we're still trying to respond to the
-// last request, we don't trugger the inactivity timeout, we don't expect the
+// last request, we don't trigger the inactivity timeout, we don't expect the
 // other peer to keep requesting more pieces before receiving the previous ones
-TORRENT_TEST(inactive_timeout_slow_upload)
+TORRENT_TEST(no_request_timeout_slow_upload)
 {
 	slow_upload cfg;
 	auto disconnects = test_timeout(cfg);
 	TEST_CHECK((disconnects == disconnects_t{{lt::seconds{73}, lt::errors::timed_out_no_request}}));
 }
 
+disconnects_t test_no_interest_timeout(int const num_peers
+	, lt::session_params sp
+	, bool const redundant_no_interest)
+{
+	sim::default_config cfg;
+	auto const start_time = lt::clock_type::now();
+	sim::simulation sim{cfg};
+	std::unique_ptr<sim::asio::io_service> ios = make_io_service(sim, 0);
+	lt::session_proxy zombie;
+
+	sp.settings.set_int(settings_pack::alert_mask, alert_category::all & ~alert_category::stats);
+
+	// create session
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(sp, *ios);
+
+	std::vector<std::unique_ptr<fake_peer>> peers;
+	for (int i = 0; i < num_peers; ++i)
+	{
+		char ip[50];
+		std::snprintf(ip, sizeof(ip), "60.0.0.%d", i + 1);
+		peers.emplace_back(new fake_peer(sim, ip));
+	}
+
+	// add torrent
+	lt::add_torrent_params params = ::create_torrent(0, false);
+	params.storage = disabled_storage_constructor;
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	lt::sha1_hash info_hash = params.ti->info_hash();
+	ses->async_add_torrent(std::move(params));
+
+	disconnects_t disconnects;
+
+	lt::torrent_handle h;
+	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {
+		if (auto* at = lt::alert_cast<add_torrent_alert>(a))
+		{
+			h = at->handle;
+			for (auto& p : peers)
+				p->connect_to(ep("50.0.0.1", 6881), info_hash);
+		}
+		else if (auto* pd = lt::alert_cast<peer_disconnected_alert>(a))
+		{
+			disconnects.emplace_back(duration_cast<lt::seconds>(pd->timestamp() - start_time), pd->error);
+		}
+	});
+
+	std::function<void(boost::system::error_code const&)> keep_alive
+		= [&](boost::system::error_code const&)
+	{
+		for (auto& p : peers)
+			p->send_keepalive();
+	};
+
+	std::function<void(boost::system::error_code const&)> send_not_interested
+		= [&](boost::system::error_code const&)
+	{
+		for (auto& p : peers)
+			p->send_not_interested();
+	};
+
+	auto const& tick = redundant_no_interest ? send_not_interested : keep_alive;
+
+	sim::timer t3(sim, lt::seconds(100), tick);
+	sim::timer t4(sim, lt::seconds(200), tick);
+	sim::timer t5(sim, lt::seconds(300), tick);
+	sim::timer t6(sim, lt::seconds(400), tick);
+	sim::timer t7(sim, lt::seconds(500), tick);
+	sim::timer t8(sim, lt::seconds(599), tick);
+
+	// set up a timer to fire later, to shut down
+	sim::timer t2(sim, lt::seconds(700)
+		, [&](boost::system::error_code const&)
+	{
+		// shut down
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	return disconnects;
+}
+
+// if a peer is not interested in us, and we're not interested in it for long
+// enoguh, we disconenct it, but only if we are close to peer connection capacity
+TORRENT_TEST(no_interest_timeout)
+{
+	// with 10 peers, we're close enough to the connection limit to enable
+	// inactivity timeout
+
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.settings.set_int(settings_pack::connections_limit, 15);
+	auto disconnects = test_no_interest_timeout(10, std::move(sp), false);
+	TEST_EQUAL(disconnects.size(), 10);
+	for (auto const& e : disconnects)
+	{
+		TEST_CHECK(e.first == lt::seconds{600});
+		TEST_CHECK(e.second == lt::errors::timed_out_no_interest);
+	}
+}
+
+TORRENT_TEST(no_interest_timeout_redundant_not_interested)
+{
+	// even though the peers keep sending not-interested, our clock should not
+	// restart
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.settings.set_int(settings_pack::connections_limit, 15);
+	auto disconnects = test_no_interest_timeout(10, std::move(sp), true);
+	TEST_EQUAL(disconnects.size(), 10);
+	for (auto const& e : disconnects)
+	{
+		TEST_CHECK(e.first == lt::seconds{600});
+		TEST_CHECK(e.second == lt::errors::timed_out_no_interest);
+	}
+}
+
+TORRENT_TEST(no_interest_timeout_zero)
+{
+	// if we set inactivity_timeout to 0, all peers should be disconnected
+	// immediately
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.settings.set_int(settings_pack::connections_limit, 15);
+	sp.settings.set_int(settings_pack::inactivity_timeout, 0);
+	auto disconnects = test_no_interest_timeout(10, std::move(sp), false);
+	TEST_EQUAL(disconnects.size(), 10);
+	for (auto const& e : disconnects)
+	{
+		TEST_CHECK(e.first == lt::seconds{0});
+		TEST_CHECK(e.second == lt::errors::timed_out_no_interest);
+	}
+}
+
+TORRENT_TEST(no_interest_timeout_few_peers)
+{
+	// with a higher connections limit we're not close enough to enable
+	// inactivity timeout
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.settings.set_int(settings_pack::connections_limit, 20);
+	auto disconnects = test_no_interest_timeout(10, std::move(sp), false);
+	TEST_CHECK(disconnects == disconnects_t{});
+}
