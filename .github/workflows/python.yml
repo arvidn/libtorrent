@@ -44,6 +44,7 @@ jobs:
       run: |
         vcpkg update
         vcpkg install boost-core boost-asio boost-system boost-build
+        vcpkg integrate install
 
     - name: build/install (windows)
       if: runner.os == 'Windows'
