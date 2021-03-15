@@ -794,7 +794,10 @@ namespace aux {
 		}
 
 		m_total_size += e.size;
-		m_size_on_disk += e.size;
+
+		if (!(file_flags & file_storage::flag_pad_file))
+			m_size_on_disk += e.size;
+
 		TORRENT_ASSERT(m_total_size >= m_size_on_disk);
 	}
 
