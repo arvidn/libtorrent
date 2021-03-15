@@ -42,10 +42,8 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
-        mklink /J boost %BOOST_ROOT_1_72_0%
-        cd boost
-        b2 headers
+        vcpkg update
+        vcpkg install boost-core boost-asio boost-system boost-build
 
     - name: build/install (windows)
       if: runner.os == 'Windows'
