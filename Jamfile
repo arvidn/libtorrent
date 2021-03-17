@@ -28,10 +28,12 @@ else
 {
 	local boost-lib-search-path =
 		<search>/usr/local/opt/boost/lib
+		<search>/opt/homebrew/lib
 		;
 
 	local boost-include-path =
 		<include>/usr/local/opt/boost/include
+		<include>/opt/homebrew/include
 	;
 
 	# the names are decorated in MacPorts.
@@ -402,7 +404,8 @@ rule openssl-lib-path ( properties * )
 	{
 		# on macOS, default to pick up openssl from the homebrew installation
 		# brew install openssl
-		OPENSSL_LIB = /usr/local/opt/openssl/lib ;
+		# homebrew on M1 Macs install to /opt/homebrew
+		OPENSSL_LIB = /opt/homebrew/opt/openssl/lib /usr/local/opt/openssl/lib ;
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_LIB) = ""
 	{
@@ -428,7 +431,8 @@ rule openssl-include-path ( properties * )
 	{
 		# on macOS, default to pick up openssl from the homebrew installation
 		# brew install openssl
-		OPENSSL_INCLUDE = /usr/local/opt/openssl/include ;
+		# homebrew on M1 Macs install to /opt/homebrew
+		OPENSSL_INCLUDE = /opt/homebrew/opt/openssl/include /usr/local/opt/openssl/include ;
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
 	{

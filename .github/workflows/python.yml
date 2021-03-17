@@ -60,23 +60,31 @@ jobs:
       run: |
         sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
 
-    # there appears to be a bug in boost-build where referring to a
-    # dependency that's on a different drive fails, deep in boost-build
-    # while concatenating paths
-    - name: setup boost (windows)
+    - name: install boost (windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        echo on
-        echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
-        mklink /J boost %BOOST_ROOT_1_72_0%
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.72.0 https://github.com/boostorg/boost.git
         cd boost
-        b2 headers
-        cd ..
-        echo BOOST_ROOT=%CD%\boost>>%GITHUB_ENV%
-        echo BOOST_BUILD_PATH=%CD%\boost\tools\build>>%GITHUB_ENV%
-        echo %CD%\boost>>%GITHUB_PATH%
+        bootstrap.bat
+
+    - name: boost headers (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd boost
+        .\b2 headers
+
+    - name: build/test with tox (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        set BOOST_ROOT=%CD%\boost
+        set PATH=%BOOST_ROOT%;%PATH%
+        set PYTHON_INTERPRETER=python
+        tox -e py
 
     - name: build/test with tox
+      if: runner.os != 'Windows'
       run: |
         tox -e py

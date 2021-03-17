@@ -35,17 +35,20 @@ jobs:
       run: |
         sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
 
-    # there appears to be a bug in boost-build where referring to a
-    # dependency that's on a different drive fails, deep in boost-build
-    # while concatenating paths
-    - name: setup boost (windows)
+    - name: install boost (windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        echo using msvc ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam
-        mklink /J boost %BOOST_ROOT_1_72_0%
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.72.0 https://github.com/boostorg/boost.git
         cd boost
-        b2 headers
+        bootstrap.bat
+
+    - name: boost headers (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd boost
+        .\b2 headers
 
     - name: build (windows)
       if: runner.os == 'Windows'

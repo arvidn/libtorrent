@@ -66,6 +66,7 @@
 
 1.2.13 released
 
+	* allow no-interest timeouts of peer connections before all connections slots are full
 	* fix issue where a DHT message would count as an incoming connection
 	* fix issue when failing to parse outgoing_interfaces setting
 	* fix super-seeding issue that could cause a segfault

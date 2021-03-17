@@ -1810,8 +1810,8 @@ namespace {
 		return m_info_hash.get_best();
 	}
 
-	bool torrent_info::v1() const { return m_piece_hashes != 0; }
-	bool torrent_info::v2() const { return !m_piece_layers.empty(); }
+	bool torrent_info::v1() const { return m_info_hash.has_v1(); }
+	bool torrent_info::v2() const { return m_info_hash.has_v2(); }
 
 TORRENT_VERSION_NAMESPACE_3_END
 
