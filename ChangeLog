@@ -1,5 +1,7 @@
 * 2.0.3 released
 
+	* add new torrent_file_with_hashes() which includes piece layers for
+	  creating .torrent files
 	* add file_prio_alert, posted when file priorities are updated
 	* fix issue where set_piece_hashes() would not propagate file errors
 	* add missing python binding for event_t
