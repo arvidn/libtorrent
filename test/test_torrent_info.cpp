@@ -92,11 +92,11 @@ namespace {
 
 struct test_torrent_t
 {
-	test_torrent_t(char const* f, std::function<void(torrent_info const*)> t = {}) // NOLINT
+	test_torrent_t(char const* f, std::function<void(torrent_info*)> t = {}) // NOLINT
 		: file(f), test(std::move(t)) {}
 
 	char const* file;
-	std::function<void(torrent_info const*)> test;
+	std::function<void(torrent_info*)> test;
 };
 
 using namespace lt;
@@ -313,9 +313,13 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "_estMB"_sv);
 		}
 	},
-	{ "v2_multiple_files.torrent", [](torrent_info const* ti) {
+	{ "v2_multiple_files.torrent", [](torrent_info* ti) {
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 			TEST_EQUAL(ti->num_files(), 4);
+			TEST_CHECK(ti->v2());
+			ti->free_piece_layers();
+			TEST_CHECK(ti->v2());
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), false);
 		}
 	},
 	{ "v2_symlinks.torrent", [](torrent_info const* ti) {
