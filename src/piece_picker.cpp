@@ -335,7 +335,7 @@ namespace libtorrent::aux {
 
     void piece_picker::set_sequential_range(piece_index_t const start_piece, piece_index_t const end_piece)
     {
-		m_reverse_cursor = end_piece == piece_index_t(-1) ? m_piece_map.end_index() : end_piece;
+		m_reverse_cursor = end_piece == piece_index_t(-1) ? m_piece_map.end_index() : next(end_piece);
 		m_cursor = start_piece;
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
 			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
@@ -553,25 +553,8 @@ namespace libtorrent::aux {
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		{
-			piece_index_t index(0);
-			for (auto i = m_piece_map.begin()
-				, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
-				++i, ++index);
-			TORRENT_ASSERT(m_cursor == index);
-			index = m_piece_map.end_index();
-			if (num_pieces() > 0)
-			{
-				for (auto i = m_piece_map.rend() - static_cast<int>(index); index > piece_index_t(0)
-					&& (i->have() || i->filtered()); ++i, --index);
-				TORRENT_ASSERT(index == m_piece_map.end_index()
-					|| m_piece_map[index].have()
-					|| m_piece_map[index].filtered());
-				TORRENT_ASSERT(m_reverse_cursor == index);
-			}
-			else
-			{
-				TORRENT_ASSERT(m_reverse_cursor == piece_index_t(0));
-			}
+			if (num_pieces() == 0)
+				TORRENT_ASSERT(m_cursor == m_reverse_cursor == piece_index_t(0));
 		}
 
 		int num_filtered = 0;
