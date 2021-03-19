@@ -552,10 +552,6 @@ namespace libtorrent::aux {
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		{
-			if (num_pieces() == 0)
-				TORRENT_ASSERT(m_cursor == m_reverse_cursor == piece_index_t(0));
-		}
 
 		int num_filtered = 0;
 		int num_have_filtered = 0;
