@@ -1778,7 +1778,12 @@ bool is_downloading_state(int const st)
 		// in case file priorities were passed in via the add_torrent_params
 		// and also in the case of share mode, we need to update the priorities
 		// this has to be applied before piece priority
-		if (!m_file_priority.empty()) update_piece_priorities(m_file_priority);
+		if (!m_file_priority.empty())
+		{
+			bool const need_save_resume_data = m_need_save_resume_data;
+			update_piece_priorities(m_file_priority);
+			m_need_save_resume_data = need_save_resume_data;
+		}
 
 		if (m_add_torrent_params)
 		{
