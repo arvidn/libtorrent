@@ -122,9 +122,15 @@ namespace libtorrent { namespace aux {
 	{ return --v;}
 
 #if TORRENT_USE_IOSTREAM
+	template <typename T>
+	struct type_to_print_as
+	{
+		using type = typename std::conditional<sizeof(T) < sizeof(int), int, T>::type;
+	};
+
 	template <typename T, typename Tag>
 	std::ostream& operator<<(std::ostream& os, strong_typedef<T, Tag> val)
-	{ return os << static_cast<T>(val); }
+	{ return os << static_cast<typename type_to_print_as<T>::type>(static_cast<T>(val)); }
 #endif
 
 } // namespace libtorrent::aux
