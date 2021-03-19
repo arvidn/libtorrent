@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include <tuple>
 #include <functional>
+#include <random>
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -615,4 +616,93 @@ TORRENT_TEST(test_piece_priority_after_resume)
 
 		TEST_EQUAL(h.piece_priority(piece_index_t{0}), new_prio);
 	}
+}
+
+namespace {
+template <typename Engine>
+lt::file_index_t rand_file(Engine& rng, int num_files)
+{
+	auto i = std::uniform_int_distribution<int>(0, num_files - 1)(rng);
+	return file_index_t(i);
+}
+
+template <typename Engine>
+lt::download_priority_t rand_prio(Engine& rng)
+{
+	auto i = std::uniform_int_distribution<int>(0, 7)(rng);
+	return lt::download_priority_t(static_cast<std::uint8_t>(i));
+}
+}
+
+TORRENT_TEST(file_priority_stress_test)
+{
+	add_torrent_params atp;
+	auto ti = generate_torrent();
+	int const num_files = ti->num_files();
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t>
+		local_prios(static_cast<std::size_t>(num_files), lt::default_priority);
+
+	atp.save_path = ".";
+	atp.ti = ti;
+	atp.file_priorities = local_prios;
+	atp.flags &= ~torrent_flags::need_save_resume;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	TEST_CHECK(h.status().need_save_resume == false);
+
+	std::mt19937 rng(0x82daf973);
+	bool first = true;
+	for (int i = 0; i < 1000; ++i)
+	{
+		auto const f = rand_file(rng, num_files);
+		auto const p = rand_prio(rng);
+		h.file_priority(f, p);
+		local_prios[f] = p;
+
+		// updating the file priorities is asynchronous, it shouldn't have taken
+		// effect quite yet
+		if (first)
+			TEST_CHECK(h.status().need_save_resume == false);
+		first = false;
+	}
+
+	auto tp = h.get_file_priorities();
+	for (int i = 0; i < 10 && tp != local_prios; ++i)
+	{
+		std::this_thread::sleep_for(lt::milliseconds(500));
+		tp = h.get_file_priorities();
+	}
+
+	std::cout << "torrent file prios:\n";
+	for (auto const p : tp)
+		std::cout << " " << p;
+	std::cout << '\n';
+
+	std::cout << "expected file prios:\n";
+	for (auto const p : local_prios)
+		std::cout << " " << p;
+	std::cout << '\n';
+
+	TEST_CHECK(tp == local_prios);
+	TEST_CHECK(h.status().need_save_resume == true);
+
+	auto const pp = h.get_piece_priorities();
+	auto const& fs = ti->files();
+	lt::piece_index_t i(0);
+
+	std::cout << "piece prios:\n";
+	for (auto p : pp)
+	{
+		auto const files = fs.map_block(i, 0, fs.piece_length());
+		auto expected_prio = lt::dont_download;
+		for (auto const& f: files)
+			expected_prio = std::max(local_prios[f.file_index], expected_prio);
+
+		std::cout << " " << p;
+		TEST_EQUAL(p, expected_prio);
+		++i;
+	}
+	std::cout << '\n';
 }
