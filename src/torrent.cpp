@@ -1899,7 +1899,14 @@ bool is_downloading_state(int const st)
 		// in case file priorities were passed in via the add_torrent_params
 		// and also in the case of share mode, we need to update the priorities
 		// this has to be applied before piece priority
-		if (!m_file_priority.empty()) update_piece_priorities(m_file_priority);
+		if (!m_file_priority.empty())
+		{
+			// m_file_priority was loaded from the resume data, this doesn't
+			// alter any state that needs to be saved in the resume data
+			bool const ns = m_need_save_resume_data;
+			update_piece_priorities(m_file_priority);
+			m_need_save_resume_data = ns;
+		}
 
 		if (m_add_torrent_params)
 		{
@@ -5155,7 +5162,9 @@ bool is_downloading_state(int const st)
 		COMPLETE_ASYNC("file_priority");
 		if (m_file_priority != prios)
 		{
+			update_piece_priorities(prios);
 			m_file_priority = std::move(prios);
+			set_need_save_resume();
 #ifndef TORRENT_DISABLE_SHARE_MODE
 			if (m_share_mode)
 				recalc_share_mode();
@@ -5201,6 +5210,8 @@ bool is_downloading_state(int const st)
 		auto new_priority = fix_priorities(std::move(files)
 			, valid_metadata() ? &m_torrent_file->files() : nullptr);
 
+		m_deferred_file_priorities.clear();
+
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
@@ -5209,7 +5220,6 @@ bool is_downloading_state(int const st)
 			// updated immediately. If, on the off-chance, there's a disk failure, the
 			// piece priorities still stay the same, but the file priorities are
 			// possibly not fully updated.
-			update_piece_priorities(new_priority);
 
 			m_outstanding_file_priority = true;
 			ADD_OUTSTANDING_ASYNC("file_priority");
@@ -5219,6 +5229,7 @@ bool is_downloading_state(int const st)
 		else
 		{
 			m_file_priority = std::move(new_priority);
+			set_need_save_resume();
 		}
 	}
 
@@ -5256,12 +5267,6 @@ bool is_downloading_state(int const st)
 		// storage may be nullptr during shutdown
 		if (m_storage)
 		{
-			// the update of m_file_priority is deferred until the disk job comes
-			// back, but to preserve sanity and consistency, the piece priorities are
-			// updated immediately. If, on the off-chance, there's a disk failure, the
-			// piece priorities still stay the same, but the file priorities are
-			// possibly not fully updated.
-			update_piece_priorities(new_priority);
 			m_outstanding_file_priority = true;
 			ADD_OUTSTANDING_ASYNC("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage
@@ -5270,6 +5275,7 @@ bool is_downloading_state(int const st)
 		else
 		{
 			m_file_priority = std::move(new_priority);
+			set_need_save_resume();
 		}
 	}
 
