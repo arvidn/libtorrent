@@ -44,9 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-constexpr lt::file_index_t operator""_file (unsigned long long int const v)
-{ return lt::file_index_t{static_cast<int>(v)}; }
-
 constexpr lt::piece_index_t operator""_piece (unsigned long long int const v)
 { return lt::piece_index_t{static_cast<int>(v)}; }
 

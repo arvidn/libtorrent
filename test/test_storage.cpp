@@ -488,7 +488,7 @@ void test_rename(std::string const& test_path)
 
 	// directories are not created up-front, unless they contain
 	// an empty file
-	std::string first_file = fs.file_path(file_index_t(0));
+	std::string first_file = fs.file_path(0_file);
 	for (auto const i : fs.file_range())
 	{
 		TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
@@ -496,7 +496,7 @@ void test_rename(std::string const& test_path)
 	}
 
 	storage_error se;
-	s->rename_file(file_index_t(0), "new_filename", se);
+	s->rename_file(0_file, "new_filename", se);
 	if (se.ec)
 	{
 		std::printf("mmap_storage::rename_file failed: %s\n"
@@ -504,7 +504,7 @@ void test_rename(std::string const& test_path)
 	}
 	TEST_CHECK(!se.ec);
 
-	TEST_EQUAL(s->files().file_path(file_index_t(0)), "new_filename");
+	TEST_EQUAL(s->files().file_path(0_file), "new_filename");
 }
 
 void test_check_files(std::string const& test_path
@@ -901,7 +901,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(std::move(p), ec);
 
-		h.rename_file(file_index_t(0), "testing_renamed_files");
+		h.rename_file(0_file, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
 		bool renamed = false;
 		for (int i = 0; i < 30; ++i)
@@ -1283,15 +1283,15 @@ TORRENT_TEST(readwritev_stripe_1)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
-	TEST_EQUAL(fop.m_file_data[file_index_t(0)].size(), 3);
-	TEST_EQUAL(fop.m_file_data[file_index_t(1)].size(), 9);
-	TEST_EQUAL(fop.m_file_data[file_index_t(2)].size(), 81);
-	TEST_EQUAL(fop.m_file_data[file_index_t(3)].size(), 6561);
+	TEST_EQUAL(fop.m_file_data[0_file].size(), 3);
+	TEST_EQUAL(fop.m_file_data[1_file].size(), 9);
+	TEST_EQUAL(fop.m_file_data[2_file].size(), 81);
+	TEST_EQUAL(fop.m_file_data[3_file].size(), 6561);
 
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(0)], 0));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(1)], 3));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(2)], 3 + 9));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(3)], 3 + 9 + 81));
+	TEST_CHECK(check_pattern(fop.m_file_data[0_file], 0));
+	TEST_CHECK(check_pattern(fop.m_file_data[1_file], 3));
+	TEST_CHECK(check_pattern(fop.m_file_data[2_file], 3 + 9));
+	TEST_CHECK(check_pattern(fop.m_file_data[3_file], 3 + 9 + 81));
 
 	free_iov(iov, num_bufs);
 }
@@ -1310,15 +1310,15 @@ TORRENT_TEST(readwritev_single_buffer)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
-	TEST_EQUAL(fop.m_file_data[file_index_t(0)].size(), 3);
-	TEST_EQUAL(fop.m_file_data[file_index_t(1)].size(), 9);
-	TEST_EQUAL(fop.m_file_data[file_index_t(2)].size(), 81);
-	TEST_EQUAL(fop.m_file_data[file_index_t(3)].size(), 6561);
+	TEST_EQUAL(fop.m_file_data[0_file].size(), 3);
+	TEST_EQUAL(fop.m_file_data[1_file].size(), 9);
+	TEST_EQUAL(fop.m_file_data[2_file].size(), 81);
+	TEST_EQUAL(fop.m_file_data[3_file].size(), 6561);
 
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(0)], 0));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(1)], 3));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(2)], 3 + 9));
-	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(3)], 3 + 9 + 81));
+	TEST_CHECK(check_pattern(fop.m_file_data[0_file], 0));
+	TEST_CHECK(check_pattern(fop.m_file_data[1_file], 3));
+	TEST_CHECK(check_pattern(fop.m_file_data[2_file], 3 + 9));
+	TEST_CHECK(check_pattern(fop.m_file_data[3_file], 3 + 9 + 81));
 }
 
 TORRENT_TEST(readwritev_read)
@@ -1359,7 +1359,7 @@ TORRENT_TEST(readwritev_read_short)
 TORRENT_TEST(readwritev_error)
 {
 	file_storage fs = make_fs();
-	test_error_fileop fop(file_index_t(2));
+	test_error_fileop fop(2_file);
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));

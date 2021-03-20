@@ -457,13 +457,13 @@ TORRENT_TEST(no_metadata_file_prio)
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
-	h.file_priority(file_index_t(0), 0_pri);
+	h.file_priority(0_file, 0_pri);
 	// TODO 2: this should wait for an alert instead of just sleeping
 	std::this_thread::sleep_for(lt::milliseconds(100));
-	TEST_EQUAL(h.file_priority(file_index_t(0)), 0_pri);
-	h.file_priority(file_index_t(0), 1_pri);
+	TEST_EQUAL(h.file_priority(0_file), 0_pri);
+	h.file_priority(0_file, 1_pri);
 	std::this_thread::sleep_for(lt::milliseconds(100));
-	TEST_EQUAL(h.file_priority(file_index_t(0)), 1_pri);
+	TEST_EQUAL(h.file_priority(0_file), 1_pri);
 
 	ses.remove_torrent(h);
 }

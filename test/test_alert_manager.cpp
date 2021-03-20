@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -113,7 +114,7 @@ TORRENT_TEST(priority_limit)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	// the limit is twice as high for priority alerts
-	for (file_index_t i(0); i < file_index_t(300); ++i)
+	for (auto i = 0_file; i < 300_file; ++i)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;

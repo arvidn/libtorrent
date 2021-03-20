@@ -56,6 +56,11 @@ inline lt::download_priority_t operator "" _pri(unsigned long long const p)
 	return lt::download_priority_t(static_cast<std::uint8_t>(p));
 }
 
+inline lt::file_index_t operator "" _file(unsigned long long const p)
+{
+	return lt::file_index_t(static_cast<int>(p));
+}
+
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
 
 #ifdef _WIN32

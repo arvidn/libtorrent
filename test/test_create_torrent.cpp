@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 
 #include "libtorrent/torrent_info.hpp"
@@ -50,9 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 using namespace std::literals::string_literals;
-
-constexpr lt::file_index_t operator""_file (unsigned long long int const v)
-{ return lt::file_index_t{static_cast<int>(v)}; }
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
@@ -232,10 +230,10 @@ TORRENT_TEST(v2_path_conflict)
 		lt::create_torrent t(fs, 0x4000);
 		lt::sha256_hash const dummy("01234567890123456789012345678901");
 		lt::piece_index_t::diff_type zero(0);
-		t.set_hash2(lt::file_index_t(0), zero, dummy);
-		t.set_hash2(lt::file_index_t(1), zero, dummy);
-		t.set_hash2(lt::file_index_t(2), zero, dummy);
-		t.set_hash2(lt::file_index_t(3), zero, dummy);
+		t.set_hash2(0_file, zero, dummy);
+		t.set_hash2(1_file, zero, dummy);
+		t.set_hash2(2_file, zero, dummy);
+		t.set_hash2(3_file, zero, dummy);
 		TEST_THROW(t.generate());
 	}
 }
@@ -248,12 +246,12 @@ TORRENT_TEST(v2_only)
 	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
 
 	using p = lt::piece_index_t::diff_type;
-	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(0), p(2), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(1), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(2), lt::sha256_hash::max());
 	// file 1 is a pad file
-	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(2), p(1), lt::sha256_hash::max());
+	t.set_hash2(2_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(2_file, p(1), lt::sha256_hash::max());
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
@@ -373,7 +371,7 @@ TORRENT_TEST(v1_only_set_hash2)
 	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v1_only);
 
 	using p = lt::piece_index_t::diff_type;
-	TEST_THROW(t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max()));
+	TEST_THROW(t.set_hash2(0_file, p(0), lt::sha256_hash::max()));
 }
 
 // if we don't specify a v2-only flag, but only set v2 hashes, the created
@@ -386,12 +384,12 @@ TORRENT_TEST(implicit_v2_only)
 	lt::create_torrent t(fs, 0x4000);
 
 	using p = lt::piece_index_t::diff_type;
-	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(0), p(2), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(1), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(2), lt::sha256_hash::max());
 	// file 1 is a pad file
-	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(2), p(1), lt::sha256_hash::max());
+	t.set_hash2(2_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(2_file, p(1), lt::sha256_hash::max());
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
@@ -512,16 +510,16 @@ TORRENT_TEST(piece_layer)
 	lt::create_torrent t(fs, 0x4000);
 
 	using p = lt::piece_index_t::diff_type;
-	t.set_hash2(lt::file_index_t(0), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(0), p(1), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(1), p(0), lt::sha256_hash::max());
-	t.set_hash2(lt::file_index_t(2), p(0), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(0_file, p(1), lt::sha256_hash::max());
+	t.set_hash2(1_file, p(0), lt::sha256_hash::max());
+	t.set_hash2(2_file, p(0), lt::sha256_hash::max());
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
 	lt::torrent_info info(buffer, lt::from_span);
 
-	TEST_CHECK(info.piece_layer(lt::file_index_t(0)).size() == lt::sha256_hash::size() * 2);
-	TEST_CHECK(info.piece_layer(lt::file_index_t(1)).size() == lt::sha256_hash::size());
-	TEST_CHECK(info.piece_layer(lt::file_index_t(2)).size() == lt::sha256_hash::size());
+	TEST_CHECK(info.piece_layer(0_file).size() == lt::sha256_hash::size() * 2);
+	TEST_CHECK(info.piece_layer(1_file).size() == lt::sha256_hash::size());
+	TEST_CHECK(info.piece_layer(2_file).size() == lt::sha256_hash::size());
 }
