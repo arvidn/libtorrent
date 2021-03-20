@@ -5336,6 +5336,7 @@ namespace {
 	{
 		m_outstanding_file_priority = false;
 		COMPLETE_ASYNC("file_priority");
+
 		if (m_file_priority != prios)
 		{
 			update_piece_priorities(prios);
@@ -5356,8 +5357,13 @@ namespace {
 
 			set_error(err.ec, err.file());
 			pause();
+			return;
 		}
-		else if (!m_deferred_file_priorities.empty() && !m_abort)
+
+		if (alerts().should_post<file_prio_alert>())
+			alerts().emplace_alert<file_prio_alert>(get_handle());
+
+		if (!m_deferred_file_priorities.empty() && !m_abort)
 		{
 			auto new_priority = m_file_priority;
 			// resize the vector if we have to. The last item in the map has the

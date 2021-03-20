@@ -1037,9 +1037,10 @@ namespace aux {
 		// files in- and out of the part file), the internal accounting of file
 		// priorities happen asynchronously. i.e. setting file priorities and then
 		// immediately querying them may not yield the same priorities just set.
-		// However, the *piece* priorities are updated immediately.
+		// To synchronize with the priorities taking effect, wait for the
+		// file_prio_alert.
 		//
-		// when combining file- and piece priorities, the resume file will record
+		// When combining file- and piece priorities, the resume file will record
 		// both. When loading the resume data, the file priorities will be applied
 		// first, then the piece priorities.
 		void file_priority(file_index_t index, download_priority_t priority) const;
