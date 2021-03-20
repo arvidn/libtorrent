@@ -120,7 +120,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_EQUAL(st.total_wanted_done, 0);
 
 	aux::vector<download_priority_t, file_index_t> prio(std::size_t(info->num_files()), 1_pri);
-	prio[file_index_t(0)] = 0_pri;
+	prio[0_file] = 0_pri;
 	TEST_CHECK(prioritize_files(h, prio));
 	st = h.status();
 
@@ -541,12 +541,12 @@ TORRENT_TEST(rename_file)
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
-	TEST_EQUAL(info->files().file_path(file_index_t(0)), combine_path("test3","tmp1"));
+	TEST_EQUAL(info->files().file_path(0_file), combine_path("test3","tmp1"));
 
 	// move "test3/tmp1" -> "tmp1"
-	info->rename_file(file_index_t(0), "tmp1");
+	info->rename_file(0_file, "tmp1");
 
-	TEST_EQUAL(info->files().file_path(file_index_t(0)), "tmp1");
+	TEST_EQUAL(info->files().file_path(0_file), "tmp1");
 }
 
 TORRENT_TEST(torrent_status)

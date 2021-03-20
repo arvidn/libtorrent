@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
 
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -272,10 +273,10 @@ TORRENT_TEST(file_path_hash)
 	fs.add_file(combine_path("temp_storage", "Foo"), 17);
 	fs.add_file(combine_path("temp_storage", "foo"), 612);
 
-	std::printf("path: %s\n", fs.file_path(file_index_t(0)).c_str());
-	std::printf("file: %s\n", fs.file_path(file_index_t(1)).c_str());
-	std::uint32_t file_hash0 = fs.file_path_hash(file_index_t(0), "a");
-	std::uint32_t file_hash1 = fs.file_path_hash(file_index_t(1), "a");
+	std::printf("path: %s\n", fs.file_path(0_file).c_str());
+	std::printf("file: %s\n", fs.file_path(1_file).c_str());
+	std::uint32_t file_hash0 = fs.file_path_hash(0_file, "a");
+	std::uint32_t file_hash1 = fs.file_path_hash(1_file, "a");
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 
@@ -292,23 +293,23 @@ TORRENT_TEST(canonicalize_pad)
 
 	TEST_EQUAL(fs.num_files(), 5);
 
-	TEST_EQUAL(fs.file_size(file_index_t(0)), 1);
-	TEST_EQUAL(fs.file_name(file_index_t(0)), "1");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(0)), false);
+	TEST_EQUAL(fs.file_size(0_file), 1);
+	TEST_EQUAL(fs.file_name(0_file), "1");
+	TEST_EQUAL(fs.pad_file_at(0_file), false);
 
-	TEST_EQUAL(fs.file_size(file_index_t(1)), 0x4000 - 1);
-	TEST_EQUAL(fs.pad_file_at(file_index_t(1)), true);
+	TEST_EQUAL(fs.file_size(1_file), 0x4000 - 1);
+	TEST_EQUAL(fs.pad_file_at(1_file), true);
 
-	TEST_EQUAL(fs.file_size(file_index_t(2)), 0x7000);
-	TEST_EQUAL(fs.file_name(file_index_t(2)), "2");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(2)), false);
+	TEST_EQUAL(fs.file_size(2_file), 0x7000);
+	TEST_EQUAL(fs.file_name(2_file), "2");
+	TEST_EQUAL(fs.pad_file_at(2_file), false);
 
-	TEST_EQUAL(fs.file_size(file_index_t(3)), 0x8000 - 0x7000);
-	TEST_EQUAL(fs.pad_file_at(file_index_t(3)), true);
+	TEST_EQUAL(fs.file_size(3_file), 0x8000 - 0x7000);
+	TEST_EQUAL(fs.pad_file_at(3_file), true);
 
-	TEST_EQUAL(fs.file_size(file_index_t(4)), 0x7001);
-	TEST_EQUAL(fs.file_name(file_index_t(4)), "3");
-	TEST_EQUAL(fs.pad_file_at(file_index_t(4)), false);
+	TEST_EQUAL(fs.file_size(4_file), 0x7001);
+	TEST_EQUAL(fs.file_name(4_file), "3");
+	TEST_EQUAL(fs.pad_file_at(4_file), false);
 }
 
 // make sure canonicalize sorts by path correctly
@@ -325,10 +326,10 @@ TORRENT_TEST(canonicalize_path)
 
 	TEST_EQUAL(fs.num_files(), 4);
 
-	TEST_EQUAL(fs.file_path(file_index_t(0)), combine_path("b", combine_path("1", "a")));
-	TEST_EQUAL(fs.file_path(file_index_t(1)), combine_path("b", "11"));
-	TEST_EQUAL(fs.file_path(file_index_t(2)), combine_path("b", combine_path("2", "a")));
-	TEST_EQUAL(fs.file_path(file_index_t(3)), combine_path("b", combine_path("3", "a")));
+	TEST_EQUAL(fs.file_path(0_file), combine_path("b", combine_path("1", "a")));
+	TEST_EQUAL(fs.file_path(1_file), combine_path("b", "11"));
+	TEST_EQUAL(fs.file_path(2_file), combine_path("b", combine_path("2", "a")));
+	TEST_EQUAL(fs.file_path(3_file), combine_path("b", combine_path("3", "a")));
 }
 
 TORRENT_TEST(piece_range_exclusive)
@@ -346,9 +347,9 @@ TORRENT_TEST(piece_range_exclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(0)) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(1)) == std::make_tuple(piece_index_t(1), piece_index_t(5)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(2)) == std::make_tuple(piece_index_t(6), piece_index_t(9)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(piece_index_t(1), piece_index_t(5)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 2_file) == std::make_tuple(piece_index_t(6), piece_index_t(9)));
 }
 
 TORRENT_TEST(piece_range_inclusive)
@@ -366,9 +367,9 @@ TORRENT_TEST(piece_range_inclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, file_index_t(0)) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, file_index_t(1)) == std::make_tuple(piece_index_t(1), piece_index_t(6)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, file_index_t(2)) == std::make_tuple(piece_index_t(5), piece_index_t(9)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(piece_index_t(1), piece_index_t(6)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2_file) == std::make_tuple(piece_index_t(5), piece_index_t(9)));
 }
 
 TORRENT_TEST(piece_range)
@@ -385,11 +386,11 @@ TORRENT_TEST(piece_range)
 	// files  |      0    |      1     |
 	//        +---+-------+------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, file_index_t(0)) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, file_index_t(1)) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(0)) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, file_index_t(1)) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
 }
 
 TORRENT_TEST(piece_size_last_piece)

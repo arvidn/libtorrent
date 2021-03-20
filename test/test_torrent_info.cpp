@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
+#include "test_utils.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -244,7 +245,7 @@ static test_torrent_t const test_torrents[] =
 	{ "unordered.torrent" },
 	{ "symlink_zero_size.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
+			TEST_EQUAL(ti->files().symlink(1_file), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
 		}
 	},
 	{ "pad_file_no_path.torrent", [](torrent_info const* ti) {
@@ -324,9 +325,9 @@ static test_torrent_t const test_torrents[] =
 	},
 	{ "v2_symlinks.torrent", [](torrent_info const* ti) {
 			TEST_CHECK(ti->num_files() > 3);
-			TEST_EQUAL(ti->files().symlink(file_index_t(0)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
-			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+			TEST_EQUAL(ti->files().symlink(0_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(1_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(2_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
 		}
 	},
 	{ "v2_hybrid.torrent", [](torrent_info const* ti) {
