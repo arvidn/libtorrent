@@ -97,7 +97,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 97;
+	constexpr int num_alert_types = 98;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -2932,6 +2932,27 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// the endpoint configured as the proxy
 		aux::noexcept_movable<tcp::endpoint> ip;
+	};
+
+	// posted when a prioritize_files() or file_priority() update of the file
+	// priorities complete, which requires a round-trip to the disk thread.
+	//
+	// If the disk operation fails this alert won't be posted, but a
+	// file_error_alert is posted instead, and the torrent is stopped.
+	struct TORRENT_EXPORT file_prio_alert final : torrent_alert
+	{
+		// internal
+		explicit file_prio_alert(aux::stack_allocator& alloc, torrent_handle h);
+		TORRENT_DEFINE_ALERT(file_prio_alert, 97)
+
+		static constexpr alert_category_t static_category = alert_category::storage;
+		std::string message() const override;
+
+		// the error
+		error_code error;
+
+		// the operation that failed
+		operation_t op;
 	};
 
 TORRENT_VERSION_NAMESPACE_3_END
