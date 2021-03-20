@@ -892,7 +892,7 @@ TORRENT_TEST(cursors_sweep_up_seq_range_we_have)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_sequential_range(1, 5);
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	for (piece_index_t i(1); i < piece_index_t(6); ++i)
 	{
 		TEST_EQUAL(p->cursor(), piece_index_t(i));
@@ -901,8 +901,8 @@ TORRENT_TEST(cursors_sweep_up_seq_range_we_have)
 	}
 	TEST_EQUAL(p->cursor(), piece_index_t(7));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
-	p->we_have(0);
-	p->we_have(6);
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 }
@@ -914,7 +914,7 @@ TORRENT_TEST(cursors_sweep_down_seq_range_we_have)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_sequential_range(1, 5);
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	for (piece_index_t i(5); i >= piece_index_t(1); --i)
 	{
 		TEST_EQUAL(p->cursor(), piece_index_t(1));
@@ -923,8 +923,8 @@ TORRENT_TEST(cursors_sweep_down_seq_range_we_have)
 	}
 	TEST_EQUAL(p->cursor(), piece_index_t(7));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
-	p->we_have(0);
-	p->we_have(6);
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 }
@@ -936,7 +936,7 @@ TORRENT_TEST(cursors_sweep_in_seq_range_we_have)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
-	p->set_sequential_range(1, 5);
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	for (piece_index_t left(1), right(5); left <= piece_index_t(3)
 		&& right >= piece_index_t(3); ++left, --right)
 	{
@@ -947,8 +947,8 @@ TORRENT_TEST(cursors_sweep_in_seq_range_we_have)
 	}
 	TEST_EQUAL(p->cursor(), piece_index_t(7));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
-	p->we_have(0);
-	p->we_have(6);
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 }
