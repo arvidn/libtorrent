@@ -5160,6 +5160,19 @@ bool is_downloading_state(int const st)
 	{
 		m_outstanding_file_priority = false;
 		COMPLETE_ASYNC("file_priority");
+
+		if (err)
+		{
+			// in this case, some file priorities failed to get set
+			if (alerts().should_post<file_error_alert>())
+				alerts().emplace_alert<file_error_alert>(err.ec
+					, resolve_filename(err.file()), err.operation, get_handle());
+
+			set_error(err.ec, err.file());
+			pause();
+			return;
+		}
+
 		if (m_file_priority != prios)
 		{
 			update_piece_priorities(prios);
@@ -5171,17 +5184,8 @@ bool is_downloading_state(int const st)
 #endif
 		}
 
-		if (err)
-		{
-			// in this case, some file priorities failed to get set
-			if (alerts().should_post<file_error_alert>())
-				alerts().emplace_alert<file_error_alert>(err.ec
-					, resolve_filename(err.file()), err.operation, get_handle());
 
-			set_error(err.ec, err.file());
-			pause();
-		}
-		else if (!m_deferred_file_priorities.empty() && !m_abort)
+		if (!m_deferred_file_priorities.empty() && !m_abort)
 		{
 			auto new_priority = m_file_priority;
 			// resize the vector if we have to. The last item in the map has the
