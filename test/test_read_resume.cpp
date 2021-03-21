@@ -302,7 +302,7 @@ TORRENT_TEST(round_trip_prios)
 TORRENT_TEST(round_trip_unfinished)
 {
 	add_torrent_params atp;
-	atp.unfinished_pieces = std::map<piece_index_t, bitfield>{{piece_index_t{42}, bits()}};
+	atp.unfinished_pieces = std::map<piece_index_t, bitfield>{{42_piece, bits()}};
 	test_roundtrip(atp);
 }
 

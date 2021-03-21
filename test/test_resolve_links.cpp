@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "test_utils.hpp"
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 
@@ -158,10 +159,10 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	lt::create_torrent t1(fs1, 1024, lt::create_torrent::v1_only);
 	lt::create_torrent t2(fs2, 1024, lt::create_torrent::v1_only);
 
-	t1.set_hash(piece_index_t{0}, sha1_hash::max());
-	t1.set_hash(piece_index_t{1}, sha1_hash::max());
-	t2.set_hash(piece_index_t{0}, sha1_hash::max());
-	t2.set_hash(piece_index_t{1}, sha1_hash("01234567890123456789"));
+	t1.set_hash(0_piece, sha1_hash::max());
+	t1.set_hash(1_piece, sha1_hash::max());
+	t2.set_hash(0_piece, sha1_hash::max());
+	t2.set_hash(1_piece, sha1_hash("01234567890123456789"));
 
 	std::vector<char> tmp1;
 	std::vector<char> tmp2;

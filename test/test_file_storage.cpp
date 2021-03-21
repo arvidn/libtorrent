@@ -251,15 +251,15 @@ TORRENT_TEST(map_file)
 	// size: 4723
 
 	peer_request rq = fs.map_file(file_index_t{0}, 0, 10);
-	TEST_EQUAL(rq.piece, piece_index_t{0});
+	TEST_EQUAL(rq.piece, 0_piece);
 	TEST_EQUAL(rq.start, 0);
 	TEST_EQUAL(rq.length, 10);
 	rq = fs.map_file(file_index_t{5}, 0, 10);
-	TEST_EQUAL(rq.piece, piece_index_t{7});
+	TEST_EQUAL(rq.piece, 7_piece);
 	TEST_EQUAL(rq.start, 298);
 	TEST_EQUAL(rq.length, 10);
 	rq = fs.map_file(file_index_t{5}, 0, 1000);
-	TEST_EQUAL(rq.piece, piece_index_t{7});
+	TEST_EQUAL(rq.piece, 7_piece);
 	TEST_EQUAL(rq.start, 298);
 	TEST_EQUAL(rq.length, 841);
 }
@@ -347,9 +347,9 @@ TORRENT_TEST(piece_range_exclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(piece_index_t(1), piece_index_t(5)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 2_file) == std::make_tuple(piece_index_t(6), piece_index_t(9)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(0_piece, 1_piece));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(1_piece, 5_piece));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 2_file) == std::make_tuple(6_piece, 9_piece));
 }
 
 TORRENT_TEST(piece_range_inclusive)
@@ -367,9 +367,9 @@ TORRENT_TEST(piece_range_inclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(1)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(piece_index_t(1), piece_index_t(6)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2_file) == std::make_tuple(piece_index_t(5), piece_index_t(9)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(0_piece, 1_piece));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(1_piece, 6_piece));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2_file) == std::make_tuple(5_piece, 9_piece));
 }
 
 TORRENT_TEST(piece_range)
@@ -386,11 +386,11 @@ TORRENT_TEST(piece_range)
 	// files  |      0    |      1     |
 	//        +---+-------+------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(0_piece, 3_piece));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(3_piece, 7_piece));
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(piece_index_t(0), piece_index_t(3)));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(piece_index_t(3), piece_index_t(7)));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(0_piece, 3_piece));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(3_piece, 7_piece));
 }
 
 TORRENT_TEST(piece_size_last_piece)
@@ -399,7 +399,7 @@ TORRENT_TEST(piece_size_last_piece)
 	fs.set_piece_length(1024);
 	fs.add_file("0", 100);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
-	TEST_EQUAL(fs.piece_size(piece_index_t{0}), 100);
+	TEST_EQUAL(fs.piece_size(0_piece), 100);
 }
 
 TORRENT_TEST(piece_size_middle_piece)
@@ -408,8 +408,8 @@ TORRENT_TEST(piece_size_middle_piece)
 	fs.set_piece_length(1024);
 	fs.add_file("0", 2000);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
-	TEST_EQUAL(fs.piece_size(piece_index_t{0}), 1024);
-	TEST_EQUAL(fs.piece_size(piece_index_t{1}), 2000 - 1024);
+	TEST_EQUAL(fs.piece_size(0_piece), 1024);
+	TEST_EQUAL(fs.piece_size(1_piece), 2000 - 1024);
 }
 
 TORRENT_TEST(file_index_at_offset)
@@ -441,7 +441,7 @@ TORRENT_TEST(map_block_start)
 	int len = 0;
 	for (int f : {0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5})
 	{
-		std::vector<file_slice> const map = fs.map_block(piece_index_t{0}, 0, len);
+		std::vector<file_slice> const map = fs.map_block(0_piece, 0, len);
 		TEST_EQUAL(int(map.size()), f);
 		file_index_t file_index{0};
 		std::int64_t actual_len = 0;
@@ -469,7 +469,7 @@ TORRENT_TEST(map_block_mid)
 	int offset = 0;
 	for (int f : {0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4})
 	{
-		std::vector<file_slice> const map = fs.map_block(piece_index_t{0}, offset, 1);
+		std::vector<file_slice> const map = fs.map_block(0_piece, offset, 1);
 		TEST_EQUAL(int(map.size()), 1);
 		auto const& file = map[0];
 		TEST_EQUAL(file.file_index, file_index_t{f});
@@ -822,35 +822,35 @@ TORRENT_TEST(piece_size2)
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 1);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
+	TEST_EQUAL(fs.piece_size2(0_piece), 0x5000);
 
 	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 3);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
+	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
 
 	fs.add_file("test/3", 8, {}, 0, {}, "01234567890123456789012345678901");
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 4);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{1}), 0x2000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{3}), 8);
+	TEST_EQUAL(fs.piece_size2(0_piece), 0x5000);
+	TEST_EQUAL(fs.piece_size2(1_piece), 0x2000);
+	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
+	TEST_EQUAL(fs.piece_size2(3_piece), 8);
 
 	fs.add_file("test/4", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 6);
 
-	TEST_EQUAL(fs.piece_size2(piece_index_t{0}), 0x5000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{1}), 0x2000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{2}), 0x8000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{3}), 8);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{4}), 0x8000);
-	TEST_EQUAL(fs.piece_size2(piece_index_t{5}), 1);
+	TEST_EQUAL(fs.piece_size2(0_piece), 0x5000);
+	TEST_EQUAL(fs.piece_size2(1_piece), 0x2000);
+	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
+	TEST_EQUAL(fs.piece_size2(3_piece), 8);
+	TEST_EQUAL(fs.piece_size2(4_piece), 0x8000);
+	TEST_EQUAL(fs.piece_size2(5_piece), 1);
 }
 
 TORRENT_TEST(file_num_blocks)
@@ -1033,7 +1033,7 @@ TORRENT_TEST(blocks_in_piece2)
 		fs.set_piece_length(0x8000);
 		fs.add_file("test/0", t.first, {}, 0, {}, "01234567890123456789012345678901");
 		fs.set_num_pieces(aux::calc_num_pieces(fs));
-		TEST_EQUAL(fs.blocks_in_piece2(piece_index_t{ 0 }), t.second);
+		TEST_EQUAL(fs.blocks_in_piece2(0_piece), t.second);
 	}
 }
 

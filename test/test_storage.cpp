@@ -160,7 +160,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	lt::create_torrent t(fs, 0x4000);
 
 	sha1_hash h = hasher(std::vector<char>(0x4000, 0)).final();
-	for (piece_index_t i(0); i < piece_index_t(6); ++i) t.set_hash(i, h);
+	for (piece_index_t i(0); i < 6_piece; ++i) t.set_hash(i, h);
 
 	bencode(std::back_inserter(buf), t.generate());
 	error_code ec;
@@ -345,56 +345,56 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	// write piece 1 (in slot 0)
 	iovec_t iov = span<char>(piece1).first(half);
 
-	ret = writev(s, set, iov, piece_index_t(0), 0, aux::open_mode::write, ec);
+	ret = writev(s, set, iov, 0_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("writev", ret, ec);
 
 	iov = span<char>(piece1).last(half);
-	ret = writev(s, set, iov, piece_index_t(0), half, aux::open_mode::write, ec);
+	ret = writev(s, set, iov, 0_piece, half, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("writev", ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
 	iov = span<char>(piece).subspan(3, piece_size - 9);
-	ret = readv(s, set, iov, piece_index_t(0), 3, aux::open_mode::write, ec);
+	ret = readv(s, set, iov, 0_piece, 3, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("readv",ret, ec);
 	TEST_CHECK(iov == span<char>(piece1).subspan(3, piece_size - 9));
 
 	// test unaligned read (where the bytes are not aligned)
 	iov = span<char>(piece).first(piece_size - 9);
-	ret = readv(s, set, iov, piece_index_t(0), 3, aux::open_mode::write, ec);
+	ret = readv(s, set, iov, 0_piece, 3, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("readv", ret, ec);
 	TEST_CHECK(iov == span<char>(piece1).subspan(3, piece_size - 9));
 
 	// verify piece 1
 	iov = piece;
-	ret = readv(s, set, iov, piece_index_t(0), 0, aux::open_mode::write, ec);
+	ret = readv(s, set, iov, 0_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("readv", ret, ec);
 	TEST_CHECK(piece == piece1);
 
 	// do the same with piece 0 and 2 (in slot 1 and 2)
 	iov = piece0;
-	ret = writev(s, set, iov, piece_index_t(1), 0, aux::open_mode::write, ec);
+	ret = writev(s, set, iov, 1_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("writev", ret, ec);
 
 	iov = piece2;
-	ret = writev(s, set, iov, piece_index_t(2), 0, aux::open_mode::write, ec);
+	ret = writev(s, set, iov, 2_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("writev", ret, ec);
 
 	// verify piece 0 and 2
 	iov = piece;
-	ret = readv(s, set, iov, piece_index_t(1), 0, aux::open_mode::write, ec);
+	ret = readv(s, set, iov, 1_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("readv", ret, ec);
 	TEST_CHECK(piece == piece0);
 
 	iov = piece;
-	ret = readv(s, set, iov, piece_index_t(2), 0, aux::open_mode::write, ec);
+	ret = readv(s, set, iov, 2_piece, 0, aux::open_mode::write, ec);
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(piece_size)) print_error("readv", ret, ec);
 	TEST_CHECK(piece == piece2);
@@ -434,7 +434,7 @@ void test_remove(std::string const& test_path)
 	buf.resize(0x4000);
 	iovec_t b = {&buf[0], 0x4000};
 	storage_error se;
-	writev(s, set, b, piece_index_t(2), 0, aux::open_mode::write, se);
+	writev(s, set, b, 2_piece, 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp")))));
@@ -449,7 +449,7 @@ void test_remove(std::string const& test_path)
 	// 4
 	TEST_CHECK(st.file_size == 0x8000 || st.file_size == 0x4000);
 
-	writev(s, set, b, piece_index_t(0), 0, aux::open_mode::write, se);
+	writev(s, set, b, 0_piece, 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
@@ -525,10 +525,10 @@ void test_check_files(std::string const& test_path
 	std::vector<char> piece2 = new_piece(piece_size_check);
 
 	lt::create_torrent t(fs, piece_size_check);
-	t.set_hash(piece_index_t(0), hasher(piece0).final());
-	t.set_hash(piece_index_t(1), sha1_hash::max());
-	t.set_hash(piece_index_t(2), sha1_hash::max());
-	t.set_hash(piece_index_t(3), hasher(piece2).final());
+	t.set_hash(0_piece, hasher(piece0).final());
+	t.set_hash(1_piece, sha1_hash::max());
+	t.set_hash(2_piece, sha1_hash::max());
+	t.set_hash(3_piece, hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
@@ -622,10 +622,10 @@ void run_test()
 
 	lt::create_torrent t(fs, piece_size, create_torrent::v1_only);
 	TEST_CHECK(t.num_pieces() == 4);
-	t.set_hash(piece_index_t(0), hasher(piece0).final());
-	t.set_hash(piece_index_t(1), hasher(piece1).final());
-	t.set_hash(piece_index_t(2), hasher(piece2).final());
-	t.set_hash(piece_index_t(3), hasher(piece3).final());
+	t.set_hash(0_piece, hasher(piece0).final());
+	t.set_hash(1_piece, hasher(piece1).final());
+	t.set_hash(2_piece, hasher(piece2).final());
+	t.set_hash(3_piece, hasher(piece3).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -1278,7 +1278,7 @@ TORRENT_TEST(readwritev_stripe_1)
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
-	int ret = readwritev(fs, {iov2, num_bufs2}, piece_index_t(0), 0, ec
+	int ret = readwritev(fs, {iov2, num_bufs2}, 0_piece, 0, ec
 		, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
@@ -1306,7 +1306,7 @@ TORRENT_TEST(readwritev_single_buffer)
 	iovec_t iov = { &buf[0], int(buf.size()) };
 	fill_pattern(&iov, 1);
 
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
+	int ret = readwritev(fs, iov, 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1331,7 +1331,7 @@ TORRENT_TEST(readwritev_read)
 	iovec_t iov = { &buf[0], int(buf.size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
+	int ret = readwritev(fs, iov, 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1347,7 +1347,7 @@ TORRENT_TEST(readwritev_read_short)
 	iovec_t iov = { buf.data(), static_cast<std::ptrdiff_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
+	int ret = readwritev(fs, iov, 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(static_cast<int>(ec.file()), 3);
 
@@ -1366,7 +1366,7 @@ TORRENT_TEST(readwritev_error)
 	iovec_t iov = { buf.data(), static_cast<std::ptrdiff_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
+	int ret = readwritev(fs, iov, 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(static_cast<int>(ec.file()), 2);
@@ -1392,7 +1392,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 	iovec_t iov = { buf.data(), static_cast<std::ptrdiff_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, piece_index_t(0), 0, ec, std::ref(fop));
+	int ret = readwritev(fs, iov, 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1416,7 +1416,7 @@ void test_move_storage_to_self()
 	iovec_t const b = {&buf[0], 4};
 	storage_error se;
 	TEST_EQUAL(se.ec, boost::system::errc::success);
-	writev(s, set, b, piece_index_t(1), 0, aux::open_mode::write, se);
+	writev(s, set, b, 1_piece, 0, aux::open_mode::write, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
@@ -1449,7 +1449,7 @@ void test_move_storage_into_self()
 
 	iovec_t const b = {&buf[0], 4};
 	storage_error se;
-	writev(s, set, b, piece_index_t(2), 0, aux::open_mode::write, se);
+	writev(s, set, b, 2_piece, 0, aux::open_mode::write, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
 	s->move_storage(test_path, move_flags_t::always_replace_files, se);
@@ -1518,7 +1518,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 
 	iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev(set, b, piece_index_t(2), 0, aux::open_mode::write, se);
+	s->writev(set, b, 2_piece, 0, aux::open_mode::write, se);
 
 	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"
@@ -1641,11 +1641,11 @@ void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	std::vector<char> write_buffer(lt::default_block_size * 2);
 	aux::random_bytes(write_buffer);
 
-	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
-	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+	lt::peer_request const req0{0_piece, 0, lt::default_block_size};
+	lt::peer_request const req1{0_piece, lt::default_block_size, lt::default_block_size};
 
 	// this is the unaligned read request
-	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+	lt::peer_request const req2{0_piece, lt::default_block_size / 2, lt::default_block_size};
 
 	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
 		, write_buffer.begin() + req2.start + req2.length);
@@ -1665,11 +1665,11 @@ void first_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	std::vector<char> write_buffer(lt::default_block_size * 2);
 	aux::random_bytes(write_buffer);
 
-	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
-	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+	lt::peer_request const req0{0_piece, 0, lt::default_block_size};
+	lt::peer_request const req1{0_piece, lt::default_block_size, lt::default_block_size};
 
 	// this is the unaligned read request
-	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+	lt::peer_request const req2{0_piece, lt::default_block_size / 2, lt::default_block_size};
 
 	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
 		, write_buffer.begin() + req2.start + req2.length);
@@ -1693,11 +1693,11 @@ void second_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_hold
 	std::vector<char> write_buffer(lt::default_block_size * 2);
 	aux::random_bytes(write_buffer);
 
-	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
-	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+	lt::peer_request const req0{0_piece, 0, lt::default_block_size};
+	lt::peer_request const req1{0_piece, lt::default_block_size, lt::default_block_size};
 
 	// this is the unaligned read request
-	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+	lt::peer_request const req2{0_piece, lt::default_block_size / 2, lt::default_block_size};
 
 	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
 		, write_buffer.begin() + req2.start + req2.length);
@@ -1720,11 +1720,11 @@ void none_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder cons
 	std::vector<char> write_buffer(lt::default_block_size * 2);
 	aux::random_bytes(write_buffer);
 
-	lt::peer_request const req0{lt::piece_index_t{0}, 0, lt::default_block_size};
-	lt::peer_request const req1{lt::piece_index_t{0}, lt::default_block_size, lt::default_block_size};
+	lt::peer_request const req0{0_piece, 0, lt::default_block_size};
+	lt::peer_request const req1{0_piece, lt::default_block_size, lt::default_block_size};
 
 	// this is the unaligned read request
-	lt::peer_request const req2{lt::piece_index_t{0}, lt::default_block_size / 2, lt::default_block_size};
+	lt::peer_request const req2{0_piece, lt::default_block_size / 2, lt::default_block_size};
 
 	std::vector<char> const expected_buffer(write_buffer.begin() + req2.start
 		, write_buffer.begin() + req2.start + req2.length);

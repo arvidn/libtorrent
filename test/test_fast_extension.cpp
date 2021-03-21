@@ -933,10 +933,10 @@ TORRENT_TEST(dont_have)
 
 	TEST_CHECK(!(pi[0].flags & peer_info::seed));
 	TEST_EQUAL(pi[0].pieces.count(), pi[0].pieces.size() - 1);
-	TEST_EQUAL(pi[0].pieces[piece_index_t(3)], false);
-	TEST_EQUAL(pi[0].pieces[piece_index_t(2)], true);
-	TEST_EQUAL(pi[0].pieces[piece_index_t(1)], true);
-	TEST_EQUAL(pi[0].pieces[piece_index_t(0)], true);
+	TEST_EQUAL(pi[0].pieces[3_piece], false);
+	TEST_EQUAL(pi[0].pieces[2_piece], true);
+	TEST_EQUAL(pi[0].pieces[1_piece], true);
+	TEST_EQUAL(pi[0].pieces[0_piece], true);
 
 	print_session_log(*ses);
 }
@@ -1053,7 +1053,7 @@ TORRENT_TEST(invalid_request)
 	send_have_none(s);
 
 	peer_request req;
-	req.piece = piece_index_t(124134235);
+	req.piece = 124134235_piece;
 	req.start = 0;
 	req.length = 0x4000;
 	send_request(s, req);
