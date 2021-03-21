@@ -157,7 +157,7 @@ TORRENT_TEST(create_torrent_round_trip)
 	TEST_EQUAL(info2.trackers().size(), 1);
 	TEST_EQUAL(info2.trackers().front().url, "udp://testurl.com/announce");
 	TEST_CHECK(info1.info_hashes() == info2.info_hashes());
-	TEST_CHECK(info2.hash_for_piece(lt::piece_index_t(0)) == info1.hash_for_piece(lt::piece_index_t(0)));
+	TEST_CHECK(info2.hash_for_piece(0_piece) == info1.hash_for_piece(0_piece));
 }
 
 namespace {
@@ -276,7 +276,7 @@ TORRENT_TEST(v2_only_set_hash)
 	fs.add_file("test/A", 0x8002);
 	lt::create_torrent t(fs, 0x4000, lt::create_torrent::v2_only);
 
-	TEST_THROW(t.set_hash(lt::piece_index_t(0), lt::sha1_hash::max()));
+	TEST_THROW(t.set_hash(0_piece, lt::sha1_hash::max()));
 }
 
 namespace {

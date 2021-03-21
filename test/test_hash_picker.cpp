@@ -44,9 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
-constexpr lt::piece_index_t operator""_piece (unsigned long long int const v)
-{ return lt::piece_index_t{static_cast<int>(v)}; }
-
 struct mock_peer_connection final : peer_connection_interface
 {
 	tcp::endpoint const& remote() const override { return m_remote; }

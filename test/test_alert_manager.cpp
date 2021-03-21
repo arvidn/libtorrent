@@ -55,7 +55,7 @@ TORRENT_TEST(limit)
 
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
-	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+	for (auto i = 0_piece; i < 600_piece; ++i)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
@@ -72,7 +72,7 @@ TORRENT_TEST(limit)
 	// now, try lowering the limit and do the same thing again
 	mgr.set_alert_queue_size_limit(200);
 
-	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+	for (auto i = 0_piece; i < 600_piece; ++i)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	TEST_EQUAL(mgr.pending(), true);
@@ -91,10 +91,10 @@ TORRENT_TEST(limit_int_max)
 
 	TEST_EQUAL(mgr.alert_queue_size_limit(), inf);
 
-	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+	for (auto i = 0_piece; i < 600_piece; ++i)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
-	for (piece_index_t i{0}; i < piece_index_t{600}; ++i)
+	for (auto i = 0_piece; i < 600_piece; ++i)
 		mgr.emplace_alert<torrent_removed_alert>(torrent_handle(), info_hash_t(), client_data_t{});
 
 	std::vector<alert*> alerts;
@@ -110,7 +110,7 @@ TORRENT_TEST(priority_limit)
 	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
 
 	// this should only add 100 because of the limit
-	for (piece_index_t i{0}; i < piece_index_t{200}; ++i)
+	for (auto i = 0_piece; i < 200_piece; ++i)
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), i);
 
 	// the limit is twice as high for priority alerts
@@ -341,7 +341,7 @@ struct post_plugin : lt::plugin
 	void on_alert(alert const*) override
 	{
 		if (++depth > 10) return;
-		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0_piece);
 	}
 
 	aux::alert_manager& mgr;
@@ -356,7 +356,7 @@ TORRENT_TEST(recursive_alerts)
 	auto pl = std::make_shared<post_plugin>(mgr);
 	mgr.add_extension(pl);
 
-	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});
+	mgr.emplace_alert<piece_finished_alert>(torrent_handle(), 0_piece);
 
 	TEST_EQUAL(pl->depth, 11);
 }

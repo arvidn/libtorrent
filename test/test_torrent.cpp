@@ -141,13 +141,13 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	if (info->num_pieces() > 0)
 	{
-		h.piece_priority(piece_index_t(0), 1_pri);
+		h.piece_priority(0_piece, 1_pri);
 		st = h.status();
-		TEST_CHECK(st.pieces.size() > 0 && st.pieces[piece_index_t(0)] == false);
+		TEST_CHECK(st.pieces.size() > 0 && st.pieces[0_piece] == false);
 		std::vector<char> piece(std::size_t(info->piece_length()));
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[std::size_t(i)] = (i % 26) + 'A';
-		h.add_piece(piece_index_t(0), &piece[0], torrent_handle::overwrite_existing);
+		h.add_piece(0_piece, &piece[0], torrent_handle::overwrite_existing);
 
 		// wait until the piece is done writing and hashing
 		wait_for_alert(ses, piece_finished_alert::alert_type, "piece_finished_alert");
@@ -155,7 +155,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		TEST_CHECK(st.pieces.size() > 0);
 
 		std::cout << "reading piece 0" << std::endl;
-		h.read_piece(piece_index_t(0));
+		h.read_piece(0_piece);
 		alert const* a = wait_for_alert(ses, read_piece_alert::alert_type, "read_piece");
 		TEST_CHECK(a);
 		read_piece_alert const* rpa = alert_cast<read_piece_alert>(a);
@@ -164,10 +164,10 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		{
 			std::cout << "SUCCEEDED!" << std::endl;
 			TEST_CHECK(std::memcmp(&piece[0], rpa->buffer.get()
-				, std::size_t(info->piece_size(piece_index_t(0)))) == 0);
-			TEST_CHECK(rpa->size == info->piece_size(piece_index_t(0)));
-			TEST_CHECK(rpa->piece == piece_index_t(0));
-			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(piece_index_t(0)));
+				, std::size_t(info->piece_size(0_piece))) == 0);
+			TEST_CHECK(rpa->size == info->piece_size(0_piece));
+			TEST_CHECK(rpa->piece == 0_piece);
+			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(0_piece));
 		}
 	}
 
@@ -233,10 +233,10 @@ TORRENT_TEST(total_wanted)
 	fs.add_file("test_torrent_dir4/tmp4", default_block_size);
 
 	lt::create_torrent t(fs, default_block_size);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
-	t.set_hash(piece_index_t{1}, sha1_hash::max());
-	t.set_hash(piece_index_t{2}, sha1_hash::max());
-	t.set_hash(piece_index_t{3}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
+	t.set_hash(1_piece, sha1_hash::max());
+	t.set_hash(2_piece, sha1_hash::max());
+	t.set_hash(3_piece, sha1_hash::max());
 
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -277,7 +277,7 @@ TORRENT_TEST(added_peers)
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 
 	lt::create_torrent t(fs, 1024);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -309,7 +309,7 @@ TORRENT_TEST(mismatching_info_hash)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -334,7 +334,7 @@ TORRENT_TEST(exceed_file_prio)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -356,7 +356,7 @@ TORRENT_TEST(exceed_piece_prio)
 	file_storage fs;
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 	lt::create_torrent t(fs, 1024);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
@@ -535,7 +535,7 @@ TORRENT_TEST(rename_file)
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
 	lt::create_torrent t(fs, 128 * 1024, lt::create_torrent::v1_only);
-	t.set_hash(piece_index_t{0}, sha1_hash::max());
+	t.set_hash(0_piece, sha1_hash::max());
 
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -574,7 +574,7 @@ void test_queue(add_torrent_params)
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
 		lt::create_torrent t(fs, 128 * 1024);
-		t.set_hash(piece_index_t{0}, sha1_hash::max());
+		t.set_hash(0_piece, sha1_hash::max());
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
@@ -708,8 +708,8 @@ TORRENT_TEST(test_have_piece_no_metadata)
 	torrent_handle h = ses.add_torrent(p);
 
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
-	TEST_EQUAL(h.have_piece(piece_index_t{0}), false);
-	TEST_EQUAL(h.have_piece(piece_index_t{100}), false);
+	TEST_EQUAL(h.have_piece(0_piece), false);
+	TEST_EQUAL(h.have_piece(100_piece), false);
 }
 
 TORRENT_TEST(test_have_piece_out_of_range)
@@ -729,8 +729,8 @@ TORRENT_TEST(test_have_piece_out_of_range)
 	torrent_handle h = ses.add_torrent(p);
 
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
-	TEST_EQUAL(h.have_piece(piece_index_t{0}), true);
-	TEST_EQUAL(h.have_piece(piece_index_t{100}), false);
+	TEST_EQUAL(h.have_piece(0_piece), true);
+	TEST_EQUAL(h.have_piece(100_piece), false);
 }
 
 TORRENT_TEST(test_read_piece_no_metadata)
@@ -872,10 +872,10 @@ TORRENT_TEST(redundant_add_piece)
 	auto h = ses.add_torrent(atp);
 	wait_for_downloading(ses, "");
 
-	h.add_piece(piece_index_t{0}, piece_data.data());
-	h.set_piece_deadline(piece_index_t{0}, 0, torrent_handle::alert_when_available);
+	h.add_piece(0_piece, piece_data.data());
+	h.set_piece_deadline(0_piece, 0, torrent_handle::alert_when_available);
 	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(ti->num_pieces()), lt::dont_download));
-	h.add_piece(piece_index_t{0}, piece_data.data());
+	h.add_piece(0_piece, piece_data.data());
 	std::this_thread::sleep_for(lt::seconds(2));
 }
 

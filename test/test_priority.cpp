@@ -480,10 +480,10 @@ TORRENT_TEST(no_metadata_piece_prio)
 	torrent_handle h = ses.add_torrent(addp);
 
 	// you can't set piece priorities before the metadata has been downloaded
-	h.piece_priority(piece_index_t(2), 0_pri);
-	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4_pri);
-	h.piece_priority(piece_index_t(2), 1_pri);
-	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4_pri);
+	h.piece_priority(2_piece, 0_pri);
+	TEST_EQUAL(h.piece_priority(2_piece), 4_pri);
+	h.piece_priority(2_piece, 1_pri);
+	TEST_EQUAL(h.piece_priority(2_piece), 4_pri);
 
 	ses.remove_torrent(h);
 }
@@ -598,11 +598,11 @@ TORRENT_TEST(test_piece_priority_after_resume)
 		lt::session ses(settings());
 		torrent_handle h = ses.add_torrent(p);
 
-		TEST_EQUAL(h.piece_priority(piece_index_t{0}), prio);
+		TEST_EQUAL(h.piece_priority(0_piece), prio);
 
 		using prio_vec = std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>>;
-		h.prioritize_pieces(prio_vec{{piece_index_t{0}, new_prio}});
-		TEST_EQUAL(h.piece_priority(piece_index_t{0}), new_prio);
+		h.prioritize_pieces(prio_vec{{0_piece, new_prio}});
+		TEST_EQUAL(h.piece_priority(0_piece), new_prio);
 
 		ses.pause();
 		h.save_resume_data();
@@ -619,7 +619,7 @@ TORRENT_TEST(test_piece_priority_after_resume)
 		lt::session ses(settings());
 		torrent_handle h = ses.add_torrent(p);
 
-		TEST_EQUAL(h.piece_priority(piece_index_t{0}), new_prio);
+		TEST_EQUAL(h.piece_priority(0_piece), new_prio);
 	}
 }
 
