@@ -1,3 +1,5 @@
+* 2.0.3 released
+
 	* add file_prio_alert, posted when file priorities are updated
 	* fix issue where set_piece_hashes() would not propagate file errors
 	* add missing python binding for event_t

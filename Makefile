@@ -1,4 +1,4 @@
-VERSION=2.0.2
+VERSION=2.0.3
 
 BUILD_CONFIG=release cxxstd=14 link=shared crypto=openssl warnings=off address-model=64
 
