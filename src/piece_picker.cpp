@@ -335,6 +335,7 @@ namespace libtorrent::aux {
 
     void piece_picker::set_sequential_range(piece_index_t const start_piece, piece_index_t const end_piece)
     {
+		INVARIANT_CHECK;
 		m_reverse_cursor = end_piece == piece_index_t(-1) ? m_piece_map.end_index() : next(end_piece);
 		m_cursor = start_piece;
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)

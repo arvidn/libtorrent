@@ -753,6 +753,19 @@ TORRENT_TEST(sequential_download)
 			, i % blocks_per_piece));
 }
 
+TORRENT_TEST(sequential_range_download)
+{
+	// test sequential range download
+	auto p = setup_picker("7654321", "       ", "", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential, empty_vector);
+	TEST_CHECK(int(picked.size()) == 5 * blocks_per_piece);
+	for (int i = 0; i < int(picked.size()); ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t((i + 4) / blocks_per_piece)
+			, i % blocks_per_piece));
+}
+
 TORRENT_TEST(reverse_sequential_download)
 {
 	// test reverse sequential download
@@ -762,6 +775,19 @@ TORRENT_TEST(reverse_sequential_download)
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - (i / blocks_per_piece))
+			, i % blocks_per_piece));
+}
+
+TORRENT_TEST(reverse_sequential_range_download)
+{
+	// test reverse sequential range download
+	auto p = setup_picker("7654321", "       ", "", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential | piece_picker::reverse, empty_vector);
+	TEST_CHECK(int(picked.size()) == 5 * blocks_per_piece);
+	for (int i = 0; i < int(picked.size()); ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - ((i + 4) / blocks_per_piece))
 			, i % blocks_per_piece));
 }
 
@@ -781,6 +807,27 @@ TORRENT_TEST(priority_sequential_download)
 		TEST_CHECK(picked[std::size_t(i)].piece_index == 3_piece || picked[std::size_t(i)].piece_index == 5_piece);
 
 	int expected[] = {-1, -1, 0, 1, 2, 6};
+	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
+		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
+}
+
+TORRENT_TEST(priority_sequential_range_download)
+{
+	// test priority sequential download
+	auto p = setup_picker("7654321", "       ", "1117071", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential, empty_vector);
+
+	// the piece with priority 0 was not picked, everything else should
+	// be picked
+	TEST_EQUAL(int(picked.size()), 4 * blocks_per_piece);
+
+	// the first two pieces picked should be 3 and 5 since those have priority 7
+	for (int i = 0; i < 2 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)].piece_index == piece_index_t(3) || picked[std::size_t(i)].piece_index == piece_index_t(5));
+
+	int expected[] = { -1, -1, 1, 2};
 	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
 }
@@ -937,8 +984,7 @@ TORRENT_TEST(cursors_sweep_in_seq_range_we_have)
 	TEST_EQUAL(p->cursor(), piece_index_t(0));
 	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
 	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
-	for (piece_index_t left(1), right(5); left <= piece_index_t(3)
-		&& right >= piece_index_t(3); ++left, --right)
+	for (piece_index_t left(1), right(5); left <= right; ++left, --right)
 	{
 		TEST_EQUAL(p->cursor(), left);
 		TEST_EQUAL(p->reverse_cursor(), next(right));
