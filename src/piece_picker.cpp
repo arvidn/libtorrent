@@ -559,7 +559,7 @@ namespace libtorrent::aux {
 				if (m_cursor < m_reverse_cursor)
 				{
 					TORRENT_ASSERT(!m_piece_map[m_cursor].have() && !m_piece_map[m_cursor].filtered());
-					TORRENT_ASSERT(!m_piece_map[prev(m_reverse_cursor)].have() && 
+					TORRENT_ASSERT(!m_piece_map[prev(m_reverse_cursor)].have() &&
 								   !m_piece_map[prev(m_reverse_cursor)].filtered());
 				}
 			}
