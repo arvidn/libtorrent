@@ -999,6 +999,18 @@ TORRENT_TEST(cursors_sweep_in_seq_range_we_have)
 	TEST_CHECK(p->is_seeding());
 }
 
+TORRENT_TEST(cursors_we_have_test_end_state_seq_range)
+{
+	auto p = setup_picker("7654321", "*******", "", "");
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+}
+
 TORRENT_TEST(cursors)
 {
 	// test cursors

@@ -859,11 +859,11 @@ namespace libtorrent::aux {
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered = 0;
 
-		// we have all pieces in the range [0, m_cursor)
+		// we have all pieces in the range [start_range, m_cursor)
 		// m_cursor is the first piece we don't have
 		piece_index_t m_cursor{0};
 
-		// we have all pieces in the range [m_reverse_cursor, end)
+		// we have all pieces in the range [m_reverse_cursor, end_range)
 		// m_reverse_cursor is the first piece where we also have
 		// all the subsequent pieces
 		piece_index_t m_reverse_cursor{0};
