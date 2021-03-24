@@ -2133,7 +2133,7 @@ namespace {
 				}
 			}
 		}
-		else if (options & rarest_first)
+		if (options & rarest_first || ((options & sequential) && num_blocks > 0))
 		{
 			if (m_dirty) update_pieces();
 			TORRENT_ASSERT(!m_dirty);
@@ -2153,6 +2153,7 @@ namespace {
 						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);
 
 						if (!is_piece_free(m_pieces[p], pieces)) continue;
+						if ((options & sequential) && m_pieces[p] >= m_cursor && m_pieces[p] < m_reverse_cursor) continue;
 
 						ret |= picker_log_alert::reverse_rarest_first;
 
@@ -2181,6 +2182,7 @@ namespace {
 						{
 							if (!m_piece_map[p].have()) have_all = false;
 							if (!is_piece_free(p, pieces)) continue;
+							if ((options & sequential) && p >= m_cursor && p < m_reverse_cursor) continue;
 
 							ret |= picker_log_alert::extent_affinity;
 
@@ -2215,6 +2217,7 @@ namespace {
 						break;
 
 					if (!is_piece_free(i, pieces)) continue;
+					if ((options & sequential) && i >= m_cursor && i < m_reverse_cursor) continue;
 
 					ret |= picker_log_alert::rarest_first;
 

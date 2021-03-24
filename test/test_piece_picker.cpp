@@ -760,10 +760,22 @@ TORRENT_TEST(sequential_range_download)
 	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::sequential, empty_vector);
-	TEST_CHECK(int(picked.size()) == 5 * blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t((i + 4) / blocks_per_piece)
+	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
+	for (int i = 0; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t((i + (1 * blocks_per_piece)) / blocks_per_piece)
 			, i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (int i = 6 * blocks_per_piece; i < 7 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
 }
 
 TORRENT_TEST(reverse_sequential_download)
@@ -785,10 +797,22 @@ TORRENT_TEST(reverse_sequential_range_download)
 	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::sequential | piece_picker::reverse, empty_vector);
-	TEST_CHECK(int(picked.size()) == 5 * blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - ((i + 4) / blocks_per_piece))
+	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
+	for (int i = 0; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - ((i + (1 * blocks_per_piece)) / blocks_per_piece))
 			, i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (int i = 6 * blocks_per_piece; i < 7 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
 }
 
 TORRENT_TEST(priority_sequential_download)
@@ -808,12 +832,12 @@ TORRENT_TEST(priority_sequential_download)
 
 	int expected[] = {-1, -1, 0, 1, 2, 6};
 	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(expected[i / blocks_per_piece]), i % blocks_per_piece));
 }
 
 TORRENT_TEST(priority_sequential_range_download)
 {
-	// test priority sequential download
+	// test priority sequential range download
 	auto p = setup_picker("7654321", "       ", "1117071", "");
 	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
 	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
@@ -821,15 +845,27 @@ TORRENT_TEST(priority_sequential_range_download)
 
 	// the piece with priority 0 was not picked, everything else should
 	// be picked
-	TEST_EQUAL(int(picked.size()), 4 * blocks_per_piece);
+	TEST_EQUAL(int(picked.size()), 6 * blocks_per_piece);
 
 	// the first two pieces picked should be 3 and 5 since those have priority 7
 	for (int i = 0; i < 2 * blocks_per_piece; ++i)
 		TEST_CHECK(picked[std::size_t(i)].piece_index == piece_index_t(3) || picked[std::size_t(i)].piece_index == piece_index_t(5));
 
 	int expected[] = { -1, -1, 1, 2};
-	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
+	for (int i = 2 * blocks_per_piece; i < 4 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(expected[i / blocks_per_piece]), i % blocks_per_piece));
+	for (int i = 4 * blocks_per_piece; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
 }
 
 TORRENT_TEST(cursors_sweep_up_we_have)

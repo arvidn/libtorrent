@@ -1140,6 +1140,7 @@ bool is_downloading_state(int const st)
 
 	void torrent::set_sequential_range(piece_index_t start_piece, piece_index_t end_piece)
 	{
+		m_sequential_download = true;
 		if (!has_picker()) {
 			if (!valid_metadata() || !m_connections_initialized) return;
 			else if (!m_have_all
@@ -1148,7 +1149,6 @@ bool is_downloading_state(int const st)
 				need_picker();
 			else return;
 		}
-		m_sequential_download = true;
 		m_picker->set_sequential_range(start_piece, end_piece);
 	}
 
