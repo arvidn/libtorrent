@@ -8124,7 +8124,6 @@ bool is_downloading_state(int const st)
 				if (p.peer_info_struct()->seed)
 				{
 					++seeds;
-					TORRENT_ASSERT(!p.m_bitfield_received || p.is_seed());
 				}
 				else
 				{
