@@ -8598,7 +8598,6 @@ namespace {
 				if (p.peer_info_struct()->seed)
 				{
 					++seeds;
-					TORRENT_ASSERT(!p.m_bitfield_received || p.is_seed());
 				}
 				else
 				{

@@ -2036,6 +2036,7 @@ namespace libtorrent {
 				, static_cast<void*>(m_peer_info));
 #endif
 
+			TORRENT_ASSERT(t->ready_for_connections());
 			TORRENT_ASSERT(m_have_piece.all_set());
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
@@ -3346,7 +3347,6 @@ namespace libtorrent {
 #endif
 
 		t->set_seed(m_peer_info, true);
-		TORRENT_ASSERT(is_seed());
 		m_upload_only = true;
 		m_bitfield_received = true;
 
@@ -6796,10 +6796,6 @@ namespace libtorrent {
 	bool peer_connection::is_seed() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-
-		// if the peer told us it has all pieces, it doesn't matter whether we
-		// have the metadata or not, this peer is a seed.
-		if (m_have_all) return true;
 
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
