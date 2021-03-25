@@ -57,4 +57,5 @@ run test_fast_extensions.cpp ;
 run test_save_resume.cpp ;
 run test_error_handling.cpp ;
 run test_timeout.cpp ;
+run test_peer_connection.cpp ;
 

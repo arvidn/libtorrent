@@ -201,14 +201,20 @@ disconnects_t test_no_interest_timeout(int const num_peers
 		= [&](boost::system::error_code const&)
 	{
 		for (auto& p : peers)
+		{
 			p->send_keepalive();
+			p->flush_send_buffer();
+		}
 	};
 
 	std::function<void(boost::system::error_code const&)> send_not_interested
 		= [&](boost::system::error_code const&)
 	{
 		for (auto& p : peers)
+		{
 			p->send_not_interested();
+			p->flush_send_buffer();
+		}
 	};
 
 	auto const& tick = redundant_no_interest ? send_not_interested : keep_alive;

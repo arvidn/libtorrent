@@ -97,15 +97,6 @@ struct fake_peer
 	bool connected() const { return m_connected; }
 	bool disconnected() const { return m_disconnected; }
 
-	void send_interested()
-	{
-		m_send_buffer.resize(m_send_buffer.size() + 5);
-		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
-
-		lt::aux::write_uint32(1, ptr);
-		lt::aux::write_uint8(2, ptr);
-	}
-
 	void send_request(lt::piece_index_t p, int block)
 	{
 		int const len = 4 + 1 + 4 * 3;
@@ -126,17 +117,6 @@ struct fake_peer
 		char* ptr = m_send_buffer.data() + m_send_buffer.size() - len;
 
 		lt::aux::write_uint32(0, ptr);
-		flush_send_buffer();
-	}
-
-	void send_not_interested()
-	{
-		m_send_buffer.resize(m_send_buffer.size() + 5);
-		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
-
-		lt::aux::write_uint32(1, ptr);
-		lt::aux::write_uint8(3, ptr);
-		flush_send_buffer();
 	}
 
 	void send_bitfield(std::vector<bool> const& pieces)
@@ -165,7 +145,19 @@ struct fake_peer
 		lt::aux::write_uint8(b, ptr);
 	}
 
-private:
+	void send_interested() { send_simple_msg(2); }
+	void send_not_interested() { send_simple_msg(3); }
+	void send_have_all() { send_simple_msg(0xe); }
+	void send_have_none() { send_simple_msg(0xf); }
+	void send_invalid_message() { send_simple_msg(0xff); }
+	void send_large_message()
+	{
+		m_send_buffer.resize(m_send_buffer.size() + 5);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
+
+		lt::aux::write_uint32(2000000, ptr);
+		lt::aux::write_uint8(0, ptr);
+	}
 
 	void flush_send_buffer()
 	{
@@ -178,6 +170,17 @@ private:
 				m_writing = false;
 				m_send_buffer.clear();
 			});
+	}
+
+private:
+
+	void send_simple_msg(std::uint8_t const msg_code)
+	{
+		m_send_buffer.resize(m_send_buffer.size() + 5);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
+
+		lt::aux::write_uint32(1, ptr);
+		lt::aux::write_uint8(msg_code, ptr);
 	}
 
 	void write_handshake(boost::system::error_code const& ec
