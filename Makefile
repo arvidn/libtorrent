@@ -742,6 +742,7 @@ SIM_SOURCES = \
   test_optimistic_unchoke.cpp \
   test_pause.cpp \
   test_pe_crypto.cpp \
+  test_peer_connection.cpp \
   test_save_resume.cpp \
   test_session.cpp \
   test_socks5.cpp \

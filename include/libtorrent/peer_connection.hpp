@@ -427,7 +427,7 @@ namespace aux {
 #endif
 
 		void set_upload_only(bool);
-		bool upload_only() const { return m_upload_only; }
+		bool upload_only() const { return m_upload_only || is_seed() || m_have_all; }
 
 		void set_holepunch_mode() override;
 
@@ -1143,7 +1143,9 @@ namespace aux {
 		bool m_share_mode:1;
 #endif
 
-		// set to true when this peer is only uploading
+		// set to true when this peer has told us explicitly that it is only
+		// uploading. A seed is *implicitly* upload only, so this is not
+		// necessarily true.
 		bool m_upload_only:1;
 
 		// this is set to true once the bitfield is received

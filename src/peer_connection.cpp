@@ -795,7 +795,6 @@ namespace libtorrent {
 			// if this is a web seed. we don't have a peer_info struct
 			t->set_seed(m_peer_info, true);
 			TORRENT_ASSERT(is_seed());
-			m_upload_only = true;
 
 			t->peer_has_all(this);
 
@@ -2044,7 +2043,6 @@ namespace libtorrent {
 			t->seen_complete();
 			t->set_seed(m_peer_info, true);
 			TORRENT_ASSERT(is_seed());
-			m_upload_only = true;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
@@ -2253,7 +2251,6 @@ namespace libtorrent {
 #endif
 
 			t->set_seed(m_peer_info, true);
-			m_upload_only = true;
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
@@ -2312,7 +2309,7 @@ namespace libtorrent {
 		if (t->share_mode()) return false;
 #endif
 
-		if (m_upload_only && t->is_upload_only()
+		if (upload_only() && t->is_upload_only()
 			&& can_disconnect(errors::upload_upload_connection))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2322,7 +2319,7 @@ namespace libtorrent {
 			return true;
 		}
 
-		if (m_upload_only
+		if (upload_only()
 			&& !m_interesting
 			&& m_bitfield_received
 			&& t->are_files_checked()
@@ -3347,7 +3344,6 @@ namespace libtorrent {
 #endif
 
 		t->set_seed(m_peer_info, true);
-		m_upload_only = true;
 		m_bitfield_received = true;
 
 		// if we don't have metadata yet
@@ -4620,7 +4616,7 @@ namespace libtorrent {
 		get_specific_peer_info(p);
 
 		if (m_snubbed) p.flags |= peer_info::snubbed;
-		if (m_upload_only) p.flags |= peer_info::upload_only;
+		if (upload_only()) p.flags |= peer_info::upload_only;
 		if (m_endgame_mode) p.flags |= peer_info::endgame_mode;
 		if (m_holepunch_mode) p.flags |= peer_info::holepunched;
 		if (peer_info_struct())
@@ -6644,14 +6640,14 @@ namespace libtorrent {
 
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only()
-				&& m_upload_only
+				&& upload_only()
 				&& !m_need_interest_update
 				&& t->valid_metadata()
 				&& has_metadata()
 				&& ok_to_disconnect)
 				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
 
-			if (m_upload_only
+			if (upload_only()
 				&& !m_interesting
 				&& !m_need_interest_update
 				&& m_bitfield_received
@@ -6669,7 +6665,7 @@ namespace libtorrent {
 			if (t->is_upload_only() && !m_need_interest_update)
 				TORRENT_ASSERT(!m_interesting || t->graceful_pause() || t->has_error());
 			if (is_seed())
-				TORRENT_ASSERT(m_upload_only);
+				TORRENT_ASSERT(upload_only());
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -6818,10 +6814,6 @@ namespace libtorrent {
 	void peer_connection::set_upload_only(bool u)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// if the peer is a seed, don't allow setting
-		// upload_only to false
-		if (m_upload_only && is_seed()) return;
-
 		m_upload_only = u;
 		disconnect_if_redundant();
 	}
