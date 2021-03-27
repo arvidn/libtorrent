@@ -562,6 +562,10 @@ namespace aux {
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 		m_ssl_ctx.set_default_verify_paths(ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL set_default verify_paths failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
 		m_peer_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #ifdef TORRENT_WINDOWS
 		// load certificates from the windows system certificate store
@@ -589,6 +593,18 @@ namespace aux {
 
 		SSL_CTX* ssl_ctx = m_ssl_ctx.native_handle();
 		SSL_CTX_set_cert_store(ssl_ctx, store);
+#endif
+#ifdef __APPLE__
+		m_ssl_ctx.load_verify_file("/etc/ssl/cert.pem", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL load_verify_file failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
+		m_ssl_ctx.add_verify_path("/etc/ssl/certs", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL add_verify_path failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
 #endif
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_peer_ssl_ctx.native_handle()
@@ -6705,6 +6721,10 @@ namespace {
 			: context::verify_none;
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(flags, ec);
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL set_verify_mode failed: %s", ec.message().c_str());
+#endif
 #endif
 	}
 
