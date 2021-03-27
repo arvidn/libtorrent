@@ -1059,8 +1059,7 @@ namespace {
 	void torrent_info::set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl)
 	{
 		m_piece_layers = pl;
-//#error should this flag be set?
-//		m_flags |= v2_has_piece_hashes;
+		m_flags |= v2_has_piece_hashes;
 	}
 
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const

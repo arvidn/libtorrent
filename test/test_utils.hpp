@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/fwd.hpp"
 
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -59,6 +60,8 @@ constexpr inline lt::file_index_t operator "" _file(unsigned long long const p)
 
 constexpr inline lt::piece_index_t operator "" _piece(unsigned long long const p)
 { return lt::piece_index_t(static_cast<int>(p)); }
+
+EXPORT std::vector<char> serialize(lt::torrent_info const& ti);
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
 

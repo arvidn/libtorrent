@@ -1285,18 +1285,10 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 
 	TEST_CHECK(ti->v2());
 	TEST_CHECK(!ti->v1());
-	TEST_EQUAL(ti->v2_piece_hashes_verified(), false);
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
-	lt::create_torrent ct(*ti);
-	ct.set_creation_date(0);
-	entry e = ct.generate();
-	std::vector<char> out_buffer;
-	bencode(std::back_inserter(out_buffer), e);
+	std::vector<char> out_buffer = serialize(*ti);
 
-	TEST_EQUAL(out_buffer.size(), data.size());
-	for (std::size_t i = 0; i < out_buffer.size(); ++i)
-	{
-		TEST_EQUAL(out_buffer[i], data[i]);
-	}
+	TEST_EQUAL(out_buffer, data);
 }
 
