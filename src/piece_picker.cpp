@@ -2133,7 +2133,7 @@ namespace {
 				}
 			}
 		}
-		if (options & rarest_first || ((options & sequential) && num_blocks > 0))
+		if (options & rarest_first || options & sequential)
 		{
 			if (m_dirty) update_pieces();
 			TORRENT_ASSERT(!m_dirty);
