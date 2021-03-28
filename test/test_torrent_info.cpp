@@ -1005,7 +1005,7 @@ TORRENT_TEST(parse_torrents)
 
 TORRENT_TEST(parse_invalid_torrents)
 {
-	std::string root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_working_directory());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
@@ -1245,3 +1245,50 @@ TORRENT_TEST(copy_ptr)
 	a->val = 5;
 	TEST_EQUAL(b->val, 4);
 }
+
+TORRENT_TEST(torrent_info_with_hashes_roundtrip)
+{
+	std::string const root_dir = parent_path(current_working_directory());
+	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), "v2_only.torrent");
+
+	error_code ec;
+	std::vector<char> data;
+	TEST_CHECK(load_file(filename, data, ec) == 0);
+
+	auto ti = std::make_shared<torrent_info>(data, ec, from_span);
+	TEST_CHECK(!ec);
+	if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
+		, ec.message().c_str());
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+	add_torrent_params atp;
+	atp.ti = ti;
+	atp.save_path = ".";
+
+	session ses;
+	torrent_handle h = ses.add_torrent(atp);
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+
+	{
+		auto ti2 = h.torrent_file();
+		TEST_CHECK(ti2->v2());
+		TEST_CHECK(!ti2->v1());
+		TEST_EQUAL(ti2->v2_piece_hashes_verified(), false);
+	}
+
+	ti = h.torrent_file_with_hashes();
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+	std::vector<char> out_buffer = serialize(*ti);
+
+	TEST_EQUAL(out_buffer, data);
+}
+

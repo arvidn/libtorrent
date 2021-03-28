@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/utils.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp" // for addr()
 
 using namespace sim;
@@ -139,6 +140,7 @@ void run_test(
 
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
+	auto torrent = params.ti;
 
 	params.save_path = save_path(0);
 	if (flags & tx::magnet_download)
@@ -148,9 +150,18 @@ void run_test(
 	}
 	ses[0]->async_add_torrent(params);
 
-
 	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
 	{
+		auto h = ses[0]->get_torrents();
+		auto ti = h[0].torrent_file_with_hashes();
+
+		if (ti->v2())
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+		auto downloaded = serialize(*ti);
+		auto added = serialize(*torrent);
+		TEST_CHECK(downloaded == added);
+
 		test(ses);
 
 		// shut down

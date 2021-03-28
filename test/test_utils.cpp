@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test_utils.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 
 #ifdef _WIN32
@@ -107,3 +109,14 @@ bool exists(std::string const& f)
 	lt::error_code ec;
 	return lt::exists(f, ec);
 }
+
+std::vector<char> serialize(lt::torrent_info const& ti)
+{
+	lt::create_torrent ct(ti);
+	ct.set_creation_date(0);
+	entry e = ct.generate();
+	std::vector<char> out_buffer;
+	bencode(std::back_inserter(out_buffer), e);
+	return out_buffer;
+}
+

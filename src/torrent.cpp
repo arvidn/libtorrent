@@ -1890,7 +1890,7 @@ bool is_downloading_state(int const st)
 				// complete and just look at those
 				if (!t->is_seed()) continue;
 
-				res.match(t->get_torrent_copy(), t->save_path());
+				res.match(t->get_torrent_file(), t->save_path());
 			}
 			for (auto const& c : m_torrent_file->collections())
 			{
@@ -1903,7 +1903,7 @@ bool is_downloading_state(int const st)
 					// complete and just look at those
 					if (!t->is_seed()) continue;
 
-					res.match(t->get_torrent_copy(), t->save_path());
+					res.match(t->get_torrent_file(), t->save_path());
 				}
 			}
 
@@ -6723,10 +6723,33 @@ namespace {
 		m_hash_picker->verify_block_hashes(index);
 	}
 
-	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()
+	std::shared_ptr<const torrent_info> torrent::get_torrent_file() const
 	{
 		if (!m_torrent_file->is_valid()) return {};
 		return m_torrent_file;
+	}
+
+	std::shared_ptr<torrent_info> torrent::get_torrent_copy_with_hashes() const
+	{
+		if (!m_torrent_file->is_valid()) return {};
+		auto ret = std::make_shared<torrent_info>(*m_torrent_file);
+
+		if (ret->v2())
+		{
+			aux::vector<aux::vector<char>, file_index_t> v2_hashes;
+			for (auto const& tree : m_merkle_trees)
+			{
+				auto const& layer = tree.get_piece_layer();
+				std::vector<char> out_layer;
+				out_layer.reserve(layer.size() * sha256_hash::size());
+				for (auto const& h : layer)
+					out_layer.insert(out_layer.end(), h.data(), h.data() + sha256_hash::size());
+				v2_hashes.emplace_back(std::move(out_layer));
+			}
+			ret->set_piece_layers(std::move(v2_hashes));
+		}
+
+		return ret;
 	}
 
 	std::vector<std::vector<sha256_hash>> torrent::get_piece_layers() const

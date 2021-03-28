@@ -1055,6 +1055,13 @@ namespace {
 
 	torrent_info::~torrent_info() = default;
 
+	// internal
+	void torrent_info::set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl)
+	{
+		m_piece_layers = pl;
+		m_flags |= v2_has_piece_hashes;
+	}
+
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
 

@@ -1066,7 +1066,9 @@ namespace libtorrent {
 		void hashes_rejected(hash_request const& req);
 		void verify_block_hashes(piece_index_t index);
 
-		std::shared_ptr<const torrent_info> get_torrent_copy();
+		std::shared_ptr<const torrent_info> get_torrent_file() const;
+
+		std::shared_ptr<torrent_info> get_torrent_copy_with_hashes() const;
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 
