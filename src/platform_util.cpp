@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2010, 2014-2018, 2020, Arvid Norberg
-Copyright (c) 2018, Alden Torres
 Copyright (c) 2020, zywo
+Copyright (c) 2010, 2014-2016, 2018, 2020-2021, Arvid Norberg
+Copyright (c) 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

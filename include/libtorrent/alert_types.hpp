@@ -1,11 +1,11 @@
 /*
 
 Copyright (c) 2017, toinetoine
-Copyright (c) 2004-2020, Arvid Norberg
+Copyright (c) 2004-2021, Arvid Norberg
 Copyright (c) 2008, Andrew Resch
 Copyright (c) 2014-2018, Steven Siloti
 Copyright (c) 2015, Thomas
-Copyright (c) 2015-2018, 2020, Alden Torres
+Copyright (c) 2015-2018, 2020-2021, Alden Torres
 Copyright (c) 2017, Antoine Dahan
 Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer

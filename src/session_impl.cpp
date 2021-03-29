@@ -1,10 +1,10 @@
 /*
 
 Copyright (c) 2003, Magnus Jonsson
-Copyright (c) 2006-2020, Arvid Norberg
+Copyright (c) 2006-2021, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
 Copyright (c) 2014-2020, Steven Siloti
-Copyright (c) 2015-2020, Alden Torres
+Copyright (c) 2015-2021, Alden Torres
 Copyright (c) 2015, Thomas
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016, Falcosc

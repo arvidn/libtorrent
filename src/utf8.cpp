@@ -2,8 +2,8 @@
 
 Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2012, 2015-2017, 2019-2020, Arvid Norberg
-Copyright (c) 2017, Alden Torres
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

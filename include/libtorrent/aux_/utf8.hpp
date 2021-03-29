@@ -2,6 +2,7 @@
 
 Copyright (c) 2005, 2008-2009, 2013, 2016-2020, Arvid Norberg
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

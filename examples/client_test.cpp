@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2003-2021, Arvid Norberg
 Copyright (c) 2015, Mike Tzou
-Copyright (c) 2016, 2018-2019, Alden Torres
+Copyright (c) 2016, 2018-2020, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
 Copyright (c) 2017-2018, Steven Siloti

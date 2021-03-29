@@ -2,7 +2,8 @@
 
 Copyright (c) 2017, BitTorrent Inc.
 Copyright (c) 2019-2020, Steven Siloti
-Copyright (c) 2020, Arvid Norberg
+Copyright (c) 2020-2021, Arvid Norberg
+Copyright (c) 2020, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

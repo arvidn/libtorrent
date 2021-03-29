@@ -2,7 +2,7 @@
 
 Copyright (c) 2018, Eugene Shalygin
 Copyright (c) 2016, Steven Siloti
-Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2016-2017, 2021, Alden Torres
 Copyright (c) 2017, 2019-2020, Arvid Norberg
 All rights reserved.
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2018-2019, Arvid Norberg
+Copyright (c) 2018-2020, Arvid Norberg
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

@@ -1,9 +1,9 @@
 /*
 
-Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2003-2021, Arvid Norberg
 Copyright (c) 2003, Daniel Wallin
 Copyright (c) 2004, Magnus Jonsson
-Copyright (c) 2016-2020, Alden Torres
+Copyright (c) 2016-2021, Alden Torres
 Copyright (c) 2017, Falcosc
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Viktor Elofsson
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2021, AdvenT
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
