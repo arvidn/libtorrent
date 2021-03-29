@@ -12,7 +12,7 @@ import cast ;
 
 # we need version numbers in the form X.Y.Z in order to trigger the built-in
 # support for generating symlinks to the installed library
-VERSION = 2.0 ;
+VERSION = 2.0.3 ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
@@ -944,7 +944,6 @@ rule generate-pkg-config ( properties * )
 	local libname = [ $(props[2]).name ] ;
 	props = $(props[1]) ;
 
-	local FULL_VERSION = 2.0.3 ;
 	local libdir ;
 	local includes ;
 
@@ -1031,7 +1030,7 @@ rule generate-pkg-config ( properties * )
 	local config = "Name: libtorrent-rasterbar"
 		"\nDescription: libtorrent is an open source C++ library implementing the BitTorrent protocol"
 		"\nURL: https://libtorrent.org"
-		"\nVersion: $(FULL_VERSION)"
+		"\nVersion: $(VERSION)"
 		"\nLibs:"
 		" -L\"$(libdir)\""
 		" -ltorrent-rasterbar"
