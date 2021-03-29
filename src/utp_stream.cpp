@@ -1,8 +1,8 @@
 /*
 
 Copyright (c) 2016, Pavel Pimenov
-Copyright (c) 2010-2020, Arvid Norberg
-Copyright (c) 2015-2018, Alden Torres
+Copyright (c) 2010-2021, Arvid Norberg
+Copyright (c) 2015-2018, 2021, Alden Torres
 Copyright (c) 2016, milesdong
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2017, Andrei Kurushin

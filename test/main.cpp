@@ -3,6 +3,7 @@
 Copyright (c) 2005, 2008, 2010, 2012-2020, Arvid Norberg
 Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2018, Steven Siloti
+Copyright (c) 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

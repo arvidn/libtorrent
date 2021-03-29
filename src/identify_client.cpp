@@ -1,9 +1,9 @@
 /*
 
-Copyright (c) 2003-2010, 2012-2019, Arvid Norberg
+Copyright (c) 2003-2010, 2013-2020, Arvid Norberg
 Copyright (c) 2004, spyhole
 Copyright (c) 2016, Pavel Pimenov
-Copyright (c) 2017, Alden Torres
+Copyright (c) 2017, 2020, Alden Torres
 Copyright (c) 2017, Col-blimp
 Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2019, gubatron

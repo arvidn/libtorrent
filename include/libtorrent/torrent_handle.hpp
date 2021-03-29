@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2019, Amir Abrams
-Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2003-2021, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2015, 2018, Steven Siloti
 Copyright (c) 2016-2017, 2020, Alden Torres

@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2008-2009, 2014, 2016-2017, 2019-2020, Arvid Norberg
+Copyright (c) 2008-2009, 2014, 2016, 2020, Arvid Norberg
+Copyright (c) 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

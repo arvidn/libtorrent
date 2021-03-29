@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2008-2009, 2012-2019, Arvid Norberg
+Copyright (c) 2008-2009, 2012-2021, Arvid Norberg
 Copyright (c) 2016, Andrei Kurushin
-Copyright (c) 2018, Alden Torres
+Copyright (c) 2018, 2020, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

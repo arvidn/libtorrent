@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2010-2020, Arvid Norberg
+Copyright (c) 2010-2021, Arvid Norberg
 Copyright (c) 2015, Mike Tzou
 Copyright (c) 2016-2017, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
-Copyright (c) 2016, 2018, 2020, Alden Torres
+Copyright (c) 2016, 2018, 2020-2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

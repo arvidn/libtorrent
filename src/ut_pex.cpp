@@ -4,7 +4,7 @@ Copyright (c) 2006, MassaRoddel
 Copyright (c) 2006-2020, Arvid Norberg
 Copyright (c) 2015, 2018, Steven Siloti
 Copyright (c) 2016-2017, Andrei Kurushin
-Copyright (c) 2016-2017, 2020, Alden Torres
+Copyright (c) 2016-2017, 2020-2021, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 

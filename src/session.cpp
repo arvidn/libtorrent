@@ -2,7 +2,7 @@
 
 Copyright (c) 2003, Magnus Jonsson
 Copyright (c) 2003, 2006, 2008-2020, Arvid Norberg
-Copyright (c) 2016, Alden Torres
+Copyright (c) 2016, 2021, Alden Torres
 Copyright (c) 2017, 2020, Steven Siloti
 All rights reserved.
 

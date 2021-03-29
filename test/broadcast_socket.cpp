@@ -2,7 +2,7 @@
 
 Copyright (c) 2015-2017, Steven Siloti
 Copyright (c) 2007-2012, 2014-2020, Arvid Norberg
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2018, 2021, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

@@ -3,7 +3,7 @@
 Copyright (c) 2006-2020, Arvid Norberg
 Copyright (c) 2014-2019, Steven Siloti
 Copyright (c) 2015, Thomas
-Copyright (c) 2015-2020, Alden Torres
+Copyright (c) 2015-2021, Alden Torres
 Copyright (c) 2016-2017, Pavel Pimenov
 Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
