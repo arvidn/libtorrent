@@ -1,6 +1,14 @@
 VERSION=2.0.3
 
-BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64 cxxflags="$(CXXFLAGS)" linkflags="$(LDFLAGS)"
+BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64
+
+ifneq (${CXXFLAGS},)
+BUILD_CONFIG += cxxflags="${CXXFLAGS}"
+endif
+
+ifneq (${LDFLAGS},)
+BUILD_CONFIG += linkflags="${LDFLAGS}"
+endif
 
 ifeq (${PREFIX},)
 PREFIX=/usr/local/
