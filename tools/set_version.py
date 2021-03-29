@@ -55,15 +55,13 @@ def substitute_file(name):
         elif ':Version: ' in line and (name.endswith('.rst') or name.endswith('.py')):
             line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
         elif line.startswith('VERSION = ') and name.endswith('Jamfile'):
-            line = 'VERSION = %d.%d ;\n' % (version[0], version[1])
+            line = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
         elif 'VERSION=' in line and name.endswith('Makefile'):
             line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
         elif 'version=' in line and name.endswith('setup.py'):
             line = '    version="%d.%d.%d",\n' % (version[0], version[1], version[2])
         elif '"-LT' in line and name.endswith('settings_pack.cpp'):
             line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
-        elif 'local FULL_VERSION = ' in line and name == 'Jamfile':
-            line = '\tlocal FULL_VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
 
         subst += line
 
