@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2017-2018, Steven Siloti
-Copyright (c) 2017-2020, Arvid Norberg
+Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 
@@ -141,6 +141,7 @@ struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
 struct socks5_alert;
+struct file_prio_alert;
 TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/announce_entry.hpp
