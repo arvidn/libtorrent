@@ -134,7 +134,7 @@ jobs:
           sudo apt update
 
       - name: install clang-tidy
-        run: sudo apt install clang-tidy
+        run: sudo apt install clang-tidy libc++-dev
 
       - name: install boost
         run: |

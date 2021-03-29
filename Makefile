@@ -1,4 +1,4 @@
-VERSION=2.0.2
+VERSION=2.0.3
 
 BUILD_CONFIG=release cxxstd=17 link=shared crypto=openssl warnings=off address-model=64 cxxflags="$(CXXFLAGS)" linkflags="$(LDFLAGS)"
 
@@ -118,6 +118,7 @@ DOCS_PAGES = \
   docs/tutorial-ref.html          \
   docs/upgrade_to_1.2-ref.html    \
   docs/upgrade_to_2.0-ref.html    \
+  docs/security-audit.html        \
   docs/reference.html             \
   docs/reference-Core.html        \
   docs/reference-DHT.html         \
@@ -747,6 +748,7 @@ SIM_SOURCES = \
   test_optimistic_unchoke.cpp \
   test_pause.cpp \
   test_pe_crypto.cpp \
+  test_peer_connection.cpp \
   test_save_resume.cpp \
   test_session.cpp \
   test_socks5.cpp \

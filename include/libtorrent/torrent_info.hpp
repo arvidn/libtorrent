@@ -477,6 +477,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// internal
 		bool v2_piece_hashes_verified() const { return bool(m_flags & v2_has_piece_hashes); }
+		void set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl);
 
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
 		// except for the last piece, which may be shorter.

@@ -4,6 +4,11 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+* 2.0.3 released
+
+	* add new torrent_file_with_hashes() which includes piece layers for
+	  creating .torrent files
+	* add file_prio_alert, posted when file priorities are updated
 	* fix issue where set_piece_hashes() would not propagate file errors
 	* add missing python binding for event_t
 	* add work-around for systems without fseeko() (such as Android)
@@ -66,6 +71,7 @@
 
 1.2.13 released
 
+	* Use /etc/ssl/cert.pem to validate HTTPS connections on MacOS
 	* allow no-interest timeouts of peer connections before all connections slots are full
 	* fix issue where a DHT message would count as an incoming connection
 	* fix issue when failing to parse outgoing_interfaces setting

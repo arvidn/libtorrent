@@ -257,7 +257,7 @@ namespace libtorrent::aux {
 		bool m_upload_mode:1;
 
 		// this is set to false as long as the connections
-		// of this torrent hasn't been initialized. If we
+		// of this torrent haven't been initialized. If we
 		// have metadata from the start, connections are
 		// initialized immediately, if we didn't have metadata,
 		// they are initialized right after files_checked().
@@ -1041,7 +1041,9 @@ namespace libtorrent::aux {
 		void hashes_rejected(hash_request const& req);
 		void verify_block_hashes(piece_index_t index);
 
-		std::shared_ptr<const torrent_info> get_torrent_copy();
+		std::shared_ptr<const torrent_info> get_torrent_file() const;
+
+		std::shared_ptr<torrent_info> get_torrent_copy_with_hashes() const;
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 

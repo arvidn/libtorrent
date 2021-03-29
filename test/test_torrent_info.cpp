@@ -13,6 +13,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
+#include "test_utils.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -221,7 +222,7 @@ static test_torrent_t const test_torrents[] =
 	{ "unordered.torrent" },
 	{ "symlink_zero_size.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
+			TEST_EQUAL(ti->files().symlink(1_file), "temp" SEPARATOR "a" SEPARATOR "b" SEPARATOR "bar");
 		}
 	},
 	{ "pad_file_no_path.torrent", [](torrent_info const* ti) {
@@ -301,9 +302,9 @@ static test_torrent_t const test_torrents[] =
 	},
 	{ "v2_symlinks.torrent", [](torrent_info const* ti) {
 			TEST_CHECK(ti->num_files() > 3);
-			TEST_EQUAL(ti->files().symlink(file_index_t(0)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
-			TEST_EQUAL(ti->files().symlink(file_index_t(1)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
-			TEST_EQUAL(ti->files().symlink(file_index_t(2)), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+			TEST_EQUAL(ti->files().symlink(0_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
+			TEST_EQUAL(ti->files().symlink(1_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
+			TEST_EQUAL(ti->files().symlink(2_file), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
 		}
 	},
 	{ "v2_hybrid.torrent", [](torrent_info const* ti) {
@@ -975,7 +976,7 @@ TORRENT_TEST(parse_torrents)
 
 TORRENT_TEST(parse_invalid_torrents)
 {
-	std::string root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_working_directory());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
@@ -1221,3 +1222,50 @@ TORRENT_TEST(copy_ptr)
 	a->val = 5;
 	TEST_EQUAL(b->val, 4);
 }
+
+TORRENT_TEST(torrent_info_with_hashes_roundtrip)
+{
+	std::string const root_dir = parent_path(current_working_directory());
+	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), "v2_only.torrent");
+
+	error_code ec;
+	std::vector<char> data;
+	TEST_CHECK(load_file(filename, data, ec) == 0);
+
+	auto ti = std::make_shared<torrent_info>(data, ec, from_span);
+	TEST_CHECK(!ec);
+	if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
+		, ec.message().c_str());
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+	add_torrent_params atp;
+	atp.ti = ti;
+	atp.save_path = ".";
+
+	session ses;
+	torrent_handle h = ses.add_torrent(atp);
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+
+	{
+		auto ti2 = h.torrent_file();
+		TEST_CHECK(ti2->v2());
+		TEST_CHECK(!ti2->v1());
+		TEST_EQUAL(ti2->v2_piece_hashes_verified(), false);
+	}
+
+	ti = h.torrent_file_with_hashes();
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+	std::vector<char> out_buffer = serialize(*ti);
+
+	TEST_EQUAL(out_buffer, data);
+}
+

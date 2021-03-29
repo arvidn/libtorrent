@@ -100,7 +100,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 		std::cout << "st2.num_pieces: " << st2.num_pieces << '\n';
 		st2 = tor2.status();
 
-		if (test == mid_download && st2.num_pieces > num_pieces / 2)
+		if (test == mid_download && st2.num_pieces > 1)
 		{
 			TEST_CHECK(st2.is_finished == false);
 			break;

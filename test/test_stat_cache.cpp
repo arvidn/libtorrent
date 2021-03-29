@@ -11,6 +11,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/error_code.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 
 using namespace lt;
 
@@ -32,33 +33,33 @@ TORRENT_TEST(stat_cache)
 
 	sc.reserve(10);
 
-	sc.set_error(file_index_t(3), error_code(boost::system::errc::permission_denied, generic_category()));
+	sc.set_error(3_file, error_code(boost::system::errc::permission_denied, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), aux::stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(3_file, fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::permission_denied, generic_category()));
 
-	sc.set_error(file_index_t(3), error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
+	sc.set_error(3_file, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), aux::stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(3_file, fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 
 	ec.clear();
-	sc.set_cache(file_index_t(3), 101);
-	TEST_EQUAL(sc.get_filesize(file_index_t(3), fs, save_path, ec), 101);
+	sc.set_cache(3_file, 101);
+	TEST_EQUAL(sc.get_filesize(3_file, fs, save_path, ec), 101);
 	TEST_CHECK(!ec);
 
-	sc.set_error(file_index_t(11), error_code(boost::system::errc::broken_pipe, generic_category()));
+	sc.set_error(11_file, error_code(boost::system::errc::broken_pipe, generic_category()));
 	ec.clear();
-	TEST_EQUAL(sc.get_filesize(file_index_t(11), fs, save_path, ec), aux::stat_cache::file_error);
+	TEST_EQUAL(sc.get_filesize(11_file, fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::broken_pipe, generic_category()));
 
 	ec.clear();
-	sc.set_error(file_index_t(13), error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
-	TEST_EQUAL(sc.get_filesize(file_index_t(13), fs, save_path, ec), aux::stat_cache::file_error);
+	sc.set_error(13_file, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
+	TEST_EQUAL(sc.get_filesize(13_file, fs, save_path, ec), aux::stat_cache::file_error);
 	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 
 	ec.clear();
-	sc.set_cache(file_index_t(15), 1000);
-	TEST_CHECK(sc.get_filesize(file_index_t(15), fs, save_path, ec) == 1000);
+	sc.set_cache(15_file, 1000);
+	TEST_CHECK(sc.get_filesize(15_file, fs, save_path, ec) == 1000);
 	TEST_CHECK(!ec);
 }

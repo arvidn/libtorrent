@@ -2925,7 +2925,8 @@ namespace {
 		"dht_pkt", "dht_get_peers_reply", "dht_direct_response",
 		"picker_log", "session_error", "dht_live_nodes",
 		"session_stats_header", "dht_sample_infohashes",
-		"block_uploaded", "alerts_dropped", "socks5"
+		"block_uploaded", "alerts_dropped", "socks5",
+		"file_prio"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -2968,6 +2969,19 @@ namespace {
 		std::snprintf(buf, sizeof(buf), "SOCKS5 error. op: %s ec: %s ep: %s"
 			, operation_name(op), error.message().c_str(), print_endpoint(ip).c_str());
 		return buf;
+#endif
+	}
+
+	file_prio_alert::file_prio_alert(aux::stack_allocator& a, torrent_handle h)
+		: torrent_alert(a, std::move(h))
+	{}
+
+	std::string file_prio_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " file priorities updated";
 #endif
 	}
 

@@ -269,6 +269,7 @@ namespace boost
 	POLY(alerts_dropped_alert)
 	POLY(session_stats_alert)
 	POLY(socks5_alert)
+	POLY(file_prio_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -1099,6 +1100,10 @@ void bind_alert()
         .def_readonly("error", &socks5_alert::error)
         .def_readonly("op", &socks5_alert::op)
         .add_property("ip", make_getter(&socks5_alert::ip, by_value()))
+        ;
+
+    class_<file_prio_alert, bases<torrent_alert>, noncopyable>(
+       "file_prio_alert", no_init)
         ;
 
     class_<dht_live_nodes_alert, bases<alert>, noncopyable>(

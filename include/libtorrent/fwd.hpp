@@ -119,6 +119,7 @@ struct dht_sample_infohashes_alert;
 struct block_uploaded_alert;
 struct alerts_dropped_alert;
 struct socks5_alert;
+struct file_prio_alert;
 TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/announce_entry.hpp

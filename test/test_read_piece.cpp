@@ -12,6 +12,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -94,11 +95,11 @@ void test_read_piece(int flags)
 
 	if (flags & time_critical)
 	{
-		tor1.set_piece_deadline(piece_index_t(1), 0, torrent_handle::alert_when_available);
+		tor1.set_piece_deadline(1_piece, 0, torrent_handle::alert_when_available);
 	}
 	else
 	{
-		tor1.read_piece(piece_index_t(1));
+		tor1.read_piece(1_piece);
 	}
 
 	a = wait_for_alert(ses, read_piece_alert::alert_type, "ses");
@@ -110,7 +111,7 @@ void test_read_piece(int flags)
 		TEST_CHECK(rp);
 		if (rp)
 		{
-			TEST_EQUAL(rp->piece, piece_index_t(1));
+			TEST_EQUAL(rp->piece, 1_piece);
 		}
 	}
 

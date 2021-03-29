@@ -386,7 +386,7 @@ TORRENT_TEST(add_hashes_fail1)
 	t.set_block(1, sha256_hash("01234567890123456789012345678901"));
 
 	auto const failed = t.add_hashes(15, subtree);
-	TEST_CHECK((failed == p{{piece_index_t{1}, {0}}}));
+	TEST_CHECK((failed == p{{1_piece, {0}}}));
 
 	TEST_CHECK(t[3]  == f[3]);
 	TEST_CHECK(t[7]  == f[7]);
@@ -413,7 +413,7 @@ TORRENT_TEST(add_hashes_fail2)
 	t.set_block(3, sha256_hash("01234567890123456789012345678901"));
 
 	auto const failed = t.add_hashes(15, subtree);
-	TEST_CHECK((failed == p{{piece_index_t{0}, {1}}, {piece_index_t{1}, {0, 1}}}));
+	TEST_CHECK((failed == p{{0_piece, {1}}, {1_piece, {0, 1}}}));
 
 	TEST_CHECK(t[3]  == f[3]);
 	TEST_CHECK(t[7]  == f[7]);

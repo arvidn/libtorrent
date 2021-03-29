@@ -96,6 +96,7 @@ enum alert_types_t {
 	ALERT_BLOCK_UPLOADED =  94,
 	ALERT_ALERTS_DROPPED =  95,
 	ALERT_SOCKS5 =  96,
+	ALERT_FILE_PRIO =  97,
 };
 
 #endif // LIBTORRENT_ALERTS_H

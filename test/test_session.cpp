@@ -471,7 +471,7 @@ TORRENT_TEST(reopen_network_sockets)
 		int count_listen = 0;
 		int count_portmap = 0;
 		int num = 60; // this number is adjusted per version, an estimate
-		time_point const end_time = clock_type::now() + seconds(1);
+		time_point const end_time = clock_type::now() + seconds(3);
 		while (true)
 		{
 			time_point const now = clock_type::now();

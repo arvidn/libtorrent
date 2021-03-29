@@ -158,7 +158,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	// just because we can read them back throught libtorrent, doesn't mean the
 	// files have hit disk yet (because of the cache). Retry a few times to try
 	// to pick up the files
-	for (file_index_t i(0); i < file_index_t(int(remap_file_sizes.size())); ++i)
+	for (auto i = 0_file; i < file_index_t(int(remap_file_sizes.size())); ++i)
 	{
 		std::string name = fs.file_path(i);
 		for (int j = 0; j < 10 && !exists(name); ++j)

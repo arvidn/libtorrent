@@ -10,6 +10,7 @@ see LICENSE file.
 #include "swarm_suite.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/torrent_info.hpp"
 
@@ -32,6 +33,6 @@ TORRENT_TEST(time_crititcal_zero_prio)
 
 	wait_for_downloading(ses, "");
 
-	h.set_piece_deadline(lt::piece_index_t{0}, 0, lt::torrent_handle::alert_when_available);
+	h.set_piece_deadline(0_piece, 0, lt::torrent_handle::alert_when_available);
 }
 

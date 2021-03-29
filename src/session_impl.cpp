@@ -560,6 +560,10 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #if TORRENT_USE_SSL
 		error_code ec;
 		m_ssl_ctx.set_default_verify_paths(ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL set_default verify_paths failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
 #if defined TORRENT_WINDOWS && defined TORRENT_USE_OPENSSL
 		// TODO: come up with some abstraction to do this for gnutls as well
 		// load certificates from the windows system certificate store
@@ -588,7 +592,19 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		SSL_CTX* ssl_ctx = m_ssl_ctx.native_handle();
 		SSL_CTX_set_cert_store(ssl_ctx, store);
 #endif
+#ifdef __APPLE__
+		m_ssl_ctx.load_verify_file("/etc/ssl/cert.pem", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL load_verify_file failed: %s", ec.message().c_str());
+		ec.clear();
 #endif
+		m_ssl_ctx.add_verify_path("/etc/ssl/certs", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL add_verify_path failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
+#endif // __APPLE__
+#endif // TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
 		ssl::set_server_name_callback(ssl::get_handle(m_peer_ssl_ctx), ssl_server_name_callback, this, ec);
@@ -6599,6 +6615,10 @@ namespace {
 			: ssl::context::verify_none;
 		error_code ec;
 		m_ssl_ctx.set_verify_mode(flags, ec);
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL set_verify_mode failed: %s", ec.message().c_str());
+#endif
 #endif
 	}
 

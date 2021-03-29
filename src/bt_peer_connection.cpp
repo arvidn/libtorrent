@@ -1144,7 +1144,7 @@ namespace {
 
 		if (!peer_info_struct()->protocol_v2)
 		{
-			disconnect(errors::invalid_message, operation_t::bittorrent);
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
 		}
 
@@ -1206,7 +1206,7 @@ namespace {
 
 		if (!peer_info_struct()->protocol_v2)
 		{
-			disconnect(errors::invalid_message, operation_t::bittorrent);
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
 		}
 
@@ -1299,7 +1299,7 @@ namespace {
 
 		if (!peer_info_struct()->protocol_v2)
 		{
-			disconnect(errors::invalid_message, operation_t::bittorrent);
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
 		}
 
@@ -2130,7 +2130,7 @@ namespace {
 				}
 #endif
 				received_bytes(0, received);
-				disconnect(errors::invalid_message, operation_t::bittorrent);
+				disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 				return m_recv_buffer.packet_finished();
 			}
 		}

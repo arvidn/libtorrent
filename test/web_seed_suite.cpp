@@ -353,7 +353,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 
 			if (test_rename)
 			{
-				torrent_file->rename_file(file_index_t(0), combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
+				torrent_file->rename_file(0_file, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
 				test_transfer(ses, torrent_file, 0, protocol, true
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}

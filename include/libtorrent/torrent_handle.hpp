@@ -825,17 +825,40 @@ namespace aux {
 			, std::string const& private_key
 			, std::string const& dh_params);
 
-		// Returns a pointer to the torrent_info object associated with this
-		// torrent. The torrent_info object may be a copy of the internal object.
-		// If the torrent doesn't have metadata, the pointer will not be
-		// initialized (i.e. a nullptr). The torrent may be in a state
-		// without metadata only if it was started without a .torrent file, e.g.
-		// by being added by magnet link.
+		// torrent_file() returns a pointer to the torrent_info object
+		// associated with this torrent. The torrent_info object may be a copy
+		// of the internal object. If the torrent doesn't have metadata, the
+		// pointer will not be initialized (i.e. a nullptr). The torrent may be
+		// in a state without metadata only if it was started without a .torrent
+		// file, e.g. by being added by magnet link.
+		//
 		// Note that the torrent_info object returned here may be a different
 		// instance than the one added to the session, with different attributes
 		// like piece layers, dht nodes and trackers. A torrent_info object does
 		// not round-trip cleanly when added to a session.
+		//
+		// This means if you want to create a .torrent file by passing the
+		// torrent_info object into create_torrent, you need to use
+		// torrent_file_with_hashes() instead.
+		//
+		// torrent_file_with_hashes() returns a *copy* of the internal
+		// torrent_info and piece layer hashes (if it's a v2 torrent). The piece
+		// layers will only be included if they are available. If this torrent
+		// was added from a .torrent file with piece layers or if it's seeding,
+		// the piece layers are available. This function is more expensive than
+		// torrent_file() since it needs to make copies of this information.
+		//
+		// When constructing a create_torrent object from a torrent_info that's
+		// in a session, you need to use this function.
+		//
+		// Note that a torrent added from a magnet link may not have the full
+		// merkle trees for all files, and hence not have the complete piece
+		// layers. In that state, you cannot create a .torrent file even from
+		// the torrent_info returned from torrent_file_with_hashes(). Once the
+		// torrent completes downloading all files, becoming a seed, you can
+		// make a .torrent file from it.
 		std::shared_ptr<const torrent_info> torrent_file() const;
+		std::shared_ptr<torrent_info> torrent_file_with_hashes() const;
 
 		// returns the piece layers for all files in the torrent. If this is a
 		// v1 torrent (and doesn't have any piece layers) it returns an empty
@@ -1019,9 +1042,10 @@ namespace aux {
 		// files in- and out of the part file), the internal accounting of file
 		// priorities happen asynchronously. i.e. setting file priorities and then
 		// immediately querying them may not yield the same priorities just set.
-		// However, the *piece* priorities are updated immediately.
+		// To synchronize with the priorities taking effect, wait for the
+		// file_prio_alert.
 		//
-		// when combining file- and piece priorities, the resume file will record
+		// When combining file- and piece priorities, the resume file will record
 		// both. When loading the resume data, the file priorities will be applied
 		// first, then the piece priorities.
 		void file_priority(file_index_t index, download_priority_t priority) const;

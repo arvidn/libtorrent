@@ -158,10 +158,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(block_uploaded_alert, 94, alert_priority::normal, PROGRESS_NOTIFICATION alert_category::upload);
 	TEST_ALERT_TYPE(alerts_dropped_alert, 95, alert_priority::meta, alert_category::error);
 	TEST_ALERT_TYPE(socks5_alert, 96, alert_priority::normal, alert_category::error);
+	TEST_ALERT_TYPE(file_prio_alert, 97, alert_priority::normal, alert_category::storage);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 97);
+	TEST_EQUAL(num_alert_types, 98);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 
