@@ -25,8 +25,7 @@ see LICENSE file.
 #include <dirent.h> // for DIR
 
 #endif
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT directory
 {
@@ -50,7 +49,5 @@ private:
 	bool m_done;
 };
 
-
-}
 }
 #endif

@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/operations.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace errors {
 	// libtorrent uses boost.system's ``error_code`` class to represent
@@ -460,8 +460,8 @@ namespace errors {
 		error_code_max
 	};
 
-	// HTTP errors are reported in the libtorrent::http_category, with error code enums in
-	// the ``libtorrent::errors`` namespace.
+	// HTTP errors are reported in the lt::http_category, with error code enums in
+	// the ``lt::errors`` namespace.
 	enum http_errors
 	{
 		cont = 100,
@@ -562,15 +562,15 @@ namespace errors {
 
 	// internal
 	std::string print_error(error_code const&);
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost {
 namespace system {
 
-	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
+	template<> struct is_error_code_enum<lt::errors::error_code_enum>
 	{ static const bool value = true; };
 
-	template<> struct is_error_code_enum<libtorrent::errors::http_errors>
+	template<> struct is_error_code_enum<lt::errors::http_errors>
 	{ static const bool value = true; };
 }
 }

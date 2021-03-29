@@ -53,7 +53,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 namespace {
 
@@ -1225,4 +1225,4 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp const prot
 	return *iter;
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

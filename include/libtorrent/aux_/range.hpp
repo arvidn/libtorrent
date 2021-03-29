@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename Iter>
 	struct iterator_range
@@ -42,6 +42,6 @@ namespace libtorrent { namespace aux {
 		using type = typename underlying_index_t<IndexType>::type;
 		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
-}}
+}
 
 #endif

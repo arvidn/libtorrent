@@ -20,7 +20,7 @@ see LICENSE file.
 
 #include <algorithm> // for search
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// We need well defined results that don't depend on locale
 	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>

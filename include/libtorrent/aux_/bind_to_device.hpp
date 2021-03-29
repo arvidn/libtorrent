@@ -19,7 +19,7 @@ see LICENSE file.
 #include <netinet/in.h>
 #endif
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 #if defined SO_BINDTODEVICE
 
@@ -108,7 +108,7 @@ namespace libtorrent { namespace aux {
 
 #endif
 
-} }
+}
 
 #endif
 

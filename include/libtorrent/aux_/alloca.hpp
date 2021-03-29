@@ -17,7 +17,7 @@ see LICENSE file.
 #include <iterator> // for iterator_traits
 #include <memory> // for addressof
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 template<class ForwardIt>
 inline void uninitialized_default_construct(ForwardIt first, ForwardIt last)
@@ -59,7 +59,7 @@ struct alloca_destructor
 	}
 };
 
-}}
+}
 
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
@@ -78,17 +78,17 @@ struct alloca_destructor
 
 #endif
 
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	auto TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::ptrdiff_t>(n); \
-	if (TORRENT_ALLOCA_size > ::libtorrent::aux::alloca_destructor<t>::cutoff) {\
-		v = ::libtorrent::span<t>(new t[::libtorrent::aux::numeric_cast<std::size_t>(n)], TORRENT_ALLOCA_size); \
+#define TORRENT_ALLOCA(v, t, n) ::lt::span<t> v; { \
+	auto TORRENT_ALLOCA_size = ::lt::aux::numeric_cast<std::ptrdiff_t>(n); \
+	if (TORRENT_ALLOCA_size > ::lt::aux::alloca_destructor<t>::cutoff) {\
+		v = ::lt::span<t>(new t[::lt::aux::numeric_cast<std::size_t>(n)], TORRENT_ALLOCA_size); \
 	} \
 	else { \
 		auto* TORRENT_ALLOCA_tmp = static_cast<t*>(TORRENT_ALLOCA_FUN(sizeof(t) * static_cast<std::size_t>(n))); \
-		v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
-		::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
+		v = ::lt::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
+		::lt::aux::uninitialized_default_construct(v.begin(), v.end()); \
 	} \
 } \
-::libtorrent::aux::alloca_destructor<t> v##_destructor{v}
+::lt::aux::alloca_destructor<t> v##_destructor{v}
 
 #endif // TORRENT_ALLOCA_HPP_INCLUDED

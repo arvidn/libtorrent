@@ -9,9 +9,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	time_point time_now() { return clock_type::now(); }
 	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
 
-} }
+}

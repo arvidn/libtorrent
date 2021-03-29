@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent {
+namespace lt {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ip::address;

@@ -23,7 +23,7 @@ see LICENSE file.
 #include <wincrypt.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	inline HCRYPTPROV crypt_acquire_provider(DWORD provider_type)
 	{
@@ -117,8 +117,7 @@ namespace libtorrent { namespace aux {
 		HCRYPTHASH m_hash;
 	};
 
-} // namespace aux
-} // namespace libtorrent
+} // namespace lt::aux
 
 #endif // TORRENT_USE_CRYPTOAPI
 

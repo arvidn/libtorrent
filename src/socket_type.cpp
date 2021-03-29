@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/debug.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	char const* socket_type_name(socket_type_t const s)
 	{

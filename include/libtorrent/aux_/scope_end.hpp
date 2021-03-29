@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include <utility>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename Fun>
 	struct scope_end_impl
@@ -35,7 +35,7 @@ namespace libtorrent { namespace aux {
 
 	template <typename Fun>
 	scope_end_impl<Fun> scope_end(Fun f) { return scope_end_impl<Fun>(std::move(f)); }
-}}
+}
 
 #endif
 

@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/torrent_info.hpp" // for load_torrent_limits
 
-namespace libtorrent {
+namespace lt {
 
 	// these functions are used to parse resume data and populate the appropriate
 	// fields in an add_torrent_params object. This object can then be used to add

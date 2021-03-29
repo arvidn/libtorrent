@@ -21,8 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
@@ -65,7 +64,6 @@ private:
 	bool m_abort;
 };
 
-}
 }
 
 #endif

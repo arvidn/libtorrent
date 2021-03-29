@@ -19,8 +19,7 @@ see LICENSE file.
 #include <memory> // for shared_ptr
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	alert_manager::alert_manager(int const queue_limit, alert_category_t const alert_mask)
 		: m_alert_mask(alert_mask)
@@ -121,5 +120,4 @@ namespace aux {
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
 	}
-}
 }

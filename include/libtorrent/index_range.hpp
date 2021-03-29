@@ -10,7 +10,7 @@ see LICENSE file.
 #ifndef TORRENT_INDEX_RANGE_HPP
 #define TORRENT_INDEX_RANGE_HPP
 
-namespace libtorrent {
+namespace lt {
 
 template <typename Index>
 struct index_iter

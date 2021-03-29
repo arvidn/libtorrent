@@ -16,8 +16,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct file_pointer
 {
@@ -49,7 +48,6 @@ inline int portable_fseeko(FILE* const f, std::int64_t const offset, int const w
 #endif
 }
 
-}
 }
 
 #endif

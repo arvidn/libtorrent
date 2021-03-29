@@ -12,8 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct string_ptr
 	{
@@ -46,7 +45,6 @@ namespace aux {
 		char* m_ptr;
 	};
 
-}
 }
 
 #endif

@@ -23,14 +23,14 @@ see LICENSE file.
 #include <libtorrent/aux_/listen_socket_handle.hpp>
 #include <libtorrent/aux_/pool.hpp>
 
-namespace libtorrent {
+namespace lt {
 struct entry;
 namespace aux {
 	struct session_settings;
 }
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct settings;
@@ -119,6 +119,6 @@ private:
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif

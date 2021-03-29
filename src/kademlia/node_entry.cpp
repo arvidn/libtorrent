@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-namespace libtorrent { namespace dht {
+namespace lt { namespace dht {
 
 	node_entry::node_entry(node_id const& id_, udp::endpoint const& ep
 		, int roundtriptime

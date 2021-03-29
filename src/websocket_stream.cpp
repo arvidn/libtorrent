@@ -29,7 +29,7 @@ see LICENSE file.
 #include <algorithm>
 #include <tuple>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 constexpr seconds WEBSOCKET_KEEPALIVE_PERIOD(10);
 

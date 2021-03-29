@@ -35,7 +35,7 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 constexpr int request_size_overhead = 5000;
 

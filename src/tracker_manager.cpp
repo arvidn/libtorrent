@@ -28,7 +28,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())

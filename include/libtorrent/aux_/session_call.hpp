@@ -16,14 +16,14 @@ see LICENSE file.
 
 #include <functional>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 void blocking_call();
 void dump_call_profile();
 
 void torrent_wait(bool& done, aux::session_impl& ses);
 
-} } // namespace aux namespace libtorrent
+} // namespace lt::aux
 
 #endif // TORRENT_SESSION_CALL_HPP_INCLUDED
 

@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include <utility>
 
-namespace libtorrent {
+namespace lt {
 
 	// the interface for freeing disk buffers, used by the disk_buffer_holder.
 	// when implementing disk_interface, this must also be implemented in order

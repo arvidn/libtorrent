@@ -14,12 +14,12 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	// returns the current time, as represented by time_point. The
 	// resolution of this timer is about 100 ms.
 	TORRENT_EXTRA_EXPORT time_point time_now();
 	TORRENT_EXTRA_EXPORT time_point32 time_now32();
-} }
+}
 
 #endif

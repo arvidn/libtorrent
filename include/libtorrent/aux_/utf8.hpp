@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT std::pair<std::int32_t, int>
 		parse_utf8_codepoint(string_view str);
@@ -29,6 +29,6 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT std::string latin1_utf8(span<char const> s);
 	TORRENT_EXTRA_EXPORT std::string utf8_latin1(std::string_view sv);
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif

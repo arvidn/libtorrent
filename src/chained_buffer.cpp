@@ -13,8 +13,7 @@ see LICENSE file.
 
 #include <algorithm> // for copy
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{
@@ -146,6 +145,4 @@ namespace aux {
 		m_destructed = true;
 #endif
 	}
-
-}
 }

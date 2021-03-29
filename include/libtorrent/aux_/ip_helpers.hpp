@@ -16,8 +16,7 @@ see LICENSE file.
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT bool is_global(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
@@ -39,7 +38,6 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT address ensure_v6(address const& a);
 
-}
 }
 
 #endif

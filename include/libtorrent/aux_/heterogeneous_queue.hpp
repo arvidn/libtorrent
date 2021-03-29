@@ -20,8 +20,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct free_deleter
 	{ void operator()(char* ptr) { return std::free(ptr); } };
@@ -32,7 +31,9 @@ namespace aux {
 		std::uintptr_t const offset = ptr & (alignment - 1);
 		return (alignment - offset) & (alignment - 1);
 	}
-} // namespace aux
+} // namespace lt::aux
+
+namespace lt {
 
 	template <class T>
 	struct heterogeneous_queue
@@ -232,6 +233,6 @@ namespace aux {
 		// the number of objects allocated in m_storage
 		int m_num_items = 0;
 	};
-} // namespace libtorrent
+} // namespace lt
 
 #endif

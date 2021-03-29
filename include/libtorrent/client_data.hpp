@@ -13,7 +13,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include <type_traits>
 
-namespace libtorrent {
+namespace lt {
 
 // A thin wrapper around a void pointer used as "user data". i.e. an opaque
 // cookie passed in to libtorrent and returned on demand. It adds type-safety by

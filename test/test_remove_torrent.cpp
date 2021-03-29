@@ -28,7 +28,6 @@ see LICENSE file.
 #include <cstdint>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 using std::ignore;
 
 namespace {

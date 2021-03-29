@@ -39,8 +39,7 @@ auto const map_failed = MAP_FAILED;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 namespace {
 	std::int64_t memory_map_size(open_mode_t const mode
@@ -629,8 +628,7 @@ file_mapping::file_mapping(file_mapping&& rhs)
 		return file_view(shared_from_this());
 	}
 
-} // aux
-} // libtorrent
+} // lt::aux
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE
 

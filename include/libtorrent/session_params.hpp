@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_settings.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_VERSION_NAMESPACE_3
 struct plugin;
@@ -98,7 +98,7 @@ struct TORRENT_EXPORT session_params
 
 	// the IP filter to use for the session. This restricts which peers are allowed
 	// to connect. As if passed to set_ip_filter().
-	libtorrent::ip_filter ip_filter;
+	lt::ip_filter ip_filter;
 
 #if TORRENT_ABI_VERSION <= 2
 

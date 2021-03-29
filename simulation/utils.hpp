@@ -40,12 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
-
-namespace libtorrent
-{
-	struct session;
-	struct alert;
-}
+#include "libtorrent/fwd.hpp"
 
 // adds an IP filter to disallow 50.0.0.1 and 50.0.0.2
 void filter_ips(lt::session& ses);
@@ -72,7 +67,7 @@ std::unique_ptr<sim::asio::io_context> make_io_context(
 
 using lt::operator""_bit;
 
-using test_transfer_flags_t = libtorrent::flags::bitfield_flag<std::uint32_t, struct test_transfer_flags_tag>;
+using test_transfer_flags_t = lt::flags::bitfield_flag<std::uint32_t, struct test_transfer_flags_tag>;
 
 namespace tx {
 constexpr test_transfer_flags_t ipv6 = 0_bit;

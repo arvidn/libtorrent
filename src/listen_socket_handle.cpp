@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	address listen_socket_handle::get_external_address() const
 	{
@@ -48,5 +48,4 @@ namespace libtorrent { namespace aux {
 		if (!s) return false;
 		return s->can_route(a);
 	}
-
-} }
+}

@@ -16,8 +16,7 @@ see LICENSE file.
 
 #include <netinet/in.h> // for IPPROTO_TCP
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 #if defined TCP_KEEPIDLE
 #define TORRENT_HAS_KEEPALIVE_IDLE
@@ -70,7 +69,6 @@ namespace aux {
 		int m_value;
 	};
 #endif
-}
 }
 
 #endif // _WIN32

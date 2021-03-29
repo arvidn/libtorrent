@@ -17,8 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
@@ -48,7 +47,6 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	aux::array<bandwidth_channel*, max_bandwidth_channels> channel{};
 };
 
-}
 }
 
 #endif

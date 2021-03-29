@@ -13,13 +13,11 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/fwd.hpp"
 
 #include <string>
 
-namespace libtorrent {
-
-struct settings_pack;
-namespace aux {
+namespace lt::aux {
 
 	struct session_settings;
 
@@ -64,7 +62,6 @@ namespace aux {
 		// if true, tracker connections are subject to the proxy settings
 		bool proxy_tracker_connections = true;
 	};
-
-}}
+}
 
 #endif

@@ -30,7 +30,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 
@@ -314,4 +314,4 @@ void lsd::close()
 	m_disabled = true;
 }
 
-} // libtorrent::aux namespace
+} // lt::aux namespace

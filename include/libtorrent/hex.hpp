@@ -17,7 +17,7 @@ see LICENSE file.
 
 #include <string>
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux {
 
@@ -69,6 +69,6 @@ namespace aux {
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_HEX_HPP_INCLUDED

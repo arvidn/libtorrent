@@ -40,7 +40,7 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct invariant_access;
 

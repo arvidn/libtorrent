@@ -13,13 +13,13 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 struct session_settings;
 
 TORRENT_EXTRA_EXPORT peer_id generate_peer_id(session_settings const& sett);
 
-}}
+}
 
 #endif
 

@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	resolver::resolver(io_context& ios)
 		: m_ios(ios)

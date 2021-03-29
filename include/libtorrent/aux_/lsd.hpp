@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT lsd_callback
 {

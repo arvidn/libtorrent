@@ -15,11 +15,11 @@ see LICENSE file.
 
 #include "libtorrent/aux_/container_wrapper.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename IndexType = int>
 	using vector = container_wrapper<T, IndexType, std::vector<T>>;
 
-}}
+}
 
 #endif

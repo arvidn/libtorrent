@@ -22,7 +22,7 @@ see LICENSE file.
 
 #include "libtorrent/address.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 template <typename Addr>
 struct ip_range

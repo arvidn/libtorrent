@@ -16,8 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/pool.hpp"
 #include <mutex>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct disk_io_job;
 
@@ -46,7 +45,6 @@ namespace aux {
 		std::mutex m_job_mutex;
 		aux::pool m_job_pool;
 	};
-}
 }
 
 #endif // TORRENT_DISK_JOB_POOL

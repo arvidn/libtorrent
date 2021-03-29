@@ -14,11 +14,11 @@ see LICENSE file.
 
 #include "libtorrent/aux_/container_wrapper.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename IndexType = std::ptrdiff_t>
 	using deque = container_wrapper<T, IndexType, std::deque<T>>;
 
-}}
+}
 
 #endif

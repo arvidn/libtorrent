@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/bitfield.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct piece_picker;
 
@@ -59,7 +59,7 @@ namespace libtorrent::aux {
 		vector<std::int64_t, file_index_t> m_file_progress;
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		friend struct libtorrent::invariant_access;
+		friend struct lt::invariant_access;
 		void check_invariant() const;
 
 		// this is used to assert we never add the same piece twice

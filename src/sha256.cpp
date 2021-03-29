@@ -9,7 +9,7 @@
 
 #include <cstring>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 

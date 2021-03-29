@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/aux_/ip_helpers.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	namespace {
 
@@ -267,10 +267,10 @@ namespace libtorrent::aux {
 	}
 #endif
 
-	libtorrent::address torrent_peer::address() const
+	lt::address torrent_peer::address() const
 	{
 		if (is_v6_addr)
-			return libtorrent::address_v6(
+			return lt::address_v6(
 				static_cast<ipv6_peer const*>(this)->addr);
 		else
 #if TORRENT_USE_I2P

@@ -19,8 +19,7 @@ namespace {
 	constexpr std::chrono::seconds reap_idle_threads_interval(60);
 }
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	disk_io_thread_pool::disk_io_thread_pool(pool_thread_interface& thread_iface
 		, io_context& ios)
@@ -181,6 +180,4 @@ namespace aux {
 		m_threads_to_exit = num_to_stop;
 		m_thread_iface.notify_all();
 	}
-
-}
-} // namespace libtorrent
+} // namespace lt::aux

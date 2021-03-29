@@ -23,7 +23,7 @@ see LICENSE file.
 #include <deque>
 #include <map>
 
-namespace libtorrent::aux
+namespace lt::aux
 {
 	struct torrent_peer;
 
@@ -213,6 +213,6 @@ namespace libtorrent::aux
 		// all the way down the the block level.
 		int const m_piece_tree_root_layer;
 	};
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_HASH_PICKER_HPP_INCLUDED

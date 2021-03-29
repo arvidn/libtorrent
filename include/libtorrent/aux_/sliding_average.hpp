@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 // an exponential moving average accumulator. Add samples to it and it keeps
 // track of a moving mean value and an average deviation

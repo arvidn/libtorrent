@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_local() etc.
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	ip_voter::ip_voter()
 		: m_total_votes(0)

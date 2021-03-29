@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	template <typename T>
 	struct tailqueue_node

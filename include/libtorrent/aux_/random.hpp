@@ -18,7 +18,7 @@ see LICENSE file.
 #include <random>
 #include <algorithm>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
 

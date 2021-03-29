@@ -29,7 +29,7 @@ see LICENSE file.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-namespace libtorrent { namespace {
+namespace lt { namespace {
 
 	const char extension_name[] = "ut_pex";
 
@@ -605,7 +605,7 @@ namespace libtorrent { namespace {
 	}
 } }
 
-namespace libtorrent {
+namespace lt {
 
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, client_data_t)
 	{

@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/units.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	namespace aux {
 		struct torrent_peer;

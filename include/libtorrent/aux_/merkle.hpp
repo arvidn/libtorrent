@@ -18,7 +18,7 @@ see LICENSE file.
 #include <vector>
 #include <utility> // pair
 
-namespace libtorrent {
+namespace lt {
 
 	// given layer and offset from the start of the layer, return the nodex
 	// index

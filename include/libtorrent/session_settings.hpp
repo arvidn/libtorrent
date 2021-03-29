@@ -20,7 +20,7 @@ see LICENSE file.
 
 #include <string>
 
-namespace libtorrent {
+namespace lt {
 
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 

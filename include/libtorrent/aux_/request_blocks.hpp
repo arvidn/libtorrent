@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct peer_connection;
 	struct torrent;

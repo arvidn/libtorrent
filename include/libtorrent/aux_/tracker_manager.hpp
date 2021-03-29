@@ -50,7 +50,7 @@ see LICENSE file.
 #include "libtorrent/aux_/rtc_signaling.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 	struct counters;
 #if TORRENT_USE_I2P
@@ -58,7 +58,7 @@ namespace libtorrent {
 #endif
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	class tracker_manager;
 	struct timeout_handler;

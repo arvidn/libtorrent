@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #ifndef TORRENT_UTP_LOG_ENABLE
 	#define TORRENT_UTP_LOG 0
@@ -528,7 +528,7 @@ private:
 struct utp_socket_impl
 {
 #if TORRENT_USE_INVARIANT_CHECKS
-	friend struct ::libtorrent::invariant_access;
+	friend struct ::lt::invariant_access;
 #endif
 
 	utp_socket_impl(std::uint16_t recv_id, std::uint16_t send_id

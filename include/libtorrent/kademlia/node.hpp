@@ -36,11 +36,11 @@ see LICENSE file.
 // for dht_lookup and dht_routing_bucket
 #include <libtorrent/alert_types.hpp>
 
-namespace libtorrent {
+namespace lt {
 	struct counters;
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct traversal_algorithm;
@@ -189,7 +189,7 @@ public:
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-	void status(libtorrent::session_status& s);
+	void status(lt::session_status& s);
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
@@ -277,6 +277,6 @@ private:
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // NODE_HPP

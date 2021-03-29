@@ -25,9 +25,9 @@ see LICENSE file.
 
 #include <limits>
 
-using namespace libtorrent::flags;
+using namespace lt::flags;
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	file_view_pool::file_view_pool(int size) : m_size(size) {}
 	file_view_pool::~file_view_pool() = default;
@@ -246,7 +246,6 @@ namespace libtorrent { namespace aux {
 		std::unique_lock<std::mutex> l(m_mutex);
 		deferred_destruction = remove_oldest(l);
 	}
-}
 }
 
 #endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE

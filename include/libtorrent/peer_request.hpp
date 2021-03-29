@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/units.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// represents a byte range within a piece. Internally this is is used for
 	// incoming piece requests.

@@ -17,8 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
@@ -76,7 +75,6 @@ private:
 	std::int32_t m_limit;
 };
 
-}
 }
 
 #endif

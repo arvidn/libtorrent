@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct piece_block_progress
 	{

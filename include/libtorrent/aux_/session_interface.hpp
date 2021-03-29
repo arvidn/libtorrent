@@ -34,12 +34,9 @@ see LICENSE file.
 #include <functional>
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 
-	struct peer_class_pool;
-	struct disk_observer;
-	struct disk_interface;
-	struct counters;
+struct peer_class_pool;
 
 namespace aux {
 	struct peer_class_set;
@@ -71,7 +68,7 @@ namespace dht {
 #endif
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct proxy_settings;
 	struct session_settings;
@@ -252,12 +249,12 @@ namespace libtorrent::aux {
 
 		virtual bool has_lsd() const = 0;
 		virtual void announce_lsd(sha1_hash const& ih, int port) = 0;
-		virtual libtorrent::aux::utp_socket_manager* utp_socket_manager() = 0;
+		virtual lt::aux::utp_socket_manager* utp_socket_manager() = 0;
 		virtual void inc_boost_connections() = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
 #ifdef TORRENT_SSL_PEERS
-		virtual libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
+		virtual lt::aux::utp_socket_manager* ssl_utp_socket_manager() = 0;
 #endif
 #if TORRENT_USE_SSL
 		virtual ssl::context* ssl_ctx() = 0 ;

@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct utp_socket_manager;
 

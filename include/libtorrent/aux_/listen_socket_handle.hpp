@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include <memory>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	struct listen_socket_t;
 
@@ -64,6 +64,6 @@ namespace libtorrent { namespace aux {
 		std::weak_ptr<listen_socket_t> m_sock;
 	};
 
-} }
+}
 
 #endif

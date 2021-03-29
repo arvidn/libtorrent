@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/units.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct TORRENT_EXPORT piece_block
 	{

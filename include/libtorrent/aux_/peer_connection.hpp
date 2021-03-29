@@ -58,7 +58,7 @@ see LICENSE file.
 #include <array>
 #include <cstdint>
 
-namespace libtorrent {
+namespace lt {
 
 	struct disk_interface;
 
@@ -67,7 +67,7 @@ namespace libtorrent {
 #endif
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct session_interface;
 	struct torrent;

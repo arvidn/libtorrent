@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/pool.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator_interface
 	{

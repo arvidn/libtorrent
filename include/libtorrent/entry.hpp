@@ -60,7 +60,7 @@ see LICENSE file.
 #include <boost/container/map.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 	// backwards compatibility

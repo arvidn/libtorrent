@@ -21,13 +21,13 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	entry write_resume_data(add_torrent_params const& atp)
 	{
 		entry ret;
 
-		using namespace libtorrent::aux; // for write_*_endpoint()
+		using namespace lt::aux; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 		ret["libtorrent-version"] = lt::version_str;

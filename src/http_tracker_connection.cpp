@@ -38,7 +38,7 @@ see LICENSE file.
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	http_tracker_connection::http_tracker_connection(
 		io_context& ios

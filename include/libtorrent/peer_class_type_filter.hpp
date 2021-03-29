@@ -18,7 +18,7 @@ see LICENSE file.
 #include "aux_/export.hpp"
 #include "peer_class.hpp" // for peer_class_t
 
-namespace libtorrent {
+namespace lt {
 
 	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
 	// peer-classes from peers. It is applied *after* the peer class filter is applied (which

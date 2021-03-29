@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	namespace {
 		// TODO: it would be nice to get the literal working
@@ -380,6 +380,6 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 	return n;
 }
 
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 #endif // TORRENT_DISABLE_ENCRYPTION

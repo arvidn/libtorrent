@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 struct suggest_piece
 {

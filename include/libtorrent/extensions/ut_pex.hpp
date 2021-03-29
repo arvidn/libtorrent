@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 
 	struct torrent_plugin;
 	struct torrent_handle;

@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/deprecated.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// flags for the peer_info::flags field. Indicates various states
 	// the peer may be in. These flags are not mutually exclusive, but
@@ -81,8 +81,8 @@ TORRENT_VERSION_NAMESPACE_2
 		time_duration download_queue_time;
 
 #if TORRENT_ABI_VERSION == 1
-		using peer_flags_t = libtorrent::peer_flags_t;
-		using peer_source_flags = libtorrent::peer_source_flags_t;
+		using peer_flags_t = lt::peer_flags_t;
+		using peer_source_flags = lt::peer_source_flags_t;
 #endif
 
 		// **we** are interested in pieces from this peer.
@@ -300,7 +300,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int downloading_total;
 
 #if TORRENT_ABI_VERSION <= 2
-		using connection_type_t = libtorrent::connection_type_t;
+		using connection_type_t = lt::connection_type_t;
 #endif
 		// Regular bittorrent connection
 		static constexpr connection_type_t standard_bittorrent = 0_bit;

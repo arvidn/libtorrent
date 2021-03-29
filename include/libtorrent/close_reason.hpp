@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// internal: these are all the reasons to disconnect a peer
 	// all reasons caused by the peer sending unexpected data

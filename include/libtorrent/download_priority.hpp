@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/units.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 using download_priority_t = aux::strong_typedef<std::uint8_t, struct download_priority_tag>;
 

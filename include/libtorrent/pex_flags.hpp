@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	using pex_flags_t = flags::bitfield_flag<std::uint8_t, struct pex_flags_tag>;
 

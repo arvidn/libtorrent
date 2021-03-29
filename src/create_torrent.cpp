@@ -31,7 +31,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 namespace {
 
 	bool default_pred(std::string const&) { return true; }

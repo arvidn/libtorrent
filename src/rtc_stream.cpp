@@ -21,8 +21,7 @@ see LICENSE file.
 #include <rtc/rtc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 namespace ip = boost::asio::ip;
 namespace errc = boost::system::errc;
@@ -396,7 +395,6 @@ rtc_stream::endpoint_type rtc_parse_endpoint(std::string const& addr, error_code
 	return rtc_stream_impl::endpoint_type(ip::make_address(host, ec), port);
 }
 
-}
 }
 
 #endif // TORRENT_USE_RTC

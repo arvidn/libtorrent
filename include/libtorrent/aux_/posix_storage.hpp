@@ -24,8 +24,7 @@ see LICENSE file.
 #include <memory>
 #include <string>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct session_settings;
 
@@ -94,7 +93,6 @@ namespace aux {
 		std::string m_part_file_name;
 		std::unique_ptr<posix_part_file> m_part_file;
 	};
-}
 }
 #endif
 

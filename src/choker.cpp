@@ -21,7 +21,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 

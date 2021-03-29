@@ -25,8 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
@@ -73,7 +72,6 @@ private:
 	std::multimap<std::string, resolver_interface::callback_t> m_callbacks;
 };
 
-}
 }
 
 #endif

@@ -27,7 +27,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 
 namespace {
 

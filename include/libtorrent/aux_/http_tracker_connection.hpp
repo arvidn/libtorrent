@@ -19,12 +19,12 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
 
-namespace libtorrent {
+namespace lt {
 
 	struct bdecode_node;
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct http_connection;
 	class http_parser;

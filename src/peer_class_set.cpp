@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include <algorithm> // for find
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{

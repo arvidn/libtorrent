@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// TODO: 3 remove this typedef, and use span<char const> for disk write
 	// operations

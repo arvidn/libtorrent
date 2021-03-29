@@ -14,8 +14,7 @@ see LICENSE file.
 
 #include <variant>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename... Rest>
 	struct first_element
@@ -159,7 +158,6 @@ namespace aux {
 
 #undef TORRENT_FWD_CALL
 
-}
 }
 
 #endif // TORRENT_POLYMORPHIC_SOCKET

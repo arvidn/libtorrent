@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/utp_stream.hpp"
 #include "libtorrent/aux_/ssl_stream.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
 	aux::socket_type instantiate_connection(io_context& ios

@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_job.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 
 	disk_job_pool::disk_job_pool()

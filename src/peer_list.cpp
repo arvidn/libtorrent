@@ -43,7 +43,7 @@ using namespace std::placeholders;
 
 namespace {
 
-	using namespace libtorrent;
+	using namespace lt;
 
 	struct match_peer_endpoint
 	{
@@ -62,7 +62,7 @@ namespace {
 	};
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
 		: m_locked_peer(nullptr)

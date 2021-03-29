@@ -26,7 +26,7 @@ see LICENSE file.
 #include <string>
 #include <ctime>
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
@@ -569,15 +569,15 @@ TORRENT_VERSION_NAMESPACE_3
 	};
 
 TORRENT_VERSION_NAMESPACE_3_END
-} // namespace libtorrent
+} // namespace lt
 
 namespace std {
 	template <>
-	struct hash<libtorrent::torrent_status>
+	struct hash<lt::torrent_status>
 	{
-		std::size_t operator()(libtorrent::torrent_status const& ts) const
+		std::size_t operator()(lt::torrent_status const& ts) const
 		{
-			return libtorrent::hash_value(ts.handle);
+			return lt::hash_value(ts.handle);
 		}
 	};
 }

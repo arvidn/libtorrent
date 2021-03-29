@@ -21,9 +21,9 @@ see LICENSE file.
 #include "libtorrent/aux_/string_ptr.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent { struct peer_connection_interface; }
+namespace lt { struct peer_connection_interface; }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct external_ip;
 
@@ -47,7 +47,7 @@ namespace libtorrent::aux {
 
 		std::uint32_t rank(aux::external_ip const& external, int external_port) const;
 
-		libtorrent::address address() const;
+		lt::address address() const;
 		string_view dest() const;
 
 		tcp::endpoint ip() const { return tcp::endpoint(address(), port); }

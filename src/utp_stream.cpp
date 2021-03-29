@@ -37,7 +37,7 @@ see LICENSE file.
 #include "libtorrent/aux_/socket_io.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #if TORRENT_UTP_LOG
 

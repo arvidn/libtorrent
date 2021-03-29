@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include <cstdint>
 
-namespace libtorrent {
+namespace lt {
 
 // Kinds of tracker announces. This is typically indicated as the ``&event=``
 // HTTP query string parameter to HTTP trackers.

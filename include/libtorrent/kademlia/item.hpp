@@ -18,7 +18,7 @@ see LICENSE file.
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 // calculate the target hash for an immutable item.
@@ -102,6 +102,6 @@ private:
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // LIBTORRENT_ITEM_HPP

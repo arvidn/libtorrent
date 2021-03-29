@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	hasher512::hasher512()
 	{

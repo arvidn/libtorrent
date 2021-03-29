@@ -6,8 +6,7 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 /* see http://crypto.stackexchange.com/a/6215/4697 */
 void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar) {
@@ -66,10 +65,10 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
             ge_add(&A_p1p1, &nB, &T);
             ge_p1p1_to_p3(&A, &A_p1p1);
         }
-            
+
         /* pack public key */
         ge_p3_tobytes(public_key, &A);
     }
 }
 
-} }
+}

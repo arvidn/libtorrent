@@ -155,7 +155,7 @@ namespace boost {
 }
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
@@ -7178,7 +7178,7 @@ namespace {
 		}
 
 		void tracker_logger::tracker_response(tracker_request const&
-			, libtorrent::address const& tracker_ip
+			, lt::address const& tracker_ip
 			, std::list<address> const& tracker_ips
 			, struct tracker_response const& resp)
 		{

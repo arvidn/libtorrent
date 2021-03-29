@@ -31,7 +31,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/aux_/debug.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace i2p_error {
 
@@ -59,14 +59,14 @@ namespace boost {
 namespace system {
 
 template<>
-struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
+struct is_error_code_enum<lt::i2p_error::i2p_error_code>
 { static const bool value = true; };
 
 }
 }
 
 
-namespace libtorrent {
+namespace lt {
 
 	// returns the error category for I2P errors
 	TORRENT_EXPORT boost::system::error_category& i2p_category();

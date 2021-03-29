@@ -24,9 +24,9 @@ see LICENSE file.
 #include "libtorrent/read_resume_data.hpp"
 #endif
 
-using libtorrent::aux::session_impl;
+using lt::aux::session_impl;
 
-namespace libtorrent {
+namespace lt {
 
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
@@ -1203,4 +1203,4 @@ namespace {
 		async_call(&session_impl::reopen_network_sockets, options);
 	}
 
-} // namespace libtorrent
+} // namespace lt

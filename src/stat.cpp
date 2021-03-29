@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/stat.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 void stat_channel::second_tick(int tick_interval_ms)
 {

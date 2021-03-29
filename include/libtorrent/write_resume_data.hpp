@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/bencode.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// this function turns the resume data in an ``add_torrent_params`` object
 	// into a bencoded structure

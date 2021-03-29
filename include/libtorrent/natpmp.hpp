@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/enum_net.hpp" // for ip_interface
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace errors {
 	// See RFC 6887 Section 7.4
@@ -51,16 +51,16 @@ namespace errors {
 } // namespace errors
 
 	TORRENT_EXPORT boost::system::error_category& pcp_category();
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost {
 namespace system {
-	template<> struct is_error_code_enum<libtorrent::errors::pcp_errors>
+	template<> struct is_error_code_enum<lt::errors::pcp_errors>
 	{ static const bool value = true; };
 }
 }
 
-namespace libtorrent {
+namespace lt {
 
 struct TORRENT_EXTRA_EXPORT natpmp final
 	: std::enable_shared_from_this<natpmp>
@@ -191,6 +191,6 @@ private:
 	bool m_abort = false;
 };
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif

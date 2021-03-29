@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
-namespace libtorrent {
+namespace lt {
 
 	struct settings_interface;
 	struct disk_observer;

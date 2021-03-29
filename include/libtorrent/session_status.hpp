@@ -23,7 +23,7 @@ see LICENSE file.
 #endif
 
 #if TORRENT_ABI_VERSION == 1
-namespace libtorrent {
+namespace lt {
 
 	// holds counters and gauges for the uTP sockets
 	// deprecated in 1.1 in favor of session_stats counters, which is a more

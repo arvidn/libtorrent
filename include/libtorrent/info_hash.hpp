@@ -20,7 +20,7 @@ see LICENSE file.
 #include <ostream>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent
+namespace lt
 {
 	// BitTorrent version enumerator
 	enum class protocol_version : std::uint8_t
@@ -131,9 +131,9 @@ namespace {
 
 namespace std {
 	template <>
-	struct hash<libtorrent::info_hash_t>
+	struct hash<lt::info_hash_t>
 	{
-		std::size_t operator()(libtorrent::info_hash_t const& k) const
+		std::size_t operator()(lt::info_hash_t const& k) const
 		{
 			return std::hash<lt::sha1_hash>{}(k.v1)
 				^ std::hash<lt::sha256_hash>{}(k.v2) ;

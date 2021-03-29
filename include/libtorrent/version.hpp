@@ -25,7 +25,7 @@ see LICENSE file.
 #define LIBTORRENT_VERSION "2.0.3.0"
 #define LIBTORRENT_REVISION "af7a96c1d"
 
-namespace libtorrent {
+namespace lt {
 
 	// the major, minor and tiny versions of libtorrent
 	constexpr int version_major = 2;
@@ -44,6 +44,6 @@ namespace libtorrent {
 
 }
 
-namespace lt = libtorrent;
+namespace libtorrent = lt;
 
 #endif

@@ -35,7 +35,7 @@ see LICENSE file.
 #include <variant>
 #include <optional>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 struct tracker_answer
 {

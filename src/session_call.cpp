@@ -11,7 +11,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/session_call.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 #ifdef TORRENT_PROFILE_CALLS
 static std::mutex g_calls_mutex;
@@ -56,4 +56,4 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 	while (!done) { ses.cond.wait(l); }
 }
 
-} } // namespace aux namespace libtorrent
+} // namespace lt::aux

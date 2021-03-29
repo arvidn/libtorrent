@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	int merkle_layer_start(int const layer)
 	{

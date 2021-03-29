@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 // include/libtorrent/add_torrent_params.hpp
 TORRENT_VERSION_NAMESPACE_3
@@ -294,6 +294,6 @@ struct session_status;
 
 }
 
-namespace lt = libtorrent;
+namespace libtorrent = lt;
 
 #endif // TORRENT_FWD_HPP

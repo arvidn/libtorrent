@@ -14,7 +14,7 @@ see LICENSE file.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/aux_/socket_io.hpp>
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 	node_ids_t extract_node_ids(bdecode_node const& e, string_view key)
 	{

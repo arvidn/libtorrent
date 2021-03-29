@@ -24,7 +24,7 @@ see LICENSE file.
 
 // #define TORRENT_DEBUG_MTU 1135
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	utp_socket_manager::utp_socket_manager(
 		send_fun_t send_fun

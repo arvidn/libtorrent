@@ -20,8 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 // uniquely identifies a torrent and offset. It is used as the key in the
 // dictionary mapping locations to write jobs
@@ -40,18 +39,17 @@ struct torrent_location
 };
 
 }
-}
 
 namespace std {
 
 template <>
-struct hash<libtorrent::aux::torrent_location>
+struct hash<lt::aux::torrent_location>
 {
-	using argument_type = libtorrent::aux::torrent_location;
+	using argument_type = lt::aux::torrent_location;
 	using result_type = std::size_t;
 	std::size_t operator()(argument_type const& l) const
 	{
-		using namespace libtorrent;
+		using namespace lt;
 		std::size_t ret = 0;
 		boost::hash_combine(ret, std::hash<storage_index_t>{}(l.torrent));
 		boost::hash_combine(ret, std::hash<piece_index_t>{}(l.piece));
@@ -62,8 +60,7 @@ struct hash<libtorrent::aux::torrent_location>
 
 }
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct store_buffer
 {
@@ -115,7 +112,6 @@ private:
 	std::unordered_map<torrent_location, char const*> m_store_buffer;
 };
 
-}
 }
 
 #endif

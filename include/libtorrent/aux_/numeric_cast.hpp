@@ -17,7 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	template <class T, class In, typename Cond = typename std::enable_if<
 		std::is_integral<T>::value && std::is_integral<In>::value>::type>

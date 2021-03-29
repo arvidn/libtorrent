@@ -43,8 +43,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	using sha512_hash = digest32<512>;
 
@@ -105,7 +104,6 @@ namespace aux {
 #endif
 	};
 
-}
 }
 
 #endif // TORRENT_HASHER512_HPP_INCLUDED

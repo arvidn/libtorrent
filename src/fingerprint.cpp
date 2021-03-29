@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include <cstring> // for strlen
 
-namespace libtorrent {
+namespace lt {
 
 	namespace {
 

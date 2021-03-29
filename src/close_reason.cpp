@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/error.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	close_reason_t error_to_close_reason(error_code const& ec)
 	{

@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct session_settings;
 	struct file_view_pool;

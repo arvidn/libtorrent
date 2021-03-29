@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/socket_io.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	std::string make_magnet_uri(torrent_handle const& handle)
 	{

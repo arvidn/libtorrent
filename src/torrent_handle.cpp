@@ -37,9 +37,9 @@ see LICENSE file.
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
 #endif
 
-using libtorrent::aux::session_impl;
+using lt::aux::session_impl;
 
-namespace libtorrent {
+namespace lt {
 
 	void block_info::set_peer(tcp::endpoint const& ep)
 	{
@@ -713,7 +713,7 @@ namespace libtorrent {
 		add_torrent_params params;
 		auto retr = std::ref(params);
 		sync_call(&aux::torrent::write_resume_data, resume_data_flags_t{}, retr);
-		return libtorrent::write_resume_data(params);
+		return lt::write_resume_data(params);
 	}
 
 	std::string torrent_handle::save_path() const

@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux { struct bt_peer_connection; }
 
@@ -130,6 +130,6 @@ struct TORRENT_EXPORT bt_peer_connection_handle : peer_connection_handle
 	std::shared_ptr<aux::bt_peer_connection> native_handle() const;
 };
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_PEER_CONNECTION_HANDLE_HPP_INCLUDED

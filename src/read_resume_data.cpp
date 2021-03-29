@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/download_priority.hpp" // for default_priority
 
-namespace libtorrent {
+namespace lt {
 
 namespace {
 
@@ -319,7 +319,7 @@ namespace {
 
 		int const v6_size = 18;
 		int const v4_size = 6;
-		using namespace libtorrent::aux; // for read_*_endpoint()
+		using namespace lt::aux; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();

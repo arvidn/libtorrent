@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/torrent_peer_allocator.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	torrent_peer* torrent_peer_allocator::allocate_peer_entry(int type)
 	{

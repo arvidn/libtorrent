@@ -30,7 +30,7 @@ see LICENSE file.
 #include <arpa/inet.h>
 #endif
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 // these need to be within the disabled warnings because on OSX
 // the htonl and ntohl macros cause lots of old-style case warnings
 inline std::uint32_t host_to_network(std::uint32_t x)
@@ -70,7 +70,6 @@ inline std::uint32_t little_endian_to_host(std::uint32_t x)
 #endif
 }
 
-}
 }
 
 #endif // TORRENT_BYTESWAP_HPP_INCLUDED

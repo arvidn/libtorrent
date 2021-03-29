@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	stat_cache::stat_cache() = default;
 	stat_cache::~stat_cache() = default;

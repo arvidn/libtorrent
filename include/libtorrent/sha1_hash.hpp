@@ -33,7 +33,7 @@ see LICENSE file.
 #include <iosfwd>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent {
+namespace lt {
 
 	// This type holds an N digest or any other kind of N bits
 	// sequence. It implements a number of convenience functions, such
@@ -277,9 +277,9 @@ namespace libtorrent {
 
 namespace std {
 	template <std::ptrdiff_t N>
-	struct hash<libtorrent::digest32<N>>
+	struct hash<lt::digest32<N>>
 	{
-		std::size_t operator()(libtorrent::digest32<N> const& k) const
+		std::size_t operator()(lt::digest32<N> const& k) const
 		{
 			std::size_t ret;
 			static_assert(N >= sizeof(ret) * 8, "hash is not defined for small digests");

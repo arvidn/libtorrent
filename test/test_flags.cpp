@@ -21,7 +21,6 @@ see LICENSE file.
 #include "test_utils.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 namespace {
 

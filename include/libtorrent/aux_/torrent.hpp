@@ -72,8 +72,8 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl.hpp"
 
 #if TORRENT_USE_RTC
-    #include "libtorrent/aux_/rtc_signaling.hpp"
-    #include "libtorrent/aux_/rtc_stream.hpp"
+#include "libtorrent/aux_/rtc_signaling.hpp"
+#include "libtorrent/aux_/rtc_stream.hpp"
 #endif
 
 // define as 0 to disable. 1 enables debug output of the pieces and requested
@@ -81,11 +81,16 @@ see LICENSE file.
 // logic
 #define TORRENT_DEBUG_STREAMING 0
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct tracker_request;
 	class http_parser;
 	struct bt_peer_connection;
+#if TORRENT_USE_RTC
+	struct rtc_signaling;
+	struct rtc_offer;
+	struct rtc_answer;
+#endif
 
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
 

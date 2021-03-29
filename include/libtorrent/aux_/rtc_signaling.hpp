@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -38,14 +39,11 @@ namespace rtc {
 	class DataChannel;
 }
 
-namespace libtorrent {
+namespace lt::aux {
 
-struct alert_manager;
 struct torrent;
-
-namespace aux {
-
 struct rtc_stream_init;
+struct alert_manager;
 
 constexpr int RTC_OFFER_ID_LEN = 16;
 
@@ -139,7 +137,6 @@ private:
 	std::queue<offer_batch> m_offer_batches;
 };
 
-}
 }
 
 #endif

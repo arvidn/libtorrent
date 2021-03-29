@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct union_address
 	{
@@ -82,7 +82,7 @@ namespace libtorrent::aux {
 			return *this;
 		}
 
-		libtorrent::address address() const { return addr; }
+		lt::address address() const { return addr; }
 		operator tcp::endpoint() const { return tcp::endpoint(addr, port); }
 
 		union_address addr;

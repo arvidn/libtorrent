@@ -40,7 +40,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp" // for write_string
 #include "libtorrent/aux_/string_util.hpp" // for is_digit
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 	using invalid_encoding = system_error;

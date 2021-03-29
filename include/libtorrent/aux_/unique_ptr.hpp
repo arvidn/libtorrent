@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename IndexType = std::ptrdiff_t>
 	struct unique_ptr;
@@ -37,7 +37,6 @@ namespace libtorrent { namespace aux {
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 	};
-
-}}
+}
 
 #endif

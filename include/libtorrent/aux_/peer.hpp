@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT peer_entry
 	{

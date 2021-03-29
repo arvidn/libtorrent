@@ -55,7 +55,7 @@ see LICENSE file.
 
 #define DEBUG_DISK_THREAD 0
 
-namespace libtorrent {
+namespace lt {
 char const* job_name(aux::job_action_t job);
 }
 
@@ -69,7 +69,7 @@ char const* job_name(aux::job_action_t job);
 #define DLOG(...) do {} while(false)
 #endif
 
-namespace libtorrent {
+namespace lt {
 namespace {
 
 #if DEBUG_DISK_THREAD

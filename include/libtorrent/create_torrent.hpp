@@ -69,7 +69,7 @@ see LICENSE file.
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
-namespace libtorrent {
+namespace lt {
 
 	// hidden
 	using create_flags_t = flags::bitfield_flag<std::uint32_t, struct create_flags_tag>;

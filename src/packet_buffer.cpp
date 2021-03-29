@@ -12,8 +12,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
 		, std::uint32_t mask);
@@ -168,5 +167,4 @@ namespace aux {
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
-}
 }

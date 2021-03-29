@@ -15,7 +15,7 @@ see LICENSE file.
 #include <climits>
 #endif
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 
 	bandwidth_manager::bandwidth_manager(int channel)

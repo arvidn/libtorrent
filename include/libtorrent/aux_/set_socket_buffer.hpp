@@ -14,8 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	template <class Socket>
 	void set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
@@ -63,7 +62,6 @@ namespace aux {
 			}
 		}
 	}
-
-}}
+}
 
 #endif

@@ -21,8 +21,7 @@ see LICENSE file.
 #include <mutex>
 #include <functional>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT session_settings_single_thread
 	{
@@ -158,9 +157,8 @@ namespace aux {
 	};
 
 }
-}
 
-namespace libtorrent {
+namespace lt {
 	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings_single_thread& s);
 }
 

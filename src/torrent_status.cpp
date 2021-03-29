@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/torrent_status.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	torrent_status::torrent_status() noexcept {}
 	torrent_status::~torrent_status() = default;

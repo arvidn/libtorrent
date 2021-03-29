@@ -39,13 +39,13 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/index_range.hpp"
 
-namespace libtorrent {
+namespace lt {
 	template <typename Index>
 	struct typed_bitfield;
 	struct counters;
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct torrent;
 	struct torrent_peer;

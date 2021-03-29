@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_settings.hpp"
 #include "libtorrent/bdecode.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 #if TORRENT_ABI_VERSION <= 2

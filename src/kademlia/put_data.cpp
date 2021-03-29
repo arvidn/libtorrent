@@ -17,7 +17,7 @@ see LICENSE file.
 #include <libtorrent/aux_/io_bytes.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht {
+namespace lt { namespace dht {
 
 put_data::put_data(node& dht_node, put_callback callback)
 	: traversal_algorithm(dht_node, {})
@@ -92,4 +92,4 @@ bool put_data::invoke(observer_ptr o)
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht

@@ -22,7 +22,7 @@ see LICENSE file.
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
 
-namespace libtorrent {
+namespace lt {
 
 	// The bitfield type stores any number of bits as a bitfield
 	// in a heap allocated array.

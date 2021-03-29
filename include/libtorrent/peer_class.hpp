@@ -22,7 +22,7 @@ see LICENSE file.
 #include <cstdint>
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 
 	using peer_class_t = aux::strong_typedef<std::uint32_t, struct peer_class_tag>;
 

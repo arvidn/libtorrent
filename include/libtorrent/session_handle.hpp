@@ -43,7 +43,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/session_types.hpp" // for session_flags_t
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux { struct torrent; }
 
@@ -71,8 +71,8 @@ namespace aux { struct torrent; }
 		session_handle& operator=(session_handle&&) & noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
-		using save_state_flags_t = libtorrent::save_state_flags_t;
-		using session_flags_t = libtorrent::session_flags_t;
+		using save_state_flags_t = lt::save_state_flags_t;
+		using session_flags_t = lt::session_flags_t;
 #endif
 
 		// returns true if this handle refers to a valid session object. If the
@@ -1098,6 +1098,6 @@ namespace aux { struct torrent; }
 		std::weak_ptr<aux::session_impl> m_impl;
 	};
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_SESSION_HANDLE_HPP_INCLUDED

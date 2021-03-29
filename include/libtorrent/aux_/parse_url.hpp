@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// returns protocol, auth, hostname, port, path
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string

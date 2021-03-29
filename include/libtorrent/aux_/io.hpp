@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <class T> struct type {};
 
@@ -152,6 +152,6 @@ namespace libtorrent { namespace aux {
 		return int(str.size());
 	}
 
-}}
+}
 
 #endif // TORRENT_AUX_IO_HPP_INCLUDED

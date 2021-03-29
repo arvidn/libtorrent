@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/sha1_hash.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	using peer_id = sha1_hash;
 }

@@ -28,7 +28,7 @@ see LICENSE file.
 #include <memory>
 #include <functional>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct mmap_storage;
 

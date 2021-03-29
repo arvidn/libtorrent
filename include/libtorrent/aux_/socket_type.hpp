@@ -30,7 +30,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/debug.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	using socket_type = polymorphic_socket<
 		tcp::socket

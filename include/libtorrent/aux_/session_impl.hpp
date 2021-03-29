@@ -82,7 +82,7 @@ see LICENSE file.
 #include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_VERSION_NAMESPACE_3
 	struct plugin;
@@ -330,7 +330,7 @@ namespace aux {
 			void wrap(Fun f, Args&&... a);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-			friend struct libtorrent::invariant_access;
+			friend struct lt::invariant_access;
 #endif
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 
@@ -775,10 +775,10 @@ namespace aux {
 
 			std::vector<block_info>& block_info_storage() override { return m_block_info_storage; }
 
-			libtorrent::aux::utp_socket_manager* utp_socket_manager() override
+			lt::aux::utp_socket_manager* utp_socket_manager() override
 			{ return &m_utp_socket_manager; }
 #ifdef TORRENT_SSL_PEERS
-			libtorrent::aux::utp_socket_manager* ssl_utp_socket_manager() override
+			lt::aux::utp_socket_manager* ssl_utp_socket_manager() override
 			{ return &m_ssl_utp_socket_manager; }
 #endif
 
@@ -1199,11 +1199,11 @@ namespace aux {
 				, std::weak_ptr<listen_socket_t> ls
 				, transport ssl, error_code const& ec);
 
-			libtorrent::aux::utp_socket_manager m_utp_socket_manager;
+			lt::aux::utp_socket_manager m_utp_socket_manager;
 
 #ifdef TORRENT_SSL_PEERS
 			// used for uTP connections over SSL
-			libtorrent::aux::utp_socket_manager m_ssl_utp_socket_manager;
+			lt::aux::utp_socket_manager m_ssl_utp_socket_manager;
 #endif
 
 			// the number of torrent connection boosts
@@ -1345,7 +1345,7 @@ namespace aux {
 			void tracker_warning(tracker_request const& req
 				, std::string const& str) override;
 			void tracker_response(tracker_request const&
-				, libtorrent::address const& tracker_ip
+				, lt::address const& tracker_ip
 				, std::list<address> const& tracker_ips
 				, struct tracker_response const& resp) override;
 			void tracker_request_error(tracker_request const& r

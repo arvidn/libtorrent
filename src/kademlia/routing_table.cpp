@@ -39,7 +39,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 namespace {
 
@@ -1203,4 +1203,4 @@ void routing_table::log_node_failed(node_id const& nid, node_entry const& ne) co
 }
 #endif
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

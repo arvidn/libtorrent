@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{

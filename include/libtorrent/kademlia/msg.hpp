@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct bdecode_node;
 

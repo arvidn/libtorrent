@@ -38,7 +38,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;

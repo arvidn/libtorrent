@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stack_allocator.hpp"
 #include <cstdarg> // for va_list, va_copy, va_end
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	allocation_slot stack_allocator::copy_string(string_view str)
 	{

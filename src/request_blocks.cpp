@@ -20,7 +20,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	int source_rank(peer_source_flags_t const source_bitmask)
 	{

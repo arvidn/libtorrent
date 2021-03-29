@@ -78,7 +78,7 @@ example layout:
 
 */
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
@@ -118,18 +118,18 @@ namespace bdecode_errors {
 	// hidden
 	TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 }
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost {
 namespace system {
 
-	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
+	template<> struct is_error_code_enum<lt::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 
 }
 }
 
-namespace libtorrent {
+namespace lt {
 
 	using error_code = boost::system::error_code;
 

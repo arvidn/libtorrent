@@ -18,7 +18,7 @@ see LICENSE file.
 #include <type_traits>
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux {
 

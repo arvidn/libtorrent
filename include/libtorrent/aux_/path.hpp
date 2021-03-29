@@ -51,7 +51,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct file_status
 	{

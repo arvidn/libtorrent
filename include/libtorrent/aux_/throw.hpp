@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename... Args>
 #ifdef BOOST_NO_EXCEPTIONS
@@ -26,6 +26,6 @@ namespace libtorrent { namespace aux {
 		throw T(std::forward<Args>(args)...);
 	}
 #endif
-}}
+}
 
 #endif

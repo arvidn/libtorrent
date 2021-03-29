@@ -18,7 +18,7 @@ see LICENSE file.
 
 #include <fcntl.h>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	struct dev_random
 	{
@@ -51,7 +51,7 @@ namespace libtorrent { namespace aux {
 	private:
 		int m_fd;
 	};
-}}
+}
 
 #endif
 

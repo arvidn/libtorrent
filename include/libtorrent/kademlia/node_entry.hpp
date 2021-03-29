@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/aux_/time.hpp" // for time_now
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 struct TORRENT_EXTRA_EXPORT node_entry
 {
@@ -67,6 +67,6 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	bool verified = false;
 };
 
-} // namespace libtorrent::dht
+} // namespace lt::dht
 
 #endif

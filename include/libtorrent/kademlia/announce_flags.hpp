@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 using announce_flags_t = flags::bitfield_flag<std::uint8_t, struct dht_announce_flag_tag>;

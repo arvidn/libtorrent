@@ -9,7 +9,7 @@ see LICENSE file.
 
 #include "libtorrent/version.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 char const* version()
 {

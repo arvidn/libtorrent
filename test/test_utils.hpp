@@ -23,11 +23,8 @@ see LICENSE file.
 #include <vector>
 #include <fstream>
 
-namespace libtorrent
-{
-	EXPORT std::string time_now_string();
-	EXPORT std::string time_to_string(lt::time_point const tp);
-}
+EXPORT std::string time_now_string();
+EXPORT std::string time_to_string(lt::time_point const tp);
 
 constexpr inline lt::download_priority_t operator "" _pri(unsigned long long const p)
 { return lt::download_priority_t(static_cast<std::uint8_t>(p)); }

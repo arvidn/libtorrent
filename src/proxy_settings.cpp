@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 namespace {
 
@@ -40,5 +40,4 @@ proxy_settings::proxy_settings(settings_pack const& sett)
 proxy_settings::proxy_settings(aux::session_settings const& sett)
 { init(*this, sett); }
 
-} // namespace aux
-} // namespace libtorrent
+} // namespace lt::aux

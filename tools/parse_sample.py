@@ -71,7 +71,7 @@ for line in f:
         fold = indentation
     if 'free_multiple_buffers' in fun:
         fold = indentation
-    if 'libtorrent::condition::wait' in fun:
+    if 'lt::condition::wait' in fun:
         fold = indentation
     if 'allocate_buffer' in fun:
         fold = indentation
@@ -95,13 +95,13 @@ for line in f:
         fold = indentation
     if '::check_invariant()' in fun:
         fold = indentation
-    if 'libtorrent::condition::wait' in fun:
+    if 'lt::condition::wait' in fun:
         fold = indentation
     if '_sigtramp' in fun:
         fold = indentation
     if 'time_now_hires' in fun:
         fold = indentation
-    if 'libtorrent::sleep' in fun:
+    if 'lt::sleep' in fun:
         fold = indentation
     if 'puts' == fun:
         fold = indentation

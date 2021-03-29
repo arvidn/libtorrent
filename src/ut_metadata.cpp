@@ -37,7 +37,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
 namespace {
 
 	enum
@@ -597,7 +597,7 @@ namespace {
 
 } }
 
-namespace libtorrent {
+namespace lt {
 
 	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, client_data_t)
 	{

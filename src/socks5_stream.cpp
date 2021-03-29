@@ -14,7 +14,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 	namespace socks_error
 	{

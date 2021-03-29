@@ -38,7 +38,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	namespace mi = boost::multi_index;
 

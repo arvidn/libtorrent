@@ -15,7 +15,7 @@ see LICENSE file.
 #include <algorithm>
 #include <array>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 	struct public_key
@@ -72,6 +72,6 @@ namespace dht {
 	};
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // LIBTORRENT_TYPES_HPP

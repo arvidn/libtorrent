@@ -104,7 +104,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 namespace {
 
 bool is_downloading_state(int const st)
@@ -6215,7 +6215,7 @@ namespace {
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url
-					, libtorrent::errors::peer_banned);
+					, lt::errors::peer_banned);
 			}
 			// never try it again
 			remove_web_seed_iter(web);
@@ -9937,8 +9937,8 @@ namespace {
 			, m_piece_time_deviation / 1000.f);
 		for (auto& i : queue)
 		{
-			extern void print_piece(libtorrent::partial_piece_info* pp
-				, std::vector<libtorrent::peer_info> const& peers
+			extern void print_piece(lt::partial_piece_info* pp
+				, std::vector<lt::peer_info> const& peers
 				, std::vector<time_critical_piece> const& time_critical);
 
 			print_piece(&i, peer_list, m_time_critical_pieces);
@@ -10274,8 +10274,8 @@ namespace {
 		return ret;
 	}
 
-	int peer_index(libtorrent::tcp::endpoint addr
-		, std::vector<libtorrent::peer_info> const& peers)
+	int peer_index(lt::tcp::endpoint addr
+		, std::vector<lt::peer_info> const& peers)
 	{
 		std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
 			, peers.end(), std::bind(&peer_info::ip, _1) == addr);
@@ -10284,8 +10284,8 @@ namespace {
 		return i - peers.begin();
 	}
 
-	void print_piece(libtorrent::partial_piece_info* pp
-		, std::vector<libtorrent::peer_info> const& peers
+	void print_piece(lt::partial_piece_info* pp
+		, std::vector<lt::peer_info> const& peers
 		, std::vector<time_critical_piece> const& time_critical)
 	{
 		time_point const now = clock_type::now();

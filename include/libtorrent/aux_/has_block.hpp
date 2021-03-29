@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/peer_connection.hpp" // for pending_block
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct has_block
 	{

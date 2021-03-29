@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace {
 

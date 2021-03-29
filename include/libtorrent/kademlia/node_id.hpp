@@ -17,10 +17,10 @@ see LICENSE file.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
-using node_id = libtorrent::sha1_hash;
+using node_id = lt::sha1_hash;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
@@ -49,6 +49,6 @@ TORRENT_EXTRA_EXPORT bool matching_prefix(node_id const& nid, int mask, int pref
 TORRENT_EXTRA_EXPORT node_id generate_prefix_mask(int bits);
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // NODE_ID_HPP

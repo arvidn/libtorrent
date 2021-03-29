@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	web_connection_base::web_connection_base(
 		peer_connection_args& pack

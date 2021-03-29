@@ -25,7 +25,7 @@ see LICENSE file.
 
 #endif // TORRENT_HAVE_MAP_VIEW_OF_FILE
 
-namespace libtorrent {
+namespace lt {
 
 // for now
 using byte = char;

@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT ip_change_notifier
 	{
@@ -31,6 +31,6 @@ namespace libtorrent { namespace aux {
 	};
 
 	TORRENT_EXTRA_EXPORT std::unique_ptr<ip_change_notifier> create_ip_notifier(io_context& ios);
-}}
+}
 
 #endif

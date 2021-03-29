@@ -13,7 +13,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	ip_filter::ip_filter() = default;
 	ip_filter::ip_filter(ip_filter const&) = default;

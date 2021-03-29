@@ -23,7 +23,7 @@ see LICENSE file.
 #include <vector>
 #include <functional>
 
-namespace libtorrent {
+namespace lt {
 
 // This is a dummy implementation of the disk_interface. It discards any data
 // written to it and when reading, it returns zeroes. It is primarily useful for

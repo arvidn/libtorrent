@@ -45,7 +45,7 @@ see LICENSE file.
 
 #include <cxxabi.h>
 
-namespace libtorrent {
+namespace lt {
 std::string demangle(char const* name)
 {
 // in case this string comes
@@ -89,7 +89,7 @@ std::string demangle(char const* name)
 #include "libtorrent/aux_/windows.hpp"
 #include <DbgHelp.h>
 
-namespace libtorrent {
+namespace lt {
 std::string demangle(char const* name)
 {
 	char demangled_name[256];
@@ -100,7 +100,7 @@ std::string demangle(char const* name)
 }
 
 #else
-namespace libtorrent {
+namespace lt {
 std::string demangle(char const* name) { return name; }
 }
 #endif
@@ -113,7 +113,7 @@ std::string demangle(char const* name) { return name; }
 #if TORRENT_USE_EXECINFO
 #include <execinfo.h>
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 {
@@ -141,7 +141,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 #include <WinBase.h>
 #include <DbgHelp.h>
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	, void* ctx)
@@ -251,7 +251,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 
 #else
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
@@ -274,7 +274,7 @@ std::atomic<int> assert_counter(0);
 }
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 

@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	using torrent_list_index_t = aux::strong_typedef<int, struct torrent_list_tag>;
 

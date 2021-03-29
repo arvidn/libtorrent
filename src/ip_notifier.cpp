@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 
@@ -64,7 +64,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		// Linux can generate ENOBUFS if the socket's buffers are full
 		// don't treat it as an error
 		error_code ec;
-		m_socket.set_option(libtorrent::no_enobufs(true), ec);
+		m_socket.set_option(lt::no_enobufs(true), ec);
 	}
 
 	// non-copyable

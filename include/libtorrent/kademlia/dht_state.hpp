@@ -22,12 +22,12 @@ see LICENSE file.
 #include <vector>
 #include <utility>
 
-namespace libtorrent {
+namespace lt {
 
 	struct bdecode_node;
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 	using node_ids_t = std::vector<std::pair<address, node_id>>;

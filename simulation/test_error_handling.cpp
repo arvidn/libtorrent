@@ -156,7 +156,7 @@ void* operator new(std::size_t sz)
 	if (--g_alloc_counter == 0)
 	{
 		char stack[10000];
-		libtorrent::print_backtrace(stack, sizeof(stack), 40, nullptr);
+		lt::print_backtrace(stack, sizeof(stack), 40, nullptr);
 #ifdef _MSC_VER
 		// this is a bit unfortunate. Some MSVC standard containers really don't move
 		// with noexcept, by actually allocating memory (i.e. it's not just a matter
@@ -166,9 +166,9 @@ void* operator new(std::size_t sz)
 		// aren't. Things will improve in C++17 and it doesn't seem worth the trouble
 		// to make the heterogeneous queue support throwing moves, nor to replace all
 		// standard types with variants that can move noexcept.
-		if (std::strstr(stack, " libtorrent::entry::operator= ") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_move_only<") != nullptr)
+		if (std::strstr(stack, " lt::entry::operator= ") != nullptr
+			|| std::strstr(stack, " lt::aux::noexcept_movable<") != nullptr
+			|| std::strstr(stack, " lt::aux::noexcept_move_only<") != nullptr)
 		{
 			++g_alloc_counter;
 			return std::malloc(sz);

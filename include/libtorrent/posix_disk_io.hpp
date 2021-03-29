@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 
 	struct counters;
 	struct disk_interface;

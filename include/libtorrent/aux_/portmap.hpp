@@ -19,8 +19,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	enum class portmap_action : std::uint8_t
 	{
@@ -77,6 +76,6 @@ namespace aux {
 		}
 		return "";
 	}
-}}
+}
 
 #endif // LIBTORRENT_AUX_PORTMAP_HPP_INCLUDED

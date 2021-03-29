@@ -22,7 +22,7 @@ see LICENSE file.
 #include <libtorrent/socket.hpp> // for udp
 #include <libtorrent/kademlia/node_id.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct dht_observer;
@@ -30,7 +30,7 @@ struct observer;
 struct msg;
 struct traversal_algorithm;
 
-using observer_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, struct observer_flags_tag>;
+using observer_flags_t = lt::flags::bitfield_flag<std::uint8_t, struct observer_flags_tag>;
 
 struct TORRENT_EXTRA_EXPORT observer
 	: std::enable_shared_from_this<observer>

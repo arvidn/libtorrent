@@ -18,7 +18,7 @@ see LICENSE file.
 #include <iomanip>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_USE_IOSTREAM
 

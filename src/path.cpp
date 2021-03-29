@@ -95,7 +95,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	int bufs_size(span<iovec_t const> bufs)
 	{

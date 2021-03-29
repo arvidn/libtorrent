@@ -73,7 +73,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 namespace {
 	// the limits of the download queue size
 	constexpr int min_request_queue = 2;

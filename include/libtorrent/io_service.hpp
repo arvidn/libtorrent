@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #error warning "this header is deprecated, use io_context.hpp instead"
-namespace libtorrent {
+namespace lt {
 
 	using io_service = boost::asio::io_context;
 }

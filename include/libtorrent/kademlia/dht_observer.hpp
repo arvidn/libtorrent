@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/msg.hpp"
 #include "libtorrent/aux_/session_udp_sockets.hpp" // for transport
 
-namespace libtorrent {
+namespace lt {
 
 struct entry;
 

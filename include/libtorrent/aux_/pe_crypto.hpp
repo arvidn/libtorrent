@@ -31,7 +31,7 @@ see LICENSE file.
 #include <array>
 #include <cstdint>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	namespace mp = boost::multiprecision;
 
@@ -133,7 +133,7 @@ namespace libtorrent::aux {
 		bool m_decrypt;
 	};
 
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 #endif // TORRENT_DISABLE_ENCRYPTION
 

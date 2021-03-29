@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include <string>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(address const& addr, int port);
@@ -97,7 +97,7 @@ namespace libtorrent::aux {
 	}
 
 	template <class EndpointType>
-	std::vector<EndpointType> read_endpoint_list(libtorrent::bdecode_node const& n)
+	std::vector<EndpointType> read_endpoint_list(lt::bdecode_node const& n)
 	{
 		std::vector<EndpointType> ret;
 		if (n.type() != bdecode_node::list_t) return ret;

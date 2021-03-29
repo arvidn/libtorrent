@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	enum
 	{

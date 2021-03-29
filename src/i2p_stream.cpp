@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct i2p_error_category final : boost::system::error_category
 	{

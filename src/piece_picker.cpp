@@ -46,7 +46,7 @@ using namespace std::placeholders;
 #if defined TORRENT_PICKER_LOG
 #include <iostream>
 
-namespace libtorrent {
+namespace lt {
 	void print_pieces(piece_picker const& p)
 	{
 		int limit = 20;
@@ -85,7 +85,7 @@ namespace libtorrent {
 }
 #endif // TORRENT_PICKER_LOG
 
-namespace libtorrent {
+namespace lt {
 
 	// TODO: find a better place for this
 	const piece_block piece_block::invalid(
@@ -93,7 +93,7 @@ namespace libtorrent {
 		, std::numeric_limits<int>::max());
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// the max number of blocks to create an affinity for
 	constexpr int max_piece_affinity_extent = 4 * 1024 * 1024 / default_block_size;

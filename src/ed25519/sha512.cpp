@@ -31,8 +31,7 @@ using i32 = std::int32_t;
 #define UINT64_C(x) x ## LL
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 /* the K array */
 static const u64 K[80] = {
@@ -285,7 +284,6 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 
     return 0;
 }
-} // aux namespace
-} // libtorrent namespace
+} // lt::aux namespace
 
 #endif

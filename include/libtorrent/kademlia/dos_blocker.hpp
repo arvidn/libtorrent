@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 	struct dht_logger;

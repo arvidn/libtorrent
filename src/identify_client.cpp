@@ -27,7 +27,7 @@ see LICENSE file.
 
 namespace {
 
-	using namespace libtorrent;
+	using namespace lt;
 
 	int decode_digit(std::uint8_t c)
 	{
@@ -331,7 +331,7 @@ namespace {
 
 } // anonymous namespace
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 

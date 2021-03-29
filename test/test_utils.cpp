@@ -19,31 +19,28 @@ see LICENSE file.
 #include <fcntl.h> // for _O_WRONLY
 #endif
 
-namespace libtorrent
-{
-	std::string time_now_string()
-	{
-		return time_to_string(clock_type::now());
-	}
+using namespace lt;
 
-	std::string time_to_string(time_point const tp)
-	{
-		static const time_point start = clock_type::now();
-		char ret[200];
-		int t = int(total_milliseconds(tp - start));
-		int h = t / 1000 / 60 / 60;
-		t -= h * 60 * 60 * 1000;
-		int m = t / 1000 / 60;
-		t -= m * 60 * 1000;
-		int s = t / 1000;
-		t -= s * 1000;
-		int ms = t;
-		std::snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
-		return ret;
-	}
+std::string time_now_string()
+{
+	return time_to_string(clock_type::now());
 }
 
-using namespace lt;
+std::string time_to_string(time_point const tp)
+{
+	static const time_point start = lt::clock_type::now();
+	char ret[200];
+	int t = int(total_milliseconds(tp - start));
+	int h = t / 1000 / 60 / 60;
+	t -= h * 60 * 60 * 1000;
+	int m = t / 1000 / 60;
+	t -= m * 60 * 1000;
+	int s = t / 1000;
+	t -= s * 1000;
+	int ms = t;
+	std::snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
+	return ret;
+}
 
 aux::vector<sha256_hash> build_tree(int const size)
 {

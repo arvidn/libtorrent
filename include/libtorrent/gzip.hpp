@@ -16,7 +16,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
 		span<char const> in
@@ -95,17 +95,17 @@ namespace gzip_errors {
 	TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 } // namespace gzip_errors
 
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost {
 namespace system {
 
 template<>
-struct is_error_code_enum<libtorrent::gzip_errors::error_code_enum>
+struct is_error_code_enum<lt::gzip_errors::error_code_enum>
 { static const bool value = true; };
 
 template<>
-struct is_error_condition_enum<libtorrent::gzip_errors::error_code_enum>
+struct is_error_condition_enum<lt::gzip_errors::error_code_enum>
 { static const bool value = true; };
 
 }

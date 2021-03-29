@@ -47,7 +47,7 @@ see LICENSE file.
 #include "libtorrent/client_data.hpp"
 #include "libtorrent/address.hpp" // for address_v4 and address_v6
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 	struct torrent;
 	struct session_impl;
@@ -231,10 +231,10 @@ namespace aux {
 
 #if TORRENT_ABI_VERSION == 1
 		using flags_t = add_piece_flags_t;
-		using status_flags_t = libtorrent::status_flags_t;
-		using pause_flags_t = libtorrent::pause_flags_t;
-		using save_resume_flags_t = libtorrent::resume_data_flags_t;
-		using reannounce_flags_t = libtorrent::reannounce_flags_t;
+		using status_flags_t = lt::status_flags_t;
+		using pause_flags_t = lt::pause_flags_t;
+		using save_resume_flags_t = lt::resume_data_flags_t;
+		using reannounce_flags_t = lt::reannounce_flags_t;
 #endif
 
 		// instruct libtorrent to overwrite any data that may already have been
@@ -416,7 +416,7 @@ namespace aux {
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
-		using file_progress_flags_t = libtorrent::file_progress_flags_t;
+		using file_progress_flags_t = lt::file_progress_flags_t;
 #endif
 		// only calculate file progress at piece granularity. This makes
 		// the file_progress() call cheaper and also only takes bytes that
@@ -1328,11 +1328,11 @@ namespace aux {
 
 namespace std {
 	template <>
-	struct hash<libtorrent::torrent_handle>
+	struct hash<lt::torrent_handle>
 	{
-		std::size_t operator()(libtorrent::torrent_handle const& th) const
+		std::size_t operator()(lt::torrent_handle const& th) const
 		{
-			return libtorrent::hash_value(th);
+			return lt::hash_value(th);
 		}
 	};
 }

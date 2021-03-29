@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace {
 

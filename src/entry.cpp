@@ -19,8 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent {
-
+namespace lt {
 namespace aux {
 
 	string_view integer_to_str(std::array<char, 21>& buf, entry::integer_type val)

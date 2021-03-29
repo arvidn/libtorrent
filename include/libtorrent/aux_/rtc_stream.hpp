@@ -41,8 +41,7 @@ namespace rtc {
 	class DataChannel;
 }
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT rtc_stream_init
 {
@@ -362,7 +361,6 @@ private:
 
 TORRENT_EXTRA_EXPORT rtc_stream::endpoint_type rtc_parse_endpoint(std::string const& addr, error_code& ec);
 
-}
 }
 
 #endif // TORRENT_USE_RTC

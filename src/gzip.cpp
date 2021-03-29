@@ -31,7 +31,7 @@ namespace {
 
 }
 
-namespace libtorrent {
+namespace lt {
 
 	struct gzip_error_category final : boost::system::error_category
 	{

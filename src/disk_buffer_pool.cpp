@@ -29,10 +29,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
-	namespace {
+namespace {
 
 	// this is posted to the network thread
 	void watermark_callback(std::vector<std::weak_ptr<disk_observer>> const& cbs)
@@ -44,7 +43,7 @@ namespace aux {
 		}
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	disk_buffer_pool::disk_buffer_pool(io_context& ios)
 		: m_in_use(0)
@@ -207,6 +206,4 @@ namespace aux {
 
 		--m_in_use;
 	}
-
-}
 }

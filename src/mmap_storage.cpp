@@ -47,7 +47,7 @@ see LICENSE file.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
@@ -884,6 +884,6 @@ namespace libtorrent::aux {
 
 		return false;
 	}
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 #endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE

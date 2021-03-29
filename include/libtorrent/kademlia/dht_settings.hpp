@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/entry.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 #if TORRENT_ABI_VERSION <= 2

@@ -133,7 +133,7 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 

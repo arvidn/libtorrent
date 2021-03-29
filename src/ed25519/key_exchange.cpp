@@ -4,14 +4,13 @@
 #include "libtorrent/aux_/ed25519.hpp"
 #include "fe.h"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 void ed25519_key_exchange(unsigned char *shared_secret
-	, const unsigned char *public_key, const unsigned char *private_key) {
+    , const unsigned char *public_key, const unsigned char *private_key) {
     unsigned char e[32];
     unsigned int i;
-    
+
     fe x1;
     fe x2;
     fe z2;
@@ -84,5 +83,4 @@ void ed25519_key_exchange(unsigned char *shared_secret
     fe_mul(x2, x2, z2);
     fe_tobytes(shared_secret, x2);
 }
-
-} }
+}

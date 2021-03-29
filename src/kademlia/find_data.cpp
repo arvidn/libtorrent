@@ -22,7 +22,7 @@ see LICENSE file.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 void find_data_observer::reply(msg const& m)
 {
@@ -171,4 +171,4 @@ void find_data::done()
 	traversal_algorithm::done();
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

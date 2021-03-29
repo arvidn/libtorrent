@@ -25,7 +25,7 @@ see LICENSE file.
 #define BOOST_SYSTEM_NOEXCEPT throw()
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 	using aux::bdecode_token;
 

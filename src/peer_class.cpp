@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	void peer_class::set_upload_limit(int limit)
 	{

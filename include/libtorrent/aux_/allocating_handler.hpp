@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/debug.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #ifdef BOOST_ASIO_ENABLE_HANDLER_TRACKING
 	constexpr std::size_t tracking = 8;

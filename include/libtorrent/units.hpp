@@ -21,7 +21,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 	template <typename Tag>
 	struct difference_tag;
@@ -117,7 +117,7 @@ namespace aux {
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
 	{ return --v;}
 
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 	// this type represents a piece index in a torrent.
 	using piece_index_t = aux::strong_typedef<std::int32_t, aux::piece_index_tag>;
@@ -127,14 +127,14 @@ namespace aux {
 	// always refers to the same file.
 	using file_index_t = aux::strong_typedef<std::int32_t, aux::file_index_tag>;
 
-} // namespace libtorrent
+} // namespace lt
 
 namespace std {
 
 	template<typename UnderlyingType, typename Tag>
-	class numeric_limits<libtorrent::aux::strong_typedef<UnderlyingType, Tag>> : public std::numeric_limits<UnderlyingType>
+	class numeric_limits<lt::aux::strong_typedef<UnderlyingType, Tag>> : public std::numeric_limits<UnderlyingType>
 	{
-		using type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
+		using type = lt::aux::strong_typedef<UnderlyingType, Tag>;
 	public:
 
 		static constexpr type (min)()
@@ -145,11 +145,11 @@ namespace std {
 	};
 
 	template<typename UnderlyingType, typename Tag>
-	struct hash<libtorrent::aux::strong_typedef<UnderlyingType, Tag>> : std::hash<UnderlyingType>
+	struct hash<lt::aux::strong_typedef<UnderlyingType, Tag>> : std::hash<UnderlyingType>
 	{
 		using base = std::hash<UnderlyingType>;
 		using result_type = std::size_t;
-		result_type operator()(libtorrent::aux::strong_typedef<UnderlyingType, Tag> const& s) const
+		result_type operator()(lt::aux::strong_typedef<UnderlyingType, Tag> const& s) const
 		{ return this->base::operator()(static_cast<UnderlyingType>(s)); }
 	};
 }

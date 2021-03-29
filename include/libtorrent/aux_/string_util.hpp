@@ -24,7 +24,7 @@ see LICENSE file.
 #include <limits>
 #include <array> // for std::array
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 

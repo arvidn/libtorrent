@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_observer.hpp" // for dht_logger
 #endif
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 	dos_blocker::dos_blocker()
 		: m_message_rate_limit(5)

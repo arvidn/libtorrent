@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	enum class portmap_transport : std::uint8_t
 	{

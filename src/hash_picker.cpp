@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent::aux
+namespace lt::aux
 {
 	namespace
 	{

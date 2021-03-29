@@ -17,12 +17,12 @@ see LICENSE file.
 #include <atomic>
 #include <mutex>
 
-namespace libtorrent {
+namespace lt {
 
 struct counters;
 }
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct disk_io_job;
 

@@ -24,7 +24,7 @@ see LICENSE file.
 #include <memory> // for unique_ptr
 #include <vector>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// internal: some MTU and protocol header sizes constants
 	constexpr int TORRENT_IPV4_HEADER = 20;

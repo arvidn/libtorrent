@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection

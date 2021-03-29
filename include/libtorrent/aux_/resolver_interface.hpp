@@ -19,8 +19,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 // hidden
 using resolver_flags = flags::bitfield_flag<std::uint8_t, struct resolver_flag_tag>;
@@ -50,7 +49,6 @@ protected:
 	~resolver_interface() {}
 };
 
-}
 }
 
 #endif

@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include <type_traits>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	template <typename T, typename IndexType, typename Base>
 	struct container_wrapper : Base
@@ -103,7 +103,7 @@ namespace libtorrent { namespace aux {
 			this->Base::reserve(s);
 		}
 	};
-}}
+}
 
 #endif
 

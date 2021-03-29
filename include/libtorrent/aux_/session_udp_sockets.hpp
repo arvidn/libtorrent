@@ -18,7 +18,7 @@ see LICENSE file.
 #include <boost/asio/io_context.hpp>
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 
 	struct alert_manager;
 

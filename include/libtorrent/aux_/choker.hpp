@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp" // for time_duration
 #include <vector>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct session_settings;
 	struct peer_connection;

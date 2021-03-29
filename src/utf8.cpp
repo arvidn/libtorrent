@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 	// return the number of bytes in the UTF-8 sequence starting with this

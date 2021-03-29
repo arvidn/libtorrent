@@ -15,7 +15,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/get_peers.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 class bootstrap : public get_peers
@@ -39,6 +39,6 @@ protected:
 };
 
 } // namesapce dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // REFRESH_050324_HPP

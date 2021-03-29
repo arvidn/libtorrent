@@ -11,8 +11,7 @@ see LICENSE file.
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
@@ -99,5 +98,4 @@ namespace aux {
 #endif
 	}
 
-} // namespace aux
-}
+} // namespace lt::aux

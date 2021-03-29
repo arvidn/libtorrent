@@ -19,8 +19,7 @@ see LICENSE file.
 #include <cstddef>
 #include <memory> // for unique_ptr
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct packet;
 
@@ -92,8 +91,6 @@ namespace aux {
 		index_type m_first{0};
 		index_type m_last{0};
 	};
-
-}
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED

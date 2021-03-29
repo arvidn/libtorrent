@@ -23,7 +23,7 @@ see LICENSE file.
 
 #include <set>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	int copy_bufs(span<iovec_t const> bufs, int bytes
 		, span<iovec_t> target)
@@ -67,7 +67,7 @@ namespace libtorrent { namespace aux {
 	}
 
 #if TORRENT_USE_ASSERTS
-	namespace {
+namespace {
 
 	int count_bufs(span<iovec_t const> bufs, int bytes)
 	{
@@ -82,8 +82,7 @@ namespace libtorrent { namespace aux {
 		}
 		return count;
 	}
-
-	}
+}
 #endif
 
 	// much of what needs to be done when reading and writing is buffer
@@ -375,7 +374,7 @@ namespace libtorrent { namespace aux {
 		return { ret, new_save_path };
 	}
 
-	namespace {
+namespace {
 
 	void delete_one_file(std::string const& p, error_code& ec)
 	{
@@ -385,7 +384,7 @@ namespace libtorrent { namespace aux {
 			ec.clear();
 	}
 
-	}
+}
 
 	void delete_files(file_storage const& fs, std::string const& save_path
 		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec)
@@ -651,5 +650,4 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		}
 		return ret;
 	}
-
-}}
+}

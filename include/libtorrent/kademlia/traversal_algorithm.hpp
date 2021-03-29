@@ -26,14 +26,14 @@ see LICENSE file.
 #include <libtorrent/flags.hpp>
 #include <libtorrent/bdecode.hpp>
 
-namespace libtorrent {
+namespace lt {
 
 namespace dht {
 
 class node;
 struct node_endpoint;
 
-using traversal_flags_t = libtorrent::flags::bitfield_flag<std::uint8_t, struct traversal_flags_tag>;
+using traversal_flags_t = lt::flags::bitfield_flag<std::uint8_t, struct traversal_flags_tag>;
 
 // this class may not be instantiated as a stack object
 struct TORRENT_EXTRA_EXPORT traversal_algorithm
@@ -148,6 +148,6 @@ struct traversal_observer : observer
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TRAVERSAL_ALGORITHM_050324_HPP

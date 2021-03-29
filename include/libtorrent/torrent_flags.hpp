@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 using torrent_flags_t = flags::bitfield_flag<std::uint64_t, struct torrent_flags_tag>;
 

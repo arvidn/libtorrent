@@ -26,8 +26,7 @@ see LICENSE file.
 #include <cstdint>
 #include <vector>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct torrent;
 
@@ -186,8 +185,6 @@ namespace aux {
 		// internal
 		announce_endpoint* find_endpoint(aux::listen_socket_handle const& s);
 	};
-
-}
 }
 
 #endif

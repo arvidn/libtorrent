@@ -20,14 +20,14 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
 '''
 
 file_footer = '''
 
 }
 
-namespace lt = libtorrent;
+namespace libtorrent = lt;
 
 #endif // TORRENT_FWD_HPP
 '''

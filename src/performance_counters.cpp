@@ -12,7 +12,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include <cstring> // for memset
 
-namespace libtorrent {
+namespace lt {
 
 	// TODO: move stats_counter_t out of counters
 	// TODO: should bittorrent keep-alive messages have a counter too?

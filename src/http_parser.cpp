@@ -25,7 +25,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp" // for seconds32
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	bool is_ok_status(int http_status)
 	{

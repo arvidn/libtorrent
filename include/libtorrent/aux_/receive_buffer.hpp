@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include <climits>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 struct TORRENT_EXTRA_EXPORT receive_buffer
 {
@@ -200,6 +200,6 @@ private:
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
 
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED

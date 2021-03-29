@@ -12,8 +12,7 @@ see LICENSE file.
 #include <type_traits>
 #include <utility>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	// this is a silly wrapper for address and endpoint to make their move
 	// constructors be noexcept (because boost.asio is incorrectly making them
@@ -48,8 +47,6 @@ namespace aux {
 		noexcept_move_only& operator=(noexcept_move_only&& rhs) = default;
 		using T::T;
 	};
-
-}
 }
 
 #endif

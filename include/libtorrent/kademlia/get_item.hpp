@@ -18,7 +18,7 @@ see LICENSE file.
 
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 class get_item : public find_data
@@ -70,6 +70,6 @@ public:
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // LIBTORRENT_GET_ITEM_HPP

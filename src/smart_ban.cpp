@@ -37,12 +37,11 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux { struct torrent; }
 
 namespace {
-
 
 	struct smart_ban_plugin final
 		: torrent_plugin
@@ -294,7 +293,7 @@ namespace {
 
 } }
 
-namespace libtorrent {
+namespace lt {
 
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{

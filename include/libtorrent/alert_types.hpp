@@ -61,7 +61,7 @@ see LICENSE file.
 #endif
 
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 	TORRENT_DEPRECATED_EXPORT char const* operation_name(int op);
@@ -2943,6 +2943,6 @@ TORRENT_VERSION_NAMESPACE_3_END
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef PROGRESS_NOTIFICATION
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif

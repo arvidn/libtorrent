@@ -25,7 +25,7 @@ changelog at the end of the file.
 #include <boost/predef/other/endian.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace {
 
@@ -241,7 +241,7 @@ void SHA1_final(u8* digest, sha1_ctx* context)
 	}
 }
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif
 

@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/io_context.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 

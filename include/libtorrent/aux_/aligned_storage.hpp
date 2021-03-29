@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include <type_traits>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 #if defined __GNUC__ && __GNUC__ < 5 && !defined(_LIBCPP_VERSION)
 
@@ -33,6 +33,6 @@ using std::aligned_storage;
 
 #endif
 
-}}
+}
 
 #endif

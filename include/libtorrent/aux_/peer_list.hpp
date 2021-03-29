@@ -35,7 +35,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/pex_flags.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct torrent_peer_allocator_interface;
 

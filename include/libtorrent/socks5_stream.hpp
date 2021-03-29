@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp" // for to_string
 #include "libtorrent/aux_/socket_io.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 namespace socks_error {
 
@@ -53,13 +53,13 @@ namespace socks_error {
 namespace boost {
 namespace system {
 
-	template<> struct is_error_code_enum<libtorrent::socks_error::socks_error_code>
+	template<> struct is_error_code_enum<lt::socks_error::socks_error_code>
 	{ static const bool value = true; };
 
 }
 }
 
-namespace libtorrent {
+namespace lt {
 
 // returns the error_category for SOCKS5 errors
 TORRENT_EXPORT boost::system::error_category& socks_category();
@@ -185,7 +185,7 @@ private:
 		COMPLETE_ASYNC("socks5_stream::connected");
 		if (handle_error(e, std::move(h))) return;
 
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 		if (m_version == 5)
 		{
 			// send SOCKS5 authentication methods
@@ -239,7 +239,7 @@ private:
 		COMPLETE_ASYNC("socks5_stream::handshake2");
 		if (handle_error(e, std::move(h))) return;
 
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 
 		char* p = &m_buffer[0];
 		int version = read_uint8(p);
@@ -307,7 +307,7 @@ private:
 		COMPLETE_ASYNC("socks5_stream::handshake4");
 		if (handle_error(e, std::move(h))) return;
 
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 
 		char* p = &m_buffer[0];
 		int version = read_uint8(p);
@@ -332,7 +332,7 @@ private:
 	template <typename Handler>
 	void socks_connect(Handler h)
 	{
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 
 		if (m_version == 5)
 		{
@@ -417,7 +417,7 @@ private:
 		COMPLETE_ASYNC("socks5_stream::connect2");
 		if (handle_error(e, std::move(h))) return;
 
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 
 		char const* p = &m_buffer[0];
 		int const version = read_uint8(p);
@@ -512,7 +512,7 @@ private:
 	void connect3(error_code const& e, Handler h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect3");
-		using namespace libtorrent::aux;
+		using namespace lt::aux;
 
 		if (handle_error(e, std::move(h))) return;
 

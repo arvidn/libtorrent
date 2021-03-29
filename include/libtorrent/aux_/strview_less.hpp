@@ -12,8 +12,7 @@ see LICENSE file.
 
 #include <type_traits>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 	// this enables us to compare a string_view against the std::string that's
 	// held by the std::map
 	struct strview_less
@@ -23,7 +22,6 @@ namespace aux {
 		bool operator()(T1 const& rhs, T2 const& lhs) const
 		{ return rhs < lhs; }
 	};
-}
 }
 
 #endif

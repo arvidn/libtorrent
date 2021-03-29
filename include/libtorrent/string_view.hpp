@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include <string_view>
 
-namespace libtorrent {
+namespace lt {
 
 using std::string_view;
 using std::wstring_view;

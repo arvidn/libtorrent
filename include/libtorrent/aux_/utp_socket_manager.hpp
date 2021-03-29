@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/packet_pool.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct counters;
 

@@ -13,7 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	struct TORRENT_EXPORT disk_observer
 	{

@@ -22,7 +22,7 @@ see LICENSE file.
 #include <mutex>
 #include <atomic>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct disk_io_thread_pool;
 
@@ -120,6 +120,6 @@ namespace libtorrent::aux {
 
 		io_context& m_ioc;
 	};
-} // namespace libtorrent::aux
+} // namespace lt::aux
 
 #endif

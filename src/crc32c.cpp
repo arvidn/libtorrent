@@ -26,7 +26,7 @@ see LICENSE file.
 #include <arm_acle.h>
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{

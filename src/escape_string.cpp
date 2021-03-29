@@ -32,13 +32,13 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// defined in hex.cpp
-	namespace aux {
+namespace aux {
 
-		extern const char hex_chars[];
-	}
+	extern const char hex_chars[];
+}
 
 	std::string unescape_string(string_view s, error_code& ec)
 	{
@@ -110,7 +110,7 @@ namespace libtorrent {
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
 
-	namespace {
+namespace {
 
 	// the offset is used to ignore the first characters in the unreserved_chars table.
 	std::string escape_string_impl(const char* str, int const len, int const offset)
@@ -138,7 +138,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	std::string escape_string(string_view str)
 	{

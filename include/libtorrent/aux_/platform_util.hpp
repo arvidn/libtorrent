@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	TORRENT_EXTRA_EXPORT int max_open_files();
 

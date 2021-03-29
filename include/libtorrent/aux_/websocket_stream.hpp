@@ -44,11 +44,11 @@ namespace beast {
 namespace websocket {
 
 // We need to provide an overload of teardown and async_teardown
-// to use beast::websocket::stream with libtorrent::ssl::stream
+// to use beast::websocket::stream with lt::ssl::stream
 
 template<class Stream>
 void teardown(role_type
-	, libtorrent::aux::ssl::stream<Stream>& stream
+	, lt::aux::ssl::stream<Stream>& stream
 	, error_code& ec)
 {
     stream.shutdown(ec);
@@ -56,7 +56,7 @@ void teardown(role_type
 
 template<class Stream, class Handler>
 void async_teardown(role_type
-	, libtorrent::aux::ssl::stream<Stream>& stream
+	, lt::aux::ssl::stream<Stream>& stream
 	, Handler&& handler)
 {
     stream.async_shutdown(std::forward<Handler>(handler));
@@ -66,7 +66,7 @@ void async_teardown(role_type
 } // beast
 } // boost
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 namespace websocket = boost::beast::websocket;
 

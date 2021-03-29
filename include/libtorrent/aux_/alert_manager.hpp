@@ -32,8 +32,7 @@ see LICENSE file.
 #include <list>
 #endif
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT alert_manager
 	{
@@ -151,7 +150,6 @@ namespace aux {
 		std::list<std::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
-}
 }
 
 #endif

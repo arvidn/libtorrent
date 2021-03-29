@@ -22,7 +22,7 @@ see LICENSE file.
 #include <unistd.h> // for symlink()
 #endif
 
-using namespace libtorrent::flags; // for flag operators
+using namespace lt::flags; // for flag operators
 
 #ifndef TORRENT_WINDOWS
 // make sure the _FILE_OFFSET_BITS define worked
@@ -34,7 +34,7 @@ static_assert(sizeof(ftello(nullptr)) >= 8, "64 bit file operations are required
 static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 #endif
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 
 	posix_storage::posix_storage(storage_params const& p)

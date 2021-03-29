@@ -28,7 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	using slot_index_t = aux::strong_typedef<int, struct slot_index_tag_t>;
 

@@ -13,8 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
@@ -22,7 +21,6 @@ namespace aux {
 		virtual bool is_disconnecting() const = 0;
 		virtual ~bandwidth_socket() {}
 	};
-}
 }
 
 #endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED

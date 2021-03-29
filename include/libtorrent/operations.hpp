@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include <cstdint>
 
-namespace libtorrent {
+namespace lt {
 
 	// these constants are used to identify the operation that failed, causing a
 	// peer to disconnect

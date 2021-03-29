@@ -109,7 +109,7 @@ struct iovec
 #define INVALID_HANDLE_VALUE (-1)
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #ifdef TORRENT_WINDOWS
 namespace {

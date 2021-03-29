@@ -55,7 +55,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 namespace {

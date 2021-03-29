@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// returns protocol, auth, hostname, port, path
 	std::tuple<std::string, std::string, std::string, int, std::string>

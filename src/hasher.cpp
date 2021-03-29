@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_CRYPTO_NAMESPACE
 

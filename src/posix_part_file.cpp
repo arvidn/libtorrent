@@ -59,8 +59,7 @@ namespace {
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	posix_part_file::posix_part_file(std::string path, std::string name
 		, int const num_pieces, int const piece_size)
@@ -88,7 +87,6 @@ namespace aux {
 
 		// we don't have a full header. consider the file empty
 		if (n < std::size_t(m_header_size)) return;
-		using namespace libtorrent::aux;
 
 		char* ptr = header.data();
 		// we have a header. Parse it
@@ -430,8 +428,6 @@ namespace aux {
 
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
 
-		using namespace libtorrent::aux;
-
 		char* ptr = header.data();
 		write_uint32(m_max_pieces, ptr);
 		write_uint32(m_piece_size, ptr);
@@ -453,5 +449,4 @@ namespace aux {
 		}
 		m_dirty_metadata = false;
 	}
-}
 }

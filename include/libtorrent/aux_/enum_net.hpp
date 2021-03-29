@@ -34,7 +34,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// internal
 using interface_flags = flags::bitfield_flag<std::uint32_t, struct interface_flags_tag>;

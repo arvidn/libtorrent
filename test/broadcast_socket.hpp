@@ -26,7 +26,7 @@ see LICENSE file.
 #include <list>
 #include <array>
 
-namespace libtorrent {
+namespace lt {
 
 	using receive_handler_t = std::function<void(udp::endpoint const& from
 		, span<char const> buffer)>;

@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include <cstdint>
 
-namespace libtorrent {
+namespace lt {
 
 // A type describing kinds of sockets involved in various operations or events.
 enum class socket_type_t : std::uint8_t {

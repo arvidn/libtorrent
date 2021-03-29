@@ -40,7 +40,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct pcp_error_category final : boost::system::error_category
 {
@@ -215,7 +215,7 @@ void natpmp::start(aux::ip_interface const& ip)
 void natpmp::send_get_ip_address_request()
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::aux;
+	using namespace lt::aux;
 
 	// this opcode only exists in NAT-PMP
 	// PCP routers report the external IP in the response to a MAP operation
@@ -420,7 +420,7 @@ void natpmp::update_mapping(port_mapping_t const i)
 void natpmp::send_map_request(port_mapping_t const i)
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::aux;
+	using namespace lt::aux;
 
 	TORRENT_ASSERT(m_currently_mapping == port_mapping_t{-1}
 		|| m_currently_mapping == i);
@@ -584,7 +584,7 @@ void natpmp::on_reply(error_code const& e
 
 	COMPLETE_ASYNC("natpmp::on_reply");
 
-	using namespace libtorrent::aux;
+	using namespace lt::aux;
 	if (e)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -903,4 +903,4 @@ void natpmp::close_impl()
 	update_mapping(port_mapping_t{});
 }
 
-} // namespace libtorrent
+} // namespace lt

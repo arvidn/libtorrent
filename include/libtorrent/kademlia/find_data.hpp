@@ -20,7 +20,7 @@ see LICENSE file.
 #include <vector>
 #include <map>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 class node;
@@ -63,6 +63,6 @@ struct find_data_observer : traversal_observer
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // FIND_DATA_050323_HPP

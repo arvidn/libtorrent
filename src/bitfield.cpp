@@ -17,7 +17,7 @@ see LICENSE file.
 #include <intrin.h>
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 	bool bitfield::all_set() const noexcept
 	{

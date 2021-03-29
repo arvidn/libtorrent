@@ -24,7 +24,7 @@ see LICENSE file.
 #include <array>
 #include <memory>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct alert_manager;
 	struct socks5;

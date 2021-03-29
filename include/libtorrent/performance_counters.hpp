@@ -19,7 +19,7 @@ see LICENSE file.
 #include <atomic>
 #include <mutex>
 
-namespace libtorrent {
+namespace lt {
 
 	struct TORRENT_EXPORT counters
 	{

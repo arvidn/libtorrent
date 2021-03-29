@@ -12,7 +12,7 @@ see LICENSE file.
 #include <libtorrent/aux_/random.hpp>
 #include <libtorrent/aux_/ed25519.hpp>
 
-namespace libtorrent { namespace dht {
+namespace lt { namespace dht {
 
 	std::array<char, 32> ed25519_create_seed()
 	{

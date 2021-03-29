@@ -27,7 +27,7 @@ see LICENSE file.
 #include <cstdio> // for snprintf
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_VERSION_NAMESPACE_3
 	struct plugin;

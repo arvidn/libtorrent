@@ -14,7 +14,7 @@ see LICENSE file.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// this represents an object that can have many peer classes applied
 	// to it. Most notably, peer connections and torrents derive from this.

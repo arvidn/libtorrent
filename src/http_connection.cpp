@@ -39,7 +39,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 http_connection::http_connection(io_context& ios
 	, aux::resolver_interface& resolver

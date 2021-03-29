@@ -26,7 +26,7 @@ see LICENSE file.
 #include <boost/asio/basic_raw_socket.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	template <typename Protocol>
 	struct basic_nl_endpoint

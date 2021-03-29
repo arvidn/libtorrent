@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/socket_io.hpp"
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	std::map<address, udp_tracker_connection::connection_cache_entry>
 		udp_tracker_connection::m_connection_cache;

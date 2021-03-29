@@ -9,7 +9,7 @@ see LICENSE file.
 
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	peer_info::peer_info() = default;
 	peer_info::~peer_info() = default;

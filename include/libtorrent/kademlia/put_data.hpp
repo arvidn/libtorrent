@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct msg;
@@ -65,6 +65,6 @@ struct put_data_observer : traversal_observer
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_PUT_DATA_HPP

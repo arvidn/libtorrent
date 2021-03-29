@@ -21,7 +21,7 @@ see LICENSE file.
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct allocation_slot
 	{

@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 
 	enum class metric_type_t
 	{

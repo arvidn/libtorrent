@@ -24,7 +24,7 @@ see LICENSE file.
 #include <bcrypt.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	inline void throw_ntstatus_error(char const* name, NTSTATUS status) {
 		throw_ex<std::system_error>(status, system_category(), name);
@@ -177,8 +177,7 @@ namespace libtorrent { namespace aux {
 		static constexpr LPCWSTR name = BCRYPT_SHA512_ALGORITHM;
 	};
 
-} // namespace aux
-} // namespace libtorrent
+} // namespace lt::aux
 
 #endif // TORRENT_USE_CNG
 

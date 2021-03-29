@@ -15,7 +15,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 	struct node_endpoint
 	{

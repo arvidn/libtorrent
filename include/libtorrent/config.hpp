@@ -587,9 +587,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent {}
+namespace lt {}
 
 // create alias
-namespace lt = libtorrent;
+namespace libtorrent = lt;
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

@@ -45,7 +45,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 using namespace aux;
 

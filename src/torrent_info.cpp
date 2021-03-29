@@ -48,7 +48,7 @@ see LICENSE file.
 #include <ctime>
 #include <array>
 
-namespace libtorrent {
+namespace lt {
 
 	TORRENT_EXPORT from_span_t from_span;
 

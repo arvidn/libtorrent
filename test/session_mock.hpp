@@ -29,7 +29,7 @@ see LICENSE file.
 
 #include <cstdio>
 
-namespace libtorrent {
+namespace lt {
 
 struct session_mock : aux::session_interface
 {

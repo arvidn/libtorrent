@@ -21,8 +21,7 @@ see LICENSE file.
 #include <vector>
 #include <unordered_map>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 template <typename T>
 struct torrent_list
@@ -160,7 +159,6 @@ private:
 #endif
 };
 
-}
 }
 
 #endif

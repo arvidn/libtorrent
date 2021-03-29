@@ -16,7 +16,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct direct_traversal : traversal_algorithm
@@ -70,6 +70,6 @@ struct direct_observer : observer
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif //TORRENT_DIRECT_REQUEST_HPP

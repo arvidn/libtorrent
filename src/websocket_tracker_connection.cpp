@@ -44,7 +44,7 @@ see LICENSE file.
 #include <string_view>
 #include <vector>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 using namespace std::placeholders;
 namespace errc = boost::system::errc;

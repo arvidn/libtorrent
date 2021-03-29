@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/proxy_base.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	proxy_base::proxy_base(io_context& io_context)
 		: m_sock(io_context)

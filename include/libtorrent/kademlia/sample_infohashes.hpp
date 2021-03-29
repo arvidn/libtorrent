@@ -17,7 +17,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/time.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 class sample_infohashes final : public traversal_algorithm
@@ -56,6 +56,6 @@ public:
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_SAMPLE_INFOHASHES_HPP

@@ -13,7 +13,7 @@ see LICENSE file.
 #include <type_traits> // for enable_if
 #include <iosfwd>
 
-namespace libtorrent {
+namespace lt {
 
 struct bit_t
 {

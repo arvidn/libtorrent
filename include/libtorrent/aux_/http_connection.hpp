@@ -30,7 +30,7 @@ see LICENSE file.
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 struct http_connection;
 

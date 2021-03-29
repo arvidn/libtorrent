@@ -27,7 +27,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
@@ -89,7 +89,7 @@ void traversal_algorithm::resort_result(observer* o)
 	TORRENT_ASSERT(std::size_t(m_sorted_results) <= m_results.size());
 	auto end = m_results.begin() + m_sorted_results;
 
-	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), end
+	TORRENT_ASSERT(lt::dht::is_sorted(m_results.begin(), end
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
@@ -146,7 +146,7 @@ void traversal_algorithm::add_entry(node_id const& id
 		TORRENT_ASSERT(std::size_t(m_sorted_results) <= m_results.size());
 		auto end = m_results.begin() + m_sorted_results;
 
-		TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), end
+		TORRENT_ASSERT(lt::dht::is_sorted(m_results.begin(), end
 				, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 				{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
@@ -217,7 +217,7 @@ void traversal_algorithm::add_entry(node_id const& id
 	}
 
 	TORRENT_ASSERT(std::size_t(m_sorted_results) <= m_results.size());
-	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin()
+	TORRENT_ASSERT(lt::dht::is_sorted(m_results.begin()
 		, m_results.begin() + m_sorted_results
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
@@ -645,4 +645,4 @@ void traversal_observer::reply(msg const& m)
 	set_id(node_id(id.string_ptr()));
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

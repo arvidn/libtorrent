@@ -15,8 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	// For a general reference of the problems these routines are about
 	// see http://en.wikipedia.org/wiki/Find_first_set
@@ -43,6 +42,6 @@ namespace aux {
 
 	// returns the index of the most significant set bit.
 	TORRENT_EXTRA_EXPORT int log2p1(std::uint32_t v);
-}}
+}
 
 #endif // TORRENT_FFS_HPP_INCLUDE

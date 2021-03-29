@@ -23,7 +23,7 @@ see LICENSE file.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 void get_peers_observer::reply(msg const& m)
 {
@@ -306,4 +306,4 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	done();
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

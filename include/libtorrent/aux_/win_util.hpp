@@ -14,7 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 #ifdef TORRENT_WINRT
 	using LoadLibraryASignature = HMODULE WINAPI(_In_ LPCSTR lpLibFileName);
@@ -79,7 +79,6 @@ namespace libtorrent { namespace aux {
 		static constexpr char const* library_name = "advapi32.dll";
 	};
 
-} // namespace aux
-} // namespace libtorrent
+} // namespace lt::aux
 
 #endif

@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/crc32c.hpp" // for crc32c
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
@@ -189,4 +189,4 @@ node_id generate_prefix_mask(int const bits)
 	return mask;
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

@@ -10,7 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/add_torrent_params.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	add_torrent_params::add_torrent_params() = default;
 	add_torrent_params::~add_torrent_params() = default;

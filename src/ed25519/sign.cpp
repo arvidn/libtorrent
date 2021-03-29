@@ -6,8 +6,7 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 void ed25519_sign(unsigned char *signature, const unsigned char *message, std::ptrdiff_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
     ge_p3 R;
@@ -34,4 +33,4 @@ void ed25519_sign(unsigned char *signature, const unsigned char *message, std::p
         , reinterpret_cast<unsigned char*>(r.data()));
 }
 
-} }
+}

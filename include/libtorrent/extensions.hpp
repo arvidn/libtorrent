@@ -150,7 +150,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
@@ -169,7 +169,7 @@ TORRENT_VERSION_NAMESPACE_3
 		virtual ~plugin() {}
 
 #if TORRENT_ABI_VERSION == 1
-		using feature_flags_t = libtorrent::feature_flags_t;
+		using feature_flags_t = lt::feature_flags_t;
 #endif
 
 		// include this bit if your plugin needs to alter the order of the
@@ -276,7 +276,7 @@ TORRENT_VERSION_NAMESPACE_3_END
 		virtual ~torrent_plugin() {}
 
 #if TORRENT_ABI_VERSION == 1
-		using flags_t = libtorrent::add_peer_flags_t;
+		using flags_t = lt::add_peer_flags_t;
 #endif
 
 		// This function is called each time a new peer is connected to the torrent. You

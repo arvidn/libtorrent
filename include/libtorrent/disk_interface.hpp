@@ -49,7 +49,7 @@ see LICENSE file.
 // 	:tab-width: 2
 // 	:start-after: -- example begin
 // 	:end-before: // -- example end
-namespace libtorrent {
+namespace lt {
 
 	struct disk_observer;
 	struct counters;
@@ -383,6 +383,6 @@ namespace file_open_mode {
 		storage_index_t m_idx{0};
 	};
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif

@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// This is a utility function to produce a client ID fingerprint formatted to
 	// the most common convention. The fingerprint can be set via the

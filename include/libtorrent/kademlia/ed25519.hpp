@@ -18,7 +18,7 @@ see LICENSE file.
 #include <array>
 #include <tuple>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 	// See documentation of internal random_bytes

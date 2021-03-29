@@ -15,7 +15,7 @@ see LICENSE file.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht {
+namespace lt { namespace dht {
 
 observer_ptr bootstrap::new_observer(udp::endpoint const& ep
 	, node_id const& id)
@@ -81,4 +81,4 @@ void bootstrap::done()
 	get_peers::done();
 }
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht

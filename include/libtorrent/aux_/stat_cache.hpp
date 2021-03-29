@@ -22,7 +22,7 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	struct TORRENT_EXTRA_EXPORT stat_cache
 	{

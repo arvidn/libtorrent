@@ -37,7 +37,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/hash_picker.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct TORRENT_EXTRA_EXPORT ut_pex_peer_store

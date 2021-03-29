@@ -14,7 +14,7 @@ see LICENSE file.
 #include <cstdint>
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// hidden
 	using save_state_flags_t = flags::bitfield_flag<std::uint32_t, struct save_state_flags_tag>;

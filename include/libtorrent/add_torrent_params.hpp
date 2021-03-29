@@ -33,7 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/fwd.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_VERSION_NAMESPACE_3
 

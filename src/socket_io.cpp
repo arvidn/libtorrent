@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/escape_string.hpp" // for trim
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	std::string print_address(address const& addr)
 	{

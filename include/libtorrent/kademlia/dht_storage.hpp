@@ -23,12 +23,12 @@ see LICENSE file.
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
 
-namespace libtorrent {
+namespace lt {
 	struct entry;
 	struct settings_interface;
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 	// This structure hold the relevant counters for the storage
@@ -217,6 +217,6 @@ namespace dht {
 		settings_interface const& settings);
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif //TORRENT_DHT_STORAGE_HPP

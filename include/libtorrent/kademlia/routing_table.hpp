@@ -30,7 +30,7 @@ see LICENSE file.
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/flags.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 	struct session_settings;
 }
@@ -317,6 +317,6 @@ replace_node_impl(node_entry const& e, bucket_t& b, ip_set& ips
 #endif
 	);
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif // ROUTING_TABLE_HPP

@@ -14,7 +14,7 @@ see LICENSE file.
 #include <cstdint>
 #include "libtorrent/aux_/export.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	// this is the crc32c (Castagnoli) polynomial
 	TORRENT_EXTRA_EXPORT std::uint32_t crc32c_32(std::uint32_t);

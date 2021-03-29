@@ -20,7 +20,7 @@ see LICENSE file.
 #include <functional>
 #include <string>
 
-namespace libtorrent {
+namespace lt {
 
 	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 

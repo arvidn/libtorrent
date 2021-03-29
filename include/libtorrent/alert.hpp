@@ -45,7 +45,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 // bitmask type used to define alert categories. Categories can be enabled
 // and disabled by the settings_pack::alert_mask setting. Constants are defined
@@ -305,6 +305,6 @@ template <typename T> T const* alert_cast(alert const* a)
 	return nullptr;
 }
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_ALERT_HPP_INCLUDED

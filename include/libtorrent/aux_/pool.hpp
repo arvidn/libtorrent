@@ -14,8 +14,7 @@ see LICENSE file.
 #include <boost/pool/pool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 struct allocator_new_delete
 {
@@ -31,7 +30,6 @@ struct allocator_new_delete
 
 using pool = boost::pool<allocator_new_delete>;
 
-}
 }
 
 #endif

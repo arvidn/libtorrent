@@ -13,8 +13,7 @@ see LICENSE file.
 #include <cstdint>
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	// hidden
 	using open_mode_t = flags::bitfield_flag<std::uint32_t, struct open_mode_tag>;
@@ -31,9 +30,7 @@ namespace aux {
 		constexpr open_mode_t executable = 7_bit;
 		constexpr open_mode_t allow_set_file_valid_data = 8_bit;
 	}
-} // aux
-
-} // libtorrent
+} // lt::aux
 
 #endif
 

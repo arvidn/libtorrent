@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include <libtorrent/kademlia/find_data.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct get_peers : find_data
@@ -87,6 +87,6 @@ struct obfuscated_get_peers_observer : traversal_observer
 };
 
 } // namespace dht
-} // namespace libtorrent
+} // namespace lt
 
 #endif // LIBTORRENT_GET_PEERS_HPP

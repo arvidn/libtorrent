@@ -22,8 +22,7 @@ see LICENSE file.
 
 // TODO: hide this declaration when deprecated functions are disabled, and
 // remove its internal use
-namespace libtorrent {
-
+namespace lt {
 namespace aux {
 
 	TORRENT_EXTRA_EXPORT

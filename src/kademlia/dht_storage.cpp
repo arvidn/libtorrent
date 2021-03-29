@@ -33,7 +33,7 @@ see LICENSE file.
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v4
 #include <libtorrent/bdecode.hpp>
 
-namespace libtorrent::dht {
+namespace lt::dht {
 namespace {
 
 	// this is the entry for every peer
@@ -609,4 +609,4 @@ std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
 	return std::make_unique<dht_default_storage>(settings);
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

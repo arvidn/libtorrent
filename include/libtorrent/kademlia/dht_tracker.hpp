@@ -28,7 +28,7 @@ see LICENSE file.
 #include <libtorrent/aux_/udp_socket.hpp>
 #include <libtorrent/entry.hpp>
 
-namespace libtorrent {
+namespace lt {
 
 	struct counters;
 #if TORRENT_ABI_VERSION == 1
@@ -39,7 +39,7 @@ namespace aux {
 }
 }
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: socket_manager
@@ -200,6 +200,6 @@ namespace libtorrent::dht {
 
 		io_context& m_ioc;
 	};
-} // namespace libtorrent::dht
+} // namespace lt::dht
 
 #endif

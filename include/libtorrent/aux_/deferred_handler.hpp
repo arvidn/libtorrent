@@ -13,7 +13,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/io_context.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 template <typename Handler>
 struct handler_wrapper
@@ -54,5 +54,5 @@ private:
 	bool m_in_flight = false;
 };
 
-}}
+}
 #endif

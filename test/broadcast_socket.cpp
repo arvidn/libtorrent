@@ -25,7 +25,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 	broadcast_socket::broadcast_socket(
 		udp::endpoint multicast_endpoint)

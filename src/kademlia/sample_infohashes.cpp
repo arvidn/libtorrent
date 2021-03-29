@@ -17,7 +17,7 @@ see LICENSE file.
 #include <libtorrent/aux_/numeric_cast.hpp>
 #include <libtorrent/aux_/socket_io.hpp>
 
-namespace libtorrent::dht
+namespace lt::dht
 {
 
 sample_infohashes::sample_infohashes(node& dht_node
@@ -135,4 +135,4 @@ void sample_infohashes_observer::reply(msg const& m)
 	flags |= flag_done;
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

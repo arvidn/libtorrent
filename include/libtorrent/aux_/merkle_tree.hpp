@@ -20,8 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 // represents the merkle tree for files belonging to a torrent.
 // Each file has a root-hash and a "piece layer", i.e. the level in the tree
@@ -153,7 +152,6 @@ private:
 	mode_t m_mode = mode_t::uninitialized_tree;
 };
 
-}
 }
 
 #endif

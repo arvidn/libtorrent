@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	struct sha512_ctx
 	{
@@ -26,7 +25,6 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT int SHA512_update(sha512_ctx* md
 		, std::uint8_t const* in, std::size_t len);
 	TORRENT_EXTRA_EXPORT int SHA512_final(std::uint8_t* out, sha512_ctx* md);
-}
 }
 
 #endif

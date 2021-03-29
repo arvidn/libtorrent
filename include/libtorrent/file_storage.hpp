@@ -32,7 +32,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/fwd.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_ABI_VERSION == 1
 	// information about a file in a file_storage
@@ -721,6 +721,6 @@ namespace aux {
 	file_piece_range_inclusive(file_storage const& fs, file_index_t file);
 
 } // namespace aux
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_FILE_STORAGE_HPP_INCLUDED

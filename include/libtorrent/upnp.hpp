@@ -32,7 +32,7 @@ see LICENSE file.
 #include <functional>
 #include <set>
 
-namespace libtorrent {
+namespace lt {
 
 	namespace aux {
 		struct http_connection;
@@ -354,12 +354,12 @@ private:
 	aux::listen_socket_handle m_listen_handle;
 };
 
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost {
 namespace system {
 
-	template<> struct is_error_code_enum<libtorrent::upnp_errors::error_code_enum>
+	template<> struct is_error_code_enum<lt::upnp_errors::error_code_enum>
 	{ static const bool value = true; };
 
 }

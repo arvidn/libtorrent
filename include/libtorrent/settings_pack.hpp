@@ -39,7 +39,7 @@ see LICENSE file.
 //
 // Each configuration option is named with an enum value inside the
 // settings_pack class. These are the available settings:
-namespace libtorrent {
+namespace lt {
 
 namespace aux {
 	struct session_impl;

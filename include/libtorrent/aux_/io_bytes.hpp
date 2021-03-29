@@ -21,8 +21,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/io.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace lt::aux {
 
 	// reads an integer from a byte stream
 	// in big endian byte order and converts
@@ -160,7 +159,6 @@ namespace aux {
 		for (auto const c : val) *out++ = c;
 		return int(val.length());
 	}
-} // namespace aux
-}
+} // namespace lt::aux
 
 #endif // TORRENT_IO_HPP_INCLUDED

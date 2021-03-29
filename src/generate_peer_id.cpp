@@ -15,7 +15,7 @@ see LICENSE file.
 
 #include <string>
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 peer_id generate_peer_id(session_settings const& sett)
 {

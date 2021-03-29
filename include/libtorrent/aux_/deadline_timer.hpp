@@ -21,7 +21,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using deadline_timer = sim::asio::high_resolution_timer;

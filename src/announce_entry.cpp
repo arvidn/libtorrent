@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/listen_socket_handle.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	namespace {
 		// wait at least 5 seconds before retrying a failed tracker

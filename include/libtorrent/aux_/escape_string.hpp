@@ -18,7 +18,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/flags.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// hidden
 	using encode_string_flags_t = flags::bitfield_flag<std::uint8_t, struct encode_string_flags_tag>;

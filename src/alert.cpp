@@ -43,7 +43,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
-namespace libtorrent {
+namespace lt {
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
 	alert::~alert() = default;
@@ -1040,11 +1040,11 @@ namespace {
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, string_view iface
-		, libtorrent::address const& listen_addr
+		, lt::address const& listen_addr
 		, int listen_port
 		, operation_t const op_
 		, error_code const& ec
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: error(ec)
 		, op(op_)
 		, socket_type(t)
@@ -1065,7 +1065,7 @@ namespace {
 		, tcp::endpoint const& ep
 		, operation_t const op_
 		, error_code const& ec
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
@@ -1081,7 +1081,7 @@ namespace {
 		, udp::endpoint const& ep
 		, operation_t const op_
 		, error_code const& ec
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
@@ -1096,10 +1096,10 @@ namespace {
 		, string_view iface
 		, operation_t const op_
 		, error_code const& ec
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
-			, libtorrent::address()
+			, lt::address()
 			, 0
 			, op_
 			, ec
@@ -1192,9 +1192,9 @@ namespace {
 	}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
-		, libtorrent::address const& listen_addr
+		, lt::address const& listen_addr
 		, int listen_port
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: address(listen_addr)
 		, port(listen_port)
 		, socket_type(t)
@@ -1206,7 +1206,7 @@ namespace {
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
 		, tcp::endpoint const& ep
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: listen_succeeded_alert(alloc
 			, ep.address()
 			, ep.port()
@@ -1215,7 +1215,7 @@ namespace {
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
 		, udp::endpoint const& ep
-		, libtorrent::socket_type_t t)
+		, lt::socket_type_t t)
 		: listen_succeeded_alert(alloc
 			, ep.address()
 			, ep.port()
@@ -2985,4 +2985,4 @@ namespace {
 #endif
 	}
 
-} // namespace libtorrent
+} // namespace lt

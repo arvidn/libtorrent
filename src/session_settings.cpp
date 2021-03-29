@@ -12,7 +12,7 @@ see LICENSE file.
 
 #include <functional>
 
-namespace libtorrent { namespace aux {
+namespace lt::aux {
 
 	session_settings::session_settings() = default;
 
@@ -37,6 +37,5 @@ namespace libtorrent { namespace aux {
 	{
 		initialize_default_settings(*this);
 	}
-
-} }
+}
 

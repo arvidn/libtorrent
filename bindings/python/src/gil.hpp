@@ -181,6 +181,6 @@ deprecate_visitor<F> depr(F fn)
     return deprecate_visitor<F>(std::move(fn));
 }
 
-//}} // namespace libtorrent::python
+//}} // namespace lt::python
 
 #endif // GIL_070107_HPP

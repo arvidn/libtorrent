@@ -41,7 +41,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 
-namespace libtorrent::dht {
+namespace lt::dht {
 
 dht_observer* observer::get_observer() const
 {
@@ -487,4 +487,4 @@ observer::~observer()
 #endif
 }
 
-} // namespace libtorrent::dht
+} // namespace lt::dht

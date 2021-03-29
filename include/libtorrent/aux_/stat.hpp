@@ -19,7 +19,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 	class TORRENT_EXTRA_EXPORT stat_channel
 	{

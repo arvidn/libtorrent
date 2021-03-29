@@ -57,7 +57,7 @@ namespace {
 }
 #endif
 
-namespace libtorrent::aux {
+namespace lt::aux {
 
 		std::mt19937& random_engine()
 		{

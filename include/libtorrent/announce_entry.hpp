@@ -25,7 +25,7 @@ see LICENSE file.
 #include <cstdint>
 #include <vector>
 
-namespace libtorrent {
+namespace lt {
 
 namespace aux { struct torrent; }
 

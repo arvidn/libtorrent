@@ -16,7 +16,7 @@ see LICENSE file.
 
 #include <sstream>
 
-namespace libtorrent {
+namespace lt {
 
 	struct libtorrent_error_category final : boost::system::error_category
 	{
