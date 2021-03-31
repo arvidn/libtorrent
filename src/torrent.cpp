@@ -1138,9 +1138,8 @@ bool is_downloading_state(int const st)
 		if (m_peer_list) m_peer_list->clear();
 	}
 
-	void torrent::set_sequential_range(piece_index_t start_piece, piece_index_t end_piece)
+	void torrent::set_sequential_range(piece_index_t first_piece, piece_index_t last_piece)
 	{
-		m_sequential_download = true;
 		if (!has_picker()) {
 			if (!valid_metadata() || !m_connections_initialized) return;
 			else if (!m_have_all
@@ -1149,7 +1148,8 @@ bool is_downloading_state(int const st)
 				need_picker();
 			else return;
 		}
-		m_picker->set_sequential_range(start_piece, end_piece);
+		m_sequential_download = true;
+		m_picker->set_sequential_range(first_piece, last_piece);
 	}
 
 	void torrent::need_picker()
@@ -8816,7 +8816,7 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
-		if (!sd && m_picker) m_picker->set_sequential_range(piece_index_t(0), piece_index_t(-1));
+		if (!sd && m_picker) m_picker->set_sequential_range(piece_index_t(0), m_torrent_file->last_piece());
 		m_sequential_download = sd;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);

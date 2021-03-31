@@ -333,11 +333,14 @@ namespace libtorrent::aux {
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-    void piece_picker::set_sequential_range(piece_index_t const start_piece, piece_index_t const end_piece)
+    void piece_picker::set_sequential_range(piece_index_t const first_piece, piece_index_t const last_piece)
     {
 		INVARIANT_CHECK;
-		m_reverse_cursor = end_piece == piece_index_t(-1) ? m_piece_map.end_index() : next(end_piece);
-		m_cursor = start_piece;
+		TORRENT_ASSERT(first_piece >= 0);
+		TORRENT_ASSERT(last_piece >= first_piece);
+		TORRENT_ASSERT(last_piece < m_piece_map.size());
+		m_cursor = first_piece;
+		m_reverse_cursor = next(last_piece);
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
 			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
 			++i, ++m_cursor);
@@ -560,7 +563,7 @@ namespace libtorrent::aux {
 				{
 					TORRENT_ASSERT(!m_piece_map[m_cursor].have() && !m_piece_map[m_cursor].filtered());
 					TORRENT_ASSERT(!m_piece_map[prev(m_reverse_cursor)].have() &&
-								   !m_piece_map[prev(m_reverse_cursor)].filtered());
+						!m_piece_map[prev(m_reverse_cursor)].filtered());
 				}
 			}
 			else
@@ -2153,6 +2156,8 @@ namespace {
 						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);
 
 						if (!is_piece_free(m_pieces[p], pieces)) continue;
+						// cursors are not mutated during picking; make sure we don't pick pieces within the
+						// sequential range if in sequential download mode so that we don't pick duplicate pieces
 						if ((options & sequential) && m_pieces[p] >= m_cursor && m_pieces[p] < m_reverse_cursor) continue;
 
 						ret |= picker_log_alert::reverse_rarest_first;
