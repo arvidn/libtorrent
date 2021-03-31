@@ -556,7 +556,7 @@ namespace libtorrent {
 		// 	ses.add_extension(&lt::create_smart_ban_plugin);
 		//
 		//
-		// .. _`libtorrent plugins`: libtorrent_plugins.html
+		// .. _`libtorrent plugins`: reference-Plugins.html
 		void add_extension(std::function<std::shared_ptr<torrent_plugin>(
 			torrent_handle const&, void*)> ext);
 		void add_extension(std::shared_ptr<plugin> ext);
