@@ -1,27 +1,37 @@
 .. image:: docs/img/logo-color-text.png
 
-|
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/windows.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/windows.yml
 
-.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/macos.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/macos.yml
+
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/linux.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/linux.yml
+
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/python.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/python.yml
+
+.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/RC_2_0?svg=true
+    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/RC_2_0
 
 .. image:: https://api.cirrus-ci.com/github/arvidn/libtorrent.svg?branch=RC_2_0
-	:target: https://cirrus-ci.com/github/arvidn/libtorrent
+    :target: https://cirrus-ci.com/github/arvidn/libtorrent
 
 .. image:: https://img.shields.io/lgtm/alerts/g/arvidn/libtorrent.svg?logo=lgtm&logoWidth=18
-	:target: https://lgtm.com/projects/g/arvidn/libtorrent/alerts/
+    :target: https://lgtm.com/projects/g/arvidn/libtorrent/alerts/
 
 .. image:: https://oss-fuzz-build-logs.storage.googleapis.com/badges/libtorrent.svg
     :target: https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&q=proj%3Alibtorrent&can=1
 
-.. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
-    :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
+.. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=RC_2_0
+    :target: https://codecov.io/github/arvidn/libtorrent?branch=RC_2_0&view=all#sort=missing&dir=desc
 
 .. image:: https://img.shields.io/lgtm/grade/cpp/g/arvidn/libtorrent.svg?logo=lgtm&logoWidth=18
-	:target: https://lgtm.com/projects/g/arvidn/libtorrent/context:cpp
+    :target: https://lgtm.com/projects/g/arvidn/libtorrent/context:cpp
 
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
-    :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample
+    :target: https://www.openhub.net/p/rasterbar-libtorrent
 
 .. image:: https://bestpractices.coreinfrastructure.org/projects/3020/badge
     :target: https://bestpractices.coreinfrastructure.org/en/projects/3020
