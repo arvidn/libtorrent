@@ -281,6 +281,7 @@ namespace aux {
 		// in sequential mode. This only works in sequential mode. If no piece
 		// picker has been created, then the function does nothing.
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece) const;
+		void set_sequential_start(piece_index_t first_piece) const;
 		// Returns true if this piece has been completely downloaded and written
 		// to disk, and false otherwise.
 		bool have_piece(piece_index_t piece) const;

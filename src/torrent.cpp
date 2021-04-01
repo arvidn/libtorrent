@@ -1151,6 +1151,26 @@ bool is_downloading_state(int const st)
 		m_sequential_download = true;
 		m_picker->set_sequential_range(first_piece, last_piece);
 	}
+	
+	void torrent::set_sequential_start(piece_index_t first_piece)
+	{
+		if (!has_picker()) {
+			if (!valid_metadata() || !m_connections_initialized) return;
+			else if (!m_have_all
+				|| settings().get_int(settings_pack::suggest_mode)
+				== settings_pack::suggest_read_cache)
+				need_picker();
+			else return;
+		}
+		// m_torrent_file->files() is file_storage
+		// find the last file in piece `first_piece`
+		auto const f = m_torrent_file->files().map_block(first_piece, m_torrent_file->files().piece_size(first_piece) - 1, 1).back().file_index;
+
+		// find the last piece in file `f`
+		auto const piece_size = m_torrent_file->files().piece_length();
+		auto const last_piece = piece_index_t((m_torrent_file->files().file_offset(f) + m_torrent_file->files().file_size(f) - 1) / piece_size);
+		set_sequential_range(first_piece, last_piece);
+	}
 
 	void torrent::need_picker()
 	{

@@ -660,6 +660,13 @@ namespace libtorrent {
 			async_call(&aux::torrent::set_sequential_range, first_piece, last_piece);
     }
 
+	void torrent_handle::set_sequential_start(piece_index_t first_piece) const
+    {
+		TORRENT_ASSERT_PRECOND(first_piece >= piece_index_t(0));
+		if (first_piece >= piece_index_t(0))
+			async_call(&aux::torrent::set_sequential_start, first_piece);
+    }
+
 	bool torrent_handle::is_valid() const
 	{
 		return !m_torrent.expired();
