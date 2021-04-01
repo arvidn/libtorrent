@@ -217,7 +217,6 @@ namespace {
 		, {"SD", "Xunlei"}
 		, {"SK", "spark"}
 		, {"SN", "ShareNet"}
-		, {"SP", "BitSpirit"}
 		, {"SS", "SwarmScope"}
 		, {"ST", "SymTorrent"}
 		, {"SZ", "Shareaza"}
@@ -273,6 +272,7 @@ namespace {
 		, {0, "T00---0", "Teeweety"}
 		, {0, "BTDWV-", "Deadman Walking"}
 		, {2, "BS", "BitSpirit"}
+		, {0, "-SP", "BitSpirit 3.6"}
 		, {0, "Pando-", "Pando"}
 		, {0, "LIME", "LimeWire"}
 		, {0, "btuga", "BTugaXP"}
