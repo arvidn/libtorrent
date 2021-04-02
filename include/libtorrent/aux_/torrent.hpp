@@ -438,7 +438,7 @@ namespace libtorrent::aux {
 		};
 		void read_piece(piece_index_t);
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece);
-		void set_sequential_start(piece_index_t first_piece);
+		void set_sequential_range(piece_index_t first_piece);
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
 			, peer_request const&, std::shared_ptr<read_piece_struct>);
 

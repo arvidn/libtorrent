@@ -1148,11 +1148,13 @@ bool is_downloading_state(int const st)
 				need_picker();
 			else return;
 		}
+		if (first_piece > m_torrent_file->last_piece() || last_piece > m_torrent_file->last_piece()) return;
+		TORRENT_ASSERT_PRECOND(first_piece <= m_torrent_file->last_piece() && last_piece <= m_torrent_file->last_piece());
 		m_sequential_download = true;
 		m_picker->set_sequential_range(first_piece, last_piece);
 	}
 
-	void torrent::set_sequential_start(piece_index_t first_piece)
+	void torrent::set_sequential_range(piece_index_t first_piece)
 	{
 		if (!has_picker()) {
 			if (!valid_metadata() || !m_connections_initialized) return;
@@ -1169,6 +1171,7 @@ bool is_downloading_state(int const st)
 		// find the last piece in file `f`
 		std::int64_t piece_size = m_torrent_file->files().piece_length();
 		auto const last_piece = piece_index_t(
+			(piece_index_t)
 			std::lldiv(
 			(m_torrent_file->files().file_offset(f)
 			+
@@ -1179,6 +1182,8 @@ bool is_downloading_state(int const st)
 			piece_size
 			).quot
 			);
+		//if (first_piece > last_piece) return;
+		TORRENT_ASSERT_PRECOND(first_piece <= last_piece);
 		set_sequential_range(first_piece, last_piece);
 	}
 
