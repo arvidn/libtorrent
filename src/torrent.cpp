@@ -1171,7 +1171,7 @@ bool is_downloading_state(int const st)
 		// find the last piece in file `f`
 		std::int64_t piece_size = m_torrent_file->files().piece_length();
 		auto const last_piece = piece_index_t(
-			(piece_index_t)
+			(int)
 			std::lldiv(
 			(m_torrent_file->files().file_offset(f)
 			+
