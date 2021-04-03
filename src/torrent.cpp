@@ -1170,8 +1170,8 @@ bool is_downloading_state(int const st)
 
 		// find the last piece in file `f`
 		std::int64_t piece_size = m_torrent_file->files().piece_length();
-		piece_index_t last_piece = //piece_index_t(
-			static_cast<int>(
+		piece_index_t last_piece = piece_index_t(
+			int(//static_cast<int>(
 			std::lldiv(
 			(m_torrent_file->files().file_offset(f)
 			+
@@ -1182,7 +1182,7 @@ bool is_downloading_state(int const st)
 			piece_size
 			).quot
 			)
-			/*)*/;
+			);
 		//if (first_piece > last_piece) return;
 		TORRENT_ASSERT_PRECOND(first_piece <= last_piece);
 		set_sequential_range(first_piece, last_piece);
