@@ -1472,7 +1472,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					return true;
 				}
 
-				jobq.m_job_cond.wait(l);
+				using namespace std::literals::chrono_literals;
+				jobq.m_job_cond.wait_for(l, 1s);
 			} while (jobq.m_queued_jobs.empty());
 
 			threads.thread_active();
