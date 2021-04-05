@@ -136,6 +136,7 @@ namespace {
 		, {"BE", "baretorrent"}
 		, {"BF", "Bitflu"}
 		, {"BG", "BTG"}
+		, {"BI", "BiglyBT"}
 		, {"BL", "BitBlinder"}
 		, {"BP", "BitTorrent Pro"}
 		, {"BR", "BitRocket"}
@@ -166,6 +167,7 @@ namespace {
 		, {"LH", "LH-ABC"}
 		, {"LK", "Linkage"}
 		, {"LP", "lphant"}
+		, {"LR", "LibreTorrent"}
 		, {"LT", "libtorrent"}
 		, {"LW", "Limewire"}
 		, {"M",  "Mainline"}
@@ -215,6 +217,7 @@ namespace {
 		, {"XS", "XSwifter"}
 		, {"XT", "XanTorrent"}
 		, {"XX", "Xtorrent"}
+		, {"ZO", "Zona"}
 		, {"ZT", "ZipTorrent"}
 		, {"lt", "rTorrent"}
 		, {"pX", "pHoeniX"}
@@ -246,6 +249,7 @@ namespace {
 		, {0, "T00---0", "Teeweety"}
 		, {0, "BTDWV-", "Deadman Walking"}
 		, {2, "BS", "BitSpirit"}
+		, {0, "-SP", "BitSpirit 3.6"}
 		, {0, "Pando-", "Pando"}
 		, {0, "LIME", "LimeWire"}
 		, {0, "btuga", "BTugaXP"}
