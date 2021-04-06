@@ -277,10 +277,12 @@ namespace aux {
 		void read_piece(piece_index_t piece) const;
 
 		// This function sets the first piece and the last piece of the range
-		// for the piece picker. It helps to start loading from the required piece
-		// in sequential mode. This only works in sequential mode. If no piece
-		// picker has been created, then the function does nothing.
+		// for the piece picker. It starts downloading from the specified piece
+		// in sequential download mode, which it enables. If the torrent
+		// metadata has not been downloaded yet, then the function does nothing.
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece) const;
+		// This function overloads the above function and implicitly sets the
+		// last piece to the end of the file the first piece is set to.
 		void set_sequential_range(piece_index_t first_piece) const;
 		// Returns true if this piece has been completely downloaded and written
 		// to disk, and false otherwise.

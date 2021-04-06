@@ -1166,13 +1166,14 @@ bool is_downloading_state(int const st)
 		}
 		// m_torrent_file->files() is file_storage
 		// find the last file in piece `first_piece`
-		auto const f = m_torrent_file->files().map_block(first_piece, m_torrent_file->files().piece_size(first_piece) - 1, 1).back().file_index;
+		//auto const f = m_torrent_file->files().map_block(first_piece, m_torrent_file->files().piece_size(first_piece) - 1, 1).back().file_index;
+		auto const f = m_torrent_file->files().last_file_index_at_piece(first_piece);
 
 		// find the last piece in file `f`
-		std::int64_t piece_size = m_torrent_file->files().piece_length();
-		auto const last_piece = piece_index_t(int((m_torrent_file->files().file_offset(f) + m_torrent_file->files().file_size(f) - 1) / piece_size));
-		//if (first_piece > last_piece) return;
-		TORRENT_ASSERT_PRECOND(first_piece <= last_piece);
+		//std::int64_t const piece_size = m_torrent_file->files().piece_length();
+		//auto const last_piece = piece_index_t(int((m_torrent_file->files().file_offset(f) + m_torrent_file->files().file_size(f) - 1) / piece_size));
+		auto const last_piece = m_torrent_file->files().last_piece_index_at_file(f);
+		ASSERT(first_piece <= last_piece);
 		set_sequential_range(first_piece, last_piece);
 	}
 
