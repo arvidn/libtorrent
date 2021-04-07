@@ -584,6 +584,8 @@ feature_option(build_examples "build examples" OFF)
 feature_option(build_tools "build tools" OFF)
 feature_option(python-bindings "build python bindings" OFF)
 
+feature_option(iconv "build libtorrent with iconv support" ON)
+
 # these options require existing target
 feature_option(dht "enable support for Mainline DHT" ON)
 if(NOT build_tests) # tests require deprecated symbols
@@ -603,20 +605,22 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutabl
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME streaming DEFAULT ON
 	DESCRIPTION "Enables support for piece deadline" DISABLED TORRENT_DISABLE_STREAMING)
 
-find_public_dependency(Iconv)
-if(MSVC)
-	set(iconv_package_type OPTIONAL)
-else()
-	set(iconv_package_type RECOMMENDED)
-endif()
+if(iconv)
+	find_public_dependency(Iconv)
+	if(MSVC)
+		set(iconv_package_type OPTIONAL)
+	else()
+		set(iconv_package_type RECOMMENDED)
+	endif()
 
-set_package_properties(Iconv
-	PROPERTIES
-		URL "https://www.gnu.org/software/libiconv/"
-		DESCRIPTION "GNU encoding conversion library"
-		TYPE ${iconv_package_type}
-		PURPOSE "Convert strings between various encodings"
-)
+	set_package_properties(Iconv
+		PROPERTIES
+			URL "https://www.gnu.org/software/libiconv/"
+			DESCRIPTION "GNU encoding conversion library"
+			TYPE ${iconv_package_type}
+			PURPOSE "Convert strings between various encodings"
+	)
+endif()
 
 if(Iconv_FOUND)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ICONV)
