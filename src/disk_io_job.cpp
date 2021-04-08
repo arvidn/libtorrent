@@ -19,91 +19,96 @@ see LICENSE file.
 namespace libtorrent {
 namespace aux {
 
-	namespace {
-		struct caller_visitor
-		{
-			explicit caller_visitor(disk_io_job& j)
-				: m_job(j) {}
-
-			void operator()(disk_io_job::read_handler& h) const
-			{
-				if (!h) return;
-				h(std::move(std::get<disk_buffer_holder>(m_job.argument))
-					, m_job.error);
-			}
-
-			void operator()(disk_io_job::write_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.error);
-			}
-
-			void operator()(disk_io_job::hash_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.piece, m_job.d.h.piece_hash, m_job.error);
-			}
-
-			void operator()(disk_io_job::hash2_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.piece, m_job.d.piece_hash2, m_job.error);
-			}
-
-			void operator()(disk_io_job::move_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.ret, std::move(std::get<std::string>(m_job.argument))
-					, m_job.error);
-			}
-
-			void operator()(disk_io_job::release_handler& h) const
-			{
-				if (!h) return;
-				h();
-			}
-
-			void operator()(disk_io_job::check_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.ret, m_job.error);
-			}
-
-			void operator()(disk_io_job::rename_handler& h) const
-			{
-				if (!h) return;
-				h(std::move(std::get<std::string>(m_job.argument))
-					, m_job.file_index, m_job.error);
-			}
-
-			void operator()(disk_io_job::clear_piece_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.piece);
-			}
-
-			void operator()(disk_io_job::set_file_prio_handler& h) const
-			{
-				if (!h) return;
-				h(m_job.error, std::move(std::get<aux::vector<download_priority_t, file_index_t>>(m_job.argument)));
-			}
-
-		private:
-			disk_io_job& m_job;
-		};
-	}
-
-	disk_io_job::disk_io_job()
-		: argument(remove_flags_t{})
-		, piece(0)
+namespace {
+	struct caller_visitor
 	{
-		d.io.offset = 0;
-		d.io.buffer_size = 0;
-	}
+		explicit caller_visitor(disk_io_job& j) : m_job(j) {}
 
+		void operator()(job::read& j) const
+		{
+			if (!j.handler) return;
+			j.handler(std::move(j.buf), m_job.error);
+		}
+
+		void operator()(job::write& j) const
+		{
+			if (!j.handler) return;
+			j.handler(m_job.error);
+		}
+
+		void operator()(job::hash& j) const
+		{
+			if (!j.handler) return;
+			j.handler(j.piece, j.piece_hash, m_job.error);
+		}
+
+		void operator()(job::hash2& j) const
+		{
+			if (!j.handler) return;
+			j.handler(j.piece, j.piece_hash2, m_job.error);
+		}
+
+		void operator()(job::move_storage& j) const
+		{
+			if (!j.handler) return;
+			j.handler(m_job.ret, std::move(j.path), m_job.error);
+		}
+
+		void operator()(job::release_files& j) const
+		{
+			if (!j.handler) return;
+			j.handler();
+		}
+
+		void operator()(job::delete_files& j) const
+		{
+			if (!j.handler) return;
+			j.handler(m_job.error);
+		}
+
+		void operator()(job::check_fastresume& j) const
+		{
+			if (!j.handler) return;
+			j.handler(m_job.ret, m_job.error);
+		}
+
+		void operator()(job::rename_file& j) const
+		{
+			if (!j.handler) return;
+			j.handler(std::move(j.name), j.file_index, m_job.error);
+		}
+
+		void operator()(job::stop_torrent& j) const
+		{
+			if (!j.handler) return;
+			j.handler();
+		}
+
+		void operator()(job::file_priority& j) const
+		{
+			if (!j.handler) return;
+			j.handler(m_job.error, std::move(j.prio));
+		}
+
+		void operator()(job::clear_piece& j) const
+		{
+			if (!j.handler) return;
+			j.handler(j.piece);
+		}
+
+		void operator()(job::partial_read& j) const
+		{
+			if (!j.handler) return;
+			j.handler(std::move(j.buf), m_job.error);
+		}
+
+	private:
+		disk_io_job& m_job;
+	};
+}
 	void disk_io_job::call_callback()
 	{
-		std::visit(caller_visitor(*this), callback);
+		std::visit(caller_visitor(*this), action);
 	}
 }
 }
