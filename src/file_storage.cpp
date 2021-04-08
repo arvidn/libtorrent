@@ -402,6 +402,11 @@ namespace aux {
 		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()));
 	}
 
+	file_index_t file_storage::last_file_index_at_piece(piece_index_t const piece) const
+	{
+		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()) + piece_size(piece) - 1);
+	}
+
 	file_index_t file_storage::file_index_for_root(sha256_hash const& root_hash) const
 	{
 		// TODO: maybe it would be nice to have a better index here
@@ -415,6 +420,11 @@ namespace aux {
 	piece_index_t file_storage::piece_index_at_file(file_index_t f) const
 	{
 		return piece_index_t{aux::numeric_cast<int>(file_offset(f) / piece_length())};
+	}
+
+	piece_index_t file_storage::last_piece_index_at_file(file_index_t f) const
+	{
+		return piece_index_t{aux::numeric_cast<int>((file_offset(f) + file_size(f) - 1) / piece_length())};
 	}
 
 #if TORRENT_ABI_VERSION <= 2

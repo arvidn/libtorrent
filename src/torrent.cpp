@@ -1138,6 +1138,40 @@ bool is_downloading_state(int const st)
 		if (m_peer_list) m_peer_list->clear();
 	}
 
+	void torrent::set_sequential_range(piece_index_t first_piece, piece_index_t last_piece)
+	{
+		if (!has_picker()) {
+			if (!valid_metadata() || !m_connections_initialized) return;
+			else if (!m_have_all
+				|| settings().get_int(settings_pack::suggest_mode)
+				== settings_pack::suggest_read_cache)
+				need_picker();
+			else return;
+		}
+		if (first_piece > m_torrent_file->last_piece() || last_piece > m_torrent_file->last_piece()) return;
+		TORRENT_ASSERT_PRECOND(first_piece <= m_torrent_file->last_piece() && last_piece <= m_torrent_file->last_piece());
+		m_sequential_download = true;
+		m_picker->set_sequential_range(first_piece, last_piece);
+	}
+
+	void torrent::set_sequential_range(piece_index_t first_piece)
+	{
+		if (!has_picker()) {
+			if (!valid_metadata() || !m_connections_initialized) return;
+			else if (!m_have_all
+				|| settings().get_int(settings_pack::suggest_mode)
+				== settings_pack::suggest_read_cache)
+				need_picker();
+			else return;
+		}
+		// find the last file in piece `first_piece`
+		auto const f = m_torrent_file->files().last_file_index_at_piece(first_piece);
+		// find the last piece in file `f`
+		auto const last_piece = m_torrent_file->files().last_piece_index_at_file(f);
+		TORRENT_ASSERT(first_piece <= last_piece);
+		set_sequential_range(first_piece, last_piece);
+	}
+
 	void torrent::need_picker()
 	{
 		if (m_picker) return;
@@ -8802,6 +8836,7 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
+		if (!sd && m_picker) m_picker->set_sequential_range(piece_index_t(0), m_torrent_file->last_piece());
 		m_sequential_download = sd;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);

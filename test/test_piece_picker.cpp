@@ -753,6 +753,31 @@ TORRENT_TEST(sequential_download)
 			, i % blocks_per_piece));
 }
 
+TORRENT_TEST(sequential_range_download)
+{
+	// test sequential range download
+	auto p = setup_picker("7654321", "       ", "", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential, empty_vector);
+	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
+	for (int i = 0; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t((i + (1 * blocks_per_piece)) / blocks_per_piece)
+			, i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (int i = 6 * blocks_per_piece; i < 7 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+}
+
 TORRENT_TEST(reverse_sequential_download)
 {
 	// test reverse sequential download
@@ -763,6 +788,31 @@ TORRENT_TEST(reverse_sequential_download)
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - (i / blocks_per_piece))
 			, i % blocks_per_piece));
+}
+
+TORRENT_TEST(reverse_sequential_range_download)
+{
+	// test reverse sequential range download
+	auto p = setup_picker("7654321", "       ", "", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential | piece_picker::reverse, empty_vector);
+	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
+	for (int i = 0; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6 - ((i + (1 * blocks_per_piece)) / blocks_per_piece))
+			, i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (int i = 6 * blocks_per_piece; i < 7 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
 }
 
 TORRENT_TEST(priority_sequential_download)
@@ -782,7 +832,40 @@ TORRENT_TEST(priority_sequential_download)
 
 	int expected[] = {-1, -1, 0, 1, 2, 6};
 	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[std::size_t(i)].piece_index, piece_index_t(expected[i / blocks_per_piece]));
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(expected[i / blocks_per_piece]), i % blocks_per_piece));
+}
+
+TORRENT_TEST(priority_sequential_range_download)
+{
+	// test priority sequential range download
+	auto p = setup_picker("7654321", "       ", "1117071", "");
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+		, piece_picker::sequential, empty_vector);
+
+	// the piece with priority 0 was not picked, everything else should
+	// be picked
+	TEST_EQUAL(int(picked.size()), 6 * blocks_per_piece);
+
+	// the first two pieces picked should be 3 and 5 since those have priority 7
+	for (int i = 0; i < 2 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)].piece_index == piece_index_t(3) || picked[std::size_t(i)].piece_index == piece_index_t(5));
+
+	int expected[] = { -1, -1, 1, 2};
+	for (int i = 2 * blocks_per_piece; i < 4 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(expected[i / blocks_per_piece]), i % blocks_per_piece));
+	for (int i = 4 * blocks_per_piece; i < 5 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(6), i % blocks_per_piece));
+	for (int i = 5 * blocks_per_piece; i < 6 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(0), i % blocks_per_piece));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+		p->we_have(i);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
 }
 
 TORRENT_TEST(cursors_sweep_up_we_have)
@@ -885,64 +968,83 @@ TORRENT_TEST(cursors_sweep_in_we_have)
 	TEST_EQUAL(p->reverse_cursor(), 0_piece);
 }
 
-TORRENT_TEST(cursors_sweep_up_we_dont_have)
+TORRENT_TEST(cursors_sweep_up_seq_range_we_have)
 {
-	auto p = setup_picker("7654321", "*******", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
+	TEST_CHECK(!p->is_finished());
+	TEST_CHECK(!p->is_seeding());
+	TEST_EQUAL(p->cursor(), piece_index_t(0));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	for (piece_index_t i(1); i < piece_index_t(6); ++i)
+	{
+		TEST_EQUAL(p->cursor(), piece_index_t(i));
+		TEST_EQUAL(p->reverse_cursor(), piece_index_t(6));
+		p->we_have(i);
+	}
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
-	TEST_EQUAL(p->cursor(), 7_piece);
-	TEST_EQUAL(p->reverse_cursor(), 0_piece);
-	for (auto i = 0_piece; i < 7_piece; ++i)
+}
+
+TORRENT_TEST(cursors_sweep_down_seq_range_we_have)
+{
+	auto p = setup_picker("7654321", "       ", "", "");
+	TEST_CHECK(!p->is_finished());
+	TEST_CHECK(!p->is_seeding());
+	TEST_EQUAL(p->cursor(), piece_index_t(0));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	for (piece_index_t i(5); i >= piece_index_t(1); --i)
 	{
-		p->we_dont_have(i);
-		TEST_EQUAL(p->cursor(), 0_piece);
+		TEST_EQUAL(p->cursor(), piece_index_t(1));
 		TEST_EQUAL(p->reverse_cursor(), next(i));
+		p->we_have(i);
 	}
-	TEST_CHECK(!p->is_finished());
-	TEST_CHECK(!p->is_seeding());
-	TEST_EQUAL(p->cursor(), 0_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-}
-
-TORRENT_TEST(cursors_sweep_down_we_dont_have)
-{
-	auto p = setup_picker("7654321", "*******", "", "");
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
-	TEST_EQUAL(p->cursor(), 7_piece);
-	TEST_EQUAL(p->reverse_cursor(), 0_piece);
-	for (auto i = 6_piece; i >= 0_piece; --i)
-	{
-		p->we_dont_have(i);
-		TEST_EQUAL(p->cursor(), i);
-		TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	}
-	TEST_CHECK(!p->is_finished());
-	TEST_CHECK(!p->is_seeding());
-	TEST_EQUAL(p->cursor(), 0_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
 }
 
-TORRENT_TEST(cursors_sweep_out_we_dont_have)
+TORRENT_TEST(cursors_sweep_in_seq_range_we_have)
 {
-	auto p = setup_picker("7654321", "*******", "", "");
-	TEST_CHECK(p->is_finished());
-	TEST_CHECK(p->is_seeding());
-	TEST_EQUAL(p->cursor(), 7_piece);
-	TEST_EQUAL(p->reverse_cursor(), 0_piece);
-	for (auto left = 3_piece, right = 3_piece;
-		left >= 0_piece && right < 7_piece;
-		--left, ++right)
+	auto p = setup_picker("7654321", "       ", "", "");
+	TEST_CHECK(!p->is_finished());
+	TEST_CHECK(!p->is_seeding());
+	TEST_EQUAL(p->cursor(), piece_index_t(0));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	for (piece_index_t left(1), right(5); left <= right; ++left, --right)
 	{
-		p->we_dont_have(left);
-		p->we_dont_have(right);
 		TEST_EQUAL(p->cursor(), left);
 		TEST_EQUAL(p->reverse_cursor(), next(right));
+		p->we_have(left);
+		p->we_have(right);
 	}
-	TEST_CHECK(!p->is_finished());
-	TEST_CHECK(!p->is_seeding());
-	TEST_EQUAL(p->cursor(), 0_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->we_have(piece_index_t(0));
+	p->we_have(piece_index_t(6));
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+}
+
+TORRENT_TEST(cursors_we_have_test_end_state_seq_range)
+{
+	auto p = setup_picker("7654321", "*******", "", "");
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
+	p->set_sequential_range(piece_index_t(1), piece_index_t(5));
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
 }
 
 TORRENT_TEST(cursors)
@@ -970,28 +1072,25 @@ TORRENT_TEST(cursors)
 	TEST_EQUAL(p->reverse_cursor(), 0_piece);
 
 	p = setup_picker("7654321", "       ", "", "");
-	TEST_EQUAL(p->cursor(), 0_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->set_piece_priority(1_piece, dont_download);
-	TEST_EQUAL(p->cursor(), 0_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->set_piece_priority(0_piece, dont_download);
-	TEST_EQUAL(p->cursor(), 2_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->set_piece_priority(5_piece, dont_download);
-	TEST_EQUAL(p->cursor(), 2_piece);
-	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->set_piece_priority(6_piece, dont_download);
-	TEST_EQUAL(p->cursor(), 2_piece);
-	TEST_EQUAL(p->reverse_cursor(), 5_piece);
-	p->set_piece_priority(4_piece, dont_download);
-	p->set_piece_priority(3_piece, dont_download);
-	p->set_piece_priority(2_piece, dont_download);
-	TEST_EQUAL(p->cursor(), 7_piece);
-	TEST_EQUAL(p->reverse_cursor(), 0_piece);
-	p->set_piece_priority(3_piece, low_priority);
-	TEST_EQUAL(p->cursor(), 3_piece);
-	TEST_EQUAL(p->reverse_cursor(), 4_piece);
+	TEST_EQUAL(p->cursor(), piece_index_t(0));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_piece_priority(piece_index_t(1), dont_download);
+	TEST_EQUAL(p->cursor(), piece_index_t(0));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_piece_priority(piece_index_t(0), dont_download);
+	TEST_EQUAL(p->cursor(), piece_index_t(2));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_piece_priority(piece_index_t(5), dont_download);
+	TEST_EQUAL(p->cursor(), piece_index_t(2));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(7));
+	p->set_piece_priority(piece_index_t(6), dont_download);
+	TEST_EQUAL(p->cursor(), piece_index_t(2));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(5));
+	p->set_piece_priority(piece_index_t(4), dont_download);
+	p->set_piece_priority(piece_index_t(3), dont_download);
+	p->set_piece_priority(piece_index_t(2), dont_download);
+	TEST_EQUAL(p->cursor(), piece_index_t(7));
+	TEST_EQUAL(p->reverse_cursor(), piece_index_t(0));
 }
 
 TORRENT_TEST(piece_priorities)
