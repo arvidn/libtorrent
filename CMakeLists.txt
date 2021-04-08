@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR) # Configurable policies: <= CMP0094
+cmake_minimum_required(VERSION 3.13.0 FATAL_ERROR)
+# Configurable policies: <= CMP0094 requires 3.15, but LGTM has an older version
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
