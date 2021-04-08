@@ -26,7 +26,43 @@ namespace aux {
 		disk_job_pool();
 		~disk_job_pool();
 
-		disk_io_job* allocate_job(job_action_t type);
+		template <typename JobType, typename... Args>
+		disk_io_job* allocate_job(
+			disk_job_flags_t const flags
+			, std::shared_ptr<mmap_storage> storage
+			, Args&&... args)
+		{
+			void* buf;
+			{
+				std::lock_guard<std::mutex> l(m_job_mutex);
+				buf = m_job_pool.malloc();
+				m_job_pool.set_next_size(100);
+				++m_jobs_in_use;
+				if constexpr (std::is_same_v<JobType, job::read>)
+					++m_read_jobs;
+				else if constexpr (std::is_same_v<JobType, job::write>)
+					++m_write_jobs;
+			}
+			TORRENT_ASSERT(buf);
+
+			auto* ptr = new (buf) disk_io_job{
+				tailqueue_node<disk_io_job>{},
+				flags,
+				std::move(storage),
+				status_t::no_error,
+				storage_error{},
+				JobType{std::forward<Args>(args)...},
+#if TORRENT_USE_ASSERTS
+				true, // in_use
+				false, // job_posted
+				false, // callback_called
+				false, // blocked
+#endif
+			};
+
+			return ptr;
+		}
+
 		void free_job(disk_io_job* j);
 		void free_jobs(disk_io_job** j, int num);
 

@@ -51,6 +51,195 @@ namespace libtorrent::aux {
 		, num_job_ids
 	};
 
+namespace job {
+
+	// partial read jobs are issued when a peer sends unaligned piece requests.
+	// i.e. piece offsets that are not aligned to 16 kiB. These are not very
+	// common.
+	struct partial_read
+	{
+		std::function<void(disk_buffer_holder block, storage_error const& se)> handler;
+		// passed in/out
+		disk_buffer_holder buf;
+
+		// passed in
+		// The number of bytes to skip into the buffer that we're reading into.
+		std::uint16_t buffer_offset;
+
+		// passed in/out
+		// number of bytes 'buf' points to
+		std::uint16_t buffer_size;
+
+		// passed in
+		// the piece to read from
+		piece_index_t piece;
+
+		// passed in
+		// the offset into the piece the read should start
+		// for hash jobs, this is the first block the hash
+		// job is still holding a reference to. The end of
+		// the range of blocks a hash jobs holds references
+		// to is always the last block in the piece.
+		std::int32_t offset;
+	};
+
+	// read jobs read one block (16 kiB) from a piece.
+	struct read
+	{
+		std::function<void(disk_buffer_holder block, storage_error const& se)> handler;
+
+		// passed out
+		disk_buffer_holder buf;
+		// passed in/out
+		// number of bytes 'buf' points to
+		std::uint16_t buffer_size;
+
+		// passed in
+		// the piece to read from
+		piece_index_t piece;
+
+		// passed in
+		// the offset into the piece the read should start
+		// for hash jobs, this is the first block the hash
+		// job is still holding a reference to. The end of
+		// the range of blocks a hash jobs holds references
+		// to is always the last block in the piece.
+		std::int32_t offset;
+	};
+
+	// write jobs write one block (16 kiB) to a piece. These are always aligned
+	// to 16 kiB blocks.
+	struct write
+	{
+		std::function<void(storage_error const&)> handler;
+
+		disk_buffer_holder buf;
+
+		// passed in
+		// the piece to write to
+		piece_index_t piece;
+
+		// passed in
+		// the offset into the piece the write should start
+		// for hash jobs, this is the first block the hash
+		// job is still holding a reference to. The end of
+		// the range of blocks a hash jobs holds references
+		// to is always the last block in the piece.
+		std::int32_t offset;
+
+		// passed in/out
+		// number of bytes 'buf' points to
+		std::uint16_t buffer_size;
+	};
+
+	// the hash jobs computes the SHA-1 hash of a whole piece. If the
+	// block_hashes span is non-empty, this job also computes sha-256 hashes for
+	// each 16 kiB block. This is used for v2 torrents
+	struct hash
+	{
+		std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler;
+
+		// passed in
+		// the piece to hash
+		piece_index_t piece;
+
+		// passed in
+		span<sha256_hash> block_hashes;
+
+		// passed out
+		sha1_hash piece_hash;
+	};
+
+	// the hash2 jobs computes the sha-256 hash for a single block (16 kiB).
+	// These offsets are always aligned to blocks.
+	struct hash2
+	{
+		using handler_t = std::function<void(piece_index_t, sha256_hash const&, storage_error const&)>;
+		handler_t handler;
+		// passed in
+		// the piece to hash
+		piece_index_t piece;
+
+		// this is the first block the hash job is still holding a reference to.
+		// The end of the range of blocks a hash jobs holds references to is
+		// always the last block in the piece.
+		std::int32_t offset;
+
+		// passed out
+		sha256_hash piece_hash2;
+	};
+
+	// This job requests to move/rename the files on disk for the specified
+	// torrent to the new path.
+	struct move_storage
+	{
+		using handler_t = std::function<void(status_t, std::string, storage_error const&)>;
+		handler_t handler;
+
+		// passed in
+		std::string path;
+		// passed in
+		move_flags_t move_flags;
+	};
+
+	// This job closes the file handles open for this torrent
+	struct release_files
+	{
+		std::function<void()> handler;
+	};
+
+	struct delete_files
+	{
+		std::function<void(storage_error const&)> handler;
+
+		// passed in
+		remove_flags_t flags;
+	};
+
+	struct check_fastresume
+	{
+		std::function<void(status_t, storage_error const&)> handler;
+
+		// optional, passed in
+		// this is a vector of hard-links to create. Each element corresponds to
+		// a file in the file_storage. The string is the absolute path of the
+		// identical file to create the hard link to.
+		aux::vector<std::string, file_index_t>* links;
+
+		// optional, passed in
+		add_torrent_params const* resume_data;
+	};
+
+	struct rename_file
+	{
+		std::function<void(std::string, file_index_t, storage_error const&)> handler;
+		// passed in/out
+		file_index_t file_index;
+		// passed in/out
+		std::string name;
+	};
+
+	struct stop_torrent
+	{
+		std::function<void()> handler;
+	};
+
+	struct file_priority
+	{
+		std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)> handler;
+		// passed in/out
+		aux::vector<download_priority_t, file_index_t> prio;
+	};
+
+	struct clear_piece
+	{
+		std::function<void(piece_index_t)> handler;
+
+		// the piece to clear
+		piece_index_t piece;
+	};
+}
+
 	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
 	// (as pointers) to the disk I/O thread, and then passed back
@@ -65,10 +254,6 @@ namespace libtorrent::aux {
 	// containers.
 	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node<disk_io_job>
 	{
-		disk_io_job();
-		disk_io_job(disk_io_job const&) = delete;
-		disk_io_job& operator=(disk_io_job const&) = delete;
-
 		void call_callback();
 
 		// this is set by the storage object when a fence is raised
@@ -86,102 +271,38 @@ namespace libtorrent::aux {
 		// instead of executing
 		static inline constexpr disk_job_flags_t aborted = 6_bit;
 
-		// for read and write, this is the disk_buffer_holder
-		// for other jobs, it may point to other job-specific types
-		// for move_storage and rename_file this is a string
-		std::variant<disk_buffer_holder
-			, std::string
-			, add_torrent_params const*
-			, aux::vector<download_priority_t, file_index_t>
-			, remove_flags_t
-			> argument;
+		// flags controlling this job
+		disk_job_flags_t flags;
 
 		// the disk storage this job applies to (if applicable)
 		std::shared_ptr<mmap_storage> storage;
 
-		// this is called when operation completes
-
-		using read_handler = std::function<void(disk_buffer_holder block, storage_error const& se)>;
-		using write_handler = std::function<void(storage_error const&)>;
-		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
-		using hash2_handler = std::function<void(piece_index_t, sha256_hash const&, storage_error const&)>;
-		using move_handler = std::function<void(status_t, std::string, storage_error const&)>;
-		using release_handler = std::function<void()>;
-		using check_handler = std::function<void(status_t, storage_error const&)>;
-		using rename_handler = std::function<void(std::string, file_index_t, storage_error const&)>;
-		using clear_piece_handler = std::function<void(piece_index_t)>;
-		using set_file_prio_handler = std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)>;
-
-		std::variant<read_handler
-			, write_handler
-			, hash_handler
-			, hash2_handler
-			, move_handler
-			, release_handler
-			, check_handler
-			, rename_handler
-			, clear_piece_handler
-			, set_file_prio_handler> callback;
+		// passed out
+		// return value of operation
+		status_t ret = status_t::no_error;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the
 		// file the disk operation failed on
 		storage_error error;
 
-		union un
-		{
-			un() {}
-			// result for hash jobs
-			struct hash_args
-			{
-				sha1_hash piece_hash;
-				span<sha256_hash> block_hashes;
-			} h;
-			sha256_hash piece_hash2;
-
-			// this is used for check_fastresume to pass in a vector of hard-links
-			// to create. Each element corresponds to a file in the file_storage.
-			// The string is the absolute path of the identical file to create
-			// the hard link to.
-			aux::vector<std::string, file_index_t>* links;
-
-			struct io_args
-			{
-			// for read and write, the offset into the piece
-			// the read or write should start
-			// for hash jobs, this is the first block the hash
-			// job is still holding a reference to. The end of
-			// the range of blocks a hash jobs holds references
-			// to is always the last block in the piece.
-			std::int32_t offset;
-
-			// number of bytes 'buffer' points to. Used for read & write
-			std::uint16_t buffer_size;
-
-			// this is used for partial_read. It's the number of bytes to skip
-			// into the buffer that we're reading into.
-			std::uint16_t buffer_offset;
-
-			} io;
-		} d;
-
-		// arguments used for read and write
-		// the piece this job applies to
-		union {
-			piece_index_t piece;
-			file_index_t file_index;
-		};
+		std::variant<job::read
+			, job::write
+			, job::hash
+			, job::hash2
+			, job::move_storage
+			, job::release_files
+			, job::delete_files
+			, job::check_fastresume
+			, job::rename_file
+			, job::stop_torrent
+			, job::file_priority
+			, job::clear_piece
+			, job::partial_read
+		> action;
 
 		// the type of job this is
-		job_action_t action = job_action_t::read;
-
-		// return value of operation
-		status_t ret = status_t::no_error;
-
-		// flags controlling this job
-		disk_job_flags_t flags = disk_job_flags_t{};
-
-		move_flags_t move_flags = move_flags_t::always_replace_files;
+		job_action_t get_type() const { return job_action_t(action.index()); }
 
 #if TORRENT_USE_ASSERTS
 		bool in_use = false;
