@@ -1627,7 +1627,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	mmap_disk_io::job_queue& mmap_disk_io::queue_for_job(aux::disk_io_job* j)
 	{
-		if (m_hash_threads.max_threads() > 0 && j->action == aux::job_action_t::hash)
+		if (m_hash_threads.max_threads() > 0
+			&& (j->action == aux::job_action_t::hash || j->action == aux::job_action_t::hash2))
 			return m_hash_io_jobs;
 		else
 			return m_generic_io_jobs;
@@ -1635,7 +1636,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	aux::disk_io_thread_pool& mmap_disk_io::pool_for_job(aux::disk_io_job* j)
 	{
-		if (m_hash_threads.max_threads() > 0 && j->action == aux::job_action_t::hash)
+		if (m_hash_threads.max_threads() > 0
+			&& (j->action == aux::job_action_t::hash || j->action == aux::job_action_t::hash2))
 			return m_hash_threads;
 		else
 			return m_generic_threads;
