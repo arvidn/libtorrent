@@ -169,6 +169,28 @@ WRAP_CAT(system)
 
 #undef WRAP_CAT
 
+#if TORRENT_ABI_VERSION == 1
+
+#define WRAP_DEPR_CAT(name) \
+	category_holder wrap_ ##name## _category_deprecated() { \
+        python_deprecated(#name " is deprecated"); \
+		return category_holder(name## _category()); \
+	}
+
+WRAP_DEPR_CAT(libtorrent)
+WRAP_DEPR_CAT(upnp)
+WRAP_DEPR_CAT(http)
+WRAP_DEPR_CAT(socks)
+WRAP_DEPR_CAT(bdecode)
+#if TORRENT_USE_I2P
+WRAP_DEPR_CAT(i2p)
+#endif
+WRAP_DEPR_CAT(generic)
+WRAP_DEPR_CAT(system)
+
+#undef WRAP_DEPR_CAT
+#endif
+
 void bind_error_code()
 {
     class_<category_holder>("error_category", no_init)
@@ -200,13 +222,13 @@ void bind_error_code()
 #endif
 
 #if TORRENT_ABI_VERSION == 1
-    def("get_libtorrent_category", &wrap_libtorrent_category);
-    def("get_upnp_category", &wrap_upnp_category);
-    def("get_http_category", &wrap_http_category);
-    def("get_socks_category", &wrap_socks_category);
-    def("get_bdecode_category", &wrap_bdecode_category);
+    def("get_libtorrent_category", &wrap_libtorrent_category_deprecated);
+    def("get_upnp_category", &wrap_upnp_category_deprecated);
+    def("get_http_category", &wrap_http_category_deprecated);
+    def("get_socks_category", &wrap_socks_category_deprecated);
+    def("get_bdecode_category", &wrap_bdecode_category_deprecated);
 #if TORRENT_USE_I2P
-    def("get_i2p_category", &wrap_i2p_category);
+    def("get_i2p_category", &wrap_i2p_category_deprecated);
 #endif
 #endif // TORRENT_ABI_VERSION
 

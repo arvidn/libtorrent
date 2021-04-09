@@ -76,6 +76,7 @@ struct bytes_from_python
 #if TORRENT_ABI_VERSION == 1
 object client_fingerprint_(peer_id const& id)
 {
+    python_deprecated("client_fingerprint is deprecated");
     boost::optional<fingerprint> result = client_fingerprint(id);
     return result ? object(*result) : object();
 }

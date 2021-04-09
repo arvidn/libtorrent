@@ -161,9 +161,8 @@ struct entry_from_python
         else
         {
             // TODO: Throw a TypeError here in the future
-            PyErr_WarnEx(PyExc_DeprecationWarning
-                , "constructing a bencode entry from anything but "
-                "int, dict, list, string, bytes and int-tuple is deprecated", 1);
+            python_deprecated("constructing a bencode entry from anything but "
+                "int, dict, list, string, bytes and int-tuple is deprecated");
         }
 
         return entry();

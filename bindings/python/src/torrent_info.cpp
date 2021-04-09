@@ -12,6 +12,7 @@
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "bytes.hpp"
+#include "gil.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -128,51 +129,124 @@ namespace
 #if TORRENT_ABI_VERSION == 1
     // Create getters for announce_entry data members with non-trivial types which need converting.
     lt::time_point get_next_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce); }
+    {
+        python_deprecated("next_announce is deprecated");
+        return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce);
+    }
     lt::time_point get_min_announce(announce_entry const& ae)
-    { return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().min_announce); }
+    {
+        python_deprecated("min_announce is deprecated");
+        return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().min_announce);
+    }
     // announce_entry data member bit-fields.
     int get_fails(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().fails; }
+    {
+        python_deprecated("fails is deprecated");
+        return ae.endpoints.empty() ? 0 : ae.endpoints.front().fails;
+    }
     bool get_updating(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().updating; }
+    {
+        python_deprecated("updating is deprecated");
+        return ae.endpoints.empty() ? false : ae.endpoints.front().updating;
+    }
     bool get_start_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().start_sent; }
+    {
+        python_deprecated("start_sent is deprecated");
+        return ae.endpoints.empty() ? false : ae.endpoints.front().start_sent;
+    }
     bool get_complete_sent(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().complete_sent; }
+    {
+        python_deprecated("complete_sent is deprecated");
+        return ae.endpoints.empty() ? false : ae.endpoints.front().complete_sent;
+    }
     // announce_entry method requires lt::time_point.
     bool can_announce(announce_entry const& ae, bool is_seed) {
+        python_deprecated("can_announce() is deprecated");
         // an entry without endpoints implies it has never been announced so it can be now
         if (ae.endpoints.empty()) return true;
         lt::time_point now = lt::clock_type::now();
         return ae.endpoints.front().can_announce(now, is_seed, ae.fail_limit);
     }
     bool is_working(announce_entry const& ae)
-    { return ae.endpoints.empty() ? false : ae.endpoints.front().is_working(); }
+    {
+        python_deprecated("is_working is deprecated");
+        return ae.endpoints.empty() ? false : ae.endpoints.front().is_working();
+    }
 #endif
     int get_source(announce_entry const& ae) { return ae.source; }
     bool get_verified(announce_entry const& ae) { return ae.verified; }
 
 #if TORRENT_ABI_VERSION == 1
     std::string get_message(announce_entry const& ae)
-    { return ae.endpoints.empty() ? "" : ae.endpoints.front().message; }
+    {
+        python_deprecated("message is deprecated");
+        return ae.endpoints.empty() ? "" : ae.endpoints.front().message;
+    }
     error_code get_last_error(announce_entry const& ae)
-    { return ae.endpoints.empty() ? error_code() : ae.endpoints.front().last_error; }
+    {
+        python_deprecated("last_error is deprecated");
+        return ae.endpoints.empty() ? error_code() : ae.endpoints.front().last_error;
+    }
     int get_scrape_incomplete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_incomplete; }
+    {
+        python_deprecated("scrape_incomplete is deprecated");
+        return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_incomplete;
+    }
     int get_scrape_complete(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_complete; }
+    {
+        python_deprecated("scrape_complete is deprecated");
+        return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_complete;
+    }
     int get_scrape_downloaded(announce_entry const& ae)
-    { return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_downloaded; }
-    int next_announce_in(announce_entry const&) { return 0; }
-    int min_announce_in(announce_entry const&) { return 0; }
-    bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
-    std::int64_t get_size(file_entry const& fe) { return fe.size; }
-    std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
-    bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
-    bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
-    bool get_hidden_attribute(file_entry const& fe) { return fe.hidden_attribute; }
-    bool get_symlink_attribute(file_entry const& fe) { return fe.symlink_attribute; }
+    {
+        python_deprecated("scrape_downloaded is deprecated");
+        return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_downloaded;
+    }
+    int next_announce_in(announce_entry const&)
+    {
+        python_deprecated("next_announce_in is deprecated");
+        return 0;
+    }
+    int min_announce_in(announce_entry const&)
+    {
+        python_deprecated("min_announce_in is deprecated");
+        return 0;
+    }
+    bool get_send_stats(announce_entry const& ae)
+    {
+        python_deprecated("send_stats is deprecated");
+        return ae.send_stats;
+    }
+    std::int64_t get_size(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.size;
+    }
+    std::int64_t get_offset(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.offset;
+    }
+    bool get_pad_file(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.pad_file;
+    }
+    bool get_executable_attribute(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.executable_attribute;
+    }
+    bool get_hidden_attribute(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.hidden_attribute;
+    }
+    bool get_symlink_attribute(file_entry const& fe)
+    {
+        python_deprecated("file_entry is deprecated");
+        return fe.symlink_attribute;
+    }
 #endif
 
 load_torrent_limits dict_to_limits(dict limits)
@@ -322,7 +396,7 @@ void bind_torrent_info()
         .def("files", &torrent_info::files, return_internal_reference<>())
         .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
 #if TORRENT_ABI_VERSION == 1
-        .def("file_at", &torrent_info::file_at)
+        .def("file_at", depr(&torrent_info::file_at))
 #ifdef TORRENT_WINDOWS
         .def("rename_file", rename_file1)
 #endif
