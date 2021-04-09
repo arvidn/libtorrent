@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "boost_python.hpp"
+#include "gil.hpp"
 #include <libtorrent/torrent_status.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/bitfield.hpp>
