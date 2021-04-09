@@ -32,6 +32,8 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
 
+#include <array>
+
 using namespace lt;
 
 // TODO: test scrape requests
@@ -572,28 +574,6 @@ TORRENT_TEST(parse_websocket_tracker_response)
 	}
 }
 
-TORRENT_TEST(parse_websocket_tracker_invalid_json)
-{
-	char const response[] = R"({"invalid":foo)";
-
-	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
-
-	TEST_EQUAL(ec.value(), boost::system::errc::bad_message);
-	TEST_CHECK(std::holds_alternative<std::string>(ret));
-}
-
-TORRENT_TEST(parse_websocket_tracker_response_invalid_info_hash)
-{
-	char const response[] = R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"tooshort"})";
-
-	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
-
-	TEST_EQUAL(ec.value(), boost::system::errc::invalid_argument);
-	TEST_CHECK(std::holds_alternative<std::string>(ret));
-}
-
 TORRENT_TEST(parse_websocket_tracker_response_offer)
 {
 	char const response[] = R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
@@ -645,6 +625,65 @@ TORRENT_TEST(parse_websocket_tracker_response_answer)
 			TEST_EQUAL(std::string(parsed.answer->offer_id.data(), parsed.answer->offer_id.size()), "yyyyyyyyyyyyyyyy");
 			TEST_EQUAL(parsed.answer->sdp, "SDP\r\n");
 		}
+	}
+}
+
+TORRENT_TEST(parse_websocket_tracker_invalid_json)
+{
+	char const response[] = R"({"invalid":foo)";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+
+	TEST_EQUAL(ec.value(), boost::system::errc::bad_message);
+	TEST_CHECK(std::holds_alternative<std::string>(ret));
+}
+
+TORRENT_TEST(parse_websocket_tracker_invalid_response)
+{
+	std::array<char const*, 11> responses =
+	{
+		// not an object
+		R"([ "foo" ])",
+
+		// info_hash too short
+		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"tooshort"})",
+
+		// info_hash too long
+		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"aaaaaaaaaaaaaaaaaaaaa"})",
+
+		// offer with peer_id too short
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// offer with peer_id too long
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// answer with peer_id too short
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// answer with peer_id too long
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// offer without sdp
+		R"({"action":"announce","offer":{"type":"offer"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// answer without sdp
+		R"({"action":"announce","answer":{"type":"answer"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// offer not an object
+		R"({"action":"announce","offer": "foo","offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// answer not an object
+		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})"
+	};
+
+	for(char const* response : responses)
+	{
+		error_code ec;
+		auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+
+		TEST_EQUAL(ec.value(), boost::system::errc::invalid_argument);
+		TEST_CHECK(std::holds_alternative<std::string>(ret));
 	}
 }
 
