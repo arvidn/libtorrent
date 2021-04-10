@@ -50,6 +50,8 @@ class test_create_torrent(unittest.TestCase):
         fs = lt.file_storage()
         fs.add_file('test/file1', 1000)
         fs.add_file('test/file2', 2000)
+        self.assertEqual(fs.file_name(0), 'file1')
+        self.assertEqual(fs.file_name(1), 'file2')
         ct = lt.create_torrent(fs)
         ct.add_url_seed('foo')
         ct.add_http_seed('bar')
@@ -57,7 +59,15 @@ class test_create_torrent(unittest.TestCase):
         ct.set_root_cert('1234567890')
         ct.add_collection('1337')
         entry = ct.generate()
-        print(entry)
+        encoded = lt.bencode(entry)
+        print(encoded)
+
+        # zero out the creation date:
+        encoded = encoded.split(b'13:creation datei', 1)
+        encoded[1] = b'0e' + encoded[1].split(b'e', 1)[1]
+        encoded = b'13:creation datei'.join(encoded)
+
+        self.assertEqual(encoded, b'd8:announce3:bar13:creation datei0e9:httpseeds3:bar4:infod11:collectionsl4:1337e5:filesld6:lengthi2000e4:pathl5:file2eed6:lengthi1000e4:pathl5:file1eee4:name4:test12:piece lengthi16384e6:pieces20:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x008:ssl-cert10:1234567890e8:url-list3:fooe')
 
 
 class test_session_stats(unittest.TestCase):
@@ -171,6 +181,7 @@ class test_torrent_handle(unittest.TestCase):
             tracker.tier = idx
             tracker.fail_limit = 2
             trackers.append(tracker)
+            self.assertEqual(tracker.url, tracker_url)
         self.h.replace_trackers(trackers)
         new_trackers = self.h.trackers()
         self.assertEqual(new_trackers[0]['url'], 'udp://tracker1.com')

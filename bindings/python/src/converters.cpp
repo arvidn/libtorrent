@@ -156,7 +156,9 @@ struct to_string_view
 
         if (PyUnicode_Check(x))
         {
-            data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
+            Py_ssize_t size = 0;
+            char const* unicode = PyUnicode_AsUTF8AndSize(x, &size);
+            data->convertible = new (storage) lt::string_view(unicode, size);
         }
         else
         {
