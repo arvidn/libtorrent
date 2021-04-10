@@ -302,7 +302,7 @@ rule building ( properties * )
 	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
 	if ! $(VERSION) || $(VERSION) < 14
 	{
-		ECHO "libtorrent requires at least C++14. Specify <cxxstd>14 or higher" ;
+		ECHO "libtorrent requires at least C++14. Specify cxxstd=14 or higher" ;
 		result += <build>no ;
 	}
 
@@ -917,6 +917,7 @@ lib torrent
 
 	: # default build
 	<threading>multi
+	<cxxstd>14
 	<c++-template-depth>512
 
 	: # usage requirements
