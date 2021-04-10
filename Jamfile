@@ -265,7 +265,18 @@ rule building ( properties * )
 		result += <build>no ;
 	}
 
+<<<<<<< HEAD
 	if <toolset>msvc in $(properties)
+=======
+	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
+	if ! $(VERSION) || $(VERSION) < 14
+	{
+		ECHO "libtorrent requires at least C++14. Specify cxxstd=14 or higher" ;
+		result += <build>no ;
+	}
+
+	if <toolset>msvc in $(properties) || <toolset>intel-win in $(properties)
+>>>>>>> 80affa04f (make the default build for libtorrent be cxxstd=14)
 	{
 		# allow larger .obj files (with more sections)
 		result += <cflags>/bigobj ;
@@ -815,6 +826,7 @@ lib torrent
 
 	: # default build
 	<threading>multi
+	<cxxstd>14
 	<c++-template-depth>512
 
 	: # usage requirements
