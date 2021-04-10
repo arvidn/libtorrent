@@ -518,16 +518,40 @@ class test_alerts(unittest.TestCase):
 class test_bencoder(unittest.TestCase):
 
     def test_bencode(self):
-
         encoded = lt.bencode({'a': 1, 'b': [1, 2, 3], 'c': 'foo'})
         self.assertEqual(encoded, b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe')
 
     def test_bdecode(self):
-
         encoded = b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
         decoded = lt.bdecode(encoded)
         self.assertEqual(decoded, {b'a': 1, b'b': [1, 2, 3], b'c': b'foo'})
 
+    def test_string(self):
+        encoded = lt.bencode('foo\u00e5\u00e4\u00f6')
+        self.assertEqual(encoded, b'9:foo\xc3\xa5\xc3\xa4\xc3\xb6')
+
+    def test_bytes(self):
+        encoded = lt.bencode(b'foo')
+        self.assertEqual(encoded, b'3:foo')
+
+    def test_float(self):
+        # TODO: this should throw a TypeError in the future
+        with self.assertWarns(DeprecationWarning):
+            encoded = lt.bencode(1.337)
+            self.assertEqual(encoded, b'0:')
+
+    def test_object(self):
+        class FooBar:
+            dummy = 1
+
+        # TODO: this should throw a TypeError in the future
+        with self.assertWarns(DeprecationWarning):
+            encoded = lt.bencode(FooBar())
+            self.assertEqual(encoded, b'0:')
+
+    def test_preformatted(self):
+        encoded = lt.bencode((1, 2, 3, 4, 5))
+        self.assertEqual(encoded, b'\x01\x02\x03\x04\x05')
 
 class test_sha1hash(unittest.TestCase):
 
