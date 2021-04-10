@@ -1,6 +1,6 @@
 VERSION=2.0.3
 
-BUILD_CONFIG=release cxxstd=14 link=shared crypto=openssl warnings=off address-model=64
+BUILD_CONFIG=release link=shared crypto=openssl warnings=off address-model=64
 
 ifeq (${PREFIX},)
 PREFIX=/usr/local/
