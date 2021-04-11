@@ -295,7 +295,9 @@ void bind_torrent_info()
         .def("add_url_seed", &torrent_info::add_url_seed, (arg("url")
             , arg("extern_auth") = std::string{}
             , arg("extra_headers") = web_seed_entry::headers_t{}))
-        .def("add_http_seed", &torrent_info::add_http_seed)
+        .def("add_http_seed", &torrent_info::add_http_seed, (arg("url")
+            , arg("extern_auth") = std::string{}
+            , arg("extra_headers") = web_seed_entry::headers_t{}))
         .def("web_seeds", get_web_seeds)
         .def("set_web_seeds", set_web_seeds)
 
