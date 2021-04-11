@@ -862,10 +862,19 @@ class test_dht_settings(unittest.TestCase):
 
 if __name__ == '__main__':
     print(lt.__version__)
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                             'url_seed_multi.torrent'), '.')
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                             'base.torrent'), '.')
-    shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
-                             'unordered.torrent'), '.')
+    try:
+        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+                                 'url_seed_multi.torrent'), '.')
+    except shutil.SameFileError:
+        pass
+    try:
+        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+                                 'base.torrent'), '.')
+    except shutil.SameFileError:
+        pass
+    try:
+        shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',
+                                 'unordered.torrent'), '.')
+    except shutil.SameFileError:
+        pass
     unittest.main()
