@@ -141,12 +141,11 @@ struct to_string_view
 
     static void* convertible(PyObject* x)
     {
-#if PY_VERSION_HEX >= 0x03020000
-        return PyBytes_Check(x)
-#else
-        return PyString_Check(x)
+        return
+#if PY_VERSION_HEX < 0x03020000
+        PyString_Check(x) ? x :
 #endif
-            ? x : PyUnicode_Check(x) ? x : nullptr;
+            PyUnicode_Check(x) ? x : nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
@@ -154,21 +153,18 @@ struct to_string_view
         void* storage = ((converter::rvalue_from_python_storage<
             lt::string_view>*)data)->storage.bytes;
 
-        if (PyUnicode_Check(x))
+#if PY_VERSION_HEX < 0x03020000
+        if (PyString_Check(x))
+        {
+            data->convertible = new (storage) lt::string_view(
+                PyString_AsString(x), PyString_Size(x));
+        }
+        else
+#endif
         {
             Py_ssize_t size = 0;
             char const* unicode = PyUnicode_AsUTF8AndSize(x, &size);
             data->convertible = new (storage) lt::string_view(unicode, size);
-        }
-        else
-        {
-            data->convertible = new (storage) lt::string_view(
-#if PY_VERSION_HEX >= 0x03020000
-                PyBytes_AsString(x), PyBytes_Size(x)
-#else
-                PyString_AsString(x), PyString_Size(x)
-#endif
-                );
         }
     }
 };

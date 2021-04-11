@@ -41,7 +41,7 @@ struct bytes_from_python
     static void* convertible(PyObject* x)
     {
 #if PY_MAJOR_VERSION >= 3
-        return PyBytes_Check(x) ? x : NULL;
+        return (PyBytes_Check(x) || PyByteArray_Check(x)) ? x : nullptr;
 #else
         return PyString_Check(x) ? x : nullptr;
 #endif
@@ -52,8 +52,16 @@ struct bytes_from_python
 #if PY_MAJOR_VERSION >= 3
         void* storage = ((converter::rvalue_from_python_storage<bytes>*)data)->storage.bytes;
         bytes* ret = new (storage) bytes();
-        ret->arr.resize(PyBytes_Size(x));
-        memcpy(&ret->arr[0], PyBytes_AsString(x), ret->arr.size());
+        if (PyByteArray_Check(x))
+        {
+            ret->arr.resize(PyByteArray_Size(x));
+            memcpy(&ret->arr[0], PyByteArray_AsString(x), ret->arr.size());
+        }
+        else
+        {
+            ret->arr.resize(PyBytes_Size(x));
+            memcpy(&ret->arr[0], PyBytes_AsString(x), ret->arr.size());
+        }
         data->convertible = storage;
 #else
         void* storage = ((converter::rvalue_from_python_storage<bytes>*)data)->storage.bytes;
