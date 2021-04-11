@@ -414,6 +414,7 @@ void bind_converters()
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
     to_python_converter<lt::address, address_to_tuple<lt::address>>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
+    to_python_converter<std::pair<std::string, std::string>, pair_to_tuple<std::string, std::string>>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<std::vector<lt::stats_metric>>>();
     to_python_converter<std::vector<lt::open_file_state>, vector_to_list<std::vector<lt::open_file_state>>>();
@@ -424,6 +425,7 @@ void bind_converters()
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<std::vector<lt::tcp::endpoint>>>();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
+    to_python_converter<std::vector<std::pair<std::string, std::string>>, vector_to_list<std::vector<std::pair<std::string, std::string>>>>();
 
     to_python_converter<lt::typed_bitfield<lt::piece_index_t>, bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>>();
     to_python_converter<lt::bitfield, bitfield_to_list<lt::bitfield>>();
@@ -494,6 +496,7 @@ void bind_converters()
     list_to_vector<std::vector<lt::tcp::endpoint>>();
     list_to_vector<std::vector<lt::udp::endpoint>>();
     list_to_vector<std::vector<std::pair<std::string, int>>>();
+    list_to_vector<std::vector<std::pair<std::string, std::string>>>();
 
     // work-around types
     list_to_vector<lt::aux::noexcept_movable<std::vector<int>>>();

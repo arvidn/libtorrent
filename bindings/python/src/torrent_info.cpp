@@ -289,8 +289,12 @@ void bind_torrent_info()
         .def("__init__", make_constructor(&file_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
 
-        .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
-        .def("add_url_seed", &torrent_info::add_url_seed)
+        .def("add_tracker", (add_tracker1)&torrent_info::add_tracker
+            , (arg("url"), arg("tier") = 0
+            , arg("source") = announce_entry::source_client))
+        .def("add_url_seed", &torrent_info::add_url_seed, (arg("url")
+            , arg("extern_auth") = std::string{}
+            , arg("extra_headers") = web_seed_entry::headers_t{}))
         .def("add_http_seed", &torrent_info::add_http_seed)
         .def("web_seeds", get_web_seeds)
         .def("set_web_seeds", set_web_seeds)
@@ -317,7 +321,6 @@ void bind_torrent_info()
         .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
 #if TORRENT_ABI_VERSION == 1
         .def("file_at", &torrent_info::file_at)
-        .def("file_at_offset", &torrent_info::file_at_offset)
 #ifdef TORRENT_WINDOWS
         .def("rename_file", rename_file1)
 #endif
