@@ -30,9 +30,9 @@ namespace
         return ret;
     }
 
-    tuple export_filter(ip_filter const& self)
+    tuple export_filter(ip_filter const& f)
     {
-        auto ret = self.export_filter();
+        auto ret = f.export_filter();
         list ipv4 = convert_range_list(std::get<0>(ret));
         list ipv6 = convert_range_list(std::get<1>(ret));
         return boost::python::make_tuple(ipv4, ipv6);
