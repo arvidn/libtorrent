@@ -635,6 +635,19 @@ class test_peer_class(unittest.TestCase):
         s.set_peer_class_type_filter(lt.peer_class_type_filter())
         s.set_peer_class_filter(lt.ip_filter())
 
+class test_ip_filter(unittest.TestCase):
+
+    def test_export(self):
+
+        f = lt.ip_filter()
+        self.assertEqual(f.access('1.1.1.1'), 0)
+        f.add_rule('1.1.1.1', '1.1.1.2', 1)
+        self.assertEqual(f.access('1.1.1.0'), 0)
+        self.assertEqual(f.access('1.1.1.1'), 1)
+        self.assertEqual(f.access('1.1.1.2'), 1)
+        self.assertEqual(f.access('1.1.1.3'), 0)
+        exp = f.export_filter()
+        self.assertEqual(exp, ([('0.0.0.0', '1.1.1.0'), ('1.1.1.1', '1.1.1.2'), ('1.1.1.3', '255.255.255.255')], [('::', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')]))
 
 class test_session(unittest.TestCase):
 
