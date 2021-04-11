@@ -33,7 +33,7 @@ void bind_sha1_hash()
         .def(init<std::string>())
         .def("clear", &sha1_hash::clear)
         .def("is_all_zeros", &sha1_hash::is_all_zeros)
-        .def("to_string", &sha1_hash::to_string)
+        .def("to_string", sha1_hash_bytes)
         .def("__hash__", get_hash)
         .def("to_bytes", sha1_hash_bytes)
         ;

@@ -235,15 +235,17 @@ std::shared_ptr<torrent_info> file_constructor1(lt::string_view filename, dict l
    return std::make_shared<torrent_info>(std::string(filename), dict_to_limits(limits));
 }
 
-std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
+std::shared_ptr<torrent_info> bencoded_constructor0(dict d)
 {
+    entry ent = extract<entry>(d);
     std::vector<char> buf;
     bencode(std::back_inserter(buf), ent);
     return std::make_shared<torrent_info>(buf, lt::from_span);
 }
 
-std::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent, dict limits)
+std::shared_ptr<torrent_info> bencoded_constructor1(dict d, dict limits)
 {
+    entry ent = extract<entry>(d);
     std::vector<char> buf;
     bencode(std::back_inserter(buf), ent);
     return std::make_shared<torrent_info>(buf, dict_to_limits(limits)

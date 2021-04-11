@@ -459,6 +459,12 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(ae.verified, False)
         self.assertEqual(ae.source, 0)
 
+    def test_torrent_info_sha1_hash_overload(self):
+        ti = lt.torrent_info(lt.sha1_hash('a' * 20))
+        self.assertEqual(ti.info_hash(), lt.sha1_hash('a' * 20))
+
+        ti_copy = lt.torrent_info(ti)
+        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash('a' * 20))
 
 class test_alerts(unittest.TestCase):
 
