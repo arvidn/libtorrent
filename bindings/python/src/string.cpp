@@ -19,7 +19,7 @@ struct unicode_from_python
     static void* convertible(PyObject* x)
     {
 #if PY_VERSION_HEX >= 0x03020000
-        return PyBytes_Check(x) ? x : PyUnicode_Check(x) ? x : nullptr;
+        return PyUnicode_Check(x) ? x : nullptr;
 #else
         return PyString_Check(x) ? x : PyUnicode_Check(x) ? x : nullptr;
 #endif
@@ -30,36 +30,19 @@ struct unicode_from_python
         void* storage = ((converter::rvalue_from_python_storage<
             std::string>*)data)->storage.bytes;
 
-        if (PyUnicode_Check(x))
+#if PY_VERSION_HEX < 0x03000000
+        if (PyString_Check(x))
         {
-            PyObject* utf8 = PyUnicode_AsUTF8String(x);
-            if (utf8 == nullptr)
-            {
-               new (storage) std::string();
-            }
-            else
-            {
-#if PY_VERSION_HEX >= 0x03000000
-               new (storage) std::string(PyBytes_AsString(utf8)
-                  , PyBytes_Size(utf8));
-#else
-               new (storage) std::string(PyString_AsString(utf8)
-                  , PyString_Size(utf8));
-#endif
-               Py_DECREF(utf8);
-            }
+            data->convertible = new (storage) std::string(PyString_AsString(x)
+                , PyString_Size(x));
         }
         else
-        {
-#if PY_VERSION_HEX >= 0x03000000
-            new (storage) std::string(PyBytes_AsString(x)
-               , PyBytes_Size(x));
-#else
-            new (storage) std::string(PyString_AsString(x)
-               , PyString_Size(x));
 #endif
+        {
+            Py_ssize_t size = 0;
+            char const* unicode = PyUnicode_AsUTF8AndSize(x, &size);
+            data->convertible = new (storage) std::string(unicode, size);
         }
-        data->convertible = storage;
     }
 };
 

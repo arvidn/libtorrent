@@ -225,14 +225,14 @@ std::shared_ptr<torrent_info> buffer_constructor1(bytes b, dict limits)
    return ret;
 }
 
-std::shared_ptr<torrent_info> file_constructor0(std::string const& filename)
+std::shared_ptr<torrent_info> file_constructor0(lt::string_view filename)
 {
-   return std::make_shared<torrent_info>(filename);
+   return std::make_shared<torrent_info>(std::string(filename));
 }
 
-std::shared_ptr<torrent_info> file_constructor1(std::string const& filename, dict limits)
+std::shared_ptr<torrent_info> file_constructor1(lt::string_view filename, dict limits)
 {
-   return std::make_shared<torrent_info>(filename, dict_to_limits(limits));
+   return std::make_shared<torrent_info>(std::string(filename), dict_to_limits(limits));
 }
 
 std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent)
@@ -286,12 +286,6 @@ void bind_torrent_info()
         .def("__init__", make_constructor(&file_constructor0))
         .def("__init__", make_constructor(&file_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
-
-#if TORRENT_ABI_VERSION == 1
-#ifdef TORRENT_WINDOWS
-        .def(init<std::wstring>((arg("file"))))
-#endif
-#endif
 
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker, arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
         .def("add_url_seed", &torrent_info::add_url_seed)

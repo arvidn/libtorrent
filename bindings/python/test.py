@@ -374,6 +374,8 @@ class TestAddPiece(unittest.TestCase):
 class test_torrent_info(unittest.TestCase):
 
     def test_bencoded_constructor(self):
+        # things that can be converted to a bencoded entry, will be interpreted
+        # as such and encoded
         info = lt.torrent_info({'info': {
             'name': 'test_torrent', 'length': 1234,
             'piece length': 16 * 1024,
@@ -387,6 +389,22 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(f.file_size(0), 1234)
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
+
+    def test_bytearray(self):
+        # a bytearray object is interpreted as a bencoded buffer
+        info = lt.torrent_info(bytearray(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(info.num_files(), 1)
+
+    def test_bytes(self):
+        # a bytes object is interpreted as a bencoded buffer
+        info = lt.torrent_info(bytes(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(info.num_files(), 1)
 
     def test_load_decode_depth_limit(self):
         self.assertRaises(RuntimeError, lambda: lt.torrent_info(
@@ -414,6 +432,12 @@ class test_torrent_info(unittest.TestCase):
 
         self.assertTrue(len(ti.metadata()) != 0)
         self.assertTrue(len(ti.hash_for_piece(0)) != 0)
+
+    def test_torrent_info_bytes_overload(self):
+        # bytes will never be interpreted as a file name. It's interpreted as a
+        # bencoded buffer
+        with self.assertRaises(RuntimeError):
+            ti = lt.torrent_info(b'base.torrent')
 
     def test_web_seeds(self):
         ti = lt.torrent_info('base.torrent')
