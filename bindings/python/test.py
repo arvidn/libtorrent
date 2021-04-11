@@ -481,6 +481,20 @@ class test_torrent_info(unittest.TestCase):
             {'url': 'foobar4', 'type': 0, 'auth': 'username:password'},
         ])
 
+    def test_http_seed(self):
+        ti = lt.torrent_info('base.torrent')
+
+        ti.add_http_seed('foobar2')
+        ti.add_http_seed('foobar3', 'username:password')
+        ti.add_http_seed('foobar4', 'username:password', [])
+
+        seeds = ti.web_seeds()
+        self.assertEqual(seeds, [
+            {'url': 'foobar2', 'type': 1, 'auth': ''},
+            {'url': 'foobar3', 'type': 1, 'auth': 'username:password'},
+            {'url': 'foobar4', 'type': 1, 'auth': 'username:password'},
+        ])
+
 class test_alerts(unittest.TestCase):
 
     def test_alert(self):
