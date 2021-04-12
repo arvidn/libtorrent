@@ -293,6 +293,13 @@ std::string print_endpoint(lt::tcp::endpoint const& ep)
 	return buf;
 }
 
+
+// maps filenames to torrent_handles
+typedef std::map<std::string, libtorrent::torrent_handle> handles_t;
+typedef std::map<libtorrent::sha1_hash, std::string> files_t;
+
+files_t hash_to_filename;
+
 using lt::torrent_status;
 
 FILE* g_log_file = nullptr;
@@ -502,8 +509,66 @@ void signal_handler(int)
 	quit = true;
 }
 
+void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libtorrent::error_code& ec)
+{
+	files_t::iterator i = hash_to_filename.find(ih);
+	if (i == hash_to_filename.end())
+	{
+		// for magnet links and torrents downloaded via
+		// URL, the metadata is saved in the resume file
+		// TODO: pick up metadata from the resume file
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		return;
+	}
+	load_file(i->second, buf);
+}
+
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
+
+
+std::string path_to_url(std::string f)
+{
+	std::string ret = "file://"
+#ifdef TORRENT_WINDOWS
+		"/"
+#endif
+		;
+	static char const hex_chars[] = "0123456789abcdef";
+	static const char unreserved[] =
+		"/-_!.~*()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		"0123456789";
+
+	// make sure the path is an absolute path
+	const unsigned int TORRENT_MAX_PATH = 255;
+	if (!is_absolute_path(f))
+	{
+		char cwd[TORRENT_MAX_PATH];
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+		_getcwd(cwd, sizeof(cwd));
+#else
+		getcwd(cwd, sizeof(cwd));
+#endif
+		f = path_append(cwd, f);
+	}
+
+	for (int i = 0; i < int(f.size()); ++i)
+	{
+#ifdef TORRENT_WINDOWS
+		if (f[i] == '\\') ret.push_back('/');
+		else
+#endif
+		if (std::strchr(unreserved, f[i]) != NULL) ret.push_back(f[i]);
+		else
+		{
+			ret.push_back('%');
+			ret.push_back(hex_chars[boost::uint8_t(f[i]) >> 4]);
+			ret.push_back(hex_chars[boost::uint8_t(f[i]) & 0xf]);
+		}
+	}
+	return ret;
+}
+
 
 void print_settings(int const start, int const num
 	, char const* const fmt)
@@ -1002,7 +1067,7 @@ int main(int argc, char* argv[])
 
 	if (argc == 1)
 	{
-		std::fprintf(stderr, R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL]
+		std::fprintf(stderr, R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]
 OPTIONS:
 
 CLIENT OPTIONS
@@ -1057,6 +1122,7 @@ DISK OPTIONS
 
 TORRENT is a path to a .torrent file
 MAGNETURL is a magnet link
+URL is a url to a torrent file
 
 example alert_masks:
    dht | errors                   =  1025
@@ -1116,6 +1182,9 @@ example alert_masks:
 	int loop_limit = -1;
 
 	lt::time_point next_dir_scan = lt::clock_type::now();
+
+	// torrents that were not added via the monitor dir
+	std::set<torrent_handle> non_files;
 
 	// load the torrents given on the commandline
 	std::vector<lt::string_view> torrents;
@@ -1277,10 +1346,29 @@ example alert_masks:
 	}
 
 	ses.set_ip_filter(loaded_ip_filter);
+	ses.set_load_function(&load_torrent);
 
 	for (auto const& i : torrents)
 	{
-		if (i.substr(0, 7) == "magnet:") add_magnet(ses, i);
+		if (i.substr(0, 7) == "http://"
+			|| i.substr(0, 8) == "https://"
+			|| i.substr(0, 7) == "magnet:")
+		{
+			add_torrent_params p;
+			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+			if (disable_storage) p.storage = lt::disabled_storage_constructor;
+			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+			p.save_path = save_path;
+			p.storage_mode = allocation_mode;
+			p.url = i.to_string();
+
+			if (i.substr(0, 7) == "magnet:") add_magnet(ses, i);
+
+			printf("adding URL: %s\n", i.to_string());
+			ses.async_add_torrent(p);
+		}
+
+		// if it's a torrent file, open it as usual
 		else add_torrent(ses, i.to_string());
 	}
 

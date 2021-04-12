@@ -2,7 +2,7 @@
 #define ED25519_HPP
 
 #include "libtorrent/aux_/export.hpp" // for TORRENT_EXPORT
-#include <stddef.h> // for size_t
+#include <cstddef> // for ptrdiff_t, size_t
 
 namespace libtorrent {
 
