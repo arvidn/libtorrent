@@ -229,7 +229,7 @@ class LibtorrentBuildExt(BuildExtBase):
             with open('compile_flags') as f:
                 opts = f.read()
                 if '-std=c++' in opts:
-                    self.cxxflags = '-std=c++' + opts.split('-std=c++')[-1].split()[0]
+                    self.cxxflags = ['-std=c++' + opts.split('-std=c++')[-1].split()[0]]
         except OSError:
             pass
 

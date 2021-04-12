@@ -63,6 +63,12 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+
+	* fix python binding for functions taking string_view
+	* fix python binding for torrent_info constructor overloads
+	* issue python deprecation warnings for some deprecated functions in the python bindings
+	* fix python binding for torrent_info::add_url_seed, add_tracker and add_http_seed
+
 1.2.13 released
 
 	* Use /etc/ssl/cert.pem to validate HTTPS connections on MacOS

@@ -20,6 +20,7 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 	torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
 	{
+        python_deprecated("add_magnet_uri() is deprecated");
 		add_torrent_params p;
 
 		dict_to_add_torrent_params(params, p);

@@ -50,6 +50,8 @@ class test_create_torrent(unittest.TestCase):
         fs = lt.file_storage()
         fs.add_file('test/file1', 1000)
         fs.add_file('test/file2', 2000)
+        self.assertEqual(fs.file_name(0), 'file1')
+        self.assertEqual(fs.file_name(1), 'file2')
         ct = lt.create_torrent(fs)
         ct.add_url_seed('foo')
         ct.add_http_seed('bar')
@@ -59,7 +61,15 @@ class test_create_torrent(unittest.TestCase):
         for i in range(ct.num_pieces()):
             ct.set_hash(i, b'abababababababababab')
         entry = ct.generate()
-        print(entry)
+        encoded = lt.bencode(entry)
+        print(encoded)
+
+        # zero out the creation date:
+        encoded = encoded.split(b'13:creation datei', 1)
+        encoded[1] = b'0e' + encoded[1].split(b'e', 1)[1]
+        encoded = b'13:creation datei'.join(encoded)
+
+        self.assertEqual(encoded, b'd8:announce3:bar13:creation datei0e9:httpseeds3:bar4:infod11:collectionsl4:1337e5:filesld6:lengthi1000e4:pathl5:file1eed4:attr1:p6:lengthi15384e4:pathl4:.pad5:15384eed6:lengthi2000e4:pathl5:file2eee4:name4:test12:piece lengthi16384e6:pieces40:abababababababababababababababababababab8:ssl-cert10:1234567890e8:url-list3:fooe')
 
 
 class test_session_stats(unittest.TestCase):
@@ -173,6 +183,7 @@ class test_torrent_handle(unittest.TestCase):
             tracker.tier = idx
             tracker.fail_limit = 2
             trackers.append(tracker)
+            self.assertEqual(tracker.url, tracker_url)
         self.h.replace_trackers(trackers)
         new_trackers = self.h.trackers()
         self.assertEqual(new_trackers[0]['url'], 'udp://tracker1.com')
@@ -374,6 +385,8 @@ class test_torrent_info(unittest.TestCase):
         self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
     def test_bencoded_constructor(self):
+        # things that can be converted to a bencoded entry, will be interpreted
+        # as such and encoded
         info = lt.torrent_info({'info': {
             'name': 'test_torrent', 'length': 1234,
             'piece length': 16 * 1024,
@@ -387,6 +400,22 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(f.file_size(0), 1234)
         self.assertEqual(info.total_size(), 1234)
         self.assertEqual(info.creation_date(), 0)
+
+    def test_bytearray(self):
+        # a bytearray object is interpreted as a bencoded buffer
+        info = lt.torrent_info(bytearray(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(info.num_files(), 1)
+
+    def test_bytes(self):
+        # a bytes object is interpreted as a bencoded buffer
+        info = lt.torrent_info(bytes(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(info.num_files(), 1)
 
     def test_load_decode_depth_limit(self):
         self.assertRaises(RuntimeError, lambda: lt.torrent_info(
@@ -415,6 +444,12 @@ class test_torrent_info(unittest.TestCase):
         self.assertTrue(len(ti.info_section()) != 0)
         self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
+    def test_torrent_info_bytes_overload(self):
+        # bytes will never be interpreted as a file name. It's interpreted as a
+        # bencoded buffer
+        with self.assertRaises(RuntimeError):
+            ti = lt.torrent_info(b'base.torrent')
+
     def test_web_seeds(self):
         ti = lt.torrent_info('base.torrent')
 
@@ -435,6 +470,41 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(ae.verified, False)
         self.assertEqual(ae.source, 0)
 
+    def test_torrent_info_hash_overload(self):
+        ti = lt.torrent_info(lt.info_hash_t(lt.sha1_hash('a' * 20)))
+        self.assertEqual(ti.info_hash(), lt.sha1_hash('a' * 20))
+
+        ti_copy = lt.torrent_info(ti)
+        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash('a' * 20))
+
+    def test_url_seed(self):
+        ti = lt.torrent_info('base.torrent')
+
+        ti.add_tracker('foobar1')
+        ti.add_url_seed('foobar2')
+        ti.add_url_seed('foobar3', 'username:password')
+        ti.add_url_seed('foobar4', 'username:password', [])
+
+        seeds = ti.web_seeds()
+        self.assertEqual(seeds, [
+            {'url': 'foobar2', 'type': 0, 'auth': ''},
+            {'url': 'foobar3', 'type': 0, 'auth': 'username:password'},
+            {'url': 'foobar4', 'type': 0, 'auth': 'username:password'},
+        ])
+
+    def test_http_seed(self):
+        ti = lt.torrent_info('base.torrent')
+
+        ti.add_http_seed('foobar2')
+        ti.add_http_seed('foobar3', 'username:password')
+        ti.add_http_seed('foobar4', 'username:password', [])
+
+        seeds = ti.web_seeds()
+        self.assertEqual(seeds, [
+            {'url': 'foobar2', 'type': 1, 'auth': ''},
+            {'url': 'foobar3', 'type': 1, 'auth': 'username:password'},
+            {'url': 'foobar4', 'type': 1, 'auth': 'username:password'},
+        ])
 
 class test_alerts(unittest.TestCase):
 
@@ -529,16 +599,40 @@ class test_alerts(unittest.TestCase):
 class test_bencoder(unittest.TestCase):
 
     def test_bencode(self):
-
         encoded = lt.bencode({'a': 1, 'b': [1, 2, 3], 'c': 'foo'})
         self.assertEqual(encoded, b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe')
 
     def test_bdecode(self):
-
         encoded = b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
         decoded = lt.bdecode(encoded)
         self.assertEqual(decoded, {b'a': 1, b'b': [1, 2, 3], b'c': b'foo'})
 
+    def test_string(self):
+        encoded = lt.bencode('foo\u00e5\u00e4\u00f6')
+        self.assertEqual(encoded, b'9:foo\xc3\xa5\xc3\xa4\xc3\xb6')
+
+    def test_bytes(self):
+        encoded = lt.bencode(b'foo')
+        self.assertEqual(encoded, b'3:foo')
+
+    def test_float(self):
+        # TODO: this should throw a TypeError in the future
+        with self.assertWarns(DeprecationWarning):
+            encoded = lt.bencode(1.337)
+            self.assertEqual(encoded, b'0:')
+
+    def test_object(self):
+        class FooBar:
+            dummy = 1
+
+        # TODO: this should throw a TypeError in the future
+        with self.assertWarns(DeprecationWarning):
+            encoded = lt.bencode(FooBar())
+            self.assertEqual(encoded, b'0:')
+
+    def test_preformatted(self):
+        encoded = lt.bencode((1, 2, 3, 4, 5))
+        self.assertEqual(encoded, b'\x01\x02\x03\x04\x05')
 
 class test_sha1hash(unittest.TestCase):
 
@@ -624,6 +718,19 @@ class test_peer_class(unittest.TestCase):
         s.set_peer_class_type_filter(lt.peer_class_type_filter())
         s.set_peer_class_filter(lt.ip_filter())
 
+class test_ip_filter(unittest.TestCase):
+
+    def test_export(self):
+
+        f = lt.ip_filter()
+        self.assertEqual(f.access('1.1.1.1'), 0)
+        f.add_rule('1.1.1.1', '1.1.1.2', 1)
+        self.assertEqual(f.access('1.1.1.0'), 0)
+        self.assertEqual(f.access('1.1.1.1'), 1)
+        self.assertEqual(f.access('1.1.1.2'), 1)
+        self.assertEqual(f.access('1.1.1.3'), 0)
+        exp = f.export_filter()
+        self.assertEqual(exp, ([('0.0.0.0', '1.1.1.0'), ('1.1.1.1', '1.1.1.2'), ('1.1.1.3', '255.255.255.255')], [('::', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')]))
 
 class test_session(unittest.TestCase):
 

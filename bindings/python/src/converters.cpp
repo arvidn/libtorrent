@@ -140,12 +140,11 @@ struct to_string_view
 
     static void* convertible(PyObject* x)
     {
-#if PY_VERSION_HEX >= 0x03020000
-        return PyBytes_Check(x)
-#else
-        return PyString_Check(x)
+        return
+#if PY_VERSION_HEX < 0x03020000
+        PyString_Check(x) ? x :
 #endif
-            ? x : PyUnicode_Check(x) ? x : nullptr;
+            PyUnicode_Check(x) ? x : nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
@@ -153,19 +152,18 @@ struct to_string_view
         void* storage = ((converter::rvalue_from_python_storage<
             lt::string_view>*)data)->storage.bytes;
 
-        if (PyUnicode_Check(x))
-        {
-            data->convertible = new (storage) lt::string_view(PyUnicode_AS_DATA(x), PyUnicode_GET_DATA_SIZE(x));
-        }
-        else
+#if PY_VERSION_HEX < 0x03020000
+        if (PyString_Check(x))
         {
             data->convertible = new (storage) lt::string_view(
-#if PY_VERSION_HEX >= 0x03020000
-                PyBytes_AsString(x), PyBytes_Size(x)
-#else
-                PyString_AsString(x), PyString_Size(x)
+                PyString_AsString(x), PyString_Size(x));
+        }
+        else
 #endif
-                );
+        {
+            Py_ssize_t size = 0;
+            char const* unicode = PyUnicode_AsUTF8AndSize(x, &size);
+            data->convertible = new (storage) lt::string_view(unicode, size);
         }
     }
 };
@@ -415,6 +413,7 @@ void bind_converters()
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
     to_python_converter<lt::address, address_to_tuple<lt::address>>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
+    to_python_converter<std::pair<std::string, std::string>, pair_to_tuple<std::string, std::string>>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<std::vector<lt::stats_metric>>>();
     to_python_converter<std::vector<lt::open_file_state>, vector_to_list<std::vector<lt::open_file_state>>>();
@@ -425,6 +424,7 @@ void bind_converters()
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<std::vector<lt::tcp::endpoint>>>();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
+    to_python_converter<std::vector<std::pair<std::string, std::string>>, vector_to_list<std::vector<std::pair<std::string, std::string>>>>();
 
     to_python_converter<lt::typed_bitfield<lt::piece_index_t>, bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>>();
     to_python_converter<lt::bitfield, bitfield_to_list<lt::bitfield>>();
@@ -497,6 +497,7 @@ void bind_converters()
     list_to_vector<std::vector<lt::tcp::endpoint>>();
     list_to_vector<std::vector<lt::udp::endpoint>>();
     list_to_vector<std::vector<std::pair<std::string, int>>>();
+    list_to_vector<std::vector<std::pair<std::string, std::string>>>();
 
     // work-around types
     list_to_vector<lt::aux::noexcept_movable<std::vector<int>>>();
