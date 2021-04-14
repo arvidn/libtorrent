@@ -437,7 +437,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	std::uint16_t const tid = std::uint16_t(aux::random(0xffff));
+	auto const tid = std::uint16_t(aux::random(0xffff));
 	aux::write_uint16(tid, out);
 	e["t"] = transaction_id;
 

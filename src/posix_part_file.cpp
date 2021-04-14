@@ -104,7 +104,7 @@ namespace aux {
 		aux::vector<bool, slot_index_t> free_slots;
 		free_slots.resize(num_pieces, true);
 
-		for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
+		for (auto i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 		{
 			slot_index_t const slot(read_int32(ptr));
 			if (static_cast<int>(slot) < 0) continue;
