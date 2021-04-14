@@ -158,6 +158,12 @@ struct entry_from_python
 
             return entry(preformatted);
         }
+        else
+        {
+            // TODO: Throw a TypeError here in the future
+            python_deprecated("constructing a bencode entry from anything but "
+                "int, dict, list, string, bytes and int-tuple is deprecated");
+        }
 
         return entry();
     }

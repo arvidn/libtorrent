@@ -10,6 +10,7 @@
 #include <libtorrent/operations.hpp>
 #include <memory>
 #include "bytes.hpp"
+#include "gil.hpp"
 
 #include <boost/type_traits/is_polymorphic.hpp>
 
@@ -168,7 +169,8 @@ list dht_sample_infohashes_nodes(dht_sample_infohashes_alert const& alert)
 #if TORRENT_ABI_VERSION == 1
 entry const& get_resume_data_entry(save_resume_data_alert const& self)
 {
-	return *self.resume_data;
+    python_deprecated("resume_data is deprecated");
+    return *self.resume_data;
 }
 #endif
 
@@ -992,7 +994,7 @@ void bind_alert()
     class_<log_alert, bases<alert>, noncopyable>(
        "log_alert", no_init)
 #if TORRENT_ABI_VERSION == 1
-        .def("msg", &log_alert::msg)
+        .def("msg", depr(&log_alert::msg))
 #endif
         .def("log_message", &log_alert::log_message)
         ;
@@ -1000,7 +1002,7 @@ void bind_alert()
     class_<torrent_log_alert, bases<torrent_alert>, noncopyable>(
        "torrent_log_alert", no_init)
 #if TORRENT_ABI_VERSION == 1
-        .def("msg", &torrent_log_alert::msg)
+        .def("msg", depr(&torrent_log_alert::msg))
 #endif
         .def("log_message", &torrent_log_alert::log_message)
         ;
@@ -1008,7 +1010,7 @@ void bind_alert()
     class_<peer_log_alert, bases<peer_alert>, noncopyable>(
        "peer_log_alert", no_init)
 #if TORRENT_ABI_VERSION == 1
-        .def("msg", &peer_log_alert::msg)
+        .def("msg", depr(&peer_log_alert::msg))
 #endif
         .def("log_message", &peer_log_alert::log_message)
         ;

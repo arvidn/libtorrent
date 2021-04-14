@@ -20,13 +20,30 @@ namespace
     {
         return filter.access(make_address(addr));
     }
+
+    template <typename T>
+    list convert_range_list(std::vector<ip_range<T>> const& l)
+    {
+        list ret;
+        for (auto const& r : l)
+            ret.append(boost::python::make_tuple(r.first.to_string(), r.last.to_string()));
+        return ret;
+    }
+
+    tuple export_filter(ip_filter const& f)
+    {
+        auto ret = f.export_filter();
+        list ipv4 = convert_range_list(std::get<0>(ret));
+        list ipv6 = convert_range_list(std::get<1>(ret));
+        return boost::python::make_tuple(ipv4, ipv6);
+    }
 }
 
 void bind_ip_filter()
 {
     class_<ip_filter>("ip_filter")
-        .def("add_rule", add_rule)
-        .def("access", access0)
-        .def("export_filter", allow_threads(&ip_filter::export_filter))
+        .def("add_rule", &add_rule)
+        .def("access", &access0)
+        .def("export_filter", &export_filter)
     ;
 }

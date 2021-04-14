@@ -8,6 +8,7 @@
 #include "libtorrent/torrent_info.hpp"
 #include <libtorrent/version.hpp>
 #include "bytes.hpp"
+#include "gil.hpp"
 
 using namespace boost::python;
 using namespace lt;
@@ -62,7 +63,8 @@ namespace
 #if TORRENT_ABI_VERSION == 1
     void add_file_deprecated(file_storage& ct, file_entry const& fe)
     {
-       ct.add_file(fe);
+        python_deprecated("this overload of add_file() is deprecated");
+        ct.add_file(fe);
     }
 
     struct FileIter
@@ -98,7 +100,10 @@ namespace
     };
 
     FileIter begin_files(file_storage const& self)
-    { return FileIter(self, file_index_t(0)); }
+    {
+        python_deprecated("__iter__ is deprecated");
+        return FileIter(self, file_index_t(0));
+    }
 
     FileIter end_files(file_storage const& self)
     { return FileIter(self, self.end_file()); }
@@ -156,10 +161,10 @@ void bind_create_torrent()
         .def("add_file", add_file, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
         .def("num_files", &file_storage::num_files)
 #if TORRENT_ABI_VERSION == 1
-        .def("at", at)
+        .def("at", depr(at))
         .def("add_file", add_file_deprecated, arg("entry"))
         .def("__iter__", boost::python::range(&begin_files, &end_files))
-        .def("__len__", &file_storage::num_files)
+        .def("__len__", depr(&file_storage::num_files))
 #endif // TORRENT_ABI_VERSION
 #if TORRENT_ABI_VERSION < 4
         .def("hash", file_storage_hash)
@@ -209,6 +214,7 @@ void bind_create_torrent()
         .def("files", &create_torrent::files, return_internal_reference<>())
         .def("set_comment", &create_torrent::set_comment)
         .def("set_creator", &create_torrent::set_creator)
+        .def("set_creation_date", &create_torrent::set_creation_date)
         .def("set_hash", &set_hash)
 #if TORRENT_ABI_VERSION < 3
         .def("set_file_hash", &set_file_hash)
