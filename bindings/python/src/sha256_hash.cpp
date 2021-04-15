@@ -12,35 +12,33 @@ namespace {
 
 using namespace lt;
 
-long get_hash(sha1_hash const& s)
+long get_hash(sha256_hash const& s)
 {
-    return std::hash<sha1_hash>{}(s);
+    return std::hash<sha256_hash>{}(s);
 }
 
-bytes sha1_hash_bytes(const sha1_hash& bn) {
+bytes sha256_hash_bytes(const sha256_hash& bn) {
     return bytes(bn.to_string());
 }
 
 }
 
-void bind_sha1_hash()
+void bind_sha256_hash()
 {
     using namespace boost::python;
     using namespace lt;
 
-    class_<sha1_hash>("sha1_hash")
+    class_<sha256_hash>("sha256_hash")
         .def(self == self)
         .def(self != self)
         .def(self < self)
         .def(self_ns::str(self))
         .def(init<std::string>())
-        .def("clear", &sha1_hash::clear)
-        .def("is_all_zeros", &sha1_hash::is_all_zeros)
-        .def("to_string", sha1_hash_bytes)
+        .def("clear", &sha256_hash::clear)
+        .def("is_all_zeros", &sha256_hash::is_all_zeros)
+        .def("to_string", sha256_hash_bytes)
         .def("__hash__", get_hash)
-        .def("to_bytes", sha1_hash_bytes)
+        .def("to_bytes", sha256_hash_bytes)
         ;
-
-    scope().attr("peer_id") = scope().attr("sha1_hash");
 }
 
