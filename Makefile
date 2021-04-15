@@ -213,6 +213,8 @@ PYTHON_FILES= \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/sha1_hash.cpp         \
+  src/sha256_hash.cpp       \
+  src/info_hash.cpp         \
   src/string.cpp            \
   src/torrent_handle.cpp    \
   src/torrent_info.cpp      \

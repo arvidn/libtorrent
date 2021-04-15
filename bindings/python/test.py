@@ -470,12 +470,21 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(ae.verified, False)
         self.assertEqual(ae.source, 0)
 
-    def test_torrent_info_hash_overload(self):
-        ti = lt.torrent_info(lt.info_hash_t(lt.sha1_hash('a' * 20)))
-        self.assertEqual(ti.info_hash(), lt.sha1_hash('a' * 20))
+    def test_torrent_info_sha1_overload(self):
+        ti = lt.torrent_info(lt.info_hash_t(lt.sha1_hash(b'a' * 20)))
+        self.assertEqual(ti.info_hash(), lt.sha1_hash(b'a' * 20))
+        self.assertEqual(ti.info_hashes().v1, lt.sha1_hash(b'a' * 20))
 
         ti_copy = lt.torrent_info(ti)
-        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash('a' * 20))
+        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash(b'a' * 20))
+        self.assertEqual(ti_copy.info_hashes().v1, lt.sha1_hash(b'a' * 20))
+
+    def test_torrent_info_sha256_overload(self):
+        ti = lt.torrent_info(lt.info_hash_t(lt.sha256_hash(b'a' * 32)))
+        self.assertEqual(ti.info_hashes().v2, lt.sha256_hash(b'a' * 32))
+
+        ti_copy = lt.torrent_info(ti)
+        self.assertEqual(ti_copy.info_hashes().v2, lt.sha256_hash(b'a' * 32))
 
     def test_url_seed(self):
         ti = lt.torrent_info('base.torrent')
@@ -641,6 +650,48 @@ class test_sha1hash(unittest.TestCase):
         s = lt.sha1_hash(binascii.unhexlify(h))
         self.assertEqual(h, str(s))
 
+    def test_hash(self):
+        self.assertNotEqual(hash(lt.sha1_hash(b'b' * 20)), hash(lt.sha1_hash(b'a' * 20)))
+        self.assertEqual(hash(lt.sha1_hash(b'b' * 20)), hash(lt.sha1_hash(b'b' * 20)))
+
+class test_sha256hash(unittest.TestCase):
+
+    def test_sha1hash(self):
+        h = 'a0' * 32
+        s = lt.sha256_hash(binascii.unhexlify(h))
+        self.assertEqual(h, str(s))
+
+    def test_hash(self):
+        self.assertNotEqual(hash(lt.sha256_hash(b'b' * 32)), hash(lt.sha256_hash(b'a' * 32)))
+        self.assertEqual(hash(lt.sha256_hash(b'b' * 32)), hash(lt.sha256_hash(b'b' * 32)))
+
+class test_info_hash(unittest.TestCase):
+
+    def test_info_hash(self):
+        s1 = lt.sha1_hash(b'a' * 20)
+        s2 = lt.sha256_hash(b'b' * 32)
+
+        ih1 = lt.info_hash_t(s1);
+        self.assertTrue(ih1.has_v1())
+        self.assertFalse(ih1.has_v2())
+        self.assertEqual(ih1.v1, s1)
+
+        ih2 = lt.info_hash_t(s2);
+        self.assertFalse(ih2.has_v1())
+        self.assertTrue(ih2.has_v2())
+        self.assertEqual(ih2.v2, s2)
+
+        ih12 = lt.info_hash_t(s1, s2);
+        self.assertTrue(ih12.has_v1())
+        self.assertTrue(ih12.has_v2())
+        self.assertEqual(ih12.v1, s1)
+        self.assertEqual(ih12.v2, s2)
+
+        self.assertNotEqual(hash(ih1), hash(ih2))
+        self.assertNotEqual(hash(ih1), hash(ih12))
+        self.assertEqual(hash(ih1), hash(lt.info_hash_t(s1)))
+        self.assertEqual(hash(ih2), hash(lt.info_hash_t(s2)))
+        self.assertEqual(hash(ih12), hash(lt.info_hash_t(s1, s2)))
 
 class test_magnet_link(unittest.TestCase):
 
