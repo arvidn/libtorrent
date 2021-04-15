@@ -481,6 +481,10 @@ void bind_converters()
 #if TORRENT_ABI_VERSION == 1
     to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<char>>>();
+
+#ifndef TORRENT_DISABLE_DHT
+    to_python_converter<std::vector<lt::dht_lookup>, vector_to_list<std::vector<lt::dht_lookup>>>();
+#endif
 #endif
 
     // python -> C++ conversions

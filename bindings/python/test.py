@@ -31,6 +31,10 @@ settings = {
     'enable_upnp': False, 'listen_interfaces': '0.0.0.0:0', 'file_pool_size': 1}
 
 
+def has_deprecated():
+    return hasattr(lt, 'version')
+
+
 class test_create_torrent(unittest.TestCase):
 
     def test_from_torrent_info(self):
@@ -736,6 +740,20 @@ class test_session(unittest.TestCase):
                        'peers': [('5.6.7.8', 6881)],
                        'banned_peers': [('8.7.6.5', 6881)],
                        'file_priorities': [1, 1, 1, 2, 0]})
+
+    def test_session_status(self):
+        if not has_deprecated():
+            return
+
+        s = lt.session()
+        st = s.status()
+        print(st)
+        print(st.active_requests)
+        print(st.dht_nodes)
+        print(st.dht_node_cache)
+        print(st.dht_torrents)
+        print(st.dht_global_nodes)
+        print(st.dht_total_allocations)
 
     def test_apply_settings(self):
 
