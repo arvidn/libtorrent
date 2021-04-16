@@ -79,6 +79,15 @@ class test_session_stats(unittest.TestCase):
             field = getattr(atp, field_name)
             print(field_name, field)
 
+        atp.renamed_files = {}
+        atp.merkle_tree = []
+        atp.unfinished_pieces = {}
+        atp.have_pieces = []
+        atp.banned_peers = []
+        atp.verified_pieces = []
+        atp.piece_priorities = []
+        atp.url_seeds = []
+
     def test_unique(self):
         metrics = lt.session_stats_metrics()
         self.assertTrue(len(metrics) > 40)
