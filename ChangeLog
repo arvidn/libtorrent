@@ -1,3 +1,6 @@
+	* fix issue creating and loading v2 torrents with empty files. Improves
+	  conformance to BEP52 reference implementation
+
 * 2.0.3 released
 
 	* add new torrent_file_with_hashes() which includes piece layers for

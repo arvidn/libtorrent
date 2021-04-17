@@ -398,7 +398,7 @@ namespace {
 			}
 		}
 
-		if (symlink_path.empty())
+		if (symlink_path.empty() && file_size > 0)
 		{
 			bdecode_node const root = dict.dict_find_string("pieces root");
 			if (!root || root.type() != bdecode_node::string_t
@@ -1315,14 +1315,23 @@ namespace {
 			return false;
 		}
 
-		if (version >= 2
-			&& v1_files.num_files() > 0
-			&& !aux::files_equal(files, v1_files))
+		// ensure hybrid torrents have compatible v1 and v2 file storages
+		if (version >= 2 && v1_files.num_files() > 0)
 		{
-			// mark the torrent as invalid
-			m_files.set_piece_length(0);
-			ec = errors::torrent_inconsistent_files;
-			return false;
+			// previous versions of libtorrent did not not create hybrid
+			// torrents with "tail-padding". When loading, accept both.
+			if (files.num_files() == v1_files.num_files() + 1)
+			{
+				files.remove_tail_padding();
+			}
+
+			if (!aux::files_compatible(files, v1_files))
+			{
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				ec = errors::torrent_inconsistent_files;
+				return false;
+			}
 		}
 
 		// extract SHA-1 hashes for all pieces
