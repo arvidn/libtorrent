@@ -316,7 +316,7 @@ static test_torrent_t const test_torrents[] =
 	},
 	{ "v2_multiple_files.torrent", [](torrent_info* ti) {
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
-			TEST_EQUAL(ti->num_files(), 4);
+			TEST_EQUAL(ti->num_files(), 5);
 			TEST_CHECK(ti->v2());
 			ti->free_piece_layers();
 			TEST_CHECK(ti->v2());

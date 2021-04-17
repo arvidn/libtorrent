@@ -320,6 +320,9 @@ namespace aux {
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
+
+		if (name_len == name_is_owned) delete[] name;
+
 		name = fe.name;
 		root = fe.root;
 		name_len = fe.name_len;
@@ -688,12 +691,14 @@ namespace aux {
 
 		// files without a root_hash are assumed to be v1, except symlinks. They
 		// don't have a root hash and can be either v1 or v2
-		if (symlink_path.empty())
+		if (symlink_path.empty() && file_size > 0)
 		{
 			bool const v2 = (root_hash != nullptr);
 			// This condition is true of all files we've added so far have been
 			// symlinks. i.e. this is the first "real" file we're adding.
-			if (m_files.size() == m_symlinks.size())
+			// or if m_total_size == 0, all files we've added so far have been
+			// empty (which also are are v1/v2-ambigous)
+			if (m_files.size() == m_symlinks.size() || m_total_size == 0)
 			{
 				m_v2 = v2;
 			}
@@ -705,36 +710,6 @@ namespace aux {
 					: make_error_code(errors::torrent_inconsistent_files);
 				return;
 			}
-		}
-
-		// a root hash implies a v2 file tree
-		// if the current size is not aligned to piece boundaries, we need to
-		// insert a pad file
-		if (root_hash && (m_total_size % piece_length()) != 0)
-		{
-			auto const pad_size = piece_length() - (m_total_size % piece_length());
-			TORRENT_ASSERT(int(pad_size) != piece_length());
-			TORRENT_ASSERT(int(pad_size) > 0);
-			if (m_total_size > max_file_offset - pad_size - file_size)
-			{
-				ec = make_error_code(errors::torrent_invalid_length);
-				return;
-			}
-
-			m_files.emplace_back();
-			// e is invalid from here down!
-			auto& pad = m_files.back();
-			pad.size = static_cast<std::uint64_t>(pad_size);
-			TORRENT_ASSERT(m_total_size <= max_file_offset);
-			TORRENT_ASSERT(m_total_size > 0);
-			pad.offset = static_cast<std::uint64_t>(m_total_size);
-			pad.path_index = get_or_add_path(".pad");
-			char name[30];
-			std::snprintf(name, sizeof(name), "%" PRIu64
-				, pad.size);
-			pad.set_name(name);
-			pad.pad_file = true;
-			m_total_size += pad_size;
 		}
 
 		m_files.emplace_back();
@@ -781,6 +756,64 @@ namespace aux {
 		}
 
 		m_total_size += e.size;
+
+		// when making v2 torrents, pad the end of each file (if necessary) to
+		// ensure it ends on a piece boundary.
+		// we do this at the end of files rather in-front of files to conform to
+		// the BEP52 reference implementation
+		if (m_v2 && (m_total_size % piece_length()) != 0)
+		{
+			auto const pad_size = piece_length() - (m_total_size % piece_length());
+			TORRENT_ASSERT(int(pad_size) != piece_length());
+			TORRENT_ASSERT(int(pad_size) > 0);
+			if (m_total_size > max_file_offset - pad_size)
+			{
+				ec = make_error_code(errors::torrent_invalid_length);
+				return;
+			}
+
+			m_files.emplace_back();
+			// e is invalid from here down!
+			auto& pad = m_files.back();
+			pad.size = static_cast<std::uint64_t>(pad_size);
+			TORRENT_ASSERT(m_total_size <= max_file_offset);
+			TORRENT_ASSERT(m_total_size > 0);
+			pad.offset = static_cast<std::uint64_t>(m_total_size);
+			pad.path_index = get_or_add_path(".pad");
+			char name[30];
+			std::snprintf(name, sizeof(name), "%" PRIu64
+				, pad.size);
+			pad.set_name(name);
+			pad.pad_file = true;
+			m_total_size += pad_size;
+		}
+	}
+
+	// this is here for backwards compatibility with hybrid torrents created
+	// with libtorrent 2.0.0-2.0.3, which would not add tail-padding
+	void file_storage::remove_tail_padding()
+	{
+		file_index_t f = end_file();
+		while (f > file_index_t{0})
+		{
+			--f;
+			// empty files and symlinks are skipped
+			if (file_size(f) == 0) continue;
+			if (pad_file_at(f))
+			{
+				m_total_size -= file_size(f);
+				m_files.erase(m_files.begin() + int(f));
+				while (f < end_file())
+				{
+					m_files[f].offset = static_cast<std::uint64_t>(m_total_size);
+					TORRENT_ASSERT(m_files[f].size == 0);
+					++f;
+				}
+			}
+			// if the last non-empty file isn't a pad file, don't do anything
+			return;
+		}
+		// nothing found
 	}
 
 	sha1_hash file_storage::hash(file_index_t const index) const
@@ -1455,18 +1488,32 @@ failed:
 
 namespace aux {
 
-	bool files_equal(file_storage const& lhs, file_storage const& rhs)
+	bool files_compatible(file_storage const& lhs, file_storage const& rhs)
 	{
 		if (lhs.num_files() != rhs.num_files())
+			return false;
+
+		if (lhs.total_size() != rhs.total_size())
 			return false;
 
 		if (lhs.piece_length() != rhs.piece_length())
 			return false;
 
+		// for compatibility, only non-empty and non-pad files matter.
+		// those files all need to match in index, name, size and offset
 		for (file_index_t i : lhs.file_range())
 		{
-			if (lhs.file_flags(i) != rhs.file_flags(i)
-				|| lhs.mtime(i) != rhs.mtime(i)
+			bool const lhs_relevant = !lhs.pad_file_at(i) && lhs.file_size(i) > 0;
+			bool const rhs_relevant = !rhs.pad_file_at(i) && rhs.file_size(i) > 0;
+
+			if (lhs_relevant != rhs_relevant)
+				return false;
+
+			if (!lhs_relevant) continue;
+
+			// we deliberately ignore file attributes like "hidden",
+			// "executable" and mtime here. It's not critical they match
+			if (lhs.pad_file_at(i) != rhs.pad_file_at(i)
 				|| lhs.file_size(i) != rhs.file_size(i)
 				|| lhs.file_path(i) != rhs.file_path(i)
 				|| lhs.file_offset(i) != rhs.file_offset(i))
