@@ -291,6 +291,9 @@ TORRENT_TEST(added_peers)
 		"magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082");
 	p.ti = info;
 	p.info_hashes = info_hash_t{};
+#if TORRENT_ABI_VERSION < 3
+	p.info_hash = sha1_hash{};
+#endif
 	p.save_path = ".";
 
 	torrent_handle h = ses.add_torrent(std::move(p));
