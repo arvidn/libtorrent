@@ -106,6 +106,26 @@ TORRENT_TEST(session)
 	// the session object
 }
 
+#if TORRENT_ABI_VERSION < 3
+TORRENT_TEST(async_add_torrent_deprecated_magnet)
+{
+	settings_pack p = settings();
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	atp.info_hash = sha1_hash("abababababababababab");
+	atp.save_path = ".";
+	ses.async_add_torrent(atp);
+
+	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+
+	TEST_EQUAL(a->params.info_hashes.v1, sha1_hash("abababababababababab"));
+}
+#endif
+
 TORRENT_TEST(async_add_torrent_duplicate_error)
 {
 	settings_pack p = settings();

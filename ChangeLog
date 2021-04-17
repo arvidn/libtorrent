@@ -1,3 +1,4 @@
+	* fix (deprecated) use of add_torrent_params::info_hash
 	* fix issue creating and loading v2 torrents with empty files. Improves
 	  conformance to BEP52 reference implementation
 
