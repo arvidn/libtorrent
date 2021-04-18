@@ -39,10 +39,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include <memory> // for shared_ptr
 #include <vector>
 #include <unordered_map>
+
+#if TORRENT_USE_INVARIANT_CHECKS
+#include <set>
+#endif
 
 namespace libtorrent {
 namespace aux {
@@ -88,7 +95,36 @@ struct torrent_list
 		bool duplicate = false;
 		ih.for_each([&](sha1_hash const& hash, protocol_version)
 		{
-			duplicate |= !m_index.insert({hash, t.get()}).second;
+			if (m_index.find(hash) != m_index.end()) duplicate = true;
+		});
+
+		// if we already have a torrent with this hash, don't do anything
+		if (duplicate) return false;
+
+		aux::array<bool, 4> rollback({ false, false, false, false});
+		auto abort_add = aux::scope_end([&]
+		{
+			ih.for_each([&](sha1_hash const& hash, protocol_version const v)
+			{
+				if (rollback[int(v)])
+					m_index.erase(hash);
+
+#if !defined TORRENT_DISABLE_ENCRYPTION
+				if (rollback[2 + int(v)])
+				{
+					static char const req2[4] = { 'r', 'e', 'q', '2' };
+					hasher h(req2);
+					h.update(hash);
+						m_obfuscated_index.erase(h.final());
+				}
+#endif
+			});
+		});
+
+		ih.for_each([&](sha1_hash const& hash, protocol_version const v)
+		{
+			if (m_index.insert({hash, t.get()}).second)
+				rollback[int(v)] = true;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 			static char const req2[4] = { 'r', 'e', 'q', '2' };
@@ -96,14 +132,14 @@ struct torrent_list
 			h.update(hash);
 			// this is SHA1("req2" + info-hash), used for
 			// encrypted hand shakes
-			m_obfuscated_index.insert({h.final(), t.get()});
+			if (m_obfuscated_index.insert({h.final(), t.get()}).second)
+				rollback[2 + int(v)] = true;
 #endif
 		});
 
-		// if we already have a torrent with this hash, don't do anything
-		if (duplicate) return false;
-
 		m_array.emplace_back(std::move(t));
+
+		abort_add.disarm();
 
 		return true;
 	}
@@ -126,6 +162,8 @@ struct torrent_list
 
 	bool erase(info_hash_t const& ih)
 	{
+		INVARIANT_CHECK;
+
 		T* found = nullptr;
 		ih.for_each([&](sha1_hash const& hash, protocol_version)
 		{
@@ -137,10 +175,10 @@ struct torrent_list
 				m_index.erase(i);
 			}
 
+#if !defined TORRENT_DISABLE_ENCRYPTION
 			static char const req2[4] = { 'r', 'e', 'q', '2' };
 			hasher h(req2);
 			h.update(hash);
-#if !defined TORRENT_DISABLE_ENCRYPTION
 			m_obfuscated_index.erase(h.final());
 #endif
 		});
@@ -163,12 +201,42 @@ struct torrent_list
 
 	void clear()
 	{
+		INVARIANT_CHECK;
+
 		m_array.clear();
 		m_index.clear();
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		m_obfuscated_index.clear();
 #endif
 	}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void check_invariant() const
+	{
+		std::set<T*> all_torrents;
+		std::set<T*> all_indexed_torrents;
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		std::set<T*> all_obf_indexed_torrents;
+#endif
+
+		for (auto const& t : m_array)
+			all_torrents.insert(t.get());
+
+		for (auto const& t : m_index)
+		{
+			all_indexed_torrents.insert(t.second);
+		}
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		for (auto const& t : m_obfuscated_index)
+		{
+			all_obf_indexed_torrents.insert(t.second);
+		}
+#endif
+
+		TORRENT_ASSERT(all_torrents == all_indexed_torrents);
+		TORRENT_ASSERT(all_torrents == all_obf_indexed_torrents);
+	}
+#endif
 
 private:
 
