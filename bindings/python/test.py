@@ -793,13 +793,30 @@ class test_session(unittest.TestCase):
 
     def test_add_torrent(self):
         s = lt.session(settings)
-        s.add_torrent({'ti': lt.torrent_info('base.torrent'),
+        h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
                        'save_path': '.',
                        'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
                        'http_seeds': ['http://test.com/seed'],
                        'peers': [('5.6.7.8', 6881)],
                        'banned_peers': [('8.7.6.5', 6881)],
                        'file_priorities': [1, 1, 1, 2, 0]})
+
+    def test_add_torrent_info_hash(self):
+        s = lt.session(settings)
+        h = s.add_torrent({
+                           'info_hash': b'a' * 20,
+                           'info_hashes': b'a' * 32,
+                           'save_path': '.'})
+
+        time.sleep(1)
+        alerts = s.pop_alerts()
+
+        while len(alerts) > 0:
+            a = alerts.pop(0)
+            print(a)
+
+        self.assertTrue(h.is_valid())
+        self.assertEqual(h.status().info_hashes, lt.info_hash_t(lt.sha1_hash(b'a' * 20), lt.sha256_hash(b'a' * 32)))
 
     def test_apply_settings(self):
 
