@@ -213,6 +213,8 @@ rule linking ( properties * )
 		result += <library>/try_signal//try_signal/<link>static ;
 	}
 
+	result += <linkflags>"-Wl,--whole-archive -Wl,--no-as-needed -lxnvme -Wl,--no-whole-archive -Wl,--as-needed -laio -luuid -lnuma -pthread" ;
+
 	return $(result) ;
 }
 
