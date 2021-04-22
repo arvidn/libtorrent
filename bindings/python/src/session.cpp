@@ -301,6 +301,10 @@ namespace
                     p.info_hashes = info_hash_t(sha256_hash(
                             bytes(extract<bytes>(value)).arr.data()));
                 }
+                else
+                {
+                    p.info_hashes = boost::python::extract<info_hash_t>(value);
+                }
                 continue;
             }
             else if(key == "name")
