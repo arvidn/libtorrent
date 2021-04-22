@@ -213,7 +213,7 @@ rule linking ( properties * )
 		result += <library>/try_signal//try_signal/<link>static ;
 	}
 
-	result += <linkflags>"-Wl,--whole-archive -Wl,--no-as-needed -lxnvme -Wl,--no-whole-archive -Wl,--as-needed -laio -luuid -lnuma -pthread" ;
+	result += <linkflags>"-lxnvme -laio -luuid -lnuma -pthread -lrt" ;
 
 	return $(result) ;
 }
@@ -826,7 +826,9 @@ SOURCES =
 	posix_disk_io
 	posix_part_file
 	posix_storage
+	xnvme_storage
 	ssl
+	xnvme_disk_io
 
 # -- extensions --
 	ut_pex

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/xnvme_disk_io.hpp"
 
 namespace libtorrent {
 
@@ -534,17 +535,11 @@ namespace {
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-		// TODO: In C++17. use if constexpr instead
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-		if (sizeof(void*) == 8)
-			return mmap_disk_io_constructor(ios, sett, cnt);
-		else
-			return posix_disk_io_constructor(ios, sett, cnt);
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#else
-		return posix_disk_io_constructor(ios, sett, cnt);
-#endif
+		// Stupid hack to dictate which disk io implementation to use
+
+		return xnvme_disk_io_constructor(ios, sett, cnt);
+		// return posix_disk_io_constructor(ios, sett, cnt);
+		// return mmap_disk_io_constructor(ios, sett, cnt);
 	}
 
 }

@@ -377,6 +377,8 @@ namespace aux {
 			// effect until the DHT is restarted.
 			dht_bootstrap_nodes,
 
+			xnvme_backend,
+
 			max_string_setting_internal
 		};
 

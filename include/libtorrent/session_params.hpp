@@ -128,6 +128,8 @@ struct TORRENT_EXPORT session_params
 	// the IP filter to use for the session. This restricts which peers are allowed
 	// to connect. As if passed to set_ip_filter().
 	libtorrent::ip_filter ip_filter;
+
+	std::string xnvme_backend;
 };
 
 TORRENT_VERSION_NAMESPACE_3_END

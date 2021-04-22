@@ -74,6 +74,8 @@ set(libtorrent_include_files
 	magnet_uri.hpp
 	mmap_disk_io.hpp
 	mmap_storage.hpp
+	xnvme_disk_io.hpp
+	xnvme_storage.hpp
 	natpmp.hpp
 	netlink.hpp
 	operations.hpp
