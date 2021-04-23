@@ -807,6 +807,32 @@ class test_session(unittest.TestCase):
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
+    def test_session_params(self):
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        s = lt.session(sp)
+        sett = s.get_settings()
+        self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
+    def test_session_params_roundtrip_buf(self):
+
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+
+        buf = lt.write_session_params_buf(sp)
+        sp2 = lt.read_session_params(buf)
+        self.assertEqual(sp2.settings['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
+    def test_session_params_roundtrip_entry(self):
+
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+
+        ent = lt.write_session_params(sp)
+        print(ent)
+        sp2 = lt.read_session_params(ent)
+        self.assertEqual(sp2.settings['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
     def test_add_torrent(self):
         s = lt.session(settings)
         h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
