@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) # Configurable policies: <= CMP0115
+
+cmake_policy(SET CMP0115 OLD)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 include(LibtorrentMacros)
@@ -9,7 +11,7 @@ project(libtorrent
 	DESCRIPTION "Bittorrent library"
 	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
 )
-set (SOVERSION "10")
+set (SOVERSION "${VER_MAJOR}.${VER_MINOR}")
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
