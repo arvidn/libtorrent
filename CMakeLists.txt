@@ -549,7 +549,7 @@ if (WIN32)
 			debug dbghelp
 	)
 
-	add_definitions(-D_WIN32_WINNT=0x0600) # target Windows Vista or later
+	add_definitions(-D_WIN32_WINNT=0x0500) # target Windows XP or later
 
 	target_compile_definitions(torrent-rasterbar
 		PUBLIC WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
