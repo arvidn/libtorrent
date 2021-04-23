@@ -1029,7 +1029,7 @@ void bind_alert()
         ;
 
     class_<dht_log_alert, bases<alert>, noncopyable>("dht_log_alert", no_init)
-        .def_readonly("module", &dht_log_alert::module)
+        .add_property("module", make_getter(&dht_log_alert::module, by_value()))
         .def("log_message", &dht_log_alert::log_message)
     ;
 
@@ -1040,14 +1040,14 @@ void bind_alert()
 
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
-        .def_readonly("target", &dht_immutable_item_alert::target)
+        .add_property("target", make_getter(&dht_immutable_item_alert::target, by_value()))
         .add_property("item", &dht_immutable_item)
         ;
 
     class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
        "dht_mutable_item_alert", no_init)
-        .def_readonly("key", &dht_mutable_item_alert::key)
-        .def_readonly("signature", &dht_mutable_item_alert::signature)
+        .add_property("key", make_getter(&dht_mutable_item_alert::key, by_value()))
+        .add_property("signature", make_getter(&dht_mutable_item_alert::signature, by_value()))
         .def_readonly("seq", &dht_mutable_item_alert::seq)
         .def_readonly("salt", &dht_mutable_item_alert::salt)
         .add_property("item", &dht_mutable_item)
@@ -1056,9 +1056,9 @@ void bind_alert()
 
     class_<dht_put_alert, bases<alert>, noncopyable>(
        "dht_put_alert", no_init)
-        .def_readonly("target", &dht_put_alert::target)
-        .def_readonly("public_key", &dht_put_alert::public_key)
-        .def_readonly("signature", &dht_put_alert::signature)
+        .add_property("target", make_getter(&dht_put_alert::target, by_value()))
+        .add_property("public_key", make_getter(&dht_put_alert::public_key, by_value()))
+        .add_property("signature", make_getter(&dht_put_alert::signature, by_value()))
         .def_readonly("salt", &dht_put_alert::salt)
         .def_readonly("seq", &dht_put_alert::seq)
         .def_readonly("num_success", &dht_put_alert::num_success)
@@ -1085,7 +1085,7 @@ void bind_alert()
     class_<block_uploaded_alert, bases<peer_alert>, noncopyable>(
        "block_uploaded_alert", no_init)
         .add_property("block_index", &block_uploaded_alert::block_index)
-        .add_property("piece_index", make_getter((&block_uploaded_alert::piece_index), by_value()))
+        .add_property("piece_index", make_getter(&block_uploaded_alert::piece_index, by_value()))
         ;
 
     class_<alerts_dropped_alert, bases<alert>, noncopyable>(
