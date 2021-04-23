@@ -907,11 +907,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(t);
 		if (!t) return {};
 
-		if (t->num_time_critical_pieces() > 0)
-		{
-			ret |= piece_picker::time_critical_mode;
-		}
-
 		if (t->is_sequential_download())
 		{
 			ret |= piece_picker::sequential;
