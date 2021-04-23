@@ -31,6 +31,10 @@ settings = {
     'enable_upnp': False, 'listen_interfaces': '0.0.0.0:0', 'file_pool_size': 1}
 
 
+def has_deprecated():
+    return hasattr(lt, 'version')
+
+
 class test_create_torrent(unittest.TestCase):
 
     def test_from_torrent_info(self):
@@ -80,6 +84,15 @@ class test_session_stats(unittest.TestCase):
         for field_name in dir(atp):
             field = getattr(atp, field_name)
             print(field_name, field)
+
+        atp.renamed_files = {}
+        atp.merkle_tree = []
+        atp.unfinished_pieces = {}
+        atp.have_pieces = []
+        atp.banned_peers = []
+        atp.verified_pieces = []
+        atp.piece_priorities = []
+        atp.url_seeds = []
 
     def test_unique(self):
         metrics = lt.session_stats_metrics()
@@ -873,6 +886,20 @@ class test_session(unittest.TestCase):
 
         self.assertTrue(h.is_valid())
         self.assertEqual(h.status().info_hashes, lt.info_hash_t(lt.sha1_hash(b'a' * 20), lt.sha256_hash(b'a' * 32)))
+
+    def test_session_status(self):
+        if not has_deprecated():
+            return
+
+        s = lt.session()
+        st = s.status()
+        print(st)
+        print(st.active_requests)
+        print(st.dht_nodes)
+        print(st.dht_node_cache)
+        print(st.dht_torrents)
+        print(st.dht_global_nodes)
+        print(st.dht_total_allocations)
 
     def test_apply_settings(self):
 

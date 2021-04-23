@@ -879,7 +879,7 @@ void bind_session()
         .def_readonly("dht_node_cache", &session_status::dht_node_cache)
         .def_readonly("dht_torrents", &session_status::dht_torrents)
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
-        .def_readonly("active_requests", &session_status::active_requests)
+        .add_property("active_requests", make_getter(&session_status::active_requests, return_value_policy<return_by_value>()))
         .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
 #endif // TORRENT_DISABLE_DHT
         .add_property("utp_stats", &get_utp_stats)
@@ -1074,6 +1074,7 @@ void bind_session()
     {
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
         .def(init<lt::session_params>())
+        .def(init<>())
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings"), arg("flags")=

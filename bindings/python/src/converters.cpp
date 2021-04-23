@@ -185,9 +185,7 @@ struct dict_to_map
 {
     dict_to_map()
     {
-        converter::registry::push_back(
-            &convertible, &construct, type_id<std::map<T1, T2>>()
-        );
+        converter::registry::push_back(&convertible, &construct, type_id<Map>());
     }
 
     static void* convertible(PyObject* x)
@@ -197,8 +195,7 @@ struct dict_to_map
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
-        void* storage = ((converter::rvalue_from_python_storage<
-            std::map<T1, T2>>*)data)->storage.bytes;
+        void* storage = ((converter::rvalue_from_python_storage<Map>*)data)->storage.bytes;
 
         dict o(borrowed(x));
         Map m;
@@ -209,7 +206,7 @@ struct dict_to_map
             T1 const& key = *i;
             m[key] = extract<T2>(o[key]);
         }
-        data->convertible = new (storage) std::map<T1, T2>(m);
+        data->convertible = new (storage) Map(m);
     }
 };
 
@@ -482,6 +479,10 @@ void bind_converters()
 #if TORRENT_ABI_VERSION == 1
     to_python_converter<lt::aux::noexcept_movable<std::vector<char>>, vector_to_list<lt::aux::noexcept_movable<std::vector<char>>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<char>>>();
+
+#ifndef TORRENT_DISABLE_DHT
+    to_python_converter<std::vector<lt::dht_lookup>, vector_to_list<std::vector<lt::dht_lookup>>>();
+#endif
 #endif
 
     // python -> C++ conversions
@@ -506,6 +507,7 @@ void bind_converters()
     list_to_vector<lt::aux::noexcept_movable<std::vector<lt::tcp::endpoint>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<lt::udp::endpoint>>>();
     list_to_vector<lt::aux::noexcept_movable<std::vector<std::pair<std::string, int>>>>();
+    list_to_vector<lt::aux::noexcept_movable<std::vector<lt::sha1_hash>>>();
     dict_to_map<lt::piece_index_t, lt::bitfield, lt::aux::noexcept_movable<std::map<lt::piece_index_t, lt::bitfield>>>();
     dict_to_map<lt::file_index_t, std::string, lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>();
 

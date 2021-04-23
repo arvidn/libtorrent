@@ -599,7 +599,7 @@ target_link_libraries(torrent-rasterbar
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
 		PUBLIC
-			bcrypt mswsock ws2_32 Iphlpapi
+			bcrypt mswsock ws2_32 iphlpapi
 			debug dbghelp crypt32
 	)
 
