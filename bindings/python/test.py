@@ -715,6 +715,22 @@ class test_magnet_link(unittest.TestCase):
         self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
         self.assertEqual(str(h.info_hashes().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
 
+    def test_add_deprecated_magnet_link(self):
+        ses = lt.session()
+        atp = lt.add_torrent_params()
+        atp.info_hashes = lt.info_hash_t(lt.sha1_hash(b"a" * 20))
+        h = ses.add_torrent(atp)
+
+        self.assertTrue(h.status().info_hashes == lt.info_hash_t(lt.sha1_hash(b"a" * 20)))
+
+    def test_add_magnet_link(self):
+        ses = lt.session()
+        atp = lt.add_torrent_params()
+        atp.info_hash = lt.sha1_hash(b"a" * 20)
+        h = ses.add_torrent(atp)
+
+        self.assertTrue(h.status().info_hashes == lt.info_hash_t(lt.sha1_hash(b"a" * 20)))
+
 
 class test_peer_class(unittest.TestCase):
 
