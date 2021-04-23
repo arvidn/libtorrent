@@ -921,7 +921,11 @@ namespace libtorrent {
 			ret |= piece_picker::time_critical_mode;
 		}
 
-		if (t->is_sequential_download())
+		if (m_settings.get_bool(settings_pack::piece_priority_order))
+		{
+			ret |= piece_picker::priority_order;
+		}
+		else if (t->is_sequential_download())
 		{
 			ret |= piece_picker::sequential;
 		}

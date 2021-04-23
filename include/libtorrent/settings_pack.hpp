@@ -872,6 +872,10 @@ namespace aux {
 			// happen at the application level.
 			allow_idna,
 
+			// when enabled, pieces are picked, based on their priority value. 
+			// Same priorities will follow sequential order.
+			piece_priority_order,
+
 			max_bool_setting_internal
 		};
 

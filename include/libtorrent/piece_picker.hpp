@@ -151,6 +151,9 @@ namespace libtorrent {
 		// small)
 		static constexpr picker_options_t piece_extent_affinity = 7_bit;
 
+		// pick pieces in priority descending order
+		static constexpr picker_options_t priority_order = 8_bit;
+		
 		struct downloading_piece
 		{
 			downloading_piece()

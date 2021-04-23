@@ -119,6 +119,7 @@ namespace libtorrent {
 	constexpr picker_options_t piece_picker::time_critical_mode;
 	constexpr picker_options_t piece_picker::align_expanded_pieces;
 	constexpr picker_options_t piece_picker::piece_extent_affinity;
+	constexpr picker_options_t piece_picker::priority_order;
 
 	constexpr download_queue_t piece_picker::piece_pos::piece_downloading;
 	constexpr download_queue_t piece_picker::piece_pos::piece_full;
@@ -2246,6 +2247,29 @@ namespace {
 					, prefer_contiguous_blocks, peer, suggested_pieces
 					, options);
 				if (num_blocks <= 0) return ret;
+			}
+		}
+		else if (options & priority_order)
+		{
+			if (m_dirty) update_pieces();
+			TORRENT_ASSERT(!m_dirty);
+
+			for (uint8_t prio = 7; prio > 0; --prio)
+			{
+				for (auto i : m_pieces)
+				{
+					if (piece_priority(i) != download_priority_t(prio)) continue;
+					if (!is_piece_free(i, pieces)) continue;
+
+					ret |= picker_log_alert::random_pieces;
+
+					num_blocks = add_blocks(i, pieces
+						, interesting_blocks, backup_blocks
+						, backup_blocks2, num_blocks
+						, prefer_contiguous_blocks, peer, suggested_pieces
+						, options);
+					if (num_blocks <= 0) return ret;
+				}
 			}
 		}
 		else
