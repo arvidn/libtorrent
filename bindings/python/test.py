@@ -817,6 +817,20 @@ class test_session(unittest.TestCase):
                        'banned_peers': [('8.7.6.5', 6881)],
                        'file_priorities': [1, 1, 1, 2, 0]})
 
+    def test_find_torrent(self):
+        s = lt.session(settings)
+        h = s.add_torrent({'info_hash': b"a" * 20,
+                           'save_path': '.'})
+        self.assertTrue(h.is_valid())
+
+        h2 = s.find_torrent(lt.sha1_hash(b"a" * 20))
+        self.assertTrue(h2.is_valid())
+        h3 = s.find_torrent(lt.sha1_hash(b"b" * 20))
+        self.assertFalse(h3.is_valid())
+
+        self.assertEqual(h, h2)
+        self.assertNotEqual(h, h3)
+
     def test_add_torrent_info_hash(self):
         s = lt.session(settings)
         h = s.add_torrent({
