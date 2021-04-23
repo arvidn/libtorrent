@@ -83,8 +83,7 @@ namespace libtorrent {
 
 		// in time critical mode, only have 1 outstanding request at a time
 		// via normal requests
-		int const desired_queue_size = time_critical_mode
-			? 1 : c.desired_queue_size();
+		int const desired_queue_size = c.desired_queue_size();
 
 		int num_requests = desired_queue_size
 			- int(c.download_queue().size())
@@ -206,8 +205,7 @@ namespace libtorrent {
 		bool const dont_pick_busy_blocks
 			= ((ses.settings().get_bool(settings_pack::strict_end_game_mode)
 				&& p.get_download_queue_size() < p.num_want_left())
-				|| dq.size() + rq.size() > 0)
-				&& !time_critical_mode;
+				|| dq.size() + rq.size() > 0);
 
 		// this is filled with an interesting piece
 		// that some other peer is currently downloading
@@ -216,13 +214,6 @@ namespace libtorrent {
 		for (piece_block const& pb : interesting_pieces)
 		{
 			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
-
-			if (time_critical_mode && p.piece_priority(pb.piece_index) != top_priority)
-			{
-				// assume the subsequent pieces are not prio 7 and
-				// be done
-				break;
-			}
 
 			int num_block_requests = p.num_peers(pb);
 			if (num_block_requests > 0)
