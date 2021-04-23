@@ -959,6 +959,11 @@ TEST_TORRENTS = \
   empty_httpseed.torrent \
   empty_path.torrent \
   empty_path_multi.torrent \
+  empty-files-1.torrent \
+  empty-files-2.torrent \
+  empty-files-3.torrent \
+  empty-files-4.torrent \
+  empty-files-5.torrent \
   hidden_parent_path.torrent \
   httpseed.torrent \
   invalid_file_size.torrent \

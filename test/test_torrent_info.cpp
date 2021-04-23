@@ -335,6 +335,31 @@ static test_torrent_t const test_torrents[] =
 			TEST_CHECK(ti->info_hashes().has_v2());
 		}
 	},
+	{ "empty-files-1.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-2.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-3.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-4.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-5.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
 };
 
 struct test_failing_torrent_t
