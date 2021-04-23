@@ -484,8 +484,12 @@ elseif(MSVC)
 endif()
 
 if(static_runtime)
-	include(ucm_flags)
-	ucm_set_runtime(STATIC)
+	if (MSVC)
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	else()
+		include(ucm_flags)
+		ucm_set_runtime(STATIC)
+	endif()
 	set(Boost_USE_MULTITHREADED ON)
 	set(Boost_USE_STATIC_RUNTIME ON)
 	set(OPENSSL_USE_STATIC_LIBS TRUE)
@@ -549,7 +553,7 @@ if (WIN32)
 			debug dbghelp
 	)
 
-	add_definitions(-D_WIN32_WINNT=0x0500) # target Windows XP or later
+	add_definitions(-D_WIN32_WINNT=0x0501) # target Windows XP or later
 
 	target_compile_definitions(torrent-rasterbar
 		PUBLIC WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
