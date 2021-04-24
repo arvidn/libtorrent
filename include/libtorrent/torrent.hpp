@@ -271,6 +271,10 @@ namespace libtorrent {
 		// around further down the object to maintain an owner
 		std::shared_ptr<torrent_info> m_torrent_file;
 
+		// This is the sum of all non-pad file sizes. In the next major version
+		// this is stored in file_storage and no longer need to be kept here.
+		std::int64_t m_size_on_disk = 0;
+
 		// a back reference to the session
 		// this torrent belongs to.
 		aux::session_interface& m_ses;

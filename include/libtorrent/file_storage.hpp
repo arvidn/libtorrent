@@ -703,6 +703,9 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT std::tuple<piece_index_t, piece_index_t>
 	file_piece_range_inclusive(file_storage const& fs, file_index_t file);
 
+	TORRENT_EXTRA_EXPORT
+	std::int64_t size_on_disk(file_storage const& fs);
+
 } // namespace aux
 } // namespace libtorrent
 

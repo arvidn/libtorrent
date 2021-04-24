@@ -68,6 +68,11 @@ namespace aux {
 
 		void export_progress(vector<std::int64_t, file_index_t> &fp);
 
+		std::int64_t total_on_disk() const
+		{
+			return m_total_on_disk;
+		}
+
 		bool empty() const { return m_file_progress.empty(); }
 		void clear();
 
@@ -75,6 +80,9 @@ namespace aux {
 			, std::function<void(file_index_t)> const& completed_cb);
 
 	private:
+
+		// the total number of bytes downloaded to non-pad files
+		std::int64_t m_total_on_disk = 0;
 
 		// this vector contains the number of bytes completely
 		// downloaded (as in passed-hash-check) in each file.
@@ -93,6 +101,7 @@ namespace aux {
 		// to make sure we never say we've downloaded more bytes of a file than
 		// its file size
 		vector<std::int64_t, file_index_t> m_file_sizes;
+		vector<bool, file_index_t> m_pad_file;
 #endif
 	};
 } }
