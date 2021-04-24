@@ -1164,5 +1164,25 @@ TORRENT_TEST(file_index_for_root)
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("55555555555555555555555555555555")), file_index_t{-1});
 }
 
+TORRENT_TEST(size_on_disk_explicit_pads)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+
+	std::int64_t size_on_disk = 0;
+	TEST_EQUAL(aux::size_on_disk(fs), size_on_disk);
+	fs.add_file("test/0", 100, {}, 0, {}, "11111111111111111111111111111111");
+	size_on_disk += 100;
+	TEST_EQUAL(aux::size_on_disk(fs), size_on_disk);
+
+	// when adding a pad file, size_on_disk does not increment
+	fs.add_file("test/pad/0", 80, file_storage::flag_pad_file, 0, {}, "22222222222222222222222222222222");
+	TEST_EQUAL(aux::size_on_disk(fs), size_on_disk);
+	fs.add_file("test/2", 333, {}, 0, {}, "33333333333333333333333333333333");
+	size_on_disk += 333;
+	TEST_EQUAL(aux::size_on_disk(fs), size_on_disk);
+	TEST_CHECK(aux::size_on_disk(fs) < fs.total_size());
+}
+
 // TODO: test file attributes
 // TODO: test symlinks

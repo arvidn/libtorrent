@@ -1564,5 +1564,16 @@ namespace aux {
 			(fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
 	}
 
+	std::int64_t size_on_disk(file_storage const& fs)
+	{
+		std::int64_t ret = 0;
+		for (file_index_t i : fs.file_range())
+		{
+			if (fs.pad_file_at(i)) continue;
+			ret += fs.file_size(i);
+		}
+		return ret;
+	}
+
 	} // namespace aux
 }

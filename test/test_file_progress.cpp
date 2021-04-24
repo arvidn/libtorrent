@@ -71,6 +71,7 @@ TORRENT_TEST(init)
 			sum += vec[i];
 
 		TEST_EQUAL(sum, fs.piece_size(idx));
+		TEST_EQUAL(sum, fp.total_on_disk());
 	}
 }
 
@@ -102,6 +103,7 @@ TORRENT_TEST(init2)
 			sum += vec[i];
 
 		TEST_EQUAL(sum, fs.piece_size(idx));
+		TEST_EQUAL(sum, fp.total_on_disk());
 	}
 }
 
@@ -138,4 +140,41 @@ TORRENT_TEST(update_simple_sequential)
 	}
 
 	TEST_EQUAL(count, fs.num_files());
+}
+
+TORRENT_TEST(pad_file_completion_callback)
+{
+	int const piece_size = 256;
+
+	file_storage fs;
+	fs.add_file("torrent/1", 100000);
+	fs.add_file("torrent/2", 100, file_storage::flag_pad_file);
+	fs.add_file("torrent/3", 45000);
+	fs.set_piece_length(piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+
+	aux::file_progress fp;
+	fp.init(picker, fs);
+	int count = 0;
+	for (auto const idx : fs.piece_range())
+	{
+		fp.update(fs, idx, [&](file_index_t const file_index)
+		{
+			// there is no callback for the pad-file, and it also doesn't count
+			// as "total_on_disk()"
+			if (count == 0) TEST_EQUAL(fp.total_on_disk(), 100000);
+			else if (count == 1) TEST_EQUAL(fp.total_on_disk(), 145000);
+
+			count++;
+
+			aux::vector<std::int64_t, file_index_t> vec;
+			fp.export_progress(vec);
+
+			TEST_EQUAL(vec[file_index], fs.file_size(file_index));
+		});
+	}
+
+	TEST_EQUAL(count, 2);
 }
