@@ -726,6 +726,8 @@ SIM_SOURCES = \
   create_torrent.cpp \
   create_torrent.hpp \
   fake_peer.hpp \
+  disk_io.hpp \
+  disk_io.cpp \
   make_proxy_settings.hpp \
   setup_dht.cpp \
   setup_dht.hpp \

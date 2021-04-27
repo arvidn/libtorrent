@@ -190,9 +190,19 @@ namespace file_open_mode {
 		// index and the specified request. When the operation completes, call
 		// handler possibly with a disk_buffer_holder, holding the buffer with
 		// the result. Flags may be set to affect the read operation. See
-		// disk_job_flags_t. The disk_observer is a callback to indicate that
+		// disk_job_flags_t.
+		//
+		// The disk_observer is a callback to indicate that
 		// the store buffer/disk write queue is below the watermark to let peers
-		// start writing buffers to disk again.
+		// start writing buffers to disk again. When ``async_write()`` returns
+		// ``true``, indicating the write queue is full, the peer will stop
+		// further writes and wait for the passed-in ``disk_observer`` to be
+		// notified before resuming.
+		//
+		// Note that for ``async_read``, the peer_request (``r``) is not
+		// necessarily aligned to blocks (but it is most of the time). However,
+		// all writes (passed to ``async_write``) are guaranteed to be block
+		// aligned.
 		virtual void async_read(storage_index_t storage, peer_request const& r
 			, std::function<void(disk_buffer_holder, storage_error const&)> handler
 			, disk_job_flags_t flags = {}) = 0;
@@ -389,7 +399,7 @@ namespace file_open_mode {
 			: m_disk_io(rhs.m_disk_io)
 			, m_idx(rhs.m_idx)
 		{
-				rhs.m_disk_io = nullptr;
+			rhs.m_disk_io = nullptr;
 		}
 
 		storage_holder& operator=(storage_holder&& rhs) noexcept
