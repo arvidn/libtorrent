@@ -152,7 +152,7 @@ struct temp_disk_io final : lt::disk_interface
 		lt::storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-			auto storage = std::make_unique<temp_storage>(params.files);
+		auto storage = std::make_unique<temp_storage>(params.files);
 		if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 		else m_torrents[idx] = std::move(storage);
 		return lt::storage_holder(idx, *this);

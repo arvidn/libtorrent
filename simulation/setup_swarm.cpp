@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/random.hpp"
+#include "disk_io.hpp"
 #include <fstream>
 
 #include "settings.hpp"
@@ -60,18 +61,18 @@ constexpr swarm_test_t swarm_test::no_storage;
 
 namespace {
 
-	int transfer_rate(lt::address ip)
-	{
-		// in order to get a heterogeneous network, the last digit in the IP
-		// address determines the latency to that node as well as upload and
-		// download rates.
-		int last_digit;
-		if (ip.is_v4())
-			last_digit = ip.to_v4().to_bytes()[3];
-		else
-			last_digit = ip.to_v6().to_bytes()[15];
-		return (last_digit + 4) * 5;
-	}
+int transfer_rate(lt::address ip)
+{
+	// in order to get a heterogeneous network, the last digit in the IP
+	// address determines the latency to that node as well as upload and
+	// download rates.
+	int last_digit;
+	if (ip.is_v4())
+		last_digit = ip.to_v4().to_bytes()[3];
+	else
+		last_digit = ip.to_v6().to_bytes()[15];
+	return (last_digit + 4) * 5;
+}
 
 } // anonymous namespace
 
