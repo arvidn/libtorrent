@@ -3,6 +3,7 @@
 import contextlib
 from distutils import log
 import distutils.cmd
+import distutils.command.install_data as install_data_lib
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
@@ -328,6 +329,13 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             command = ["b2"] + self._b2_args_split
             log.info(" ".join(command))
             subprocess.run(command, cwd=python_binding_dir, check=True)
+        # The jamfile only builds "libtorrent.so", but we want
+        # "libtorrent/__init__.so"
+        src = self.get_ext_fullpath("libtorrent")
+        dst = self.get_ext_fullpath(self.extensions[0].name)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        log.info("rename %s -> %s", src, dst)
+        os.rename(src, dst)
 
     @contextlib.contextmanager
     def _configure_b2(self) -> Iterator[None]:
@@ -418,6 +426,27 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             yield
 
 
+class InstallDataToLibDir(install_data_lib.install_data):  # type: ignore
+    def finalize_options(self) -> None:
+        # install_data installs to the *base* directory, which is useless.
+        # Nothing ever gets installed there, no tools search there. You could
+        # only make use of it by manually picking the right install paths.
+        # This instead defaults the "install_dir" option to be "install_lib",
+        # which is "where packages are normally installed".
+        self.set_undefined_options(
+            "install",
+            ("install_lib", "install_dir"),  # note "install_lib"
+            ("root", "root"),
+            ("force", "force"),
+        )
+
+
+def find_all_files(path: str) -> Iterator[str]:
+    for dirpath, _, filenames in os.walk(path):
+        for filename in filenames:
+            yield os.path.join(dirpath, filename)
+
+
 setuptools.setup(
     name="python-libtorrent",
     version="2.0.4",
@@ -427,9 +456,13 @@ setuptools.setup(
     long_description="Python bindings for libtorrent-rasterbar",
     url="http://libtorrent.org",
     license="BSD",
-    ext_modules=[StubExtension("libtorrent")],
+    ext_modules=[StubExtension("libtorrent.__init__")],
     cmdclass={
         "build_ext": LibtorrentBuildExt,
+        "install_data": InstallDataToLibDir,
     },
     distclass=B2Distribution,
+    data_files=[
+        ("libtorrent", list(find_all_files("install_data"))),
+    ],
 )

@@ -1,3 +1,4 @@
+import datetime
 import os
 import pathlib
 import random
@@ -5,7 +6,11 @@ import tempfile
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Mapping
+from typing import Optional
 import unittest
+
+from typing_extensions import TypedDict
 
 import libtorrent as lt
 
@@ -197,6 +202,25 @@ class FileProgressTest(TorrentHandleTest):
         )
 
 
+class ErrorCodeDict(TypedDict):
+    value: int
+    category: str
+
+
+class AnnounceCommon(TypedDict):
+    message: str
+    last_error: ErrorCodeDict
+    next_announce: Optional[datetime.datetime]
+    min_announce: Optional[datetime.datetime]
+    scrape_incomplete: int
+    scrape_complete: int
+    scrape_downloaded: int
+    fails: int
+    updating: bool
+    start_sent: bool
+    complete_sent: bool
+
+
 class TrackersTest(TorrentHandleTest):
     def test_trackers(self) -> None:
         self.handle.add_tracker({"url": "http://127.1.2.3"})
@@ -205,7 +229,7 @@ class TrackersTest(TorrentHandleTest):
 
         # Various parts of the tracker stats conform to a particular status
         # layout
-        def check(entry: Dict[str, Any]) -> None:
+        def check(entry: AnnounceCommon) -> None:
             self.assertIsInstance(entry["message"], str)
             self.assertIsInstance(entry["last_error"]["value"], int)
             self.assertIsInstance(entry["last_error"]["category"], str)
@@ -244,7 +268,7 @@ class TrackersTest(TorrentHandleTest):
         check(tr["endpoints"][0]["info_hashes"][0])
         check(tr["endpoints"][0]["info_hashes"][1])
 
-    def get_input_entry(self, ae: Dict[str, Any]) -> Dict[str, Any]:
+    def get_input_entry(self, ae: Mapping[str, Any]) -> Dict[str, Any]:
         return {k: ae[k] for k in ("url", "tier", "fail_limit")}
 
     def test_add_tracker(self) -> None:
@@ -302,8 +326,10 @@ class UrlSeedTest(TorrentHandleTest):
 
 class TorrentFileTest(TorrentHandleTest):
     def test_torrent_file(self) -> None:
+        torrent_file = self.handle.torrent_file()
+        assert torrent_file is not None
         self.assertEqual(
-            self.handle.torrent_file().info_section(),
+            torrent_file.info_section(),
             self.torrent.torrent_info().info_section(),
         )
         with self.assertWarns(DeprecationWarning):
@@ -412,11 +438,11 @@ class AddPieceTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_str_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            self.handle.add_piece(0, "0" * self.dummy.piece_length, 0)
+            self.handle.add_piece(0, "0" * self.dummy.piece_length, 0)  # type: ignore
 
     def test_str(self) -> None:
         for i, data in enumerate(self.dummy.pieces):
-            self.handle.add_piece(i, data.decode(), 0)
+            self.handle.add_piece(i, data.decode(), 0)  # type: ignore
 
         self.wait_until_finished()
 
@@ -549,14 +575,13 @@ class ForceReannounceTest(TorrentHandleTest):
         self.handle.add_tracker({"url": "http://127.1.2.3"})
         self.handle.scrape_tracker()  # updates endpoints
 
-        next_announce = self.handle.trackers()[0]["endpoints"][0]["next_announce"]
+        baseline = self.handle.trackers()[0]["endpoints"][0]["next_announce"]
+        assert baseline is not None
         # this requires a really long timeout for some reason
         for _ in lib.loop_until_timeout(120, msg="next_announce update"):
             reannounce()
-            if (
-                self.handle.trackers()[0]["endpoints"][0]["next_announce"]
-                > next_announce
-            ):
+            next_announce = self.handle.trackers()[0]["endpoints"][0]["next_announce"]
+            if next_announce is not None and next_announce > baseline:
                 break
 
     def test_force_reannounce(self) -> None:
@@ -691,19 +716,23 @@ class RenameFileTest(TorrentHandleTest):
         self.handle.rename_file(0, path)
 
         for _ in lib.loop_until_timeout(5, msg="rename"):
-            if self.handle.torrent_file().files().file_path(0) == path:
+            torrent_file = self.handle.torrent_file()
+            assert torrent_file is not None
+            if torrent_file.files().file_path(0) == path:
                 break
 
         # Test rename with bytes
-        self.handle.rename_file(0, b"file2.txt")
+        self.handle.rename_file(0, b"file2.txt")  # type: ignore
         for _ in lib.loop_until_timeout(5, msg="rename"):
-            if self.handle.torrent_file().files().file_path(0) == "file2.txt":
+            torrent_file = self.handle.torrent_file()
+            assert torrent_file is not None
+            if torrent_file.files().file_path(0) == "file2.txt":
                 break
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_bytes_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            self.handle.rename_file(0, b"file.txt")
+            self.handle.rename_file(0, b"file.txt")  # type: ignore
 
 
 class CertificateTest(TorrentHandleTest):
@@ -716,7 +745,10 @@ class CertificateTest(TorrentHandleTest):
 
         self.handle.set_ssl_certificate(cert_path, privkey_path, dhparam_path)
         self.handle.set_ssl_certificate(
-            cert_path, privkey_path, dhparam_path, passphrase=b"passphrase"
+            cert_path,
+            privkey_path,
+            dhparam_path,
+            passphrase=b"passphrase",  # type: ignore
         )
         self.handle.set_ssl_certificate(
             cert_path, privkey_path, dhparam_path, passphrase="passphrase"

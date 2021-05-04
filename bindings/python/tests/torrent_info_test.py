@@ -74,7 +74,7 @@ class InfoHashTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5986")
     def test_sha256(self) -> None:
-        sha256 = lt.sha256_hash(lib.get_random_bytes(32))
+        sha256 = lt.sha256_hash(lib.get_random_bytes(32))  # type: ignore
 
         ih = lt.info_hash_t(sha256)
         self.assertEqual(ih.get(lt.protocol_version.V1), lt.sha1_hash())
@@ -85,7 +85,7 @@ class InfoHashTest(unittest.TestCase):
         self.assertFalse(ih.has_v1())
         self.assertTrue(ih.has_v2())
         self.assertEqual(ih.v1, lt.sha1_hash())
-        self.assertEqual(ih.v2, sha256)
+        self.assertEqual(ih.v2, sha256)  # type: ignore
 
         self.assertEqual(ih, lt.info_hash_t(sha256))
         self.assertEqual(hash(ih), hash(lt.info_hash_t(sha256)))
@@ -94,9 +94,9 @@ class InfoHashTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5986")
     def test_dual(self) -> None:
         sha1 = lt.sha1_hash(lib.get_random_bytes(20))
-        sha256 = lt.sha256_hash(lib.get_random_bytes(32))
+        sha256 = lt.sha256_hash(lib.get_random_bytes(32))  # type: ignore
 
-        ih = lt.info_hash_t(sha1, sha256)
+        ih = lt.info_hash_t(sha1, sha256)  # type: ignore
         self.assertEqual(ih.get(lt.protocol_version.V1), sha1)
         self.assertEqual(ih.get(lt.protocol_version.V2), sha256)
         self.assertEqual(ih.get_best(), sha256)
@@ -107,8 +107,8 @@ class InfoHashTest(unittest.TestCase):
         self.assertEqual(ih.v1, sha1)
         self.assertEqual(ih.v2, sha256)
 
-        self.assertEqual(ih, lt.info_hash_t(sha1, sha256))
-        self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1, sha256)))
+        self.assertEqual(ih, lt.info_hash_t(sha1, sha256))  # type: ignore
+        self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1, sha256)))  # type: ignore
         self.assertNotEqual(ih, lt.info_hash_t())
 
 
@@ -181,7 +181,7 @@ class ConstructorTest(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             lt.torrent_info(
                 {
-                    "info": {
+                    "info": {  # type: ignore
                         "name": "test.txt",
                         "length": 1024,
                         "piece length": 16384,
@@ -193,7 +193,7 @@ class ConstructorTest(unittest.TestCase):
     def test_dict_with_str_keys(self) -> None:
         ti = lt.torrent_info(
             {
-                "info": {
+                "info": {  # type: ignore
                     "name": "test.txt",
                     "length": 1024,
                     "piece length": 16384,
@@ -255,7 +255,7 @@ class ConstructorWithLimitsTest(unittest.TestCase):
                         b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
                     },
                 },
-                {b"max_decode_depth": 1},
+                {"max_decode_depth": 1},
             )
 
     def test_load_max_pieces_limit(self) -> None:
@@ -269,7 +269,7 @@ class ConstructorWithLimitsTest(unittest.TestCase):
                         b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
                     }
                 },
-                {b"max_pieces": 1},
+                {"max_pieces": 1},
             )
 
     def test_load_max_buffer_size_limit(self) -> None:
@@ -283,7 +283,7 @@ class ConstructorWithLimitsTest(unittest.TestCase):
                         b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
                     }
                 },
-                {b"max_buffer_size": 1},
+                {"max_buffer_size": 1},
             )
 
 
@@ -295,7 +295,9 @@ class FieldTest(unittest.TestCase):
         self.ti.add_tracker("http://example0.com", 0, lt.tracker_source.source_client)
         with self.assertRaises(TypeError):
             self.ti.add_tracker(
-                b"http://example1.com", 1, int(lt.tracker_source.source_torrent)
+                b"http://example1.com",  # type: ignore
+                1,
+                int(lt.tracker_source.source_torrent),  # type: ignore
             )
 
         self.assertEqual([t.url for t in self.ti.trackers()], ["http://example0.com"])
@@ -542,7 +544,7 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(self.ti.files().file_path(0), "ascii-str.txt")
 
         # ascii bytes
-        self.ti.rename_file(0, b"ascii-bytes.txt")
+        self.ti.rename_file(0, b"ascii-bytes.txt")  # type: ignore
         self.assertEqual(self.ti.files().file_path(0), "ascii-bytes.txt")
 
         # non-ascii str
@@ -550,11 +552,11 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(self.ti.files().file_path(0), "\u1234-str.txt")
 
         # non-ascii bytes
-        self.ti.rename_file(0, "\u1234-bytes.txt".encode())
+        self.ti.rename_file(0, "\u1234-bytes.txt".encode())  # type: ignore
         self.assertEqual(self.ti.files().file_path(0), "\u1234-bytes.txt")
 
         # non-unicode
-        self.ti.rename_file(0, b"\xff.txt")
+        self.ti.rename_file(0, b"\xff.txt")  # type: ignore
         with self.assertRaises(ValueError):
             self.ti.files().file_path(0)
 

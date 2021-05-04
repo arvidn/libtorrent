@@ -85,8 +85,10 @@ def cleanup_with_windows_fix(
     for _ in loop_until_timeout(timeout, msg="PermissionError clear"):
         try:
             unlink_all_files(tempdir.name)
-        except PermissionError as exc:
-            if sys.platform == "win32" and exc.winerror == 5:
+        except PermissionError:
+            if sys.platform == "win32":
+                # current release of mypy doesn't know about winerror
+                # if exc.winerror == 5:
                 continue
             raise
         break

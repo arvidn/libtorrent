@@ -13,7 +13,9 @@ import time
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Union
 
 import libtorrent as lt
@@ -99,7 +101,7 @@ def progress_bar(progress: float, width: int) -> str:
     return progress_chars * "#" + (width - progress_chars) * "-"
 
 
-def print_peer_info(console: ConsoleType, peers: List[Any]) -> None:
+def print_peer_info(console: ConsoleType, peers: List[lt.peer_info]) -> None:
 
     out = " down    (total )   up     (total )" "  q  r flags  block progress  client\n"
 
@@ -132,7 +134,10 @@ def print_peer_info(console: ConsoleType, peers: List[Any]) -> None:
         elif p.flags & lt.peer_info.connecting:
             id = "connecting to peer"
         else:
-            id = p.client
+            try:
+                id = p.client.decode()
+            except ValueError:
+                id = p.client.hex()
 
         out += "%s\n" % id[:10]
 
@@ -140,7 +145,7 @@ def print_peer_info(console: ConsoleType, peers: List[Any]) -> None:
 
 
 def print_download_queue(
-    console: ConsoleType, download_queue: List[Dict[str, Any]]
+    console: ConsoleType, download_queue: Sequence[Mapping[str, Any]]
 ) -> None:
 
     out = ""
@@ -342,9 +347,12 @@ def main() -> None:
                     out = "\n"
                     fp = h.file_progress()
                     ti = t.torrent_file
-                    for idx, p in enumerate(fp):
-                        out += progress_bar(p / float(ti.files().file_size(idx)), 20)
-                        out += " " + ti.files().file_path(idx) + "\n"
+                    if ti is not None:
+                        for idx, p in enumerate(fp):
+                            out += progress_bar(
+                                p / float(ti.files().file_size(idx)), 20
+                            )
+                            out += " " + ti.files().file_path(idx) + "\n"
                     console.write(out)
                 except Exception:
                     pass
@@ -373,8 +381,8 @@ def main() -> None:
         if len(alerts_log) > 20:
             alerts_log = alerts_log[-20:]
 
-        for a in alerts_log:
-            console.write(a + "\n")
+        for line in alerts_log:
+            console.write(line + "\n")
 
         c = console.sleep_and_input(0.5)
 

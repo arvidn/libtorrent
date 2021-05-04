@@ -30,6 +30,7 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertEqual(self.status.handle, self.handle)
 
         self.assertIsInstance(self.status.torrent_file, lt.torrent_info)
+        assert self.status.torrent_file is not None
         self.assertEqual(
             self.status.torrent_file.info_section(),
             self.torrent.torrent_info().info_section(),

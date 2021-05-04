@@ -9,7 +9,7 @@ class VersionTest(unittest.TestCase):
 
     @unittest.skip("need to implement this")
     def test_version_tuple(self) -> None:
-        self.assertIsInstance(lt.__version_info__, tuple)
+        self.assertIsInstance(lt.__version_info__, tuple)  # type: ignore
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:

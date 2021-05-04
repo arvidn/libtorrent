@@ -106,6 +106,10 @@ repos:
                tools/set_version.py|
                tools/update_copyright.py
           )$
+      # black doesn't run on *.pyi files by default, for reasons
+    - id: black
+      name: black (pyi)
+      types: [pyi]
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.800
   hooks:

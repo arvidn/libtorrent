@@ -378,23 +378,23 @@ class AddTorrentParamsTest(unittest.TestCase):
         atp = lt.add_torrent_params()
 
         with self.assertWarns(DeprecationWarning):
-            atp.name = b"test.txt"
+            atp.name = b"test.txt"  # type: ignore
 
     def test_name_assign_bytes(self) -> None:
         atp = lt.add_torrent_params()
 
-        atp.name = b"test.txt"
+        atp.name = b"test.txt"  # type: ignore
         self.assertEqual(atp.name, "test.txt")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_trackerid_assign_bytes_deprecated(self) -> None:
         atp = lt.add_torrent_params()
         with self.assertWarns(DeprecationWarning):
-            atp.trackerid = b"trackerid"
+            atp.trackerid = b"trackerid"  # type: ignore
 
     def test_trackerid_assign_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.trackerid = b"trackerid"
+        atp.trackerid = b"trackerid"  # type: ignore
         self.assertEqual(atp.trackerid, "trackerid")
 
     def test_save_path_ascii_str(self) -> None:
@@ -405,7 +405,7 @@ class AddTorrentParamsTest(unittest.TestCase):
 
     def test_save_path_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.save_path = b"test"
+        atp.save_path = b"test"  # type: ignore
         self.assertEqual(atp.save_path, "test")
         self.assertEqual(lt.write_resume_data(atp)[b"save_path"], b"test")
 
@@ -417,7 +417,7 @@ class AddTorrentParamsTest(unittest.TestCase):
 
     def test_save_path_non_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.save_path = os.fsencode("\u1234")
+        atp.save_path = os.fsencode("\u1234")  # type: ignore
         self.assertEqual(atp.save_path, "\u1234")
         self.assertEqual(lt.write_resume_data(atp)[b"save_path"], os.fsencode("\u1234"))
 
@@ -433,7 +433,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @lib.uses_surrogate_paths()
     def test_save_path_surrogate_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.save_path = os.fsencode("\udcff")
+        atp.save_path = os.fsencode("\udcff")  # type: ignore
         self.assertEqual(atp.save_path, "\udcff")
         self.assertEqual(lt.write_resume_data(atp)[b"save_path"], os.fsencode("\udcff"))
 
@@ -449,7 +449,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @lib.uses_non_unicode_paths()
     def test_save_path_non_unicode_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.save_path = b"\xff"
+        atp.save_path = b"\xff"  # type: ignore
         self.assertEqual(atp.save_path, os.fsdecode(b"\xff"))
         self.assertEqual(lt.write_resume_data(atp)[b"save_path"], b"\xff")
 
@@ -533,7 +533,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.renamed_files = {0: b"test.txt"}
+        atp.renamed_files = {0: b"test.txt"}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: "test.txt"})
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
@@ -545,7 +545,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_non_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.renamed_files = {0: os.fsencode("\u1234.txt")}
+        atp.renamed_files = {0: os.fsencode("\u1234.txt")}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: "\u1234.txt"})
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
@@ -559,7 +559,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @lib.uses_surrogate_paths()
     def test_renamed_files_surrogate_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.renamed_files = {0: os.fsencode("\udcff.txt")}
+        atp.renamed_files = {0: os.fsencode("\udcff.txt")}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: "\udcff.txt"})
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
@@ -573,7 +573,7 @@ class AddTorrentParamsTest(unittest.TestCase):
     @lib.uses_non_unicode_paths()
     def test_renamed_files_non_unicode_bytes(self) -> None:
         atp = lt.add_torrent_params()
-        atp.renamed_files = {0: b"\xff.txt"}
+        atp.renamed_files = {0: b"\xff.txt"}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: os.fsdecode("\xff.txt")})
 
 
@@ -782,13 +782,13 @@ class ResumeDataTest(unittest.TestCase):
         atp = lt.add_torrent_params()
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {b"max_decode_depth": 1})
+            lt.read_resume_data(buf, {"max_decode_depth": 1})
 
     def test_limit_decode_tokens(self) -> None:
         atp = lt.add_torrent_params()
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {b"max_decode_tokens": 1})
+            lt.read_resume_data(buf, {"max_decode_tokens": 1})
 
     def test_limit_pieces(self) -> None:
         atp = lt.add_torrent_params()
@@ -804,7 +804,7 @@ class ResumeDataTest(unittest.TestCase):
         )
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {b"max_pieces": 1})
+            lt.read_resume_data(buf, {"max_pieces": 1})
 
 
 class ConstructorTest(unittest.TestCase):
@@ -943,7 +943,7 @@ class DhtTest(unittest.TestCase):
     def test_announce(self) -> None:
         sha1 = lt.sha1_hash(b"a" * 20)
 
-        self.session.dht_announce(sha1)
+        self.session.dht_announce(sha1)  # type: ignore
         self.session.dht_announce(sha1, 0, 0)
         # self.session.dht_announce(sha1, 0, lt.announce_flags.??)
 
@@ -957,9 +957,14 @@ class DhtTest(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             self.session.set_dht_settings(dht_settings)
         with self.assertWarns(DeprecationWarning):
-            self.session.dht_get_mutable_item("a" * 32, "salt")
+            self.session.dht_get_mutable_item("a" * 32, "salt")  # type: ignore
         with self.assertWarns(DeprecationWarning):
-            self.session.dht_put_mutable_item("a" * 64, "b" * 32, "data", "salt")
+            self.session.dht_put_mutable_item(
+                "a" * 64,  # type: ignore
+                "b" * 32,  # type: ignore
+                "data",  # type: ignore
+                "salt",  # type: ignore
+            )
 
     def test_dht_lookup(self) -> None:
         lookup = lt.dht_lookup()
@@ -995,17 +1000,21 @@ class AlertHandlingTest(unittest.TestCase):
 
     @unittest.skipIf(sys.platform == "win32", "windows doesn't support pipes")
     def test_set_alert_fd_pipe(self) -> None:
+        # Redundant sys.platform checks are to help mypy
         r, w = os.pipe()
         # Should always be non-blocking, or we'll block the event loop
-        os.set_blocking(w, False)
+        if sys.platform != "win32":
+            os.set_blocking(w, False)
 
         self.session.set_alert_fd(w)
 
         # Pipe should initially be empty
-        os.set_blocking(r, False)
+        if sys.platform != "win32":
+            os.set_blocking(r, False)
         with self.assertRaises(BlockingIOError):
             os.read(r, 1024)
-        os.set_blocking(r, True)
+        if sys.platform != "win32":
+            os.set_blocking(r, True)
 
         # Force an alert to fire
         self.session.post_torrent_updates()
@@ -1110,7 +1119,10 @@ class AddTorrentTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5989")
     def test_old_style_with_wrong_args(self) -> None:
         with self.assertRaises(TypeError):
-            self.session.add_torrent(self.torrent.torrent_info(), resume_data=None)
+            self.session.add_torrent(  # type: ignore
+                self.torrent.torrent_info(),
+                resume_data=None,
+            )
 
     def test_old_style(self) -> None:
         ti = self.torrent.torrent_info()
@@ -1204,7 +1216,9 @@ class AddTorrentTest(unittest.TestCase):
         self.assertIn(status.list_peers, (1, 2))
         self.assertEqual(handle.flags(), lt.torrent_flags.sequential_download)
         # TODO: can we test trackerid?
-        self.assertEqual(handle.torrent_file().files().file_path(0), "renamed.txt")
+        torrent_file = handle.torrent_file()
+        assert torrent_file is not None
+        self.assertEqual(torrent_file.files().file_path(0), "renamed.txt")
         self.assertEqual(handle.get_file_priorities(), [2])
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6145")
@@ -1214,7 +1228,7 @@ class AddTorrentTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6145")
     def test_no_torrent_info_old(self) -> None:
         atp = lt.add_torrent_params()
-        atp.info_hash = lt.info_hash_t(lt.sha1_hash(b"a" * 20))
+        atp.info_hash = lt.sha1_hash(b"a" * 20)
         atp.save_path = self.dir.name
         self.session.add_torrent(atp)
 
@@ -1241,7 +1255,7 @@ class AddTorrentTest(unittest.TestCase):
         self.session.pop_alerts()
         handle.save_resume_data()
         alert = self.session.wait_for_alert(10000)
-        self.assertIsInstance(alert, lt.save_resume_data_alert)
+        assert isinstance(alert, lt.save_resume_data_alert)
         atp_dict = lt.write_resume_data(alert.params)
         self.assertEqual(atp_dict[b"info-hash2"], b"a" * 32)
 
@@ -1582,9 +1596,9 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertEqual(len(status_list), 0)
 
         with self.assertRaises(TypeError):
-            self.session.get_torrent_status(None)
+            self.session.get_torrent_status(None)  # type: ignore
         with self.assertRaises(TypeError):
-            self.session.get_torrent_status(lambda: True)
+            self.session.get_torrent_status(lambda: True)  # type: ignore
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6008")
     def test_refresh_torrent_status(self) -> None:
