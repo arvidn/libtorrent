@@ -7,6 +7,9 @@
 
 import sys
 import atexit
+from collections.abc import Sequence, Mapping
+from typing import Any
+
 import libtorrent as lt
 import time
 import os.path
@@ -91,7 +94,7 @@ def progress_bar(progress, width):
     return progress_chars * '#' + (width - progress_chars) * '-'
 
 
-def print_peer_info(console, peers):
+def print_peer_info(console, peers: list[lt.peer_info]) -> None:
 
     out = (' down    (total )   up     (total )'
            '  q  r flags  block progress  client\n')
@@ -126,14 +129,17 @@ def print_peer_info(console, peers):
         elif p.flags & lt.peer_info.connecting:
             id = 'connecting to peer'
         else:
-            id = p.client
+            try:
+                id = p.client.decode()
+            except ValueError:
+                id = p.client.hex()
 
         out += '%s\n' % id[:10]
 
     write_line(console, out)
 
 
-def print_download_queue(console, download_queue):
+def print_download_queue(console, download_queue: Sequence[Mapping[str, Any]]) -> None:
 
     out = ""
 
