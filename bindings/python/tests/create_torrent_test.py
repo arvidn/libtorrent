@@ -81,11 +81,15 @@ class FileStorageTest(unittest.TestCase):
 
     def test_add_file_bytes(self) -> None:
         fs = lt.file_storage()
-        fs.add_file(os.path.join(b"path", b"file.txt"), 1024)
+        fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
         self.assertEqual(fs.file_path(0), os.path.join("path", "file.txt"))
 
         fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "file.txt"), 1024, linkpath=b"other.txt")
+        fs.add_file(  # type: ignore
+            os.path.join("path", "file.txt"),
+            1024,
+            linkpath=b"other.txt",
+        )
         self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
@@ -93,9 +97,9 @@ class FileStorageTest(unittest.TestCase):
         fs = lt.file_storage()
 
         with self.assertWarns(DeprecationWarning):
-            fs.add_file(os.path.join(b"path", b"file.txt"), 1024)
+            fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
         with self.assertWarns(DeprecationWarning):
-            fs.add_file(
+            fs.add_file(  # type: ignore
                 os.path.join("path", "file.txt"),
                 1024,
                 linkpath=os.path.join(b"path", b"other.txt"),
@@ -260,7 +264,7 @@ class FileStorageTest(unittest.TestCase):
         fs.set_name("other")
         self.assertEqual(fs.file_path(0), os.path.join("other", "test.txt"))
 
-        fs.set_name(b"bytes")
+        fs.set_name(b"bytes")  # type: ignore
         self.assertEqual(fs.file_path(0), os.path.join("bytes", "test.txt"))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
@@ -268,7 +272,7 @@ class FileStorageTest(unittest.TestCase):
         fs = lt.file_storage()
         fs.add_file(os.path.join("path", "test.txt"), 1024)
         with self.assertWarns(DeprecationWarning):
-            fs.set_name(b"bytes")
+            fs.set_name(b"bytes")  # type: ignore
 
     def test_rename_file(self) -> None:
         fs = lt.file_storage()
@@ -276,7 +280,7 @@ class FileStorageTest(unittest.TestCase):
         fs.rename_file(0, os.path.join("path", "other.txt"))
         self.assertEqual(fs.file_path(0), os.path.join("path", "other.txt"))
 
-        fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))
+        fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))  # type: ignore
         self.assertEqual(fs.file_path(0), os.path.join("path", "bytes.txt"))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
@@ -284,7 +288,7 @@ class FileStorageTest(unittest.TestCase):
         fs = lt.file_storage()
         fs.add_file(os.path.join("path", "test.txt"), 1024)
         with self.assertWarns(DeprecationWarning):
-            fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))
+            fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))  # type: ignore
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5989")
     def test_rename_file_invalid(self) -> None:
@@ -520,7 +524,7 @@ class CreateTorrentTest(unittest.TestCase):
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
-        ct.set_root_cert(b"test")
+        ct.set_root_cert(b"test")  # type: ignore
         entry = ct.generate()
         self.assertEqual(entry[b"info"][b"ssl-cert"], b"test")
 
@@ -531,10 +535,10 @@ class CreateTorrentTest(unittest.TestCase):
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         # ct.add_collection("ascii-str")
-        ct.add_collection(b"ascii-bytes")
+        ct.add_collection(b"ascii-bytes")  # type: ignore
         # ct.add_collection("non-ascii-str-\u1234")
-        ct.add_collection("non-ascii-bytes-\u1234".encode())
-        ct.add_collection(b"bad-\xff")
+        ct.add_collection("non-ascii-bytes-\u1234".encode())  # type: ignore
+        ct.add_collection(b"bad-\xff")  # type: ignore
         entry = ct.generate()
         self.assertEqual(
             entry[b"info"][b"collections"],
@@ -554,10 +558,10 @@ class CreateTorrentTest(unittest.TestCase):
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         ct.add_collection("ascii-str")
-        ct.add_collection(b"ascii-bytes")
+        ct.add_collection(b"ascii-bytes")  # type: ignore
         ct.add_collection("non-ascii-str-\u1234")
-        ct.add_collection("non-ascii-bytes-\u1234".encode())
-        ct.add_collection(b"bad-\xff")
+        ct.add_collection("non-ascii-bytes-\u1234".encode())  # type: ignore
+        ct.add_collection(b"bad-\xff")  # type: ignore
         entry = ct.generate()
         self.assertEqual(
             entry[b"info"][b"collections"],

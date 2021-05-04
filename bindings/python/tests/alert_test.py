@@ -346,8 +346,10 @@ class TorrentAlertTest(AlertTest):
         self.atp.flags &= ~lt.torrent_flags.auto_managed
         self.atp.flags &= ~lt.torrent_flags.paused
         self.atp.save_path = self.dir.name
-        self.file_path = os.path.join(self.dir.name, self.atp.ti.files().file_path(0))
-        self.torrent_name = self.atp.ti.name()
+        ti = self.atp.ti
+        assert ti is not None
+        self.file_path = os.path.join(self.dir.name, ti.files().file_path(0))
+        self.torrent_name = ti.name()
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -1354,7 +1356,9 @@ class FileRenamedAlertTest(TorrentAlertTest):
         self.assertEqual(alert.index, 0)
         self.assertEqual(alert.name, "other.txt")
         self.assertEqual(alert.new_name(), "other.txt")
-        self.assertEqual(alert.old_name(), self.atp.ti.files().file_path(0))
+        ti = self.atp.ti
+        assert ti is not None
+        self.assertEqual(alert.old_name(), ti.files().file_path(0))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -1570,7 +1574,7 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
 
         alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=15)
 
-        self.assertEqual(alert.reason, 1)
+        self.assertEqual(alert.reason, 1)  # type: ignore
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
