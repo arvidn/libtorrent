@@ -48,7 +48,7 @@ struct swarm_test
 	constexpr static swarm_test_t upload = 1_bit;
 	constexpr static swarm_test_t no_auto_stop = 2_bit;
 	constexpr static swarm_test_t large_torrent = 3_bit;
-	constexpr static swarm_test_t no_storage = 4_bit;
+	constexpr static swarm_test_t real_disk = 4_bit;
 };
 
 void setup_swarm(int num_nodes

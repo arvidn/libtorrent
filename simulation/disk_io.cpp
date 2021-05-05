@@ -264,8 +264,8 @@ struct test_disk_io final : lt::disk_interface
 
 		if (m_state.space_left < lt::default_block_size)
 		{
-			queue_event(lt::milliseconds(1), [this,r, h=std::move(handler)] () mutable {
-				post(m_ioc, [this,h=std::move(h)]
+			queue_event(lt::milliseconds(1), [this,h=std::move(handler)] () mutable {
+				post(m_ioc, [h=std::move(h)]
 				{
 					h(lt::storage_error(lt::error_code(boost::system::errc::no_space_on_device, lt::generic_category())
 						, lt::operation_t::file_write));
@@ -401,13 +401,16 @@ struct test_disk_io final : lt::disk_interface
 	}
 
 	void async_check_files(lt::storage_index_t
-		, lt::add_torrent_params const*
+		, lt::add_torrent_params const* p
 		, lt::aux::vector<std::string, lt::file_index_t>
 		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
-		queue_event(lt::microseconds(1), [this,h=std::move(handler)] () mutable {
-			post(m_ioc, [h=std::move(h)] { h(lt::status_t::need_full_check, lt::storage_error()); });
+		auto const ret = (!m_state.seed || (p->flags & lt::torrent_flags::seed_mode))
+			? lt::status_t::no_error
+			: lt::status_t::need_full_check;
+		queue_event(lt::microseconds(1), [this,ret,h=std::move(handler)] () mutable {
+			post(m_ioc, [ret,h=std::move(h)] { h(ret, lt::storage_error()); });
 		});
 	}
 

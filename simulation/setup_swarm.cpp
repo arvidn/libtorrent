@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "settings.hpp"
 #include "setup_swarm.hpp"
-#include "setup_transfer.hpp" // for create_torrent
+#include "setup_transfer.hpp" // for create_torrent, addr
 #include "utils.hpp"
 #include "simulator/queue.hpp"
 
@@ -57,7 +57,7 @@ constexpr swarm_test_t swarm_test::download;
 constexpr swarm_test_t swarm_test::upload;
 constexpr swarm_test_t swarm_test::no_auto_stop;
 constexpr swarm_test_t swarm_test::large_torrent;
-constexpr swarm_test_t swarm_test::no_storage;
+constexpr swarm_test_t swarm_test::real_disk;
 
 namespace {
 
@@ -212,14 +212,20 @@ void setup_swarm(int num_nodes
 	int const swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
 
-	// #error implement a storage-free version! no_storage flag
+	std::shared_ptr<lt::torrent_info> ti;
 
-	lt::create_directory(path, ec);
-	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
-		, path.c_str(), ec.message().c_str());
-	std::ofstream file(lt::combine_path(path, "temporary").c_str());
-	auto ti = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
-	file.close();
+	if (type & swarm_test::real_disk)
+	{
+		lt::create_directory(path, ec);
+		if (ec) std::printf("failed to create directory: \"%s\": %s\n"
+			, path.c_str(), ec.message().c_str());
+		std::ofstream file(lt::combine_path(path, "temporary").c_str());
+		ti = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
+	}
+	else
+	{
+		ti = ::create_test_torrent(0x4000, (type & swarm_test::large_torrent) ? 50 : 9, {});
+	}
 
 	if (bool(type & swarm_test::download) && bool(type & swarm_test::upload))
 	{
@@ -239,16 +245,34 @@ void setup_swarm(int num_nodes
 		ips.push_back(addr(ep));
 		io_context.push_back(std::make_shared<sim::asio::io_context>(sim, ips));
 
-		lt::settings_pack pack = default_settings;
+		lt::session_params params;
+		params.settings = default_settings;
 
 		// make sure the sessions have different peer ids
 		lt::peer_id pid;
 		lt::aux::random_bytes(pid);
-		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
-		if (i == 0) new_session(pack);
+		params.settings.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
+
+		if (!(type & swarm_test::real_disk))
+		{
+			if (type & swarm_test::download)
+			{
+				// in download tests, session 0 is a downloader and every other session
+				// is a seed. save path 0 is where the files are, so that's for seeds
+				params.disk_io_constructor = test_disk().set_seed(i > 0);
+			}
+			else
+			{
+				// in seed tests, session 0 is a seed and every other session
+				// a downloader. save path 0 is where the files are, so that's for seeds
+				params.disk_io_constructor = test_disk().set_seed(i == 0);
+			}
+		}
+
+		if (i == 0) new_session(params.settings);
 
 		std::shared_ptr<lt::session> ses =
-			std::make_shared<lt::session>(pack, *io_context.back());
+			std::make_shared<lt::session>(params, *io_context.back());
 		init_session(*ses);
 		nodes.push_back(ses);
 
@@ -262,18 +286,26 @@ void setup_swarm(int num_nodes
 		}
 
 		lt::add_torrent_params p = default_add_torrent;
-		if (type & swarm_test::download)
+		if (type & swarm_test::real_disk)
 		{
-			// in download tests, session 0 is a downloader and every other session
-			// is a seed. save path 0 is where the files are, so that's for seeds
-			p.save_path = save_path(swarm_id, i > 0 ? 0 : 1);
+			if (type & swarm_test::download)
+			{
+				// in download tests, session 0 is a downloader and every other session
+				// is a seed. save path 0 is where the files are, so that's for seeds
+				p.save_path = save_path(swarm_id, i > 0 ? 0 : 1);
+			}
+			else
+			{
+				// in seed tests, session 0 is a seed and every other session
+				// a downloader. save path 0 is where the files are, so that's for seeds
+				p.save_path = save_path(swarm_id, i);
+			}
 		}
 		else
 		{
-			// in seed tests, session 0 is a seed and every other session
-			// a downloader. save path 0 is where the files are, so that's for seeds
-			p.save_path = save_path(swarm_id, i);
+			p.save_path = ".";
 		}
+
 		p.ti = ti;
 		if (i == 0) add_torrent(p);
 		ses->async_add_torrent(p);
