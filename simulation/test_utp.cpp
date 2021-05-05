@@ -188,13 +188,13 @@ TORRENT_TEST(utp_buffer_bloat)
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 425);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 155);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 424);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 156);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 643);
-	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 60);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 645);
+	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 62);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 642);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 644);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -213,18 +213,18 @@ TORRENT_TEST(utp_straw)
 
 	std::vector<std::int64_t> cnt = utp_test(cfg);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 50);
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 47);
-	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 55);
-	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 161);
+	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 69);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 29);
+	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 72);
+	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 133);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 260);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 277);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 400);
-	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 40);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 429);
+	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 55);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 564);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 563);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);

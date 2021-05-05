@@ -98,7 +98,11 @@ void run_metadata_test(int flags)
 
 	std::shared_ptr<lt::torrent_info> ti;
 
-	setup_swarm(2, (flags & reverse) ? swarm_test::upload : swarm_test::download
+	// TODO: we use real_disk here because the test disk io doesn't support
+	// multiple torrents, and readd will add back the same torrent before the
+	// first one is done being removed
+	setup_swarm(2, ((flags & reverse) ? swarm_test::upload : swarm_test::download)
+		| ((flags & readd) ? swarm_test::real_disk : swarm_test_t{})
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent
