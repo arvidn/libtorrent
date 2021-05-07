@@ -30,6 +30,20 @@ struct bytes_to_python
     }
 };
 
+template <size_t N>
+struct array_to_python
+{
+    static PyObject* convert(std::array<char, N> const& p)
+    {
+#if PY_MAJOR_VERSION >= 3
+        PyObject *ret = PyBytes_FromStringAndSize(p.data(), p.size());
+#else
+        PyObject *ret = PyString_FromStringAndSize(p.data(), p.size());
+#endif
+        return ret;
+    }
+};
+
 struct bytes_from_python
 {
     bytes_from_python()
@@ -98,6 +112,8 @@ void bind_utility()
 {
     // TODO: it would be nice to install converters for sha1_hash as well
     to_python_converter<bytes, bytes_to_python>();
+    to_python_converter<std::array<char, 32>, array_to_python<32>>();
+    to_python_converter<std::array<char, 64>, array_to_python<64>>();
     bytes_from_python();
 
 #if TORRENT_ABI_VERSION == 1

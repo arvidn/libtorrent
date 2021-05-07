@@ -620,6 +620,9 @@ TORRENT_VERSION_NAMESPACE_4
 		// this is an optimization for create_torrent
 		std::string const& internal_symlink(file_index_t index) const;
 
+		// internal
+		void remove_tail_padding();
+
 	private:
 
 		void add_file_borrow_impl(error_code& ec, string_view filename
@@ -705,7 +708,7 @@ namespace aux {
 	// v1 torrents. Both v1 and v2 structures must describe the same file layout,
 	// this compares the two.
 	TORRENT_EXTRA_EXPORT
-	bool files_equal(file_storage const& lhs, file_storage const& rhs);
+	bool files_compatible(file_storage const& lhs, file_storage const& rhs);
 
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.

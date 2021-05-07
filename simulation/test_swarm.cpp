@@ -560,7 +560,7 @@ TORRENT_TEST(delete_files)
 TORRENT_TEST(delete_partfile)
 {
 	std::string save_path;
-	setup_swarm(2, swarm_test::download
+	setup_swarm(2, swarm_test::download | swarm_test::real_disk
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent

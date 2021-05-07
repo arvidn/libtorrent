@@ -294,6 +294,10 @@ namespace
                     p.info_hashes = info_hash_t(sha256_hash(
                             bytes(extract<bytes>(value)).arr.data()));
                 }
+                else
+                {
+                    p.info_hashes = boost::python::extract<info_hash_t>(value);
+                }
                 continue;
             }
             else if(key == "name")
@@ -764,6 +768,40 @@ namespace
 		return ret;
 	}
 
+    session_params read_session_params_entry(dict e
+        , save_state_flags_t flags)
+    {
+        entry ent = extract<entry>(e);
+        std::vector<char> buf;
+        bencode(std::back_inserter(buf), ent);
+        return lt::read_session_params(buf, flags);
+    }
+
+    session_params read_session_params_buffer(bytes const& bytes
+        , save_state_flags_t flags)
+    {
+        return lt::read_session_params(bytes.arr, flags);
+    }
+
+    bytes write_session_params_bytes(session_params const& sp
+        , save_state_flags_t flags)
+    {
+        auto buf = write_session_params_buf(sp, flags);
+        return bytes(buf.data(), buf.size());
+    }
+
+    dict get_settings(session_params const& sp)
+    {
+        return make_dict(sp.settings);
+    }
+
+    void set_settings(session_params& sp, dict d)
+    {
+        settings_pack p;
+        make_settings_pack(p, d);
+        sp.settings = p;
+    }
+
 } // anonymous namespace
 
 struct dummy1 {};
@@ -836,7 +874,7 @@ void bind_session()
         .def_readonly("dht_node_cache", &session_status::dht_node_cache)
         .def_readonly("dht_torrents", &session_status::dht_torrents)
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
-        .def_readonly("active_requests", &session_status::active_requests)
+        .add_property("active_requests", make_getter(&session_status::active_requests, return_value_policy<return_by_value>()))
         .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
 #endif // TORRENT_DISABLE_DHT
         .add_property("utp_stats", &get_utp_stats)
@@ -911,6 +949,20 @@ void bind_session()
         .add_property("resume_data", PROP(&add_torrent_params::resume_data))
 #endif
       ;
+
+    class_<session_params>("session_params")
+        .def(init<settings_pack const&>())
+        .def(init<>())
+        .add_property("settings", &get_settings, &set_settings)
+        .add_property("dht_state", PROP(&session_params::dht_state))
+        .add_property("ext_state", PROP(&session_params::ext_state))
+        .add_property("ip_filter", PROP(&session_params::ip_filter))
+        ;
+
+    def("read_session_params", &read_session_params_entry, (arg("dict"), arg("flags")=save_state_flags_t::all()));
+    def("read_session_params", &read_session_params_buffer, (arg("buffer"), arg("flags")=save_state_flags_t::all()));
+    def("write_session_params", &lt::write_session_params, (arg("entry"), arg("flags")=save_state_flags_t::all()));
+    def("write_session_params_buf", &write_session_params_bytes, (arg("buffer"), arg("flags")=save_state_flags_t::all()));
 
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
@@ -1018,6 +1070,8 @@ void bind_session()
 
     {
     scope s = class_<lt::session, boost::noncopyable>("session", no_init)
+        .def(init<lt::session_params>())
+        .def(init<>())
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings"), arg("flags")=

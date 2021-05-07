@@ -221,6 +221,8 @@ PYTHON_FILES= \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/sha1_hash.cpp         \
+  src/sha256_hash.cpp       \
+  src/info_hash.cpp         \
   src/string.cpp            \
   src/torrent_handle.cpp    \
   src/torrent_info.cpp      \
@@ -737,6 +739,8 @@ SIM_SOURCES = \
   create_torrent.cpp \
   create_torrent.hpp \
   fake_peer.hpp \
+  disk_io.hpp \
+  disk_io.cpp \
   make_proxy_settings.hpp \
   setup_dht.cpp \
   setup_dht.hpp \
@@ -975,6 +979,11 @@ TEST_TORRENTS = \
   empty_httpseed.torrent \
   empty_path.torrent \
   empty_path_multi.torrent \
+  empty-files-1.torrent \
+  empty-files-2.torrent \
+  empty-files-3.torrent \
+  empty-files-4.torrent \
+  empty-files-5.torrent \
   hidden_parent_path.torrent \
   httpseed.torrent \
   invalid_file_size.torrent \

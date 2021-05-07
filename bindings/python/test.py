@@ -31,6 +31,10 @@ settings = {
     'enable_upnp': False, 'listen_interfaces': '0.0.0.0:0', 'file_pool_size': 1}
 
 
+def has_deprecated():
+    return hasattr(lt, 'version')
+
+
 class test_create_torrent(unittest.TestCase):
 
     def test_from_torrent_info(self):
@@ -74,6 +78,15 @@ class test_session_stats(unittest.TestCase):
         for field_name in dir(atp):
             field = getattr(atp, field_name)
             print(field_name, field)
+
+        atp.renamed_files = {}
+        atp.merkle_tree = []
+        atp.unfinished_pieces = {}
+        atp.have_pieces = []
+        atp.banned_peers = []
+        atp.verified_pieces = []
+        atp.piece_priorities = []
+        atp.url_seeds = []
 
     def test_unique(self):
         metrics = lt.session_stats_metrics()
@@ -461,12 +474,21 @@ class test_torrent_info(unittest.TestCase):
         self.assertEqual(ae.verified, False)
         self.assertEqual(ae.source, 0)
 
-    def test_torrent_info_hash_overload(self):
-        ti = lt.torrent_info(lt.info_hash_t(lt.sha1_hash('a' * 20)))
-        self.assertEqual(ti.info_hash(), lt.sha1_hash('a' * 20))
+    def test_torrent_info_sha1_overload(self):
+        ti = lt.torrent_info(lt.info_hash_t(lt.sha1_hash(b'a' * 20)))
+        self.assertEqual(ti.info_hash(), lt.sha1_hash(b'a' * 20))
+        self.assertEqual(ti.info_hashes().v1, lt.sha1_hash(b'a' * 20))
 
         ti_copy = lt.torrent_info(ti)
-        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash('a' * 20))
+        self.assertEqual(ti_copy.info_hash(), lt.sha1_hash(b'a' * 20))
+        self.assertEqual(ti_copy.info_hashes().v1, lt.sha1_hash(b'a' * 20))
+
+    def test_torrent_info_sha256_overload(self):
+        ti = lt.torrent_info(lt.info_hash_t(lt.sha256_hash(b'a' * 32)))
+        self.assertEqual(ti.info_hashes().v2, lt.sha256_hash(b'a' * 32))
+
+        ti_copy = lt.torrent_info(ti)
+        self.assertEqual(ti_copy.info_hashes().v2, lt.sha256_hash(b'a' * 32))
 
     def test_url_seed(self):
         ti = lt.torrent_info('base.torrent')
@@ -618,6 +640,48 @@ class test_sha1hash(unittest.TestCase):
         s = lt.sha1_hash(binascii.unhexlify(h))
         self.assertEqual(h, str(s))
 
+    def test_hash(self):
+        self.assertNotEqual(hash(lt.sha1_hash(b'b' * 20)), hash(lt.sha1_hash(b'a' * 20)))
+        self.assertEqual(hash(lt.sha1_hash(b'b' * 20)), hash(lt.sha1_hash(b'b' * 20)))
+
+class test_sha256hash(unittest.TestCase):
+
+    def test_sha1hash(self):
+        h = 'a0' * 32
+        s = lt.sha256_hash(binascii.unhexlify(h))
+        self.assertEqual(h, str(s))
+
+    def test_hash(self):
+        self.assertNotEqual(hash(lt.sha256_hash(b'b' * 32)), hash(lt.sha256_hash(b'a' * 32)))
+        self.assertEqual(hash(lt.sha256_hash(b'b' * 32)), hash(lt.sha256_hash(b'b' * 32)))
+
+class test_info_hash(unittest.TestCase):
+
+    def test_info_hash(self):
+        s1 = lt.sha1_hash(b'a' * 20)
+        s2 = lt.sha256_hash(b'b' * 32)
+
+        ih1 = lt.info_hash_t(s1);
+        self.assertTrue(ih1.has_v1())
+        self.assertFalse(ih1.has_v2())
+        self.assertEqual(ih1.v1, s1)
+
+        ih2 = lt.info_hash_t(s2);
+        self.assertFalse(ih2.has_v1())
+        self.assertTrue(ih2.has_v2())
+        self.assertEqual(ih2.v2, s2)
+
+        ih12 = lt.info_hash_t(s1, s2);
+        self.assertTrue(ih12.has_v1())
+        self.assertTrue(ih12.has_v2())
+        self.assertEqual(ih12.v1, s1)
+        self.assertEqual(ih12.v2, s2)
+
+        self.assertNotEqual(hash(ih1), hash(ih2))
+        self.assertNotEqual(hash(ih1), hash(ih12))
+        self.assertEqual(hash(ih1), hash(lt.info_hash_t(s1)))
+        self.assertEqual(hash(ih2), hash(lt.info_hash_t(s2)))
+        self.assertEqual(hash(ih12), hash(lt.info_hash_t(s1, s2)))
 
 class test_magnet_link(unittest.TestCase):
 
@@ -640,6 +704,22 @@ class test_magnet_link(unittest.TestCase):
         h = ses.add_torrent(p)
         self.assertEqual(str(h.info_hash()), '178882f042c0c33426a6d81e0333ece346e68a68')
         self.assertEqual(str(h.info_hashes().v1), '178882f042c0c33426a6d81e0333ece346e68a68')
+
+    def test_add_deprecated_magnet_link(self):
+        ses = lt.session()
+        atp = lt.add_torrent_params()
+        atp.info_hashes = lt.info_hash_t(lt.sha1_hash(b"a" * 20))
+        h = ses.add_torrent(atp)
+
+        self.assertTrue(h.status().info_hashes == lt.info_hash_t(lt.sha1_hash(b"a" * 20)))
+
+    def test_add_magnet_link(self):
+        ses = lt.session()
+        atp = lt.add_torrent_params()
+        atp.info_hash = lt.sha1_hash(b"a" * 20)
+        h = ses.add_torrent(atp)
+
+        self.assertTrue(h.status().info_hashes == lt.info_hash_t(lt.sha1_hash(b"a" * 20)))
 
 
 class test_peer_class(unittest.TestCase):
@@ -717,15 +797,86 @@ class test_session(unittest.TestCase):
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
+    def test_session_params(self):
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        s = lt.session(sp)
+        sett = s.get_settings()
+        self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
+    def test_session_params_roundtrip_buf(self):
+
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+
+        buf = lt.write_session_params_buf(sp)
+        sp2 = lt.read_session_params(buf)
+        self.assertEqual(sp2.settings['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
+    def test_session_params_roundtrip_entry(self):
+
+        sp = lt.session_params()
+        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+
+        ent = lt.write_session_params(sp)
+        print(ent)
+        sp2 = lt.read_session_params(ent)
+        self.assertEqual(sp2.settings['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
     def test_add_torrent(self):
         s = lt.session(settings)
-        s.add_torrent({'ti': lt.torrent_info('base.torrent'),
+        h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
                        'save_path': '.',
                        'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
                        'http_seeds': ['http://test.com/seed'],
                        'peers': [('5.6.7.8', 6881)],
                        'banned_peers': [('8.7.6.5', 6881)],
                        'file_priorities': [1, 1, 1, 2, 0]})
+
+    def test_find_torrent(self):
+        s = lt.session(settings)
+        h = s.add_torrent({'info_hash': b"a" * 20,
+                           'save_path': '.'})
+        self.assertTrue(h.is_valid())
+
+        h2 = s.find_torrent(lt.sha1_hash(b"a" * 20))
+        self.assertTrue(h2.is_valid())
+        h3 = s.find_torrent(lt.sha1_hash(b"b" * 20))
+        self.assertFalse(h3.is_valid())
+
+        self.assertEqual(h, h2)
+        self.assertNotEqual(h, h3)
+
+    def test_add_torrent_info_hash(self):
+        s = lt.session(settings)
+        h = s.add_torrent({
+                           'info_hash': b'a' * 20,
+                           'info_hashes': b'a' * 32,
+                           'save_path': '.'})
+
+        time.sleep(1)
+        alerts = s.pop_alerts()
+
+        while len(alerts) > 0:
+            a = alerts.pop(0)
+            print(a)
+
+        self.assertTrue(h.is_valid())
+        self.assertEqual(h.status().info_hashes, lt.info_hash_t(lt.sha1_hash(b'a' * 20), lt.sha256_hash(b'a' * 32)))
+
+    def test_session_status(self):
+        if not has_deprecated():
+            return
+
+        s = lt.session()
+        st = s.status()
+        print(st)
+        print(st.active_requests)
+        print(st.dht_nodes)
+        print(st.dht_node_cache)
+        print(st.dht_torrents)
+        print(st.dht_global_nodes)
+        print(st.dht_total_allocations)
 
     def test_apply_settings(self):
 

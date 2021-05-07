@@ -9,14 +9,7 @@ see LICENSE file.
 */
 
 #include <cstdlib>
-#include "libtorrent/session.hpp"
-#include "libtorrent/session_params.hpp"
-#include "libtorrent/torrent_info.hpp"
-#include "libtorrent/hasher.hpp"
-#include "libtorrent/io_context.hpp"
-#include "libtorrent/disk_interface.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
-#include "libtorrent/fwd.hpp"
+#include "libtorrent/libtorrent.hpp"
 
 #include <iostream>
 
@@ -27,22 +20,22 @@ struct temp_storage
 {
 	explicit temp_storage(lt::file_storage const& fs) : m_files(fs) {}
 
-	lt::span<char const> readv(lt::piece_index_t const piece, int const offset, lt::storage_error& ec) const
+	lt::span<char const> readv(lt::peer_request const r, lt::storage_error& ec) const
 	{
-		auto const i = m_file_data.find(piece);
+		auto const i = m_file_data.find(r.piece);
 		if (i == m_file_data.end())
 		{
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
 		}
-		if (int(i->second.size()) <= offset)
+		if (int(i->second.size()) <= r.start)
 		{
 			ec.operation = lt::operation_t::file_read;
 			ec.ec = boost::asio::error::eof;
 			return {};
 		}
-		return { i->second.data() + offset, int(i->second.size()) - offset };
+		return { i->second.data() + r.start, std::min(r.length, int(i->second.size()) - r.start) };
 	}
 	void writev(lt::span<char const> const b, lt::piece_index_t const piece, int const offset)
 	{
@@ -136,7 +129,7 @@ struct temp_disk_io final : lt::disk_interface
 		lt::storage_index_t const idx = m_free_slots.empty()
 			? m_torrents.end_index()
 			: pop(m_free_slots);
-			auto storage = std::make_unique<temp_storage>(params.files);
+		auto storage = std::make_unique<temp_storage>(params.files);
 		if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 		else m_torrents[idx] = std::move(storage);
 		return lt::storage_holder(idx, *this);
@@ -158,7 +151,7 @@ struct temp_disk_io final : lt::disk_interface
 		// long as the torrent remains in the session. We don't need any lifetime
 		// management of it.
 		lt::storage_error error;
-		lt::span<char const> b = m_torrents[storage]->readv(r.piece, r.start, error);
+		lt::span<char const> b = m_torrents[storage]->readv(r, error);
 
 		post(m_ioc, [handler, error, b, this]
 			{ handler(lt::disk_buffer_holder(*this, const_cast<char*>(b.data()), int(b.size())), error); });

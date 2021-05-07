@@ -323,6 +323,11 @@ std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
     return std::make_shared<torrent_info>(info_hash_t(ih));
 }
 
+std::shared_ptr<torrent_info> sha256_constructor0(sha256_hash const& ih)
+{
+    return std::make_shared<torrent_info>(info_hash_t(ih));
+}
+
 std::shared_ptr<torrent_info> bencoded_constructor0(dict d)
 {
     entry ent = extract<entry>(d);
@@ -358,22 +363,6 @@ void bind_torrent_info()
         .value("V2", protocol_version::V2)
         ;
 
-    class_<info_hash_t>("info_hash_t")
-        .def(init<sha1_hash const&>(arg("sha1_hash")))
-        .def(init<sha256_hash const&>(arg("sha256_hash")))
-        .def(init<sha1_hash const&, sha256_hash const&>((arg("sha1_hash"), arg("sha256_hash"))))
-        .def("has_v1", &info_hash_t::has_v1)
-        .def("has_v2", &info_hash_t::has_v2)
-        .def("has", &info_hash_t::has)
-        .def("get", &info_hash_t::get)
-        .def("get_best", &info_hash_t::get_best)
-        .add_property("v1", &info_hash_t::v1)
-        .add_property("v2", &info_hash_t::v2)
-        .def(self == self)
-        .def(self != self)
-        .def(self < self)
-        ;
-
     enum_<announce_entry::tracker_source>("tracker_source")
         .value("source_torrent", announce_entry::source_torrent)
         .value("source_client", announce_entry::source_client)
@@ -393,8 +382,8 @@ void bind_torrent_info()
         .def("__init__", make_constructor(&file_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
 
-        // TODO: add a sha256 constructor as well
         .def("__init__", make_constructor(&sha1_constructor0))
+        .def("__init__", make_constructor(&sha256_constructor0))
 
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker
             , (arg("url"), arg("tier") = 0

@@ -633,6 +633,8 @@ namespace {
 
 				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
 
+				// files that only have one piece store the piece hash as the
+				// root, we don't need a pieces layer entry for such files
 				if (m_file_piece_hash[fi].size() < 2) continue;
 				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();
 				pieces.clear();
@@ -790,7 +792,8 @@ namespace {
 				}
 				else
 				{
-					file_e["pieces root"] = m_fileroots[i];
+					if (m_files.file_size(i) > 0)
+						file_e["pieces root"] = m_fileroots[i];
 					file_e["length"] = m_files.file_size(i);
 				}
 			}

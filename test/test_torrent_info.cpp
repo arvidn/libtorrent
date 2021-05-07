@@ -293,7 +293,7 @@ static test_torrent_t const test_torrents[] =
 	},
 	{ "v2_multiple_files.torrent", [](torrent_info* ti) {
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
-			TEST_EQUAL(ti->num_files(), 4);
+			TEST_EQUAL(ti->num_files(), 5);
 			TEST_CHECK(ti->v2());
 			ti->free_piece_layers();
 			TEST_CHECK(ti->v2());
@@ -308,6 +308,31 @@ static test_torrent_t const test_torrents[] =
 		}
 	},
 	{ "v2_hybrid.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-1.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-2.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-3.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-4.torrent", [](torrent_info const* ti) {
+			TEST_CHECK(ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "empty-files-5.torrent", [](torrent_info const* ti) {
 			TEST_CHECK(ti->info_hashes().has_v1());
 			TEST_CHECK(ti->info_hashes().has_v2());
 		}

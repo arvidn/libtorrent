@@ -341,7 +341,10 @@ namespace {
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 #if TORRENT_ABI_VERSION < 3
-		params.info_hash = params.info_hashes.get_best();
+		if (params.info_hashes.v1.is_all_zeros())
+			params.info_hashes.v1 = params.info_hash;
+		if (params.info_hash.is_all_zeros())
+			params.info_hash = params.info_hashes.v1;
 #endif
 
 		// the internal torrent object keeps and mutates state in the
@@ -370,7 +373,10 @@ namespace {
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 #if TORRENT_ABI_VERSION < 3
-		params.info_hash = params.info_hashes.get_best();
+		if (params.info_hashes.v1.is_all_zeros())
+			params.info_hashes.v1 = params.info_hash;
+		if (params.info_hash.is_all_zeros())
+			params.info_hash = params.info_hashes.v1;
 #endif
 
 		// the internal torrent object keeps and mutates state in the
@@ -401,7 +407,10 @@ namespace {
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 #if TORRENT_ABI_VERSION < 3
-		params.info_hash = params.info_hashes.get_best();
+		if (params.info_hashes.v1.is_all_zeros())
+			params.info_hashes.v1 = params.info_hash;
+		if (params.info_hash.is_all_zeros())
+			params.info_hash = params.info_hashes.v1;
 #endif
 
 		// the internal torrent object keeps and mutates state in the

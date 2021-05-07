@@ -250,6 +250,8 @@ my-python-extension libtorrent
 	: # sources
 	src/module.cpp
 	src/sha1_hash.cpp
+	src/sha256_hash.cpp
+	src/info_hash.cpp
 	src/converters.cpp
 	src/create_torrent.cpp
 	src/fingerprint.cpp

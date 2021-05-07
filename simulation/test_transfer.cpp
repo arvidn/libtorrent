@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp" // for addr()
+#include "disk_io.hpp"
 
 using namespace sim;
 
@@ -69,7 +70,10 @@ void run_test(
 	Setup const& setup
 	, HandleAlerts const& on_alert
 	, Test const& test
-	, test_transfer_flags_t flags = {})
+	, test_transfer_flags_t flags = {}
+	, test_disk const disk_constructor = test_disk()
+	, lt::seconds const timeout = lt::seconds(60)
+	)
 {
 	using namespace lt;
 
@@ -95,8 +99,11 @@ void run_test(
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 
+	lt::session_params params;
 	// setup settings pack to use for the session (customization point)
-	lt::settings_pack pack = settings();
+	lt::settings_pack& pack = params.settings;
+	pack = settings();
+	pack.set_bool(settings_pack::disable_hash_checks, false);
 
 	// disable utp by default
 	pack.set_bool(settings_pack::enable_outgoing_utp, false);
@@ -112,10 +119,16 @@ void run_test(
 
 	// create session
 	std::shared_ptr<lt::session> ses[2];
-	ses[0] = std::make_shared<lt::session>(pack, ios0);
+
+	// session 0 is a downloader, session 1 is a seed
+
+	params.disk_io_constructor = disk_constructor;
+	ses[0] = std::make_shared<lt::session>(params, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
-	ses[1] = std::make_shared<lt::session>(pack, ios1);
+
+	params.disk_io_constructor = test_disk().set_seed();
+	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	setup(*ses[0], *ses[1]);
 
@@ -130,27 +143,25 @@ void run_test(
 
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
-	// the first peer is a downloader, the second peer is a seed
-	lt::add_torrent_params params = ::create_torrent(1, true, 9
+	lt::add_torrent_params atp = ::create_test_torrent(10
 		, (flags & tx::v2_only) ? create_torrent::v2_only
 		: (flags & tx::v1_only) ? create_torrent::v1_only
 		: create_flags_t{});
-	params.flags &= ~lt::torrent_flags::auto_managed;
-	params.flags &= ~lt::torrent_flags::paused;
+	atp.flags &= ~lt::torrent_flags::auto_managed;
+	atp.flags &= ~lt::torrent_flags::paused;
 
-	params.save_path = save_path(1);
-	ses[1]->async_add_torrent(params);
-	auto torrent = params.ti;
+	ses[1]->async_add_torrent(atp);
+	auto torrent = atp.ti;
 
-	params.save_path = save_path(0);
+	atp.save_path = save_path(0);
 	if (flags & tx::magnet_download)
 	{
-		params.info_hashes = params.ti->info_hashes();
-		params.ti.reset();
+		atp.info_hashes = atp.ti->info_hashes();
+		atp.ti.reset();
 	}
-	ses[0]->async_add_torrent(params);
+	ses[0]->async_add_torrent(atp);
 
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&)
+	sim::timer t(sim, timeout, [&](boost::system::error_code const&)
 	{
 		auto h = ses[0]->get_torrents();
 		auto ti = h[0].torrent_file_with_hashes();
@@ -456,7 +467,7 @@ TORRENT_TEST(v1_only_magnet)
 	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
-		[](lt::session& ses0, lt::session& ses1) {},
+		[](lt::session&, lt::session&) {},
 		[&](lt::session&, lt::alert const* a) {
 			if (auto const* pf = alert_cast<piece_finished_alert>(a))
 				passed.insert(pf->piece_index);
@@ -469,3 +480,45 @@ TORRENT_TEST(v1_only_magnet)
 	TEST_EQUAL(passed.size(), 10);
 }
 
+TORRENT_TEST(disk_full)
+{
+	using namespace lt;
+	run_test(
+		[](lt::session&, lt::session&) {},
+		[](lt::session&, lt::alert const*) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			// the disk filled up, we failed to complete the download
+			TEST_EQUAL(!is_seed(*ses[0]), true);
+		}
+		, {}
+		, test_disk().set_space_left(10 * lt::default_block_size)
+	);
+}
+
+TORRENT_TEST(disk_full_recover)
+{
+	using namespace lt;
+	run_test(
+		[](lt::session& ses0, lt::session&)
+		{
+			settings_pack p;
+			p.set_int(settings_pack::optimistic_disk_retry, 30);
+			ses0.apply_settings(p);
+		},
+		[](lt::session&, lt::alert const* a) {
+			if (auto ta = alert_cast<lt::add_torrent_alert>(a))
+			{
+				// the torrent has to be auto-managed in order to automatically
+				// leave upload mode after it hits disk-full
+				ta->handle.set_flags(torrent_flags::auto_managed);
+			}
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			// the disk filled up, we failed to complete the download
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		}
+		, {}
+		, test_disk().set_space_left(10 * lt::default_block_size).set_recover_full_disk()
+		, lt::seconds(65)
+	);
+}

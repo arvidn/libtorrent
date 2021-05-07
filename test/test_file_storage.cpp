@@ -633,7 +633,7 @@ TORRENT_TEST(query_symlinks2)
 	TEST_CHECK(fs.symlink(file_index_t{3}).empty());
 }
 
-TORRENT_TEST(files_equal)
+TORRENT_TEST(files_compatible)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -645,10 +645,10 @@ TORRENT_TEST(files_equal)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2);
 
-	TEST_CHECK(lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_num_files)
+TORRENT_TEST(files_compatible_num_files)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -659,10 +659,10 @@ TORRENT_TEST(files_equal_num_files)
 	fs2.set_piece_length(0x4000);
 	fs2.add_file("test/0", 3);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_size)
+TORRENT_TEST(files_compatible_size)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -674,10 +674,10 @@ TORRENT_TEST(files_equal_size)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_name)
+TORRENT_TEST(files_compatible_name)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -689,10 +689,10 @@ TORRENT_TEST(files_equal_name)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_flags)
+TORRENT_TEST(files_compatible_hidden)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -704,10 +704,47 @@ TORRENT_TEST(files_equal_flags)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	// hidden attribute does not affect compatibility
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_mtime)
+TORRENT_TEST(files_compatible_pad)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2);
+
+	// pad attribute does affect compatibility
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
+}
+
+TORRENT_TEST(files_compatible_empty_file_order)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 0);
+	fs1.add_file("test/2", 0);
+	fs1.add_file("test/3", 0);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/3", 0);
+	fs2.add_file("test/2", 0);
+	fs2.add_file("test/1", 0);
+
+	// order of empty files does not affect compatibility
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
+}
+
+TORRENT_TEST(files_compatible_mtime)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -719,10 +756,11 @@ TORRENT_TEST(files_equal_mtime)
 	fs2.add_file("test/0", 1, {}, 1234);
 	fs2.add_file("test/1", 2, {}, 1234);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	// mtime does not affect compatibility
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_piece_size)
+TORRENT_TEST(files_compatible_piece_size)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x8000);
@@ -734,10 +772,10 @@ TORRENT_TEST(files_equal_piece_size)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2);
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
 
-TORRENT_TEST(files_equal_symlink)
+TORRENT_TEST(files_compatible_different_symlink)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
@@ -749,8 +787,81 @@ TORRENT_TEST(files_equal_symlink)
 	fs2.add_file("test/0", 1);
 	fs2.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/1");
 
-	TEST_CHECK(!lt::aux::files_equal(fs1, fs2));
+	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
+
+TORRENT_TEST(files_compatible_same_symlink)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
+}
+
+TORRENT_TEST(remove_tail_padding_not_last)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
+	fs1.add_file("test/2", 0);
+	fs1.add_file("test/3", 0);
+
+	fs1.remove_tail_padding();
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/2", 0);
+	fs2.add_file("test/3", 0);
+
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
+}
+
+TORRENT_TEST(remove_tail_padding_last)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
+
+	fs1.remove_tail_padding();
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
+}
+
+TORRENT_TEST(remove_tail_padding_no_op)
+{
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file("test/0", 1);
+	fs1.add_file("test/1", 0);
+	fs1.add_file("test/2", 0);
+	fs1.add_file("test/3", 0);
+
+	fs1.remove_tail_padding();
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file("test/0", 1);
+	fs2.add_file("test/1", 0);
+	fs2.add_file("test/2", 0);
+	fs2.add_file("test/3", 0);
+
+	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
+}
+
 
 std::int64_t const int_max = std::numeric_limits<int>::max();
 
