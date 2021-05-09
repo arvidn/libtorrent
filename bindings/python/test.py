@@ -827,6 +827,19 @@ class test_session(unittest.TestCase):
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
+    def test_session_params_constructor(self):
+        sp = lt.session_params({ 'alert_mask': lt.alert.category_t.all_categories })
+        s = lt.session(sp)
+        sett = s.get_settings()
+        self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
+
+    def test_session_params_ip_filter(self):
+        sp = lt.session_params()
+        sp.ip_filter.add_rule("1.1.1.1", "1.1.1.2", 1337)
+        self.assertEqual(sp.ip_filter.access("1.1.1.1"), 1337)
+        self.assertEqual(sp.ip_filter.access("1.1.1.2"), 1337)
+        self.assertEqual(sp.ip_filter.access("1.1.1.3"), 0)
+
     def test_session_params_roundtrip_buf(self):
 
         sp = lt.session_params()
