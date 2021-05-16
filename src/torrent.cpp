@@ -9244,7 +9244,7 @@ bool is_downloading_state(int const st)
 
 	seconds32 torrent::active_time() const
 	{
-		if(is_paused())
+		if (is_paused())
 			return m_active_time;
 
 		// m_active_time does not account for the current "session", just the
