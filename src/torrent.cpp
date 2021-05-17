@@ -8763,17 +8763,6 @@ bool is_downloading_state(int const st)
 		update_state_list();
 		update_want_tick();
 
-		const time_point now = aux::time_now();
-
-		m_active_time +=
-			duration_cast<seconds32>(now - m_started);
-
-		if (is_seed()) m_seeding_time +=
-			duration_cast<seconds32>(now - m_became_seed);
-
-		if (is_finished()) m_finished_time +=
-			duration_cast<seconds32>(now - m_became_finished);
-
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
@@ -8939,6 +8928,19 @@ bool is_downloading_state(int const st)
 
 		bool const paused_before = is_paused();
 
+		if (!m_paused && b)
+		{
+			const time_point now = aux::time_now();
+
+			m_active_time +=
+				duration_cast<seconds32>(now - m_started);
+
+			if (is_seed()) m_seeding_time +=
+				duration_cast<seconds32>(now - m_became_seed);
+
+			if (is_finished()) m_finished_time +=
+				duration_cast<seconds32>(now - m_became_finished);
+		}
 		m_paused = b;
 
 		// the session may still be paused, in which case

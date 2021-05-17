@@ -1354,7 +1354,7 @@ namespace aux {
 			// message in-flight at any given time.
 			bool m_pending_auto_manage = false;
 
-			// this is also set to true when triggering an auto-manage
+			// this is set to true when triggering an auto-manage
 			// of the torrents. However, if the normal auto-manage
 			// timer comes along and executes the auto-management,
 			// this is set to false, which means the triggered event
