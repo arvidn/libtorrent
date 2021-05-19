@@ -1,13 +1,13 @@
 project(libtorrent-examples)
 
-set(single_file_examples
-    simple_client
-    custom_storage
-    stats_counters
-    dump_torrent
-    make_torrent
-    connection_tester
-    upnp_test)
+# set(single_file_examples
+    # simple_client
+    # custom_storage
+    # stats_counters
+    # dump_torrent
+    # make_torrent
+    # connection_tester
+    # upnp_test)
 
 foreach(example ${single_file_examples})
     add_executable(${example} "${example}.cpp")
