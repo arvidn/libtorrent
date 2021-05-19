@@ -69,6 +69,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix incorrect reporting of active_duration when entering graceful-pause
 	* fix python binding for functions taking string_view
 	* fix python binding for torrent_info constructor overloads
 	* issue python deprecation warnings for some deprecated functions in the python bindings
