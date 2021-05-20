@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
+#define DEBUG_SWARM 0
 
 constexpr swarm_test_t swarm_test::download;
 constexpr swarm_test_t swarm_test::upload;
@@ -369,7 +370,9 @@ void setup_swarm(int num_nodes
 
 				// to debug the sessions not under test, comment out the following
 				// line
+#if DEBUG_SWARM == 0
 				if (i != 0) return;
+#endif
 
 				for (lt::alert* a : alerts)
 				{
@@ -381,10 +384,21 @@ void setup_swarm(int num_nodes
 
 					if (should_print(a))
 					{
-						std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+						std::printf(
+#if DEBUG_SWARM != 0
+							"[%d] "
+#endif
+							"%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+#if DEBUG_SWARM != 0
+							, i
+#endif
 							, a->what()
 							, a->message().c_str());
 					}
+
+#if DEBUG_SWARM != 0
+					if (i != 0) continue;
+#endif
 
 					// if a torrent was added save the torrent handle
 					if (lt::add_torrent_alert* at = lt::alert_cast<lt::add_torrent_alert>(a))
