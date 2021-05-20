@@ -674,6 +674,23 @@ std::string get_python()
 	return "python3";
 }
 
+int find_available_port()
+{
+	int port = 2000 + (::getpid() + _g_test_idx + std::rand()) % 60000;
+	error_code ec;
+	io_service ios;
+
+	// make sure the port we pick is free
+	do {
+		++port;
+		tcp::socket s(ios);
+		s.open(tcp::v4(), ec);
+		if (ec) break;
+		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
+			, std::uint16_t(port)), ec);
+	} while (ec);
+	return port;
+}
 }
 
 // returns a port on success and -1 on failure
@@ -687,20 +704,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	int port = 10000 + static_cast<int>(lt::random(50000));
-	error_code ec;
-	io_service ios;
-
-	// make sure the port we pick is free
-	do {
-		++port;
-		tcp::socket s(ios);
-		s.open(tcp::v4(), ec);
-		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
-			, std::uint16_t(port)), ec);
-	} while (ec);
-
+	int const port = find_available_port();
 
 	char const* type = "";
 	char const* auth = "";
@@ -1090,19 +1094,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
 {
-	int port = 2000 + static_cast<int>(lt::random(6000));
-	error_code ec;
-	io_service ios;
-
-	// make sure the port we pick is free
-	do {
-		++port;
-		tcp::socket s(ios);
-		s.open(tcp::v4(), ec);
-		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
-			, std::uint16_t(port)), ec);
-	} while (ec);
+	int const port = find_available_port();
 
 	std::string python_exe = get_python();
 
