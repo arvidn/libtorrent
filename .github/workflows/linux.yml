@@ -159,16 +159,16 @@ jobs:
         run: |
           sudo apt update
 
-      - name: install clang-10
+      - name: install clang-11
         continue-on-error: true
         run: |
-          sudo apt install clang-10
+          sudo apt install clang-11
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
-          echo "using clang : 10 : clang++-10 ;" >>~/user-config.jam
+          echo "using clang : 11 : clang++-11 ;" >>~/user-config.jam
 
       - name: build and run tests
         uses: nick-invision/retry@v2
