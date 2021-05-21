@@ -462,10 +462,6 @@ TORRENT_TEST(active_timer_no_seed)
 			TEST_EQUAL(st.seeding_duration.count(), 0);
 			TEST_EQUAL(st.finished_duration.count(), 0);
 
-			std::cout << "active: " << st.active_duration.count() << '\n';
-			std::cout << "seeding: " << st.seeding_duration.count() << '\n';
-			std::cout << "finished: " << st.finished_duration.count() << '\n';
-
 			// does not upload without peers
 			TEST_CHECK(st.last_upload == time_point(seconds(0)));
 
@@ -480,7 +476,8 @@ TORRENT_TEST(active_timer_no_seed)
 	TEST_CHECK(ran_to_completion);
 }
 
-TORRENT_TEST(active_timer_graceful_pause)
+template <typename PauseFun>
+void test_pause(PauseFun f)
 {
 	lt::time_point32 start_time;
 	lt::torrent_handle handle;
@@ -489,6 +486,8 @@ TORRENT_TEST(active_timer_graceful_pause)
 	int const pause_time = 5;
 
 	int active_time = 0;
+
+	int paused_alert_count = 0;
 
 	setup_swarm(5, swarm_test::download
 		// add session
@@ -503,13 +502,17 @@ TORRENT_TEST(active_timer_graceful_pause)
 				start_time = time_now();
 				handle = ta->handle;
 			}
+			if (alert_cast<torrent_paused_alert>(a))
+			{
+				++paused_alert_count;
+			}
 		}
 		// terminate
 		, [&](int const ticks, lt::session& ses) -> bool
 		{
 			if (ticks == pause_time)
 			{
-				handle.pause(torrent_handle::graceful_pause);
+				f(handle, ses);
 			}
 			if (ticks <= pause_time)
 				++active_time;
@@ -518,10 +521,6 @@ TORRENT_TEST(active_timer_graceful_pause)
 			TEST_EQUAL(st.active_duration.count(), active_time);
 			TEST_EQUAL(st.seeding_duration.count(), 0);
 			TEST_EQUAL(st.finished_duration.count(), 0);
-
-			std::cout << "active: " << st.active_duration.count() << '\n';
-			std::cout << "seeding: " << st.seeding_duration.count() << '\n';
-			std::cout << "finished: " << st.finished_duration.count() << '\n';
 
 			// does not upload without peers
 			TEST_CHECK(st.last_upload == time_point(seconds(0)));
@@ -534,5 +533,30 @@ TORRENT_TEST(active_timer_graceful_pause)
 
 			return false;
 		});
+	TEST_EQUAL(paused_alert_count, 1);
 	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(active_timer_graceful_pause)
+{
+	test_pause([](lt::torrent_handle h, lt::session&)
+	{
+		h.pause(torrent_handle::graceful_pause);
+	});
+}
+
+TORRENT_TEST(active_timer_pause)
+{
+	test_pause([](lt::torrent_handle h, lt::session&)
+	{
+		h.pause();
+	});
+}
+
+TORRENT_TEST(active_timer_session_pause)
+{
+	test_pause([](lt::torrent_handle, lt::session& s)
+	{
+		s.pause();
+	});
 }

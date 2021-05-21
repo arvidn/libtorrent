@@ -535,7 +535,7 @@ namespace libtorrent {
 
 		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause(pause_flags_t flags = torrent_handle::clear_disk_cache);
+		void do_pause(pause_flags_t flags = torrent_handle::clear_disk_cache, bool was_paused = false);
 		void do_resume();
 
 		seconds32 finished_time() const;
