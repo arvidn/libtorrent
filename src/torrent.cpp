@@ -8734,7 +8734,7 @@ bool is_downloading_state(int const st)
 		set_paused(true, flags | torrent_handle::clear_disk_cache);
 	}
 
-	void torrent::do_pause(pause_flags_t const flags)
+	void torrent::do_pause(pause_flags_t const flags, bool const was_paused)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
@@ -8762,6 +8762,23 @@ bool is_downloading_state(int const st)
 
 		update_state_list();
 		update_want_tick();
+
+		// do_paused() may be called twice, if the first time is to enter
+		// graceful pause, and the second time proper pause. We can only update
+		// these timers once, otherwise they'll be inflated
+		if (!was_paused)
+		{
+			const time_point now = aux::time_now();
+
+			m_active_time +=
+				duration_cast<seconds32>(now - m_started);
+
+			if (is_seed()) m_seeding_time +=
+				duration_cast<seconds32>(now - m_became_seed);
+
+			if (is_finished()) m_finished_time +=
+				duration_cast<seconds32>(now - m_became_finished);
+		}
 
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -8921,26 +8938,13 @@ bool is_downloading_state(int const st)
 			{
 				m_graceful_pause_mode = false;
 				update_gauge();
-				do_pause();
+				do_pause(flags, true);
 			}
 			return;
 		}
 
 		bool const paused_before = is_paused();
 
-		if (!m_paused && b)
-		{
-			const time_point now = aux::time_now();
-
-			m_active_time +=
-				duration_cast<seconds32>(now - m_started);
-
-			if (is_seed()) m_seeding_time +=
-				duration_cast<seconds32>(now - m_became_seed);
-
-			if (is_finished()) m_finished_time +=
-				duration_cast<seconds32>(now - m_became_finished);
-		}
 		m_paused = b;
 
 		// the session may still be paused, in which case
@@ -8949,7 +8953,7 @@ bool is_downloading_state(int const st)
 
 		m_graceful_pause_mode = bool(flags & torrent_handle::graceful_pause);
 
-		if (b) do_pause(flags & torrent_handle::clear_disk_cache);
+		if (b) do_pause(flags);
 		else do_resume();
 	}
 
