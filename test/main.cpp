@@ -416,8 +416,7 @@ int EXPORT main(int argc, char const* argv[])
 #endif
 	std::string const root_dir = current_working_directory();
 	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
-	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
-		, executable, unit_dir_prefix.c_str(), lt::random(0xffffffff));
+	std::printf("test: %s\ncwd_prefix = \"%s\"\n", executable, unit_dir_prefix.c_str());
 
 	if (_g_num_unit_tests == 0)
 	{
@@ -452,7 +451,6 @@ int EXPORT main(int argc, char const* argv[])
 			return 1;
 		}
 
-		std::printf("cwd: %s\n", unit_dir.c_str());
 		unit_test_t& t = _g_unit_tests[i];
 
 		if (redirect_stdout || redirect_stderr)
@@ -508,6 +506,12 @@ int EXPORT main(int argc, char const* argv[])
 
 		_g_test_idx = i;
 		current_test = &t;
+
+		std::printf("cwd: %s\n", unit_dir.c_str());
+		std::printf("test-case: %s\n", t.name);
+		std::mt19937 rng(0x82daf973);
+		lt::aux::random_engine() = rng;
+		std::printf("rnd = %x\n", lt::random(0xffffffff));
 
 #ifndef BOOST_NO_EXCEPTIONS
 		try

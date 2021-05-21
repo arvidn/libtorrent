@@ -537,30 +537,89 @@ TORRENT_TEST(http_parser)
 	TEST_EQUAL(is_redirect(400), false);
 }
 
-TORRENT_TEST(chunked_encoding)
+namespace {
+std::string test_collapse_chunks(std::string chunked_input, bool const expect_error = false)
 {
-	char const chunked_input[] =
-		"HTTP/1.1 200 OK\r\n"
+	http_parser parser;
+
+	std::string input = "HTTP/1.1 200 OK\r\n"
 		"Transfer-Encoding: chunked\r\n"
 		"Content-Type: text/plain\r\n"
-		"\r\n"
-		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
-		"0\r\n\r\n";
+		"\r\n";
 
-	http_parser parser;
-	std::tuple<int, int, bool> const received
-		= feed_bytes(parser, chunked_input);
+	input += chunked_input;
 
-	TEST_EQUAL(strlen(chunked_input), 24 + 94);
-	TEST_CHECK(received == std::make_tuple(24, 94, false));
-	TEST_CHECK(parser.finished());
+	bool error = false;
+	int payload = 0;
+	int protocol = 0;
+	std::tie(payload, protocol) = parser.incoming(input, error);
 
-	char mutable_buffer[100];
+	TEST_CHECK(protocol > 0);
+	TEST_CHECK(payload > 0);
+	if (expect_error)
+	{
+		TEST_CHECK(std::size_t(protocol + payload) <= input.size());
+	}
+	else
+	{
+		TEST_EQUAL(std::size_t(protocol + payload), input.size());
+		TEST_CHECK(parser.finished());
+	}
+
+	std::vector<char> mutable_buffer;
 	span<char const> body = parser.get_body();
-	std::copy(body.begin(), body.end(), mutable_buffer);
-	body = parser.collapse_chunk_headers({mutable_buffer, body.size()});
+	std::copy(body.begin(), body.end(), std::back_inserter(mutable_buffer));
+	body = parser.collapse_chunk_headers(mutable_buffer);
+	return std::string(body.data(), std::size_t(body.size()));
+}
+}
 
-	TEST_CHECK(body == span<char const>("test12340123456789abcdef", 24));
+TORRENT_TEST(chunked_encoding)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n");
+	TEST_EQUAL(collapsed, "test12340123456789abcdef");
+}
+
+TORRENT_TEST(chunked_encoding_beyond_end)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n20\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n", true);
+	TEST_EQUAL(collapsed, "test1234");
+}
+
+TORRENT_TEST(chunked_encoding_end_of_buffer)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n17\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n", true);
+	TEST_EQUAL(collapsed, "test12340123456789abcdef\r\n0\r\n\r\n");
+}
+
+TORRENT_TEST(chunked_encoding_past_end)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n18\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n", true);
+	TEST_EQUAL(collapsed, "test1234");
+}
+
+TORRENT_TEST(chunked_encoding_negative)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n-10\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n", true);
+	TEST_EQUAL(collapsed, "");
+}
+
+TORRENT_TEST(chunked_encoding_end)
+{
+	auto const collapsed = test_collapse_chunks(
+		"4\r\ntest\r\n4\r\n1234\r\n11\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n", true);
+	TEST_EQUAL(collapsed, "test12340123456789abcdef\r");
 }
 
 TORRENT_TEST(chunked_encoding_overflow)
