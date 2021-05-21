@@ -120,7 +120,7 @@ namespace {
 			iovec_t buf = {bufz, r.length};
 
 			// TODO: this function isn't being free()d anywhere right now
-			std::function<void()> *whandler = new std::function<void()>([=, handler = std::move(handler)]() {
+			auto whandler = [=, handler = std::move(handler)]() mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					storage_error err = *error;
 					delete(error);
@@ -139,9 +139,9 @@ namespace {
 						m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 					}
 				});
-			});
+			};
 
-			int res = m_torrents[storage]->readv2(m_settings, buf, r.piece, r.start, *error, whandler);
+			int res = m_torrents[storage]->readv2(m_settings, buf, r.piece, r.start, *error, std::move(whandler));
 			TORRENT_ASSERT(res >= 0);
 		}
 
@@ -159,7 +159,7 @@ namespace {
 			storage_error *error = new storage_error();
 
 					// TODO: this function isn't being free()d anywhere right now
-			std::function<void()> *whandler = new std::function<void()>([=, handler = std::move(handler)]() {
+			auto whandler = [=, handler = std::move(handler)]() mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					storage_error err = *error;
 					delete(error);
@@ -175,9 +175,9 @@ namespace {
 						m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 					}
 				});
-			});
+			};
 
-			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, *error, whandler);
+			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, *error, std::move(whandler));
 			TORRENT_ASSERT(res >= 0);
 
 			return false;
