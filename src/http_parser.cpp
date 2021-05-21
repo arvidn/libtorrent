@@ -566,7 +566,7 @@ restart_response:
 
 	span<char const> http_parser::get_body() const
 	{
-		TORRENT_ASSERT(m_state == read_body);
+		if (m_state != read_body) return {};
 		std::int64_t const received = m_recv_pos - m_body_start_pos;
 
 		std::int64_t const body_length = m_chunked_encoding && !m_chunked_ranges.empty()
@@ -612,8 +612,12 @@ restart_response:
 		{
 			auto const chunk_start = i.first;
 			auto const chunk_end = i.second;
-			TORRENT_ASSERT(i.second - i.first < std::numeric_limits<int>::max());
-			TORRENT_ASSERT(chunk_end - offset <= buffer.size());
+			if (chunk_end - offset > buffer.size()
+				|| (i.second - i.first) >= std::numeric_limits<int>::max())
+			{
+				// invalid chunk header. Return the body we've parsed out so far
+				return buffer.first(write_ptr - buffer.data());
+			}
 			span<char> chunk = buffer.subspan(
 				aux::numeric_cast<std::ptrdiff_t>(chunk_start - offset)
 				, aux::numeric_cast<std::ptrdiff_t>(chunk_end - chunk_start));

@@ -1,3 +1,4 @@
+	* fix bug in parsing chunked encoding
 	* fix incorrect reporting of active_duration when entering graceful-pause
 	* fix python binding for functions taking string_view
 	* fix python binding for torrent_info constructor overloads
