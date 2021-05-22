@@ -376,7 +376,6 @@ void setup_swarm(int num_nodes
 
 				for (lt::alert* a : alerts)
 				{
-
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
 					std::uint32_t const millis = std::uint32_t(
@@ -388,10 +387,11 @@ void setup_swarm(int num_nodes
 #if DEBUG_SWARM != 0
 							"[%d] "
 #endif
-							"%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+							"%4d.%03d: %-25s %s\n"
 #if DEBUG_SWARM != 0
 							, i
 #endif
+							, millis / 1000, millis % 1000
 							, a->what()
 							, a->message().c_str());
 					}
