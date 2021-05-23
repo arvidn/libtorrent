@@ -790,17 +790,39 @@ namespace
         return bytes(buf.data(), buf.size());
     }
 
-    dict get_settings(session_params const& sp)
+    struct dict_to_settings
     {
-        return make_dict(sp.settings);
-    }
+        dict_to_settings()
+        {
+            converter::registry::push_back(
+                &convertible, &construct, type_id<settings_pack>()
+            );
+        }
 
-    void set_settings(session_params& sp, dict d)
+        static void* convertible(PyObject* x)
+        {
+            return PyDict_Check(x) ? x: nullptr;
+        }
+
+        static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+        {
+            void* storage = ((converter::rvalue_from_python_storage<lt::settings_pack>*)data)->storage.bytes;
+
+            dict o(borrowed(x));
+            auto p = new (storage) lt::settings_pack;
+            data->convertible = p;
+            make_settings_pack(*p, o);
+        }
+    };
+
+    struct settings_to_dict
     {
-        settings_pack p;
-        make_settings_pack(p, d);
-        sp.settings = p;
-    }
+        static PyObject* convert(lt::settings_pack const& p)
+        {
+            dict ret = make_dict(p);
+            return incref(ret.ptr());
+        }
+    };
 
 } // anonymous namespace
 
@@ -814,6 +836,9 @@ struct dummy11 {};
 
 void bind_session()
 {
+    dict_to_settings();
+    to_python_converter<lt::settings_pack, settings_to_dict>();
+
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*dht_get_immutable_item)(sha1_hash const&) = &lt::session::dht_get_item;
     sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
@@ -950,13 +975,26 @@ void bind_session()
 #endif
       ;
 
+#ifndef TORRENT_DISABLE_DHT
+    class_<lt::dht::dht_state>("dht_state")
+        .add_property("nids", &lt::dht::dht_state::nids)
+        .add_property("nodes", &lt::dht::dht_state::nodes)
+        .add_property("nodes6", &lt::dht::dht_state::nodes6)
+        ;
+#endif
+
     class_<session_params>("session_params")
         .def(init<settings_pack const&>())
         .def(init<>())
-        .add_property("settings", &get_settings, &set_settings)
-        .add_property("dht_state", PROP(&session_params::dht_state))
+        // TODO: since there's not binding for settings_pack, but they are just
+        // represented as dicts, this won't return a reference, but a copy of
+        // the settings
+        .add_property("settings", PROP(&session_params::settings))
+#ifndef TORRENT_DISABLE_DHT
+        .def_readwrite("dht_state", &session_params::dht_state)
+#endif
         .add_property("ext_state", PROP(&session_params::ext_state))
-        .add_property("ip_filter", PROP(&session_params::ip_filter))
+        .def_readwrite("ip_filter", &session_params::ip_filter)
         ;
 
     def("read_session_params", &read_session_params_entry, (arg("dict"), arg("flags")=save_state_flags_t::all()));

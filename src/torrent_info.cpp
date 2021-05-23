@@ -374,7 +374,7 @@ namespace {
 				return false;
 			}
 			pieces_root = info_buffer + (root.string_offset() - info_offset);
-			if (file_size > 0 && sha256_hash(pieces_root).is_all_zeros())
+			if (sha256_hash(pieces_root).is_all_zeros())
 			{
 				ec = errors::torrent_missing_pieces_root;
 				return false;

@@ -786,6 +786,12 @@ namespace libtorrent::aux {
 			mode |= (m_file_created[file] == false) ? aux::open_mode::truncate : aux::open_mode::read_only;
 		}
 
+		if (files().file_flags(file) & file_storage::flag_executable)
+			mode |= aux::open_mode::executable;
+
+		if (files().file_flags(file) & file_storage::flag_hidden)
+			mode |= aux::open_mode::hidden;
+
 #ifdef _WIN32
 		if (sett.get_bool(settings_pack::enable_set_file_valid_data))
 		{

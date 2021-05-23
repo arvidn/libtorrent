@@ -80,6 +80,11 @@ jobs:
         run: |
           sudo apt update
 
+      - name: install clang-9
+        continue-on-error: true
+        run: |
+          sudo apt install clang-9
+
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
@@ -176,6 +181,11 @@ jobs:
         if: ${{ contains(matrix.config, 'crypto=gnutls') }}
         run: |
           sudo apt install libgnutls28-dev
+
+      - name: install clang-9
+        continue-on-error: true
+        run: |
+          sudo apt install clang-9
 
       - name: install boost
         run: |

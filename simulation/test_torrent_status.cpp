@@ -32,9 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_swarm.hpp"
+#include "utils.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/session.hpp"
+
+#include <iostream>
 
 using namespace lt;
 using namespace sim;
@@ -417,3 +421,150 @@ TORRENT_TEST(alert_order)
 	TEST_CHECK(num_torrent_alerts > 1);
 }
 
+// this tests a torrent completing the download when `active_seeds` is set to 0.
+// the torrent should be paused when it completes the download
+TORRENT_TEST(active_timer_no_seed)
+{
+	lt::time_point32 start_time;
+	lt::torrent_handle handle;
+	bool ran_to_completion = false;
+
+	int active_time = 0;
+
+	setup_swarm(4, swarm_test::download
+		// add session
+		, [](lt::settings_pack& p ) {
+			p.set_int(settings_pack::active_seeds, 0);
+			p.set_bool(settings_pack::dont_count_slow_torrents, false);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& p) {
+			p.flags |= torrent_flags::auto_managed;
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<add_torrent_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = time_now();
+				handle = ta->handle;
+			}
+		}
+		// terminate
+		, [&](int const ticks, lt::session& ses) -> bool
+		{
+			if (!is_seed(ses))
+			{
+				++active_time;
+			}
+			else
+			{
+				// some part of the simulation is not deterministic, and causes this to vary
+				// between platforms/compilers
+				TEST_CHECK(active_time >= 10);
+				TEST_CHECK(active_time <= 14);
+			}
+
+			torrent_status st = handle.status();
+			TEST_EQUAL(st.active_duration.count(), active_time);
+			TEST_EQUAL(st.seeding_duration.count(), 0);
+			TEST_EQUAL(st.finished_duration.count(), 0);
+
+			// does not upload without peers
+			TEST_CHECK(st.last_upload == time_point(seconds(0)));
+
+			if (ticks > 2 * 60)
+			{
+				ran_to_completion = true;
+				return true;
+			}
+
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
+template <typename PauseFun>
+void test_pause(PauseFun f)
+{
+	lt::time_point32 start_time;
+	lt::torrent_handle handle;
+	bool ran_to_completion = false;
+
+	int const pause_time = 5;
+
+	int active_time = 0;
+
+	int paused_alert_count = 0;
+
+	setup_swarm(5, swarm_test::download
+		// add session
+		, [](lt::settings_pack& p ) {}
+		// add torrent
+		, [](lt::add_torrent_params& p) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<add_torrent_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = time_now();
+				handle = ta->handle;
+			}
+			if (alert_cast<torrent_paused_alert>(a))
+			{
+				++paused_alert_count;
+			}
+		}
+		// terminate
+		, [&](int const ticks, lt::session& ses) -> bool
+		{
+			if (ticks == pause_time)
+			{
+				f(handle, ses);
+			}
+			if (ticks <= pause_time)
+				++active_time;
+
+			torrent_status st = handle.status();
+			TEST_EQUAL(st.active_duration.count(), active_time);
+			TEST_EQUAL(st.seeding_duration.count(), 0);
+			TEST_EQUAL(st.finished_duration.count(), 0);
+
+			// does not upload without peers
+			TEST_CHECK(st.last_upload == time_point(seconds(0)));
+
+			if (ticks > 2 * 60)
+			{
+				ran_to_completion = true;
+				return true;
+			}
+
+			return false;
+		});
+	TEST_EQUAL(paused_alert_count, 1);
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(active_timer_graceful_pause)
+{
+	test_pause([](lt::torrent_handle h, lt::session&)
+	{
+		h.pause(torrent_handle::graceful_pause);
+	});
+}
+
+TORRENT_TEST(active_timer_pause)
+{
+	test_pause([](lt::torrent_handle h, lt::session&)
+	{
+		h.pause();
+	});
+}
+
+TORRENT_TEST(active_timer_session_pause)
+{
+	test_pause([](lt::torrent_handle, lt::session& s)
+	{
+		s.pause();
+	});
+}
