@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_swarm.hpp"
+#include "utils.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -428,8 +429,6 @@ TORRENT_TEST(active_timer_no_seed)
 	lt::torrent_handle handle;
 	bool ran_to_completion = false;
 
-	int const expect_complete = 10;
-
 	int active_time = 0;
 
 	setup_swarm(4, swarm_test::download
@@ -454,8 +453,17 @@ TORRENT_TEST(active_timer_no_seed)
 		// terminate
 		, [&](int const ticks, lt::session& ses) -> bool
 		{
-			if (ticks < expect_complete)
+			if (!is_seed(ses))
+			{
 				++active_time;
+			}
+			else
+			{
+				// some part of the simulation is not deterministic, and causes this to vary
+				// between platforms/compilers
+				TEST_CHECK(active_time >= 10);
+				TEST_CHECK(active_time <= 14);
+			}
 
 			torrent_status st = handle.status();
 			TEST_EQUAL(st.active_duration.count(), active_time);
