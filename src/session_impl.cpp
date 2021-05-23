@@ -3707,8 +3707,12 @@ namespace {
 	void session_impl::add_dht_node(udp::endpoint const& n)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_dht) m_dht->add_node(n);
-		else m_dht_nodes.push_back(n);
+		if (m_dht)
+			m_dht->add_node(n);
+		else if (m_dht_nodes.size() >= 200)
+			m_dht_nodes[random(std::uint32_t(m_dht_nodes.size() - 1))] = n;
+		else
+			m_dht_nodes.push_back(n);
 	}
 
 	bool session_impl::has_dht() const

@@ -54,8 +54,8 @@ using disconnects_t = std::vector<std::pair<lt::seconds, lt::error_code>>;
 
 disconnects_t test_timeout(sim::configuration& cfg)
 {
-	auto const start_time = lt::clock_type::now();
 	sim::simulation sim{cfg};
+	auto const start_time = lt::clock_type::now();
 	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
@@ -156,8 +156,8 @@ disconnects_t test_no_interest_timeout(int const num_peers
 	, bool const redundant_no_interest)
 {
 	sim::default_config cfg;
-	auto const start_time = lt::clock_type::now();
 	sim::simulation sim{cfg};
+	auto const start_time = lt::clock_type::now();
 	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
