@@ -195,13 +195,6 @@ the runtime, but on windows you can do both. Example::
 
 .. note::
 
-  Some Linux systems requires linking against ``librt`` in order to access
-  the POSIX clock functions. If you get an error complaining about a missing
-  symbol ``clock_gettime``, you have to give ``need-librt=yes`` on the
-  b2 command line. This will make libtorrent link against ``librt``.
-
-.. note::
-
   When building on Solaris, you may have to specify ``stdlib=sun-stlport``
   on the b2 command line.
 
