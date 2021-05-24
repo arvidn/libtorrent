@@ -449,7 +449,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
 setuptools.setup(
     name="python-libtorrent",
-    version="1.2.13",
+    version="1.2.14",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
     description="Python bindings for libtorrent-rasterbar",
