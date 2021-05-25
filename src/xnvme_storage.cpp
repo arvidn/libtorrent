@@ -94,7 +94,7 @@ namespace aux {
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 	{
 		if (p.mapped_files) m_mapped_files.reset(new file_storage(*p.mapped_files));
-		m_file_handles = new std::unordered_map<std::string, xnvme_file_queue*>();
+		m_file_handles = std::unordered_map<std::string, xnvme_file_queue*>();
 	}
 
 	file_storage const& xnvme_storage::files() const { return m_mapped_files ? *m_mapped_files.get() : m_files; }
@@ -104,7 +104,7 @@ namespace aux {
 		error_code ec;
 		if (m_part_file) m_part_file->flush_metadata(ec);
 
-		for (auto fq = m_file_handles->begin(); fq != m_file_handles->end(); fq++) {
+		for (auto fq = m_file_handles.begin(); fq != m_file_handles.end(); fq++) {
 			xnvme_queue_term(fq->second->queue);
 			xnvme_dev_close(fq->second->dev);
 			delete(fq->second);
@@ -673,8 +673,8 @@ submit:
 
 		std::string fname = files().file_path(idx, m_save_path);
 
-		auto search = m_file_handles->find(fname);
-		if (search != m_file_handles->end()) {
+		auto search = m_file_handles.find(fname);
+		if (search != m_file_handles.end()) {
 			return search->second;
 		}
 
@@ -707,7 +707,7 @@ submit:
 		}
 
 		xnvme_file_queue *fq = new xnvme_file_queue(dev, queue);
-		m_file_handles->insert(std::make_pair(fname, fq));
+		m_file_handles.insert(std::make_pair(fname, fq));
 		return fq;
 	}
 

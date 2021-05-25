@@ -125,7 +125,7 @@ namespace aux {
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 
-		std::unordered_map<std::string, xnvme_file_queue*> *m_file_handles;
+		std::unordered_map<std::string, xnvme_file_queue*> m_file_handles;
 		std::string m_xnvme_backend;
 
 		// this this is an array indexed by file-index. Each slot represents
