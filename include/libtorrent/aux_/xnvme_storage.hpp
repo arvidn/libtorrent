@@ -80,14 +80,14 @@ namespace aux {
 			, piece_index_t const piece
 			, int const offset
 			, storage_error &error
-			, std::function<void(storage_error)> handler);
+			, std::function<void(storage_error const&)> handler);
 
 		int writev(settings_interface const& sett
 			, span<iovec_t const> bufs
 			, piece_index_t const piece
 			, int const offset
 			, storage_error &error
-			, std::function<void(storage_error)> handler);
+			, std::function<void(storage_error const&)> handler);
 
 		bool has_any_file(storage_error& error);
 		void set_file_priority(aux::vector<download_priority_t, file_index_t>& prio

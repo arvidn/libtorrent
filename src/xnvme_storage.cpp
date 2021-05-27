@@ -94,7 +94,6 @@ namespace aux {
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 	{
 		if (p.mapped_files) m_mapped_files.reset(new file_storage(*p.mapped_files));
-		m_file_handles = std::unordered_map<std::string, xnvme_file_queue*>();
 	}
 
 	file_storage const& xnvme_storage::files() const { return m_mapped_files ? *m_mapped_files.get() : m_files; }
@@ -272,7 +271,7 @@ namespace aux {
 	, span<iovec_t const> bufs
 	, piece_index_t const piece, int const offset
 	, storage_error &error
-	, std::function<void(storage_error)> handler)
+	, std::function<void(storage_error const&)> handler)
 	{
 		int res = readwritev(files(), bufs, piece, offset, error
 			, [this](file_index_t const file_index
@@ -362,7 +361,7 @@ submit:
 		, piece_index_t const piece
 		, int const offset
 		, storage_error &error
-		, std::function<void(storage_error)> handler)
+		, std::function<void(storage_error const&)> handler)
 	{
 		int res = readwritev(files(), bufs, piece, offset, error
 			, [this](file_index_t const file_index
@@ -707,7 +706,7 @@ submit:
 		}
 
 		xnvme_file_queue *fq = new xnvme_file_queue(dev, queue);
-		m_file_handles.insert(std::make_pair(fname, fq));
+		m_file_handles.emplace(fname, fq);
 		return fq;
 	}
 

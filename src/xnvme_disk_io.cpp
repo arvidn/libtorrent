@@ -119,8 +119,7 @@ namespace {
 
 			iovec_t buf = {bufz, r.length};
 
-			// TODO: this function isn't being free()d anywhere right now
-			auto whandler = [=, handler = std::move(handler)](storage_error error) mutable {
+			auto whandler = [handler = std::move(handler), this, bufz, start_time](storage_error error) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					disk_buffer_holder buffer = disk_buffer_holder(*this, bufz, default_block_size);
 					h(std::move(buffer), error);
@@ -153,9 +152,6 @@ namespace {
 
 			time_point const start_time = clock_type::now();
 
-			storage_error *error = new storage_error();
-
-			// TODO: this function isn't being free()d anywhere right now
 			auto whandler = [=, handler = std::move(handler)](storage_error error) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					h(error);
@@ -171,7 +167,8 @@ namespace {
 				});
 			};
 
-			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, *error, std::move(whandler));
+			storage_error error;
+			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, error, std::move(whandler));
 			TORRENT_ASSERT(res >= 0);
 
 			return false;
