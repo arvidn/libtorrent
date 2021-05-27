@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR) # Configurable policies: <= CMP0094
+cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
@@ -18,258 +18,260 @@ include(GNUInstallDirs)
 include(GeneratePkgConfig)
 
 set(libtorrent_include_files
-	add_torrent_params
-	address
-	alert
-	alert_types
-	announce_entry
-	assert
-	bdecode
-	bencode
-	bitfield
-	bloom_filter
-	bt_peer_connection
-	choker
-	client_data
-	close_reason
-	config
-	copy_ptr
-	crc32c
-	create_torrent
-	deadline_timer
-	debug
-	disk_buffer_holder
-	disk_interface
-	disk_observer
-	download_priority
-	entry
-	enum_net
-	error
-	error_code
-	extensions
-	file
-	file_storage
-	fingerprint
-	flags
-	fwd
-	gzip
-	hash_picker
-	hasher
-	hex
-	http_connection
-	http_parser
-	http_seed_connection
-	http_stream
-	http_tracker_connection
-	i2p_stream
-	identify_client
-	index_range
-	io
-	io_service
-	ip_filter
-	ip_voter
-	libtorrent
-	link
-	lsd
-	magnet_uri
-	mmap_disk_io
-	mmap_storage
-	natpmp
-	netlink
-	operations
-	optional
-	parse_url
-	part_file
-	pe_crypto
-	peer
-	peer_class
-	peer_class_set
-	peer_class_type_filter
-	peer_connection
-	peer_connection_handle
-	peer_connection_interface
-	peer_id
-	peer_info
-	peer_list
-	peer_request
-	performance_counters
-	pex_flags
-	piece_block
-	piece_block_progress
-	piece_picker
-	platform_util
-	portmap
-	proxy_base
-	puff
-	random
-	read_resume_data
-	request_blocks
-	resolve_links
-	session
-	session_handle
-	session_params
-	session_settings
-	session_stats
-	session_status
-	session_types
-	settings_pack
-	sha1
-	sha1_hash
-	sha256
-	sliding_average
-	socket
-	socket_io
-	socket_type
-	socks5_stream
-	span
-	ssl_stream
-	stack_allocator
-	stat
-	stat_cache
-	storage_defs
-	string_util
-	string_view
-	tailqueue
-	time
-	torrent
-	torrent_flags
-	torrent_handle
-	torrent_info
-	torrent_peer
-	torrent_peer_allocator
-	torrent_status
-	tracker_manager
-	udp_socket
-	udp_tracker_connection
-	union_endpoint
-	units
-	upnp
-	utf8
-	vector_utils
-	version
-	web_connection_base
-	web_peer_connection
-	write_resume_data
-	xml_parse
-	ssl)
+	add_torrent_params.hpp
+	address.hpp
+	alert.hpp
+	alert_types.hpp
+	announce_entry.hpp
+	assert.hpp
+	bdecode.hpp
+	bencode.hpp
+	bitfield.hpp
+	bloom_filter.hpp
+	bt_peer_connection.hpp
+	choker.hpp
+	client_data.hpp
+	close_reason.hpp
+	config.hpp
+	copy_ptr.hpp
+	crc32c.hpp
+	create_torrent.hpp
+	deadline_timer.hpp
+	debug.hpp
+	disk_buffer_holder.hpp
+	disk_interface.hpp
+	disk_observer.hpp
+	download_priority.hpp
+	entry.hpp
+	enum_net.hpp
+	error.hpp
+	error_code.hpp
+	extensions.hpp
+	file.hpp
+	file_storage.hpp
+	fingerprint.hpp
+	flags.hpp
+	fwd.hpp
+	gzip.hpp
+	hash_picker.hpp
+	hasher.hpp
+	hex.hpp
+	http_connection.hpp
+	http_parser.hpp
+	http_seed_connection.hpp
+	http_stream.hpp
+	http_tracker_connection.hpp
+	i2p_stream.hpp
+	identify_client.hpp
+	index_range.hpp
+	io.hpp
+	io_service.hpp
+	ip_filter.hpp
+	ip_voter.hpp
+	libtorrent.hpp
+	link.hpp
+	lsd.hpp
+	magnet_uri.hpp
+	mmap_disk_io.hpp
+	mmap_storage.hpp
+	natpmp.hpp
+	netlink.hpp
+	operations.hpp
+	optional.hpp
+	parse_url.hpp
+	part_file.hpp
+	peer.hpp
+	peer_class.hpp
+	peer_class_set.hpp
+	peer_class_type_filter.hpp
+	peer_connection.hpp
+	peer_connection_handle.hpp
+	peer_connection_interface.hpp
+	peer_id.hpp
+	peer_info.hpp
+	peer_list.hpp
+	peer_request.hpp
+	performance_counters.hpp
+	pex_flags.hpp
+	piece_block.hpp
+	piece_block_progress.hpp
+	piece_picker.hpp
+	platform_util.hpp
+	portmap.hpp
+	proxy_base.hpp
+	puff.hpp
+	random.hpp
+	read_resume_data.hpp
+	request_blocks.hpp
+	resolve_links.hpp
+	session.hpp
+	session_handle.hpp
+	session_params.hpp
+	session_settings.hpp
+	session_stats.hpp
+	session_status.hpp
+	session_types.hpp
+	settings_pack.hpp
+	sha1.hpp
+	sha1_hash.hpp
+	sha256.hpp
+	sliding_average.hpp
+	socket.hpp
+	socket_io.hpp
+	socket_type.hpp
+	socks5_stream.hpp
+	span.hpp
+	ssl.hpp
+	ssl_stream.hpp
+	stack_allocator.hpp
+	stat.hpp
+	stat_cache.hpp
+	storage_defs.hpp
+	string_util.hpp
+	string_view.hpp
+	tailqueue.hpp
+	time.hpp
+	torrent.hpp
+	torrent_flags.hpp
+	torrent_handle.hpp
+	torrent_info.hpp
+	torrent_peer.hpp
+	torrent_peer_allocator.hpp
+	torrent_status.hpp
+	tracker_manager.hpp
+	udp_socket.hpp
+	udp_tracker_connection.hpp
+	union_endpoint.hpp
+	units.hpp
+	upnp.hpp
+	utf8.hpp
+	vector_utils.hpp
+	version.hpp
+	web_connection_base.hpp
+	web_peer_connection.hpp
+	write_resume_data.hpp
+	xml_parse.hpp
+)
 
 set(libtorrent_kademlia_include_files
-	announce_flags
-	dht_observer
-	dht_settings
-	dht_state
-	dht_storage
-	dht_tracker
-	direct_request
-	dos_blocker
-	ed25519
-	find_data
-	get_item
-	get_peers
-	io
-	item
-	msg
-	node
-	node_entry
-	node_id
-	observer
-	put_data
-	refresh
-	routing_table
-	rpc_manager
-	sample_infohashes
-	traversal_algorithm
-	types)
+	announce_flags.hpp
+	dht_observer.hpp
+	dht_settings.hpp
+	dht_state.hpp
+	dht_storage.hpp
+	dht_tracker.hpp
+	direct_request.hpp
+	dos_blocker.hpp
+	ed25519.hpp
+	find_data.hpp
+	get_item.hpp
+	get_peers.hpp
+	io.hpp
+	item.hpp
+	msg.hpp
+	node.hpp
+	node_entry.hpp
+	node_id.hpp
+	observer.hpp
+	put_data.hpp
+	refresh.hpp
+	routing_table.hpp
+	rpc_manager.hpp
+	sample_infohashes.hpp
+	traversal_algorithm.hpp
+	types.hpp
+)
 
 set(libtorrent_extensions_include_files
-	smart_ban
-	ut_metadata
-	ut_pex)
+	smart_ban.hpp
+	ut_metadata.hpp
+	ut_pex.hpp
+)
 
 set(libtorrent_aux_include_files
-	alert_manager
-	aligned_storage
-	aligned_union
-	alloca
-	allocating_handler
-	array
-	bandwidth_limit
-	bandwidth_manager
-	bandwidth_queue_entry
-	bandwidth_socket
-	bind_to_device
-	buffer
-	keepalive
-	byteswap
-	chained_buffer
-	cpuid
-	deferred_handler
-	deprecated
-	deque
-	dev_random
-	directory
-	disable_warnings_pop
-	disable_warnings_push
-	disk_buffer_pool
-	disk_io_job
-	disk_io_thread_pool
-	disk_job_fence
-	disk_job_pool
-	ed25519
-	escape_string
-	export
-	ffs
-	file_progress
-	file_view_pool
-	has_block
-	heterogeneous_queue
-	invariant_check
-	instantiate_connection
-	io
-	ip_helpers
-	ip_notifier
-	listen_socket_handle
-	lsd
-	merkle
-	merkle_tree
-	noexcept_movable
-	numeric_cast
-	packet_buffer
-	packet_pool
-	path
-	polymorphic_socket
-	pool
-	portmap
-	posix_part_file
-	proxy_settings
-	range
-	receive_buffer
-	resolver
-	resolver_interface
-	route
-	scope_end
-	session_call
-	session_impl
-	session_interface
-	session_settings
-	session_udp_sockets
-	set_socket_buffer
-	socket_type
-	storage_utils
-	string_ptr
-	strview_less
-	suggest_piece
-	throw
-	time
-	timestamp_history
-	torrent_impl
-	torrent_list
-	unique_ptr
-	utp_socket_manager
-	utp_stream
-	vector
-	win_crypto_provider
-	win_util)
+	alert_manager.hpp
+	aligned_storage.hpp
+	aligned_union.hpp
+	alloca.hpp
+	allocating_handler.hpp
+	array.hpp
+	bandwidth_limit.hpp
+	bandwidth_manager.hpp
+	bandwidth_queue_entry.hpp
+	bandwidth_socket.hpp
+	bind_to_device.hpp
+	buffer.hpp
+	byteswap.hpp
+	chained_buffer.hpp
+	cpuid.hpp
+	deferred_handler.hpp
+	deprecated.hpp
+	deque.hpp
+	dev_random.hpp
+	directory.hpp
+	disable_warnings_pop.hpp
+	disable_warnings_push.hpp
+	disk_buffer_pool.hpp
+	disk_io_job.hpp
+	disk_io_thread_pool.hpp
+	disk_job_fence.hpp
+	disk_job_pool.hpp
+	ed25519.hpp
+	escape_string.hpp
+	export.hpp
+	ffs.hpp
+	file_progress.hpp
+	file_view_pool.hpp
+	has_block.hpp
+	heterogeneous_queue.hpp
+	instantiate_connection.hpp
+	invariant_check.hpp
+	io.hpp
+	ip_helpers.hpp
+	ip_notifier.hpp
+	keepalive.hpp
+	listen_socket_handle.hpp
+	lsd.hpp
+	merkle.hpp
+	merkle_tree.hpp
+	noexcept_movable.hpp
+	numeric_cast.hpp
+	packet_buffer.hpp
+	packet_pool.hpp
+	path.hpp
+	polymorphic_socket.hpp
+	pool.hpp
+	portmap.hpp
+	posix_part_file.hpp
+	proxy_settings.hpp
+	range.hpp
+	receive_buffer.hpp
+	resolver.hpp
+	resolver_interface.hpp
+	scope_end.hpp
+	session_call.hpp
+	session_impl.hpp
+	session_interface.hpp
+	session_settings.hpp
+	session_udp_sockets.hpp
+	set_socket_buffer.hpp
+	socket_type.hpp
+	storage_utils.hpp
+	string_ptr.hpp
+	strview_less.hpp
+	suggest_piece.hpp
+	throw.hpp
+	time.hpp
+	timestamp_history.hpp
+	torrent_impl.hpp
+	torrent_list.hpp
+	unique_ptr.hpp
+	utp_socket_manager.hpp
+	utp_stream.hpp
+	vector.hpp
+	win_crypto_provider.hpp
+	win_util.hpp
+)
 
 set(try_signal_include_files
 	try_signal
@@ -280,181 +282,181 @@ set(try_signal_include_files
 )
 
 set(sources
-	web_connection_base
-	alert
-	alert_manager
-	announce_entry
-	assert
-	bandwidth_limit
-	bandwidth_manager
-	bandwidth_queue_entry
-	bdecode
-	bitfield
-	bloom_filter
-	chained_buffer
-	choker
-	close_reason
-	cpuid
-	crc32c
-	create_torrent
-	directory
-	disk_buffer_holder
-	entry
-	error_code
-	file_view_pool
-	file_storage
-	file_progress
-	generate_peer_id
-	escape_string
-	string_util
-	file
-	path
-	fingerprint
-	gzip
-	hasher
-	sha1
-	sha256
-	hash_picker
-	hex
-	http_connection
-	http_parser
-	i2p_stream
-	identify_client
-	ip_filter
-	ip_helpers
-	ip_notifier
-	ip_voter
-	listen_socket_handle
-	performance_counters
-	peer_class
-	peer_class_set
-	peer_connection
-	bt_peer_connection
-	web_peer_connection
-	http_seed_connection
-	peer_connection_handle
-	instantiate_connection
-	merkle
-	merkle_tree
-	natpmp
-	part_file
-	packet_buffer
-	piece_picker
-	platform_util
-	proxy_base
-	peer_list
-	puff
-	random
-	receive_buffer
-	read_resume_data
-	write_resume_data
-	request_blocks
-	resolve_links
-	resolver
-	session
-	session_params
-	session_call
-	session_handle
-	session_impl
-	session_settings
-	proxy_settings
-	session_stats
-	settings_pack
-	sha1_hash
-	socket_io
-	socket_type
-	socks5_stream
-	stat
-	stat_cache
-	storage_utils
-	time
-	timestamp_history
-	torrent
-	torrent_handle
-	torrent_info
-	torrent_peer
-	torrent_peer_allocator
-	torrent_status
-	tracker_manager
-	http_tracker_connection
-	utf8
-	udp_tracker_connection
-	udp_socket
-	upnp
-	utp_socket_manager
-	utp_stream
-	lsd
-	disk_io_job
-	disk_job_fence
-	disk_job_pool
-	disk_buffer_pool
-	disk_interface
-	disk_io_thread_pool
-	disabled_disk_io
-	enum_net
-	magnet_uri
-	parse_url
-	xml_parse
-	version
-	ffs
-	add_torrent_params
-	peer_info
-	stack_allocator
-	mmap
-	mmap_disk_io
-	mmap_storage
-	posix_disk_io
-	posix_part_file
-	posix_storage
-	ssl
+	add_torrent_params.cpp
+	alert.cpp
+	alert_manager.cpp
+	announce_entry.cpp
+	assert.cpp
+	bandwidth_limit.cpp
+	bandwidth_manager.cpp
+	bandwidth_queue_entry.cpp
+	bdecode.cpp
+	bitfield.cpp
+	bloom_filter.cpp
+	bt_peer_connection.cpp
+	chained_buffer.cpp
+	choker.cpp
+	close_reason.cpp
+	cpuid.cpp
+	crc32c.cpp
+	create_torrent.cpp
+	directory.cpp
+	disabled_disk_io.cpp
+	disk_buffer_holder.cpp
+	disk_buffer_pool.cpp
+	disk_interface.cpp
+	disk_io_job.cpp
+	disk_io_thread_pool.cpp
+	disk_job_fence.cpp
+	disk_job_pool.cpp
+	entry.cpp
+	enum_net.cpp
+	error_code.cpp
+	escape_string.cpp
+	ffs.cpp
+	file.cpp
+	file_progress.cpp
+	file_storage.cpp
+	file_view_pool.cpp
+	fingerprint.cpp
+	generate_peer_id.cpp
+	gzip.cpp
+	hash_picker.cpp
+	hasher.cpp
+	hex.cpp
+	http_connection.cpp
+	http_parser.cpp
+	http_seed_connection.cpp
+	http_tracker_connection.cpp
+	i2p_stream.cpp
+	identify_client.cpp
+	instantiate_connection.cpp
+	ip_filter.cpp
+	ip_helpers.cpp
+	ip_notifier.cpp
+	ip_voter.cpp
+	listen_socket_handle.cpp
+	lsd.cpp
+	magnet_uri.cpp
+	merkle.cpp
+	merkle_tree.cpp
+	mmap.cpp
+	mmap_disk_io.cpp
+	mmap_storage.cpp
+	natpmp.cpp
+	packet_buffer.cpp
+	parse_url.cpp
+	part_file.cpp
+	path.cpp
+	peer_class.cpp
+	peer_class_set.cpp
+	peer_connection.cpp
+	peer_connection_handle.cpp
+	peer_info.cpp
+	peer_list.cpp
+	performance_counters.cpp
+	piece_picker.cpp
+	platform_util.cpp
+	posix_disk_io.cpp
+	posix_part_file.cpp
+	posix_storage.cpp
+	proxy_base.cpp
+	proxy_settings.cpp
+	puff.cpp
+	random.cpp
+	read_resume_data.cpp
+	receive_buffer.cpp
+	request_blocks.cpp
+	resolve_links.cpp
+	resolver.cpp
+	session.cpp
+	session_call.cpp
+	session_handle.cpp
+	session_impl.cpp
+	session_params.cpp
+	session_settings.cpp
+	session_stats.cpp
+	settings_pack.cpp
+	sha1.cpp
+	sha1_hash.cpp
+	sha256.cpp
+	socket_io.cpp
+	socket_type.cpp
+	socks5_stream.cpp
+	ssl.cpp
+	stack_allocator.cpp
+	stat.cpp
+	stat_cache.cpp
+	storage_utils.cpp
+	string_util.cpp
+	time.cpp
+	timestamp_history.cpp
+	torrent.cpp
+	torrent_handle.cpp
+	torrent_info.cpp
+	torrent_peer.cpp
+	torrent_peer_allocator.cpp
+	torrent_status.cpp
+	tracker_manager.cpp
+	udp_socket.cpp
+	udp_tracker_connection.cpp
+	upnp.cpp
+	utf8.cpp
+	utp_socket_manager.cpp
+	utp_stream.cpp
+	version.cpp
+	web_connection_base.cpp
+	web_peer_connection.cpp
+	write_resume_data.cpp
+	xml_parse.cpp
 
 # -- extensions --
-	ut_pex
-	ut_metadata
-	smart_ban
+	smart_ban.cpp
+	ut_pex.cpp
+	ut_metadata.cpp
 )
 
 # -- kademlia --
 set(kademlia_sources
-	dht_state
-	dht_storage
-	dos_blocker
-	dht_tracker
-	msg
-	node
-	node_entry
-	refresh
-	rpc_manager
-	find_data
-	put_data
-	node_id
-	routing_table
-	traversal_algorithm
-	item
-	get_peers
-	get_item
-	ed25519
-	sample_infohashes
-	dht_settings
+	dht_settings.cpp
+	dht_state.cpp
+	dht_storage.cpp
+	dht_tracker.cpp
+	dos_blocker.cpp
+	ed25519.cpp
+	find_data.cpp
+	get_item.cpp
+	get_peers.cpp
+	item.cpp
+	msg.cpp
+	node.cpp
+	node_entry.cpp
+	node_id.cpp
+	put_data.cpp
+	refresh.cpp
+	routing_table.cpp
+	rpc_manager.cpp
+	sample_infohashes.cpp
+	traversal_algorithm.cpp
 )
 
 # -- ed25519 --
 set(ed25519_sources
-	add_scalar
-	fe
-	ge
-	key_exchange
-	keypair
-	sc
-	sign
-	verify
-	sha512
-	hasher512
+	add_scalar.cpp
+	fe.cpp
+	ge.cpp
+	key_exchange.cpp
+	keypair.cpp
+	sc.cpp
+	sign.cpp
+	verify.cpp
+	sha512.cpp
+	hasher512.cpp
 )
 
 set(try_signal_sources
-	try_signal
-	signal_error_code
+	try_signal.cpp
+	signal_error_code.cpp
 )
 
 list(TRANSFORM sources PREPEND "src/")
@@ -475,7 +477,6 @@ find_public_dependency(Threads REQUIRED)
 if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 	add_compile_options(
 		-Weverything
-		-Wno-documentation
 		-Wno-c++98-compat-pedantic
 		-Wno-c++11-compat-pedantic
 		-Wno-padded
@@ -484,18 +485,22 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-exit-time-destructors
 		-Wno-weak-vtables
 		-Wno-return-std-move-in-c++11
-		-Wno-unknown-warning-option)
+		-Wno-unknown-warning-option
+	)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
 		-Wall
+		-Wc++11-compat
 		-Wextra
-		-Wpedantic
+		-Wno-format-zero-length
 		-Wparentheses
+		-Wpedantic
 		-Wvla
 		-Wno-c++11-compat
 		-Wno-format-zero-length
 		-Wno-noexcept-type
-		-ftemplate-depth=512)
+		-ftemplate-depth=512
+	)
 elseif(MSVC)
 	add_compile_options(
 		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
@@ -504,17 +509,18 @@ elseif(MSVC)
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
 		/wd4251
+		# C4268: 'identifier' : 'const' static/global data initialized
+		#        with compiler generated default constructor fills the object with zeros
+		/wd4268
 		# C4275: non DLL-interface classkey 'identifier' used as base for
 		#        DLL-interface classkey 'identifier'
 		/wd4275
 		# C4373: virtual function overrides, previous versions of the compiler
 		#        did not override when parameters only differed by const/volatile qualifiers
 		/wd4373
-		# C4268: 'identifier' : 'const' static/global data initialized
-		#        with compiler generated default constructor fills the object with zeros
-		/wd4268
 		# C4503: 'identifier': decorated name length exceeded, name was truncated
-		/wd4503)
+		/wd4503
+	)
 endif()
 
 if(static_runtime)
@@ -546,15 +552,15 @@ add_library(torrent-rasterbar
 target_compile_features(torrent-rasterbar
 	PUBLIC
 		cxx_std_14
-		cxx_contextual_conversions
-		cxx_binary_literals
-		cxx_decltype_auto
-		cxx_lambda_init_captures
-		cxx_generic_lambdas
-		cxx_variable_templates
-		cxx_relaxed_constexpr
 		cxx_attribute_deprecated
+		cxx_binary_literals
+		cxx_contextual_conversions
+		cxx_decltype_auto
 		cxx_digit_separators
+		cxx_generic_lambdas
+		cxx_lambda_init_captures
+		cxx_relaxed_constexpr
+		cxx_variable_templates
 )
 
 if (BUILD_SHARED_LIBS)
@@ -767,16 +773,17 @@ if (NOT GNUTLS_FOUND AND NOT TARGET OpenSSL::SSL)
 endif()
 
 if (encryption)
-	target_sources(torrent-rasterbar PRIVATE src/pe_crypto)
+	target_sources(torrent-rasterbar PRIVATE include/libtorrent/pe_crypto.hpp src/pe_crypto.cpp)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_ENCRYPTION)
 endif()
 
 if (dht)
 	target_sources(torrent-rasterbar PRIVATE
+		${libtorrent_kademlia_include_files}
+		include/libtorrent/aux_/hasher512.hpp
 		${kademlia_sources}
 		${ed25519_sources}
-		${libtorrent_kademlia_include_files}
 	)
 else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
