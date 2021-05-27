@@ -272,7 +272,7 @@ namespace aux {
 	, span<iovec_t const> bufs
 	, piece_index_t const piece, int const offset
 	, storage_error &error
-	, std::function<void()> handler)
+	, std::function<void(storage_error)> handler)
 	{
 		int res = readwritev(files(), bufs, piece, offset, error
 			, [this](file_index_t const file_index
@@ -353,7 +353,7 @@ submit:
 			return ret;
 		});
 
-		handler();
+		handler(error);
 		return res;
 	}
 
@@ -362,7 +362,7 @@ submit:
 		, piece_index_t const piece
 		, int const offset
 		, storage_error &error
-		, std::function<void()> handler)
+		, std::function<void(storage_error)> handler)
 	{
 		int res = readwritev(files(), bufs, piece, offset, error
 			, [this](file_index_t const file_index
@@ -447,7 +447,7 @@ submit:
 			return ret;
 		});
 
-		handler();
+		handler(error);
 		return res;
 	}
 

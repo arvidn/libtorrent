@@ -541,5 +541,4 @@ namespace {
 		// return posix_disk_io_constructor(ios, sett, cnt);
 		// return mmap_disk_io_constructor(ios, sett, cnt);
 	}
-
 }

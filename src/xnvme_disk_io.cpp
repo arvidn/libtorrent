@@ -120,15 +120,12 @@ namespace {
 			iovec_t buf = {bufz, r.length};
 
 			// TODO: this function isn't being free()d anywhere right now
-			auto whandler = [=, handler = std::move(handler)]() mutable {
+			auto whandler = [=, handler = std::move(handler)](storage_error error) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
-					storage_error err = *error;
-					delete(error);
-
 					disk_buffer_holder buffer = disk_buffer_holder(*this, bufz, default_block_size);
-					h(std::move(buffer), err);
+					h(std::move(buffer), error);
 
-					if (!error->ec)
+					if (!error.ec)
 					{
 						std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
@@ -158,15 +155,12 @@ namespace {
 
 			storage_error *error = new storage_error();
 
-					// TODO: this function isn't being free()d anywhere right now
-			auto whandler = [=, handler = std::move(handler)]() mutable {
+			// TODO: this function isn't being free()d anywhere right now
+			auto whandler = [=, handler = std::move(handler)](storage_error error) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
-					storage_error err = *error;
-					delete(error);
+					h(error);
 
-					h(err);
-
-					if (!error->ec) {
+					if (!error.ec) {
 						std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 
 						m_stats_counters.inc_stats_counter(counters::num_blocks_written);
