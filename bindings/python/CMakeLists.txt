@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= CMP0102
 
 # To build python bindings we need a python executable and boost python module. Unfortunately,
 # their names might not be interlinked and we can not implement a general solution.
@@ -42,26 +42,26 @@ set(boost-python-module-name "python${Python3_VERSION_MAJOR}${Python3_VERSION_MI
 find_package(Boost REQUIRED COMPONENTS ${boost-python-module-name})
 
 Python3_add_library(python-libtorrent MODULE WITH_SOABI
-	src/module.cpp
-	src/sha1_hash.cpp
+	src/alert.cpp
 	src/converters.cpp
 	src/create_torrent.cpp
-	src/fingerprint.cpp
-	src/utility.cpp
-	src/session.cpp
-	src/entry.cpp
-	src/torrent_info.cpp
-	src/string.cpp
-	src/torrent_handle.cpp
-	src/torrent_status.cpp
-	src/session_settings.cpp
-	src/version.cpp
-	src/alert.cpp
 	src/datetime.cpp
-	src/peer_info.cpp
+	src/entry.cpp
+	src/error_code.cpp
+	src/fingerprint.cpp
 	src/ip_filter.cpp
 	src/magnet_uri.cpp
-	src/error_code.cpp
+	src/module.cpp
+	src/peer_info.cpp
+	src/session.cpp
+	src/session_settings.cpp
+	src/sha1_hash.cpp
+	src/string.cpp
+	src/torrent_handle.cpp
+	src/torrent_info.cpp
+	src/torrent_status.cpp
+	src/utility.cpp
+	src/version.cpp
 )
 
 set_target_properties(python-libtorrent
@@ -114,10 +114,11 @@ if (python-egg-info)
 	configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
 
 	add_custom_command(OUTPUT ${OUTPUT}
-	                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build -b "${CMAKE_CURRENT_SOURCE_DIR}"
-	                   COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} egg_info -b "${CMAKE_CURRENT_SOURCE_DIR}"
-	                   COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-	                   DEPENDS ${DEPS})
+		COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build -b "${CMAKE_CURRENT_SOURCE_DIR}"
+		COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} egg_info -b "${CMAKE_CURRENT_SOURCE_DIR}"
+		COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
+		DEPENDS ${DEPS}
+	)
 
 	add_custom_target(python_bindings ALL DEPENDS ${OUTPUT})
 
