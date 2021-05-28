@@ -479,54 +479,6 @@ feature_option(static_runtime "build libtorrent with static runtime" OFF)
 
 find_public_dependency(Threads REQUIRED)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	add_compile_options(
-		-Weverything
-		-Wno-documentation
-		-Wno-c++98-compat-pedantic
-		-Wno-c++11-compat-pedantic
-		-Wno-padded
-		-Wno-alloca
-		-Wno-global-constructors
-		-Wno-exit-time-destructors
-		-Wno-weak-vtables
-		-Wno-return-std-move-in-c++11
-		-Wno-unknown-warning-option
-	)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-	add_compile_options(
-		-Wall
-		-Wextra
-		-Wpedantic
-		-Wparentheses
-		-Wvla
-		-Wno-c++11-compat
-		-Wno-format-zero-length
-		-Wno-noexcept-type
-		-ftemplate-depth=512
-	)
-elseif(MSVC)
-	add_compile_options(
-		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
-		/Zc:__cplusplus
-		/W4
-		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
-		#        used by clients of class 'type2'
-		/wd4251
-		# C4268: 'identifier' : 'const' static/global data initialized
-		#        with compiler generated default constructor fills the object with zeros
-		/wd4268
-		# C4275: non DLL-interface classkey 'identifier' used as base for
-		#        DLL-interface classkey 'identifier'
-		/wd4275
-		# C4373: virtual function overrides, previous versions of the compiler
-		#        did not override when parameters only differed by const/volatile qualifiers
-		/wd4373
-		# C4503: 'identifier': decorated name length exceeded, name was truncated
-		/wd4503
-	)
-endif()
-
 if(static_runtime)
 	if (MSVC)
 		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -596,6 +548,54 @@ target_link_libraries(torrent-rasterbar
 	PUBLIC
 		Threads::Threads
 )
+
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
+	target_compile_options(torrent-rasterbar PRIVATE
+		-Weverything
+		-Wno-documentation
+		-Wno-c++98-compat-pedantic
+		-Wno-c++11-compat-pedantic
+		-Wno-padded
+		-Wno-alloca
+		-Wno-global-constructors
+		-Wno-exit-time-destructors
+		-Wno-weak-vtables
+		-Wno-return-std-move-in-c++11
+		-Wno-unknown-warning-option
+	)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+	target_compile_options(torrent-rasterbar PRIVATE
+		-Wall
+		-Wextra
+		-Wpedantic
+		-Wparentheses
+		-Wvla
+		-Wno-c++11-compat
+		-Wno-format-zero-length
+		-Wno-noexcept-type
+		-ftemplate-depth=512
+	)
+elseif(MSVC)
+	target_compile_options(torrent-rasterbar PRIVATE
+		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+		/Zc:__cplusplus
+		/W4
+		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
+		#        used by clients of class 'type2'
+		/wd4251
+		# C4268: 'identifier' : 'const' static/global data initialized
+		#        with compiler generated default constructor fills the object with zeros
+		/wd4268
+		# C4275: non DLL-interface classkey 'identifier' used as base for
+		#        DLL-interface classkey 'identifier'
+		/wd4275
+		# C4373: virtual function overrides, previous versions of the compiler
+		#        did not override when parameters only differed by const/volatile qualifiers
+		/wd4373
+		# C4503: 'identifier': decorated name length exceeded, name was truncated
+		/wd4503
+	)
+endif()
 
 # Unconditional platform-specific settings
 if (WIN32)
