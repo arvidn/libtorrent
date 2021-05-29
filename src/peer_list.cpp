@@ -594,8 +594,6 @@ namespace libtorrent {
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!state->is_paused);
-
 		iterator iter;
 		torrent_peer* i = nullptr;
 
