@@ -35,10 +35,6 @@ see LICENSE file.
 // Enable this to pass libdatachannel log to the last created session
 #define DEBUG_RTC 0
 
-#if DEBUG_RTC
-#include <plog/Formatters/FuncMessageFormatter.h>
-#endif
-
 namespace libtorrent {
 namespace aux {
 
@@ -49,7 +45,7 @@ namespace {
 template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { return ptr; }
 
 #if DEBUG_RTC
-class plog_appender : public plog::IAppender
+class rtc_log_appender
 {
 public:
 	void set_session(aux::session_interface* ses)
@@ -63,27 +59,25 @@ public:
 			m_ses = nullptr;
 	}
 
-	void write(const plog::Record& record) override
+	void write(rtc::LogLevel level, rtc::string message)
 	{
 		if (!m_ses) return;
 
 		auto &alerts = m_ses->alerts();
 		if (!alerts.should_post<log_alert>()) return;
 
+		using ::operator<<;
 		std::ostringstream ss;
-		ss << "libdatachannel: "
-			<< plog::severityToString(record.getSeverity()) << " "
-			<< plog::FuncMessageFormatter::format(record);
-		std::string line = ss.str();
-		line.pop_back(); // remove newline
-		alerts.emplace_alert<log_alert>(line.c_str());
+		ss << "libdatachannel: ";
+		ss << level  << " " << message;
+		alerts.emplace_alert<log_alert>(ss.str().c_str());
 	}
 
 private:
 	aux::session_interface* m_ses = nullptr;
 };
 
-static plog_appender appender;
+static rtc_log_appender appender;
 #endif
 
 }
@@ -99,11 +93,14 @@ rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler han
 #if DEBUG_RTC
 	std::call_once(flag, [this]() {
 		appender.set_session(&m_torrent->session());
-		rtc::InitLogger(plog::Severity::debug, &appender);
+
+		using namespace std::placeholders;
+		rtc::InitLogger(rtc::LogLevel::Debug
+				, std::bind(&rtc_log_appender::write, &appender, _1, _2));
 	});
 #else
 	std::call_once(flag, []() {
-		rtc::InitLogger(plog::Severity::none, nullptr);
+		rtc::InitLogger(rtc::LogLevel::None, nullptr);
 	});
 #endif
 }
