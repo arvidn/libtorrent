@@ -249,7 +249,7 @@ jobs:
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/
           b2 install cxxflags=-std=c++11 --prefix=test-install-root
-          cat test-install-root/share/pkgconfig/libtorrent-rasterbar.pc
+          cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
 
       - name: test-tarball (bjam)
         uses: nick-invision/retry@v2
