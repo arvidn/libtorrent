@@ -62,7 +62,6 @@ namespace libtorrent {
 	// the peer_list type not depend on the torrent type directly.
 	struct torrent_state
 	{
-		bool is_paused = false;
 		bool is_finished = false;
 		bool allow_multiple_connections_per_ip = false;
 

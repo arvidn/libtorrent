@@ -10283,7 +10283,6 @@ bool is_downloading_state(int const st)
 	torrent_state torrent::get_peer_list_state()
 	{
 		torrent_state ret;
-		ret.is_paused = is_paused();
 		ret.is_finished = is_finished();
 		ret.allow_multiple_connections_per_ip = settings().get_bool(settings_pack::allow_multiple_connections_per_ip);
 		ret.max_peerlist_size = is_paused()
