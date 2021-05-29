@@ -135,8 +135,14 @@ namespace libtorrent {
 		// if this is true
 		std::uint32_t optimistically_unchoked:1;
 
-		// this is true if the torrent_peer is a seed
+		// this is true if the torrent_peer is a seed, and we know for sure
+		// because we have connected to it and it told us it was a seed
 		std::uint32_t seed:1;
+
+		// we've been told that this peer is upload-only, but we don't know for
+		// sure because we haven't connected to it yet. If we are finished, we
+		// will de-prioritize peers that may be seeds
+		std::uint32_t maybe_upload_only:1;
 
 		// the number of times we have allowed a fast
 		// reconnect for this torrent_peer.

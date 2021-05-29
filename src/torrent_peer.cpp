@@ -146,6 +146,7 @@ namespace libtorrent {
 		, connectable(conn)
 		, optimistically_unchoked(false)
 		, seed(false)
+		, maybe_upload_only(false)
 		, fast_reconnects(0)
 		, trust_points(0)
 		, source(static_cast<std::uint8_t>(src))
