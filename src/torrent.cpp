@@ -10432,7 +10432,7 @@ bool is_downloading_state(int const st)
 
 	void torrent::set_seed(torrent_peer* p, bool const s)
 	{
-		if (p->seed == s) return;
+		if (bool(p->seed) == s) return;
 		if (s)
 		{
 			TORRENT_ASSERT(m_num_seeds < 0xffff);

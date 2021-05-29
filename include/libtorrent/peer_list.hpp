@@ -204,10 +204,6 @@ namespace libtorrent {
 		bool insert_peer(torrent_peer* p, iterator iter
 			, pex_flags_t flags, torrent_state* state);
 
-		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
-		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
-			, external_ip const& external, int source_port) const;
-
 		void find_connect_candidates(std::vector<torrent_peer*>& peers
 			, int session_time, torrent_state* state);
 
