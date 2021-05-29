@@ -105,7 +105,7 @@ namespace {
 
 	// this returns true if lhs is a better connect candidate than rhs
 	bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
-		, external_ip const& external, int const external_port)
+		, external_ip const& external, int const external_port, bool const finished)
 	{
 		// prefer peers with lower failcount
 		if (lhs->failcount != rhs->failcount)
@@ -118,6 +118,15 @@ namespace {
 
 		if (lhs->last_connected != rhs->last_connected)
 			return lhs->last_connected < rhs->last_connected;
+
+		if (finished && lhs->maybe_upload_only != rhs->maybe_upload_only)
+		{
+			// if we're finished, de-prioritze peers we think may be seeds
+			// since being upload-only doesn't necessarily mean it's a good peer
+			// to be connected to as a downloader, we don't prioritize the
+			// inverse when we're not finished
+			return rhs->maybe_upload_only;
+		}
 
 		int const lhs_rank = source_rank(lhs->peer_source());
 		int const rhs_rank = source_rank(rhs->peer_source());
@@ -452,6 +461,9 @@ namespace libtorrent {
 
 		const bool was_conn_cand = is_connect_candidate(*p);
 		p->connection = c;
+		// now that we're connected, no need to assume ther peer is a seed
+		// anymore. We'll soon know.
+		p->maybe_upload_only = false;
 		if (was_conn_cand) update_connect_candidates(-1);
 	}
 
@@ -568,14 +580,14 @@ namespace libtorrent {
 			// pe, which is the peer m_round_robin points to. If it is, just
 			// keep looking.
 			if (peers.size() == candidate_count
-				&& compare_peer(peers.back(), &pe, external, external_port)) continue;
+				&& compare_peer(peers.back(), &pe, external, external_port, m_finished)) continue;
 
 			if (peers.size() >= candidate_count)
 				peers.resize(candidate_count - 1);
 
 			// insert this candidate sorted into peers
 			auto const i = std::lower_bound(peers.begin(), peers.end()
-				, &pe, std::bind(&compare_peer, _1, _2, std::cref(external), external_port));
+				, &pe, std::bind(&compare_peer, _1, _2, std::cref(external), external_port, bool(m_finished)));
 
 			peers.insert(i, &pe);
 		}
@@ -938,11 +950,7 @@ namespace libtorrent {
 		if (flags & pex_encryption) p->pe_support = true;
 #endif
 		if (flags & pex_seed)
-		{
-			p->seed = true;
-			TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
-			++m_num_seeds;
-		}
+			p->maybe_upload_only = true;
 		if (flags & pex_utp)
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
@@ -977,14 +985,7 @@ namespace libtorrent {
 		// we already know if it's a seed or not
 		// so we don't have to trust this source
 		if ((flags & pex_seed) && !p->connection)
-		{
-			if (!p->seed)
-			{
-				TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
-				++m_num_seeds;
-			}
-			p->seed = true;
-		}
+			p->maybe_upload_only = true;
 		if (flags & pex_utp)
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
