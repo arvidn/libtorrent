@@ -937,6 +937,27 @@ rule generate-pkg-config ( properties * )
 
 	local dummy = @("libtorrent-rasterbar.pc":E=$(config)) ;
 }
+
+rule install-pkg-config ( target-name : data * : requirements * )
+{
+	import stage ;
+    local paths = [ package.paths pkgconfig : $(requirements) ] ;
+    local libdir = [ $(paths).libdir ] ;
+
+    stage.install $(target-name)
+        : $(data)
+        : $(requirements) <location>$(libdir)/pkgconfig
+        ;
+
+	import project ;
+    local c = [ project.current ] ;
+    local project-module = [ $(c).project-module ] ;
+    module $(project-module)
+    {
+        explicit $(1) ;
+    }
+}
+
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
 package.install install-torrent-lib
@@ -951,13 +972,9 @@ package.install-data install-cmake-module
 	: examples/cmake/FindLibtorrentRasterbar.cmake
 	;
 
-package.install-data install-pkg-config
-	: pkgconfig
-	: libtorrent-rasterbar.pc
-	: <conditional>@generate-pkg-config
-	;
+install-pkg-config pkg-config-target : libtorrent-rasterbar.pc : <conditional>@generate-pkg-config ;
 
-alias install : install-torrent-lib install-cmake-module install-pkg-config ;
+alias install : install-torrent-lib install-cmake-module pkg-config-target ;
 
 explicit install ;
 
