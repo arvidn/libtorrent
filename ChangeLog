@@ -76,6 +76,7 @@
 
 1.2.14 released
 
+	* improve handling of seed flag in PEX messages
 	* fix issue of accruing unlimited DHT node candidates when DHT is disabled
 	* fix bug in parsing chunked encoding
 	* fix incorrect reporting of active_duration when entering graceful-pause
