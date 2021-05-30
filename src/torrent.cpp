@@ -10797,7 +10797,6 @@ namespace {
 	torrent_state torrent::get_peer_list_state()
 	{
 		torrent_state ret;
-		ret.is_paused = is_paused();
 		ret.is_finished = is_finished();
 		ret.allow_multiple_connections_per_ip = settings().get_bool(settings_pack::allow_multiple_connections_per_ip);
 		ret.max_peerlist_size = is_paused()
@@ -10951,7 +10950,7 @@ namespace {
 
 	void torrent::set_seed(torrent_peer* p, bool const s)
 	{
-		if (p->seed == s) return;
+		if (bool(p->seed) == s) return;
 		if (s)
 		{
 			TORRENT_ASSERT(m_num_seeds < 0xffff);

@@ -171,7 +171,6 @@ torrent_state init_state()
 {
 	torrent_state st;
 	st.is_finished = false;
-	st.is_paused = false;
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
 	st.port = 9999;

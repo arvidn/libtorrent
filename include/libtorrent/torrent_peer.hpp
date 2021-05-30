@@ -131,17 +131,23 @@ namespace libtorrent {
 		// incoming peers (that don't advertise their listen port)
 		// will not be considered connectable. Peers that
 		// we have a listen port for will be assumed to be.
-		bool connectable:1;
+		std::uint32_t connectable:1;
 
 		// true if this torrent_peer currently is unchoked
 		// because of an optimistic unchoke.
 		// when the optimistic unchoke is moved to
 		// another torrent_peer, this torrent_peer will be choked
 		// if this is true
-		bool optimistically_unchoked:1;
+		std::uint32_t optimistically_unchoked:1;
 
-		// this is true if the torrent_peer is a seed
-		bool seed:1;
+		// this is true if the torrent_peer is a seed, and we know for sure
+		// because we have connected to it and it told us it was a seed
+		std::uint32_t seed:1;
+
+		// we've been told that this peer is upload-only, but we don't know for
+		// sure because we haven't connected to it yet. If we are finished, we
+		// will de-prioritize peers that may be seeds
+		std::uint32_t maybe_upload_only:1;
 
 		// the number of times we have allowed a fast
 		// reconnect for this torrent_peer.

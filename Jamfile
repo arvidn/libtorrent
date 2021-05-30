@@ -929,24 +929,10 @@ lib torrent
 
 # install rules
 
-rule generate-pkg-config ( properties * )
+# return libdir and includedir
+rule install-paths ( properties * )
 {
-	import property-set ;
-	import project ;
 	import version ;
-
-	local l = [ project.target [ project.module-name "." ] ] ;
-
-	# this is the libtorrent library target
-	local t = [ $(l).find torrent : . ] ;
-
-	# these are the properties we're using to build it with
-	local props = [ $(t).generate [ property-set.create $(properties) ] ] ;
-	local libname = [ $(props[2]).name ] ;
-	props = $(props[1]) ;
-
-	local libdir ;
-	local includes ;
 
 	# package.paths was introduced in boost-1.70 (2018.02)
 	# however, boost build's versioning scheme changed in boost-1.71 to version
@@ -965,15 +951,36 @@ rule generate-pkg-config ( properties * )
 			else if [ modules.peek : UNIX ] { prefix = /usr/local ; }
 		}
 
-		libdir += $(prefix)/lib ;
-		includes = $(prefix)/include ;
+		return $(prefix)/lib $(prefix)/include ;
 	}
 	else
 	{
 		local p = [ package.paths libtorrent : $(properties) ] ;
-		libdir += [ $(p).libdir ] ;
-		includes = [ $(p).includedir ] ;
+		return [ $(p).libdir ] [ $(p).includedir ] ;
 	}
+}
+
+rule generate-pkg-config ( properties * )
+{
+	import property-set ;
+	import project ;
+
+	local l = [ project.target [ project.module-name "." ] ] ;
+
+	# this is the libtorrent library target
+	local t = [ $(l).find torrent : . ] ;
+
+	# these are the properties we're using to build it with
+	local props = [ $(t).generate [ property-set.create $(properties) ] ] ;
+	local libname = [ $(props[2]).name ] ;
+	props = $(props[1]) ;
+
+	local FULL_VERSION = 1.2.14 ;
+
+	p = [ install-paths $(properties) ] ;
+
+	local libdir = $(p[0]) ;
+	local includes = $(p[1]) ;
 
 	local defines ;
 	local shared_deps ;
@@ -1047,6 +1054,27 @@ rule generate-pkg-config ( properties * )
 
 	local dummy = @("libtorrent-rasterbar.pc":E=$(config)) ;
 }
+
+rule install-pkg-config ( target-name : data * : requirements * )
+{
+	import stage ;
+    local p = [ install-paths $(requirements) ] ;
+    local libdir = $(p[0]) ;
+
+    stage.install $(target-name)
+        : $(data)
+        : $(requirements) <location>$(libdir)/pkgconfig
+        ;
+
+	import project ;
+    local c = [ project.current ] ;
+    local project-module = [ $(c).project-module ] ;
+    module $(project-module)
+    {
+        explicit $(1) ;
+    }
+}
+
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
 package.install install-torrent-lib
@@ -1061,13 +1089,9 @@ package.install-data install-cmake-module
 	: examples/cmake/FindLibtorrentRasterbar.cmake
 	;
 
-package.install-data install-pkg-config
-	: pkgconfig
-	: libtorrent-rasterbar.pc
-	: <conditional>@generate-pkg-config
-	;
+install-pkg-config pkg-config-target : libtorrent-rasterbar.pc : <conditional>@generate-pkg-config ;
 
-alias install : install-torrent-lib install-cmake-module install-pkg-config ;
+alias install : install-torrent-lib install-cmake-module pkg-config-target ;
 
 explicit install ;
 

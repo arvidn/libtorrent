@@ -2242,15 +2242,14 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(t->valid_metadata());
 
-		int num_pieces = bits.count();
+		int const num_pieces = bits.count();
+		t->set_seed(m_peer_info, num_pieces == m_have_piece.size());
 		if (num_pieces == m_have_piece.size())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p"
 				, static_cast<void*>(m_peer_info));
 #endif
-
-			t->set_seed(m_peer_info, true);
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;

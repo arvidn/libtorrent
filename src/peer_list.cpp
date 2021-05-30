@@ -83,7 +83,65 @@ namespace {
 		address const& m_addr;
 		std::uint16_t m_port;
 	};
-}
+
+	// this returns true if lhs is a better erase candidate than rhs
+	bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs)
+	{
+		TORRENT_ASSERT(lhs.connection == nullptr);
+		TORRENT_ASSERT(rhs.connection == nullptr);
+
+		// primarily, prefer getting rid of peers we've already tried and failed
+		if (lhs.failcount != rhs.failcount)
+			return lhs.failcount > rhs.failcount;
+
+		bool const lhs_resume_data_source = lhs.peer_source() == peer_info::resume_data;
+		bool const rhs_resume_data_source = rhs.peer_source() == peer_info::resume_data;
+
+		// prefer to drop peers whose only source is resume data
+		if (lhs_resume_data_source != rhs_resume_data_source)
+			return int(lhs_resume_data_source) > int(rhs_resume_data_source);
+
+		if (lhs.connectable != rhs.connectable)
+			return int(lhs.connectable) < int(rhs.connectable);
+
+		return lhs.trust_points < rhs.trust_points;
+	}
+
+	// this returns true if lhs is a better connect candidate than rhs
+	bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
+		, external_ip const& external, int const external_port, bool const finished)
+	{
+		// prefer peers with lower failcount
+		if (lhs->failcount != rhs->failcount)
+			return lhs->failcount < rhs->failcount;
+
+		// Local peers should always be tried first
+		bool const lhs_local = aux::is_local(lhs->address());
+		bool const rhs_local = aux::is_local(rhs->address());
+		if (lhs_local != rhs_local) return int(lhs_local) > int(rhs_local);
+
+		if (lhs->last_connected != rhs->last_connected)
+			return lhs->last_connected < rhs->last_connected;
+
+		if (finished && lhs->maybe_upload_only != rhs->maybe_upload_only)
+		{
+			// if we're finished, de-prioritze peers we think may be seeds
+			// since being upload-only doesn't necessarily mean it's a good peer
+			// to be connected to as a downloader, we don't prioritize the
+			// inverse when we're not finished
+			return rhs->maybe_upload_only;
+		}
+
+		int const lhs_rank = source_rank(lhs->peer_source());
+		int const rhs_rank = source_rank(rhs->peer_source());
+		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
+
+		std::uint32_t const lhs_peer_rank = lhs->rank(external, external_port);
+		std::uint32_t const rhs_peer_rank = rhs->rank(external, external_port);
+		return lhs_peer_rank > rhs_peer_rank;
+	}
+
+} // anonymous namespace
 
 namespace libtorrent {
 
@@ -407,6 +465,9 @@ namespace libtorrent {
 
 		const bool was_conn_cand = is_connect_candidate(*p);
 		p->connection = c;
+		// now that we're connected, no need to assume ther peer is a seed
+		// anymore. We'll soon know.
+		p->maybe_upload_only = false;
 		if (was_conn_cand) update_connect_candidates(-1);
 	}
 
@@ -523,14 +584,14 @@ namespace libtorrent {
 			// pe, which is the peer m_round_robin points to. If it is, just
 			// keep looking.
 			if (peers.size() == candidate_count
-				&& compare_peer(peers.back(), &pe, external, external_port)) continue;
+				&& compare_peer(peers.back(), &pe, external, external_port, m_finished)) continue;
 
 			if (peers.size() >= candidate_count)
 				peers.resize(candidate_count - 1);
 
 			// insert this candidate sorted into peers
 			auto const i = std::lower_bound(peers.begin(), peers.end()
-				, &pe, std::bind(&peer_list::compare_peer, this, _1, _2, std::cref(external), external_port));
+				, &pe, std::bind(&compare_peer, _1, _2, std::cref(external), external_port, bool(m_finished)));
 
 			peers.insert(i, &pe);
 		}
@@ -548,8 +609,6 @@ namespace libtorrent {
 //		TORRENT_ASSERT(!c.is_outgoing());
 
 		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(!state->is_paused);
 
 		iterator iter;
 		torrent_peer* i = nullptr;
@@ -833,7 +892,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(is_single_thread());
 		if (p == nullptr) return;
 		TORRENT_ASSERT(p->in_use);
-		if (p->seed == s) return;
+		if (bool(p->seed) == s) return;
 		bool const was_conn_cand = is_connect_candidate(*p);
 		p->seed = s;
 		if (was_conn_cand && !is_connect_candidate(*p))
@@ -896,11 +955,7 @@ namespace libtorrent {
 		if (flags & pex_encryption) p->pe_support = true;
 #endif
 		if (flags & pex_seed)
-		{
-			p->seed = true;
-			TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
-			++m_num_seeds;
-		}
+			p->maybe_upload_only = true;
 		if (flags & pex_utp)
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
@@ -937,14 +992,7 @@ namespace libtorrent {
 		// we already know if it's a seed or not
 		// so we don't have to trust this source
 		if ((flags & pex_seed) && !p->connection)
-		{
-			if (!p->seed)
-			{
-				TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
-				++m_num_seeds;
-			}
-			p->seed = true;
-		}
+			p->maybe_upload_only = true;
 		if (flags & pex_utp)
 			p->supports_utp = true;
 		if (flags & pex_holepunch)
@@ -1284,53 +1332,4 @@ namespace libtorrent {
 	}
 #endif
 
-	// this returns true if lhs is a better erase candidate than rhs
-	bool peer_list::compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const
-	{
-		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(lhs.connection == nullptr);
-		TORRENT_ASSERT(rhs.connection == nullptr);
-
-		// primarily, prefer getting rid of peers we've already tried and failed
-		if (lhs.failcount != rhs.failcount)
-			return lhs.failcount > rhs.failcount;
-
-		bool const lhs_resume_data_source = lhs.peer_source() == peer_info::resume_data;
-		bool const rhs_resume_data_source = rhs.peer_source() == peer_info::resume_data;
-
-		// prefer to drop peers whose only source is resume data
-		if (lhs_resume_data_source != rhs_resume_data_source)
-			return int(lhs_resume_data_source) > int(rhs_resume_data_source);
-
-		if (lhs.connectable != rhs.connectable)
-			return int(lhs.connectable) < int(rhs.connectable);
-
-		return lhs.trust_points < rhs.trust_points;
-	}
-
-	// this returns true if lhs is a better connect candidate than rhs
-	bool peer_list::compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
-		, external_ip const& external, int external_port) const
-	{
-		TORRENT_ASSERT(is_single_thread());
-		// prefer peers with lower failcount
-		if (lhs->failcount != rhs->failcount)
-			return lhs->failcount < rhs->failcount;
-
-		// Local peers should always be tried first
-		bool const lhs_local = aux::is_local(lhs->address());
-		bool const rhs_local = aux::is_local(rhs->address());
-		if (lhs_local != rhs_local) return int(lhs_local) > int(rhs_local);
-
-		if (lhs->last_connected != rhs->last_connected)
-			return lhs->last_connected < rhs->last_connected;
-
-		int const lhs_rank = source_rank(lhs->peer_source());
-		int const rhs_rank = source_rank(rhs->peer_source());
-		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
-
-		std::uint32_t const lhs_peer_rank = lhs->rank(external, external_port);
-		std::uint32_t const rhs_peer_rank = rhs->rank(external, external_port);
-		return lhs_peer_rank > rhs_peer_rank;
-	}
 }
