@@ -406,6 +406,10 @@ namespace libtorrent {
 			int payload = int(bytes_transferred);
 			if (payload > m_response_left) payload = int(m_response_left);
 			if (payload > front_request.length) payload = front_request.length;
+			// TODO: technically, this isn't supposed to happen, but it seems to
+			// sometimes. Some of the accounting is probably wrong in certain
+			// cases
+			if (payload > outstanding_bytes()) payload = outstanding_bytes();
 			received_bytes(payload, 0);
 			incoming_piece_fragment(payload);
 			m_response_left -= payload;
