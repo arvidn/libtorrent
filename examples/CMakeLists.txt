@@ -10,10 +10,6 @@ set(single_file_examples
     connection_tester
     upnp_test)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	add_compile_options(-Wno-implicit-int-float-conversion)
-endif()
-
 foreach(example ${single_file_examples})
     add_executable(${example} "${example}.cpp")
     target_link_libraries(${example} PRIVATE torrent-rasterbar)

@@ -472,14 +472,19 @@ void wait_for_seeding(lt::session& ses, char const* name)
 	}
 }
 
-void print_ses_rate(float const time
+void print_ses_rate(lt::clock_type::time_point const start_time
 	, lt::torrent_status const* st1
 	, lt::torrent_status const* st2
 	, lt::torrent_status const* st3)
 {
+	auto const d = lt::clock_type::now() - start_time;
+	std::printf("%d.%03ds "
+		, int(duration_cast<seconds>(d).count())
+		, int(duration_cast<milliseconds>(d).count() % 1000));
+
 	if (st1)
 	{
-		std::printf("%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
+		std::printf("| %dkB/s %dkB/s %d%% %d cc:%d%s"
 			, int(st1->download_payload_rate / 1000)
 			, int(st1->upload_payload_rate / 1000)
 			, int(st1->progress * 100)
@@ -488,7 +493,7 @@ void print_ses_rate(float const time
 			, st1->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	}
 	if (st2)
-		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
+		std::printf(" | %dkB/s %dkB/s %d%% %d cc:%d%s"
 			, int(st2->download_payload_rate / 1000)
 			, int(st2->upload_payload_rate / 1000)
 			, int(st2->progress * 100)
@@ -496,7 +501,7 @@ void print_ses_rate(float const time
 			, st2->connect_candidates
 			, st2->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	if (st3)
-		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
+		std::printf(" | %dkB/s %dkB/s %d%% %d cc:%d%s"
 			, int(st3->download_payload_rate / 1000)
 			, int(st3->upload_payload_rate / 1000)
 			, int(st3->progress * 100)

@@ -94,6 +94,7 @@ void test_transfer()
 
 	const int timeout = 16;
 
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true);
@@ -104,7 +105,7 @@ void test_transfer()
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(i / 2.f, &st1, &st2);
+		print_ses_rate(start_time, &st1, &st2);
 
 		if (st2.is_finished) break;
 

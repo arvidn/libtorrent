@@ -43,7 +43,7 @@ namespace libtorrent::aux {
 		{
 			int const c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
 			int const m = N * 8;
-			return std::log(c / float(m)) / (2.f * std::log(1.f - 1.f/m));
+			return std::log(float(c) / float(m)) / (2.f * std::log(1.f - 1.f/m));
 		}
 
 		bloom_filter() { clear(); }

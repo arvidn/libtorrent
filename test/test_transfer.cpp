@@ -182,7 +182,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
 
-	lt::time_point const start_time = lt::clock_type::now();
+	auto const start_time = lt::clock_type::now();
 
 	static char const* state_str[] =
 		{"checking (q)", "checking", "dl metadata"
@@ -206,7 +206,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, &st1, &st2);
+			print_ses_rate(start_time, &st1, &st2);
 		}
 
 		std::cout << "st1-progress: " << (st1.progress * 100.f) << "% state: " << state_str[st1.state] << "\n";

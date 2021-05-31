@@ -1408,19 +1408,19 @@ TORRENT_TEST(have_all_have_none)
 	// test have_all and have_none
 	auto p = setup_picker("0123333", "*      ", "", "");
 	auto dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	std::printf("distributed copies: %d.%03d\n", dc.first, dc.second);
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all(&tmp8);
 	dc = p->distributed_copies();
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 	p->dec_refcount_all(&tmp8);
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	std::printf("distributed copies: %d.%03d\n", dc.first, dc.second);
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount(0_piece, &tmp0);
 	p->dec_refcount_all(&tmp0);
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	std::printf("distributed copies: %d.%03d\n", dc.first, dc.second);
 	TEST_CHECK(dc == std::make_pair(0, 6000 / 7));
 	TEST_CHECK(test_pick(p) == 2_piece);
 }
@@ -1430,11 +1430,11 @@ TORRENT_TEST(have_all_have_none_seq_download)
 	// test have_all and have_none
 	auto p = setup_picker("0123333", "*      ", "", "");
 	auto dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	std::printf("distributed copies: %d.%03d\n", dc.first, dc.second);
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all(&tmp8);
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	std::printf("distributed copies: %d.%03d\n", dc.first, dc.second);
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 	TEST_CHECK(test_pick(p) == 1_piece);
 }

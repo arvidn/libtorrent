@@ -123,6 +123,7 @@ void test_swarm(test_flags_t const flags)
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 80; ++i)
 	{
 		print_alerts(ses1, "ses1");
@@ -141,16 +142,16 @@ void test_swarm(test_flags_t const flags)
 
 		if (st2.progress < 1.f && st2.progress > 0.5f)
 		{
-			sum_dl_rate2 += st2.download_payload_rate;
+			sum_dl_rate2 += float(st2.download_payload_rate);
 			++count_dl_rates2;
 		}
 		if (st3.progress < 1.f && st3.progress > 0.5f)
 		{
-			sum_dl_rate3 += st3.download_rate;
+			sum_dl_rate3 += float(st3.download_rate);
 			++count_dl_rates3;
 		}
 
-		print_ses_rate(float(i), &st1, &st2, &st3);
+		print_ses_rate(start_time, &st1, &st2, &st3);
 
 		if (st2.is_seeding && st3.is_seeding) break;
 		std::this_thread::sleep_for(lt::milliseconds(1000));

@@ -36,10 +36,6 @@ if (MSVC)
 	)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	target_compile_options(test_common PUBLIC -Wno-implicit-int-float-conversion)
-endif()
-
 foreach(TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)
 	add_executable(${TARGET} ${TARGET_SRC})

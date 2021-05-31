@@ -127,6 +127,12 @@ void do_change_peer_rate(connections_t& v, int limit)
 
 static void nop() {}
 
+// TODO: fix these warnings
+#if defined __clang__ && __clang_major__ >= 10
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
+#endif
+
 void run_test(connections_t& v
 	, aux::bandwidth_manager& manager
 	, std::function<void()> f = &nop)
@@ -434,6 +440,10 @@ void test_no_starvation(int limit)
 		<< " target: " << (limit / 200 / num_peers) << std::endl;
 	TEST_CHECK(close_to(p->m_quota / sample_time, float(limit) / 200 / num_peers, 5));
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 } // anonymous namespace
 

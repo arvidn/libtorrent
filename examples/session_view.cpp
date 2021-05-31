@@ -61,11 +61,11 @@ void session_view::render()
 	int y = m_position;
 
 	using std::chrono::duration_cast;
-	double const seconds = duration_cast<lt::milliseconds>(m_timestamp[0] - m_timestamp[1]).count() / 1000.0;
+	double const seconds = double(duration_cast<lt::milliseconds>(m_timestamp[0] - m_timestamp[1]).count()) / 1000.0;
 
-	int const download_rate = int((value(m_recv_idx) - prev_value(m_recv_idx))
+	int const download_rate = int(double(value(m_recv_idx) - prev_value(m_recv_idx))
 		/ seconds);
-	int const upload_rate = int((value(m_sent_idx) - prev_value(m_sent_idx))
+	int const upload_rate = int(double(value(m_sent_idx) - prev_value(m_sent_idx))
 		/ seconds);
 
 	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "

@@ -38,8 +38,8 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
-		std::printf("%f s -  %f %%\n"
-			, total_milliseconds(clock_type::now() - last_change) / 1000.0
+		std::printf("%d ms -  %f %%\n"
+			, int(total_milliseconds(clock_type::now() - last_change))
 			, st.progress_ppm / 10000.0);
 		if (st.progress_ppm == 1000000) return;
 		if (st.progress_ppm != last_progress)

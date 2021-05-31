@@ -52,7 +52,7 @@ EXPORT lt::alert const* wait_for_alert(
 	, pop_alerts const p = pop_alerts::pop_all
 	, lt::time_duration timeout = lt::seconds(10));
 
-EXPORT void print_ses_rate(float time
+EXPORT void print_ses_rate(lt::clock_type::time_point start_time
 	, lt::torrent_status const* st1
 	, lt::torrent_status const* st2
 	, lt::torrent_status const* st3 = nullptr);

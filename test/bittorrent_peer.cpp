@@ -243,8 +243,8 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 #endif
 	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
-	double const up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.0;
-	double const down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.0;
+	double const up = double(std::int64_t(blocks_sent) * 0x4000) / double(time) / 1000.0;
+	double const down = double(std::int64_t(blocks_received) * 0x4000) / double(time) / 1000.0;
 	error_code e;
 
 	char ep_str[200];

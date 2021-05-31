@@ -82,6 +82,7 @@ void test_swarm()
 
 	std::printf("allowed_upload_slots: %d\n", int(cnt["ses.num_unchoke_slots"]));
 	TEST_EQUAL(cnt["ses.num_unchoke_slots"], 1);
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1");
@@ -96,7 +97,7 @@ void test_swarm()
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		print_ses_rate(i / 10.f, &st1, &st2, &st3);
+		print_ses_rate(start_time, &st1, &st2, &st3);
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}

@@ -403,8 +403,8 @@ struct peer_conn
 		std::snprintf(tmp, sizeof(tmp), "%s: %s", msg, ec ? ec.message().c_str() : "");
 		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
-		double const up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.0;
-		double const down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.0;
+		double const up = double(std::int64_t(blocks_sent) * 0x4000 / time) / 1000.0;
+		double const down = double(std::int64_t(blocks_received) * 0x4000 / time) / 1000.0;
 		error_code e;
 
 		char ep_str[200];
@@ -1164,8 +1164,6 @@ int main(int argc, char* argv[])
 	t1.join();
 	t2.join();
 
-	double up = 0.0;
-	double down = 0.0;
 	std::int64_t total_sent = 0;
 	std::int64_t total_received = 0;
 
@@ -1175,8 +1173,6 @@ int main(int argc, char* argv[])
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		total_received += p->blocks_received;
-		up += (std::int64_t(p->blocks_sent) * 0x4000) / time / 1000.0;
-		down += (std::int64_t(p->blocks_received) * 0x4000) / time / 1000.0;
 		delete p;
 	}
 
@@ -1185,9 +1181,10 @@ int main(int argc, char* argv[])
 		"total sent: %.1f %% received: %.1f %%\n"
 		"rate sent: %.1f MB/s received: %.1f MB/s\n"
 		, int(num_suggest), int(num_suggested_requests)
-		, total_sent * 0x4000 * 100.0 / double(ti.total_size())
-		, total_received * 0x4000 * 100.0 / double(ti.total_size())
-		, up, down);
+		, double(total_sent * 0x4000) * 100.0 / double(ti.total_size())
+		, double(total_received * 0x4000) * 100.0 / double(ti.total_size())
+		, double(total_sent * 0x4000) / 1000000.0
+		, double(total_received * 0x4000) / 1000000.0);
 
 	return 0;
 }

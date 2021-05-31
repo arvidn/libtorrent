@@ -176,7 +176,8 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
-		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
+		int const denom = (std::max)(num_pieces, 1);
+		int const c = (num_have + denom - 1) / denom * (table_size - 1);
 
 #ifndef _WIN32
 		color[i & 1] = c;

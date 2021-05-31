@@ -140,13 +140,14 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	peer_disconnects = 0;
 	std::map<std::string, std::int64_t> cnt = get_counters(ses);
 
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 40; ++i)
 	{
 		torrent_status s = th.status();
 
 		cnt = get_counters(ses);
 
-		print_ses_rate(i / 10.f, &s, nullptr);
+		print_ses_rate(start_time, &s, nullptr);
 		print_alerts(ses, "  >>  ses", false, false, &on_alert);
 
 		if (test_ban && th.url_seeds().empty())

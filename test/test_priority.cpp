@@ -123,6 +123,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	for (auto p : priorities) std::cout << int(static_cast<std::uint8_t>(p)) << " ";
 	std::cout << '\n';
 
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, &on_alert);
@@ -133,7 +134,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, &st1, &st2);
+			print_ses_rate(start_time, &st1, &st2);
 		}
 
 		// st2 is finished when we have downloaded half of the pieces
@@ -349,7 +350,7 @@ done:
 		st2 = tor2.status();
 
 		if (i % 10 == 0)
-			print_ses_rate(i / 10.f, &st1, &st2);
+			print_ses_rate(start_time, &st1, &st2);
 
 		if (st2.is_seeding) break;
 

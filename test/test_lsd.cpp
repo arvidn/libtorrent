@@ -61,6 +61,7 @@ void test_lsd()
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr, true, false, false, "_lsd"
 		, 16 * 1024, nullptr, false, nullptr, false);
 
+	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 30; ++i)
 	{
 		print_alerts(ses1, "ses1");
@@ -69,7 +70,7 @@ void test_lsd()
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(float(i), &st1, &st2);
+		print_ses_rate(start_time, &st1, &st2);
 
 		if (st2.is_seeding /*&& st3.is_seeding*/) break;
 		std::this_thread::sleep_for(lt::milliseconds(1000));
