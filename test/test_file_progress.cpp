@@ -57,7 +57,7 @@ TORRENT_TEST(init)
 
 	for (auto const idx : fs.piece_range())
 	{
-		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+		piece_picker picker(fs.total_size(), fs.piece_length());
 		picker.we_have(idx);
 
 		aux::file_progress fp;
@@ -89,7 +89,7 @@ TORRENT_TEST(init2)
 
 	for (auto const idx : fs.piece_range())
 	{
-		piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+		piece_picker picker(fs.total_size(), fs.piece_length());
 		picker.we_have(idx);
 
 		aux::vector<std::int64_t, file_index_t> vec;
@@ -118,7 +118,7 @@ TORRENT_TEST(update_simple_sequential)
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
-	piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+	piece_picker picker(fs.total_size(), fs.piece_length());
 
 	aux::file_progress fp;
 
@@ -153,7 +153,7 @@ TORRENT_TEST(pad_file_completion_callback)
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
-	piece_picker picker(4, fs.total_size() % 4, fs.num_pieces());
+	piece_picker picker(fs.total_size(), fs.piece_length());
 
 	aux::file_progress fp;
 	fp.init(picker, fs);

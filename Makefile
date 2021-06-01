@@ -562,6 +562,7 @@ HEADERS = \
   aux_/alloca.hpp                   \
   aux_/allocating_handler.hpp       \
   aux_/announce_entry.hpp           \
+  aux_/apply_pad_files.hpp          \
   aux_/array.hpp                    \
   aux_/bandwidth_limit.hpp          \
   aux_/bandwidth_manager.hpp        \
@@ -823,6 +824,7 @@ TEST_SOURCES = \
   test_alert_manager.cpp \
   test_alert_types.cpp \
   test_alloca.cpp \
+  test_apply_pad.cpp \
   test_auto_unchoke.cpp \
   test_bandwidth_limiter.cpp \
   test_bdecode.cpp \

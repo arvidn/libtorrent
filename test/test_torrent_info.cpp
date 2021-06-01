@@ -991,13 +991,7 @@ TORRENT_TEST(parse_torrents)
 		// construct a piece_picker to get some more test coverage. Perhaps
 		// loading the torrent is fine, but if we can't construct a piece_picker
 		// for it, it's still no good.
-		int const block_size = std::min(ti->piece_length(), default_block_size);
-		int const blocks_per_piece
-			= (ti->piece_length() + block_size - 1) / block_size;
-		int const blocks_in_last_piece
-			= ((ti->total_size() % ti->piece_length())
-			+ block_size - 1) / block_size;
-		piece_picker pp(blocks_per_piece, blocks_in_last_piece, ti->num_pieces());
+		piece_picker pp(ti->total_size(), ti->piece_length());
 
 		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
 		TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());

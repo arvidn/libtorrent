@@ -816,13 +816,13 @@ TORRENT_TEST(test_calc_bytes_all_pieces)
 TORRENT_TEST(test_calc_bytes_all_pieces_one_pad)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 1, true}), fs.total_size() - 0x4000);
+	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 0x4000, true}), fs.total_size() - 0x4000);
 }
 
 TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
 {
 	auto const fs = test_fs();
-	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 2, true}), fs.total_size() - 2 * 0x4000);
+	TEST_EQUAL(calc_bytes(fs, piece_count{fs.num_pieces(), 0x8000, true}), fs.total_size() - 2 * 0x4000);
 }
 
 #if TORRENT_HAS_SYMLINK

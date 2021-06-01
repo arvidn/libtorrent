@@ -178,6 +178,7 @@ run test_ed25519.cpp ;
 run test_gzip.cpp ;
 run test_receive_buffer.cpp ;
 run test_alert_manager.cpp ;
+run test_apply_pad.cpp ;
 run test_alert_types.cpp ;
 run test_magnet.cpp ;
 run test_storage.cpp ;
@@ -240,6 +241,7 @@ explicit test_hasher512 ;
 # deterministic tests
 alias deterministic-tests :
 	test_alert_manager
+	test_apply_pad
 	test_alert_types
 	test_alloca
 	test_bandwidth_limiter

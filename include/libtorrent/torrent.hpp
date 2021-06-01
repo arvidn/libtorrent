@@ -1306,6 +1306,9 @@ namespace libtorrent {
 		std::int64_t m_total_uploaded = 0;
 		std::int64_t m_total_downloaded = 0;
 
+		// the number of bytes of pad files
+		std::int64_t m_padding_bytes = 0;
+
 		// this is a handle that keeps the storage object in the disk io subsystem
 		// alive, as well as the index referencing the storage/torrent in the disk
 		// I/O. When this destructs, the torrent will be removed from the disk
@@ -1668,10 +1671,6 @@ namespace libtorrent {
 		bool m_v2_piece_layers_validated:1;
 
 // ----
-
-		// the number of (16kiB) blocks that fall entirely in pad files
-		// i.e. blocks that we consider we have on start-up
-		std::uint16_t m_padding_blocks = 0;
 
 		// this is set to the connect boost quota for this torrent.
 		// After having received this many priority peer connection attempts, it
