@@ -2013,7 +2013,7 @@ namespace {
 		// unless we can't find num_blocks among the other ones.
 		std::vector<piece_block> backup_blocks;
 		std::vector<piece_block> backup_blocks2;
-		static const std::vector<piece_index_t> empty_vector;
+		std::vector<piece_index_t> ignored_pieces;
 
 		// When prefer_contiguous_blocks is set (usually set when downloading from
 		// fast peers) the partial pieces will not be prioritized, but actually
@@ -2107,8 +2107,11 @@ namespace {
 				num_blocks = add_blocks(i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_contiguous_blocks, peer, empty_vector
+					, prefer_contiguous_blocks, peer, ignored_pieces
 					, options);
+				// we want to ignore this piece from now on, since we've already
+				// picked from it
+				ignored_pieces.push_back(i);
 				if (num_blocks <= 0) return ret;
 			}
 		}
@@ -2128,7 +2131,7 @@ namespace {
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_contiguous_blocks, peer, suggested_pieces
+					, prefer_contiguous_blocks, peer, ignored_pieces
 					, options);
 				if (num_blocks <= 0) return ret;
 			}
@@ -2149,7 +2152,7 @@ namespace {
 						num_blocks = add_blocks(i, pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_contiguous_blocks, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, ignored_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
 					}
@@ -2167,7 +2170,7 @@ namespace {
 						num_blocks = add_blocks(i, pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_contiguous_blocks, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, ignored_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
 					}
@@ -2200,7 +2203,7 @@ namespace {
 						num_blocks = add_blocks(m_pieces[p], pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_contiguous_blocks, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, ignored_pieces
 							, options);
 						if (num_blocks <= 0) return ret;
 					}
@@ -2228,7 +2231,7 @@ namespace {
 							num_blocks = add_blocks(p, pieces
 								, interesting_blocks, backup_blocks
 								, backup_blocks2, num_blocks
-								, prefer_contiguous_blocks, peer, suggested_pieces
+								, prefer_contiguous_blocks, peer, ignored_pieces
 								, options);
 							if (num_blocks <= 0)
 							{
@@ -2262,7 +2265,7 @@ namespace {
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
-						, prefer_contiguous_blocks, peer, suggested_pieces
+						, prefer_contiguous_blocks, peer, ignored_pieces
 						, options);
 					if (num_blocks <= 0) return ret;
 				}
@@ -2282,7 +2285,7 @@ namespace {
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_contiguous_blocks, peer, suggested_pieces
+					, prefer_contiguous_blocks, peer, ignored_pieces
 					, options);
 				if (num_blocks <= 0) return ret;
 			}
@@ -2300,9 +2303,9 @@ namespace {
 				// skip pieces we can't pick, and suggested pieces
 				// since we've already picked those
 				while (!is_piece_free(piece, pieces)
-					|| std::find(suggested_pieces.begin()
-						, suggested_pieces.end(), piece)
-						!= suggested_pieces.end())
+					|| std::find(ignored_pieces.begin()
+						, ignored_pieces.end(), piece)
+						!= ignored_pieces.end())
 				{
 					pc.inc_stats_counter(counters::piece_picker_rand_start_loops);
 					++piece;
@@ -2320,6 +2323,16 @@ namespace {
 						, prefer_contiguous_blocks, pieces, options);
 					for (piece_index_t const k : range)
 					{
+						if (std::find(ignored_pieces.begin()
+							, ignored_pieces.end(), k) != ignored_pieces.end())
+						{
+							--prefer_contiguous_blocks;
+							if (prefer_contiguous_blocks == 0
+								&& num_blocks <= 0) break;
+							continue;
+						}
+						ignored_pieces.push_back(k);
+
 						TORRENT_ASSERT(m_piece_map[k].downloading() == false);
 						TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
 						const int num_blocks_in_piece = blocks_in_piece(k);
@@ -2346,7 +2359,7 @@ namespace {
 					num_blocks = add_blocks(piece, pieces
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
-						, prefer_contiguous_blocks, peer, empty_vector
+						, prefer_contiguous_blocks, peer, ignored_pieces
 						, options);
 					++piece;
 				}
@@ -2676,7 +2689,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, torrent_peer* peer, std::vector<piece_index_t> const& ignore
+		, torrent_peer* peer, std::vector<piece_index_t>& ignore
 		, picker_options_t const options) const
 	{
 		TORRENT_ASSERT(is_piece_free(piece, pieces));
@@ -2722,6 +2735,15 @@ get_out:
 				, pieces, options);
 			for (piece_index_t const k : range)
 			{
+				if (std::find(ignore.begin(), ignore.end(), k) != ignore.end())
+				{
+					--prefer_contiguous_blocks;
+					if (prefer_contiguous_blocks == 0
+						&& num_blocks <= 0) break;
+					continue;
+				}
+				ignore.push_back(k);
+
 				TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
 				num_blocks_in_piece = blocks_in_piece(k);
 				TORRENT_ASSERT(is_piece_free(k, pieces));
