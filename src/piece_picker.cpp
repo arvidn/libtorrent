@@ -66,6 +66,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
+namespace {
+template <typename C, typename V>
+bool contains(C const& c, V v)
+{
+	return std::find(c.begin(), c.end(), v) != c.end();
+}
+}
+
 #if defined TORRENT_PICKER_LOG
 #include <iostream>
 
@@ -2302,10 +2310,7 @@ namespace {
 			{
 				// skip pieces we can't pick, and suggested pieces
 				// since we've already picked those
-				while (!is_piece_free(piece, pieces)
-					|| std::find(ignored_pieces.begin()
-						, ignored_pieces.end(), piece)
-						!= ignored_pieces.end())
+				while (!is_piece_free(piece, pieces) || contains(ignored_pieces, piece))
 				{
 					pc.inc_stats_counter(counters::piece_picker_rand_start_loops);
 					++piece;
@@ -2323,8 +2328,7 @@ namespace {
 						, prefer_contiguous_blocks, pieces, options);
 					for (piece_index_t const k : range)
 					{
-						if (std::find(ignored_pieces.begin()
-							, ignored_pieces.end(), k) != ignored_pieces.end())
+						if (contains(ignored_pieces, k))
 						{
 							--prefer_contiguous_blocks;
 							if (prefer_contiguous_blocks == 0
@@ -2695,7 +2699,7 @@ get_out:
 		TORRENT_ASSERT(is_piece_free(piece, pieces));
 
 		// ignore pieces found in the ignore list
-		if (std::find(ignore.begin(), ignore.end(), piece) != ignore.end()) return num_blocks;
+		if (contains(ignore, piece)) return num_blocks;
 
 		auto const state = m_piece_map[piece].download_queue();
 		if (state != piece_pos::piece_open
@@ -2735,7 +2739,7 @@ get_out:
 				, pieces, options);
 			for (piece_index_t const k : range)
 			{
-				if (std::find(ignore.begin(), ignore.end(), k) != ignore.end())
+				if (contains(ignore, k))
 				{
 					--prefer_contiguous_blocks;
 					if (prefer_contiguous_blocks == 0
@@ -3154,8 +3158,7 @@ get_out:
 		piece_extent_t const this_extent = extent_for(p);
 
 		// if the extent is already in the list, nothing to do
-		if (std::find(m_recent_extents.begin()
-			, m_recent_extents.end(), this_extent) != m_recent_extents.end())
+		if (contains(m_recent_extents, this_extent))
 			return;
 
 		download_priority_t const this_prio = piece_priority(p);
