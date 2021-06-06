@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <array>
+#include <iostream>
 #include "test.hpp"
 #include "create_torrent.hpp"
 #include "settings.hpp"
@@ -41,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
 #include "simulator/utils.hpp"
@@ -521,4 +523,183 @@ TORRENT_TEST(disk_full_recover)
 		, test_disk().set_space_left(10 * lt::default_block_size).set_recover_full_disk()
 		, lt::seconds(65)
 	);
+}
+
+// Below is a series of tests to transfer torrents with varying pad-file related
+// traits
+template <typename Test>
+void run_torrent_test(std::shared_ptr<lt::torrent_info> ti, Test const& test)
+{
+	using namespace lt;
+
+	using asio::ip::address;
+	address peer0 = addr("50.0.0.1");
+	address peer1 = addr("50.0.0.2");
+
+	// setup the simulation
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
+
+	lt::session_proxy zombie[2];
+
+	lt::session_params params;
+	// setup settings pack to use for the session (customization point)
+	lt::settings_pack& pack = params.settings;
+	pack = settings();
+	pack.set_bool(settings_pack::disable_hash_checks, false);
+
+	// disable utp by default
+	pack.set_bool(settings_pack::enable_outgoing_utp, false);
+	pack.set_bool(settings_pack::enable_incoming_utp, false);
+
+	// disable encryption by default
+	pack.set_bool(settings_pack::prefer_rc4, false);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
+
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+
+	// create session
+	std::shared_ptr<lt::session> ses[2];
+
+	// session 0 is a downloader, session 1 is a seed
+
+	params.disk_io_constructor = test_disk();
+	ses[0] = std::make_shared<lt::session>(params, ios0);
+
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.2:6881");
+
+	params.disk_io_constructor = test_disk().set_seed();
+	ses[1] = std::make_shared<lt::session>(params, ios1);
+
+	// only monitor alerts for session 0 (the downloader)
+	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
+		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
+		{
+			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+		}
+	}, 0);
+
+	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
+
+	lt::add_torrent_params atp;
+	atp.ti = ti;
+	atp.save_path = ".";
+
+	atp.flags &= ~lt::torrent_flags::auto_managed;
+	atp.flags &= ~lt::torrent_flags::paused;
+
+	ses[1]->async_add_torrent(atp);
+	auto torrent = atp.ti;
+
+	ses[0]->async_add_torrent(atp);
+
+	sim::timer t(sim, lt::minutes(1), [&](boost::system::error_code const&)
+	{
+		auto h = ses[0]->get_torrents();
+		auto ti = h[0].torrent_file_with_hashes();
+
+		if (ti->v2())
+			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+		auto downloaded = serialize(*ti);
+		auto added = serialize(*torrent);
+		TEST_CHECK(downloaded == added);
+
+		TEST_CHECK(is_seed(*ses[0]));
+		TEST_CHECK(is_seed(*ses[1]));
+		test(ses);
+
+		// shut down
+		int idx = 0;
+		for (auto& s : ses)
+		{
+			zombie[idx++] = s->abort();
+			s.reset();
+		}
+	});
+
+	sim.run();
+}
+
+namespace {
+
+std::shared_ptr<lt::torrent_info> test_torrent(lt::file_storage fs, lt::create_flags_t const flags)
+{
+	lt::create_torrent ct(fs, fs.piece_length(), flags);
+	lt::settings_pack pack;
+	lt::error_code ec;
+	lt::set_piece_hashes(ct, "", pack, test_disk().set_seed()
+		, [](lt::piece_index_t p) { std::cout << "."; std::cout.flush();}, ec);
+
+	auto e = ct.generate();
+	return std::make_shared<lt::torrent_info>(e);
+}
+
+}
+
+TORRENT_TEST(simple_torrent)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x3ff0, false}, {0x10, true}}, 0x4000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(odd_last_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x4100, false}, {0x10, true}}, 0x4000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(small_piece_size)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x3ff0, false}, {0x10, true}}, 0x2000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(odd_piece_size)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x1ffe, false}, {0x1, true}}, 0x1fff), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(large_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x5000, false}, {0x100000000 - 0x5000, true}}, 0x100000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(unaligned_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x3fff, false}, {0x10, true}}, 0x4000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(piece_size_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x8000, false}, {0x8000, true}}, 0x8000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(block_size_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x4000, false}, {0x4000, true}}, 0x4000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
+}
+
+TORRENT_TEST(back_to_back_pad_file)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x3000, false}, {0x800, true}, {0x800, true}}, 0x4000), {})
+		, [](std::shared_ptr<lt::session> s[]){});
 }
