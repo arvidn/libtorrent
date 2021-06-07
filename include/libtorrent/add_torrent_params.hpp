@@ -365,6 +365,12 @@ TORRENT_VERSION_NAMESPACE_3
 		error_code internal_resume_data_error;
 #endif // TORRENT_ABI_VERSION
 
+		// the root ca certificate to use in case of a magnet link that refers
+        // to an SSL Torrent. It will allow the client to connect to the corresponding swarm
+        // and downloadd the metadata. If it is not the cirrect certificate, the torrent
+        // will stay in downloading metadata state because it cannot be part of the swarm.
+        // This corresponds to the 'ssl-cert' field found on an SSL torrent.
+		std::string ca_certificate;
 	};
 
 TORRENT_VERSION_NAMESPACE_3_END

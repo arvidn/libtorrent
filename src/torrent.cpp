@@ -536,6 +536,14 @@ bool is_downloading_state(int const st)
 					? m_peer_list->num_connect_candidates() : -1);
 			}
 #endif
+       
+			if (!p.ca_certificate.empty()) {
+				m_ssl_torrent = true;
+#ifdef TORRENT_SSL_PEERS
+				init_ssl(p.ca_certificate);
+#endif
+			}
+
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
