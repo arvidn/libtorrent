@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/disk_observer.hpp"
+#include "libtorrent/aux_/apply_pad_files.hpp"
 
 #include <utility> // for exchange()
 
@@ -62,29 +63,45 @@ std::array<char, 4> generate_block_fill(lt::piece_index_t const p, int const blo
 	return ret;
 }
 
-lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs)
+lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs, int const pad_bytes)
 {
 	lt::hasher ret;
 	int const piece_size = fs.piece_size(p);
+	int const payload_size = piece_size - pad_bytes;
 	int offset = 0;
-	for (int block = 0; offset < piece_size; ++block)
+	for (int block = 0; offset < payload_size; ++block)
 	{
 		auto const fill = generate_block_fill(p, block);
-		for (int i = 0; i < lt::default_block_size; i += fill.size(), offset += fill.size())
-			ret.update(fill.data(), std::min(int(fill.size()), piece_size - offset));
+		for (int i = 0; i < lt::default_block_size;)
+		{
+			int const bytes = std::min(int(fill.size()), payload_size - offset);
+			ret.update(fill.data(), bytes);
+			offset += bytes;
+			i += bytes;
+		}
+	}
+	std::array<char, 8> const pad{{0, 0, 0, 0, 0, 0, 0, 0}};
+	while (offset < piece_size)
+	{
+		int const bytes = std::min(int(pad.size()), piece_size - offset);
+		ret.update(pad.data(), bytes);
+		offset += bytes;
 	}
 	return ret.final();
 }
 
 lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
-	, lt::span<lt::sha256_hash> const hashes)
+	, lt::span<lt::sha256_hash> const hashes, int const pad_bytes)
 {
 	int const piece_size = fs.piece_size(p);
+	int const payload_size = piece_size - pad_bytes;
 	int const piece_size2 = fs.piece_size2(p);
 	int const blocks_in_piece = (piece_size + lt::default_block_size - 1) / lt::default_block_size;
 	int const blocks_in_piece2 = fs.blocks_in_piece2(p);
 	TORRENT_ASSERT(int(hashes.size()) >= blocks_in_piece2);
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
+
+	TORRENT_ASSERT(piece_size2 - pad_bytes == piece_size);
 
 	lt::hasher ret;
 	int offset = 0;
@@ -96,13 +113,24 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 		bool const v2 = piece_size2 - offset > 0;
 
 		int const block_size = std::min(lt::default_block_size, std::max(piece_size, piece_size2) - offset);
-		for (int i = 0; i < block_size; i += fill.size(), offset += fill.size())
+		for (int i = 0; i < block_size;)
 		{
-			if (piece_size - offset > 0)
-				ret.update(fill.data(), std::min(int(fill.size()), piece_size - offset));
+			int const bytes = std::min(int(fill.size()), payload_size - offset);
+			if (bytes > 0)
+				ret.update(fill.data(), bytes);
+
 			if (piece_size2 - offset > 0)
 				v2_hash.update(fill.data(), std::min(int(fill.size()), piece_size2 - offset));
+
+			offset += bytes;
+			i += bytes;
 		}
+		if (offset < piece_size)
+		{
+			std::vector<char> padding(piece_size - offset, 0);
+			ret.update(padding);
+		}
+
 		if (v2)
 			hashes[block] = v2_hash.final();
 		else
@@ -121,14 +149,49 @@ lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset)
 	return ret.final();
 }
 
-void generate_block(char* b, lt::peer_request const& r)
+void generate_block(char* b, lt::peer_request const& r, int const pad_bytes)
 {
 	auto const fill = generate_block_fill(r.piece, (r.start / lt::default_block_size));
-	for (int i = 0; i < lt::default_block_size; i += fill.size())
+
+	// for now we don't support unaligned start address
+	TORRENT_ASSERT((r.start % fill.size()) == 0);
+	char* end = b + r.length - pad_bytes;
+	while (b < end)
 	{
-		std::memcpy(b, fill.data(), fill.size());
-		b += fill.size();
+		int const bytes = std::min(int(fill.size()), int(end - b));
+		std::memcpy(b, fill.data(), bytes);
+		b += bytes;
 	}
+
+	if (pad_bytes > 0)
+		std::memset(b, 0, pad_bytes);
+}
+
+std::unordered_map<lt::piece_index_t, int> compute_pad_bytes(lt::file_storage const& fs)
+{
+	std::unordered_map<lt::piece_index_t, int> ret;
+	lt::aux::apply_pad_files(fs, [&](lt::piece_index_t p, int bytes)
+	{
+		ret.emplace(p, bytes);
+	});
+	return ret;
+}
+
+int pads_in_piece(std::unordered_map<lt::piece_index_t, int> const& pb, lt::piece_index_t const p)
+{
+	auto it = pb.find(p);
+	return (it == pb.end()) ? 0 : it->second;
+}
+
+int pads_in_req(std::unordered_map<lt::piece_index_t, int> const& pb
+	, lt::peer_request const& r, int const piece_size)
+{
+	auto it = pb.find(r.piece);
+	if (it == pb.end()) return 0;
+
+	int const pad_start = piece_size - it->second;
+	int const req_end = r.start + r.length;
+	return std::max(0, std::min(req_end - pad_start, r.length));
 }
 
 std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
@@ -139,10 +202,12 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	fs.add_file("file-1", total_size);
 	lt::create_torrent t(fs, piece_size, flags);
 
+	auto const pad_bytes = compute_pad_bytes(fs);
+
 	if (flags & lt::create_torrent::v1_only)
 	{
 		for (auto const i : fs.piece_range())
-			t.set_hash(i, generate_hash1(i, fs));
+			t.set_hash(i, generate_hash1(i, fs, pads_in_piece(pad_bytes, i)));
 	}
 	else
 	{
@@ -155,7 +220,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 
 		for (auto const i : fs.piece_range())
 		{
-			auto const hash = generate_hash2(i, fs, blocks);
+			auto const hash = generate_hash2(i, fs, blocks, pads_in_piece(pad_bytes, i));
 			lt::merkle_fill_tree(v2tree, num_leafs);
 			t.set_hash2(lt::file_index_t{0}, i - 0_piece, v2tree[0]);
 
@@ -212,6 +277,8 @@ struct test_disk_io final : lt::disk_interface
 		m_files = &fs;
 		m_blocks_per_piece = fs.piece_length() / lt::default_block_size;
 		m_have.resize(m_files->num_pieces() * m_blocks_per_piece, m_state.seed);
+		m_pad_bytes = compute_pad_bytes(fs);
+
 		return lt::storage_holder(lt::storage_index_t{0}, *this);
 	}
 
@@ -249,7 +316,7 @@ struct test_disk_io final : lt::disk_interface
 
 		queue_event(seek_time + m_state.read_time, [this,r, h=std::move(h)] () mutable {
 			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], r.length);
-			generate_block(buf.data(), r);
+			generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });
 		});
@@ -329,8 +396,11 @@ struct test_disk_io final : lt::disk_interface
 
 		queue_event(delay, [this, piece, block_hashes, h=std::move(handler)] () mutable {
 
+			int const piece_size = m_files->piece_size(piece);
+			int const pad_bytes = pads_in_piece(m_pad_bytes, piece);
+			int const payload_blocks = piece_size / lt::default_block_size - pad_bytes / lt::default_block_size;
 			int const block_idx = piece * m_blocks_per_piece;
-			for (int i = 0; i < m_blocks_per_piece; ++i)
+			for (int i = 0; i < payload_blocks; ++i)
 			{
 				if (!m_have.get_bit(block_idx + i))
 				{
@@ -342,9 +412,9 @@ struct test_disk_io final : lt::disk_interface
 
 			lt::sha1_hash hash;
 			if (block_hashes.empty())
-				hash = generate_hash1(piece, *m_files);
+				hash = generate_hash1(piece, *m_files, pads_in_piece(m_pad_bytes, piece));
 			else
-				hash = generate_hash2(piece, *m_files, block_hashes);
+				hash = generate_hash2(piece, *m_files, block_hashes, pads_in_piece(m_pad_bytes, piece));
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
 		});
 	}
@@ -557,6 +627,8 @@ private:
 
 	// callbacks are posted on this
 	lt::io_context& m_ioc;
+
+	std::unordered_map<lt::piece_index_t, int> m_pad_bytes;
 };
 
 std::unique_ptr<lt::disk_interface> test_disk::operator()(
