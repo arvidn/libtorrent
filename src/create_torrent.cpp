@@ -295,6 +295,13 @@ namespace {
 		, settings_interface const& sett
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
+		set_piece_hashes(t, p, sett, default_disk_io_constructor, f, ec);
+	}
+
+	void set_piece_hashes(create_torrent& t, std::string const& p
+		, settings_interface const& sett, disk_io_constructor_type disk_io
+		, std::function<void(piece_index_t)> const& f, error_code& ec)
+	{
 		// optimized path
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim::default_config conf;
@@ -324,7 +331,7 @@ namespace {
 
 		counters cnt;
 		int const num_threads = sett.get_int(settings_pack::hashing_threads);
-		std::unique_ptr<disk_interface> disk_thread = default_disk_io_constructor(ios, sett, cnt);
+		std::unique_ptr<disk_interface> disk_thread = disk_io(ios, sett, cnt);
 		disk_aborter da(*disk_thread.get());
 
 		aux::vector<download_priority_t, file_index_t> priorities;

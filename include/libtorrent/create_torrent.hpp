@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path etc.
 #include "libtorrent/fwd.hpp"
@@ -473,6 +474,9 @@ namespace aux {
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
 		, settings_interface const& settings
+		, std::function<void(piece_index_t)> const& f, error_code& ec);
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
+		, settings_interface const& settings, disk_io_constructor_type disk_io
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
