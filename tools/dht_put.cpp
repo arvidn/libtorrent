@@ -66,6 +66,9 @@ int main(int argc, char* argv[])
 
 namespace {
 
+bool log_pkts = false;
+bool log_dht = false;
+
 std::string to_hex(lt::span<char const> key)
 {
 	std::string out;
@@ -106,7 +109,7 @@ bool from_hex(span<char const> in, span<char> out)
 [[noreturn]] void usage()
 {
 	std::fprintf(stderr,
-		"USAGE:\ndht <command> <arg>\n\nCOMMANDS:\n"
+		"USAGE:\ndht [options] <command> <arg>\n\nCOMMANDS:\n"
 		"get <hash>                - retrieves and prints out the immutable\n"
 		"                            item stored under hash.\n"
 		"put <string>              - puts the specified string as an immutable\n"
@@ -121,6 +124,10 @@ bool from_hex(span<char const> in, span<char> out)
 		"                            and optionally specified salt\n"
 		"mget <public-key> [salt]  - get a mutable object under the specified\n"
 		"                            public key, and salt (optional)\n"
+		"\n"
+		"OPTIONS:\n"
+		"--log-packets               print DHT messages as they are sent and received\n"
+		"--log-dht                   print DHT log messages\n"
 		);
 	exit(1);
 }
@@ -128,8 +135,7 @@ bool from_hex(span<char const> in, span<char> out)
 alert* wait_for_alert(lt::session& s, int alert_type)
 {
 	alert* ret = nullptr;
-	bool found = false;
-	while (!found)
+	while (!ret)
 	{
 		s.wait_for_alert(seconds(5));
 
@@ -137,21 +143,25 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 		s.pop_alerts(&alerts);
 		for (auto const a : alerts)
 		{
-			if (a->type() != alert_type)
+			if (!log_pkts && !log_dht)
 			{
 				static int spinner = 0;
 				static const char anim[] = {'-', '\\', '|', '/'};
 				std::printf("\r%c", anim[spinner]);
 				std::fflush(stdout);
 				spinner = (spinner + 1) & 3;
-				//print some alerts?
-				continue;
 			}
+			if (a->type() == dht_pkt_alert::alert_type && log_pkts)
+				std::printf("%s\n", a->message().c_str());
+			else if (a->type() == dht_log_alert::alert_type && log_dht)
+				std::printf("%s\n", a->message().c_str());
+			else if (a->type() == dht_error_alert::alert_type)
+				std::printf("%s\n", a->message().c_str());
+			if (a->type() != alert_type) continue;
 			ret = a;
-			found = true;
 		}
 	}
-	std::printf("\n");
+	std::printf("\r");
 	return ret;
 }
 
@@ -228,7 +238,7 @@ lt::session_params load_dht_state()
 	std::vector<char> const state(std::istream_iterator<char>{f}
 		, std::istream_iterator<char>{});
 
-	if (f.bad())
+	if (f.bad() || state.empty())
 	{
 		std::fprintf(stderr, "failed to read .dht\n");
 		return {};
@@ -245,6 +255,21 @@ int main(int argc, char* argv[])
 	--argc;
 
 	if (argc < 1) usage();
+
+	while (argc > 1)
+	{
+		lt::string_view const option(argv[0]);
+		if (option.substr(0, 2) != "--"_sv)
+			break;
+
+		if (option == "--log-packets"_sv)
+			log_pkts = true;
+		else if (option == "--log-dht"_sv)
+			log_dht = true;
+
+		++argv;
+		--argc;
+	}
 
 	if (argv[0] == "dump-key"_sv)
 	{
