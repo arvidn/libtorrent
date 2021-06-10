@@ -1,3 +1,5 @@
+	* fix issue with adding v2 torrents with invalid file root hash
+
 * 2.0.4 released
 
 	* fix piece picker bug causing double-picks with prefer-contiguous enabled

@@ -5031,8 +5031,16 @@ namespace {
 			l.reserve(num_torrents + 1);
 		}
 
-		torrent_ptr = std::make_shared<torrent>(*this, m_paused, std::move(params));
-		torrent_ptr->set_queue_position(m_download_queue.end_index());
+		try
+		{
+			torrent_ptr = std::make_shared<torrent>(*this, m_paused, std::move(params));
+			torrent_ptr->set_queue_position(m_download_queue.end_index());
+		}
+		catch (system_error const& e)
+		{
+			ec = e.code();
+			return ret_t{ptr_t(), params.info_hashes, false};
+		}
 
 		// it's fine to copy this moved-from info_hash_t object, since its move
 		// construction is just a copy.
