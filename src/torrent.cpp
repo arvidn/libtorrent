@@ -235,7 +235,10 @@ bool is_downloading_state(int const st)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
 
 		if (m_torrent_file->is_valid())
-			initialize_merkle_trees();
+		{
+			error_code ec = initialize_merkle_trees();
+			if (ec) throw system_error(ec);
+		}
 
 		// --- WEB SEEDS ---
 
@@ -7459,9 +7462,9 @@ namespace {
 		return true;
 	}
 
-	void torrent::initialize_merkle_trees()
+	error_code torrent::initialize_merkle_trees()
 	{
-		if (!info_hash().has_v2()) return;
+		if (!info_hash().has_v2()) return {};
 
 		bool valid = m_torrent_file->v2_piece_hashes_verified();
 
@@ -7485,16 +7488,17 @@ namespace {
 
 			if (!m_merkle_trees[i].load_piece_layer(piece_layer))
 			{
-				set_error(errors::torrent_invalid_piece_layer
-					, torrent_status::error_file_metadata);
-				valid = false;
 				m_merkle_trees[i] = aux::merkle_tree();
+				m_v2_piece_layers_validated = false;
+				return errors::torrent_invalid_piece_layer;
 			}
 		}
 
 		m_v2_piece_layers_validated = valid;
 
+
 		m_torrent_file->free_piece_layers();
+		return {};
 	}
 
 	bool torrent::set_metadata(span<char const> metadata_buf)
@@ -7582,7 +7586,13 @@ namespace {
 
 		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
 
-		initialize_merkle_trees();
+		ec = initialize_merkle_trees();
+		if (ec)
+		{
+			set_error(ec, torrent_status::error_file_metadata);
+			pause();
+			return false;
+		}
 
 		update_gauge();
 		update_want_tick();

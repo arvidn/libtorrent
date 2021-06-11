@@ -741,6 +741,34 @@ TORRENT_TEST(random_picking_downloading_piece_prefer_contiguous)
 		|| picked.front() == piece_block(3_piece, 3));
 }
 
+TORRENT_TEST(prefer_contiguous_no_duplicates)
+{
+	// this exercises the case where we expand a piece that we selected (since
+	// prefer contiguous is 8), but still want to pick more pieces afterwards.
+	// We make sure we don't pick any of the pieces we expanded into
+	auto p = setup_picker("1111111", "       ", "", "");
+	auto picked = pick_pieces(p, " ***   ", 32, 8, nullptr
+		, piece_picker::rarest_first, empty_vector);
+	TEST_EQUAL(int(picked.size()), 3 * blocks_per_piece);
+	print_pick(picked);
+	TEST_CHECK(verify_pick(p, picked, true));
+}
+
+TORRENT_TEST(prefer_contiguous_suggested)
+{
+	// this exercises the case where we expand a piece that we selected (since
+	// prefer contiguous > 0) but need to ignore the suggested piece, since it
+	// was picked first
+	auto p = setup_picker("1111111", "       ", "", "");
+	std::vector<piece_index_t> const suggested_pieces = { 3_piece };
+	auto picked = pick_pieces(p, " ***   ", 32, 32, nullptr
+		, piece_picker::rarest_first, suggested_pieces);
+
+	TEST_EQUAL(int(picked.size()), 3 * blocks_per_piece);
+	print_pick(picked);
+	TEST_CHECK(verify_pick(p, picked, true));
+}
+
 TORRENT_TEST(sequential_download)
 {
 	// test sequential download

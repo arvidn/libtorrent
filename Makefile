@@ -1,4 +1,4 @@
-VERSION=2.0.3
+VERSION=2.0.4
 
 BUILD_CONFIG=release link=shared crypto=openssl warnings=off address-model=64
 
@@ -1058,6 +1058,7 @@ TEST_TORRENTS = \
   v2_zero_root.torrent \
   v2_zero_root_small.torrent \
   v2_hybrid.torrent \
+  v2_invalid_root_hash.torrent \
   zero.torrent \
   zero2.torrent
 

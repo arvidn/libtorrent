@@ -1108,7 +1108,7 @@ namespace libtorrent::aux {
 		bool are_files_checked() const
 		{ return m_files_checked; }
 
-		void initialize_merkle_trees();
+		error_code initialize_merkle_trees();
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent

@@ -4,6 +4,11 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* fix issue with adding v2 torrents with invalid file root hash
+
+* 2.0.4 released
+
+	* fix piece picker bug causing double-picks with prefer-contiguous enabled
 	* expose session_params in python bindings
 	* fix (deprecated) use of add_torrent_params::info_hash
 	* fix issue creating and loading v2 torrents with empty files. Improves

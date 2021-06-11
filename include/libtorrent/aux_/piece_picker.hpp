@@ -308,16 +308,7 @@ namespace libtorrent::aux {
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, aux::torrent_peer* peer, std::vector<piece_index_t> const& ignore
-			, picker_options_t options) const;
-
-		// picks blocks only from downloading pieces
-		int add_blocks_downloading(downloading_piece const& dp
-			, typed_bitfield<piece_index_t> const& pieces
-			, std::vector<piece_block>& interesting_blocks
-			, std::vector<piece_block>& backup_blocks2
-			, int num_blocks, int prefer_contiguous_blocks
-			, aux::torrent_peer* peer
+			, aux::torrent_peer* peer, std::vector<piece_index_t>& ignore
 			, picker_options_t options) const;
 
 		// clears the peer pointer in all downloading pieces with this
@@ -507,6 +498,15 @@ namespace libtorrent::aux {
 		span<block_info const> blocks_for_piece(downloading_piece const& dp) const;
 
 	private:
+
+		// picks blocks only from downloading pieces
+		int add_blocks_downloading(downloading_piece const& dp
+			, typed_bitfield<piece_index_t> const& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, std::vector<piece_block>& backup_blocks
+			, int num_blocks, int prefer_contiguous_blocks
+			, torrent_peer* peer
+			, picker_options_t options) const;
 
 		piece_extent_t extent_for(piece_index_t) const;
 		index_range<piece_index_t> extent_for(piece_extent_t) const;
