@@ -1028,12 +1028,14 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_lsd_announce_timer.cancel();
 
 #ifdef TORRENT_SSL_PEERS
-		for (auto const& s : m_incoming_sockets)
 		{
-			s->close(ec);
-			TORRENT_ASSERT(!ec);
+			auto const sockets = std::move(m_incoming_sockets);
+			for (auto const& s : sockets)
+			{
+				s->close(ec);
+				TORRENT_ASSERT(!ec);
+			}
 		}
-		m_incoming_sockets.clear();
 #endif
 
 #if TORRENT_USE_I2P
