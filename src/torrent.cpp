@@ -2474,26 +2474,25 @@ bool is_downloading_state(int const st)
 				m_picker->mark_as_finished(piece_block(piece, i), nullptr);
 		}
 
-		if (m_num_checked_pieces < m_torrent_file->end_piece())
+		if (m_checking_piece < m_torrent_file->end_piece())
 		{
-			do {
+			// skip pieces we already have
+			while (m_picker->have_piece(m_checking_piece))
+			{
+				++m_checking_piece;
+				++m_num_checked_pieces;
 				if (m_checking_piece >= m_torrent_file->end_piece())
 				{
 					// actually, we already have outstanding jobs for
 					// the remaining pieces. We just need to wait for them
 					// to finish
-					return;
+					break;
 				}
+			}
+		}
 
-				// skip pieces we already have
-				if (m_picker->have_piece(m_checking_piece))
-				{
-					++m_checking_piece;
-					++m_num_checked_pieces;
-					continue;
-				}
-			} while (false);
-
+		if (m_num_checked_pieces < m_torrent_file->end_piece())
+		{
 			// we paused the checking
 			if (!should_check_files())
 			{
@@ -2509,6 +2508,9 @@ bool is_downloading_state(int const st)
 				}
 				return;
 			}
+
+			if (m_checking_piece >= m_torrent_file->end_piece())
+				return;
 
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
 
