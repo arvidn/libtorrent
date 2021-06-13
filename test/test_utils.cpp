@@ -97,3 +97,20 @@ std::vector<char> serialize(lt::torrent_info const& ti)
 	return out_buffer;
 }
 
+lt::file_storage make_files(std::vector<file_ent> const files, int const piece_size)
+{
+	file_storage fs;
+	int i = 0;
+	for (auto const& e : files)
+	{
+		char filename[200];
+		std::snprintf(filename, sizeof(filename), "t/test%d", int(i++));
+		fs.add_file(filename, e.size, e.pad ? file_storage::flag_pad_file : file_flags_t{});
+	}
+
+	fs.set_piece_length(piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	return fs;
+}
+

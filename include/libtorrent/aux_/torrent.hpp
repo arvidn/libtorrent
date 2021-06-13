@@ -239,6 +239,10 @@ namespace libtorrent::aux {
 		// around further down the object to maintain an owner
 		std::shared_ptr<torrent_info> m_torrent_file;
 
+		// This is the sum of all non-pad file sizes. In the next major version
+		// this is stored in file_storage and no longer need to be kept here.
+		std::int64_t m_size_on_disk = 0;
+
 		// a back reference to the session
 		// this torrent belongs to.
 		aux::session_interface& m_ses;
@@ -1280,6 +1284,9 @@ namespace libtorrent::aux {
 		std::int64_t m_total_uploaded = 0;
 		std::int64_t m_total_downloaded = 0;
 
+		// the number of bytes of pad files
+		std::int64_t m_padding_bytes = 0;
+
 		// this is a handle that keeps the storage object in the disk io subsystem
 		// alive, as well as the index referencing the storage/torrent in the disk
 		// I/O. When this destructs, the torrent will be removed from the disk
@@ -1641,10 +1648,6 @@ namespace libtorrent::aux {
 		bool m_v2_piece_layers_validated:1;
 
 // ----
-
-		// the number of (16kiB) blocks that fall entirely in pad files
-		// i.e. blocks that we consider we have on start-up
-		std::uint16_t m_padding_blocks = 0;
 
 		// this is set to the connect boost quota for this torrent.
 		// After having received this many priority peer connection attempts, it

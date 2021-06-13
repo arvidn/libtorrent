@@ -53,5 +53,13 @@ struct EXPORT ofstream : std::ofstream
 
 EXPORT bool exists(std::string const& f);
 
+struct file_ent
+{
+	std::int64_t size;
+	bool pad;
+};
+
+EXPORT lt::file_storage make_files(std::vector<file_ent> files, int piece_size);
+
 #endif
 

@@ -29,8 +29,13 @@ namespace libtorrent::aux {
 		m_have_pieces.resize(num_pieces, false);
 		m_file_sizes.clear();
 		m_file_sizes.reserve(num_files);
-		for (file_index_t i(0); i < fs.end_file(); ++i)
+		m_pad_file.clear();
+		m_pad_file.reserve(num_files);
+		for (file_index_t i : fs.file_range())
+		{
 			m_file_sizes.push_back(fs.file_size(i));
+			m_pad_file.push_back(fs.pad_file_at(i));
+		}
 #endif
 
 		m_file_progress.resize(num_files, 0);
@@ -70,6 +75,10 @@ namespace libtorrent::aux {
 			{
 				std::int64_t const add = std::min(size, fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
+
+				if (!fs.pad_file_at(file_index))
+					m_total_on_disk += add;
+
 				m_file_progress[file_index] += add;
 
 				TORRENT_ASSERT(m_file_progress[file_index]
@@ -97,6 +106,7 @@ namespace libtorrent::aux {
 	void file_progress::clear()
 	{
 		INVARIANT_CHECK;
+		m_total_on_disk = 0;
 		m_file_progress.clear();
 		m_file_progress.shrink_to_fit();
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -131,6 +141,11 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
 			std::int64_t const add = std::min(fs.file_size(file_index)
 				- file_offset, size);
+
+			bool const is_pad_file = fs.pad_file_at(file_index);
+			if (!is_pad_file)
+				m_total_on_disk += add;
+
 			m_file_progress[file_index] += add;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
@@ -138,7 +153,7 @@ namespace libtorrent::aux {
 
 			if (m_file_progress[file_index] >= fs.file_size(file_index) && completed_cb)
 			{
-				if (!fs.pad_file_at(file_index))
+				if (!is_pad_file)
 					completed_cb(file_index);
 			}
 			size -= add;
@@ -150,13 +165,21 @@ namespace libtorrent::aux {
 #if TORRENT_USE_INVARIANT_CHECKS
 	void file_progress::check_invariant() const
 	{
-		if (m_file_progress.empty()) return;
+		if (m_file_progress.empty())
+		{
+			TORRENT_ASSERT(m_total_on_disk == 0);
+			return;
+		}
 
 		file_index_t index(0);
+		std::int64_t total_on_disk = 0;
 		for (std::int64_t progress : m_file_progress)
 		{
-			TORRENT_ASSERT(progress <= m_file_sizes[index++]);
+			total_on_disk += m_pad_file[index] ? 0 : progress;
+			TORRENT_ASSERT(progress <= m_file_sizes[index]);
+			++index;
 		}
+		TORRENT_ASSERT(m_total_on_disk == total_on_disk);
 	}
 #endif
 }

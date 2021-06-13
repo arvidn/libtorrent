@@ -722,7 +722,6 @@ namespace aux {
 	// used as loop boundaries.
 	TORRENT_EXTRA_EXPORT std::tuple<piece_index_t, piece_index_t>
 	file_piece_range_inclusive(file_storage const& fs, file_index_t file);
-
 } // namespace aux
 } // namespace libtorrent
 

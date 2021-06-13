@@ -35,6 +35,7 @@ using namespace std::placeholders;
 namespace {
 
 const int blocks_per_piece = 4;
+const int default_piece_size = blocks_per_piece * default_block_size;
 
 typed_bitfield<piece_index_t> string2vec(char const* have_str)
 {
@@ -94,12 +95,13 @@ std::shared_ptr<piece_picker> setup_picker(
 	, char const* have_str
 	, char const* priority
 	, char const* partial
-	, int num_blocks_per_piece = blocks_per_piece)
+	, int const piece_size = default_piece_size)
 {
 	const int num_pieces = int(strlen(availability));
 	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
-	std::shared_ptr<piece_picker> p = std::make_shared<piece_picker>(num_blocks_per_piece, num_blocks_per_piece, num_pieces);
+	auto p = std::make_shared<piece_picker>(
+		std::int64_t(num_pieces) * piece_size, piece_size);
 
 	for (auto i = 0_piece; i < piece_index_t(num_pieces); ++i)
 	{
@@ -175,7 +177,7 @@ std::shared_ptr<piece_picker> setup_picker(
 	{
 		if (!have[i]) continue;
 		p->we_have(i);
-		for (int j = 0; j < num_blocks_per_piece; ++j)
+		for (int j = 0; j < blocks_per_piece; ++j)
 			TEST_CHECK(p->is_finished(piece_block(i, j)));
 	}
 
@@ -614,9 +616,9 @@ TORRENT_TEST(resize)
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 	TEST_EQUAL(p->have().num_pieces, 1);
 
-	p->resize(blocks_per_piece, blocks_per_piece, blocks_per_piece * 7);
+	p->resize(28 * default_piece_size, default_piece_size);
 	TEST_EQUAL(p->piece_priority(0_piece), dont_download);
-	TEST_EQUAL(p->want().num_pieces, blocks_per_piece * 7 - 1);
+	TEST_EQUAL(p->want().num_pieces, 28 - 1);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 	TEST_EQUAL(p->have().num_pieces, 0);
 }
@@ -628,15 +630,15 @@ TORRENT_TEST(we_have_all)
 	p->we_have_all();
 
 	TEST_EQUAL(p->want().num_pieces, 7);
-	TEST_EQUAL(p->want().pad_blocks, 0);
+	TEST_EQUAL(p->want().pad_bytes, 0);
 	TEST_EQUAL(p->want().last_piece, true);
 
 	TEST_EQUAL(p->have_want().num_pieces, 7);
-	TEST_EQUAL(p->have_want().pad_blocks, 0);
+	TEST_EQUAL(p->have_want().pad_bytes, 0);
 	TEST_EQUAL(p->have_want().last_piece, true);
 
 	TEST_EQUAL(p->have().num_pieces, 7);
-	TEST_EQUAL(p->have().pad_blocks, 0);
+	TEST_EQUAL(p->have().pad_bytes, 0);
 	TEST_EQUAL(p->have().last_piece, true);
 }
 
@@ -2172,16 +2174,15 @@ TORRENT_TEST(download_filtered_piece)
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), 0_piece);
 }
 
-TORRENT_TEST(mark_as_pad)
+TORRENT_TEST(set_pad_bytes)
 {
 	auto p = setup_picker("1111111", "       ", "4444444", "");
-	piece_block const bl(2_piece, 0);
-	p->mark_as_pad(bl);
+	p->set_pad_bytes(2_piece, 0x4000);
 
-	bool ret = p->mark_as_downloading({2_piece, 1}, tmp_peer);
+	bool const ret = p->mark_as_downloading({2_piece, 1}, tmp_peer);
 	TEST_EQUAL(ret, true);
 
-	auto dl = p->get_download_queue();
+	auto const dl = p->get_download_queue();
 
 	TEST_EQUAL(dl.size(), 1);
 	TEST_EQUAL(dl[0].finished, 1);
@@ -2189,23 +2190,377 @@ TORRENT_TEST(mark_as_pad)
 	TEST_EQUAL(dl[0].requested, 1);
 	TEST_EQUAL(dl[0].index, 2_piece);
 
-	auto blocks = p->blocks_for_piece(dl[0]);
-	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+	auto const blocks = p->blocks_for_piece(dl[0]);
+	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_none);
 	TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_requested);
 	TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
-	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
+}
+
+TORRENT_TEST(pad_bytes_in_piece_bytes)
+{
+	for (int i = 1; i < 10; ++i)
+	{
+		auto p = setup_picker("1111111", "       ", "4444444", "");
+		p->set_pad_bytes(2_piece, i);
+		TEST_EQUAL(p->pad_bytes_in_piece(0_piece), 0);
+		TEST_EQUAL(p->pad_bytes_in_piece(1_piece), 0);
+		TEST_EQUAL(p->pad_bytes_in_piece(2_piece), i);
+	}
+}
+
+namespace libtorrent {
+namespace {
+
+bool operator==(piece_count const& lhs, piece_count const& rhs)
+{
+	return std::tie(lhs.num_pieces, lhs.pad_bytes, lhs.last_piece)
+		== std::tie(rhs.num_pieces, rhs.pad_bytes, rhs.last_piece);
+}
+
+}
+} // libtorrent namespace
+
+TORRENT_TEST(num_pad_bytes_want)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	TEST_CHECK((p->want() == piece_count{3, 0, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0, true}));
+	p->set_pad_bytes(2_piece, 1);
+	TEST_CHECK((p->want() == piece_count{3, 1, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 1, true}));
+	p->set_pad_bytes(1_piece, 2);
+	TEST_CHECK((p->want() == piece_count{3, 3, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 3, true}));
+	p->set_pad_bytes(0_piece, 0x4000);
+	TEST_CHECK((p->want() == piece_count{3, 0x4003, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(num_pad_bytes_want_filter)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_piece_priority(1_piece, dont_download);
+	TEST_CHECK((p->want() == piece_count{2, 0, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0, true}));
+	p->set_pad_bytes(2_piece, 1);
+	TEST_CHECK((p->want() == piece_count{2, 1, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 1, true}));
+	p->set_pad_bytes(1_piece, 2);
+	TEST_CHECK((p->want() == piece_count{2, 1, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 3, true}));
+	p->set_pad_bytes(0_piece, 0x4000);
+	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{0, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(num_pad_bytes_want_have)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->we_have(1_piece);
+	TEST_CHECK((p->want() == piece_count{3, 0, true}));
+	TEST_CHECK((p->have_want() == piece_count{1, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0, true}));
+	p->set_pad_bytes(2_piece, 1);
+	TEST_CHECK((p->want() == piece_count{3, 1, true}));
+	TEST_CHECK((p->have_want() == piece_count{1, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 0, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 1, true}));
+	p->set_pad_bytes(1_piece, 2);
+	TEST_CHECK((p->want() == piece_count{3, 3, true}));
+	TEST_CHECK((p->have_want() == piece_count{1, 2, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 3, true}));
+	p->set_pad_bytes(0_piece, 0x4000);
+	TEST_CHECK((p->want() == piece_count{3, 0x4003, true}));
+	TEST_CHECK((p->have_want() == piece_count{1, 2, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(num_pad_bytes_we_have)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 1);
+	p->set_pad_bytes(1_piece, 2);
+	p->set_pad_bytes(0_piece, 0x4000);
+
+	p->we_have(1_piece);
+	TEST_CHECK((p->want() == piece_count{3, 0x4003, true}));
+	TEST_CHECK((p->have_want() == piece_count{1, 2, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(num_pad_bytes_dont_want_have)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 1);
+	p->set_pad_bytes(1_piece, 2);
+	p->set_pad_bytes(0_piece, 0x4000);
+
+	p->set_piece_priority(1_piece, dont_download);
+	p->we_have(1_piece);
+	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(num_pad_bytes_have_dont_want)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 1);
+	p->set_pad_bytes(1_piece, 2);
+	p->set_pad_bytes(0_piece, 0x4000);
+
+	p->we_have(1_piece);
+	p->set_piece_priority(1_piece, dont_download);
+	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(have_dont_want_pad_bytes)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->we_have(1_piece);
+	p->set_piece_priority(1_piece, dont_download);
+	p->set_pad_bytes(2_piece, 1);
+	p->set_pad_bytes(1_piece, 2);
+	p->set_pad_bytes(0_piece, 0x4000);
+
+	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x4003, true}));
+}
+
+TORRENT_TEST(pad_bytes_have)
+{
+	{
+		auto p = setup_picker("1111111", "       ", "4444444", "");
+		p->set_pad_bytes(2_piece, 10);
+		TEST_CHECK(!p->have_piece(0_piece));
+		TEST_CHECK(!p->have_piece(1_piece));
+		TEST_CHECK(!p->have_piece(2_piece));
+		TEST_CHECK(!p->have_piece(3_piece));
+	}
+
+	{
+		auto p = setup_picker("1111111", "       ", "4444444", "");
+		p->set_pad_bytes(2_piece, default_block_size);
+		TEST_CHECK(!p->have_piece(0_piece));
+		TEST_CHECK(!p->have_piece(1_piece));
+		TEST_CHECK(!p->have_piece(2_piece));
+		TEST_CHECK(!p->have_piece(3_piece));
+	}
+
+	{
+		auto p = setup_picker("1111111", "       ", "4444444", "");
+		p->set_pad_bytes(2_piece, blocks_per_piece * default_block_size);
+		TEST_CHECK(!p->have_piece(0_piece));
+		TEST_CHECK(!p->have_piece(1_piece));
+		TEST_CHECK(p->have_piece(2_piece));
+		TEST_CHECK(!p->have_piece(3_piece));
+	}
+
+	{
+		auto p = setup_picker("1111111", "       ", "4444444", "");
+		p->set_pad_bytes(2_piece, blocks_per_piece * default_block_size);
+		p->set_pad_bytes(1_piece, default_block_size);
+		TEST_CHECK(!p->have_piece(0_piece));
+		TEST_CHECK(!p->have_piece(1_piece));
+		TEST_CHECK(p->have_piece(2_piece));
+		TEST_CHECK(!p->have_piece(3_piece));
+	}
+}
+
+TORRENT_TEST(invalid_piece_size)
+{
+	int const num_pieces = 100;
+	// one byte is enough to require one more block
+	{
+		int const piece_size =default_block_size * piece_picker::max_blocks_per_piece + 1;
+		TEST_THROW(piece_picker(std::int64_t(num_pieces) * piece_size, piece_size));
+	}
+
+	// a full block will (obviously) also exceed the limit
+	{
+		int const piece_size =default_block_size * (piece_picker::max_blocks_per_piece + 1);
+		TEST_THROW(piece_picker(std::int64_t(num_pieces) * piece_size, piece_size));
+	}
+
+	// exactly the limit should be no problem
+	{
+		int const piece_size =default_block_size * piece_picker::max_blocks_per_piece;
+		piece_picker p(std::int64_t(num_pieces) * piece_size, piece_size);
+	}
+}
+
+TORRENT_TEST(mark_as_pad_pick_more_than_one_block)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 0x4100);
+
+	std::vector<piece_block> picked = pick_pieces(p, "  *", 4, 0, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 3);
+	TEST_CHECK((picked[0] == piece_block{2_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{2_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{2_piece, 2}));
+	// notably, block (2,2) should not be picked
+}
+
+TORRENT_TEST(mark_as_pad_pick_full_piece)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, default_piece_size);
+
+	std::vector<piece_block> picked = pick_pieces(p, " **", 8, 0, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 4);
+	TEST_CHECK((picked[0] == piece_block{1_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{1_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{1_piece, 2}));
+	TEST_CHECK((picked[3] == piece_block{1_piece, 3}));
+	// notably, nothing is picked from piece 2
+}
+
+TORRENT_TEST(mark_as_pad_pick_less_than_one_block)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 0x100);
+
+	std::vector<piece_block> picked = pick_pieces(p, "  *", 4, 0, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 4);
+	TEST_CHECK((picked[0] == piece_block{2_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{2_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{2_piece, 2}));
+	TEST_CHECK((picked[3] == piece_block{2_piece, 3}));
+	// notably, block (2,2) *is* picked
+}
+
+TORRENT_TEST(mark_as_pad_pick_exactly_one_block)
+{
+	auto p = setup_picker("111", "   ", "444", "");
+	p->set_pad_bytes(2_piece, 0x4000);
+
+	std::vector<piece_block> picked = pick_pieces(p, "  *", 4, 0, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 3);
+	TEST_CHECK((picked[0] == piece_block{2_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{2_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{2_piece, 2}));
+	// notably, block (2,2) should not be picked
+}
+
+TORRENT_TEST(mark_as_pad_pick_short_last_piece)
+{
+	auto p = std::make_shared<piece_picker>(
+		3 * default_piece_size - default_block_size, default_piece_size);
+	p->inc_refcount(0_piece, &tmp0);
+	p->inc_refcount(1_piece, &tmp0);
+	p->inc_refcount(2_piece, &tmp0);
+
+	p->set_pad_bytes(2_piece, 0x400);
+
+	std::vector<piece_block> picked = pick_pieces(p, "  *", 4, 0, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 3);
+	TEST_CHECK((picked[0] == piece_block{2_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{2_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{2_piece, 2}));
+	// there is no block 3 in this piece
+}
+
+TORRENT_TEST(mark_as_pad_pick_short_last_piece_prefer_contiguos)
+{
+	auto p = std::make_shared<piece_picker>(
+		3 * default_piece_size - default_block_size, default_piece_size);
+	p->inc_refcount(0_piece, &tmp0);
+	p->inc_refcount(1_piece, &tmp0);
+	p->inc_refcount(2_piece, &tmp0);
+
+	p->set_pad_bytes(2_piece, 0x400);
+
+	std::vector<piece_block> picked = pick_pieces(p, "***", 12, 12, nullptr
+		, options, empty_vector);
+
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 11);
+	std::sort(picked.begin(), picked.end());
+	TEST_CHECK((picked[0] == piece_block{0_piece, 0}));
+	TEST_CHECK((picked[1] == piece_block{0_piece, 1}));
+	TEST_CHECK((picked[2] == piece_block{0_piece, 2}));
+	TEST_CHECK((picked[3] == piece_block{0_piece, 3}));
+	TEST_CHECK((picked[4] == piece_block{1_piece, 0}));
+	TEST_CHECK((picked[5] == piece_block{1_piece, 1}));
+	TEST_CHECK((picked[6] == piece_block{1_piece, 2}));
+	TEST_CHECK((picked[7] == piece_block{1_piece, 3}));
+	TEST_CHECK((picked[8] == piece_block{2_piece, 0}));
+	TEST_CHECK((picked[9] == piece_block{2_piece, 1}));
+	TEST_CHECK((picked[10] == piece_block{2_piece, 2}));
+	// there is no block 3 in this piece
+}
+
+//#error test with odd block sizes
+TORRENT_TEST(pad_blocks_some_wanted_odd_blocks)
+{
+	int const piece_size = default_block_size / 3;
+	auto p = std::make_shared<piece_picker>(
+		3 * piece_size, piece_size);
+
+	p->we_have(1_piece);
+	p->set_piece_priority(1_piece, dont_download);
+	p->set_pad_bytes(2_piece, 1);
+	p->set_pad_bytes(1_piece, 2);
+	p->set_pad_bytes(0_piece, 0x1400);
+
+	TEST_CHECK((p->want() == piece_count{2, 0x1401, true}));
+	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
+	TEST_CHECK((p->have() == piece_count{1, 2, false}));
+	TEST_CHECK((p->all_pieces() == piece_count{3, 0x1403, true}));
 }
 
 TORRENT_TEST(mark_as_pad_downloading)
 {
 	auto p = setup_picker("1111111", "       ", "4444444", "");
-	piece_block const bl(2_piece, 0);
-	p->mark_as_pad(bl);
+	p->set_pad_bytes(2_piece, 0x4000);
 
-	bool ret = p->mark_as_downloading({2_piece, 0}, tmp_peer);
+	bool const ret = p->mark_as_downloading({2_piece, 3}, tmp_peer);
 	TEST_EQUAL(ret, false);
 
-	auto dl = p->get_download_queue();
+	auto const dl = p->get_download_queue();
 
 	TEST_EQUAL(dl.size(), 1);
 	TEST_EQUAL(dl[0].finished, 1);
@@ -2213,23 +2568,21 @@ TORRENT_TEST(mark_as_pad_downloading)
 	TEST_EQUAL(dl[0].requested, 0);
 	TEST_EQUAL(dl[0].index, 2_piece);
 
-	auto blocks = p->blocks_for_piece(dl[0]);
-	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_finished);
+	auto const blocks = p->blocks_for_piece(dl[0]);
+	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_none);
 	TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_none);
 	TEST_EQUAL(blocks[2].state, piece_picker::block_info::state_none);
-	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_none);
+	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
 }
 
 TORRENT_TEST(mark_as_pad_seeding)
 {
 	auto p = setup_picker("1", " ", "4", "");
-	p->mark_as_pad({0_piece, 0});
-	p->mark_as_pad({0_piece, 1});
-	p->mark_as_pad({0_piece, 2});
+	p->set_pad_bytes(0_piece, 0x4000 * 3);
 
 	TEST_CHECK(!p->is_seeding());
 
-	p->mark_as_finished({0_piece, 3}, tmp_peer);
+	p->mark_as_finished({0_piece, 0}, tmp_peer);
 
 	TEST_CHECK(!p->is_seeding());
 	p->piece_passed(0_piece);
@@ -2239,10 +2592,7 @@ TORRENT_TEST(mark_as_pad_seeding)
 TORRENT_TEST(mark_as_pad_whole_piece_seeding)
 {
 	auto p = setup_picker("11", "  ", "44", "");
-	p->mark_as_pad({0_piece, 0});
-	p->mark_as_pad({0_piece, 1});
-	p->mark_as_pad({0_piece, 2});
-	p->mark_as_pad({0_piece, 3});
+	p->set_pad_bytes(0_piece, 0x4000 * 4);
 	TEST_CHECK(p->have_piece(0_piece));
 
 	TEST_CHECK(!p->is_seeding());
@@ -2257,26 +2607,22 @@ TORRENT_TEST(mark_as_pad_whole_piece_seeding)
 	TEST_CHECK(p->is_seeding());
 }
 
-TORRENT_TEST(pad_blocks_in_piece)
+TORRENT_TEST(pad_bytes_in_piece)
 {
 	auto p = setup_picker("11", "  ", "44", "");
-	p->mark_as_pad({0_piece, 0});
-	p->mark_as_pad({0_piece, 1});
-	p->mark_as_pad({0_piece, 2});
+	p->set_pad_bytes(0_piece, 0x4000 * 3);
 
-	TEST_EQUAL(p->pad_blocks_in_piece(0_piece), 3);
-	TEST_EQUAL(p->pad_blocks_in_piece(1_piece), 0);
+	TEST_EQUAL(p->pad_bytes_in_piece(0_piece), 0x4000 * 3);
+	TEST_EQUAL(p->pad_bytes_in_piece(1_piece), 0);
 }
 
-TORRENT_TEST(pad_blocks_in_last_piece)
+TORRENT_TEST(pad_bytes_in_last_piece)
 {
 	auto p = setup_picker("11", "  ", "44", "");
-	p->mark_as_pad({1_piece, 0});
-	p->mark_as_pad({1_piece, 1});
-	p->mark_as_pad({1_piece, 2});
+	p->set_pad_bytes(1_piece, 0x4000 * 3);
 
-	TEST_EQUAL(p->pad_blocks_in_piece(1_piece), 3);
-	TEST_EQUAL(p->pad_blocks_in_piece(0_piece), 0);
+	TEST_EQUAL(p->pad_bytes_in_piece(1_piece), 0x4000 * 3);
+	TEST_EQUAL(p->pad_bytes_in_piece(0_piece), 0);
 }
 
 namespace {
@@ -2286,7 +2632,7 @@ void validate_piece_count(piece_count const& c)
 	TEST_CHECK(!(c.num_pieces == 0 && c.last_piece == true));
 
 	// if we have 0 pieces, we can't have any pad blocks either
-	TEST_CHECK(!(c.num_pieces == 0 && c.pad_blocks > 0));
+	TEST_CHECK(!(c.num_pieces == 0 && c.pad_bytes > 0));
 
 	// if we have all pieces, we must also have the last one
 	TEST_CHECK(!(c.num_pieces == 4 && c.last_piece == false));
@@ -2296,23 +2642,22 @@ void validate_all_pieces(piece_count const& c)
 {
 	TEST_EQUAL(c.last_piece, true);
 	TEST_EQUAL(c.num_pieces, 4);
-	TEST_EQUAL(c.pad_blocks, 3);
+	TEST_EQUAL(c.pad_bytes, 3 * 0x4000);
 }
 
 void validate_no_pieces(piece_count const& c)
 {
 	TEST_EQUAL(c.last_piece, false);
 	TEST_EQUAL(c.num_pieces, 0);
-	TEST_EQUAL(c.pad_blocks, 0);
+	TEST_EQUAL(c.pad_bytes, 0);
 }
 }
 
 TORRENT_TEST(pad_blocks_all_filtered)
 {
 	auto p = setup_picker("1111", "    ", "0000", "");
-	p->mark_as_pad({1_piece, 0});
-	p->mark_as_pad({1_piece, 1});
-	p->mark_as_pad({2_piece, 0});
+	p->set_pad_bytes(1_piece, 0x4000 * 2);
+	p->set_pad_bytes(2_piece, 0x4000);
 
 	validate_piece_count(p->all_pieces());
 	validate_piece_count(p->have());
@@ -2328,9 +2673,8 @@ TORRENT_TEST(pad_blocks_all_filtered)
 TORRENT_TEST(pad_blocks_all_wanted)
 {
 	auto p = setup_picker("1111", "    ", "4444", "");
-	p->mark_as_pad({1_piece, 0});
-	p->mark_as_pad({1_piece, 1});
-	p->mark_as_pad({2_piece, 0});
+	p->set_pad_bytes(1_piece, 0x4000 * 2);
+	p->set_pad_bytes(2_piece, 0x4000);
 
 	validate_piece_count(p->all_pieces());
 	validate_piece_count(p->have());
@@ -2346,9 +2690,8 @@ TORRENT_TEST(pad_blocks_all_wanted)
 TORRENT_TEST(pad_blocks_some_wanted)
 {
 	auto p = setup_picker("1111", "    ", "0404", "");
-	p->mark_as_pad({1_piece, 0});
-	p->mark_as_pad({1_piece, 1});
-	p->mark_as_pad({2_piece, 0});
+	p->set_pad_bytes(1_piece, 0x8000);
+	p->set_pad_bytes(2_piece, 0x4000);
 
 	validate_piece_count(p->all_pieces());
 	validate_piece_count(p->have());
@@ -2361,7 +2704,7 @@ TORRENT_TEST(pad_blocks_some_wanted)
 
 	TEST_EQUAL(p->want().num_pieces, 2);
 	TEST_EQUAL(p->want().last_piece, true);
-	TEST_EQUAL(p->want().pad_blocks, 2);
+	TEST_EQUAL(p->want().pad_bytes, 2 * 0x4000);
 }
 
 TORRENT_TEST(started_hash_job)
@@ -2418,7 +2761,7 @@ TORRENT_TEST(piece_extent_affinity)
 	auto const have_none = "        ";
 	auto const have_all  = "********";
 
-	auto p = setup_picker("33133233", have_none, "", "", blocks);
+	auto p = setup_picker("33133233", have_none, "", "", blocks * default_block_size);
 
 	std::vector<piece_block> picked = pick_pieces(p, have_all, blocks, 0, &tmp0
 		, options | piece_picker::piece_extent_affinity);
@@ -2459,7 +2802,7 @@ TORRENT_TEST(piece_extent_affinity_priority)
 	auto const have_none = "        ";
 	auto const have_all  = "********";
 
-	auto p = setup_picker("33333233", have_none, "43444444", "", blocks);
+	auto p = setup_picker("33333233", have_none, "43444444", "", blocks * default_block_size);
 	// we pick piece 2. Since piece 1 has a different priority this should not
 	// create an affinity for the extent
 	mark_downloading(p, full_piece(2_piece, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
@@ -2479,7 +2822,7 @@ TORRENT_TEST(piece_extent_affinity_large_pieces)
 	auto const have_none = "        ";
 	auto const have_all  = "********";
 
-	auto p = setup_picker("33333233", have_none, "", "", blocks);
+	auto p = setup_picker("33333233", have_none, "", "", blocks * default_block_size);
 	// we pick piece 2. Since the pieces are so large (4 MiB), there is no
 	// affinity for piece extents.
 	mark_downloading(p, full_piece(2_piece, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
@@ -2499,7 +2842,7 @@ TORRENT_TEST(piece_extent_affinity_active_limit)
 	int const blocks = 128;
 	auto const have_none = "            ";
 
-	auto p = setup_picker("333333333333", have_none, "444444444455", "", blocks);
+	auto p = setup_picker("333333333333", have_none, "444444444455", "", blocks * default_block_size);
 	// open up the first 5 extents
 	mark_downloading(p, full_piece(0_piece, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
 	mark_downloading(p, full_piece(2_piece, blocks), &tmp1, options | piece_picker::piece_extent_affinity);
@@ -2528,7 +2871,7 @@ TORRENT_TEST(piece_extent_affinity_clear_done)
 	int const blocks = 128;
 	auto const have_none = "              ";
 
-	auto p = setup_picker("33333333333333", have_none, "44444444444455", "", blocks);
+	auto p = setup_picker("33333333333333", have_none, "44444444444455", "", blocks * default_block_size);
 	// open up the first 5 extents
 	mark_downloading(p, full_piece(0_piece, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
 	mark_downloading(p, full_piece(2_piece, blocks), &tmp1, options | piece_picker::piece_extent_affinity);
@@ -2568,7 +2911,7 @@ TORRENT_TEST(piece_extent_affinity_no_duplicates)
 	auto const have_none = "                        ";
 
 	auto p = setup_picker("333333333333333333333333", have_none
-		, "444444444444444444444455", "", blocks);
+		, "444444444444444444444455", "", blocks * default_block_size);
 	// download 5 pieces from the first extent
 	mark_downloading(p, full_piece(0_piece, blocks), &tmp0, options | piece_picker::piece_extent_affinity);
 	mark_downloading(p, full_piece(2_piece, blocks), &tmp1, options | piece_picker::piece_extent_affinity);

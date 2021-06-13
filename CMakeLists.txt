@@ -135,6 +135,7 @@ set(libtorrent_aux_include_files
 	aligned_storage.hpp
 	alloca.hpp
 	allocating_handler.hpp
+	apply_pad_files.hpp
 	array.hpp
 	bandwidth_limit.hpp
 	bandwidth_manager.hpp
