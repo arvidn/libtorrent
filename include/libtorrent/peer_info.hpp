@@ -77,11 +77,12 @@ TORRENT_VERSION_NAMESPACE_2
 		peer_info(peer_info&&);
 		peer_info& operator=(peer_info const&);
 
-		// a string describing the software at the other end of the connection.
-		// In some cases this information is not available, then it will contain
-		// a string that may give away something about which software is running
-		// in the other end. In the case of a web seed, the server type and
-		// version will be a part of this string.
+		// A human readable string describing the software at the other end of
+		// the connection. In some cases this information is not available, then
+		// it will contain a string that may give away something about which
+		// software is running in the other end. In the case of a web seed, the
+		// server type and version will be a part of this string. This is UTF-8
+		// encoded.
 		std::string client;
 
 		// a bitfield, with one bit per piece in the torrent. Each bit tells you
