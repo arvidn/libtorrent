@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2007, Un Shyam
-Copyright (c) 2011, 2014-2016, 2018-2020, Arvid Norberg
+Copyright (c) 2011, 2014-2016, 2018-2021, Arvid Norberg
 Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2016-2018, 2021, Alden Torres

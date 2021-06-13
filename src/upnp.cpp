@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2019, Amir Abrams
-Copyright (c) 2007-2020, Arvid Norberg
+Copyright (c) 2007-2021, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
 Copyright (c) 2015, Mike Tzou
 Copyright (c) 2016-2021, Alden Torres

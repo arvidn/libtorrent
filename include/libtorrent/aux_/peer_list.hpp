@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2016, Steven Siloti
-Copyright (c) 2003-2005, 2007-2009, 2011-2012, 2014-2020, Arvid Norberg
+Copyright (c) 2003-2005, 2007-2009, 2011-2012, 2014-2021, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2009, Daniel Wallin
 Copyright (c) 2015, Mikhail Titov
