@@ -53,6 +53,12 @@ for i in glob.glob('src/*.cpp') + \
         glob.glob('tools/*.cpp') + \
         glob.glob('test/*.cpp') + \
         glob.glob('test/*.hpp') + \
+        glob.glob('bindings/c/*.c') + \
+        glob.glob('bindings/c/src/*.cpp') + \
+        glob.glob('bindings/c/include/*.h') + \
+        glob.glob('simulation/*.cpp') + \
+        glob.glob('simulation/*.hpp') + \
         glob.glob('fuzzers/src/*.cpp') + \
+        glob.glob('fuzzers/*.cpp') + \
         glob.glob('fuzzers/src/*.hpp'):
     update_file(i)

@@ -8,6 +8,7 @@ Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2018, Steven Siloti
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2019, Andrei Kurushin
+Copyright (c) 2021, Mark Scott
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

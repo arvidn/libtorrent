@@ -1,12 +1,12 @@
 /*
 
-Copyright (c) 2011-2020, Arvid Norberg
+Copyright (c) 2011-2021, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016, terry zhao
 Copyright (c) 2016-2018, 2020-2021, Alden Torres
 Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2018, d-komarov
-Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2020-2021, Paul-Louis Ageneau
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

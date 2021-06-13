@@ -20,6 +20,7 @@ Copyright (c) 2020, Viktor Elofsson
 Copyright (c) 2020, Rosen Penev
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2021, Mark Scott
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

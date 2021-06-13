@@ -2,7 +2,7 @@
 
 Copyright (c) 2019 Paul-Louis Ageneau
 Copyright (c) 2020, Paul-Louis Ageneau
-Copyright (c) 2020, Arvid Norberg
+Copyright (c) 2020-2021, Arvid Norberg
 Copyright (c) 2021, Alden Torres
 All rights reserved.
 

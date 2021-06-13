@@ -2,7 +2,7 @@
 
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2017, Andrei Kurushin
-Copyright (c) 2009, 2011, 2013-2020, Arvid Norberg
+Copyright (c) 2009, 2011, 2013-2021, Arvid Norberg
 Copyright (c) 2016, 2019, Alden Torres
 All rights reserved.
 

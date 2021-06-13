@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2006, Daniel Wallin
-Copyright (c) 2013-2020, Arvid Norberg
+Copyright (c) 2013-2021, Arvid Norberg
 Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2015, Steven Siloti
 Copyright (c) 2016-2017, Pavel Pimenov
