@@ -247,7 +247,7 @@ can use the service simultaneously. This is controlled by
 settings_pack::allow_multiple_connections_per_ip.
 
 In order to always unchoke peers, turn off automatic unchoke by setting
-settings_pack::choking_algorithm to settings_pack::fixed_slot_choker and set the number
+settings_pack::choking_algorithm to settings_pack::fixed_slots_choker and set the number
 of upload slots to a large number via settings_pack::unchoke_slots_limit,
 or use -1 (which means infinite).
 
