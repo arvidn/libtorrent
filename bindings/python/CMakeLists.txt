@@ -76,11 +76,13 @@ endif()
 target_link_libraries(python-libtorrent
 	PRIVATE
 		torrent-rasterbar
+		libtorrent_common_cfg
 		"Boost::${boost-python-module-name}"
 )
 
 # Bindings module uses deprecated libtorrent features, thus we disable these warnings
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("-Wno-deprecated-declarations" _WNO_DEPRECATED_DECLARATIONS)
 	if (_WNO_DEPRECATED_DECLARATIONS)
 		target_compile_options(python-libtorrent PRIVATE -Wno-deprecated-declarations)

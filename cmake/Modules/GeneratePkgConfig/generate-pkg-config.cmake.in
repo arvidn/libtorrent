@@ -1,6 +1,8 @@
+cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+
 include("@_variables_file_name@")
 
-function (cmake_list_to_pkg_config _result _list _prefix)
+function(cmake_list_to_pkg_config _result _list _prefix)
 	set(_tmp_list "${_list}")
 	list(REMOVE_ITEM _tmp_list "")
 	# remove prefix from prefixed items

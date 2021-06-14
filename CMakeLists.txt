@@ -1,21 +1,114 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
-cmake_policy(SET CMP0091 NEW)
-cmake_policy(SET CMP0092 NEW)
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
-include(LibtorrentMacros)
-
-read_version("${CMAKE_CURRENT_SOURCE_DIR}/include/libtorrent/version.hpp" VER_MAJOR VER_MINOR VER_TINY)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
 project(libtorrent
-	DESCRIPTION "Bittorrent library"
-	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
+	VERSION "1.2.14"
+	DESCRIPTION "An efficient feature complete C++ bittorrent implementation"
+	HOMEPAGE_URL "https://libtorrent.org"
+	LANGUAGES C CXX
 )
-set (SOVERSION "10")
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
+include(LibtorrentMacros)
+
+# This must be set before creating targets. Ignored on non-MSVC.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<NOT:$<BOOL:${static_runtime}>>:DLL>")
+
+# -- Features --
+feature_option(build_tests "build tests" OFF)
+feature_option(build_examples "build examples" OFF)
+feature_option(build_tools "build tools" OFF)
+feature_option(python-bindings "build python bindings" OFF)
+feature_option(python-egg-info "generate python egg info" OFF)
+feature_option(python-install-system-dir "Install python bindings to the system installation directory rather than the CMake installation prefix" OFF)
+feature_option(iconv "build libtorrent with iconv support" ON)
+feature_option(openssl "Build with OpenSSL, to provide HTTPS support to libtorrent" ON)
+feature_option(libgcrypt "Use LibGcrypt instead of OpenSSL or the built-in functions for RC4 and SHA1" OFF)
+feature_option(dht "enable support for Mainline DHT" ON)
+feature_option(encryption "Enables encryption in libtorrent" ON)
+feature_option(exceptions "build with exception support" ON)
+feature_option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+feature_option(extensions "Enables protocol extensions" ON)
+feature_option(i2p "build with I2P support" ON)
+feature_option(logging "build with logging" ON)
+feature_option(mutable-torrents "Enables mutable torrent support" ON)
+feature_option(streaming "Enables support for piece deadline" ON)
+feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
+feature_option(static_runtime "build libtorrent with static runtime" OFF)
+feature_option(developer-options "Activates advanced options useful for a developer" OFF)
+if (developer-options)
+	feature_option(asio-debugging "Enable boost-asio debugging" OFF)
+	feature_option(picker-debugging "Enable piece picker debugging" OFF)
+	feature_option(debug-iterators "Enable iterator debugging" OFF)
+	feature_option(utp-log "Enable μTP logging" OFF)
+	feature_option(simulate-slow-read "Enable slow read simulation" OFF)
+	feature_option(profile-calls "Enable call profiling" OFF)
+	set(asserts "auto" CACHE STRING "use assertions (only effective in Debug configuration)")
+	set_property(CACHE asserts PROPERTY STRINGS "auto" "off" "on" "production" "system")
+	set(invariant-checks "off" CACHE STRING "enable invariant checks")
+	set_property(CACHE invariant-checks PROPERTY STRINGS "off" "on" "full")
+endif()
+
+# -- Find dependencies --
+if (static_runtime)
+	if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
+		message(AUTHOR_WARNING "Currently, the build system does not guaranteed that the appropriate flags will be set for static runtime with Clang")
+	endif()
+	# set hints for FindBoost and FindOpenSSL built-in modules
+	set(Boost_USE_MULTITHREADED ON)
+	set(Boost_USE_STATIC_RUNTIME ON)
+	set(OPENSSL_MSVC_STATIC_RT ON)
+endif()
+
+if (NOT BUILD_SHARED_LIBS)
+	# set hints for FindBoost and FindOpenSSL built-in modules
+	set(Boost_USE_STATIC_LIBS ON)
+	set(OPENSSL_USE_STATIC_LIBS ON)
+endif()
+
+find_package(Threads REQUIRED)
+list(APPEND package_config_dependencies "Threads REQUIRED")
+
+# Boost header-only libraries have no designated component
+if (deprecated-functions)
+	find_package(Boost 1.58 REQUIRED COMPONENTS system date_time)
+	list(APPEND package_config_dependencies "Boost REQUIRED COMPONENTS system date_time")
+else()
+	find_package(Boost 1.58 REQUIRED COMPONENTS system)
+	list(APPEND package_config_dependencies "Boost REQUIRED COMPONENTS system")
+endif()
+
+if (iconv)
+	find_package(Iconv REQUIRED)
+	list(APPEND package_config_dependencies "Iconv REQUIRED")
+endif()
+
+if (openssl)
+	find_package(OpenSSL 1.1.1 REQUIRED COMPONENTS Crypto SSL)
+	list(APPEND package_config_dependencies "OpenSSL REQUIRED COMPONENTS Crypto SSL")
+endif()
+
+if (libgcrypt)
+	find_package(LibGcrypt REQUIRED)
+	list(APPEND package_config_dependencies "LibGcrypt REQUIRED")
+endif()
+
+# -- Main target configuration --
+# create interface-only target libraries with common compile options/definitions to link to
+libtorrent_common_config()
+
+# the TYPE will depend on the value of BUILD_SHARED_LIBS
+add_library(torrent-rasterbar)
+
+set_target_properties(torrent-rasterbar
+	PROPERTIES
+		CXX_VISIBILITY_PRESET "hidden"
+		VISIBILITY_INLINES_HIDDEN "true"
+		VERSION "${libtorrent_VERSION}"
+		SOVERSION "10"
+)
 
 set(libtorrent_include_files
 	add_torrent_params.hpp
@@ -442,77 +535,20 @@ list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/e
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
 list(TRANSFORM libtorrent_kademlia_include_files PREPEND "include/libtorrent/kademlia/")
 
-# these options control target creation and thus have to be declared before the add_library() call
-feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
-feature_option(static_runtime "build libtorrent with static runtime" OFF)
-
-find_public_dependency(Threads REQUIRED)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-	add_compile_options(
-		-Weverything
-		-Wno-c++98-compat-pedantic
-		-Wno-documentation
-		-Wno-exit-time-destructors
-		-Wno-global-constructors
-		-Wno-padded
-		-Wno-weak-vtables
-	)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-	add_compile_options(
-		-Wall
-		-Wc++11-compat
-		-Wextra
-		-Wno-format-zero-length
-		-Wparentheses
-		-Wpedantic
-		-Wvla
-		-ftemplate-depth=512
-	)
-elseif(MSVC)
-	add_compile_options(
-		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
-		/Zc:__cplusplus
-		/W4
-		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
-		#        used by clients of class 'type2'
-		/wd4251
-		# C4268: 'identifier' : 'const' static/global data initialized
-		#        with compiler generated default constructor fills the object with zeros
-		/wd4268
-		# C4275: non DLL-interface classkey 'identifier' used as base for
-		#        DLL-interface classkey 'identifier'
-		/wd4275
-		# C4373: virtual function overrides, previous versions of the compiler
-		#        did not override when parameters only differed by const/volatile qualifiers
-		/wd4373
-		# C4503: 'identifier': decorated name length exceeded, name was truncated
-		/wd4503
-	)
-endif()
-
-if(static_runtime)
-	if (MSVC)
-		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-	else()
-		include(ucm_flags)
-		ucm_set_runtime(STATIC)
-	endif()
-	set(Boost_USE_MULTITHREADED ON)
-	set(Boost_USE_STATIC_RUNTIME ON)
-	set(OPENSSL_MSVC_STATIC_RT ON)
-endif()
-
-if (NOT BUILD_SHARED_LIBS)
-	set(Boost_USE_STATIC_LIBS ON)
-	set(OPENSSL_USE_STATIC_LIBS ON)
-endif()
-
-add_library(torrent-rasterbar
-	${sources}
-	${libtorrent_include_files}
-	${libtorrent_extensions_include_files}
-	${libtorrent_aux_include_files}
+target_sources(torrent-rasterbar
+	PRIVATE
+		${sources}
+		${libtorrent_include_files}
+		${libtorrent_extensions_include_files}
+		${libtorrent_aux_include_files}
+		$<$<BOOL:${encryption}>:include/libtorrent/pe_crypto.hpp src/pe_crypto.cpp>
+		$<$<BOOL:${dht}>:
+			${libtorrent_kademlia_include_files}
+			include/libtorrent/hasher512.hpp
+			${kademlia_sources}
+			${ed25519_sources}
+			src/hasher512.cpp
+			src/sha512.cpp>
 )
 
 # C++ 11 support is required
@@ -559,295 +595,120 @@ target_compile_features(torrent-rasterbar
 		cxx_variadic_templates
 )
 
-if (BUILD_SHARED_LIBS)
-	target_compile_definitions(torrent-rasterbar
-		PRIVATE TORRENT_BUILDING_SHARED
-		INTERFACE TORRENT_LINKING_SHARED
-	)
-endif()
-
-set_target_properties(torrent-rasterbar
-	PROPERTIES
-		CXX_VISIBILITY_PRESET "hidden"
-		VISIBILITY_INLINES_HIDDEN "true"
-		VERSION ${PROJECT_VERSION}
-		SOVERSION ${SOVERSION}
+target_link_libraries(torrent-rasterbar
+	PUBLIC
+		# -- Boost --
+		Boost::headers Boost::system
+		$<$<BOOL:${deprecated-functions}>:Boost::date_time>
+		$<$<BOOL:${MSVC}>:Boost::disable_autolinking> # Conveninece interface target to add `-DBOOST_ALL_NO_LIB`
+		# -- OpenSSL --
+		$<$<BOOL:${openssl}>:OpenSSL::SSL>
+		$<$<AND:$<BOOL:${openssl}>,$<NOT:$<BOOL:${libgcrypt}>>>:OpenSSL::Crypto>
+		# -- Threads --
+		Threads::Threads
+	PRIVATE
+		libtorrent_common_cfg
+		# -- Iconv --
+		$<$<BOOL:${iconv}>:Iconv::Iconv>
+		# -- LibGcrypt --
+		$<$<BOOL:${libgcrypt}>:LibGcrypt::LibGcrypt>
+		# -- Windows --
+		"$<$<BOOL:${WIN32}>:crypt32;iphlpapi>"
+		# -- Android --
+		"$<$<BOOL:${ANDROID}>:${CMAKE_DL_LIBS}>"
+		# -- Apple --
+		"$<$<BOOL:${APPLE}>:-framework CoreFoundation;-framework SystemConfiguration>" # for ip_notifier
+		# TODO: the following workaround is not needed anymore in CMake >= 3.21.0
+		"$<$<AND:$<BOOL:${WIN32}>,$<BOOL:${OPENSSL_USE_STATIC_LIBS}>>:crypt32;ws2_32>"
 )
 
-target_include_directories(torrent-rasterbar PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
+# explicitly link against libatomic if needed
+libtorrent_ensure_link_libatomic()
 
 target_compile_definitions(torrent-rasterbar
+	INTERFACE
+		$<$<BOOL:${BUILD_SHARED_LIBS}>:TORRENT_LINKING_SHARED>
 	PUBLIC
-		$<$<CONFIG:Debug>:TORRENT_USE_ASSERTS>
+		# -- features ---
+		$<$<BOOL:${iconv}>:TORRENT_USE_ICONV>
+		$<$<BOOL:${libgcrypt}>:TORRENT_USE_LIBGCRYPT>
+		$<$<BOOL:${openssl}>:TORRENT_USE_OPENSSL>
+		$<$<AND:$<BOOL:${openssl}>,$<NOT:$<BOOL:${libgcrypt}>>>:TORRENT_USE_LIBCRYPTO>
+		$<$<NOT:$<BOOL:${dht}>>:TORRENT_DISABLE_DHT>
+		$<$<NOT:$<BOOL:${encryption}>>:TORRENT_DISABLE_ENCRYPTION>
+		$<$<NOT:$<BOOL:${deprecated-functions}>>:TORRENT_NO_DEPRECATE>
+		$<$<NOT:$<BOOL:${extensions}>>:TORRENT_DISABLE_EXTENSIONS>
+		$<$<NOT:$<BOOL:${i2p}>>:TORRENT_USE_I2P=0>
+		$<$<NOT:$<BOOL:${logging}>>:TORRENT_DISABLE_LOGGING>
+		$<$<NOT:$<BOOL:${mutable-torrents}>>:TORRENT_DISABLE_MUTABLE_TORRENTS>
+		$<$<NOT:$<BOOL:${streaming}>>:TORRENT_DISABLE_STREAMING>
+		# the following are gated behind the developer-options feature:
+		$<$<BOOL:${asio-debugging}>:TORRENT_ASIO_DEBUGGING>
+		$<$<BOOL:${picker-debugging}>:TORRENT_DEBUG_REFCOUNTS>
+		$<$<AND:$<BOOL:${debug-iterators}>,$<CXX_COMPILER_ID:GNU>>:_GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC>
+		$<$<AND:$<BOOL:${debug-iterators}>,$<BOOL:${MSVC}>>:_ITERATOR_DEBUG_LEVEL=2>
+		$<$<BOOL:${utp-log}>:TORRENT_UTP_LOG_ENABLE>
+		$<$<BOOL:${simulate-slow-read}>:TORRENT_SIMULATE_SLOW_READ>
+		$<$<BOOL:${profile-calls}>:TORRENT_PROFILE_CALLS=1>
+		$<$<BOOL:$<STREQUAL:$<LOWER_CASE:${asserts}>,production>>:TORRENT_PRODUCTION_ASSERTS=1>
+		$<$<BOOL:$<STREQUAL:$<LOWER_CASE:${asserts}>,system>>:TORRENT_USE_SYSTEM_ASSERTS=1>
+		$<$<BOOL:$<STREQUAL:$<LOWER_CASE:${invariant-checks}>,full>>:TORRENT_EXPENSIVE_INVARIANT_CHECKS>
+		# -- Boost --
 		BOOST_ASIO_ENABLE_CANCELIO
+		# -- Windows/MSVC --
+		$<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN> # prevent winsock1 to be included
+		$<$<AND:$<NOT:$<BOOL:${exceptions}>>,$<BOOL:${MSVC}>>:_HAS_EXCEPTIONS=0> # exceptions
+		$<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS> # disable warnings about potentially unsafe string functions
 	PRIVATE
+		$<$<BOOL:${BUILD_SHARED_LIBS}>:TORRENT_BUILDING_SHARED>
+		$<$<NOT:$<BOOL:${deprecated-functions}>>:BOOST_DATE_TIME_NO_LIB>
 		TORRENT_BUILDING_LIBRARY
 		_FILE_OFFSET_BITS=64
 		BOOST_EXCEPTION_DISABLE
-		BOOST_ASIO_HAS_STD_CHRONO
 )
 
-target_link_libraries(torrent-rasterbar
+# These options are also gated behind the developer-options feature
+if (asserts MATCHES "on|production|system")
+	target_compile_definitions(torrent-rasterbar PUBLIC $<$<CONFIG:Debug>:TORRENT_USE_ASSERTS=1>)
+endif()
+if (invariant-checks MATCHES "on|full")
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_INVARIANT_CHECKS=1)
+endif()
+
+# best-effort workaround for when building with C++11
+libtorrent_cxx11_abi_issue_workaround()
+
+target_compile_options(torrent-rasterbar
 	PUBLIC
-		Threads::Threads
+		# exceptions
+		$<$<BOOL:${exceptions}>:$<IF:$<BOOL:${MSVC}>,/EHsc,-fexceptions>>
+		$<$<AND:$<NOT:$<BOOL:${exceptions}>>,$<NOT:$<BOOL:${MSVC}>>>:-fno-exceptions>
+	PRIVATE
+		$<$<BOOL:${MSVC}>:/bigobj> # increase the number of sections for obj files
+		$<$<AND:$<BOOL:${static_runtime}>,$<CXX_COMPILER_ID:GNU>>:-static-libgcc -static-libstdc++>
 )
 
-# Unconditional platform-specific settings
-if (WIN32)
-	target_link_libraries(torrent-rasterbar
-		PRIVATE
-			wsock32 ws2_32 iphlpapi
-			debug dbghelp crypt32
-	)
-
-	add_definitions(-D_WIN32_WINNT=0x0600) # target Windows Vista or later
-
-	target_compile_definitions(torrent-rasterbar
-		PUBLIC WIN32_LEAN_AND_MEAN # prevent winsock1 to be included
-	)
-
-	if (MSVC)
-		target_compile_definitions(torrent-rasterbar
-			PUBLIC
-				BOOST_ALL_NO_LIB
-				_SCL_SECURE_NO_DEPRECATE _CRT_SECURE_NO_DEPRECATE # disable bogus deprecation warnings on msvc8
-		)
-		target_compile_options(torrent-rasterbar
-			PRIVATE
-				/Zc:wchar_t /Zc:forScope # these compiler settings just make the compiler standard conforming
-				/MP # for multi-core compilation
-				/bigobj # increase the number of sections for obj files
-		)
-		set_target_properties(torrent-rasterbar PROPERTIES LINK_FLAGS_RELEASE "/OPT:ICF=5 /OPT:REF")
-	endif()
-endif()
-
-if (ANDROID)
-	target_link_libraries(torrent-rasterbar PRIVATE ${CMAKE_DL_LIBS})
-endif()
-
-if (APPLE)
-	# for ip_notifier
-	target_link_libraries(torrent-rasterbar PRIVATE "-framework CoreFoundation" "-framework SystemConfiguration")
-endif()
-
-# check if we need to link with libatomic (not needed on MSVC)
-if (NOT Windows)
-	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
-	include(CheckCXXSourceCompiles)
-
-	set(ATOMICS_TEST_SOURCE [=[
-		#include <atomic>
-		#include <cstdint>
-		std::atomic<int> x{0};
-		int main() {
-			x.fetch_add(1, std::memory_order_relaxed);
-			return 0;
-		}
-	]=])
-	string(REPLACE "std::atomic<int>" "std::atomic<std::int64_t>" ATOMICS64_TEST_SOURCE "${ATOMICS_TEST_SOURCE}")
-
-	if(APPLE)
-		set(CMAKE_REQUIRED_FLAGS "-std=c++11")
-	endif()
-	check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITHOUT_LIB)
-	check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITHOUT_LIB)
-	if((NOT HAVE_CXX_ATOMICS_WITHOUT_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB))
-		set(CMAKE_REQUIRED_LIBRARIES "atomic")
-		check_cxx_source_compiles("${ATOMICS_TEST_SOURCE}" HAVE_CXX_ATOMICS_WITH_LIB)
-		check_cxx_source_compiles("${ATOMICS64_TEST_SOURCE}" HAVE_CXX_ATOMICS64_WITH_LIB)
-		if ((NOT HAVE_CXX_ATOMICS_WITH_LIB) OR (NOT HAVE_CXX_ATOMICS64_WITH_LIB))
-			message(FATAL_ERROR "No native support for std::atomic, or libatomic not found!")
-		else()
-			message(STATUS "Linking with libatomic for atomics support")
-			unset(CMAKE_REQUIRED_LIBRARIES)
-			target_link_libraries(torrent-rasterbar PUBLIC atomic)
-		endif()
-	endif()
-	if(APPLE)
-		unset(CMAKE_REQUIRED_FLAGS)
-	endif()
-endif()
-
-feature_option(build_tests "build tests" OFF)
-feature_option(build_examples "build examples" OFF)
-feature_option(build_tools "build tools" OFF)
-feature_option(python-bindings "build python bindings" OFF)
-feature_option(python-egg-info "generate python egg info" OFF)
-feature_option(python-install-system-dir "Install python bindings to the system installation directory rather than the CMake installation prefix" OFF)
-
-feature_option(iconv "build libtorrent with iconv support" ON)
-
-# these options require existing target
-feature_option(dht "enable support for Mainline DHT" ON)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME deprecated-functions DEFAULT ON
-	DESCRIPTION "enable deprecated functions for backwards compatibility" DISABLED TORRENT_NO_DEPRECATE)
-feature_option(encryption "Enables encryption in libtorrent" ON)
-feature_option(exceptions "build with exception support" ON)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extensions DEFAULT ON
-	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
-	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
-	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutable-torrents DEFAULT ON
-	DESCRIPTION "Enables mutable torrent support" DISABLED TORRENT_DISABLE_MUTABLE_TORRENTS)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME streaming DEFAULT ON
-	DESCRIPTION "Enables support for piece deadline" DISABLED TORRENT_DISABLE_STREAMING)
-
-if(iconv)
-	find_public_dependency(Iconv)
-	if(MSVC)
-		set(iconv_package_type OPTIONAL)
-	else()
-		set(iconv_package_type RECOMMENDED)
-	endif()
-
-	set_package_properties(Iconv
-		PROPERTIES
-			URL "https://www.gnu.org/software/libiconv/"
-			DESCRIPTION "GNU encoding conversion library"
-			TYPE ${iconv_package_type}
-			PURPOSE "Convert strings between various encodings"
-	)
-endif()
-
-if(Iconv_FOUND)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ICONV)
-	target_link_libraries(torrent-rasterbar PRIVATE Iconv::Iconv)
-endif()
-
-find_public_dependency(OpenSSL)
-set_package_properties(OpenSSL
-	PROPERTIES
-		URL "https://www.openssl.org/"
-		DESCRIPTION "Full-strength general purpose cryptography library"
-		TYPE RECOMMENDED
-		PURPOSE "Provides HTTPS support to libtorrent"
+target_include_directories(torrent-rasterbar
+	PUBLIC
+		"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+		"$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-if(TARGET OpenSSL::SSL)
-	# TODO: needed until https://gitlab.kitware.com/cmake/cmake/issues/19263 is fixed
-	if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
-		target_link_libraries(torrent-rasterbar PRIVATE crypt32)
+target_link_options(torrent-rasterbar
+	PRIVATE
+		# some optimization flags for non-Debug builds
+		$<$<AND:$<BOOL:${MSVC}>,$<BOOL:${BUILD_SHARED_LIBS}>,$<NOT:$<CONFIG:Debug>>>:LINKER:/OPT:ICF=5,/OPT:REF>
+)
+
+# target_link_options() cannot be used  to add options for static library targets, since they do not use a linker.
+# To add archiver or MSVC librarian flags, we must manipulate the STATIC_LIBRARY_OPTIONS target property.
+if (MSVC AND (NOT BUILD_SHARED_LIBS))
+	get_target_property(_PREV_STATIC_LIBRARY_OPTIONS torrent-rasterbar STATIC_LIBRARY_OPTIONS)
+	# the actual value might be "_PREV_STATIC_LIBRARY_OPTIONS-NOTFOUND" (which is flase-y) set it to the empty string
+	if (NOT _PREV_STATIC_LIBRARY_OPTIONS)
+		set(_PREV_STATIC_LIBRARY_OPTIONS "")
 	endif()
-
-	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::SSL)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_OPENSSL)
-endif()
-
-if(TARGET OpenSSL::Crypto)
-	target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::Crypto)
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
-else()
-	find_public_dependency(LibGcrypt)
-	set_package_properties(LibGcrypt
-		PROPERTIES
-			URL "https://www.gnupg.org/software/libgcrypt/index.html"
-			DESCRIPTION "A general purpose cryptographic library"
-			TYPE RECOMMENDED
-			PURPOSE "Use GCrypt instead of the built-in functions for RC4 and SHA1"
-	)
-	if (LibGcrypt_FOUND)
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBGCRYPT)
-		target_link_libraries(torrent-rasterbar PRIVATE LibGcrypt::LibGcrypt)
-	endif()
-endif()
-
-if (encryption)
-	target_sources(torrent-rasterbar PRIVATE include/libtorrent/pe_crypto.hpp src/pe_crypto.cpp)
-else()
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_ENCRYPTION)
-endif()
-
-if (dht)
-	target_sources(torrent-rasterbar PRIVATE
-		${libtorrent_kademlia_include_files}
-		include/libtorrent/hasher512.hpp
-		${kademlia_sources}
-		${ed25519_sources}
-		src/hasher512.cpp
-		src/sha512.cpp
-	)
-else()
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
-endif()
-
-# Boost
-find_public_dependency(Boost REQUIRED)
-target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
-if (Boost_MAJOR_VERSION LESS_EQUAL 1 AND Boost_MINOR_VERSION LESS 69)
-	find_package(Boost REQUIRED COMPONENTS system)
-	target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
-endif()
-
-if (exceptions)
-	if (MSVC)
-		target_compile_options(torrent-rasterbar PUBLIC /EHsc)
-	else (MSVC)
-		target_compile_options(torrent-rasterbar PUBLIC -fexceptions)
-	endif (MSVC)
-else()
-	if (MSVC)
-		target_compile_definitions(torrent-rasterbar PUBLIC _HAS_EXCEPTIONS=0)
-	else (MSVC)
-		target_compile_options(torrent-rasterbar PUBLIC -fno-exceptions)
-	endif (MSVC)
-endif()
-
-# developer options
-option(developer-options "Activates options useful for a developer")
-if(developer-options)
-	set(asserts "auto" CACHE STRING "use assertions")
-	set_property(CACHE asserts PROPERTY STRINGS auto on off production system)
-	if ("${asserts}" MATCHES "on|production|system")
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_ASSERTS=1)
-	endif()
-	if ("${asserts}" STREQUAL "production")
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_PRODUCTION_ASSERTS=1)
-	elseif("${asserts}" STREQUAL "system")
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_SYSTEM_ASSERTS=1)
-	endif()
-
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME asio-debugging DEFAULT OFF
-		ENABLED TORRENT_ASIO_DEBUGGING)
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME picker-debugging DEFAULT OFF
-		ENABLED TORRENT_DEBUG_REFCOUNTS)
-	set(invariant-checks "off" CACHE STRING "")
-	set_property(CACHE invariant-checks PROPERTY STRINGS off on full)
-	if (invariant-checks MATCHES "on|full")
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_INVARIANT_CHECKS=1)
-	endif()
-	if (invariant-checks STREQUAL "full")
-		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPENSIVE_INVARIANT_CHECKS)
-	endif()
-
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME utp-log DEFAULT OFF
-		ENABLED TORRENT_UTP_LOG_ENABLE)
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME simulate-slow-read DEFAULT OFF
-		ENABLED TORRENT_SIMULATE_SLOW_READ)
-	option(debug-iterators "" OFF)
-	if (debug-iterators)
-		if (MSVC)
-			target_compile_definitions(torrent-rasterbar PUBLIC _ITERATOR_DEBUG_LEVEL=2)
-		endif()
-		if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-			target_compile_definitions(torrent-rasterbar PUBLIC _GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
-		endif()
-	endif()
-	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME profile-calls DEFAULT OFF
-		ENABLED TORRENT_PROFILE_CALLS=1)
-endif()
-
-# This is best effort attempt to propagate whether the library was built with
-# C++11 or not. It affects the ABI of entry. A client building with C++14 and
-# linking against a libtorrent binary built with C++11 can still define
-# TORRENT_CXX11_ABI
-if ("${CMAKE_CXX_STANDARD}" STREQUAL "11")
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_CXX11_ABI)
+	set_target_properties(torrent-rasterbar PROPERTIES STATIC_LIBRARY_OPTIONS "${_PREV_STATIC_LIBRARY_OPTIONS};$<$<NOT:$<CONFIG:Debug>>:/OPT:ICF=5;/OPT:REF>")
 endif()
 
 # There is little to none support for using pkg-config with MSVC and most users won't bother with it.
@@ -856,26 +717,25 @@ if (NOT MSVC)
 	generate_and_install_pkg_config_file(torrent-rasterbar libtorrent-rasterbar)
 endif()
 
-include(CheckCXXCompilerFlag)
-
 add_subdirectory(bindings)
 
 install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+	ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+	RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
-install(DIRECTORY include/libtorrent DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.h*")
+install(DIRECTORY include/libtorrent DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" FILES_MATCHING PATTERN "*.h*")
 
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar)
-string(REGEX REPLACE "([^;]+)" "find_dependency(\\1)" _find_dependency_calls "${_package_dependencies}")
-string(REPLACE ";" "\n" _find_dependency_calls "${_find_dependency_calls}")
+set(ConfigPackageLocation "${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar")
+foreach(_pkg IN LISTS package_config_dependencies)
+	string(APPEND _find_dependency_calls "find_dependency(${_pkg})\n")
+endforeach()
 
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
-	VERSION ${libtorrent_VERSION}
+	VERSION "${libtorrent_VERSION}"
 	COMPATIBILITY AnyNewerVersion
 )
 
@@ -895,21 +755,21 @@ install(EXPORT LibtorrentRasterbarTargets
 	NAMESPACE
 		LibtorrentRasterbar::
 	DESTINATION
-		${ConfigPackageLocation}
+		"${ConfigPackageLocation}"
 )
 install(
 	FILES
 		"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfig.cmake"
 		"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfigVersion.cmake"
 	DESTINATION
-		${ConfigPackageLocation}
+		"${ConfigPackageLocation}"
 )
 
 install(
 	FILES
-		${CMAKE_CURRENT_SOURCE_DIR}/examples/cmake/FindLibtorrentRasterbar.cmake
+		"${CMAKE_CURRENT_SOURCE_DIR}/examples/cmake/FindLibtorrentRasterbar.cmake"
 	DESTINATION
-		${CMAKE_INSTALL_DATADIR}/cmake/Modules
+		"${CMAKE_INSTALL_DATADIR}/cmake/Modules"
 )
 
 # === build tools ===
