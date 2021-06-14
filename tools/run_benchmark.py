@@ -55,22 +55,19 @@ def run_test(name, test_cmd, client_arg, num_peers):
     rm_file_or_dir('session_stats_report')
 
     start = time.time()
-    client_cmd = (
-        '../examples/client_test -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent '
-        '--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 '
-        '-e 120 {arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={peers} -T {peers} '
-        '-f {output_dir}/events.log --alert_mask=8747'
-    ).format(port=port, arg=client_arg, peers=num_peers * 2, output_dir=output_dir)
+    client_cmd = f'../examples/client_test -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent ' + \
+        f'--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' + \
+        f'-e 120 {client_arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={num_peers*2} -T {num_peers*2} ' + \
+        f'-f {output_dir}/events.log --alert_mask=8747'
 
-    test_cmd = ('../examples/connection_tester {cmd} -c {peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
-                .format(cmd=test_cmd, peers=num_peers, port=port))
+    test_cmd = f'../examples/connection_tester {test_cmd} -c {num_peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
 
     client_out = open('%s/client.out' % output_dir, 'w+')
     test_out = open('%s/test.out' % output_dir, 'w+')
-    print('client_cmd: "{cmd}"'.format(cmd=client_cmd))
+    print(f'client_cmd: "{client_cmd}"')
     c = subprocess.Popen(client_cmd.split(' '), stdout=client_out, stderr=client_out, stdin=subprocess.PIPE)
     time.sleep(2)
-    print('test_cmd: "{cmd}"'.format(cmd=test_cmd))
+    print(f'test_cmd: "{test_cmd}"')
     t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
     t.wait()
