@@ -70,7 +70,7 @@ def run_test(name, client_arg):
         if 'checking_benchmark: start_checking, m_checking_piece: ' in l \
                 and start_time == 0:
             start_time = int(l.split(' ')[0][1:-1])
-        if 'checking_benchmark: on_piece_hashed, completed' in l \
+        if 'state changed to: finished' in l \
                 and start_time != 0:
             end_time = int(l.split(' ')[0][1:-1])
 
