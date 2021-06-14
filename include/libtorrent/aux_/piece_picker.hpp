@@ -122,10 +122,7 @@ namespace libtorrent::aux {
 		// pick pieces in sequential order
 		static inline constexpr picker_options_t sequential = 4_bit;
 
-		// treat pieces with priority 6 and below as filtered
-		// to trigger end-game mode until all prio 7 pieces are
-		// completed
-		static inline constexpr picker_options_t time_critical_mode = 5_bit;
+		// 5_bit is available
 
 		// only expands pieces (when prefer contiguous blocks is set)
 		// within properly aligned ranges, not the largest possible

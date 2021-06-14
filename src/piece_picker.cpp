@@ -2026,11 +2026,6 @@ namespace {
 			{
 				pc.inc_stats_counter(counters::piece_picker_partial_loops);
 
-				// in time critical mode, only pick high priority pieces
-				if ((options & time_critical_mode)
-					&& piece_priority(dp.index) != top_priority)
-					continue;
-
 				if (!is_piece_free(dp.index, pieces)) continue;
 
 				TORRENT_ASSERT(m_piece_map[dp.index].download_queue()
@@ -2075,11 +2070,6 @@ namespace {
 		{
 			for (piece_index_t i : suggested_pieces)
 			{
-				// in time critical mode, only pick high priority pieces
-				if ((options & time_critical_mode)
-					&& piece_priority(i) != top_priority)
-					continue;
-
 				pc.inc_stats_counter(counters::piece_picker_suggest_loops);
 				if (!is_piece_free(i, pieces)) continue;
 
@@ -2117,44 +2107,40 @@ namespace {
 				if (num_blocks <= 0) return ret;
 			}
 
-			// in time critical mode, only pick high priority pieces
-			if (!(options & time_critical_mode))
+			if (options & reverse)
 			{
-				if (options & reverse)
+				for (piece_index_t i = prev(m_reverse_cursor); i >= m_cursor; --i)
 				{
-					for (piece_index_t i = prev(m_reverse_cursor); i >= m_cursor; --i)
-					{
-						if (!is_piece_free(i, pieces)) continue;
-						// we've already added high priority pieces
-						if (piece_priority(i) == top_priority) continue;
+					if (!is_piece_free(i, pieces)) continue;
+					// we've already added high priority pieces
+					if (piece_priority(i) == top_priority) continue;
 
-						ret |= picker_log_alert::reverse_sequential;
+					ret |= picker_log_alert::reverse_sequential;
 
-						num_blocks = add_blocks(i, pieces
-							, interesting_blocks
-							, backup_blocks, num_blocks
-							, prefer_contiguous_blocks, peer, ignored_pieces
-							, options);
-						if (num_blocks <= 0) return ret;
-					}
+					num_blocks = add_blocks(i, pieces
+						, interesting_blocks
+						, backup_blocks, num_blocks
+						, prefer_contiguous_blocks, peer, ignored_pieces
+						, options);
+					if (num_blocks <= 0) return ret;
 				}
-				else
+			}
+			else
+			{
+				for (piece_index_t i = m_cursor; i < m_reverse_cursor; ++i)
 				{
-					for (piece_index_t i = m_cursor; i < m_reverse_cursor; ++i)
-					{
-						if (!is_piece_free(i, pieces)) continue;
-						// we've already added high priority pieces
-						if (piece_priority(i) == top_priority) continue;
+					if (!is_piece_free(i, pieces)) continue;
+					// we've already added high priority pieces
+					if (piece_priority(i) == top_priority) continue;
 
-						ret |= picker_log_alert::sequential_pieces;
+					ret |= picker_log_alert::sequential_pieces;
 
-						num_blocks = add_blocks(i, pieces
-							, interesting_blocks
-							, backup_blocks, num_blocks
-							, prefer_contiguous_blocks, peer, ignored_pieces
-							, options);
-						if (num_blocks <= 0) return ret;
-					}
+					num_blocks = add_blocks(i, pieces
+						, interesting_blocks
+						, backup_blocks, num_blocks
+						, prefer_contiguous_blocks, peer, ignored_pieces
+						, options);
+					if (num_blocks <= 0) return ret;
 				}
 			}
 		}
@@ -2167,7 +2153,7 @@ namespace {
 			// pieces. This is why reverse mode is disabled when we're in
 			// time-critical mode, because all high priority pieces are at the
 			// front of the list
-			if ((options & reverse) && !(options & time_critical_mode))
+			if (options & reverse)
 			{
 				for (int i = int(m_priority_boundaries.size()) - 1; i >= 0; --i)
 				{
@@ -2235,14 +2221,6 @@ namespace {
 				{
 					pc.inc_stats_counter(counters::piece_picker_rare_loops);
 
-					// in time critical mode, only pick high priority pieces
-					// it's safe to break here because in this mode we
-					// pick pieces in priority order. Once we hit a lower priority
-					// piece, we won't encounter any more high priority ones
-					if ((options & time_critical_mode)
-						&& piece_priority(i) != top_priority)
-						break;
-
 					if (!is_piece_free(i, pieces)) continue;
 					if ((options & sequential) && i >= m_cursor && i < m_reverse_cursor) continue;
 
@@ -2255,25 +2233,6 @@ namespace {
 						, options);
 					if (num_blocks <= 0) return ret;
 				}
-			}
-		}
-		else if (options & time_critical_mode)
-		{
-			// if we're in time-critical mode, we are only allowed to pick
-			// high priority pieces.
-			for (auto i = m_pieces.begin();
-				i != m_pieces.end() && piece_priority(*i) == top_priority; ++i)
-			{
-				if (!is_piece_free(*i, pieces)) continue;
-
-				ret |= picker_log_alert::time_critical;
-
-				num_blocks = add_blocks(*i, pieces
-					, interesting_blocks
-					, backup_blocks, num_blocks
-					, prefer_contiguous_blocks, peer, ignored_pieces
-					, options);
-				if (num_blocks <= 0) return ret;
 			}
 		}
 		else
@@ -2400,10 +2359,6 @@ get_out:
 		{
 			downloading_piece const& dp = *i;
 
-			if ((options & time_critical_mode)
-				&& piece_priority(dp.index) != top_priority)
-				continue;
-
 			// we either don't have this piece, or we've already requested from it
 			if (!pieces[dp.index]) continue;
 
@@ -2442,10 +2397,6 @@ get_out:
 			if (!pieces[dp.index]) continue;
 			// don't pick pieces with priority 0
 			TORRENT_ASSERT(piece_priority(dp.index) > dont_download);
-
-			if ((options & time_critical_mode)
-				&& piece_priority(dp.index) != top_priority)
-				continue;
 
 			partials[c++] = &dp;
 		}
@@ -2495,10 +2446,6 @@ get_out:
 			if (!pieces[i.index]) continue;
 			if (piece_priority(i.index) == dont_download) continue;
 			if (i.locked) continue;
-
-			if ((options & time_critical_mode)
-				&& piece_priority(i.index) != top_priority)
-				continue;
 
 			int idx = -1;
 			for (auto const& info : blocks_for_piece(i))

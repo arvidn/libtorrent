@@ -1995,66 +1995,6 @@ TORRENT_TEST(get_download_queue_size)
 	TEST_EQUAL(zero_prio, 1);
 }
 
-TORRENT_TEST(time_critical_mode)
-{
-	auto p = setup_picker("1111111", "       ", "1654741", "0352000");
-
-	// rarest-first
-	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::rarest_first | piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// reverse rarest-first
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::reverse | piece_picker::rarest_first
-		| piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// sequential
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::sequential | piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// reverse sequential
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::reverse | piece_picker::sequential
-		| piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// just critical
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// prioritize_partials
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::prioritize_partials | piece_picker::time_critical_mode, empty_vector);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-
-	// even when a non-critical piece is suggested should we ignore it
-	int v[] = {1, 5};
-	const std::vector<piece_index_t> suggested_pieces(v, v + 2);
-
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
-		, piece_picker::rarest_first | piece_picker::time_critical_mode
-		, suggested_pieces);
-	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < int(picked.size()); ++i)
-		TEST_EQUAL(picked[0].piece_index, 4_piece);
-}
-
 TORRENT_TEST(reprioritize_downloading)
 {
 	auto p = setup_picker("1111111", "       ", "", "");

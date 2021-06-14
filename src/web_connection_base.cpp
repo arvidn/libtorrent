@@ -69,6 +69,7 @@ namespace libtorrent::aux {
 			m_basic_auth = base64encode(m_basic_auth);
 
 		m_server_string = m_host;
+		aux::verify_encoding(m_server_string);
 	}
 
 	int web_connection_base::timeout() const
