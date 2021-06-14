@@ -1169,6 +1169,7 @@ int main(int argc, char* argv[])
 	conns.reserve(std::size_t(num_connections));
 	int const num_threads = 2;
 	io_context ios[num_threads];
+	lt::sha1_hash const ih = ti.info_hash();
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
@@ -1176,7 +1177,7 @@ int main(int argc, char* argv[])
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
-			, ep, ti.info_hash().data(), seed, churn, corrupt));
+			, ep, ih.data(), seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}
