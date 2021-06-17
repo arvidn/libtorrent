@@ -92,7 +92,7 @@ build_script:
   - cd %ROOT_DIRECTORY%
   - mkdir build && cd build
   - if defined cmake (
-    cmake -DCMAKE_CXX_STANDARD=11 -Diconv=OFF -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017 Win64" .. &&
+    cmake -DCMAKE_CXX_STANDARD=11 -DOPENSSL_ROOT_DIR=C:\OpenSSL-v111-Win64 -Diconv=OFF -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017 Win64" .. &&
     cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS% -- -verbosity:minimal
     )
 
