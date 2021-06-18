@@ -6,6 +6,25 @@ Streaming implementation
 This documents describes the algorithm libtorrent uses to satisfy time critical
 piece requests, i.e. streaming.
 
+streaming vs sequential_download
+--------------------------------
+
+Libtorrent's ``sequential_download`` mode and the time-critical logic can be
+understood as two different ways of managing *peer request queues*.
+
+``sequential_download`` will simply wait until a queue slot opens up, and
+request the next piece in the sequence. This mechanism is even simpler than the
+classic "rarest-first" algorithm; it does a good job of keeping request queues
+full, thus saturating available download bandwidth; and pieces do arrive
+*roughly* in-order. However, it's sub-optimal for streaming: piece 0 may be
+requested from a slow peer, and fast peers will get requests for later-index
+pieces instead of retrying more-critical ones.
+
+The time-critical logic does more *active management* of peer request queues,
+such that the most time-critical pieces occupy the "best" queue slots, across
+all peers. It can be considered an advanced version of ``sequential_download``.
+The main trade-off is that it is more complex to implement and utilize.
+
 piece picking
 -------------
 
