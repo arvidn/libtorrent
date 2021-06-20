@@ -898,7 +898,7 @@ class test_session(unittest.TestCase):
             print(a)
 
         self.assertTrue(h.is_valid())
-        self.assertEqual(h.status().info_hashes, lt.info_hash_t(lt.sha1_hash(b'a' * 20), lt.sha256_hash(b'a' * 32)))
+        self.assertEqual(h.status().info_hashes, lt.info_hash_t(lt.sha256_hash(b'a' * 32)))
 
     def test_session_status(self):
         if not has_deprecated():
