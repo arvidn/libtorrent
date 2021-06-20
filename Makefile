@@ -821,6 +821,7 @@ LIBSIM_TESTS = \
 
 TEST_SOURCES = \
   enum_if.cpp \
+  test_add_torrent.cpp \
   test_alert_manager.cpp \
   test_alert_types.cpp \
   test_alloca.cpp \
