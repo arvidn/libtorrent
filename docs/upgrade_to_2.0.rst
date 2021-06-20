@@ -26,6 +26,15 @@ support *hybrid* torrents. i.e. torrents that are compatible with v1-only
 bittorrent clients as well as supporting v2 features among the peers that
 support them.
 
+Example torrents
+----------------
+
+* `bittorrent-v2-hybrid-test.torrent`_
+* `bittorrent-v2-test.torrent`_
+
+.. _`bittorrent-v2-hybrid-test.torrent`: https://libtorrent.org/bittorrent-v2-hybrid-test.torrent
+.. _`bittorrent-v2-test.torrent`: https://libtorrent.org/bittorrent-v2-test.torrent
+
 info-hashes
 -----------
 
