@@ -606,6 +606,8 @@ target_link_libraries(torrent-rasterbar
 		$<$<AND:$<BOOL:${openssl}>,$<NOT:$<BOOL:${libgcrypt}>>>:OpenSSL::Crypto>
 		# -- Threads --
 		Threads::Threads
+		# -- Windows (MSYS2/MinGW only) --
+		"$<$<OR:$<BOOL:${MSYS}>,$<BOOL:${MINGW}>>:mswsock;ws2_32>"
 	PRIVATE
 		libtorrent_common_cfg
 		# -- Iconv --
