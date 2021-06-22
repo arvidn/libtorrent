@@ -1120,6 +1120,7 @@ namespace {
 		if (!m_recv_buffer.packet_finished()) return;
 
 		incoming_piece(p, recv_buffer.data() + header_size);
+		maybe_send_hash_request();
 	}
 
 	// -----------------------------
