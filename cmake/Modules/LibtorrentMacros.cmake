@@ -2,12 +2,96 @@
 include(FeatureSummary)
 
 # function for issuing option() and add_feature_info() in a single call.
+# it is used to define boolean options. A summary of the values of these options can then be printed
+# with the native FeatureSummary module
 # Synopsis:
 # feature_option(<option/feature name> <description> <default value>)
-function(feature_option _name _description _default)
-	string(CONCAT _desc "${_description} (default: ${_default})")
-	option("${_name}" "${_desc}" "${_default}")
-	add_feature_info("${_name}" "${_name}" "${_desc}")
+function(feature_option)
+	set(options "")
+	set(oneValueArgs NAME DEFAULT DESCRIPTION)
+	set(multiValueArgs "")
+
+	cmake_parse_arguments(
+		PARSE_ARGV 0
+		ARG
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	string(CONCAT _DESCRIPTION "${ARG_DESCRIPTION} (default: ${ARG_DEFAULT})")
+	option("${ARG_NAME}" "${_DESCRIPTION}" "${ARG_DEFAULT}")
+	add_feature_info("${ARG_NAME}" "${ARG_NAME}" "${_DESCRIPTION}")
+endfunction()
+
+# function for robustly defining multi-valued cache options
+# Synopsis:
+# feature_option_multivalue(NAME <feature name> DESCRIPTION <description>
+#	DEFAULT <default value> ALLOWED_VALUES <list of allowed values>)
+# Returns to parent scope:
+# - Appends the new option name to a list named MULTIVALUE_FEATURE_NAMES
+# - Appends the new option default to MULTIVALUE_FEATURE_DEFAULTS
+function(feature_option_multivalue)
+	set(options "")
+	set(oneValueArgs NAME DEFAULT DESCRIPTION)
+	set(multiValueArgs ALLOWED_VALUES)
+
+	cmake_parse_arguments(
+		PARSE_ARGV 0
+		ARG
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	set("${ARG_NAME}" "${ARG_DEFAULT}" CACHE STRING "")
+	set_property(CACHE "${ARG_NAME}" PROPERTY HELPSTRING "${ARG_DESCRIPTION} (default: ${ARG_DEFAULT} | allowed values: ${${ARG_ALLOWED_VALUES}})")
+	set_property(CACHE "${ARG_NAME}" PROPERTY STRINGS "${ARG_ALLOWED_VALUES}")
+	get_property(_CACHE_HELP_STR CACHE "${ARG_NAME}" PROPERTY HELPSTRING)
+	if (DEFINED CACHE{${ARG_NAME}} AND (NOT ${${ARG_NAME}} IN_LIST ARG_ALLOWED_VALUES))
+		message(FATAL_ERROR "'${ARG_NAME}' feature value must be one of: ${${ARG_ALLOWED_VALUES}}")
+	endif()
+
+	list(APPEND MULTIVALUE_FEATURE_NAMES "${ARG_NAME}")
+	list(APPEND MULTIVALUE_FEATURE_DEFAULTS "${ARG_DEFAULT}")
+	set(MULTIVALUE_FEATURE_NAMES "${MULTIVALUE_FEATURE_NAMES}" PARENT_SCOPE)
+	set(MULTIVALUE_FEATURE_DEFAULTS "${MULTIVALUE_FEATURE_DEFAULTS}" PARENT_SCOPE)
+endfunction()
+
+# function for printing a "feature summary" of multi-value options
+# Takes as input 2 equal length lists of option names and their defaults (the defaults are not directly available as properties)
+# The lists it takes as input are meant to be what feature_option_multivalue() sets as output
+# Synopsis:
+# feature_summary_multivalue(NAMES <list of option names> DEFAULTS <list of option defaults>)
+function(feature_summary_multivalue)
+	set(options "")
+	set(oneValueArgs NAMES DEFAULTS)
+	set(multiValueArgs "")
+
+	cmake_parse_arguments(
+		PARSE_ARGV 0
+		ARG
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	list(LENGTH "${ARG_NAMES}" _LEN)
+	if(_LEN LESS_EQUAL 0)
+		return()
+	endif()
+
+	message(STATUS "The following multi-valued options have been configured:\n")
+
+	# TODO: possibly migrate to foreach(ZIP_LISTS) in CMake >= 3.17
+	math(EXPR _LEN "${_LEN} - 1")
+	foreach(num RANGE 0 ${_LEN} 1)
+		list(GET "${ARG_NAMES}" "${num}" _NAME)
+		list(GET "${ARG_DEFAULTS}" "${num}" _DEFAULT)
+		get_property(_CACHE_HELP_STR CACHE "${_NAME}" PROPERTY HELPSTRING)
+
+		if(DEFINED CACHE{${_NAME}})
+			message("  * ${_NAME}: ${${_NAME}}, " "${_CACHE_HELP_STR}")
+		elseif(NOT DEFINED CACHE{${ARG_NAME}})
+			message("  * ${_NAME}: ${_DEFAULT}, " "${_CACHE_HELP_STR}")
+		endif()
+	endforeach()
+
+	message("")
 endfunction()
 
 # Set common variables and create some interface-only library targets
