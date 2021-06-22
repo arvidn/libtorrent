@@ -58,6 +58,9 @@ else()
 	unset(invariant-checks CACHE)
 endif()
 
+feature_summary(DEFAULT_DESCRIPTION WHAT ALL)
+feature_summary_multivalue(NAMES MULTIVALUE_FEATURE_NAMES DEFAULTS MULTIVALUE_FEATURE_DEFAULTS)
+
 # -- Find dependencies --
 if (static_runtime)
 	if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
@@ -798,6 +801,3 @@ if(build_tests)
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
 	add_subdirectory(test)
 endif()
-
-feature_summary(DEFAULT_DESCRIPTION WHAT ALL)
-feature_summary_multivalue(NAMES MULTIVALUE_FEATURE_NAMES DEFAULTS MULTIVALUE_FEATURE_DEFAULTS)
