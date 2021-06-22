@@ -109,19 +109,25 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (m_files.pad_file_at(f)) continue;
 
 			auto const& tree = m_merkle_trees[f];
+			auto& v = m_hash_verified[f];
 
 			// TODO: allocate m_hash_verified lazily when a hash conflist occurs?
 			// would save memory in the common case of no hash failures
-			m_hash_verified[f].resize(std::size_t(m_files.file_num_blocks(f)), all_verified);
-			if (m_hash_verified[f].size() == 1)
+			v.resize(std::size_t(m_files.file_num_blocks(f)), all_verified);
+			if (v.size() == 1)
 			{
 				// the root hash comes from the metadata so it is always verified
 				TORRENT_ASSERT(!tree.root().is_all_zeros());
-				m_hash_verified[f][0] = true;
+				v[0] = true;
 			}
 
 			if (m_files.file_size(f) <= m_files.piece_length())
+			{
+#if TORRENT_USE_INVARIANT_CHECKS
+				check_invariant(f);
+#endif
 				continue;
+			}
 
 			m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
 
@@ -140,12 +146,26 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 						m_piece_hash_requested[f][i].have = true;
 						break;
 					}
-					if ((m_files.piece_length() == default_block_size && !m_hash_verified[f][std::size_t(j)])
+					if ((m_files.piece_length() == default_block_size && !v[std::size_t(j)])
 						|| (m_files.piece_length() > default_block_size
 							&& !tree.has_node(piece_layer_start + j)))
 						break;
 				}
 			}
+
+			// The verified bitfield may be invalid. If so, correct it to
+			// maintain the invariant of this class
+			int block_index = m_files.file_first_block_node(f);
+			for (auto i = v.begin(); i != v.end(); ++i)
+			{
+				if (*i && !tree.has_node(block_index))
+					*i = false;
+				++block_index;
+			}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant(f);
+#endif
 		}
 	}
 
@@ -331,6 +351,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				, file_piece_offset, hashes);
 		}
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant(req.file);
+#endif
+
 		return ret;
 	}
 
@@ -375,10 +399,18 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		std::tie(result, leafs_index, leafs_size) = merkle_tree.set_block(block_index, h);
 
 		if (result == aux::merkle_tree::set_block_result::unknown)
+		{
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant(f);
+#endif
 			return set_block_hash_result::unknown();
+		}
 
 		if (result == aux::merkle_tree::set_block_result::hash_failed)
 		{
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant(f);
+#endif
 			// If the hash failure was detected within a single piece then report a piece failure
 			// otherwise report unknown. The pieces will be checked once their hashes have been
 			// downloaded.
@@ -391,6 +423,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			int const file_num_blocks = m_files.file_num_blocks(f);
 			std::fill_n(m_hash_verified[f].begin() + leafs_index, std::min(leafs_size, file_num_blocks - leafs_index), true);
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant(f);
+#endif
 		}
 
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
@@ -498,4 +533,27 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	{
 		return merkle_num_layers(merkle_num_leafs(m_files.file_num_blocks(idx)));
 	}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void hash_picker::check_invariant(file_index_t const idx) const
+	{
+		TORRENT_UNUSED(idx);
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		auto const& verified = m_hash_verified[idx];
+		if (verified.empty()) return;
+
+		auto const& merkle_tree = m_merkle_trees[idx];
+
+		int block_index = m_files.file_first_block_node(idx);
+
+		for (bool const v : verified)
+		{
+			// v implies has_node(). If v == false, has_node may or may not be
+			// true
+			TORRENT_ASSERT(!v || merkle_tree.has_node(block_index));
+			++block_index;
+		}
+#endif
+	}
+#endif
 }

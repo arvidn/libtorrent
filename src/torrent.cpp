@@ -4338,7 +4338,7 @@ namespace {
 			// request them from. For now be conservative and re-request
 			// the block without waiting for block hashes.
 
-			get_hash_picker().verify_block_hashes(index);
+			verify_block_hashes(index);
 			return;
 		}
 
@@ -7408,10 +7408,13 @@ namespace {
 				m_v2_piece_layers_validated = false;
 				return errors::torrent_invalid_piece_layer;
 			}
+#if TORRENT_USE_INVARIANT_CHECKS
+			if (m_hash_picker)
+				m_hash_picker->check_invariant(i);
+#endif
 		}
 
 		m_v2_piece_layers_validated = valid;
-
 
 		m_torrent_file->free_piece_layers();
 		return {};
