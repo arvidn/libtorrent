@@ -159,6 +159,10 @@ namespace libtorrent
 
 		int piece_layer() const { return m_piece_layer; }
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		void check_invariant(file_index_t idx) const;
+#endif
+
 	private:
 		// returns the number of proof layers needed to verify the node's hash
 		int layers_to_verify(node_index idx) const;
