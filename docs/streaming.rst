@@ -6,6 +6,52 @@ Streaming implementation
 This documents describes the algorithm libtorrent uses to satisfy time critical
 piece requests, i.e. streaming.
 
+considerations
+--------------
+
+Streaming data over bittorrent presents several new issues.
+
+1. Sequential downloading hurts download capacity
+	Bittorrent encourages downloaders to do tit-for-tat data transfers between each
+	other. This only works if there is mutual *interest* (each has data the other
+	wants). But if two peers are streaming the torrent in *strictly* sequential
+	piece order, then the "younger" peer has no data to offer the "older" peer.
+	These peers would depend on the upload capacity of any seeds in the swarm.
+2. Full request queues hurt interactivity
+	Whenever the set of time-critical pieces changes (the stream "seeks" to a
+	new position), the optimal move to minimize delay would be to request the
+	newly-critical data from a fast peer *with an empty request queue*.
+3. Non-full request queues hurt throughput
+	Converse to the above, if we want to maximize throughput, we should keep
+	peer request queues as full as possible. In addition to maximizing transfer
+	with a single peer, it's also good to exercise transfer with *all* peers, to discover
+	the *fastest ones*.
+
+Dealing with these issues is an open question.
+
+critical window
+---------------
+
+A common approach to streaming is to use a *critical window* of data ahead of
+the stream position. There are many ways to define such a window.
+
+A window may be *size-based*, where we consider N bytes ahead of the
+stream position to be critical. This has the advantage of being easy to
+understand and configure.
+
+A window may be *time-based*, where we consider N seconds worth of data
+ahead of the stream position to be critical. This requires some way to define
+the "rate" of the stream. For media files, the rate could be the bit rate of the
+media. Otherwise it could be dynamically measured by how fast the consumer
+consumes data.
+
+If the stream consumer consumes data slower than the torrent's download rate
+(this should usually be the case when streaming media), we can decide what to
+do with the "leftover" bandwidth once the critical window is fulfilled. One idea
+is to use classic rarest-first picking to download the rest of the torrent, as
+this can mitigate the problems of sequential downloading, and keeps request
+queues full.
+
 streaming vs sequential_download
 --------------------------------
 
@@ -25,6 +71,24 @@ such that the most time-critical pieces occupy the "best" queue slots, across
 all peers. It can be considered an advanced version of ``sequential_download``.
 The main trade-off is that it is more complex to implement and utilize.
 
+current strategy and API usage
+------------------------------
+
+Libtorrent currently offers ``torrent_handle::set_piece_deadline()``, which
+supports a time-based `critical window`_.
+
+Libtorrent may use the supplied deadlines to make advanced timing decisions,
+effectively resizing the window dynamically. Currently, it will only apply
+time-critical logic to a piece when its deadline is within 4 standard
+deviations of the average time to complete a piece.
+
+If all critical pieces are requested, libtorrent will use leftover bandwidth
+to download any other pieces with non-zero priority.
+
+The best strategy is to calculate piece deadlines *for the entire range being
+streamed* (e.g. an entire file in the torrent) and apply these with
+``torrent_handle::set_piece_deadline()``, as long as streaming is active.
+
 piece picking
 -------------
 
@@ -33,11 +97,9 @@ complete a block from a peer and we want to make another request to that peer.
 The piece picker answers the question: which block should we request from this
 peer.
 
-When streaming, we have a number of *time critical* pieces, the ones the video
-or audio player will need next to keep up with the stream. To keep the deadlines
-of these pieces, we need a mechanism to answer the question: I want to request
-blocks from this piece, which peer is the most likely to be able to deliver it
-to me the soonest.
+To keep the deadlines of our *time-critical* pieces, we need a mechanism to
+answer the question: I want to request blocks from this piece, which peer is
+the most likely to be able to deliver it to me the soonest.
 
 This question is answered by ``torrent::request_time_critical_pieces()`` in
 libtorrent.
