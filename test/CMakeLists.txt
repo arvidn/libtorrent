@@ -35,7 +35,7 @@ if (MSVC)
 	)
 endif()
 
-foreach(TARGET_SRC ${tests})
+foreach (TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)
 	add_executable(${TARGET} ${TARGET_SRC})
 	target_link_libraries(${TARGET} test_common)

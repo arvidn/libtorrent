@@ -71,22 +71,22 @@ function(feature_summary_multivalue)
 	)
 
 	list(LENGTH "${ARG_NAMES}" _LEN)
-	if(_LEN LESS_EQUAL 0)
+	if (_LEN LESS_EQUAL 0)
 		return()
 	endif()
 
 	message(STATUS "The following multi-valued options have been configured:\n")
 
-	# TODO: possibly migrate to foreach(ZIP_LISTS) in CMake >= 3.17
+	# TODO: possibly migrate to foreach (ZIP_LISTS) in CMake >= 3.17
 	math(EXPR _LEN "${_LEN} - 1")
-	foreach(num RANGE 0 ${_LEN} 1)
+	foreach (num RANGE 0 ${_LEN} 1)
 		list(GET "${ARG_NAMES}" "${num}" _NAME)
 		list(GET "${ARG_DEFAULTS}" "${num}" _DEFAULT)
 		get_property(_CACHE_HELP_STR CACHE "${_NAME}" PROPERTY HELPSTRING)
 
-		if(DEFINED CACHE{${_NAME}})
+		if (DEFINED CACHE{${_NAME}})
 			message("  * ${_NAME}: ${${_NAME}}, " "${_CACHE_HELP_STR}")
-		elseif(NOT DEFINED CACHE{${ARG_NAME}})
+		elseif (NOT DEFINED CACHE{${ARG_NAME}})
 			message("  * ${_NAME}: ${_DEFAULT}, " "${_CACHE_HELP_STR}")
 		endif()
 	endforeach()

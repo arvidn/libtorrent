@@ -16,10 +16,10 @@ function(_get_target_property_merging_configs _var_name _target_name _propert_na
 	else()
 		if (CMAKE_BUILD_TYPE)
 			list(APPEND configs ${CMAKE_BUILD_TYPE})
-		elseif(CMAKE_CONFIGURATION_TYPES)
+		elseif (CMAKE_CONFIGURATION_TYPES)
 			list(APPEND configs ${CMAKE_CONFIGURATION_TYPES})
 		endif()
-		foreach(cfg ${configs})
+		foreach (cfg ${configs})
 			string(TOUPPER "${cfg}" UPPERCFG)
 			get_property(mapped_configs TARGET ${_target_name} PROPERTY "MAP_IMPORTED_CONFIG_${UPPERCFG}")
 			if (mapped_configs)
@@ -68,7 +68,7 @@ function(_expand_targets _targets _libraries_var _include_dirs_var _compile_opti
 
 	list(APPEND _libs "${_targets}")
 
-	while(_any_target_was_expanded)
+	while (_any_target_was_expanded)
 		set(_any_target_was_expanded False)
 		set(_new_libs "")
 		foreach (_dep ${_libs})
@@ -96,15 +96,15 @@ function(_expand_targets _targets _libraries_var _include_dirs_var _compile_opti
 					list(APPEND _new_libs "${_iface_link_libraries}")
 				endif()
 
-				if(_iface_include_dirs)
+				if (_iface_include_dirs)
 					list(APPEND _includes "${_iface_include_dirs}")
 				endif()
 
-				if(_iface_compile_options)
+				if (_iface_compile_options)
 					list(APPEND _options "${_iface_compile_options}")
 				endif()
 
-				if(_iface_definitions)
+				if (_iface_definitions)
 					list(APPEND _defs "${_iface_definitions}")
 				endif()
 
@@ -139,7 +139,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 	set(_package_name "${_packageName}")
 
 	# remove standard include directories
-	foreach(d IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
+	foreach (d IN LISTS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
 		list(REMOVE_ITEM _interface_include_dirs "${d}")
 	endforeach()
 
@@ -148,7 +148,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 
 	# Since CMake 3.18 FindThreads may include a generator expression requiring a target, which gets propagated to us through INTERFACE_OPTIONS.
 	# Before CMake 3.19 there's no way to solve this in a general way, so we work around the specific case. See #4956 and CMake bug #21074.
-	if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+	if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
 		set(_target_arg TARGET ${_target})
 	else()
 		string(REPLACE "<COMPILE_LANG_AND_ID:CUDA,NVIDIA>" "<COMPILE_LANGUAGE:CUDA>" _interface_compile_options "${_interface_compile_options}")
@@ -169,7 +169,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 
 		install(SCRIPT "${_generate_target_dir}/generate-pkg-config.cmake")
 	else()
-		foreach(cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
+		foreach (cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
 			set(_variables_file_name "${_generate_target_dir}/${cfg}/compile-settings-expanded.cmake")
 
 			file(GENERATE OUTPUT "${_variables_file_name}" INPUT "${_generate_target_dir}/compile-settings.cmake" CONDITION "$<CONFIG:${cfg}>" ${_target_arg})

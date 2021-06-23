@@ -63,7 +63,7 @@ feature_summary_multivalue(NAMES MULTIVALUE_FEATURE_NAMES DEFAULTS MULTIVALUE_FE
 
 # -- Find dependencies --
 if (static_runtime)
-	if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
+	if ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
 		message(AUTHOR_WARNING "Currently, the build system does not guaranteed that the appropriate flags will be set for static runtime with Clang")
 	endif()
 	# set hints for FindBoost and FindOpenSSL built-in modules
@@ -741,7 +741,7 @@ install(DIRECTORY include/libtorrent DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" F
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)
 set(ConfigPackageLocation "${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar")
-foreach(_pkg IN LISTS package_config_dependencies)
+foreach (_pkg IN LISTS package_config_dependencies)
 	string(APPEND _find_dependency_calls "find_dependency(${_pkg})\n")
 endforeach()
 
