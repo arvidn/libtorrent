@@ -60,13 +60,15 @@ namespace aux {
 
 		xnvme_dev *dev;
 		xnvme_queue *queue;
+		open_mode_t open_mode;
 	};
 
 	struct session_settings;
 
 	struct TORRENT_EXTRA_EXPORT xnvme_storage
 	{
-		explicit xnvme_storage(storage_params const& p, std::string xnvme_storage);
+		explicit xnvme_storage(storage_params const& p, std::string xnvme_backend);
+		explicit xnvme_storage(storage_params const& p);
 		file_storage const& files() const;
 		file_storage const& orig_files() const { return m_files; }
 		~xnvme_storage();
@@ -79,15 +81,13 @@ namespace aux {
 			, span<iovec_t const> bufs
 			, piece_index_t const piece
 			, int const offset
-			, storage_error &error
-			, std::function<void(storage_error const&)> handler);
+			, std::function<void(storage_error const&, uint64_t)> handler);
 
 		int writev(settings_interface const& sett
 			, span<iovec_t const> bufs
 			, piece_index_t const piece
 			, int const offset
-			, storage_error &error
-			, std::function<void(storage_error const&)> handler);
+			, std::function<void(storage_error const&, uint64_t)> handler);
 
 		bool has_any_file(storage_error& error);
 		void set_file_priority(aux::vector<download_priority_t, file_index_t>& prio
@@ -106,10 +106,11 @@ namespace aux {
 		void rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec);
 
 		void initialize(settings_interface const&, storage_error& ec);
+		void reap_ios();
 
 	private:
 
-		xnvme_file_queue* open_file_xnvme (file_index_t idx);
+		xnvme_file_queue* open_file_xnvme (file_index_t idx, open_mode_t open_mode, storage_error& ec);
 
 		file_pointer open_file(file_index_t idx, open_mode_t mode, std::int64_t offset
 			, storage_error& ec);
@@ -127,6 +128,10 @@ namespace aux {
 
 		std::unordered_map<std::string, xnvme_file_queue*> m_file_handles;
 		std::string m_xnvme_backend;
+
+		// m_io_mutex is used to ensure mutual exclusion on operations that
+		// use/manipulate `xnvme_queue` as this is not thread safe.
+		std::mutex m_io_mutex;
 
 		// this this is an array indexed by file-index. Each slot represents
 		// whether this file has the part-file enabled for it. This is used for

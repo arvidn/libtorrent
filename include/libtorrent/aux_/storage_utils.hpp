@@ -107,6 +107,16 @@ namespace aux {
 		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<iovec_t const> bufs);
+
+	struct io {
+		ssize_t offset;
+		file_index_t file_index;
+		iovec_t buf;
+	};
+
+	TORRENT_EXTRA_EXPORT std::vector<io>
+	prepare_ios(file_storage const& files, span<iovec_t const> const bufs
+		, piece_index_t const piece, const int offset);
 }}
 
 #endif

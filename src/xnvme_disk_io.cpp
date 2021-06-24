@@ -49,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/merkle.hpp"
 
 #include <vector>
+#include <thread>
+#include <condition_variable>
+#include <chrono>
+using namespace std::chrono_literals;
 
 namespace libtorrent {
 
@@ -75,9 +79,28 @@ namespace {
 			, m_buffer_pool(ios)
 			, m_stats_counters(cnt)
 			, m_ios(ios)
+			, m_reap_ios(true)
 		{
 			m_xnvme_backend = sett.get_str(settings_pack::xnvme_backend);
 			settings_updated();
+
+
+			m_io_reaper = std::thread([this]
+			{
+				while (m_reap_ios.load()) {
+					auto ulock = std::unique_lock<std::mutex>(m_torrents_mutex);
+					m_io_reaper_cond.wait_for(ulock, 250ms, [](){return true;});
+					ulock.unlock();
+
+					for (auto &torrent : m_torrents) {
+						auto storage = torrent.get();
+						if (storage != NULL) {
+							storage->reap_ios();
+						}
+					}
+				}
+
+			});
 		}
 
 		void settings_updated() override
@@ -88,6 +111,8 @@ namespace {
 		storage_holder new_torrent(storage_params const& params
 			, std::shared_ptr<void> const&) override
 		{
+			auto ulock = std::unique_lock<std::mutex>(m_torrents_mutex);
+
 			// make sure we can remove this torrent without causing a memory
 			// allocation, by causing the allocation now instead
 			m_free_slots.reserve(m_torrents.size() + 1);
@@ -106,7 +131,15 @@ namespace {
 			m_free_slots.push_back(idx);
 		}
 
-		void abort(bool) override {}
+		void abort(bool) override {
+			m_reap_ios.exchange(false);
+
+			m_io_reaper_cond.notify_all();
+			if (m_io_reaper.joinable()) {
+				m_io_reaper.join();
+			}
+		}
+
 
 		void async_read(storage_index_t storage, peer_request const& r
 			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
@@ -114,12 +147,11 @@ namespace {
 		{
 			time_point const start_time = clock_type::now();
 
-			storage_error *error = new storage_error();
 			char *bufz = m_buffer_pool.allocate_buffer("send buffer");
 
 			iovec_t buf = {bufz, r.length};
 
-			auto whandler = [handler = std::move(handler), this, bufz, start_time](storage_error error) mutable {
+			auto whandler = [handler = std::move(handler), this, bufz, start_time](storage_error error, uint64_t bytes_read) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					disk_buffer_holder buffer = disk_buffer_holder(*this, bufz, default_block_size);
 					h(std::move(buffer), error);
@@ -137,7 +169,7 @@ namespace {
 				});
 			};
 
-			int res = m_torrents[storage]->readv2(m_settings, buf, r.piece, r.start, *error, std::move(whandler));
+			int res = m_torrents[storage]->readv2(m_settings, buf, r.piece, r.start, std::move(whandler));
 			TORRENT_ASSERT(res >= 0);
 		}
 
@@ -152,7 +184,7 @@ namespace {
 
 			time_point const start_time = clock_type::now();
 
-			auto whandler = [=, handler = std::move(handler)](storage_error error) mutable {
+			auto whandler = [=, handler = std::move(handler)](storage_error error, uint64_t bytes_written) mutable {
 				post(m_ios, [=, h = std::move(handler)]() {
 					h(error);
 
@@ -167,8 +199,7 @@ namespace {
 				});
 			};
 
-			storage_error error;
-			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, error, std::move(whandler));
+			int res = m_torrents[storage]->writev(m_settings, b, r.piece, r.start, std::move(whandler));
 			TORRENT_ASSERT(res >= 0);
 
 			return false;
@@ -183,16 +214,6 @@ namespace {
 			bool const v1 = bool(flags & disk_interface::v1_hash);
 			bool const v2 = !block_hashes.empty();
 
-			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
-			storage_error error;
-			if (!buffer)
-			{
-				error.ec = errors::no_memory;
-				error.operation = operation_t::alloc_cache_piece;
-				post(m_ios, [=, h = std::move(handler)]{ h(piece, sha1_hash{}, error); });
-				return;
-			}
-			hasher ph;
 
 			xnvme_storage* st = m_torrents[storage].get();
 
@@ -206,37 +227,106 @@ namespace {
 			int offset = 0;
 			int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
+			struct completed_io {
+				char *buf;
+				int size;
+			};
+
+			struct cb_arg {
+				cb_arg(completed_io *completed_ios_)
+				: completed_ios(completed_ios_)
+				, ncompleted_ios(0) {}
+
+				completed_io *completed_ios;
+				int ncompleted_ios;
+			};
+
+			cb_arg *cb_args = new cb_arg(new completed_io[blocks_to_read]);
+
+			// TODO: cb_handler is never free()d
+			// TODO: cb_handler isn't exception- and memory safe
+			// TODO: how can we do this without allocating cb_handler on the heap?
+			//       Problem: we want to std::move() `handler` into the callback in order
+			//       to post it once all callbacks have completed. But we can't move()
+			//       it more than once... And the same goes for cb_handler.
+			//
+			auto cb_handler = new std::function<void(storage_error error, char *buffer, int index, int len, int len2, uint64_t bytes_read)>([handler = std::move(handler), blocks_to_read, cb_args, this, v1, v2, blocks_in_piece2, block_hashes, piece, start_time](storage_error error, char *buffer, int io_index, int len, int len2, uint64_t bytes_read) mutable {
+				cb_args->ncompleted_ios++;
+
+				if (io_index >= blocks_to_read) {
+					fprintf(stderr, "FAILED: async_hash callback: index >= blocks_to_read, %d >= %d\n", io_index, blocks_to_read);
+					exit(42);
+				}
+				cb_args->completed_ios[io_index].buf = buffer;
+				cb_args->completed_ios[io_index].size = bytes_read;
+
+				if (cb_args->ncompleted_ios < blocks_to_read) {
+					return;
+				}
+
+				hasher ph;
+				for (int i = 0; i < blocks_to_read; i++) {
+					bool v2_block = i < blocks_in_piece2;
+
+					auto io = cb_args->completed_ios[i];
+					if (io.size <= 0) {
+						break;
+					}
+					if (v1) {
+						ph.update(io.buf, std::min(len, io.size));
+					}
+					if (v2_block) {
+						block_hashes[i] = hasher256(io.buf, std::min(len2, io.size)).final();
+					}
+					free_disk_buffer(cb_args->completed_ios[i].buf);
+				}
+
+				sha1_hash const hash = v1 ? ph.final() : sha1_hash();
+
+				free(cb_args->completed_ios);
+				free(cb_args);
+				if (!error.ec)
+				{
+					std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+					m_stats_counters.inc_stats_counter(counters::num_read_back);
+					m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
+					m_stats_counters.inc_stats_counter(counters::num_read_ops);
+					m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+					m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+				}
+
+				post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
+			});
+
 			for (int i = 0; i < blocks_to_read; ++i)
 			{
+				auto buffer = m_buffer_pool.allocate_buffer("hash buffer");
+				storage_error error;
+				if (!buffer)
+				{
+					fprintf(stderr, "XNVME ERROR: failed to allocate buffer!\n");
+					error.ec = errors::no_memory;
+					error.operation = operation_t::alloc_cache_piece;
+					post(m_ios, [=, h = std::move(handler)]{ h(piece, sha1_hash{}, error); });
+					return;
+				}
+
 				bool const v2_block = i < blocks_in_piece2;
 
 				auto const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 				auto const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
-				iovec_t b = {buffer.data(), std::max(len, len2)};
-				int const ret = st->readv(m_settings, b, piece, offset, error);
+				iovec_t b = {buffer, std::max(len, len2)};
+				int res = st->readv2(m_settings, b, piece, offset, [len, len2, i, buffer, cb_handler](storage_error err, uint64_t bytes_read) mutable {
+					(*cb_handler)(err, buffer, i, len, len2, bytes_read);
+				});
+				if (res < 0) {
+					fprintf(stderr, "FAILED: async_hash piece: %d, res: %d\n", piece, res);
+					break;
+				}
 				offset += default_block_size;
-				if (ret <= 0) break;
-				if (v1)
-					ph.update(b.first(std::min(ret, len)));
-				if (v2_block)
-					block_hashes[i] = hasher256(b.first(std::min(ret, len2))).final();
 			}
-
-			sha1_hash const hash = v1 ? ph.final() : sha1_hash();
-
-			if (!error.ec)
-			{
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
-
-				m_stats_counters.inc_stats_counter(counters::num_read_back);
-				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
-				m_stats_counters.inc_stats_counter(counters::num_read_ops);
-				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
-				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
-			}
-
-			post(m_ios, [=, h = std::move(handler)]{ h(piece, hash, error); });
 		}
 
 		void async_hash2(storage_index_t storage, piece_index_t const piece, int offset, disk_job_flags_t
@@ -398,10 +488,13 @@ namespace {
 		std::vector<open_file_state> get_status(storage_index_t) const override
 		{ return {}; }
 
-		void submit_jobs() override {}
+		void submit_jobs() override {
+			m_io_reaper_cond.notify_all();
+		}
 
 	private:
 
+		std::mutex m_torrents_mutex;
 		aux::vector<std::unique_ptr<xnvme_storage>, storage_index_t> m_torrents;
 
 		// slots that are unused in the m_torrents vector
@@ -419,6 +512,11 @@ namespace {
 
 		// xNVMe backend to use when initializing xnvme_storage structs
 		std::string m_xnvme_backend;
+
+		std::atomic_bool m_reap_ios;
+		std::thread m_io_reaper;
+		std::condition_variable m_io_reaper_cond;
+		// std::unique_lock<std::mutex> m_io_reaper_mutex;
 	};
 
 	TORRENT_EXPORT std::unique_ptr<disk_interface> xnvme_disk_io_constructor(

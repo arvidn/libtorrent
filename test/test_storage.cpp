@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/mmap_storage.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
+#include "libtorrent/aux_/xnvme_storage.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
@@ -58,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/xnvme_disk_io.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -82,6 +84,7 @@ namespace aux {
 namespace {
 
 using lt::aux::posix_storage;
+using lt::aux::xnvme_storage;
 using lt::aux::disk_io_job;
 
 constexpr int piece_size = 16 * 1024 * 16;
@@ -201,6 +204,14 @@ std::shared_ptr<posix_storage> make_storage(storage_params const& p
 	return std::make_shared<posix_storage>(p);
 }
 
+template <>
+std::shared_ptr<xnvme_storage> make_storage(storage_params const& p
+	, aux::file_view_pool&)
+{
+	return std::make_shared<xnvme_storage>(p);
+}
+
+
 template <typename StorageType>
 std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 	, aux::file_view_pool& fp
@@ -286,7 +297,56 @@ int readv(std::shared_ptr<posix_storage> s
 	return s->readv(sett, bufs, piece, offset, ec);
 }
 
+
+int writev(std::shared_ptr<xnvme_storage> s
+	, aux::session_settings const& set
+	, span<iovec_t const> bufs
+	, piece_index_t const piece
+	, int const offset
+	, aux::open_mode_t
+	, storage_error& error)
+{
+	bool io_done = false;
+	int bytes_written = 0;
+	s->writev(set, bufs, piece, offset, [&bytes_written, &io_done](storage_error const& ec, uint64_t num_bytes) {
+		bytes_written = (int)num_bytes;
+		io_done = true;
+	});
+
+	while (!io_done) {
+		s->reap_ios();
+		usleep(50000);
+	}
+
+	return bytes_written;
+}
+
+int readv(std::shared_ptr<xnvme_storage> s
+	, aux::session_settings const& set
+	, span<iovec_t const> bufs
+	, piece_index_t const piece
+	, int const offset
+	, aux::open_mode_t
+	, storage_error& error)
+{
+	bool io_done = false;
+	int bytes_read = 0;
+	s->readv2(set, bufs, piece, offset, [&bytes_read, &io_done](storage_error const& ec, uint64_t num_bytes) {
+		bytes_read = (int)num_bytes;
+		io_done = true;
+	});
+
+	while (!io_done) {
+		s->reap_ios();
+		usleep(50000);
+	}
+
+	return bytes_read;
+}
+
+
 void release_files(std::shared_ptr<posix_storage>, storage_error&) {}
+void release_files(std::shared_ptr<xnvme_storage>, storage_error&) {}
 
 std::vector<char> new_piece(std::size_t const size)
 {
@@ -294,6 +354,20 @@ std::vector<char> new_piece(std::size_t const size)
 	aux::random_bytes(ret);
 	return ret;
 }
+
+void dump_iov(span<char> iov, char const* wrapper) {
+	fprintf(stderr, "%s:\n", wrapper);
+	int i = 0;
+	for (auto c : iov) {
+		fprintf(stderr, "%d ", c);
+		i += 1;
+		if (i % 250 == 0) {
+			fprintf(stderr, "\n");
+		}
+	}
+	fprintf(stderr, "\n/%s end\n", wrapper);
+}
+
 
 template <typename StorageType>
 void run_storage_tests(std::shared_ptr<torrent_info> info
@@ -360,6 +434,10 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	TEST_EQUAL(ret, int(iov.size()));
 	if (ret != int(iov.size())) print_error("readv",ret, ec);
 	TEST_CHECK(iov == span<char>(piece1).subspan(3, piece_size - 9));
+	if (iov != span<char>(piece1).subspan(3, piece_size - 9)) {
+		dump_iov(iov, "got iov");
+		dump_iov(piece1, "expected iov");
+	}
 
 	// test unaligned read (where the bytes are not aligned)
 	iov = span<char>(piece).first(piece_size - 9);
@@ -674,6 +752,16 @@ TORRENT_TEST(rename_posix_disk_io)
 TORRENT_TEST(remove_posix_disk_io)
 {
 	test_remove<posix_storage>(current_working_directory());
+}
+
+TORRENT_TEST(rename_xnvme_disk_io)
+{
+	test_rename<xnvme_storage>(current_working_directory());
+}
+
+TORRENT_TEST(remove_xnvme_disk_io)
+{
+	test_remove<xnvme_storage>(current_working_directory());
 }
 
 void test_fastresume(bool const test_deprecated)
@@ -1031,6 +1119,18 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 	return true;
 }
 
+bool check_pattern2(iovec_t buf, int counter)
+{
+	unsigned char const* p = reinterpret_cast<unsigned char const*>(buf.data());
+	for (int k = 0; k < buf.size(); ++k)
+	{
+		fprintf(stdout, "expected %x, got %x\n", p[k], counter & 0xff);
+		if (p[k] != (counter & 0xff)) return false;
+		++counter;
+	}
+	return true;
+}
+
 // TODO: this should take a span
 void free_iov(iovec_t* iov, int num_bufs)
 {
@@ -1139,6 +1239,8 @@ TORRENT_TEST(iovec_advance_bufs)
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
+
+TORRENT_TEST(xnvme_disk_io) { run_test<xnvme_storage>(); }
 
 namespace {
 
@@ -1259,6 +1361,58 @@ int count_bufs(iovec_t const* bufs, int bytes)
 
 } // anonymous namespace
 
+// Verifies that IOs are correctly split at buffer boundaries
+TORRENT_TEST(prepare_ios_stripe_1)
+{
+	const int num_bufs = 30;
+	iovec_t iov[num_bufs];
+
+	alloc_iov(iov, num_bufs);
+	fill_pattern(iov, num_bufs);
+
+	file_storage fs = make_fs();
+
+	TEST_CHECK(bufs_size({iov, num_bufs}) >= fs.total_size());
+
+	iovec_t iov2[num_bufs];
+	aux::copy_bufs(iov, int(fs.total_size()), iov2);
+	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
+	TEST_CHECK(num_bufs2 <= num_bufs);
+
+	auto ios = prepare_ios(fs, {iov2, num_bufs2}, 0_piece, 0);
+
+	// int bufs_size2 = bufs_size({iov2, num_bufs2});
+	// libtorrent::span<const libtorrent::iovec_t> iovec2 = {iov2, num_bufs2};
+
+	TEST_EQUAL(ios[0].buf.size(), 3);  // first file
+	TEST_EQUAL(ios[1].buf.size(), 9);  // second file
+	TEST_EQUAL(ios[2].buf.size(), 18); // third file
+	TEST_EQUAL(ios[3].buf.size(), 60);
+	TEST_EQUAL(ios[4].buf.size(), 3);
+	TEST_EQUAL(ios[5].buf.size(), 87); // fourth file
+	TEST_EQUAL(ios[6].buf.size(), 120);
+	TEST_EQUAL(ios[7].buf.size(), 150);
+	TEST_EQUAL(ios[8].buf.size(), 180);
+	TEST_EQUAL(ios[9].buf.size(), 210);
+	TEST_EQUAL(ios[10].buf.size(), 240);
+	TEST_EQUAL(ios[11].buf.size(), 270);
+	TEST_EQUAL(ios[12].buf.size(), 300);
+	TEST_EQUAL(ios[13].buf.size(), 330);
+	TEST_EQUAL(ios[14].buf.size(), 360);
+	TEST_EQUAL(ios[15].buf.size(), 390);
+	TEST_EQUAL(ios[16].buf.size(), 420);
+	TEST_EQUAL(ios[17].buf.size(), 450);
+	TEST_EQUAL(ios[18].buf.size(), 480);
+	TEST_EQUAL(ios[19].buf.size(), 510);
+	TEST_EQUAL(ios[20].buf.size(), 540);
+	TEST_EQUAL(ios[21].buf.size(), 570);
+	TEST_EQUAL(ios[22].buf.size(), 600);
+	TEST_EQUAL(ios[23].buf.size(), 354);
+
+	free_iov(iov, num_bufs);
+}
+
+
 TORRENT_TEST(readwritev_stripe_1)
 {
 	const int num_bufs = 30;
@@ -1296,6 +1450,28 @@ TORRENT_TEST(readwritev_stripe_1)
 	free_iov(iov, num_bufs);
 }
 
+TORRENT_TEST(prepare_ios_single_buffer)
+{
+	file_storage fs = make_fs();
+
+	std::vector<char> buf(size_t(fs.total_size()));
+	iovec_t iov = { &buf[0], int(buf.size()) };
+	fill_pattern(&iov, 1);
+
+	auto ios = prepare_ios(fs, iov, 0_piece, 0);
+
+	TEST_EQUAL(ios.size(), 4);
+	TEST_EQUAL(ios[0].buf.size(), 3);
+	TEST_EQUAL(ios[1].buf.size(), 9);
+	TEST_EQUAL(ios[2].buf.size(), 81);
+	TEST_EQUAL(ios[3].buf.size(), 6561);
+
+	TEST_CHECK(check_pattern2(ios[0].buf, 0));
+	TEST_CHECK(check_pattern2(ios[1].buf, 3));
+	TEST_CHECK(check_pattern2(ios[2].buf, 3 + 9));
+	TEST_CHECK(check_pattern2(ios[3].buf, 3 + 9 + 81));
+}
+
 TORRENT_TEST(readwritev_single_buffer)
 {
 	file_storage fs = make_fs();
@@ -1320,6 +1496,25 @@ TORRENT_TEST(readwritev_single_buffer)
 	TEST_CHECK(check_pattern(fop.m_file_data[2_file], 3 + 9));
 	TEST_CHECK(check_pattern(fop.m_file_data[3_file], 3 + 9 + 81));
 }
+
+TORRENT_TEST(prepare_ios_read)
+{
+	file_storage fs = make_fs();
+
+	std::vector<char> buf(size_t(fs.total_size()));
+	iovec_t iov = { &buf[0], int(buf.size()) };
+
+	// read everything
+	auto ios = prepare_ios(fs, iov, 0_piece, 0);
+
+	int io_size = 0;
+	for (auto io : ios) {
+		io_size += io.buf.size();
+	}
+
+	TEST_EQUAL(io_size, fs.total_size());
+}
+
 
 TORRENT_TEST(readwritev_read)
 {
@@ -1373,6 +1568,31 @@ TORRENT_TEST(readwritev_error)
 	TEST_CHECK(ec.operation == operation_t::file_read);
 	TEST_EQUAL(ec.ec, boost::system::errc::permission_denied);
 	std::printf("error: %s\n", ec.ec.message().c_str());
+}
+
+TORRENT_TEST(prepare_ios_zero_size_files)
+{
+	file_storage fs;
+	fs.add_file(combine_path("readwritev", "1"), 3);
+	fs.add_file(combine_path("readwritev", "2"), 0);
+	fs.add_file(combine_path("readwritev", "3"), 81);
+	fs.add_file(combine_path("readwritev", "4"), 0);
+	fs.add_file(combine_path("readwritev", "5"), 6561);
+	fs.set_piece_length(0x1000);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	std::vector<char> buf(size_t(fs.total_size()));
+	iovec_t iov = { buf.data(), static_cast<std::ptrdiff_t>(fs.total_size()) };
+
+	// read everything
+	auto ios = prepare_ios(fs, iov, 0_piece, 0);
+
+	int io_size = 0;
+	for (auto io : ios) {
+		io_size += io.buf.size();
+	}
+
+	TEST_EQUAL(io_size, fs.total_size());
 }
 
 TORRENT_TEST(readwritev_zero_size_files)
@@ -1486,6 +1706,16 @@ TORRENT_TEST(move_posix_storage_to_self)
 TORRENT_TEST(move_posix_storage_into_self)
 {
 	test_move_storage_into_self<posix_storage>();
+}
+
+TORRENT_TEST(move_xnvme_storage_to_self)
+{
+	test_move_storage_to_self<xnvme_storage>();
+}
+
+TORRENT_TEST(move_xnvme_storage_into_self)
+{
+	test_move_storage_into_self<xnvme_storage>();
 }
 
 TORRENT_TEST(storage_paths_string_pooling)
@@ -1742,6 +1972,7 @@ void none_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder cons
 	sync(ioc, outstanding);
 }
 
+
 }
 
 #if TORRENT_HAVE_MMAP
@@ -1760,4 +1991,12 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, first_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, second_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
+}
+
+TORRENT_TEST(xnvme_unaligned_read_both_store_buffer)
+{
+	test_unaligned_read(lt::xnvme_disk_io_constructor, both_sides_from_store_buffer);
+	test_unaligned_read(lt::xnvme_disk_io_constructor, first_side_from_store_buffer);
+	test_unaligned_read(lt::xnvme_disk_io_constructor, second_side_from_store_buffer);
+	test_unaligned_read(lt::xnvme_disk_io_constructor, none_from_store_buffer);
 }

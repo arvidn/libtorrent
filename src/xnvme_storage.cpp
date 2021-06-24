@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
+#include "libtorrent/aux_/alloca.hpp"
+
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/utf8.hpp"
 #endif
@@ -62,29 +64,59 @@ namespace libtorrent {
 namespace aux {
 
 	struct cb_args {
-		cb_args()
+		cb_args(uint64_t ncompletions_, std::function<void(storage_error, uint64_t)> cb_, operation_t op_)
 		: nerrors(0)
-		, ncompletions(0)
-		, nbytes(0) {}
+		, ncompleted(0)
+		, ncompletions(ncompletions_)
+		, nbytes(0)
+		, op(op_)
+		, cb(std::move(cb_)) {}
 
 		uint64_t nerrors;
+		uint64_t ncompleted;
 		uint64_t ncompletions;
 		uint64_t nbytes;
+		operation_t op;
+
+		// TODO: do we want to include the number of bytes read/written in this callback?
+		// TODO: do we want to include the expected number of bytes read/written in this callback?
+		std::function<void(storage_error, uint64_t)> cb;
 	};
 
 	void xnvme_callback(struct xnvme_cmd_ctx *ctx, void *cb_arg) {
 		cb_args *arg = static_cast<cb_args*>(cb_arg);
-		arg->ncompletions += 1;
+		arg->ncompleted += 1;
 
 		if (xnvme_cmd_ctx_cpl_status(ctx)) {
 			fprintf(stderr, "xnvme_callback err: sc: %d sct: %d\n", ctx->cpl.status.sc, ctx->cpl.status.sct);
 			arg->nerrors += 1;
-			xnvme_queue_put_cmd_ctx(ctx->async.queue, ctx);
-			return;
 		}
 
-		arg->nbytes += ctx->cpl.result;
+		arg->nbytes += std::max(ctx->cpl.result, uint64_t(0));
+
+		TORRENT_ASSERT(arg->ncompleted <= arg->ncompletions);
+
+		if (arg->ncompleted == arg->ncompletions) {
+			storage_error e;
+			if (arg->nerrors) {
+				e.ec.assign(boost::system::errc::errc_t::io_error, generic_category());
+				e.operation = arg->op;
+				fprintf(stderr, "xnvme_callback err: %ld\n", arg->nerrors);
+			}
+			arg->cb(e, arg->nbytes);
+			free(arg);
+		}
+
 		xnvme_queue_put_cmd_ctx(ctx->async.queue, ctx);
+	}
+
+	xnvme_storage::xnvme_storage(storage_params const& p)
+		: m_files(p.files)
+		, m_save_path(p.path)
+		, m_xnvme_backend("io_uring")
+		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
+	{
+		if (p.mapped_files) m_mapped_files.reset(new file_storage(*p.mapped_files));
 	}
 
 	xnvme_storage::xnvme_storage(storage_params const& p, std::string xnvme_backend)
@@ -103,10 +135,11 @@ namespace aux {
 		error_code ec;
 		if (m_part_file) m_part_file->flush_metadata(ec);
 
-		for (auto fq = m_file_handles.begin(); fq != m_file_handles.end(); fq++) {
-			xnvme_queue_term(fq->second->queue);
-			xnvme_dev_close(fq->second->dev);
-			delete(fq->second);
+		std::lock_guard<std::mutex> io_guard(m_io_mutex);
+		for (auto fq : m_file_handles) {
+			xnvme_queue_term(fq.second->queue);
+			xnvme_dev_close(fq.second->dev);
+			delete(fq.second);
 		}
 	}
 
@@ -195,6 +228,7 @@ namespace aux {
 		}
 	}
 
+
 	int xnvme_storage::readv(settings_interface const&
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
@@ -268,186 +302,132 @@ namespace aux {
 	}
 
 	int xnvme_storage::readv2(settings_interface const&
-	, span<iovec_t const> bufs
-	, piece_index_t const piece, int const offset
-	, storage_error &error
-	, std::function<void(storage_error const&)> handler)
+		, span<iovec_t const> bufs
+		, piece_index_t const piece, int const offset
+		, std::function<void(storage_error const&, uint64_t)> handler)
 	{
-		int res = readwritev(files(), bufs, piece, offset, error
-			, [this](file_index_t const file_index
-				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+		storage_error error;
+		std::vector<io> ios = prepare_ios(files(), bufs, piece, offset);
+		cb_args *cb_arg = new cb_args(ios.size(), std::move(handler), operation_t::file_read);
+
+		int total_io_size = 0;
+
+		std::lock_guard<std::mutex> io_guard(m_io_mutex);
+		for (auto io : ios)
 		{
+			total_io_size += io.buf.size();
+
 			// reading from a pad file yields zeroes
-			if (files().pad_file_at(file_index)) return aux::read_zeroes(vec);
-
-			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == dont_download
-				&& use_partfile(file_index))
-			{
-				TORRENT_ASSERT(m_part_file);
-
-				error_code e;
-				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(vec, map.piece, map.start, e);
-
-				if (e)
-				{
-					ec.ec = e;
-					ec.file(file_index);
-					ec.operation = operation_t::partfile_read;
-					return -1;
-				}
-				return ret;
+			if (files().pad_file_at(io.file_index)) {
+				aux::read_zeroes(io.buf);
+				continue;
 			}
 
-			// set this unconditionally in case the upper layer would like to treat
-			// short reads as errors
-			ec.operation = operation_t::file_read;
-
-			cb_args cb_arg = cb_args();
-			xnvme_file_queue *fq = open_file_xnvme(file_index);
-
-			for (auto buf : vec)
+			if (io.file_index < m_file_priority.end_index()
+				&& m_file_priority[io.file_index] == dont_download
+				&& use_partfile(io.file_index))
 			{
-submit:
-				xnvme_cmd_ctx *ctx = xnvme_queue_get_cmd_ctx(fq->queue);
-				if (!ctx) {
-					return -1;
-				}
-				ctx->async.cb = xnvme_callback;
-				ctx->async.cb_arg = &cb_arg;
-
-				int err = xnvme_file_pread(ctx, buf.data(), buf.size(), file_offset);
-				switch (err) {
-				case 0:
-					continue;
-
-				case -EBUSY:
-				case -EAGAIN:
-					xnvme_queue_poke(fq->queue, 0);
-					goto submit;
-
-				default:
-					ec.ec.assign(err, generic_category());
-					xnvme_queue_put_cmd_ctx(fq->queue, ctx);
-					break;
-				}
+				fprintf(stderr, "XNVME PARTFILE NOT IMPLEMENTED\n");
+				exit(42);
 			}
-			// TODO: this effectively makes the IO synchronous
-			int res = xnvme_queue_wait(fq->queue);
-			TORRENT_ASSERT(res > 0);
-			int ret = cb_arg.nbytes;
 
-			// we either get an error or 0 or more bytes read
-			TORRENT_ASSERT(ec.ec || ret > 0);
-			TORRENT_ASSERT(ret <= bufs_size(vec));
-
-			if (ec.ec)
-			{
-				ec.file(file_index);
+			xnvme_file_queue *fq = open_file_xnvme(io.file_index, open_mode::read_only, error);
+			if (!fq || error.ec) {
+				fprintf(stderr, "XNVME FAILED TO OPEN FILE INDEX %d\n", io.file_index);
+				cb_arg->cb(error, 0);
 				return -1;
 			}
 
-			return ret;
-		});
+			xnvme_cmd_ctx *ctx = xnvme_queue_get_cmd_ctx(fq->queue);
+			if (!ctx) {
+				fprintf(stderr, "XNVME FAILED TO RETRIEVE CTX DURING READ\n");
+				exit(42);
+			}
+			ctx->async.cb = xnvme_callback;
+			ctx->async.cb_arg = cb_arg;
 
-		handler(error);
-		return res;
+submit:
+			int err = xnvme_file_pread(ctx, io.buf.data(), io.buf.size(), io.offset);
+			switch (err) {
+			case 0:
+				continue;
+
+			case -EBUSY:
+			case -EAGAIN:
+				// NOTE: this reaps IOs on this thread. We would generally like to avoid this.
+				xnvme_queue_poke(fq->queue, 0);
+				goto submit;
+
+			default:
+				cb_arg->nerrors++;
+				fprintf(stderr, "XNVME READ ERROR: %d\n", err);
+				error.ec.assign(err, generic_category());
+				xnvme_queue_put_cmd_ctx(fq->queue, ctx);
+
+				// TODO: in this case we should invoke the callback as it
+				// otherwise won't trigger its completion (n/n calls)
+				break;
+			}
+		}
+
+		return total_io_size;
 	}
 
 	int xnvme_storage::writev(settings_interface const&
 		, span<iovec_t const> bufs
 		, piece_index_t const piece
 		, int const offset
-		, storage_error &error
-		, std::function<void(storage_error const&)> handler)
+		, std::function<void(storage_error const&, uint64_t)> handler)
 	{
-		int res = readwritev(files(), bufs, piece, offset, error
-			, [this](file_index_t const file_index
-				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+		storage_error error;
+		std::vector<io> ios = prepare_ios(files(), bufs, piece, offset);
+		cb_args *cb_arg = new cb_args(ios.size(), std::move(handler), operation_t::file_write);
+
+		int total_io_size = 0;
+
+		std::lock_guard<std::mutex> io_guard(m_io_mutex);
+		for (auto io : ios)
 		{
-			if (files().pad_file_at(file_index))
-			{
-				// writing to a pad-file is a no-op
-				return bufs_size(vec);
-			}
+			total_io_size += io.buf.size();
 
-			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == dont_download
-				&& use_partfile(file_index))
-			{
-				TORRENT_ASSERT(m_part_file);
-
-				error_code e;
-				peer_request map = files().map_file(file_index
-					, file_offset, 0);
-				int const ret = m_part_file->writev(vec, map.piece, map.start, e);
-
-				if (e)
-				{
-					ec.ec = e;
-					ec.file(file_index);
-					ec.operation = operation_t::partfile_write;
-					return -1;
-				}
-				return ret;
-			}
-
-			cb_args cb_arg = cb_args();
-			xnvme_file_queue *fq = open_file_xnvme(file_index);
-
-			// set this unconditionally in case the upper layer would like to treat
-			// short reads as errors
-			ec.operation = operation_t::file_write;
-
-			for (auto buf : vec)
-			{
-submit:
-				xnvme_cmd_ctx *ctx = xnvme_queue_get_cmd_ctx(fq->queue);
-				if (!ctx) {
-					return -1;
-				}
-				ctx->async.cb = xnvme_callback;
-				ctx->async.cb_arg = &cb_arg;
-
-				int err = xnvme_file_pwrite(ctx, buf.data(), buf.size(), file_offset);
-				switch (err) {
-				case 0:
-					continue;
-
-				case -EBUSY:
-				case -EAGAIN:
-					xnvme_queue_poke(fq->queue, 0);
-					goto submit;
-
-				default:
-					ec.ec.assign(err, generic_category());
-					xnvme_queue_put_cmd_ctx(fq->queue, ctx);
-					break;
-				}
-			}
-			// TODO: this effectively makes the IO synchronous
-			int res = xnvme_queue_wait(fq->queue);
-			TORRENT_ASSERT(res > 0);
-			int ret = cb_arg.nbytes;
-
-			// invalidate our stat cache for this file, since
-			// we're writing to it
-			m_stat_cache.set_dirty(file_index);
-
-			if (ec)
-			{
-				ec.file(file_index);
+			xnvme_file_queue *fq = open_file_xnvme(io.file_index, open_mode::write, error);
+			if (!fq || error.ec) {
 				return -1;
 			}
+			xnvme_cmd_ctx *ctx = xnvme_queue_get_cmd_ctx(fq->queue);
+			if (!ctx) {
+				fprintf(stderr, "XNVME FAILED TO RETRIEVE CTX DURING WRITE\n");
+				exit(42);
+			}
+			ctx->async.cb = xnvme_callback;
+			ctx->async.cb_arg = cb_arg;
 
-			return ret;
-		});
+submit:
+			int err = xnvme_file_pwrite(ctx, io.buf.data(), io.buf.size(), io.offset);
+			switch (err) {
+			case 0:
+				m_stat_cache.set_dirty(io.file_index);
+				continue;
 
-		handler(error);
-		return res;
+			case -EBUSY:
+			case -EAGAIN:
+				// NOTE: this reaps IOs on this thread. We would generally like to avoid this.
+				xnvme_queue_poke(fq->queue, 0);
+				goto submit;
+
+			default:
+				cb_arg->nerrors++;
+				fprintf(stderr, "XNVME WRITE ERROR: %d\n", err);
+				error.ec.assign(err, generic_category());
+				xnvme_queue_put_cmd_ctx(fq->queue, ctx);
+
+				// TODO: in this case we should invoke the callback as it
+				// otherwise won't trigger its completion (n/n calls)
+				break;
+			}
+		}
+
+		return total_io_size;
 	}
 
 	bool xnvme_storage::has_any_file(storage_error& error)
@@ -667,25 +647,39 @@ submit:
 		}
 	}
 
-	xnvme_file_queue* xnvme_storage::open_file_xnvme(file_index_t idx)
+	xnvme_file_queue* xnvme_storage::open_file_xnvme(file_index_t idx, open_mode_t open_mode, storage_error& ec)
 	{
+		// TODO: look into using `file_view_pool` instead of this hacky trash.
+		// NOTE: caller must hold m_io_mutex
 
-		std::string fname = files().file_path(idx, m_save_path);
+		std::string fname_rel = files().file_path(idx, m_save_path);
+
+		std::string fname;
+
+		// TODO: xNVMe currently doesn't support relative paths, so we convert to absolute here.
+		const char *fname_cstr = realpath(fname_rel.c_str(), NULL);
+		if (fname_cstr == NULL) {
+			// TODO: fix this horrible hack
+			// File doesn't exist, cross fingers and hope that fname_rel is actually absolute path
+			fname_cstr = fname_rel.c_str();
+		}
+		fname = std::string(fname_cstr);
+
 
 		auto search = m_file_handles.find(fname);
 		if (search != m_file_handles.end()) {
 			return search->second;
 		}
 
+		// TODO: this static xnvme_mode is too simple to work generally,
+		// e.g. for read-only file systems.
 		int xnvme_mode = XNVME_FILE_OFLG_CREATE | XNVME_FILE_OFLG_RDWR;
 		auto xnvme_fname = fname;
 		xnvme_fname.append("?async=" + m_xnvme_backend);
 		xnvme_dev *dev = xnvme_file_open(xnvme_fname.c_str(), xnvme_mode);
 		if (!dev) {
-			storage_error ec;
 			create_directories(parent_path(fname), ec.ec);
-			if (ec.ec)
-			{
+			if (ec.ec) {
 				ec.file(idx);
 				ec.operation = operation_t::mkdir;
 				return NULL;
@@ -694,12 +688,14 @@ submit:
 			dev = xnvme_file_open(xnvme_fname.c_str(), xnvme_mode);
 			if (!dev) {
 				fprintf(stderr, "FAILED TO OPEN FILE\n");
+				ec.file(idx);
+				ec.operation = operation_t::file_open;
 				return NULL;
 			}
 		}
 
 		xnvme_queue *queue = static_cast<xnvme_queue*>(malloc(sizeof(xnvme_queue*)));
-		int ret = xnvme_queue_init(dev, 32, 0, &queue);
+		int ret = xnvme_queue_init(dev, 1024, 0, &queue);
 		if (ret) {
 			fprintf(stderr, "QUEUE INIT FAILED: %d\n", ret);
 			return NULL;
@@ -800,6 +796,15 @@ submit:
 		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
 		m_use_partfile[index] = b;
 	}
+
+	void xnvme_storage::reap_ios() {
+		std::lock_guard<std::mutex> io_guard(m_io_mutex);
+
+		for (auto &fh : m_file_handles) {
+			xnvme_queue_poke(fh.second->queue, 0);
+		}
+	}
+
 
 }
 }
