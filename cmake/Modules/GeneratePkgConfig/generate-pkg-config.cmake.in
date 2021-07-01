@@ -1,54 +1,146 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
+# This is the script that actually creates the pkg-config file,
+# It is a template that is generated during the generation stage of the CMake build.
+# It is only actually executed at install time.
+
 include("@_variables_file_name@")
 
-function(cmake_list_to_pkg_config _result _list _prefix)
-	set(_tmp_list "${_list}")
+# Helper function to transform a CMake list into a space-separated string, prepending each element
+# with the specified prefix.
+# This is used to create the values of the `Cflags`, `Libs`, etc fields in the pkg-config file.
+# Arguments:
+# - RESULT_VAR: variable that will contain the resulting list in the parent scope
+# - LIST: The CMake list to be transformed. the original list is not mutated.
+# - PREFIX: The prefix to prepend to each list element.
+function(cmake_list_to_pkg_config_value_str)
+
+	set(options "")
+	set(oneValueArgs RESULT_VAR LIST PREFIX)
+	set(multiValueArgs "")
+
+	cmake_parse_arguments(
+		PARSE_ARGV 0
+		ARG
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	# create copy of list with all empty elements removed
+	set(_tmp_list "${ARG_LIST}")
 	list(REMOVE_ITEM _tmp_list "")
-	# remove prefix from prefixed items
-	string(REGEX REPLACE "(^|;)(${_prefix})" "\\1" _tmp_list "${_tmp_list}")
-	# append 'prefix' to each element
-	string(REGEX REPLACE "([^;]+)" "${_prefix}\\1" _tmp_list "${_tmp_list}")
-	# transform cmake list into a space delimited list
+
+	# at this point, some items might have the desired prefix, some not
+	# remove and append prefix to all items to ensure all end up with the desired prefix
+	if (ARG_PREFIX)
+		string(REGEX REPLACE "(^|;)(${ARG_PREFIX})" "\\1" _tmp_list "${_tmp_list}")
+		string(REGEX REPLACE "([^;]+)" "${ARG_PREFIX}\\1" _tmp_list "${_tmp_list}")
+	endif()
+
+	# transform CMake list into a space delimited string
 	string(REPLACE ";" " " _tmp_list "${_tmp_list}")
-	set(${_result} "${_tmp_list}" PARENT_SCOPE)
+
+	set(${ARG_RESULT_VAR} "${_tmp_list}" PARENT_SCOPE)
 endfunction()
 
 # Helper function for splitting full library paths into [dir, name] and merging repetitive dir entries
-function(split_library_dirs _libraries _base_library_dir _library_dirs_var _library_names_var)
-	set(libdirs "${_base_library_dir}")
-	set(libs "")
-	foreach (l IN LISTS _libraries)
-		get_filename_component(lDir "${l}" DIRECTORY)
-		if (lDir)
-			get_filename_component(lDir "${lDir}" REALPATH)
-		endif()
-		get_filename_component(lFile "${l}" NAME_WE)
-		string(REPLACE "${_SHARED_LIBRARY_PREFIX}" "" lFile "${lFile}")
-		list(APPEND libdirs "${lDir}")
-		list(APPEND libs "${lFile}")
-	endforeach()
-	list(REMOVE_DUPLICATES libdirs)
-	list(REMOVE_AT libdirs 0) # as it is the base libdir and will be handled separately
+# Arguments:
+# - RESULT_LIB_DIRS: variable that will contain the resulting list of library directories in the parent scope
+# - RESULT_LIB_NAMES: variable that will contain the resulting list of library names in the parent scope
+# - LIBS: A CMake list of interface link libraries of the target
+# - BASE_LIB_DIR: base library directory
+function(split_library_dirs)
 
-	set(${_library_dirs_var} "${libdirs}" PARENT_SCOPE)
-	set(${_library_names_var} "${libs}" PARENT_SCOPE)
+	set(options "")
+	set(oneValueArgs RESULT_LIB_DIRS RESULT_LIB_NAMES LIBS BASE_LIB_DIR)
+	set(multiValueArgs "")
+
+	cmake_parse_arguments(
+		PARSE_ARGV 0
+		ARG
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	set(_libdirs "${ARG_BASE_LIB_DIR}")
+	set(_libs_result "")
+	foreach (lib IN LISTS ARG_LIBS)
+		# TODO: replace with cmake_path(...) in CMake >= 3.19
+		get_filename_component(lDir "${lib}" DIRECTORY)
+		if (lDir)
+			# TODO: replace with file(REAL_PATH ...) in CMake >= 3.19
+			get_filename_component(lDir "${lDir}" REALPATH)
+			list(APPEND _libdirs "${lDir}")
+		endif()
+		# TODO: replace with cmake_path(...) in CMake >= 3.19
+		get_filename_component(lFile "${lib}" NAME_WE)
+		string(REPLACE "${_SHARED_LIBRARY_PREFIX}" "" lFile "${lFile}")
+		list(APPEND _libs_result "${lFile}")
+	endforeach()
+	list(REMOVE_DUPLICATES _libdirs)
+	list(REMOVE_AT _libdirs 0) # as it is the base libdir and will be handled separately
+
+	set(${ARG_RESULT_LIB_DIRS} "${_libdirs}" PARENT_SCOPE)
+	set(${ARG_RESULT_LIB_NAMES} "${_libs_result}" PARENT_SCOPE)
 endfunction()
 
-split_library_dirs("${_TARGET_INTERFACE_LINK_LIBRARIES}" "${CMAKE_INSTALL_PREFIX}/${_INSTALL_LIBDIR}" _lib_dirs _library_names)
-cmake_list_to_pkg_config(_libs "${_library_names}" "-l")
+# create string value to be appended to the `Libs:` field of the pkg-config file
+split_library_dirs(
+	RESULT_LIB_DIRS "_lib_dirs"
+	RESULT_LIB_NAMES "_library_names"
+	LIBS "${_TARGET_INTERFACE_LINK_LIBRARIES}"
+	BASE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${_INSTALL_LIBDIR}"
+)
+
+cmake_list_to_pkg_config_value_str(
+	RESULT_VAR _libs
+	LIST "${_library_names}"
+	PREFIX "-l"
+)
+# TODO: Ugly OpenSSL hack.
+# For some reason the target names do not get resolved into lib names.
+# Thus, we must do so manually here, under 2 constraints:
+# - we provide only a best-effort guess for the actual lib names, and
+# - we assume that the libraries are located in a known system directory
+#  (if not, we have no way of knowing the appropriate `-L/lib/dir` flag to pass...)
+string(REPLACE "OpenSSL::SSL" "ssl" _libs "${_libs}")
+string(REPLACE "OpenSSL::Crypto" "crypto" _libs "${_libs}")
+set(_libs_field_append_value "${_libs}")
+
+
 list(LENGTH _lib_dirs _additional_libdirs_count)
 if (_additional_libdirs_count GREATER 0)
-	cmake_list_to_pkg_config(_additional_libdirs "${_lib_dirs}" "-L")
-	set(_interface_link_libraries "${_additional_libdirs} ${_libs}")
-else()
-	set(_interface_link_libraries "${_libs}")
+	cmake_list_to_pkg_config_value_str(
+		RESULT_VAR _additional_libdirs
+		LIST "${_lib_dirs}"
+		PREFIX "-L"
+	)
+	string(PREPEND _libs_field_append_value "${_additional_libdirs} ")
 endif()
 
-cmake_list_to_pkg_config(_interface_definitions "${_TARGET_INTERFACE_DEFINITIONS}" "-D")
-cmake_list_to_pkg_config(_interface_include_dirs "${_TARGET_INTERFACE_INCLUDE_DIRS}" "-I")
-set(_interface_compile_options "${_TARGET_INTERFACE_COMPILE_OPTIONS}")
-string(REPLACE ";" " " _interface_compile_options "${_interface_compile_options}")
+# create string value for the `Cflags:` field of the pkg-config file
+cmake_list_to_pkg_config_value_str(
+	RESULT_VAR _interface_definitions
+	LIST "${_TARGET_INTERFACE_DEFINITIONS}"
+	PREFIX "-D"
+)
+cmake_list_to_pkg_config_value_str(
+	RESULT_VAR _interface_include_dirs
+	LIST "${_TARGET_INTERFACE_INCLUDE_DIRS}"
+	PREFIX "-I"
+)
+cmake_list_to_pkg_config_value_str(
+	RESULT_VAR _interface_compile_options
+	LIST "${_TARGET_INTERFACE_COMPILE_OPTIONS}"
+	PREFIX ""
+)
+set(_cflags_field_value "${_interface_compile_options} ${_interface_include_dirs} ${_interface_definitions}")
 
-configure_file("@_pkg_config_file_template_filename@" "@_generate_target_dir@/@_package_name@.pc" @ONLY)
-file(INSTALL "@_generate_target_dir@/@_package_name@.pc" DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig")
+# create pkg-config file from template and install it
+configure_file(
+	"@_pkg_config_file_template_filename@"
+	"@_generate_target_dir@/@_package_name@.pc"
+	@ONLY
+)
+file(INSTALL
+	"@_generate_target_dir@/@_package_name@.pc"
+	DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig"
+)

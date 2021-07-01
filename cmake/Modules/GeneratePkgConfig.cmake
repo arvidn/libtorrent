@@ -4,6 +4,28 @@
 # from the target and generates pkg-config file with install() command
 # The function expands imported targets and generator expressions
 
+# The pkg-config generation process consists in 2 parts:
+# 1. The first part consists of 3 steps:
+#   - during the configuration phase of the CMake build,
+#     a `compile-settings.cmake` file is created with the necessary values
+#     from a template.
+#   - also during the configuration phase of the CMake build,
+#     a `generate-pkg-config.cmake` file is created from a template
+#   - during the generation phase of the CMake build,
+#     a `compile-settings-expanded.cmake` file is generated, by resolving the
+#	  generator expressions present in the `compile-settings.cmake` file
+#     created in the first step.
+# 2. At install time, the `generate-pkg-config.cmake` script previously created
+#  is executed. It takes some of its inputs from `compile-settings-expanded.cmake`,
+#  which was also generated in the previous part.
+#  As a result, the pkg-config file is finally created and copied to the install location
+
+# One limitation of this method of generating the pkg-config file is that the
+# the pkg-config file itself is only created at install time.
+# This constraint may be relaxed in the future.
+# It would be best if it were fully generated after the generation phase of the CMake
+# build, so that at install time it would only need to be copied to the install location.
+
 # save the current file dir for later use in the generate_and_install_pkg_config_file() function
 set(_GeneratePkGConfigDir "${CMAKE_CURRENT_LIST_DIR}/GeneratePkgConfig")
 
