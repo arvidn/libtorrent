@@ -52,14 +52,14 @@ class InfoHashTest(unittest.TestCase):
 
         ih = lt.info_hash_t(sha1)
         self.assertEqual(ih.get(lt.protocol_version.V1), sha1)
-        # self.assertEqual(ih.get(lt.protocol_version.V2), lt.sha256_hash())
+        self.assertEqual(ih.get(lt.protocol_version.V2), lt.sha1_hash())
         self.assertEqual(ih.get_best(), sha1)
         self.assertTrue(ih.has(lt.protocol_version.V1))
         self.assertFalse(ih.has(lt.protocol_version.V2))
         self.assertTrue(ih.has_v1())
         self.assertFalse(ih.has_v2())
         self.assertEqual(ih.v1, sha1)
-        # self.assertEqual(ih.v2, lt.sha256_hash())
+        self.assertEqual(ih.v2, lt.sha256_hash())
 
         self.assertEqual(ih, lt.info_hash_t(sha1))
         # self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1)))
@@ -72,34 +72,34 @@ class InfoHashTest(unittest.TestCase):
         ih = lt.info_hash_t(sha1)
         self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1)))
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5986")
     def test_sha256(self) -> None:
-        sha256 = lt.sha256_hash(lib.get_random_bytes(32))  # type: ignore
+        sha256 = lt.sha256_hash(lib.get_random_bytes(32))
+        sha256_trunc = lt.sha1_hash(sha256.to_bytes()[:20])
 
         ih = lt.info_hash_t(sha256)
         self.assertEqual(ih.get(lt.protocol_version.V1), lt.sha1_hash())
-        self.assertEqual(ih.get(lt.protocol_version.V2), sha256)
-        self.assertEqual(ih.get_best(), sha256)
+        self.assertEqual(ih.get(lt.protocol_version.V2), sha256_trunc)
+        self.assertEqual(ih.get_best(), sha256_trunc)
         self.assertFalse(ih.has(lt.protocol_version.V1))
         self.assertTrue(ih.has(lt.protocol_version.V2))
         self.assertFalse(ih.has_v1())
         self.assertTrue(ih.has_v2())
         self.assertEqual(ih.v1, lt.sha1_hash())
-        self.assertEqual(ih.v2, sha256)  # type: ignore
+        self.assertEqual(ih.v2, sha256)
 
         self.assertEqual(ih, lt.info_hash_t(sha256))
         self.assertEqual(hash(ih), hash(lt.info_hash_t(sha256)))
         self.assertNotEqual(ih, lt.info_hash_t())
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5986")
     def test_dual(self) -> None:
         sha1 = lt.sha1_hash(lib.get_random_bytes(20))
-        sha256 = lt.sha256_hash(lib.get_random_bytes(32))  # type: ignore
+        sha256 = lt.sha256_hash(lib.get_random_bytes(32))
+        sha256_trunc = lt.sha1_hash(sha256.to_bytes()[:20])
 
-        ih = lt.info_hash_t(sha1, sha256)  # type: ignore
+        ih = lt.info_hash_t(sha1, sha256)
         self.assertEqual(ih.get(lt.protocol_version.V1), sha1)
-        self.assertEqual(ih.get(lt.protocol_version.V2), sha256)
-        self.assertEqual(ih.get_best(), sha256)
+        self.assertEqual(ih.get(lt.protocol_version.V2), sha256_trunc)
+        self.assertEqual(ih.get_best(), sha256_trunc)
         self.assertTrue(ih.has(lt.protocol_version.V1))
         self.assertTrue(ih.has(lt.protocol_version.V2))
         self.assertTrue(ih.has_v1())
@@ -107,8 +107,8 @@ class InfoHashTest(unittest.TestCase):
         self.assertEqual(ih.v1, sha1)
         self.assertEqual(ih.v2, sha256)
 
-        self.assertEqual(ih, lt.info_hash_t(sha1, sha256))  # type: ignore
-        self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1, sha256)))  # type: ignore
+        self.assertEqual(ih, lt.info_hash_t(sha1, sha256))
+        self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1, sha256)))
         self.assertNotEqual(ih, lt.info_hash_t())
 
 
