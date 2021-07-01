@@ -62,15 +62,8 @@ class InfoHashTest(unittest.TestCase):
         self.assertEqual(ih.v2, lt.sha256_hash())
 
         self.assertEqual(ih, lt.info_hash_t(sha1))
-        # self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1)))
-        self.assertNotEqual(ih, lt.info_hash_t())
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5987")
-    def test_sha1_hash_stable(self) -> None:
-        sha1 = lt.sha1_hash(lib.get_random_bytes(20))
-
-        ih = lt.info_hash_t(sha1)
         self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1)))
+        self.assertNotEqual(ih, lt.info_hash_t())
 
     def test_sha256(self) -> None:
         sha256 = lt.sha256_hash(lib.get_random_bytes(32))
