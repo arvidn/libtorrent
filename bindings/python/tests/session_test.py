@@ -1251,13 +1251,7 @@ class AddTorrentTest(unittest.TestCase):
             {"info_hashes": b"a" * 32, "save_path": self.dir.name}
         )
 
-        # TODO: sha256 isn't bound, test via resume data
-        self.session.pop_alerts()
-        handle.save_resume_data()
-        alert = self.session.wait_for_alert(10000)
-        assert isinstance(alert, lt.save_resume_data_alert)
-        atp_dict = lt.write_resume_data(alert.params)
-        self.assertEqual(atp_dict[b"info-hash2"], b"a" * 32)
+        self.assertEqual(handle.info_hashes().v2.to_bytes(), b"a" * 32)
 
     def test_dict_errors(self) -> None:
         with self.assertRaises(KeyError):

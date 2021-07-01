@@ -142,7 +142,7 @@ class ParseMagnetTest(unittest.TestCase):
             params["save_path"] = path
             with self.assertWarns(DeprecationWarning):
                 handle = session.add_torrent(params)
-            # self.assertEqual(str(handle.info_hashes().v2), self.info_hash_sha256)
+            self.assertEqual(str(handle.info_hashes().v2), self.info_hash_sha256)
             self.assertEqual(handle.status().name, "test.txt")
             self.assertEqual(
                 [t["url"] for t in handle.trackers()], ["http://example.com/tr"]
@@ -187,7 +187,7 @@ class ParseMagnetTest(unittest.TestCase):
             params["save_path"] = path
             handle = session.add_torrent(params)
             self.assertEqual(
-                str(handle.info_hashes().v2),  # type: ignore
+                str(handle.info_hashes().v2),
                 self.info_hash_sha256,
             )
             self.assertEqual(handle.name(), "test.txt")
