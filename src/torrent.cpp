@@ -9181,7 +9181,9 @@ namespace {
 		if (m_incomplete != 0xffffff) downloaders = m_incomplete;
 		else downloaders = m_peer_list ? m_peer_list->num_peers() - m_peer_list->num_seeds() : 0;
 
-		if (seeds == 0)
+		// If there is a single known seed and we're currently seeding then it's
+		// likely us, so consider the torrent otherwise seedless
+		if (seeds == 0 || (seeds == 1 && !is_paused()))
 		{
 			ret |= no_seeds;
 			ret |= downloaders & prio_mask;
