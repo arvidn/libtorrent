@@ -96,10 +96,8 @@ build_script:
     cd %BOOST_ROOT% &&
     b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
-    mkdir build &&
-    cd build &&
-    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 16 2019" -A x64 .. &&
-    cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS% -- -verbosity:minimal
+    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G Ninja -B build &&
+    cmake --build build --config Release
     )
 
 test_script:

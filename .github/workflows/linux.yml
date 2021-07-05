@@ -41,8 +41,11 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: install gcrypt
         if: ${{ contains(matrix.config, 'crypto=gcrypt') }}
@@ -50,15 +53,21 @@ jobs:
 
       - name: build library
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           b2 ${{ matrix.config }} cxxstd=17
 
       - name: build examples
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           cd examples
           b2 ${{ matrix.config }}
 
       - name: build tools
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           cd tools
           b2 ${{ matrix.config }} warnings-as-errors=on
 
@@ -87,11 +96,16 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using clang : 9 : clang++-9 ;" >>~/user-config.jam
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: build fuzzers
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           cd fuzzers
           b2 clang cxxstd=17 warnings-as-errors=on
 
@@ -114,11 +128,16 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: compile header files individually
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           b2 check-headers cxxstd=17 warnings-as-errors=on
 
 
@@ -143,11 +162,16 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev
           echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-unix.*\" : <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: analyze
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           b2 -a clang_tidy
 
 
@@ -189,13 +213,18 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
-          pip install websockets
-          echo "using gcc ;" >>~/user-config.jam
           echo "using clang : 10 : clang++-10 ;" >>~/user-config.jam
+          echo "using gcc ;" >>~/user-config.jam
+          pip install websockets
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: build and run tests
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           cd test
           b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
 
@@ -226,11 +255,16 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
 
       - name: build and run simulations
         run: |
+          export BOOST_ROOT="$(pwd)/boost"
+          export PATH="$BOOST_ROOT:$PATH"
           cd simulation
           b2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
 
@@ -256,10 +290,13 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
+          echo "using gcc ;" >>~/user-config.jam
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
           sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick python3-setuptools
           python3 -m pip install aafigure
-          echo "using gcc ;" >>~/user-config.jam
 
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist

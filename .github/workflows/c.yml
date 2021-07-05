@@ -37,7 +37,10 @@ jobs:
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+        cd boost
+        ./bootstrap.sh
+        ./b2 headers
 
     - name: install boost (windows)
       if: runner.os == 'Windows'
@@ -68,5 +71,8 @@ jobs:
     - name: build
       if: runner.os != 'Windows'
       run: |
+        export BOOST_ROOT="$(pwd)/boost"
+        export PATH="$BOOST_ROOT:$PATH"
+        export BOOST_BUILD_PATH"$BOOST_ROOT/tools/build"
         cd bindings/c
         b2

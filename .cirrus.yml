@@ -4,13 +4,18 @@ freebsd_instance:
 task:
   install_script: |
     IGNORE_OSVERSION=yes pkg update
-    pkg install -U -y git boost_build boost-libs unzip wget openssl cmake ninja
+    pkg install -U -y git unzip wget openssl cmake ninja
     echo "using clang ;" > ~/user-config.jam
+  boost_script: |
+      git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+      cd boost
+      ./bootstrap.sh
+      ./b2 headers
   submodules_script: |
     git submodule update --init --recursive
   build_cmake_script: |
-    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -G Ninja .
-    cmake --build . --parallel 2
+    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -DBOOST_ROOT="$(pwd)/boost" -G Ninja -B cmake-build-dir
+    cmake --build cmake-build-dir
     ./test/test_primitives
   tests_script: |
     cd test
