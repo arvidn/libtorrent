@@ -78,6 +78,7 @@ if (NOT BUILD_SHARED_LIBS)
 	set(OPENSSL_USE_STATIC_LIBS ON)
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 list(APPEND package_config_dependencies "Threads REQUIRED")
 
