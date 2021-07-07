@@ -25,11 +25,9 @@
 #  which was also generated in the previous part.
 #  As a result, the pkg-config file is finally created and copied to the install location
 
-# One limitation of this method of generating the pkg-config file is that the
-# the pkg-config file itself is only created at install time.
-# This constraint may be relaxed in the future.
-# It would be best if it were fully generated after the generation phase of the CMake
-# build, so that at install time it would only need to be copied to the install location.
+# A convenince target, create_pkgconfig, is provided to create the pkgconfig file
+# in the build directory without having to build the whole project or executing the
+# generated creation script (`generate-pkg-config.cmake`) manually.
 
 # save the current file dir for later use in the generate_and_install_pkg_config_file() function
 set(_GeneratePkGConfigDir "${CMAKE_CURRENT_LIST_DIR}/GeneratePkgConfig")
@@ -133,7 +131,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 		set(_output_name "${_target}")
 	endif()
 	set(_package_name "${_packageName}")
-	set(_pkg_config_file_template_filename "${_GeneratePkGConfigDir}/pkg-config.cmake.in")
+	set(_pkg_config_template_file "${_GeneratePkGConfigDir}/pkg-config.cmake.in")
 	set(_generate_target_dir "${CMAKE_CURRENT_BINARY_DIR}/${_target}-pkgconfig")
 	set(_genexp_variables_file "${_generate_target_dir}/compile-settings.cmake")
 
@@ -202,6 +200,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 	# create the pkg-config file at install-time
 	get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 	if (NOT _isMultiConfig)
+		set(_pkg_config_generation_script "${_generate_target_dir}/generate-pkg-config.cmake")
 		set(_expanded_variables_file "${_generate_target_dir}/compile-settings-expanded.cmake")
 
 		file(GENERATE
@@ -217,6 +216,7 @@ function(generate_and_install_pkg_config_file _target _packageName)
 
 		install(SCRIPT "${_generate_target_dir}/generate-pkg-config.cmake")
 	else()
+		set(_pkg_config_generation_script "${_generate_target_dir}/$<CONFIG>/generate-pkg-config.cmake")
 		foreach (cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
 			set(_expanded_variables_file "${_generate_target_dir}/${cfg}/compile-settings-expanded.cmake")
 
@@ -235,4 +235,13 @@ function(generate_and_install_pkg_config_file _target _packageName)
 			install(SCRIPT "${_generate_target_dir}/$<CONFIG>/generate-pkg-config.cmake")
 		endforeach()
 	endif()
+
+	add_custom_target(create_pkgconfig
+		COMMENT "Create pkg-config file in build directory (useful for debugging)"
+		COMMAND "${CMAKE_COMMAND}"
+			-D "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
+			-D "PKGCONFIG_SKIP_INSTALL=ON"
+			-P "${_pkg_config_generation_script}"
+		VERBATIM
+	)
 endfunction()

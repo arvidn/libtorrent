@@ -137,11 +137,15 @@ set(_cflags_field_value "${_interface_compile_options} ${_interface_include_dirs
 # create pkg-config file from template and install it
 #------------------------------------------------------------------------------
 configure_file(
-	"@_pkg_config_file_template_filename@"
+	"@_pkg_config_template_file@"
 	"@_generate_target_dir@/@_package_name@.pc"
 	@ONLY
 )
-file(INSTALL
-	"@_generate_target_dir@/@_package_name@.pc"
-	DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig"
-)
+
+# Define this variable when running this script from a custom target for inspection
+if (NOT PKGCONFIG_SKIP_INSTALL)
+	file(INSTALL
+		"@_generate_target_dir@/@_package_name@.pc"
+		DESTINATION "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/pkgconfig"
+	)
+endif()
