@@ -92,6 +92,11 @@ function(get_target_prop_genexps_from_interface_link_libraries)
 			endif()
 		endforeach()
 
+		# special case for escaped ">"
+		string(REGEX MATCHALL "\\$<ANGLE-R>" _angle_r "${_el}")
+		list(LENGTH _angle_r _angle_r_count)
+		math(EXPR _close "${_close} + ${_angle_r_count}")
+
 		if (_open EQUAL _close)
 			list(APPEND _result "$<TARGET_PROPERTY:$<IF:$<BOOL:${_el}>,${_el},dummy>,${ARG_LINKED_TARGETS_PROPERTY}>")
 		else()
