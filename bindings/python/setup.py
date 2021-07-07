@@ -18,19 +18,6 @@ import setuptools
 import setuptools.command.build_ext as _build_ext_lib
 
 
-def get_msvc_toolset():
-    # Reference: https://wiki.python.org/moin/WindowsCompilers
-    major_minor = sys.version_info[0:2]
-    if major_minor in ((2, 6), (2, 7), (3, 0), (3, 1), (3, 2)):
-        return "msvc-9.0"
-    if major_minor in ((3, 3), (3, 4)):
-        return "msvc-10.0"
-    if major_minor in ((3, 5), (3, 6)):
-        return "msvc-14.1"  # libtorrent requires VS 2017 or newer
-    # unknown python version
-    return "msvc"
-
-
 def b2_bool(value):
     if value:
         return "on"
@@ -244,10 +231,7 @@ class LibtorrentBuildExt(BuildExtBase):
         except OSError:
             pass
 
-        if os.name == "nt":
-            self.toolset = get_msvc_toolset()
-        else:
-            self.toolset = None
+        self.toolset = None
         self.libtorrent_link = None
         self.boost_link = None
         self.pic = None
@@ -374,10 +358,8 @@ class LibtorrentBuildExt(BuildExtBase):
     def _configure_b2_with_distutils(self):
         if os.name == "nt":
             self._maybe_add_arg("--abbreviate-paths")
-            self._maybe_add_arg("boost-link=static")
-        else:
-            self._maybe_add_arg("boost-link=shared")
 
+        self._maybe_add_arg("boost-link=static")
         self._maybe_add_arg("libtorrent-link=static")
 
         if distutils.debug.DEBUG:

@@ -1,0 +1,45 @@
+name: cibuildwheel
+
+on:
+  push:
+    branches: [ RC_1_2 RC_2_0 master ]
+  pull_request:
+
+jobs:
+  build_wheels:
+    name: cibuildwheel
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-10.15, windows-2019]
+        pytag: [cp36, cp37, cp38, cp39]
+
+    env:
+       CIBW_BUILD_VERBOSITY: 1
+       CIBW_BUILD: ${{ matrix.pytag }}-*
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    # "outer" python, used only to invoke cihelper and cibuildwheel
+    - uses: actions/setup-python@v2
+
+    - name: install cihelper
+      run: |
+        python -m pip install ./cihelper
+
+    - name: install cibuildwheel
+      run: |
+        python -m pip install cibuildwheel
+
+    - name: run cibuildwheel
+      run: |
+        cihelper_cibw_run --output-dir wheelhouse
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: ./wheelhouse/*.whl
