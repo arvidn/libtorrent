@@ -112,7 +112,7 @@ with an associated port.
 
 For documentation on these types, please refer to the `asio documentation`_.
 
-.. _`asio documentation`: https://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio.html
+.. _`asio documentation`: https://www.boost.org/doc/libs/1_75_0/doc/html/boost_asio.html
 
 exceptions
 ==========
@@ -1261,4 +1261,3 @@ web seed
 	A web server that is acting a seed, providing access to all pieces of all
 	files over HTTP. This is an extension that client software may or may not
 	support.
-

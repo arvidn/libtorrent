@@ -76,11 +76,7 @@ using error_code = boost::system::error_code;
 	using boost::asio::ssl::stream;
 #endif
 using boost::asio::ssl::verify_context;
-#if BOOST_VERSION >= 107300
 using boost::asio::ssl::host_name_verification;
-#else
-using host_name_verification = boost::asio::ssl::rfc2818_verification;
-#endif
 
 using native_context_type = SSL_CTX*;
 using native_stream_type = SSL*;

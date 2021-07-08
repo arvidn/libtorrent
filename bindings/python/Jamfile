@@ -31,41 +31,20 @@ feature python-install-path : : free path ;
 # the python module in the system directory or user-specifc directory
 feature python-install-scope : user system : ;
 
-# copied from boost 1.63's boost python jamfile
-rule find-py3-version
+# this is just to force boost build to pick the desired python target when using LIBTORRENT_PYTHON_INTERPRETER
+feature libtorrent-python : on ;
+
+if $(LIBTORRENT_PYTHON_INTERPRETER)
 {
-	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
-	if $(BOOST_VERSION_TAG) >= 1_67
-	{
-		# starting with boost 1.67.0 boost python no longer define a separate
-		# target for python3 (boost_python3) so then we just use the regular
-		# boost_python target
-		return ;
-	}
-	local versions = [ feature.values python ] ;
-	local py3ver ;
-	for local v in $(versions)
-	{
-		if $(v) >= 3.0
-		{
-			py3ver = $(v) ;
-		}
-	}
-	return $(py3ver) ;
+	echo "using python interpreter at: " $(LIBTORRENT_PYTHON_INTERPRETER) ;
+	using python : : "$(LIBTORRENT_PYTHON_INTERPRETER)" : : : <libtorrent-python>on ;
 }
 
 if $(BOOST_ROOT)
 {
 	use-project /boost : $(BOOST_ROOT) ;
 	alias boost_python : /boost/python//boost_python : : : <include>$(BOOST_ROOT) ;
-	if [ find-py3-version ]
-	{
-		alias boost_python3 : /boost/python//boost_python3 : : : <include>$(BOOST_ROOT) ;
-	}
-	else
-	{
-		alias boost_python3 : boost_python ;
-	}
+	alias boost_python3 : boost_python ;
 }
 else
 {
@@ -175,12 +154,6 @@ rule libtorrent_linking ( properties * )
 		ECHO "WARNING: you probably want to specify libtorrent-link=static rather than link=static" ;
 	}
 
-	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
-	if <boost-link>static in $(properties) && $(BOOST_VERSION_TAG) < 1_74 && <target-os>linux in $(properties)
-	{
-		ECHO "WARNING: you cannot link statically against boost-python on linux before version 1.74.0, because it links against pthread statically in that case, which is not allowed" ;
-	}
-
 	local boost_python_lib ;
 
 	for local prop in $(properties)
@@ -198,10 +171,7 @@ rule libtorrent_linking ( properties * )
 		boost_python_lib = boost_python ;
 	}
 
-	# linux must link dynamically against boost python because it pulls
-	# in libpthread, which must be linked dynamically since we're building a .so
-	# (the static build of libpthread is not position independent)
-	if <boost-link>shared in $(properties) || ( <target-os>linux in $(properties) && $(BOOST_VERSION_TAG) < 1_74 )
+	if <boost-link>shared in $(properties)
 	{
 		result += <library>$(boost_python_lib)/<link>shared/<warnings>off ;
 	}
@@ -353,4 +323,3 @@ install stage_dependencies
 
 explicit stage_module ;
 explicit stage_dependencies ;
-

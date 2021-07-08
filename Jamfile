@@ -168,22 +168,14 @@ rule linking ( properties * )
 		result += <local-visibility>global ;
 	}
 
-	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
 	local json ;
-	if $(BOOST_VERSION_TAG) >= 1_75
+	if $(BOOST_ROOT)
 	{
-		if $(BOOST_ROOT)
-		{
-			json = /boost/json//boost_json ;
-		}
-		else
-		{
-			json = system_boost_json ;
-		}
+		json = /boost/json//boost_json ;
 	}
 	else
 	{
-		json = shipped_boost_json ;
+		json = system_boost_json ;
 	}
 
 	if <boost-link>static in $(properties)
@@ -956,32 +948,8 @@ lib torrent
 # return libdir and includedir
 rule install-paths ( properties * )
 {
-	import version ;
-
-	# package.paths was introduced in boost-1.70 (2018.02)
-	# however, boost build's versioning scheme changed in boost-1.71 to version
-	# 4.0
-	local boost-build-version = [ SPLIT_BY_CHARACTERS [ version.boost-build ] : "-" ] ;
-	if [ version.version-less [ SPLIT_BY_CHARACTERS $(boost-build-version[1]) : "." ] : 2018 03 ]
-	{
-		import option ;
-		import property ;
-		local prefix = [ option.get prefix : [ property.select <install-default-prefix> : $(properties) ] ] ;
-		prefix = $(prefix:G=) ;
-		# Or some likely defaults if neither is given.
-		if ! $(prefix)
-		{
-			if [ modules.peek : NT ] { prefix = C:\\$(package-name) ; }
-			else if [ modules.peek : UNIX ] { prefix = /usr/local ; }
-		}
-
-		return $(prefix)/lib $(prefix)/include ;
-	}
-	else
-	{
-		local p = [ package.paths libtorrent : $(properties) ] ;
-		return [ $(p).libdir ] [ $(p).includedir ] ;
-	}
+	local p = [ package.paths libtorrent : $(properties) ] ;
+	return [ $(p).libdir ] [ $(p).includedir ] ;
 }
 
 rule generate-pkg-config ( properties * )

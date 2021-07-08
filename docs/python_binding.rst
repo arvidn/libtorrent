@@ -260,4 +260,3 @@ A very simple example usage of the module would be something like this:
 	:code: python
 	:tab-width: 2
 	:start-after: from __future__ import print_function
-

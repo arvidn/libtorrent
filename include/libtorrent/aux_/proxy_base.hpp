@@ -101,7 +101,7 @@ struct proxy_base
 		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
-#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+#if !defined TORRENT_BUILD_SIMULATOR
 	// Compatiblity with the async_wait method introduced in boost 1.66
 
 	static constexpr auto wait_read = tcp::socket::wait_read;

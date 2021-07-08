@@ -309,8 +309,8 @@ libtorrent runs on most major operating systems including:
 * Solaris
 
 It uses Boost.Asio, Boost.Optional, Boost.System, Boost.Multiprecision,
-Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
-other boost libraries. At least version 1.70 of boost is required.
+Boost.Pool, Boost.Python (for bindings), Boost.CRC, Boost.JSON and various
+other boost libraries. At least version 1.75 of boost is required.
 
 Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
@@ -320,4 +320,3 @@ libtorrent requires a C++11 compiler and does not build with the following compi
 
 * GCC older than 5.4
 * Visual Studio older than Visual Studio 15 2017 (aka msvc-14.1)
-
