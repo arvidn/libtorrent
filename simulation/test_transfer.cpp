@@ -527,8 +527,7 @@ TORRENT_TEST(disk_full_recover)
 
 // Below is a series of tests to transfer torrents with varying pad-file related
 // traits
-template <typename Test>
-void run_torrent_test(std::shared_ptr<lt::torrent_info> ti, Test const& test)
+void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 {
 	using namespace lt;
 
@@ -597,7 +596,7 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti, Test const& test)
 
 	ses[0]->async_add_torrent(atp);
 
-	sim::timer t(sim, lt::minutes(1), [&](boost::system::error_code const&)
+	sim::timer t(sim, lt::seconds(10), [&](boost::system::error_code const&)
 	{
 		auto h = ses[0]->get_torrents();
 		auto ti = h[0].torrent_file_with_hashes();
@@ -611,8 +610,12 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti, Test const& test)
 
 		TEST_CHECK(is_seed(*ses[0]));
 		TEST_CHECK(is_seed(*ses[1]));
-		test(ses);
 
+		h[0].force_recheck();
+	});
+
+	sim::timer t2(sim, lt::minutes(1), [&](boost::system::error_code const&)
+	{
 		// shut down
 		int idx = 0;
 		for (auto& s : ses)
@@ -644,62 +647,53 @@ std::shared_ptr<lt::torrent_info> test_torrent(lt::file_storage fs, lt::create_f
 TORRENT_TEST(simple_torrent)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x3ff0, false}, {0x10, true}}, 0x4000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x3ff0, false}, {0x10, true}}, 0x4000), {}));
 }
 
 TORRENT_TEST(odd_last_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x4100, false}, {0x10, true}}, 0x4000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x4100, false}, {0x10, true}}, 0x4000), {}));
 }
 
 TORRENT_TEST(small_piece_size)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x3ff0, false}, {0x10, true}}, 0x2000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x3ff0, false}, {0x10, true}}, 0x2000), {}));
 }
 
 TORRENT_TEST(odd_piece_size)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x1ffe, false}, {0x1, true}}, 0x1fff), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x1ffe, false}, {0x1, true}}, 0x1fff), {}));
 }
 
 TORRENT_TEST(large_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x5000, false}, {0x100000000 - 0x5000, true}}, 0x100000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x5000, false}, {0x100000000 - 0x5000, true}}, 0x100000), {}));
 }
 
 TORRENT_TEST(unaligned_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x3fff, false}, {0x10, true}}, 0x4000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x3fff, false}, {0x10, true}}, 0x4000), {}));
 }
 
 TORRENT_TEST(piece_size_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x8000, false}, {0x8000, true}}, 0x8000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x8000, false}, {0x8000, true}}, 0x8000), {}));
 }
 
 TORRENT_TEST(block_size_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x4000, false}, {0x4000, true}}, 0x4000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x4000, false}, {0x4000, true}}, 0x4000), {}));
 }
 
 TORRENT_TEST(back_to_back_pad_file)
 {
 	run_torrent_test(test_torrent(make_files(
-		{{0x3000, false}, {0x800, true}, {0x800, true}}, 0x4000), {})
-		, [](std::shared_ptr<lt::session> s[]){});
+		{{0x3000, false}, {0x800, true}, {0x800, true}}, 0x4000), {}));
 }
