@@ -578,7 +578,7 @@ private:
 		{
 			auto f = std::move(m_event_queue.front().second);
 			m_event_queue.pop_front();
-			f();
+			if (f) f();
 		}
 
 		if (m_event_queue.empty())
