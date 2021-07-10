@@ -62,15 +62,10 @@ function(get_target_prop_genexps_from_interface_link_libraries)
 		"${options}" "${oneValueArgs}" "${multiValueArgs}"
 	)
 
-	# this is so that the TARGET_PROPERTY genexp doesn't fail due to empty target
-	if (NOT TARGET dummy)
-		add_library(dummy INTERFACE)
-	endif()
-
 	get_target_property(_iface_link_libs "${ARG_TARGET}" INTERFACE_LINK_LIBRARIES)
 	foreach(_el IN LISTS _iface_link_libs)
 
-		if(_concat_flag)
+		if (_concat_flag)
 			set(_el "${_temp}${_el}")
 			set(_concat_flag OFF)
 		endif()
@@ -96,7 +91,7 @@ function(get_target_prop_genexps_from_interface_link_libraries)
 		math(EXPR _close "${_close} + ${_angle_r_count}")
 
 		if (_open EQUAL _close)
-			list(APPEND _result "$<TARGET_PROPERTY:$<IF:$<BOOL:${_el}>,${_el},dummy>,${ARG_LINKED_TARGETS_PROPERTY}>")
+			list(APPEND _result "$<$<TARGET_EXISTS:$<IF:$<BOOL:${_el}>,${_el},NOTFOUND>>:$<TARGET_PROPERTY:${_el},${ARG_LINKED_TARGETS_PROPERTY}>>")
 		else()
 			set(_concat_flag ON)
 			set(_temp "${_el}")
