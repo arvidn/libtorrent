@@ -9177,9 +9177,9 @@ namespace {
 
 		// If we're currently seeding and using tracker supplied scrape
 		// data, we should remove ourselves from the seed count
-		int const self_seed = is_seed() && !is_paused() ? 1 : 0;
+		std::uint32_t const self_seed = is_seed() && !is_paused() ? std::uint32_t(1) : std::uint32_t(0);
 
-		if (m_complete != 0xffffff) seeds = std::max(0, m_complete - self_seed);
+		if (m_complete != 0xffffff) seeds = std::max(std::uint32_t(0), m_complete - self_seed);
 		else seeds = m_peer_list ? m_peer_list->num_seeds() : 0;
 
 		if (m_incomplete != 0xffffff) downloaders = m_incomplete;
