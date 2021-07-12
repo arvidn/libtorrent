@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2016-2020, Arvid Norberg
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2019, Steven Siloti
+Copyright (c) 2020, Silver Zachara
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,9 +44,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent {
+namespace aux {
 	template <typename Tag>
 	struct difference_tag;
+
+#if TORRENT_USE_IOSTREAM
+	template <typename T>
+	struct type_to_print_as
+	{
+		using type = typename std::conditional<sizeof(T) < sizeof(int), int, T>::type;
+	};
+#endif
+
 
 	template<typename UnderlyingType, typename Tag
 		, typename Cond = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
@@ -90,6 +103,12 @@ namespace libtorrent { namespace aux {
 
 		strong_typedef& operator=(strong_typedef const& rhs) & noexcept = default;
 		strong_typedef& operator=(strong_typedef&& rhs) & noexcept = default;
+
+#if TORRENT_USE_IOSTREAM
+		friend std::ostream& operator<<(std::ostream& os, strong_typedef val)
+		{ return os << static_cast<typename type_to_print_as<UnderlyingType>::type>(static_cast<UnderlyingType>(val)); }
+#endif
+
 	private:
 		UnderlyingType m_val;
 	};
@@ -121,18 +140,14 @@ namespace libtorrent { namespace aux {
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
 	{ return --v;}
 
-#if TORRENT_USE_IOSTREAM
-	template <typename T, typename Tag>
-	std::ostream& operator<<(std::ostream& os, strong_typedef<T, Tag> val)
-	{ return os << static_cast<T>(val); }
-#endif
-
 } // namespace libtorrent::aux
 
 	// this type represents a piece index in a torrent.
 	using piece_index_t = aux::strong_typedef<std::int32_t, aux::piece_index_tag>;
 
-	// this type represents an index to a file in a torrent
+	// this type represents an index to a file in a torrent. Any specific torrent
+	// file has a well defined and immutable file list, and a file index into it
+	// always refers to the same file.
 	using file_index_t = aux::strong_typedef<std::int32_t, aux::file_index_tag>;
 
 } // namespace libtorrent
@@ -157,7 +172,12 @@ namespace std {
 	{
 		using base = std::hash<UnderlyingType>;
 		using argument_type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
+#if __cplusplus < 201402
+		// this was deprecated in C++17
 		using result_type = typename base::result_type;
+#else
+		using result_type = std::size_t;
+#endif
 		result_type operator()(argument_type const& s) const
 		{ return this->base::operator()(static_cast<UnderlyingType>(s)); }
 	};

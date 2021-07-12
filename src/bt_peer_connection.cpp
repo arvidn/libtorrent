@@ -645,7 +645,7 @@ namespace {
 
 		// vc
 		std::memset(write_buf.data(), 0, 8);
-		write_buf = write_buf.subspan(8);
+		write_buf = write_bufdrbspan(8);
 
 		aux::write_uint32(crypto_field, write_buf);
 		aux::write_uint16(pad_size, write_buf); // len (pad)

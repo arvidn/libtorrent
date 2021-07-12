@@ -1,6 +1,10 @@
 /*
 
-Copyright (c) 2007-2018, Arvid Norberg
+Copyright (c) 2007-2020, Arvid Norberg
+Copyright (c) 2008, Andrew Resch
+Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2020, Tiger Wang
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,7 +107,7 @@ std::string demangle(char const* name)
 	return ret;
 }
 }
-#elif defined _WIN32
+#elif defined _WIN32 && !defined TORRENT_WINRT
 
 #include "libtorrent/aux_/windows.hpp"
 #include <DbgHelp.h>
@@ -152,7 +156,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 }
 }
 
-#elif defined _WIN32
+#elif defined _WIN32 && !defined TORRENT_WINRT
 
 #include "libtorrent/aux_/windows.hpp"
 #include "libtorrent/utf8.hpp"
@@ -372,14 +376,14 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS
 #ifdef TORRENT_WINDOWS
-	// SIGINT doesn't trigger a break with msvc
-	DebugBreak();
+	// SIGABRT doesn't trigger a break with msvc
+	__debugbreak();
 #else
-	// send SIGINT to the current process
+	// send SIGABRT to the current process
 	// to break into the debugger
-	::raise(SIGABRT);
+	std::raise(SIGABRT);
 #endif
-	::abort();
+	std::abort();
 #endif
 }
 

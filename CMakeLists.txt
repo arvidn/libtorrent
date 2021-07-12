@@ -12,7 +12,7 @@ project(libtorrent
 	DESCRIPTION "Bittorrent library"
 	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
 )
-set (SOVERSION "10")
+set (SOVERSION "${VER_MAJOR}.${VER_MINOR}")
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)
