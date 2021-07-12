@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <limits>
 
-std::array<char, 4> generate_block_fill(lt::piece_index_t const p, int const block);
+std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block);
 lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs);
 lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 	, lt::span<lt::sha256_hash> const hashes);

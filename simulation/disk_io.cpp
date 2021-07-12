@@ -55,11 +55,14 @@ namespace {
 
 } // anonymous namespace
 
-std::array<char, 4> generate_block_fill(lt::piece_index_t const p, int const block)
+std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block)
 {
 	int const v = (static_cast<int>(p) << 8) | (block & 0xff);
-	std::array<char, 4> ret;
-	std::memcpy(ret.data(), reinterpret_cast<char const*>(&v), 4);
+	std::array<char, 0x4000> ret;
+	for (int i = 0; i < 0x4000; i += 4)
+	{
+		std::memcpy(ret.data() + i, reinterpret_cast<char const*>(&v), 4);
+	}
 	return ret;
 }
 
@@ -101,7 +104,7 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 	TORRENT_ASSERT(int(hashes.size()) >= blocks_in_piece2);
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
-	TORRENT_ASSERT(piece_size2 - pad_bytes == piece_size);
+	TORRENT_ASSERT(piece_size - pad_bytes == piece_size2);
 
 	lt::hasher ret;
 	int offset = 0;
@@ -112,12 +115,12 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 
 		bool const v2 = piece_size2 - offset > 0;
 
-		int const block_size = std::min(lt::default_block_size, std::max(piece_size, piece_size2) - offset);
+		int const block_size = std::min(lt::default_block_size, payload_size - offset);
 		for (int i = 0; i < block_size;)
 		{
 			int const bytes = std::min(int(fill.size()), payload_size - offset);
-			if (bytes > 0)
-				ret.update(fill.data(), bytes);
+			TORRENT_ASSERT(bytes > 0);
+			ret.update(fill.data(), bytes);
 
 			if (piece_size2 - offset > 0)
 				v2_hash.update(fill.data(), std::min(int(fill.size()), piece_size2 - offset));
@@ -133,8 +136,6 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 
 		if (v2)
 			hashes[block] = v2_hash.final();
-		else
-			hashes[block].clear();
 	}
 	return ret.final();
 }
@@ -349,7 +350,7 @@ struct test_disk_io final : lt::disk_interface
 			return false;
 		}
 
-		bool const valid = validate_block(buf, r);
+		bool const valid = validate_block(*m_files, buf, r);
 
 		auto const seek_time = disk_seek(std::int64_t(static_cast<int>(r.piece)) * m_files->piece_length() + r.start
 			, lt::default_block_size);
@@ -544,13 +545,24 @@ private:
 		return r.piece * m_blocks_per_piece + r.start / lt::default_block_size;
 	}
 
-	bool validate_block(char const* b, lt::peer_request const& r) const
+	bool validate_block(lt::file_storage const& fs, char const* b, lt::peer_request const& r) const
 	{
 		auto const fill = generate_block_fill(r.piece, r.start / lt::default_block_size);
-		for (int i = 0; i < lt::default_block_size; i += fill.size())
+		int const piece_size = fs.piece_size(r.piece);
+		int payload_bytes = (piece_size - pads_in_piece(m_pad_bytes, r.piece)) - r.start;
+		int offset = 0;
+		while (offset < r.length && payload_bytes > 0)
 		{
-			if (std::memcmp(b, fill.data(), fill.size()) != 0) return false;
-			b += fill.size();
+			int const to_compare = std::min(payload_bytes, int(fill.size()));
+			if (std::memcmp(b, fill.data(), to_compare) != 0) return false;
+			b += to_compare;
+			offset += to_compare;
+			payload_bytes -= to_compare;
+		}
+		if (offset < r.length)
+		{
+			// the pad bytes must be zero
+			return std::all_of(b, b + r.length - offset, [](char const c) { return c == 0; });
 		}
 		return true;
 	}
