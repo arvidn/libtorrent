@@ -697,3 +697,9 @@ TORRENT_TEST(back_to_back_pad_file)
 	run_torrent_test(test_torrent(make_files(
 		{{0x3000, false}, {0x800, true}, {0x800, true}}, 0x4000), {}));
 }
+
+TORRENT_TEST(small_file_large_piece)
+{
+	run_torrent_test(test_torrent(make_files(
+		{{0x833ed, false}, {0x7cc13, true}, {0x3d, false}, {0x7ffc3, true}, {0x14000, false}}, 0x80000), {}));
+}
