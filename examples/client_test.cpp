@@ -1845,8 +1845,10 @@ COLUMN OPTIONS
 		{
 			torrent_status const& s = view.get_active_torrent();
 
-			print((piece_bar(s.pieces, terminal_width - 2) + "\x1b[K\n").c_str());
-			pos += 1;
+			if (!print_matrix) {
+				print((piece_bar(s.pieces, terminal_width - 2) + "\x1b[K\n").c_str());
+				pos += 1;
+			}
 
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
