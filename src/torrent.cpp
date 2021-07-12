@@ -10616,7 +10616,8 @@ bool is_downloading_state(int const st)
 		if (flags & torrent_handle::piece_granularity)
 			return;
 
-		TORRENT_ASSERT(has_picker());
+		if (!has_picker())
+			return;
 
 		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
 
