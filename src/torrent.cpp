@@ -8101,7 +8101,7 @@ namespace {
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-				if (p->upload_only())
+				if (p->upload_only() && p->can_disconnect(errors::torrent_finished))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
