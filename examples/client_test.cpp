@@ -500,6 +500,13 @@ int print_peer_info(std::string& out
 // returns the number of lines printed
 int print_peer_legend(std::string& out, int max_lines)
 {
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4566: character represented by universal-character-name '\u256F'
+// cannot be represented in the current code page (1252)
+#pragma warning(disable: 4566)
+#endif
+
 	std::array<char const*, 13> lines{{
 		" we are interested \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502\u2502\u2502\u2570\u2500\u2500\u2500 incoming\x1b[K\n",
 		"     we have choked \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502\u2502\u2570\u2500\u2500\u2500 resume data\x1b[K\n",
@@ -515,6 +522,10 @@ int print_peer_legend(std::string& out, int max_lines)
 		"            obfuscation level \u2500\u2500\u2500\u256f\u2502\u2570\u2500\u2500\u2500 seed\x1b[K\n",
 		"                  hole-punched \u2500\u2500\u2500\u256f\x1b[K\n",
 	}};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 	char const* ip = "                               ";
 	char const* indentation = "                                                                     ";
