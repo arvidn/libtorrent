@@ -9175,7 +9175,11 @@ namespace {
 		int seeds = 0;
 		int downloaders = 0;
 
-		if (m_complete != 0xffffff) seeds = m_complete;
+		// If we're currently seeding and using tracker supplied scrape
+		// data, we should remove ourselves from the seed count
+		int const self_seed = is_seed() && !is_paused() ? 1 : 0;
+
+		if (m_complete != 0xffffff) seeds = std::max(0, int(m_complete) - self_seed);
 		else seeds = m_peer_list ? m_peer_list->num_seeds() : 0;
 
 		if (m_incomplete != 0xffffff) downloaders = m_incomplete;
