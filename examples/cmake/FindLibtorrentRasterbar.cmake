@@ -40,7 +40,7 @@ function(_try_pkgconfig_mode)
 	endif()
 	find_package(Threads ${_quietKeyword} REQUIRED)
 	find_package(PkgConfig ${_quietKeyword})
-	if(PKG_CONFIG_FOUND)
+	if (PKG_CONFIG_FOUND)
 		set(_moduleSpec "libtorrent-rasterbar")
 		if (${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION)
 			if (${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSION_EXACT)
@@ -67,11 +67,11 @@ function(_try_pkgconfig_mode)
 endfunction()
 
 function(_try_generic_mode)
-	if(LibtorrentRasterbar_USE_STATIC_LIBS)
+	if (LibtorrentRasterbar_USE_STATIC_LIBS)
 		set(LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
 		set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
 	endif()
-	if(LibtorrentRasterbar_CUSTOM_DEFINITIONS)
+	if (LibtorrentRasterbar_CUSTOM_DEFINITIONS)
 		set(LibtorrentRasterbar_DEFINITIONS ${LibtorrentRasterbar_CUSTOM_DEFINITIONS})
 	else()
 		# Without pkg-config, we can't possibly figure out the correct build flags.
@@ -84,7 +84,7 @@ function(_try_generic_mode)
 			-D_FILE_OFFSET_BITS=64)
 	endif()
 
-	if(NOT LibtorrentRasterbar_USE_STATIC_LIBS)
+	if (NOT LibtorrentRasterbar_USE_STATIC_LIBS)
 		list(APPEND LibtorrentRasterbar_DEFINITIONS
 			-DTORRENT_LINKING_SHARED
 			-DBOOST_SYSTEM_DYN_LINK)
@@ -97,7 +97,7 @@ function(_try_generic_mode)
 	find_library(LibtorrentRasterbar_LIBRARY NAMES torrent-rasterbar
 				HINTS ${PC_LIBTORRENT_RASTERBAR_LIBDIR} ${PC_LIBTORRENT_RASTERBAR_LIBRARY_DIRS})
 
-	if(LibtorrentRasterbar_USE_STATIC_LIBS)
+	if (LibtorrentRasterbar_USE_STATIC_LIBS)
 		set(CMAKE_FIND_LIBRARY_SUFFIXES ${LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 	endif()
 
@@ -113,7 +113,7 @@ function(_try_generic_mode)
 
 	mark_as_advanced(LibtorrentRasterbar_LIBRARY LibtorrentRasterbar_INCLUDE_DIR)
 
-	if(NOT LibtorrentRasterbar_LIBRARY OR NOT LibtorrentRasterbar_INCLUDE_DIR)
+	if (NOT LibtorrentRasterbar_LIBRARY OR NOT LibtorrentRasterbar_INCLUDE_DIR)
 		set(LibtorrentRasterbar_FOUND FALSE PARENT_SCOPE)
 		return()
 	endif()
@@ -129,7 +129,7 @@ function(_try_generic_mode)
 	endif()
 
 	list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL _ENCRYPTION_INDEX)
-	if(_ENCRYPTION_INDEX GREATER -1)
+	if (_ENCRYPTION_INDEX GREATER -1)
 		find_package(OpenSSL QUIET REQUIRED)
 		list(APPEND LibtorrentRasterbar_LIBRARIES OpenSSL::SSL)
 		if (LibtorrentRasterbar_USE_STATIC_LIBS)

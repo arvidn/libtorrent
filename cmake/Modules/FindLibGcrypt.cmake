@@ -58,70 +58,70 @@
 #=============================================================================
 
 find_path(LibGcrypt_INCLUDE_DIRS
-    NAMES gcrypt.h
-    PATH_SUFFIXES libgcrypt
+	NAMES gcrypt.h
+	PATH_SUFFIXES libgcrypt
 )
 
 find_library(LibGcrypt_LIBRARIES
-    NAMES gcrypt
+	NAMES gcrypt
 )
 
-if(MSVC)
-    find_library(LibGcrypt_LIBRARIES_DEBUG
-        NAMES gcryptd
-    )
+if (MSVC)
+	find_library(LibGcrypt_LIBRARIES_DEBUG
+		NAMES gcryptd
+	)
 
-    if(NOT LibGcrypt_LIBRARIES_DEBUG)
-        unset(LibGcrypt_LIBRARIES CACHE)
-    endif()
+	if (NOT LibGcrypt_LIBRARIES_DEBUG)
+		unset(LibGcrypt_LIBRARIES CACHE)
+	endif()
 
-    if(MSVC_IDE)
-        if(NOT (LibGcrypt_LIBRARIES_DEBUG AND LibGcrypt_LIBRARIES))
-            message(STATUS
-                "\nCould NOT find the debug AND release version of the libgcrypt library.\n
-                You need to have both to use MSVC projects.\n
-                Please build and install both libgcrypt libraries first.\n"
-            )
-            unset(LibGcrypt_LIBRARIES CACHE)
-        endif()
-    else()
-        string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_TOLOWER)
-        if(CMAKE_BUILD_TYPE_TOLOWER MATCHES debug)
-            set(LibGcrypt_LIBRARIES ${LibGcrypt_LIBRARIES_DEBUG})
-        endif()
-    endif()
+	if (MSVC_IDE)
+		if (NOT (LibGcrypt_LIBRARIES_DEBUG AND LibGcrypt_LIBRARIES))
+			message(STATUS
+				"\nCould NOT find the debug AND release version of the libgcrypt library.\n
+				You need to have both to use MSVC projects.\n
+				Please build and install both libgcrypt libraries first.\n"
+			)
+			unset(LibGcrypt_LIBRARIES CACHE)
+		endif()
+	else()
+		string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_TOLOWER)
+		if (CMAKE_BUILD_TYPE_TOLOWER MATCHES debug)
+			set(LibGcrypt_LIBRARIES ${LibGcrypt_LIBRARIES_DEBUG})
+		endif()
+	endif()
 endif()
 
 # Get version from gcrypt.h
 # #define GCRYPT_VERSION "1.6.4"
-if(LibGcrypt_INCLUDE_DIRS AND LibGcrypt_LIBRARIES)
-    file(STRINGS ${LibGcrypt_INCLUDE_DIRS}/gcrypt.h _GCRYPT_H REGEX "^#define GCRYPT_VERSION[ ]+.*$")
-    string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\1" LibGcrypt_MAJOR_VERSION "${_GCRYPT_H}")
-    string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\2" LibGcrypt_MINOR_VERSION "${_GCRYPT_H}")
-    string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\3" LibGcrypt_PATCH_VERSION "${_GCRYPT_H}")
+if (LibGcrypt_INCLUDE_DIRS AND LibGcrypt_LIBRARIES)
+	file(STRINGS ${LibGcrypt_INCLUDE_DIRS}/gcrypt.h _GCRYPT_H REGEX "^#define GCRYPT_VERSION[ ]+.*$")
+	string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\1" LibGcrypt_MAJOR_VERSION "${_GCRYPT_H}")
+	string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\2" LibGcrypt_MINOR_VERSION "${_GCRYPT_H}")
+	string(REGEX REPLACE "^.*GCRYPT_VERSION[ ]+\"([0-9]+).([0-9]+).([0-9]+).*\".*$" "\\3" LibGcrypt_PATCH_VERSION "${_GCRYPT_H}")
 
-    set(LibGcrypt_VERSION "${LibGcrypt_MAJOR_VERSION}.${LibGcrypt_MINOR_VERSION}.${LibGcrypt_PATCH_VERSION}")
-    unset(_GCRYPT_H)
+	set(LibGcrypt_VERSION "${LibGcrypt_MAJOR_VERSION}.${LibGcrypt_MINOR_VERSION}.${LibGcrypt_PATCH_VERSION}")
+	unset(_GCRYPT_H)
 endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LibGcrypt
-    FOUND_VAR LibGcrypt_FOUND
-    REQUIRED_VARS LibGcrypt_INCLUDE_DIRS LibGcrypt_LIBRARIES
-    VERSION_VAR LibGcrypt_VERSION
+	FOUND_VAR LibGcrypt_FOUND
+	REQUIRED_VARS LibGcrypt_INCLUDE_DIRS LibGcrypt_LIBRARIES
+	VERSION_VAR LibGcrypt_VERSION
 )
 
-if(LibGcrypt_FOUND AND NOT TARGET LibGcrypt::LibGcrypt)
-    add_library(LibGcrypt::LibGcrypt UNKNOWN IMPORTED)
-    set_target_properties(LibGcrypt::LibGcrypt PROPERTIES
-        IMPORTED_LOCATION "${LibGcrypt_LIBRARIES}"
-        INTERFACE_INCLUDE_DIRECTORIES "${LibGcrypt_INCLUDE_DIRS}")
+if (LibGcrypt_FOUND AND NOT TARGET LibGcrypt::LibGcrypt)
+	add_library(LibGcrypt::LibGcrypt UNKNOWN IMPORTED)
+	set_target_properties(LibGcrypt::LibGcrypt PROPERTIES
+		IMPORTED_LOCATION "${LibGcrypt_LIBRARIES}"
+		INTERFACE_INCLUDE_DIRECTORIES "${LibGcrypt_INCLUDE_DIRS}")
 endif()
 
 mark_as_advanced(LibGcrypt_INCLUDE_DIRS LibGcrypt_LIBRARIES)
 
 include(FeatureSummary)
 set_package_properties(LibGcrypt PROPERTIES
-    URL "http://directory.fsf.org/wiki/Libgcrypt"
-    DESCRIPTION "General purpose crypto library based on the code used in GnuPG."
+	URL "http://directory.fsf.org/wiki/Libgcrypt"
+	DESCRIPTION "General purpose crypto library based on the code used in GnuPG."
 )

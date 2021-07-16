@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= C
 
 # Our tests contain printf formating checks therefore we disable GCC format string errors:
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("-Wno-error=format-truncation" _WNO_ERROR_FORMAT_TRUNCATION)
 	if (_WNO_ERROR_FORMAT_TRUNCATION)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=format-truncation")
@@ -25,7 +26,7 @@ add_library(test_common STATIC
 	udp_tracker.cpp
 	web_seed_suite.cpp
 )
-target_link_libraries(test_common PUBLIC torrent-rasterbar)
+target_link_libraries(test_common PUBLIC torrent-rasterbar libtorrent_common_cfg)
 if (MSVC)
 	target_compile_options(test_common PUBLIC
 		/wd4127 # C4127: conditional expression is constant
@@ -34,7 +35,7 @@ if (MSVC)
 	)
 endif()
 
-foreach(TARGET_SRC ${tests})
+foreach (TARGET_SRC ${tests})
 	get_filename_component(TARGET ${TARGET_SRC} NAME_WE)
 	add_executable(${TARGET} ${TARGET_SRC})
 	target_link_libraries(${TARGET} test_common)
