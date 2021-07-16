@@ -109,6 +109,73 @@ namespace libtorrent { namespace aux {
 	}
 #endif
 
+
+	// Build vector of IOs to submit.
+	// This is used when sending async IOs, where we want to issue a collection of IOs
+	// in parallel, and therefore can't wait to see how many bytes were read by the
+	// previous IO.
+	std::vector<io> prepare_ios(file_storage const& files, span<iovec_t const> const bufs
+		, piece_index_t const piece, const int offset)
+	{
+		std::vector<io> ios;
+		const int size = bufs_size(bufs);
+		std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
+		file_index_t file_index = files.file_index_at_offset(torrent_offset);
+		std::int64_t file_offset = torrent_offset - files.file_offset(file_index);
+		int bytes_left = size;
+
+		TORRENT_ALLOCA(current_buf, iovec_t, bufs.size());
+		copy_bufs(bufs, size, current_buf);
+		TORRENT_ASSERT(count_bufs(current_buf, size) == int(bufs.size()));
+
+		TORRENT_ALLOCA(tmp_buf, iovec_t, bufs.size());
+
+		while (bytes_left > 0) {
+			int file_bytes_left = bytes_left;
+			if (file_offset + file_bytes_left > files.file_size(file_index)) {
+				file_bytes_left = std::max(static_cast<int>(files.file_size(file_index) - file_offset), 0);
+			}
+
+			if (file_bytes_left == 0) { // Handle files of size zero
+				file_index++;
+				file_offset = 0;
+
+				if (file_index >= files.end_file()) {
+					return ios;
+				}
+
+				continue;
+			}
+
+			int io_size = std::min(default_block_size, file_bytes_left);
+			TORRENT_ASSERT(io_size > 0);
+
+			// make a copy of the iovec array that _just_ covers the next
+			// file_bytes_left bytes, i.e. just this one operation
+			int const tmp_bufs_used = copy_bufs(current_buf, io_size, tmp_buf);
+
+			for (auto iovec : tmp_buf.first(tmp_bufs_used)) {
+				auto io_ = io{
+					.offset = file_offset,
+					.file_index = file_index,
+
+					// TODO: is this right? I don't think I understand these
+					// span<iovec_t> well enough...
+					.buf = iovec,
+				};
+				ios.emplace_back(io_);
+			}
+
+			current_buf = advance_bufs(current_buf, io_size);
+			bytes_left -= io_size;
+			file_offset += io_size;
+
+			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= int(bufs.size()));
+		}
+
+		return ios;
+	}
+
 	// much of what needs to be done when reading and writing is buffer
 	// management and piece to file mapping. Most of that is the same for reading
 	// and writing. This function is a template, and the fileop decides what to

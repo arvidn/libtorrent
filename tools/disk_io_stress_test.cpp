@@ -149,12 +149,12 @@ int run_test(disk_test_mode_t const flags
 		<< ": ";
 
 	// TODO: in C++17, use std::filesystem
-	remove_all("scratch-area");
+	remove_all("/tmp/scratch-area");
 
 	// TODO: add test mode where some file priorities are 0
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
-	std::string save_path = "./scratch-area";
+	std::string save_path = "/tmp/scratch-area";
 	lt::storage_params params(fs, nullptr
 		, save_path
 		, (flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate

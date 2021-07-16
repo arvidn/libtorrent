@@ -333,8 +333,8 @@ def run_test(config):
         env=environment)
     print('OK')
     # enable disk stats printing
-    if config['build'] == 'libtorrent':
-        print('x', end=' ', file=client.stdin)
+    # if config['build'] == 'libtorrent':
+    #     print('x', end=' ', file=client.stdin)
     time.sleep(4)
     test_dir = 'upload' if config['test'] == 'download' else 'download' if config['test'] == 'upload' else 'dual'
     cmdline = './connection_tester %s -c %d -d 127.0.0.1 -p %d -t %s' % (

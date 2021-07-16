@@ -546,6 +546,7 @@ int print_peer_legend(std::string& out, int max_lines)
 
 lt::storage_mode_t allocation_mode = lt::storage_mode_sparse;
 std::string save_path(".");
+std::string xnvme_backend("io_uring");
 int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
@@ -1040,7 +1041,10 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		torrent_handle h = p->handle;
 		h.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
-		if (exit_on_finish) quit = true;
+		if (exit_on_finish) {
+			quit = true;
+			fprintf(stderr, "DONE: exit on finish!\n");
+		}
 	}
 
 	if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
@@ -1282,6 +1286,7 @@ int main(int argc, char* argv[])
 	auto& settings = params.settings;
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
+	settings.set_str(settings_pack::xnvme_backend, "io_uring");
 	settings.set_int(settings_pack::alert_mask
 		, lt::alert_category::error
 		| lt::alert_category::peer
@@ -1297,6 +1302,11 @@ int main(int argc, char* argv[])
 		| lt::alert_category::dht_operation
 		| lt::alert_category::port_mapping_log
 		| lt::alert_category::file_progress);
+	settings.set_int(settings_pack::connections_limit, 0);
+	settings.set_int(settings_pack::upload_rate_limit, 0);
+	settings.set_int(settings_pack::download_rate_limit, 0);
+	settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+
 
 	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;
@@ -1370,6 +1380,7 @@ int main(int argc, char* argv[])
 		char const* arg = argv[i+1];
 		if (arg == nullptr) arg = "";
 
+
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
@@ -1379,6 +1390,7 @@ int main(int argc, char* argv[])
 			case 'm': monitor_dir = make_absolute_path(arg); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = lt::milliseconds(atoi(arg)); break;
+			case 'X': settings.set_str(settings_pack::xnvme_backend, std::string(arg)); break;
 			case 'a': allocation_mode = (arg == std::string("sparse"))
 				? lt::storage_mode_sparse
 				: lt::storage_mode_allocate;
@@ -2171,7 +2183,6 @@ done:
 #endif
 
 	std::printf("closing session\n");
-
 	return 0;
 }
 

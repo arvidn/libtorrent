@@ -166,3 +166,4 @@
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/xml_parse.hpp"
+#include "libtorrent/xnvme_disk_io.hpp"

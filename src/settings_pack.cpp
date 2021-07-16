@@ -386,7 +386,7 @@ namespace libtorrent {
 
 	int setting_by_name(string_view const key)
 	{
-		for (int k = 0; k < str_settings.end_index(); ++k)
+		for (int k = 0; k < str_settings.end_index()-1; ++k)
 		{
 			if (key != str_settings[k].name) continue;
 			return settings_pack::string_type_base + k;
