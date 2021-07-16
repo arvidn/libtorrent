@@ -16,8 +16,10 @@ see LICENSE file.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
+#include "libtorrent/magnet_uri.hpp" // for parse_magnet_uri
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/ssl.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -606,6 +608,21 @@ TORRENT_TEST(tcp_config5) { test_ssl(5, false); }
 TORRENT_TEST(tcp_config6) { test_ssl(6, false); }
 TORRENT_TEST(tcp_config7) { test_ssl(7, false); }
 TORRENT_TEST(tcp_config8) { test_ssl(8, false); }
+
+TORRENT_TEST(magnet_link_with_ssl) {
+    std::vector<char> ca_cert;
+    error_code ec;
+    load_file(combine_path("..", combine_path("ssl", "root_ca_cert.pem")), ca_cert, ec);
+    
+    add_torrent_params addp = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64");
+    addp.save_path = ".";
+    addp.ca_certificate = std::string{ca_cert.begin(), ca_cert.end()};
+
+    session ses;
+    torrent_handle handle = ses.add_torrent(std::move(addp));
+    TEST_CHECK(static_cast<bool>(handle.native_handle()->ssl_ctx()));
+}
+
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_SSL_PEERS
