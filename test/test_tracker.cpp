@@ -350,6 +350,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_int(settings_pack::alert_queue_size, 10000);
 
 	auto s = std::make_unique<lt::session>(pack);
 
