@@ -1,3 +1,4 @@
+	* allow loading v2 .torrent files without piece layer
 	* fix issue with adding v2 torrents with invalid file root hash
 
 * 2.0.4 released
