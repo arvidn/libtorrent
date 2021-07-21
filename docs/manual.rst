@@ -200,6 +200,19 @@ contains any. If you need to prevent that, you can either
 set ``file_priority`` to a long list of zeros (since the number of files is not known
 in advance), or set ``save_path`` to an invalid path.
 
+.torrent file
+-------------
+
+To save a .torrent file from a torrent that was added by magnet link (or added any way really):
+
+* call save_resume_data() on the torrent_handle, make sure to pass in the ``save_info_dict`` flag
+* wait for resume_data_alert
+* call write_torrent_file() passing in the add_torrent_params object from the alert.
+
+The resume data format is very similar to the .torrent file format, and when
+including the info-dict in the resume data, the resume file can be used as a
+.torrent file (with just a few minor exceptions).
+
 queuing
 =======
 
@@ -393,13 +406,19 @@ fast resume
 ===========
 
 The fast resume mechanism is a way to remember which pieces are downloaded
-and where they are put between sessions. You can generate fast resume data by
-calling save_resume_data() on torrent_handle. You can
-then save this data to disk and use it when resuming the torrent. libtorrent
-will not check the piece hashes then, and rely on the information given in the
+and where they are put between sessions. You can generate fast resume data by:
+
+* calling save_resume_data() on torrent_handle. Pass in the ``save_info_dict`` flag.
+* wait for resume_data_alert
+* save the add_torrent_params object using write_resume_data()
+
+When adding a torrent using resume data, load it using read_resume_data(). This
+populates an add_torrent_params object, which can be passed directly to
+add_torrent() or async_add_torrent() on the session object. libtorrent will not
+check the piece hashes then, and rely on the information given in the
 fast-resume data. The fast-resume data also contains information about which
-blocks, in the unfinished pieces, were downloaded, so it will not have to
-start from scratch on the partially downloaded pieces.
+blocks, in the unfinished pieces, were downloaded, so it will not have to start
+from scratch on the partially downloaded pieces.
 
 To use the fast-resume data you pass it to read_resume_data(), which will return
 an add_torrent_params object. Fields of this object can then be altered before

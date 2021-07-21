@@ -343,7 +343,7 @@ TORRENT_TEST(test_non_metadata)
 	h = ses.add_torrent(p);
 
 	TEST_EQUAL(h.trackers().size(), 1);
-	TEST_CHECK(h.trackers().at(0).url == "http://torrent_file_tracker2.com/announce");
+	TEST_EQUAL(h.trackers().at(0).url, "http://torrent_file_tracker2.com/announce");
 	TEST_CHECK(h.url_seeds() == std::set<std::string>{"http://torrent.com/"});
 	auto t = h.status().torrent_file.lock();
 	TEST_EQUAL(ti->comment(), "test comment");

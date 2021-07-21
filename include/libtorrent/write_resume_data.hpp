@@ -45,6 +45,14 @@ namespace libtorrent {
 	// into a bencoded structure
 	TORRENT_EXPORT entry write_resume_data(add_torrent_params const& atp);
 	TORRENT_EXPORT std::vector<char> write_resume_data_buf(add_torrent_params const& atp);
+
+	// writes only the fields to create a .torrent file. This function may fail
+	// with a ``std::system_error`` exception if:
+	//
+	// * The add_torrent_params object passed to this function does not contain the
+	//   info dictionary (the ``ti`` field)
+	// * The piece layers are not complete for all files that need them
+	TORRENT_EXPORT entry write_torrent_file(add_torrent_params const& atp);
 }
 
 #endif
