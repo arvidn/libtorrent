@@ -77,6 +77,7 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(leafs > 0);
 		TORRENT_ASSERT(leafs <= (std::numeric_limits<int>::max() / 2) + 1);
+		TORRENT_ASSERT((leafs & (leafs - 1)) == 0);
 		// This is a way to calculate: (leafs << 1) - 1 without requiring an extra
 		// bit in the far left. The first 1 we subtract is worth 2 after we
 		// multiply by 2, so by just adding back one, we have effectively
@@ -424,6 +425,5 @@ namespace libtorrent {
 
 		return std::make_tuple(leafs_start, leafs_size, root_index);
 	}
-
 }
 

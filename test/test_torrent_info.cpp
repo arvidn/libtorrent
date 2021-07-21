@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/write_resume_data.hpp" // write_torrent_file
 
 #include <iostream>
 
@@ -1320,6 +1321,42 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
 	std::vector<char> out_buffer = serialize(*ti);
+
+	TEST_EQUAL(out_buffer, data);
+}
+
+TORRENT_TEST(write_torrent_file_roundtrip)
+{
+	std::string const root_dir = parent_path(current_working_directory());
+	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), "v2_only.torrent");
+
+	error_code ec;
+	std::vector<char> data;
+	TEST_CHECK(load_file(filename, data, ec) == 0);
+
+	auto ti = std::make_shared<torrent_info>(data, ec, from_span);
+	TEST_CHECK(!ec);
+	if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
+		, ec.message().c_str());
+
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+	add_torrent_params atp;
+	atp.ti = ti;
+	atp.save_path = ".";
+
+	session ses;
+	torrent_handle h = ses.add_torrent(atp);
+
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TORRENT_ASSERT(a);
+	entry e = write_torrent_file(static_cast<save_resume_data_alert const*>(a)->params);
+	std::vector<char> out_buffer;
+	bencode(std::back_inserter(out_buffer), e);
 
 	TEST_EQUAL(out_buffer, data);
 }
