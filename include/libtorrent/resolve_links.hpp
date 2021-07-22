@@ -68,6 +68,12 @@ namespace libtorrent {
 		aux::vector<link_t, file_index_t> const& get_links() const
 		{ return m_links; }
 
+		// Matcher v1 torrents
+		void match_v1(std::shared_ptr<const torrent_info> const& ti
+			, std::string const& save_path);
+		// Matcher v2 torrents
+		void match_v2(std::shared_ptr<const torrent_info> const& ti
+			, std::string const& save_path);
 	private:
 		// this is the torrent we're trying to find files for.
 		std::shared_ptr<torrent_info> m_torrent_file;
