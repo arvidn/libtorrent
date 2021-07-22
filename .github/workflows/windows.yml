@@ -20,7 +20,7 @@ jobs:
          matrix:
            include:
              - config: address-model=32
-             - config: address-model=64 crypto=openssl openssl-lib=vcpkg\installed\x64-windows\lib\ openssl-include=vcpkg\installed\x64-windows\include
+             - config: address-model=64 crypto=openssl "openssl-lib=C:\Program Files\OpenSSL-Win64\lib" "openssl-include=C:\Program Files\OpenSSL-Win64\include"
              - config: release
 
       steps:
@@ -29,18 +29,10 @@ jobs:
         with:
            submodules: true
 
-      # we only build with openssl on 64 bit. The github action images comes
-      # with openssl pre-installed, but only the 64 bit version and there's no
-      # naming convention to separate the two. When building the 32 bit version
-      # it appears it still picks up the 64 bit DLL, and fails.
       - name: install openssl (64 bit)
         if: ${{ contains(matrix.config, 'crypto=openssl') }}
-        uses: lukka/run-vcpkg@v6
-        with:
-          vcpkgArguments: 'openssl'
-          vcpkgTriplet: 'x64-windows'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+        shell: pwsh
+        run: choco install openssl
 
       - name: install boost
         run: |
