@@ -27,7 +27,6 @@ class BencodeTest(unittest.TestCase):
         # top-level preformatted
         self.assertEqual(lt.bencode((1, 2, 3)), b"\x01\x02\x03")
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5991")
     def test_deprecations(self) -> None:
         # top-level str
         with self.assertWarns(DeprecationWarning):
@@ -35,7 +34,8 @@ class BencodeTest(unittest.TestCase):
 
     def test_nonstandard_types(self) -> None:
         # top-level str
-        self.assertEqual(lt.bencode("abc"), b"3:abc")  # type: ignore
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(lt.bencode("abc"), b"3:abc")  # type: ignore
 
         # top-level float
         with self.assertWarns(DeprecationWarning):
