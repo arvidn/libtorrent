@@ -306,15 +306,6 @@ class UrlSeedTest(TorrentHandleTest):
         self.handle.remove_url_seed("http://127.1.2.3")
         self.assertEqual(self.handle.url_seeds(), [])
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6136")
-    def test_http_seeds(self) -> None:
-        self.assertEqual(self.handle.http_seeds(), [])
-        self.handle.add_http_seed("http://127.1.2.3")
-        self.assertEqual(self.handle.http_seeds(), ["http://127.1.2.3"])
-        self.handle.remove_http_seed("http://127.1.2.3")
-        self.assertEqual(self.handle.http_seeds(), [])
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_http_seeds_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
             self.handle.add_http_seed("http://127.1.2.3")

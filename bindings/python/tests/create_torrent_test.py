@@ -433,17 +433,6 @@ class CreateTorrentTest(unittest.TestCase):
         entry = ct.generate()
         self.assertEqual(entry[b"url-list"], b"http://example.com")
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6136")
-    def test_http_seed(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        ct = lt.create_torrent(fs)
-        ct.add_http_seed("http://example.com")
-        ct.set_hash(0, lib.get_random_bytes(20))
-        entry = ct.generate()
-        self.assertEqual(entry[b"url-list"], [b"http://example.com"])
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_http_seed_deprecated(self) -> None:
         fs = lt.file_storage()
         ct = lt.create_torrent(fs)

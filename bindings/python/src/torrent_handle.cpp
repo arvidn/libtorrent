@@ -490,9 +490,9 @@ void bind_torrent_handle()
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
         .def("url_seeds", url_seeds)
 #if TORRENT_ABI_VERSION < 4
-        .def("add_http_seed", _(&torrent_handle::add_http_seed))
-        .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
-        .def("http_seeds", http_seeds)
+        .def("add_http_seed", depr(&torrent_handle::add_http_seed))
+        .def("remove_http_seed", depr(&torrent_handle::remove_http_seed))
+        .def("http_seeds", depr(http_seeds))
 #endif
         .def("torrent_file", _(&torrent_handle::torrent_file))
         .def("set_metadata", set_metadata)
