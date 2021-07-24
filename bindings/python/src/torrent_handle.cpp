@@ -238,11 +238,7 @@ void add_tracker(torrent_handle& h, dict d)
 
 namespace
 {
-#if defined BOOST_ASIO_HAS_STD_CHRONO
    using std::chrono::system_clock;
-#else
-   using boost::chrono::system_clock;
-#endif
 
    object to_ptime(time_point tpt)
    {

@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/write_resume_data.hpp" // write_torrent_file
 
 #include <iostream>
 
@@ -337,6 +338,20 @@ static test_torrent_t const test_torrents[] =
 			TEST_CHECK(ti->info_hashes().has_v2());
 		}
 	},
+	{ "v2_no_piece_layers.torrent", [](torrent_info const* ti) {
+			// it's OK to not have a piece layers field.
+			// It's just like adding a magnet link
+			TEST_CHECK(!ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
+	{ "v2_incomplete_piece_layer.torrent", [](torrent_info const* ti) {
+			// it's OK for some files to not have a piece layer.
+			// It's just like adding a magnet link
+			TEST_CHECK(!ti->info_hashes().has_v1());
+			TEST_CHECK(ti->info_hashes().has_v2());
+		}
+	},
 };
 
 struct test_failing_torrent_t
@@ -371,16 +386,15 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
 	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
-	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_missing_piece_layer},
-	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_missing_piece_layer},
-	{ "v2_invalid_piece_layer.torrent", errors::torrent_missing_piece_layer},
+	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
 	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
 	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
 	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
 	{ "v2_large_file.torrent", errors::torrent_invalid_length},
-	{ "v2_no_piece_layers.torrent", errors::torrent_missing_piece_layer},
 	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
 	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
@@ -1288,12 +1302,10 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 	TEST_EQUAL(out_buffer, data);
 }
 
-namespace {
-
-lt::error_code test_add_torrent(std::string file)
+TORRENT_TEST(write_torrent_file_roundtrip)
 {
 	std::string const root_dir = parent_path(current_working_directory());
-	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), file);
+	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), "v2_only.torrent");
 
 	error_code ec;
 	std::vector<char> data;
@@ -1304,28 +1316,24 @@ lt::error_code test_add_torrent(std::string file)
 	if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 		, ec.message().c_str());
 
+	TEST_CHECK(ti->v2());
+	TEST_CHECK(!ti->v1());
+	TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
 	add_torrent_params atp;
 	atp.ti = ti;
 	atp.save_path = ".";
 
 	session ses;
-	try
-	{
-		torrent_handle h = ses.add_torrent(atp);
-	}
-	catch (lt::system_error const& e)
-	{
-		return e.code();
-	}
+	torrent_handle h = ses.add_torrent(atp);
 
-	alert const* a = wait_for_alert(ses, torrent_error_alert::alert_type, "ses");
-	if (a) return alert_cast<torrent_error_alert>(a)->error;
-	return lt::error_code();
-}
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
 
-}
+	TORRENT_ASSERT(a);
+	entry e = write_torrent_file(static_cast<save_resume_data_alert const*>(a)->params);
+	std::vector<char> out_buffer;
+	bencode(std::back_inserter(out_buffer), e);
 
-TORRENT_TEST(invalid_file_root)
-{
-	TEST_CHECK(test_add_torrent("v2_invalid_root_hash.torrent") == lt::error_code(lt::errors::torrent_invalid_piece_layer));
+	TEST_EQUAL(out_buffer, data);
 }

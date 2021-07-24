@@ -1,60 +1,49 @@
 #!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
+import argparse
 import os
 import time
 import shutil
 import subprocess
 import sys
 
-toolset = ''
-if len(sys.argv) > 1:
-    toolset = sys.argv[1]
 
-ret = os.system('cd ../examples && b2 profile %s stage_client_test'
-                % toolset)
-if ret != 0:
-    print('ERROR: build failed: %d' % ret)
-    sys.exit(1)
+def main():
+    args = parse_args()
 
-ret = os.system('cd ../examples && b2 release %s stage_connection_tester'
-                % toolset)
-if ret != 0:
-    print('ERROR: build failed: %d' % ret)
-    sys.exit(1)
-
-try:
-    os.remove('.ses_state')
-except Exception:
-    pass
-try:
-    shutil.rmtree('.resume')
-except Exception:
-    pass
-try:
-    shutil.rmtree('cpu_benchmark')
-except Exception:
-    pass
-
-if not os.path.exists('cpu_benchmark.torrent'):
-    ret = os.system('../examples/connection_tester gen-torrent -s 10000 -n 15 -t cpu_benchmark.torrent')
+    ret = os.system('cd ../examples && b2 profile %s stage_client_test'
+                    % args.toolset)
     if ret != 0:
-        print('ERROR: connection_tester failed: %d' % ret)
+        print('ERROR: build failed: %d' % ret)
         sys.exit(1)
 
-try:
-    shutil.rmtree('t')
-except Exception:
-    pass
+    ret = os.system('cd ../examples && b2 release %s stage_connection_tester'
+                    % args.toolset)
+    if ret != 0:
+        print('ERROR: build failed: %d' % ret)
+        sys.exit(1)
+
+    rm_file_or_dir('.ses_state')
+    rm_file_or_dir('.resume')
+    rm_file_or_dir('cpu_benchmark')
+
+    if not os.path.exists('cpu_benchmark.torrent'):
+        ret = os.system('../examples/connection_tester gen-torrent -s 10000 -n 15 -t cpu_benchmark.torrent')
+        if ret != 0:
+            print('ERROR: connection_tester failed: %d' % ret)
+            sys.exit(1)
+
+    rm_file_or_dir('t')
+
+    run_test('download', 'upload', '', args.download_peers)
+    run_test('upload', 'download', '-G', args.download_peers)
 
 
 def run_test(name, test_cmd, client_arg, num_peers):
     output_dir = 'logs_%s' % name
 
-    try:
-        shutil.rmtree(output_dir)
-    except Exception:
-        pass
+    rm_file_or_dir(output_dir)
     try:
         os.mkdir(output_dir)
     except Exception:
@@ -62,30 +51,23 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     port = (int(time.time()) % 50000) + 2000
 
-    try:
-        shutil.rmtree('session_stats')
-    except Exception:
-        pass
-    try:
-        shutil.rmtree('session_stats_report')
-    except Exception:
-        pass
+    rm_file_or_dir('session_stats')
+    rm_file_or_dir('session_stats_report')
 
     start = time.time()
-    client_cmd = '../examples/client_test -k --listen_interfaces=127.0.0.1:%d cpu_benchmark.torrent ' \
-        '--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' \
-        '-e 120 %s -O --allow_multiple_connections_per_ip=1 --connections_limit=%d -T %d ' \
-        '-f %s/events.log --alert_mask=8747' \
-        % (port, client_arg, num_peers * 2, num_peers * 2, output_dir)
-    test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (
-        test_cmd, num_peers, port)
+    client_cmd = f'../examples/client_test -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent ' + \
+        f'--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' + \
+        f'-e 120 {client_arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={num_peers*2} -T {num_peers*2} ' + \
+        f'-f {output_dir}/events.log --alert_mask=8747'
+
+    test_cmd = f'../examples/connection_tester {test_cmd} -c {num_peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
 
     client_out = open('%s/client.out' % output_dir, 'w+')
     test_out = open('%s/test.out' % output_dir, 'w+')
-    print(client_cmd)
+    print(f'client_cmd: "{client_cmd}"')
     c = subprocess.Popen(client_cmd.split(' '), stdout=client_out, stderr=client_out, stdin=subprocess.PIPE)
     time.sleep(2)
-    print(test_cmd)
+    print(f'test_cmd: "{test_cmd}"')
     t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
     t.wait()
@@ -102,7 +84,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
     test_out.close()
 
     print('runtime %d seconds' % (end - start))
-    print('analyzing proile...')
+    print('analyzing profile...')
     os.system('gprof ../examples/client_test >%s/gprof.out' % output_dir)
     print('generating profile graph...')
     try:
@@ -118,5 +100,28 @@ def run_test(name, test_cmd, client_arg, num_peers):
         pass
 
 
-run_test('download', 'upload', '', 50)
-run_test('upload', 'download', '-G', 20)
+def rm_file_or_dir(path):
+    """ Attempt to remove file or directory at path
+    """
+    try:
+        shutil.rmtree(path)
+    except Exception:
+        pass
+
+    try:
+        os.remove(path)
+    except Exception:
+        pass
+
+
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument('--toolset', default="")
+    p.add_argument('--download-peers', default=50, help="Number of peers to use for upload test")
+    p.add_argument('--upload-peers', default=20, help="Number of peers to use for upload test")
+
+    return p.parse_args()
+
+
+if __name__ == '__main__':
+    main()

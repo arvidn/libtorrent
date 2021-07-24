@@ -180,6 +180,7 @@ retry:
 
 bool print_trackers = false;
 bool print_peers = false;
+bool print_peers_legend = false;
 bool print_connecting_peers = false;
 bool print_log = false;
 bool print_downloads = false;
@@ -311,7 +312,7 @@ int print_peer_info(std::string& out
 	int pos = 0;
 	if (print_ip) out += "IP                             ";
 	if (print_local_ip) out += "local IP                       ";
-	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags          dn  up  source  ";
+	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags            dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb (recvb |alloc | wmrk ) q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -332,10 +333,7 @@ int print_peer_info(std::string& out
 
 		if (print_ip)
 		{
-			std::snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
-				(i->flags & peer_info::utp_socket ? " [uTP]" : "") +
-				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")
-				).c_str());
+			std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->ip).c_str());
 			out += str;
 		}
 		if (print_local_ip)
@@ -353,7 +351,7 @@ int print_peer_info(std::string& out
 		char peer_progress[10];
 		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.0);
 		std::snprintf(str, sizeof(str)
-			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
+			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
@@ -379,6 +377,8 @@ int print_peer_info(std::string& out
 			, color("E", (i->flags & peer_info::rc4_encrypted)?col_white:(i->flags & peer_info::plaintext_encrypted)?col_cyan:col_blue).c_str()
 			, color("h", (i->flags & peer_info::holepunched)?col_white:col_blue).c_str()
 			, color("s", (i->flags & peer_info::seed)?col_white:col_blue).c_str()
+			, color("u", (i->flags & peer_info::utp_socket)?col_white:col_blue).c_str()
+			, color("I", (i->flags & peer_info::i2p_socket)?col_white:col_blue).c_str()
 
 			, color("d", (i->read_state & peer_info::bw_disk)?col_white:col_blue).c_str()
 			, color("l", (i->read_state & peer_info::bw_limit)?col_white:col_blue).c_str()
@@ -472,6 +472,53 @@ int print_peer_info(std::string& out
 		if (pos >= max_lines) break;
 	}
 	return pos;
+}
+
+// returns the number of lines printed
+int print_peer_legend(std::string& out, int max_lines)
+{
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4566: character represented by universal-character-name '\u256F'
+// cannot be represented in the current code page (1252)
+#pragma warning(disable: 4566)
+#endif
+
+	std::array<char const*, 13> lines{{
+		" we are interested \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502\u2502\u2502\u2570\u2500\u2500\u2500 incoming\x1b[K\n",
+		"     we have choked \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502\u2502\u2570\u2500\u2500\u2500 resume data\x1b[K\n",
+		"remote is interested \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502\u2570\u2500\u2500\u2500 local peer discovery\x1b[K\n",
+		"    remote has choked \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2570\u2500\u2500\u2500 DHT\x1b[K\n",
+		"   supports extensions \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2570\u2500\u2500\u2500 peer exchange\x1b[K\n",
+		"    outgoing connection \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2502 \u2502\u2502\u2502 \u2570\u2500\u2500\u2500 tracker\x1b[K\n",
+		"               on parole \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2502\u2570\u2500\u253c\u253c\u2534\u2500\u2500\u2500 network\x1b[K\n",
+		"       optimistic unchoke \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2502\u2570\u2500\u2500\u253c\u2534\u2500\u2500\u2500 rate limit\x1b[K\n",
+		"                   snubbed \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2502\u2502 \u2570\u2500\u2500\u2500\u2534\u2500\u2500\u2500 disk\x1b[K\n",
+		"                upload only \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2502\u2502\u2570\u2500\u2500\u2500 i2p\x1b[K\n",
+		"               end-game mode \u2500\u2500\u2500\u256f\u2502\u2502\u2502\u2570\u2500\u2500\u2500 uTP\x1b[K\n",
+		"            obfuscation level \u2500\u2500\u2500\u256f\u2502\u2570\u2500\u2500\u2500 seed\x1b[K\n",
+		"                  hole-punched \u2500\u2500\u2500\u256f\x1b[K\n",
+	}};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+	char const* ip = "                               ";
+	char const* indentation = "                                                                     ";
+	int ret = 0;
+	for (auto const& l : lines)
+	{
+		if (max_lines <= 0) break;
+		++ret;
+		out += indentation;
+		if (print_ip)
+			out += ip;
+		if (print_local_ip)
+			out += ip;
+		out += l;
+	}
+	return ret;
 }
 
 lt::storage_mode_t allocation_mode = lt::storage_mode_sparse;
@@ -1679,6 +1726,7 @@ int main(int argc, char* argv[])
 				// toggle displays
 				if (c == 't') print_trackers = !print_trackers;
 				if (c == 'i') print_peers = !print_peers;
+				if (c == 'I') print_peers_legend = !print_peers_legend;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'y') print_matrix = !print_matrix;
@@ -1723,7 +1771,7 @@ up/down arrow keys: select torrent
 [P] show pad files (in file list)               [f] toggle show files
 [g] show DHT                                    [x] toggle disk cache stats
 [t] show trackers                               [l] toggle show log
-[y] toggle show piece matrix
+[y] toggle show piece matrix                    [I] toggle show peer flag legend
 
 COLUMN OPTIONS
 [1] toggle IP column                            [2] toggle show peer connection attempts
@@ -1816,8 +1864,10 @@ COLUMN OPTIONS
 		{
 			torrent_status const& s = view.get_active_torrent();
 
-			print((piece_bar(s.pieces, terminal_width - 2) + "\x1b[K\n").c_str());
-			pos += 1;
+			if (!print_matrix) {
+				print((piece_bar(s.pieces, terminal_width - 2) + "\x1b[K\n").c_str());
+				pos += 1;
+			}
 
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
@@ -1846,6 +1896,10 @@ COLUMN OPTIONS
 						return lhs.pid < rhs.pid;
 					});
 				pos += print_peer_info(out, peers, terminal_height - pos - 2);
+				if (print_peers_legend)
+				{
+					pos += print_peer_legend(out, terminal_height - pos - 2);
+				}
 			}
 
 			if (print_trackers)

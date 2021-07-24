@@ -1425,7 +1425,7 @@ namespace {
 	{
 		std::map<sha256_hash, string_view> piece_layers;
 
-		if (!e || e.type() != bdecode_node::dict_t)
+		if (e.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_missing_piece_layer;
 			return false;
@@ -1437,7 +1437,10 @@ namespace {
 			if (f.first.size() != static_cast<std::size_t>(sha256_hash::size())
 				|| f.second.type() != bdecode_node::string_t
 				|| f.second.string_length() % sha256_hash::size() != 0)
-				continue;
+			{
+				ec = errors::torrent_invalid_piece_layer;
+				return false;
+			}
 
 			piece_layers.emplace(sha256_hash(f.first), f.second.string_value());
 		}
@@ -1450,11 +1453,7 @@ namespace {
 				continue;
 
 			auto const piece_layer = piece_layers.find(orig_files().root(i));
-			if (piece_layer == piece_layers.end())
-			{
-				ec = errors::torrent_missing_piece_layer;
-				return false;
-			}
+			if (piece_layer == piece_layers.end()) continue;
 
 			int const num_pieces = orig_files().file_num_pieces(i);
 
@@ -1555,11 +1554,19 @@ namespace {
 		if (!parse_info_section(info, ec, cfg.max_pieces)) return false;
 		if (!resolve_duplicate_filenames(cfg.max_duplicate_filenames, ec)) return false;
 
-		if (m_info_hash.has_v2() && !parse_piece_layers(torrent_file.dict_find_dict("piece layers"), ec))
+		if (m_info_hash.has_v2())
 		{
-			// mark the torrent as invalid
-			m_files.set_piece_length(0);
-			return false;
+			// allow torrent files without piece layers, just like we allow magnet
+			// links. However, if there are piece layers, make sure they're
+			// valid
+			bdecode_node const& e = torrent_file.dict_find_dict("piece layers");
+			if (e && !parse_piece_layers(e, ec))
+			{
+				TORRENT_ASSERT(ec);
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				return false;
+			}
 		}
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS

@@ -1105,6 +1105,7 @@ namespace {
 		if (!m_recv_buffer.packet_finished()) return;
 
 		incoming_piece(p, recv_buffer.data() + header_size);
+		maybe_send_hash_request();
 	}
 
 	// -----------------------------
@@ -2063,7 +2064,7 @@ namespace {
 #ifndef TORRENT_DISABLE_SHARE_MODE
 			&& !t->share_mode()
 #endif
-			)
+			&& can_disconnect(errors::upload_upload_connection))
 			disconnect(errors::upload_upload_connection, operation_t::bittorrent);
 
 		stats_counters().inc_stats_counter(counters::num_incoming_ext_handshake);

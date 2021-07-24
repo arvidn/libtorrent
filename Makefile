@@ -834,6 +834,7 @@ LIBSIM_TESTS = \
 
 TEST_SOURCES = \
   enum_if.cpp \
+  test_add_torrent.cpp \
   test_alert_manager.cpp \
   test_alert_types.cpp \
   test_alloca.cpp \
@@ -1044,6 +1045,7 @@ TEST_TORRENTS = \
   v2_deep_recursion.torrent \
   v2_non_multiple_piece_layer.torrent \
   v2_piece_layer_invalid_file_hash.torrent \
+  v2_incomplete_piece_layer.torrent \
   v2_invalid_pad_file.torrent \
   v2_invalid_piece_layer.torrent \
   v2_invalid_piece_layer_size.torrent \

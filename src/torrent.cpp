@@ -4123,11 +4123,8 @@ namespace {
 		{
 			// if there was an enoent or eof error the block hashes array may be incomplete
 			// bail if we've hit the end of the valid hashes
-			if (block_hashes[i].is_all_zeros())
-			{
-				ret = false;
-				break;
-			}
+			if (block_hashes[i].is_all_zeros()) return false;
+
 			auto const result = get_hash_picker().set_block_hash(piece
 				, i * default_block_size, block_hashes[i]);
 
@@ -4139,8 +4136,11 @@ namespace {
 				// all verified ranges should always be full pieces or less
 				TORRENT_ASSERT(result.first_verified_block >= 0
 					|| (result.first_verified_block % blocks_per_piece) == 0);
-				TORRENT_ASSERT(result.num_verified <= blocks_in_piece
+				TORRENT_ASSERT(result.num_verified <= blocks_per_piece
 					|| (result.num_verified % blocks_per_piece) == 0);
+
+				// note that result.num_verified may cover pad blocks too, and
+				// so may be > blocks_in_piece
 
 				// sometimes, completing a single block may "unlock" validating
 				// multiple pieces. e.g. if we don't have the piece layer yet,
@@ -4356,7 +4356,7 @@ namespace {
 			// request them from. For now be conservative and re-request
 			// the block without waiting for block hashes.
 
-			get_hash_picker().verify_block_hashes(index);
+			verify_block_hashes(index);
 			return;
 		}
 
@@ -7482,10 +7482,13 @@ namespace {
 				m_v2_piece_layers_validated = false;
 				return errors::torrent_invalid_piece_layer;
 			}
+#if TORRENT_USE_INVARIANT_CHECKS
+			if (m_hash_picker)
+				m_hash_picker->check_invariant(i);
+#endif
 		}
 
 		m_v2_piece_layers_validated = valid;
-
 
 		m_torrent_file->free_piece_layers();
 		return {};
@@ -8175,7 +8178,7 @@ namespace {
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-				if (p->upload_only())
+				if (p->upload_only() && p->can_disconnect(errors::torrent_finished))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
@@ -11222,7 +11225,8 @@ namespace {
 		if (flags & torrent_handle::piece_granularity)
 			return;
 
-		TORRENT_ASSERT(has_picker());
+		if (!has_picker())
+			return;
 
 		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
 
