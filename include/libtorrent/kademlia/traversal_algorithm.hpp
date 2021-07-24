@@ -75,6 +75,8 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 
 	void resort_result(observer*);
 	void add_entry(node_id const& id, udp::endpoint const& addr, observer_flags_t flags);
+	void add_hostname_entry(std::string hostname, std::uint16_t port);
+	void add_entry_impl(node_id const& id, observer_ptr o, observer_flags_t const flags);
 
 	traversal_algorithm(node& dht_node, node_id const& target);
 	traversal_algorithm(traversal_algorithm const&) = delete;

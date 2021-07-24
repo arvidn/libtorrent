@@ -421,6 +421,18 @@ void node::add_router_node(udp::endpoint const& router)
 	m_table.add_router_node(router);
 }
 
+void node::add_router_node(char const* hostname, std::uint16_t port)
+{
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
+	{
+		m_observer->log(dht_logger::node, "adding router node: %s:%d"
+			, hostname, port);
+	}
+#endif
+	m_table.add_router_node(hostname, port);
+}
+
 void node::add_node(udp::endpoint const& node)
 {
 	if (!native_address(node)) return;

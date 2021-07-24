@@ -162,11 +162,14 @@ public:
 	// adds an endpoint that will never be added to
 	// the routing table
 	void add_router_node(udp::endpoint const& router);
+	void add_router_node(char const* hostname, std::uint16_t port);
 
 	// iterates over the router nodes added
-	using router_iterator = std::set<udp::endpoint>::const_iterator;
-	router_iterator begin() const { return m_router_nodes.begin(); }
-	router_iterator end() const { return m_router_nodes.end(); }
+	std::set<udp::endpoint> const& router_nodes() const
+	{ return m_router_nodes; }
+
+	std::set<std::pair<std::string, std::uint16_t>> const& router_hosts() const
+	{ return m_router_hosts; }
 
 	enum add_node_status_t {
 		failed_to_add = 0,
@@ -311,6 +314,7 @@ private:
 	// be used in searches, but they will never
 	// be added to the routing table.
 	std::set<udp::endpoint> m_router_nodes;
+	std::set<std::pair<std::string, std::uint16_t>> m_router_hosts;
 
 	// these are all the IPs that are in the routing
 	// table. It's used to only allow a single entry

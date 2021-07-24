@@ -102,6 +102,7 @@ namespace libtorrent { namespace dht {
 
 		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
+		void add_router_node(char const* hostname, std::uint16_t port);
 
 		dht_state state() const;
 

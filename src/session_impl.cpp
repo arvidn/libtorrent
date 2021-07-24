@@ -5419,20 +5419,7 @@ namespace {
 	{
 #ifndef TORRENT_DISABLE_DHT
 		if (m_settings.get_bool(settings_pack::enable_dht))
-		{
-			if (!m_settings.get_str(settings_pack::dht_bootstrap_nodes).empty()
-				&& m_dht_router_nodes.empty())
-			{
-				// if we have bootstrap nodes configured, make sure we initiate host
-				// name lookups. once these complete, the DHT will be started.
-				// they are tracked by m_outstanding_router_lookups
-				update_dht_bootstrap_nodes();
-			}
-			else
-			{
-				start_dht();
-			}
-		}
+			start_dht();
 		else
 			stop_dht();
 #endif
@@ -5453,8 +5440,8 @@ namespace {
 			session_log("ERROR: failed to parse DHT bootstrap list: %s", node_list.c_str());
 		}
 #endif
-		for (auto const& n : nodes)
-			add_dht_router(n);
+
+#error add nodes to internal list or directly to m_dht
 #endif
 	}
 
@@ -5861,16 +5848,6 @@ namespace {
 
 		if (!m_settings.get_bool(settings_pack::enable_dht)) return;
 
-		// postpone starting the DHT if we're still resolving the DHT router
-		if (m_outstanding_router_lookups > 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("not starting DHT, outstanding router lookups: %d"
-				, m_outstanding_router_lookups);
-#endif
-			return;
-		}
-
 		if (m_abort)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5880,8 +5857,7 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("starting DHT, running: %s, router lookups: %d"
-			, m_dht ? "true" : "false", m_outstanding_router_lookups);
+		session_log("starting DHT, running: %s", m_dht ? "true" : "false");
 #endif
 
 		// TODO: refactor, move the storage to dht_tracker
@@ -6011,43 +5987,6 @@ namespace {
 			udp::endpoint ep(addr, std::uint16_t(port));
 			add_dht_node(ep);
 		}
-	}
-
-	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
-	{
-		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_router_name_lookup");
-		++m_outstanding_router_lookups;
-		m_host_resolver.async_resolve(node.first, resolver::abort_on_shutdown
-			, std::bind(&session_impl::on_dht_router_name_lookup
-				, this, _1, _2, node.second));
-	}
-
-	void session_impl::on_dht_router_name_lookup(error_code const& e
-		, std::vector<address> const& addresses, int port)
-	{
-		COMPLETE_ASYNC("session_impl::on_dht_router_name_lookup");
-		--m_outstanding_router_lookups;
-
-		if (e)
-		{
-			if (m_alerts.should_post<dht_error_alert>())
-				m_alerts.emplace_alert<dht_error_alert>(
-					operation_t::hostname_lookup, e);
-
-			if (m_outstanding_router_lookups == 0) start_dht();
-			return;
-		}
-
-
-		for (auto const& addr : addresses)
-		{
-			// router nodes should be added before the DHT is started (and bootstrapped)
-			udp::endpoint ep(addr, std::uint16_t(port));
-			if (m_dht) m_dht->add_router_node(ep);
-			m_dht_router_nodes.push_back(ep);
-		}
-
-		if (m_outstanding_router_lookups == 0) start_dht();
 	}
 
 	// callback for dht_immutable_get

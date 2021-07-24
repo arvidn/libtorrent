@@ -293,6 +293,12 @@ void udp_socket::send_hostname(char const* hostname, int const port
 	// using a proxy
 	address const target = make_address(hostname, ec);
 	if (!ec) send(udp::endpoint(target, std::uint16_t(port)), p, ec, flags);
+	else
+	{
+#error implement
+		// TODO: support async hostname lookup and sending p later (buffer must
+		// be copied)
+	}
 }
 
 void udp_socket::send(udp::endpoint const& ep, span<char const> p

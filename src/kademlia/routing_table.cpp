@@ -1072,6 +1072,11 @@ void routing_table::add_router_node(udp::endpoint const& router)
 	m_router_nodes.insert(router);
 }
 
+void routing_table::add_router_node(char const* hostname, std::uint16_t port)
+{
+	m_router_hosts.emplace(hostname, port);
+}
+
 // we heard from this node, but we don't know if it was spoofed or not (i.e.
 // pinged == false)
 void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)

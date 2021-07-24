@@ -457,7 +457,6 @@ namespace aux {
 
 			void add_dht_node_name(std::pair<std::string, int> const& node);
 			void add_dht_node(udp::endpoint const& n) override;
-			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht::dht_settings const& s);
 			dht::dht_settings const& get_dht_settings() const { return m_dht_settings; }
 
@@ -508,8 +507,6 @@ namespace aux {
 #endif
 			void on_dht_announce(error_code const& e);
 			void on_dht_name_lookup(error_code const& e
-				, std::vector<address> const& addresses, int port);
-			void on_dht_router_name_lookup(error_code const& e
 				, std::vector<address> const& addresses, int port);
 #endif
 
@@ -1156,10 +1153,6 @@ namespace aux {
 			// is updated again. This especially matters for
 			// small numbers.
 			int m_dht_interval_update_torrents = 0;
-
-			// the number of DHT router lookups there are currently outstanding. As
-			// long as this is > 0, we'll postpone starting the DHT
-			int m_outstanding_router_lookups = 0;
 #endif
 
 			void send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock

@@ -110,6 +110,7 @@ public:
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
 	void add_router_node(udp::endpoint const& router);
+	void add_router_node(char const* hostname, std::uint16_t port);
 
 	void unreachable(udp::endpoint const& ep);
 	void incoming(aux::listen_socket_handle const& s, msg const& m);

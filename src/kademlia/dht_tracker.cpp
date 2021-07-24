@@ -631,6 +631,12 @@ namespace {
 			n.second.dht.add_router_node(node);
 	}
 
+	void dht_tracker::add_router_node(char const* hostname, std::uint16_t port)
+	{
+		for (auto& n : m_nodes)
+			n.second.dht.add_router_node(hostname, port);
+	}
+
 	bool dht_tracker::has_quota()
 	{
 		time_point const now = clock_type::now();

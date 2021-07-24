@@ -124,6 +124,28 @@ void traversal_algorithm::resort_result(observer* o)
 	++m_sorted_results;
 }
 
+void traversal_algorithm::add_hostname_entry(std::string hostname
+	, std::uint16_t port)
+{
+	if (m_done) return;
+
+	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
+	auto o = new_host_observer(hostname, port);
+	if (!o)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (get_node().observer() != nullptr)
+		{
+			get_node().observer()->log(dht_logger::traversal, "[%u] failed to allocate memory or observer. aborting!"
+				, m_id);
+		}
+#endif
+		done();
+		return;
+	}
+	add_entry_impl(node_id(), std::move(o), observer::flag_initial);
+}
+
 void traversal_algorithm::add_entry(node_id const& id
 	, udp::endpoint const& addr, observer_flags_t const flags)
 {
@@ -143,7 +165,12 @@ void traversal_algorithm::add_entry(node_id const& id
 		done();
 		return;
 	}
+	add_entry_impl(id, std::move(o), flags);
+}
 
+void traversal_algorithm::add_entry_impl(node_id const& id
+	, observer_ptr o, observer_flags_t const flags)
+{
 	o->flags |= flags;
 
 	if (id.is_all_zeros())
@@ -556,11 +583,15 @@ void traversal_algorithm::add_router_entries()
 	{
 		logger->log(dht_logger::traversal
 			, "[%u] using router nodes to initiate traversal algorithm %d routers"
-			, m_id, int(std::distance(m_node.m_table.begin(), m_node.m_table.end())));
+			, m_id, int(m_node.m_table.router_nodes().size()
+				+ m_node.m_table.router_hosts().size()));
 	}
 #endif
-	for (auto const& n : m_node.m_table)
+	for (auto const& n : m_node.m_table.router_nodes())
 		add_entry(node_id(), n, observer::flag_initial);
+
+	for (auto const& n : m_node.m_table.router_hosts())
+		add_hostname_entry(n.first, n.second);
 }
 
 void traversal_algorithm::init()
