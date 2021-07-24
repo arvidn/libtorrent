@@ -139,6 +139,9 @@ struct entry_from_python
         }
         else if (extract<str>(e).check())
         {
+             // TODO: Throw a TypeError here in the future
+             python_deprecated("constructing a bencode entry from anything but "
+                 "int, dict, list, bytes and int-tuple is deprecated");
              return entry(extract<std::string>(e)());
         }
         else if (extract<entry::integer_type>(e).check())
@@ -162,7 +165,7 @@ struct entry_from_python
         {
             // TODO: Throw a TypeError here in the future
             python_deprecated("constructing a bencode entry from anything but "
-                "int, dict, list, string, bytes and int-tuple is deprecated");
+                "int, dict, list, bytes and int-tuple is deprecated");
         }
 
         return entry();
