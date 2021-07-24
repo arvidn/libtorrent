@@ -221,7 +221,7 @@ void bind_create_torrent()
 #endif
         .def("add_url_seed", &create_torrent::add_url_seed)
 #if TORRENT_ABI_VERSION < 4
-        .def("add_http_seed", &create_torrent::add_http_seed)
+        .def("add_http_seed", depr(&create_torrent::add_http_seed))
 #endif
         .def("add_node", &add_node)
         .def("add_tracker", add_tracker, (arg("announce_url"), arg("tier") = 0))

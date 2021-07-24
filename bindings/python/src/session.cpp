@@ -337,6 +337,7 @@ namespace
 #if TORRENT_ABI_VERSION < 4
             else if(key == "http_seeds")
             {
+                python_deprecated("the http_seeds member is deprecated");
                 p.http_seeds =
                     extract<decltype(add_torrent_params::http_seeds)>(value);
                 continue;
