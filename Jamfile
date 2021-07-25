@@ -340,10 +340,6 @@ rule building ( properties * )
 		# probably not a production build anyway
 		&& ! <debug-iterators>on in $(properties)
 	{
-		# hide non-external symbols
-		result += <cflags>-fvisibility=hidden ;
-		result += <cxxflags>-fvisibility-inlines-hidden ;
-
 		if ( <toolset>gcc in $(properties) )
 		{
 			result += <linkflags>-Wl,-Bsymbolic ;
@@ -919,6 +915,7 @@ lib torrent
 	<threading>multi
 	<cxxstd>14
 	<c++-template-depth>512
+	<visibility>hidden
 
 	: # usage requirements
 	$(usage-requirements)
