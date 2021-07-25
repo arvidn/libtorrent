@@ -989,9 +989,21 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		return {};
 	}
 
+	bool has_any_internet_route(span<ip_route const> routes)
+	{
+		return std::any_of(routes.begin(), routes.end()
+			, [&](ip_route const& r) -> bool
+			{
+				// if *any* global IP can be routed to this interface, it's
+				// considered able to reach the internet
+				return r.destination.is_unspecified()
+					|| is_global(r.destination) ;
+			});
+	}
+
 	bool has_internet_route(string_view device, int const fam, span<ip_route const> routes)
 	{
-		return std::find_if(routes.begin(), routes.end()
+		return std::any_of(routes.begin(), routes.end()
 			, [&](ip_route const& r) -> bool
 			{
 				// if *any* global IP can be routed to this interface, it's
@@ -1001,7 +1013,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 					&& (r.destination.is_unspecified()
 						|| is_global(r.destination)
 					);
-			}) != routes.end();
+			});
 	}
 
 	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
