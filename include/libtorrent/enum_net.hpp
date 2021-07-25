@@ -143,6 +143,11 @@ enum class if_state : std::uint8_t {
 	TORRENT_EXTRA_EXPORT bool has_internet_route(string_view device, int family
 		, span<ip_route const> routes);
 
+	// returns whether there are *any* routes to the internet in the routing
+	// table. This can be used to determine if the routing table is fully
+	// populated or not.
+	TORRENT_EXTRA_EXPORT bool has_any_internet_route(span<ip_route const> routes);
+
 	// attempt to bind socket to the device with the specified name. For systems
 	// that don't support SO_BINDTODEVICE the socket will be bound to one of the
 	// IP addresses of the specified device. In this case it is necessary to

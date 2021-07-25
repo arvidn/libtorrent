@@ -134,7 +134,7 @@ namespace libtorrent { namespace dht {
 		if (m_log->should_log(dht_logger::tracker))
 		{
 			m_log->log(dht_logger::tracker, "starting %s DHT tracker with node id: %s"
-				, local_address.is_v4() ? "IPv4" : "IPv6"
+				, local_address.to_string().c_str()
 				, aux::to_hex(n.first->second.dht.nid()).c_str());
 		}
 #endif
@@ -152,6 +152,14 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::delete_socket(aux::listen_socket_handle const& s)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (m_log->should_log(dht_logger::tracker))
+		{
+			address const local_address = s.get_local_endpoint().address();
+			m_log->log(dht_logger::tracker, "removing DHT node on %s"
+				, local_address.to_string().c_str());
+		}
+#endif
 		m_nodes.erase(s);
 
 		update_storage_node_ids();
@@ -286,7 +294,8 @@ namespace libtorrent { namespace dht {
 			n.second.dht.new_write_key();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log(dht_logger::tracker, "*** new write key***");
+		m_log->log(dht_logger::tracker, "*** new write key*** %d nodes"
+			, int(m_nodes.size()));
 #endif
 	}
 
