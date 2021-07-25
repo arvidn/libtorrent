@@ -47,13 +47,9 @@ class BencodeTest(unittest.TestCase):
 
 
 class IdentifyClientTest(unittest.TestCase):
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.identify_client(lt.sha1_hash())
-
     def test_identify_client(self) -> None:
-        self.assertEqual(lt.identify_client(lt.sha1_hash()), "Unknown")
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(lt.identify_client(lt.sha1_hash()), "Unknown")
 
 
 class ClientFingerprintTest(unittest.TestCase):

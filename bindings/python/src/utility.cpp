@@ -7,6 +7,7 @@
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/bdecode.hpp>
 #include "bytes.hpp"
+#include "gil.hpp"
 
 using namespace boost::python;
 using namespace lt;
@@ -88,6 +89,12 @@ struct bytes_from_python
 };
 
 #if TORRENT_ABI_VERSION == 1
+std::string identify_client_(const peer_id& p)
+{
+    python_deprecated("identify_client is deprecated");
+    return lt::identify_client(p);
+}
+
 object client_fingerprint_(peer_id const& id)
 {
     python_deprecated("client_fingerprint is deprecated");
@@ -117,7 +124,7 @@ void bind_utility()
     bytes_from_python();
 
 #if TORRENT_ABI_VERSION == 1
-    def("identify_client", &lt::identify_client);
+    def("identify_client", &identify_client_);
     def("client_fingerprint", &client_fingerprint_);
 #endif
     def("bdecode", &bdecode_);
