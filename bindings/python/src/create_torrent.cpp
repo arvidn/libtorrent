@@ -217,7 +217,7 @@ void bind_create_torrent()
         .def("set_creation_date", &create_torrent::set_creation_date)
         .def("set_hash", &set_hash)
 #if TORRENT_ABI_VERSION < 3
-        .def("set_file_hash", &set_file_hash)
+        .def("set_file_hash", depr(&set_file_hash))
 #endif
         .def("add_url_seed", &create_torrent::add_url_seed)
 #if TORRENT_ABI_VERSION < 4

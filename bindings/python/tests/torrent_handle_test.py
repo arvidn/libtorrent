@@ -672,11 +672,6 @@ class InfoHashTest(TorrentHandleTest):
             self.handle.info_hashes(), lt.info_hash_t(self.torrent.sha1_hash)
         )
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_info_hash_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.handle.info_hash()
-
 
 class ForceRecheckTest(TorrentHandleTest):
     def test_force_recheck(self) -> None:

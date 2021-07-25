@@ -223,12 +223,6 @@ class ConstructorTest(unittest.TestCase):
         ti = lt.torrent_info(lt.info_hash_t(sha1))
         self.assertEqual(ti.info_hashes(), lt.info_hash_t(sha1))
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_sha1_hash_deprecated(self) -> None:
-        sha1 = lt.sha1_hash(lib.get_random_bytes(20))
-        with self.assertWarns(DeprecationWarning):
-            lt.torrent_info(sha1)
-
     def test_sha1_hash(self) -> None:
         sha1 = lt.sha1_hash(lib.get_random_bytes(20))
         ti = lt.torrent_info(sha1)

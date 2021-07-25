@@ -390,19 +390,12 @@ class CreateTorrentTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ct.set_hash(0, lib.get_random_bytes(19))
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_set_file_hash_deprecated(self) -> None:
+    def test_set_file_hash(self) -> None:
         fs = lt.file_storage()
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             ct.set_file_hash(0, lib.get_random_bytes(20))
-
-    def test_set_file_hash(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        ct = lt.create_torrent(fs)
-        ct.set_file_hash(0, lib.get_random_bytes(20))
         ct.set_hash(0, lib.get_random_bytes(20))
         entry = ct.generate()
         self.assertIn(b"sha1", entry[b"info"])
