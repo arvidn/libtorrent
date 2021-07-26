@@ -405,7 +405,7 @@ namespace libtorrent { namespace aux {
 	void delete_files(file_storage const& fs, std::string const& save_path
 		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec)
 	{
-		if (options == session::delete_files)
+		if (options & session::delete_files)
 		{
 			// delete the files from disk
 			std::set<std::string> directories;
@@ -447,8 +447,9 @@ namespace libtorrent { namespace aux {
 			}
 		}
 
-		if (options == session::delete_files
-			|| options == session::delete_partfile)
+		// when we're deleting "files", we also delete the part file
+		if ((options & session::delete_partfile)
+			|| (options & session::delete_files))
 		{
 			error_code error;
 			remove(combine_path(save_path, part_file_name), error);
