@@ -169,8 +169,17 @@ void bind_create_torrent()
         .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
         .def("file_name", file_storage_file_name)
         .def("file_size", file_storage_file_size)
+        .def("root", &file_storage::root)
         .def("file_offset", file_storage_file_offset)
         .def("file_flags", file_storage_file_flags)
+
+        .def("file_index_for_root", &file_storage::file_index_for_root)
+        .def("piece_index_at_file", &file_storage::piece_index_at_file)
+        .def("file_index_at_piece", &file_storage::file_index_at_piece)
+        .def("file_index_at_offset", &file_storage::file_index_at_offset)
+        .def("file_absolute_path", &file_storage::file_absolute_path)
+
+        .def("v2", &file_storage::v2)
 
         .def("total_size", &file_storage::total_size)
         .def("set_num_pieces", &file_storage::set_num_pieces)
