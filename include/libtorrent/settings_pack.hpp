@@ -1985,6 +1985,13 @@ namespace aux {
 			// the WebRTC connection timeout used by WebTorrent (in seconds)
 			webtorrent_connection_timeout,
 
+			// When super-seeding, we will offer a peer as many pieces as it is able
+			// to download in this time. i.e. the actual number of super-seeded
+			// pieces offered depends on our upload rate to the peer, the piece
+			// size of the torrent, and this number. Regardless of speed, we will
+			// always offer at least 1 piece.
+			superseed_scale_time,
+
 			max_int_setting_internal
 		};
 

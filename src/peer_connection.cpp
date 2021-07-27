@@ -16,6 +16,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <algorithm>
 #include <vector>
 #include <functional>
 #include <cstdint>
@@ -1957,7 +1958,16 @@ namespace {
 			// instead.
 			if (super_seeded_piece(index))
 			{
-				superseed_piece(index, t->get_piece_to_super_seed(m_have_piece));
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log(peer_log_alert::incoming))
+					peer_log(peer_log_alert::incoming, "HAVE"
+						, "got HAVE message for super-seeded piece %d"
+						, static_cast<int>(index));
+#endif
+				// Don't replace the piece if we're above the current target
+				if (target_superseed_pieces() < int(m_superseed_pieces.size()))
+					m_superseed_pieces.erase(index);
+				else superseed_piece(index, t->get_piece_to_super_seed(m_have_piece));
 			}
 		}
 #endif
@@ -2344,14 +2354,13 @@ namespace {
 			if (should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not super-seeded "
-					"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
+					"i: %d t: %d n: %d h: %d sstot: %d"
 					, m_peer_interested
 					, valid_piece_index
 						? t->torrent_file().piece_size(r.piece) : -1
 					, t->torrent_file().num_pieces()
 					, valid_piece_index ? t->has_piece_passed(r.piece) : 0
-					, static_cast<int>(m_superseed_piece[0])
-					, static_cast<int>(m_superseed_piece[1]));
+					, static_cast<int>(m_superseed_pieces.size()));
 			}
 #endif
 
@@ -4365,6 +4374,10 @@ namespace {
 		torrent_handle handle;
 		if (t) handle = t->get_handle();
 
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+		m_superseed_pieces.clear();
+#endif // TORRENT_DISABLE_SUPERSEEDING
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
@@ -4649,9 +4662,8 @@ namespace {
 
 		if (new_piece == piece_index_t(-1))
 		{
-			if (m_superseed_piece[0] == piece_index_t(-1)) return;
-			m_superseed_piece[0] = piece_index_t(-1);
-			m_superseed_piece[1] = piece_index_t(-1);
+			if (m_superseed_pieces.empty()) return;
+			m_superseed_pieces.clear();
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SUPER_SEEDING", "ending");
@@ -4676,14 +4688,27 @@ namespace {
 		write_have(new_piece);
 
 		if (replace_piece >= piece_index_t(0))
-		{
-			// move the piece we're replacing to the tail
-			if (m_superseed_piece[0] == replace_piece)
-				std::swap(m_superseed_piece[0], m_superseed_piece[1]);
-		}
+			m_superseed_pieces.erase(replace_piece);
+		m_superseed_pieces.insert(new_piece);
+	}
 
-		m_superseed_piece[1] = m_superseed_piece[0];
-		m_superseed_piece[0] = new_piece;
+	int peer_connection::target_superseed_pieces() const
+	{
+		std::shared_ptr<torrent> t = m_torrent.lock();
+		torrent_info const& ti = t->torrent_file();
+		int const ps = ti.piece_length();
+		TORRENT_ASSERT(ps > 0);
+		// Rounding up may help speed to ramp up faster
+		int target_pieces = (m_settings.get_int(settings_pack::superseed_scale_time)
+			* m_statistics.upload_payload_rate() + (ps - 1)) / ps;
+
+		// Don't return more pieces than the peer has left to download
+		int const outstanding_pieces = ti.num_pieces() - m_num_pieces;
+		if (target_pieces > outstanding_pieces)
+			target_pieces = outstanding_pieces;
+
+		// The target must be >= 1 for 'bootstrapping' to work
+		return std::max(target_pieces, 1);
 	}
 #endif // TORRENT_DISABLE_SUPERSEEDING
 
@@ -4829,9 +4854,38 @@ namespace {
 			&& !m_peer_interested
 			&& m_became_uninterested.get(m_connect) + seconds(10) < now)
 		{
-			// maybe we need to try another piece, to see if the peer
-			// become interested in us then
+			// If a peer filters out sending redundant HAVE messages
+			// we can pick it up here once they're uninterested.
+			m_superseed_pieces.clear();
 			superseed_piece(piece_index_t(-1), t->get_piece_to_super_seed(m_have_piece));
+		}
+
+		// we can increase performance by offering multiple pieces
+		// at the same time. we scale the number offered to the
+		// upload speed to this peer. this also handles 'bootsrapping'
+		// as target_superseed_pieces() is never less than 1.
+		if (t->super_seeding()
+			&& !in_handshake()
+			&& !is_connecting()
+			&& t->ready_for_connections())
+		{
+			int const target_pieces = target_superseed_pieces();
+			if(target_pieces > int(m_superseed_pieces.size()))
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log(peer_log_alert::info))
+					peer_log(peer_log_alert::info, "SUPERSEED", "increasing super-seeded pieces from %d to %d"
+						, static_cast<int>(m_superseed_pieces.size())
+						, static_cast<int>(target_pieces));
+#endif
+				int const new_pieces = target_pieces - int(m_superseed_pieces.size());
+				piece_index_t piece;
+				for (int i = 1; i <= new_pieces; i++)
+				{
+					piece = t->get_piece_to_super_seed(get_bitfield());
+					if (piece >= piece_index_t(0)) superseed_piece(piece_index_t(-1), piece);
+				}
+			}
 		}
 #endif
 

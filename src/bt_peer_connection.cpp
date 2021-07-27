@@ -2277,12 +2277,6 @@ namespace {
 			// if we are super seeding, pretend to not have any piece
 			// and don't send a bitfield
 			m_sent_bitfield = true;
-
-			// bootstrap super-seeding by sending two have message
-			piece_index_t piece = t->get_piece_to_super_seed(get_bitfield());
-			if (piece >= piece_index_t(0)) superseed_piece(piece_index_t(-1), piece);
-			piece = t->get_piece_to_super_seed(get_bitfield());
-			if (piece >= piece_index_t(0)) superseed_piece(piece_index_t(-1), piece);
 			return;
 		}
 		else

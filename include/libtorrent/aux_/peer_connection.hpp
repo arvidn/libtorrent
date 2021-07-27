@@ -374,13 +374,16 @@ namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		// this will tell the peer to announce the given piece
-		// and only allow it to request that piece
+		// and allow it to request that piece
 		void superseed_piece(piece_index_t replace_piece, piece_index_t new_piece);
+
 		bool super_seeded_piece(piece_index_t index) const
-		{
-			return m_superseed_piece[0] == index
-				|| m_superseed_piece[1] == index;
-		}
+		{ return m_superseed_pieces.find(index) != m_superseed_pieces.end(); }
+
+		// returns the target number of super-seeded pieces to make
+		// available to a peer based on our upload rate to them.
+		// this will never be less than 1
+		int target_superseed_pieces() const;
 #endif
 
 		// tells if this connection has data it want to send
@@ -1030,12 +1033,9 @@ namespace libtorrent::aux {
 		std::uint16_t m_num_invalid_requests = 0;
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		// if [0] is -1, super-seeding is not active. If it is >= 0
-		// this is the piece that is available to this peer. Only
-		// these two pieces can be downloaded from us by this peer.
-		// This will remain the current piece for this peer until
-		// another peer sends us a have message for this piece
-		std::array<piece_index_t, 2> m_superseed_piece = {{piece_index_t(-1), piece_index_t(-1)}};
+		// If this is empty, super-seeding is not active. Otherwise
+		// only these pieces can be downloaded from us by this peer.
+		std::set<piece_index_t> m_superseed_pieces;
 #endif
 
 		// the number of bytes send to the disk-io

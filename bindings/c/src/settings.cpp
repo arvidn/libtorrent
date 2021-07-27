@@ -218,6 +218,7 @@ int settings_key(int const tag)
 		case SET_MAX_PIECE_COUNT: return sp::max_piece_count;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
+		case SET_SUPERSEED_SCALE_TIME: return sp::superseed_scale_time;
 		default:
 			// ignore unknown tags
 			return -1;
