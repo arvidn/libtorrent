@@ -4,37 +4,34 @@ import libtorrent as lt
 
 
 class GenerateFingerprintTest(unittest.TestCase):
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5985")
     def test_generate(self) -> None:
         # full version
         self.assertEqual(
-            lt.generate_fingerprint_bytes(b"ABCD", 1, 2, 3, 4),  # type: ignore
+            lt.generate_fingerprint_bytes(b"ABCD", 1, 2, 3, 4),
             b"-AB1234-",
         )
 
         # short name
         self.assertEqual(
-            lt.generate_fingerprint_bytes(b"A", 1, 2, 3, 4),  # type: ignore
-            b"-A\x001234-",
+            lt.generate_fingerprint_bytes(b"A", 1, 2, 3, 4),
+            b"---1234-",
         )
 
-        # major.minor
+        # major only
         self.assertEqual(
-            lt.generate_fingerprint_bytes(b"ABCD", 1, 2),  # type: ignore
-            b"-AB1200-",
+            lt.generate_fingerprint_bytes(b"ABCD", 1),
+            b"-AB1000-",
         )
 
         # high versions
         self.assertEqual(
-            lt.generate_fingerprint_bytes(  # type: ignore
-                b"ABCD", 1000, 2000, 3000, 4000
-            ),
-            b"unknown",
+            lt.generate_fingerprint_bytes(b"ABCD", 1000, 2000, 3000, 4000),
+            b"-AB\x1f\x07\xef\xd7-",
         )
 
         # version < 0
         self.assertEqual(
-            lt.generate_fingerprint_bytes(b"ABCD", -1, -1, -1, -1),  # type: ignore
+            lt.generate_fingerprint_bytes(b"ABCD", -1, -1, -1, -1),
             b"-AB0000-",
         )
 
