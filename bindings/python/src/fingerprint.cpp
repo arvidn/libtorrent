@@ -5,6 +5,12 @@
 #include "boost_python.hpp"
 #include "gil.hpp"
 #include <libtorrent/fingerprint.hpp>
+#include "bytes.hpp"
+
+bytes generate_fingerprint_bytes(bytes name, int major, int minor = 0, int revision = 0, int tag = 0)
+{
+    return lt::generate_fingerprint(name.arr, major, minor, revision, tag);
+}
 
 void bind_fingerprint()
 {
@@ -12,6 +18,8 @@ void bind_fingerprint()
     using namespace lt;
 
     def("generate_fingerprint", &generate_fingerprint);
+    def("generate_fingerprint_bytes", &generate_fingerprint_bytes,
+        (arg("name"), arg("major"), arg("minor") = 0, arg("revision") = 0, arg("tag") = 0));
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
