@@ -323,15 +323,17 @@ class FieldTest(unittest.TestCase):
         self.ti.set_web_seeds(web_seeds)
         self.assertEqual(self.ti.web_seeds(), web_seeds)
 
-    @unittest.skip("binding doesn't work")
     def test_add_url_seed(self) -> None:
         self.ti.add_url_seed("http://example1.com")
         self.ti.add_url_seed("http://example2.com", "password", [("header", "value")])
 
-    @unittest.skip("binding doesn't work")
     def test_add_http_seed(self) -> None:
-        self.ti.add_http_seed("http://example1.com")
-        self.ti.add_http_seed("http://example2.com", "password", [("header", "value")])
+        with self.assertWarns(DeprecationWarning):
+            self.ti.add_http_seed("http://example1.com")
+        with self.assertWarns(DeprecationWarning):
+            self.ti.add_http_seed(
+                "http://example2.com", "password", [("header", "value")]
+            )
 
     def test_name(self) -> None:
         def generate(name: bytes) -> lt.torrent_info:
