@@ -111,6 +111,16 @@ dict dht_mutable_item(dht_mutable_item_alert const& alert)
     return d;
 }
 
+bytes dht_mutable_item_salt(dht_mutable_item_alert const& alert)
+{
+    return bytes(alert.salt);
+}
+
+bytes dht_put_alert_salt(dht_put_alert const& alert)
+{
+    return bytes(alert.salt);
+}
+
 dict dht_put_item(dht_put_alert const& alert)
 {
     dict d;
@@ -1053,7 +1063,7 @@ void bind_alert()
         .add_property("key", make_getter(&dht_mutable_item_alert::key, by_value()))
         .add_property("signature", make_getter(&dht_mutable_item_alert::signature, by_value()))
         .def_readonly("seq", &dht_mutable_item_alert::seq)
-        .def_readonly("salt", &dht_mutable_item_alert::salt)
+        .add_property("salt", &dht_mutable_item_salt)
         .add_property("item", &dht_mutable_item)
         .def_readonly("authoritative", &dht_mutable_item_alert::authoritative)
         ;
@@ -1063,7 +1073,7 @@ void bind_alert()
         .add_property("target", make_getter(&dht_put_alert::target, by_value()))
         .add_property("public_key", make_getter(&dht_put_alert::public_key, by_value()))
         .add_property("signature", make_getter(&dht_put_alert::signature, by_value()))
-        .def_readonly("salt", &dht_put_alert::salt)
+        .add_property("salt", &dht_put_alert_salt)
         .def_readonly("seq", &dht_put_alert::seq)
         .def_readonly("num_success", &dht_put_alert::num_success)
         ;

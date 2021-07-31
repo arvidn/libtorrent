@@ -2047,7 +2047,7 @@ class DhtMutableItemAlertTest(DhtAlertTest):
         self.assertEqual(alert.key, public.to_bytes())
         # self.assertEqual(alert.item, data)
         self.assertIsInstance(alert.signature, bytes)
-        self.assertEqual(alert.salt, salt.decode())
+        self.assertEqual(alert.salt, salt)
         self.assertIsInstance(alert.seq, int)
         self.assertTrue(alert.authoritative)
 
@@ -2066,21 +2066,6 @@ class DhtMutableItemAlertTest(DhtAlertTest):
 
         self.assertEqual(alert.item, data)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_salt_bytes(self) -> None:
-        private, public = ed25519.create_keypair()
-        data = b"test"
-        salt = b"salt"
-        self.peer.dht_put_mutable_item(
-            private.to_bytes(), public.to_bytes(), data, salt
-        )
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
-        self.session.dht_get_mutable_item(public.to_bytes(), salt)
-
-        alert = wait_for(self.session, lt.dht_mutable_item_alert, timeout=5)
-
-        self.assertEqual(alert.salt, salt)
-
 
 class DhtPutAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht
@@ -2096,7 +2081,7 @@ class DhtPutAlertTest(DhtAlertTest):
         self.assertEqual(alert.target, sha1)
         self.assertEqual(alert.public_key, b"\0" * 32)
         self.assertEqual(alert.signature, b"\0" * 64)
-        self.assertEqual(alert.salt, "")
+        self.assertEqual(alert.salt, b"")
         self.assertIsInstance(alert.seq, int)
         self.assertIsInstance(alert.num_success, int)
 
@@ -2115,23 +2100,9 @@ class DhtPutAlertTest(DhtAlertTest):
         self.assertEqual(alert.target, lt.sha1_hash())
         self.assertEqual(alert.public_key, public.to_bytes())
         self.assertIsInstance(alert.signature, bytes)
-        self.assertEqual(alert.salt, salt.decode())
+        self.assertEqual(alert.salt, salt)
         self.assertIsInstance(alert.seq, int)
         self.assertIsInstance(alert.num_success, int)
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_salt_bytes(self) -> None:
-        private, public = ed25519.create_keypair()
-        data = b"test"
-        salt = b"salt"
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
-        self.session.dht_put_mutable_item(
-            private.to_bytes(), public.to_bytes(), data, salt
-        )
-
-        alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
-
-        self.assertEqual(alert.salt, salt)
 
 
 class SessionStatsAlertTest(AlertTest):
