@@ -21,14 +21,28 @@ using namespace lt;
 
 namespace
 {
+    void ct_check_piece_index(create_torrent& ct, piece_index_t index)
+    {
+        if ((index < 0) || (index >= ct.num_pieces()))
+            throw std::out_of_range("piece index out of range");
+    }
+
+    void file_storage_check_index(file_storage const& fs, file_index_t index)
+    {
+        if ((index < 0) || (index >= fs.num_files()))
+            throw std::out_of_range("file index out of range");
+    }
+
     void set_hash(create_torrent& c, piece_index_t p, bytes const& b)
     {
+        ct_check_piece_index(c, p);
         c.set_hash(p, sha1_hash(b.arr));
     }
 
 #if TORRENT_ABI_VERSION < 3
     void set_file_hash(create_torrent& c, file_index_t f, bytes const& b)
     {
+        file_storage_check_index(c.files(), f);
         c.set_file_hash(f, sha1_hash(b.arr));
     }
 #endif
@@ -128,30 +142,69 @@ namespace
 
     struct dummy13 {};
     struct dummy14 {};
+
+    std::string file_storage_symlink(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.symlink(index);
+    }
+
+    std::string file_storage_file_path(file_storage const& fs, file_index_t index, std::string const& base)
+    {
+        file_storage_check_index(fs, index);
+        return fs.file_path(index, base);
+    }
+
+    string_view file_storage_file_name(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.file_name(index);
+    }
+
+    std::int64_t file_storage_file_size(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.file_size(index);
+    }
+
+    std::int64_t file_storage_file_offset(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.file_offset(index);
+    }
+
+    file_flags_t file_storage_file_flags(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.file_flags(index);
+    }
+
+    void rename_file0(file_storage& fs, file_index_t index, std::string const& path)
+    {
+        file_storage_check_index(fs, index);
+        fs.rename_file(index, path);
+    }
+
+#if TORRENT_ABI_VERSION == 1
+    file_entry file_storage_at(file_storage const& fs, file_index_t index)
+    {
+        file_storage_check_index(fs, index);
+        return fs.at(index);
+    }
+#endif
 }
 
 void bind_create_torrent()
 {
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
-    void (file_storage::*rename_file0)(file_index_t, std::string const&) = &file_storage::rename_file;
 
 #ifndef BOOST_NO_EXCEPTIONS
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
 #endif
     void (*add_files0)(file_storage&, std::string const&, create_flags_t) = add_files;
 
-    std::string (file_storage::*file_storage_symlink)(file_index_t) const = &file_storage::symlink;
 #if TORRENT_ABI_VERSION < 4
     sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
-#endif
-    std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
-    string_view (file_storage::*file_storage_file_name)(file_index_t) const = &file_storage::file_name;
-    std::int64_t (file_storage::*file_storage_file_size)(file_index_t) const = &file_storage::file_size;
-    std::int64_t (file_storage::*file_storage_file_offset)(file_index_t) const = &file_storage::file_offset;
-    file_flags_t (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
-
-#if TORRENT_ABI_VERSION == 1
-    file_entry (file_storage::*at)(int) const = &file_storage::at;
 #endif
 
     // TODO: 3 move this to its own file
@@ -161,7 +214,7 @@ void bind_create_torrent()
         .def("add_file", add_file, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
         .def("num_files", &file_storage::num_files)
 #if TORRENT_ABI_VERSION == 1
-        .def("at", depr(at))
+        .def("at", depr(file_storage_at))
         .def("add_file", add_file_deprecated, arg("entry"))
         .def("__iter__", boost::python::range(&begin_files, &end_files))
         .def("__len__", depr(&file_storage::num_files))
