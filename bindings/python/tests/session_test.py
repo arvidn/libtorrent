@@ -282,7 +282,6 @@ class SessionStatusTest(unittest.TestCase):
         self.assertIsInstance(utp["num_fin_sent"], int)
         self.assertIsInstance(utp["num_close_wait"], int)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_active_requests(self) -> None:
         stat = lt.session_status()
         self.assertEqual(stat.active_requests, [])
@@ -362,7 +361,7 @@ class AddTorrentParamsTest(unittest.TestCase):
         self.assertEqual(atp.peers, [("1.2.3.4", 4321)])
         atp.banned_peers = [("2.3.4.5", 4321)]
         self.assertEqual(atp.banned_peers, [("2.3.4.5", 4321)])
-        # atp.unfinished_pieces = {}
+        atp.unfinished_pieces = {}
         self.assertEqual(atp.unfinished_pieces, {})
         atp.have_pieces = [True, False]
         self.assertEqual(atp.have_pieces, [True, False])
@@ -370,7 +369,7 @@ class AddTorrentParamsTest(unittest.TestCase):
         self.assertEqual(atp.verified_pieces, [True, False])
         atp.piece_priorities = [1]
         self.assertEqual(atp.piece_priorities, [1])
-        # atp.renamed_files = {}
+        atp.renamed_files = {}
         self.assertEqual(atp.renamed_files, {})
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
@@ -478,7 +477,6 @@ class AddTorrentParamsTest(unittest.TestCase):
         atp.http_seeds = ["http://example.com/seed"]
         self.assertEqual(atp.http_seeds, ["http://example.com/seed"])
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_unfinished_pieces(self) -> None:
         atp = lt.add_torrent_params()
         atp.unfinished_pieces = {}
@@ -492,7 +490,6 @@ class AddTorrentParamsTest(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             atp.merkle_tree = [lt.sha1_hash()]
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_merkle_tree(self) -> None:
         atp = lt.add_torrent_params()
         atp.merkle_tree = [lt.sha1_hash()]
@@ -524,25 +521,21 @@ class AddTorrentParamsTest(unittest.TestCase):
         atp.resume_data = ["a"]
         self.assertEqual(atp.resume_data, ["a"])
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_ascii_str(self) -> None:
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: "test.txt"}
         self.assertEqual(atp.renamed_files, {0: "test.txt"})
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: b"test.txt"}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: "test.txt"})
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_non_ascii_str(self) -> None:
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: "\u1234.txt"}
         self.assertEqual(atp.renamed_files, {0: "\u1234.txt"})
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_renamed_files_non_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: os.fsencode("\u1234.txt")}  # type: ignore
