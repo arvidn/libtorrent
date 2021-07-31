@@ -169,10 +169,9 @@ class ConstructorTest(unittest.TestCase):
         ti = lt.torrent_info(entry)
         self.assertEqual(ti.name(), "test.txt")
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_dict_with_str_keys_deprecated(self) -> None:
+    def test_dict_with_str_keys(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            lt.torrent_info(
+            ti = lt.torrent_info(
                 {
                     "info": {  # type: ignore
                         "name": "test.txt",
@@ -182,18 +181,6 @@ class ConstructorTest(unittest.TestCase):
                     }
                 }
             )
-
-    def test_dict_with_str_keys(self) -> None:
-        ti = lt.torrent_info(
-            {
-                "info": {  # type: ignore
-                    "name": "test.txt",
-                    "length": 1024,
-                    "piece length": 16384,
-                    "pieces": "aaaaaaaaaaaaaaaaaaaa",
-                }
-            }
-        )
         self.assertEqual(ti.name(), "test.txt")
 
     @unittest.skip("constructor is mapped, but doesn't recognize valid data")
