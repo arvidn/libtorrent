@@ -40,6 +40,7 @@ namespace {
 
 	dict parse_magnet_uri_dict(std::string const& uri)
 	{
+		python_deprecated("parse_magnet_uri_dict() is deprecated");
 		error_code ec;
 		add_torrent_params p = parse_magnet_uri(uri, ec);
 
