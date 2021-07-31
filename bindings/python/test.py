@@ -229,6 +229,9 @@ class test_torrent_handle(unittest.TestCase):
         self.setup()
         status = self.h.file_status()
         print(status)
+        progress = self.h.file_progress()
+        print(progress)
+        self.h.file_progress(lt.file_progress_flags_t.piece_granularity)
 
     def test_piece_deadlines(self):
         self.setup()
