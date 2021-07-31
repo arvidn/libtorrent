@@ -481,6 +481,7 @@ void bind_converters()
     // python -> C++ conversions
     tuple_to_pair<int, int>();
     tuple_to_pair<std::string, int>();
+    tuple_to_pair<std::string, std::string>();
     tuple_to_endpoint<lt::tcp::endpoint>();
     tuple_to_endpoint<lt::udp::endpoint>();
     tuple_to_pair<lt::piece_index_t, lt::download_priority_t>();
