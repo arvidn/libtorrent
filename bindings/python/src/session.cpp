@@ -400,6 +400,7 @@ namespace
 
     torrent_handle add_torrent(lt::session& s, dict params)
     {
+        python_deprecated("add_torrent(dict) is deprecated");
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
 
@@ -415,6 +416,7 @@ namespace
 
     void async_add_torrent(lt::session& s, dict params)
     {
+        python_deprecated("async_add_torrent(dict) is deprecated");
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
 

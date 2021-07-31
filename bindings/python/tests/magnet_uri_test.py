@@ -20,7 +20,6 @@ class ParseMagnetTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lt.parse_magnet_uri("magnet:?")
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5992")
     def test_parse_dict_deprecated(self) -> None:
         uri = f"magnet:?xt=urn:btih:{self.info_hash_sha1}"
         with self.assertWarns(DeprecationWarning):
@@ -36,7 +35,8 @@ class ParseMagnetTest(unittest.TestCase):
             "x.pe=0.1.2.3:4567&"
             "dht=1.2.3.4:5678"
         )
-        params = lt.parse_magnet_uri_dict(uri)
+        with self.assertWarns(DeprecationWarning):
+            params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
             {
@@ -120,7 +120,8 @@ class ParseMagnetTest(unittest.TestCase):
             "x.pe=0.1.2.3:4567&"
             "dht=1.2.3.4:5678"
         )
-        params = lt.parse_magnet_uri_dict(uri)
+        with self.assertWarns(DeprecationWarning):
+            params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
             {
@@ -199,8 +200,9 @@ class ParseMagnetTest(unittest.TestCase):
             # Can't test peers or dht
 
     def test_parse_dict_error(self) -> None:
-        with self.assertRaises(RuntimeError):
-            lt.parse_magnet_uri_dict("magnet:?")
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(RuntimeError):
+                lt.parse_magnet_uri_dict("magnet:?")
 
 
 class AddMagnetUriTest(unittest.TestCase):

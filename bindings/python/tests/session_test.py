@@ -1165,7 +1165,6 @@ class AddTorrentTest(unittest.TestCase):
         self.assertIsInstance(handle, lt.torrent_handle)
         self.assertTrue(handle.is_valid())
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_dict_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
             self.session.add_torrent({"ti": self.torrent.torrent_info()})
@@ -1173,35 +1172,36 @@ class AddTorrentTest(unittest.TestCase):
             self.session.async_add_torrent({"ti": self.torrent.torrent_info()})
 
     def do_test_dict(self, params: Dict[str, Any]) -> lt.torrent_handle:
-        self.session.async_add_torrent(params)
-        handle = self.session.add_torrent(params)
+        with self.assertWarns(DeprecationWarning):
+            self.session.async_add_torrent(params)
+        with self.assertWarns(DeprecationWarning):
+            handle = self.session.add_torrent(params)
         self.assertIsInstance(handle, lt.torrent_handle)
         self.assertTrue(handle.is_valid())
         return handle
 
     def test_dict(self) -> None:
         ti = self.torrent.torrent_info()
-        with self.assertWarns(DeprecationWarning):
-            handle = self.do_test_dict(
-                {
-                    "ti": ti,
-                    "info_hash": ti.info_hashes().v1.to_bytes(),
-                    "info_hashes": ti.info_hashes().v1.to_bytes(),
-                    "save_path": self.dir.name,
-                    "storage_mode": lt.storage_mode_t.storage_mode_allocate,
-                    "trackers": ["http://127.1.2.1/tr"],
-                    "url_seeds": ["http://127.1.2.2/us"],
-                    "http_seeds": ["http://127.1.2.3/hs"],
-                    "dht_nodes": [("127.1.2.4", 1234)],
-                    "banned_peers": [("127.1.2.5", 1234)],
-                    "peers": [("127.1.2.6", 1234)],
-                    "flags": lt.torrent_flags.sequential_download,
-                    "trackerid": "trackerid",
-                    "url": "http://127.1.2.7/u",
-                    "renamed_files": {0: "renamed.txt"},
-                    "file_priorities": [2],
-                }
-            )
+        handle = self.do_test_dict(
+            {
+                "ti": ti,
+                "info_hash": ti.info_hashes().v1.to_bytes(),
+                "info_hashes": ti.info_hashes().v1.to_bytes(),
+                "save_path": self.dir.name,
+                "storage_mode": lt.storage_mode_t.storage_mode_allocate,
+                "trackers": ["http://127.1.2.1/tr"],
+                "url_seeds": ["http://127.1.2.2/us"],
+                "http_seeds": ["http://127.1.2.3/hs"],
+                "dht_nodes": [("127.1.2.4", 1234)],
+                "banned_peers": [("127.1.2.5", 1234)],
+                "peers": [("127.1.2.6", 1234)],
+                "flags": lt.torrent_flags.sequential_download,
+                "trackerid": "trackerid",
+                "url": "http://127.1.2.7/u",
+                "renamed_files": {0: "renamed.txt"},
+                "file_priorities": [2],
+            }
+        )
 
         status = handle.status()
         self.assertEqual(handle.status().save_path, self.dir.name)
@@ -1254,10 +1254,12 @@ class AddTorrentTest(unittest.TestCase):
         self.assertEqual(handle.info_hashes().v2.to_bytes(), b"a" * 32)
 
     def test_dict_errors(self) -> None:
-        with self.assertRaises(KeyError):
-            self.session.add_torrent({"invalid-key": None})
-        with self.assertRaises(KeyError):
-            self.session.async_add_torrent({"invalid-key": None})
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(KeyError):
+                self.session.add_torrent({"invalid-key": None})
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(KeyError):
+                self.session.async_add_torrent({"invalid-key": None})
 
     def test_errors(self) -> None:
         atp = self.torrent.atp()

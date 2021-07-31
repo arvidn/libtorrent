@@ -11,8 +11,10 @@ import libtorrent as lt
 
 ses = lt.session({"listen_interfaces": "0.0.0.0:6881"})
 
-info = lt.torrent_info(sys.argv[1])
-h = ses.add_torrent({"ti": info, "save_path": "."})
+atp = lt.add_torrent_params()
+atp.ti = lt.torrent_info(sys.argv[1])
+atp.save_path = "."
+h = ses.add_torrent(atp)
 s = h.status()
 print("starting", s.name)
 
