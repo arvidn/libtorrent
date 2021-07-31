@@ -480,23 +480,12 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(ct.piece_size(0), 1024)
         self.assertEqual(ct.piece_size(1), 16384)
 
-    # @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
-    def test_root_cert_str(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        ct = lt.create_torrent(fs)
-        ct.set_hash(0, lib.get_random_bytes(20))
-        ct.set_root_cert("test")
-        entry = ct.generate()
-        self.assertEqual(entry[b"info"][b"ssl-cert"], b"test")
-
-    @unittest.skip("set_root_cert(bytes) broke")
     def test_root_cert(self) -> None:
         fs = lt.file_storage()
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
-        ct.set_root_cert(b"test")  # type: ignore
+        ct.set_root_cert("test")
         entry = ct.generate()
         self.assertEqual(entry[b"info"][b"ssl-cert"], b"test")
 
