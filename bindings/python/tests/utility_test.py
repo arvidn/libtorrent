@@ -55,6 +55,6 @@ class IdentifyClientTest(unittest.TestCase):
 class ClientFingerprintTest(unittest.TestCase):
     def test_identify_client(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            fprint = lt.client_fingerprint(lt.sha1_hash(b"-AB1200-...."))
+            fprint = lt.client_fingerprint(lt.sha1_hash(b"-AB1200-............"))
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(str(fprint), "-AB1200-")
