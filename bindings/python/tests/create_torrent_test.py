@@ -510,49 +510,19 @@ class CreateTorrentTest(unittest.TestCase):
         entry = ct.generate()
         self.assertEqual(entry[b"info"][b"ssl-cert"], b"test")
 
-    @unittest.skip("add_collection(bytes) broke")
     def test_collections(self) -> None:
         fs = lt.file_storage()
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
-        # ct.add_collection("ascii-str")
-        ct.add_collection(b"ascii-bytes")  # type: ignore
-        # ct.add_collection("non-ascii-str-\u1234")
-        ct.add_collection("non-ascii-bytes-\u1234".encode())  # type: ignore
-        ct.add_collection(b"bad-\xff")  # type: ignore
-        entry = ct.generate()
-        self.assertEqual(
-            entry[b"info"][b"collections"],
-            [
-                # b"ascii-str",
-                b"ascii-bytes",
-                # "non-ascii-str-\u1234".encode(),
-                "non-ascii-bytes-\u1234".encode(),
-                b"bad-\xff",
-            ],
-        )
-
-    @unittest.skip("add_collection(bytes) broke")
-    def test_collections_broken(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        ct = lt.create_torrent(fs)
-        ct.set_hash(0, lib.get_random_bytes(20))
         ct.add_collection("ascii-str")
-        ct.add_collection(b"ascii-bytes")  # type: ignore
         ct.add_collection("non-ascii-str-\u1234")
-        ct.add_collection("non-ascii-bytes-\u1234".encode())  # type: ignore
-        ct.add_collection(b"bad-\xff")  # type: ignore
         entry = ct.generate()
         self.assertEqual(
             entry[b"info"][b"collections"],
             [
                 b"ascii-str",
-                b"ascii-bytes",
                 "non-ascii-str-\u1234".encode(),
-                "non-ascii-bytes-\u1234".encode(),
-                b"bad-\xff",
             ],
         )
 
