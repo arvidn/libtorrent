@@ -107,6 +107,8 @@ namespace
 
     bytes hash_for_piece(torrent_info const& ti, piece_index_t i)
     {
+        if ((i < 0) || (i >= ti.num_pieces()))
+            throw std::out_of_range("piece index out of range");
         return bytes(ti.hash_for_piece(i).to_string());
     }
 

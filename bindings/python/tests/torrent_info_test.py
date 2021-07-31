@@ -438,7 +438,6 @@ class FieldTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate(b"\xff").collections()
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5993")
     def test_hash_for_piece_invalid(self) -> None:
         ti = lt.torrent_info(
             {

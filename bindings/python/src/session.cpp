@@ -705,7 +705,8 @@ namespace
 #ifndef TORRENT_DISABLE_DHT
     void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
     {
-        TORRENT_ASSERT(key.size() == 32);
+        if (key.size() != 32)
+            throw std::invalid_argument("key has wrong size, should be 32");
         std::array<char, 32> public_key;
         std::copy(key.begin(), key.end(), public_key.begin());
         ses.dht_get_item(public_key, salt);
@@ -731,8 +732,10 @@ namespace
     void dht_put_mutable_item(lt::session& ses, std::string private_key, std::string public_key,
         std::string data, std::string salt)
     {
-        TORRENT_ASSERT(private_key.size() == 64);
-        TORRENT_ASSERT(public_key.size() == 32);
+        if (private_key.size() != 64)
+            throw std::invalid_argument("private key has wrong length, should be 64");
+        if (public_key.size() != 32)
+            throw std::invalid_argument("public key has wrong length, should be 32");
         std::array<char, 32> key;
         std::copy(public_key.begin(), public_key.end(), key.begin());
         ses.dht_put_item(key

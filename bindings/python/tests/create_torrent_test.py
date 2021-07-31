@@ -371,13 +371,19 @@ class CreateTorrentTest(unittest.TestCase):
         with self.assertRaises(IndexError):
             ct.set_hash(-1, lib.get_random_bytes(20))
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5993")
     def test_set_hash_short(self) -> None:
         fs = lt.file_storage()
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
         with self.assertRaises(ValueError):
             ct.set_hash(0, lib.get_random_bytes(19))
+
+    def test_set_hash_long_deprecated(self) -> None:
+        fs = lt.file_storage()
+        fs.add_file("test.txt", 1024)
+        ct = lt.create_torrent(fs)
+        with self.assertWarns(DeprecationWarning):
+            ct.set_hash(0, lib.get_random_bytes(21))
 
     def test_set_file_hash(self) -> None:
         fs = lt.file_storage()
@@ -399,13 +405,20 @@ class CreateTorrentTest(unittest.TestCase):
             with self.assertRaises(IndexError):
                 ct.set_file_hash(-1, lib.get_random_bytes(20))
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5993")
     def test_set_file_hash_short(self) -> None:
         fs = lt.file_storage()
         fs.add_file("test.txt", 1024)
         ct = lt.create_torrent(fs)
-        with self.assertRaises(ValueError):
-            ct.set_file_hash(0, lib.get_random_bytes(19))
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError):
+                ct.set_file_hash(0, lib.get_random_bytes(19))
+
+    def test_set_file_hash_long_deprecated(self) -> None:
+        fs = lt.file_storage()
+        fs.add_file("test.txt", 1024)
+        ct = lt.create_torrent(fs)
+        with self.assertWarns(DeprecationWarning):
+            ct.set_file_hash(0, lib.get_random_bytes(21))
 
     def test_url_seed(self) -> None:
         fs = lt.file_storage()

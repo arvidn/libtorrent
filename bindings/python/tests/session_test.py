@@ -930,7 +930,6 @@ class DhtTest(unittest.TestCase):
         dht_settings = self.session.get_dht_settings()
         self.session.set_dht_settings(dht_settings)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5993")
     def test_bad_args(self) -> None:
         with self.assertRaises(ValueError):
             self.session.dht_get_mutable_item(b"short", b"salt")

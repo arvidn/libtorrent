@@ -11,10 +11,14 @@ class Sha1HashTest(unittest.TestCase):
         sha1 = lt.sha1_hash(data)
         self.assertEqual(sha1.to_bytes(), data)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_init_short_buffer(self) -> None:
         with self.assertRaises(ValueError):
             lt.sha1_hash(b"a" * 19)
+
+    def test_init_long_buffer(self) -> None:
+        with self.assertWarns(DeprecationWarning):
+            sha1 = lt.sha1_hash(b"a" * 21)
+        self.assertEqual(sha1.to_bytes(), b"a" * 20)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_init_str_deprecated(self) -> None:

@@ -36,6 +36,10 @@ namespace
     void set_hash(create_torrent& c, piece_index_t p, bytes const& b)
     {
         ct_check_piece_index(c, p);
+        if (b.arr.size() < 20)
+            throw std::invalid_argument("short hash length");
+        if (b.arr.size() > 20)
+            python_deprecated("long hash length. this will work, but is deprecated");
         c.set_hash(p, sha1_hash(b.arr));
     }
 
@@ -43,6 +47,10 @@ namespace
     void set_file_hash(create_torrent& c, file_index_t f, bytes const& b)
     {
         file_storage_check_index(c.files(), f);
+        if (b.arr.size() < 20)
+            throw std::invalid_argument("short hash length");
+        if (b.arr.size() > 20)
+            python_deprecated("long hash length. this will work, but is deprecated");
         c.set_file_hash(f, sha1_hash(b.arr));
     }
 #endif
