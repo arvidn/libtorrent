@@ -847,7 +847,8 @@ class ConstructorTest(unittest.TestCase):
         session.apply_settings(lib.get_isolated_settings())
 
     def test_fingerprint(self) -> None:
-        fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
+        with self.assertWarns(DeprecationWarning):
+            fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
 
         session = lt.session(fingerprint)
         session.apply_settings(lib.get_isolated_settings())
