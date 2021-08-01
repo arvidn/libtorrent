@@ -344,6 +344,60 @@ class choking_algorithm_t(int):
     rate_based_choker: choking_algorithm_t
     values: Mapping[int, choking_algorithm_t]
 
+class close_reason_t(int):
+    blocked: close_reason_t
+    corrupt_pieces: close_reason_t
+    duplicate_peer_id: close_reason_t
+    encryption_error: close_reason_t
+    invalid_allow_fast_message: close_reason_t
+    invalid_bitfield_message: close_reason_t
+    invalid_cancel_message: close_reason_t
+    invalid_choke_message: close_reason_t
+    invalid_dht_port_message: close_reason_t
+    invalid_dont_have_message: close_reason_t
+    invalid_extended_message: close_reason_t
+    invalid_have_all_message: close_reason_t
+    invalid_have_message: close_reason_t
+    invalid_have_none_message: close_reason_t
+    invalid_info_hash: close_reason_t
+    invalid_interested_message: close_reason_t
+    invalid_message: close_reason_t
+    invalid_message_id: close_reason_t
+    invalid_metadata: close_reason_t
+    invalid_metadata_message: close_reason_t
+    invalid_metadata_offset: close_reason_t
+    invalid_metadata_request_message: close_reason_t
+    invalid_not_interested_message: close_reason_t
+    invalid_pex_message: close_reason_t
+    invalid_piece_message: close_reason_t
+    invalid_reject_message: close_reason_t
+    invalid_request_message: close_reason_t
+    invalid_suggest_message: close_reason_t
+    invalid_unchoke_message: close_reason_t
+    message_too_big: close_reason_t
+    metadata_too_big: close_reason_t
+    names: Mapping[str, close_reason_t]
+    no_memory: close_reason_t
+    none: close_reason_t
+    not_interested_upload_only: close_reason_t
+    peer_churn: close_reason_t
+    pex_message_too_big: close_reason_t
+    pex_too_frequent: close_reason_t
+    port_blocked: close_reason_t
+    protocol_blocked: close_reason_t
+    request_when_choked: close_reason_t
+    self_connection: close_reason_t
+    timed_out_activity: close_reason_t
+    timed_out_handshake: close_reason_t
+    timed_out_interest: close_reason_t
+    timed_out_request: close_reason_t
+    timeout: close_reason_t
+    too_many_connections: close_reason_t
+    too_many_files: close_reason_t
+    torrent_removed: close_reason_t
+    upload_to_upload: close_reason_t
+    values: Mapping[int, close_reason_t]
+
 class create_torrent:
     canonical_files: int
     merkle: int
@@ -908,7 +962,7 @@ class peer_disconnected_alert(peer_alert):
     error: error_code
     msg: str
     op: operation_t
-    # reason: close_reason_t
+    reason: close_reason_t
     socket_type: socket_type_t
 
 class peer_error_alert(peer_alert):
