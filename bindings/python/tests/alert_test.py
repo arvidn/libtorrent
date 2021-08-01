@@ -340,6 +340,25 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.dht_module_t.tracker, int)
         self.assertIsInstance(lt.dht_module_t.traversal, int)
 
+    def test_picker_flags_t(self) -> None:
+        self.assertIsInstance(lt.picker_flags_t.backup1, int)
+        self.assertIsInstance(lt.picker_flags_t.backup2, int)
+        self.assertIsInstance(lt.picker_flags_t.end_game, int)
+        self.assertIsInstance(lt.picker_flags_t.extent_affinity, int)
+        self.assertIsInstance(lt.picker_flags_t.partial_ratio, int)
+        self.assertIsInstance(lt.picker_flags_t.prefer_contiguous, int)
+        self.assertIsInstance(lt.picker_flags_t.prio_sequential_pieces, int)
+        self.assertIsInstance(lt.picker_flags_t.prioritize_partials, int)
+        self.assertIsInstance(lt.picker_flags_t.random_pieces, int)
+        self.assertIsInstance(lt.picker_flags_t.rarest_first, int)
+        self.assertIsInstance(lt.picker_flags_t.rarest_first_partials, int)
+        self.assertIsInstance(lt.picker_flags_t.reverse_pieces, int)
+        self.assertIsInstance(lt.picker_flags_t.reverse_rarest_first, int)
+        self.assertIsInstance(lt.picker_flags_t.reverse_sequential, int)
+        self.assertIsInstance(lt.picker_flags_t.sequential_pieces, int)
+        self.assertIsInstance(lt.picker_flags_t.suggested_pieces, int)
+        self.assertIsInstance(lt.picker_flags_t.time_critical, int)
+
 
 _A = TypeVar("_A", bound=lt.alert)
 
@@ -1942,22 +1961,8 @@ class PickerLogAlertTest(PeerAlertTest):
         self.assert_peer_alert(
             alert, self.peer_endpoint, fingerprint=self.peer_fingerprint
         )
-        # self.assertIsInstance(alert.picker_flags, int)
-        # self.assertIsInstance(alert.blocks(), list)
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
-    def test_broken(self) -> None:
-        handle = self.session.add_torrent(self.atp)
-        peer_handle = self.peer.add_torrent(self.peer_atp)
-        wait_until_done_checking(peer_handle, timeout=5)
-        for i, piece in enumerate(self.torrent.pieces):
-            peer_handle.add_piece(0, piece, 0)
-        handle.connect_peer(self.peer_endpoint)
-
-        alert = wait_for(self.session, lt.picker_log_alert, timeout=5)
-
-        self.assertIsInstance(alert.picker_flags, int)
-        self.assertIsInstance(alert.blocks(), list)
+        self.assertIsInstance(alert.picker_flags, lt.picker_flags_t)
+        self.assertEqual(alert.blocks(), [(0, 0)])
 
 
 class LsdErrorAlertTest(AlertTest):
