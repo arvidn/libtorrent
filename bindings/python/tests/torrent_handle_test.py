@@ -426,14 +426,10 @@ class AddPieceTest(unittest.TestCase):
 
         self.wait_until_finished()
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_str_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.handle.add_piece(0, "0" * self.dummy.piece_length, 0)  # type: ignore
-
     def test_str(self) -> None:
         for i, data in enumerate(self.dummy.pieces):
-            self.handle.add_piece(i, data.decode(), 0)  # type: ignore
+            with self.assertWarns(DeprecationWarning):
+                self.handle.add_piece(i, data.decode(), 0)  # type: ignore
 
         self.wait_until_finished()
 
