@@ -703,12 +703,12 @@ namespace
 	}
 
 #ifndef TORRENT_DISABLE_DHT
-    void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
+    void dht_get_mutable_item(lt::session& ses, bytes key, bytes salt)
     {
         TORRENT_ASSERT(key.size() == 32);
         std::array<char, 32> public_key;
-        std::copy(key.begin(), key.end(), public_key.begin());
-        ses.dht_get_item(public_key, salt);
+        std::copy(key.arr.begin(), key.arr.end(), public_key.begin());
+        ses.dht_get_item(public_key, salt.arr);
     }
 
     void put_string(entry& e, std::array<char, 64>& sig, std::int64_t& seq
@@ -728,20 +728,20 @@ namespace
         sig = sign.bytes;
     }
 
-    void dht_put_mutable_item(lt::session& ses, std::string private_key, std::string public_key,
-        std::string data, std::string salt)
+    void dht_put_mutable_item(lt::session& ses, bytes private_key, bytes public_key,
+        bytes data, bytes salt)
     {
         TORRENT_ASSERT(private_key.size() == 64);
         TORRENT_ASSERT(public_key.size() == 32);
         std::array<char, 32> key;
-        std::copy(public_key.begin(), public_key.end(), key.begin());
+        std::copy(public_key.arr.begin(), public_key.arr.end(), key.begin());
         ses.dht_put_item(key
-            , [pk=std::move(public_key), sk=std::move(private_key), d=std::move(data)]
+            , [pk=std::move(public_key.arr), sk=std::move(private_key.arr), d=std::move(data.arr)]
             (entry& e, std::array<char, 64>& sig, std::int64_t& seq, std::string const& salt)
             {
                 put_string(e, sig, seq, salt, pk, sk, d);
             }
-            , salt);
+            , salt.arr);
     }
 #endif
 
