@@ -193,7 +193,6 @@ class DownloadQueueTest(TorrentHandleTest):
 
 
 class FileProgressTest(TorrentHandleTest):
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
     def test_file_progress(self) -> None:
         self.assertEqual(self.handle.file_progress(), [0])
         self.assertEqual(
