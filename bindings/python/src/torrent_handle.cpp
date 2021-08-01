@@ -437,6 +437,17 @@ class dummy8 {};
 class dummy15 {};
 class dummy16 {};
 
+void rename_file0(torrent_handle& th, file_index_t index, string_view const& path)
+{
+    th.rename_file(index, std::string(path));
+}
+
+void rename_file1(torrent_handle& th, file_index_t index, bytes const& path)
+{
+    python_deprecated("rename_file with a bytes path is deprecated");
+    th.rename_file(index, path.arr);
+}
+
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
 {
@@ -454,7 +465,6 @@ void bind_torrent_handle()
     void (torrent_handle::*piece_priority1)(piece_index_t, download_priority_t) const = &torrent_handle::piece_priority;
 
     void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
     std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
 
@@ -547,7 +557,8 @@ void bind_torrent_handle()
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("info_hashes", _(&torrent_handle::info_hashes))
         .def("force_recheck", _(&torrent_handle::force_recheck))
-        .def("rename_file", _(rename_file0))
+        .def("rename_file", &rename_file0)
+        .def("rename_file", &rename_file1)
         .def("set_ssl_certificate", &torrent_handle::set_ssl_certificate, (arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase")=""))
         .def("flags", _(&torrent_handle::flags))
         .def("set_flags", _(set_flags0))
