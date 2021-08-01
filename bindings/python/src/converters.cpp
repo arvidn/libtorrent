@@ -422,6 +422,7 @@ void bind_converters()
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
     to_python_converter<std::vector<std::pair<std::string, std::string>>, vector_to_list<std::vector<std::pair<std::string, std::string>>>>();
+    to_python_converter<std::vector<lt::port_mapping_t>, vector_to_list<std::vector<lt::port_mapping_t>>>();
 
     to_python_converter<lt::typed_bitfield<lt::piece_index_t>, bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>>();
     to_python_converter<lt::bitfield, bitfield_to_list<lt::bitfield>>();
