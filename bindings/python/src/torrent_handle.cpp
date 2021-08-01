@@ -418,6 +418,7 @@ std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 void add_piece_str(torrent_handle& th, piece_index_t piece, char const *data
     , add_piece_flags_t const flags)
 {
+    python_deprecated("add_piece with str is deprecated");
     th.add_piece(piece, data, flags);
 }
 
