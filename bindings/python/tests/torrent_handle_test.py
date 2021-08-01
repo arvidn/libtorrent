@@ -708,14 +708,14 @@ class RenameFileTest(TorrentHandleTest):
                 break
 
         # Test rename with bytes
-        self.handle.rename_file(0, b"file2.txt")  # type: ignore
+        with self.assertWarns(DeprecationWarning):
+            self.handle.rename_file(0, b"file2.txt")  # type: ignore
         for _ in lib.loop_until_timeout(5, msg="rename"):
             torrent_file = self.handle.torrent_file()
             assert torrent_file is not None
             if torrent_file.files().file_path(0) == "file2.txt":
                 break
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_bytes_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
             self.handle.rename_file(0, b"file.txt")  # type: ignore
