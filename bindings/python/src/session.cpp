@@ -22,6 +22,7 @@
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/kademlia/announce_flags.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -1374,6 +1375,12 @@ void bind_session()
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";
     scope().attr("create_smart_ban_plugin") = "smart_ban";
+
+    enum_<dht::announce_flags_t>("announce_flags_t")
+        .value("seed", lt::dht::announce::seed)
+        .value("implied_port", lt::dht::announce::implied_port)
+        .value("ssl_torrent", lt::dht::announce::ssl_torrent)
+    ;
 }
 
 #ifdef _MSC_VER
