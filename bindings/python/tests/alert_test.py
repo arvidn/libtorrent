@@ -333,6 +333,13 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.close_reason_t.torrent_removed, int)
         self.assertIsInstance(lt.close_reason_t.upload_to_upload, int)
 
+    def test_dht_module_t(self) -> None:
+        self.assertIsInstance(lt.dht_module_t.node, int)
+        self.assertIsInstance(lt.dht_module_t.routing_table, int)
+        self.assertIsInstance(lt.dht_module_t.rpc_manager, int)
+        self.assertIsInstance(lt.dht_module_t.tracker, int)
+        self.assertIsInstance(lt.dht_module_t.traversal, int)
+
 
 _A = TypeVar("_A", bound=lt.alert)
 
@@ -1976,16 +1983,9 @@ class DhtLogAlertTest(DhtAlertTest):
         alert = wait_for(self.session, lt.dht_log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht_log, "dht_log")
-        # self.assertEqual(alert.module, "what")
+        self.assertIsInstance(alert.module, lt.dht_module_t)
         self.assertIsInstance(alert.log_message(), str)
         self.assertNotEqual(alert.log_message(), "")
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
-    def test_broken(self) -> None:
-        alert = wait_for(self.session, lt.dht_log_alert, timeout=5)
-
-        self.assert_alert(alert, lt.alert_category.dht_log, "dht_log")
-        self.assertEqual(alert.module, 1)
 
 
 class DhtPktAlertTest(DhtAlertTest):

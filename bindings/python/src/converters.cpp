@@ -521,6 +521,7 @@ void bind_converters()
     to_strong_typedef<lt::port_mapping_t>();
     to_strong_typedef<lt::peer_class_t>();
     to_enum_class<lt::move_flags_t>();
+    to_enum_class<lt::dht_log_alert::dht_module_t>();
 #if TORRENT_ABI_VERSION <= 2
     to_enum_class<lt::event_t>();
 #endif

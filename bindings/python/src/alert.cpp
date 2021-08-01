@@ -1047,6 +1047,14 @@ void bind_alert()
         .def("log_message", &dht_log_alert::log_message)
     ;
 
+    enum_<dht_log_alert::dht_module_t>("dht_module_t")
+        .value("tracker", dht_log_alert::dht_module_t::tracker)
+        .value("node", dht_log_alert::dht_module_t::node)
+        .value("routing_table", dht_log_alert::dht_module_t::routing_table)
+        .value("rpc_manager", dht_log_alert::dht_module_t::rpc_manager)
+        .value("traversal", dht_log_alert::dht_module_t::traversal)
+        ;
+
     class_<dht_pkt_alert, bases<alert>, noncopyable>(
         "dht_pkt_alert", no_init)
         .add_property("pkt_buf", &get_pkt_buf)

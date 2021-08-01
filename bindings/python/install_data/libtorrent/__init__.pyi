@@ -502,6 +502,15 @@ class dht_lookup:
     timeouts: int
     type: Optional[str]
 
+class dht_module_t:
+    names: Mapping[str, dht_module_t]
+    node: dht_module_t
+    routing_table: dht_module_t
+    rpc_manager: dht_module_t
+    tracker: dht_module_t
+    traversal: dht_module_t
+    values: Mapping[int, dht_module_t]
+
 class dht_mutable_item_alert(alert):
     authoritative: bool
     item: _Entry
