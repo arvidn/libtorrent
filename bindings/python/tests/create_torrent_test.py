@@ -81,29 +81,18 @@ class FileStorageTest(unittest.TestCase):
 
     def test_add_file_bytes(self) -> None:
         fs = lt.file_storage()
-        fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
+        with self.assertWarns(DeprecationWarning):
+            fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
         self.assertEqual(fs.file_path(0), os.path.join("path", "file.txt"))
 
         fs = lt.file_storage()
-        fs.add_file(  # type: ignore
-            os.path.join("path", "file.txt"),
-            1024,
-            linkpath=b"other.txt",
-        )
-        self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_add_file_bytes_deprecated(self) -> None:
-        fs = lt.file_storage()
-
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
         with self.assertWarns(DeprecationWarning):
             fs.add_file(  # type: ignore
                 os.path.join("path", "file.txt"),
                 1024,
-                linkpath=os.path.join(b"path", b"other.txt"),
+                linkpath=b"other.txt",
             )
+        self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
 
     def test_num_files(self) -> None:
         fs = lt.file_storage()
@@ -259,15 +248,9 @@ class FileStorageTest(unittest.TestCase):
         fs.set_name("other")
         self.assertEqual(fs.file_path(0), os.path.join("other", "test.txt"))
 
-        fs.set_name(b"bytes")  # type: ignore
-        self.assertEqual(fs.file_path(0), os.path.join("bytes", "test.txt"))
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_name_bytes_deprecated(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
         with self.assertWarns(DeprecationWarning):
             fs.set_name(b"bytes")  # type: ignore
+        self.assertEqual(fs.file_path(0), os.path.join("bytes", "test.txt"))
 
     def test_rename_file(self) -> None:
         fs = lt.file_storage()
@@ -275,15 +258,9 @@ class FileStorageTest(unittest.TestCase):
         fs.rename_file(0, os.path.join("path", "other.txt"))
         self.assertEqual(fs.file_path(0), os.path.join("path", "other.txt"))
 
-        fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))  # type: ignore
-        self.assertEqual(fs.file_path(0), os.path.join("path", "bytes.txt"))
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_rename_file_bytes_deprecated(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
         with self.assertWarns(DeprecationWarning):
             fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))  # type: ignore
+        self.assertEqual(fs.file_path(0), os.path.join("path", "bytes.txt"))
 
     def test_rename_file_invalid(self) -> None:
         fs = lt.file_storage()
