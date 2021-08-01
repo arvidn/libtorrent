@@ -1347,13 +1347,12 @@ class PortsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.session = lt.session(lib.get_isolated_settings())
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
-    def test_add_remove_port_mapping(self) -> None:
-        tag = self.session.add_port_mapping(lt.portmap_protocol.tcp, 65535, 65535)
-        self.session.delete_port_mapping(tag)
-
     def test_ports(self) -> None:
-        # tag = self.session.add_port_mapping(lt.portmap_protocol.tcp, 65535, 65535)
+        # NB: this typically is a no-op with our isolated settings, so we
+        # may not test the case where it actually works
+        tags = self.session.add_port_mapping(lt.portmap_protocol.tcp, 65535, 65535)
+        for tag in tags:
+            self.session.delete_port_mapping(tag)
         self.session.delete_port_mapping(12345)
         self.session.reopen_network_sockets(0)
         self.assertTrue(self.session.is_listening())
