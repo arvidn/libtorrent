@@ -137,10 +137,24 @@ namespace
         add_files(fs, file, [&](std::string const& i) { return cb(i); }, flags);
     }
 
-    void add_file(file_storage& fs, std::string const& file, std::int64_t size
+    void add_file0(file_storage& fs, string_view const file, std::int64_t size
+       , file_flags_t const flags, std::time_t md, string_view const link)
+    {
+       fs.add_file(std::string(file), size, flags, md, std::string(link));
+    }
+
+    void add_file1(file_storage& fs, bytes const& file, std::int64_t size
        , file_flags_t const flags, std::time_t md, std::string link)
     {
-       fs.add_file(file, size, flags, md, link);
+       python_deprecated("add_file with bytes is deprecated");
+       fs.add_file(file.arr, size, flags, md, link);
+    }
+
+    void add_file2(file_storage& fs, string_view const file, std::int64_t size
+       , file_flags_t const flags, std::time_t md, bytes link)
+    {
+       python_deprecated("add_file with bytes is deprecated");
+       fs.add_file(std::string(file), size, flags, md, link.arr);
     }
 
     void add_tracker(create_torrent& ct, std::string url, int tier)
@@ -187,10 +201,17 @@ namespace
         return fs.file_flags(index);
     }
 
-    void rename_file0(file_storage& fs, file_index_t index, std::string const& path)
+    void rename_file0(file_storage& fs, file_index_t index, string_view const path)
     {
         file_storage_check_index(fs, index);
-        fs.rename_file(index, path);
+        fs.rename_file(index, std::string(path));
+    }
+
+    void rename_file1(file_storage& fs, file_index_t index, bytes path)
+    {
+        python_deprecated("rename_file with bytes is deprecated");
+        file_storage_check_index(fs, index);
+        fs.rename_file(index, path.arr);
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -200,12 +221,21 @@ namespace
         return fs.at(index);
     }
 #endif
+
+    void set_name0(file_storage& fs, string_view const name)
+    {
+        fs.set_name(std::string(name));
+    }
+
+    void set_name1(file_storage& fs, bytes name)
+    {
+        python_deprecated("set_name with bytes is deprecated");
+        fs.set_name(name.arr);
+    }
 }
 
 void bind_create_torrent()
 {
-    void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
-
 #ifndef BOOST_NO_EXCEPTIONS
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
 #endif
@@ -219,7 +249,9 @@ void bind_create_torrent()
     {
     scope s = class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
-        .def("add_file", add_file, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file2, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
         .def("num_files", &file_storage::num_files)
 #if TORRENT_ABI_VERSION == 1
         .def("at", depr(file_storage_at))
@@ -244,8 +276,10 @@ void bind_create_torrent()
         .def("set_piece_length", &file_storage::set_piece_length)
         .def("piece_length", &file_storage::piece_length)
         .def("piece_size", &file_storage::piece_size)
-        .def("set_name", set_name0)
-        .def("rename_file", rename_file0)
+        .def("set_name", &set_name0)
+        .def("set_name", &set_name1)
+        .def("rename_file", &rename_file0)
+        .def("rename_file", &rename_file1)
         .def("name", &file_storage::name, return_value_policy<copy_const_reference>())
         ;
 
