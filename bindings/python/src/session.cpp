@@ -22,6 +22,7 @@
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/kademlia/announce_flags.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -825,6 +826,11 @@ namespace
         }
     };
 
+    void dht_announce(lt::session& ses, sha1_hash const& info_hash, int port, int flags)
+    {
+        ses.dht_announce(info_hash, port, lt::dht::announce_flags_t(flags));
+    }
+
 } // anonymous namespace
 
 struct dummy1 {};
@@ -1153,7 +1159,7 @@ void bind_session()
         .def("dht_put_immutable_item", allow_threads(dht_put_immutable_item))
         .def("dht_put_mutable_item", &dht_put_mutable_item)
         .def("dht_get_peers", allow_threads(&lt::session::dht_get_peers))
-        .def("dht_announce", allow_threads(&lt::session::dht_announce))
+        .def("dht_announce", &dht_announce, (arg("info_hash"), arg("port") = 0, arg("flags") = 0))
         .def("dht_live_nodes", allow_threads(&lt::session::dht_live_nodes))
         .def("dht_sample_infohashes", allow_threads(&lt::session::dht_sample_infohashes))
 #endif // TORRENT_DISABLE_DHT
@@ -1336,6 +1342,12 @@ void bind_session()
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";
     scope().attr("create_smart_ban_plugin") = "smart_ban";
+
+    enum_<dht::announce_flags_t>("announce_flags_t")
+        .value("seed", lt::dht::announce::seed)
+        .value("implied_port", lt::dht::announce::implied_port)
+        .value("ssl_torrent", lt::dht::announce::ssl_torrent)
+    ;
 }
 
 #ifdef _MSC_VER
