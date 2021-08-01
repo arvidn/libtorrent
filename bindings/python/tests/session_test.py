@@ -745,6 +745,11 @@ class EnumsTest(unittest.TestCase):
         self.assertIsInstance(lt.session.delete_files, int)
         self.assertIsInstance(lt.session.delete_partfile, int)
 
+    def test_announce_flags_t(self) -> None:
+        self.assertIsInstance(lt.announce_flags_t.seed, int)
+        self.assertIsInstance(lt.announce_flags_t.implied_port, int)
+        self.assertIsInstance(lt.announce_flags_t.ssl_torrent, int)
+
 
 class PeerClassTypeFilterTest(unittest.TestCase):
     def test_filter(self) -> None:
@@ -920,7 +925,9 @@ class DhtTest(unittest.TestCase):
         )
         self.session.dht_put_mutable_item(b"a" * 64, b"b" * 32, b"data", b"salt")
         self.session.dht_get_peers(sha1)
-        # self.session.dht_announce(sha1, 0, 0)
+        self.session.dht_announce(sha1)
+        self.session.dht_announce(sha1, 0, 0)
+        self.session.dht_announce(sha1, port=0, flags=lt.announce_flags_t.seed)
         self.session.dht_live_nodes(sha1)
         self.session.dht_sample_infohashes(endpoint, sha1)
 
@@ -938,14 +945,6 @@ class DhtTest(unittest.TestCase):
             self.session.dht_put_mutable_item(b"short", b"b" * 32, b"data", b"salt")
         with self.assertRaises(ValueError):
             self.session.dht_put_mutable_item(b"a" * 64, b"short", b"data", b"salt")
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5995")
-    def test_announce(self) -> None:
-        sha1 = lt.sha1_hash(b"a" * 20)
-
-        self.session.dht_announce(sha1)  # type: ignore
-        self.session.dht_announce(sha1, 0, 0)
-        # self.session.dht_announce(sha1, 0, lt.announce_flags.??)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_deprecated(self) -> None:
