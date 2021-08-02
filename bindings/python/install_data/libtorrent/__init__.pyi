@@ -1298,8 +1298,8 @@ class session:
     @overload
     def add_torrent(
         self,
-        _ti: torrent_info,
-        _save: _PathLike,
+        ti: torrent_info,
+        save: _PathLike,
         resume_data: Optional[_Entry] = ...,
         storage_mode: storage_mode_t = ...,
         paused: bool = ...,

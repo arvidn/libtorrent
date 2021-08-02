@@ -1176,6 +1176,8 @@ void bind_session()
         .def(
             "add_torrent", depr(&add_torrent_depr)
           , (
+                arg("ti"),
+                arg("save"),
                 arg("resume_data") = entry(),
                 arg("storage_mode") = storage_mode_sparse,
                 arg("paused") = false
