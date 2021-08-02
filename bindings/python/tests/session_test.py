@@ -54,7 +54,6 @@ class ReadWriteSessionParamsTest(unittest.TestCase):
         )
         self.assertEqual(set(bdecoded.keys()), {b"settings"})
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
     def test_write_empty(self) -> None:
         bdecoded = lt.write_session_params(lt.session_params(), flags=0)
         self.assertIsInstance(bdecoded, dict)
