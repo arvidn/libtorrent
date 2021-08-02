@@ -216,13 +216,9 @@ class DhtStateTest(unittest.TestCase):
 
 
 class SessionStatusTest(unittest.TestCase):
-    @unittest.skip("http://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.session_status()
-
     def test_fields(self) -> None:
-        stat = lt.session_status()
+        with self.assertWarns(DeprecationWarning):
+            stat = lt.session_status()
 
         self.assertIsInstance(stat.has_incoming_connections, bool)
 
@@ -271,7 +267,7 @@ class SessionStatusTest(unittest.TestCase):
         self.assertIsInstance(stat.dht_node_cache, int)
         self.assertIsInstance(stat.dht_torrents, int)
         self.assertIsInstance(stat.dht_global_nodes, int)
-        # self.assertEqual(stat.active_requests, [])
+        self.assertEqual(stat.active_requests, [])
         self.assertIsInstance(stat.dht_total_allocations, int)
 
         with self.assertWarns(DeprecationWarning):
@@ -281,10 +277,6 @@ class SessionStatusTest(unittest.TestCase):
         self.assertIsInstance(utp["num_connected"], int)
         self.assertIsInstance(utp["num_fin_sent"], int)
         self.assertIsInstance(utp["num_close_wait"], int)
-
-    def test_active_requests(self) -> None:
-        stat = lt.session_status()
-        self.assertEqual(stat.active_requests, [])
 
     def test_from_session(self) -> None:
         session = lt.session(lib.get_isolated_settings())

@@ -115,7 +115,8 @@ class FileStorageTest(unittest.TestCase):
         fs = lt.file_storage()
         # It's not clear this path has ever been useful, as the entry size can't
         # be modified
-        fe = lt.file_entry()
+        with self.assertWarns(DeprecationWarning):
+            fe = lt.file_entry()
         fe.path = "file.txt"
         with self.assertWarns(DeprecationWarning):
             fs.add_file(fe)
