@@ -203,7 +203,6 @@ namespace libtorrent { namespace dht {
 		s.dht_nodes = 0;
 		s.dht_node_cache = 0;
 		s.dht_global_nodes = 0;
-		s.dht_torrents = 0;
 		s.active_requests.clear();
 		s.dht_total_allocations = 0;
 
