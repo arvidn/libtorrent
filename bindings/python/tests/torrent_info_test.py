@@ -10,13 +10,9 @@ from . import tdummy
 
 
 class FileEntryTest(unittest.TestCase):
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.file_entry()
-
     def test_attributes(self) -> None:
-        fe = lt.file_entry()
+        with self.assertWarns(DeprecationWarning):
+            fe = lt.file_entry()
 
         fe.path = os.path.join("path", "file.txt")
         path = fe.path

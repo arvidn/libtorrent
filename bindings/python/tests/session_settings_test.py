@@ -116,7 +116,8 @@ class EnumTest(unittest.TestCase):
 
 class ProxySettingsTest(unittest.TestCase):
     def test_proxy_settings(self) -> None:
-        ps = lt.proxy_type_t.proxy_settings()
+        with self.assertWarns(DeprecationWarning):
+            ps = lt.proxy_type_t.proxy_settings()
 
         ps.hostname = "host"
         self.assertEqual(ps.hostname, "host")
@@ -141,15 +142,11 @@ class ProxySettingsTest(unittest.TestCase):
         ps.proxy_hostnames = False
         self.assertFalse(ps.proxy_hostnames)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.proxy_type_t.proxy_settings()
-
 
 class DhtSettingsTest(unittest.TestCase):
     def test_dht_settings(self) -> None:
-        ds = lt.dht_settings()
+        with self.assertWarns(DeprecationWarning):
+            ds = lt.dht_settings()
 
         ds.max_peers_reply = 123
         self.assertEqual(ds.max_peers_reply, 123)
@@ -210,15 +207,11 @@ class DhtSettingsTest(unittest.TestCase):
         ds.item_lifetime = 123
         self.assertEqual(ds.item_lifetime, 123)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.dht_settings()
-
 
 class PeSettingsTest(unittest.TestCase):
     def test_pe_settings(self) -> None:
-        pe = lt.pe_settings()
+        with self.assertWarns(DeprecationWarning):
+            pe = lt.pe_settings()
 
         pe.out_enc_policy = 123
         self.assertEqual(pe.out_enc_policy, 123)
@@ -232,8 +225,3 @@ class PeSettingsTest(unittest.TestCase):
         self.assertFalse(pe.prefer_rc4)
         pe.prefer_rc4 = True
         self.assertTrue(pe.prefer_rc4)
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            lt.pe_settings()

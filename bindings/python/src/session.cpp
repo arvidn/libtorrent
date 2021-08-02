@@ -836,6 +836,14 @@ namespace
         ses.dht_announce(info_hash, port, lt::dht::announce_flags_t(flags));
     }
 
+#if TORRENT_ABI_VERSION == 1
+    std::shared_ptr<session_status> session_status_constructor()
+    {
+        python_deprecated("session_status is deprecated");
+        return std::make_shared<session_status>();
+    }
+#endif
+
 } // anonymous namespace
 
 struct dummy1 {};
@@ -862,7 +870,8 @@ void bind_session()
     void (lt::session::*start_dht1)(entry const&) = &lt::session::start_dht;
 #endif
 
-    class_<session_status>("session_status")
+    class_<session_status>("session_status", no_init)
+        .def("__init__", make_constructor(&session_status_constructor))
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
 
         .def_readonly("upload_rate", &session_status::upload_rate)
