@@ -195,7 +195,7 @@ session_params read_session_params(span<char const> buf
 
 entry write_session_params(session_params const& sp, save_state_flags_t const flags)
 {
-	entry e;
+	entry e(entry::data_type::dictionary_t);
 
 #ifndef TORRENT_DISABLE_DHT
 #if TORRENT_ABI_VERSION <= 2
