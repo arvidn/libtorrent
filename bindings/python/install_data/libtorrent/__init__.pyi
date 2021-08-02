@@ -479,7 +479,7 @@ class dht_get_peers_reply_alert(alert):
     info_hash: sha1_hash
 
 class dht_immutable_item_alert(alert):
-    item: _Entry
+    item: Optional[_Entry]
     target: sha1_hash
 
 class _DhtNodeDict(TypedDict):
@@ -513,7 +513,7 @@ class dht_module_t:
 
 class dht_mutable_item_alert(alert):
     authoritative: bool
-    item: _Entry
+    item: Optional[_Entry]
     key: bytes
     salt: bytes
     seq: int
