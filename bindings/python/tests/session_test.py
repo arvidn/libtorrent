@@ -1107,7 +1107,6 @@ class AddTorrentTest(unittest.TestCase):
     def tearDown(self) -> None:
         lib.cleanup_with_windows_fix(self.dir, timeout=5)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5989")
     def test_old_style_with_wrong_args(self) -> None:
         with self.assertRaises(TypeError):
             self.session.add_torrent(  # type: ignore
