@@ -1005,7 +1005,6 @@ void bind_session()
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("dht_state", &session_params::dht_state)
 #endif
-        .add_property("ext_state", PROP(&session_params::ext_state))
         .def_readwrite("ip_filter", &session_params::ip_filter)
         ;
 

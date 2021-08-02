@@ -101,20 +101,6 @@ class SessionParamsTest(unittest.TestCase):
         params.settings["alert_mask"] = 123
         self.assertEqual(params.settings["alert_mask"], 123)
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
-    def test_ext_state(self) -> None:
-        params = lt.session_params()
-        self.assertEqual(params.ext_state, {})
-        params.ext_state = {"test_ext": b"data"}
-        self.assertEqual(params.ext_state, {"test_ext": b"data"})
-
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
-    def test_ext_state_reference(self) -> None:
-        params = lt.session_params()
-        self.assertEqual(params.ext_state, {})
-        params.ext_state["test_ext"] = b"data"
-        self.assertEqual(params.ext_state, {"test_ext": b"data"})
-
     def test_ip_filter(self) -> None:
         params = lt.session_params()
         self.assertEqual(

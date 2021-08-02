@@ -1404,7 +1404,6 @@ class session_params:
     @overload
     def __init__(self, _settings: Dict[str, Any]) -> None: ...
     dht_state: dht_state
-    ext_state: Dict[str, bytes]
     ip_filter: ip_filter
     settings: Dict[str, Any]
 
