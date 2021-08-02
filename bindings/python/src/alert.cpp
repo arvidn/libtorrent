@@ -91,26 +91,6 @@ list dht_stats_routing_table(dht_stats_alert const& a)
    return result;
 }
 
-dict dht_immutable_item(dht_immutable_item_alert const& alert)
-{
-    dict d;
-    d["key"] = alert.target;
-    d["value"] = bytes(alert.item.string());
-    return d;
-}
-
-dict dht_mutable_item(dht_mutable_item_alert const& alert)
-{
-    dict d;
-    d["key"] = bytes(alert.key.data(), alert.key.size());
-    d["value"] = bytes(alert.item.string());
-    d["signature"] = bytes(alert.signature.data(), alert.signature.size());
-    d["seq"] = alert.seq;
-    d["salt"] = bytes(alert.salt);
-    d["authoritative"] = alert.authoritative;
-    return d;
-}
-
 bytes dht_mutable_item_salt(dht_mutable_item_alert const& alert)
 {
     return bytes(alert.salt);
@@ -119,20 +99,6 @@ bytes dht_mutable_item_salt(dht_mutable_item_alert const& alert)
 bytes dht_put_alert_salt(dht_put_alert const& alert)
 {
     return bytes(alert.salt);
-}
-
-dict dht_put_item(dht_put_alert const& alert)
-{
-    dict d;
-    if (alert.target.is_all_zeros()) {
-        d["public_key"] = bytes(alert.public_key.data(), alert.public_key.size());
-        d["signature"] = bytes(alert.signature.data(), alert.signature.size());
-        d["seq"] = alert.seq;
-        d["salt"] = bytes(alert.salt);
-    } else {
-        d["target"] = alert.target;
-    }
-    return d;
 }
 
 dict session_stats_values(session_stats_alert const& alert)
@@ -1063,7 +1029,7 @@ void bind_alert()
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
         .add_property("target", make_getter(&dht_immutable_item_alert::target, by_value()))
-        .add_property("item", &dht_immutable_item)
+        .add_property("item", make_getter(&dht_immutable_item_alert::item, by_value()))
         ;
 
     class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
@@ -1072,7 +1038,7 @@ void bind_alert()
         .add_property("signature", make_getter(&dht_mutable_item_alert::signature, by_value()))
         .def_readonly("seq", &dht_mutable_item_alert::seq)
         .add_property("salt", &dht_mutable_item_salt)
-        .add_property("item", &dht_mutable_item)
+        .add_property("item", make_getter(&dht_mutable_item_alert::item, by_value()))
         .def_readonly("authoritative", &dht_mutable_item_alert::authoritative)
         ;
 
