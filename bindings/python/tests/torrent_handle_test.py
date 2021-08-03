@@ -735,16 +735,6 @@ class CertificateTest(TorrentHandleTest):
             cert_path, privkey_path, dhparam_path, passphrase="passphrase"
         )
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
-    def test_passphrase_str_deprecated(self) -> None:
-        cert_path = os.path.join(self.dir.name, "cert")
-        privkey_path = os.path.join(self.dir.name, "privkey")
-        dhparam_path = os.path.join(self.dir.name, "dhparam")
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_ssl_certificate(
-                cert_path, privkey_path, dhparam_path, passphrase="passphrase"
-            )
-
 
 class FlagsTest(TorrentHandleTest):
     def test_flags(self) -> None:
