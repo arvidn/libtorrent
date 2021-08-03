@@ -1212,11 +1212,9 @@ class AddTorrentTest(unittest.TestCase):
         self.assertEqual(torrent_file.files().file_path(0), "renamed.txt")
         self.assertEqual(handle.get_file_priorities(), [2])
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6145")
     def test_dict_no_torrent_info_old(self) -> None:
         self.do_test_dict({"info_hash": b"a" * 20, "save_path": self.dir.name})
 
-    @unittest.skip("https://github.com/arvidn/libtorrent/issues/6145")
     def test_no_torrent_info_old(self) -> None:
         atp = lt.add_torrent_params()
         atp.info_hash = lt.sha1_hash(b"a" * 20)
