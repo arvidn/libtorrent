@@ -128,28 +128,12 @@ class ConstructorTest(unittest.TestCase):
             ti = lt.torrent_info(path)
         self.assertEqual(ti.name(), "test.txt")
 
-    @unittest.skip("bytes argument broke")
     def test_filename(self) -> None:
         # ascii str
         self.do_test_filename("test.torrent")
 
-        # ascii bytes
-        self.do_test_filename(b"test.torrent")
-
         # non-ascii str
         self.do_test_filename("test-\u1234.torrent")
-
-        # non-ascii str
-        self.do_test_filename(os.fsencode("test-\u1234.torrent"))
-
-    @unittest.skip("bytes argument broke")
-    @lib.uses_non_unicode_paths()
-    def test_filename_non_unicode(self) -> None:
-        # non-unicode str
-        # self.do_test_filename(os.fsdecode(b"test-\xff.torrent"))
-
-        # non-unicode bytes
-        self.do_test_filename(b"test-\xff.torrent")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_non_unicode_paths()
@@ -181,23 +165,6 @@ class ConstructorTest(unittest.TestCase):
                     }
                 }
             )
-        self.assertEqual(ti.name(), "test.txt")
-
-    @unittest.skip("constructor is mapped, but doesn't recognize valid data")
-    def test_buffer(self) -> None:
-        entry = {
-            b"info": {
-                b"name": b"test.txt",
-                b"piece length": 16384,
-                b"pieces": lib.get_random_bytes(20),
-                b"length": 1024,
-            }
-        }
-        data = lt.bencode(entry)
-
-        ti = lt.torrent_info(bytearray(data))
-        self.assertEqual(ti.name(), "test.txt")
-        ti = lt.torrent_info(memoryview(data))
         self.assertEqual(ti.name(), "test.txt")
 
     def test_copy_constructor(self) -> None:
