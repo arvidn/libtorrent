@@ -1189,6 +1189,7 @@ void bind_session()
 #if TORRENT_ABI_VERSION == 1
         .def("status", depr(&lt::session::status))
 #endif
+        .def("session_state", &lt::session::session_state, (arg("flags") = 0xffffffff))
         .def("get_settings", &session_get_settings)
         .def("apply_settings", &session_apply_settings)
 #if TORRENT_ABI_VERSION == 1
@@ -1299,6 +1300,7 @@ void bind_session()
 
     {
         scope s = class_<dummy9>("save_state_flags_t");
+        s.attr("all") = save_state_flags_t::all();
         s.attr("save_settings") = lt::session::save_settings;
 #if TORRENT_ABI_VERSION <= 2
         s.attr("save_dht_settings") = lt::session::save_dht_settings;

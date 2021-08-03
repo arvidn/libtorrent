@@ -662,6 +662,7 @@ class EnumsTest(unittest.TestCase):
         self.assertIsInstance(lt.protocol_type.tcp, int)
 
     def test_save_state_flags_t(self) -> None:
+        self.assertIsInstance(lt.save_state_flags_t.all, int)
         self.assertIsInstance(lt.save_state_flags_t.save_settings, int)
         self.assertIsInstance(lt.save_state_flags_t.save_dht_state, int)
         self.assertIsInstance(lt.save_state_flags_t.save_dht_settings, int)
@@ -1646,3 +1647,18 @@ class SessionStatsMetricsTest(unittest.TestCase):
         self.assertEqual(lt.find_metric_idx(metric.name), 0)
 
         self.assertLess(lt.find_metric_idx("does-not-exist"), 0)
+
+
+class SessionStateTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.settings = lib.get_isolated_settings()
+        self.session = lt.session(self.settings)
+
+    def test_session_state(self) -> None:
+        # By default, everything should be included
+        params = self.session.session_state()
+        self.assertLessEqual(set(self.settings.items()), set(params.settings.items()))
+
+        # With flags=0, nothing should be included
+        params = self.session.session_state(flags=0)
+        self.assertEqual(params.settings, lt.session_params().settings)
