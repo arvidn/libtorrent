@@ -10,6 +10,7 @@ import threading
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
@@ -344,12 +345,21 @@ class EnumTest(unittest.TestCase):
 _A = TypeVar("_A", bound=lt.alert)
 
 
-def wait_for(session: lt.session, alert_type: Type[_A], *, timeout: float) -> _A:
+def wait_for(
+    session: lt.session, alert_type: Type[_A], *, timeout: float, prefix: str = None
+) -> _A:
+    # Return the first alert of type _A, but log all alerts.
+    result: Optional[_A] = None
     for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
         for alert in session.pop_alerts():
-            logging.debug("%s: %s", alert.what(), alert.message())
-            if isinstance(alert, alert_type):
-                return alert
+            if prefix:
+                logging.debug("%s: %s: %s", prefix, alert.what(), alert.message())
+            else:
+                logging.debug("%s: %s", alert.what(), alert.message())
+            if result is None and isinstance(alert, alert_type):
+                result = alert
+        if result is not None:
+            return result
     raise AssertionError("unreachable")
 
 
@@ -1513,8 +1523,27 @@ class I2pAlertTest(AlertTest):
 class DhtAlertTest(PeerAlertTest):
     def setUp(self) -> None:
         super().setUp()
-        self.peer.apply_settings({"enable_dht": True})
-        self.session.apply_settings({"enable_dht": True})
+        # Configure the peer to start dht, but with no routers. Add the dht
+        # category to their alert mask, so we can wait for them to be done
+        # bootstrapping
+        peer_alert_mask = self.peer.get_settings()["alert_mask"]
+        self.peer.apply_settings(
+            {"enable_dht": True, "alert_mask": peer_alert_mask | lt.alert_category.dht}
+        )
+        # We will ping our routers during bootstrap, so make sure we wait for
+        # the peer to be done bootstrapping before we bootstrap ourselves
+        wait_for(self.peer, lt.dht_bootstrap_alert, timeout=5, prefix="peer")
+
+        alert_mask = self.session.get_settings()["alert_mask"]
+        self.session.apply_settings(
+            {
+                "enable_dht": True,
+                "dht_bootstrap_nodes": self.peer_endpoint_str,
+                "alert_mask": alert_mask | lt.alert_category.dht,
+            }
+        )
+        # DHT functions won't work until our bootstrap is done
+        self.bootstrap_alert = wait_for(self.session, lt.dht_bootstrap_alert, timeout=5)
 
 
 class DhtReplyAlertTest(DhtAlertTest):
@@ -1524,7 +1553,6 @@ class DhtReplyAlertTest(DhtAlertTest):
     def test_dht_reply_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
         handle.force_dht_announce()
 
         alert = wait_for(self.session, lt.dht_reply_alert, timeout=5)
@@ -1538,15 +1566,14 @@ class DhtAnnounceAlertTest(DhtAlertTest):
 
     def test_dht_announce_alert(self) -> None:
         self.session.add_torrent(self.atp)
-        peer_handle = self.peer.add_torrent(self.peer_atp)
-        self.peer.apply_settings({"dht_bootstrap_nodes": self.endpoint_str})
-        peer_handle.force_dht_announce()
+        self.peer.add_torrent(self.peer_atp)
 
         alert = wait_for(self.session, lt.dht_announce_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_announce")
-        self.assertEqual(alert.ip, self.peer_endpoint[0])
-        self.assertEqual(alert.port, self.peer_endpoint[1])
+        # The peer returns us as a peer, so we may get announces from ourselves
+        self.assertIn(alert.ip, (self.peer_endpoint[0], self.endpoint[0]))
+        self.assertIn(alert.port, (self.peer_endpoint[1], self.endpoint[1]))
         self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
 
 
@@ -1555,9 +1582,7 @@ class DhtGetPeersAlertTest(DhtAlertTest):
 
     def test_dht_get_peers_alert(self) -> None:
         self.session.add_torrent(self.atp)
-        peer_handle = self.peer.add_torrent(self.peer_atp)
-        self.peer.apply_settings({"dht_bootstrap_nodes": self.endpoint_str})
-        peer_handle.force_dht_announce()
+        self.peer.add_torrent(self.peer_atp)
 
         alert = wait_for(self.session, lt.dht_get_peers_alert, timeout=5)
 
@@ -1861,11 +1886,9 @@ class AddTorrentAlertTest(TorrentAlertTest):
 class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht
 
-    @unittest.skip("TODO: why is this flaky?")
     def test_outgoing_get_peers_alert(self) -> None:
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
 
         alert = wait_for(self.session, lt.dht_outgoing_get_peers_alert, timeout=10)
 
@@ -1874,20 +1897,20 @@ class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
         self.assertFalse(alert.info_hash.is_all_zeros())
         self.assertIsInstance(alert.obfuscated_info_hash, lt.sha1_hash)
         self.assertFalse(alert.obfuscated_info_hash.is_all_zeros())
-        self.assertEqual(alert.ip, self.peer_endpoint)
-        self.assertEqual(alert.endpoint, self.peer_endpoint)
+        # Our peer may return us as a peer, so we may get alerts for querying
+        # ourselves
+        self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
+        self.assertIn(alert.endpoint, (self.peer_endpoint, self.endpoint))
 
-    @unittest.skip("TODO: why is this flaky?")
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
 
         alert = wait_for(self.session, lt.dht_outgoing_get_peers_alert, timeout=10)
 
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.ip, self.peer_endpoint)
+            self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
 
 
 class LogAlertTest(AlertTest):
@@ -1980,6 +2003,9 @@ class DhtLogAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht_log
 
     def test_dht_alert_log_alert(self) -> None:
+        # Generate some logs
+        self.session.dht_announce(lt.sha1_hash(b"a" * 20))
+
         alert = wait_for(self.session, lt.dht_log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht_log, "dht_log")
@@ -1992,7 +2018,8 @@ class DhtPktAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht_log
 
     def test_dht_pkt_alert(self) -> None:
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
+        # Generate some packets
+        self.session.dht_announce(lt.sha1_hash(b"a" * 20))
 
         alert = wait_for(self.session, lt.dht_pkt_alert, timeout=5)
 
@@ -2008,27 +2035,24 @@ class DhtImmutableItemAlertTest(DhtAlertTest):
 
     def test_dht_immutable_item_alert(self) -> None:
         item = {b"test": b"test"}
-        sha1 = self.peer.dht_put_immutable_item(item)
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
+        sha1 = self.session.dht_put_immutable_item(item)
+        # Wait for the put to complete, or the get will short-circuit
+        wait_for(self.session, lt.dht_put_alert, timeout=5)
         self.session.dht_get_immutable_item(sha1)
 
         alert = wait_for(self.session, lt.dht_immutable_item_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_immutable_item")
         self.assertEqual(alert.target, sha1)
-        # TODO: rewrite this test so we get real data
-        self.assertIsNone(alert.item, None)
+        self.assertEqual(alert.item, item)
 
 
 class DhtMutableItemAlertTest(DhtAlertTest):
+    ALERT_MASK = lt.alert_category.dht
+
     def test_dht_mutable_item_alert(self) -> None:
         private, public = ed25519.create_keypair()
-        data = b"test"
         salt = b"salt"
-        self.peer.dht_put_mutable_item(
-            private.to_bytes(), public.to_bytes(), data, salt
-        )
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
         self.session.dht_get_mutable_item(public.to_bytes(), salt)
 
         alert = wait_for(self.session, lt.dht_mutable_item_alert, timeout=5)
@@ -2048,24 +2072,26 @@ class DhtPutAlertTest(DhtAlertTest):
 
     def test_dht_put_alert_with_immutable(self) -> None:
         item = {b"test": b"test"}
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
         sha1 = self.session.dht_put_immutable_item(item)
 
-        alert = wait_for(self.session, lt.dht_put_alert, timeout=60)
+        alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_put")
         self.assertEqual(alert.target, sha1)
         self.assertEqual(alert.public_key, b"\0" * 32)
         self.assertEqual(alert.signature, b"\0" * 64)
         self.assertEqual(alert.salt, b"")
-        self.assertIsInstance(alert.seq, int)
-        self.assertIsInstance(alert.num_success, int)
+        self.assertEqual(alert.seq, 0)
+        # In our current setup, our peer returns us as a neighbor of itself,
+        # so we end up forwarding the put request to ourselves, so
+        # num_success is actually 2. This may change in the future, but it
+        # should at least be 1.
+        self.assertGreater(alert.num_success, 0)
 
     def test_dht_put_alert_with_mutable(self) -> None:
         private, public = ed25519.create_keypair()
         data = b"test"
         salt = b"salt"
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
         self.session.dht_put_mutable_item(
             private.to_bytes(), public.to_bytes(), data, salt
         )
@@ -2108,19 +2134,20 @@ class SessionStatsHeaderAlertTest(AlertTest):
 
 
 class DhtGetPeersReplyAlertTest(DhtAlertTest):
-    ALERT_MASK = lt.alert_category.dht
+    ALERT_MASK = lt.alert_category.dht_operation
 
-    @unittest.skip("TODO: why is this flaky?")
     def test_get_peers_dht_reply_alert(self) -> None:
         self.session.add_torrent(self.atp)
-        self.peer.add_torrent(self.peer_atp)
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
+        # Wait for the peer to reflect the announce back to us
+        wait_for(self.session, lt.dht_announce_alert, timeout=5)
         self.session.dht_get_peers(self.torrent.sha1_hash)
 
         alert = wait_for(self.session, lt.dht_get_peers_reply_alert, timeout=5)
 
-        self.assert_alert(alert, lt.alert_category.dht, "dht_get_peers_reply")
+        self.assert_alert(alert, lt.alert_category.dht_operation, "dht_get_peers_reply")
         self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        self.assertEqual(alert.num_peers(), 1)
+        self.assertEqual(alert.peers(), [self.endpoint])
 
 
 class BlockUploadedAlertTest(PeerAlertTest):
@@ -2198,7 +2225,6 @@ class FilePrioAlertTest(TorrentAlertTest):
 
 class DhtLiveNodesAlertTest(DhtAlertTest):
     def test_dht_live_nodes_alert(self) -> None:
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
         self.session.dht_live_nodes(self.torrent.sha1_hash)
 
         alert = wait_for(self.session, lt.dht_live_nodes_alert, timeout=5)
@@ -2210,10 +2236,12 @@ class DhtLiveNodesAlertTest(DhtAlertTest):
 
 
 class DhtSampleInfohashesAlertTest(DhtAlertTest):
-    @unittest.skip("TODO: why is this flaky?")
+    ALERT_MASK = lt.alert_category.dht_operation
+
     def test_dht_sample_infohashes_alert(self) -> None:
-        self.peer.add_torrent(self.peer_atp)
-        self.peer.apply_settings({"dht_bootstrap_nodes": self.endpoint_str})
+        self.session.add_torrent(self.peer_atp)
+        # Wait for the peer to reflect the announce back to us
+        wait_for(self.session, lt.dht_announce_alert, timeout=5)
         self.session.dht_sample_infohashes(self.peer_endpoint, lt.sha1_hash())
 
         alert = wait_for(self.session, lt.dht_sample_infohashes_alert, timeout=5)
@@ -2228,19 +2256,19 @@ class DhtSampleInfohashesAlertTest(DhtAlertTest):
                 seconds=self.session.get_settings()["dht_sample_infohashes_interval"]
             ),
         )
-        self.assertEqual(alert.num_infohashes, 0)
-        self.assertEqual(alert.num_samples, 0)
-        self.assertEqual(alert.samples, [])
-        self.assertEqual(alert.num_nodes, 0)
-        self.assertEqual(alert.nodes, [])
+        self.assertEqual(alert.num_infohashes, 1)
+        self.assertEqual(alert.num_samples, 1)
+        self.assertEqual(alert.samples, [self.torrent.sha1_hash])
+        self.assertEqual(alert.num_nodes, 1)
+        # TODO: how do we get our node id, to make this simpler?
+        self.assertEqual(len(alert.nodes), 1)
+        self.assertEqual(alert.nodes[0]["endpoint"], self.endpoint)
+        self.assertIsInstance(alert.nodes[0]["nid"], lt.sha1_hash)
+        self.assertFalse(alert.nodes[0]["nid"].is_all_zeros())
 
 
 class DhtBootstrapAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht
 
     def test_dht_bootstrap_alert(self) -> None:
-        self.session.apply_settings({"dht_bootstrap_nodes": self.peer_endpoint_str})
-
-        alert = wait_for(self.session, lt.dht_bootstrap_alert, timeout=5)
-
-        self.assert_alert(alert, lt.alert_category.dht, "dht_bootstrap")
+        self.assert_alert(self.bootstrap_alert, lt.alert_category.dht, "dht_bootstrap")
