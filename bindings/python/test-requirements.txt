@@ -1,3 +1,2 @@
-ed25519
 importlib-resources
 typing-extensions

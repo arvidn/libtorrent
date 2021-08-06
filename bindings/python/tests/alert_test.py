@@ -16,8 +16,6 @@ from typing import Type
 from typing import TypeVar
 import unittest
 
-import ed25519
-
 import libtorrent as lt
 
 from . import lib
@@ -2056,20 +2054,37 @@ class DhtMutableItemAlertTest(DhtAlertTest):
     ALERT_MASK = lt.alert_category.dht
 
     def test_dht_mutable_item_alert(self) -> None:
-        private, public = ed25519.create_keypair()
+        # NB: libtorrent uses private keys in hased-and-exponentiated form, not
+        # concatenated <seed><pubkey> form used by some implementations
+        pk = bytes.fromhex(
+            "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548"
+        )
+        sk = bytes.fromhex(
+            "e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
+            "b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d"
+        )
+        data = b"test"
         salt = b"salt"
-        self.session.dht_get_mutable_item(public.to_bytes(), salt)
+        # Put the item, and wait for success
+        self.session.dht_put_mutable_item(sk, pk, data, salt)
+        wait_for(self.session, lt.dht_put_alert, timeout=5)
+        self.session.dht_get_mutable_item(pk, salt)
 
         alert = wait_for(self.session, lt.dht_mutable_item_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_mutable_item")
-        self.assertEqual(alert.key, public.to_bytes())
-        # TODO: rewrite this test so we get real data
-        self.assertIsNone(alert.item, None)
-        self.assertIsInstance(alert.signature, bytes)
+        self.assertEqual(alert.key, pk)
+        self.assertEqual(alert.item, data)
+        self.assertEqual(
+            alert.signature,
+            bytes.fromhex(
+                "aeaa269b37bab7f87126c8d0cc31fb9c88ea81f0d0d5338166d103be8ea16f16"
+                "2d017ce812926a24dc697beb6915bec986e9eb0a37f262150cd90f2add54f805"
+            ),
+        )
         self.assertEqual(alert.salt, salt)
-        self.assertIsInstance(alert.seq, int)
-        self.assertTrue(alert.authoritative)
+        self.assertEqual(alert.seq, 1)
+        self.assertFalse(alert.authoritative)
 
 
 class DhtPutAlertTest(DhtAlertTest):
@@ -2094,22 +2109,38 @@ class DhtPutAlertTest(DhtAlertTest):
         self.assertGreater(alert.num_success, 0)
 
     def test_dht_put_alert_with_mutable(self) -> None:
-        private, public = ed25519.create_keypair()
+        # NB: libtorrent uses private keys in hased-and-exponentiated form, not
+        # concatenated <seed><pubkey> form used by some implementations
+        pk = bytes.fromhex(
+            "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548"
+        )
+        sk = bytes.fromhex(
+            "e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
+            "b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d"
+        )
         data = b"test"
         salt = b"salt"
-        self.session.dht_put_mutable_item(
-            private.to_bytes(), public.to_bytes(), data, salt
-        )
+        self.session.dht_put_mutable_item(sk, pk, data, salt)
 
         alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_put")
         self.assertEqual(alert.target, lt.sha1_hash())
-        self.assertEqual(alert.public_key, public.to_bytes())
-        self.assertIsInstance(alert.signature, bytes)
+        self.assertEqual(alert.public_key, pk)
+        self.assertEqual(
+            alert.signature,
+            bytes.fromhex(
+                "aeaa269b37bab7f87126c8d0cc31fb9c88ea81f0d0d5338166d103be8ea16f16"
+                "2d017ce812926a24dc697beb6915bec986e9eb0a37f262150cd90f2add54f805"
+            ),
+        )
         self.assertEqual(alert.salt, salt)
-        self.assertIsInstance(alert.seq, int)
-        self.assertIsInstance(alert.num_success, int)
+        self.assertEqual(alert.seq, 1)
+        # In our current setup, our peer returns us as a neighbor of itself,
+        # so we end up forwarding the put request to ourselves, so
+        # num_success is actually 2. This may change in the future, but it
+        # should at least be 1.
+        self.assertGreater(alert.num_success, 0)
 
 
 class SessionStatsAlertTest(AlertTest):
