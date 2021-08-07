@@ -52,17 +52,15 @@ namespace libtorrent {
 
 		if (handle.info_hashes().has_v1())
 		{
-			sha1_hash const& ih = handle.info_hashes().v1;
 			ret += "xt=urn:btih:";
-			ret += aux::to_hex(ih);
+			ret += aux::to_hex(handle.info_hashes().v1);
 		}
 
 		if (handle.info_hashes().has_v2())
 		{
 			if (handle.info_hashes().has_v1()) ret += '&';
-			sha256_hash const& ih = handle.info_hashes().v2;
 			ret += "xt=urn:btmh:1220";
-			ret += aux::to_hex(ih);
+			ret += aux::to_hex(handle.info_hashes().v2);
 		}
 
 		torrent_status st = handle.status(torrent_handle::query_name);
@@ -93,17 +91,15 @@ namespace libtorrent {
 
 		if (info.info_hashes().has_v1())
 		{
-			sha1_hash const& ih = info.info_hashes().v1;
 			ret += "xt=urn:btih:";
-			ret += aux::to_hex(ih);
+			ret += aux::to_hex(info.info_hashes().v1);
 		}
 
 		if (info.info_hashes().has_v2())
 		{
 			if (info.info_hashes().has_v1()) ret += '&';
-			sha256_hash const& ih = info.info_hashes().v2;
 			ret += "xt=urn:btmh:1220";
-			ret += aux::to_hex(ih);
+			ret += aux::to_hex(info.info_hashes().v2);
 		}
 
 		std::string const& name = info.name();
