@@ -1,3 +1,4 @@
+	* fix use-after-free bug in make_magnet_uri
 	* add write_torrent_file() to produce a .torrent file from add_torrent_params
 	* allow loading v2 .torrent files without piece layer
 	* fix issue with adding v2 torrents with invalid file root hash
