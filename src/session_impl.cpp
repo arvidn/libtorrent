@@ -320,12 +320,16 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 
 				// we assume this listen_socket_t is local-network under some
 				// conditions, meaning we won't announce it to internet trackers
+				// if "routes" does not contain a single route to the internet,
+				// we don't use the last case. On MacOS, we can be notified of
+				// network changes *before* the routing table is updated
 				bool const local
 					= ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address)
 					|| (ipface.flags & if_flags::loopback)
 					|| (!is_global(ipface.interface_address)
 						&& !(ipface.flags & if_flags::pointopoint)
+						&& has_any_internet_route(routes)
 						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device

@@ -432,7 +432,9 @@ void test_expand_unspecified_if_flags(interface_flags const flags
 {
 	// even though this route isn't a default route, it's a route for a global
 	// internet address
-	std::vector<ip_route> const routes;
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth99", "0.0.0.0"),
+	};
 
 	std::vector<ip_interface> const ifs = { ifc("192.168.1.2", "eth0", flags) };
 	eps_t eps = { ep("0.0.0.0", 6881) };

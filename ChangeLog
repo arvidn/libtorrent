@@ -76,6 +76,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix issue on MacOS where the DHT was not restarted on a network-up notification
+	* make remove_torrent flags be treated as flags (instead of an enum)
+
 1.2.14 released
 
 	* improve handling of seed flag in PEX messages
