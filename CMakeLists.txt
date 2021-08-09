@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+cmake_minimum_required(VERSION 3.22.0 FATAL_ERROR) # Configurable policies: <= CMP00126
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
@@ -724,6 +724,7 @@ if(NOT gnutls)
 				TORRENT_USE_LIBCRYPTO
 				TORRENT_SSL_PEERS
 				OPENSSL_NO_SSL2)
+		set_target_properties(OpenSSL::SSL PROPERTIES PKG_CONFIG_NAME libssl)
 	endif()
 endif()
 
@@ -738,6 +739,7 @@ if(gnutls OR NOT TARGET OpenSSL::SSL)
 	)
 	if(GNUTLS_FOUND)
 		target_link_libraries(torrent-rasterbar PUBLIC GnuTLS::GnuTLS)
+		set_target_properties(GnuTLS::GnuTLS PROPERTIES PKG_CONFIG_NAME gnutls)
 		target_compile_definitions(torrent-rasterbar
 			PUBLIC
 				TORRENT_USE_GNUTLS
@@ -753,6 +755,7 @@ endif()
 
 if (NOT GNUTLS_FOUND AND NOT TARGET OpenSSL::SSL)
 	if(TARGET OpenSSL::Crypto)
+		set_target_properties(OpenSSL::Crypto PROPERTIES PKG_CONFIG_NAME libcrypto)
 		target_link_libraries(torrent-rasterbar PUBLIC OpenSSL::Crypto)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCRYPTO)
 	else()
@@ -880,12 +883,6 @@ if ("${CMAKE_CXX_STANDARD}" STREQUAL "11")
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_CXX11_ABI)
 endif()
 
-# There is little to none support for using pkg-config with MSVC and most users won't bother with it.
-# However, msys is a linux-like platform on Windows that do support/prefer using pkg-config.
-if (NOT MSVC)
-	generate_and_install_pkg_config_file(torrent-rasterbar libtorrent-rasterbar)
-endif()
-
 include(CheckCXXCompilerFlag)
 
 add_subdirectory(bindings)
@@ -940,11 +937,17 @@ configure_package_config_file(LibtorrentRasterbarConfig.cmake.in
 )
 
 install(EXPORT LibtorrentRasterbarTargets
-	NAMESPACE
-		LibtorrentRasterbar::
-	DESTINATION
-		${ConfigPackageLocation}
+	CMAKE_CONFIG NAMESPACE LibtorrentRasterbar:: DESTINATION ${ConfigPackageLocation}
 )
+
+# There is little to none support for using pkg-config with MSVC and most users won't bother with it.
+# However, msys is a linux-like platform on Windows that do support/prefer using pkg-config.
+if (NOT MSVC)
+	install(EXPORT LibtorrentRasterbarTargets
+		PKG_CONFIG NAMESPACE LibtorrentRasterbar- DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+	)
+endif()
+
 install(
 	FILES
 		"${CMAKE_CURRENT_BINARY_DIR}/LibtorrentRasterbar/LibtorrentRasterbarConfig.cmake"
