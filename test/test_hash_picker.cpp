@@ -376,13 +376,7 @@ TORRENT_TEST(bad_block_hash)
 	add_hashes_result result = picker.add_hashes(hash_request(0_file, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
-	TEST_CHECK(result.hash_failed.count(1_piece) == 1);
-	if (result.hash_failed.count(1_piece) == 1)
-	{
-		TEST_CHECK(result.hash_failed[1_piece].size() == 1);
-		if (result.hash_failed[1_piece].size() == 1)
-			TEST_CHECK(result.hash_failed[1_piece][0] == 0);
-	}
+	TEST_CHECK((result.hash_failed == std::vector<std::pair<piece_index_t, std::vector<int>>>{{1_piece, {0}}}));
 }
 
 TORRENT_TEST(set_block_hash)
@@ -395,7 +389,7 @@ TORRENT_TEST(set_block_hash)
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
 	trees.emplace_back(4 * 512, 4, full_tree[0].data());
-	trees.front().load_tree(full_tree);
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
 
 	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
 
@@ -434,7 +428,7 @@ TORRENT_TEST(set_block_hash_fail)
 	auto const orig_hash = full_tree[first_leaf + 13];
 	full_tree[first_leaf + 13].clear();
 
-	trees.front().load_tree(full_tree);
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
 
 	hash_picker picker(fs, trees);
 

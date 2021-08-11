@@ -50,6 +50,8 @@ int const num_leafs = merkle_num_leafs(num_blocks);
 int const num_nodes = merkle_num_nodes(num_leafs);
 int const num_pad_leafs = num_leafs - num_blocks;
 
+using verified_t = std::vector<bool>;
+verified_t const empty_verified(std::size_t(num_leafs), false);
 }
 
 TORRENT_TEST(load_tree)
@@ -57,7 +59,7 @@ TORRENT_TEST(load_tree)
 	// test with full tree and valid root
 	{
 		aux::merkle_tree t(260, 1, f[0].data());
-		t.load_tree(f);
+		t.load_tree(f, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
 			TEST_CHECK(t.has_node(i));
@@ -74,7 +76,7 @@ TORRENT_TEST(load_tree)
 	{
 		sha256_hash const bad_root("01234567890123456789012345678901");
 		aux::merkle_tree t(260, 1, bad_root.data());
-		t.load_tree(f);
+		t.load_tree(f, empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
 			TEST_CHECK(!t.has_node(i));
@@ -83,7 +85,7 @@ TORRENT_TEST(load_tree)
 	// mismatching size
 	{
 		aux::merkle_tree t(260, 1, f[0].data());
-		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1));
+		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1), empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
 			TEST_CHECK(!t.has_node(i));
@@ -96,7 +98,7 @@ TORRENT_TEST(load_sparse_tree)
 	{
 		std::vector<bool> mask(f.size(), true);
 		aux::merkle_tree t(num_blocks, 1, f[0].data());
-		t.load_sparse_tree(f, mask);
+		t.load_sparse_tree(f, mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
 			TEST_CHECK(t.has_node(i));
@@ -116,7 +118,7 @@ TORRENT_TEST(load_sparse_tree)
 		std::vector<bool> mask(f.size(), false);
 		mask[1] = true;
 		mask[2] = true;
-		t.load_sparse_tree(span<sha256_hash const>(f).subspan(1, 2), mask);
+		t.load_sparse_tree(span<sha256_hash const>(f).subspan(1, 2), mask, empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
 			TEST_CHECK(!t.has_node(i));
@@ -130,7 +132,7 @@ TORRENT_TEST(load_sparse_tree)
 		std::vector<bool> mask(f.size(), false);
 		for (int i = first_block; i < end_block; ++i)
 			mask[std::size_t(i)] = true;
-		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_block, num_blocks), mask);
+		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_block, num_blocks), mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
 			TEST_CHECK(t.has_node(i));
@@ -151,7 +153,7 @@ TORRENT_TEST(load_sparse_tree)
 		std::vector<bool> mask(f.size(), false);
 		for (int i = first_piece, end = i + num_pieces; i < end; ++i)
 			mask[std::size_t(i)] = true;
-		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_piece, num_pieces), mask);
+		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_piece, num_pieces), mask, empty_verified);
 		int const end_piece_layer = first_piece + merkle_num_leafs(num_pieces);
 		for (int i = 0; i < end_piece_layer; ++i)
 		{
@@ -176,7 +178,7 @@ void test_roundtrip(aux::merkle_tree const& t
 	std::tie(tree, mask) = t.build_sparse_vector();
 
 	aux::merkle_tree t2(block_count, blocks_per_piece, f[0].data());
-	t2.load_sparse_tree(tree, mask);
+	t2.load_sparse_tree(tree, mask, empty_verified);
 
 	TEST_CHECK(t.build_vector() == t2.build_vector());
 	for (int i = 0; i < int(t.size()); ++i)
@@ -204,7 +206,7 @@ TORRENT_TEST(roundtrip_empty_tree)
 TORRENT_TEST(roundtrip_full_tree)
 {
 	aux::merkle_tree t(num_blocks, 1, f[0].data());
-	t.load_tree(f);
+	t.load_tree(f, empty_verified);
 	test_roundtrip(t, num_blocks, 1);
 }
 
@@ -214,7 +216,7 @@ TORRENT_TEST(roundtrip_piece_layer_tree)
 	auto sparse_tree = f;
 	for (int i = f.end_index() / 2; i < f.end_index(); ++i)
 		sparse_tree[i] = lt::sha256_hash{};
-	t.load_tree(sparse_tree);
+	t.load_tree(sparse_tree, empty_verified);
 	test_roundtrip(t, num_blocks, 2);
 }
 
@@ -228,7 +230,7 @@ TORRENT_TEST(roundtrip_partial_tree)
 			sparse_tree[i] = lt::sha256_hash{};
 	}
 
-	t.load_tree(sparse_tree);
+	t.load_tree(sparse_tree, empty_verified);
 	test_roundtrip(t, num_blocks, 2);
 }
 
@@ -242,21 +244,21 @@ TORRENT_TEST(roundtrip_more_partial_tree)
 			sparse_tree[i] = lt::sha256_hash{};
 	}
 
-	t.load_tree(sparse_tree);
+	t.load_tree(sparse_tree, empty_verified);
 	test_roundtrip(t, num_blocks, 2);
 }
 
 TORRENT_TEST(roundtrip_one_block_tree)
 {
 	aux::merkle_tree t(1, 256, f[0].data());
-	t.load_tree(span<sha256_hash const>(f).first(1));
+	t.load_tree(span<sha256_hash const>(f).first(1), empty_verified);
 	test_roundtrip(t, 1, 256);
 }
 
 TORRENT_TEST(roundtrip_two_block_tree)
 {
 	aux::merkle_tree t(2, 256, f[0].data());
-	t.load_tree(span<sha256_hash const>(f).first(3));
+	t.load_tree(span<sha256_hash const>(f).first(3), empty_verified);
 	test_roundtrip(t, 2, 256);
 }
 
@@ -266,7 +268,7 @@ TORRENT_TEST(roundtrip_two_block_partial_tree)
 	pf.resize(3);
 	pf[2].clear();
 	aux::merkle_tree t(2, 256, f[0].data());
-	t.load_tree(pf);
+	t.load_tree(pf, empty_verified);
 	test_roundtrip(t, 2, 256);
 }
 
@@ -289,7 +291,7 @@ TORRENT_TEST(sparse_merkle_tree_block_layer)
 {
 	aux::merkle_tree t(260, 2, f[0].data());
 
-	t.load_tree(span<sha256_hash const>(f).first(int(t.size())));
+	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	for (int i = 0; i < int(t.size()); ++i)
 	{
@@ -302,7 +304,7 @@ TORRENT_TEST(get_piece_layer)
 {
 	// 8 blocks per piece.
 	aux::merkle_tree t(260, 8, f[0].data());
-	t.load_tree(span<sha256_hash const>(f).first(int(t.size())));
+	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	int const num_pieces = (260 + 7) / 8;
 	int const piece_layer_size = merkle_num_leafs(num_pieces);
@@ -318,6 +320,9 @@ TORRENT_TEST(get_piece_layer)
 
 // TODO: add test for load_piece_layer()
 // TODO: add test for get_piece_layer() when tree is in piece-layer mode
+// TODO: add test for add_hashes()
+// TODO: add test for operator[] in each mode the tree can be in. piece-layer,
+// block-layer, full and empty
 
 namespace {
 using s = span<sha256_hash const>;
@@ -332,7 +337,7 @@ TORRENT_TEST(merkle_tree_get_hashes)
 {
 	aux::merkle_tree t(260, 2, f[0].data());
 
-	t.load_tree(span<sha256_hash const>(f).first(int(t.size())));
+	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	// all nodes leaf layer
 	{

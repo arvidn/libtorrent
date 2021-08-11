@@ -319,6 +319,7 @@ namespace {
 				aux::throw_ex<system_error>(errors::torrent_missing_piece_layer);
 
 			auto& piece_layers = ret["piece layers"].dict();
+			std::vector<bool> const empty_verified;
 			for (file_index_t f : fs.file_range())
 			{
 				if (fs.pad_file_at(f) || fs.file_size(f) < fs.piece_length())
@@ -327,14 +328,17 @@ namespace {
 				aux::merkle_tree t(fs.file_num_blocks(f)
 					, fs.piece_length() / default_block_size, fs.root_ptr(f));
 
+				std::vector<bool> const& verified = (f >= atp.verified_leaf_hashes.end_index())
+					? empty_verified : atp.verified_leaf_hashes[f];
+
 				auto const& tree = trees[f];
 				if (f < atp.merkle_tree_mask.end_index() && !atp.merkle_tree_mask[f].empty())
 				{
-					t.load_sparse_tree(tree, atp.merkle_tree_mask[f]);
+					t.load_sparse_tree(tree, atp.merkle_tree_mask[f], verified);
 				}
 				else
 				{
-					t.load_tree(tree);
+					t.load_tree(tree, verified);
 				}
 
 				auto const piece_layer = t.get_piece_layer();
