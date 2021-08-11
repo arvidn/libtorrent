@@ -33,9 +33,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/bitfield.hpp"
 #include <iostream>
 
 using namespace lt;
+
+namespace {
+
+	void compare_bits(bitfield const& bits, char const* str)
+	{
+		for (int i = 0; *str; ++i, ++str)
+		{
+			if (*str == '1')
+				TEST_CHECK(bits.get_bit(i));
+			else if (*str == '0')
+				TEST_CHECK(!bits.get_bit(i));
+			else
+				TEST_CHECK(false);
+		}
+	}
+}
 
 TORRENT_TEST(num_leafs)
 {
@@ -812,9 +829,11 @@ TORRENT_TEST(merkle_validate_copy_full)
 	a,b,c,d,e,f,g,h};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
 
+	compare_bits(verified, "11111111");
 	TEST_CHECK(empty_tree == src);
 }
 
@@ -828,8 +847,11 @@ TORRENT_TEST(merkle_validate_copy_partial)
 	a,b,c,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "11000000");
 
 	v const expected{
 	       ah,
@@ -850,11 +872,13 @@ TORRENT_TEST(merkle_validate_copy_invalid_root)
 	a,b,c,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, a);
+	merkle_validate_copy(src, empty_tree, a, verified);
 
 	v const expected(15);
 
+	compare_bits(verified, "00000000");
 	TEST_CHECK(empty_tree == expected);
 }
 
@@ -868,8 +892,11 @@ TORRENT_TEST(merkle_validate_copy_root_only)
 	o,o,o,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "00000000");
 
 	v const expected{
 	       ah,

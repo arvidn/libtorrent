@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent {
 
@@ -364,14 +365,16 @@ namespace libtorrent {
 	}
 
 	void merkle_validate_copy(span<sha256_hash const> const src
-		, span<sha256_hash> const dst, sha256_hash const& root)
+		, span<sha256_hash> const dst, sha256_hash const& root
+		, bitfield& verified_leafs)
 	{
 		TORRENT_ASSERT(src.size() == dst.size());
 		int const num_leafs = int((dst.size() + 1) / 2);
 		if (src.empty()) return;
 		if (src[0] != root) return;
 		dst[0] = src[0];
-		for (int i = 0; i < src.size() - num_leafs; ++i)
+		int const leaf_layer_start = int(src.size() - num_leafs);
+		for (int i = 0; i < leaf_layer_start; ++i)
 		{
 			if (dst[i].is_all_zeros()) continue;
 			int const left_child = merkle_get_first_child(i);
@@ -380,6 +383,12 @@ namespace libtorrent {
 			{
 				dst[left_child] = src[left_child];
 				dst[right_child] = src[right_child];
+				if (left_child >= leaf_layer_start
+					&& right_child - leaf_layer_start < verified_leafs.size())
+				{
+					verified_leafs.set_bit(left_child - leaf_layer_start);
+					verified_leafs.set_bit(right_child - leaf_layer_start);
+				}
 			}
 		}
 	}

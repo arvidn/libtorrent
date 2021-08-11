@@ -387,16 +387,12 @@ bool is_downloading_state(int const st)
 		{
 			if (!p.merkle_trees.empty())
 				load_merkle_trees(
-					std::move(p.merkle_trees), std::move(p.merkle_tree_mask));
+					std::move(p.merkle_trees)
+					, std::move(p.merkle_tree_mask)
+					, std::move(p.verified_leaf_hashes));
 
 			// we really don't want to store extra copies of the trees
 			TORRENT_ASSERT(p.merkle_trees.empty());
-
-			if (!p.verified_leaf_hashes.empty())
-			{
-				TORRENT_ASSERT(!has_hash_picker());
-				need_hash_picker(std::move(p.verified_leaf_hashes));
-			}
 		}
 
 		if (valid_metadata())
@@ -411,24 +407,27 @@ bool is_downloading_state(int const st)
 
 	void torrent::load_merkle_trees(
 		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
-		, aux::vector<std::vector<bool>, file_index_t> mask)
+		, aux::vector<std::vector<bool>, file_index_t> mask
+		, aux::vector<std::vector<bool>, file_index_t> verified)
 	{
 		auto const& fs = m_torrent_file->orig_files();
 
+		std::vector<bool> const empty_verified;
 		for (file_index_t i{0}; i < fs.end_file(); ++i)
 		{
 			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
 				continue;
 
 			if (i >= trees_import.end_index()) break;
+			std::vector<bool> const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
 			if (i < mask.end_index() && !mask[i].empty())
 			{
 				mask[i].resize(m_merkle_trees[i].size(), false);
-				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i]);
+				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i], verified_bitmask);
 			}
 			else
 			{
-				m_merkle_trees[i].load_tree(trees_import[i]);
+				m_merkle_trees[i].load_tree(trees_import[i], verified_bitmask);
 			}
 		}
 	}
@@ -1218,15 +1217,9 @@ bool is_downloading_state(int const st)
 		}
 	}
 
-	void torrent::need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified)
+	void torrent::need_hash_picker()
 	{
-		if (m_hash_picker)
-		{
-			// we only set this if we create the picker on torrent creation,
-			// which is the first time we construct the hash picker in that case
-			TORRENT_ASSERT(verified.empty());
-			return;
-		}
+		if (m_hash_picker) return;
 
 		TORRENT_ASSERT(valid_metadata());
 		TORRENT_ASSERT(m_connections_initialized);
@@ -1234,12 +1227,7 @@ bool is_downloading_state(int const st)
 		//INVARIANT_CHECK;
 
 		m_hash_picker.reset(new hash_picker(m_torrent_file->orig_files()
-			, m_merkle_trees, std::move(verified)
-			// if we have all the piece layers and the piece size is the same as
-			// the block size, we have all the hashes we need already. This
-			// means "have all hashes".
-			, m_v2_piece_layers_validated
-				&& m_torrent_file->piece_length() == default_block_size));
+			, m_merkle_trees));
 	}
 
 	struct piece_refcount
@@ -2443,7 +2431,9 @@ bool is_downloading_state(int const st)
 			if (torrent_file().info_hashes().has_v1())
 				hash_passed[0] = piece_hash == m_torrent_file->hash_for_piece(piece);
 
-			if (torrent_file().info_hashes().has_v2())
+			// if the v1 hash failed the check, don't add the v2 hashes to the
+			// merkle tree. They are most likely invalid.
+			if (torrent_file().info_hashes().has_v2() && !bool(hash_passed[0] == false))
 			{
 				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
 			}
@@ -4111,6 +4101,8 @@ namespace {
 		TORRENT_ALLOCA(block_passed, bool, blocks_in_piece);
 		std::fill(block_passed.begin(), block_passed.end(), false);
 
+		set_block_hash_result last_result = set_block_hash_result(set_block_hash_result::result::unknown);
+
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			// if there was an enoent or eof error the block hashes array may be incomplete
@@ -4119,6 +4111,7 @@ namespace {
 
 			auto const result = get_hash_picker().set_block_hash(piece
 				, i * default_block_size, block_hashes[i]);
+			last_result = result;
 
 			if (result.status == set_block_hash_result::result::success)
 			{
@@ -4177,13 +4170,13 @@ namespace {
 			{
 				ret = false;
 			}
-			else if (result.status == set_block_hash_result::result::piece_hash_failed && i == blocks_in_piece - 1)
-			{
-				// only if the *last* block causes the piece to fail, do we know
-				// it actually failed. Otherwise it might have been failing
-				// because of other, previously existing block hashes.
-				ret = false;
-			}
+		}
+		if (last_result.status == set_block_hash_result::result::piece_hash_failed)
+		{
+			// only if the *last* block causes the piece to fail, do we know
+			// it actually failed. Otherwise it might have been failing
+			// because of other, previously existing block hashes.
+			ret = false;
 		}
 
 		if (boost::indeterminate(ret) && std::all_of(block_passed.begin(), block_passed.end()
@@ -4366,24 +4359,16 @@ namespace {
 
 		if (!torrent_file().info_hashes().has_v1() && blocks.empty() && !found_on_disk)
 		{
-			// This is a v2 only torrent so we can definitely get block
-			// level hashes. Don't fail the piece yet, let it sit in the
-			// finished state and request block hashes.
-
-			// If this is a hybrid torrent we might be able to get block level
-			// hashes, but there is no guarantee that there is a v2 peer to
-			// request them from. For now be conservative and re-request
-			// the block without waiting for block hashes.
-
+			// TODO: only do this if the piece size > 1 blocks
+			// This is a v2 torrent so we can request get block
+			// level hashes.
 			verify_block_hashes(index);
-			return;
 		}
 
 		// the below code is penalizing peers that sent use bad data.
 		// increase the total amount of failed bytes
 		if (!found_on_disk)
 		{
-			// increase the total amount of failed bytes
 			if (blocks.empty())
 				add_failed_bytes(m_torrent_file->piece_size(index));
 			else
@@ -6657,7 +6642,7 @@ namespace {
 	{
 		need_hash_picker();
 		if (!m_hash_picker) return true;
-		add_hashes_result result = m_hash_picker->add_hashes(req, hashes);
+		add_hashes_result const result = m_hash_picker->add_hashes(req, hashes);
 		for (auto& p : result.hash_failed)
 		{
 			if (torrent_file().info_hashes().has_v1() && have_piece(p.first))
@@ -6672,7 +6657,7 @@ namespace {
 			// the piece may not have been downloaded in this session
 			// it should be open for downloading so nothing needs to be done here
 			if (!m_picker || !m_picker->is_downloading(p.first)) continue;
-			piece_failed(p.first, std::move(p.second));
+			piece_failed(p.first, p.second);
 		}
 		for (piece_index_t p : result.hash_passed)
 		{
@@ -6997,8 +6982,13 @@ namespace {
 
 		if (m_torrent_file->info_hashes().has_v2())
 		{
+			auto const num_files = m_merkle_trees.size();
 			ret.merkle_trees.clear();
-			ret.merkle_trees.reserve(m_merkle_trees.size());
+			ret.merkle_trees.reserve(num_files);
+			ret.merkle_tree_mask.clear();
+			ret.merkle_tree_mask.reserve(num_files);
+			ret.verified_leaf_hashes.clear();
+			ret.verified_leaf_hashes.reserve(num_files);
 			for (auto const& t : m_merkle_trees)
 			{
 				// use stuctured binding in C++17
@@ -7007,17 +6997,10 @@ namespace {
 				std::tie(sparse_tree, mask) = t.build_sparse_vector();
 				ret.merkle_trees.emplace_back(std::move(sparse_tree));
 				ret.merkle_tree_mask.emplace_back(std::move(mask));
+				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
-			if (has_hash_picker())
-			{
-				auto const& leafs = get_hash_picker().verified_leafs();
-				ret.verified_leaf_hashes.clear();
-				ret.verified_leaf_hashes.reserve(leafs.size());
-				for (auto const& l : leafs)
-					ret.verified_leaf_hashes.emplace_back(l);
-			}
-			else if (!m_have_all)
+			if (!has_hash_picker() && !m_have_all)
 			{
 				ret.verified_leaf_hashes.reserve(m_torrent_file->files().num_files());
 				for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
@@ -7417,10 +7400,6 @@ namespace {
 				m_v2_piece_layers_validated = false;
 				return errors::torrent_invalid_piece_layer;
 			}
-#if TORRENT_USE_INVARIANT_CHECKS
-			if (m_hash_picker)
-				m_hash_picker->check_invariant(i);
-#endif
 		}
 
 		m_v2_piece_layers_validated = valid;

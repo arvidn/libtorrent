@@ -84,7 +84,7 @@ namespace libtorrent
 		bool valid;
 		// the vector contains the block indices (within the piece) that failed
 		// the hash check
-		std::map<piece_index_t, std::vector<int>> hash_failed;
+		std::vector<std::pair<piece_index_t, std::vector<int>>> hash_failed;
 		std::vector<piece_index_t> hash_passed;
 	};
 
@@ -135,9 +135,7 @@ namespace libtorrent
 	{
 	public:
 		hash_picker(file_storage const& files
-			, aux::vector<aux::merkle_tree, file_index_t>& trees
-			, aux::vector<std::vector<bool>, file_index_t> verified = {}
-			, bool all_verified = false);
+			, aux::vector<aux::merkle_tree, file_index_t>& trees);
 
 		hash_request pick_hashes(typed_bitfield<piece_index_t> const& pieces);
 
@@ -152,16 +150,9 @@ namespace libtorrent
 		// do we know all the block hashes for a file?
 		bool have_all(file_index_t file) const;
 		bool have_all() const;
-		// get bits indicating if each leaf hash is verified
-		aux::vector<std::vector<bool>, file_index_t> const& verified_leafs() const
-		{ return m_hash_verified; }
 		bool piece_verified(piece_index_t piece) const;
 
 		int piece_layer() const { return m_piece_layer; }
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		void check_invariant(file_index_t idx) const;
-#endif
 
 	private:
 		// returns the number of proof layers needed to verify the node's hash
@@ -208,7 +199,6 @@ namespace libtorrent
 
 		file_storage const& m_files;
 		aux::vector<aux::merkle_tree, file_index_t>& m_merkle_trees;
-		aux::vector<std::vector<bool>, file_index_t> m_hash_verified;
 
 		// information about every 512-piece span of each file. We request hashes
 		// for 512 pieces at a time

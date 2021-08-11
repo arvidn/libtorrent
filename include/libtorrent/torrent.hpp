@@ -412,7 +412,8 @@ namespace libtorrent {
 		void init();
 
 		void load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
-			, aux::vector<std::vector<bool>, file_index_t> mask);
+			, aux::vector<std::vector<bool>, file_index_t> mask
+			, aux::vector<std::vector<bool>, file_index_t> verified);
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
@@ -1049,7 +1050,7 @@ namespace libtorrent {
 			return *m_hash_picker;
 		}
 
-		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
+		void need_hash_picker();
 		bool has_hash_picker() const
 		{
 			return m_hash_picker.get() != nullptr;
@@ -1676,6 +1677,7 @@ namespace libtorrent {
 
 		// this is set to true if all piece layers were successfully loaded and
 		// validated. Only for v2 torrents
+		// TODO: this member can probably be removed
 		bool m_v2_piece_layers_validated:1;
 
 // ----

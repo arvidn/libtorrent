@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/random.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
 #include "simulator/utils.hpp"
@@ -459,6 +460,10 @@ TORRENT_TEST(transfer_matrix)
 							// if we encounter an error from now on, we'll only print the relevant
 							// iteration
 							reset_output();
+
+							// re-seed the random engine each iteration, to make the runs
+							// deterministic
+							lt::aux::random_engine().seed(0x23563a7f);
 
 							run_matrix_test(piece_size | bt_version | magnet | multi_file, files, corruption);
 							if (_g_test_failures > 0) return;
