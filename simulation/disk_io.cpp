@@ -312,8 +312,7 @@ struct test_disk_io final : lt::disk_interface
 		// this block should have been written
 		TORRENT_ASSERT(m_have.get_bit(block_index(r)));
 
-		auto const seek_time = disk_seek(std::int64_t(static_cast<int>(r.piece)) * m_files->piece_length() + r.start
-			, lt::default_block_size);
+		auto const seek_time = disk_seek(r.piece, r.start, lt::default_block_size);
 
 		queue_event(seek_time + m_state.read_time, [this,r, h=std::move(h)] () mutable {
 			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], r.length);
@@ -352,8 +351,7 @@ struct test_disk_io final : lt::disk_interface
 
 		bool const valid = validate_block(*m_files, buf, r);
 
-		auto const seek_time = disk_seek(std::int64_t(static_cast<int>(r.piece)) * m_files->piece_length() + r.start
-			, lt::default_block_size);
+		auto const seek_time = disk_seek(r.piece, r.start, lt::default_block_size);
 
 		queue_event(seek_time + m_state.write_time, [this,valid,r,h=std::move(handler)] () mutable {
 
@@ -387,8 +385,7 @@ struct test_disk_io final : lt::disk_interface
 	{
 		TORRENT_ASSERT(m_files);
 
-		auto const seek_time = disk_seek(std::int64_t(static_cast<int>(piece)) * m_files->piece_length()
-			, m_blocks_per_piece * lt::default_block_size);
+		auto const seek_time = disk_seek(piece, 0, m_blocks_per_piece * lt::default_block_size);
 
 		auto const delay = seek_time
 			+ m_state.read_time * m_blocks_per_piece
@@ -426,8 +423,7 @@ struct test_disk_io final : lt::disk_interface
 	{
 		TORRENT_ASSERT(m_files);
 
-		auto const seek_time = disk_seek(std::int64_t(static_cast<int>(piece)) * m_files->piece_length() + offset
-			, m_blocks_per_piece * lt::default_block_size);
+		auto const seek_time = disk_seek(piece, offset, m_blocks_per_piece * lt::default_block_size);
 
 		auto const delay = seek_time + m_state.hash_time + m_state.read_time;
 		queue_event(delay, [this, piece, offset, h=std::move(handler)] () mutable {
@@ -534,8 +530,9 @@ struct test_disk_io final : lt::disk_interface
 
 private:
 
-	lt::time_duration disk_seek(std::int64_t const offset, int const size = lt::default_block_size)
+	lt::time_duration disk_seek(lt::piece_index_t const piece, int start, int const size = lt::default_block_size)
 	{
+		std::int64_t const offset = std::int64_t(static_cast<int>(piece)) * m_files->piece_length() + start;
 		return (std::exchange(m_last_disk_offset, offset + size) == offset)
 			? lt::milliseconds(0) : m_state.seek_time;
 	}
@@ -616,7 +613,7 @@ private:
 	int m_write_queue = 0;
 	bool m_exceeded_max_size = false;
 
-	// events that is supposed to trigger in the future are put in this queue
+	// events that are supposed to trigger in the future are put in this queue
 	std::deque<std::pair<lt::time_point, std::function<void()>>> m_event_queue;
 	lt::deadline_timer m_timer;
 
