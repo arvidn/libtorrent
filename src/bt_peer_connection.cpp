@@ -1191,7 +1191,8 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST", "%d %d %d %d %d"
+			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST"
+				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 #endif
@@ -1292,7 +1293,8 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASHES", "%d %d %d %d %d"
+			peer_log(peer_log_alert::incoming_message, "HASHES"
+				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 #endif
@@ -1344,7 +1346,8 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASH_REJECT", "%d %d %d %d %d"
+			peer_log(peer_log_alert::incoming_message, "HASH_REJECT"
+				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
 #endif
@@ -1739,7 +1742,8 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASH_REQUEST"
-				, "%d %d %d %d %d", int(req.file), req.base, req.index, req.count, req.proof_layers);
+				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
+				, int(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
 #endif
 
@@ -1780,7 +1784,8 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASHES"
-				, "%d %d %d %d %d", static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
+				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
+				, static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
 #endif
 
@@ -1811,7 +1816,8 @@ namespace {
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HASH_REJECT"
-				, "%d %d %d %d", req.base, req.index, req.count, req.proof_layers);
+				, "base: %d idx: %d cnt: %d proofs: %d"
+				, req.base, req.index, req.count, req.proof_layers);
 		}
 #endif
 
