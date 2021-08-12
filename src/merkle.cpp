@@ -307,39 +307,46 @@ namespace libtorrent {
 		return ret;
 	}
 
-	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
-	merkle_check_proofs(sha256_hash hash, span<sha256_hash const> hashes
-		, int index)
+	bool merkle_validate_and_insert_proofs(span<sha256_hash> target_tree
+		, int const target_node_idx, sha256_hash const& node, span<sha256_hash const> uncle_hashes)
 	{
-		aux::vector<std::pair<sha256_hash, sha256_hash>> ret(int(hashes.size()));
-		auto ret_it = ret.begin();
-		for (auto const& proof : hashes)
-		{
-			bool const proof_right = (index & 1) == 0;
-			ret_it->first = proof_right ? hash : proof;
-			ret_it->second = proof_right ? proof : hash;
-			hash = hasher256().update(ret_it->first).update(ret_it->second).final();
-			++ret_it;
-			index /= 2;
-		}
-		TORRENT_ASSERT(ret_it == ret.end());
-		return {std::move(ret), hash};
-	}
+		if (target_tree[target_node_idx] == node)
+			return true;
 
-	bool merkle_validate_proofs(int start_idx
-		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
-	{
-		if (proofs.empty()) return true;
-		sha256_hash parent_hash = (start_idx & 1)
-			? proofs.front().first : proofs.front().second;
-		for (auto proof : proofs)
+		if (!target_tree[target_node_idx].is_all_zeros())
+			return false;
+
+		if (uncle_hashes.empty())
+			return false;
+
+		int cursor = target_node_idx;
+		target_tree[cursor] = node;
+		for (auto const& proof : uncle_hashes)
 		{
-			if (parent_hash != ((start_idx & 1) ? proof.first : proof.second))
-				return false;
-			parent_hash = hasher256().update(proof.first).update(proof.second).final();
-			start_idx = merkle_get_parent(start_idx);
+			int const proof_idx = merkle_get_sibling(cursor);
+			TORRENT_ASSERT(target_tree[proof_idx].is_all_zeros());
+			target_tree[proof_idx] = proof;
+			int const left = std::min(proof_idx, cursor);
+			auto const hash = hasher256().update(target_tree[left]).update(target_tree[left + 1]).final();
+			cursor = merkle_get_parent(cursor);
+			if (target_tree[cursor] == hash) return true;
+			if (!target_tree[cursor].is_all_zeros())
+				break;
+			target_tree[cursor] = hash;
 		}
-		return true;
+
+		// we get here if we never reached a known hash in the tree, i.e. the
+		// uncle_hashes failed to prove the specified node hash.
+		// we now need to clear up all the hashes we've inserted into the tree
+		int clear_cursor = target_node_idx;
+		while (clear_cursor > cursor)
+		{
+			int const proof_idx = merkle_get_sibling(clear_cursor);
+			target_tree[clear_cursor].clear();
+			target_tree[proof_idx].clear();
+			clear_cursor = merkle_get_parent(clear_cursor);
+		}
+		return false;
 	}
 
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right

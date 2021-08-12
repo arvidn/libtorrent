@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -46,6 +47,8 @@ namespace aux {
 			log2p1(numeric_cast<std::uint32_t>(blocks_per_piece))))
 		, m_mode(mode_t::empty_tree)
 	{
+		INVARIANT_CHECK;
+
 		// blocks per piece must be an even power of 2
 		TORRENT_ASSERT(((blocks_per_piece - 1) & blocks_per_piece) == 0);
 		TORRENT_ASSERT(m_root != nullptr);
@@ -56,6 +59,7 @@ namespace aux {
 
 	void merkle_tree::load_tree(span<sha256_hash const> t)
 	{
+		INVARIANT_CHECK;
 		if (t.empty()) return;
 		if (root() != t[0]) return;
 		if (size() != static_cast<std::size_t>(t.size())) return;
@@ -86,6 +90,7 @@ namespace {
 
 	void merkle_tree::load_sparse_tree(span<sha256_hash const> t, std::vector<bool> const& mask)
 	{
+		INVARIANT_CHECK;
 		TORRENT_ASSERT(mask.size() == size());
 		if (size() != mask.size()) return;
 
@@ -208,6 +213,7 @@ namespace {
 	// returns false if the piece layer fails to validate against the root hash
 	bool merkle_tree::load_piece_layer(span<char const> piece_layer)
 	{
+		INVARIANT_CHECK;
 		if (m_mode == mode_t::block_layer) return true;
 
 		int const npieces = num_pieces();
@@ -234,37 +240,64 @@ namespace {
 		return true;
 	}
 
-	std::map<piece_index_t, std::vector<int>> merkle_tree::add_hashes(
-		int dest_start_idx, span<sha256_hash const> tree)
+	// dest_start_idx points to the first *leaf* to be added.
+	// For example, T is the sub-tree to insert into the larger tree
+	// the uncle hashes are specified as 0, 1, providing proof that the subtree
+	// is valid, since the root node can be computed and validated.
+	// The root of the tree, R, is always known.
+	//                         R
+	//            _                          _
+	//     _              1           _              _
+	//  _     _        _     _     T     0        _     _
+	//_   _ _   _    _   _ _   _ T   T _   _    _   _ _   _
+	//                           ^
+	//                           |
+	//                           dest_start_idx
+	boost::optional<std::map<piece_index_t, std::vector<int>>> merkle_tree::add_hashes(
+		int const dest_start_idx
+		, span<sha256_hash const> tree
+		, span<sha256_hash const> uncle_hashes)
 	{
-		std::map<piece_index_t, std::vector<int>> failed_blocks;
-
 		// we already have all hashes
+		std::map<piece_index_t, std::vector<int>> failed_blocks;
 		if (m_mode == mode_t::block_layer) return failed_blocks;
 
 		allocate_full();
 
-		// first fill in the subtree of known hashes from the base layer
+		int const count = int((tree.size() + 1) / 2);
+		int const base_num_layers = merkle_num_layers(count);
 
+		// this is the index of the node where we'll insert the root of the
+		// subtree (tree). It's also the hash the uncle_hashes are here to prove
+		// is valid.
+		int const insert_root_idx = dest_start_idx >> base_num_layers;
+
+		// start with validating the proofs, and inserting them as we go.
+		if (!merkle_validate_and_insert_proofs(m_tree, insert_root_idx, tree[0], uncle_hashes))
+			return {};
+
+		// first fill in the subtree of known hashes from the base layer
 		auto const num_leafs = merkle_num_leafs(m_num_blocks);
 		auto const first_leaf = merkle_first_leaf(num_leafs);
 
-		// the leaf nodes in the passed-in "tree"
-		int const count = int((tree.size() + 1) / 2);
-
 		// this is the start of the leaf layer of "tree". We'll use this
 		// variable to step upwards towards the root
-		int source_start_idx = int(tree.size()) - count;
+		int source_cursor = int(tree.size()) - count;
+		// the running index in the loop
+		int dest_cursor = dest_start_idx;
 
 		// the tree is expected to be consistent
+		// TOOD: instead of validating the tree here, change the API to specify
+		// the leafs, and compute it within this function. That would strengthen
+		// the invariant
 		TORRENT_ASSERT(merkle_root(span<sha256_hash const>(tree).last(count)) == tree[0]);
 
 		for (int layer_size = count; layer_size != 0; layer_size /= 2)
 		{
 			for (int i = 0; i < layer_size; ++i)
 			{
-				int const dst_idx = dest_start_idx + i;
-				int const src_idx = source_start_idx + i;
+				int const dst_idx = dest_cursor + i;
+				int const src_idx = source_cursor + i;
 				if (has_node(dst_idx) && m_tree[dst_idx] != tree[src_idx])
 				{
 					// this must be a block hash because inner nodes are not filled in until
@@ -281,34 +314,18 @@ namespace {
 				m_tree[dst_idx] = tree[src_idx];
 			}
 			if (layer_size == 1) break;
-			dest_start_idx = merkle_get_parent(dest_start_idx);
-			source_start_idx = merkle_get_parent(source_start_idx);
+			dest_cursor = merkle_get_parent(dest_cursor);
+			source_cursor = merkle_get_parent(source_cursor);
 		}
 
 		return failed_blocks;
-	}
-
-	void merkle_tree::add_proofs(int dest_start_idx
-		, span<std::pair<sha256_hash, sha256_hash> const> proofs)
-	{
-		TORRENT_ASSERT(merkle_validate_proofs(dest_start_idx, proofs));
-
-		allocate_full();
-
-		// now copy the string of proof hashes
-		for (auto proof : proofs)
-		{
-			int const offset = dest_start_idx & 1;
-			m_tree[dest_start_idx + offset - 1] = proof.first;
-			m_tree[dest_start_idx + offset] = proof.second;
-			dest_start_idx = merkle_get_parent(dest_start_idx);
-		}
 	}
 
 	std::vector<piece_index_t> merkle_tree::check_pieces(int const base
 		, int const index, int const file_piece_offset
 		, span<sha256_hash const> hashes)
 	{
+		INVARIANT_CHECK;
 		std::vector<piece_index_t> passed_pieces;
 
 		allocate_full();
@@ -371,6 +388,9 @@ namespace {
 	std::tuple<merkle_tree::set_block_result, int, int> merkle_tree::set_block(int const block_index
 		, sha256_hash const& h)
 	{
+		INVARIANT_CHECK;
+		TORRENT_ASSERT(block_index < m_num_blocks);
+
 		auto const num_leafs = merkle_num_leafs(m_num_blocks);
 		auto const file_first_leaf = merkle_first_leaf(num_leafs);
 		auto const block_tree_index = file_first_leaf + block_index;
@@ -403,7 +423,9 @@ namespace {
 		if (root != m_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
+			// not the block hashes though, except for the one we just added
 			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_start));
+			m_tree[block_tree_index].clear();
 			m_tree[root_index] = root;
 			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
 		}
@@ -529,6 +551,7 @@ namespace {
 
 	std::vector<sha256_hash> merkle_tree::build_vector() const
 	{
+		INVARIANT_CHECK;
 		if (m_mode == mode_t::uninitialized_tree) return {};
 
 		std::vector<sha256_hash> ret(size());
@@ -608,6 +631,7 @@ namespace {
 
 	void merkle_tree::allocate_full()
 	{
+		INVARIANT_CHECK;
 		if (m_mode == mode_t::full_tree) return;
 		m_tree = aux::vector<sha256_hash>(build_vector());
 		m_mode = mode_t::full_tree;
@@ -615,6 +639,7 @@ namespace {
 
 	void merkle_tree::optimize_storage()
 	{
+		INVARIANT_CHECK;
 		if (m_mode != mode_t::full_tree) return;
 
 		if (m_num_blocks == 1)
@@ -641,6 +666,7 @@ namespace {
 
 	void merkle_tree::optimize_storage_piece_layer()
 	{
+		INVARIANT_CHECK;
 		if (m_mode != mode_t::full_tree) return;
 
 		// if we have *any* blocks, we can't transition into piece layer mode,
@@ -722,5 +748,63 @@ namespace {
 		return ret;
 	}
 
+#if TORRENT_USE_INVARIANT_CHECKS
+	void merkle_tree::check_invariant() const
+	{
+		switch (m_mode)
+		{
+			case mode_t::uninitialized_tree: break;
+			case mode_t::empty_tree: break;
+			case mode_t::full_tree:
+			{
+				TORRENT_ASSERT(m_tree[0] == root());
+
+				auto const num_leafs = merkle_num_leafs(m_num_blocks);
+
+				if (m_tree.size() == 1) break;
+
+				// the block layer may contain invalid hashes, but if there are
+				// parent hashes, they must be correct, and match the block
+				// hashes. All other layers, all non-zero hashes must have a
+				// non-zero sibling and their parent must be correct.
+				for (int i = 1; i < int(m_tree.size()) - num_leafs; i += 2)
+				{
+					if (m_tree[i].is_all_zeros())
+					{
+						TORRENT_ASSERT(m_tree[i + 1].is_all_zeros());
+						continue;
+					}
+					TORRENT_ASSERT(merkle_validate_node(m_tree[i], m_tree[i+1], m_tree[merkle_get_parent(i)]));
+				}
+				// validate all blocks (that can be validated)
+				// since these are checked in pairs, we skip 2, to always
+				// consider the left side of the pair
+				auto const first_block = merkle_first_leaf(num_leafs);
+				for (int i = first_block; i < first_block + m_num_blocks; i += 2)
+				{
+					if (m_tree[i].is_all_zeros()) continue;
+					int const parent = merkle_get_parent(i);
+					if (m_tree[parent].is_all_zeros()) continue;
+					if (m_tree[i+1].is_all_zeros()) continue;
+					TORRENT_ASSERT(merkle_validate_node(m_tree[i], m_tree[i+1], m_tree[parent]));
+				}
+				// ensure padding is all zeros
+				for (int i = first_block + m_num_blocks; i < int(m_tree.size()); ++i)
+					TORRENT_ASSERT(m_tree[i].is_all_zeros());
+				break;
+			}
+			case mode_t::piece_layer:
+			{
+				TORRENT_ASSERT(merkle_root(m_tree, merkle_pad(1 << m_blocks_per_piece_log, 1)) == root());
+				break;
+			}
+			case mode_t::block_layer:
+			{
+				TORRENT_ASSERT(merkle_root(m_tree) == root());
+				break;
+			}
+		}
+	}
+#endif
 }
 }

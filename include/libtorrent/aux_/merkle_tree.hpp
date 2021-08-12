@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/optional.hpp"
+#if TORRENT_USE_INVARIANT_CHECKS
+#include "libtorrent/aux_/invariant_check.hpp"
+#endif
 
 namespace libtorrent {
 namespace aux {
@@ -51,6 +55,17 @@ namespace aux {
 // representing whole pieces. Those hashes are likely to be included in .torrent
 // files and known up-front.
 
+// The invariant of the tree is that all interior nodes (i.e. all but the very
+// bottom leaf nodes, representing block hashes) are either set and valid, or
+// clear. No invalid hashes are allowed, and they can only be added by also
+// providing proof of being valid.
+
+// The leaf blocks on the other hand, MAY be invalid. For instance, when adding
+// a magnet link for a torrent that we already have files for. Once we have the
+// metadata, we have files on disk but no hashes. We won't know whether the data
+// on disk is valid or not, until we've downloaded the hashes to validate them.
+
+// Idea for future space optimization:
 // while downloading, we need to store interior nodes of this tree. However, we
 // don't need to store the padding. a SHA-256 is 32 bytes. Instead of storing
 // the full (padded) tree of SHA-256 hashes, store the full tree of 32 bit
@@ -89,14 +104,15 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	// tree). This function inserts those hashes as well as the nodes up the
 	// tree. The destination start index is the index, in this tree, to the first leaf
 	// where "tree" will be inserted.
-	std::map<piece_index_t, std::vector<int>> add_hashes(
-		int dest_start_idx, span<sha256_hash const> tree);
-
-	// inserts the nodes in "proofs" as a path up the tree starting at
-	// "dest_start_idx". The proofs are sibling hashes, as they are returned
-	// from add_hashes(). The hashes must be valid.
-	void add_proofs(int dest_start_idx
-		, span<std::pair<sha256_hash, sha256_hash> const> proofs);
+	// inserts the nodes in "proofs" as a path up the tree. The proofs are
+	// sibling hashes, as they are returned from add_hashes(). The hashes must
+	// be valid.
+	// if the hashes are not valid, or the uncle hashes fail validation, nullopt
+	// is returned.
+	boost::optional<std::map<piece_index_t, std::vector<int>>> add_hashes(
+		int dest_start_idx
+		, span<sha256_hash const> tree
+		, span<sha256_hash const> uncle_hashes);
 
 	// returns the index of the pieces that passed the hash check
 	std::vector<piece_index_t> check_pieces(int base
@@ -174,6 +190,11 @@ private:
 		block_layer
 	};
 	mode_t m_mode = mode_t::uninitialized_tree;
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void check_invariant() const;
+	friend struct libtorrent::invariant_access;
+#endif
 };
 
 }
