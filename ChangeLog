@@ -1,3 +1,4 @@
+	* fix restoring last_seen_complete from resume data
 	* move session_flags to session_params
 	* the entry class is now a standard variant type
 	* use std::string_view instead of boost counterpart
