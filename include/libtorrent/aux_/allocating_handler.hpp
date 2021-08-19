@@ -122,14 +122,14 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t fuzzer_write_cost = 0;
 	constexpr std::size_t fuzzer_read_cost = 0;
 #endif
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + fuzzer_write_cost + 152;
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + fuzzer_read_cost + 152;
-	constexpr std::size_t udp_handler_max_size = tracking + 144;
-	constexpr std::size_t utp_handler_max_size = tracking + 168;
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + fuzzer_write_cost + 168;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + fuzzer_read_cost + 168;
+	constexpr std::size_t udp_handler_max_size = tracking + 160;
+	constexpr std::size_t utp_handler_max_size = tracking + 184;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t submit_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
-	constexpr std::size_t tick_handler_max_size = tracking + 112;
+	constexpr std::size_t tick_handler_max_size = tracking + 128;
 #endif
 
 	enum HandlerName
