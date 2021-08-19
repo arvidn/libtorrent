@@ -1,3 +1,4 @@
+	* fix restoring last_seen_complete from resume data
 	* fix issue on MacOS where the DHT was not restarted on a network-up notification
 	* make remove_torrent flags be treated as flags (instead of an enum)
 
