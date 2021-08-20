@@ -101,6 +101,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["last_download"] = 2;
 	rd["last_upload"] = 3;
 	rd["finished_time"] = 1352;
+	rd["last_seen_complete"] = 1353;
 	if (file_priorities && file_priorities[0])
 	{
 		entry::list_type& file_prio = rd["file_priority"].list();
@@ -212,6 +213,9 @@ void default_tests(torrent_status const& s, lt::time_point const time_now)
 
 	TEST_CHECK(s.time_since_download < now - 2 + 10);
 	TEST_CHECK(s.time_since_upload < now - 3 + 10);
+
+	TEST_CHECK(s.finished_time < 1352 + 2);
+	TEST_CHECK(s.finished_time >= 1352);
 #endif
 
 	using lt::seconds;
@@ -224,6 +228,8 @@ void default_tests(torrent_status const& s, lt::time_point const time_now)
 	TEST_CHECK(s.added_time >= 1347);
 	TEST_CHECK(s.completed_time < 1348 + 2);
 	TEST_CHECK(s.completed_time >= 1348);
+
+	TEST_EQUAL(s.last_seen_complete, 1353);
 }
 
 void test_piece_priorities(bool test_deprecated = false)

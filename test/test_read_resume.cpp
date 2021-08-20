@@ -70,6 +70,7 @@ TORRENT_TEST(read_resume)
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
 	rd["finished_time"] = 1352;
+	rd["last_seen_complete"] = 1353;
 
 	rd["piece_priority"] = "\x01\x02\x03\x04\x05\x06";
 	rd["auto_managed"] = 0;
@@ -105,6 +106,7 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.added_time, 1347);
 	TEST_EQUAL(atp.completed_time, 1348);
 	TEST_EQUAL(atp.finished_time, 1352);
+	TEST_EQUAL(atp.last_seen_complete, 1353);
 
 	TEST_EQUAL(atp.piece_priorities.size(), 6);
 	TEST_EQUAL(atp.piece_priorities[0], 1_pri);
@@ -282,6 +284,13 @@ TORRENT_TEST(round_trip_have_pieces)
 {
 	add_torrent_params atp;
 	atp.have_pieces = bits<piece_index_t>();
+	test_roundtrip(atp);
+}
+
+TORRENT_TEST(round_trip_last_seen_complete)
+{
+	add_torrent_params atp;
+	atp.last_seen_complete = 42;
 	test_roundtrip(atp);
 }
 
