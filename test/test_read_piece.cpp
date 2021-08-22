@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -92,7 +93,7 @@ void test_read_piece(int flags)
 		, aux::to_hex(ti->info_hash()).c_str());
 
 	settings_pack sett = settings();
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses(sett);
 
 	add_torrent_params p;

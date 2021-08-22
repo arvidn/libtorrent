@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	EXPORT std::string time_now_string();
+	EXPORT std::string test_listen_interface();
 }
 
 inline lt::download_priority_t operator "" _pri(unsigned long long const p)

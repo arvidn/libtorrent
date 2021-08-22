@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include <fstream>
@@ -67,10 +68,10 @@ void test_remove_torrent(remove_flags_t const remove_options
 	// we do this to force pieces to be evicted into the ghost lists
 	pack.set_int(settings_pack::cache_size, 10);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses2(pack);
 
 	torrent_handle tor1;
