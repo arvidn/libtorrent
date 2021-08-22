@@ -464,7 +464,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 	ih = t->info_hashes();
 
 	settings_pack sett = settings();
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

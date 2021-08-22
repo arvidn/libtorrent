@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
+#include "test_utils.hpp"
 #include <fstream>
 
 #ifdef TORRENT_UTP_LOG_ENABLE
@@ -85,10 +86,10 @@ void test_transfer()
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
 	pack.set_int(settings_pack::min_reconnect_time, 1);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48885");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49885");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses2(pack);
 
 	torrent_handle tor1;

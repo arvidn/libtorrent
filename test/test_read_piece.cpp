@@ -95,7 +95,7 @@ void test_read_piece(int flags)
 		, aux::to_hex(ti->info_hashes().v1).c_str());
 
 	settings_pack sett = settings();
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses(sett);
 
 	add_torrent_params p;

@@ -378,7 +378,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 		{
 			settings_pack pack = settings();
 			pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-			pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
+			pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 			pack.set_int(settings_pack::max_retry_port_bind, 1000);
 			pack.set_bool(settings_pack::enable_lsd, false);
 			pack.set_bool(settings_pack::enable_natpmp, false);

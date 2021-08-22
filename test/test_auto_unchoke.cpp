@@ -74,7 +74,7 @@ void test_swarm()
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_int(settings_pack::unchoke_slots_limit, 1);
 	pack.set_int(settings_pack::max_retry_port_bind, 900);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48010");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_dht, false);
@@ -91,11 +91,11 @@ void test_swarm()
 	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 5));
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 
 	lt::session ses2(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 
 	lt::session ses3(pack);
 

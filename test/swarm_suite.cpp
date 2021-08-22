@@ -99,11 +99,8 @@ void test_swarm(test_flags_t const flags)
 	// three peers before finishing.
 	float const rate_limit = 100000;
 
-	int const port = static_cast<int>(lt::random(100));
-	char iface[50];
-	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
-	pack.set_str(settings_pack::listen_interfaces, iface);
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
@@ -111,14 +108,12 @@ void test_swarm(test_flags_t const flags)
 
 	lt::session ses1(pack);
 
-	std::snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
-	pack.set_str(settings_pack::listen_interfaces, iface);
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 2));
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	lt::session ses2(pack);
 
-	std::snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
-	pack.set_str(settings_pack::listen_interfaces, iface);
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses3(pack);
 
 	torrent_handle tor1;

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef _WIN32
 #include <io.h>
@@ -62,6 +63,15 @@ namespace libtorrent
 		t -= s * 1000;
 		int ms = t;
 		std::snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
+		return ret;
+	}
+
+	std::string test_listen_interface()
+	{
+		static int port = int(random(10000) + 10000);
+		char ret[200];
+		std::snprintf(ret, sizeof(ret), "0.0.0.0:%d", port);
+		++port;
 		return ret;
 	}
 }

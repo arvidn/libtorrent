@@ -101,7 +101,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	session_proxy p2;
 
 	settings_pack pack = settings();
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
@@ -113,7 +113,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses2(pack);
 
 	int proxy_port = 0;

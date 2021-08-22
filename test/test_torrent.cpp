@@ -87,7 +87,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 {
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert_category::piece_progress | alert_category::storage);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
@@ -244,7 +244,7 @@ TORRENT_TEST(total_wanted)
 
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert_category::storage);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
@@ -283,7 +283,7 @@ TORRENT_TEST(added_peers)
 	auto info = std::make_shared<torrent_info>(tmp, from_span);
 
 	settings_pack pack = settings();
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 

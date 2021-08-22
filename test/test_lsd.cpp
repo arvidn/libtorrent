@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include <iostream>
 
@@ -67,14 +68,14 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_lsd, true);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48100");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 #if TORRENT_ABI_VERSION == 1
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49100");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses2(pack);
 
 	torrent_handle tor1;
