@@ -41,7 +41,7 @@ set(boost-python-module-name "python${Python3_VERSION_MAJOR}${Python3_VERSION_MI
 
 find_package(Boost REQUIRED COMPONENTS ${boost-python-module-name})
 
-Python3_add_library(python-libtorrent MODULE WITH_SOABI
+Python3_add_library(libtorrent MODULE WITH_SOABI
 	src/alert.cpp
 	src/converters.cpp
 	src/create_torrent.cpp
@@ -64,16 +64,16 @@ Python3_add_library(python-libtorrent MODULE WITH_SOABI
 	src/version.cpp
 )
 
-set_target_properties(python-libtorrent
+set_target_properties(libtorrent
 	PROPERTIES
 		OUTPUT_NAME libtorrent
 )
 
 if (MSVC)
-	target_compile_options(python-libtorrent PRIVATE /bigobj)
+	target_compile_options(libtorrent PRIVATE /bigobj)
 endif()
 
-target_link_libraries(python-libtorrent
+target_link_libraries(libtorrent
 	PRIVATE
 		torrent-rasterbar
 		"Boost::${boost-python-module-name}"
@@ -83,7 +83,7 @@ target_link_libraries(python-libtorrent
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	check_cxx_compiler_flag("-Wno-deprecated-declarations" _WNO_DEPRECATED_DECLARATIONS)
 	if (_WNO_DEPRECATED_DECLARATIONS)
-		target_compile_options(python-libtorrent PRIVATE -Wno-deprecated-declarations)
+		target_compile_options(libtorrent PRIVATE -Wno-deprecated-declarations)
 	endif()
 endif()
 
@@ -103,13 +103,13 @@ endif()
 message(STATUS "Python 3 site packages: ${_PYTHON3_SITE_ARCH}")
 message(STATUS "Python 3 extension suffix: ${Python3_SOABI}")
 
-install(TARGETS python-libtorrent DESTINATION "${_PYTHON3_SITE_ARCH}")
+install(TARGETS libtorrent DESTINATION "${_PYTHON3_SITE_ARCH}")
 
 if (python-egg-info)
 	set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake.in")
 	set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
 	set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
-	set(DEPS        python-libtorrent "${SETUP_PY}")
+	set(DEPS        libtorrent "${SETUP_PY}")
 
 	configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
 
