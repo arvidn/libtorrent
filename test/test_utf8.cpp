@@ -141,4 +141,7 @@ TORRENT_TEST(parse_utf8_fail)
 	// codepoint too high
 	parse_error("\xf5\x8f\xbf\xbf");
 	parse_error("\xf4\xbf\xbf\xbf");
+
+	// surrogates not allowed
+	parse_error("\xed\xb8\x88");
 }

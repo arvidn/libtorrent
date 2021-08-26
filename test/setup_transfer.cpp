@@ -706,7 +706,7 @@ std::vector<std::string> get_python()
 	{
 		std::vector<char> buf(req_size);
 		DWORD const sz = GetEnvironmentVariable("PYTHON_INTERPRETER", buf.data(), buf.size());
-		if (sz == buf.size() - 1) ret.emplace_back(buf.data(), buf.size());
+		if (size_t(sz) == buf.size() - 1) ret.emplace_back(buf.data(), buf.size());
 	}
 #endif
 	ret.push_back("python3");

@@ -63,12 +63,11 @@ namespace {
 } // anonymous namespace
 
 	std::int32_t const max_codepoint = 0x10ffff;
+	std::int32_t const surrogate_start = 0xd800;
+	std::int32_t const surrogate_end = 0xdfff;
 
 	void append_utf8_codepoint(std::string& ret, std::int32_t codepoint)
 	{
-		std::int32_t const surrogate_start = 0xd800;
-		std::int32_t const surrogate_end = 0xdfff;
-
 		if (codepoint >= surrogate_start
 			&& codepoint <= surrogate_end)
 			codepoint = '_';
@@ -167,6 +166,10 @@ namespace {
 		}
 
 		if (ch > max_codepoint)
+			return std::make_pair(-1, sequence_len);
+
+		// per RFC 3629, surrogates should not appear in utf-8
+		if (ch >= surrogate_start && ch <= surrogate_end)
 			return std::make_pair(-1, sequence_len);
 
 		return std::make_pair(static_cast<std::int32_t>(ch), sequence_len);
