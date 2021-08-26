@@ -333,23 +333,30 @@ namespace {
 #endif
 			;
 	}
+
+	int open_file(std::string const filename, open_mode_t const mode)
+	{
+		int ret = ::open(filename.c_str(), file_flags(mode), file_perms(mode));
+
+#ifdef O_NOATIME
+		if (ret < 0 && (mode & open_mode::no_atime))
+		{
+			// NOATIME may not be allowed for certain files, it's best-effort,
+			// so just try again without NOATIME
+			ret = ::open(filename.c_str()
+				, file_flags(mode & ~open_mode::no_atime), file_perms(mode));
+		}
+#endif
+		if (ret < 0) throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_open);
+		return ret;
+	}
+
 } // anonymous
 
 file_handle::file_handle(string_view name, std::int64_t const size
 	, open_mode_t const mode)
-	: m_fd(open(name.to_string().c_str(), file_flags(mode), file_perms(mode)))
+	: m_fd(open_file(convert_to_native_path_string(name.to_string()), mode))
 {
-#ifdef O_NOATIME
-	if (m_fd < 0 && (mode & open_mode::no_atime))
-	{
-		// NOATIME may not be allowed for certain files, it's best-effort,
-		// so just try again without NOATIME
-		m_fd = open(name.to_string().c_str()
-			, file_flags(mode & ~open_mode::no_atime), file_perms(mode));
-	}
-#endif
-	if (m_fd < 0) throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_open);
-
 #ifdef DIRECTIO_ON
 	// for solaris
 	if (mode & open_mode::no_cache)
