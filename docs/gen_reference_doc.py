@@ -37,8 +37,6 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
-global orphaned_export
-
 # some files that need pre-processing to turn symbols into
 # links into the reference documentation
 preprocess_rst = \
@@ -774,8 +772,6 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
         if 'TORRENT_' in define and 'TORRENT_ABI_VERSION' not in define:
             print('\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' %
                   (define, filename, lno))
-            # we've already warned once, no need to do it twice
-            warn_on_ifdefs = False
         elif define != '':
             print('\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno))
 
@@ -819,7 +815,6 @@ for filename in files:
 
     blanks = 0
     lno = 0
-    global orphaned_export
     orphaned_export = False
 
     while lno < len(lines):
