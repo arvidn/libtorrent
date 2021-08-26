@@ -1,6 +1,4 @@
 import lldb
-import re
-import os
 import struct
 
 # this is an LLDB pretty printer for libtorrent types. To use in LLDB run:
