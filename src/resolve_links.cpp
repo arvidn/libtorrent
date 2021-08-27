@@ -66,14 +66,13 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 {
 	if (!ti) return;
 
-	// only torrents with the same piece size
-	if (ti->piece_length() != m_torrent_file->piece_length()) return;
-
 	// If both are v2 we can match on that first
 	// or if both have v1 data use that 2nd
 	if (ti->v2() && m_torrent_file->v2()) {
 		match_v2(ti, save_path);
 	} else if (ti->v1() && m_torrent_file->v1()) {
+		// only torrents with the same piece size
+		if (ti->piece_length() != m_torrent_file->piece_length()) return;
 		match_v1(ti, save_path);
 	}
 
@@ -146,35 +145,22 @@ void resolve_links::match_v1(std::shared_ptr<const torrent_info> const& ti
 void resolve_links::match_v2(std::shared_ptr<const torrent_info> const& ti
 	, std::string const& save_path)
 {
-	file_storage const& fs = ti->files();
-	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
-	for (auto const i : fs.file_range())
+	file_storage const& other_fs = ti->files();
+	file_storage const& own_fs = m_torrent_file->files();
+	std::unordered_map<sha256_hash, file_index_t> other_roots{};
+	for (auto const i : other_fs.file_range())
 	{
-		// for every file in the other torrent, see if we have one that match
-		// it in m_torrent_file
-		if (fs.pad_file_at(i)) continue;
+		other_roots.insert({other_fs.root(i),i});
+	}
 
-		std::int64_t const file_size = fs.file_size(i);
-
-		auto const range = m_file_sizes.equal_range(file_size);
-		for (auto iter = range.first; iter != range.second; ++iter)
+	for (auto const i : own_fs.file_range())
+	{
+		auto found = other_roots.find(own_fs.root(i));
+		if (found != other_roots.end())
 		{
-			TORRENT_ASSERT(iter->second >= file_index_t(0));
-			TORRENT_ASSERT(iter->second < m_torrent_file->files().end_file());
-
-			// if we already have found a duplicate for this file, no need
-			// to keep looking
-			if (m_links[iter->second].ti) continue;
-
-			if (fs.root(i) == m_torrent_file->files().root(iter->second)) {
-				m_links[iter->second].ti = ti;
-				m_links[iter->second].save_path = save_path;
-				m_links[iter->second].file_idx = i;
-				// since we have a duplicate for this file, we may as well remove
-				// it from the file-size map, so we won't find it again.
-				m_file_sizes.erase(iter);
-				break;
-			}
+			m_links[i].ti = ti;
+			m_links[i].save_path = save_path;
+			m_links[i].file_idx = found->second;
 		}
 	}
 }
