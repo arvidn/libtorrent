@@ -124,7 +124,7 @@ private:
 	{
 		int const num_pieces = static_cast<int>((m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length());
 		return static_cast<int>(piece) < num_pieces - 1
-			? m_files.piece_length() : static_cast<int>(m_files.total_size() - (num_pieces - 1) * m_files.piece_length());
+			? m_files.piece_length() : static_cast<int>(m_files.total_size() - std::int64_t(num_pieces - 1) * m_files.piece_length());
 	}
 
 	lt::file_storage const& m_files;
