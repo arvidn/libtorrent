@@ -65,7 +65,13 @@ struct time_point_to_python
            time_t const tm = system_clock::to_time_t(system_clock::now()
               + duration_cast<system_clock::duration>(pt - now(::tag<T>())));
 
-           std::tm* date = std::localtime(&tm);
+#ifdef TORRENT_WINDOWS
+            std::tm const* date = localtime(&tm);
+#else
+            std::tm buf;
+            std::tm const* date = localtime_r(&tm, &buf);
+#endif
+
            result = datetime_datetime(
               (int)1900 + date->tm_year
               // tm use 0-11 and we need 1-12
