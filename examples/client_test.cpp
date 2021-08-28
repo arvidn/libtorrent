@@ -862,7 +862,12 @@ void scan_dir(std::string const& dir_path, lt::session& ses)
 char const* timestamp()
 {
 	time_t t = std::time(nullptr);
-	tm* timeinfo = std::localtime(&t);
+#ifdef TORRENT_WINDOWS
+	std::tm const* timeinfo = localtime(&t);
+#else
+	std::tm buf;
+	std::tm const* timeinfo = localtime_r(&t, &buf);
+#endif
 	static char str[200];
 	std::strftime(str, 200, "%b %d %X", timeinfo);
 	return str;
