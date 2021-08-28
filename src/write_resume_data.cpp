@@ -346,8 +346,6 @@ namespace {
 		}
 #endif
 
-		if (!atp.name.empty()) ret["name"] = atp.name;
-
 		// save trackers
 		if (atp.trackers.size() == 1)
 			ret["announce"] = atp.trackers.front();

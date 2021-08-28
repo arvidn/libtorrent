@@ -46,10 +46,10 @@ void test_remove_torrent(remove_flags_t const remove_options
 	std::vector<session_proxy> sp;
 	settings_pack pack = settings();
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses1(pack);
 
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses2(pack);
 
 	torrent_handle tor1;
@@ -166,6 +166,16 @@ TORRENT_TEST(remove_torrent)
 TORRENT_TEST(remove_torrent_and_files)
 {
 	test_remove_torrent(session::delete_files);
+}
+
+TORRENT_TEST(remove_torrent_files_and_partfile)
+{
+	test_remove_torrent(session::delete_files | session::delete_partfile);
+}
+
+TORRENT_TEST(remove_torrent_and_just_partfile)
+{
+	test_remove_torrent(session::delete_partfile);
 }
 
 TORRENT_TEST(remove_torrent_partial)

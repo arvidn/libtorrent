@@ -1082,21 +1082,21 @@ rule generate-pkg-config ( properties * )
 rule install-pkg-config ( target-name : data * : requirements * )
 {
 	import stage ;
-    local p = [ install-paths $(requirements) ] ;
-    local libdir = $(p[0]) ;
+	local p = [ install-paths $(requirements) ] ;
+	local libdir = $(p[0]) ;
 
-    stage.install $(target-name)
-        : $(data)
-        : $(requirements) <location>$(libdir)/pkgconfig
-        ;
+	stage.install $(target-name)
+		: $(data)
+		: $(requirements) <location>$(libdir)/pkgconfig
+		;
 
 	import project ;
-    local c = [ project.current ] ;
-    local project-module = [ $(c).project-module ] ;
-    module $(project-module)
-    {
-        explicit $(1) ;
-    }
+	local c = [ project.current ] ;
+	local project-module = [ $(c).project-module ] ;
+	module $(project-module)
+	{
+		explicit $(1) ;
+	}
 }
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

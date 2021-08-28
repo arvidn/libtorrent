@@ -20,7 +20,6 @@ see LICENSE file.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
-#include "libtorrent/optional.hpp"
 
 namespace libtorrent {
 

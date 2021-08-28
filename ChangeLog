@@ -4,6 +4,8 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* restore path character encoding conversion for non UTF-8 locales on linux
+	* fix use-after-free bug in make_magnet_uri
 	* add write_torrent_file() to produce a .torrent file from add_torrent_params
 	* allow loading v2 .torrent files without piece layer
 	* fix issue with adding v2 torrents with invalid file root hash
@@ -80,6 +82,12 @@
 	* overhauled disk I/O subsystem to use memory mapped files (where available)
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
+
+	* make UTF-8 sanitization a bit stricter. This will re-write invalid UTF-8
+	  code points encoding surrogate pairs
+	* fix restoring last_seen_complete from resume data
+	* fix issue on MacOS where the DHT was not restarted on a network-up notification
+	* make remove_torrent flags be treated as flags (instead of an enum)
 
 1.2.14 released
 

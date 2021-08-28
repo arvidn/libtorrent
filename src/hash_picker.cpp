@@ -294,23 +294,16 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (base_layer_idx <= 0)
 			return add_hashes_result(false);
 
-		auto const [proofs, tree_root] = merkle_check_proofs(
-			tree[0], uncle_hashes, req.index >> base_num_layers);
-
-		int const total_add_layers = std::max(req.proof_layers + 1, base_num_layers);
-		int const root_layer_offset = req.index >> total_add_layers;
-		int const proof_root_idx = merkle_to_flat_index(base_layer_idx - total_add_layers
-			, root_layer_offset);
-		auto& dst_tree = m_merkle_trees[req.file];
-
-		if (!dst_tree.compare_node(proof_root_idx, tree_root))
-			return add_hashes_result(false);
-
 		add_hashes_result ret(true);
 
+		auto& dst_tree = m_merkle_trees[req.file];
 		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
-		ret.hash_failed = dst_tree.add_hashes(dest_start_idx, tree);
-		dst_tree.add_proofs(dest_start_idx >> base_num_layers, proofs);
+		auto hash_failed = dst_tree.add_hashes(dest_start_idx, tree, uncle_hashes);
+
+		if (!hash_failed)
+			return add_hashes_result(false);
+
+		ret.hash_failed = std::move(*hash_failed);
 
 		if (req.base == 0)
 		{

@@ -82,20 +82,27 @@ namespace libtorrent {
 	// piece layer
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int blocks, int pieces);
 
-	// Computes the path of hashes starting with "hash" given sibling and
-	// uncle hashes in "hashes". "index" is the index to the hash we're
-	// validating in its layer. This is necessary to know of the sibling is to
-	// the left or right.
-	// The function returns the path of siblings going up, as well as the final
-	// hash above the last pair of sibling hashes returned. The caller needs to
-	// verify the returned hash against the known hash in the tree.
+	// validates and inserts the uncle hashes (and the specified node) into the
+	// target tree. "node" is the hash at target_node_idx and uncle_hashes are
+	// the uncle hashes all the way up to the root of target_tree, to prove "node"
+	// is valid. The hashes are only inserted into target_tree if they validate.
+	// returns true if all hashes validated correctly, and false otherwise.
+	//
+	// For example, consider the following tree (target_tree):
+	//
+	//            R
+	//     2              _
+	//  _     _        _     1
+	//_   _ _   _    N   0 _   _
+	// The root R is expected to be known and set in target_tree.
+	// if we're inserting the hash N, the uncle hashes provide proof of it being
+	// valid by containing 0, 1 and two (as marked in the tree above)
+	// Any non-zero hash encountered in target_tree is assumed to be valid, and
+	// will termiate the validation early, either successful (if there's a
+	// match) or unsuccessful (if there's a mismatch).
 	TORRENT_EXTRA_EXPORT
-	std::pair<aux::vector<std::pair<sha256_hash, sha256_hash>>, sha256_hash>
-	merkle_check_proofs(sha256_hash hash, span<sha256_hash const> hashes, int index);
-
-	TORRENT_EXTRA_EXPORT
-	bool merkle_validate_proofs(int start_idx
-		, span<std::pair<sha256_hash, sha256_hash> const> proofs);
+	bool merkle_validate_and_insert_proofs(span<sha256_hash> target_tree
+		, int target_node_idx, sha256_hash const& node, span<sha256_hash const> uncle_hashes);
 
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right

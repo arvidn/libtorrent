@@ -267,6 +267,16 @@ TORRENT_VERSION_NAMESPACE_4
 		// ``symlink_path`` is the path the file is a symlink to. To make this a
 		// symlink you also need to set the file_storage::flag_symlink file flag.
 		//
+		// ``root_hash`` is an optional pointer to a 32 byte SHA-256 hash, being
+		// the merkle tree root hash for this file. This is only used for v2
+		// torrents. If the ``root hash`` is specified for one file, it has to
+		// be specified for all, otherwise this function will fail.
+		// Note that the buffer ``root_hash`` points to must out-live the
+		// file_storage object, it will not be copied. This parameter is only
+		// used when *loading* torrents, that already have their file hashes
+		// computed. When creating torrents, the file hashes will be computed by
+		// the piece hashes.
+		//
 		// If more files than one are added, certain restrictions to their paths
 		// apply. In a multi-file file storage (torrent), all files must share
 		// the same root directory.
