@@ -363,11 +363,9 @@ class LibtorrentBuildExt(BuildExtBase):
     def _configure_b2_with_distutils(self, python_binding_dir):
         if os.name == "nt":
             self._maybe_add_arg("--abbreviate-paths")
-            self._maybe_add_arg("boost-link=static")
-            self._maybe_add_arg("libtorrent-link=static")
-        else:
-            self._maybe_add_arg("boost-link=shared")
-            self._maybe_add_arg("libtorrent-link=prebuilt")
+
+        self._maybe_add_arg("boost-link=static")
+        self._maybe_add_arg("libtorrent-link=static")
 
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
