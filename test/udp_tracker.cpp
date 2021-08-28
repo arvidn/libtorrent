@@ -97,12 +97,6 @@ struct udp_tracker
 		{
 			case 0: // connect
 
-				if (bytes_transferred < 16)
-				{
-					std::printf("invalid connect message: %d Bytes, expected 16 Bytes\n"
-						, int(bytes_transferred));
-					return;
-				}
 				std::printf("%s: UDP connect from %s\n", time_now_string().c_str()
 					, print_endpoint(*from).c_str());
 				ptr = buffer;
