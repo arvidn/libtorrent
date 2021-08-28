@@ -27,6 +27,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install boost-build boost
+        echo "using darwin ;" >>~/user-config.jam
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
