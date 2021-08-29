@@ -1,5 +1,9 @@
 path_classifiers:
-  test: "test/*.py"
+  test:
+    - "test/*.py"
+    - exclude: "test/*.cpp"
+    - exclude: "test/*.hpp"
+
 extraction:
   cpp:
     prepare:
