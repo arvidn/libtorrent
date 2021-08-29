@@ -189,7 +189,6 @@ std::shared_ptr<piece_picker> setup_picker(
 		int const idx = static_cast<int>(i);
 		if (priority[idx] == 0) break;
 		download_priority_t const prio((priority[idx] - '0') & 0xff);
-		TEST_CHECK(prio >= dont_download);
 		p->set_piece_priority(i, prio);
 
 		TEST_CHECK(p->piece_priority(i) == prio);
