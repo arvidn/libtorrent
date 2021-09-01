@@ -71,7 +71,6 @@ repos:
           (?x)^(
                docs/filter-rst.py|
                docs/gen_reference_doc.py|
-               docs/gen_settings_doc.py|
                docs/gen_stats_doc.py|
                docs/gen_todo.py|
                docs/join_rst.py|
@@ -113,7 +112,6 @@ repos:
           (?x)^(
               docs/filter-rst.py|
               docs/gen_reference_doc.py|
-              docs/gen_settings_doc.py|
               docs/gen_stats_doc.py|
               docs/gen_todo.py|
               examples/run_benchmarks.py|
@@ -149,7 +147,6 @@ repos:
             # Enable these later, avoid bloating this PR
             docs/gen_todo.py|
             docs/gen_reference_doc.py|
-            docs/gen_settings_doc.py|
             docs/gen_stats_doc.py|
             examples/run_benchmarks.py|
             fuzzers/tools/generate_initial_corpus.py|
