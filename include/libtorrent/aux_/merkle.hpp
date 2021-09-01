@@ -69,6 +69,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int);
+	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int tree_node, int depth);
 
 	// given a tree and the number of leaves, expect all leaf hashes to be set and
 	// compute all other hashes starting with the leaves.

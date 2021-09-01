@@ -350,7 +350,7 @@ namespace {
 				continue;
 			}
 
-			int const first_leaf = piece << base;
+			int const first_leaf = merkle_get_first_child(piece, base);
 			int const num_leafs = 1 << base;
 
 			bool done = false;

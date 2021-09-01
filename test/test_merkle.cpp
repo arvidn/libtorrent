@@ -214,6 +214,31 @@ TORRENT_TEST(merkle_get_first_child)
 	TEST_EQUAL(merkle_get_first_child(16), 33);
 }
 
+TORRENT_TEST(merkle_get_first_child2)
+{
+	// this is the structure:
+	//                        0
+	//            1                      2
+	//      3           4           5           6
+	//   7     8     9     10    11    12    13    14
+	// 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+	// 31 ...
+
+	TEST_EQUAL(merkle_get_first_child(0, 0), 0);
+	TEST_EQUAL(merkle_get_first_child(0, 1), 1);
+	TEST_EQUAL(merkle_get_first_child(0, 2), 3);
+	TEST_EQUAL(merkle_get_first_child(0, 3), 7);
+	TEST_EQUAL(merkle_get_first_child(0, 4), 15);
+	TEST_EQUAL(merkle_get_first_child(0, 5), 31);
+
+	TEST_EQUAL(merkle_get_first_child(2, 0), 2);
+	TEST_EQUAL(merkle_get_first_child(2, 1), 5);
+	TEST_EQUAL(merkle_get_first_child(2, 2), 11);
+	TEST_EQUAL(merkle_get_first_child(2, 3), 23);
+	TEST_EQUAL(merkle_get_first_child(2, 4), 47);
+	TEST_EQUAL(merkle_get_first_child(2, 5), 95);
+}
+
 TORRENT_TEST(merkle_layer_start)
 {
 	TEST_EQUAL(merkle_layer_start(0), 0);
