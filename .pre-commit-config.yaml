@@ -69,7 +69,6 @@ repos:
       # Avoiding PR bloat
       exclude: |
           (?x)^(
-               docs/filter-rst.py|
                docs/gen_reference_doc.py|
                docs/gen_settings_doc.py|
                docs/gen_stats_doc.py|
@@ -111,7 +110,6 @@ repos:
       # Avoiding PR bloat
       exclude: |
           (?x)^(
-              docs/filter-rst.py|
               docs/gen_reference_doc.py|
               docs/gen_settings_doc.py|
               docs/gen_stats_doc.py|
