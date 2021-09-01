@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-from __future__ import print_function
 
 import sys
+from typing import Optional
 
 
-def indent(line):
-    if line == '':
+def indent(line: str) -> Optional[str]:
+    if line == "":
         return None
     end = 0
     for c in line:
@@ -17,11 +17,11 @@ def indent(line):
 
 
 start_block = False
-filter_indent = None
+filter_indent: Optional[str] = None
 
 for line in open(sys.argv[1]):
 
-    if line == '\n':
+    if line == "\n":
         continue
 
     if filter_indent:
@@ -30,11 +30,11 @@ for line in open(sys.argv[1]):
         else:
             filter_indent = None
 
-    if line.strip().startswith('.. '):
+    if line.strip().startswith(".. "):
         start_block = True
         continue
 
-    if line.endswith('::\n'):
+    if line.endswith("::\n"):
         start_block = True
         continue
 
