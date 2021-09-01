@@ -1700,14 +1700,6 @@ class UnwantedBlockAlertTest(PeerAlertTest):
 class TorrentDeleteFailedAlertTest(TorrentAlertTest):
     ALERT_MASK = lt.alert_category.storage
 
-    def tearDown(self) -> None:
-        # Mark save_path writeable, to allow cleanup
-        os.chmod(self.dir.name, 0o777)
-        super().tearDown()
-
-    @unittest.skipIf(
-        sys.platform == "win32", "TODO: induce a consistent error on windows"
-    )
     def test_torrent_delete_failed_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
         wait_until_done_checking(handle, timeout=5)
@@ -1722,8 +1714,21 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
                         break
             except FileNotFoundError:
                 pass
-        # make the save_path read-only
-        os.chmod(self.dir.name, 0)
+
+        # Change the file to a non-empty directory, so libtorrent won't be able
+        # to delete it.
+        for _ in lib.loop_until_timeout(5):
+            # On Windows, we expect anti-virus software to prevent us from
+            # deleting the file for a short time.
+            try:
+                os.unlink(self.file_path)
+                break
+            except PermissionError:
+                pass
+        os.mkdir(self.file_path)
+        with open(os.path.join(self.file_path, "test.txt"), mode="wb") as fp:
+            pass
+
         # TODO: https://github.com/arvidn/libtorrent/issues/6158 : we'd like to
         # supply delete_files|delete_partfile here for safety, but it doesn't
         # currently work.
@@ -1738,7 +1743,12 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
         )
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.msg, alert.error.message())
-        self.assertEqual(alert.error.value(), errno.EACCES)
+        errno_value = alert.error.value()
+        # On non-Windows, the error value is an errno. On Windows it's a
+        # "winerror" value. This uses python's winerror-to-errno translation on
+        # Windows only.
+        errno_value = OSError(errno_value, "", None, errno_value).errno
+        self.assertEqual(errno_value, errno.ENOTEMPTY)
         self.assertEqual(alert.error.category(), lt.system_category())
         self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
         self.assertEqual(alert.info_hashes.v1, self.torrent.sha1_hash)
@@ -1755,8 +1765,21 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
             with open(self.file_path, mode="rb") as fp:
                 if fp.read() == self.torrent.files[0].data:
                     break
-        # make the save_path read-only
-        os.chmod(self.dir.name, 0)
+
+        # Change the file to a non-empty directory, so libtorrent won't be able
+        # to delete it.
+        for _ in lib.loop_until_timeout(5):
+            # On Windows, we expect anti-virus software to prevent us from
+            # deleting the file for a short time.
+            try:
+                os.unlink(self.file_path)
+                break
+            except PermissionError:
+                pass
+        os.mkdir(self.file_path)
+        with open(os.path.join(self.file_path, "test.txt"), mode="wb") as fp:
+            pass
+
         # remove the torrent and delete the torrent
         # TODO: https://github.com/arvidn/libtorrent/issues/6158 : we'd like to
         # supply delete_files|delete_partfile here for safety, but it doesn't
