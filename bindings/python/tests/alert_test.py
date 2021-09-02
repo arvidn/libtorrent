@@ -809,7 +809,9 @@ class TorrentErrorAlertTest(TorrentAlertTest):
         )
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.error.value(), int)
-        self.assertEqual(alert.error.category(), lt.system_category())
+        self.assertNotEqual(alert.error.value(), 0)
+        # NB: posix storage results in different error codes than mmap storage
+        self.assertIsInstance(alert.error.category(), lt.error_category)
 
 
 class TorrentFinishedAlertTest(TorrentAlertTest):
@@ -1103,7 +1105,9 @@ class FileErrorAlertTest(TorrentAlertTest):
         )
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.error.value(), int)
-        self.assertEqual(alert.error.category(), lt.system_category())
+        self.assertNotEqual(alert.error.value(), 0)
+        # NB: posix storage results in different error codes than mmap storage
+        self.assertIsInstance(alert.error.category(), lt.error_category)
         self.assertEqual(alert.filename(), self.file_path)
         self.assertEqual(alert.file, self.file_path)
         self.assertEqual(alert.msg, alert.error.message())
@@ -1477,7 +1481,8 @@ class FileRenameFailedAlertTest(TorrentAlertTest):
         self.assert_alert(alert, lt.alert_category.storage, "file_rename_failed")
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.index, 0)
-        self.assertEqual(alert.error.category(), lt.system_category())
+        # NB: posix storage results in different error codes than mmap storage
+        self.assertIsInstance(alert.error.category(), lt.error_category)
         self.assertIsInstance(alert.error.value(), int)
         self.assertNotEqual(alert.error.value(), 0)
 
