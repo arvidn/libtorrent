@@ -20,7 +20,7 @@ jobs:
          matrix:
            include:
              - config: address-model=32
-             - config: address-model=64 crypto=openssl "openssl-lib=C:\Program Files\OpenSSL-Win64\lib" "openssl-include=C:\Program Files\OpenSSL-Win64\include"
+             - config: address-model=64 crypto=openssl
              - config: release
 
       steps:
