@@ -17,6 +17,10 @@ import threading
 import tempfile
 import socket
 import select
+import logging
+import ssl
+import http.server
+import functools
 
 import dummy_data
 
@@ -992,6 +996,160 @@ class test_dht_settings(unittest.TestCase):
         print(ds.block_ratelimit)
         print(ds.read_only)
         print(ds.item_lifetime)
+
+
+def get_isolated_settings():
+    return {
+        "enable_dht": False,
+        "enable_lsd": False,
+        "enable_natpmp": False,
+        "enable_upnp": False,
+        "listen_interfaces": "127.0.0.1:0",
+        "dht_bootstrap_nodes": "",
+    }
+
+
+def loop_until_timeout(timeout, msg="condition"):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        yield
+    raise AssertionError(f"{msg} timed out")
+
+
+def unlink_all_files(path):
+    for dirpath, _, filenames in os.walk(path):
+        for filename in filenames:
+            filepath = os.path.join(dirpath, filename)
+            os.unlink(filepath)
+
+
+# In test cases where libtorrent writes torrent data in a temporary directory,
+# cleaning up the tempdir on Windows CI sometimes fails with a PermissionError
+# having WinError 5 (Access Denied). I can't repro this WinError in any way;
+# holding an open file handle results in a different WinError. Seems to be a
+# race condition which only happens with very short-lived tests which write
+# data. Work around by cleaning up the tempdir in a loop.
+
+# TODO: why is this necessary?
+def cleanup_with_windows_fix(tempdir, *, timeout):
+    # Clean up just the files, so we don't have to bother with depth-first
+    # traversal
+    for _ in loop_until_timeout(timeout, msg="PermissionError clear"):
+        try:
+            unlink_all_files(tempdir.name)
+        except PermissionError:
+            if sys.platform == "win32":
+                # current release of mypy doesn't know about winerror
+                # if exc.winerror == 5:
+                continue
+            raise
+        break
+    # This removes directories in depth-first traversal.
+    # It also marks the tempdir as explicitly cleaned so it doesn't trigger a
+    # ResourceWarning.
+    tempdir.cleanup()
+
+
+def wait_for(session, alert_type, *, timeout, prefix=None):
+    # Return the first alert of type, but log all alerts.
+    result = None
+    for _ in loop_until_timeout(timeout, msg=alert_type.__name__):
+        for alert in session.pop_alerts():
+            print(f"{alert.what()}: {alert.message()}")
+            if result is None and isinstance(alert, alert_type):
+                result = alert
+        if result is not None:
+            return result
+    raise AssertionError("unreachable")
+
+
+class LambdaRequestHandler(http.server.BaseHTTPRequestHandler):
+    default_request_version = "HTTP/1.1"
+
+    def __init__(self, get_data, *args, **kwargs):
+        self.get_data = get_data
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self):
+        print(f"mock tracker request: {self.requestline}")
+        data = self.get_data()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+class SSLTrackerAlertTest(unittest.TestCase):
+
+    def setUp(self):
+        self.cert_path = os.path.realpath(os.path.join(
+            os.path.dirname(__file__), "..", "..", "test", "ssl", "server.pem"
+        ))
+        print(f"cert_path = {self.cert_path}")
+
+        self.tracker_response = {
+            b"external ip": b"\x01\x02\x03\x04",
+        }
+        self.tracker = http.server.HTTPServer(
+            ("127.0.0.1", 0),
+            functools.partial(
+                LambdaRequestHandler, lambda: lt.bencode(self.tracker_response)
+            ),
+        )
+        self.ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.ctx.load_cert_chain(self.cert_path)
+        self.tracker.socket = self.ctx.wrap_socket(
+            self.tracker.socket, server_side=True
+        )
+        self.tracker_thread = threading.Thread(target=self.tracker.serve_forever)
+        self.tracker_thread.start()
+        # HTTPServer.server_name seems to resolve to things like
+        # "localhost.localdomain"
+        port = self.tracker.server_port
+        self.tracker_url = f"https://127.0.0.1:{port}/announce"
+        print(f"mock tracker url = {self.tracker_url}")
+
+        self.settings = get_isolated_settings()
+        self.settings["alert_mask"] = lt.alert_category.status
+        # I couldn't get validation to work on all platforms. Setting
+        # SSL_CERT_FILE to our self-signed cert works on linux and mac, but
+        # not on Windows.
+        self.settings["validate_https_trackers"] = False
+        self.session = lt.session(self.settings)
+        self.dir = tempfile.TemporaryDirectory()
+        self.atp = lt.add_torrent_params()
+        self.atp.info_hash = dummy_data.get_sha1_hash()
+        self.atp.flags &= ~lt.torrent_flags.auto_managed
+        self.atp.flags &= ~lt.torrent_flags.paused
+        self.atp.save_path = self.dir.name
+
+    def tearDown(self):
+        # we do this because sessions writing data can collide with
+        # cleaning up temporary directories. session.abort() isn't bound
+        handles = self.session.get_torrents()
+        for handle in handles:
+            self.session.remove_torrent(handle)
+        for _ in loop_until_timeout(5, msg="clear all handles"):
+            if not any(handle.is_valid() for handle in handles):
+                break
+        cleanup_with_windows_fix(self.dir, timeout=5)
+        self.tracker.shutdown()
+        # Explicitly clean up server sockets, to avoid ResourceWarning
+        self.tracker.server_close()
+
+    def test_external_ip_alert_via_ssl_tracker(self):
+        handle = self.session.add_torrent(self.atp)
+        handle.add_tracker({"url": self.tracker_url})
+
+        alert = wait_for(self.session, lt.external_ip_alert, timeout=60)
+
+        self.assertEqual(alert.category(), lt.alert_category.status)
+        self.assertEqual(alert.what(), "external_ip")
+        self.assertIsInstance(alert.message(), str)
+        self.assertNotEqual(alert.message(), "")
+        self.assertEqual(str(alert), alert.message())
+        self.assertEqual(alert.external_address, "1.2.3.4")
 
 
 if __name__ == '__main__':
