@@ -385,6 +385,8 @@ class LibtorrentBuildExt(BuildExtBase):
             self._maybe_add_arg("boost-link=shared")
             self._maybe_add_arg("libtorrent-link=prebuilt")
 
+        self._maybe_add_arg("crypto=openssl")
+
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
             self._maybe_add_arg("--debug-building")
