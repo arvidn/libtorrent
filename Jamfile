@@ -367,11 +367,11 @@ rule openssl-lib-path ( properties * )
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_LIB) = ""
 	{
-		# on windows, assume openssl is installed to c:\OpenSSL-Win32
-		if <address-model>64 in $(properties)
-		{ OPENSSL_LIB = c:\\OpenSSL-Win64\\lib ; }
-		else
-		{ OPENSSL_LIB = c:\\OpenSSL-Win32\\lib ; }
+		# the de-facto windows installer is https://slproweb.com/products/Win32OpenSSL.html, which installs to c:\Program Files\OpenSSL-Win{32,64}.
+		# chocolatey appears to use this installer.
+		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
+		OPENSSL_LIB += "C:/Program Files/OpenSSL-Win$(address_model)/lib" ;
+		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
 	}
 
 	local result ;
@@ -394,11 +394,11 @@ rule openssl-include-path ( properties * )
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
 	{
-		# on windows, assume openssl is installed to c:\OpenSSL-Win32
-		if <address-model>64 in $(properties)
-		{ OPENSSL_INCLUDE = c:\\OpenSSL-Win64\\include ; }
-		else
-		{ OPENSSL_INCLUDE = c:\\OpenSSL-Win32\\include ; }
+		# the de-facto windows installer is https://slproweb.com/products/Win32OpenSSL.html, which installs to c:\Program Files\OpenSSL-Win{32,64}.
+		# chocolatey appears to use this installer.
+		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
+		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL-Win$(address_model)/include" ;
+		OPENSSL_INCLUDE += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/include" ;
 	}
 
 	local result ;
