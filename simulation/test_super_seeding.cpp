@@ -29,7 +29,7 @@ TORRENT_TEST(super_seeding)
 		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int, lt::session&) -> bool
-		{ return true; });
+		{ return false; });
 }
 
 TORRENT_TEST(superseed_no_redundant_have)
@@ -73,7 +73,7 @@ TORRENT_TEST(strict_super_seeding)
 		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int, lt::session&) -> bool
-		{ return true; });
+		{ return false; });
 }
 #endif
 #else
