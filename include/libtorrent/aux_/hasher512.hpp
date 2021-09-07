@@ -33,9 +33,9 @@ see LICENSE file.
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
-	extern "C" {
-	#include <openssl/sha.h>
-	}
+extern "C" {
+#include <openssl/evp.h>
+}
 
 #else
 #include "libtorrent/aux_/sha512.hpp"
@@ -73,6 +73,8 @@ namespace aux {
 		explicit hasher512(span<char const> data);
 		hasher512(hasher512 const&);
 		hasher512& operator=(hasher512 const&) &;
+		hasher512(hasher512&&);
+		hasher512& operator=(hasher512&&) &;
 
 		// append the following bytes to what is being hashed
 		hasher512& update(span<char const> data);
@@ -99,7 +101,7 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		aux::crypt_hash<CALG_SHA_512, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_CTX m_context;
+		EVP_MD_CTX *m_context = nullptr;
 #else
 		sha512_ctx m_context;
 #endif

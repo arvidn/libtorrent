@@ -40,7 +40,7 @@ see LICENSE file.
 #elif defined TORRENT_USE_LIBCRYPTO
 
 extern "C" {
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 }
 
 #else
@@ -81,6 +81,8 @@ TORRENT_CRYPTO_NAMESPACE
 		explicit hasher(span<char const> data);
 		hasher(hasher const&);
 		hasher& operator=(hasher const&) &;
+		hasher(hasher&&);
+		hasher& operator=(hasher&&) &;
 
 		// append the following bytes to what is being hashed
 		hasher& update(span<char const> data);
@@ -108,7 +110,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA_CTX m_context;
+		EVP_MD_CTX *m_context = nullptr;
 #else
 		aux::sha1_ctx m_context;
 #endif
@@ -125,6 +127,8 @@ TORRENT_CRYPTO_NAMESPACE
 		explicit hasher256(span<char const> data);
 		hasher256(hasher256 const&);
 		hasher256& operator=(hasher256 const&) &;
+		hasher256(hasher256&&);
+		hasher256& operator=(hasher256&&) &;
 
 		// append the following bytes to what is being hashed
 		hasher256& update(span<char const> data);
@@ -150,7 +154,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_CTX m_context;
+		EVP_MD_CTX *m_context = nullptr;
 #else
 		aux::sha256_ctx m_context;
 #endif
