@@ -66,4 +66,18 @@ TORRENT_TEST(hasher512_test_vec1)
 	);
 }
 
+TORRENT_TEST(hasher512_move)
+{
+	std::string const input = "abc";
+	std::string const digest = aux::hasher512(input).final().to_string();
+
+	aux::hasher512 tmp1(input);
+	aux::hasher512 h1(std::move(tmp1));
+	TEST_EQUAL(h1.final().to_string(), digest);
+
+	aux::hasher512 tmp2(input);
+	aux::hasher512 h2 = std::move(tmp2);
+	TEST_EQUAL(h2.final().to_string(), digest);
+}
+
 #endif // TORRENT_DISABLE_DHT

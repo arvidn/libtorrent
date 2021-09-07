@@ -61,6 +61,20 @@ void test_vector(string_view s, string_view output, int const n = 1)
 	TEST_EQUAL(output_hex, digest_hex);
 }
 
+template<typename T>
+void test_move(string_view const input)
+{
+	std::string const digest = T(input).final().to_string();
+
+	T tmp1(input);
+	T h1(std::move(tmp1));
+	TEST_EQUAL(h1.final().to_string(), digest);
+
+	T tmp2(input);
+	T h2 = std::move(tmp2);
+	TEST_EQUAL(h2.final().to_string(), digest);
+}
+
 }
 
 TORRENT_TEST(hasher)
@@ -75,6 +89,11 @@ TORRENT_TEST(hasher)
 		aux::from_hex(t.hex_output, result.data());
 		TEST_CHECK(result == h.final());
 	}
+}
+
+TORRENT_TEST(hasher_move)
+{
+	test_move<hasher>("abc");
 }
 
 // http://www.di-mgt.com.au/sha_testvectors.html
@@ -121,3 +140,7 @@ TORRENT_TEST(hasher256)
 	}
 }
 
+TORRENT_TEST(hasher256_move)
+{
+	test_move<hasher256>("abc");
+}

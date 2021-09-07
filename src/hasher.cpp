@@ -15,6 +15,10 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 
+#if defined TORRENT_USE_LIBCRYPTO
+#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
+#endif
+
 namespace libtorrent {
 
 TORRENT_CRYPTO_NAMESPACE
@@ -28,7 +32,12 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Init(&m_context);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		m_context = EVP_MD_CTX_new();
+#else
+		m_context = EVP_MD_CTX_create();
+#endif
+		EVP_DigestInit_ex(m_context, EVP_sha1(), nullptr);
 #else
 		aux::SHA1_init(&m_context);
 #endif
@@ -60,9 +69,38 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
 	}
+#elif defined TORRENT_USE_LIBCRYPTO
+	hasher::hasher(hasher const& h)
+		: hasher()
+	{
+		EVP_MD_CTX_copy_ex(m_context, h.m_context);
+	}
+
+	hasher& hasher::operator=(hasher const& h) &
+	{
+		if (this == &h) return *this;
+		EVP_MD_CTX_copy_ex(m_context, h.m_context);
+		return *this;
+	}
 #else
 	hasher::hasher(hasher const&) = default;
 	hasher& hasher::operator=(hasher const&) & = default;
+#endif
+
+#if defined TORRENT_USE_LIBCRYPTO
+	hasher::hasher(hasher&& h)
+	{
+		std::swap(m_context, h.m_context);
+	}
+
+	hasher& hasher::operator=(hasher&& h) &
+	{
+		std::swap(m_context, h.m_context);
+		return *this;
+	}
+#else
+	hasher::hasher(hasher&&) = default;
+	hasher& hasher::operator=(hasher&&) & = default;
 #endif
 
 	hasher& hasher::update(char const* data, int len)
@@ -82,7 +120,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+		EVP_DigestUpdate(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #else
 		aux::SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
@@ -104,7 +142,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+		EVP_DigestFinal_ex(m_context, reinterpret_cast<unsigned char*>(digest.data()), nullptr);
 #else
 		aux::SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
@@ -122,7 +160,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Init(&m_context);
+		EVP_DigestInit_ex(m_context, EVP_sha1(), nullptr);
 #else
 		aux::SHA1_init(&m_context);
 #endif
@@ -132,6 +170,12 @@ TORRENT_CRYPTO_NAMESPACE
 	{
 #if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
+#elif defined TORRENT_USE_LIBCRYPTO
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		if (m_context) EVP_MD_CTX_free(m_context);
+#else
+		if (m_context) EVP_MD_CTX_destroy(m_context);
+#endif
 #endif
 	}
 
@@ -144,7 +188,12 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_Init(&m_context);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		m_context = EVP_MD_CTX_new();
+#else
+		m_context = EVP_MD_CTX_create();
+#endif
+		EVP_DigestInit_ex(m_context, EVP_sha256(), nullptr);
 #else
 		aux::SHA256_init(m_context);
 #endif
@@ -176,9 +225,38 @@ TORRENT_CRYPTO_NAMESPACE
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
 	}
+#elif defined TORRENT_USE_LIBCRYPTO
+	hasher256::hasher256(hasher256 const& h)
+		: hasher256()
+	{
+		EVP_MD_CTX_copy_ex(m_context, h.m_context);
+	}
+
+	hasher256& hasher256::operator=(hasher256 const& h) &
+	{
+		if (this == &h) return *this;
+		EVP_MD_CTX_copy_ex(m_context, h.m_context);
+		return *this;
+	}
 #else
 	hasher256::hasher256(hasher256 const&) = default;
 	hasher256& hasher256::operator=(hasher256 const&) & = default;
+#endif
+
+#if defined TORRENT_USE_LIBCRYPTO
+	hasher256::hasher256(hasher256&& h)
+	{
+		std::swap(m_context, h.m_context);
+	}
+
+	hasher256& hasher256::operator=(hasher256&& h) &
+	{
+		std::swap(m_context, h.m_context);
+		return *this;
+	}
+#else
+	hasher256::hasher256(hasher256&&) = default;
+	hasher256& hasher256::operator=(hasher256&&) & = default;
 #endif
 
 	hasher256& hasher256::update(char const* data, int len)
@@ -198,7 +276,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
+		EVP_DigestUpdate(m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
 #else
 		aux::SHA256_update(m_context, reinterpret_cast<unsigned char const*>(data.data())
@@ -220,7 +298,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+		EVP_DigestFinal_ex(m_context, reinterpret_cast<unsigned char*>(digest.data()), nullptr);
 #else
 		aux::SHA256_final(reinterpret_cast<unsigned char*>(digest.data()), m_context);
 #endif
@@ -238,7 +316,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA256_Init(&m_context);
+		EVP_DigestInit_ex(m_context, EVP_sha256(), nullptr);
 #else
 		aux::SHA256_init(m_context);
 #endif
@@ -248,6 +326,12 @@ TORRENT_CRYPTO_NAMESPACE
 	{
 #if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
+#elif defined TORRENT_USE_LIBCRYPTO
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		if (m_context) EVP_MD_CTX_free(m_context);
+#else
+		if (m_context) EVP_MD_CTX_destroy(m_context);
+#endif
 #endif
 	}
 
