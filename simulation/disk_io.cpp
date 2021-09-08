@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "disk_io.hpp"
+#include "utils.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -309,14 +310,13 @@ struct test_disk_io final : lt::disk_interface
 		TORRENT_ASSERT((r.start % lt::default_block_size) == 0);
 		TORRENT_ASSERT((r.length <= lt::default_block_size));
 
-		// this block should have been written
-		TORRENT_ASSERT(m_have.get_bit(block_index(r)));
-
 		auto const seek_time = disk_seek(r.piece, r.start, lt::default_block_size);
 
 		queue_event(seek_time + m_state.read_time, [this,r, h=std::move(h)] () mutable {
 			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], r.length);
-			generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
+
+			if (m_have.get_bit(block_index(r)))
+				generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });
 		});
@@ -402,8 +402,12 @@ struct test_disk_io final : lt::disk_interface
 			{
 				if (!m_have.get_bit(block_idx + i))
 				{
-					// If we're missing a block, return an invalida hash
-					post(m_ioc, [h=std::move(h), piece]{ h(piece, lt::sha1_hash{}, lt::storage_error{}); });
+					lt::sha1_hash ph{};
+					for (auto& h : block_hashes)
+						h = rand_sha256();
+					ph = rand_sha1();
+					// If we're missing a block, return an invalid hash
+					post(m_ioc, [h=std::move(h), piece, ph]{ h(piece, ph, lt::storage_error{}); });
 					return;
 				}
 			}
