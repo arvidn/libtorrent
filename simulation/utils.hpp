@@ -88,5 +88,8 @@ void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
 		= [](lt::session&, lt::alert const*) {}, int idx = 0);
 
+lt::sha256_hash rand_sha256();
+lt::sha1_hash rand_sha1();
+
 #endif
 
