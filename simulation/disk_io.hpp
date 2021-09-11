@@ -50,7 +50,7 @@ void generate_block(char* b, lt::peer_request const& r);
 std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	, int const num_pieces, lt::create_flags_t const flags);
 lt::add_torrent_params create_test_torrent(
-	int const num_pieces, lt::create_flags_t const flags);
+	int const num_pieces, lt::create_flags_t const flags, int const blocks_per_piece = 2);
 
 struct test_disk
 {
@@ -70,6 +70,12 @@ struct test_disk
 	{
 		auto ret = *this;
 		ret.recover_full_disk = true;
+		return ret;
+	}
+	test_disk send_corrupt_data(int const blocks) const
+	{
+		auto ret = *this;
+		ret.corrupt_data_in = blocks;
 		return ret;
 	}
 
@@ -94,9 +100,16 @@ struct test_disk
 	// read time per block
 	lt::time_duration read_time = lt::microseconds(1);
 
+	// we have all files, with valid data
 	bool seed = false;
-	bool recover_full_disk = false;
-	int space_left = std::numeric_limits<int>::max();
 
+	// after having failed with disk-full error, reset space_left to int_max
+	bool recover_full_disk = false;
+
+	// after sending this many blocks, send corrupt data
+	int corrupt_data_in = std::numeric_limits<int>::max();
+
+	// after having written this many bytes, fail with disk-full
+	int space_left = std::numeric_limits<int>::max();
 };
 

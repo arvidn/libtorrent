@@ -73,7 +73,8 @@ void run_test(
 	, HandleAlerts const& on_alert
 	, Test const& test
 	, test_transfer_flags_t flags = {}
-	, test_disk const disk_constructor = test_disk()
+	, test_disk const downloader_disk_constructor = test_disk()
+	, test_disk const seed_disk_constructor = test_disk()
 	, lt::seconds const timeout = lt::seconds(60)
 	)
 {
@@ -124,12 +125,12 @@ void run_test(
 
 	// session 0 is a downloader, session 1 is a seed
 
-	params.disk_io_constructor = disk_constructor;
+	params.disk_io_constructor = downloader_disk_constructor;
 	ses[0] = std::make_shared<lt::session>(params, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
 
-	params.disk_io_constructor = test_disk().set_seed();
+	params.disk_io_constructor = seed_disk_constructor.set_seed();
 	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	setup(*ses[0], *ses[1]);
@@ -148,7 +149,9 @@ void run_test(
 	lt::add_torrent_params atp = ::create_test_torrent(10
 		, (flags & tx::v2_only) ? create_torrent::v2_only
 		: (flags & tx::v1_only) ? create_torrent::v1_only
-		: create_flags_t{});
+		: create_flags_t{}
+		, (flags & tx::small_pieces) ? 1 : 2
+		);
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
 
@@ -406,6 +409,46 @@ TORRENT_TEST(v2_only_magnet)
 	TEST_EQUAL(passed.size(), 10);
 }
 
+TORRENT_TEST(v2_only_magnet_corrupt_data)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), false);
+		}
+		, tx::v2_only | tx::magnet_download
+		, test_disk()
+		, test_disk().send_corrupt_data(5 * 2)
+	);
+	TEST_EQUAL(passed.size(), 5);
+}
+
+TORRENT_TEST(v2_only_magnet_corrupt_data_small_pieces)
+{
+	using namespace lt;
+	std::set<piece_index_t> passed;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* pf = alert_cast<piece_finished_alert>(a))
+				passed.insert(pf->piece_index);
+		},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), false);
+		}
+		, tx::v2_only | tx::magnet_download | tx::small_pieces
+		, test_disk()
+		, test_disk().send_corrupt_data(5)
+	);
+	TEST_EQUAL(passed.size(), 5);
+}
+
 TORRENT_TEST(v1_only)
 {
 	using namespace lt;
@@ -490,10 +533,10 @@ TORRENT_TEST(disk_full)
 		[](lt::session&, lt::alert const*) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			// the disk filled up, we failed to complete the download
-			TEST_EQUAL(!is_seed(*ses[0]), true);
+			TEST_EQUAL(is_seed(*ses[0]), false);
 		}
 		, {}
-		, test_disk().set_space_left(10 * lt::default_block_size)
+		, test_disk().set_space_left(5 * lt::default_block_size)
 	);
 }
 
@@ -521,6 +564,7 @@ TORRENT_TEST(disk_full_recover)
 		}
 		, {}
 		, test_disk().set_space_left(10 * lt::default_block_size).set_recover_full_disk()
+		, test_disk()
 		, lt::seconds(65)
 	);
 }
