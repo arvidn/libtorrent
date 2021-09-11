@@ -6736,7 +6736,12 @@ namespace {
 				std::vector<char> out_layer;
 				out_layer.reserve(layer.size() * sha256_hash::size());
 				for (auto const& h : layer)
+				{
+					// we're missing a piece layer. We can't return a valid
+					// torrent
+					if (h.is_all_zeros()) return {};
 					out_layer.insert(out_layer.end(), h.data(), h.data() + sha256_hash::size());
+				}
 				v2_hashes.emplace_back(std::move(out_layer));
 			}
 			ret->set_piece_layers(std::move(v2_hashes));
