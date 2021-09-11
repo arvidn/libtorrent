@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
+#include "libtorrent/random.hpp"
 
 #include <utility> // for exchange()
 
@@ -240,10 +241,10 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 }
 
 lt::add_torrent_params create_test_torrent(
-	int const num_pieces, lt::create_flags_t const flags)
+	int const num_pieces, lt::create_flags_t const flags, int const blocks_per_piece)
 {
 	lt::add_torrent_params params;
-	params.ti = ::create_test_torrent(lt::default_block_size * 2, num_pieces, flags);
+	params.ti = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags);
 	// this is unused by the test disk I/O
 	params.save_path = ".";
 	return params;
@@ -316,7 +317,12 @@ struct test_disk_io final : lt::disk_interface
 			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], r.length);
 
 			if (m_have.get_bit(block_index(r)))
-				generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
+			{
+				if (m_state.corrupt_data_in-- <= 0)
+					lt::aux::random_bytes(buf);
+				else
+					generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
+			}
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });
 		});

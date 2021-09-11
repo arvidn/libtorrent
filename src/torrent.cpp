@@ -6655,7 +6655,6 @@ namespace {
 		need_hash_picker();
 		if (!m_hash_picker) return true;
 		add_hashes_result result = m_hash_picker->add_hashes(req, hashes);
-		TORRENT_ASSERT(!(!result.hash_failed.empty() && result.valid));
 		for (auto& p : result.hash_failed)
 		{
 			if (torrent_file().info_hashes().has_v1() && have_piece(p.first))
