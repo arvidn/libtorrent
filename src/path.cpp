@@ -524,7 +524,7 @@ namespace {
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
-		int const permissions = S_IRUSR | S_IWUSR
+		mode_t const permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 

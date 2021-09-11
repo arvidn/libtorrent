@@ -298,11 +298,11 @@ namespace {
 			;
 	}
 
-	int file_perms(open_mode_t const mode)
+	mode_t file_perms(open_mode_t const mode)
 	{
 		// rely on default umask to filter x and w permissions
 		// for group and others
-		int permissions = S_IRUSR | S_IWUSR
+		mode_t permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
