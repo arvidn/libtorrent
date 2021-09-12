@@ -545,7 +545,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
 		// determine address
-		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
+		if (ifa->ifa_addr) rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		if (rv.interface_address.is_unspecified()) return false;
 
 		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
