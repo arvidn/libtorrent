@@ -1,3 +1,4 @@
+	* fix torrent_file_with_hashes() to fail when we don't have the piece layers
 	* restore path character encoding conversion for non UTF-8 locales on linux
 	* fix use-after-free bug in make_magnet_uri
 	* add write_torrent_file() to produce a .torrent file from add_torrent_params
