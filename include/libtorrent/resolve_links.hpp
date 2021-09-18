@@ -44,10 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/fwd.hpp"
-
+#include "libtorrent/sha1_hash.hpp"
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+namespace aux
+{
+	using composite_hash = digest32<sha256_hash::size() * 8 + 64>;
+}
+
 	// this class is used for mutable torrents, to discover identical files
 	// in other torrents.
 	struct TORRENT_EXTRA_EXPORT resolve_links
@@ -85,6 +90,8 @@ namespace libtorrent {
 
 		// maps file size to file index, in m_torrent_file
 		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
+		// maps v2 size/root hash to file index, in m_torrent_file
+		std::unordered_map<aux::composite_hash, file_index_t> m_file_roots{};
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

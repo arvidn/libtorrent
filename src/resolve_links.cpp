@@ -38,6 +38,18 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+namespace aux {
+	aux::composite_hash make_composite_hash(std::int64_t size, const sha256_hash &hash)
+	{
+		aux::composite_hash combined;
+		std::copy(hash.begin(), hash.end(), combined.begin());
+		for(auto next = combined.begin() + hash.size(); next != combined.end(); next++)
+		{
+			*next = (char) (size >> 8);
+		}
+		return combined;
+	}
+}
 resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 	: m_torrent_file(ti)
 {
@@ -47,15 +59,18 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 
 	file_storage const& fs = ti->files();
 	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
+	m_file_roots.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
 	for (auto const i : fs.file_range())
 	{
-		// don't match pad-files, and don't match files that aren't aligned to
-		// pieces. Files are matched by comparing piece hashes, so pieces must
-		// be aligned and the same size
+		// don't match pad-files.  For v1 torrents don't match files that aren't aligned to
+		// pieces. Files are matched by comparing piece hashes for v1, so pieces must
+		// be aligned and the same size.  For v2 files are matched by size and roothash.
 		if (fs.pad_file_at(i)) continue;
-		if ((fs.file_offset(i) % piece_size) != 0) continue;
-
-		m_file_sizes.insert(std::make_pair(fs.file_size(i), i));
+		if (ti->v2()) {
+			m_file_roots.insert(std::make_pair(aux::make_composite_hash(fs.file_size(i), fs.root(i)),i));
+		} else if ((fs.file_offset(i) % piece_size) == 0) {
+			m_file_sizes.insert(std::make_pair(fs.file_size(i), i));
+		}
 	}
 
 	m_links.resize(m_torrent_file->num_files());
@@ -145,22 +160,20 @@ void resolve_links::match_v1(std::shared_ptr<const torrent_info> const& ti
 void resolve_links::match_v2(std::shared_ptr<const torrent_info> const& ti
 	, std::string const& save_path)
 {
-	file_storage const& other_fs = ti->files();
-	file_storage const& own_fs = m_torrent_file->files();
-	std::unordered_map<sha256_hash, file_index_t> other_roots{};
-	for (auto const i : other_fs.file_range())
-	{
-		other_roots.insert({other_fs.root(i),i});
-	}
+	// We are all matched up so dont bother
+	if (m_file_roots.empty()) return;
 
-	for (auto const i : own_fs.file_range())
+	file_storage const& fs = ti->files();
+	for (auto const i : fs.file_range())
 	{
-		auto found = other_roots.find(own_fs.root(i));
-		if (found != other_roots.end())
+		if (fs.pad_file_at(i)) continue;
+		auto const root_match = m_file_roots.find(aux::make_composite_hash(fs.file_size(i), fs.root(i)));
+		if (root_match != m_file_roots.end())
 		{
-			m_links[i].ti = ti;
-			m_links[i].save_path = save_path;
-			m_links[i].file_idx = found->second;
+			m_links[root_match->second].ti = ti;
+			m_links[root_match->second].save_path = save_path;
+			m_links[root_match->second].file_idx = i;
+			m_file_roots.erase(root_match);
 		}
 	}
 }
