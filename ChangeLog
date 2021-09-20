@@ -1,3 +1,4 @@
+	* fix build configuration issue on NetBSD, OpenBSD and DragonFly
 	* make UTF-8 sanitization a bit stricter. This will re-write invalid UTF-8
 	  code points encoding surrogate pairs
 	* fix restoring last_seen_complete from resume data
