@@ -170,12 +170,20 @@ void run_test(
 		auto h = ses[0]->get_torrents();
 		auto ti = h[0].torrent_file_with_hashes();
 
-		if (ti->v2())
-			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+		// if we're a seed, we should definitely have the torrent info. If we're
+		// note a seed, we may still have the torrent_info in case it's a v1
+		// torrent
+		if (is_seed(*ses[0])) TEST_CHECK(ti);
 
-		auto downloaded = serialize(*ti);
-		auto added = serialize(*torrent);
-		TEST_CHECK(downloaded == added);
+		if (ti)
+		{
+			if (ti->v2())
+				TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
+
+			auto downloaded = serialize(*ti);
+			auto added = serialize(*torrent);
+			TEST_CHECK(downloaded == added);
+		}
 
 		test(ses);
 
@@ -220,6 +228,30 @@ struct expect_seed
 	}
 	bool m_expect;
 };
+
+int blocks_per_piece(test_transfer_flags_t const flags)
+{
+	if (flags & tx::small_pieces) return 1;
+	if (flags & tx::large_pieces) return 4;
+	return 2;
+}
+
+int num_pieces(test_transfer_flags_t const flags)
+{
+	if (flags & tx::multiple_files) return 30;
+	return 10;
+}
+
+std::ostream& operator<<(std::ostream& os, existing_files_mode const mode)
+{
+	switch (mode)
+	{
+		case existing_files_mode::no_files: return os << "no_files";
+		case existing_files_mode::full_invalid: return os << "full_invalid";
+		case existing_files_mode::partial_valid: return os << "partial_valid";
+		case existing_files_mode::full_valid: return os << "full_valid";
+	}
+}
 
 }
 
@@ -370,92 +402,67 @@ TORRENT_TEST(no_proxy_utp_banned)
 	);
 }
 
-TORRENT_TEST(v2_only)
+namespace {
+
+void run_matrix_test(test_transfer_flags_t const flags, existing_files_mode const files, bool const corruption)
 {
+	std::cout << "\n\nTEST CASE: "
+		<< ((flags & tx::small_pieces) ? "small-pieces" : (flags & tx::large_pieces) ? "large-pieces" : "normal-pieces")
+		<< "-" << (corruption ? "corruption" : "valid")
+		<< "-" << ((flags & tx::v2_only) ? "v2_only" : (flags & tx::v1_only) ? "v1_only" : "hybrid")
+		<< "-" << ((flags & tx::magnet_download) ? "magnet" : "torrent")
+		<< "-" << ((flags & tx::multiple_files) ? "multi_file" : "single_file")
+		<< "-" << files
+		<< "\n\n";
+
+	auto downloader_disk = test_disk().set_files(files);
+	auto seeder_disk = test_disk();
+	if (corruption) seeder_disk = seeder_disk.send_corrupt_data(num_pieces(flags) / 4 * blocks_per_piece(flags));
 	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(true),
-		tx::v2_only
-	);
-	TEST_EQUAL(passed.size(), 10);
+	run_test(no_init
+		, record_finished_pieces(passed)
+		, expect_seed(!corruption)
+		, flags
+		, downloader_disk
+		, seeder_disk
+		);
+
+	int const expected_pieces = num_pieces(flags);
+
+	// we we send some corrupt pieces, it's not straight-forward to predict
+	// exactly how many will pass the hash check, since a failure will cause
+	// a re-request and also a request of the block hashes (for v2 torrents)
+	if (corruption)
+	{
+		TEST_CHECK(passed.size() < expected_pieces);
+	}
+	else
+	{
+		TEST_EQUAL(passed.size(), expected_pieces);
+	}
 }
 
-TORRENT_TEST(v2_only_magnet)
-{
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(true),
-		tx::v2_only | tx::magnet_download
-	);
-	TEST_EQUAL(passed.size(), 10);
 }
 
-TORRENT_TEST(v2_only_magnet_multi_file)
+TORRENT_TEST(transfer_matrix)
 {
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(true),
-		tx::v2_only | tx::multiple_files | tx::magnet_download
-	);
-	TEST_EQUAL(passed.size(), 30);
-}
+	using fm = existing_files_mode;
 
-TORRENT_TEST(v2_only_magnet_large_pieces)
-{
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(true),
-		tx::v2_only | tx::large_pieces| tx::magnet_download
-	);
-	TEST_EQUAL(passed.size(), 10);
-}
+	for (test_transfer_flags_t piece_size : {test_transfer_flags_t{}, tx::small_pieces, tx::large_pieces})
+		for (bool corruption : {false, true})
+			for (test_transfer_flags_t bt_version : {test_transfer_flags_t{}, tx::v2_only, tx::v1_only})
+				for (test_transfer_flags_t magnet : {test_transfer_flags_t{}, tx::magnet_download})
+					for (test_transfer_flags_t multi_file : {test_transfer_flags_t{}, tx::multiple_files})
+						for (fm files : {fm::no_files, fm::full_invalid, fm::partial_valid})
+						{
+							// this will clear the history of all output we've printed so far.
+							// if we encounter an error from now on, we'll only print the relevant
+							// iteration
+							reset_output();
 
-TORRENT_TEST(v2_only_magnet_corrupt_data)
-{
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(false),
-		tx::v2_only | tx::magnet_download,
-		test_disk(),
-		test_disk().send_corrupt_data(5 * 2)
-	);
-	TEST_EQUAL(passed.size(), 5);
-}
-
-TORRENT_TEST(v2_only_magnet_corrupt_data_small_pieces)
-{
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(false),
-		tx::v2_only | tx::magnet_download | tx::small_pieces,
-		test_disk(),
-		test_disk().send_corrupt_data(5)
-	);
-	TEST_EQUAL(passed.size(), 5);
-}
-
-TORRENT_TEST(v1_only)
-{
-	std::set<piece_index_t> passed;
-	run_test(
-		no_init,
-		record_finished_pieces(passed),
-		expect_seed(true),
-		tx::v1_only
-	);
-	TEST_EQUAL(passed.size(), 10);
+							run_matrix_test(piece_size | bt_version | magnet | multi_file, files, corruption);
+							if (_g_test_failures > 0) return;
+						}
 }
 
 TORRENT_TEST(piece_extent_affinity)
