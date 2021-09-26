@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "disk_io.hpp"
 
 using namespace sim;
-
+using namespace lt;
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
@@ -78,8 +78,6 @@ void run_test(
 	, lt::seconds const timeout = lt::seconds(60)
 	)
 {
-	using namespace lt;
-
 	const bool use_ipv6 = bool(flags & tx::ipv6);
 
 	char const* peer0_ip[2] = { "50.0.0.1", "feed:face:baad:f00d::1" };
@@ -194,7 +192,6 @@ void run_test(
 
 TORRENT_TEST(socks4_tcp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -210,7 +207,6 @@ TORRENT_TEST(socks4_tcp)
 
 TORRENT_TEST(socks5_tcp_connect)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -226,7 +222,6 @@ TORRENT_TEST(socks5_tcp_connect)
 
 TORRENT_TEST(encryption_tcp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ enable_enc(ses0); enable_enc(ses1); },
@@ -239,7 +234,6 @@ TORRENT_TEST(encryption_tcp)
 
 TORRENT_TEST(no_proxy_tcp_ipv6)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -252,7 +246,6 @@ TORRENT_TEST(no_proxy_tcp_ipv6)
 
 TORRENT_TEST(no_proxy_utp_ipv6)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); },
@@ -268,7 +261,6 @@ TORRENT_TEST(no_proxy_utp_ipv6)
 /*
 TORRENT_TEST(socks5_tcp_ipv6)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -286,7 +278,6 @@ TORRENT_TEST(socks5_tcp_ipv6)
 
 TORRENT_TEST(no_proxy_tcp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -298,7 +289,6 @@ TORRENT_TEST(no_proxy_tcp)
 
 TORRENT_TEST(no_proxy_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); },
@@ -311,7 +301,6 @@ TORRENT_TEST(no_proxy_utp)
 
 TORRENT_TEST(encryption_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -329,7 +318,6 @@ TORRENT_TEST(encryption_utp)
 
 TORRENT_TEST(socks5_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -350,7 +338,6 @@ TORRENT_TEST(socks5_utp)
 // directly to each other, all other tests in here may be broken.
 TORRENT_TEST(no_proxy_tcp_banned)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session& ses1) { filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
@@ -362,7 +349,6 @@ TORRENT_TEST(no_proxy_tcp_banned)
 
 TORRENT_TEST(no_proxy_utp_banned)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); filter_ips(ses1); },
@@ -375,7 +361,6 @@ TORRENT_TEST(no_proxy_utp_banned)
 
 TORRENT_TEST(v2_only)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1) {},
@@ -393,7 +378,6 @@ TORRENT_TEST(v2_only)
 
 TORRENT_TEST(v2_only_magnet)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1) {},
@@ -411,7 +395,6 @@ TORRENT_TEST(v2_only_magnet)
 
 TORRENT_TEST(v2_only_magnet_corrupt_data)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1) {},
@@ -431,7 +414,6 @@ TORRENT_TEST(v2_only_magnet_corrupt_data)
 
 TORRENT_TEST(v2_only_magnet_corrupt_data_small_pieces)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1) {},
@@ -451,7 +433,6 @@ TORRENT_TEST(v2_only_magnet_corrupt_data_small_pieces)
 
 TORRENT_TEST(v1_only)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1) {},
@@ -469,7 +450,6 @@ TORRENT_TEST(v1_only)
 
 TORRENT_TEST(piece_extent_affinity)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -487,7 +467,6 @@ TORRENT_TEST(piece_extent_affinity)
 
 TORRENT_TEST(is_finished)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session& ses, lt::alert const* a) {
@@ -509,7 +488,6 @@ TORRENT_TEST(is_finished)
 
 TORRENT_TEST(v1_only_magnet)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
 		[](lt::session&, lt::session&) {},
@@ -527,7 +505,6 @@ TORRENT_TEST(v1_only_magnet)
 
 TORRENT_TEST(disk_full)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -542,7 +519,6 @@ TORRENT_TEST(disk_full)
 
 TORRENT_TEST(disk_full_recover)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session&)
 		{
@@ -573,8 +549,6 @@ TORRENT_TEST(disk_full_recover)
 // traits
 void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 {
-	using namespace lt;
-
 	using asio::ip::address;
 	address peer0 = addr("50.0.0.1");
 	address peer1 = addr("50.0.0.2");
