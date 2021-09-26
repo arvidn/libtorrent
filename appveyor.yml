@@ -60,26 +60,26 @@ build_script:
   # examples
   - cd %ROOT_DIRECTORY%\examples
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on openssl-lib="c:\\OpenSSL-Win%model%\\lib" openssl-include="c:\\OpenSSL-Win%model%\\include"
     )
 
   # tools
   - cd %ROOT_DIRECTORY%\tools
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on openssl-lib="c:\\OpenSSL-Win%model%\\lib" openssl-include="c:\\OpenSSL-Win%model%\\include"
     )
 
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on testing.execute=off
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on openssl-lib="c:\\OpenSSL-Win%model%\\lib" openssl-include="c:\\OpenSSL-Win%model%\\include" testing.execute=off
     )
 
   # python binding
   - cd %ROOT_DIRECTORY%\bindings\python
   # we use 64 bit python builds
   - if defined python (
-    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on libtorrent-link=shared stage_module stage_dependencies
+    b2.exe --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on openssl-lib="c:\\OpenSSL-Win%model%\\lib" openssl-include="c:\\OpenSSL-Win%model%\\include" libtorrent-link=shared stage_module stage_dependencies
     )
 
   # simulations
@@ -99,7 +99,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined bjam (
-    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on
+    appveyor-retry b2.exe -l500 --hash openssl-version=pre1.1 warnings=all warnings-as-errors=on -j %NUMBER_OF_PROCESSORS% %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared crypto=%crypto% asserts=on export-extra=on openssl-lib="c:\\OpenSSL-Win%model%\\lib" openssl-include="c:\\OpenSSL-Win%model%\\include"
     )
 
   - cd %ROOT_DIRECTORY%\bindings\python
