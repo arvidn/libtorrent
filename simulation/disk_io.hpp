@@ -52,12 +52,21 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int piece_size
 lt::add_torrent_params create_test_torrent(
 	int num_pieces, lt::create_flags_t flags, int blocks_per_piece, int num_files = 1);
 
+enum class existing_files_mode : std::uint8_t
+{
+	no_files, full_invalid, partial_valid, full_valid
+};
+
 struct test_disk
 {
 	test_disk set_seed(bool const s = true) const
 	{
+		return set_files(s ? existing_files_mode::full_valid : existing_files_mode::no_files);
+	}
+	test_disk set_files(existing_files_mode const s) const
+	{
 		auto ret = *this;
-		ret.seed = s;
+		ret.files = s;
 		return ret;
 	}
 	test_disk set_space_left(int const left) const
@@ -100,8 +109,9 @@ struct test_disk
 	// read time per block
 	lt::time_duration read_time = lt::microseconds(1);
 
-	// we have all files, with valid data
-	bool seed = false;
+	// when checking files, say we have some files on disk already (but not with
+	// valid data)
+	existing_files_mode files = existing_files_mode::no_files;
 
 	// after having failed with disk-full error, reset space_left to int_max
 	bool recover_full_disk = false;

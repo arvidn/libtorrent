@@ -69,9 +69,9 @@ std::string make_ep_string(char const* address, bool const is_v6
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
-	Setup const& setup
-	, HandleAlerts const& on_alert
-	, Test const& test
+	Setup setup
+	, HandleAlerts on_alert
+	, Test test
 	, test_transfer_flags_t flags = {}
 	, test_disk const downloader_disk_constructor = test_disk()
 	, test_disk const seed_disk_constructor = test_disk()
@@ -128,7 +128,7 @@ void run_test(
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
 
-	params.disk_io_constructor = seed_disk_constructor.set_seed();
+	params.disk_io_constructor = seed_disk_constructor.set_files(existing_files_mode::full_valid);
 	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	setup(*ses[0], *ses[1]);
@@ -613,7 +613,7 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 
 	pack.set_str(settings_pack::listen_interfaces, "50.0.0.2:6881");
 
-	params.disk_io_constructor = test_disk().set_seed();
+	params.disk_io_constructor = test_disk().set_files(existing_files_mode::full_valid);
 	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	// only monitor alerts for session 0 (the downloader)
@@ -677,7 +677,7 @@ std::shared_ptr<lt::torrent_info> test_torrent(lt::file_storage fs, lt::create_f
 	lt::create_torrent ct(fs, fs.piece_length(), flags);
 	lt::settings_pack pack;
 	lt::error_code ec;
-	lt::set_piece_hashes(ct, "", pack, test_disk().set_seed()
+	lt::set_piece_hashes(ct, "", pack, test_disk().set_files(existing_files_mode::full_valid)
 		, [](lt::piece_index_t p) { std::cout << "."; std::cout.flush();}, ec);
 
 	auto e = ct.generate();
