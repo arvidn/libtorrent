@@ -45,12 +45,12 @@ std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int cons
 lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs);
 lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 	, lt::span<lt::sha256_hash> const hashes);
-lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset);
+lt::sha256_hash generate_block_hash(lt::piece_index_t p, int offset);
 void generate_block(char* b, lt::peer_request const& r);
-std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
-	, int const num_pieces, lt::create_flags_t const flags);
+std::shared_ptr<lt::torrent_info> create_test_torrent(int piece_size
+	, int num_pieces, lt::create_flags_t flags, int num_files = 1);
 lt::add_torrent_params create_test_torrent(
-	int const num_pieces, lt::create_flags_t const flags, int const blocks_per_piece = 2);
+	int num_pieces, lt::create_flags_t flags, int blocks_per_piece, int num_files = 1);
 
 struct test_disk
 {

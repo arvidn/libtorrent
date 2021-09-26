@@ -148,7 +148,8 @@ void run_test(
 		, (flags & tx::v2_only) ? create_torrent::v2_only
 		: (flags & tx::v1_only) ? create_torrent::v1_only
 		: create_flags_t{}
-		, (flags & tx::small_pieces) ? 1 : 2
+		, (flags & tx::small_pieces) ? 1 : (flags & tx::large_pieces) ? 4 : 2
+		, (flags & tx::multiple_files) ? 3 : 1
 		);
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
@@ -389,6 +390,30 @@ TORRENT_TEST(v2_only_magnet)
 		record_finished_pieces(passed),
 		expect_seed(true),
 		tx::v2_only | tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v2_only_magnet_multi_file)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only | tx::multiple_files | tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 30);
+}
+
+TORRENT_TEST(v2_only_magnet_large_pieces)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only | tx::large_pieces| tx::magnet_download
 	);
 	TEST_EQUAL(passed.size(), 10);
 }
