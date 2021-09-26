@@ -81,6 +81,8 @@ constexpr test_transfer_flags_t v2_only = 2_bit;
 constexpr test_transfer_flags_t magnet_download = 3_bit;
 constexpr test_transfer_flags_t proxy_peers = 4_bit;
 constexpr test_transfer_flags_t small_pieces = 5_bit;
+constexpr test_transfer_flags_t large_pieces = 6_bit;
+constexpr test_transfer_flags_t multiple_files = 7_bit;
 }
 
 void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t flags = tx::proxy_peers);
