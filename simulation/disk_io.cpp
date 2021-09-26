@@ -297,8 +297,15 @@ struct test_disk_io final : lt::disk_interface
 		lt::file_storage const& fs = params.files;
 		m_files = &fs;
 		m_blocks_per_piece = fs.piece_length() / lt::default_block_size;
-		m_have.resize(m_files->num_pieces() * m_blocks_per_piece, m_state.seed);
+		m_have.resize(m_files->num_pieces() * m_blocks_per_piece, m_state.files == existing_files_mode::full_valid);
 		m_pad_bytes = compute_pad_bytes(fs);
+
+		if (m_state.files == existing_files_mode::partial_valid)
+		{
+			// we have the first half of the blocks
+			for (std::size_t i = 0; i < m_have.size() / 2u; ++i)
+				m_have.set_bit(i);
+		}
 
 		return lt::storage_holder(lt::storage_index_t{0}, *this);
 	}
@@ -427,9 +434,12 @@ struct test_disk_io final : lt::disk_interface
 				if (!m_have.get_bit(block_idx + i))
 				{
 					lt::sha1_hash ph{};
-					for (auto& h : block_hashes)
-						h = rand_sha256();
-					ph = rand_sha1();
+					if (m_state.files == existing_files_mode::full_invalid)
+					{
+						for (auto& h : block_hashes)
+							h = rand_sha256();
+						ph = rand_sha1();
+					}
 					// If we're missing a block, return an invalid hash
 					post(m_ioc, [h=std::move(h), piece, ph]{ h(piece, ph, lt::storage_error{}); });
 					return;
@@ -456,15 +466,17 @@ struct test_disk_io final : lt::disk_interface
 		auto const delay = seek_time + m_state.hash_time + m_state.read_time;
 		queue_event(delay, [this, piece, offset, h=std::move(handler)] () mutable {
 			int const block_idx = piece * m_blocks_per_piece + offset / lt::default_block_size;
+			lt::sha256_hash hash;
 			if (!m_have.get_bit(block_idx))
 			{
-				post(m_ioc, [h=std::move(h),piece] { h(piece, lt::sha256_hash{}, lt::storage_error{}); });
+				if (m_state.files == existing_files_mode::full_invalid)
+					hash = rand_sha256();
 			}
 			else
 			{
-				lt::sha256_hash const hash = generate_block_hash(piece, offset);
-				post(m_ioc, [h=std::move(h),piece, hash] { h(piece, hash, lt::storage_error{}); });
+				hash = generate_block_hash(piece, offset);
 			}
+			post(m_ioc, [h=std::move(h),piece, hash] { h(piece, hash, lt::storage_error{}); });
 		});
 	}
 
@@ -501,9 +513,13 @@ struct test_disk_io final : lt::disk_interface
 		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
-		auto const ret = (!m_state.seed || (p->flags & lt::torrent_flags::seed_mode))
-			? lt::status_t::no_error
-			: lt::status_t::need_full_check;
+
+		auto ret = lt::status_t::need_full_check;
+		if (p && p->flags & lt::torrent_flags::seed_mode)
+			ret = lt::status_t::no_error;
+		else if (m_state.files == existing_files_mode::no_files)
+			ret = lt::status_t::no_error;
+
 		queue_event(lt::microseconds(1), [this,ret,h=std::move(handler)] () mutable {
 			post(m_ioc, [ret,h=std::move(h)] { h(ret, lt::storage_error()); });
 		});
