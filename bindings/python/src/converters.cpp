@@ -549,4 +549,5 @@ void bind_converters()
     to_bitfield_flag<lt::reannounce_flags_t>();
     to_string_view();
     to_bitfield_flag<lt::session_flags_t>();
+    to_bitfield_flag<lt::file_progress_flags_t>();
 }
