@@ -94,7 +94,7 @@ namespace libtorrent {
 		if (c.should_log(peer_log_alert::info))
 		{
 			c.peer_log(peer_log_alert::info, "PIECE_PICKER"
-				, "dlq: %d rqq: %d target: %d req: %d engame: %d"
+				, "dlq: %d rqq: %d target: %d req: %d endgame: %d"
 				, int(c.download_queue().size()), int(c.request_queue().size())
 				, desired_queue_size, num_requests, c.endgame());
 		}
