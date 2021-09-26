@@ -73,6 +73,11 @@ namespace libtorrent {
 		return tree_node * 2 + 1;
 	}
 
+	int merkle_get_first_child(int const tree_node, int depth)
+	{
+		return ((tree_node + 1) << depth) - 1;
+	}
+
 	int merkle_num_nodes(int const leafs)
 	{
 		TORRENT_ASSERT(leafs > 0);
