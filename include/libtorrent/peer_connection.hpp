@@ -679,10 +679,6 @@ namespace aux {
 		void max_out_request_queue(int s);
 		int max_out_request_queue() const;
 
-#if TORRENT_USE_ASSERTS
-		bool piece_failed;
-#endif
-
 		std::time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = ::time(nullptr) - ago; }
 

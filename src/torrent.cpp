@@ -4378,17 +4378,6 @@ namespace {
 			return ret;
 		}();
 
-#if TORRENT_USE_ASSERTS
-			for (auto const& p : downloaders)
-			{
-				if (p && p->connection)
-				{
-					auto* peer = static_cast<peer_connection*>(p->connection);
-					peer->piece_failed = true;
-				}
-			}
-#endif
-
 		// did we receive this piece from a single peer?
 		// if we know exactly which blocks failed the hash, we can also be certain
 		// that all peers in the list sent us bad data
@@ -4494,17 +4483,6 @@ namespace {
 			// torrent anyway.
 			on_piece_sync(index, std::move(blocks));
 		}
-
-#if TORRENT_USE_ASSERTS
-		for (auto const& p : downloaders)
-		{
-			if (p && p->connection)
-			{
-				auto* const peer = static_cast<peer_connection*>(p->connection);
-				peer->piece_failed = false;
-			}
-		}
-#endif
 	}
 
 	void torrent::peer_is_interesting(peer_connection& c)
