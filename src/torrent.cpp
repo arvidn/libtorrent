@@ -4198,7 +4198,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
-			debug_log("PIECE_PASSED (%d)", num_passed());
+			debug_log("PIECE_PASSED (%d)", int(index));
 #endif
 
 //		std::fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
