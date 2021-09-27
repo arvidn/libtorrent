@@ -61,7 +61,7 @@ public:
 	void reply(msg const&) override { flags |= flag_done; }
 };
 
-struct socket_manager
+struct TORRENT_EXTRA_EXPORT socket_manager
 {
 	virtual bool has_quota() = 0;
 	virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) = 0;
