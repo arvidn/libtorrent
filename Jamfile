@@ -341,13 +341,13 @@ rule building ( properties * )
 	if <toolset>msvc in $(properties) || <toolset>intel-win in $(properties)
 	{
 		# allow larger .obj files (with more sections)
-		result += <cflags>/bigobj ;
+		result += <cflags>/bigobj <cxxflags>/bigobj ;
 	}
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
 	{
 		# allow larger object files in mingw
-		result += <cflags>-Wa,-mbig-obj ;
+		result += <cflags>-Wa,-mbig-obj <cxxflags>-Wa,-mbig-obj ;
 	}
 
 	if ( <asserts>production in $(properties)
