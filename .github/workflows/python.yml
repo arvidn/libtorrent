@@ -31,6 +31,12 @@ jobs:
       run: |
         sudo apt update
 
+    - uses: Chocobo1/setup-ccache-action@v1
+      # the ccache version on ubuntu-18.04 is too old
+      if: matrix.os != 'ubuntu-18.04'
+      with:
+        update_packager_index: false
+
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
@@ -76,7 +82,7 @@ jobs:
         # Homebrew's python "framework" sets a prefix via distutils config.
         # --prefix conflicts with --user, so null out prefix so we have one
         # command that works everywhere
-        python3 setup.py build_ext --b2-args="libtorrent-link=static" install --user --prefix=
+        python3 setup.py build_ext install --user --prefix=
 
     - name: tests
       if: runner.os != 'Windows'
