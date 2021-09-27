@@ -368,6 +368,8 @@ class LibtorrentBuildExt(BuildExtBase):
         self._maybe_add_arg("boost-link=static")
         self._maybe_add_arg("libtorrent-link=static")
 
+        self._maybe_add_arg("crypto=openssl")
+
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
             self._maybe_add_arg("--debug-building")
@@ -449,7 +451,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
 
 setuptools.setup(
-    name="python-libtorrent",
+    name="libtorrent",
     version="1.2.14",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
