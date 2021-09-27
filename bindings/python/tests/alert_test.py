@@ -4,6 +4,8 @@ import functools
 import http.server
 import logging
 import os
+import pathlib
+import ssl
 import sys
 import tempfile
 import threading
@@ -639,18 +641,25 @@ class TrackerAlertTest(TorrentAlertTest):
                 LambdaRequestHandler, lambda: lt.bencode(self.tracker_response)
             ),
         )
+        ctx = self.get_tracker_ssl_ctx()
+        if ctx is not None:
+            self.tracker.socket = ctx.wrap_socket(self.tracker.socket, server_side=True)
         self.tracker_thread = threading.Thread(target=self.tracker.serve_forever)
         self.tracker_thread.start()
         # HTTPServer.server_name seems to resolve to things like
         # "localhost.localdomain"
         port = self.tracker.server_port
-        self.tracker_url = f"http://127.0.0.1:{port}/announce"
+        proto = "http" if ctx is None else "https"
+        self.tracker_url = f"{proto}://127.0.0.1:{port}/announce"
 
     def tearDown(self) -> None:
         super().tearDown()
         self.tracker.shutdown()
         # Explicitly clean up server sockets, to avoid ResourceWarning
         self.tracker.server_close()
+
+    def get_tracker_ssl_ctx(self) -> Optional[ssl.SSLContext]:
+        return None
 
     def assert_tracker_alert(self, alert: lt.tracker_alert) -> None:
         self.assertEqual(alert.url, self.tracker_url)
@@ -2336,3 +2345,38 @@ class DhtBootstrapAlertTest(DhtAlertTest):
 
     def test_dht_bootstrap_alert(self) -> None:
         self.assert_alert(self.bootstrap_alert, lt.alert_category.dht, "dht_bootstrap")
+
+
+class SSLTrackerAlertTest(TrackerAlertTest):
+    ALERT_MASK = lt.alert_category.status
+
+    def get_tracker_ssl_ctx(self) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        cert_path = (
+            pathlib.Path(__file__).parent.parent.parent.parent
+            / "test"
+            / "ssl"
+            / "server.pem"
+        )
+        ctx.load_cert_chain(cert_path)
+        return ctx
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        # I couldn't get validation to work on all platforms. Setting
+        # SSL_CERT_FILE to our self-signed cert works on linux and mac, but
+        # not on Windows.
+        self.session.apply_settings({"validate_https_trackers": False})
+
+    def test_external_ip_alert_via_ssl_tracker(self) -> None:
+        self.tracker_response = {
+            b"external ip": b"\x01\x02\x03\x04",
+        }
+        handle = self.session.add_torrent(self.atp)
+        handle.add_tracker({"url": self.tracker_url})
+
+        alert = wait_for(self.session, lt.external_ip_alert, timeout=5)
+
+        self.assert_alert(alert, lt.alert_category.status, "external_ip")
+        self.assertEqual(alert.external_address, "1.2.3.4")
