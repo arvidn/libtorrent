@@ -54,7 +54,7 @@ namespace json = boost::json;
 namespace {
 
 // Overload for JSON strings
-std::string utf8_latin1(json::string_view sv)
+std::string utf8_latin1(json::string const& sv)
 {
 	return aux::utf8_latin1(std::string_view{sv.data(), sv.size()});
 }
