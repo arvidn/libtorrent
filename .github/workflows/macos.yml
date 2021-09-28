@@ -94,7 +94,7 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on
 
 
    ios_build:
@@ -131,4 +131,4 @@ jobs:
 
       - name: build library
         run: |
-          b2 -l400 warnings-as-errors=on cxxstd=14 darwin-ios darwin-ios_sim link=static
+          b2 -l400 warnings-as-errors=on darwin-ios darwin-ios_sim link=static

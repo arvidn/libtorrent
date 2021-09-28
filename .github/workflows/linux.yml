@@ -54,7 +54,7 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=17
+          b2 ${{ matrix.config }}
 
       - name: build examples
         run: |
@@ -101,7 +101,7 @@ jobs:
       - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang cxxstd=17 warnings-as-errors=on
+          b2 clang warnings-as-errors=on
 
 
 
@@ -131,7 +131,7 @@ jobs:
 
       - name: compile header files individually
         run: |
-          b2 check-headers cxxstd=17 warnings-as-errors=on
+          b2 check-headers warnings-as-errors=on
 
 
 
@@ -303,7 +303,7 @@ jobs:
         run: |
           tar xvzf libtorrent-rasterbar-*.tar.gz
           cd libtorrent-rasterbar-*/
-          b2 install cxxstd=14 --prefix=test-install-root
+          b2 install --prefix=test-install-root
           cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
 
       - name: test-tarball (b2 tests)
