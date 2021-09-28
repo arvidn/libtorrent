@@ -30,8 +30,7 @@ jobs:
 
       - name: install boost
         run: |
-          brew install boost-build boost
-          HOMEBREW_NO_INSTALL_CLEANUP=1 brew reinstall openssl@1.1
+          brew install openssl boost-build boost
           pip3 install websockets
           echo "using darwin ;" >>~/user-config.jam
 
