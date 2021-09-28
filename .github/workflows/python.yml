@@ -35,6 +35,9 @@ jobs:
       if: runner.os != 'Windows'
       with:
         update_packager_index: false
+        override_cache_key: ccache-python-${{ matrix.os }}-${{ github.base_ref }}
+        ccache_options: |
+          max_size=500M
 
     - name: dependencies (linux)
       if: runner.os == 'Linux'
