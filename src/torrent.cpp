@@ -4217,7 +4217,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
-			debug_log("PIECE_PASSED (%d)", num_passed());
+			debug_log("PIECE_PASSED (%d)", int(index));
 #endif
 
 //		std::fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
@@ -4396,17 +4396,6 @@ namespace {
 			return ret;
 		}();
 
-#if TORRENT_USE_ASSERTS
-			for (auto const& p : downloaders)
-			{
-				if (p && p->connection)
-				{
-					auto* peer = static_cast<peer_connection*>(p->connection);
-					peer->piece_failed = true;
-				}
-			}
-#endif
-
 		// did we receive this piece from a single peer?
 		// if we know exactly which blocks failed the hash, we can also be certain
 		// that all peers in the list sent us bad data
@@ -4512,17 +4501,6 @@ namespace {
 			// torrent anyway.
 			on_piece_sync(index, std::move(blocks));
 		}
-
-#if TORRENT_USE_ASSERTS
-		for (auto const& p : downloaders)
-		{
-			if (p && p->connection)
-			{
-				auto* const peer = static_cast<peer_connection*>(p->connection);
-				peer->piece_failed = false;
-			}
-		}
-#endif
 	}
 
 	void torrent::peer_is_interesting(peer_connection& c)
@@ -6718,7 +6696,6 @@ namespace {
 		need_hash_picker();
 		if (!m_hash_picker) return true;
 		add_hashes_result result = m_hash_picker->add_hashes(req, hashes);
-		TORRENT_ASSERT(!(!result.hash_failed.empty() && result.valid));
 		for (auto& p : result.hash_failed)
 		{
 			if (torrent_file().info_hashes().has_v1() && have_piece(p.first))
@@ -6800,7 +6777,12 @@ namespace {
 				std::vector<char> out_layer;
 				out_layer.reserve(layer.size() * sha256_hash::size());
 				for (auto const& h : layer)
+				{
+					// we're missing a piece layer. We can't return a valid
+					// torrent
+					if (h.is_all_zeros()) return {};
 					out_layer.insert(out_layer.end(), h.data(), h.data() + sha256_hash::size());
+				}
 				v2_hashes.emplace_back(std::move(out_layer));
 			}
 			ret->set_piece_layers(std::move(v2_hashes));

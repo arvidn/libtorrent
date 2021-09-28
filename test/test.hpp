@@ -102,9 +102,9 @@ extern int _g_test_idx;
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} \
-	catch (std::exception const& e) \
+	catch (std::exception const& e__) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -119,9 +119,9 @@ extern int _g_test_idx;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e) \
+	catch (std::exception const& e__) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -135,9 +135,9 @@ extern int _g_test_idx;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e) \
+	catch (std::exception const& e__) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
 	} \
 	catch (...) \
 	{ \

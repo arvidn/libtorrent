@@ -2934,7 +2934,7 @@ get_out:
 		{
 			new_state = piece_pos::piece_zero_prio;
 		}
-		else if (dp->requested + dp->finished + dp->writing == 0)
+		else if (dp->requested + dp->finished + dp->writing + dp->hashing == 0)
 		{
 			new_state = piece_pos::piece_open;
 		}

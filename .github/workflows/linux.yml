@@ -39,6 +39,10 @@ jobs:
         run: |
           sudo apt update
 
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
@@ -80,6 +84,10 @@ jobs:
         run: |
           sudo apt update
 
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+
       - name: install clang-9
         continue-on-error: true
         run: |
@@ -112,6 +120,10 @@ jobs:
         run: |
           sudo apt update
 
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
@@ -137,6 +149,10 @@ jobs:
         continue-on-error: true
         run: |
           sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
 
       - name: install clang-tidy
         run: sudo apt install clang-tidy libc++-dev
@@ -176,6 +192,10 @@ jobs:
         continue-on-error: true
         run: |
           sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
 
       - name: install gnutls
         if: ${{ contains(matrix.config, 'crypto=gnutls') }}
@@ -224,6 +244,10 @@ jobs:
         run: |
           sudo apt update
 
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
@@ -253,6 +277,12 @@ jobs:
         continue-on-error: true
         run: |
           sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        # the ccache version on ubuntu-18.04 is too old
+        if: matrix.os != 'ubuntu-18.04'
+        with:
+          update_packager_index: false
 
       - name: install dependencies
         run: |

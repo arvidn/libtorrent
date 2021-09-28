@@ -176,7 +176,6 @@ namespace {
 		if (m_connecting && t) t->inc_num_connecting(m_peer_info);
 
 #if TORRENT_USE_ASSERTS
-		piece_failed = false;
 		m_in_constructor = false;
 #endif
 	}

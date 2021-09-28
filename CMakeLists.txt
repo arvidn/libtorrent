@@ -960,6 +960,15 @@ install(
 		${CMAKE_INSTALL_DATADIR}/cmake/Modules
 )
 
+if (MSVC)
+	install(
+		FILES
+			$<TARGET_PDB_FILE:torrent-rasterbar>
+		DESTINATION
+			bin
+		OPTIONAL)
+endif()
+
 # === build tools ===
 if (build_tools)
 	add_subdirectory(tools)

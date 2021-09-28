@@ -1,3 +1,5 @@
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 import struct
 from typing import Any
 from typing import Dict
@@ -165,6 +167,7 @@ def print_strong_type(valobj: lldb.SBValue, internal_dict: Dict) -> str:
         valobj = valobj.Dereference()
 
     name = valobj.GetType().name
+    data = valobj.GetChildMemberWithName("m_val").GetValue()
     if "piece_index_tag" in name:
         name = "piece_index"
     elif "file_index_tag" in name:
@@ -177,12 +180,60 @@ def print_strong_type(valobj: lldb.SBValue, internal_dict: Dict) -> str:
         name = "storage_index"
     elif "disconnect_severity_tag" in name:
         name = "disconnect_severity"
+        val = valobj.GetChildMemberWithName("m_val").GetValueAsUnsigned()
+        if val == 0:
+            data = "normal"
+        elif val == 1:
+            data = "failure"
+        elif val == 2:
+            data = "peer_error"
+        else:
+            data = "<unknown> ({})".format(val)
     elif "prio_index_tag_t" in name:
         name = "prio_index"
     elif "port_mapping_tag" in name:
         name = "port_mapping"
+    elif "dl_queue_tag" in name or name == "libtorrent::download_queue_t":
+        name = "download_queue"
+        val = valobj.GetChildMemberWithName("m_val").GetValueAsUnsigned()
+        if val == 0:
+            data = "piece_downloading"
+        elif val == 1:
+            data = "piece_full"
+        elif val == 2:
+            data = "piece_finished"
+        elif val == 3:
+            data = "piece_zero_prio"
+        elif val == 4:
+            data = "piece_open"
+        elif val == 5:
+            data = "piece_downloading_reverse"
+        elif val == 6:
+            data = "piece_full_reverse"
+        else:
+            data = "<unknown> ({})".format(val)
+    elif "piece_extent_tag" in name:
+        name = "piece_extent"
+    elif "picker_options_tag" in name:
+        name = "picker_options"
+        val = valobj.GetChildMemberWithName("m_val").GetValueAsUnsigned()
+        flags = []
+        if (val & 1) != 0:
+            flags.append("rarest_first")
+        if (val & 2) != 0:
+            flags.append("reverse")
+        if (val & 4) != 0:
+            flags.append("on_parole")
+        if (val & 8) != 0:
+            flags.append("prioritize_partials")
+        if (val & 16) != 0:
+            flags.append("sequential")
+        if (val & 64) != 0:
+            flags.append("align_expanded_pieces")
+        if (val & 128) != 0:
+            flags.append("piece_extent_affinity")
+        data = "|".join(flags)
     else:
         name = ""
 
-    data = valobj.GetChildMemberWithName("m_val").GetValue()
     return "({}) {}".format(name, data)

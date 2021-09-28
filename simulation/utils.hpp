@@ -57,6 +57,9 @@ constexpr test_transfer_flags_t v1_only = 1_bit;
 constexpr test_transfer_flags_t v2_only = 2_bit;
 constexpr test_transfer_flags_t magnet_download = 3_bit;
 constexpr test_transfer_flags_t proxy_peers = 4_bit;
+constexpr test_transfer_flags_t small_pieces = 5_bit;
+constexpr test_transfer_flags_t large_pieces = 6_bit;
+constexpr test_transfer_flags_t multiple_files = 7_bit;
 }
 
 void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t flags = tx::proxy_peers);
@@ -64,6 +67,9 @@ void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t flags = t
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
 		= [](lt::session&, lt::alert const*) {}, int idx = 0);
+
+lt::sha256_hash rand_sha256();
+lt::sha1_hash rand_sha1();
 
 #endif
 

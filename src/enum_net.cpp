@@ -70,7 +70,7 @@ see LICENSE file.
 #if TORRENT_USE_NETLINK
 
 // We really should be including <linux/if.h> here, for the IF_OPER_* flags.
-// Howerver, including this header creates conflicting definitions of <net/if.h>
+// However, including this header creates conflicting definitions of <net/if.h>
 // on some platforms. So, instead, we just pull those flags out and define them
 // here.
 //#include <linux/if.h> // for IF_OPER* flags
@@ -565,12 +565,18 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IFADDRS && !defined TORRENT_BUILD_SIMULATOR
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
+		// some android ifaddrs implementations are buggy
+		if (ifa->ifa_addr == nullptr) return false;
+
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		if (rv.interface_address.is_unspecified()) return false;
 
-		std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
-		rv.name[sizeof(rv.name) - 1] = '\0';
+		if (ifa->ifa_name != nullptr)
+		{
+			std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
+			rv.name[sizeof(rv.name) - 1] = '\0';
+		}
 
 		// determine netmask
 		if (ifa->ifa_netmask != nullptr)

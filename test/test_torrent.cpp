@@ -539,7 +539,7 @@ TORRENT_TEST(torrent_status)
 
 namespace {
 
-void test_queue(add_torrent_params)
+void test_queue(add_torrent_params const& atp)
 {
 	lt::settings_pack pack = settings();
 	// we're not testing the hash check, just accept the data we write
@@ -559,7 +559,7 @@ void test_queue(add_torrent_params)
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
 		auto ti = std::make_shared<torrent_info>(buf, from_span);
-		add_torrent_params p;
+		add_torrent_params p = atp;
 		p.ti = ti;
 		p.save_path = ".";
 		torrents.push_back(ses.add_torrent(std::move(p)));

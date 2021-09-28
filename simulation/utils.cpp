@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/io_context.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "setup_swarm.hpp"
 #include "setup_transfer.hpp" // for addr()
 
@@ -189,3 +190,18 @@ std::unique_ptr<sim::asio::io_context> make_io_context(sim::simulation& sim, int
 	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 	return std::make_unique<sim::asio::io_context>(sim, lt::make_address_v4(ep));
 }
+
+sha256_hash rand_sha256()
+{
+	sha256_hash ret;
+	aux::random_bytes(ret);
+	return ret;
+}
+
+sha1_hash rand_sha1()
+{
+	sha1_hash ret;
+	aux::random_bytes(ret);
+	return ret;
+}
+

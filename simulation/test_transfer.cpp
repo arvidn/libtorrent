@@ -30,7 +30,7 @@ see LICENSE file.
 #include "disk_io.hpp"
 
 using namespace sim;
-
+using namespace lt;
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
@@ -50,12 +50,11 @@ void run_test(
 	, HandleAlerts const& on_alert
 	, Test const& test
 	, test_transfer_flags_t flags = {}
-	, test_disk const disk_constructor = test_disk()
+	, test_disk const downloader_disk_constructor = test_disk()
+	, test_disk const seed_disk_constructor = test_disk()
 	, lt::seconds const timeout = lt::seconds(60)
 	)
 {
-	using namespace lt;
-
 	const bool use_ipv6 = bool(flags & tx::ipv6);
 
 	char const* peer0_ip[2] = { "50.0.0.1", "feed:face:baad:f00d::1" };
@@ -101,12 +100,12 @@ void run_test(
 
 	// session 0 is a downloader, session 1 is a seed
 
-	params.disk_io_constructor = disk_constructor;
+	params.disk_io_constructor = downloader_disk_constructor;
 	ses[0] = std::make_shared<lt::session>(params, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
 
-	params.disk_io_constructor = test_disk().set_seed();
+	params.disk_io_constructor = seed_disk_constructor.set_seed();
 	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	setup(*ses[0], *ses[1]);
@@ -125,7 +124,10 @@ void run_test(
 	lt::add_torrent_params atp = ::create_test_torrent(10
 		, (flags & tx::v2_only) ? create_torrent::v2_only
 		: (flags & tx::v1_only) ? create_torrent::v1_only
-		: create_flags_t{});
+		: create_flags_t{}
+		, (flags & tx::small_pieces) ? 1 : (flags & tx::large_pieces) ? 4 : 2
+		, (flags & tx::multiple_files) ? 3 : 1
+		);
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
 
@@ -166,9 +168,40 @@ void run_test(
 	sim.run();
 }
 
+namespace {
+
+void no_init(lt::session& ses0, lt::session& ses1) {}
+
+struct record_finished_pieces
+ {
+	record_finished_pieces(std::set<lt::piece_index_t>& p)
+		: m_passed(&p)
+	{}
+
+	void operator()(lt::session&, lt::alert const* a) const
+	{
+		if (auto const* pf = lt::alert_cast<lt::piece_finished_alert>(a))
+			m_passed->insert(pf->piece_index);
+	}
+
+	std::set<lt::piece_index_t>* m_passed;
+};
+
+
+struct expect_seed
+{
+	expect_seed(bool e) : m_expect(e) {}
+	void operator()(std::shared_ptr<lt::session> ses[2]) const
+	{
+		TEST_EQUAL(is_seed(*ses[0]), m_expect);
+	}
+	bool m_expect;
+};
+
+}
+
 TORRENT_TEST(socks4_tcp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -176,15 +209,12 @@ TORRENT_TEST(socks4_tcp)
 			filter_ips(ses1);
 		},
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(socks5_tcp_connect)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -192,48 +222,37 @@ TORRENT_TEST(socks5_tcp_connect)
 			filter_ips(ses1);
 		},
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(encryption_tcp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ enable_enc(ses0); enable_enc(ses1); },
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(no_proxy_tcp_ipv6)
 {
-	using namespace lt;
 	run_test(
-		[](lt::session&, lt::session&) {},
+		no_init,
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		},
+		expect_seed(true),
 		tx::ipv6
 	);
 }
 
 TORRENT_TEST(no_proxy_utp_ipv6)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); },
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		},
+		expect_seed(true),
 		tx::ipv6
 	);
 }
@@ -242,7 +261,6 @@ TORRENT_TEST(no_proxy_utp_ipv6)
 /*
 TORRENT_TEST(socks5_tcp_ipv6)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -260,32 +278,25 @@ TORRENT_TEST(socks5_tcp_ipv6)
 
 TORRENT_TEST(no_proxy_tcp)
 {
-	using namespace lt;
 	run_test(
-		[](lt::session&, lt::session&) {},
+		no_init,
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(no_proxy_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); },
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(encryption_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -295,15 +306,12 @@ TORRENT_TEST(encryption_utp)
 			utp_only(ses1);
 		},
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(socks5_utp)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -313,9 +321,7 @@ TORRENT_TEST(socks5_utp)
 			utp_only(ses1);
 		},
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
@@ -324,86 +330,113 @@ TORRENT_TEST(socks5_utp)
 // directly to each other, all other tests in here may be broken.
 TORRENT_TEST(no_proxy_tcp_banned)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session& ses1) { filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), false);
-		}
+		expect_seed(false)
 	);
 }
 
 TORRENT_TEST(no_proxy_utp_banned)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ utp_only(ses0); utp_only(ses1); filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), false);
-		}
+		expect_seed(false)
 	);
 }
 
 TORRENT_TEST(v2_only)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
-		[](lt::session& ses0, lt::session& ses1) {},
-		[&](lt::session&, lt::alert const* a) {
-			if (auto const* pf = alert_cast<piece_finished_alert>(a))
-				passed.insert(pf->piece_index);
-		},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
-		, tx::v2_only
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only
 	);
 	TEST_EQUAL(passed.size(), 10);
 }
 
 TORRENT_TEST(v2_only_magnet)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
-		[](lt::session& ses0, lt::session& ses1) {},
-		[&](lt::session&, lt::alert const* a) {
-			if (auto const* pf = alert_cast<piece_finished_alert>(a))
-				passed.insert(pf->piece_index);
-		},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
-		, tx::v2_only | tx::magnet_download
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only | tx::magnet_download
 	);
 	TEST_EQUAL(passed.size(), 10);
 }
 
-TORRENT_TEST(v1_only)
+TORRENT_TEST(v2_only_magnet_multi_file)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
 	run_test(
-		[](lt::session& ses0, lt::session& ses1) {},
-		[&](lt::session&, lt::alert const* a) {
-			if (auto const* pf = alert_cast<piece_finished_alert>(a))
-				passed.insert(pf->piece_index);
-		},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
-		, tx::v1_only
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only | tx::multiple_files | tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 30);
+}
+
+TORRENT_TEST(v2_only_magnet_large_pieces)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v2_only | tx::large_pieces| tx::magnet_download
+	);
+	TEST_EQUAL(passed.size(), 10);
+}
+
+TORRENT_TEST(v2_only_magnet_corrupt_data)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(false),
+		tx::v2_only | tx::magnet_download,
+		test_disk(),
+		test_disk().send_corrupt_data(5 * 2)
+	);
+	TEST_EQUAL(passed.size(), 5);
+}
+
+TORRENT_TEST(v2_only_magnet_corrupt_data_small_pieces)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(false),
+		tx::v2_only | tx::magnet_download | tx::small_pieces,
+		test_disk(),
+		test_disk().send_corrupt_data(5)
+	);
+	TEST_EQUAL(passed.size(), 5);
+}
+
+TORRENT_TEST(v1_only)
+{
+	std::set<piece_index_t> passed;
+	run_test(
+		no_init,
+		record_finished_pieces(passed),
+		expect_seed(true),
+		tx::v1_only
 	);
 	TEST_EQUAL(passed.size(), 10);
 }
 
 TORRENT_TEST(piece_extent_affinity)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -413,18 +446,14 @@ TORRENT_TEST(piece_extent_affinity)
 			ses1.apply_settings(p);
 		},
 		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+		expect_seed(true)
 	);
 }
 
 TORRENT_TEST(is_finished)
 {
-	using namespace lt;
-	run_test(
-		[](lt::session&, lt::session&) {},
-		[](lt::session& ses, lt::alert const* a) {
+	run_test(no_init
+		, [](lt::session& ses, lt::alert const* a) {
 			if (alert_cast<piece_finished_alert>(a))
 			{
 				TEST_EQUAL(is_finished(ses), false);
@@ -443,17 +472,10 @@ TORRENT_TEST(is_finished)
 
 TORRENT_TEST(v1_only_magnet)
 {
-	using namespace lt;
 	std::set<piece_index_t> passed;
-	run_test(
-		[](lt::session&, lt::session&) {},
-		[&](lt::session&, lt::alert const* a) {
-			if (auto const* pf = alert_cast<piece_finished_alert>(a))
-				passed.insert(pf->piece_index);
-		},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		}
+	run_test(no_init
+		, record_finished_pieces(passed)
+		, expect_seed(true)
 		, tx::v1_only | tx::magnet_download
 	);
 	TEST_EQUAL(passed.size(), 10);
@@ -461,22 +483,17 @@ TORRENT_TEST(v1_only_magnet)
 
 TORRENT_TEST(disk_full)
 {
-	using namespace lt;
-	run_test(
-		[](lt::session&, lt::session&) {},
-		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			// the disk filled up, we failed to complete the download
-			TEST_EQUAL(!is_seed(*ses[0]), true);
-		}
+	run_test(no_init
+		, [](lt::session&, lt::alert const*) {}
+		// the disk filled up, we failed to complete the download
+		, expect_seed(false)
 		, {}
-		, test_disk().set_space_left(10 * lt::default_block_size)
+		, test_disk().set_space_left(5 * lt::default_block_size)
 	);
 }
 
 TORRENT_TEST(disk_full_recover)
 {
-	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session&)
 		{
@@ -491,13 +508,13 @@ TORRENT_TEST(disk_full_recover)
 				// leave upload mode after it hits disk-full
 				ta->handle.set_flags(torrent_flags::auto_managed);
 			}
-		},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			// the disk filled up, we failed to complete the download
-			TEST_EQUAL(is_seed(*ses[0]), true);
 		}
+		// the disk filled up, we failed to complete the download, but then the
+		// disk recovered and we completed it
+		, expect_seed(true)
 		, {}
 		, test_disk().set_space_left(10 * lt::default_block_size).set_recover_full_disk()
+		, test_disk()
 		, lt::seconds(65)
 	);
 }
@@ -506,8 +523,6 @@ TORRENT_TEST(disk_full_recover)
 // traits
 void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 {
-	using namespace lt;
-
 	using asio::ip::address;
 	address peer0 = addr("50.0.0.1");
 	address peer1 = addr("50.0.0.2");
