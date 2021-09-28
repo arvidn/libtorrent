@@ -23,6 +23,10 @@ jobs:
            submodules: recursive
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-test-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |
@@ -50,6 +54,10 @@ jobs:
            submodules: recursive
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-sim-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |
@@ -78,6 +86,10 @@ jobs:
            submodules: recursive
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-build-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |
