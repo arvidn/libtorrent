@@ -113,19 +113,19 @@ jobs:
           brew install boost-build boost
           echo "using darwin : ios_sim : clang++ : <compileflags>-Wno-deprecated-declarations
           <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-          <compileflags>-mios-simulator-version-min=7
+          <compileflags>-mios-simulator-version-min=12
           <compileflags>-fobjc-abi-version=2
           <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-          <linkflags>-mios-simulator-version-min=7
+          <linkflags>-mios-simulator-version-min=12
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
           echo "using darwin : ios : clang++ : <compileflags>-Wno-deprecated-declarations
           <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-          <compileflags>-mios-version-min=7
+          <compileflags>-mios-version-min=12
           <compileflags>\"-arch armv7\"
           <compileflags>-fobjc-abi-version=2
           <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-          <linkflags>-mios-version-min=7
+          <linkflags>-mios-version-min=12
           <linkflags>\"-arch armv7\"
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
