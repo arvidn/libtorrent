@@ -122,13 +122,13 @@ jobs:
           echo "using darwin : ios : clang++ : <compileflags>-Wno-deprecated-declarations
           <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
           <compileflags>-mios-version-min=12
-          <compileflags>\"-arch armv7\"
+          <compileflags>\"-arch arm64\"
           <compileflags>-fobjc-abi-version=2
           <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
           <linkflags>-mios-version-min=12
-          <linkflags>\"-arch armv7\"
+          <linkflags>\"-arch arm64\"
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
       - name: build library
         run: |
-          b2 -l400 warnings-as-errors=on darwin-ios darwin-ios_sim link=static
+          b2 -l400 address-model=64 warnings-as-errors=on darwin-ios darwin-ios_sim link=static
