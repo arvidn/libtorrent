@@ -18,11 +18,15 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-test-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |
@@ -47,11 +51,15 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-sim-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |
@@ -75,11 +83,15 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
       - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          override_cache_key: ccache-macos-build-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=1G
 
       - name: install boost
         run: |

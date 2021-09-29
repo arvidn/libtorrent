@@ -18,7 +18,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -30,6 +30,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-build-${{ github.base_ref }}-${{ matrix.config }}
+          ccache_options: |
+            max_size=5G
 
       - name: install boost
         run: |
@@ -63,7 +66,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -75,6 +78,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-fuzzers-${{ github.base_ref }}
+          ccache_options: |
+            max_size=500M
 
       - name: install clang-9
         continue-on-error: true
@@ -99,7 +105,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -111,6 +117,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-check-headers-${{ github.base_ref }}
+          ccache_options: |
+            max_size=500M
 
       - name: install boost
         run: |
@@ -129,7 +138,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -141,6 +150,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-clang-tidy-${{ github.base_ref }}
+          ccache_options: |
+            max_size=500M
 
       - name: install clang-tidy
         run: sudo apt install clang-tidy libc++-dev
@@ -172,7 +184,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -184,6 +196,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-tests-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=5G
 
       - name: install gnutls
         if: ${{ contains(matrix.config, 'crypto=gnutls') }}
@@ -222,7 +237,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -234,6 +249,9 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-simulations-${{ github.base_ref }}
+          ccache_options: |
+            max_size=5G
 
       - name: install boost
         run: |
@@ -256,7 +274,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v2
         with:
            submodules: true
 
@@ -266,10 +284,11 @@ jobs:
           sudo apt update
 
       - uses: Chocobo1/setup-ccache-action@v1
-        # the ccache version on ubuntu-18.04 is too old
-        if: matrix.os != 'ubuntu-18.04'
         with:
           update_packager_index: false
+          override_cache_key: ccache-linux-dist-${{ matrix.os }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=15G
 
       - name: install dependencies
         run: |

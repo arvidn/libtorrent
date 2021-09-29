@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ubuntu-20.04, macos-latest, windows-latest ]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,15 +32,17 @@ jobs:
         sudo apt update
 
     - uses: Chocobo1/setup-ccache-action@v1
-      # the ccache version on ubuntu-18.04 is too old
-      if: matrix.os != 'ubuntu-18.04'
+      if: runner.os != 'Windows'
       with:
         update_packager_index: false
+        override_cache_key: ccache-python-${{ matrix.os }}-${{ github.base_ref }}
+        ccache_options: |
+          max_size=500M
 
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools
+        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools libssl-dev
 
     - name: install boost (windows)
       if: runner.os == 'Windows'
@@ -56,6 +58,12 @@ jobs:
       run: |
         cd boost
         .\b2 headers
+
+    - name: install openssl (windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        choco install openssl
 
     - name: build/install (windows)
       if: runner.os == 'Windows'

@@ -3,6 +3,7 @@
 from distutils import log
 import distutils.debug
 import distutils.sysconfig
+import distutils.util
 import os
 import pathlib
 import sys
@@ -362,6 +363,8 @@ class LibtorrentBuildExt(BuildExtBase):
         self._maybe_add_arg("boost-link=static")
         self._maybe_add_arg("libtorrent-link=static")
 
+        self._maybe_add_arg("crypto=openssl")
+
         if distutils.debug.DEBUG:
             self._maybe_add_arg("--debug-configuration")
             self._maybe_add_arg("--debug-building")
@@ -374,6 +377,24 @@ class LibtorrentBuildExt(BuildExtBase):
         self._maybe_add_arg(f"variant={variant}")
         bits = 64 if sys.maxsize > 2 ** 32 else 32
         self._maybe_add_arg(f"address-model={bits}")
+
+        # Cross-compiling logic: tricky, because autodetection is usually
+        # better than our matching
+        if sys.platform == "darwin":
+            # macOS uses multi-arch binaries. Attempt to match the
+            # configuration of the running python by translating distutils
+            # platform modes to b2 architecture modes
+            machine = distutils.util.get_platform().split("-")[-1]
+            if machine == "arm64":
+                self._maybe_add_arg("architecture=arm")
+            elif machine in ("ppc", "ppc64"):
+                self._maybe_add_arg("architecture=power")
+            elif machine in ("i386", "x86_64", "intel"):
+                self._maybe_add_arg("architecture=x86")
+            elif machine in ("universal", "fat", "fat3", "fat64"):
+                self._maybe_add_arg("architecture=combined")
+            # NB: as of boost 1.75.0, b2 doesn't have a straightforward way to
+            # build a "universal2" (arm64 + x86_64) binary
 
         if self.parallel:
             self._maybe_add_arg(f"-j{self.parallel}")
@@ -426,7 +447,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
 
 setuptools.setup(
-    name="python-libtorrent",
+    name="libtorrent",
     version="2.0.4",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
