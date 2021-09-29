@@ -233,7 +233,7 @@ rule linking ( properties * )
 		result += <library>/try_signal//try_signal/<link>static/<fpic>on ;
 		if <webtorrent>on in $(properties)
 		{
-			result += <library>/libdatachannel//libdatachannel/<link>static/<fpic>on ;
+			result += <library>/libdatachannel//libdatachannel/<link>static/<fpic>on/<warnings-as-errors>off ;
 		}
 	}
 	else
