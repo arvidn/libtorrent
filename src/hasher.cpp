@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 namespace libtorrent {
 
 TORRENT_CRYPTO_NAMESPACE
@@ -275,5 +277,7 @@ TORRENT_CRYPTO_NAMESPACE
 	}
 
 TORRENT_CRYPTO_NAMESPACE_END
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 }

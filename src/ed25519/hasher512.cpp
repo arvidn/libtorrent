@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/ssl.hpp"
 
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 namespace libtorrent {
 namespace aux {
 
@@ -146,3 +148,5 @@ namespace aux {
 
 }
 }
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
