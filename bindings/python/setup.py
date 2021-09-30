@@ -7,6 +7,7 @@ import distutils.command.install_data as install_data_lib
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
+import distutils.util
 import functools
 import os
 import pathlib
@@ -361,10 +362,30 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self._maybe_add_arg("boost-link=static")
         self._maybe_add_arg("libtorrent-link=static")
 
+        self._maybe_add_arg("crypto=openssl")
+
         variant = "debug" if self.debug else "release"
         self._maybe_add_arg(f"variant={variant}")
         bits = 64 if sys.maxsize > 2 ** 32 else 32
         self._maybe_add_arg(f"address-model={bits}")
+
+        # Cross-compiling logic: tricky, because autodetection is usually
+        # better than our matching
+        if sys.platform == "darwin":
+            # macOS uses multi-arch binaries. Attempt to match the
+            # configuration of the running python by translating distutils
+            # platform modes to b2 architecture modes
+            machine = distutils.util.get_platform().split("-")[-1]
+            if machine == "arm64":
+                self._maybe_add_arg("architecture=arm")
+            elif machine in ("ppc", "ppc64"):
+                self._maybe_add_arg("architecture=power")
+            elif machine in ("i386", "x86_64", "intel"):
+                self._maybe_add_arg("architecture=x86")
+            elif machine in ("universal", "fat", "fat3", "fat64"):
+                self._maybe_add_arg("architecture=combined")
+            # NB: as of boost 1.75.0, b2 doesn't have a straightforward way to
+            # build a "universal2" (arm64 + x86_64) binary
 
         if self.parallel:
             self._maybe_add_arg(f"-j{self.parallel}")
@@ -448,7 +469,7 @@ def find_all_files(path: str) -> Iterator[str]:
 
 
 setuptools.setup(
-    name="python-libtorrent",
+    name="libtorrent",
     version="2.0.4",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
