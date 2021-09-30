@@ -1,0 +1,196 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+exclude: |
+    (?x)^(
+        # These files are vendored from elsewhere, don't process them
+        LICENSE|
+        docs/hunspell/.*|
+        src/ed25519/.*|
+        include/libtorrent/aux_/route\.h|
+        test/.*\.xml|
+        test/ssl/.*\.pem
+    )$
+default_language_version:
+    python: python3
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+    #-   id: trailing-whitespace
+    #-   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-case-conflict
+    -   id: check-executables-have-shebangs
+    -   id: check-xml
+    -   id: debug-statements
+    -   id: check-symlinks
+    -   id: check-toml
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.7.0
+  hooks:
+  - id: rst-directive-colons
+  - id: rst-inline-touching-normal
+- repo: https://github.com/PyCQA/isort
+  rev: 5.7.0
+  hooks:
+    - id: isort
+      exclude: |
+          (?x)^(
+            # Enable these later, avoid bloating this PR
+            bindings/python/client.py|
+            bindings/python/dummy_data.py|
+            bindings/python/make_torrent.py|
+            bindings/python/setup.py|
+            bindings/python/simple_client.py|
+            bindings/python/test.py|
+            docs/gen_reference_doc.py|
+            examples/run_benchmarks.py|
+            fuzzers/tools/generate_initial_corpus.py|
+            fuzzers/tools/unify_corpus_names.py|
+            test/socks.py|
+            test/web_server.py|
+            tools/clean.py|
+            tools/dht_flood.py|
+            tools/parse_dht_log.py|
+            tools/parse_dht_rtt.py|
+            tools/parse_dht_stats.py|
+            tools/parse_session_stats.py|
+            tools/parse_utp_log.py|
+            tools/run_benchmark.py|
+            tools/set_version.py|
+            tools/update_copyright.py
+          )$
+- repo: https://github.com/myint/autoflake
+  rev: v1.4
+  hooks:
+    - id: autoflake
+      args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
+      # Avoiding PR bloat
+      exclude: |
+          (?x)^(
+               bindings/python/setup.py|
+               bindings/python/test.py
+          )
+- repo: https://github.com/python/black
+  rev: 20.8b1
+  hooks:
+    - id: black
+      # Avoiding PR bloat
+      exclude: |
+          (?x)^(
+               bindings/python/client.py|
+               bindings/python/dummy_data.py|
+               bindings/python/make_torrent.py|
+               bindings/python/setup.py|
+               bindings/python/simple_client.py|
+               bindings/python/test.py|
+               docs/filter-rst.py|
+               docs/gen_settings_doc.py|
+               docs/gen_reference_doc.py|
+               docs/gen_stats_doc.py|
+               docs/gen_todo.py|
+               docs/join_rst.py|
+               examples/run_benchmarks.py|
+               fuzzers/tools/generate_initial_corpus.py|
+               fuzzers/tools/unify_corpus_names.py|
+               setup.py|
+               test/http_proxy.py|
+               test/socks.py|
+               test/web_server.py|
+               tools/clean.py|
+               tools/dht_flood.py|
+               tools/gen_fwd.py|
+               tools/parse_dht_log.py|
+               tools/parse_dht_rtt.py|
+               tools/parse_dht_stats.py|
+               tools/parse_lookup_log.py|
+               tools/parse_peer_log.py|
+               tools/parse_sample.py|
+               tools/parse_session_stats.py|
+               tools/parse_utp_log.py|
+               tools/run_benchmark.py|
+               tools/set_version.py|
+               tools/update_copyright.py
+          )$
+      # black doesn't run on *.pyi files by default, for reasons
+    - id: black
+      name: black (pyi)
+      types: [pyi]
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v0.800
+  hooks:
+    - id: mypy
+      # Avoiding PR bloat
+      exclude: |
+          (?x)^(
+              bindings/python/client.py|
+              bindings/python/dummy_data.py|
+              bindings/python/make_torrent.py|
+              bindings/python/setup.py|
+              bindings/python/test.py|
+              docs/filter-rst.py|
+              docs/gen_reference_doc.py|
+              docs/gen_settings_doc.py|
+              docs/gen_stats_doc.py|
+              docs/gen_todo.py|
+              examples/run_benchmarks.py|
+              fuzzers/tools/generate_initial_corpus.py|
+              setup.py|
+              test/http_proxy.py|
+              test/socks.py|
+              test/web_server.py|
+              tools/clean.py|
+              tools/dht_flood.py|
+              tools/gen_fwd.py|
+              tools/parse_dht_log.py|
+              tools/parse_dht_stats.py|
+              tools/parse_lookup_log.py|
+              tools/parse_peer_log.py|
+              tools/parse_sample.py|
+              tools/parse_session_stats.py|
+              tools/parse_utp_log.py|
+              tools/run_benchmark.py|
+              tools/set_version.py|
+              tools/update_copyright.py
+          )$
+- repo: https://gitlab.com/pycqa/flake8.git
+  rev: 3.8.4
+  hooks:
+  - id: flake8
+    exclude: |
+        (?x)^(
+            # Enable these later, avoid bloating this PR
+            bindings/python/client.py|
+            bindings/python/make_torrent.py|
+            bindings/python/setup.py|
+            bindings/python/test.py|
+            docs/gen_settings_doc.py|
+            docs/gen_todo.py|
+            docs/gen_reference_doc.py|
+            docs/gen_stats_doc.py|
+            examples/run_benchmarks.py|
+            fuzzers/tools/generate_initial_corpus.py|
+            test/http_proxy.py|
+            test/socks.py|
+            test/web_server.py|
+            tools/dht_flood.py|
+            tools/gen_fwd.py|
+            tools/parse_dht_stats.py|
+            tools/parse_dht_log.py|
+            tools/parse_lookup_log.py|
+            tools/parse_peer_log.py|
+            tools/parse_sample.py|
+            tools/parse_session_stats.py|
+            tools/parse_utp_log.py|
+            tools/run_benchmark.py|
+            tools/set_version.py|
+            tools/update_copyright.py
+        )$
+#- repo: local
+#  hooks:
+#  - id: gen_fwd
+#    name: gen_fwd
+#    language: system
+#    entry: ./tools/gen_fwd.py
+#    always_run: true
