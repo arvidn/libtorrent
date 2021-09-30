@@ -22,6 +22,11 @@ repos:
     -   id: check-yaml
     -   id: check-case-conflict
     -   id: check-executables-have-shebangs
+        exclude: |
+            (?x)^(
+              # Enable these later, avoid bloating this PR
+              tools/run_tests.sh
+            )
     -   id: check-xml
     -   id: debug-statements
     -   id: check-symlinks
@@ -51,7 +56,9 @@ repos:
             test/socks.py|
             test/web_server.py|
             tools/clean.py|
+            tools/copyright.py|
             tools/dht_flood.py|
+            tools/libtorrent_lldb.py|
             tools/parse_dht_log.py|
             tools/parse_dht_rtt.py|
             tools/parse_dht_stats.py|
@@ -70,7 +77,11 @@ repos:
       exclude: |
           (?x)^(
                bindings/python/setup.py|
-               bindings/python/test.py
+               bindings/python/test.py|
+               tools/benchmark_checking.py|
+               tools/copyright.py|
+               tools/gen_convenience_header.py|
+               tools/libtorrent_lldb.py
           )
 - repo: https://github.com/python/black
   rev: 20.8b1
@@ -90,7 +101,6 @@ repos:
                docs/gen_reference_doc.py|
                docs/gen_stats_doc.py|
                docs/gen_todo.py|
-               docs/join_rst.py|
                examples/run_benchmarks.py|
                fuzzers/tools/generate_initial_corpus.py|
                fuzzers/tools/unify_corpus_names.py|
@@ -98,9 +108,13 @@ repos:
                test/http_proxy.py|
                test/socks.py|
                test/web_server.py|
+               tools/benchmark_checking.py|
                tools/clean.py|
+               tools/copyright.py|
                tools/dht_flood.py|
+               tools/gen_convenience_header.py|
                tools/gen_fwd.py|
+               tools/libtorrent_lldb.py|
                tools/parse_dht_log.py|
                tools/parse_dht_rtt.py|
                tools/parse_dht_stats.py|
@@ -140,9 +154,13 @@ repos:
               test/http_proxy.py|
               test/socks.py|
               test/web_server.py|
+              tools/benchmark_checking.py|
               tools/clean.py|
+              tools/copyright.py|
               tools/dht_flood.py|
+              tools/gen_convenience_header.py|
               tools/gen_fwd.py|
+              tools/libtorrent_lldb.py|
               tools/parse_dht_log.py|
               tools/parse_dht_stats.py|
               tools/parse_lookup_log.py|
@@ -174,8 +192,11 @@ repos:
             test/http_proxy.py|
             test/socks.py|
             test/web_server.py|
+            tools/benchmark_checking.py|
             tools/dht_flood.py|
+            tools/gen_convenience_header.py|
             tools/gen_fwd.py|
+            tools/libtorrent_lldb.py|
             tools/parse_dht_stats.py|
             tools/parse_dht_log.py|
             tools/parse_lookup_log.py|
