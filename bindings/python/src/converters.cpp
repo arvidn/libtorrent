@@ -58,7 +58,7 @@ struct tuple_to_endpoint
         extract<std::uint16_t> port(object(borrowed(PyTuple_GetItem(x, 1))));
         if (!port.check()) return nullptr;
         lt::error_code ec;
-        lt::address::from_string(ip, ec);
+        lt::make_address(ip, ec);
         if (ec) return nullptr;
         return x;
     }
@@ -69,7 +69,7 @@ struct tuple_to_endpoint
            ->storage.bytes;
 
         object o(borrowed(x));
-        data->convertible = new (storage) T(lt::address::from_string(
+        data->convertible = new (storage) T(lt::make_address(
            extract<std::string>(o[0])), extract<std::uint16_t>(o[1]));
     }
 };
@@ -88,8 +88,7 @@ struct address_to_tuple
 {
     static PyObject* convert(Addr const& addr)
     {
-        lt::error_code ec;
-        return incref(bp::object(addr.to_string(ec)).ptr());
+        return incref(bp::object(addr.to_string()).ptr());
     }
 };
 
