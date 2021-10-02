@@ -231,7 +231,7 @@ namespace
         , storage_mode_t storage_mode, bool paused)
     {
         allow_threading_guard guard;
-        return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
+        return s.add_torrent(ti, save, resume, storage_mode, paused);
     }
 #endif
 #endif
