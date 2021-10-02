@@ -184,10 +184,18 @@ namespace
 
 	std::shared_ptr<lt::session> make_session(boost::python::dict sett, session_flags_t flags)
 	{
-		session_params p;
-		make_settings_pack(p.settings, sett);
-		p.flags = flags;
-		return std::make_shared<lt::session>(std::move(p));
+		settings_pack p;
+		make_settings_pack(p, sett);
+		if (flags & lt::session::add_default_plugins)
+		{
+			session_params params(std::move(p));
+			return std::make_shared<lt::session>(std::move(params), flags);
+		}
+		else
+		{
+			session_params params(std::move(p), {});
+			return std::make_shared<lt::session>(std::move(params), flags);
+		}
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
@@ -1068,9 +1076,10 @@ void bind_session()
         .def(init<>())
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
-                , (arg("settings")
-                , arg("flags")=lt::session::add_default_plugins))
-        )
+                , (arg("settings"), arg("flags")=
+                    lt::session::add_default_plugins
+                    ))
+              )
 #if TORRENT_ABI_VERSION == 1
         .def(
             init<fingerprint, session_flags_t, alert_category_t>((
