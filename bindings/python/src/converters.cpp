@@ -296,7 +296,7 @@ struct bitfield_to_list
     static PyObject* convert(T const& v)
     {
         list ret;
-        for (auto const& i : v)
+        for (auto const i : v)
             ret.append(i);
         return incref(ret.ptr());
     }
