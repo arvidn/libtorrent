@@ -46,7 +46,6 @@ repos:
             bindings/python/client.py|
             bindings/python/dummy_data.py|
             bindings/python/make_torrent.py|
-            bindings/python/setup.py|
             bindings/python/simple_client.py|
             bindings/python/test.py|
             docs/gen_reference_doc.py|
@@ -74,7 +73,6 @@ repos:
       # Avoiding PR bloat
       exclude: |
           (?x)^(
-               bindings/python/setup.py|
                bindings/python/test.py
           )
 - repo: https://github.com/python/black
@@ -87,7 +85,6 @@ repos:
                bindings/python/client.py|
                bindings/python/dummy_data.py|
                bindings/python/make_torrent.py|
-               bindings/python/setup.py|
                bindings/python/simple_client.py|
                bindings/python/test.py|
                docs/filter-rst.py|
@@ -99,7 +96,6 @@ repos:
                examples/run_benchmarks.py|
                fuzzers/tools/generate_initial_corpus.py|
                fuzzers/tools/unify_corpus_names.py|
-               setup.py|
                test/http_proxy.py|
                test/socks.py|
                test/web_server.py|
@@ -132,7 +128,6 @@ repos:
               bindings/python/client.py|
               bindings/python/dummy_data.py|
               bindings/python/make_torrent.py|
-              bindings/python/setup.py|
               bindings/python/test.py|
               docs/filter-rst.py|
               docs/gen_reference_doc.py|
@@ -168,7 +163,6 @@ repos:
             # Enable these later, avoid bloating this PR
             bindings/python/client.py|
             bindings/python/make_torrent.py|
-            bindings/python/setup.py|
             bindings/python/test.py|
             docs/gen_settings_doc.py|
             docs/gen_todo.py|
