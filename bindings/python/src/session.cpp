@@ -184,9 +184,10 @@ namespace
 
 	std::shared_ptr<lt::session> make_session(boost::python::dict sett, session_flags_t flags)
 	{
-		settings_pack p;
-		make_settings_pack(p, sett);
-		return std::make_shared<lt::session>(p, flags);
+		session_params p;
+		make_settings_pack(p.settings, sett);
+		p.flags = flags;
+		return std::make_shared<lt::session>(std::move(p));
 	}
 
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
