@@ -33,7 +33,7 @@ namespace boost
 	// this fixes mysterious link error on msvc
 	template <>
 	inline lt::alert const volatile*
-	get_pointer(class lt::alert const volatile* p)
+	get_pointer(lt::alert const volatile* p)
 	{
 		return p;
 	}
