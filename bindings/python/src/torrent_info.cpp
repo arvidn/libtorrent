@@ -332,11 +332,6 @@ void bind_torrent_info()
     return_value_policy<copy_const_reference> copy;
 
     void (torrent_info::*rename_file0)(file_index_t, std::string const&) = &torrent_info::rename_file;
-#if TORRENT_ABI_VERSION == 1
-#ifdef TORRENT_WINDOWS
-    void (torrent_info::*rename_file1)(file_index_t, std::wstring const&) = &torrent_info::rename_file;
-#endif
-#endif
 
     class_<file_slice>("file_slice")
         .add_property("file_index", make_getter((&file_slice::file_index), by_value()))
@@ -397,9 +392,6 @@ void bind_torrent_info()
         .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
 #if TORRENT_ABI_VERSION == 1
         .def("file_at", depr(&torrent_info::file_at))
-#ifdef TORRENT_WINDOWS
-        .def("rename_file", rename_file1)
-#endif
 #endif // TORRENT_ABI_VERSION
 
         .def("is_valid", &torrent_info::is_valid)
