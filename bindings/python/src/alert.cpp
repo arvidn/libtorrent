@@ -668,10 +668,10 @@ void bind_alert()
 
     enum_<socket_type_t>("socket_type_t")
        .value("tcp", socket_type_t::tcp)
-       .value("tcp_ssl", socket_type_t::tcp_ssl)
+       .value("socks5", socket_type_t::socks5)
        .value("udp", socket_type_t::udp)
        .value("i2p", socket_type_t::i2p)
-       .value("socks5", socket_type_t::socks5)
+       .value("tcp_ssl", socket_type_t::tcp_ssl)
        .value("utp_ssl", socket_type_t::utp_ssl)
        ;
 
