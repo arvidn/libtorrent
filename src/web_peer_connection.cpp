@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
+#include "libtorrent/random.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
 
