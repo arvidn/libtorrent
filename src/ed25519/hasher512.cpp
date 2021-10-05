@@ -104,6 +104,7 @@ namespace libtorrent::aux {
 
 	hasher512& hasher512::operator=(hasher512&& h) &
 	{
+		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}

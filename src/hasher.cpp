@@ -95,6 +95,7 @@ TORRENT_CRYPTO_NAMESPACE
 
 	hasher& hasher::operator=(hasher&& h) &
 	{
+		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}
@@ -251,6 +252,7 @@ TORRENT_CRYPTO_NAMESPACE
 
 	hasher256& hasher256::operator=(hasher256&& h) &
 	{
+		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}
