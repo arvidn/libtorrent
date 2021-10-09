@@ -993,6 +993,14 @@ namespace libtorrent {
 		// *blocks must be sorted in acending order*
 		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
 
+		// the peers in "peers" participated in sending a bad piece. If
+		// "known_bad_peer" is true, we know for sure the peers are guilty,
+		// otherwise only one may be guilty (meaning we can't unconditionally
+		// disconnect)
+		void penalize_peers(std::set<torrent_peer*> const& peers
+			, piece_index_t index
+			, bool known_bad_peer);
+
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
 		void on_piece_sync(piece_index_t piece, std::vector<int> const& blocks);

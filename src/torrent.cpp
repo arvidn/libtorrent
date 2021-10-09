@@ -4329,34 +4329,6 @@ namespace {
 		}
 #endif
 
-		if (!torrent_file().info_hashes().has_v1() && blocks.empty())
-		{
-			// This is a v2 only torrent so we can definitely get block
-			// level hashes. Don't fail the piece yet, let it sit in the
-			// finished state and request block hashes.
-
-			// If this is a hybrid torrent we might be able to get block level
-			// hashes, but there is no guarantee that there is a v2 peer to
-			// request them from. For now be conservative and re-request
-			// the block without waiting for block hashes.
-
-			verify_block_hashes(index);
-			return;
-		}
-
-		// increase the total amount of failed bytes
-		if (blocks.empty())
-			add_failed_bytes(m_torrent_file->piece_size(index));
-		else
-			add_failed_bytes(static_cast<int>(blocks.size()) * default_block_size);
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
-		{
-			ext->on_piece_failed(index);
-		}
-#endif
-
 		std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
 
 		// decrease the trust point of all peers that sent
@@ -4375,14 +4347,92 @@ namespace {
 			{
 				std::copy(downloaders.begin(), downloaders.end(), std::inserter(ret, ret.begin()));
 			}
+			ret.erase(nullptr);
 			return ret;
 		}();
 
-		// did we receive this piece from a single peer?
-		// if we know exactly which blocks failed the hash, we can also be certain
-		// that all peers in the list sent us bad data
-		bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
+		// if "peers" is an empty set, it suggests that this piece wasn't
+		// downloaded from peers, we just found it on disk. In that case, we
+		// should just consider it as "not-have" and there's no need to try to
+		// get higher fidelity hashes (yet)
+		bool const found_on_disk = peers.empty();
 
+		if (!torrent_file().info_hashes().has_v1() && blocks.empty() && !found_on_disk)
+		{
+			// This is a v2 only torrent so we can definitely get block
+			// level hashes. Don't fail the piece yet, let it sit in the
+			// finished state and request block hashes.
+
+			// If this is a hybrid torrent we might be able to get block level
+			// hashes, but there is no guarantee that there is a v2 peer to
+			// request them from. For now be conservative and re-request
+			// the block without waiting for block hashes.
+
+			verify_block_hashes(index);
+			return;
+		}
+
+		// the below code is penalizing peers that sent use bad data.
+		// increase the total amount of failed bytes
+		if (!found_on_disk)
+		{
+			// increase the total amount of failed bytes
+			if (blocks.empty())
+				add_failed_bytes(m_torrent_file->piece_size(index));
+			else
+				add_failed_bytes(static_cast<int>(blocks.size()) * default_block_size);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			for (auto& ext : m_extensions)
+			{
+				ext->on_piece_failed(index);
+			}
+#endif
+
+			// did we receive this piece from a single peer?
+			// if we know exactly which blocks failed the hash, we can also be certain
+			// that all peers in the list sent us bad data
+			bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
+
+			penalize_peers(peers, index, known_bad_peer);
+		}
+
+		// If m_storage isn't set here, it means we're shutting down
+		if (m_storage)
+		{
+			// it doesn't make much sense to fail to hash a piece
+			// without having a storage associated with the torrent.
+			// restoring the piece in the piece picker without calling
+			// clear piece on the disk thread will make them out of
+			// sync, and if we try to write more blocks to this piece
+			// the disk thread will barf, because it hasn't been cleared
+			TORRENT_ASSERT(m_storage);
+
+			// don't allow picking any blocks from this piece
+			// until we're done synchronizing with the disk threads.
+			m_picker->lock_piece(index);
+
+			// don't do this until after the plugins have had a chance
+			// to read back the blocks that failed, for blame purposes
+			// this way they have a chance to hit the cache
+			m_ses.disk_thread().async_clear_piece(m_storage, index
+				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
+				{ self->on_piece_sync(p, c); });
+			m_ses.deferred_submit_jobs();
+		}
+		else
+		{
+			TORRENT_ASSERT(m_abort);
+			// it doesn't really matter what we do
+			// here, since we're about to destruct the
+			// torrent anyway.
+			on_piece_sync(index, std::move(blocks));
+		}
+	}
+
+	void torrent::penalize_peers(std::set<torrent_peer*> const& peers
+		, piece_index_t const index, bool const known_bad_peer)
+	{
 		for (auto p : peers)
 		{
 			if (p == nullptr) continue;
@@ -4450,38 +4500,6 @@ namespace {
 					peer->disconnect(errors::too_many_corrupt_pieces, operation_t::bittorrent);
 				}
 			}
-		}
-
-		// If m_storage isn't set here, it means we're shutting down
-		if (m_storage)
-		{
-			// it doesn't make much sense to fail to hash a piece
-			// without having a storage associated with the torrent.
-			// restoring the piece in the piece picker without calling
-			// clear piece on the disk thread will make them out of
-			// sync, and if we try to write more blocks to this piece
-			// the disk thread will barf, because it hasn't been cleared
-			TORRENT_ASSERT(m_storage);
-
-			// don't allow picking any blocks from this piece
-			// until we're done synchronizing with the disk threads.
-			m_picker->lock_piece(index);
-
-			// don't do this until after the plugins have had a chance
-			// to read back the blocks that failed, for blame purposes
-			// this way they have a chance to hit the cache
-			m_ses.disk_thread().async_clear_piece(m_storage, index
-				, [self = shared_from_this(), c = std::move(blocks)](piece_index_t const& p)
-				{ self->on_piece_sync(p, c); });
-			m_ses.deferred_submit_jobs();
-		}
-		else
-		{
-			TORRENT_ASSERT(m_abort);
-			// it doesn't really matter what we do
-			// here, since we're about to destruct the
-			// torrent anyway.
-			on_piece_sync(index, std::move(blocks));
 		}
 	}
 
