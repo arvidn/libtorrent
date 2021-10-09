@@ -179,85 +179,95 @@ void test_roundtrip(aux::merkle_tree const& t
 	t2.load_sparse_tree(tree, mask);
 
 	TEST_CHECK(t.build_vector() == t2.build_vector());
+	for (int i = 0; i < int(t.size()); ++i)
+	{
+		TEST_EQUAL(t[i], t2[i]);
+		TEST_EQUAL(t.has_node(i), t2.has_node(i));
+
+		if (!t.has_node(i))
+			TEST_CHECK(t[i].is_all_zeros());
+		if (!t2.has_node(i))
+			TEST_CHECK(t2[i].is_all_zeros());
+
+		TEST_CHECK(t.compare_node(i, t2[i]));
+		TEST_CHECK(t2.compare_node(i, t[i]));
+	}
 }
 }
 
-TORRENT_TEST(roundtrip_merkle_tree)
+TORRENT_TEST(roundtrip_empty_tree)
 {
-	// empty tree
-	{
-		aux::merkle_tree t(num_blocks, 1, f[0].data());
-		test_roundtrip(t, num_blocks, 1);
-	}
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	test_roundtrip(t, num_blocks, 1);
+}
 
-	// full tree
-	{
-		aux::merkle_tree t(num_blocks, 1, f[0].data());
-		t.load_tree(f);
-		test_roundtrip(t, num_blocks, 1);
-	}
+TORRENT_TEST(roundtrip_full_tree)
+{
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	t.load_tree(f);
+	test_roundtrip(t, num_blocks, 1);
+}
 
-	// piece layer tree
+TORRENT_TEST(roundtrip_piece_layer_tree)
+{
+	aux::merkle_tree t(num_blocks, 2, f[0].data());
+	auto sparse_tree = f;
+	for (int i = f.end_index() / 2; i < f.end_index(); ++i)
+		sparse_tree[i] = lt::sha256_hash{};
+	t.load_tree(sparse_tree);
+	test_roundtrip(t, num_blocks, 2);
+}
+
+TORRENT_TEST(roundtrip_partial_tree)
+{
+	aux::merkle_tree t(num_blocks, 2, f[0].data());
+	auto sparse_tree = f;
+	for (int i = f.end_index() / 4; i < f.end_index(); ++i)
 	{
-		aux::merkle_tree t(num_blocks, 2, f[0].data());
-		auto sparse_tree = f;
-		for (int i = f.end_index() / 2; i < f.end_index(); ++i)
+		if ((i % 3) == 0)
 			sparse_tree[i] = lt::sha256_hash{};
-		t.load_tree(sparse_tree);
-		test_roundtrip(t, num_blocks, 2);
 	}
 
-	// some hashes tree
+	t.load_tree(sparse_tree);
+	test_roundtrip(t, num_blocks, 2);
+}
+
+TORRENT_TEST(roundtrip_more_partial_tree)
+{
+	aux::merkle_tree t(num_blocks, 2, f[0].data());
+	auto sparse_tree = f;
+	for (int i = f.end_index() / 4; i < f.end_index(); ++i)
 	{
-		aux::merkle_tree t(num_blocks, 2, f[0].data());
-		auto sparse_tree = f;
-		for (int i = f.end_index() / 4; i < f.end_index(); ++i)
-		{
-			if ((i % 3) == 0)
-				sparse_tree[i] = lt::sha256_hash{};
-		}
-
-		t.load_tree(sparse_tree);
-		test_roundtrip(t, num_blocks, 2);
+		if ((i % 4) == 0)
+			sparse_tree[i] = lt::sha256_hash{};
 	}
 
-	// some more hashes tree
-	{
-		aux::merkle_tree t(num_blocks, 2, f[0].data());
-		auto sparse_tree = f;
-		for (int i = f.end_index() / 4; i < f.end_index(); ++i)
-		{
-			if ((i % 4) == 0)
-				sparse_tree[i] = lt::sha256_hash{};
-		}
+	t.load_tree(sparse_tree);
+	test_roundtrip(t, num_blocks, 2);
+}
 
-		t.load_tree(sparse_tree);
-		test_roundtrip(t, num_blocks, 2);
-	}
+TORRENT_TEST(roundtrip_one_block_tree)
+{
+	aux::merkle_tree t(1, 256, f[0].data());
+	t.load_tree(span<sha256_hash const>(f).first(1));
+	test_roundtrip(t, 1, 256);
+}
 
-	// 1 block tree
-	{
-		aux::merkle_tree t(1, 256, f[0].data());
-		t.load_tree(span<sha256_hash const>(f).first(1));
-		test_roundtrip(t, 1, 256);
-	}
+TORRENT_TEST(roundtrip_two_block_tree)
+{
+	aux::merkle_tree t(2, 256, f[0].data());
+	t.load_tree(span<sha256_hash const>(f).first(3));
+	test_roundtrip(t, 2, 256);
+}
 
-	// 2 block tree
-	{
-		aux::merkle_tree t(2, 256, f[0].data());
-		t.load_tree(span<sha256_hash const>(f).first(3));
-		test_roundtrip(t, 2, 256);
-	}
-
-	// 2 block, partial tree
-	{
-		auto pf = f;
-		pf.resize(3);
-		pf[2].clear();
-		aux::merkle_tree t(2, 256, f[0].data());
-		t.load_tree(pf);
-		test_roundtrip(t, 2, 256);
-	}
+TORRENT_TEST(roundtrip_two_block_partial_tree)
+{
+	auto pf = f;
+	pf.resize(3);
+	pf[2].clear();
+	aux::merkle_tree t(2, 256, f[0].data());
+	t.load_tree(pf);
+	test_roundtrip(t, 2, 256);
 }
 
 TORRENT_TEST(small_tree)
