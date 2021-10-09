@@ -191,9 +191,11 @@ void print_alerts(lt::session& ses
 
 			for (lt::alert const* a : alerts)
 			{
-				std::printf("%-3d [%d] %s\n"
-					, int(lt::duration_cast<lt::seconds>(a->timestamp() - start_time).count())
-					, idx
+				auto const ts = a->timestamp() - start_time;
+				std::printf("\x1b[%dm%3d.%03d %s\n"
+					, idx == 0 ? 0 : 34
+					, int(lt::duration_cast<lt::seconds>(ts).count())
+					, int(lt::duration_cast<lt::milliseconds>(ts).count() % 1000)
 					, a->message().c_str());
 				// call the user handler
 				on_alert(ses, a);
