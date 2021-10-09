@@ -64,6 +64,14 @@ namespace aux {
 		if (root() != t[0]) return;
 		if (size() != static_cast<std::size_t>(t.size())) return;
 
+		if (t.size() == 1)
+		{
+			// don't fully allocate a tree of 1 node. It's just the root and we
+			// have a special case representation for this
+			optimize_storage();
+			return;
+		}
+
 		allocate_full();
 
 		merkle_validate_copy(t, m_tree, root());
@@ -219,10 +227,7 @@ namespace {
 		int const npieces = num_pieces();
 		if (piece_layer.size() != npieces * sha256_hash::size()) return false;
 
-		int const piece_layer_size = merkle_num_leafs(npieces);
-		auto const num_leafs = merkle_num_leafs(m_num_blocks);
-
-		sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
+		sha256_hash const pad_hash = merkle_pad(1 << m_blocks_per_piece_log, 1);
 
 		aux::vector<sha256_hash> pieces(npieces);
 		for (int n = 0; n < npieces; ++n)
@@ -492,10 +497,35 @@ namespace {
 			case mode_t::uninitialized_tree:
 				TORRENT_ASSERT_FAIL();
 				return h.is_all_zeros();
-			case mode_t::empty_tree: return idx == 0 ? root() == h : h.is_all_zeros();
-			case mode_t::full_tree: return m_tree[idx] == h;
-			case mode_t::piece_layer: return idx < merkle_get_first_child(piece_layer_start());
-			case mode_t::block_layer: return true;
+			case mode_t::empty_tree:
+				return idx == 0 ? root() == h : h.is_all_zeros();
+			case mode_t::full_tree:
+				return m_tree[idx] == h;
+			case mode_t::piece_layer:
+			{
+				int const first = piece_layer_start();
+				int const piece_count = num_pieces();
+				int const pieces_end = first + piece_count;
+				int const piece_layer_size = merkle_num_leafs(piece_count);
+				int const end = first + piece_layer_size;
+				if (idx >= end)
+					return h.is_all_zeros();
+				if (idx >= pieces_end)
+					return h == merkle_pad(1 << m_blocks_per_piece_log, 1);
+				if (idx >= first)
+					return m_tree[idx - first] == h;
+				return (*this)[idx] == h;
+			}
+			case mode_t::block_layer:
+			{
+				int const first = block_layer_start();
+				int const end = first + m_num_blocks;
+				if (idx >= end)
+					return h.is_all_zeros();
+				if (idx >= first)
+					return m_tree[idx - first] == h;
+				return (*this)[idx] == h;
+			}
 		}
 		TORRENT_ASSERT_FAIL();
 		return false;
@@ -514,8 +544,10 @@ namespace {
 			case mode_t::uninitialized_tree:
 				TORRENT_ASSERT_FAIL();
 				return sha256_hash{};
-			case mode_t::empty_tree: return idx == 0 ? root() : sha256_hash{};
-			case mode_t::full_tree: return m_tree[idx];
+			case mode_t::empty_tree:
+				return idx == 0 ? root() : sha256_hash{};
+			case mode_t::full_tree:
+				return m_tree[idx];
 			case mode_t::piece_layer:
 			case mode_t::block_layer:
 			{
@@ -523,7 +555,8 @@ namespace {
 					? piece_layer_start()
 					: block_layer_start();
 
-				if (idx >= merkle_get_first_child(start)) return sha256_hash{};
+				if (m_mode == mode_t::piece_layer && idx >= merkle_get_first_child(start))
+					return sha256_hash();
 
 				int layer_size = 1;
 				while (idx < start)
@@ -534,12 +567,17 @@ namespace {
 
 				idx -= start;
 				if (idx >= m_tree.end_index())
-					return merkle_pad(layer_size, 1);
+				{
+					return merkle_pad(
+						(m_mode == mode_t::piece_layer)
+						? layer_size << m_blocks_per_piece_log
+						: layer_size, 1);
+				}
 
 				sha256_hash const pad_hash = (m_mode == mode_t::piece_layer)
 					? merkle_pad(1 << m_blocks_per_piece_log, 1)
 					: sha256_hash{};
-				auto const layer= span<sha256_hash const>(m_tree)
+				auto const layer = span<sha256_hash const>(m_tree)
 					.subspan(idx, std::min(m_tree.end_index() - idx, layer_size));
 
 				return merkle_root_scratch(layer, layer_size, pad_hash, scratch_space);
@@ -565,9 +603,8 @@ namespace {
 				break;
 			case mode_t::piece_layer:
 			{
-				int const num_leafs = merkle_num_leafs(m_num_blocks);
 				int const piece_layer_size = merkle_num_leafs(num_pieces());
-				sha256_hash const pad_hash = merkle_pad(num_leafs, piece_layer_size);
+				sha256_hash const pad_hash = merkle_pad(1 << m_blocks_per_piece_log, 1);
 				int const start = merkle_first_leaf(piece_layer_size);
 				TORRENT_ASSERT(m_tree.end_index() <= piece_layer_size);
 				std::copy(m_tree.begin(), m_tree.end(), ret.begin() + start);
