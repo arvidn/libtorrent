@@ -308,10 +308,10 @@ namespace {
 		// we already have all hashes
 		if (m_mode == mode_t::block_layer)
 		{
-			// the the hashes we're trying to insert are at the piece layer or
-			// below, we need to add matching pieces to ret.passed
-
-			// TODO: Do we need to add pieces to ret.passed in this case?
+			// since we're already on the block layer mode, we have the whole
+			// tree, and we've already reported any pieces as passing that may
+			// have existed in the tree when we completed it. At this point no
+			// more pieces should be reported as passed
 			return ret;
 		}
 
@@ -835,6 +835,8 @@ namespace {
 	bool merkle_tree::blocks_verified(int block_idx, int num_blocks) const
 	{
 		TORRENT_ASSERT(num_blocks > 0);
+		TORRENT_ASSERT(block_idx < m_num_blocks);
+		TORRENT_ASSERT(block_idx + num_blocks <= m_num_blocks);
 		switch (m_mode)
 		{
 			case mode_t::uninitialized_tree:
