@@ -407,8 +407,8 @@ namespace {
 		TORRENT_ASSERT(block_index < m_num_blocks);
 
 		auto const num_leafs = merkle_num_leafs(m_num_blocks);
-		auto const file_first_leaf = merkle_first_leaf(num_leafs);
-		auto const block_tree_index = file_first_leaf + block_index;
+		auto const first_leaf = merkle_first_leaf(num_leafs);
+		auto const block_tree_index = first_leaf + block_index;
 
 		// TODO: add a special case for m_mode == mode_t::block_layer
 
@@ -417,7 +417,7 @@ namespace {
 		m_tree[block_tree_index] = h;
 
 		// to avoid wasting a lot of time hashing nodes only to discover they
-		// cannot be verrified, check first to see if the root of the largest
+		// cannot be verified, check first to see if the root of the largest
 		// computable subtree is known
 
 		// TODO: use structured binding in C++17
@@ -433,13 +433,13 @@ namespace {
 
 		// save the root hash because merkle_fill_tree will overwrite it
 		sha256_hash const root = m_tree[root_index];
-		merkle_fill_tree(m_tree, leafs_size, file_first_leaf + leafs_start);
+		merkle_fill_tree(m_tree, leafs_size, first_leaf + leafs_start);
 
 		if (root != m_tree[root_index])
 		{
 			// hash failure, clear all the internal nodes
 			// not the block hashes though, except for the one we just added
-			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(file_first_leaf + leafs_start));
+			merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(first_leaf + leafs_start));
 			m_tree[block_tree_index].clear();
 			m_tree[root_index] = root;
 			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
@@ -800,8 +800,12 @@ namespace {
 	{
 		switch (m_mode)
 		{
-			case mode_t::uninitialized_tree: break;
-			case mode_t::empty_tree: break;
+			case mode_t::uninitialized_tree:
+				TORRENT_ASSERT(m_tree.empty());
+				break;
+			case mode_t::empty_tree:
+				TORRENT_ASSERT(m_tree.empty());
+				break;
 			case mode_t::full_tree:
 			{
 				TORRENT_ASSERT(m_tree[0] == root());
