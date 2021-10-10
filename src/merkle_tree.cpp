@@ -227,6 +227,16 @@ namespace {
 		int const npieces = num_pieces();
 		if (piece_layer.size() != npieces * sha256_hash::size()) return false;
 
+		if (m_num_blocks == 1)
+		{
+			// special case for trees that only have a root hash
+			if (sha256_hash(piece_layer.data()) != root())
+				return false;
+			m_mode = mode_t::empty_tree;
+			m_tree.clear();
+			return true;
+		}
+
 		sha256_hash const pad_hash = merkle_pad(1 << m_blocks_per_piece_log, 1);
 
 		aux::vector<sha256_hash> pieces(npieces);
