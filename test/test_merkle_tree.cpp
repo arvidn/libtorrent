@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
+#include "libtorrent/random.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -52,6 +53,63 @@ int const num_pad_leafs = num_leafs - num_blocks;
 
 using verified_t = std::vector<bool>;
 verified_t const empty_verified(std::size_t(num_leafs), false);
+
+using s = span<sha256_hash const>;
+
+span<sha256_hash const> range(std::vector<sha256_hash> const& c, int first, int count)
+{
+	return s(c).subspan(first, count);
+}
+
+sha256_hash rand_sha256()
+{
+	sha256_hash ret;
+	aux::random_bytes(ret);
+	return ret;
+}
+
+std::vector<sha256_hash> build_proof(span<sha256_hash const> tree, int target, int end = 0)
+{
+	std::vector<sha256_hash> ret;
+	while (target > end)
+	{
+		ret.push_back(tree[merkle_get_sibling(target)]);
+		target = merkle_get_parent(target);
+	}
+	return ret;
+}
+
+std::vector<sha256_hash> corrupt(span<sha256_hash const> hashes)
+{
+	std::vector<sha256_hash> ret;
+	ret.reserve(std::size_t(hashes.size()));
+	std::copy(hashes.begin(), hashes.end(), std::back_inserter(ret));
+	ret[146542934 % ret.size()][2] ^= 0x26;
+	return ret;
+}
+
+std::vector<bool> all_set(int count)
+{
+	return std::vector<bool>(std::size_t(count), true);
+}
+
+std::vector<bool> none_set(int count)
+{
+	return std::vector<bool>(std::size_t(count), false);
+}
+
+std::vector<bool> set_range(std::vector<bool> bits, int start, int count)
+{
+	while (count > 0)
+	{
+		TORRENT_ASSERT(start >= 0);
+		TORRENT_ASSERT(std::size_t(start) < bits.size());
+		bits[std::size_t(start)] = true;
+		++start;
+		--count;
+	}
+	return bits;
+}
 }
 
 TORRENT_TEST(load_tree)
@@ -294,22 +352,22 @@ TORRENT_TEST(sparse_merkle_tree_block_layer)
 	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	for (int i = 0; i < int(t.size()); ++i)
-	{
-		std::cout << i << '\n';
 		TEST_CHECK(t[i] == f[i]);
-	}
 }
 
 TORRENT_TEST(get_piece_layer)
 {
 	// 8 blocks per piece.
-	aux::merkle_tree t(260, 8, f[0].data());
+	aux::merkle_tree t(num_blocks, 8, f[0].data());
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
 	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
-	int const num_pieces = (260 + 7) / 8;
+	int const num_pieces = (num_blocks + 7) / 8;
 	int const piece_layer_size = merkle_num_leafs(num_pieces);
 	int const piece_layer_start = merkle_first_leaf(piece_layer_size);
 	auto const piece_layer = t.get_piece_layer();
+
+	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
 
 	TEST_EQUAL(num_pieces, int(piece_layer.size()));
 	for (int i = 0; i < int(piece_layer.size()); ++i)
@@ -318,19 +376,25 @@ TORRENT_TEST(get_piece_layer)
 	}
 }
 
-// TODO: add test for load_piece_layer()
-// TODO: add test for get_piece_layer() when tree is in piece-layer mode
-// TODO: add test for add_hashes()
-// TODO: add test for operator[] in each mode the tree can be in. piece-layer,
-// block-layer, full and empty
-
-namespace {
-using s = span<sha256_hash const>;
-
-span<sha256_hash const> range(std::vector<sha256_hash> const& c, int first, int count)
+TORRENT_TEST(get_piece_layer_piece_layer_mode)
 {
-	return s(c).subspan(first, count);
-}
+	aux::merkle_tree t(num_blocks, 4, f[0].data());
+	int const num_pieces = (num_blocks + 3) / 4;
+
+	// add the entire piece layer
+	t.load_piece_layer(span<char const>(f[127].data(), sha256_hash::size() * num_pieces));
+
+	int const piece_layer_size = merkle_num_leafs(num_pieces);
+	int const piece_layer_start = merkle_first_leaf(piece_layer_size);
+	auto const piece_layer = t.get_piece_layer();
+
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+
+	TEST_EQUAL(num_pieces, int(piece_layer.size()));
+	for (int i = 0; i < int(piece_layer.size()); ++i)
+	{
+		TEST_CHECK(t[piece_layer_start + i] == piece_layer[i]);
+	}
 }
 
 TORRENT_TEST(merkle_tree_get_hashes)
@@ -433,4 +497,430 @@ TORRENT_TEST(merkle_tree_get_hashes)
 		TEST_CHECK(s(h) == range(f, 255 + 128, 64));
 	}
 }
+
+//                             0
+//                  1                     2
+//            3          4            5         6
+//        7     8     9    10    11    12     13   14
+//      15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+//     31      ...                                    62
+//    63      ...                                      126
+//   127     ...                                        254  <- piece layer
+//  255     ...                                          510
+// 511     ...         771   ... padding ...              1022 <- block layer
+
+using pdiff = piece_index_t::diff_type;
+
+TORRENT_TEST(add_hashes_full_tree)
+{
+	for (int blocks_per_piece : {1, 2, 4})
+	{
+		aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+		// add the entire block layer
+		auto const result = t.add_hashes(511, pdiff(1), range(f, 511, 512), span<sha256_hash const>());
+
+		TEST_CHECK(result);
+		if (!result) return;
+
+		auto const& res = *result;
+		TEST_EQUAL(res.passed.size(), 0);
+		TEST_EQUAL(res.failed.size(), 0);
+
+		// check the piece layer
+		for (int i = 127; i < 255; ++i)
+			TEST_EQUAL(t[i], f[i]);
+
+		// check the block layer
+		for (int i = 511; i < 1023; ++i)
+			TEST_EQUAL(t[i], f[i]);
+
+		TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+	}
+}
+
+TORRENT_TEST(add_hashes_one_piece)
+{
+	int const blocks_per_piece = 4;
+	for (int piece_index : {0, 64, 5, 30})
+	{
+		aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+		int const insert_idx = 127 + piece_index;
+		auto const result = t.add_hashes(511 + piece_index * blocks_per_piece, pdiff(1)
+			, range(f, 511 + piece_index * blocks_per_piece, blocks_per_piece)
+			, build_proof(f, insert_idx));
+
+		TEST_CHECK(result);
+		if (!result) return;
+
+		auto const& res = *result;
+		TEST_EQUAL(res.passed.size(), 0);
+		TEST_EQUAL(res.failed.size(), 0);
+
+		// the trail of proof hashes
+		for (int i = insert_idx; i > 0; i = merkle_get_parent(i))
+		{
+			TEST_EQUAL(t[i], f[i]);
+			TEST_EQUAL(t[merkle_get_sibling(i)], f[merkle_get_sibling(i)]);
+		}
+
+		// check the piece layer
+		for (int i = 127; i < 255; ++i)
+		{
+			// one is the root of the hashes we added, the other is part of the
+			// proof anchroing it in the root
+			if (i == 127 + piece_index || merkle_get_sibling(i) == 127 + piece_index)
+				TEST_EQUAL(t[i], f[i]);
+			else
+				TEST_CHECK(t[i].is_all_zeros());
+		}
+
+		// check the block layer
+		for (int i = 511; i < 1023; ++i)
+		{
+			if (i >= 511 + piece_index*blocks_per_piece && i < 511 + piece_index*blocks_per_piece + 4)
+				TEST_EQUAL(t[i], f[i]);
+			else
+				TEST_CHECK(t[i].is_all_zeros());
+		}
+
+		TEST_CHECK(t.verified_leafs() == set_range(none_set(num_blocks), piece_index * blocks_per_piece, blocks_per_piece));
+	}
+}
+
+TORRENT_TEST(add_hashes_one_piece_invalid_proof)
+{
+	int const blocks_per_piece = 4;
+	for (int piece_index : {0, 64, 5, 30})
+	{
+		aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+		int const insert_idx = 127 + piece_index;
+		auto const result = t.add_hashes(511 + piece_index * blocks_per_piece, pdiff(1)
+			, range(f, 511 + piece_index * blocks_per_piece, blocks_per_piece)
+			, corrupt(build_proof(f, insert_idx)));
+
+		TEST_CHECK(!result);
+		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+	}
+}
+
+TORRENT_TEST(add_hashes_one_piece_invalid_hash)
+{
+	int const blocks_per_piece = 4;
+	for (int piece_index : {0, 64, 5, 30})
+	{
+		aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+		int const insert_idx = 127 + piece_index;
+		auto const result = t.add_hashes(511 + piece_index * blocks_per_piece, pdiff(1)
+			, corrupt(range(f, 511 + piece_index * blocks_per_piece, blocks_per_piece))
+			, build_proof(f, insert_idx));
+
+		TEST_CHECK(!result);
+		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+	}
+}
+
+TORRENT_TEST(add_hashes_full_tree_existing_valid_blocks)
+{
+	for (int piece_index : {0, 63})
+	{
+		for (int blocks_per_piece : {1, 2, 4})
+		{
+			aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+			for (int i = 511 + piece_index * blocks_per_piece; i < 511 + piece_index * blocks_per_piece + 8; ++i)
+			{
+				auto ret = t.set_block(i - 511, f[i]);
+				TEST_CHECK(std::get<0>(ret) == aux::merkle_tree::set_block_result::unknown);
+			}
+
+			// add the entire block layer
+			auto const result = t.add_hashes(511, pdiff(10), range(f, 511, 512), span<sha256_hash const>());
+
+			TEST_CHECK(result);
+			if (!result) return;
+
+			auto const& res = *result;
+			TEST_EQUAL(res.passed.size(), std::size_t(8 / blocks_per_piece));
+			TEST_EQUAL(res.failed.size(), 0);
+
+			piece_index_t idx(piece_index + 10);
+			for (auto passed : res.passed)
+			{
+				TEST_EQUAL(passed, idx);
+				++idx;
+			}
+
+			TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+		}
+	}
+}
+
+TORRENT_TEST(add_hashes_full_tree_existing_invalid_blocks)
+{
+	for (int piece_index : {0, 63})
+	{
+		for (int blocks_per_piece : {1, 2, 4})
+		{
+			aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+			for (int i = 511 + piece_index * blocks_per_piece; i < 511 + piece_index * blocks_per_piece + 8; ++i)
+			{
+				// the hash is invalid
+				auto ret = t.set_block(i - 511, rand_sha256());
+				TEST_CHECK(std::get<0>(ret) == aux::merkle_tree::set_block_result::unknown);
+			}
+
+			// add the entire block layer
+			auto const result = t.add_hashes(511, pdiff(10), range(f, 511, 512), span<sha256_hash const>());
+
+			TEST_CHECK(result);
+			if (!result) return;
+
+			auto const& res = *result;
+			TEST_EQUAL(res.passed.size(), 0);
+			TEST_EQUAL(res.failed.size(), std::size_t(8 / blocks_per_piece));
+
+			piece_index_t idx(piece_index + 10);
+			for (auto failed : res.failed)
+			{
+				TEST_EQUAL(failed.first, idx);
+				++idx;
+				TEST_EQUAL(failed.second.size(), std::size_t(blocks_per_piece));
+				int block = 0;
+				for (auto b : failed.second)
+				{
+					TEST_EQUAL(b, block);
+					++block;
+				}
+			}
+
+			TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+		}
+	}
+}
+
+TORRENT_TEST(set_block_full_block_layer)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	{
+		// add the entire block layer
+		auto const result = t.add_hashes(511, pdiff(1), range(f, 511, 512), span<sha256_hash const>());
+		TEST_CHECK(result);
+		if (!result) return;
+	}
+
+	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+
+	for (int block = 0; block < num_blocks; ++block)
+	{
+		// the tree is complete, we know all hashes already. This is just
+		// comparing the hash against what we have in the tree
+		auto const result = t.set_block(block, f[511 + block]);
+		TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::ok);
+		TEST_EQUAL(std::get<1>(result), block);
+		TEST_EQUAL(std::get<2>(result), 1);
+	}
+}
+
+TORRENT_TEST(set_block_invalid_full_block_layer)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	{
+		// add the entire block layer
+		auto const result = t.add_hashes(511, pdiff(1), range(f, 511, 512), span<sha256_hash const>());
+		TEST_CHECK(result);
+		if (!result) return;
+	}
+
+	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+
+	for (int block = 0; block < num_blocks; ++block)
+	{
+		// the tree is complete, we know all hashes already. This is just
+		// comparing the hash against what we have in the tree
+		auto const result = t.set_block(block, rand_sha256());
+		TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::block_hash_failed);
+		TEST_EQUAL(std::get<1>(result), block);
+		TEST_EQUAL(std::get<2>(result), 1);
+	}
+}
+
+TORRENT_TEST(set_block_full_piece_layer)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	{
+		// add the entire piece layer
+		auto const result = t.add_hashes(127, pdiff(1), range(f, 127, 128), span<sha256_hash const>());
+		TEST_CHECK(result);
+		if (!result) return;
+	}
+
+	for (int block = 0; block < num_blocks; ++block)
+	{
+		auto const result = t.set_block(block, f[511 + block]);
+		if ((block % blocks_per_piece) == blocks_per_piece - 1)
+		{
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::ok);
+			TEST_EQUAL(std::get<1>(result), block - (block % blocks_per_piece));
+			TEST_EQUAL(std::get<2>(result), blocks_per_piece);
+			TEST_CHECK(t.verified_leafs() == set_range(none_set(num_blocks), 0, block + 1));
+		}
+		else
+		{
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+			TEST_CHECK(t.verified_leafs() == set_range(none_set(num_blocks), 0, block - (block % blocks_per_piece)));
+		}
+	}
+}
+
+TORRENT_TEST(set_block_invalid_full_piece_layer)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	{
+		// add the entire piece layer
+		auto const result = t.add_hashes(127, pdiff(1), range(f, 127, 128), span<sha256_hash const>());
+		TEST_CHECK(result);
+		if (!result) return;
+	}
+
+	for (int block = 0; block < num_blocks; ++block)
+	{
+		auto const result = t.set_block(block, rand_sha256());
+		if ((block % blocks_per_piece) == blocks_per_piece - 1)
+		{
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::hash_failed);
+			TEST_EQUAL(std::get<1>(result), block - (block % blocks_per_piece));
+			TEST_EQUAL(std::get<2>(result), blocks_per_piece);
+		}
+		else
+		{
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+		}
+		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+	}
+}
+
+TORRENT_TEST(set_block_empty_tree)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	for (int block = 0; block < num_blocks - 1; ++block)
+	{
+		// the tree is complete, we know all hashes already. This is just
+		// comparing the hash against what we have in the tree
+		auto const result = t.set_block(block, f[511 + block]);
+		TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+	}
+
+	int const block = num_blocks - 1;
+	auto const result = t.set_block(block, f[511 + block]);
+
+	TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::ok);
+	TEST_EQUAL(std::get<1>(result), 0);
+	TEST_EQUAL(std::get<2>(result), num_leafs);
+
+	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+}
+
+TORRENT_TEST(set_block_invalid_empty_tree)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	for (int block = 0; block < num_blocks; ++block)
+	{
+		// the tree is complete, we know all hashes already. This is just
+		// comparing the hash against what we have in the tree
+		auto const result = t.set_block(block, rand_sha256());
+		TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+	}
+}
+
+TORRENT_TEST(add_hashes_block_layer_no_padding)
+{
+	aux::merkle_tree t(num_blocks, 4, f[0].data());
+
+	auto const result = t.add_hashes(511, pdiff(1), range(f, 511, num_blocks), span<sha256_hash const>());
+
+	TEST_CHECK(result);
+	if (!result) return;
+
+	auto const& res = *result;
+	TEST_EQUAL(res.passed.size(), 0);
+	TEST_EQUAL(res.failed.size(), 0);
+
+	for (int i = 0; i < 1023; ++i)
+		TEST_EQUAL(t[i], f[i]);
+
+	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+}
+
+TORRENT_TEST(add_hashes_piece_layer_no_padding)
+{
+	aux::merkle_tree t(num_blocks, 4, f[0].data());
+
+	int const num_pieces = (num_blocks + 3) / 4;
+	auto const result = t.add_hashes(127, pdiff(1), range(f, 127, num_pieces), span<sha256_hash const>());
+
+	TEST_CHECK(result);
+	if (!result) return;
+
+	auto const& res = *result;
+	TEST_EQUAL(res.passed.size(), 0);
+	TEST_EQUAL(res.failed.size(), 0);
+
+	for (int i = 0; i < 255; ++i)
+		TEST_EQUAL(t[i], f[i]);
+
+	for (int i = 255; i < 1023; ++i)
+		TEST_CHECK(t[i].is_all_zeros());
+
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
+
+TORRENT_TEST(add_hashes_partial_proofs)
+{
+	aux::merkle_tree t(num_blocks, 4, f[0].data());
+
+	// set the first 2 layers
+	{
+		auto const result = t.add_hashes(3, pdiff(1), range(f, 3, 4), span<sha256_hash const>());
+		TEST_CHECK(result);
+		if (!result) return;
+
+		for (int i = 0; i < 7; ++i)
+			TEST_EQUAL(t[i], f[i]);
+	}
+
+	// use a proof that ties the first piece node 3 (since we don't need it all
+	// the way to the root).
+	auto const result = t.add_hashes(127, pdiff(1), range(f, 127, 4), build_proof(f, 31, 3));
+	TEST_CHECK(result);
+
+	auto const& res = *result;
+	TEST_EQUAL(res.passed.size(), 0);
+	TEST_EQUAL(res.failed.size(), 0);
+
+	for (int i = 127; i < 127 + 4; ++i)
+		TEST_CHECK(t[i] == f[i]);
+
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
+
+// TODO: add test for load_piece_layer()
 

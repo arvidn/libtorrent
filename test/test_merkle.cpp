@@ -821,7 +821,6 @@ TORRENT_TEST(merkle_validate_node)
 
 TORRENT_TEST(merkle_validate_copy_full)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -837,9 +836,58 @@ TORRENT_TEST(merkle_validate_copy_full)
 	TEST_CHECK(empty_tree == src);
 }
 
+TORRENT_TEST(merkle_validate_copy_invalid_leaf)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,e,ef,g,h};
+
+	v empty_tree(15);
+	bitfield verified(8);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	// leaf 5 had an invalid hash, it's sibling (leaf 4) could also not be
+	// validated because of it
+	compare_bits(verified, "11110011");
+
+	v const expected{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,o,o,g,h};
+	TEST_CHECK(empty_tree == expected);
+}
+
+TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,ef,d,eh,ef,g,ah};
+
+	v empty_tree(15);
+	bitfield verified(8);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	// leaf 2,4, 5 and 7 had an invalid hash, their siblings (leaf 3 and 6) could also not be
+	// validated because of it
+	compare_bits(verified, "11000000");
+
+	v const expected{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,o,o,o,o,o,o};
+	TEST_CHECK(empty_tree == expected);
+}
+
 TORRENT_TEST(merkle_validate_copy_partial)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -864,7 +912,6 @@ TORRENT_TEST(merkle_validate_copy_partial)
 
 TORRENT_TEST(merkle_validate_copy_invalid_root)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -884,7 +931,6 @@ TORRENT_TEST(merkle_validate_copy_invalid_root)
 
 TORRENT_TEST(merkle_validate_copy_root_only)
 {
-
 	v const src{
 	       ah,
 	    o,      o,
