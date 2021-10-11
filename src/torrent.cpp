@@ -7477,7 +7477,10 @@ namespace {
 		info_hash_t const old_ih = m_torrent_file->info_hashes();
 
 		error_code ec;
-		bdecode_node const metadata = bdecode(metadata_buf, ec);
+		int pos = 0;
+		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
+			, settings().get_int(settings_pack::metadata_token_limit));
+
 		if (ec || !m_torrent_file->parse_info_section(metadata, ec
 			, settings().get_int(settings_pack::max_piece_count)))
 		{
