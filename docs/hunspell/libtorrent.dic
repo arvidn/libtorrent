@@ -514,6 +514,7 @@ SNDBUFFER
 RCVBUF
 QBSS
 DDoS
+DoS
 anonymization
 Tribler
 gzipped

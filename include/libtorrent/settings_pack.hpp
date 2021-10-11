@@ -1990,6 +1990,12 @@ namespace aux {
 			// torrent_info::parse_info_section(), if those are used.
 			max_piece_count,
 
+			// when receiving metadata (torrent file) from peers, this is the
+			// max number of bencoded tokens we're willing to parse. This limit
+			// is meant to prevent DoS attacks on peers. For very large
+			// torrents, this limit may have to be raised.
+			metadata_token_limit,
+
 			max_int_setting_internal
 		};
 
