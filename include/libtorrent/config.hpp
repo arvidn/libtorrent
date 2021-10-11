@@ -188,6 +188,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FTELLO 0
 #endif // API < 24
 
+// Starting Android 11 (API >= 30), the enum_routes using NETLINK
+// is not possible anymore. For other functions, it's not clear
+// that IFADDRS is working as expected for API >= 30, but at least
+// it is supported.
+// See https://developer.android.com/training/articles/user-data-ids#mac-11-plus
+#if __ANDROID_API__ >= 24
+#undef TORRENT_USE_NETLINK
+#undef TORRENT_USE_IFADDRS
+#define TORRENT_USE_NETLINK 0
+#define TORRENT_USE_IFADDRS 1
+#endif // API >= 24
+
 #else // ANDROID
 
 // posix_fallocate() is not available in glibc under these condition
