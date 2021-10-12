@@ -136,10 +136,10 @@ TORRENT_TEST(utp_pmtud)
 	// TODO: 3 This timeout happens at shutdown. It's not very clean
 	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 1);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 610);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 611);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 23);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 611);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 612);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -162,10 +162,10 @@ TORRENT_TEST(utp_plain)
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 608);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 609);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 23);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 607);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 608);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -188,13 +188,13 @@ TORRENT_TEST(utp_buffer_bloat)
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 424);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 425);
 	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 156);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 645);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 646);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 62);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 644);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 645);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);

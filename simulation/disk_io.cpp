@@ -80,11 +80,13 @@ lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& 
 		for (int i = 0; i < lt::default_block_size;)
 		{
 			int const bytes = std::min(int(fill.size()), payload_size - offset);
+			if (bytes <= 0) break;
 			ret.update(fill.data(), bytes);
 			offset += bytes;
 			i += bytes;
 		}
 	}
+	TORRENT_ASSERT(piece_size - offset == pad_bytes);
 	std::array<char, 8> const pad{{0, 0, 0, 0, 0, 0, 0, 0}};
 	while (offset < piece_size)
 	{
@@ -135,7 +137,6 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 			std::vector<char> padding(piece_size - offset, 0);
 			ret.update(padding);
 		}
-
 		if (v2)
 			hashes[block] = v2_hash.final();
 	}
@@ -144,6 +145,8 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 
 lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset)
 {
+	// TODO: this function is not correct for files whose size are not divisible
+	// by the block size (for the last block)
 	lt::hasher256 ret;
 	int const block = offset / lt::default_block_size;
 	auto const fill = generate_block_fill(p, block);
@@ -201,16 +204,19 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	, int const num_pieces, lt::create_flags_t const flags, int const num_files)
 {
 	lt::file_storage ifs;
-	int const total_size = num_files * piece_size * num_pieces;
+	int total_size = num_files * piece_size * num_pieces + 1234;
 	if (num_files == 1)
 	{
 		ifs.add_file("file-1", total_size);
 	}
 	else
 	{
+		int const file_size = total_size / num_files + 10;
 		for (int i = 0; i < num_files; ++i)
 		{
-			ifs.add_file("test-torrent/file-" + std::to_string(i + 1), total_size / num_files);
+			int const this_size = std::min(file_size, total_size);
+			ifs.add_file("test-torrent/file-" + std::to_string(i + 1), this_size);
+			total_size -= this_size;
 		}
 	}
 	lt::create_torrent t(ifs, piece_size, flags);
@@ -226,12 +232,13 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	}
 	else
 	{
-		int const blocks_in_piece = piece_size / lt::default_block_size;
-		TORRENT_ASSERT(blocks_in_piece * lt::default_block_size == piece_size);
+		int const blocks_per_piece = piece_size / lt::default_block_size;
+		TORRENT_ASSERT(blocks_per_piece * lt::default_block_size == piece_size);
+		// blocks per piece must be a power of two
+		TORRENT_ASSERT((blocks_per_piece & (blocks_per_piece - 1)) == 0);
 
-		int const num_leafs = lt::merkle_num_leafs(blocks_in_piece);
-		lt::aux::vector<lt::sha256_hash> v2tree(lt::merkle_num_nodes(num_leafs));
-		auto const blocks = lt::span<lt::sha256_hash>(v2tree).subspan(lt::merkle_first_leaf(num_leafs));
+		lt::aux::vector<lt::sha256_hash> blocks(blocks_per_piece);
+		std::vector<lt::sha256_hash> scratch_space;
 
 		for (auto const f : fs.file_range())
 		{
@@ -239,9 +246,17 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 			auto const file_piece = fs.piece_index_at_file(f);
 			for (auto const p : fs.file_piece_range(f))
 			{
-				auto const hash = generate_hash2(file_piece + p, fs, blocks, pads_in_piece(pad_bytes, file_piece + p));
-				lt::merkle_fill_tree(v2tree, num_leafs);
-				t.set_hash2(f, p, v2tree[0]);
+				auto const piece = file_piece + p;
+				auto const blocks_in_piece = fs.blocks_in_piece2(piece);
+				TORRENT_ASSERT(blocks_in_piece > 0);
+				TORRENT_ASSERT(blocks_in_piece <= int(blocks.size()));
+				auto const hash = generate_hash2(piece, fs, blocks, pads_in_piece(pad_bytes, piece));
+				auto const piece_layer_hash = lt::merkle_root_scratch(
+					lt::span<lt::sha256_hash const>(blocks).first(blocks_in_piece)
+					, blocks_per_piece
+					, {}
+					, scratch_space);
+				t.set_hash2(f, p, piece_layer_hash);
 
 				if (!(flags & lt::create_torrent::v2_only))
 					t.set_hash(file_piece + p, hash);

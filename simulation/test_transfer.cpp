@@ -239,8 +239,16 @@ int blocks_per_piece(test_transfer_flags_t const flags)
 
 int num_pieces(test_transfer_flags_t const flags)
 {
-	if (flags & tx::multiple_files) return 30;
-	return 10;
+	if (flags & tx::multiple_files)
+	{
+		// since v1 torrents don't pad files by default, there will be fewer
+		// pieces on those torrents
+		if (flags & tx::v1_only)
+			return 31;
+		else
+			return 33;
+	}
+	return 11;
 }
 
 std::ostream& operator<<(std::ostream& os, existing_files_mode const mode)
@@ -513,7 +521,7 @@ TORRENT_TEST(v1_only_magnet)
 		, expect_seed(true)
 		, tx::v1_only | tx::magnet_download
 	);
-	TEST_EQUAL(passed.size(), 10);
+	TEST_EQUAL(passed.size(), 11);
 }
 
 TORRENT_TEST(disk_full)

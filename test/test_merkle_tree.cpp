@@ -45,7 +45,7 @@ using namespace lt;
 
 namespace {
 
-int const num_blocks = 260;
+int const num_blocks = 259;
 auto const f = build_tree(num_blocks);
 int const num_leafs = merkle_num_leafs(num_blocks);
 int const num_nodes = merkle_num_nodes(num_leafs);
@@ -116,7 +116,7 @@ TORRENT_TEST(load_tree)
 {
 	// test with full tree and valid root
 	{
-		aux::merkle_tree t(260, 1, f[0].data());
+		aux::merkle_tree t(num_blocks, 1, f[0].data());
 		t.load_tree(f, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
@@ -133,7 +133,7 @@ TORRENT_TEST(load_tree)
 	// mismatching root hash
 	{
 		sha256_hash const bad_root("01234567890123456789012345678901");
-		aux::merkle_tree t(260, 1, bad_root.data());
+		aux::merkle_tree t(num_blocks, 1, bad_root.data());
 		t.load_tree(f, empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
@@ -142,7 +142,7 @@ TORRENT_TEST(load_tree)
 
 	// mismatching size
 	{
-		aux::merkle_tree t(260, 1, f[0].data());
+		aux::merkle_tree t(num_blocks, 1, f[0].data());
 		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1), empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
@@ -347,7 +347,7 @@ TORRENT_TEST(small_tree)
 
 TORRENT_TEST(sparse_merkle_tree_block_layer)
 {
-	aux::merkle_tree t(260, 2, f[0].data());
+	aux::merkle_tree t(num_blocks, 2, f[0].data());
 
 	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
@@ -399,26 +399,26 @@ TORRENT_TEST(get_piece_layer_piece_layer_mode)
 
 TORRENT_TEST(merkle_tree_get_hashes)
 {
-	aux::merkle_tree t(260, 2, f[0].data());
+	aux::merkle_tree t(num_blocks, 2, f[0].data());
 
 	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	// all nodes leaf layer
 	{
-		auto h = t.get_hashes(0, 0, 260, 0);
-		TEST_CHECK(s(h) == range(f, 511, 260));
+		auto h = t.get_hashes(0, 0, num_blocks, 0);
+		TEST_CHECK(s(h) == range(f, 511, num_blocks));
 	}
 
 	// all nodes leaf layer but the first
 	{
-		auto h = t.get_hashes(0, 1, 259, 0);
-		TEST_CHECK(s(h) == range(f, 512, 259));
+		auto h = t.get_hashes(0, 1, num_blocks - 1, 0);
+		TEST_CHECK(s(h) == range(f, 512, num_blocks - 1));
 	}
 
 	// all nodes leaf layer but the last
 	{
-		auto h = t.get_hashes(0, 0, 259, 0);
-		TEST_CHECK(s(h) == range(f, 511, 259));
+		auto h = t.get_hashes(0, 0, num_blocks - 1, 0);
+		TEST_CHECK(s(h) == range(f, 511, num_blocks - 1));
 	}
 
 	// one layer up
@@ -585,7 +585,10 @@ TORRENT_TEST(add_hashes_one_piece)
 				TEST_CHECK(t[i].is_all_zeros());
 		}
 
-		TEST_CHECK(t.verified_leafs() == set_range(none_set(num_blocks), piece_index * blocks_per_piece, blocks_per_piece));
+		int const start_block = piece_index * blocks_per_piece;
+		int const end_block = std::min(blocks_per_piece, num_blocks - start_block);
+		TEST_CHECK(t.verified_leafs() == set_range(none_set(num_blocks)
+			, start_block, end_block));
 	}
 }
 
@@ -631,7 +634,9 @@ TORRENT_TEST(add_hashes_full_tree_existing_valid_blocks)
 		{
 			aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
 
-			for (int i = 511 + piece_index * blocks_per_piece; i < 511 + piece_index * blocks_per_piece + 8; ++i)
+			for (int i = 511 + piece_index * blocks_per_piece;
+				i < 511 + std::min(piece_index * blocks_per_piece + 8, num_blocks);
+				++i)
 			{
 				auto ret = t.set_block(i - 511, f[i]);
 				TEST_CHECK(std::get<0>(ret) == aux::merkle_tree::set_block_result::unknown);
@@ -663,11 +668,15 @@ TORRENT_TEST(add_hashes_full_tree_existing_invalid_blocks)
 {
 	for (int piece_index : {0, 63})
 	{
+		std::cout << "piece: " << piece_index << std::endl;
 		for (int blocks_per_piece : {1, 2, 4})
 		{
+			std::cout << "block per piece: " << blocks_per_piece << std::endl;
 			aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
 
-			for (int i = 511 + piece_index * blocks_per_piece; i < 511 + piece_index * blocks_per_piece + 8; ++i)
+			for (int i = 511 + piece_index * blocks_per_piece;
+				i < 511 + std::min(piece_index * blocks_per_piece + 8, num_blocks);
+				++i)
 			{
 				// the hash is invalid
 				auto ret = t.set_block(i - 511, rand_sha256());
@@ -684,14 +693,15 @@ TORRENT_TEST(add_hashes_full_tree_existing_invalid_blocks)
 			TEST_EQUAL(res.passed.size(), 0);
 			TEST_EQUAL(res.failed.size(), std::size_t(8 / blocks_per_piece));
 
-			piece_index_t idx(piece_index + 10);
+			piece_index_t idx(piece_index);
 			for (auto failed : res.failed)
 			{
-				TEST_EQUAL(failed.first, idx);
+				TEST_EQUAL(failed.first, idx + pdiff(10));
+				TEST_EQUAL(int(failed.second.size()), std::min(blocks_per_piece
+					, num_blocks - static_cast<int>(idx) * blocks_per_piece));
 				++idx;
-				TEST_EQUAL(failed.second.size(), std::size_t(blocks_per_piece));
 				int block = 0;
-				for (auto b : failed.second)
+				for (auto const b : failed.second)
 				{
 					TEST_EQUAL(b, block);
 					++block;
@@ -768,7 +778,7 @@ TORRENT_TEST(set_block_full_piece_layer)
 	for (int block = 0; block < num_blocks; ++block)
 	{
 		auto const result = t.set_block(block, f[511 + block]);
-		if ((block % blocks_per_piece) == blocks_per_piece - 1)
+		if ((block % blocks_per_piece) == blocks_per_piece - 1 || block == num_blocks - 1)
 		{
 			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::ok);
 			TEST_EQUAL(std::get<1>(result), block - (block % blocks_per_piece));
@@ -798,7 +808,7 @@ TORRENT_TEST(set_block_invalid_full_piece_layer)
 	for (int block = 0; block < num_blocks; ++block)
 	{
 		auto const result = t.set_block(block, rand_sha256());
-		if ((block % blocks_per_piece) == blocks_per_piece - 1)
+		if ((block % blocks_per_piece) == blocks_per_piece - 1 || block == num_blocks - 1)
 		{
 			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::hash_failed);
 			TEST_EQUAL(std::get<1>(result), block - (block % blocks_per_piece));
@@ -923,4 +933,6 @@ TORRENT_TEST(add_hashes_partial_proofs)
 }
 
 // TODO: add test for load_piece_layer()
+// TODO: add test for add_hashes() with an odd number of blocks
+// TODO: add test for set_block() (setting the last block) with an odd number of blocks
 
