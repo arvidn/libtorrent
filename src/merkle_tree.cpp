@@ -386,6 +386,7 @@ namespace {
 						auto const piece = piece_index_t{pos >> m_blocks_per_piece_log} + file_piece_offset;
 						int const block = pos & ((1 << m_blocks_per_piece_log) - 1);
 
+						TORRENT_ASSERT(pos < m_num_blocks);
 						if (!ret.failed.empty() && ret.failed.back().first == piece)
 							ret.failed.back().second.push_back(block);
 						else
@@ -596,6 +597,8 @@ namespace {
 
 	bool merkle_tree::has_node(int const idx) const
 	{
+		TORRENT_ASSERT(idx >= 0);
+		TORRENT_ASSERT(idx < int(size()));
 		switch (m_mode)
 		{
 			case mode_t::uninitialized_tree:
@@ -1045,7 +1048,9 @@ namespace {
 						TORRENT_ASSERT(m_block_verified.get_bit(b) == m_block_verified.get_bit(b + 1));
 						if (!m_block_verified.get_bit(b)) continue;
 						TORRENT_ASSERT(has_node(i));
-						TORRENT_ASSERT(has_node(i + 1));
+
+						if (i + 1 < block_layer_start() + m_num_blocks)
+							TORRENT_ASSERT(has_node(i + 1));
 						int const parent = merkle_get_parent(i);
 						TORRENT_ASSERT(merkle_validate_node(m_tree[i], m_tree[i + 1], m_tree[parent]));
 					}

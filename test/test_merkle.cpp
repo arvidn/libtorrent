@@ -836,6 +836,26 @@ TORRENT_TEST(merkle_validate_copy_full)
 	TEST_CHECK(empty_tree == src);
 }
 
+TORRENT_TEST(merkle_validate_copy_full_odd_nodes)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,e,f,g,h};
+
+	v empty_tree(15);
+	// we pretend that h is a padding node. This algorithm doesn't care that
+	// it's not zero (yet)
+	bitfield verified(7);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "1111111");
+	TEST_CHECK(empty_tree == src);
+}
+
+
 TORRENT_TEST(merkle_validate_copy_invalid_leaf)
 {
 	v const src{

@@ -383,11 +383,15 @@ namespace libtorrent {
 			{
 				dst[left_child] = src[left_child];
 				dst[right_child] = src[right_child];
+				int const block_idx = left_child - leaf_layer_start;
 				if (left_child >= leaf_layer_start
-					&& right_child - leaf_layer_start < verified_leafs.size())
+					&& block_idx < verified_leafs.size())
 				{
-					verified_leafs.set_bit(left_child - leaf_layer_start);
-					verified_leafs.set_bit(right_child - leaf_layer_start);
+					verified_leafs.set_bit(block_idx);
+					// the right child may be the first block of padding hash,
+					// in which case it's not part of the verified bitfield
+					if (block_idx + 1 < verified_leafs.size())
+						verified_leafs.set_bit(block_idx + 1);
 				}
 			}
 		}
