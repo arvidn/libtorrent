@@ -4347,15 +4347,13 @@ namespace {
 			{
 				std::copy(downloaders.begin(), downloaders.end(), std::inserter(ret, ret.begin()));
 			}
-			ret.erase(nullptr);
 			return ret;
 		}();
 
-		// if "peers" is an empty set, it suggests that this piece wasn't
-		// downloaded from peers, we just found it on disk. In that case, we
-		// should just consider it as "not-have" and there's no need to try to
-		// get higher fidelity hashes (yet)
-		bool const found_on_disk = peers.empty();
+		// if this piece wasn't downloaded from peers, we just found it on disk.
+		// In that case, we should just consider it as "not-have" and there's no
+		// need to try to get higher fidelity hashes (yet)
+		bool const found_on_disk = peers.size() == 1 && peers.count(nullptr);
 
 		if (!torrent_file().info_hashes().has_v1() && blocks.empty() && !found_on_disk)
 		{
@@ -4392,7 +4390,7 @@ namespace {
 			// did we receive this piece from a single peer?
 			// if we know exactly which blocks failed the hash, we can also be certain
 			// that all peers in the list sent us bad data
-			bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
+			bool const known_bad_peer = (!found_on_disk && peers.size() == 1) || !blocks.empty();
 
 			penalize_peers(peers, index, known_bad_peer);
 		}
