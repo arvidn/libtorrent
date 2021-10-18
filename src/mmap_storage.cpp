@@ -663,6 +663,10 @@ namespace libtorrent {
 				ret += static_cast<int>(buf.size());
 			}
 
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			m_pool.record_file_write(storage_index(), file_index, ret);
+#endif
+
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
 			ec.operation = operation_t::file_write;
