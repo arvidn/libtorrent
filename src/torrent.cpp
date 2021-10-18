@@ -1234,9 +1234,18 @@ bool is_downloading_state(int const st)
 		pause();
 	}
 
-	void torrent::on_piece_fail_sync(piece_index_t, piece_block) try
+	void torrent::on_piece_fail_sync(piece_index_t const piece, piece_block) try
 	{
 		if (m_abort) return;
+
+		// the user may have called force_recheck, which clears
+		// the piece picker
+		if (has_picker())
+		{
+			// unlock the piece and restore it, as if no block was
+			// ever downloaded for it.
+			m_picker->restore_piece(piece);
+		}
 
 		update_gauge();
 		// some peers that previously was no longer interesting may

@@ -1056,7 +1056,7 @@ namespace libtorrent {
 		std::cerr << "[" << this << "] " << "restore_piece(" << index << ")" << std::endl;
 #endif
 		auto const download_state = m_piece_map[index].download_queue();
-		TORRENT_ASSERT(download_state != piece_pos::piece_open);
+		// if the piece was cancelled, it may have been removed
 		if (download_state == piece_pos::piece_open) return;
 
 		auto i = find_dl_piece(download_state, index);
@@ -3407,7 +3407,7 @@ get_out:
 	// TODO: 2 it would be nice if this could be folded into lock_piece()
 	// the main distinction is that this also maintains the m_num_passed
 	// counter and the passed_hash_check member
-	// Is there ever a case where we call write filed without also locking
+	// Is there ever a case where we call write failed without also locking
 	// the piece? Perhaps write_failed() should imply locking it.
 	void piece_picker::write_failed(piece_block const block)
 	{
