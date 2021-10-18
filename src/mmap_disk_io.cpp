@@ -314,10 +314,6 @@ private:
 
 	settings_interface const& m_settings;
 
-	// we call close_oldest_file on the file_pool regularly. This is the next
-	// time we should call it
-	time_point m_next_close_oldest_file = min_time();
-
 	// LRU cache of open files
 	aux::file_view_pool m_file_pool;
 
@@ -1510,6 +1506,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
 
+		// we call close_oldest_file on the file_pool regularly. This is the next
+		// time we should call it
+		time_point next_close_oldest_file = min_time();
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		time_point next_flush_file = min_time();
+#endif
+
 		for (;;)
 		{
 			aux::disk_io_job* j = nullptr;
@@ -1538,20 +1542,30 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					}
 				}
 
-				if (now > m_next_close_oldest_file)
+				if (now > next_close_oldest_file)
 				{
 					seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
 					if (interval <= seconds(0))
 					{
 						// check again in one minute, in case the setting changed
-						m_next_close_oldest_file = now + minutes(1);
+						next_close_oldest_file = now + minutes(1);
 					}
 					else
 					{
-						m_next_close_oldest_file = now + interval;
+						next_close_oldest_file = now + interval;
 						m_file_pool.close_oldest();
 					}
 				}
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				if (now > next_flush_file)
+				{
+					// on windows we need to explicitly ask the operating system to flush
+					// dirty pages from time to time
+					m_file_pool.flush_next_file();
+					next_flush_file = now + seconds(30);
+				}
+#endif
 			}
 
 			execute_job(j);
