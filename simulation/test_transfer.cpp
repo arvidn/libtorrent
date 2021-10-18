@@ -542,6 +542,33 @@ TORRENT_TEST(disk_full_recover)
 	);
 }
 
+TORRENT_TEST(disk_full_recover_large_pieces)
+{
+	run_test(
+		[](lt::session& ses0, lt::session&)
+		{
+			settings_pack p;
+			p.set_int(settings_pack::optimistic_disk_retry, 30);
+			ses0.apply_settings(p);
+		},
+		[](lt::session&, lt::alert const* a) {
+			if (auto ta = alert_cast<lt::add_torrent_alert>(a))
+			{
+				// the torrent has to be auto-managed in order to automatically
+				// leave upload mode after it hits disk-full
+				ta->handle.set_flags(torrent_flags::auto_managed);
+			}
+		}
+		// the disk filled up, we failed to complete the download, but then the
+		// disk recovered and we completed it
+		, expect_seed(true)
+		, tx::large_pieces
+		, test_disk().set_space_left(10 * lt::default_block_size).set_recover_full_disk()
+		, test_disk()
+		, lt::seconds(70)
+	);
+}
+
 // Below is a series of tests to transfer torrents with varying pad-file related
 // traits
 void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)

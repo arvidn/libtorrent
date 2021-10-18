@@ -1,3 +1,4 @@
+	* fix issue with stalled pieces on disk full errors
 	* fix missing python binding for file_progress_flags
 	* fix torrent_file_with_hashes() to fail when we don't have the piece layers
 	* restore path character encoding conversion for non UTF-8 locales on linux
