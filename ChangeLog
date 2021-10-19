@@ -1,3 +1,4 @@
+	* fix several issues in handling of checking files of v2 torrents, esp. from magnet links
 	* make the token limit when parsing metadata from magnet files configurable
 	* fix issue with stalled pieces on disk full errors
 	* fix missing python binding for file_progress_flags
