@@ -42,6 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 namespace libtorrent {
+
+	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
+
 namespace aux {
 
 	TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
@@ -49,7 +52,19 @@ namespace aux {
 	template <typename Range>
 	void random_shuffle(Range& range)
 	{
+#ifdef TORRENT_BUILD_SIMULATOR
+		// in simulations, we want all shuffles to be deterministic (as long as
+		// the random engine is deterministic
+		if (range.size() == 0) return;
+		for (auto i = range.size() - 1; i > 0; --i) {
+			auto const other = random(std::uint32_t(i));
+			if (i == other) continue;
+			using std::swap;
+			swap(range.data()[i], range.data()[other]);
+		}
+#else
 		std::shuffle(range.data(), range.data() + range.size(), random_engine());
+#endif
 	}
 
 	// Fills the buffer with pseudo random bytes.
@@ -65,8 +80,6 @@ namespace aux {
 	// be used to generate secrets.
 	TORRENT_EXTRA_EXPORT void crypto_random_bytes(span<char> buffer);
 }
-
-	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t m);
 }
 
 #endif // TORRENT_RANDOM_HPP_INCLUDED
