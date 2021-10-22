@@ -14,7 +14,7 @@ jobs:
 
       strategy:
          matrix:
-            config: [ crypto=openssl, deprecated-functions=off ]
+            config: [ crypto=built-in, deprecated-functions=off ]
 
       steps:
       - name: checkout
@@ -79,7 +79,7 @@ jobs:
 
       strategy:
          matrix:
-            config: [ crypto=openssl, release ]
+            config: [ crypto=built-in, release ]
 
       steps:
       - name: checkout
@@ -137,4 +137,4 @@ jobs:
 
       - name: build library
         run: |
-          b2 -l400 warnings-as-errors=on cxxstd=14 darwin-ios darwin-ios_sim link=static
+          b2 -l400 cxxstd=14 darwin-ios darwin-ios_sim address-model=64  link=static
