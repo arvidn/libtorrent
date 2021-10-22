@@ -130,8 +130,7 @@ struct fake_peer
 
 		std::uint8_t b = 0;
 		int cnt = 7;
-		for (std::vector<bool>::const_iterator i = pieces.begin()
-			, end(pieces.end()); i != end; ++i)
+		for (auto i = pieces.begin(), end(pieces.end()); i != end; ++i)
 		{
 			if (*i) b |= 1 << cnt;
 			--cnt;
@@ -142,7 +141,8 @@ struct fake_peer
 				cnt = 7;
 			}
 		}
-		lt::aux::write_uint8(b, ptr);
+		if (cnt < 7)
+			lt::aux::write_uint8(b, ptr);
 	}
 
 	void send_interested() { send_simple_msg(2); }
