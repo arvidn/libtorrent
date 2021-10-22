@@ -257,8 +257,7 @@ windows format (``c:/boost_1_68_0``).
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
 For more build configuration flags see `Build configurations`_.
 
-When enabling linking against openssl (by setting the ``crypto`` feature to
-``openssl``) the Jamfile will look in some default directory for the openssl
+Jamfile will look in some default directory for the openssl
 headers and libraries. On macOS, it will look for the homebrew openssl package.
 On Windows, it will look in ``C:\OpenSSL-Win32``, or ``C:\OpenSSL-Win64`` if
 compiling in 64-bit.
@@ -272,6 +271,9 @@ options: ``--enable-asio --enable-sni --enable-nginx``.
 
 To customize the library path and include path for wolfSSL, set the features
 ``wolfssl-lib`` and ``wolfssl-include`` respectively.
+
+To disable linking against any SSL library, set the ``crypto`` build feature to
+``built-in``. This will use an embedded version if SHA-1.
 
 Build features
 ~~~~~~~~~~~~~~
@@ -334,13 +336,13 @@ Build features
 |                          |   (`BEP 38`_) (default).                           |
 |                          | * ``off`` - mutable torrents are not supported.    |
 +--------------------------+----------------------------------------------------+
-| ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
-|                          |   implementation. In macOS/iOS it uses             |
-|                          |   CommonCrypto SHA-1 implementation.               |
-|                          | * ``openssl`` - links against openssl and          |
-|                          |   libcrypto to use for SHA-1 hashing.              |
+| ``crypto``               | * ``openssl`` - (default) links against openssl    |
+|                          |   and libcrypto to use for SHA-1 hashing.          |
 |                          |   This also enables HTTPS-tracker support and      |
 |                          |   support for bittorrent over SSL.                 |
+|                          | * ``built-in`` - (default) uses built-in SHA-1     |
+|                          |   implementation. In macOS/iOS it uses             |
+|                          |   CommonCrypto SHA-1 implementation.               |
 |                          | * ``wolfssl`` - links against wolfssl to use it    |
 |                          |   for SHA-1 hashing and HTTPS tracker support.     |
 |                          | * ``libcrypto`` - links against libcrypto          |
