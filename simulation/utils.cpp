@@ -46,6 +46,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+#ifdef _MSC_VER
+namespace libtorrent {
+namespace aux {
+	// see test_error_handling.cpp for a description of this variable
+	// TODO: in C++17, make this inline
+	thread_local int g_must_not_fail = 0;
+}
+}
+#endif
+
 void utp_only(lt::session& ses)
 {
 	settings_pack p;
