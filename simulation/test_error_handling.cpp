@@ -151,6 +151,27 @@ void run_test(int const round, HandleAlerts const& on_alert, Test const& test)
 	sim.run();
 }
 
+#ifdef _MSC_VER
+namespace libtorrent {
+namespace aux {
+	// this is unfortunate. Some MSVC standard containers really don't move
+	// with noexcept, by actually allocating memory (i.e. it's not just a matter
+	// of accidentally missing noexcept specifiers). The heterogeneous queue used
+	// by the alert manager requires alerts to be noexcept move constructable and
+	// move assignable, which they claim to be, even though on MSVC some of them
+	// aren't. Things will improve in C++17 and it doesn't seem worth the trouble
+	// to make the heterogeneous queue support throwing moves, nor to replace all
+	// standard types with variants that can move noexcept.
+	// this thread local variable is set to true whenever such throwing
+	// container is wrapped, to make it pretend that it cannot throw. This
+	// signals to the test that it can't exercise that failure path.
+	// this is defined in simulation/utils.cpp
+	// TODO: in C++17, make this inline
+	extern thread_local int g_must_not_fail;
+}
+}
+#endif
+
 void* operator new(std::size_t sz)
 {
 	if (--g_alloc_counter == 0)
@@ -158,17 +179,7 @@ void* operator new(std::size_t sz)
 		char stack[10000];
 		libtorrent::print_backtrace(stack, sizeof(stack), 40, nullptr);
 #ifdef _MSC_VER
-		// this is a bit unfortunate. Some MSVC standard containers really don't move
-		// with noexcept, by actually allocating memory (i.e. it's not just a matter
-		// of accidentally missing noexcept specifiers). The heterogeneous queue used
-		// by the alert manager requires alerts to be noexcept move constructable and
-		// move assignable, which they claim to be, even though on MSVC some of them
-		// aren't. Things will improve in C++17 and it doesn't seem worth the trouble
-		// to make the heterogeneous queue support throwing moves, nor to replace all
-		// standard types with variants that can move noexcept.
-		if (std::strstr(stack, " libtorrent::entry::operator= ") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_movable<") != nullptr
-			|| std::strstr(stack, " libtorrent::aux::noexcept_move_only<") != nullptr)
+		if (libtorrent::aux::g_must_not_fail)
 		{
 			++g_alloc_counter;
 			return std::malloc(sz);
