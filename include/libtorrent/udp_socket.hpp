@@ -103,7 +103,8 @@ namespace aux { struct alert_manager; }
 		void close();
 		int local_port() const { return m_bind_port; }
 
-		void set_proxy_settings(aux::proxy_settings const& ps, aux::alert_manager& alerts);
+		void set_proxy_settings(aux::proxy_settings const& ps, aux::alert_manager& alerts
+			, bool send_local_ep);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }
