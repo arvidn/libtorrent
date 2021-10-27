@@ -83,9 +83,12 @@ constexpr test_transfer_flags_t proxy_peers = 4_bit;
 constexpr test_transfer_flags_t small_pieces = 5_bit;
 constexpr test_transfer_flags_t large_pieces = 6_bit;
 constexpr test_transfer_flags_t multiple_files = 7_bit;
+constexpr test_transfer_flags_t connect_proxy = 8_bit;
 }
 
-void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t flags = tx::proxy_peers);
+void set_proxy(lt::session& ses, int proxy_type
+	, test_transfer_flags_t flags = tx::proxy_peers
+	, bool proxy_peers = true);
 
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert

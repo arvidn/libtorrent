@@ -100,6 +100,7 @@ void run_test(
 	sim::asio::io_context proxy_ios{sim, proxy };
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
+	socks5.bind_start_port(3000);
 
 	lt::session_params params;
 	// setup settings pack to use for the session (customization point)
@@ -138,7 +139,10 @@ void run_test(
 	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
 		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
-			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+			if (flags & tx::connect_proxy)
+				ta->handle.connect_peer(lt::tcp::endpoint(proxy, 3000));
+			else
+				ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 		}
 		on_alert(ses, a);
 	}, 0);
@@ -260,6 +264,7 @@ std::ostream& operator<<(std::ostream& os, existing_files_mode const mode)
 		case existing_files_mode::partial_valid: return os << "partial_valid";
 		case existing_files_mode::full_valid: return os << "full_valid";
 	}
+	return os << "<unknown file mode>";
 }
 
 }
@@ -389,6 +394,82 @@ TORRENT_TEST(socks5_utp)
 	);
 }
 
+TORRENT_TEST(socks5_utp_incoming)
+{
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses1, settings_pack::socks5);
+			utp_only(ses0);
+			utp_only(ses1);
+			filter_ips(ses0);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(true),
+		tx::connect_proxy
+	);
+}
+
+TORRENT_TEST(socks5_utp_circumvent_proxy_reject)
+{
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses1, settings_pack::socks5);
+			utp_only(ses0);
+			utp_only(ses1);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(false)
+	);
+}
+
+// if we're not proxying peer connections, it's OK to accept incoming
+// connections
+TORRENT_TEST(socks5_utp_circumvent_proxy_ok)
+{
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses1, settings_pack::socks5, {}, false);
+			utp_only(ses0);
+			utp_only(ses1);
+		},
+		[](lt::session&, lt::alert const*) {},
+
+		// the UDP socket socks5 proxy support doesn't allow accepting direct
+		// connections, circumventing the proxy, so this transfer will fail,
+		// even though it would be reasonable for it to pass as well
+		expect_seed(false)
+	);
+}
+
+TORRENT_TEST(http_tcp_circumvent_proxy_reject)
+{
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses1, settings_pack::http);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(false)
+	);
+}
+
+// if we're not proxying peer connections, it's OK to accept incoming
+// connections
+TORRENT_TEST(http_tcp_circumvent_proxy_ok)
+{
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses1, settings_pack::http, {}, false);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(true)
+	);
+}
+
 // the purpose of these tests is to make sure that the sessions can't actually
 // talk directly to each other. i.e. they are negative tests. If they can talk
 // directly to each other, all other tests in here may be broken.
@@ -443,11 +524,11 @@ void run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 	// a re-request and also a request of the block hashes (for v2 torrents)
 	if (corruption)
 	{
-		TEST_CHECK(passed.size() < expected_pieces);
+		TEST_CHECK(int(passed.size()) < expected_pieces);
 	}
 	else
 	{
-		TEST_EQUAL(passed.size(), expected_pieces);
+		TEST_EQUAL(int(passed.size()), expected_pieces);
 	}
 }
 

@@ -220,6 +220,7 @@ namespace libtorrent {
 		SET(ssrf_mitigation, true, nullptr),
 		SET(allow_idna, false, nullptr),
 		SET(enable_set_file_valid_data, false, nullptr),
+		SET(socks5_udp_send_local_ep, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
