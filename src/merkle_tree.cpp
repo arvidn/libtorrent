@@ -59,7 +59,7 @@ namespace aux {
 
 	void merkle_tree::load_verified_bits(std::vector<bool> const& verified)
 	{
-		TORRENT_ASSERT(int(verified.size()) >= m_num_blocks);
+		TORRENT_ASSERT(int(verified.size()) <= m_num_blocks);
 		TORRENT_ASSERT(m_block_verified.size() == m_num_blocks);
 
 		// The verified bitfield may be invalid. If so, correct it to

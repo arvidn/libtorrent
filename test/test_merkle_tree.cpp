@@ -52,7 +52,7 @@ int const num_nodes = merkle_num_nodes(num_leafs);
 int const num_pad_leafs = num_leafs - num_blocks;
 
 using verified_t = std::vector<bool>;
-verified_t const empty_verified(std::size_t(num_leafs), false);
+verified_t const empty_verified(std::size_t(num_blocks), false);
 
 using s = span<sha256_hash const>;
 
@@ -316,7 +316,7 @@ TORRENT_TEST(roundtrip_one_block_tree)
 TORRENT_TEST(roundtrip_two_block_tree)
 {
 	aux::merkle_tree t(2, 256, f[0].data());
-	t.load_tree(span<sha256_hash const>(f).first(3), empty_verified);
+	t.load_tree(span<sha256_hash const>(f).first(3), verified_t(std::size_t(2), false));
 	test_roundtrip(t, 2, 256);
 }
 
@@ -326,7 +326,7 @@ TORRENT_TEST(roundtrip_two_block_partial_tree)
 	pf.resize(3);
 	pf[2].clear();
 	aux::merkle_tree t(2, 256, f[0].data());
-	t.load_tree(pf, empty_verified);
+	t.load_tree(pf, verified_t(std::size_t(2), false));
 	test_roundtrip(t, 2, 256);
 }
 
