@@ -72,7 +72,6 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 	int piece_size = ti->piece_length();
 
 	file_storage const& fs = ti->files();
-	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
 	for (auto const i : fs.file_range())
 	{
 		// for every file in the other torrent, see if we have one that match

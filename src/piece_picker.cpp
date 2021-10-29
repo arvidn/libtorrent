@@ -1080,6 +1080,7 @@ namespace libtorrent {
 		std::cerr << "[" << this << "] " << "restore_piece(" << index << ")" << std::endl;
 #endif
 		auto const download_state = m_piece_map[index].download_queue();
+		// if the piece was cancelled, it may have been removed
 		if (download_state == piece_pos::piece_open) return;
 
 		auto i = find_dl_piece(download_state, index);

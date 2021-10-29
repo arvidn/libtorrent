@@ -82,6 +82,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix stalled pieces on disk-full errors
 	* fix build configuration issue on NetBSD, OpenBSD and DragonFly
 	* make UTF-8 sanitization a bit stricter. This will re-write invalid UTF-8
 	  code points encoding surrogate pairs
