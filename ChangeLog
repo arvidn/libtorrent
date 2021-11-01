@@ -1,3 +1,4 @@
+	* cache DNS lookups for SOCKS5 proxy
 	* fix stalled pieces on disk-full errors
 	* fix build configuration issue on NetBSD, OpenBSD and DragonFly
 	* make UTF-8 sanitization a bit stricter. This will re-write invalid UTF-8
