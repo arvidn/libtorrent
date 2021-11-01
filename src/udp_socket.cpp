@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/socks5_stream.hpp" // for socks_error
 #include "libtorrent/aux_/keepalive.hpp"
+#include "libtorrent/resolver_interface.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -76,9 +77,9 @@ std::size_t const max_header_size = 255;
 struct socks5 : std::enable_shared_from_this<socks5>
 {
 	explicit socks5(io_service& ios, aux::listen_socket_handle ls
-		, alert_manager& alerts)
+		, alert_manager& alerts, resolver_interface& res)
 		: m_socks5_sock(ios)
-		, m_resolver(ios)
+		, m_resolver(res)
 		, m_timer(ios)
 		, m_retry_timer(ios)
 		, m_alerts(alerts)
@@ -95,7 +96,7 @@ private:
 
 	std::shared_ptr<socks5> self() { return shared_from_this(); }
 
-	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
+	void on_name_lookup(error_code const& e, std::vector<address> const& result);
 	void on_connect_timeout(error_code const& e);
 	void on_connected(error_code const& e);
 	void handshake1(error_code const& e);
@@ -111,7 +112,7 @@ private:
 	void retry_connection();
 
 	tcp::socket m_socks5_sock;
-	tcp::resolver m_resolver;
+	resolver_interface& m_resolver;
 	deadline_timer m_timer;
 	deadline_timer m_retry_timer;
 	alert_manager& m_alerts;
@@ -495,7 +496,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
-	, alert_manager& alerts)
+	, alert_manager& alerts, resolver_interface& resolver)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -514,7 +515,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
 	{
 		// connect to socks5 server and open up the UDP tunnel
 		m_socks5_connection = std::make_shared<socks5>(lt::get_io_service(m_socket)
-			, m_listen_socket, alerts);
+			, m_listen_socket, alerts, resolver);
 		m_socks5_connection->start(ps);
 	}
 }
@@ -525,14 +526,13 @@ void socks5::start(aux::proxy_settings const& ps)
 {
 	m_proxy_settings = ps;
 
-	// TODO: use the system resolver_interface here
-	tcp::resolver::query q(ps.hostname, to_string(ps.port).data());
 	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
-	m_resolver.async_resolve(q, std::bind(
-		&socks5::on_name_lookup, self(), _1, _2));
+	m_proxy_addr.port(ps.port);
+	m_resolver.async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
+		, std::bind(&socks5::on_name_lookup, self(), _1, _2));
 }
 
-void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
+void socks5::on_name_lookup(error_code const& e, std::vector<address> const& result)
 {
 	COMPLETE_ASYNC("socks5::on_name_lookup");
 
@@ -554,26 +554,23 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// as the proxy
 	// this is a hack to mitigate excessive SOCKS5 tunnels, until this can get
 	// fixed properly.
-	for (;;)
-	{
-		if (i == tcp::resolver::iterator{})
-		{
-			if (m_alerts.should_post<socks5_alert>())
-				m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
-					, operation_t::hostname_lookup
-					, error_code(boost::system::errc::host_unreachable, generic_category()));
-			++m_failures;
-			retry_connection();
-			return;
-		}
+	auto const i = std::find_if(result.begin(), result.end()
+		, [&](address const& a) {
+			return m_listen_socket.can_route(a);
+		});
 
-		// we found a match
-		if (m_listen_socket.can_route(i->endpoint().address()))
-			break;
-		++i;
+	if (i == result.end())
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_listen_socket.get_local_endpoint()
+				, operation_t::hostname_lookup
+				, error_code(boost::system::errc::host_unreachable, generic_category()));
+		++m_failures;
+		retry_connection();
+		return;
 	}
 
-	m_proxy_addr = i->endpoint();
+	m_proxy_addr.address(*i);
 
 	error_code ec;
 	m_socks5_sock.open(is_v4(m_proxy_addr) ? tcp::v4() : tcp::v6(), ec);
@@ -968,7 +965,6 @@ void socks5::close()
 	m_abort = true;
 	error_code ec;
 	m_socks5_sock.close(ec);
-	m_resolver.cancel();
 	m_timer.cancel();
 	m_retry_timer.cancel();
 }

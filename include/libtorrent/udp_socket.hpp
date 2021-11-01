@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/resolver_interface.hpp"
 
 #include <array>
 #include <memory>
@@ -97,7 +98,8 @@ namespace libtorrent {
 		void close();
 		int local_port() const { return m_bind_port; }
 
-		void set_proxy_settings(aux::proxy_settings const& ps, alert_manager& alerts);
+		void set_proxy_settings(aux::proxy_settings const& ps, alert_manager& alerts
+			, resolver_interface& resolver);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }
