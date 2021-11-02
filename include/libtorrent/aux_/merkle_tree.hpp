@@ -20,12 +20,19 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/bitfield.hpp"
 #if TORRENT_USE_INVARIANT_CHECKS
 #include "libtorrent/aux_/invariant_check.hpp"
 #endif
 
 namespace libtorrent {
 namespace aux {
+
+struct add_hashes_result_t
+{
+	std::vector<piece_index_t> passed;
+	std::vector<std::pair<piece_index_t, std::vector<int>>> failed;
+};
 
 // represents the merkle tree for files belonging to a torrent.
 // Each file has a root-hash and a "piece layer", i.e. the level in the tree
@@ -60,8 +67,10 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 	sha256_hash root() const;
 
-	void load_tree(span<sha256_hash const> t);
-	void load_sparse_tree(span<sha256_hash const> t, std::vector<bool> const& mask);
+	void load_tree(span<sha256_hash const> t, std::vector<bool> const& verified);
+	void load_sparse_tree(span<sha256_hash const> t, std::vector<bool> const& mask
+		, std::vector<bool> const& verified);
+	void load_verified_bits(std::vector<bool> const& verified);
 
 	std::size_t size() const;
 	int end_index() const { return int(size()); }
@@ -75,6 +84,15 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	std::vector<sha256_hash> build_vector() const;
 	std::pair<std::vector<sha256_hash>, aux::vector<bool>> build_sparse_vector() const;
 
+	// get bits indicating if each leaf hash is verified
+	std::vector<bool> verified_leafs() const;
+
+	// returns true if the entire tree is known and verified
+	bool is_complete() const;
+
+	// returns true if all block hashes in the specified range have been verified
+	bool blocks_verified(int block_idx, int num_blocks) const;
+
 	bool load_piece_layer(span<char const> piece_layer);
 
 	// the leafs in "tree" must be block hashes (i.e. leaf hashes in the this
@@ -86,21 +104,17 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	// be valid.
 	// if the hashes are not valid, or the uncle hashes fail validation, nullopt
 	// is returned.
-	std::optional<std::map<piece_index_t, std::vector<int>>> add_hashes(
+	std::optional<add_hashes_result_t> add_hashes(
 		int dest_start_idx
-		, span<sha256_hash const> tree
+		, piece_index_t::diff_type file_piece_offset
+		, span<sha256_hash const> hashes
 		, span<sha256_hash const> uncle_hashes);
-
-	// returns the index of the pieces that passed the hash check
-	std::vector<piece_index_t> check_pieces(int base
-		, int index, int file_piece_offset
-		, span<sha256_hash const> hashes);
 
 	aux::vector<sha256_hash> get_piece_layer() const;
 
 	enum class set_block_result
 	{
-		ok, unknown, hash_failed
+		ok, unknown, hash_failed, block_hash_failed
 	};
 
 	std::tuple<set_block_result, int, int> set_block(int block_index
@@ -117,6 +131,9 @@ private:
 	sha256_hash get_impl(int idx, std::vector<sha256_hash>& scratch_space) const;
 
 	int blocks_per_piece() const { return 1 << m_blocks_per_piece_log; }
+	// the number tree levels per piece. This is 0 if the block layer is also
+	// the piece layer.
+	int piece_levels() const { return m_blocks_per_piece_log; }
 
 	int block_layer_start() const;
 	int piece_layer_start() const;
@@ -134,6 +151,12 @@ private:
 	// depending on m_mode
 	// TODO: make this a std::unique_ptr<sha256_hash[]>
 	aux::vector<sha256_hash> m_tree;
+
+	// when the full tree is allocated, this has one bit for each block hash. a
+	// 1 means we have verified the block hash to be corret, otherwise the block
+	// hash may represent what's on disk, but we haven't been able to verify it
+	// yet
+	bitfield m_block_verified;
 
 	// number of blocks in the file this tree represents. The number of leafs in
 	// the tree is rounded up to an even power of 2.

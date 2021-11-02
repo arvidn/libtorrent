@@ -1034,6 +1034,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		aux::open_mode_t const file_flags = file_flags_for_job(j);
 
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
+		TORRENT_ASSERT(v1 || v2);
 
 		hasher h;
 		int ret = 0;

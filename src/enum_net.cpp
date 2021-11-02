@@ -193,12 +193,14 @@ namespace {
 	}
 #endif
 
+#if TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL || TORRENT_USE_GETADAPTERSADDRESSES
 	bool valid_addr_family(int family)
 	{
 		return (family == AF_INET
 			|| family == AF_INET6
 		);
 	}
+#endif
 
 #if TORRENT_USE_NETLINK || TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF
 	interface_flags convert_if_flags(unsigned int const f)
@@ -1501,6 +1503,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				i = reinterpret_cast<ifreq const*>(reinterpret_cast<char const*>(i) + skip);
 			}
 		}
+#elif defined TORRENT_ANDROID && __ANDROID_API__ >= 24
+		ec = boost::asio::error::operation_not_supported;
 #else
 #error "don't know how to enumerate network routes on this platform"
 #endif

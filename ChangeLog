@@ -4,6 +4,10 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+	* fix issue where incoming uTP connections were not accepted over SOCKS5
+	* fix several issues in handling of checking files of v2 torrents, esp. from magnet links
+	* make the token limit when parsing metadata from magnet files configurable
+	* fix issue with stalled pieces on disk full errors
 	* fix missing python binding for file_progress_flags
 	* fix torrent_file_with_hashes() to fail when we don't have the piece layers
 	* restore path character encoding conversion for non UTF-8 locales on linux
@@ -85,6 +89,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+	* fix stalled pieces on disk-full errors
 	* fix build configuration issue on NetBSD, OpenBSD and DragonFly
 	* make UTF-8 sanitization a bit stricter. This will re-write invalid UTF-8
 	  code points encoding surrogate pairs

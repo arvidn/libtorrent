@@ -23,8 +23,8 @@ jobs:
       strategy:
          matrix:
            include:
-             - config: address-model=32
-             - config: address-model=64 crypto=openssl
+             - config: address-model=32 crypto=built-in
+             - config: address-model=64
              - config: release
 
       steps:
@@ -34,9 +34,8 @@ jobs:
            submodules: true
 
       - name: install openssl (64 bit)
-        if: ${{ contains(matrix.config, 'crypto=openssl') }}
         shell: pwsh
-        run: choco install openssl
+        run: choco install openssl --limitoutput
 
       - name: install boost
         run: |
@@ -105,14 +104,14 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --hash address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+          b2 --hash release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
 
       - name: run sims
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --hash -l500 address-model=64 link=static debug-iterators=off invariant-checks=on crypto=built-in define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --hash -l700 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build
@@ -138,6 +137,10 @@ jobs:
           cd boost
           bootstrap.bat
 
+      - name: install openssl (64 bit)
+        shell: pwsh
+        run: choco install openssl --limitoutput
+
       - name: boost headers
         run: |
           cd boost
@@ -147,7 +150,7 @@ jobs:
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
-          b2 ${{ matrix.config }} warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} address-model=64 warnings=all warnings-as-errors=on
 
       - name: build examples
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -155,7 +158,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd examples
-          b2 ${{ matrix.config }} warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} address-model=64 warnings=all warnings-as-errors=on
 
       - name: build tools
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -163,5 +166,5 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd tools
-          b2 ${{ matrix.config }} warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} address-model=64 warnings=all warnings-as-errors=on
 

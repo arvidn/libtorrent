@@ -11,9 +11,26 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/bitfield.hpp"
 #include <iostream>
 
 using namespace lt;
+
+namespace {
+
+	void compare_bits(bitfield const& bits, char const* str)
+	{
+		for (int i = 0; *str; ++i, ++str)
+		{
+			if (*str == '1')
+				TEST_CHECK(bits.get_bit(i));
+			else if (*str == '0')
+				TEST_CHECK(!bits.get_bit(i));
+			else
+				TEST_CHECK(false);
+		}
+	}
+}
 
 TORRENT_TEST(num_leafs)
 {
@@ -190,6 +207,31 @@ TORRENT_TEST(merkle_get_first_child)
 	TEST_EQUAL(merkle_get_first_child(14), 29);
 	TEST_EQUAL(merkle_get_first_child(15), 31);
 	TEST_EQUAL(merkle_get_first_child(16), 33);
+}
+
+TORRENT_TEST(merkle_get_first_child2)
+{
+	// this is the structure:
+	//                        0
+	//            1                      2
+	//      3           4           5           6
+	//   7     8     9     10    11    12    13    14
+	// 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+	// 31 ...
+
+	TEST_EQUAL(merkle_get_first_child(0, 0), 0);
+	TEST_EQUAL(merkle_get_first_child(0, 1), 1);
+	TEST_EQUAL(merkle_get_first_child(0, 2), 3);
+	TEST_EQUAL(merkle_get_first_child(0, 3), 7);
+	TEST_EQUAL(merkle_get_first_child(0, 4), 15);
+	TEST_EQUAL(merkle_get_first_child(0, 5), 31);
+
+	TEST_EQUAL(merkle_get_first_child(2, 0), 2);
+	TEST_EQUAL(merkle_get_first_child(2, 1), 5);
+	TEST_EQUAL(merkle_get_first_child(2, 2), 11);
+	TEST_EQUAL(merkle_get_first_child(2, 3), 23);
+	TEST_EQUAL(merkle_get_first_child(2, 4), 47);
+	TEST_EQUAL(merkle_get_first_child(2, 5), 95);
 }
 
 TORRENT_TEST(merkle_layer_start)
@@ -757,7 +799,6 @@ TORRENT_TEST(merkle_validate_node)
 
 TORRENT_TEST(merkle_validate_copy_full)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -765,15 +806,86 @@ TORRENT_TEST(merkle_validate_copy_full)
 	a,b,c,d,e,f,g,h};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
 
+	compare_bits(verified, "11111111");
 	TEST_CHECK(empty_tree == src);
+}
+
+TORRENT_TEST(merkle_validate_copy_full_odd_nodes)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,e,f,g,h};
+
+	v empty_tree(15);
+	// we pretend that h is a padding node. This algorithm doesn't care that
+	// it's not zero (yet)
+	bitfield verified(7);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "1111111");
+	TEST_CHECK(empty_tree == src);
+}
+
+
+TORRENT_TEST(merkle_validate_copy_invalid_leaf)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,e,ef,g,h};
+
+	v empty_tree(15);
+	bitfield verified(8);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	// leaf 5 had an invalid hash, it's sibling (leaf 4) could also not be
+	// validated because of it
+	compare_bits(verified, "11110011");
+
+	v const expected{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,c,d,o,o,g,h};
+	TEST_CHECK(empty_tree == expected);
+}
+
+TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
+{
+	v const src{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,ef,d,eh,ef,g,ah};
+
+	v empty_tree(15);
+	bitfield verified(8);
+
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	// leaf 2,4, 5 and 7 had an invalid hash, their siblings (leaf 3 and 6) could also not be
+	// validated because of it
+	compare_bits(verified, "11000000");
+
+	v const expected{
+	       ah,
+	   ad,     eh,
+	 ab, cd, ef, gh,
+	a,b,o,o,o,o,o,o};
+	TEST_CHECK(empty_tree == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_partial)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -781,8 +893,11 @@ TORRENT_TEST(merkle_validate_copy_partial)
 	a,b,c,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "11000000");
 
 	v const expected{
 	       ah,
@@ -795,7 +910,6 @@ TORRENT_TEST(merkle_validate_copy_partial)
 
 TORRENT_TEST(merkle_validate_copy_invalid_root)
 {
-
 	v const src{
 	       ah,
 	   ad,     eh,
@@ -803,17 +917,18 @@ TORRENT_TEST(merkle_validate_copy_invalid_root)
 	a,b,c,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, a);
+	merkle_validate_copy(src, empty_tree, a, verified);
 
 	v const expected(15);
 
+	compare_bits(verified, "00000000");
 	TEST_CHECK(empty_tree == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_root_only)
 {
-
 	v const src{
 	       ah,
 	    o,      o,
@@ -821,8 +936,11 @@ TORRENT_TEST(merkle_validate_copy_root_only)
 	o,o,o,o,o,o,o,o};
 
 	v empty_tree(15);
+	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah);
+	merkle_validate_copy(src, empty_tree, ah, verified);
+
+	compare_bits(verified, "00000000");
 
 	v const expected{
 	       ah,

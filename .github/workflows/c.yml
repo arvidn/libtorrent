@@ -55,6 +55,11 @@ jobs:
         cd boost
         .\b2 headers
 
+    - name: install openssl (64 bit) (windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: choco install openssl --limitoutput
+
     - name: build (windows)
       if: runner.os == 'Windows'
       shell: cmd
@@ -64,7 +69,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\c
-        b2
+        b2 address-model=64
 
     - name: build
       if: runner.os != 'Windows'

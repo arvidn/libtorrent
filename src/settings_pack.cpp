@@ -199,6 +199,7 @@ namespace libtorrent {
 		SET(ssrf_mitigation, true, nullptr),
 		SET(allow_idna, false, nullptr),
 		SET(enable_set_file_valid_data, false, nullptr),
+		SET(socks5_udp_send_local_ep, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -355,6 +356,7 @@ namespace libtorrent {
 		SET(dht_sample_infohashes_interval, 21600, nullptr),
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
 		SET(max_piece_count, 0x200000, nullptr),
+		SET(metadata_token_limit, 2500000, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});

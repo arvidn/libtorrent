@@ -83,6 +83,7 @@ int settings_key(int const tag)
 		case SET_SSRF_MITIGATION: return sp::ssrf_mitigation;
 		case SET_ALLOW_IDNA: return sp::allow_idna;
 		case SET_ENABLE_SET_FILE_VALID_DATA: return sp::enable_set_file_valid_data;
+		case SET_SOCKS5_UDP_SEND_LOCAL_EP: return sp::socks5_udp_send_local_ep;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;
@@ -216,6 +217,7 @@ int settings_key(int const tag)
 		case SET_DHT_SAMPLE_INFOHASHES_INTERVAL: return sp::dht_sample_infohashes_interval;
 		case SET_DHT_MAX_INFOHASHES_SAMPLE_COUNT: return sp::dht_max_infohashes_sample_count;
 		case SET_MAX_PIECE_COUNT: return sp::max_piece_count;
+		case SET_METADATA_TOKEN_LIMIT: return sp::metadata_token_limit;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
 		default:

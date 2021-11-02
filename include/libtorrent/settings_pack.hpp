@@ -974,6 +974,17 @@ namespace aux {
 			// previously deleted information from the disk.
 			enable_set_file_valid_data,
 
+			// When using a SOCKS5 proxy, UDP traffic is routed through the
+			// proxy by sending a UDP ASSOCIATE command. If this option is true,
+			// the UDP ASSOCIATE command will include the IP address and
+			// listen port to the local UDP socket. This indicates to the proxy
+			// which source endpoint to expect our packets from. The benefit is
+			// that incoming packets can be forwarded correctly, before any
+			// outgoing packets are sent. The risk is that if there's a NAT
+			// between the client and the proxy, the IP address specified in the
+			// protocol may not be valid from the proxy's point of view.
+			socks5_udp_send_local_ep,
+
 			max_bool_setting_internal
 		};
 
@@ -1975,6 +1986,12 @@ namespace aux {
 			// a higher limit to read_resume_data() and
 			// torrent_info::parse_info_section(), if those are used.
 			max_piece_count,
+
+			// when receiving metadata (torrent file) from peers, this is the
+			// max number of bencoded tokens we're willing to parse. This limit
+			// is meant to prevent DoS attacks on peers. For very large
+			// torrents, this limit may have to be raised.
+			metadata_token_limit,
 
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is

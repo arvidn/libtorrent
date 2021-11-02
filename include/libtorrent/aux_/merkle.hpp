@@ -20,6 +20,8 @@ see LICENSE file.
 
 namespace libtorrent {
 
+	struct bitfield;
+
 	// given layer and offset from the start of the layer, return the nodex
 	// index
 	TORRENT_EXTRA_EXPORT int merkle_to_flat_index(int layer, int offset);
@@ -46,6 +48,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int);
+	TORRENT_EXTRA_EXPORT int merkle_get_first_child(int tree_node, int depth);
 
 	// given a tree and the number of leaves, expect all leaf hashes to be set and
 	// compute all other hashes starting with the leaves.
@@ -115,7 +118,7 @@ namespace libtorrent {
 	// hashes in dst that are invalid in src.
 	TORRENT_EXTRA_EXPORT
 	void merkle_validate_copy(span<sha256_hash const> src, span<sha256_hash> dst
-		, sha256_hash const& root);
+		, sha256_hash const& root, bitfield& verified_leafs);
 
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_single_layer(span<sha256_hash const> tree);

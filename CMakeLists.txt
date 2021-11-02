@@ -961,12 +961,29 @@ install(
 )
 
 if (MSVC)
+	set_target_properties(torrent-rasterbar
+	PROPERTIES
+		PDB_NAME torrent-rasterbar
+		PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMPILE_PDB_NAME torrent-rasterbar
+		COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+	if (static_runtime)
+		set(PDB_INSTALL_DIR lib)
+	else()
+		set(PDB_INSTALL_DIR bin)
+	endif()
+
 	install(
 		FILES
-			$<TARGET_PDB_FILE:torrent-rasterbar>
+			${CMAKE_BINARY_DIR}/torrent-rasterbar.pdb
 		DESTINATION
-			bin
-		OPTIONAL)
+			${PDB_INSTALL_DIR}
+		CONFIGURATIONS
+			Debug RelWithDebInfo
+		OPTIONAL
+	)
 endif()
 
 # === build tools ===

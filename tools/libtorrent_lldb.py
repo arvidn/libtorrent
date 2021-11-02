@@ -138,8 +138,10 @@ def print_bitfield(valobj: lldb.SBValue, internal_dict: Dict) -> str:
     ret = "size: {} bits | ".format(size)
     for idx in range((size + 31) // 32):
         item = array.GetChildAtIndex(idx + 1, lldb.eNoDynamicValues, True)
-        ret += ("{:0" + f"{min(size, 32)}" + "b}").format(item.GetValueAsUnsigned())
-        size -= 32
+        buffer = item.GetData().uint8s
+        for b in buffer:
+            ret += "{:08b}".format(int(b))
+            size -= 8
 
     return ret
 

@@ -148,6 +148,7 @@ namespace libtorrent::aux {
 
 	std::uint32_t random(std::uint32_t const max)
 	{
+		if (max == 0) return 0;
 #ifdef BOOST_NO_CXX11_THREAD_LOCAL
 		std::lock_guard<std::mutex> l(rng_mutex);
 #endif

@@ -1858,7 +1858,8 @@ namespace {
 		// change after the session is up and listening, at no other point
 		// set_proxy_settings is called with the correct proxy configuration,
 		// internally, this method handle the SOCKS5's connection logic
-		ret->udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
+		ret->udp_sock->sock.set_proxy_settings(proxy(), m_alerts
+			, settings().get_bool(settings_pack::socks5_udp_send_local_ep));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		ret->udp_sock->sock.async_read(aux::make_handler([this, ret](error_code const& e)
@@ -2712,8 +2713,11 @@ namespace {
 		}
 		async_accept(listener, ssl);
 
-		// don't accept any connections from our local sockets if we're using a
-		// proxy
+		// don't accept any connections from our local listen sockets if we're
+		// using a proxy. We should only accept peers via the proxy, never
+		// directly.
+		// This path is only for accepting incoming TCP sockets. The udp_socket
+		// class also restricts incoming packets based on proxy settings.
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
 			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
 			return;
@@ -2845,12 +2849,6 @@ namespace {
 #endif
 			return;
 		}
-
-		// don't accept any connections from our local sockets if we're using a
-		// proxy
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
-			return;
 
 		if (m_paused)
 		{
@@ -5323,7 +5321,8 @@ namespace {
 	void session_impl::update_proxy()
 	{
 		for (auto& i : m_listen_sockets)
-			i->udp_sock->sock.set_proxy_settings(proxy(), m_alerts);
+			i->udp_sock->sock.set_proxy_settings(proxy(), m_alerts
+				, settings().get_bool(settings_pack::socks5_udp_send_local_ep));
 	}
 
 	void session_impl::update_ip_notifier()

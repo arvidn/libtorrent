@@ -81,6 +81,7 @@
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/portmap.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_handle.hpp"

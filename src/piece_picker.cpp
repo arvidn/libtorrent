@@ -1054,7 +1054,7 @@ namespace libtorrent::aux {
 		std::cerr << "[" << this << "] " << "restore_piece(" << index << ")" << std::endl;
 #endif
 		auto const download_state = m_piece_map[index].download_queue();
-		TORRENT_ASSERT(download_state != piece_pos::piece_open);
+		// if the piece was cancelled, it may have been removed
 		if (download_state == piece_pos::piece_open) return;
 
 		auto i = find_dl_piece(download_state, index);
@@ -3385,22 +3385,21 @@ get_out:
 		TORRENT_ASSERT(piece < m_piece_map.end_index());
 
 		piece_pos& p = m_piece_map[piece];
-		TORRENT_ASSERT(p.downloading());
-		if (p.downloading())
-		{
-			auto i = find_dl_piece(p.download_queue(), piece);
-			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+		// if this piece was cancelled/aborted while hashing, the piece has been
+		// removed from the list
+		if (!p.downloading()) return;
+		auto i = find_dl_piece(p.download_queue(), piece);
+		TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
 
 #if 1
-			TORRENT_ASSERT(i->hashing == 1);
-			i->hashing = 0;
+		TORRENT_ASSERT(i->hashing == 1);
+		i->hashing = 0;
 
-			// this is for a future per-block request feature
+		// this is for a future per-block request feature
 #else
-			TORRENT_ASSERT(i->hashing > 0);
-			--i->hashing;
+		TORRENT_ASSERT(i->hashing > 0);
+		--i->hashing;
 #endif
-		}
 	}
 
 	// calling this function prevents this piece from being picked
@@ -3442,7 +3441,7 @@ get_out:
 	// TODO: 2 it would be nice if this could be folded into lock_piece()
 	// the main distinction is that this also maintains the m_num_passed
 	// counter and the passed_hash_check member
-	// Is there ever a case where we call write filed without also locking
+	// Is there ever a case where we call write failed without also locking
 	// the piece? Perhaps write_failed() should imply locking it.
 	void piece_picker::write_failed(piece_block const block)
 	{

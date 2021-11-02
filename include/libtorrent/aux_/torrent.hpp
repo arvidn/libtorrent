@@ -381,7 +381,8 @@ namespace libtorrent::aux {
 		void init();
 
 		void load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
-			, aux::vector<std::vector<bool>, file_index_t> mask);
+			, aux::vector<std::vector<bool>, file_index_t> mask
+			, aux::vector<std::vector<bool>, file_index_t> verified);
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
@@ -972,6 +973,14 @@ namespace libtorrent::aux {
 		// *blocks must be sorted in acending order*
 		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
 
+		// the peers in "peers" participated in sending a bad piece. If
+		// "known_bad_peer" is true, we know for sure the peers are guilty,
+		// otherwise only one may be guilty (meaning we can't unconditionally
+		// disconnect)
+		void penalize_peers(std::set<torrent_peer*> const& peers
+			, piece_index_t index
+			, bool known_bad_peer);
+
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
 		void on_piece_sync(piece_index_t piece, std::vector<int> const& blocks);
@@ -1020,7 +1029,7 @@ namespace libtorrent::aux {
 			return *m_hash_picker;
 		}
 
-		void need_hash_picker(aux::vector<std::vector<bool>, file_index_t> verified = {});
+		void need_hash_picker();
 		bool has_hash_picker() const
 		{
 			return m_hash_picker.get() != nullptr;
@@ -1646,6 +1655,7 @@ namespace libtorrent::aux {
 
 		// this is set to true if all piece layers were successfully loaded and
 		// validated. Only for v2 torrents
+		// TODO: this member can probably be removed
 		bool m_v2_piece_layers_validated:1;
 
 // ----

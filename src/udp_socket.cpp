@@ -57,13 +57,14 @@ std::size_t const max_header_size = 255;
 struct socks5 : std::enable_shared_from_this<socks5>
 {
 	explicit socks5(io_context& ios, aux::listen_socket_handle ls
-		, aux::alert_manager& alerts)
+		, aux::alert_manager& alerts, bool const send_local_ep)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)
 		, m_retry_timer(ios)
 		, m_alerts(alerts)
 		, m_listen_socket(std::move(ls))
+		, m_send_local_ep(send_local_ep)
 	{}
 
 	void start(aux::proxy_settings const& ps);
@@ -114,6 +115,11 @@ private:
 
 	// count failures to increase the retry timer
 	int m_failures = 0;
+
+	// include our local IP and listen port in the UDP associate command
+	// Doing so may be risky in case we're talking to the proxy via NAT, and we
+	// don't actually know our IP from the proxy's point of view
+	bool m_send_local_ep = false;
 
 	// set to true when we've been asked to shut down
 	bool m_abort = false;
@@ -477,7 +483,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
-	, aux::alert_manager& alerts)
+	, aux::alert_manager& alerts, bool const send_local_ep)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -497,7 +503,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
 		// connect to socks5 server and open up the UDP tunnel
 
 		m_socks5_connection = std::make_shared<socks5>(m_ioc
-			, m_listen_socket, alerts);
+			, m_listen_socket, alerts, send_local_ep);
 		m_socks5_connection->start(ps);
 	}
 }
@@ -841,9 +847,20 @@ void socks5::socks_forward_udp()
 	write_uint8(5, p); // SOCKS VERSION 5
 	write_uint8(3, p); // UDP ASSOCIATE command
 	write_uint8(0, p); // reserved
-	write_uint8(1, p); // ATYP = IPv4
-	write_uint32(0, p); // 0.0.0.0
-	write_uint16(0, p); // :0
+
+	if (m_send_local_ep)
+	{
+		auto const local_ep = m_listen_socket.get_local_endpoint();
+		write_uint8(aux::is_v4(local_ep) ? 1 : 4, p); // atyp
+		write_endpoint(local_ep, p);
+	}
+	else
+	{
+		write_uint8(1, p); // ATYP = IPv4
+		write_uint32(0, p); // 0.0.0.0
+		write_uint16(0, p); // :0
+	}
+
 	TORRENT_ASSERT_VAL(p - m_tmp_buf.data() < int(m_tmp_buf.size()), (p - m_tmp_buf.data()));
 	ADD_OUTSTANDING_ASYNC("socks5::connect1");
 	boost::asio::async_write(m_socks5_sock

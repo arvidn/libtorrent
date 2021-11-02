@@ -23,6 +23,16 @@ see LICENSE file.
 
 using namespace lt;
 
+#ifdef _MSC_VER
+namespace libtorrent {
+namespace aux {
+	// see test_error_handling.cpp for a description of this variable
+	// TODO: in C++17, make this inline
+	thread_local int g_must_not_fail = 0;
+}
+}
+#endif
+
 void utp_only(lt::session& ses)
 {
 	settings_pack p;
@@ -131,7 +141,8 @@ int completed_pieces(lt::session& ses)
 }
 
 
-void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const flags)
+void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const flags
+	, bool const proxy_peers)
 {
 	// apply the proxy settings to session 0
 	settings_pack p;
@@ -146,7 +157,8 @@ void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const fla
 		p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
 	p.set_bool(settings_pack::proxy_hostnames, true);
 	p.set_bool(settings_pack::proxy_peer_connections, bool(flags & tx::proxy_peers));
-	p.set_bool(settings_pack::proxy_tracker_connections, true);
+	p.set_bool(settings_pack::proxy_tracker_connections, proxy_peers);
+	p.set_bool(settings_pack::socks5_udp_send_local_ep, true);
 
 	ses.apply_settings(p);
 }
@@ -168,9 +180,11 @@ void print_alerts(lt::session& ses
 
 			for (lt::alert const* a : alerts)
 			{
-				std::printf("%-3d [%d] %s\n"
-					, int(lt::duration_cast<lt::seconds>(a->timestamp() - start_time).count())
-					, idx
+				auto const ts = a->timestamp() - start_time;
+				std::printf("\x1b[%dm%3d.%03d %s\n"
+					, idx == 0 ? 0 : 34
+					, int(lt::duration_cast<lt::seconds>(ts).count())
+					, int(lt::duration_cast<lt::milliseconds>(ts).count() % 1000)
 					, a->message().c_str());
 				// call the user handler
 				on_alert(ses, a);

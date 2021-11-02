@@ -227,13 +227,13 @@ void test_ssl(int const test_idx, bool const use_utp)
 		if (i % 10 == 0)
 		{
 			std::cout << time_now_string() << " "
-				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[32m" << int(float(st1.download_payload_rate) / 1000.f) << "kB/s "
+				<< "\033[33m" << int(float(st1.upload_payload_rate) / 1000.f) << "kB/s "
 				<< "\033[0m" << int(st1.progress * 100) << "% "
 				<< st1.num_peers
 				<< ": "
-				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[32m" << int(float(st2.download_payload_rate) / 1000.f) << "kB/s "
+				<< "\033[31m" << int(float(st2.upload_payload_rate) / 1000.f) << "kB/s "
 				<< "\033[0m" << int(st2.progress * 100) << "% "
 				<< st2.num_peers
 				<< " cc: " << st2.connect_candidates

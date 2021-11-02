@@ -45,12 +45,16 @@ enum flags_t
 	upload_only = 16,
 
 	// re-add the torrent after removing
-	readd = 32
+	readd = 32,
+
+	// token limit is too low
+	token_limit = 64,
 };
 
 void run_metadata_test(int flags)
 {
 	int metadata_alerts = 0;
+	int metadata_failed_alerts = 0;
 
 	sim::default_config cfg;
 	sim::simulation sim{cfg};
@@ -58,14 +62,14 @@ void run_metadata_test(int flags)
 	lt::settings_pack default_settings = settings();
 
 	if (flags & full_encryption)
-	{
 		enable_enc(default_settings);
-	}
 
 	if (flags & utp)
-	{
 		utp_only(default_settings);
-	}
+
+	if (flags & token_limit)
+		default_settings.set_int(settings_pack::metadata_token_limit, 10);
+
 
 	lt::add_torrent_params default_add_torrent;
 	if (flags & upload_only)
@@ -80,6 +84,9 @@ void run_metadata_test(int flags)
 	// first one is done being removed
 	setup_swarm(2, ((flags & reverse) ? swarm_test::upload : swarm_test::download)
 		| ((flags & readd) ? swarm_test::real_disk : swarm_test_t{})
+		, sim
+		, default_settings
+		, default_add_torrent
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent
@@ -105,7 +112,11 @@ void run_metadata_test(int flags)
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
 
-			if (alert_cast<metadata_received_alert>(a))
+			if (alert_cast<metadata_failed_alert>(a))
+			{
+				metadata_failed_alerts += 1;
+			}
+			else if (alert_cast<metadata_received_alert>(a))
 			{
 				metadata_alerts += 1;
 
@@ -136,6 +147,10 @@ void run_metadata_test(int flags)
 				TEST_ERROR("timeout");
 				return true;
 			}
+			if ((flags & token_limit) && metadata_failed_alerts > 0)
+			{
+				return true;
+			}
 			if ((flags & disconnect) && metadata_alerts > 0)
 			{
 				return true;
@@ -157,7 +172,14 @@ void run_metadata_test(int flags)
 			return false;
 		});
 
-	TEST_EQUAL(metadata_alerts, 1);
+	if (flags & token_limit)
+	{
+		TEST_EQUAL(metadata_failed_alerts, 1);
+	}
+	else
+	{
+		TEST_EQUAL(metadata_alerts, 1);
+	}
 }
 
 TORRENT_TEST(ut_metadata_encryption_reverse)
@@ -194,6 +216,12 @@ TORRENT_TEST(ut_metadata_upload_only_disconnect_readd)
 {
 	run_metadata_test(upload_only | disconnect | readd);
 }
+
+TORRENT_TEST(ut_metadata_token_limit)
+{
+	run_metadata_test(token_limit);
+}
+
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_DISABLE_EXTENSIONS

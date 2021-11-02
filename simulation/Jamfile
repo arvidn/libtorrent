@@ -26,6 +26,7 @@ project
 	<asserts>on
 	<picker-debugging>on
 	<cxxstd>17
+	<crypto>built-in
 	;
 
 run test_pause.cpp ;

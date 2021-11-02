@@ -32,6 +32,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 
