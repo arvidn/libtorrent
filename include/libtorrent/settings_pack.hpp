@@ -1896,7 +1896,7 @@ namespace aux {
 			// periodically close files to trigger the operating system flushing
 			// disk cache. Specifically it has been observed to be required on
 			// windows to not have the disk cache grow indefinitely.
-			// This defaults to 120 seconds on windows, and disabled on other
+			// This defaults to 240 seconds on windows, and disabled on other
 			// systems.
 			close_file_interval,
 
