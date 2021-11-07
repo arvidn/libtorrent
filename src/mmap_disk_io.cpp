@@ -58,11 +58,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/storage_free_list.hpp"
 
 #ifdef _WIN32
 #include "libtorrent/aux_/windows.hpp"
@@ -137,14 +137,6 @@ namespace {
 	{
 		aux::open_mode_t ret = aux::open_mode::read_only;
 		if (!(j->flags & disk_interface::sequential_access)) ret |= aux::open_mode::random_access;
-		return ret;
-	}
-
-	storage_index_t pop(std::vector<storage_index_t>& q)
-	{
-		TORRENT_ASSERT(!q.empty());
-		storage_index_t const ret = q.back();
-		q.pop_back();
 		return ret;
 	}
 } // anonymous namespace
@@ -365,7 +357,7 @@ private:
 	aux::vector<std::shared_ptr<mmap_storage>, storage_index_t> m_torrents;
 
 	// indices into m_torrents to empty slots
-	std::vector<storage_index_t> m_free_slots;
+	aux::storage_free_list m_free_slots;
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
@@ -406,19 +398,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		TORRENT_ASSERT(params.files.is_valid());
 
-		storage_index_t const idx = m_free_slots.empty()
-			? m_torrents.end_index()
-			: pop(m_free_slots);
+		storage_index_t const idx = m_free_slots.new_index(m_torrents.end_index());
 		auto storage = std::make_shared<mmap_storage>(params, m_file_pool);
 		storage->set_storage_index(idx);
 		storage->set_owner(owner);
 		if (idx == m_torrents.end_index())
-		{
-			// make sure there's always space in here to add another free slot.
-			// stopping a torrent should never fail because it needs to allocate memory
-			m_free_slots.reserve(m_torrents.size() + 1);
 			m_torrents.emplace_back(std::move(storage));
-		}
 		else m_torrents[idx] = std::move(storage);
 		return storage_holder(idx, *this);
 	}
@@ -426,7 +411,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::remove_torrent(storage_index_t const idx)
 	{
 		m_torrents[idx].reset();
-		m_free_slots.push_back(idx);
+		m_free_slots.add(idx);
 	}
 
 #if TORRENT_USE_ASSERTS
