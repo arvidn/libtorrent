@@ -46,21 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/storage_free_list.hpp"
 
 #include <vector>
 
 namespace libtorrent {
 
 namespace {
-
-	storage_index_t pop(std::vector<storage_index_t>& q)
-	{
-		TORRENT_ASSERT(!q.empty());
-		storage_index_t const ret = q.back();
-		q.pop_back();
-		return ret;
-	}
 
 	using aux::posix_storage;
 
@@ -89,10 +81,7 @@ namespace {
 		{
 			// make sure we can remove this torrent without causing a memory
 			// allocation, by causing the allocation now instead
-			m_free_slots.reserve(m_torrents.size() + 1);
-			storage_index_t const idx = m_free_slots.empty()
-				? m_torrents.end_index()
-				: pop(m_free_slots);
+			storage_index_t const idx = m_free_slots.new_index(m_torrents.end_index());
 			auto storage = std::make_unique<posix_storage>(params);
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
@@ -102,7 +91,7 @@ namespace {
 		void remove_torrent(storage_index_t const idx) override
 		{
 			m_torrents[idx].reset();
-			m_free_slots.push_back(idx);
+			m_free_slots.add(idx);
 		}
 
 		void abort(bool) override {}
@@ -398,7 +387,7 @@ namespace {
 		aux::vector<std::unique_ptr<posix_storage>, storage_index_t> m_torrents;
 
 		// slots that are unused in the m_torrents vector
-		std::vector<storage_index_t> m_free_slots;
+		aux::storage_free_list m_free_slots;
 
 		settings_interface const& m_settings;
 

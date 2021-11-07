@@ -257,6 +257,7 @@ set(libtorrent_aux_include_files
 	session_udp_sockets.hpp
 	set_socket_buffer.hpp
 	socket_type.hpp
+	storage_free_list.hpp
 	storage_utils.hpp
 	string_ptr.hpp
 	strview_less.hpp

@@ -635,6 +635,7 @@ HEADERS = \
   aux_/set_socket_buffer.hpp        \
   aux_/sha512.hpp                   \
   aux_/socket_type.hpp              \
+  aux_/storage_free_list.hpp        \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
   aux_/string_ptr.hpp               \
