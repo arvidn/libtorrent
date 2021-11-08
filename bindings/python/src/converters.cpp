@@ -58,7 +58,7 @@ struct tuple_to_endpoint
         extract<std::uint16_t> port(object(borrowed(PyTuple_GetItem(x, 1))));
         if (!port.check()) return nullptr;
         lt::error_code ec;
-        lt::make_address(ip, ec);
+        lt::make_address(static_cast<std::string>(ip), ec);
         if (ec) return nullptr;
         return x;
     }
@@ -70,7 +70,7 @@ struct tuple_to_endpoint
 
         object o(borrowed(x));
         data->convertible = new (storage) T(lt::make_address(
-           extract<std::string>(o[0])), extract<std::uint16_t>(o[1]));
+           static_cast<std::string>(extract<std::string>(o[0]))), extract<std::uint16_t>(o[1]));
     }
 };
 
