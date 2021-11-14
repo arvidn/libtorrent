@@ -11,6 +11,7 @@
 #include "libtorrent/time.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/info_hash.hpp" // for protocol_version
 #include "libtorrent/tracker_manager.hpp" // for event_t
 #include "bytes.hpp"
 #include "gil.hpp"
@@ -361,7 +362,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    enum_<protocol_version>("protocol_version")
+    enum_<lt::protocol_version>("protocol_version")
         .value("V1", protocol_version::V1)
         .value("V2", protocol_version::V2)
         ;
