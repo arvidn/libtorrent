@@ -1,3 +1,5 @@
+1.2.15 released
+
 	* cache DNS lookups for SOCKS5 proxy
 	* fix stalled pieces on disk-full errors
 	* fix build configuration issue on NetBSD, OpenBSD and DragonFly
