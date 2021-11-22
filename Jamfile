@@ -228,39 +228,39 @@ rule warnings ( properties * )
 	if <toolset>clang in $(properties)
 		|| <toolset>darwin in $(properties)
 	{
-		result += <cflags>-Weverything ;
-		result += <cflags>-Wno-documentation ;
+		result += <cxxflags>-Weverything ;
+		result += <cxxflags>-Wno-documentation ;
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
 		result += <cxxflags>-Wno-c++11-compat-pedantic ;
-		result += <cflags>-Wno-padded ;
-		result += <cflags>-Wno-alloca ;
-		result += <cflags>-Wno-global-constructors ;
-		result += <cflags>-Wno-poison-system-directories ;
+		result += <cxxflags>-Wno-padded ;
+		result += <cxxflags>-Wno-alloca ;
+		result += <cxxflags>-Wno-global-constructors ;
+		result += <cxxflags>-Wno-poison-system-directories ;
 # this warns on any global static object, which are used for error_category
 # objects
-		result += <cflags>-Wno-exit-time-destructors ;
+		result += <cxxflags>-Wno-exit-time-destructors ;
 
 # enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-weak-vtables ;
+		result += <cxxflags>-Wno-weak-vtables ;
 
-		result += <cflags>-Wno-return-std-move-in-c++11 ;
-		result += <cflags>-Wno-unknown-warning-option ;
+		result += <cxxflags>-Wno-return-std-move-in-c++11 ;
+		result += <cxxflags>-Wno-unknown-warning-option ;
 
 # libtorrent uses alloca() carefully
-		result += <cflags>-Wno-alloca ;
+		result += <cxxflags>-Wno-alloca ;
 	}
 
 	if <toolset>gcc in $(properties)
 	{
-		result += <cflags>-Wall ;
-		result += <cflags>-Wextra ;
-		result += <cflags>-Wpedantic ;
-#		result += <cflags>-Wmisleading-indentation ;
-		result += <cflags>-Wparentheses ;
-		result += <cflags>-Wvla ;
+		result += <cxxflags>-Wall ;
+		result += <cxxflags>-Wextra ;
+		result += <cxxflags>-Wpedantic ;
+#		result += <cxxflags>-Wmisleading-indentation ;
+		result += <cxxflags>-Wparentheses ;
+		result += <cxxflags>-Wvla ;
 		result += <cxxflags>-Wno-c++11-compat ;
-		result += <cflags>-Wno-format-zero-length ;
-		result += <cflags>-Wno-noexcept-type ;
+		result += <cxxflags>-Wno-format-zero-length ;
+		result += <cxxflags>-Wno-noexcept-type ;
 	}
 
 	if <toolset>msvc in $(properties)
@@ -271,16 +271,16 @@ rule warnings ( properties * )
 # enable these warnings again, once the other ones are dealt with
 
 # disable warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
-		result += <cflags>/wd4251 ;
+		result += <cxxflags>/wd4251 ;
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
-		result += <cflags>/wd4275 ;
+		result += <cxxflags>/wd4275 ;
 # disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
-		result += <cflags>/wd4373 ;
+		result += <cxxflags>/wd4373 ;
 		# C4268: 'identifier' : 'const' static/global data initialized
 		#        with compiler generated default constructor fills the object with zeros
-		result += <cflags>/wd4268 ;
+		result += <cxxflags>/wd4268 ;
 		# C4503: 'identifier': decorated name length exceeded, name was truncated
-		result += <cflags>/wd4503 ;
+		result += <cxxflags>/wd4503 ;
 	}
 
 	return $(result) ;
@@ -315,7 +315,7 @@ rule building ( properties * )
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
 	{
 		# allow larger .obj files (with more sections)
-		result += <cflags>-Wa,-mbig-obj ;
+		result += <cxxflags>-Wa,-mbig-obj ;
 	}
 
 	if ( <asserts>production in $(properties)
@@ -516,7 +516,7 @@ feature wolfssl-lib : : free path ;
 feature wolfssl-include : : free path ;
 
 feature test-coverage : off on : composite propagated link-incompatible ;
-feature.compose <test-coverage>on : <cflags>--coverage <linkflags>--coverage ;
+feature.compose <test-coverage>on : <cxxflags>--coverage <linkflags>--coverage ;
 
 feature predictive-pieces : on off : composite propagated ;
 feature.compose <predictive-pieces>off : <define>TORRENT_DISABLE_PREDICTIVE_PIECES ;
@@ -623,7 +623,7 @@ feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DE
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
 
 feature fpic : off on : composite propagated link-incompatible ;
-feature.compose <fpic>on : <cflags>-fPIC ;
+feature.compose <fpic>on : <cxxflags>-fPIC ;
 
 feature profile-calls : off on : composite propagated link-incompatible ;
 feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
