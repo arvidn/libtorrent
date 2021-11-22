@@ -29,7 +29,7 @@ see LICENSE file.
 #elif TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
-#elif defined TORRENT_USE_LIBCRYPTO
+#elif defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 extern "C" {

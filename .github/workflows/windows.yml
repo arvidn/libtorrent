@@ -111,7 +111,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd simulation
-          b2 --hash -l700 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
+          b2 --hash -l800 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build

@@ -83,6 +83,12 @@ namespace libtorrent::aux {
 
 		void close_oldest();
 
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		void flush_next_file();
+		void record_file_write(storage_index_t st, file_index_t file_index
+			, uint64_t pages);
+#endif
+
 	private:
 
 		std::shared_ptr<file_mapping> remove_oldest(std::unique_lock<std::mutex>&);
@@ -113,6 +119,9 @@ namespace libtorrent::aux {
 			file_id key;
 			std::shared_ptr<file_mapping> mapping;
 			time_point last_use{aux::time_now()};
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			std::uint64_t dirty_bytes;
+#endif
 			open_mode_t mode{};
 		};
 
@@ -123,6 +132,10 @@ namespace libtorrent::aux {
 			mi::ordered_unique<mi::member<file_entry, file_id, &file_entry::key>>,
 			// look up files by least recently used
 			mi::sequenced<>
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			// look up files with dirty pages
+			, mi::ordered_non_unique<mi::member<file_entry, std::uint64_t, &file_entry::dirty_bytes>>
+#endif
 			>
 		>;
 

@@ -99,6 +99,10 @@ namespace aux {
 #endif
 			);
 
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		void flush();
+#endif
+
 		// non-copyable
 		file_mapping(file_mapping const&) = delete;
 		file_mapping& operator=(file_mapping const&) = delete;

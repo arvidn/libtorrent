@@ -614,9 +614,18 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 		throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_mmap);
 }
 
+void file_mapping::flush()
+{
+	if (m_mapping == nullptr) return;
+
+	// ignore errors, this is best-effort
+	FlushViewOfFile(m_mapping, static_cast<std::size_t>(m_size));
+}
+
 void file_mapping::close()
 {
 	if (m_mapping == nullptr) return;
+	flush();
 	std::lock_guard<std::mutex> l(*m_open_unmap_lock);
 	UnmapViewOfFile(m_mapping);
 	m_mapping = nullptr;
