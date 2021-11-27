@@ -3579,7 +3579,7 @@ namespace {
 		if (m_dht)
 			m_dht->add_node(n);
 		else if (m_dht_nodes.size() >= 200)
-			m_dht_nodes[random(m_dht_nodes.size() - 1)] = n;
+			m_dht_nodes[random(uint32_t(m_dht_nodes.size()) - 1)] = n;
 		else
 			m_dht_nodes.push_back(n);
 	}
