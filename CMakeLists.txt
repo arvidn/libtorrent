@@ -793,10 +793,10 @@ endif()
 
 # Boost
 find_public_dependency(Boost REQUIRED)
-target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(torrent-rasterbar PUBLIC Boost::headers)
 if (Boost_MAJOR_VERSION LESS_EQUAL 1 AND Boost_MINOR_VERSION LESS 69)
 	find_package(Boost REQUIRED COMPONENTS system)
-	target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
+	target_link_libraries(torrent-rasterbar PUBLIC Boost::system)
 endif()
 
 if (exceptions)
