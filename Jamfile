@@ -441,9 +441,10 @@ rule gnutls-lib-path ( properties * )
 
 	if <target-os>darwin in $(properties) && $(GNUTLS_LIB) = ""
 	{
-		# on macOS, default to pick up gnutls from the homebrew installation
-		# brew install gnutls
-		GNUTLS_LIB = /usr/local/opt/gnutls/lib ;
+		# on macOS, default to pick up openssl from the homebrew installation
+		# brew install openssl
+		# homebrew on M1 Macs install to /opt/homebrew
+		GNUTLS_LIB = /opt/homebrew/opt/gnutls/lib /usr/local/opt/gnutls/lib ;
 	}
 
 	local result ;
@@ -459,9 +460,10 @@ rule gnutls-include-path ( properties * )
 
 	if <target-os>darwin in $(properties) && $(GNUTLS_INCLUDE) = ""
 	{
-		# on macOS, default to pick up gnutls from the homebrew installation
-		# brew install gnutls
-		GNUTLS_INCLUDE = /usr/local/opt/gnutls/include ;
+		# on macOS, default to pick up openssl from the homebrew installation
+		# brew install openssl
+		# homebrew on M1 Macs install to /opt/homebrew
+		GNUTLS_INCLUDE = /opt/homebrew/opt/gnutls/include /usr/local/opt/gnutls/include ;
 	}
 
 	local result ;
