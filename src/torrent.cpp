@@ -2778,17 +2778,21 @@ bool is_downloading_state(int const st)
 		// argument in the announce, this will make the DHT node use
 		// our source port in the packet as our listen port, which is
 		// likely more accurate when behind a NAT
+		int listen_port = 0;
 		if (is_ssl_torrent())
 		{
 			flags |= dht::announce::ssl_torrent;
+			listen_port = m_ses.ssl_listen_port();
 		}
 		else if (settings().get_bool(settings_pack::enable_incoming_utp))
 		{
-			flags |= dht::announce::implied_port;
+			if (settings().get_bool(settings_pack::dht_announce_imply_listen_port))
+				flags |= dht::announce::implied_port;
+			listen_port = m_ses.listen_port();
 		}
 
 		std::weak_ptr<torrent> self(shared_from_this());
-		m_ses.dht()->announce(m_torrent_file->info_hash(), 0, flags
+		m_ses.dht()->announce(m_torrent_file->info_hash(), listen_port, flags
 			, std::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 

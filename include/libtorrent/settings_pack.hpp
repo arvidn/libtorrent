@@ -872,6 +872,14 @@ namespace aux {
 			// happen at the application level.
 			allow_idna,
 
+			// When announcing torrents to the DHT, use the "imply port"
+			// feature, where the source port of the DHT packet itself is used
+			// as the listen port for incoming peer connections. This helps
+			// peers behind full cone NATs. When ports are manually forwarded,
+			// the implied port may be incorrect, if the external port for DHT
+			// differs from the listen socket's.
+			dht_announce_imply_listen_port,
+
 			max_bool_setting_internal
 		};
 

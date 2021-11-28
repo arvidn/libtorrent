@@ -213,6 +213,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(validate_https_trackers, true, &session_impl::update_validate_https),
 		SET(ssrf_mitigation, true, nullptr),
 		SET(allow_idna, false, nullptr),
+		SET(dht_announce_imply_listen_port, true, nullptr),
 	}});
 
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
