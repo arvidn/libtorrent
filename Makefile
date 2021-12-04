@@ -165,6 +165,7 @@ ED25519_SOURCE = \
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
+  project-config.jam \
   Makefile \
   CMakeLists.txt \
   cmake/Modules/FindLibGcrypt.cmake \
