@@ -122,6 +122,7 @@ ED25519_SOURCE = \
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
+  project-config.jam \
   CMakeLists.txt \
   LibtorrentRasterbarConfig.cmake.in \
   cmake/Modules/FindLibGcrypt.cmake \
