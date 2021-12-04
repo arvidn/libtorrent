@@ -4,6 +4,8 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+* 2.0.5 released
+
 	* on windows, explicitly flush memory mapped files periodically
 	* fix build with WolfSSL
 	* fix issue where incoming uTP connections were not accepted over SOCKS5

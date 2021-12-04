@@ -1,3 +1,88 @@
+[project]
+requires-python = ">=3.7"
+
+[tool.cibuildwheel]
+skip = "pp*"
+
+[tool.cibuildwheel.macos]
+before-all = [
+    "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
+    "brew install openssl",
+]
+test-command = [
+    "cd {project}/bindings/python",
+    "python test.py",
+]
+
+[tool.cibuildwheel.macos.environment]
+BOOST_BUILD_PATH = "/tmp/boost/tools/build"
+BOOST_ROOT = "/tmp/boost"
+BOOST_VERSION = "1.76.0"
+MACOSX_DEPLOYMENT_TARGET = "10.9"  # required for full C++11 support
+PATH = "/tmp/boost:$PATH"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+    "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
+    "yum install -y glibc-static",  # needed for libutil.a and libdl.a
+    "./tools/cibuildwheel/setup_ccache_on_manylinux.sh",
+    "./tools/cibuildwheel/setup_openssl.sh",
+]
+before-test = "ccache -s"
+select = "*-manylinux_*"
+test-command = [
+    "cd {project}/bindings/python",
+    "python test.py",
+]
+
+[tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
+BOOST_BUILD_PATH = "/tmp/boost/tools/build"
+BOOST_ROOT = "/tmp/boost"
+BOOST_VERSION = "1.76.0"
+PATH = "/usr/local/ccache/bin:/tmp/boost:$PATH"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+    "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
+    "apk add ccache openssl-dev openssl-libs-static",
+    "./tools/cibuildwheel/setup_openssl.sh",
+]
+before-test = "ccache -s"
+select = "*-musllinux_*"
+test-command = [
+    "cd {project}/bindings/python",
+    "python test.py",
+]
+
+[tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
+BOOST_BUILD_PATH = "/tmp/boost/tools/build"
+BOOST_ROOT = "/tmp/boost"
+BOOST_VERSION = "1.76.0"
+PATH = "/usr/lib/ccache/bin:/tmp/boost:$PATH"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+    "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'",
+    "bash -c 'choco install --no-progress --x86 openssl'",  # choco only allows EITHER 32 OR 64-bit version of a package
+]
+select = "*-win32"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+    "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'",
+    "bash -c 'choco install --no-progress openssl'",        # choco only allows EITHER 32 OR 64-bit version of a package
+]
+select = "*-win_amd64"
+
+[tool.cibuildwheel.windows]
+test-command = '''bash -c "cd '{project}/bindings/python' && python test.py"'''
+
+[tool.cibuildwheel.windows.environment]
+BOOST_BUILD_PATH = 'c:/boost/tools/build'
+BOOST_ROOT = 'c:/boost'
+BOOST_VERSION = "1.76.0"
+PATH = 'c:/boost;$PATH'
+
 [tool.isort]
 profile = "google"
 single_line_exclusions = []

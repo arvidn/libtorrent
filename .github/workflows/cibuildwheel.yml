@@ -1,0 +1,142 @@
+name: cibuildwheel
+
+# Note: We use a dynamic matrix to build different sets of wheels under
+# different conditions. On workflow_dispatch, we build the full suite of
+# wheels. This takes hours, so on pull_request, we just build a representative
+# sample.
+
+# The full list of cibuildwheel's build targets can be found here:
+# https://github.com/pypa/cibuildwheel/blob/v2.2.0a1/cibuildwheel/resources/build-platforms.toml
+
+# Notes on build targets we (don't) support:
+# - pypy: libtorrent doesn't build with pypy as of writing
+# - macos_arm64: can be cross-compiled from x86_64, but not run, so can't be
+#   tested. Build output indicates it isn't building correctly
+# - macos_universal2: b2 / setup.py doesn't have a straightforward way to build
+#   this as of writing
+# - abi3: Not supported by boost-python (or pybind11) or cibuildwheel as of
+#   writing
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Write 'PUBLISH' to publish to pypi. BEWARE! ARTIFACTS ARE IMMUTABLE AND CANNOT BE REPLACED ONCE PUBLISHED!
+      publish_test:
+        description: Write 'PUBLISH_TEST' to publish to test-pypi. BEWARE! ARTIFACTS ARE IMMUTABLE AND CANNOT BE REPLACED ONCE PUBLISHED!
+
+  pull_request:
+    paths:
+      - .github/workflows/cibuildwheel.yml
+      - tools/cibuildwheel/**
+      - pyproject.toml
+
+jobs:
+  configure_matrix:
+    runs-on: ubuntu-latest
+    env:
+      # github actions syntax doesn't allow us to have yaml structures as
+      # an input to a job. These environment variables are literal json strings
+      MATRIX_PULL_REQUEST: |
+        {
+          "include": [
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "macos-10.15", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
+            {"os": "windows-2019", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
+          ]
+        }
+      MATRIX_WORKFLOW_DISPATCH: |
+        {
+          "include": [
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "aarch64"},
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
+            {"os": "macos-10.15", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
+            {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
+            {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
+          ]
+        }
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - id: set-matrix
+      run: |
+        if [ $GITHUB_EVENT_NAME == "pull_request" ]; then
+          echo ::set-output name=matrix::$(echo $MATRIX_PULL_REQUEST | jq -c)
+        else
+          echo ::set-output name=matrix::$(echo $MATRIX_WORKFLOW_DISPATCH | jq -c)
+        fi
+
+  build_wheels:
+    needs: configure_matrix
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.configure_matrix.outputs.matrix) }}
+
+    env:
+      CIBW_BUILD_VERBOSITY: 1
+      CIBW_BUILD: ${{ matrix.CIBW_BUILD }}
+      CIBW_ARCHS: ${{ matrix.CIBW_ARCHS }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - uses: actions/cache@v2
+      id: cache-wheel
+      with:
+        path: wheelhouse
+        key: wheel-${{ matrix.CIBW_BUILD }}-${{ matrix.CIBW_ARCHS }}-${{ github.sha }}
+
+    - uses: docker/setup-qemu-action@v1
+      if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
+
+    - uses: pypa/cibuildwheel@v2.2.2
+      if: steps.cache-wheel.outputs.cache-hit != 'true'
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: wheelhouse/*.whl
+        name: wheels
+
+  upload_pypi:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: needs.build_wheels.result == 'success' && github.event.inputs.publish == 'PUBLISH'
+
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: wheels
+        path: wheelhouse
+
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages_dir: wheelhouse
+        skip_existing: true
+
+  upload_pypi_test:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: needs.build_wheels.result == 'success' && github.event.inputs.publish_test == 'PUBLISH_TEST'
+
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: wheels
+        path: wheelhouse
+
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        packages_dir: wheelhouse
+        skip_existing: true
+        repository_url: https://test.pypi.org/legacy/

@@ -688,7 +688,7 @@ std::vector<std::string> get_python()
 	if (req_size > 1 && req_size < 4096)
 	{
 		std::vector<char> buf(req_size);
-		DWORD const sz = GetEnvironmentVariable("PYTHON_INTERPRETER", buf.data(), buf.size());
+		DWORD const sz = GetEnvironmentVariable("PYTHON_INTERPRETER", buf.data(), DWORD(buf.size()));
 		if (size_t(sz) == buf.size() - 1) ret.emplace_back(buf.data(), buf.size());
 	}
 #endif

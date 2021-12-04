@@ -1,4 +1,4 @@
-VERSION=2.0.4
+VERSION=2.0.5
 
 BUILD_CONFIG=release link=shared crypto=openssl warnings=off address-model=64
 
@@ -173,6 +173,7 @@ ED25519_SOURCE = \
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
+  project-config.jam \
   Makefile \
   CMakeLists.txt \
   cmake/Modules/FindLibGcrypt.cmake \

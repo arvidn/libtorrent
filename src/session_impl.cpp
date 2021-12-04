@@ -2036,7 +2036,19 @@ namespace {
 #endif
 			}
 
+#if defined TORRENT_ANDROID && __ANDROID_API__ >= 24
+			// For Android API >= 24, enum_routes with the current NETLINK based
+			// implementation is unsupported (maybe in the future the operation
+			// will be restore using another implementation). If routes is empty,
+			// allow using unspecified address is a best effort approach that
+			// seems to work. The issue with this approach is with the DHTs,
+			// because for IPv6 this is not following BEP 32 and BEP 45. See:
+			// https://www.bittorrent.org/beps/bep_0032.html
+			// https://www.bittorrent.org/beps/bep_0045.html
+			if (!routes.empty()) expand_unspecified_address(ifs, routes, eps);
+#else
 			expand_unspecified_address(ifs, routes, eps);
+#endif
 			expand_devices(ifs, eps);
 		}
 
