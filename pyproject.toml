@@ -37,7 +37,7 @@ before-all = [
     "./tools/cibuildwheel/setup_openssl.sh",
 ]
 before-test = "ccache -s"
-select = "*-manylinux_*"
+select = "*-manylinux_x86_64"
 test-command = [
     "cd {project}/bindings/python",
     "python -m pip install -r test-requirements.txt",
@@ -50,6 +50,26 @@ BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
 BOOST_VERSION = "1.76.0"
 PATH = "/usr/local/ccache/bin:/tmp/boost:$PATH"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+    "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
+    "yum install -y glibc-static",  # needed for libutil.a and libdl.a
+    "./tools/cibuildwheel/setup_openssl.sh",
+]
+select = "*-manylinux_i686"
+test-command = [
+    "cd {project}/bindings/python",
+    "python -m pip install -r test-requirements.txt",
+    "python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG",
+    "python -m mypy --config-file mypy-tox.ini tests",
+]
+
+[tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
+BOOST_BUILD_PATH = "/tmp/boost/tools/build"
+BOOST_ROOT = "/tmp/boost"
+BOOST_VERSION = "1.76.0"
+PATH = "/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
 before-all = [
