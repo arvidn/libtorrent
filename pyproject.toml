@@ -2,6 +2,8 @@
 requires-python = ">=3.7"
 
 [tool.cibuildwheel]
+manylinux-i686-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux2014"
 skip = "pp*"
 test-requires = [
     "pytest",
