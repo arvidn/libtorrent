@@ -24,7 +24,7 @@ test-command = [
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
 BOOST_VERSION = "1.76.0"
-MACOSX_DEPLOYMENT_TARGET = "10.9"  # required for full C++11 support
+MACOSX_DEPLOYMENT_TARGET = "10.14"  # required for full C++17 support
 PATH = "/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
