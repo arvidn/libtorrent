@@ -3,6 +3,10 @@ requires-python = ">=3.7"
 
 [tool.cibuildwheel]
 skip = "pp*"
+test-requires = [
+    "pytest",
+    "mypy",
+]
 
 [tool.cibuildwheel.macos]
 before-all = [
@@ -11,7 +15,9 @@ before-all = [
 ]
 test-command = [
     "cd {project}/bindings/python",
-    "tox -e",
+    "python -m pip install -r test-requirements.txt",
+    "python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG",
+    "python -m mypy --config-file mypy-tox.ini tests",
 ]
 
 [tool.cibuildwheel.macos.environment]
@@ -32,7 +38,9 @@ before-test = "ccache -s"
 select = "*-manylinux_*"
 test-command = [
     "cd {project}/bindings/python",
-    "tox -e",
+    "python -m pip install -r test-requirements.txt",
+    "python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG",
+    "python -m mypy --config-file mypy-tox.ini tests",
 ]
 
 [tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
@@ -51,7 +59,9 @@ before-test = "ccache -s"
 select = "*-musllinux_*"
 test-command = [
     "cd {project}/bindings/python",
-    "tox -e",
+    "python -m pip install -r test-requirements.txt",
+    "python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG",
+    "python -m mypy --config-file mypy-tox.ini tests",
 ]
 
 [tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
@@ -75,7 +85,7 @@ before-all = [
 select = "*-win_amd64"
 
 [tool.cibuildwheel.windows]
-test-command = '''bash -c "cd '{project}/bindings/python' && tox -e"'''
+test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip install -r test-requirements.txt && python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG && python -m mypy --config-file mypy-tox.ini tests"'''
 
 [tool.cibuildwheel.windows.environment]
 BOOST_BUILD_PATH = 'c:/boost/tools/build'
