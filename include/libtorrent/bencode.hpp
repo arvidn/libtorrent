@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2005, 2007-2009, 2012-2020, Arvid Norberg
+Copyright (c) 2003-2005, 2007-2009, 2012-2021, Arvid Norberg
 Copyright (c) 2016, 2020, Alden Torres
 Copyright (c) 2019, Amir Abrams
 All rights reserved.

@@ -1,10 +1,11 @@
 /*
 
-Copyright (c) 2003-2004, 2007, 2009, 2012-2021, Arvid Norberg
+Copyright (c) 2003-2004, 2007, 2009, 2013-2021, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2016, 2021, Alden Torres
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2017, 2019, Andrei Kurushin
+Copyright (c) 2021, Mike Tzou
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

@@ -5,6 +5,7 @@ Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2016-2017, 2020-2021, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2019, Steven Siloti
+Copyright (c) 2021, Denis Kuzmenok
 Copyright (c) 2021, Mark Scott
 All rights reserved.
 

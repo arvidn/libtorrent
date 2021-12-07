@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2015, Thomas Yuan
-Copyright (c) 2016-2020, Arvid Norberg
+Copyright (c) 2016-2021, Arvid Norberg
 Copyright (c) 2016, 2018, Alden Torres
 All rights reserved.
 

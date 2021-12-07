@@ -4,6 +4,7 @@ Copyright (c) 2008, 2010-2021, Arvid Norberg
 Copyright (c) 2018, Alexandre Janniaux
 Copyright (c) 2018, 2021, Alden Torres
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2021, YenForYang
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

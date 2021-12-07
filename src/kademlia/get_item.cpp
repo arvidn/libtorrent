@@ -2,7 +2,7 @@
 
 Copyright (c) 2013, Steven Siloti
 Copyright (c) 2015, Thomas
-Copyright (c) 2013-2020, Arvid Norberg
+Copyright (c) 2013-2021, Arvid Norberg
 Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2016-2017, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
