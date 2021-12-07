@@ -51,6 +51,8 @@ for i in glob.glob('src/*.cpp') + \
         glob.glob('examples/*.cpp') + \
         glob.glob('examples/*.hpp') + \
         glob.glob('tools/*.cpp') + \
+        glob.glob('simulation/*.cpp') + \
+        glob.glob('simulation/*.hpp') + \
         glob.glob('test/*.cpp') + \
         glob.glob('test/*.hpp') + \
         glob.glob('bindings/c/*.c') + \
