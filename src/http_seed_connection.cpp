@@ -6,6 +6,7 @@ Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2018, TheOriginalWinCat
+Copyright (c) 2021, Dmtry Soloviev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

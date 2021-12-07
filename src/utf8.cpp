@@ -3,6 +3,7 @@
 Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2012, 2015-2017, 2019-2021, Arvid Norberg
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2021, AllSeeingEyeTolledEweSew
 Copyright (c) 2021, Alden Torres
 All rights reserved.
 

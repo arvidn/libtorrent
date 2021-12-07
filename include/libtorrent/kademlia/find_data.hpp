@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2006, Daniel Wallin
-Copyright (c) 2006-2010, 2013-2020, Arvid Norberg
+Copyright (c) 2006-2010, 2013-2021, Arvid Norberg
 Copyright (c) 2016, Alden Torres
 All rights reserved.
 

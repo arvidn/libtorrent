@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2020, Arvid Norberg
+Copyright (c) 2015-2021, Arvid Norberg
 Copyright (c) 2017, Jan Berkel
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2020-2021, Alden Torres
