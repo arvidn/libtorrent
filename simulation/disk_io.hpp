@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef SIMULATION_DISK_IO_HPP
+#define SIMULATION_DISK_IO_HPP
+
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -123,3 +126,6 @@ struct test_disk
 	int space_left = std::numeric_limits<int>::max();
 };
 
+std::ostream& operator<<(std::ostream& os, existing_files_mode const mode);
+
+#endif

@@ -56,18 +56,6 @@ using namespace sim;
 #error "msvc's standard library does not support bad_alloc with debug iterators. This test only works with debug iterators disabled on msvc. _ITERATOR_DEBUG_LEVEL=0"
 #endif
 
-std::string make_ep_string(char const* address, bool const is_v6
-	, char const* port)
-{
-	std::string ret;
-	if (is_v6) ret += '[';
-	ret += address;
-	if (is_v6) ret += ']';
-	ret += ':';
-	ret += port;
-	return ret;
-}
-
 int g_alloc_counter = 1000000;
 
 template <typename HandleAlerts, typename Test>

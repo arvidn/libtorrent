@@ -56,6 +56,18 @@ namespace aux {
 }
 #endif
 
+std::string make_ep_string(char const* address, bool const is_v6
+	, char const* port)
+{
+	std::string ret;
+	if (is_v6) ret += '[';
+	ret += address;
+	if (is_v6) ret += ']';
+	ret += ':';
+	ret += port;
+	return ret;
+}
+
 void utp_only(lt::session& ses)
 {
 	settings_pack p;
