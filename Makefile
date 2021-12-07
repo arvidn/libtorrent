@@ -760,8 +760,11 @@ SIM_SOURCES = \
   test_torrent_status.cpp \
   test_tracker.cpp \
   test_transfer.cpp \
+  test_transfer_matrix.cpp \
   test_utp.cpp \
   test_web_seed.cpp \
+  transfer_sim.hpp \
+  transfer_sim.cpp \
   utils.cpp \
   utils.hpp
 

@@ -705,3 +705,15 @@ std::unique_ptr<lt::disk_interface> test_disk::operator()(
 	return std::make_unique<test_disk_io>(ioc, *this);
 }
 
+
+std::ostream& operator<<(std::ostream& os, existing_files_mode const mode)
+{
+	switch (mode)
+	{
+		case existing_files_mode::no_files: return os << "no_files";
+		case existing_files_mode::full_invalid: return os << "full_invalid";
+		case existing_files_mode::partial_valid: return os << "partial_valid";
+		case existing_files_mode::full_valid: return os << "full_valid";
+	}
+	return os << "<unknown file mode>";
+}

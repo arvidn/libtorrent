@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTILS_HPP_INCLUDED
 #define TORRENT_UTILS_HPP_INCLUDED
 
+#include <string>
 #include <functional>
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
@@ -46,6 +47,8 @@ namespace libtorrent
 	struct session;
 	struct alert;
 }
+
+std::string make_ep_string(char const* address, bool const is_v6, char const* port);
 
 // adds an IP filter to disallow 50.0.0.1 and 50.0.0.2
 void filter_ips(lt::session& ses);
