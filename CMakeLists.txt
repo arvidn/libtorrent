@@ -897,7 +897,7 @@ if(webtorrent)
 	# Boost.JSON was added to Boost in version 1.75
 	find_package(Boost OPTIONAL_COMPONENTS json)
 	if(Boost_JSON_FOUND)
-		target_link_libraries(torrent-rasterbar PUBLIC ${Boost_JSON_LIBRARY})
+		target_link_libraries(torrent-rasterbar PUBLIC Boost::json)
 	else()
 		# Fallback to the submodule
 		target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
