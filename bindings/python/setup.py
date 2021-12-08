@@ -451,7 +451,7 @@ class LibtorrentBuildExt(BuildExtBase):
 
 
 setuptools.setup(
-    name="libtorrent",
+    name="python-libtorrent",
     version="1.2.15",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
