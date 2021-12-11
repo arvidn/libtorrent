@@ -213,6 +213,7 @@ bool show_pad_files = false;
 bool show_dht_status = false;
 
 bool print_ip = true;
+bool print_peaks = false;
 bool print_local_ip = false;
 bool print_timers = false;
 bool print_block = false;
@@ -335,9 +336,13 @@ int print_peer_info(std::string& out
 	int pos = 0;
 	if (print_ip) out += "IP                             ";
 	if (print_local_ip) out += "local IP                       ";
-	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags            dn  up  source  ";
+	out += "progress        down     (total";
+	if (print_peaks) out += " | peak  ";
+	out += " )  up      (total";
+	if (print_peaks) out += " | peak  ";
+	out += " ) sent-req tmo bsy rcv flags            dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
-	if (print_send_bufs) out += "rq sndb (recvb |alloc | wmrk ) q-bytes ";
+	if (print_send_bufs) out += " rq sndb (recvb |alloc | wmrk ) q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
 	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
@@ -374,12 +379,14 @@ int print_peer_info(std::string& out
 		char peer_progress[10];
 		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.0);
 		std::snprintf(str, sizeof(str)
-			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
+			, "%s %s%s (%s%s) %s%s (%s%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
-			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
+			, add_suffix(i->total_download).c_str()
+			, print_peaks ? ("|" + add_suffix(i->download_rate_peak, "/s")).c_str() : ""
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
-			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0")
+			, print_peaks ? ("|" + add_suffix(i->upload_rate_peak, "/s")).c_str() : ""
+			, esc("0")
 
 			, temp // sent requests and target number of outstanding reqs.
 			, i->timed_out_requests
@@ -426,12 +433,13 @@ int print_peer_info(std::string& out
 		}
 		if (print_send_bufs)
 		{
-			std::snprintf(str, sizeof(str), "%2d %6d %6d|%6d|%6d%5dkB "
-				, i->requests_in_buffer, i->used_send_buffer
-				, i->used_receive_buffer
-				, i->receive_buffer_size
-				, i->receive_buffer_watermark
-				, i->queue_bytes / 1000);
+			std::snprintf(str, sizeof(str), "%3d %6s %6s|%6s|%6s%7s "
+				, i->requests_in_buffer
+				, add_suffix(i->used_send_buffer).c_str()
+				, add_suffix(i->used_receive_buffer).c_str()
+				, add_suffix(i->receive_buffer_size).c_str()
+				, add_suffix(i->receive_buffer_watermark).c_str()
+				, add_suffix(i->queue_bytes).c_str());
 			out += str;
 		}
 		if (print_timers)
@@ -1773,6 +1781,7 @@ int main(int argc, char* argv[])
 				if (c == '2') print_connecting_peers = !print_connecting_peers;
 				if (c == '3') print_timers = !print_timers;
 				if (c == '4') print_block = !print_block;
+				if (c == '5') print_peaks = !print_peaks;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
 				if (c == '8') print_local_ip = !print_local_ip;
@@ -1810,7 +1819,7 @@ up/down arrow keys: select torrent
 COLUMN OPTIONS
 [1] toggle IP column                            [2] toggle show peer connection attempts
 [3] toggle timers column                        [4] toggle block progress column
-                                                [6] toggle failures column
+[5] toggle print peak rates                     [6] toggle failures column
 [7] toggle send buffers column                  [8] toggle local IP column
 )");
 					int tmp;
