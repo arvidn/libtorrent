@@ -3468,33 +3468,34 @@ namespace {
 						int protocol = 0;
 						if (is_utp(p.get_socket())) protocol = 1;
 
-						if (p.download_queue().size() + p.request_queue().size() > 0)
+						if (p.download_queue().size() > 1
+							&& p.m_channel_state[peer_connection::download_channel] & peer_info::bw_network)
 							++num_peers[protocol][peer_connection::download_channel];
-						if (!p.upload_queue().empty())
+						if (!p.upload_queue().empty()
+							&& p.m_channel_state[peer_connection::upload_channel] & peer_info::bw_network)
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
-					peer_class* pc = m_classes.at(m_tcp_peer_class);
-					bandwidth_channel* tcp_channel = pc->channel;
-					int stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
+					int const stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
 					// never throttle below this
 					int lower_limit[] = {5000, 30000};
 
 					for (int i = 0; i < 2; ++i)
 					{
-						// if there are no uploading uTP peers, don't throttle TCP up
-						if (num_peers[1][i] == 0)
+						// if there are no uTP peers, don't throttle TCP
+						int const total_peers = num_peers[0][i] + num_peers[1][i];
+						if (num_peers[1][i] == 0 || total_peers < 5)
 						{
-							tcp_channel[i].throttle(0);
+							set_rate_limit(m_tcp_peer_class, i, 0);
 						}
 						else
 						{
 							if (num_peers[0][i] == 0) num_peers[0][i] = 1;
-							int total_peers = num_peers[0][i] + num_peers[1][i];
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
 							std::int64_t rate = stat_rate[i];
-							tcp_channel[i].throttle(std::max(int(rate * num_peers[0][i] / total_peers), lower_limit[i]));
+							int const limit = std::max(int(rate * num_peers[0][i] * 4 / total_peers), lower_limit[i]);
+							set_rate_limit(m_tcp_peer_class, i, limit);
 						}
 					}
 				}
