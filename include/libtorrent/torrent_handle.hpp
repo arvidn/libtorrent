@@ -577,8 +577,11 @@ namespace aux {
 		// file error (e.g. disk full) or something similar. See
 		// file_error_alert.
 		//
+		// For possible values of the ``flags`` parameter, see pause_flags_t.
+		//
 		// To know if a torrent is paused or not, call
-		// ``torrent_handle::status()`` and inspect ``torrent_status::paused``.
+		// ``torrent_handle::flags()`` and check for the
+		// ``torrent_status::paused`` flag.
 		//
 		// .. note::
 		// 	Torrents that are auto-managed may be automatically resumed again. It
@@ -937,9 +940,7 @@ namespace aux {
 		TORRENT_DEPRECATED
 		void set_ratio(float up_down_ratio) const;
 
-		// deprecated in 0.16. use status() instead, and inspect the
-		// torrent_status::flags field. Alternatively, call flags() directly on
-		// the torrent_handle
+		// deprecated in 0.16. use flags() instead
 		TORRENT_DEPRECATED
 		bool is_seed() const;
 		TORRENT_DEPRECATED
