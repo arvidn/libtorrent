@@ -182,7 +182,7 @@ namespace aux {
 		// .. warning:: This is a pointer that points to an array
 		//	that's owned by the session object. The next time
 		//	get_download_queue() is called, it will be invalidated.
-		block_info* blocks;
+		block_info const* blocks;
 
 #if TORRENT_ABI_VERSION == 1
 		// the speed classes. These may be used by the piece picker to
