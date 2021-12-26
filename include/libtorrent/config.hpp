@@ -131,6 +131,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_EXECINFO 1
 #endif
 
+// Mac platforms added support for preadv()/pwritev() in MacOS 11, iOS 14 etc.
+#if defined MAC_OS_X_VERSION_MIN_REQUIRED && MAC_OS_X_VERSION_MIN_REQUIRED >= 1100
+# define TORRENT_USE_PREADV 1
+#endif
+
+#if defined __IPHONE_OS_VERSION_MIN_REQUIRED && __IPHONE_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PREADV 1
+#endif
+
+#if defined __TV_OS_VERSION_MIN_REQUIRED && __TV_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PREADV 1
+#endif
+
+#if defined __WATCH_OS_VERSION_MIN_REQUIRED && __WATCH_OS_VERSION_MIN_REQUIRED >= 70000
+# define TORRENT_USE_PREADV 1
+#endif
+
 #define TORRENT_USE_SYSTEMCONFIGURATION 1
 
 #if TARGET_OS_IPHONE
@@ -215,9 +232,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
 #define TORRENT_USE_UNC_PATHS 1
-// these are emulated on windows
+// preadv()/pwritev() are emulated on windows
 #define TORRENT_USE_PREADV 1
-#define TORRENT_USE_PWRITEV 1
 
 // mingw doesn't implement random_device.
 #define TORRENT_BROKEN_RANDOM_DEVICE 1
@@ -278,9 +294,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_UNC_PATHS 1
-// these are emulated on windows
+// preadv()/pwritev() are emulated on windows
 #define TORRENT_USE_PREADV 1
-#define TORRENT_USE_PWRITEV 1
 
 // ==== WINRT ===
 #if defined(WINAPI_FAMILY_PARTITION)
@@ -322,8 +337,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
+#define TORRENT_USE_PREADV 0
 
 #else
 
