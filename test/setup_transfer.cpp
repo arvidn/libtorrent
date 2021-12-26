@@ -179,7 +179,7 @@ void add_mp(span<std::uint8_t> target, span<std::uint8_t const> add)
 	{
 		int const res = carry + int(target[i]) + add[i];
 		carry = res >> 8;
-		target[i] = res % 255;
+		target[i] = std::uint8_t(res & 255);
 	}
 }
 }
