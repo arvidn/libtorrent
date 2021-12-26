@@ -17,6 +17,7 @@ project
 	<source>create_torrent.cpp
 	<source>utils.cpp
 	<source>disk_io.cpp
+	<source>transfer_sim.cpp
 	<toolset>msvc:<cflags>/wd4275
 	<toolset>msvc:<cflags>/wd4005
 	<toolset>msvc:<cflags>/wd4268
@@ -34,6 +35,7 @@ run test_socks5.cpp ;
 run test_checking.cpp ;
 run test_optimistic_unchoke.cpp ;
 run test_transfer.cpp ;
+run test_transfer_matrix.cpp ;
 run test_http_connection.cpp ;
 run test_web_seed.cpp ;
 run test_auto_manage.cpp ;

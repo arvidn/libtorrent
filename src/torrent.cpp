@@ -7140,13 +7140,14 @@ namespace {
 			pi.piece_state = partial_piece_info::none;
 #endif
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
-			pi.blocks = &blk[std::size_t(counter * blocks_per_piece)];
+			block_info* blocks = &blk[std::size_t(counter * blocks_per_piece)];
+			pi.blocks = blocks;
 			int const piece_size = torrent_file().piece_size(i->index);
 			int idx = -1;
 			for (auto const& info : m_picker->blocks_for_piece(*i))
 			{
 				++idx;
-				block_info& bi = pi.blocks[idx];
+				block_info& bi = blocks[idx];
 				bi.state = info.state;
 				bi.block_size = idx < pi.blocks_in_piece - 1
 					? aux::numeric_cast<std::uint32_t>(block_size())
@@ -7192,7 +7193,7 @@ namespace {
 					}
 				}
 
-				pi.blocks[idx].num_peers = info.num_peers;
+				bi.num_peers = info.num_peers;
 			}
 			pi.piece_index = i->index;
 			queue->push_back(pi);
