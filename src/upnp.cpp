@@ -930,7 +930,10 @@ void find_control_url(int const type, string_view str, parse_state& state)
 	else if (type == xml_string)
 	{
 		if (state.tag_stack.empty()) return;
-		if (!state.in_service && state.top_tags("service", "servicetype"))
+		// default to the first (or only) control url in the router's listing
+		if (!state.in_service
+			&& state.top_tags("service", "servicetype")
+			&& state.service_type.empty())
 		{
 			if (string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:1")
 				|| string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:2")

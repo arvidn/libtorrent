@@ -266,6 +266,41 @@ R"(<?xml version="1.0"?>
 </s:Body>
 </s:Envelope>)";
 
+char upnp_xml5[] =
+R"(<root>
+<URLBase>http://192.168.1.1:49152</URLBase>
+ <device>
+  <deviceList>
+   <device>
+    <deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>
+     <deviceList>
+      <device>
+       <deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>
+       <friendlyName>WANConnectionDevice</friendlyName>
+       <serviceList>
+        <service>
+         <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+         <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
+         <SCPDURL>/wipc_scpd.xml</SCPDURL>
+         <controlURL>/wipc_cont</controlURL>
+         <eventSubURL>/wipc_evnt</eventSubURL>
+        </service>
+        <service>
+         <serviceType>urn:schemas-upnp-org:service:WANPPPConnection:1</serviceType>
+         <serviceId>urn:upnp-org:serviceId:WANPPPConnection</serviceId>
+         <SCPDURL>/wpppc_scpd.xml</SCPDURL>
+         <controlURL>/wpppc_cont</controlURL>
+         <eventSubURL>/wpppc_evnt</eventSubURL>
+        </service>
+      </serviceList>
+     </device>
+    </deviceList>
+   </device>
+  </deviceList>
+  <presentationURL>http://192.168.1.1/index.htm</presentationURL>
+ </device>
+</root>)";
+
 using namespace lt;
 using namespace std::placeholders;
 
@@ -321,6 +356,7 @@ TORRENT_TEST(upnp_parser1)
 	std::cout << "model: " << xml_s.model << std::endl;
 	TEST_EQUAL(xml_s.url_base, "http://192.168.0.1:5678");
 	TEST_EQUAL(xml_s.control_url, "/WANIPConnection");
+	TEST_EQUAL(xml_s.service_type, "urn:schemas-upnp-org:service:WANIPConnection:1");
 	TEST_EQUAL(xml_s.model, "D-Link Router");
 }
 
@@ -335,6 +371,7 @@ TORRENT_TEST(upnp_parser2)
 	std::cout << "model: " << xml_s.model << std::endl;
 	TEST_EQUAL(xml_s.url_base, "http://192.168.1.1:49152");
 	TEST_EQUAL(xml_s.control_url, "/upnp/control/WANPPPConn1");
+	TEST_EQUAL(xml_s.service_type, "urn:schemas-upnp-org:service:WANPPPConnection:1");
 	TEST_EQUAL(xml_s.model, "Wireless-G ADSL Home Gateway");
 }
 
@@ -356,6 +393,20 @@ TORRENT_TEST(upnp_parser4)
 	std::cout << "ip_address " << xml_s.ip_address << std::endl;
 	TEST_EQUAL(xml_s.error_code, -1);
 	TEST_EQUAL(xml_s.ip_address, "123.10.20.30");
+}
+
+TORRENT_TEST(upnp_parser5)
+{
+	parse_state xml_s;
+	xml_parse(upnp_xml5, std::bind(&find_control_url, _1, _2, std::ref(xml_s)));
+
+	std::cout << "namespace " << xml_s.service_type << std::endl;
+	std::cout << "url_base: " << xml_s.url_base << std::endl;
+	std::cout << "control_url: " << xml_s.control_url << std::endl;
+	std::cout << "model: " << xml_s.model << std::endl;
+	TEST_EQUAL(xml_s.url_base, "http://192.168.1.1:49152");
+	TEST_EQUAL(xml_s.control_url, "/wipc_cont");
+	TEST_EQUAL(xml_s.service_type, "urn:schemas-upnp-org:service:WANIPConnection:1");
 }
 
 TORRENT_TEST(tags)
