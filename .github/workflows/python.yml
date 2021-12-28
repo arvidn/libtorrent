@@ -28,6 +28,16 @@ on:
       - pyproject.toml
 
 jobs:
+
+  cancel:
+    name: 'Cancel Previous Runs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          all_but_latest: true
+
   test:
     name: build
     runs-on: ${{ matrix.os }}

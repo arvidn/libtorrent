@@ -93,6 +93,9 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+
+	* fix issue in parsing UPnP XML response with multiple forwarding services
+
 1.2.15 released
 
 	* cache DNS lookups for SOCKS5 proxy

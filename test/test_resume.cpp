@@ -1556,7 +1556,7 @@ TORRENT_TEST(seed_mode_no_verify_files)
 	torrent_status s = test_resume_flags(ses
 		, torrent_flags::seed_mode | torrent_flags::no_verify_files).status();
 	default_tests(s, now);
-	// note taht torrent_flags::no_verify_files is NOT set here
+	// note that torrent_flags::no_verify_files is NOT set here
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
