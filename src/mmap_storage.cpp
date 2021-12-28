@@ -827,7 +827,6 @@ namespace libtorrent::aux {
 		if (ec.ec)
 		{
 			ec.file(file);
-			ec.operation = operation_t::file_open;
 			return {};
 		}
 		TORRENT_ASSERT(h);

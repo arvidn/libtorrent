@@ -16,6 +16,15 @@ env:
 
 jobs:
 
+   cancel:
+      name: 'Cancel Previous Runs'
+      runs-on: ubuntu-latest
+      timeout-minutes: 3
+      steps:
+         - uses: styfle/cancel-workflow-action@0.9.1
+           with:
+              all_but_latest: true
+
    android_arm32_build:
       name: Build Android Arm 32bits
       runs-on: ubuntu-20.04

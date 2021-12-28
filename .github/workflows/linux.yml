@@ -7,6 +7,15 @@ on:
 
 jobs:
 
+   cancel:
+      name: 'Cancel Previous Runs'
+      runs-on: ubuntu-latest
+      timeout-minutes: 3
+      steps:
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+           all_but_latest: true
+
    pre-commit:
       # TODO: matrix across python version and os
       runs-on: ubuntu-latest
