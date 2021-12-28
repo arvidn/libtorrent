@@ -11247,11 +11247,9 @@ bool is_downloading_state(int const st)
 					debug_log("*** increment tracker fail count [ep: %s url: %s %d]"
 						, print_endpoint(aep->local_endpoint).c_str(), r.url.c_str(), aep->fails);
 #endif
-					// don't try to announce from this endpoint again
-					if (ec == boost::system::errc::address_family_not_supported
-						|| ec == boost::system::errc::host_unreachable
-						|| ec == lt::errors::announce_skipped)
+					if (ec == boost::system::errc::address_family_not_supported)
 					{
+						// don't try to announce from this endpoint again
 						aep->enabled = false;
 #ifndef TORRENT_DISABLE_LOGGING
 						debug_log("*** disabling endpoint [ep: %s url: %s ]"

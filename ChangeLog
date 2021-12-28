@@ -1,3 +1,4 @@
+	* don't disable announcing from local endpoints because of temporary failures
 	* fix issue in parsing UPnP XML response with multiple forwarding services
 
 1.2.15 released
