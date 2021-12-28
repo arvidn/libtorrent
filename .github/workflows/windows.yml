@@ -11,14 +11,14 @@ defaults:
 
 jobs:
 
-  cancel:
-    name: 'Cancel Previous Runs'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
+   cancel:
+      name: 'Cancel Previous Runs'
+      runs-on: ubuntu-latest
+      timeout-minutes: 3
+      steps:
       - uses: styfle/cancel-workflow-action@0.9.1
         with:
-          all_but_latest: true
+           all_but_latest: true
 
    tests:
       name: Test
