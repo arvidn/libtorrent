@@ -334,7 +334,7 @@ TORRENT_TEST(alerts_dropped_alert)
 struct post_plugin : lt::plugin
 {
 	explicit post_plugin(alert_manager& m) : mgr(m) {}
-	void on_alert(alert const*)
+	void on_alert(alert const*) override
 	{
 		if (++depth > 10) return;
 		mgr.emplace_alert<piece_finished_alert>(torrent_handle(), piece_index_t{0});

@@ -1,3 +1,4 @@
+	* keep trying to announce to trackers even when all fail
 	* don't disable announcing from local endpoints because of temporary failures
 	* fix issue in parsing UPnP XML response with multiple forwarding services
 
