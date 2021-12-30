@@ -3328,7 +3328,7 @@ struct test_algo : dht::traversal_algorithm
 		: traversal_algorithm(dht_node, target)
 	{}
 
-	void done() { this->dht::traversal_algorithm::done(); }
+	void done() override { this->dht::traversal_algorithm::done(); }
 
 	std::vector<observer_ptr> const& results() const { return m_results; }
 
