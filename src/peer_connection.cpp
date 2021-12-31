@@ -4702,13 +4702,17 @@ namespace {
 		int target_pieces = (m_settings.get_int(settings_pack::superseed_scale_time)
 			* m_statistics.upload_payload_rate() + (ps - 1)) / ps;
 
+		// If we only offer a single piece, then we may end up choking the peer prematurely
+		// as we'll recieve a 'not interested' between pieces. Always offering a minimum
+		// of 2 pieces may help avoid this.
+		target_pieces = std::max(target_pieces, 2);
+
 		// Don't return more pieces than the peer has left to download
 		int const outstanding_pieces = ti.num_pieces() - m_num_pieces;
 		if (target_pieces > outstanding_pieces)
 			target_pieces = outstanding_pieces;
 
-		// The target must be >= 1 for 'bootstrapping' to work
-		return std::max(target_pieces, 1);
+		return target_pieces;
 	}
 #endif // TORRENT_DISABLE_SUPERSEEDING
 
