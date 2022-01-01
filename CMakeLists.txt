@@ -471,6 +471,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	)
 elseif(MSVC)
 	add_compile_options(
+		/utf-8
 		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
 		/Zc:__cplusplus
 		/W4
