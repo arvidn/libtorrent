@@ -278,6 +278,8 @@ rule building ( properties * )
 	{
 		# allow larger .obj files (with more sections)
 		result += <cflags>/bigobj ;
+		# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
+		result += <cflags>/utf-8 ;
 	}
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
