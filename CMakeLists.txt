@@ -469,9 +469,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	)
 elseif(MSVC)
 	add_compile_options(
-		/utf-8
-		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
-		/Zc:__cplusplus
 		/W4
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
@@ -616,7 +613,10 @@ if (WIN32)
 		)
 		target_compile_options(torrent-rasterbar
 			PRIVATE
-				/Zc:wchar_t /Zc:forScope # these compiler settings just make the compiler standard conforming
+				# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
+				/utf-8
+				# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+				/Zc:__cplusplus
 				/MP # for multi-core compilation
 				/bigobj # increase the number of sections for obj files
 		)
