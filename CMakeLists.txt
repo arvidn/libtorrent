@@ -461,12 +461,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
 		-Wall
-		-Wc++11-compat
 		-Wextra
-		-Wno-format-zero-length
-		-Wparentheses
 		-Wpedantic
 		-Wvla
+		-Wno-format-zero-length
 		-ftemplate-depth=512
 	)
 elseif(MSVC)
