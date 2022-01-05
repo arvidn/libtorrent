@@ -1127,6 +1127,11 @@ class test_peer_info(unittest.TestCase):
 
 class test_dht_settings(unittest.TestCase):
 
+    def test_dht_get_peers(self):
+        session = lt.session();
+        info_hash = lt.sha1_hash(b"a" * 20)
+        session.dht_get_peers(info_hash);
+
     def test_construct(self):
 
         ds = lt.dht_settings()
