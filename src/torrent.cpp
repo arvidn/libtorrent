@@ -2871,6 +2871,34 @@ bool is_downloading_state(int const st)
 		};
 	}
 
+	void torrent::update_tracker_endpoints()
+	{
+		for (auto& ae : m_trackers)
+		{
+			// update the endpoint list by adding entries for new listen sockets
+			// and removing entries for non-existent ones
+			std::size_t valid_endpoints = 0;
+			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
+				if (s.is_ssl() != is_ssl_torrent())
+					return;
+				for (auto& aep : ae.endpoints)
+				{
+					if (aep.socket != s) continue;
+					std::swap(ae.endpoints[valid_endpoints], aep);
+					valid_endpoints++;
+					return;
+				}
+
+				ae.endpoints.emplace_back(s, bool(m_complete_sent));
+				std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
+				valid_endpoints++;
+			});
+
+			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
+			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
+		}
+	}
+
 	void torrent::announce_with_tracker(std::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -3019,32 +3047,14 @@ bool is_downloading_state(int const st)
 				, int(m_trackers.size()));
 		}
 #endif
+
+		update_tracker_endpoints();
+
 		for (auto& ae : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			// update the endpoint list by adding entries for new listen sockets
-			// and removing entries for non-existent ones
-			std::size_t valid_endpoints = 0;
-			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
-				if (s.is_ssl() != is_ssl_torrent())
-					return;
-				for (auto& aep : ae.endpoints)
-				{
-					if (aep.socket != s) continue;
-					std::swap(ae.endpoints[valid_endpoints], aep);
-					valid_endpoints++;
-					return;
-				}
-
-				ae.endpoints.emplace_back(s, bool(m_complete_sent));
-				std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
-				valid_endpoints++;
-			});
-
-			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
-			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3622,6 +3632,9 @@ bool is_downloading_state(int const st)
 #endif
 		if (tracker_idx == -1)
 		{
+			// make sure we check for new endpoints from the listen sockets
+			update_tracker_endpoints();
+
 			for (auto& e : m_trackers)
 			{
 				for (auto& aep : e.endpoints)
@@ -3659,7 +3672,6 @@ bool is_downloading_state(int const st)
 			debug_log("*** found no tracker endpoints to announce");
 		}
 #endif
-		enable_all_trackers();
 		update_tracker_timer(aux::time_now32());
 	}
 
