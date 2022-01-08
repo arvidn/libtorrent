@@ -1193,6 +1193,7 @@ namespace libtorrent {
 
 	private:
 
+		void update_tracker_endpoints();
 		void on_exception(std::exception const& e) override;
 		void on_error(error_code const& ec) override;
 
