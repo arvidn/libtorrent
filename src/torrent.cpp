@@ -3660,6 +3660,7 @@ bool is_downloading_state(int const st)
 			debug_log("*** found no tracker endpoints to announce");
 		}
 #endif
+		enable_all_trackers();
 		update_tracker_timer(aux::time_now32());
 	}
 
