@@ -1,3 +1,5 @@
+	* fix DHT announce timer issue
+
 * 2.0.5 released
 
 	* on windows, explicitly flush memory mapped files periodically
