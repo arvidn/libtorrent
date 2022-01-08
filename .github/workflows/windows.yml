@@ -39,8 +39,13 @@ jobs:
            submodules: true
 
       - name: install openssl (64 bit)
-        shell: pwsh
-        run: choco install openssl --limitoutput
+        uses: nick-invision/retry@v2
+        with:
+          shell: pwsh
+          timeout_minutes: 30
+          retry_wait_seconds: 4
+          max_attempts: 3
+          command: choco install openssl --limitoutput
 
       - name: install boost
         run: |
@@ -143,8 +148,13 @@ jobs:
           bootstrap.bat
 
       - name: install openssl (64 bit)
-        shell: pwsh
-        run: choco install openssl --limitoutput
+        uses: nick-invision/retry@v2
+        with:
+          shell: pwsh
+          timeout_minutes: 30
+          retry_wait_seconds: 4
+          max_attempts: 3
+          command: choco install openssl --limitoutput
 
       - name: boost headers
         run: |
