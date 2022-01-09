@@ -115,18 +115,20 @@ TORRENT_VERSION_NAMESPACE_2
 				, tracker_retry_delay_min
 					+ fail_square * tracker_retry_delay_min * backoff_ratio / 100
 			));
+		TORRENT_ASSERT(delay <= tracker_retry_delay_max);
 		if (!is_working()) next_announce = aux::time_now32() + delay;
 		updating = false;
 	}
 
 	bool announce_infohash::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
 	{
+		TORRENT_ASSERT(next_announce <= now + tracker_retry_delay_max);
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
 		bool const need_send_complete = is_seed && !complete_sent;
 
 		// add some slack here for rounding errors
-		return now  + seconds(1) >= next_announce
+		return now + seconds(1) >= next_announce
 			&& (now >= min_announce || need_send_complete)
 			&& (fails < fail_limit || fail_limit == 0)
 			&& !updating;

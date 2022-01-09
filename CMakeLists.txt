@@ -256,6 +256,8 @@ set(libtorrent_aux_include_files
 	session_settings.hpp
 	session_udp_sockets.hpp
 	set_socket_buffer.hpp
+	set_traffic_class.hpp
+	set_traffic_class.hpp
 	socket_type.hpp
 	storage_free_list.hpp
 	storage_utils.hpp
@@ -492,21 +494,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
 		-Wall
-		-Wc++11-compat
 		-Wextra
-		-Wno-format-zero-length
-		-Wparentheses
 		-Wpedantic
 		-Wvla
-		-Wno-c++11-compat
-		-Wno-format-zero-length
 		-Wno-noexcept-type
+		-Wno-format-zero-length
 		-ftemplate-depth=512
 	)
 elseif(MSVC)
 	add_compile_options(
-		# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
-		/Zc:__cplusplus
 		/W4
 		# C4251: 'identifier' : class 'type' needs to have dll-interface to be
 		#        used by clients of class 'type2'
@@ -625,7 +621,10 @@ if (WIN32)
 		)
 		target_compile_options(torrent-rasterbar
 			PRIVATE
-				/Zc:wchar_t /Zc:forScope # these compiler settings just make the compiler standard conforming
+				# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
+				/utf-8
+				# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+				/Zc:__cplusplus
 				/MP # for multi-core compilation
 				/bigobj # increase the number of sections for obj files
 		)

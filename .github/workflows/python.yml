@@ -71,9 +71,13 @@ jobs:
 
     - name: install openssl (windows)
       if: runner.os == 'Windows'
-      shell: cmd
-      run: |
-        choco install openssl
+      uses: nick-invision/retry@v2
+      with:
+        shell: cmd
+        timeout_minutes: 30
+        retry_wait_seconds: 4
+        max_attempts: 3
+        command: choco install openssl --limitoutput
 
     - name: build/install (windows)
       if: runner.os == 'Windows'

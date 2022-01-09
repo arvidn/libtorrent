@@ -252,14 +252,11 @@ rule warnings ( properties * )
 
 	if <toolset>gcc in $(properties)
 	{
-		result += <cxxflags>-Wall ;
-		result += <cxxflags>-Wextra ;
-		result += <cxxflags>-Wpedantic ;
-#		result += <cxxflags>-Wmisleading-indentation ;
-		result += <cxxflags>-Wparentheses ;
-		result += <cxxflags>-Wvla ;
-		result += <cxxflags>-Wno-c++11-compat ;
-		result += <cxxflags>-Wno-format-zero-length ;
+		result += <cflags>-Wall ;
+		result += <cflags>-Wextra ;
+		result += <cflags>-Wpedantic ;
+		result += <cflags>-Wvla ;
+		result += <cflags>-Wno-format-zero-length ;
 		result += <cxxflags>-Wno-noexcept-type ;
 	}
 
@@ -310,6 +307,9 @@ rule building ( properties * )
 	{
 		# allow larger .obj files (with more sections)
 		result += <cxxflags>/bigobj ;
+		result += <cflags>/bigobj ;
+		# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
+		result += <cflags>/utf-8 ;
 	}
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)

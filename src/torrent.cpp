@@ -2974,6 +2974,7 @@ namespace {
 				, int(m_trackers.size()));
 		}
 #endif
+
 		for (auto& ae : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3593,10 +3594,15 @@ namespace {
 			|| tracker_idx == -1);
 
 		if (is_paused()) return;
+#ifndef TORRENT_DISABLE_LOGGING
+		bool found_one = false;
+#endif
 		if (tracker_idx == -1)
 		{
 			for (auto& e : m_trackers)
 			{
+				// make sure we check for new endpoints from the listen sockets
+				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e.endpoints);
 				for (auto& aep : e.endpoints)
 				{
 					for (auto& a : aep.info_hashes)
@@ -3624,9 +3630,19 @@ namespace {
 						: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
 					a.min_announce = a.next_announce;
 					a.triggered_manually = true;
+#ifndef TORRENT_DISABLE_LOGGING
+					found_one = true;
+#endif
 				}
 			}
 		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!found_one)
+		{
+			debug_log("*** found no tracker endpoints to announce");
+		}
+#endif
 		update_tracker_timer(aux::time_now32());
 	}
 
@@ -9654,12 +9670,35 @@ namespace {
 				break;
 		}
 
-		if (next_announce <= now) next_announce = now;
+#ifndef TORRENT_DISABLE_LOGGING
+		bool before_now = false;
+		bool none_eligible = false;
+#endif
+		if (next_announce <= now)
+		{
+			next_announce = now;
+#ifndef TORRENT_DISABLE_LOGGING
+			before_now = true;
+#endif
+		}
+		else if (next_announce == time_point32::max())
+		{
+			// if no tracker can be announced to, check again in a minute
+			next_announce = now + minutes32(1);
+#ifndef TORRENT_DISABLE_LOGGING
+			none_eligible = true;
+#endif
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** update tracker timer: next_announce < now %d"
-			" m_waiting_tracker: %d next_announce_in: %d"
-			, next_announce <= now, m_waiting_tracker
+		debug_log("*** update tracker timer: "
+			"before_now: %d "
+			"none_eligible: %d "
+			"m_waiting_tracker: %d "
+			"next_announce_in: %d"
+			, before_now
+			, none_eligible
+			, m_waiting_tracker
 			, int(total_seconds(next_announce - now)));
 #endif
 

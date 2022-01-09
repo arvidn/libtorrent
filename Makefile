@@ -634,6 +634,7 @@ HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_udp_sockets.hpp      \
   aux_/set_socket_buffer.hpp        \
+  aux_/set_traffic_class.hpp        \
   aux_/sha512.hpp                   \
   aux_/socket_type.hpp              \
   aux_/storage_free_list.hpp        \
