@@ -180,9 +180,9 @@ namespace libtorrent {
 	{
 		explicit dscp_traffic_type(char val) : m_value(DWORD(val)) {}
 		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IP; }
+		int level(Protocol const&) const { return IP_DSCP_TRAFFIC_TYPE; }
 		template<class Protocol>
-		int name(Protocol const&) const { return IP_DSCP_TRAFFIC_TYPE; }
+		int name(Protocol const&) const { return DSCP_TRAFFIC_TYPE; }
 		template<class Protocol>
 		DWORD const* data(Protocol const&) const { return &m_value; }
 		template<class Protocol>
