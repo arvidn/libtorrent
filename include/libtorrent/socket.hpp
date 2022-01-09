@@ -175,6 +175,22 @@ namespace libtorrent {
 		tos_t m_value;
 	};
 
+#ifdef IP_DSCP_TRAFFIC_TYPE
+	struct dscp_traffic_type
+	{
+		explicit dscp_traffic_type(char val) : m_value(DWORD(val)) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return IPPROTO_IP; }
+		template<class Protocol>
+		int name(Protocol const&) const { return IP_DSCP_TRAFFIC_TYPE; }
+		template<class Protocol>
+		DWORD const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_value); }
+		DWORD m_value;
+	};
+#endif
+
 #if defined IP_DONTFRAG || defined IP_MTU_DISCOVER || defined IP_DONTFRAGMENT
 #define TORRENT_HAS_DONT_FRAGMENT
 #endif
