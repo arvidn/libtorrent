@@ -91,6 +91,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/set_traffic_class.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -6337,19 +6338,6 @@ namespace {
 #endif // DEPRECATE
 
 
-	namespace {
-		template <typename Socket>
-		void set_tos(Socket& s, int v, error_code& ec)
-		{
-#if defined IPV6_TCLASS
-			if (is_v6(s.local_endpoint(ec)))
-				s.set_option(traffic_class(char(v)), ec);
-			else if (!ec)
-#endif
-				s.set_option(type_of_service(char(v)), ec);
-		}
-	}
-
 	// TODO: 2 this should be factored into the udp socket, so we only have the
 	// code once
 	void session_impl::update_peer_tos()
@@ -6360,7 +6348,7 @@ namespace {
 			if (l->sock)
 			{
 				error_code ec;
-				set_tos(*l->sock, tos, ec);
+				set_traffic_class(*l->sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -6375,7 +6363,7 @@ namespace {
 			if (l->udp_sock)
 			{
 				error_code ec;
-				set_tos(l->udp_sock->sock, tos, ec);
+				set_traffic_class(l->udp_sock->sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
