@@ -143,7 +143,7 @@ namespace libtorrent {
 #ifdef IPV6_TCLASS
 	struct traffic_class
 	{
-		explicit traffic_class(char val): m_value(val) {}
+		explicit traffic_class(int val): m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
@@ -163,7 +163,7 @@ namespace libtorrent {
 #else
 		using tos_t = int;
 #endif
-		explicit type_of_service(char val) : m_value(tos_t(val)) {}
+		explicit type_of_service(tos_t const val) : m_value(tos_t(val)) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -178,7 +178,7 @@ namespace libtorrent {
 #ifdef IP_DSCP_TRAFFIC_TYPE
 	struct dscp_traffic_type
 	{
-		explicit dscp_traffic_type(char val) : m_value(DWORD(val)) {}
+		explicit dscp_traffic_type(DWORD val) : m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IP_DSCP_TRAFFIC_TYPE; }
 		template<class Protocol>
