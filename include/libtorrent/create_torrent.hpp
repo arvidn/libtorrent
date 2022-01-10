@@ -296,7 +296,7 @@ namespace libtorrent {
 
 	private:
 
-		file_storage& m_files;
+		file_storage const& m_files;
 		// if m_info_dict is initialized, it is
 		// used instead of m_files to generate
 		// the info dictionary
