@@ -73,11 +73,10 @@ jobs:
       if: runner.os == 'Windows'
       uses: nick-invision/retry@v2
       with:
-        shell: cmd
         timeout_minutes: 30
         retry_wait_seconds: 4
         max_attempts: 3
-        command: choco install openssl --limitoutput
+        command: choco install openssl --limitoutput --no-progress
 
     - name: build/install (windows)
       if: runner.os == 'Windows'

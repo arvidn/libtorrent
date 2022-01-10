@@ -41,11 +41,10 @@ jobs:
       - name: install openssl (64 bit)
         uses: nick-invision/retry@v2
         with:
-          shell: pwsh
           timeout_minutes: 30
           retry_wait_seconds: 4
           max_attempts: 3
-          command: choco install openssl --limitoutput
+          command: choco install openssl --limitoutput --no-progress
 
       - name: install boost
         run: |
@@ -150,11 +149,10 @@ jobs:
       - name: install openssl (64 bit)
         uses: nick-invision/retry@v2
         with:
-          shell: pwsh
           timeout_minutes: 30
           retry_wait_seconds: 4
           max_attempts: 3
-          command: choco install openssl --limitoutput
+          command: choco install openssl --limitoutput --no-progress
 
       - name: boost headers
         run: |
