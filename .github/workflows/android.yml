@@ -3,11 +3,7 @@ name: Android
 on:
    push:
       branches: [ RC_2_0 master ]
-      paths-ignore:
-         - bindings/python/**
    pull_request:
-      paths-ignore:
-         - bindings/python/**
 
 env:
   NDK_VERSION: "r21d"

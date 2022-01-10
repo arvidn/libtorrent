@@ -3,29 +3,7 @@ name: Python bindings
 on:
    push:
       branches: [ RC_1_2 RC_2_0 master ]
-      paths:
-      - src/**
-      - include/**
-      - deps/**
-      - Jamfile
-      - Jamroot.jam
-      - bindings/python/**
-      - setup.py
-      - setup.cfg
-      - tox.ini
-      - pyproject.toml
    pull_request:
-      paths:
-      - src/**
-      - include/**
-      - deps/**
-      - Jamfile
-      - Jamroot.jam
-      - bindings/python/**
-      - setup.py
-      - setup.cfg
-      - tox.ini
-      - pyproject.toml
 
 jobs:
 
