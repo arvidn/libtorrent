@@ -162,4 +162,4 @@ ed25519_key_exchange(shared_secret, other_public_key, private_key);
 
 License
 -------
-All code is in the public domain.
+All code is released under the zlib license. See license.txt for details.
