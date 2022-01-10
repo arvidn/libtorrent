@@ -405,17 +405,17 @@ namespace {
 		// i.e. only a single bit is set
 		TORRENT_ASSERT((piece_size & (piece_size - 1)) == 0);
 
-		m_files.set_piece_length(piece_size);
+		fs.set_piece_length(piece_size);
 		if (flags & (optimize_alignment | mutable_torrent_support))
-			m_files.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
+			fs.optimize(pad_file_limit, alignment, bool(flags & mutable_torrent_support));
 
-		m_files.set_num_pieces(static_cast<int>(
-			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
-		m_piece_hash.resize(m_files.num_pieces());
+		fs.set_num_pieces(static_cast<int>(
+			(fs.total_size() + fs.piece_length() - 1) / fs.piece_length()));
+		m_piece_hash.resize(fs.num_pieces());
 	}
 
 	create_torrent::create_torrent(torrent_info const& ti)
-		: m_files(const_cast<file_storage&>(ti.files()))
+		: m_files(ti.files())
 		, m_creation_date(::time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
