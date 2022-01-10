@@ -449,15 +449,15 @@ namespace {
 			aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
 
-		m_files.set_piece_length(piece_size);
+		fs.set_piece_length(piece_size);
 		if (!(flags & v1_only) || (flags & canonical_files))
-			m_files.canonicalize();
-		m_files.set_num_pieces(aux::calc_num_pieces(m_files));
-		TORRENT_ASSERT(m_files.piece_length() > 0);
+			fs.canonicalize();
+		fs.set_num_pieces(aux::calc_num_pieces(fs));
+		TORRENT_ASSERT(fs.piece_length() > 0);
 	}
 
 	create_torrent::create_torrent(torrent_info const& ti)
-		: m_files(const_cast<file_storage&>(ti.files()))
+		: m_files(ti.files())
 		, m_creation_date(::time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())

@@ -1,4 +1,3 @@
-	* fix DHT announce timer issue
 
 * 2.0.5 released
 
@@ -90,6 +89,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix DHT announce timer issue
 	* use DSCP_TRAFFIC_TYPE socket option on windows
 	* update default ToS setting according to RFC 8622
 	* keep trying to announce to trackers even when all fail
