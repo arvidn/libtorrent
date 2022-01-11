@@ -158,12 +158,20 @@ namespace libtorrent {
 		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
 		// specified, a piece_size will be set automatically.
 		//
+		// The file_storage (``fs``) parameter defines the files, sizes and
+		// their properties for the torrent to be created. Set this up first,
+		// before passing it to the create_torrent constructor.
+		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
 		// the info dictionary will be used by create_torrent::generate(). This means
 		// that none of the member functions of create_torrent that affects
 		// the content of the info dictionary (such as set_hash()), will
 		// have any affect.
+		//
+		// .. warning::
+		// 	The file_storage and torrent_info objects must stay alive for the
+		// 	entire duration of the create_torrent object.
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_flags_t.
@@ -338,7 +346,7 @@ namespace libtorrent {
 
 	private:
 
-		file_storage& m_files;
+		file_storage const& m_files;
 		// if m_info_dict is initialized, it is
 		// used instead of m_files to generate
 		// the info dictionary

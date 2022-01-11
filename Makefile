@@ -618,6 +618,7 @@ HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_udp_sockets.hpp      \
   aux_/set_socket_buffer.hpp        \
+  aux_/set_traffic_class.hpp        \
   aux_/sha1.hpp                     \
   aux_/sha256.hpp                   \
   aux_/sha512.hpp                   \

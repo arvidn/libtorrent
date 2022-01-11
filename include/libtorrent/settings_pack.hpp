@@ -1275,10 +1275,9 @@ namespace aux {
 
 			// ``peer_tos`` determines the TOS byte set in the IP header of every
 			// packet sent to peers (including web seeds). ``0x0`` means no marking,
-			// ``0x20`` represents the *QBone scavenger service*. For more
-			// details, see QBSS_.
+			// ``0x04`` represents Lower Effort. For more details see `RFC 8622`_.
 			//
-			// .. _`QBSS`: http://qbone.internet2.edu/qbss/
+			// .. _`RFC 8622`: http://www.faqs.org/rfcs/rfc8622.html
 			peer_tos,
 
 			// for auto managed torrents, these are the limits they are subject

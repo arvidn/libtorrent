@@ -108,7 +108,7 @@ __ https://www.boost.org/users/download/#live
 
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_69_0``. You'll
-need at least version 1.66 of the boost library in order to build libtorrent.
+need at least version 1.67 of the boost library in order to build libtorrent.
 
 
 Step 2: Setup BBv2
@@ -118,7 +118,7 @@ If you have installed ``boost-build`` via a package manager, you can skip this
 step. If not, you need to build boost build from the boost source package.
 
 First you need to build ``b2``. You do this by opening a terminal (In windows,
-run ``cmd``). Change directory to ``c:\boost_1_68_0\tools\build``. Then run the
+run ``cmd``). Change directory to ``c:\boost_1_69_0\tools\build``. Then run the
 script called ``bootstrap.bat`` or ``bootstrap.sh`` on a Unix system. This will
 build ``b2`` and place it in a directory ``src/engine/bin.<architecture>``.
 Copy the ``b2.exe`` (or ``b2`` on a Unix system) to a place that's in you
@@ -133,11 +133,11 @@ set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
 ``b2`` where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to ``c:\boost_1_68_0\tools\build``.
+it to ``c:\boost_1_69_0\tools\build``.
 
 To set an environment variable in windows, type for example::
 
-  set BOOST_BUILD_PATH=c:\boost_1_68_0\tools\build\v2
+  set BOOST_BUILD_PATH=c:\boost_1_69_0\tools\build\v2
 
 In a terminal window.
 
@@ -180,7 +180,7 @@ Step 3: Building libtorrent
 When building libtorrent, boost is either picked up from system installed
 locations or from a boost source package, if the ``BOOST_ROOT`` environment
 variable is set pointing to one. If you're building boost from source, set
-``BOOST_ROOT`` to your boost directory, e.g. ``c:\boost_1_68_0``.
+``BOOST_ROOT`` to your boost directory, e.g. ``c:\boost_1_69_0``.
 
 Then the only thing left is simply to invoke ``b2``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the command line.
@@ -246,8 +246,8 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical Unix-format (e.g.
-``/cygdrive/c/boost_1_68_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_68_0``).
+``/cygdrive/c/boost_1_69_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_69_0``).
 
 .. note::
 	In Jamfiles, spaces are separators. It's typically easiest to avoid spaces

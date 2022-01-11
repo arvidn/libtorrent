@@ -83,6 +83,7 @@ see LICENSE file.
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/set_traffic_class.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -3754,22 +3755,7 @@ namespace {
 
 		TORRENT_ASSERT(m_dht);
 
-		// announce to DHT every 15 minutes
-		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
-			/ std::max(int(m_torrents.size()), 1), 1);
-
-		if (!m_dht_torrents.empty())
-		{
-			// we have prioritized torrents that need
-			// an initial DHT announce. Don't wait too long
-			// until we announce those.
-			delay = std::min(4, delay);
-		}
-
-		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		m_dht_announce_timer.expires_after(seconds(delay));
-		m_dht_announce_timer.async_wait([this](error_code const& err)
-			{ wrap(&session_impl::on_dht_announce, err); });
+		update_dht_announce_interval();
 
 		if (!m_dht_torrents.empty())
 		{
@@ -6285,19 +6271,6 @@ namespace {
 #endif // DEPRECATE
 
 
-	namespace {
-		template <typename Socket>
-		void set_tos(Socket& s, int v, error_code& ec)
-		{
-#if defined IPV6_TCLASS
-			if (is_v6(s.local_endpoint(ec)))
-				s.set_option(traffic_class(char(v)), ec);
-			else if (!ec)
-#endif
-				s.set_option(type_of_service(char(v)), ec);
-		}
-	}
-
 	// TODO: 2 this should be factored into the udp socket, so we only have the
 	// code once
 	void session_impl::update_peer_tos()
@@ -6308,7 +6281,7 @@ namespace {
 			if (l->sock)
 			{
 				error_code ec;
-				set_tos(*l->sock, tos, ec);
+				set_traffic_class(*l->sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -6323,7 +6296,7 @@ namespace {
 			if (l->udp_sock)
 			{
 				error_code ec;
-				set_tos(l->udp_sock->sock, tos, ec);
+				set_traffic_class(l->udp_sock->sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -6525,6 +6498,15 @@ namespace {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
+
+		if (!m_dht_torrents.empty())
+		{
+			// we have prioritized torrents that need
+			// an initial DHT announce. Don't wait too long
+			// until we announce those.
+			delay = std::min(4, delay);
+		}
+
 		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			wrap(&session_impl::on_dht_announce, e); });

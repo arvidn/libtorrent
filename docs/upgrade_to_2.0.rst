@@ -18,6 +18,11 @@ C++11 no longer supported
 libtorrent 2.0 requires at least C++-14. To build with boost build, specify the
 C++ version using the ``cxxstd=14`` build feature (14 is the default).
 
+boost version
+=============
+
+The oldest boost version supported is 1.67
+
 BitTorrent v2 support
 =====================
 

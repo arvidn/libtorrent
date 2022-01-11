@@ -233,6 +233,7 @@ set(libtorrent_aux_include_files
 	session_settings.hpp
 	session_udp_sockets.hpp
 	set_socket_buffer.hpp
+	set_traffic_class.hpp
 	sha1.hpp
 	sha256.hpp
 	sha512.hpp
@@ -621,7 +622,10 @@ if (WIN32)
 		)
 		target_compile_options(torrent-rasterbar
 			PRIVATE
-				/Zc:wchar_t /Zc:forScope # these compiler settings just make the compiler standard conforming
+				# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
+				/utf-8
+				# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+				/Zc:__cplusplus
 				/MP # for multi-core compilation
 				/bigobj # increase the number of sections for obj files
 		)

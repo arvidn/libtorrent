@@ -55,6 +55,7 @@ see LICENSE file.
 #include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/aux_/set_traffic_class.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -302,23 +303,18 @@ namespace {
 				disconnect(ec, operation_t::getname);
 				return;
 			}
-			if (aux::is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
+			if (m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
-				m_socket.set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), ec);
+				int const tos = m_settings.get_int(settings_pack::peer_tos);
+				aux::set_traffic_class(m_socket, tos, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (should_log(peer_log_alert::outgoing))
+				if (ec && should_log(peer_log_alert::outgoing))
 				{
 					peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-						, m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
+						, tos, ec.message().c_str());
 				}
 #endif
 			}
-#if defined IPV6_TCLASS
-			else if (aux::is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
-			{
-				m_socket.set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
-			}
-#endif
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6305,32 +6301,18 @@ namespace {
 			return;
 		}
 
-		if (aux::is_v4(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
+		if (m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
-			error_code err;
-			m_socket.set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), err);
+			int const tos = m_settings.get_int(settings_pack::peer_tos);
+			aux::set_traffic_class(m_socket, tos, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log(peer_log_alert::outgoing))
+			if (ec && should_log(peer_log_alert::outgoing))
 			{
 				peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-					, m_settings.get_int(settings_pack::peer_tos), err.message().c_str());
+					, tos, ec.message().c_str());
 			}
 #endif
 		}
-#if defined IPV6_TCLASS
-		else if (aux::is_v6(m_remote) && m_settings.get_int(settings_pack::peer_tos) != 0)
-		{
-			error_code err;
-			m_socket.set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), err);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log(peer_log_alert::outgoing))
-			{
-				peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-					, m_settings.get_int(settings_pack::peer_tos), err.message().c_str());
-			}
-#endif
-		}
-#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& ext : m_extensions)
