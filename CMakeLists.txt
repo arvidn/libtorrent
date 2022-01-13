@@ -572,7 +572,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wall
 		-Wextra
 		-Wpedantic
-		-Wparentheses
 		-Wvla
 		-Wno-c++11-compat
 		-Wno-format-zero-length
