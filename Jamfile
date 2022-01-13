@@ -899,6 +899,7 @@ local usage-requirements =
 # make sure asio uses std::chrono
 	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<define>BOOST_ASIO_NO_DEPRECATED
+	<define>BOOST_SYSTEM_USE_UTF8
 	<conditional>@linking
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
