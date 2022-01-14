@@ -37,7 +37,6 @@ see LICENSE file.
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/piece_block.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/stack_allocator.hpp"
 #include "libtorrent/aux_/noexcept_movable.hpp"
