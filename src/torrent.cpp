@@ -11516,7 +11516,7 @@ namespace {
 		st->error_file = m_error_file;
 
 #if TORRENT_ABI_VERSION == 1
-		if (m_error) st->error = convert_from_native(m_error.message())
+		if (m_error) st->error = m_error.message()
 			+ ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
 #endif

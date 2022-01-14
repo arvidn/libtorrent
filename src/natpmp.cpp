@@ -147,7 +147,7 @@ void natpmp::start(aux::ip_interface const& ip)
 		if (should_log())
 		{
 			log("failed to enumerate routes: %s"
-				, convert_from_native(ec.message()).c_str());
+				, ec.message().c_str());
 		}
 #endif
 		disable(ec);
@@ -591,7 +591,7 @@ void natpmp::on_reply(error_code const& e
 		if (should_log())
 		{
 			log("error on receiving reply: %s"
-				, convert_from_native(e.message()).c_str());
+				, e.message().c_str());
 		}
 #endif
 		return;

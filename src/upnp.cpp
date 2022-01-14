@@ -24,7 +24,6 @@ see LICENSE file.
 #include "libtorrent/aux_/xml_parse.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
-#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/http_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ssl.hpp"
@@ -120,7 +119,7 @@ void upnp::start()
 	if (ec && should_log())
 	{
 		log("failed to open multicast socket: \"%s\""
-			, convert_from_native(ec.message()).c_str());
+			, ec.message().c_str());
 		m_disabled = true;
 		return;
 	}
@@ -131,7 +130,7 @@ void upnp::start()
 	if (ec && should_log())
 	{
 		log("failed to open unicast socket: \"%s\""
-			, convert_from_native(ec.message()).c_str());
+			, ec.message().c_str());
 		m_disabled = true;
 		return;
 	}
@@ -234,8 +233,8 @@ void upnp::discover_device_impl()
 		if (should_log())
 		{
 			log("multicast send failed: \"%s\" and \"%s\". Aborting."
-				, convert_from_native(mcast_ec.message()).c_str()
-				, convert_from_native(ucast_ec.message()).c_str());
+				, mcast_ec.message().c_str()
+				, ucast_ec.message().c_str());
 		}
 #endif
 		disable(mcast_ec);
@@ -579,7 +578,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 			if (should_log())
 			{
 				log("invalid URL %s from %s: %s"
-					, d.url.c_str(), print_endpoint(from).c_str(), convert_from_native(err.message()).c_str());
+					, d.url.c_str(), print_endpoint(from).c_str(), err.message().c_str());
 			}
 #endif
 			return;
@@ -965,7 +964,7 @@ void upnp::on_upnp_xml(error_code const& e
 		if (should_log())
 		{
 			log("error while fetching control url from: %s: %s"
-				, d.url.c_str(), convert_from_native(e.message()).c_str());
+				, d.url.c_str(), e.message().c_str());
 		}
 #endif
 		d.disabled = true;
@@ -988,7 +987,7 @@ void upnp::on_upnp_xml(error_code const& e
 		if (should_log())
 		{
 			log("error while fetching control url from: %s: %s"
-				, d.url.c_str(), convert_from_native(p.message()).c_str());
+				, d.url.c_str(), p.message().c_str());
 		}
 #endif
 		d.disabled = true;
@@ -1056,7 +1055,7 @@ void upnp::on_upnp_xml(error_code const& e
 		if (should_log())
 		{
 			log("failed to parse URL '%s': %s"
-				, d.control_url.c_str(), convert_from_native(ec.message()).c_str());
+				, d.control_url.c_str(), ec.message().c_str());
 		}
 #endif
 		d.disabled = true;
@@ -1252,7 +1251,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 		if (should_log())
 		{
 			log("error while getting external IP address: %s"
-				, convert_from_native(e.message()).c_str());
+				, e.message().c_str());
 		}
 #endif
 		if (num_mappings() > 0) update_map(d, port_mapping_t{0});
@@ -1274,7 +1273,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 		if (should_log())
 		{
 			log("error while getting external IP address: %s"
-				, convert_from_native(p.message()).c_str());
+				, p.message().c_str());
 		}
 #endif
 		if (num_mappings() > 0) update_map(d, port_mapping_t{0});
@@ -1345,7 +1344,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		if (should_log())
 		{
 			log("error while adding port map: %s"
-				, convert_from_native(e.message()).c_str());
+				, e.message().c_str());
 		}
 #endif
 		d.disabled = true;
@@ -1519,7 +1518,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		if (should_log())
 		{
 			log("error while deleting portmap: %s"
-				, convert_from_native(e.message()).c_str());
+				, e.message().c_str());
 		}
 #endif
 	}
@@ -1535,7 +1534,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		if (should_log())
 		{
 			log("error while deleting portmap: %s"
-				, convert_from_native(p.message()).c_str());
+				, p.message().c_str());
 		}
 #endif
 	}
