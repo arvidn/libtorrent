@@ -1436,6 +1436,7 @@ namespace aux {
 			deprecated_file_checks_delay_per_block,
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 			// ``read_cache_line_size`` is the number of blocks to read into the
 			// read cache when a read cache miss occurs. Setting this to 0 is
 			// essentially the same thing as disabling read cache. The number of
@@ -1447,6 +1448,10 @@ namespace aux {
 			// effectively disables the write cache.
 			read_cache_line_size,
 			write_cache_line_size,
+#else
+			deprecated_read_cache_line_size,
+			deprecated_write_cache_line_size,
+#endif
 
 			// ``optimistic_disk_retry`` is the number of seconds from a disk
 			// write errors occur on a torrent until libtorrent will take it out

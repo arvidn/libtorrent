@@ -198,9 +198,6 @@ namespace {
 		// unchoke all peers
 		set.set_int(settings_pack::unchoke_slots_limit, -1);
 
-		set.set_int(settings_pack::read_cache_line_size, 32);
-		set.set_int(settings_pack::write_cache_line_size, 256);
-
 		// the max number of bytes pending write before we throttle
 		// download rate
 		set.set_int(settings_pack::max_queued_disk_bytes, 7 * 1024 * 1024);
