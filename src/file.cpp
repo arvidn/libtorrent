@@ -218,7 +218,8 @@ namespace {
 			, FILE_SHARE_READ | FILE_SHARE_WRITE
 			, nullptr
 			, (mode & aux::open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING
-			, 0, nullptr);
+			, (mode & aux::open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : 0
+			, nullptr);
 
 #endif
 
