@@ -116,7 +116,6 @@ if (python-egg-info)
 	configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
 
 	add_custom_command(OUTPUT ${OUTPUT}
-		COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} build -b "${CMAKE_CURRENT_SOURCE_DIR}"
 		COMMAND ${Python3_EXECUTABLE} ${SETUP_PY} egg_info -b "${CMAKE_CURRENT_SOURCE_DIR}"
 		COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
 		DEPENDS ${DEPS}
