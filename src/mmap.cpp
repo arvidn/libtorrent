@@ -114,6 +114,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 
+#ifndef TORRENT_WINRT
 	std::once_flag g_once_flag;
 
 	void acquire_manage_volume_privs()
@@ -161,6 +162,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
 	}
+#endif // TORRENT_WINRT
 
 #endif // TORRENT_WINDOWS
 
@@ -599,6 +601,10 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 		// with large disk caches)
 		// ignore errors here, since this is best-effort
 			| MADV_DONTDUMP
+#endif
+#ifdef MADV_NOCORE
+		// This is the BSD counterpart to exclude a range from core dumps
+			| MADV_NOCORE
 #endif
 		;
 		if (advise != 0)
