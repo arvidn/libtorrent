@@ -685,7 +685,9 @@ namespace libtorrent {
 	int mmap_storage::hashv(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -695,7 +697,7 @@ namespace libtorrent {
 		span<iovec_t> dummy2(&dummy1, 1);
 
 		return readwritev(files(), dummy2, piece, offset, error
-			, [this, mode, &ph, &sett](file_index_t const file_index
+			, [this, mode, flags, &ph, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -746,6 +748,8 @@ namespace libtorrent {
 					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
 				});
 				ret += static_cast<int>(file_range.size());
+				if (flags & disk_interface::volatile_read)
+					handle->dont_need(file_range);
 			}
 
 			return ret;
@@ -755,7 +759,9 @@ namespace libtorrent {
 	int mmap_storage::hashv2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
@@ -791,6 +797,8 @@ namespace libtorrent {
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
 		ph.update(file_range);
+		if (flags & disk_interface::volatile_read)
+			handle->dont_need(file_range);
 
 		return static_cast<int>(file_range.size());
 	}

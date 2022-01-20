@@ -147,6 +147,10 @@ namespace aux {
 			return { static_cast<byte*>(m_mapping), static_cast<std::ptrdiff_t>(m_size) };
 		}
 
+		// hint the kernel that we probably won't need this part of the file
+		// anytime soon
+		void dont_need(span<byte const> range);
+
 		std::int64_t m_size;
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		file_mapping_handle m_file;
@@ -173,6 +177,12 @@ namespace aux {
 		{
 			TORRENT_ASSERT(m_mapping);
 			return m_mapping->memory();
+		}
+
+		void dont_need(span<byte const> range)
+		{
+			TORRENT_ASSERT(m_mapping);
+			m_mapping->dont_need(range);
 		}
 
 	private:
