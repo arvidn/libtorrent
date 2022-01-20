@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
+#include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
@@ -110,9 +111,10 @@ namespace aux {
 			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
 		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t flags
-			, storage_error&);
+			, disk_job_flags_t mode, storage_error&);
 		int hashv2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t flags
+			, disk_job_flags_t mode, storage_error&);
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.

@@ -1081,13 +1081,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				if (v1)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_mode, j->error);
+					ret = j->storage->hashv(m_settings, h, len, j->piece, offset
+						, file_mode, j->flags, j->error);
 					if (ret < 0) break;
 				}
 				if (v2_block)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset, file_mode, j->error);
+					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset
+						, file_mode, j->flags, j->error);
 					if (ret < 0) break;
 				}
 			}
@@ -1139,7 +1141,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			ret = int(len);
 		}))
 		{
-			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset, file_mode, j->error);
+			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset
+				, file_mode, j->flags, j->error);
 			if (ret < 0) return status_t::fatal_disk_error;
 		}
 

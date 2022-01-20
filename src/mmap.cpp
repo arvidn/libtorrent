@@ -689,6 +689,26 @@ file_mapping::file_mapping(file_mapping&& rhs)
 		return file_view(shared_from_this());
 	}
 
+
+void file_mapping::dont_need(span<byte const> range)
+{
+	TORRENT_UNUSED(range);
+#if TORRENT_USE_MADVISE
+	int const advise = 0
+#if defined TORRENT_LINUX && defined MADV_COLD
+		| MADV_COLD
+#elif !defined TORRENT_LINUX && defined MADV_DONTNEED
+		// note that MADV_DONTNEED is broken on Linux. It can destroy data. We
+		// cannot use it
+		| MADV_DONTNEED
+#endif
+	;
+
+	if (advise)
+		madvise(const_cast<byte*>(range.data()), static_cast<std::size_t>(range.size()), advise);
+#endif
+}
+
 } // aux
 } // libtorrent
 
