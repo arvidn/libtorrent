@@ -3,9 +3,15 @@
 
 import argparse
 import os
+import platform
 import shutil
 import subprocess
 import sys
+import time
+
+from linux_vmstat import capture_sample
+from linux_vmstat import plot_output
+from linux_vmstat import print_output_to_file
 
 
 def main():
@@ -26,7 +32,7 @@ def main():
             print('ERROR: connection_tester failed: %d' % ret)
             sys.exit(1)
 
-    if not os.path.exists('checking_benchmark'):
+    if not os.path.exists("checking_benchmark.torrent"):
         ret = os.system('../examples/connection_tester gen-data -t checking_benchmark.torrent -p .')
         if ret != 0:
             print('ERROR: connection_tester failed: %d' % ret)
@@ -60,7 +66,20 @@ def run_test(name, client_arg):
     client_out = open('%s/client.out' % output_dir, 'w+')
     print('client_cmd: "{cmd}"'.format(cmd=client_cmd))
     c = subprocess.Popen(client_cmd.split(' '), stdout=client_out, stderr=client_out, stdin=subprocess.PIPE)
-    c.wait()
+    start_time = time.time()
+
+    if platform.system() == "Linux":
+        out = {}
+        while c.returncode is None:
+            capture_sample(c.pid, start_time, out)
+            time.sleep(0.1)
+            c.poll()
+
+        stats_filename = f"{output_dir}/memory_stats.log"
+        keys = print_output_to_file(out, stats_filename)
+        plot_output(stats_filename, keys)
+    else:
+        c.wait()
 
     client_out.close()
 

@@ -7,6 +7,11 @@ import time
 import shutil
 import subprocess
 import sys
+import platform
+
+from linux_vmstat import capture_sample
+from linux_vmstat import plot_output
+from linux_vmstat import print_output_to_file
 
 
 def main():
@@ -29,15 +34,15 @@ def main():
     rm_file_or_dir('cpu_benchmark')
 
     if not os.path.exists('cpu_benchmark.torrent'):
-        ret = os.system('../examples/connection_tester gen-torrent -s 10000 -n 15 -t cpu_benchmark.torrent')
+        ret = os.system('../examples/connection_tester gen-torrent -s 20000 -n 15 -t cpu_benchmark.torrent')
         if ret != 0:
             print('ERROR: connection_tester failed: %d' % ret)
             sys.exit(1)
 
     rm_file_or_dir('t')
 
-    run_test('download', 'upload', '', args.download_peers)
-    run_test('upload', 'download', '-G', args.download_peers)
+    run_test('download', 'upload', '-1', args.download_peers)
+    run_test('upload', 'download', '-G -e 240', args.download_peers)
 
 
 def run_test(name, test_cmd, client_arg, num_peers):
@@ -57,8 +62,8 @@ def run_test(name, test_cmd, client_arg, num_peers):
     start = time.time()
     client_cmd = f'../examples/client_test -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent ' + \
         f'--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' + \
-        f'-e 120 {client_arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={num_peers*2} -T {num_peers*2} ' + \
-        f'-f {output_dir}/events.log --alert_mask=8747'
+        f'{client_arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={num_peers*2} -T {num_peers*2} ' + \
+        f'-f {output_dir}/events.log --alert_mask=error,status,connect,performance_warning,storage,peer'
 
     test_cmd = f'../examples/connection_tester {test_cmd} -c {num_peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
 
@@ -70,15 +75,22 @@ def run_test(name, test_cmd, client_arg, num_peers):
     print(f'test_cmd: "{test_cmd}"')
     t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
+    if platform.system() == "Linux":
+        out = {}
+        while c.returncode is None:
+            capture_sample(c.pid, start, out)
+            time.sleep(0.1)
+            c.poll()
+        end = time.time()
+
+        stats_filename = f"{output_dir}/memory_stats.log"
+        keys = print_output_to_file(out, stats_filename)
+        plot_output(stats_filename, keys)
+    else:
+        c.wait()
+        end = time.time()
+
     t.wait()
-
-    end = time.time()
-
-    try:
-        c.communicate('q')
-    except Exception:
-        pass
-    c.wait()
 
     client_out.close()
     test_out.close()
