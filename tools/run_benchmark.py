@@ -7,12 +7,22 @@ import time
 import shutil
 import subprocess
 import sys
+
+from vmstat import capture_sample
+from vmstat import plot_output
+from vmstat import print_output_to_file
+
 import platform
 
-from linux_vmstat import capture_sample
-from linux_vmstat import plot_output
-from linux_vmstat import print_output_to_file
+exe = ""
 
+if platform.system() == "Windows":
+    exe = ".exe"
+
+def reset_download():
+    rm_file_or_dir('.ses_state')
+    rm_file_or_dir('.resume')
+    rm_file_or_dir('cpu_benchmark')
 
 def main():
     args = parse_args()
@@ -29,20 +39,20 @@ def main():
         print('ERROR: build failed: %d' % ret)
         sys.exit(1)
 
-    rm_file_or_dir('.ses_state')
-    rm_file_or_dir('.resume')
-    rm_file_or_dir('cpu_benchmark')
+    reset_download()
 
     if not os.path.exists('cpu_benchmark.torrent'):
-        ret = os.system('../examples/connection_tester gen-torrent -s 20000 -n 15 -t cpu_benchmark.torrent')
+        ret = subprocess.check_call([f'../examples/connection_tester{exe}', 'gen-torrent', '-s', '100000', '-n', '15', '-t', 'cpu_benchmark.torrent'])
         if ret != 0:
             print('ERROR: connection_tester failed: %d' % ret)
             sys.exit(1)
 
     rm_file_or_dir('t')
 
-    run_test('download', 'upload', '-1', args.download_peers)
-    run_test('upload', 'download', '-G -e 240', args.download_peers)
+    run_test('download-write-through', 'upload', '-1 --disk_io_write_mode=write_through', args.download_peers)
+    reset_download()
+    run_test('download-full-cache', 'upload', '-1 --disk_io_write_mode=enable_os_cache', args.download_peers)
+    run_test('upload', 'download', '-G -e 240', args.upload_peers)
 
 
 def run_test(name, test_cmd, client_arg, num_peers):
@@ -59,13 +69,13 @@ def run_test(name, test_cmd, client_arg, num_peers):
     rm_file_or_dir('session_stats')
     rm_file_or_dir('session_stats_report')
 
-    start = time.time()
-    client_cmd = f'../examples/client_test -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent ' + \
+    start = time.monotonic()
+    client_cmd = f'../examples/client_test{exe} -k --listen_interfaces=127.0.0.1:{port} cpu_benchmark.torrent ' + \
         f'--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' + \
         f'{client_arg} -O --allow_multiple_connections_per_ip=1 --connections_limit={num_peers*2} -T {num_peers*2} ' + \
         f'-f {output_dir}/events.log --alert_mask=error,status,connect,performance_warning,storage,peer'
 
-    test_cmd = f'../examples/connection_tester {test_cmd} -c {num_peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
+    test_cmd = f'../examples/connection_tester{exe} {test_cmd} -c {num_peers} -d 127.0.0.1 -p {port} -t cpu_benchmark.torrent'
 
     client_out = open('%s/client.out' % output_dir, 'w+')
     test_out = open('%s/test.out' % output_dir, 'w+')
@@ -75,20 +85,16 @@ def run_test(name, test_cmd, client_arg, num_peers):
     print(f'test_cmd: "{test_cmd}"')
     t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
-    if platform.system() == "Linux":
-        out = {}
-        while c.returncode is None:
-            capture_sample(c.pid, start, out)
-            time.sleep(0.1)
-            c.poll()
-        end = time.time()
+    out = {}
+    while c.returncode is None:
+        capture_sample(c.pid, start, out)
+        time.sleep(0.1)
+        c.poll()
+    end = time.monotonic()
 
-        stats_filename = f"{output_dir}/memory_stats.log"
-        keys = print_output_to_file(out, stats_filename)
-        plot_output(stats_filename, keys)
-    else:
-        c.wait()
-        end = time.time()
+    stats_filename = f"{output_dir}/memory_stats.log"
+    keys = print_output_to_file(out, stats_filename)
+    plot_output(stats_filename, keys)
 
     t.wait()
 
@@ -97,7 +103,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     print('runtime %d seconds' % (end - start))
     print('analyzing profile...')
-    os.system('gprof ../examples/client_test >%s/gprof.out' % output_dir)
+    os.system(f'gprof ../examples/client_test{exe} >%s/gprof.out' % output_dir)
     print('generating profile graph...')
     try:
         os.system('gprof2dot --strip <%s/gprof.out | dot -Tpng -o %s/cpu_profile.png' % (output_dir, output_dir))
@@ -129,7 +135,7 @@ def rm_file_or_dir(path):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--toolset', default="")
-    p.add_argument('--download-peers', default=50, help="Number of peers to use for upload test")
+    p.add_argument('--download-peers', default=50, help="Number of peers to use for download test")
     p.add_argument('--upload-peers', default=20, help="Number of peers to use for upload test")
 
     return p.parse_args()

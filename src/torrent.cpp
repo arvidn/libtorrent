@@ -764,6 +764,11 @@ bool is_downloading_state(int const st)
 		rp->blocks_left = blocks_in_piece;
 		rp->fail = false;
 
+		disk_job_flags_t flags{};
+		auto const read_mode = settings().get_int(settings_pack::disk_io_read_mode);
+		if (read_mode == settings_pack::disable_os_cache)
+			flags |= disk_interface::volatile_read;
+
 		peer_request r;
 		r.piece = piece;
 		r.start = 0;
@@ -773,7 +778,8 @@ bool is_downloading_state(int const st)
 			r.length = std::min(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(m_storage, r
 				, [self, r, rp](disk_buffer_holder block, storage_error const& se) mutable
-				{ self->on_disk_read_complete(std::move(block), se, r, rp); });
+				{ self->on_disk_read_complete(std::move(block), se, r, rp); }
+				, flags);
 		}
 		m_ses.deferred_submit_jobs();
 	}
@@ -1308,8 +1314,16 @@ bool is_downloading_state(int const st)
 			p.length = std::min(piece_size - p.start, block_size());
 
 			m_stats_counters.inc_stats_counter(counters::queued_write_bytes, p.length);
+
+			disk_job_flags_t dflags{};
+
+			auto const write_mode = settings().get_int(settings_pack::disk_io_write_mode);
+			if (write_mode == settings_pack::disable_os_cache)
+				dflags |= disk_interface::flush_piece | disk_interface::volatile_read;
+
 			m_ses.disk_thread().async_write(m_storage, p, data + p.start, nullptr
-				, [self, p](storage_error const& error) { self->on_disk_write_complete(error, p); });
+				, [self, p](storage_error const& error) { self->on_disk_write_complete(error, p); }
+				, dflags);
 
 			bool const was_finished = picker().is_piece_finished(p.piece);
 			bool const multi = picker().num_peers(block) > 1;
@@ -11036,9 +11050,17 @@ namespace {
 		TORRENT_ASSERT(m_storage);
 		TORRENT_ASSERT(!m_picker->is_hashing(piece));
 
-		disk_job_flags_t flags;
+		// we just completed the piece, it should be flushed to disk
+		disk_job_flags_t flags{};
+
+		auto const write_mode = settings().get_int(settings_pack::disk_io_write_mode);
+		if (write_mode == settings_pack::write_through)
+			flags |= disk_interface::flush_piece;
+		else if (write_mode == settings_pack::disable_os_cache)
+			flags |= disk_interface::flush_piece | disk_interface::volatile_read;
 		if (torrent_file().info_hashes().has_v1())
 			flags |= disk_interface::v1_hash;
+
 		aux::vector<sha256_hash> hashes;
 		if (torrent_file().info_hashes().has_v2())
 		{

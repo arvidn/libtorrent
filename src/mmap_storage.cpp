@@ -487,13 +487,15 @@ error_code translate_error(std::system_error const& err, bool const write)
 	int mmap_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, mode, &sett](file_index_t const file_index
+			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -549,6 +551,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 						file_range = file_range.subspan(buf.size());
 						ret += static_cast<int>(buf.size());
 					}
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range);
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range);
 				}
 			}
 			catch (std::system_error const& err)
@@ -576,10 +582,12 @@ error_code translate_error(std::system_error const& err, bool const write)
 	int mmap_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, mode, &sett](file_index_t const file_index
+			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -639,6 +647,11 @@ error_code translate_error(std::system_error const& err, bool const write)
 					file_range = file_range.subspan(buf.size());
 					ret += static_cast<int>(buf.size());
 				}
+
+				if (flags & disk_interface::volatile_read)
+					handle->dont_need(file_range);
+				if (flags & disk_interface::flush_piece)
+					handle->page_out(file_range);
 			}
 			catch (std::system_error const& err)
 			{
@@ -730,6 +743,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 				ret += static_cast<int>(file_range.size());
 				if (flags & disk_interface::volatile_read)
 					handle->dont_need(file_range);
+				if (flags & disk_interface::flush_piece)
+					handle->page_out(file_range);
 			}
 
 			return ret;
@@ -779,6 +794,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 		ph.update(file_range);
 		if (flags & disk_interface::volatile_read)
 			handle->dont_need(file_range);
+		if (flags & disk_interface::flush_piece)
+			handle->page_out(file_range);
 
 		return static_cast<int>(file_range.size());
 	}
@@ -880,8 +897,9 @@ error_code translate_error(std::system_error const& err, bool const write)
 		}
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (sett.get_int(settings_pack::disk_io_write_mode)
-			== settings_pack::disable_os_cache)
+		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
+		if (write_mode == settings_pack::disable_os_cache
+			|| write_mode == settings_pack::write_through)
 		{
 			mode |= aux::open_mode::no_cache;
 		}

@@ -244,7 +244,7 @@ int writev(std::shared_ptr<mmap_storage> s
 	, aux::open_mode_t const mode
 	, storage_error& error)
 {
-	return s->writev(sett, bufs, piece, offset, mode, error);
+	return s->writev(sett, bufs, piece, offset, mode, disk_job_flags_t{}, error);
 }
 
 int readv(std::shared_ptr<mmap_storage> s
@@ -252,10 +252,10 @@ int readv(std::shared_ptr<mmap_storage> s
 	, span<iovec_t const> bufs
 	, piece_index_t piece
 	, int const offset
-	, aux::open_mode_t flags
+	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->readv(sett, bufs, piece, offset, flags, ec);
+	return s->readv(sett, bufs, piece, offset, mode, disk_job_flags_t{}, ec);
 }
 
 void release_files(std::shared_ptr<mmap_storage> s, storage_error& ec)
@@ -1518,7 +1518,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 
 	iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev(set, b, 2_piece, 0, aux::open_mode::write, se);
+	s->writev(set, b, 2_piece, 0, aux::open_mode::write, disk_job_flags_t{}, se);
 
 	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"

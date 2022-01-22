@@ -1271,6 +1271,8 @@ namespace aux {
 			//   potentially evict all other processes' cache by simply handling
 			//   high throughput and large files. If libtorrent's read cache is
 			//   disabled, enabling this may reduce performance.
+			// write_through
+			//   flush pieces to disk as they complete validation.
 			//
 			// One reason to disable caching is that it may help the operating
 			// system from growing its file cache indefinitely.
@@ -2078,7 +2080,9 @@ namespace aux {
 #else
 			deprecated_disable_os_cache_for_aligned_files = 1,
 #endif
-			disable_os_cache = 2
+			disable_os_cache = 2,
+
+			write_through = 3,
 		};
 
 		enum bandwidth_mixed_algo_t : std::uint8_t
