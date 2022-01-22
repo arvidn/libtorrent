@@ -1,3 +1,4 @@
+	* add write_through disk_io_write_mode, which flushes pieces to disk immediately
 	* improve copy file function to preserve sparse regions (when supported)
 	* add function to truncate over-sized files part of a torrent
 	* fix directory creation on windows shared folders

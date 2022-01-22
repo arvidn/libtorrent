@@ -106,15 +106,19 @@ namespace aux {
 		bool tick();
 
 		int readv(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags
+			, storage_error&);
 		int writev(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t flags, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags
+			, storage_error&);
 		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
-			, piece_index_t piece, int offset, aux::open_mode_t flags
-			, disk_job_flags_t mode, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags, storage_error&);
 		int hashv2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
-			, piece_index_t piece, int offset, aux::open_mode_t flags
-			, disk_job_flags_t mode, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags, storage_error&);
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
