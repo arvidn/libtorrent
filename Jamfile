@@ -41,8 +41,7 @@ else
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path)
-		: : $(boost-include-path) ;
+	lib boost_system : : <name>boost_system ;
 }
 
 # we need version numbers in the form X.Y.Z in order to trigger the built-in
