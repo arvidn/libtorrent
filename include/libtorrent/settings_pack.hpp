@@ -555,13 +555,17 @@ namespace aux {
 			deprecated_low_prio_disk,
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 			// ``volatile_read_cache``, if this is set to true, read cache blocks
 			// that are hit by peer read requests are removed from the disk cache
 			// to free up more space. This is useful if you don't expect the disk
 			// cache to create any cache hits from other peers than the one who
 			// triggered the cache line to be read into the cache in the first
 			// place.
-			volatile_read_cache,
+			volatile_read_cache TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_volatile_read_cache,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// ``guided_read_cache`` enables the disk cache to adjust the size of
