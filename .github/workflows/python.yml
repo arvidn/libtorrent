@@ -34,6 +34,7 @@ jobs:
       run: |
         brew install boost-build boost boost-python3 python@3.9 openssl
         echo "using darwin ;" >>~/user-config.jam
+        echo "PYTHONPATH=/Users/runner/Library/Python/3.9/lib/python3.9/site-packages/" >> $GITHUB_ENV
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
