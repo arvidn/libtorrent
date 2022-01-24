@@ -64,6 +64,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/storage_free_list.hpp"
 
+#ifdef TORRENT_WINDOWS
+#include "signal_error_code.hpp"
+#include <system_error>
+#endif
+
 #ifdef _WIN32
 #include "libtorrent/aux_/windows.hpp"
 #include "libtorrent/aux_/win_util.hpp"
