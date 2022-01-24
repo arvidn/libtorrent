@@ -1,3 +1,4 @@
+	* fixed similar-torrents feature for v2 torrents
 	* fix potential unbounded recursion in add_completed_job, in disk I/O
 	* deprecated (unused) volatile_read_cache setting
 	* fix part files being marked as hidden on windows

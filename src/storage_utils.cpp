@@ -599,6 +599,9 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		// always trigger a full recheck when we pull in files from other
 		// torrents, via hard links
+		// TODO: it would seem reasonable to, instead, set the have_pieces bits
+		// for the pieces representing these files, and resume with the normal
+		// logic
 		if (added_files) return false;
 #endif
 

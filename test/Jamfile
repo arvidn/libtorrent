@@ -199,6 +199,7 @@ run test_read_resume.cpp ;
 run test_hash_picker.cpp ;
 run test_torrent.cpp ;
 run test_remap_files.cpp ;
+run test_similar_torrent.cpp ;
 
 # turn these tests into simulations
 run test_resume.cpp ;
@@ -312,4 +313,5 @@ alias deterministic-tests :
 	test_utf8
 	test_xml
 	test_store_buffer
+	test_similar_torrent
 	;
