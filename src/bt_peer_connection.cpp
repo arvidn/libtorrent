@@ -811,7 +811,7 @@ namespace {
 		r.length = m_recv_buffer.packet_size() - 9;
 
 		// is any of the piece message header data invalid?
-		if (!verify_piece(r)) return {};
+		if (!validate_piece_request(r)) return {};
 
 		piece_block_progress p;
 

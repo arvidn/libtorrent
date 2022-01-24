@@ -757,7 +757,7 @@ namespace aux {
 
 		void attach_to_torrent(info_hash_t const& ih);
 
-		bool verify_piece(peer_request const& p) const;
+		bool validate_piece_request(peer_request const& p) const;
 
 		void update_desired_queue_size();
 
