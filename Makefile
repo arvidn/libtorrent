@@ -896,6 +896,7 @@ TEST_SOURCES = \
   test_session_params.cpp \
   test_settings_pack.cpp \
   test_sha1_hash.cpp \
+  test_similar_torrent.cpp \
   test_sliding_average.cpp \
   test_socket_io.cpp \
   test_span.cpp \
