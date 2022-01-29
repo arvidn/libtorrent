@@ -99,7 +99,7 @@ jobs:
         python test.py
 
     - name: build/install
-      if: runner.os != 'Windows'
+      if: runner.os == 'Linux'
       run: |
         cd bindings/python
         # Homebrew's python "framework" sets a prefix via distutils config.
@@ -108,7 +108,19 @@ jobs:
         python3 setup.py build_ext install --user --prefix=
 
     - name: tests
-      if: runner.os != 'Windows'
+      if: runner.os == 'Linux'
       run: |
         cd bindings/python
         python3 test.py
+
+    - name: build/install
+      if: runner.os == 'macOS'
+      run: |
+        cd bindings/python
+        b2 stage_module stage_dependencies libtorrent-link=static boost-link=static cxxstd=11
+
+    - name: tests
+      if: runner.os == 'macOS'
+      run: |
+        cd bindings/python
+        DYLD_LIBRARY_PATH=./dependencies python3 test.py
