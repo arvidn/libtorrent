@@ -133,7 +133,7 @@ namespace {
 
 #endif // DEBUG_DISK_THREAD
 
-	aux::open_mode_t file_flags_for_job(aux::disk_io_job* j)
+	aux::open_mode_t file_mode_for_job(aux::disk_io_job* j)
 	{
 		aux::open_mode_t ret = aux::open_mode::read_only;
 		if (!(j->flags & disk_interface::sequential_access)) ret |= aux::open_mode::random_access;
@@ -594,11 +594,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		time_point const start_time = clock_type::now();
 
-		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		aux::open_mode_t const file_mode = file_mode_for_job(j);
 		iovec_t b = {buffer.data() + j->d.io.buffer_offset, j->d.io.buffer_size};
 
 		int const ret = j->storage->readv(m_settings, b
-			, j->piece, j->d.io.offset, file_flags, j->error);
+			, j->piece, j->d.io.offset, file_mode, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -629,11 +629,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		time_point const start_time = clock_type::now();
 
-		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		aux::open_mode_t const file_mode= file_mode_for_job(j);
 		iovec_t b = {buffer.data(), j->d.io.buffer_size};
 
 		int const ret = j->storage->readv(m_settings, b
-			, j->piece, j->d.io.offset, file_flags, j->error);
+			, j->piece, j->d.io.offset, file_mode, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -657,13 +657,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
 		iovec_t const b = { buffer.data(), j->d.io.buffer_size};
-		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		aux::open_mode_t const file_mode= file_mode_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
 		int const ret = j->storage->writev(m_settings, b
-			, j->piece, j->d.io.offset, file_flags, j->error);
+			, j->piece, j->d.io.offset, file_mode, j->error);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 
@@ -1041,7 +1041,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(j->piece) : 0;
 		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
 		int const blocks_in_piece2 = v2 ? j->storage->orig_files().blocks_in_piece2(j->piece) : 0;
-		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		TORRENT_ASSERT(!v2 || int(j->d.h.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
@@ -1081,13 +1081,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				if (v1)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_flags, j->error);
+					ret = j->storage->hashv(m_settings, h, len, j->piece, offset, file_mode, j->error);
 					if (ret < 0) break;
 				}
 				if (v2_block)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset, file_flags, j->error);
+					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset, file_mode, j->error);
 					if (ret < 0) break;
 				}
 			}
@@ -1120,7 +1120,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_magic == 0x1337);
 
 		int const piece_size = j->storage->files().piece_size2(j->piece);
-		aux::open_mode_t const file_flags = file_flags_for_job(j);
+		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		hasher256 h;
 		int ret = 0;
@@ -1139,7 +1139,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			ret = int(len);
 		}))
 		{
-			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset, file_flags, j->error);
+			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset, file_mode, j->error);
 			if (ret < 0) return status_t::fatal_disk_error;
 		}
 

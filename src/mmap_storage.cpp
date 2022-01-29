@@ -527,13 +527,13 @@ namespace libtorrent {
 	int mmap_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, flags, &sett](file_index_t const file_index
+			, [this, mode, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -560,7 +560,7 @@ namespace libtorrent {
 				return ret;
 			}
 
-			auto handle = open_file(sett, file_index, flags, ec);
+			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
@@ -606,10 +606,10 @@ namespace libtorrent {
 	int mmap_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, flags, &sett](file_index_t const file_index
+			, [this, mode, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -645,7 +645,7 @@ namespace libtorrent {
 			m_stat_cache.set_dirty(file_index);
 
 			auto handle = open_file(sett, file_index
-				, aux::open_mode::write | flags, ec);
+				, aux::open_mode::write | mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
@@ -685,7 +685,7 @@ namespace libtorrent {
 	int mmap_storage::hashv(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -695,7 +695,7 @@ namespace libtorrent {
 		span<iovec_t> dummy2(&dummy1, 1);
 
 		return readwritev(files(), dummy2, piece, offset, error
-			, [this, flags, &ph, &sett](file_index_t const file_index
+			, [this, mode, &ph, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -732,7 +732,7 @@ namespace libtorrent {
 				return ret;
 			}
 
-			auto handle = open_file(sett, file_index, flags, ec);
+			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
@@ -755,7 +755,7 @@ namespace libtorrent {
 	int mmap_storage::hashv2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
@@ -782,7 +782,7 @@ namespace libtorrent {
 			return ret;
 		}
 
-		auto handle = open_file(sett, file_index, flags, error);
+		auto handle = open_file(sett, file_index, mode, error);
 		if (error) return -1;
 
 		span<byte const> file_range = handle->range();
