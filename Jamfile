@@ -45,8 +45,7 @@ else
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path)
-		: : $(boost-include-path) ;
+	lib boost_system : : <name>boost_system ;
 }
 
 use-project /try_signal : ./deps/try_signal ;
