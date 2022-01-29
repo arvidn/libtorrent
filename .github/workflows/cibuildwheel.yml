@@ -31,16 +31,11 @@ on:
       - tools/cibuildwheel/**
       - pyproject.toml
 
-jobs:
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
 
-  cancel:
-    name: 'Cancel Previous Runs'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-    - uses: styfle/cancel-workflow-action@0.9.1
-      with:
-        all_but_latest: true
+jobs:
 
   configure_matrix:
     runs-on: ubuntu-latest

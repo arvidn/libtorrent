@@ -5,6 +5,10 @@ on:
       branches: [ RC_2_0 master ]
    pull_request:
 
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
 env:
   NDK_VERSION: "r21d"
   OPENSSL_VERSION: "1.1.1i"
@@ -12,7 +16,7 @@ env:
 
 jobs:
 
-   android_arm_build:
+   android_arm32_build:
       name: Build Android Arm 32bits
       runs-on: ubuntu-20.04
 
