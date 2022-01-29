@@ -9,21 +9,16 @@ on:
       paths-ignore:
          - bindings/python/**
 
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
 env:
   NDK_VERSION: "r21d"
   OPENSSL_VERSION: "1.1.1i"
   OPENSSL_OPTS: "no-deprecated no-shared no-makedepend -fvisibility=hidden -O3"
 
 jobs:
-
-   cancel:
-      name: 'Cancel Previous Runs'
-      runs-on: ubuntu-latest
-      timeout-minutes: 3
-      steps:
-         - uses: styfle/cancel-workflow-action@0.9.1
-           with:
-              all_but_latest: true
 
    android_arm32_build:
       name: Build Android Arm 32bits
