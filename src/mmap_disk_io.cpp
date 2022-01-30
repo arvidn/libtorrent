@@ -694,10 +694,22 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			? status_t::fatal_disk_error : status_t::no_error;
 	}
 
+#if TORRENT_USE_ASSERTS
+	bool valid_flags(disk_job_flags_t const flags)
+	{
+		return (flags & ~(disk_interface::force_copy
+				| disk_interface::sequential_access
+				| disk_interface::volatile_read
+				| disk_interface::v1_hash))
+			== disk_job_flags_t{};
+	}
+#endif
+
 	void mmap_disk_io::async_read(storage_index_t storage, peer_request const& r
 		, std::function<void(disk_buffer_holder, storage_error const&)> handler
 		, disk_job_flags_t const flags)
 	{
+		TORRENT_ASSERT(valid_flags(flags));
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_ASSERT(r.length > 0);
 		TORRENT_ASSERT(r.start >= 0);
@@ -883,6 +895,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, span<sha256_hash> const v2, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
+		TORRENT_ASSERT(valid_flags(flags));
 		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::hash);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
@@ -896,6 +909,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, int const offset, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
 	{
+		TORRENT_ASSERT(valid_flags(flags));
 		aux::disk_io_job* j = m_job_pool.allocate_job(aux::job_action_t::hash2);
 		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
