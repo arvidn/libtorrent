@@ -772,11 +772,15 @@ namespace aux {
 			// when true, web seeds sending bad data will be banned
 			ban_web_seeds,
 
+#if TORRENT_ABI_VERSION <= 2
 			// when set to false, the ``write_cache_line_size`` will apply across
 			// piece boundaries. this is a bad idea unless the piece picker also
 			// is configured to have an affinity to pick pieces belonging to the
 			// same write cache line as is configured in the disk cache.
-			allow_partial_disk_writes,
+			allow_partial_disk_writes TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_allow_partial_disk_writes,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// If true, disables any communication that's not going over a proxy.

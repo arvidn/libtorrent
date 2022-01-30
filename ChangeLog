@@ -1,3 +1,4 @@
+	* deprecate (unused) allow_partial_disk_writes settings
 	* fix disk-full error reporting in mmap_disk_io
 	* fixed similar-torrents feature for v2 torrents
 	* fix potential unbounded recursion in add_completed_job, in disk I/O

@@ -200,7 +200,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET(lock_files, false, nullptr),
 		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
 		SET(ban_web_seeds, true, nullptr),
-		SET(allow_partial_disk_writes, true, nullptr),
+		DEPRECATED2_SET(allow_partial_disk_writes, true, nullptr),
 		DEPRECATED_SET(force_proxy, false, nullptr),
 		SET(support_share_mode, true, nullptr),
 		DEPRECATED2_SET(support_merkle_torrents, false, nullptr),
