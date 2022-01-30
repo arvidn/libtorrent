@@ -263,7 +263,7 @@ private:
 		, std::unique_lock<std::mutex>& l);
 
 	void add_completed_jobs(jobqueue_t& jobs);
-	void add_completed_jobs_impl(jobqueue_t& jobs);
+	void add_completed_jobs_impl(jobqueue_t& jobs, jobqueue_t& new_jobs);
 
 	void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
@@ -1658,17 +1658,20 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::add_completed_jobs(jobqueue_t& jobs)
 	{
+		jobqueue_t completed = std::move(jobs);
+		jobqueue_t new_jobs;
 		do
 		{
 			// when a job completes, it's possible for it to cause
 			// a fence to be lowered, issuing the jobs queued up
 			// behind the fence
-			add_completed_jobs_impl(jobs);
-			TORRENT_ASSERT(jobs.empty());
-		} while (!jobs.empty());
+			add_completed_jobs_impl(completed, new_jobs);
+			TORRENT_ASSERT(completed.empty());
+			completed.swap(new_jobs);
+		} while (!completed.empty());
 	}
 
-	void mmap_disk_io::add_completed_jobs_impl(jobqueue_t& jobs)
+	void mmap_disk_io::add_completed_jobs_impl(jobqueue_t& jobs, jobqueue_t& completed)
 	{
 		jobqueue_t new_jobs;
 		int ret = 0;
@@ -1706,8 +1709,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (m_abort.load())
 		{
-			jobqueue_t completed;
-
 			while (!new_jobs.empty())
 			{
 				aux::disk_io_job* j = new_jobs.pop_front();
@@ -1716,8 +1717,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				j->error = storage_error(boost::asio::error::operation_aborted);
 				completed.push_back(j);
 			}
-			if (!completed.empty())
-				add_completed_jobs(completed);
 		}
 
 		if (!new_jobs.empty())
@@ -1739,7 +1738,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!m_job_completions_in_flight)
 		{
-			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
 			post(m_ios, [this] { this->call_job_handlers(); });
