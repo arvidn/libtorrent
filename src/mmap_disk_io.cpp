@@ -144,6 +144,17 @@ namespace {
 		if (!(j->flags & disk_interface::sequential_access)) ret |= aux::open_mode::random_access;
 		return ret;
 	}
+
+#if TORRENT_USE_ASSERTS
+	bool valid_flags(disk_job_flags_t const flags)
+	{
+		return (flags & ~(disk_interface::force_copy
+				| disk_interface::sequential_access
+				| disk_interface::volatile_read
+				| disk_interface::v1_hash))
+			== disk_job_flags_t{};
+	}
+#endif
 } // anonymous namespace
 
 using jobqueue_t = tailqueue<aux::disk_io_job>;
@@ -693,17 +704,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return ret != j->d.io.buffer_size
 			? status_t::fatal_disk_error : status_t::no_error;
 	}
-
-#if TORRENT_USE_ASSERTS
-	bool valid_flags(disk_job_flags_t const flags)
-	{
-		return (flags & ~(disk_interface::force_copy
-				| disk_interface::sequential_access
-				| disk_interface::volatile_read
-				| disk_interface::v1_hash))
-			== disk_job_flags_t{};
-	}
-#endif
 
 	void mmap_disk_io::async_read(storage_index_t storage, peer_request const& r
 		, std::function<void(disk_buffer_holder, storage_error const&)> handler
