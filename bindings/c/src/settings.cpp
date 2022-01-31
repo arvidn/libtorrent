@@ -54,7 +54,6 @@ int settings_key(int const tag)
 		case SET_ALWAYS_SEND_USER_AGENT: return sp::always_send_user_agent;
 		case SET_APPLY_IP_FILTER_TO_TRACKERS: return sp::apply_ip_filter_to_trackers;
 		case SET_BAN_WEB_SEEDS: return sp::ban_web_seeds;
-		case SET_ALLOW_PARTIAL_DISK_WRITES: return sp::allow_partial_disk_writes;
 		case SET_SUPPORT_SHARE_MODE: return sp::support_share_mode;
 		case SET_REPORT_REDUNDANT_BYTES: return sp::report_redundant_bytes;
 		case SET_LISTEN_SYSTEM_PORT_FALLBACK: return sp::listen_system_port_fallback;
@@ -142,8 +141,6 @@ int settings_key(int const tag)
 		case SET_RECV_SOCKET_BUFFER_SIZE: return sp::recv_socket_buffer_size;
 		case SET_SEND_SOCKET_BUFFER_SIZE: return sp::send_socket_buffer_size;
 		case SET_MAX_PEER_RECV_BUFFER_SIZE: return sp::max_peer_recv_buffer_size;
-		case SET_READ_CACHE_LINE_SIZE: return sp::read_cache_line_size;
-		case SET_WRITE_CACHE_LINE_SIZE: return sp::write_cache_line_size;
 		case SET_OPTIMISTIC_DISK_RETRY: return sp::optimistic_disk_retry;
 		case SET_MAX_SUGGEST_PIECES: return sp::max_suggest_pieces;
 		case SET_LOCAL_SERVICE_ANNOUNCE_INTERVAL: return sp::local_service_announce_interval;

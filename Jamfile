@@ -40,11 +40,12 @@ else
 	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path)
+	lib boost_system : : <name>boost_system ;
+
+	lib system_boost_json : : <target-os>darwin <name>boost_json $(boost-lib-search-path)
 		: : $(boost-include-path) ;
 
-	lib system_boost_json : : <name>boost_json $(boost-lib-search-path)
-		: : $(boost-include-path) ;
+	lib system_boost_json : : <name>boost_json ;
 }
 
 alias shipped_boost_json : : <define>BOOST_JSON_HEADER_ONLY : : <include>./deps/json/include <define>BOOST_JSON_HEADER_ONLY ;

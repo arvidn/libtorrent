@@ -92,6 +92,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 
+#ifndef TORRENT_WINRT
 	std::once_flag g_once_flag;
 
 	void acquire_manage_volume_privs()
@@ -139,6 +140,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
 	}
+#endif // TORRENT_WINRT
 
 #endif // TORRENT_WINDOWS
 
@@ -576,6 +578,10 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 		// ignore errors here, since this is best-effort
 			| MADV_DONTDUMP
 #endif
+#ifdef MADV_NOCORE
+		// This is the BSD counterpart to exclude a range from core dumps
+			| MADV_NOCORE
+#endif
 		;
 		if (advise != 0)
 			madvise(m_mapping, static_cast<std::size_t>(m_size), advise);
@@ -658,6 +664,26 @@ file_mapping::file_mapping(file_mapping&& rhs)
 	{
 		return file_view(shared_from_this());
 	}
+
+
+void file_mapping::dont_need(span<byte const> range)
+{
+	TORRENT_UNUSED(range);
+#if TORRENT_USE_MADVISE
+	int const advise = 0
+#if defined TORRENT_LINUX && defined MADV_COLD
+		| MADV_COLD
+#elif !defined TORRENT_LINUX && defined MADV_DONTNEED
+		// note that MADV_DONTNEED is broken on Linux. It can destroy data. We
+		// cannot use it
+		| MADV_DONTNEED
+#endif
+	;
+
+	if (advise)
+		madvise(const_cast<byte*>(range.data()), static_cast<std::size_t>(range.size()), advise);
+#endif
+}
 
 } // aux
 } // libtorrent

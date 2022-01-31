@@ -50,6 +50,13 @@ namespace libtorrent::aux {
 	{
 		tailqueue(): m_first(nullptr), m_last(nullptr), m_size(0) {}
 
+		tailqueue(tailqueue&& t): m_first(t.m_first), m_last(t.m_last), m_size(t.m_size)
+		{
+			t.m_first = nullptr;
+			t.m_last = nullptr;
+			t.m_size = 0;
+		}
+
 		tailqueue_iterator<const T> iterate() const
 		{ return tailqueue_iterator<const T>(m_first); }
 

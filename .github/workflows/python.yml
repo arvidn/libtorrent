@@ -129,7 +129,9 @@ jobs:
         set PYTHON_INTERPRETER=python
         tox -e py
 
-    - name: build/test with tox
-      if: runner.os != 'Windows'
+    # TODO: we currently don't run the tests on MacOS, because something fails
+    # to install correctly. It needs to be resolved
+    - name: tests
+      if: runner.os == 'Linux'
       run: |
         tox -e py

@@ -79,9 +79,15 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED_SET_STR(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
+#elif TORRENT_ABI_VERSION == 2
+#define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
+#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
+#define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
+#define DEPRECATED2_SET(name, default_value, fun) { "", nullptr, 0 }
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -147,7 +153,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(disable_hash_checks, false, nullptr),
 		SET(allow_i2p_mixed, false, nullptr),
 		DEPRECATED_SET(low_prio_disk, true, nullptr),
-		DEPRECATED_SET(volatile_read_cache, false, nullptr),
+		DEPRECATED2_SET(volatile_read_cache, false, nullptr),
 		DEPRECATED_SET(guided_read_cache, false, nullptr),
 		SET(no_atime_storage, true, nullptr),
 		SET(incoming_starts_queued_torrents, false, nullptr),
@@ -158,7 +164,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(enable_incoming_utp, true, nullptr),
 		SET(enable_outgoing_tcp, true, nullptr),
 		SET(enable_incoming_tcp, true, nullptr),
-		SET(ignore_resume_timestamps, false, nullptr),
+		DEPRECATED_SET(ignore_resume_timestamps, false, nullptr),
 		SET(no_recheck_incomplete_resume, false, nullptr),
 		SET(anonymous_mode, false, nullptr),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
@@ -173,10 +179,10 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET(lock_files, false, nullptr),
 		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
 		SET(ban_web_seeds, true, nullptr),
-		SET(allow_partial_disk_writes, true, nullptr),
+		DEPRECATED2_SET(allow_partial_disk_writes, true, nullptr),
 		DEPRECATED_SET(force_proxy, false, nullptr),
 		SET(support_share_mode, true, nullptr),
-		DEPRECATED_SET(support_merkle_torrents, false, nullptr),
+		DEPRECATED2_SET(support_merkle_torrents, false, nullptr),
 		SET(report_redundant_bytes, true, nullptr),
 		SET(listen_system_port_fallback, true, nullptr),
 		DEPRECATED_SET(use_disk_cache_pool, false, nullptr),
@@ -275,8 +281,8 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(max_peer_recv_buffer_size, 2 * 1024 * 1024, nullptr),
 		DEPRECATED_SET(file_checks_delay_per_block, 0, nullptr),
-		SET(read_cache_line_size, 32, nullptr),
-		SET(write_cache_line_size, 16, nullptr),
+		DEPRECATED2_SET(read_cache_line_size, 32, nullptr),
+		DEPRECATED2_SET(write_cache_line_size, 16, nullptr),
 		SET(optimistic_disk_retry, 10 * 60, nullptr),
 		SET(max_suggest_pieces, 16, nullptr),
 		SET(local_service_announce_interval, 5 * 60, nullptr),
@@ -284,9 +290,9 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(udp_tracker_token_expiry, 60, nullptr),
 		DEPRECATED_SET(default_cache_min_age, 1, nullptr),
 		SET(num_optimistic_unchoke_slots, 0, nullptr),
-		SET(default_est_reciprocation_rate, 16000, nullptr),
-		SET(increase_est_reciprocation_rate, 20, nullptr),
-		SET(decrease_est_reciprocation_rate, 3, nullptr),
+		DEPRECATED_SET(default_est_reciprocation_rate, 16000, nullptr),
+		DEPRECATED_SET(increase_est_reciprocation_rate, 20, nullptr),
+		DEPRECATED_SET(decrease_est_reciprocation_rate, 3, nullptr),
 		SET(max_pex_peers, 50, nullptr),
 		SET(tick_interval, 500, nullptr),
 		SET(share_mode_target, 3, nullptr),
@@ -306,7 +312,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(utp_fin_resends, 2, nullptr),
 		SET(utp_num_resends, 3, nullptr),
 		SET(utp_connect_timeout, 3000, nullptr),
-		SET(utp_delayed_ack, 0, nullptr),
+		DEPRECATED_SET(utp_delayed_ack, 0, nullptr),
 		SET(utp_loss_multiplier, 50, nullptr),
 		SET(mixed_mode_algorithm, settings_pack::peer_proportional, nullptr),
 		SET(listen_queue_size, 5, nullptr),

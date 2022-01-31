@@ -18,8 +18,9 @@ see LICENSE file.
 #include <string>
 
 #include "libtorrent/aux_/export.hpp"
-#include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/fwd.hpp"
 
 namespace libtorrent::aux {
@@ -46,6 +47,12 @@ namespace libtorrent::aux {
 		{ return m_links; }
 
 	private:
+
+		void match_v1(std::shared_ptr<const torrent_info> const& ti
+			, std::string const& save_path);
+		void match_v2(std::shared_ptr<const torrent_info> const& ti
+			, std::string const& save_path);
+
 		// this is the torrent we're trying to find files for.
 		std::shared_ptr<torrent_info> m_torrent_file;
 
@@ -56,6 +63,9 @@ namespace libtorrent::aux {
 
 		// maps file size to file index, in m_torrent_file
 		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
+
+		// maps file root hash to file index, in m_torrent_file
+		std::unordered_multimap<sha256_hash, file_index_t> m_file_roots;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

@@ -537,7 +537,7 @@ namespace aux {
 			deprecated_low_prio_disk,
 #endif
 
-#if TORRENT_ABI_VERSION <= 3
+#if TORRENT_ABI_VERSION <= 2
 			// ``volatile_read_cache``, if this is set to true, read cache blocks
 			// that are hit by peer read requests are removed from the disk cache
 			// to free up more space. This is useful if you don't expect the disk
@@ -754,11 +754,15 @@ namespace aux {
 			// when true, web seeds sending bad data will be banned
 			ban_web_seeds,
 
+#if TORRENT_ABI_VERSION <= 2
 			// when set to false, the ``write_cache_line_size`` will apply across
 			// piece boundaries. this is a bad idea unless the piece picker also
 			// is configured to have an affinity to pick pieces belonging to the
 			// same write cache line as is configured in the disk cache.
-			allow_partial_disk_writes,
+			allow_partial_disk_writes TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_allow_partial_disk_writes,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// If true, disables any communication that's not going over a proxy.
@@ -1422,6 +1426,7 @@ namespace aux {
 			deprecated_file_checks_delay_per_block,
 #endif
 
+#if TORRENT_ABI_VERSION <= 2
 			// ``read_cache_line_size`` is the number of blocks to read into the
 			// read cache when a read cache miss occurs. Setting this to 0 is
 			// essentially the same thing as disabling read cache. The number of
@@ -1433,6 +1438,10 @@ namespace aux {
 			// effectively disables the write cache.
 			read_cache_line_size,
 			write_cache_line_size,
+#else
+			deprecated_read_cache_line_size,
+			deprecated_write_cache_line_size,
+#endif
 
 			// ``optimistic_disk_retry`` is the number of seconds from a disk
 			// write errors occur on a torrent until libtorrent will take it out

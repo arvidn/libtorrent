@@ -49,6 +49,44 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
+namespace {
+
+error_code translate_error(std::system_error const& err, bool const write)
+{
+	// We don't really know why we failed to read or write. SIGBUS essentially
+	// means I/O failure. We assume that if we were writing, the failure was
+	// because of disk full
+	if (write)
+	{
+#ifdef TORRENT_WINDOWS
+		if (err.code() == std::error_code(sig::seh_errors::in_page_error))
+			return error_code(boost::system::errc::no_space_on_device, generic_category());
+#else
+		if (err.code() == std::error_code(sig::errors::bus))
+			return error_code(boost::system::errc::no_space_on_device, generic_category());
+#endif
+	}
+
+#if BOOST_VERSION >= 107700
+
+#ifdef TORRENT_WINDOWS
+	if (err.code() == std::error_code(sig::seh_errors::in_page_error))
+		return error_code(boost::system::errc::io_error, generic_category());
+#else
+	if (err.code() == std::error_code(sig::errors::bus))
+		return error_code(boost::system::errc::io_error, generic_category());
+#endif
+
+	return err.code();
+#else
+
+	return error_code(boost::system::errc::io_error, generic_category());
+
+#endif
+}
+} // namespace
+
+
 	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
 		: m_files(params.files)
@@ -116,21 +154,31 @@ namespace libtorrent::aux {
 
 				if (m_part_file && use_partfile(i))
 				{
-					m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf)
+					try
 					{
-						auto file_range = f->range().subspan(std::ptrdiff_t(file_offset));
-						TORRENT_ASSERT(file_range.size() >= buf.size());
-						sig::try_signal([&]{
-							std::memcpy(const_cast<char*>(file_range.data()), buf.data()
-								, static_cast<std::size_t>(buf.size()));
-							});
-					}, fs.file_offset(i), fs.file_size(i), ec.ec);
+						m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf)
+							{
+							auto file_range = f->range().subspan(std::ptrdiff_t(file_offset));
+							TORRENT_ASSERT(file_range.size() >= buf.size());
+							sig::try_signal([&]{
+								std::memcpy(const_cast<char*>(file_range.data()), buf.data()
+									, static_cast<std::size_t>(buf.size()));
+								});
+							}, fs.file_offset(i), fs.file_size(i), ec.ec);
 
-					if (ec)
+						if (ec)
+						{
+							ec.file(i);
+							ec.operation = operation_t::partfile_write;
+							prio = m_file_priority;
+							return;
+						}
+					}
+					catch (std::system_error const& err)
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_write;
-						prio = m_file_priority;
+						ec.ec = translate_error(err, true);
 						return;
 					}
 				}
@@ -504,13 +552,13 @@ namespace libtorrent::aux {
 	int mmap_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, flags, &sett](file_index_t const file_index
+			, [this, mode, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -537,33 +585,43 @@ namespace libtorrent::aux {
 				return ret;
 			}
 
-			auto handle = open_file(sett, file_index, flags, ec);
+			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
 			error_code e;
 			span<byte const> file_range = handle->range();
-			if (file_range.size() > file_offset)
-			{
-				file_range = file_range.subspan(static_cast<std::ptrdiff_t>(file_offset));
-				for (auto buf : vec)
-				{
-					if (file_range.empty()) break;
-					if (file_range.size() < buf.size()) buf = buf.first(file_range.size());
-
-					sig::try_signal([&]{
-						std::memcpy(buf.data(), const_cast<char*>(file_range.data())
-							, static_cast<std::size_t>(buf.size()));
-					});
-
-					file_range = file_range.subspan(buf.size());
-					ret += static_cast<int>(buf.size());
-				}
-			}
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
 			ec.operation = operation_t::file_read;
+
+			try
+			{
+				if (file_range.size() > file_offset)
+				{
+					file_range = file_range.subspan(static_cast<std::ptrdiff_t>(file_offset));
+					for (auto buf : vec)
+					{
+						if (file_range.empty()) break;
+						if (file_range.size() < buf.size()) buf = buf.first(file_range.size());
+
+						sig::try_signal([&]{
+							std::memcpy(buf.data(), const_cast<char*>(file_range.data())
+								, static_cast<std::size_t>(buf.size()));
+							});
+
+						file_range = file_range.subspan(buf.size());
+						ret += static_cast<int>(buf.size());
+					}
+				}
+			}
+			catch (std::system_error const& err)
+			{
+				ec.file(file_index);
+				ec.ec = translate_error(err, false);
+				return -1;
+			}
 
 			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret > 0);
@@ -583,10 +641,10 @@ namespace libtorrent::aux {
 	int mmap_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode, storage_error& error)
 	{
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, flags, &sett](file_index_t const file_index
+			, [this, mode, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -622,31 +680,41 @@ namespace libtorrent::aux {
 			m_stat_cache.set_dirty(file_index);
 
 			auto handle = open_file(sett, file_index
-				, aux::open_mode::write | flags, ec);
+				, aux::open_mode::write | mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
 			error_code e;
 			span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
-			for (auto buf : vec)
+
+			// set this unconditionally in case the upper layer would like to treat
+			// short reads as errors
+			ec.operation = operation_t::file_write;
+
+			try
 			{
-				TORRENT_ASSERT(file_range.size() >= buf.size());
+				for (auto buf : vec)
+				{
+					TORRENT_ASSERT(file_range.size() >= buf.size());
 
-				sig::try_signal([&]{
-					std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
-				});
+					sig::try_signal([&]{
+						std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
+						});
 
-				file_range = file_range.subspan(buf.size());
-				ret += static_cast<int>(buf.size());
+					file_range = file_range.subspan(buf.size());
+					ret += static_cast<int>(buf.size());
+				}
+			}
+			catch (std::system_error const& err)
+			{
+				ec.file(file_index);
+				ec.ec = translate_error(err, true);
+				return -1;
 			}
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			m_pool.record_file_write(storage_index(), file_index, ret);
 #endif
-
-			// set this unconditionally in case the upper layer would like to treat
-			// short reads as errors
-			ec.operation = operation_t::file_write;
 
 			if (e)
 			{
@@ -662,7 +730,9 @@ namespace libtorrent::aux {
 	int mmap_storage::hashv(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -672,7 +742,7 @@ namespace libtorrent::aux {
 		span<iovec_t> dummy2(&dummy1, 1);
 
 		return readwritev(files(), dummy2, piece, offset, error
-			, [this, flags, &ph, &sett](file_index_t const file_index
+			, [this, mode, flags, &ph, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -709,7 +779,7 @@ namespace libtorrent::aux {
 				return ret;
 			}
 
-			auto handle = open_file(sett, file_index, flags, ec);
+			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
 
 			int ret = 0;
@@ -723,6 +793,8 @@ namespace libtorrent::aux {
 					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
 				});
 				ret += static_cast<int>(file_range.size());
+				if (flags & disk_interface::volatile_read)
+					handle->dont_need(file_range);
 			}
 
 			return ret;
@@ -732,7 +804,9 @@ namespace libtorrent::aux {
 	int mmap_storage::hashv2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const flags, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
@@ -759,7 +833,7 @@ namespace libtorrent::aux {
 			return ret;
 		}
 
-		auto handle = open_file(sett, file_index, flags, error);
+		auto handle = open_file(sett, file_index, mode, error);
 		if (error) return -1;
 
 		span<byte const> file_range = handle->range();
@@ -768,6 +842,8 @@ namespace libtorrent::aux {
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
 		ph.update(file_range);
+		if (flags & disk_interface::volatile_read)
+			handle->dont_need(file_range);
 
 		return static_cast<int>(file_range.size());
 	}
