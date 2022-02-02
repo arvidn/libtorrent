@@ -1,3 +1,4 @@
+	* add flag to make add_files() not record file attributes
 	* deprecate (unused) allow_partial_disk_writes settings
 	* fix disk-full error reporting in mmap_disk_io
 	* fixed similar-torrents feature for v2 torrents

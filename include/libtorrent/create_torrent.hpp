@@ -177,6 +177,14 @@ namespace libtorrent {
 		// them with piece boundaries.
 		static constexpr create_flags_t canonical_files = 7_bit;
 
+		// passing this flag to add_files() will ignore file attributes (such as
+		// executable or hidden) when adding the files to the file storage.
+		// Since not all filesystems and operating systems support all file
+		// attributes the resulting torrent may differ depending on where it's
+		// created. If it's important for torrents to be created consistently
+		// across systems, this flag should be set.
+		static constexpr create_flags_t no_attributes = 8_bit;
+
 		// The ``piece_size`` is the size of each piece in bytes. It must be a
 		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
 		// specified, a piece_size will be set automatically.
