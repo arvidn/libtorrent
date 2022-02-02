@@ -246,6 +246,7 @@ void bind_create_torrent()
         s.attr("canonical_files") = create_torrent::canonical_files;
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
+        s.attr("no_attributes") = create_torrent::no_attributes;
     }
 
     {
