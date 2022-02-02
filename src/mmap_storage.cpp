@@ -903,8 +903,17 @@ error_code translate_error(std::system_error const& err, bool const write)
 #endif
 
 		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec);
-		if ((mode & aux::open_mode::write)
-			&& ec.ec == boost::system::errc::no_such_file_or_directory)
+		
+		bool should_retry = (mode & aux::open_mode::write)
+			&& ec.ec == boost::system::errc::no_such_file_or_directory;
+#ifdef _WIN32
+		// this is a workaround for improper handling of files on windows shared drives.
+		// if the directory on a shared drive does not exist, 
+		// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+		should_retry |= (ec.ec.value() == ERROR_IO_DEVICE);
+#endif
+
+		if (should_retry)
 		{
 			// this means the directory the file is in doesn't exist.
 			// so create it
