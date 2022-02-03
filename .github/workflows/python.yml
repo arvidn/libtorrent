@@ -106,6 +106,8 @@ jobs:
     - name: build/install (MacOS)
       if: runner.os == 'macOS'
       run: |
+        # Add Homebrew's python site-packages to PYTHONPATH and
+        # install to it. no need for --user and --prefix
         export PYTHONPATH=$(brew --prefix)/lib/python3.9/site-packages
         cd bindings/python
         python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.9/site-packages
