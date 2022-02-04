@@ -1547,10 +1547,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			struct MPI {
 				ULONG MemoryPriority;
 			};
-#ifndef MEMORY_PRIORITY_BELOW_NORMAL
-			ULONG const MEMORY_PRIORITY_BELOW_NORMAL = 4;
+#ifndef MEMORY_PRIORITY_LOW
+			ULONG const MEMORY_PRIORITY_LOW = 2;
 #endif
-			MPI info{MEMORY_PRIORITY_BELOW_NORMAL};
+			MPI info{MEMORY_PRIORITY_LOW};
 			SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority
 				, &info, sizeof(info));
 		}
