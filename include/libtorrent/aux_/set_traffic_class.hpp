@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	template <typename Socket>
 	void set_traffic_class(Socket& s, int v, error_code& ec)
@@ -55,6 +54,6 @@ namespace aux {
 			s.set_option(type_of_service(v & 0xfc), ec);
 	}
 
-}}
+}
 
 #endif
