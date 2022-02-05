@@ -21,8 +21,7 @@ see LICENSE file.
 #include <mutex>
 #include <functional>
 
-namespace libtorrent {
-namespace aux {
+namespace libtorrent::aux {
 
 	struct TORRENT_EXTRA_EXPORT session_settings_single_thread
 	{
@@ -157,7 +156,6 @@ namespace aux {
 		mutable std::mutex m_mutex;
 	};
 
-}
 }
 
 namespace libtorrent {

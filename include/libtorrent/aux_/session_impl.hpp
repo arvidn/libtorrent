@@ -173,7 +173,7 @@ namespace aux {
 
 		// returns true if this listen socket/interface can reach and be reached
 		// by the given address. This is useful to know whether it should be
-		// annoucned to a tracker (given the tracker's IP) or whether it should
+		// announced to a tracker (given the tracker's IP) or whether it should
 		// have a SOCKS5 UDP tunnel set up (given the IP of the socks proxy)
 		bool can_route(address const&) const;
 
@@ -384,7 +384,6 @@ namespace aux {
 
 			void on_ip_change(error_code const& ec);
 			void reopen_listen_sockets(bool map_ports = true);
-			void reopen_outgoing_sockets();
 			void reopen_network_sockets(reopen_network_flags_t options);
 
 			torrent_peer_allocator_interface& get_peer_allocator() override
@@ -697,7 +696,7 @@ namespace aux {
 			proxy_settings proxy() const override;
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return (m_dht.get() != nullptr); }
+			bool is_dht_running() const { return (m_dht != nullptr); }
 			int external_udp_port(address const& local_address) const override;
 #endif
 
