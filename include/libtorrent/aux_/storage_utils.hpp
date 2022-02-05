@@ -107,6 +107,20 @@ namespace aux {
 		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<iovec_t const> bufs);
+
+	TORRENT_EXTRA_EXPORT void initialize_storage(
+		file_storage const& fs
+		, std::string const& save_path
+		, stat_cache& sc
+		, aux::vector<download_priority_t, file_index_t> const& file_priority
+		, std::function<void(file_index_t, storage_error&)> create_file
+		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
+		, storage_error& ec);
+
+	TORRENT_EXTRA_EXPORT void create_symlink(
+		std::string const& target
+		, std::string const& link
+		, storage_error& ec);
 }}
 
 #endif
