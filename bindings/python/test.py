@@ -829,6 +829,7 @@ class test_session(unittest.TestCase):
         min_mem = lt.min_memory_usage()
         print(min_mem)
 
+        self.assertTrue('allow_idna' not in min_mem)
         self.assertTrue('connection_speed' in min_mem)
         self.assertTrue('file_pool_size' in min_mem)
 
