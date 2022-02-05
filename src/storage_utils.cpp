@@ -43,6 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_view.hpp"
+
+#if TORRENT_HAS_SYMLINK
+#include <unistd.h> // for symlink()
+#endif
 
 #include <set>
 
@@ -677,6 +682,118 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			std::fill(buf.begin(), buf.end(), '\0');
 		}
 		return ret;
+	}
+
+	void initialize_storage(file_storage const& fs
+		, std::string const& save_path
+		, stat_cache& sc
+		, aux::vector<download_priority_t, file_index_t> const& file_priority
+		, std::function<void(file_index_t, storage_error&)> create_file
+		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
+		, storage_error& ec)
+	{
+		// create zero-sized files
+		for (auto const file_index : fs.file_range())
+		{
+			// ignore files that have priority 0
+			if (file_priority.end_index() > file_index
+				&& file_priority[file_index] == dont_download)
+			{
+				continue;
+			}
+
+			// ignore pad files
+			if (fs.pad_file_at(file_index)) continue;
+
+			// this is just to see if the file exists
+			error_code err;
+			sc.get_filesize(file_index, fs, save_path, err);
+
+			if (err && err != boost::system::errc::no_such_file_or_directory)
+			{
+				ec.file(file_index);
+				ec.operation = operation_t::file_stat;
+				ec.ec = err;
+				break;
+			}
+
+			// if the file is empty and doesn't already exist, create it
+			// deliberately don't truncate files that already exist
+			// if a file is supposed to have size 0, but already exists, we will
+			// never truncate it to 0.
+			if (fs.file_size(file_index) == 0)
+			{
+				// create symlinks
+				if (fs.file_flags(file_index) & file_storage::flag_symlink)
+				{
+#if TORRENT_HAS_SYMLINK
+					std::string const path = fs.file_path(file_index, save_path);
+					// we make the symlink target relative to the link itself
+					std::string const target = lexically_relative(
+						parent_path(fs.file_path(file_index)), fs.symlink(file_index));
+					create_link(target, path, ec);
+					if (ec.ec)
+					{
+						ec.file(file_index);
+						return;
+					}
+#else
+					TORRENT_UNUSED(create_link);
+#endif
+				}
+				else if (err == boost::system::errc::no_such_file_or_directory)
+				{
+					// just creating the file is enough to make it zero-sized. If
+					// there's a race here and some other process truncates the file,
+					// it's not a problem, we won't access empty files ever again
+					ec.ec.clear();
+					create_file(file_index, ec);
+					if (ec) return;
+				}
+			}
+			ec.ec.clear();
+		}
+	}
+
+	void create_symlink(std::string const& target, std::string const& link, storage_error& ec)
+	{
+#if TORRENT_HAS_SYMLINK
+		create_directories(parent_path(link), ec.ec);
+		if (ec)
+		{
+			ec.ec = error_code(errno, generic_category());
+			ec.operation = operation_t::mkdir;
+			return;
+		}
+		if (::symlink(target.c_str(), link.c_str()) != 0)
+		{
+			int const error = errno;
+			if (error == EEXIST)
+			{
+				// if the file exist, it may be a symlink already. if so,
+				// just verify the link target is what it's supposed to be
+				// note that readlink() does not null terminate the buffer
+				char buffer[512];
+				auto const ret = ::readlink(link.c_str(), buffer, sizeof(buffer));
+				if (ret <= 0 || target != string_view(buffer, std::size_t(ret)))
+				{
+					ec.ec = error_code(error, generic_category());
+					ec.operation = operation_t::symlink;
+					return;
+				}
+			}
+			else
+			{
+				ec.ec = error_code(error, generic_category());
+				ec.operation = operation_t::symlink;
+				return;
+			}
+		}
+#else
+		TORRENT_UNUSED(target);
+		TORRENT_UNUSED(link);
+		TORRENT_UNUSED(ec);
+#endif
 	}
 
 }}
