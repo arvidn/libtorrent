@@ -548,8 +548,15 @@ namespace aux {
 			// if we fail to open a file for writing, and the error is ENOENT,
 			// it is likely because the directory we're creating the file in
 			// does not exist. Create the directory and try again.
-			if ((mode & open_mode::write)
-				&& ec.ec == boost::system::errc::no_such_file_or_directory)
+			if ((mode & aux::open_mode::write)
+				&& (ec.ec == boost::system::errc::no_such_file_or_directory
+#ifdef TORRENT_WINDOWS
+					// this is a workaround for improper handling of files on windows shared drives.
+					// if the directory on a shared drive does not exist,
+					// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+					|| ec.ec == error_code(ERROR_IO_DEVICE, system_category())
+#endif
+			))
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it

@@ -904,7 +904,14 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec);
 		if ((mode & aux::open_mode::write)
-			&& ec.ec == boost::system::errc::no_such_file_or_directory)
+			&& (ec.ec == boost::system::errc::no_such_file_or_directory
+#ifdef TORRENT_WINDOWS
+				// this is a workaround for improper handling of files on windows shared drives.
+				// if the directory on a shared drive does not exist,
+				// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+				|| ec.ec == error_code(ERROR_IO_DEVICE, system_category())
+#endif
+		))
 		{
 			// this means the directory the file is in doesn't exist.
 			// so create it
