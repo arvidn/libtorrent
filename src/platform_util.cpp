@@ -38,6 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <limits>
 
+#if TORRENT_HAS_PTHREAD_SET_NAME
+#include <pthread.h>
+#ifdef TORRENT_BSD
+#include <pthread_np.h>
+#endif
+#endif
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if TORRENT_USE_RLIMIT
@@ -62,6 +69,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+
 namespace libtorrent {
 
 	int max_open_files()
@@ -84,6 +92,18 @@ namespace libtorrent {
 		// this seems like a reasonable limit for windows.
 		// http://blogs.msdn.com/b/oldnewthing/archive/2007/07/18/3926581.aspx
 		return 10000;
+#endif
+	}
+
+	void set_thread_name(char const* name)
+	{
+		TORRENT_UNUSED(name);
+#if TORRENT_HAS_PTHREAD_SET_NAME
+#ifdef TORRENT_BSD
+		pthread_set_name_np(pthread_self(), name);
+#else
+		pthread_setname_np(pthread_self(), name);
+#endif
 #endif
 	}
 }
