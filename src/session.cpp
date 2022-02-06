@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/platform_util.hpp"
 
 namespace libtorrent {
 
@@ -337,8 +338,11 @@ namespace {
 		{
 			// start a thread for the message pump
 			auto s = m_io_service;
-			m_thread = std::make_shared<std::thread>(
-				[=] { s->run(); });
+			m_thread = std::make_shared<std::thread>([=]
+			{
+				set_thread_name("Network");
+				s->run();
+			});
 		}
 	}
 

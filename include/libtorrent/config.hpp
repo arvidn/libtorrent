@@ -134,6 +134,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // non-Apple BSD
 #define TORRENT_USE_GETRANDOM 1
+#define TORRENT_HAS_PTHREAD_SET_NAME 1
 
 #endif // __APPLE__
 
@@ -159,6 +160,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_MMAP 1
 #endif
 
+#define TORRENT_HAS_PTHREAD_SET_NAME 1
 #define TORRENT_HAS_SYMLINK 1
 #define TORRENT_USE_MADVISE 1
 #define TORRENT_USE_NETLINK 1
@@ -174,6 +176,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
 #define TORRENT_ANDROID
+#define TORRENT_HAS_PTHREAD_SET_NAME 1
+
 #if __ANDROID_API__ < 21
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_HAS_FADVISE 0
@@ -518,6 +522,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_NATIVE_UTF8
 #define TORRENT_NATIVE_UTF8 0
+#endif
+
+#ifndef TORRENT_HAS_PTHREAD_SET_NAME
+#define TORRENT_HAS_PTHREAD_SET_NAME 0
 #endif
 
 // debug builds have asserts enabled by default, release
