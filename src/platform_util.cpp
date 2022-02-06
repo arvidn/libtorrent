@@ -65,6 +65,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #if defined TORRENT_WINDOWS
 #include "libtorrent/aux_/windows.hpp"
+#include "libtorrent/aux_/win_util.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -104,6 +105,21 @@ namespace libtorrent {
 #else
 		pthread_setname_np(pthread_self(), name);
 #endif
+#endif
+#ifdef TORRENT_WINDOWS
+		using SetThreadDescription_t = HRESULT (WINAPI*)(HANDLE, PCWSTR);
+		auto SetThreadDescription =
+			aux::get_library_procedure<aux::kernel32, SetThreadDescription_t>("SetThreadDescription");
+		if (SetThreadDescription) {
+
+			wchar_t wide_name[50];
+			int i = -1;
+			do {
+				++i;
+				wide_name[i] = name[i];
+			} while (name[i] != 0);
+			SetThreadDescription(GetCurrentThread(), wide_name);
+		}
 #endif
 	}
 }
