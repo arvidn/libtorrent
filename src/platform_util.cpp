@@ -45,6 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#ifdef TORRENT_BEOS
+#include <kernel/OS.h>
+#endif
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if TORRENT_USE_RLIMIT
@@ -120,6 +124,9 @@ namespace libtorrent {
 			} while (name[i] != 0);
 			SetThreadDescription(GetCurrentThread(), wide_name);
 		}
+#endif
+#ifdef TORRENT_BEOS
+		rename_thread(find_thread(nullptr), name);
 #endif
 	}
 }
