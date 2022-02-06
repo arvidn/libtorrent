@@ -289,6 +289,9 @@ private:
 	void add_job(aux::disk_io_job* j, bool user_add = true);
 	void add_fence_job(aux::disk_io_job* j, bool user_add = true);
 
+	// called when a job cannot be queued. Immediate failure/abort
+	void job_fail_add(aux::disk_io_job* j);
+
 	void execute_job(aux::disk_io_job* j);
 	void immediate_execute();
 	void abort_jobs();
@@ -1319,12 +1322,37 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return status_t::no_error;
 	}
 
+	void mmap_disk_io::job_fail_add(aux::disk_io_job* j)
+	{
+		j->ret = status_t::fatal_disk_error;
+		j->error = storage_error(boost::asio::error::operation_aborted);
+		j->flags |= aux::disk_io_job::aborted;
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(j->job_posted == false);
+		j->job_posted = true;
+#endif
+		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
+		m_completed_jobs.push_back(j);
+
+		if (!m_job_completions_in_flight)
+		{
+			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
+
+			post(m_ios, [this] { this->call_job_handlers(); });
+			m_job_completions_in_flight = true;
+		}
+	}
+
 	void mmap_disk_io::add_fence_job(aux::disk_io_job* j, bool const user_add)
 	{
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(!m_abort);
+		if (m_abort)
+		{
+			job_fail_add(j);
+			return;
+		}
 
 		DLOG("add_fence:job: %s (outstanding: %d)\n"
 			, job_name(j->action)
@@ -1360,7 +1388,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(!m_abort);
+		if (m_abort)
+		{
+			job_fail_add(j);
+			return;
+		}
 
 		// this happens for read jobs that get hung on pieces in the
 		// block cache, and then get issued
