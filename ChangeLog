@@ -1,3 +1,4 @@
+	* add function to truncate over-sized files part of a torrent
 	* fix directory creation on windows shared folders
 	* add flag to make add_files() not record file attributes
 	* deprecate (unused) allow_partial_disk_writes settings
