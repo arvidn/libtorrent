@@ -9,7 +9,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/aux_/disk_io_job.hpp"
+#include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -22,7 +22,7 @@ namespace aux {
 namespace {
 	struct caller_visitor
 	{
-		explicit caller_visitor(disk_io_job& j) : m_job(j) {}
+		explicit caller_visitor(mmap_disk_job& j) : m_job(j) {}
 
 		void operator()(job::read& j) const
 		{
@@ -103,10 +103,10 @@ namespace {
 		}
 
 	private:
-		disk_io_job& m_job;
+		mmap_disk_job& m_job;
 	};
 }
-	void disk_io_job::call_callback()
+	void mmap_disk_job::call_callback()
 	{
 		std::visit(caller_visitor(*this), action);
 	}

@@ -12,14 +12,14 @@ see LICENSE file.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/disk_io_job.hpp" // for job_action_t
+#include "libtorrent/aux_/mmap_disk_job.hpp" // for job_action_t
 #include "libtorrent/aux_/pool.hpp"
 #include <mutex>
 
 namespace libtorrent {
 namespace aux {
 
-	struct disk_io_job;
+	struct mmap_disk_job;
 
 	struct TORRENT_EXTRA_EXPORT disk_job_pool
 	{
@@ -27,7 +27,7 @@ namespace aux {
 		~disk_job_pool();
 
 		template <typename JobType, typename... Args>
-		disk_io_job* allocate_job(
+		mmap_disk_job* allocate_job(
 			disk_job_flags_t const flags
 			, std::shared_ptr<mmap_storage> storage
 			, Args&&... args)
@@ -45,8 +45,8 @@ namespace aux {
 			}
 			TORRENT_ASSERT(buf);
 
-			auto* ptr = new (buf) disk_io_job{
-				tailqueue_node<disk_io_job>{},
+			auto* ptr = new (buf) mmap_disk_job{
+				tailqueue_node<mmap_disk_job>{},
 				flags,
 				std::move(storage),
 				status_t::no_error,
@@ -63,8 +63,8 @@ namespace aux {
 			return ptr;
 		}
 
-		void free_job(disk_io_job* j);
-		void free_jobs(disk_io_job** j, int num);
+		void free_job(mmap_disk_job* j);
+		void free_jobs(mmap_disk_job** j, int num);
 
 		int jobs_in_use() const { return m_jobs_in_use; }
 		int read_jobs_in_use() const { return m_read_jobs; }

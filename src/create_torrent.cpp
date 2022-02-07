@@ -87,7 +87,9 @@ namespace {
 		else
 		{
 			// #error use the fields from s
-			file_flags_t const file_flags = aux::get_file_attributes(f);
+			file_flags_t const file_flags = (flags & create_torrent::no_attributes)
+				? file_flags_t{}
+				: aux::get_file_attributes(f);
 
 			// mask all bits to check if the file is a symlink
 			if ((file_flags & file_storage::flag_symlink)

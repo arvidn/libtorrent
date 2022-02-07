@@ -129,9 +129,14 @@ jobs:
         set PYTHON_INTERPRETER=python
         tox -e py
 
-    # TODO: we currently don't run the tests on MacOS, because something fails
-    # to install correctly. It needs to be resolved
+    - name: build/install (MacOS)
+      if: runner.os == 'macOS'
+      run: |
+        # Install to Homebrew's python site-packages. no need for --user and --prefix
+        cd bindings/python
+        python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.9/site-packages
+
     - name: tests
-      if: runner.os == 'Linux'
+      if: runner.os != 'Windows'
       run: |
         tox -e py

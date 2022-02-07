@@ -314,7 +314,6 @@ SOURCES = \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
-  disk_io_job.cpp                 \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \
   disk_job_pool.cpp               \
@@ -350,6 +349,7 @@ SOURCES = \
   merkle_tree.cpp                 \
   mmap.cpp                        \
   mmap_disk_io.cpp                \
+  mmap_disk_job.cpp               \
   mmap_storage.cpp                \
   natpmp.cpp                      \
   packet_buffer.cpp               \
@@ -541,7 +541,6 @@ HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
   aux_/disk_buffer_pool.hpp         \
-  aux_/disk_io_job.hpp              \
   aux_/disk_io_thread_pool.hpp      \
   aux_/disk_job_fence.hpp           \
   aux_/disk_job_pool.hpp            \
@@ -578,6 +577,7 @@ HEADERS = \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
   aux_/mmap_storage.hpp             \
+  aux_/mmap_disk_job.hpp            \
   aux_/netlink.hpp                  \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \

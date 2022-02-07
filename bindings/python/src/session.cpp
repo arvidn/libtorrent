@@ -166,21 +166,21 @@ namespace
 		{
 			// deprecated settings are still here, they just have empty names
 			char const* name = name_for_setting(i);
-			if (name[0] != '\0') ret[name] = sett.get_str(i);
+			if (name[0] != '\0' && sett.has_val(i)) ret[name] = sett.get_str(i);
 		}
 
 		for (int i = settings_pack::int_type_base;
 			i < settings_pack::max_int_setting_internal; ++i)
 		{
 			char const* name = name_for_setting(i);
-			if (name[0] != '\0') ret[name] = sett.get_int(i);
+			if (name[0] != '\0' && sett.has_val(i)) ret[name] = sett.get_int(i);
 		}
 
 		for (int i = settings_pack::bool_type_base;
 			i < settings_pack::max_bool_setting_internal; ++i)
 		{
 			char const* name = name_for_setting(i);
-			if (name[0] != '\0') ret[name] = sett.get_bool(i);
+			if (name[0] != '\0' && sett.has_val(i)) ret[name] = sett.get_bool(i);
 		}
 		return ret;
 	}

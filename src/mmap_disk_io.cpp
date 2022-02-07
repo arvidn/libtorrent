@@ -23,11 +23,12 @@ see LICENSE file.
 #include "libtorrent/error.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/disk_buffer_pool.hpp"
-#include "libtorrent/aux_/disk_io_job.hpp"
+#include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/platform_util.hpp"
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/store_buffer.hpp"
@@ -115,7 +116,7 @@ namespace {
 
 #endif // DEBUG_DISK_THREAD
 
-	aux::open_mode_t file_mode_for_job(aux::disk_io_job* j)
+	aux::open_mode_t file_mode_for_job(aux::mmap_disk_job* j)
 	{
 		aux::open_mode_t ret = aux::open_mode::read_only;
 		if (!(j->flags & disk_interface::sequential_access)) ret |= aux::open_mode::random_access;
@@ -134,7 +135,7 @@ namespace {
 #endif
 } // anonymous namespace
 
-using jobqueue_t = aux::tailqueue<aux::disk_io_job>;
+using jobqueue_t = aux::tailqueue<aux::mmap_disk_job>;
 
 // this is a singleton consisting of the thread and a queue
 // of disk io jobs
@@ -199,20 +200,20 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	// this submits all queued up jobs to the thread
 	void submit_jobs() override;
 
-	status_t do_job(aux::job::partial_read& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::read& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::write& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::hash& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::hash2& a, aux::disk_io_job* j);
+	status_t do_job(aux::job::partial_read& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::read& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::write& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::hash& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::hash2& a, aux::mmap_disk_job* j);
 
-	status_t do_job(aux::job::move_storage& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::release_files& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::delete_files& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::check_fastresume& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::rename_file& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::stop_torrent& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::file_priority& a, aux::disk_io_job* j);
-	status_t do_job(aux::job::clear_piece& a, aux::disk_io_job* j);
+	status_t do_job(aux::job::move_storage& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::release_files& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::delete_files& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::check_fastresume& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::rename_file& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::stop_torrent& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::file_priority& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::clear_piece& a, aux::mmap_disk_job* j);
 
 	void call_job_handlers();
 
@@ -260,13 +261,16 @@ private:
 
 	void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
-	void perform_job(aux::disk_io_job* j, jobqueue_t& completed_jobs);
+	void perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs);
 
 	// this queues up another job to be submitted
-	void add_job(aux::disk_io_job* j, bool user_add = true);
-	void add_fence_job(aux::disk_io_job* j, bool user_add = true);
+	void add_job(aux::mmap_disk_job* j, bool user_add = true);
+	void add_fence_job(aux::mmap_disk_job* j, bool user_add = true);
 
-	void execute_job(aux::disk_io_job* j);
+	// called when a job cannot be queued. Immediate failure/abort
+	void job_fail_add(aux::mmap_disk_job* j);
+
+	void execute_job(aux::mmap_disk_job* j);
 	void immediate_execute();
 	void abort_jobs();
 	void abort_hash_jobs(storage_index_t storage);
@@ -274,8 +278,8 @@ private:
 	// returns the maximum number of threads
 	// the actual number of threads may be less
 	int num_threads() const;
-	job_queue& queue_for_job(aux::disk_io_job* j);
-	aux::disk_io_thread_pool& pool_for_job(aux::disk_io_job* j);
+	job_queue& queue_for_job(aux::mmap_disk_job* j);
+	aux::disk_io_thread_pool& pool_for_job(aux::mmap_disk_job* j);
 
 	// set to true once we start shutting down
 	std::atomic<bool> m_abort{false};
@@ -445,7 +449,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		DLOG("aborting hash jobs\n");
 		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
-			i.get()->flags |= aux::disk_io_job::aborted;
+			i.get()->flags |= aux::mmap_disk_job::aborted;
 		l.unlock();
 
 		// if there are no disk threads, we can't wait for the jobs here, because
@@ -481,8 +485,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		while (!src.empty())
 		{
-			aux::disk_io_job* j = src.pop_front();
-			TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+			aux::mmap_disk_job* j = src.pop_front();
+			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
 			if (auto const* a = std::get_if<aux::job::write>(&j->action))
 			{
@@ -494,19 +498,19 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 	}
 
-	void mmap_disk_io::perform_job(aux::disk_io_job* j, jobqueue_t& completed_jobs)
+	void mmap_disk_io::perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->next == nullptr);
-		TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
 #if DEBUG_DISK_THREAD
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
 
 			DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
-				, job_action_name[j->get_type()]
-				, (j->flags & disk_io_job::fence) ? "fence ": ""
-				, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
+				, job_action_name[j->action]
+				, (j->flags & mmap_disk_job::fence) ? "fence ": ""
+				, (j->flags & mmap_disk_job::force_copy) ? "force_copy ": ""
 				, static_cast<int>(j->piece), j->d.io.offset
 				, j->storage ? j->storage->num_outstanding_jobs() : -1);
 		}
@@ -553,7 +557,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		completed_jobs.push_back(j);
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::partial_read& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::partial_read& a, aux::mmap_disk_job* j)
 	{
 		TORRENT_ASSERT(a.buf);
 		time_point const start_time = clock_type::now();
@@ -579,7 +583,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return status_t::no_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::read& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::read& a, aux::mmap_disk_job* j)
 	{
 		a.buf = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 		if (!a.buf)
@@ -613,7 +617,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return status_t::no_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::write& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::write& a, aux::mmap_disk_job* j)
 	{
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(a.buf);
@@ -727,7 +731,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				// only one side of the read request was found in the store
 				// buffer, and we need to issue a partial read for the remaining
 				// bytes
-				aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::partial_read>(
+				aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::partial_read>(
 					flags,
 					m_torrents[storage]->shared_from_this(),
 					std::move(handler),
@@ -776,7 +780,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			}
 		}
 
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::read>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
 			flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -805,6 +809,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::function<void(storage_error const&)> handler
 		, disk_job_flags_t const flags)
 	{
+		TORRENT_ASSERT(valid_flags(flags));
 		bool exceeded = false;
 		disk_buffer_holder buffer(*this, m_buffer_pool.allocate_buffer(
 			exceeded, o, "receive buffer"), default_block_size);
@@ -816,7 +821,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		auto data_ptr = buffer.data();
 
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::write>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::write>(
 			flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -846,7 +851,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, span<sha256_hash> const v2, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::hash>(
+		TORRENT_ASSERT(valid_flags(flags));
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::hash>(
 			flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -861,7 +867,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, piece_index_t const piece, int const offset, disk_job_flags_t const flags
 		, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::hash2>(
+		TORRENT_ASSERT(valid_flags(flags));
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::hash2>(
 			flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -876,7 +883,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::string p, move_flags_t const flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::move_storage>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::move_storage>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -890,7 +897,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::async_release_files(storage_index_t const storage
 		, std::function<void()> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::release_files>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::release_files>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler)
@@ -908,14 +915,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// hash jobs
 		for (auto i = m_hash_io_jobs.m_queued_jobs.iterate(); i.get(); i.next())
 		{
-			aux::disk_io_job* j = i.get();
+			aux::mmap_disk_job* j = i.get();
 			if (j->storage != st) continue;
 			// only cancel volatile-read jobs. This means only full checking
 			// jobs. These jobs are likely to have a pretty deep queue and
 			// really gain from being cancelled. They can also be restarted
 			// easily.
 			if (!(j->flags & disk_interface::volatile_read)) continue;
-			j->flags |= aux::disk_io_job::aborted;
+			j->flags |= aux::mmap_disk_job::aborted;
 		}
 	}
 
@@ -924,7 +931,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::function<void(storage_error const&)> handler)
 	{
 		abort_hash_jobs(storage);
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::delete_files>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::delete_files>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -941,7 +948,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		aux::vector<std::string, file_index_t>* links_vector = nullptr;
 		if (!links.empty()) links_vector = new aux::vector<std::string, file_index_t>(std::move(links));
 
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::check_fastresume>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::check_fastresume>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -956,7 +963,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, file_index_t const index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::rename_file>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::rename_file>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -972,7 +979,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto st = m_torrents[storage]->shared_from_this();
 		abort_hash_jobs(storage);
 
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::stop_torrent>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::stop_torrent>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler)
@@ -985,7 +992,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, std::function<void(storage_error const&
 			, aux::vector<download_priority_t, file_index_t>)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::file_priority>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::file_priority>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -998,7 +1005,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::async_clear_piece(storage_index_t const storage
 		, piece_index_t const index, std::function<void(piece_index_t)> handler)
 	{
-		aux::disk_io_job* j = m_job_pool.allocate_job<aux::job::clear_piece>(
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::clear_piece>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
@@ -1016,7 +1023,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		add_fence_job(j);
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::hash& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::hash& a, aux::mmap_disk_job* j)
 	{
 		// we're not using a cache. This is the simple path
 		// just read straight from the file
@@ -1105,7 +1112,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::hash2& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::hash2& a, aux::mmap_disk_job* j)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 
@@ -1148,7 +1155,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::move_storage& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::move_storage& a, aux::mmap_disk_job* j)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -1160,7 +1167,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return ret;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::release_files&, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::release_files&, aux::mmap_disk_job* j)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -1168,7 +1175,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::delete_files& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::delete_files& a, aux::mmap_disk_job* j)
 	{
 		TORRENT_ASSERT(a.flags);
 
@@ -1178,7 +1185,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::check_fastresume& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::check_fastresume& a, aux::mmap_disk_job* j)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -1230,7 +1237,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			: status_t::need_full_check;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::rename_file& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::rename_file& a, aux::mmap_disk_job* j)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -1240,7 +1247,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return j->error ? status_t::fatal_disk_error : status_t::no_error;
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::stop_torrent&, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::stop_torrent&, aux::mmap_disk_job* j)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -1266,7 +1273,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
 	}
 
-	status_t mmap_disk_io::do_job(aux::job::file_priority& a, aux::disk_io_job* j)
+	status_t mmap_disk_io::do_job(aux::job::file_priority& a, aux::mmap_disk_job* j)
 	{
 		j->storage->set_file_priority(m_settings
 			, a.prio
@@ -1277,19 +1284,44 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	// this job won't return until all outstanding jobs on this
 	// piece are completed or cancelled and the buffers for it
 	// have been evicted
-	status_t mmap_disk_io::do_job(aux::job::clear_piece&, aux::disk_io_job*)
+	status_t mmap_disk_io::do_job(aux::job::clear_piece&, aux::mmap_disk_job*)
 	{
 		// there's nothing to do here, by the time this is called the jobs for
 		// this storage has been completed since this is a fence job
 		return status_t::no_error;
 	}
 
-	void mmap_disk_io::add_fence_job(aux::disk_io_job* j, bool const user_add)
+	void mmap_disk_io::job_fail_add(aux::mmap_disk_job* j)
+	{
+		j->ret = status_t::fatal_disk_error;
+		j->error = storage_error(boost::asio::error::operation_aborted);
+		j->flags |= aux::mmap_disk_job::aborted;
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(j->job_posted == false);
+		j->job_posted = true;
+#endif
+		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
+		m_completed_jobs.push_back(j);
+
+		if (!m_job_completions_in_flight)
+		{
+			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
+
+			post(m_ios, [this] { this->call_job_handlers(); });
+			m_job_completions_in_flight = true;
+		}
+	}
+
+	void mmap_disk_io::add_fence_job(aux::mmap_disk_job* j, bool const user_add)
 	{
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(!m_abort);
+		if (m_abort)
+		{
+			job_fail_add(j);
+			return;
+		}
 
 		DLOG("add_fence:job: %s (outstanding: %d)\n"
 			, job_name(j->get_type())
@@ -1302,7 +1334,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 			m_generic_io_jobs.m_queued_jobs.push_back(j);
 			l.unlock();
 
@@ -1316,7 +1348,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			immediate_execute();
 	}
 
-	void mmap_disk_io::add_job(aux::disk_io_job* j, bool const user_add)
+	void mmap_disk_io::add_job(aux::mmap_disk_job* j, bool const user_add)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 
@@ -1325,14 +1357,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(!m_abort);
+		if (m_abort)
+		{
+			job_fail_add(j);
+			return;
+		}
 
 		// this happens for read jobs that get hung on pieces in the
 		// block cache, and then get issued
-		if (j->flags & aux::disk_io_job::in_progress)
+		if (j->flags & aux::mmap_disk_job::in_progress)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 			m_generic_io_jobs.m_queued_jobs.push_back(j);
 
 			// if we literally have 0 disk threads, we have to execute the jobs
@@ -1367,7 +1403,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
 
-		TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
 		job_queue& q = queue_for_job(j);
 		q.m_queued_jobs.push_back(j);
@@ -1386,7 +1422,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		while (!m_generic_io_jobs.m_queued_jobs.empty())
 		{
-			aux::disk_io_job* j = m_generic_io_jobs.m_queued_jobs.pop_front();
+			aux::mmap_disk_job* j = m_generic_io_jobs.m_queued_jobs.pop_front();
 			execute_job(j);
 		}
 	}
@@ -1406,10 +1442,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 	}
 
-	void mmap_disk_io::execute_job(aux::disk_io_job* j)
+	void mmap_disk_io::execute_job(aux::mmap_disk_job* j)
 	{
 		jobqueue_t completed_jobs;
-		if (j->flags & aux::disk_io_job::aborted)
+		if (j->flags & aux::mmap_disk_job::aborted)
 		{
 			j->ret = status_t::fatal_disk_error;
 			j->error = storage_error(boost::asio::error::operation_aborted);
@@ -1468,6 +1504,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		std::thread::id const thread_id = std::this_thread::get_id();
 
+		aux::set_thread_name("Disk");
+
 #ifdef _WIN32
 		using SetThreadInformation_t = BOOL (WINAPI*)(HANDLE, THREAD_INFORMATION_CLASS, LPVOID, DWORD);
 		auto SetThreadInformation =
@@ -1503,13 +1541,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		for (;;)
 		{
-			aux::disk_io_job* j = nullptr;
+			aux::mmap_disk_job* j = nullptr;
 			bool const should_exit = wait_for_job(queue, pool, l);
 			if (should_exit) break;
 			j = queue.m_queued_jobs.pop_front();
 			l.unlock();
 
-			TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
 			if (&pool == &m_generic_threads && thread_id == pool.first_thread_id())
 			{
@@ -1625,7 +1663,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return m_generic_threads.max_threads() + m_hash_threads.max_threads();
 	}
 
-	mmap_disk_io::job_queue& mmap_disk_io::queue_for_job(aux::disk_io_job* j)
+	mmap_disk_io::job_queue& mmap_disk_io::queue_for_job(aux::mmap_disk_job* j)
 	{
 		if (m_hash_threads.max_threads() > 0
 			&& (j->get_type() == aux::job_action_t::hash
@@ -1635,7 +1673,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return m_generic_io_jobs;
 	}
 
-	aux::disk_io_thread_pool& mmap_disk_io::pool_for_job(aux::disk_io_job* j)
+	aux::disk_io_thread_pool& mmap_disk_io::pool_for_job(aux::mmap_disk_job* j)
 	{
 		if (m_hash_threads.max_threads() > 0
 			&& (j->get_type() == aux::job_action_t::hash
@@ -1666,10 +1704,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int ret = 0;
 		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
-			aux::disk_io_job* j = i.get();
-			TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+			aux::mmap_disk_job* j = i.get();
+			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
-			if (j->flags & aux::disk_io_job::fence)
+			if (j->flags & aux::mmap_disk_job::fence)
 			{
 				m_stats_counters.inc_stats_counter(
 					counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
@@ -1680,7 +1718,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				ret += j->storage->job_complete(j, new_jobs);
 
 			TORRENT_ASSERT(ret == new_jobs.size());
-			TORRENT_ASSERT(!(j->flags & aux::disk_io_job::in_progress));
+			TORRENT_ASSERT(!(j->flags & aux::mmap_disk_job::in_progress));
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(j->job_posted == false);
 			j->job_posted = true;
@@ -1700,8 +1738,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			while (!new_jobs.empty())
 			{
-				aux::disk_io_job* j = new_jobs.pop_front();
-				TORRENT_ASSERT((j->flags & aux::disk_io_job::in_progress) || !j->storage);
+				aux::mmap_disk_job* j = new_jobs.pop_front();
+				TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 				j->ret = status_t::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
 				completed.push_back(j);
@@ -1745,10 +1783,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_job_completions_in_flight);
 		m_job_completions_in_flight = false;
 
-		aux::disk_io_job* j = m_completed_jobs.get_all();
+		aux::mmap_disk_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
-		aux::array<aux::disk_io_job*, 64> to_delete;
+		aux::array<aux::mmap_disk_job*, 64> to_delete;
 		int cnt = 0;
 
 		while (j)
@@ -1756,7 +1794,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
 			DLOG("   callback: %s\n", job_name(j->get_type()));
-			aux::disk_io_job* next = j->next;
+			aux::mmap_disk_job* next = j->next;
 
 #if TORRENT_USE_ASSERTS
 			j->callback_called = true;
