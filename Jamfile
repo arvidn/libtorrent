@@ -715,7 +715,6 @@ SOURCES =
 	disk_buffer_holder
 	disk_buffer_pool
 	disk_interface
-	disk_io_job
 	disk_io_thread_pool
 	disabled_disk_io
 	disk_job_fence
@@ -817,6 +816,7 @@ SOURCES =
 	generate_peer_id
 	mmap
 	mmap_disk_io
+	mmap_disk_job
 	mmap_storage
 	posix_disk_io
 	posix_part_file

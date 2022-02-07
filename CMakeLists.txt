@@ -213,7 +213,7 @@ set(libtorrent_aux_include_files
 	disable_warnings_pop.hpp
 	disable_warnings_push.hpp
 	disk_buffer_pool.hpp
-	disk_io_job.hpp
+	mmap_disk_job.hpp
 	disk_io_thread_pool.hpp
 	disk_job_fence.hpp
 	disk_job_pool.hpp
@@ -309,7 +309,6 @@ set(sources
 	disk_buffer_holder.cpp
 	disk_buffer_pool.cpp
 	disk_interface.cpp
-	disk_io_job.cpp
 	disk_io_thread_pool.cpp
 	disk_job_fence.cpp
 	disk_job_pool.cpp
@@ -346,6 +345,7 @@ set(sources
 	merkle_tree.cpp
 	mmap.cpp
 	mmap_disk_io.cpp
+	mmap_disk_job.cpp
 	mmap_storage.cpp
 	natpmp.cpp
 	packet_buffer.cpp
