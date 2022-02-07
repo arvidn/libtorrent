@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disk_io_job.hpp"
+#include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "test.hpp"
@@ -42,14 +42,14 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace lt;
 
 using lt::aux::disk_job_fence;
-using lt::aux::disk_io_job;
+using lt::aux::mmap_disk_job;
 
 TORRENT_TEST(empty_fence)
 {
 	disk_job_fence fence;
 	counters cnt;
 
-	disk_io_job test_job[10];
+	mmap_disk_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
 	int ret_int = 0;
@@ -65,7 +65,7 @@ TORRENT_TEST(empty_fence)
 	ret = fence.is_blocked(&test_job[8]);
 	TEST_CHECK(ret == true);
 
-	tailqueue<disk_io_job> jobs;
+	tailqueue<mmap_disk_job> jobs;
 
 	// complete the fence job
 	fence.job_complete(&test_job[5], jobs);
@@ -86,7 +86,7 @@ TORRENT_TEST(job_fence)
 	counters cnt;
 	disk_job_fence fence;
 
-	disk_io_job test_job[10];
+	mmap_disk_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
 	int ret_int = 0;
@@ -118,7 +118,7 @@ TORRENT_TEST(job_fence)
 	ret = fence.is_blocked(&test_job[8]);
 	TEST_CHECK(ret == true);
 
-	tailqueue<disk_io_job> jobs;
+	tailqueue<mmap_disk_job> jobs;
 
 	fence.job_complete(&test_job[3], jobs);
 	TEST_CHECK(jobs.size() == 0);
@@ -156,7 +156,7 @@ TORRENT_TEST(double_fence)
 	counters cnt;
 	disk_job_fence fence;
 
-	disk_io_job test_job[10];
+	mmap_disk_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
 	int ret_int = 0;
@@ -192,7 +192,7 @@ TORRENT_TEST(double_fence)
 	ret = fence.is_blocked(&test_job[9]);
 	TEST_CHECK(ret == true);
 
-	tailqueue<disk_io_job> jobs;
+	tailqueue<mmap_disk_job> jobs;
 
 	fence.job_complete(&test_job[3], jobs);
 	TEST_CHECK(jobs.size() == 0);

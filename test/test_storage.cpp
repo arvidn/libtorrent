@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
-#include "libtorrent/aux_/disk_io_job.hpp"
+#include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -82,7 +82,7 @@ namespace aux {
 namespace {
 
 using lt::aux::posix_storage;
-using lt::aux::disk_io_job;
+using lt::aux::mmap_disk_job;
 
 constexpr int piece_size = 16 * 1024 * 16;
 constexpr int half = piece_size / 2;

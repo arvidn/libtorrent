@@ -83,7 +83,7 @@ namespace aux {
 	// they are always allocated from the network thread, posted
 	// (as pointers) to the disk I/O thread, and then passed back
 	// to the network thread for completion handling and to be freed.
-	// each disk_io_job can belong to one tailqueue. The job queue
+	// each mmap_disk_job can belong to one tailqueue. The job queue
 	// in the disk thread, is one, the jobs waiting on completion
 	// on a cache piece (in block_cache) is another, and a job
 	// waiting for a storage fence to be lowered is another. Jobs
@@ -91,11 +91,11 @@ namespace aux {
 	// pointers and chaining them back and forth into lists saves
 	// a lot of heap allocation churn of using general purpose
 	// containers.
-	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node<disk_io_job>
+	struct TORRENT_EXTRA_EXPORT mmap_disk_job : tailqueue_node<mmap_disk_job>
 	{
-		disk_io_job();
-		disk_io_job(disk_io_job const&) = delete;
-		disk_io_job& operator=(disk_io_job const&) = delete;
+		mmap_disk_job();
+		mmap_disk_job(mmap_disk_job const&) = delete;
+		mmap_disk_job& operator=(mmap_disk_job const&) = delete;
 
 		void call_callback();
 
