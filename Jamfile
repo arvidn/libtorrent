@@ -822,6 +822,7 @@ SOURCES =
 	posix_part_file
 	posix_storage
 	ssl
+	truncate
 
 # -- extensions --
 	ut_pex
