@@ -447,6 +447,7 @@ list(TRANSFORM libtorrent_kademlia_include_files PREPEND "include/libtorrent/kad
 feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
 feature_option(static_runtime "build libtorrent with static runtime" OFF)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_public_dependency(Threads REQUIRED)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
