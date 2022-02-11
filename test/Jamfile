@@ -201,6 +201,7 @@ run test_torrent.cpp ;
 run test_remap_files.cpp ;
 run test_similar_torrent.cpp ;
 run test_truncate.cpp ;
+run test_copy_file.cpp ;
 
 # turn these tests into simulations
 run test_resume.cpp ;
