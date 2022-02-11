@@ -708,6 +708,7 @@ SOURCES =
 	chained_buffer
 	choker
 	close_reason
+	copy_file
 	cpuid
 	crc32c
 	create_torrent

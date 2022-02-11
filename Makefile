@@ -299,6 +299,7 @@ SOURCES = \
   chained_buffer.cpp              \
   choker.cpp                      \
   close_reason.cpp                \
+  copy_file.cpp                   \
   cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
@@ -842,6 +843,7 @@ TEST_SOURCES = \
   test_bloom_filter.cpp \
   test_buffer.cpp \
   test_checking.cpp \
+  test_copy_file.cpp \
   test_crc32.cpp \
   test_create_torrent.cpp \
   test_dht.cpp \

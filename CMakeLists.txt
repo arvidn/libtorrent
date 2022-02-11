@@ -302,6 +302,7 @@ set(sources
 	chained_buffer.cpp
 	choker.cpp
 	close_reason.cpp
+	copy_file.cpp
 	cpuid.cpp
 	crc32c.cpp
 	create_torrent.cpp

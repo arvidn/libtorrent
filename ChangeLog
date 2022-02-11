@@ -1,3 +1,4 @@
+	* improve copy file function to preserve sparse regions (when supported)
 	* add function to truncate over-sized files part of a torrent
 	* fix directory creation on windows shared folders
 	* add flag to make add_files() not record file attributes
