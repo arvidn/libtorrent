@@ -209,7 +209,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp, ec.ec)) use_partfile(i, false);
+				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
 				{
 					ec.file(i);
@@ -217,6 +217,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 					prio = m_file_priority;
 					return;
 				}
+				use_partfile(i, !file_exists);
 /*
 				auto f = open_file(sett, i, aux::open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
@@ -275,7 +276,13 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 	void mmap_storage::use_partfile(file_index_t const index, bool const b)
 	{
-		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		if (index >= m_use_partfile.end_index())
+		{
+			// no need to extend this array if we're just setting it to "true",
+			// that's default already
+			if (b) return;
+			m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		}
 		m_use_partfile[index] = b;
 	}
 
@@ -306,16 +313,18 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;
 
-			file_status s;
-			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
-			stat_file(file_path, &s, err);
-			if (!err)
+			auto const size = m_stat_cache.get_filesize(i, fs, m_save_path, err);
+			if (!err && size > 0)
 			{
 				use_partfile(i, false);
 			}
 			else
 			{
+				// we may have earlier determined we *can't* use a partfile for
+				// this file, we need to be able to change our mind in case the
+				// file disappeared
+				use_partfile(i, true);
 				need_partfile();
 			}
 		}
@@ -344,14 +353,13 @@ error_code translate_error(std::system_error const& err, bool const write)
 		if (!ec) return true;
 
 		// the part file not existing is expected
-		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
 		if (ec)
 		{
 			ec.file(torrent_status::error_file_partfile);
 			ec.operation = operation_t::file_stat;
-			return false;
 		}
 		return false;
 	}

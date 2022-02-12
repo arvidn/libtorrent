@@ -133,7 +133,7 @@ namespace aux {
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp, ec.ec)) use_partfile(i, false);
+				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
 				{
 					ec.file(i);
@@ -141,6 +141,7 @@ namespace aux {
 					prio = m_file_priority;
 					return;
 				}
+				use_partfile(i, !file_exists);
 			}
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
@@ -532,7 +533,13 @@ namespace aux {
 
 	void posix_storage::use_partfile(file_index_t const index, bool const b)
 	{
-		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		if (index >= m_use_partfile.end_index())
+		{
+			// no need to extend this array if we're just setting it to "true",
+			// that's default already
+			if (b) return;
+			m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		}
 		m_use_partfile[index] = b;
 	}
 
