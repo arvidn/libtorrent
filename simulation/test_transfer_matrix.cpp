@@ -91,7 +91,7 @@ TORRENT_TEST(transfer_matrix)
 							lt::aux::random_engine().seed(0x23563a7f);
 
 							run_matrix_test(piece_size | bt_version | magnet | multi_file, files, corruption);
-							if (_g_test_failures > 0) return;
+							if (g_test_failures > 0) return;
 						}
 }
 

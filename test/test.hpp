@@ -78,22 +78,22 @@ struct unit_test_t
 	FILE* output;
 };
 
-extern unit_test_t EXPORT _g_unit_tests[1024];
-extern int EXPORT _g_num_unit_tests;
-extern int EXPORT _g_test_failures;
-extern int _g_test_idx;
+extern unit_test_t EXPORT g_unit_tests[1024];
+extern int EXPORT g_num_unit_tests;
+extern int EXPORT g_test_failures;
+extern int g_test_idx;
 
 #define TORRENT_TEST(test_name) \
 	static void BOOST_PP_CAT(unit_test_, test_name)(); \
 	static struct BOOST_PP_CAT(register_class_, test_name) { \
 		BOOST_PP_CAT(register_class_, test_name) () { \
-			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \
+			unit_test_t& t = g_unit_tests[g_num_unit_tests]; \
 			t.fun = &BOOST_PP_CAT(unit_test_, test_name); \
 			t.name = __FILE__ "." #test_name; \
 			t.num_failures = 0; \
 			t.run = false; \
 			t.output = nullptr; \
-			_g_num_unit_tests++; \
+			g_num_unit_tests++; \
 		} \
 	} BOOST_PP_CAT(_static_registrar_, test_name); \
 	static void BOOST_PP_CAT(unit_test_, test_name)()
@@ -125,9 +125,9 @@ extern int _g_test_idx;
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -142,9 +142,9 @@ extern int _g_test_idx;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -158,9 +158,9 @@ extern int _g_test_idx;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \

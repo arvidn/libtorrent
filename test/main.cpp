@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for exit()
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
-#include "setup_transfer.hpp" // for _g_test_failures
+#include "setup_transfer.hpp" // for g_test_failures
 #include "test.hpp"
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
@@ -334,9 +334,9 @@ int EXPORT main(int argc, char const* argv[])
 		if (argv[0] == "-l"_sv || argv[0] == "--list"_sv)
 		{
 			std::printf("TESTS:\n");
-			for (int i = 0; i < _g_num_unit_tests; ++i)
+			for (int i = 0; i < g_num_unit_tests; ++i)
 			{
-				std::printf(" - %s\n", _g_unit_tests[i].name);
+				std::printf(" - %s\n", g_unit_tests[i].name);
 			}
 			return 0;
 		}
@@ -418,7 +418,7 @@ int EXPORT main(int argc, char const* argv[])
 	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\n", executable, unit_dir_prefix.c_str());
 
-	if (_g_num_unit_tests == 0)
+	if (g_num_unit_tests == 0)
 	{
 		std::printf("\x1b[31mTEST_ERROR: no unit tests registered\x1b[0m\n");
 		return 1;
@@ -428,9 +428,9 @@ int EXPORT main(int argc, char const* argv[])
 	if (redirect_stderr) old_stderr = dup(fileno(stderr));
 
 	int num_run = 0;
-	for (int i = 0; i < _g_num_unit_tests; ++i)
+	for (int i = 0; i < g_num_unit_tests; ++i)
 	{
-		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
+		if (filter && tests_to_run.count(g_unit_tests[i].name) == 0)
 			continue;
 
 		std::string const unit_dir = unit_dir_prefix + std::to_string(i);
@@ -451,7 +451,7 @@ int EXPORT main(int argc, char const* argv[])
 			return 1;
 		}
 
-		unit_test_t& t = _g_unit_tests[i];
+		unit_test_t& t = g_unit_tests[i];
 
 		if (redirect_stdout || redirect_stderr)
 		{
@@ -504,7 +504,7 @@ int EXPORT main(int argc, char const* argv[])
 		setbuf(stdout, nullptr);
 		setbuf(stderr, nullptr);
 
-		_g_test_idx = i;
+		g_test_idx = i;
 		current_test = &t;
 
 		std::printf("cwd: %s\n", unit_dir.c_str());
@@ -521,7 +521,7 @@ int EXPORT main(int argc, char const* argv[])
 			std::srand(unsigned(std::hash<std::string>{}(executable)) + unsigned(i));
 			lt::aux::random_engine().seed(0x82daf973);
 
-			_g_test_failures = 0;
+			g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -548,12 +548,12 @@ int EXPORT main(int argc, char const* argv[])
 
 		if (!tests_to_run.empty()) tests_to_run.erase(t.name);
 
-		if (_g_test_failures > 0)
+		if (g_test_failures > 0)
 		{
 			output_test_log_to_terminal();
 		}
 
-		t.num_failures = _g_test_failures;
+		t.num_failures = g_test_failures;
 		t.run = true;
 		++num_run;
 
