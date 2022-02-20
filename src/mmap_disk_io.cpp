@@ -427,6 +427,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::remove_torrent(storage_index_t const idx)
 	{
+		TORRENT_ASSERT(m_torrents[idx] != nullptr);
 		m_torrents[idx].reset();
 		m_free_slots.add(idx);
 	}
@@ -438,6 +439,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_magic = 0xdead;
 
+		// abort should have been triggered
+		TORRENT_ASSERT(m_abort);
+
+		// there are not supposed to be any writes in-flight by now
+		TORRENT_ASSERT(m_store_buffer.size() == 0);
+
+		// all torrents are supposed to have been removed by now
+		TORRENT_ASSERT(m_torrents.size() == m_free_slots.size());
 		TORRENT_ASSERT(m_generic_threads.num_threads() == 0);
 		TORRENT_ASSERT(m_hash_threads.num_threads() == 0);
 		if (!m_generic_io_jobs.m_queued_jobs.empty())
@@ -1779,18 +1788,20 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				completed.push_back(j);
 			}
 		}
-
-		if (!new_jobs.empty())
+		else
 		{
+			if (!new_jobs.empty())
 			{
-				std::lock_guard<std::mutex> l(m_job_mutex);
-				m_generic_io_jobs.m_queued_jobs.append(new_jobs);
-			}
+				{
+					std::lock_guard<std::mutex> l(m_job_mutex);
+					m_generic_io_jobs.m_queued_jobs.append(new_jobs);
+				}
 
-			{
-				std::lock_guard<std::mutex> l(m_job_mutex);
-				m_generic_io_jobs.m_job_cond.notify_all();
-				m_generic_threads.job_queued(m_generic_io_jobs.m_queued_jobs.size());
+				{
+					std::lock_guard<std::mutex> l(m_job_mutex);
+					m_generic_io_jobs.m_job_cond.notify_all();
+					m_generic_threads.job_queued(m_generic_io_jobs.m_queued_jobs.size());
+				}
 			}
 		}
 
