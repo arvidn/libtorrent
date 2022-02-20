@@ -1606,7 +1606,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 
 	fun(disk_io.get(), t, ioc, outstanding);
 
-	disk_io->remove_torrent(t);
+	t.reset();
 	disk_io->abort(true);
 }
 
