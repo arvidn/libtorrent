@@ -147,7 +147,7 @@ rule libtorrent_linking ( properties * )
 	if <toolset>msvc in $(properties) || <toolset>intel-win in $(properties)
 	{
 		# allow larger .obj files (with more sections)
-		result += <cflags>/bigobj ;
+		result += <cxxflags>/bigobj ;
 	}
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
@@ -286,7 +286,7 @@ my-python-extension libtorrent
 	<linkflags>"$(LDFLAGS:J= )"
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#		with compiler generated default constructor fills the object with zeros
-	<toolset>msvc:<cflags>/wd4268
+	<toolset>msvc:<cxxflags>/wd4268
 	: # default-build
 	<warnings>all
 	: # usage-requirements
