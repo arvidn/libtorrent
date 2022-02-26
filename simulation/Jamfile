@@ -16,9 +16,9 @@ project
 	<source>setup_dht.cpp
 	<source>create_torrent.cpp
 	<source>utils.cpp
-	<toolset>msvc:<cflags>/wd4275
-	<toolset>msvc:<cflags>/wd4005
-	<toolset>msvc:<cflags>/wd4268
+	<toolset>msvc:<cxxflags>/wd4275
+	<toolset>msvc:<cxxflags>/wd4005
+	<toolset>msvc:<cxxflags>/wd4268
 	: default-build
 	<threading>multi
 	<invariant-checks>full
