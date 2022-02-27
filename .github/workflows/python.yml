@@ -69,7 +69,7 @@ jobs:
       uses: nick-invision/retry@v2
       with:
         shell: cmd
-        timeout_minutes: 30
+        timeout_minutes: 5
         retry_wait_seconds: 4
         max_attempts: 3
         command: choco install openssl --limitoutput
