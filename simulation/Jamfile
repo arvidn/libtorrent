@@ -18,9 +18,9 @@ project
 	<source>utils.cpp
 	<source>disk_io.cpp
 	<source>transfer_sim.cpp
-	<toolset>msvc:<cflags>/wd4275
-	<toolset>msvc:<cflags>/wd4005
-	<toolset>msvc:<cflags>/wd4268
+	<toolset>msvc:<cxxflags>/wd4275
+	<toolset>msvc:<cxxflags>/wd4005
+	<toolset>msvc:<cxxflags>/wd4268
 	: default-build
 	<threading>multi
 	<invariant-checks>full

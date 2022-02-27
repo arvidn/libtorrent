@@ -35,12 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
+namespace unit_test {
+
 unit_test_t g_unit_tests[1024];
 int g_num_unit_tests = 0;
 int g_test_failures = 0; // flushed at start of every unit
 int g_test_idx = 0;
 
-static std::vector<std::string> failure_strings;
+namespace {
+std::vector<std::string> failure_strings;
+}
 
 int test_counter()
 {
@@ -95,3 +99,4 @@ int print_failures()
 	return total_num_failures;
 }
 
+} // unit_test
