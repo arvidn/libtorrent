@@ -286,7 +286,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		m_use_partfile[index] = b;
 	}
 
-	void mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
+	status_t mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -329,14 +329,17 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 		}
 
+		status_t ret{};
 		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
 			, [&sett, this](file_index_t const file_index, storage_error& e)
 			{ open_file(sett, file_index, aux::open_mode::write, e); }
 			, aux::create_symlink
+			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
 			, ec);
 
 		// close files that were opened in write mode
 		m_pool.release(storage_index());
+		return ret;
 	}
 
 	bool mmap_storage::has_any_file(storage_error& ec)

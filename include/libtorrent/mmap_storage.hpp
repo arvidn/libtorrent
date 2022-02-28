@@ -97,7 +97,7 @@ namespace aux {
 			, storage_error&);
 		void release_files(storage_error&);
 		void delete_files(remove_flags_t options, storage_error&);
-		void initialize(settings_interface const&, storage_error&);
+		status_t initialize(settings_interface const&, storage_error&);
 		std::pair<status_t, std::string> move_storage(std::string save_path
 			, move_flags_t, storage_error&);
 		bool verify_resume_data(add_torrent_params const& rd

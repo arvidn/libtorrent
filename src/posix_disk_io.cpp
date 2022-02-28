@@ -307,28 +307,30 @@ namespace {
 			storage_error error;
 			status_t const ret = [&]
 			{
-				st->initialize(m_settings, error);
-				if (error) return status_t::fatal_disk_error;
+				auto const ret_flag = st->initialize(m_settings, error);
+				if (error) return status_t::fatal_disk_error | ret_flag;
 
 				bool const verify_success = st->verify_resume_data(*rd
 					, std::move(links), error);
 
 				if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
-					return status_t::no_error;
+					return status_t::no_error | ret_flag;
 
 				if (!aux::contains_resume_data(*rd))
 				{
 					// if we don't have any resume data, we still may need to trigger a
 					// full re-check, if there are *any* files.
 					storage_error ignore;
-					return (st->has_any_file(ignore))
+					return ((st->has_any_file(ignore))
 						? status_t::need_full_check
-						: status_t::no_error;
+						: status_t::no_error)
+						| ret_flag;
 				}
 
-				return verify_success
+				return (verify_success
 					? status_t::no_error
-					: status_t::need_full_check;
+					: status_t::need_full_check)
+					| ret_flag;
 			}();
 
 			post(m_ios, [error, ret, h = std::move(handler)]{ h(ret, error); });

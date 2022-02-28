@@ -3001,7 +3001,7 @@ namespace {
 		"picker_log", "session_error", "dht_live_nodes",
 		"session_stats_header", "dht_sample_infohashes",
 		"block_uploaded", "alerts_dropped", "socks5",
-		"file_prio"
+		"file_prio", "oversized_file"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -3057,6 +3057,19 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " file priorities updated";
+#endif
+	}
+
+	oversized_file_alert::oversized_file_alert(aux::stack_allocator& a, torrent_handle h)
+		: torrent_alert(a, std::move(h))
+	{}
+
+	std::string oversized_file_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " has an oversized file";
 #endif
 	}
 
@@ -3152,6 +3165,7 @@ namespace {
 	constexpr alert_category_t alerts_dropped_alert::static_category;
 	constexpr alert_category_t socks5_alert::static_category;
 	constexpr alert_category_t file_prio_alert::static_category;
+	constexpr alert_category_t oversized_file_alert::static_category;
 #if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t anonymous_mode_alert::static_category;
 	constexpr alert_category_t mmap_cache_alert::static_category;

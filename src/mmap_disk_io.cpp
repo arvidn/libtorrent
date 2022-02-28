@@ -1246,8 +1246,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(j->storage->files().piece_length() > 0);
 
 		// always initialize the storage
-		j->storage->initialize(m_settings, j->error);
-		if (j->error) return status_t::fatal_disk_error;
+		auto const ret_flag = j->storage->initialize(m_settings, j->error);
+		if (j->error) return status_t::fatal_disk_error | ret_flag;
 
 		// we must call verify_resume() unconditionally of the setting below, in
 		// order to set up the links (if present)
@@ -1259,21 +1259,23 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// as they succeed.
 
 		if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
-			return status_t::no_error;
+			return status_t::no_error | ret_flag;
 
 		if (!aux::contains_resume_data(*rd))
 		{
 			// if we don't have any resume data, we still may need to trigger a
 			// full re-check, if there are *any* files.
 			storage_error ignore;
-			return (j->storage->has_any_file(ignore))
+			return ((j->storage->has_any_file(ignore))
 				? status_t::need_full_check
-				: status_t::no_error;
+				: status_t::no_error)
+				| ret_flag;
 		}
 
-		return verify_success
+		return (verify_success
 			? status_t::no_error
-			: status_t::need_full_check;
+			: status_t::need_full_check)
+			| ret_flag;
 	}
 
 	status_t mmap_disk_io::do_rename_file(aux::mmap_disk_job* j)
