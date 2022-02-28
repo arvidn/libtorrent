@@ -104,7 +104,9 @@ void on_check_resume_data(lt::status_t const status, storage_error const& error,
 {
 	std::cout << time_now_string() << " on_check_resume_data ret: "
 		<< static_cast<int>(status);
-	switch (status)
+	if ((status & lt::status_t::oversized_file) != status_t{})
+		std::cout << "oversized file(s) - ";
+	switch (status & ~lt::status_t::mask)
 	{
 		case lt::status_t::no_error:
 			std::cout << time_now_string() << " success" << std::endl;
@@ -118,6 +120,9 @@ void on_check_resume_data(lt::status_t const status, storage_error const& error,
 			break;
 		case lt::status_t::file_exist:
 			std::cout << time_now_string() << " file exist" << std::endl;
+			break;
+		case lt::status_t::mask:
+		case lt::status_t::oversized_file:
 			break;
 	}
 	std::cout << std::endl;

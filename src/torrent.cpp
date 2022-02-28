@@ -1973,7 +1973,7 @@ bool is_downloading_state(int const st)
 		return m_outgoing_pids.count(pid) > 0;
 	}
 
-	void torrent::on_resume_data_checked(status_t const status
+	void torrent::on_resume_data_checked(status_t status
 		, storage_error const& error) try
 	{
 #if TORRENT_USE_ASSERTS
@@ -1992,6 +1992,14 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
+
+		if ((status & status_t::oversized_file) != status_t{})
+		{
+			// clear the flag
+			status = status & ~status_t::oversized_file;
+			if (m_ses.alerts().should_post<oversized_file_alert>())
+				m_ses.alerts().emplace_alert<oversized_file_alert>(get_handle());
+		}
 
 		if (status == status_t::fatal_disk_error)
 		{
@@ -2269,7 +2277,7 @@ bool is_downloading_state(int const st)
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
+	void torrent::on_force_recheck(status_t status, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2277,6 +2285,14 @@ bool is_downloading_state(int const st)
 		state_updated();
 
 		if (m_abort) return;
+
+		if ((status & status_t::oversized_file) != status_t{})
+		{
+			// clear the flag
+			status = status & ~status_t::oversized_file;
+			if (m_ses.alerts().should_post<oversized_file_alert>())
+				m_ses.alerts().emplace_alert<oversized_file_alert>(get_handle());
+		}
 
 		if (error)
 		{

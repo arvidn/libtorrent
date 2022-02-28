@@ -404,7 +404,7 @@ namespace aux {
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void posix_storage::initialize(settings_interface const&, storage_error& ec)
+	status_t posix_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -432,11 +432,14 @@ namespace aux {
 			}
 		}
 
+		status_t ret{};
 		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
 			, [this](file_index_t const file_index, storage_error& e)
 			{ open_file(file_index, aux::open_mode::write, 0, e); }
 			, aux::create_symlink
+			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
 			, ec);
+		return ret;
 	}
 
 	file_pointer posix_storage::open_file(file_index_t idx, open_mode_t const mode
