@@ -165,7 +165,6 @@ using jobqueue_t = tailqueue<aux::mmap_disk_job>;
 // of disk io jobs
 struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	: disk_interface
-	, buffer_allocator_interface
 {
 	mmap_disk_io(io_context& ios, settings_interface const&, counters& cnt);
 #if TORRENT_USE_ASSERTS
@@ -212,10 +211,6 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 
 	void async_clear_piece(storage_index_t storage, piece_index_t index
 		, std::function<void(piece_index_t)> handler) override;
-
-	// implements buffer_allocator_interface
-	void free_disk_buffer(char* b) override
-	{ m_buffer_pool.free_buffer(b); }
 
 	void update_stats_counters(counters& c) const override;
 
@@ -648,7 +643,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_read(aux::mmap_disk_job* j)
 	{
-		j->argument = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+		j->argument = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
 		if (!buffer)
 		{
@@ -766,7 +761,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
 			{
-				buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 				if (!buffer)
 				{
 					ec.ec = error::no_memory;
@@ -827,7 +822,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
 			{
-				buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 				if (!buffer)
 				{
 					ec.ec = error::no_memory;
@@ -871,7 +866,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		bool exceeded = false;
-		disk_buffer_holder buffer(*this, m_buffer_pool.allocate_buffer(
+		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
 			exceeded, o, "receive buffer"), default_block_size);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));

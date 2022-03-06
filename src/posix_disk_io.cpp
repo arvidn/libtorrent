@@ -60,7 +60,6 @@ namespace {
 
 	struct TORRENT_EXTRA_EXPORT posix_disk_io final
 		: disk_interface
-		, buffer_allocator_interface
 	{
 		posix_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
 			: m_settings(sett)
@@ -100,13 +99,13 @@ namespace {
 			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
 			, disk_job_flags_t) override
 		{
-			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
 			storage_error error;
 			if (!buffer)
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				post(m_ios, [=, h = std::move(handler)]{ h(disk_buffer_holder(*this, nullptr, 0), error); });
+				post(m_ios, [=, h = std::move(handler)]{ h(disk_buffer_holder(m_buffer_pool, nullptr, 0), error); });
 				return;
 			}
 
@@ -168,7 +167,7 @@ namespace {
 			bool const v1 = bool(flags & disk_interface::v1_hash);
 			bool const v2 = !block_hashes.empty();
 
-			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
+			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
 			storage_error error;
 			if (!buffer)
 			{
@@ -228,7 +227,7 @@ namespace {
 		{
 			time_point const start_time = clock_type::now();
 
-			disk_buffer_holder buffer = disk_buffer_holder(*this, m_buffer_pool.allocate_buffer("hash buffer"), 0x4000);
+			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("hash buffer"), 0x4000);
 			storage_error error;
 			if (!buffer)
 			{
@@ -370,10 +369,6 @@ namespace {
 		{
 			post(m_ios, [=, h = std::move(handler)]{ h(index); });
 		}
-
-		// implements buffer_allocator_interface
-		void free_disk_buffer(char* b) override
-		{ m_buffer_pool.free_buffer(b); }
 
 		void update_stats_counters(counters&) const override {}
 
