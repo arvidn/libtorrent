@@ -102,6 +102,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* send User-Agent field in anonymous mode
 	* fix python binding for settings_pack conversion
 	* fix DHT announce timer issue
 	* use DSCP_TRAFFIC_TYPE socket option on windows
