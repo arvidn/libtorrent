@@ -304,6 +304,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		}
 
 		file_storage const& fs = files();
+		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
@@ -318,6 +319,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (!err && size > 0)
 			{
 				use_partfile(i, false);
+				if (size > fs.file_size(i))
+					ret = ret | status_t::oversized_file;
 			}
 			else
 			{
@@ -329,7 +332,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 		}
 
-		status_t ret{};
 		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
 			, [&sett, this](file_index_t const file_index, storage_error& e)
 			{ open_file(sett, file_index, aux::open_mode::write, e); }

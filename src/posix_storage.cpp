@@ -413,6 +413,7 @@ namespace aux {
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
 		// libtorrent, when part files were not supported.
+		status_t ret{};
 		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
 		{
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
@@ -422,6 +423,10 @@ namespace aux {
 			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
 			stat_file(file_path, &s, err);
+
+			if (s.file_size > fs.file_size(i))
+				ret = ret | status_t::oversized_file;
+
 			if (!err)
 			{
 				use_partfile(i, false);
@@ -432,7 +437,6 @@ namespace aux {
 			}
 		}
 
-		status_t ret{};
 		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
 			, [this](file_index_t const file_index, storage_error& e)
 			{ open_file(file_index, aux::open_mode::write, 0, e); }
