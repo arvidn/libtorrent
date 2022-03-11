@@ -2,5 +2,5 @@
 import os
 import runpy
 
-os.chdir('bindings/python')
-runpy.run_path('setup.py')
+os.chdir("bindings/python")
+runpy.run_path("setup.py")
