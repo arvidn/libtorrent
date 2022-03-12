@@ -668,7 +668,9 @@ file_mapping::file_mapping(file_mapping&& rhs)
 
 void file_mapping::dont_need(span<byte const> range)
 {
-	TORRENT_UNUSED(range);
+	auto* const start = const_cast<byte*>(range.data());
+	auto const size = static_cast<std::size_t>(range.size());
+
 #if TORRENT_USE_MADVISE
 	int const advise = 0
 #if defined TORRENT_LINUX && defined MADV_COLD
@@ -681,8 +683,32 @@ void file_mapping::dont_need(span<byte const> range)
 	;
 
 	if (advise)
-		madvise(const_cast<byte*>(range.data()), static_cast<std::size_t>(range.size()), advise);
+		::madvise(start, size, advise);
 #endif
+#ifndef TORRENT_WINDOWS
+	::msync(start, size, MS_INVALIDATE);
+#else
+	TORRENT_UNUSED(start);
+	TORRENT_UNUSED(size);
+#endif
+}
+
+void file_mapping::page_out(span<byte const> range)
+{
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+	// ignore errors, this is best-effort
+	FlushViewOfFile(range.data(), static_cast<std::size_t>(range.size()));
+#else
+
+	auto* const start = const_cast<byte*>(range.data());
+	auto const size = static_cast<std::size_t>(range.size());
+#if TORRENT_USE_MADVISE && defined MADV_PAGEOUT
+	::madvise(start, size, MADV_PAGEOUT);
+#endif
+
+	::msync(start, size, MS_ASYNC);
+
+#endif // MAP_VIEW_OF_FILE
 }
 
 } // aux

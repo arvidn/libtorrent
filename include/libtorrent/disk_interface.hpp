@@ -150,6 +150,10 @@ namespace file_open_mode {
 		// hash does not need to be computed.
 		static inline constexpr disk_job_flags_t v1_hash = 5_bit;
 
+		// this flag instructs a hash job that we just completed this piece, and
+		// it should be flushed to disk
+		static constexpr disk_job_flags_t flush_piece = 7_bit;
+
 		// this is called when a new torrent is added. The shared_ptr can be
 		// used to hold the internal torrent object alive as long as there are
 		// outstanding disk operations on the storage.

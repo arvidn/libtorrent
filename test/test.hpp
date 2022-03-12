@@ -39,6 +39,8 @@ see LICENSE file.
 #define EXPORT
 #endif
 
+namespace unit_test {
+
 void EXPORT report_failure(char const* err, char const* file, int line);
 int EXPORT print_failures();
 int EXPORT test_counter();
@@ -55,28 +57,30 @@ struct unit_test_t
 	FILE* output;
 };
 
-extern unit_test_t EXPORT _g_unit_tests[1024];
-extern int EXPORT _g_num_unit_tests;
-extern int EXPORT _g_test_failures;
-extern int _g_test_idx;
+extern unit_test_t EXPORT g_unit_tests[1024];
+extern int EXPORT g_num_unit_tests;
+extern int EXPORT g_test_failures;
+extern int g_test_idx;
+
+} // unit_test
 
 #define TORRENT_TEST(test_name) \
 	static void BOOST_PP_CAT(unit_test_, test_name)(); \
 	static struct BOOST_PP_CAT(register_class_, test_name) { \
 		BOOST_PP_CAT(register_class_, test_name) () { \
-			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \
+			auto& t = ::unit_test::g_unit_tests[::unit_test::g_num_unit_tests]; \
 			t.fun = &BOOST_PP_CAT(unit_test_, test_name); \
 			t.name = __FILE__ "." #test_name; \
 			t.num_failures = 0; \
 			t.run = false; \
 			t.output = nullptr; \
-			_g_num_unit_tests++; \
+			::unit_test::g_num_unit_tests++; \
 		} \
-	} BOOST_PP_CAT(_static_registrar_, test_name); \
+	} BOOST_PP_CAT(g_static_registrar_for, test_name); \
 	static void BOOST_PP_CAT(unit_test_, test_name)()
 
 #define TEST_REPORT_AUX(x, line, file) \
-	report_failure(x, line, file)
+	unit_test::report_failure(x, line, file)
 
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
@@ -85,15 +89,15 @@ extern int _g_test_idx;
 	} while (false)
 #define TEST_EQUAL(x, y) \
 	do if ((x) != (y)) { \
-		std::stringstream s__; \
-		s__ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
-		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+		std::stringstream _s_; \
+		_s_ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
+		TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 	} while (false)
 #define TEST_NE(x, y) \
 	do if ((x) == (y)) { \
-		std::stringstream s__; \
-		s__ << "TEST_ERROR: not equal check failed:\n" #x ": " << (x) << "\nexpected not equal to: " << (y); \
-		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+		std::stringstream _s_; \
+		_s_ << "TEST_ERROR: not equal check failed:\n" #x ": " << (x) << "\nexpected not equal to: " << (y); \
+		TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 	} while (false)
 #else
 #define TEST_CHECK(x) \
@@ -102,9 +106,9 @@ extern int _g_test_idx;
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -114,14 +118,14 @@ extern int _g_test_idx;
 #define TEST_EQUAL(x, y) \
 	do try { \
 		if ((x) != (y)) { \
-			std::stringstream s__; \
-			s__ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
-			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+			std::stringstream _s_; \
+			_s_ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
+			TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \
@@ -130,14 +134,14 @@ extern int _g_test_idx;
 #define TEST_NE(x, y) \
 	do try { \
 		if ((x) == (y)) { \
-			std::stringstream s__; \
-			s__ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
-			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+			std::stringstream _s_; \
+			_s_ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
+			TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception const& e__) \
+	catch (std::exception const& _e) \
 	{ \
-		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e__.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(_e.what())); \
 	} \
 	catch (...) \
 	{ \

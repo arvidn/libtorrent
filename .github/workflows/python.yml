@@ -100,7 +100,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.72.0 https://github.com/boostorg/boost.git
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
         cd boost
         bootstrap.bat
 
@@ -115,7 +115,8 @@ jobs:
       if: runner.os == 'Windows'
       uses: nick-invision/retry@v2
       with:
-        timeout_minutes: 30
+        shell: cmd
+        timeout_minutes: 5
         retry_wait_seconds: 4
         max_attempts: 3
         command: choco install openssl --limitoutput --no-progress

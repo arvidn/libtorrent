@@ -1058,6 +1058,10 @@ namespace aux {
 		// When combining file- and piece priorities, the resume file will record
 		// both. When loading the resume data, the file priorities will be applied
 		// first, then the piece priorities.
+		//
+		// Moving data from a file into the part file is currently not
+		// supported. If a file has its priority set to 0 *after* it has already
+		// been created, it will not be moved into the partfile.
 		void file_priority(file_index_t index, download_priority_t priority) const;
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
@@ -1236,6 +1240,11 @@ namespace aux {
 		// torrent but are stored in the torrent's directory may be moved as
 		// well. This goes for files that have been renamed to absolute paths
 		// that still end up inside the save path.
+		//
+		// When copying files, sparse regions are not likely to be preserved.
+		// This makes it proportionally more expensive to move a large torrent
+		// when only few pieces have been downloaded, since the files are then
+		// allocated with zeros in the destination directory.
 		void move_storage(std::string const& save_path
 			, move_flags_t flags = move_flags_t::always_replace_files
 			) const;

@@ -76,10 +76,14 @@ see LICENSE file.
 
 #if defined __APPLE__
 
-#define TORRENT_NATIVE_UTF8 1
-
 #include <AvailabilityMacros.h>
 #include <TargetConditionals.h>
+
+#if defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
+#define TORRENT_HAS_COPYFILE 1
+#endif
+
+#define TORRENT_NATIVE_UTF8 1
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 // on OSX, use the built-in common crypto for built-in
@@ -129,6 +133,10 @@ see LICENSE file.
 
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
+
+#if defined __GLIBC__ && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 27))
+#define TORRENT_HAS_COPY_FILE_RANGE 1
 #endif
 
 #define TORRENT_HAS_PTHREAD_SET_NAME 1
@@ -501,6 +509,14 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_PTHREAD_SET_NAME
 #define TORRENT_HAS_PTHREAD_SET_NAME 0
+#endif
+
+#ifndef TORRENT_HAS_COPY_FILE_RANGE
+#define TORRENT_HAS_COPY_FILE_RANGE 0
+#endif
+
+#ifndef TORRENT_HAS_COPYFILE
+#define TORRENT_HAS_COPYFILE 0
 #endif
 
 // debug builds have asserts enabled by default, release

@@ -667,6 +667,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, std::function<void(file_index_t, storage_error&)> create_file
 		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
+		, std::function<void(file_index_t, std::int64_t)> oversized_file
 		, storage_error& ec)
 	{
 		// create zero-sized files
@@ -684,7 +685,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 			// this is just to see if the file exists
 			error_code err;
-			sc.get_filesize(file_index, fs, save_path, err);
+			auto const sz = sc.get_filesize(file_index, fs, save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
@@ -694,11 +695,18 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 				break;
 			}
 
+			auto const fs_file_size = fs.file_size(file_index);
+			if (!err && sz > fs_file_size)
+			{
+				// this file is oversized, alert the client
+				oversized_file(file_index, sz);
+			}
+
 			// if the file is empty and doesn't already exist, create it
 			// deliberately don't truncate files that already exist
 			// if a file is supposed to have size 0, but already exists, we will
 			// never truncate it to 0.
-			if (fs.file_size(file_index) == 0)
+			if (fs_file_size == 0)
 			{
 				// create symlinks
 				if (fs.file_flags(file_index) & file_storage::flag_symlink)

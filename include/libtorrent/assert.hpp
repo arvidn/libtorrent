@@ -70,12 +70,12 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
-	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
+	do { if (x) {} else { std::stringstream _s; _s << #y ": " << y; \
+	libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, _s.str().c_str(), 0); } } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT_FAIL_VAL(y) \
-	do { std::stringstream __s__; __s__ << #y ": " << y; \
-	libtorrent::assert_fail("<unconditional>", __LINE__, __FILE__, __func__, __s__.str().c_str(), 0); } TORRENT_WHILE_0
+	do { std::stringstream _s; _s << #y ": " << y; \
+	libtorrent::assert_fail("<unconditional>", __LINE__, __FILE__, __func__, _s.str().c_str(), 0); } TORRENT_WHILE_0
 
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)

@@ -12,16 +12,20 @@ see LICENSE file.
 
 #include "test.hpp"
 
-unit_test_t _g_unit_tests[1024];
-int _g_num_unit_tests = 0;
-int _g_test_failures = 0; // flushed at start of every unit
-int _g_test_idx = 0;
+namespace unit_test {
 
-static std::vector<std::string> failure_strings;
+unit_test_t g_unit_tests[1024];
+int g_num_unit_tests = 0;
+int g_test_failures = 0; // flushed at start of every unit
+int g_test_idx = 0;
+
+namespace {
+std::vector<std::string> failure_strings;
+}
 
 int test_counter()
 {
-	return _g_test_idx;
+	return g_test_idx;
 }
 
 void report_failure(char const* err, char const* file, int line)
@@ -30,37 +34,37 @@ void report_failure(char const* err, char const* file, int line)
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
 	std::printf("\n%s\n", buf);
 	failure_strings.push_back(buf);
-	++_g_test_failures;
+	++g_test_failures;
 }
 
 int print_failures()
 {
 	int longest_name = 0;
-	for (int i = 0; i < _g_num_unit_tests; ++i)
+	for (int i = 0; i < g_num_unit_tests; ++i)
 	{
-		int len = int(strlen(_g_unit_tests[i].name));
+		int len = int(strlen(g_unit_tests[i].name));
 		if (len > longest_name) longest_name = len;
 	}
 
 	std::printf("\n\n");
 	int total_num_failures = 0;
 
-	for (int i = 0; i < _g_num_unit_tests; ++i)
+	for (int i = 0; i < g_num_unit_tests; ++i)
 	{
-		if (_g_unit_tests[i].run == false) continue;
+		if (g_unit_tests[i].run == false) continue;
 
-		if (_g_unit_tests[i].num_failures == 0)
+		if (g_unit_tests[i].num_failures == 0)
 		{
 			std::printf("\x1b[32m[%-*s] ***PASS***\n"
-				, longest_name, _g_unit_tests[i].name);
+				, longest_name, g_unit_tests[i].name);
 		}
 		else
 		{
-			total_num_failures += _g_unit_tests[i].num_failures;
+			total_num_failures += g_unit_tests[i].num_failures;
 			std::printf("\x1b[31m[%-*s] %d FAILURES\n"
 				, longest_name
-				, _g_unit_tests[i].name
-				, _g_unit_tests[i].num_failures);
+				, g_unit_tests[i].name
+				, g_unit_tests[i].num_failures);
 		}
 	}
 
@@ -72,3 +76,4 @@ int print_failures()
 	return total_num_failures;
 }
 
+} // unit_test

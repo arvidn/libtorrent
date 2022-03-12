@@ -96,6 +96,12 @@ constexpr int CLOSE_FILE_INTERVAL = 240;
 constexpr int CLOSE_FILE_INTERVAL = 0;
 #endif
 
+#ifdef TORRENT_WINDOWS
+constexpr int DISK_WRITE_MODE = settings_pack::write_through;
+#else
+constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
+#endif
+
 		// tested to fail with _MSC_VER <= 1916. The actual version condition
 #if !defined _MSC_VER
 #define CONSTEXPR_SETTINGS constexpr
@@ -253,7 +259,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		DEPRECATED_SET(cache_size, 2048, nullptr),
 		DEPRECATED_SET(cache_buffer_chunk_size, 0, nullptr),
 		DEPRECATED_SET(cache_expiry, 300, nullptr),
-		SET(disk_io_write_mode, settings_pack::enable_os_cache, nullptr),
+		SET(disk_io_write_mode, DISK_WRITE_MODE, nullptr),
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
 		SET(outgoing_port, 0, nullptr),
 		SET(num_outgoing_ports, 0, nullptr),

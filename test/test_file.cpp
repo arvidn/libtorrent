@@ -121,19 +121,7 @@ TORRENT_TEST(directory)
 	TEST_CHECK(files.count(".") == 1);
 	files.clear();
 
-	recursive_copy("file_test_dir", "file_test_dir2", ec);
-
-	for (aux::directory i("file_test_dir2", ec); !i.done(); i.next(ec))
-	{
-		std::string f = i.file();
-		TEST_CHECK(files.count(f) == 0);
-		files.insert(f);
-		std::printf(" %s\n", f.c_str());
-	}
-
 	remove_all("file_test_dir", ec);
-	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
-	remove_all("file_test_dir2", ec);
 	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
 }
 

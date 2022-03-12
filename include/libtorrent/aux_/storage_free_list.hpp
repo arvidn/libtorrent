@@ -29,6 +29,8 @@ namespace aux {
 
 		void add(storage_index_t const i) { m_free_slots.push_back(i); }
 
+		std::size_t size() const { return m_free_slots.size(); }
+
 	private:
 
 		storage_index_t pop()

@@ -24,7 +24,7 @@ see LICENSE file.
 
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
+#include "libtorrent/disk_buffer_holder.hpp" // for buffer_allocator_interface
 
 namespace libtorrent {
 
@@ -33,7 +33,8 @@ namespace libtorrent {
 
 namespace aux {
 
-	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
+	struct TORRENT_EXTRA_EXPORT disk_buffer_pool final
+		: buffer_allocator_interface
 	{
 		explicit disk_buffer_pool(io_context& ios);
 		~disk_buffer_pool();
@@ -43,6 +44,7 @@ namespace aux {
 		char* allocate_buffer(char const* category);
 		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category);
+		void free_disk_buffer(char* b) override { free_buffer(b); }
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec);
 

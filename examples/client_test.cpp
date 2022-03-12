@@ -610,6 +610,7 @@ void assign_setting(lt::settings_pack& settings, std::string const& key, char co
 				{"anti_leech"_sv, settings_pack::anti_leech},
 				{"enable_os_cache"_sv, settings_pack::enable_os_cache},
 				{"disable_os_cache"_sv, settings_pack::disable_os_cache},
+				{"write_through"_sv, settings_pack::write_through},
 				{"prefer_tcp"_sv, settings_pack::prefer_tcp},
 				{"peer_proportional"_sv, settings_pack::peer_proportional},
 				{"pe_forced"_sv, settings_pack::pe_forced},

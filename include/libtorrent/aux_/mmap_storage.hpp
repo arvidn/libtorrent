@@ -69,7 +69,7 @@ namespace libtorrent::aux {
 			, storage_error&);
 		void release_files(storage_error&);
 		void delete_files(remove_flags_t options, storage_error&);
-		void initialize(settings_interface const&, storage_error&);
+		status_t initialize(settings_interface const&, storage_error&);
 		std::pair<status_t, std::string> move_storage(std::string save_path
 			, move_flags_t, storage_error&);
 		bool verify_resume_data(add_torrent_params const& rd
@@ -78,9 +78,13 @@ namespace libtorrent::aux {
 		bool tick();
 
 		int readv(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t mode, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags
+			, storage_error&);
 		int writev(settings_interface const&, span<iovec_t const> bufs
-			, piece_index_t piece, int offset, aux::open_mode_t mode, storage_error&);
+			, piece_index_t piece, int offset, aux::open_mode_t mode
+			, disk_job_flags_t flags
+			, storage_error&);
 		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);

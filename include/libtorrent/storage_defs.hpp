@@ -43,8 +43,31 @@ namespace libtorrent {
 		no_error,
 		fatal_disk_error,
 		need_full_check,
-		file_exist
+		file_exist,
+
+		// hidden
+		mask = 0xf,
+
+		// this is not an enum value, but a flag that can be set in the return
+		// from async_check_files, in case an existing file was found larger than
+		// specified in the torrent. i.e. it has garbage at the end
+		// the status_t field is used for this to preserve ABI.
+		oversized_file = 0x10,
 	};
+
+	// internal
+	inline status_t operator|(status_t lhs, status_t rhs)
+	{
+		return status_t(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
+	}
+	inline status_t operator&(status_t lhs, status_t rhs)
+	{
+		return status_t(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
+	}
+	inline status_t operator~(status_t lhs)
+	{
+		return status_t(~static_cast<std::uint8_t>(lhs));
+	}
 
 	// flags for async_move_storage
 	enum class move_flags_t : std::uint8_t

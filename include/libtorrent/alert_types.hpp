@@ -73,7 +73,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 98;
+	constexpr int num_alert_types = 99;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -2932,6 +2932,26 @@ TORRENT_VERSION_NAMESPACE_3
 	};
 
 TORRENT_VERSION_NAMESPACE_3_END
+
+	// this alert may be posted when the initial checking of resume data and files
+	// on disk (just existence, not piece hashes) completes. If a file belonging
+	// to the torrent is found on disk, but is larger than the file in the
+	// torrent, that's when this alert is posted.
+	// the client may want to call truncate_files() in that case, or perhaps
+	// interpret it as a sign that some other file is in the way, that shouldn't
+	// be overwritten.
+	struct TORRENT_EXPORT oversized_file_alert final : torrent_alert
+	{
+		// internal
+		explicit oversized_file_alert(aux::stack_allocator& alloc, torrent_handle h);
+		TORRENT_DEFINE_ALERT(oversized_file_alert, 98)
+
+		static constexpr alert_category_t static_category = alert_category::storage;
+		std::string message() const override;
+
+		// hidden
+		file_index_t reserved;
+	};
 
 	// internal
 	TORRENT_EXTRA_EXPORT char const* performance_warning_str(performance_alert::performance_warning_t i);

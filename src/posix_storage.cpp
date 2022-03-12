@@ -109,7 +109,7 @@ namespace aux {
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp, ec.ec)) use_partfile(i, false);
+				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
 				{
 					ec.file(i);
@@ -117,6 +117,7 @@ namespace aux {
 					prio = m_file_priority;
 					return;
 				}
+				use_partfile(i, !file_exists);
 			}
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
@@ -379,7 +380,7 @@ namespace aux {
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void posix_storage::initialize(settings_interface const&, storage_error& ec)
+	status_t posix_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -388,6 +389,7 @@ namespace aux {
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
 		// libtorrent, when part files were not supported.
+		status_t ret{};
 		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
 		{
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
@@ -397,6 +399,10 @@ namespace aux {
 			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
 			stat_file(file_path, &s, err);
+
+			if (s.file_size > fs.file_size(i))
+				ret = ret | status_t::oversized_file;
+
 			if (!err)
 			{
 				use_partfile(i, false);
@@ -411,7 +417,9 @@ namespace aux {
 			, [this](file_index_t const file_index, storage_error& e)
 			{ open_file(file_index, aux::open_mode::write, 0, e); }
 			, aux::create_symlink
+			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
 			, ec);
+		return ret;
 	}
 
 	file_pointer posix_storage::open_file(file_index_t idx, open_mode_t const mode
@@ -438,8 +446,15 @@ namespace aux {
 			// if we fail to open a file for writing, and the error is ENOENT,
 			// it is likely because the directory we're creating the file in
 			// does not exist. Create the directory and try again.
-			if ((mode & open_mode::write)
-				&& ec.ec == boost::system::errc::no_such_file_or_directory)
+			if ((mode & aux::open_mode::write)
+				&& (ec.ec == boost::system::errc::no_such_file_or_directory
+#ifdef TORRENT_WINDOWS
+					// this is a workaround for improper handling of files on windows shared drives.
+					// if the directory on a shared drive does not exist,
+					// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+					|| ec.ec == error_code(ERROR_IO_DEVICE, system_category())
+#endif
+			))
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
@@ -501,7 +516,13 @@ namespace aux {
 
 	void posix_storage::use_partfile(file_index_t const index, bool const b)
 	{
-		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		if (index >= m_use_partfile.end_index())
+		{
+			// no need to extend this array if we're just setting it to "true",
+			// that's default already
+			if (b) return;
+			m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		}
 		m_use_partfile[index] = b;
 	}
 

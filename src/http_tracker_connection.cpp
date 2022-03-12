@@ -216,8 +216,11 @@ namespace libtorrent::aux {
 		// in anonymous mode we omit the user agent to mitigate fingerprinting of
 		// the client. Private torrents is an exception because some private
 		// trackers may require the user agent
-		std::string const user_agent = settings.get_bool(settings_pack::anonymous_mode)
-			&& !tracker_req().private_torrent ? "" : settings.get_str(settings_pack::user_agent);
+		bool const anon_user = settings.get_bool(settings_pack::anonymous_mode)
+			&& !tracker_req().private_torrent;
+		std::string const user_agent = anon_user
+			? "curl/7.81.0"
+			: settings.get_str(settings_pack::user_agent);
 
 		// when sending stopped requests, prefer the cached DNS entry
 		// to avoid being blocked for slow or failing responses. Chances

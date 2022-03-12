@@ -63,14 +63,14 @@ project
 	<library>libtorrent_test
 	<library>/torrent//torrent
 	# C4127: conditional expression is constant
-	<toolset>msvc:<cflags>/wd4127
+	<toolset>msvc:<cxxflags>/wd4127
 	# C4309: 'conversion' : truncation of constant value
-	<toolset>msvc:<cflags>/wd4309
+	<toolset>msvc:<cxxflags>/wd4309
 	# C4310: cast truncates constant value
-	<toolset>msvc:<cflags>/wd4310
+	<toolset>msvc:<cxxflags>/wd4310
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#        with compiler generated default constructor fills the object with zeros
-	<toolset>msvc:<cflags>/wd4268
+	<toolset>msvc:<cxxflags>/wd4268
 	<conditional>@warnings
 	<export-extra>on
 	: default-build
@@ -198,6 +198,8 @@ run test_hash_picker.cpp ;
 run test_torrent.cpp ;
 run test_remap_files.cpp ;
 run test_similar_torrent.cpp ;
+run test_truncate.cpp ;
+run test_copy_file.cpp ;
 
 # turn these tests into simulations
 run test_resume.cpp ;
@@ -316,5 +318,6 @@ alias deterministic-tests :
 	test_xml
 	test_store_buffer
 	test_similar_torrent
+	test_truncate
 	test_vector_utils
 	;

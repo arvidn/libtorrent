@@ -35,6 +35,7 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/flags.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -74,24 +75,37 @@ void delete_dirs(std::string path)
 	TEST_CHECK(!exists(path));
 }
 
-void on_check_resume_data(lt::status_t const status, storage_error const& error, bool* done)
+void on_check_resume_data(lt::status_t const status, storage_error const& error, bool* done, bool* oversized)
 {
 	std::cout << time_now_string() << " on_check_resume_data ret: "
 		<< static_cast<int>(status);
-	switch (status)
+	if ((status & lt::status_t::oversized_file) != status_t{})
+	{
+		std::cout << " oversized file(s) - ";
+		*oversized = true;
+	}
+	else
+	{
+		*oversized = false;
+	}
+
+	switch (status & ~lt::status_t::mask)
 	{
 		case lt::status_t::no_error:
-			std::cout << time_now_string() << " success" << std::endl;
+			std::cout << " success" << std::endl;
 			break;
 		case lt::status_t::fatal_disk_error:
-			std::cout << time_now_string() << " disk error: " << error.ec.message()
+			std::cout << " disk error: " << error.ec.message()
 				<< " file: " << error.file() << std::endl;
 			break;
 		case lt::status_t::need_full_check:
-			std::cout << time_now_string() << " need full check" << std::endl;
+			std::cout << " need full check" << std::endl;
 			break;
 		case lt::status_t::file_exist:
-			std::cout << time_now_string() << " file exist" << std::endl;
+			std::cout << " file exist" << std::endl;
+			break;
+		case lt::status_t::mask:
+		case lt::status_t::oversized_file:
 			break;
 	}
 	std::cout << std::endl;
@@ -218,7 +232,7 @@ int writev(std::shared_ptr<mmap_storage> s
 	, aux::open_mode_t const mode
 	, storage_error& error)
 {
-	return s->writev(sett, bufs, piece, offset, mode, error);
+	return s->writev(sett, bufs, piece, offset, mode, disk_job_flags_t{}, error);
 }
 
 int readv(std::shared_ptr<mmap_storage> s
@@ -226,10 +240,10 @@ int readv(std::shared_ptr<mmap_storage> s
 	, span<iovec_t const> bufs
 	, piece_index_t piece
 	, int const offset
-	, aux::open_mode_t flags
+	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->readv(sett, bufs, piece, offset, flags, ec);
+	return s->readv(sett, bufs, piece, offset, mode, disk_job_flags_t{}, ec);
 }
 
 void release_files(std::shared_ptr<mmap_storage> s, storage_error& ec)
@@ -481,9 +495,17 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->files().file_path(0_file), "new_filename");
 }
 
-void test_check_files(std::string const& test_path
-	, lt::storage_mode_t storage_mode)
+using lt::operator""_bit;
+using check_files_flag_t = lt::flags::bitfield_flag<std::uint64_t, struct check_files_flag_type_tag>;
+
+constexpr check_files_flag_t sparse = 0_bit;
+constexpr check_files_flag_t test_oversized = 1_bit;
+constexpr check_files_flag_t zero_prio = 2_bit;
+
+void test_check_files(check_files_flag_t const flags
+	, lt::disk_io_constructor_type const disk_constructor)
 {
+	std::string const test_path = current_working_directory();
 	std::shared_ptr<torrent_info> info;
 
 	error_code ec;
@@ -507,10 +529,13 @@ void test_check_files(std::string const& test_path
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
 
+	if (flags & test_oversized)
+		piece2.push_back(0x42);
+
 	ofstream(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str())
-		.write(piece0.data(), piece_size_check);
+		.write(piece0.data(), std::streamsize(piece0.size()));
 	ofstream(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str())
-		.write(piece2.data(), piece_size_check);
+		.write(piece2.data(), std::streamsize(piece2.size()));
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -522,16 +547,19 @@ void test_check_files(std::string const& test_path
 
 	aux::session_settings sett;
 	sett.set_int(settings_pack::aio_threads, 1);
-	std::unique_ptr<disk_interface> io = default_disk_io_constructor(ios, sett, cnt);
+	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
 
-	aux::vector<download_priority_t, file_index_t> priorities(
-		std::size_t(info->num_files()), download_priority_t{});
+	aux::vector<download_priority_t, file_index_t> priorities;
+
+	if (flags & zero_prio)
+		priorities.resize(std::size_t(info->num_files()), download_priority_t{});
+
 	sha1_hash info_hash;
 	storage_params p{
 		fs,
 		nullptr,
 		test_path,
-		storage_mode,
+		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
 		priorities,
 		info_hash
 	};
@@ -539,13 +567,16 @@ void test_check_files(std::string const& test_path
 	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
 
 	bool done = false;
+	bool oversized = false;
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
 	io->async_check_files(st, &frd, links
-		, std::bind(&on_check_resume_data, _1, _2, &done));
+		, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
 	io->submit_jobs();
 	ios.restart();
 	run_until(ios, done);
+
+	TEST_EQUAL(oversized, bool(flags & test_oversized));
 
 	for (auto const i : info->piece_range())
 	{
@@ -618,14 +649,47 @@ void run_test()
 	delete_dirs("temp_storage");
 }
 
-TORRENT_TEST(check_files_sparse)
+#if TORRENT_HAVE_MMAP
+TORRENT_TEST(check_files_sparse_mmap)
 {
-	test_check_files(current_working_directory(), storage_mode_sparse);
+	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor);
 }
 
-TORRENT_TEST(check_files_allocate)
+TORRENT_TEST(check_files_oversized_mmap_zero_prio)
 {
-	test_check_files(current_working_directory(), storage_mode_allocate);
+	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor);
+}
+
+TORRENT_TEST(check_files_oversized_mmap)
+{
+	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor);
+}
+
+
+TORRENT_TEST(check_files_allocate_mmap)
+{
+	test_check_files(zero_prio, lt::mmap_disk_io_constructor);
+}
+#endif
+TORRENT_TEST(check_files_sparse_posix)
+{
+	test_check_files(sparse | zero_prio, lt::posix_disk_io_constructor);
+}
+
+TORRENT_TEST(check_files_oversized_zero_prio_posix)
+{
+	test_check_files(sparse | zero_prio | test_oversized, lt::posix_disk_io_constructor);
+}
+
+TORRENT_TEST(check_files_oversized_posix)
+{
+	test_check_files(sparse | test_oversized, lt::posix_disk_io_constructor);
+}
+
+
+TORRENT_TEST(check_files_allocate_posix)
+{
+	test_check_files(zero_prio, lt::posix_disk_io_constructor);
 }
 
 #if TORRENT_HAVE_MMAP
@@ -1492,7 +1556,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 
 	iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev(set, b, 2_piece, 0, aux::open_mode::write, se);
+	s->writev(set, b, 2_piece, 0, aux::open_mode::write, disk_job_flags_t{}, se);
 
 	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"
@@ -1580,7 +1644,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 
 	fun(disk_io.get(), t, ioc, outstanding);
 
-	disk_io->remove_torrent(t);
+	t.reset();
 	disk_io->abort(true);
 }
 

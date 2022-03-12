@@ -180,6 +180,11 @@ TORRENT_TEST(create_torrent_round_trip_hybrid)
 	test_round_trip_torrent("v2_hybrid.torrent");
 }
 
+TORRENT_TEST(create_torrent_round_trip_empty_file)
+{
+	test_round_trip_torrent("v2_empty_file.torrent");
+}
+
 // check that attempting to create a torrent containing both
 // a file and directory with the same name is not allowed
 TORRENT_TEST(v2_path_conflict)

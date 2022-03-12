@@ -140,6 +140,7 @@ namespace {
 
 				auto const file_piece_offset = piece - file_first_piece;
 				auto const file_size = st->ct.files().file_size(current_file);
+				TORRENT_ASSERT(file_size > 0);
 				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
 				auto const piece_blocks = st->ct.files().blocks_in_piece2(piece);
 				int const num_leafs = merkle_num_leafs(file_blocks);
@@ -463,6 +464,7 @@ namespace {
 			{
 				// don't include merkle hash trees for pad files
 				if (m_files.pad_file_at(i)) continue;
+				if (m_files.file_size(i) == 0) continue;
 
 				auto const file_size = m_files.file_size(i);
 				if (file_size <= m_files.piece_length())
@@ -872,6 +874,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(piece < piece_index_t::diff_type(m_files.file_num_pieces(file)));
 		TORRENT_ASSERT_PRECOND(!m_files.pad_file_at(file));
 		TORRENT_ASSERT_PRECOND(!h.is_all_zeros());
+		TORRENT_ASSERT_PRECOND(m_files.file_num_pieces(file) > 0);
 
 		if (m_v1_only)
 			aux::throw_ex<system_error>(errors::invalid_hash_entry);

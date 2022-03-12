@@ -186,7 +186,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				// so we just don't use a partfile for this file
 
 				std::string const fp = fs.file_path(i, m_save_path);
-				if (exists(fp, ec.ec)) use_partfile(i, false);
+				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
 				{
 					ec.file(i);
@@ -194,6 +194,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 					prio = m_file_priority;
 					return;
 				}
+				use_partfile(i, !file_exists);
 /*
 				auto f = open_file(sett, i, aux::open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
@@ -252,11 +253,17 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 	void mmap_storage::use_partfile(file_index_t const index, bool const b)
 	{
-		if (index >= m_use_partfile.end_index()) m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		if (index >= m_use_partfile.end_index())
+		{
+			// no need to extend this array if we're just setting it to "true",
+			// that's default already
+			if (b) return;
+			m_use_partfile.resize(static_cast<int>(index) + 1, true);
+		}
 		m_use_partfile[index] = b;
 	}
 
-	void mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
+	status_t mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -274,6 +281,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		}
 
 		file_storage const& fs = files();
+		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
@@ -283,16 +291,20 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;
 
-			file_status s;
-			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
-			stat_file(file_path, &s, err);
-			if (!err)
+			auto const size = m_stat_cache.get_filesize(i, fs, m_save_path, err);
+			if (!err && size > 0)
 			{
 				use_partfile(i, false);
+				if (size > fs.file_size(i))
+					ret = ret | status_t::oversized_file;
 			}
 			else
 			{
+				// we may have earlier determined we *can't* use a partfile for
+				// this file, we need to be able to change our mind in case the
+				// file disappeared
+				use_partfile(i, true);
 				need_partfile();
 			}
 		}
@@ -301,10 +313,12 @@ error_code translate_error(std::system_error const& err, bool const write)
 			, [&sett, this](file_index_t const file_index, storage_error& e)
 			{ open_file(sett, file_index, aux::open_mode::write, e); }
 			, aux::create_symlink
+			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
 			, ec);
 
 		// close files that were opened in write mode
 		m_pool.release(storage_index());
+		return ret;
 	}
 
 	bool mmap_storage::has_any_file(storage_error& ec)
@@ -321,14 +335,13 @@ error_code translate_error(std::system_error const& err, bool const write)
 		if (!ec) return true;
 
 		// the part file not existing is expected
-		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
 		if (ec)
 		{
 			ec.file(torrent_status::error_file_partfile);
 			ec.operation = operation_t::file_stat;
-			return false;
 		}
 		return false;
 	}
@@ -464,13 +477,15 @@ error_code translate_error(std::system_error const& err, bool const write)
 	int mmap_storage::readv(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, mode, &sett](file_index_t const file_index
+			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -526,6 +541,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 						file_range = file_range.subspan(buf.size());
 						ret += static_cast<int>(buf.size());
 					}
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range);
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range);
 				}
 			}
 			catch (std::system_error const& err)
@@ -553,10 +572,12 @@ error_code translate_error(std::system_error const& err, bool const write)
 	int mmap_storage::writev(settings_interface const& sett
 		, span<iovec_t const> bufs
 		, piece_index_t const piece, int const offset
-		, aux::open_mode_t const mode, storage_error& error)
+		, aux::open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
 	{
 		return readwritev(files(), bufs, piece, offset, error
-			, [this, mode, &sett](file_index_t const file_index
+			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<iovec_t const> vec, storage_error& ec)
 		{
@@ -616,6 +637,11 @@ error_code translate_error(std::system_error const& err, bool const write)
 					file_range = file_range.subspan(buf.size());
 					ret += static_cast<int>(buf.size());
 				}
+
+				if (flags & disk_interface::volatile_read)
+					handle->dont_need(file_range);
+				if (flags & disk_interface::flush_piece)
+					handle->page_out(file_range);
 			}
 			catch (std::system_error const& err)
 			{
@@ -707,6 +733,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 				ret += static_cast<int>(file_range.size());
 				if (flags & disk_interface::volatile_read)
 					handle->dont_need(file_range);
+				if (flags & disk_interface::flush_piece)
+					handle->page_out(file_range);
 			}
 
 			return ret;
@@ -756,6 +784,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 		ph.update(file_range);
 		if (flags & disk_interface::volatile_read)
 			handle->dont_need(file_range);
+		if (flags & disk_interface::flush_piece)
+			handle->page_out(file_range);
 
 		return static_cast<int>(file_range.size());
 	}
@@ -793,7 +823,14 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 		std::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec);
 		if ((mode & aux::open_mode::write)
-			&& ec.ec == boost::system::errc::no_such_file_or_directory)
+			&& (ec.ec == boost::system::errc::no_such_file_or_directory
+#ifdef TORRENT_WINDOWS
+				// this is a workaround for improper handling of files on windows shared drives.
+				// if the directory on a shared drive does not exist,
+				// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+				|| ec.ec == error_code(ERROR_IO_DEVICE, system_category())
+#endif
+		))
 		{
 			// this means the directory the file is in doesn't exist.
 			// so create it
@@ -850,8 +887,9 @@ error_code translate_error(std::system_error const& err, bool const write)
 		}
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (sett.get_int(settings_pack::disk_io_write_mode)
-			== settings_pack::disable_os_cache)
+		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
+		if (write_mode == settings_pack::disable_os_cache
+			|| write_mode == settings_pack::write_through)
 		{
 			mode |= aux::open_mode::no_cache;
 		}

@@ -92,6 +92,7 @@ namespace aux {
 		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, std::function<void(file_index_t, storage_error&)> create_file
 		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
+		, std::function<void(file_index_t, std::int64_t)> oversized_file
 		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT void create_symlink(

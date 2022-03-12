@@ -104,6 +104,7 @@
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/tracker_event.hpp"
+#include "libtorrent/truncate.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/version.hpp"

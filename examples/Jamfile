@@ -14,11 +14,12 @@ project client_test
 	<threading>multi <library>/torrent//torrent
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
-	<toolset>msvc:<cflags>/wd4275
+	<toolset>msvc:<cxxflags>/wd4275
 	# C4268: 'identifier' : 'const' static/global data initialized
 	#        with compiler generated default constructor fills the object with zeros
-	<toolset>msvc:<cflags>/wd4268
-	<toolset>msvc:<cflags>/wd4373
+	<toolset>msvc:<cxxflags>/wd4268
+	<toolset>msvc:<cxxflags>/wd4373
+	<toolset>clang:<cflags>-Wno-implicit-int-float-conversion
 	<conditional>@warnings
 	: default-build
 	<link>static

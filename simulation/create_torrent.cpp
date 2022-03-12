@@ -17,7 +17,7 @@ see LICENSE file.
 
 std::string save_path(int idx)
 {
-	int const swarm_id = test_counter();
+	int const swarm_id = unit_test::test_counter();
 	char path[200];
 	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
@@ -30,7 +30,7 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
 	// create
 	lt::add_torrent_params params;
-	int swarm_id = test_counter();
+	int swarm_id = unit_test::test_counter();
 	char name[200];
 	std::snprintf(name, sizeof(name), "temp-%02d", swarm_id);
 	std::string path = save_path(idx);

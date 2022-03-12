@@ -109,6 +109,11 @@ struct store_buffer
 		m_store_buffer.erase(it);
 	}
 
+	std::size_t size() const
+	{
+		return m_store_buffer.size();
+	}
+
 private:
 
 	mutable std::mutex m_mutex;

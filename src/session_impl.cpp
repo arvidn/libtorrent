@@ -6163,6 +6163,10 @@ namespace {
 		}
 		m_torrents.clear();
 
+		// this has probably been called already, but in case of sudden
+		// termination through an exception, it may not have been done
+		abort_stage2();
+
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
 		if (f != nullptr)

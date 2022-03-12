@@ -78,18 +78,7 @@ see LICENSE file.
 #include <sys/types.h>
 #include <cerrno>
 #include <dirent.h>
-
-#ifdef TORRENT_LINUX
-// linux specifics
-
 #include <sys/ioctl.h>
-
-#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-// mac specifics
-
-#include <copyfile.h>
-
-#endif
 
 #endif // posix part
 
@@ -450,88 +439,6 @@ namespace {
 		if (!e && s.mode & file_status::directory) return true;
 		ec = e;
 		return false;
-	}
-
-	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
-	{
-		TORRENT_ASSERT(!ec);
-		if (is_directory(old_path, ec))
-		{
-			create_directory(new_path, ec);
-			if (ec) return;
-			for (aux::directory i(old_path, ec); !i.done(); i.next(ec))
-			{
-				std::string f = i.file();
-				if (f == ".." || f == ".") continue;
-				recursive_copy(combine_path(old_path, f), combine_path(new_path, f), ec);
-				if (ec) return;
-			}
-		}
-		else if (!ec)
-		{
-			copy_file(old_path, new_path, ec);
-		}
-	}
-
-	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
-	{
-		ec.clear();
-		native_path_string f1 = convert_to_native_path_string(inf);
-		native_path_string f2 = convert_to_native_path_string(newf);
-
-#ifdef TORRENT_WINDOWS
-
-		if (CopyFileW(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), system_category());
-
-#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-		// this only works on 10.5
-		copyfile_state_t state = copyfile_state_alloc();
-		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
-			ec.assign(errno, system_category());
-		copyfile_state_free(state);
-#else
-		int const infd = ::open(f1.c_str(), O_RDONLY);
-		if (infd < 0)
-		{
-			ec.assign(errno, system_category());
-			return;
-		}
-
-		// rely on default umask to filter x and w permissions
-		// for group and others
-		mode_t const permissions = S_IRUSR | S_IWUSR
-			| S_IRGRP | S_IWGRP
-			| S_IROTH | S_IWOTH;
-
-		int const outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
-		if (outfd < 0)
-		{
-			close(infd);
-			ec.assign(errno, system_category());
-			return;
-		}
-		char buffer[4096];
-		for (;;)
-		{
-			int const num_read = int(read(infd, buffer, sizeof(buffer)));
-			if (num_read == 0) break;
-			if (num_read < 0)
-			{
-				ec.assign(errno, system_category());
-				break;
-			}
-			int const num_written = int(write(outfd, buffer, std::size_t(num_read)));
-			if (num_written < num_read)
-			{
-				ec.assign(errno, system_category());
-				break;
-			}
-			if (num_read < int(sizeof(buffer))) break;
-		}
-		close(infd);
-		close(outfd);
-#endif // TORRENT_WINDOWS
 	}
 
 	void move_file(std::string const& inf, std::string const& newf, error_code& ec)

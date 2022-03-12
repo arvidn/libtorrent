@@ -699,7 +699,7 @@ std::vector<std::string> get_python()
 
 int find_available_port()
 {
-	int port = 2000 + (std::int64_t(::getpid()) + _g_test_idx + std::rand()) % 60000;
+	int port = 2000 + (std::int64_t(::getpid()) + ::unit_test::g_test_idx + std::rand()) % 60000;
 	error_code ec;
 	io_context ios;
 

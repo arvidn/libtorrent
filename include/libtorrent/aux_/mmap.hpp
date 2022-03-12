@@ -128,6 +128,10 @@ namespace aux {
 		// anytime soon
 		void dont_need(span<byte const> range);
 
+		// hint the kernel that the given (dirty) range of pages should be
+		// flushed to disk
+		void page_out(span<byte const> range);
+
 		std::int64_t m_size;
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		file_mapping_handle m_file;
@@ -161,6 +165,13 @@ namespace aux {
 			TORRENT_ASSERT(m_mapping);
 			m_mapping->dont_need(range);
 		}
+
+		void page_out(span<byte const> range)
+		{
+			TORRENT_ASSERT(m_mapping);
+			m_mapping->page_out(range);
+		}
+
 
 	private:
 		explicit file_view(std::shared_ptr<file_mapping> m) : m_mapping(std::move(m)) {}

@@ -84,14 +84,14 @@ TORRENT_TEST(transfer_matrix)
 							// this will clear the history of all output we've printed so far.
 							// if we encounter an error from now on, we'll only print the relevant
 							// iteration
-							reset_output();
+							::unit_test::reset_output();
 
 							// re-seed the random engine each iteration, to make the runs
 							// deterministic
 							lt::aux::random_engine().seed(0x23563a7f);
 
 							run_matrix_test(piece_size | bt_version | magnet | multi_file, files, corruption);
-							if (_g_test_failures > 0) return;
+							if (::unit_test::g_test_failures > 0) return;
 						}
 }
 

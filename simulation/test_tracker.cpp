@@ -1300,8 +1300,8 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_public_torrent)
 		{
 			got_announce = true;
 
-			// in anonymous mode we should not send a user agent
-			TEST_CHECK(headers["user-agent"] == "");
+			// in anonymous mode we should send a generic user agent
+			TEST_CHECK(headers["user-agent"] == "curl/7.81.0");
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
 		}
 		, [](torrent_handle h) {}

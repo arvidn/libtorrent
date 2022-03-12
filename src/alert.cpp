@@ -2924,7 +2924,7 @@ namespace {
 		"picker_log", "session_error", "dht_live_nodes",
 		"session_stats_header", "dht_sample_infohashes",
 		"block_uploaded", "alerts_dropped", "socks5",
-		"file_prio"
+		"file_prio", "oversized_file"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -2980,6 +2980,19 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " file priorities updated";
+#endif
+	}
+
+	oversized_file_alert::oversized_file_alert(aux::stack_allocator& a, torrent_handle h)
+		: torrent_alert(a, std::move(h))
+	{}
+
+	std::string oversized_file_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " has an oversized file";
 #endif
 	}
 

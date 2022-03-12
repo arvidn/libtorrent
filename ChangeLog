@@ -5,6 +5,12 @@
 	* added support for WebTorrent
 
 
+	* fix issue creating a v2 torrent from torrent_info containing an empty file
+	* make recheck files also update which files use partfile
+	* add write_through disk_io_write_mode, which flushes pieces to disk immediately
+	* improve copy file function to preserve sparse regions (when supported)
+	* add function to truncate over-sized files part of a torrent
+	* fix directory creation on windows shared folders
 	* add flag to make add_files() not record file attributes
 	* deprecate (unused) allow_partial_disk_writes settings
 	* fix disk-full error reporting in mmap_disk_io
@@ -103,6 +109,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* send User-Agent field in anonymous mode
 	* fix python binding for settings_pack conversion
 	* fix DHT announce timer issue
 	* use DSCP_TRAFFIC_TYPE socket option on windows

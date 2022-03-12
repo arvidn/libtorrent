@@ -63,6 +63,7 @@ void bind_session_settings()
         .value("disable_os_cache_for_aligned_files", settings_pack::disable_os_cache_for_aligned_files)
 #endif
         .value("disable_os_cache", settings_pack::disable_os_cache)
+        .value("write_through", settings_pack::write_through)
     ;
 
     enum_<settings_pack::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")

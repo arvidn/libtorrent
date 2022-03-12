@@ -24,12 +24,8 @@ see LICENSE file.
 
 EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false, bool with_hashes = false);
 
-EXPORT int print_failures();
-
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);
-
-EXPORT void report_failure(char const* err, char const* file, int line);
 
 EXPORT void init_rand_address();
 EXPORT lt::address rand_v4();

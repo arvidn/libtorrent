@@ -165,8 +165,14 @@ rule linking ( properties * )
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
-		result += <linkflags>-Wl,-export-dynamic <linkflags>-rdynamic ;
+		result += <linkflags>-Wl,--export-dynamic <linkflags>-rdynamic ;
 		result += <local-visibility>global ;
+	}
+	else
+	{
+		# backtraces don't work with visibility=hidden, so we only add that in
+		# the else-block
+		result += <visibility>hidden ;
 	}
 
 	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
@@ -339,9 +345,9 @@ rule building ( properties * )
 	if <toolset>msvc in $(properties) || <toolset>intel-win in $(properties)
 	{
 		# allow larger .obj files (with more sections)
-		result += <cflags>/bigobj <cxxflags>/bigobj ;
+		result += <cxxflags>/bigobj ;
 		# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
-		result += <cflags>/utf-8 ;
+		result += <cxxflags>/utf-8 ;
 	}
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
@@ -731,6 +737,7 @@ SOURCES =
 	chained_buffer
 	choker
 	close_reason
+	copy_file
 	cpuid
 	crc32c
 	create_torrent
@@ -843,6 +850,7 @@ SOURCES =
 	posix_part_file
 	posix_storage
 	ssl
+	truncate
 	rtc_signaling
 	rtc_stream
 	websocket_stream
@@ -945,7 +953,6 @@ lib torrent
 	<threading>multi
 	<cxxstd>17
 	<c++-template-depth>512
-	<local-visibility>hidden
 
 	: # usage requirements
 	$(usage-requirements)

@@ -174,7 +174,7 @@ TORRENT_TEST(error_handling)
 		// this will clear the history of all output we've printed so far.
 		// if we encounter an error from now on, we'll only print the relevant
 		// iteration
-		reset_output();
+		unit_test::reset_output();
 
 		// re-seed the random engine each iteration, to make the runs
 		// deterministic

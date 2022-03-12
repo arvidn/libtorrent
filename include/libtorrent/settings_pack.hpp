@@ -641,19 +641,16 @@ namespace aux {
 			// will go straight to download mode.
 			no_recheck_incomplete_resume,
 
-			// ``anonymous_mode``: When set to true, the client
-			// tries to hide its identity to a certain degree. The user-agent will be
-			// reset to an empty string (except for private torrents). Trackers
-			// will only be used if they are using a proxy server.
-			// The listen sockets are closed, and incoming
-			// connections will only be accepted through a SOCKS5 or I2P proxy (if
-			// a peer proxy is set up and is run on the same machine as the
-			// tracker proxy). Since no incoming connections are accepted,
-			// NAT-PMP, UPnP, DHT and local peer discovery are all turned off when
-			// this setting is enabled.
+			// ``anonymous_mode``: When set to true, the client tries to hide
+			// its identity to a certain degree.
 			//
-			// If you're using I2P, it might make sense to enable anonymous mode
-			// as well.
+			// * A generic user-agent will be
+			//   used for trackers (except for private torrents).
+			// * Your local IPv4 and IPv6 address won't be sent as query string
+			//   parameters to private trackers.
+			// * If announce_ip is configured, it will not be sent to trackers
+			// * The client version will not be sent to peers in the extension
+			//   handshake.
 			anonymous_mode,
 
 			// specifies whether downloads from web seeds is reported to the
@@ -1253,6 +1250,8 @@ namespace aux {
 			//   potentially evict all other processes' cache by simply handling
 			//   high throughput and large files. If libtorrent's read cache is
 			//   disabled, enabling this may reduce performance.
+			// write_through
+			//   flush pieces to disk as they complete validation.
 			//
 			// One reason to disable caching is that it may help the operating
 			// system from growing its file cache indefinitely.
@@ -2069,7 +2068,9 @@ namespace aux {
 #else
 			deprecated_disable_os_cache_for_aligned_files = 1,
 #endif
-			disable_os_cache = 2
+			disable_os_cache = 2,
+
+			write_through = 3,
 		};
 
 		enum bandwidth_mixed_algo_t : std::uint8_t
