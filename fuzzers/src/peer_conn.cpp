@@ -63,6 +63,8 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
 	// set up a session
 	settings_pack pack;
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_int(settings_pack::connections_limit, 100);
 	pack.set_int(settings_pack::piece_timeout, 1);
 	pack.set_int(settings_pack::request_timeout, 1);
 	pack.set_int(settings_pack::peer_timeout, 1);
@@ -159,6 +161,11 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	return 0;
 }
 
+// this keeps track of how many connections we've opened with the session that
+// are still open. We may need to wait for the session to disconnect us before
+// making more connections, once this grows too large
+int g_num_peer_connections = 0;
+
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	if (size < 8) return 0;
@@ -174,6 +181,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 		error_code ignore;
 		s.connect(tcp::endpoint(make_address("127.0.0.1", ignore), g_listen_port), ec);
 	} while (ec == boost::system::errc::interrupted);
+
+	++g_num_peer_connections;
 
 	// bittorrent handshake
 
@@ -196,6 +205,9 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
 	// wait for the alert saying the connection was closed
 
+	if (g_num_peer_connections < 45)
+		return 0;
+
 	time_point const end_time = clock_type::now() + seconds(3);
 	for (;;)
 	{
@@ -215,7 +227,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 			if (alert_cast<peer_error_alert>(a)
 				|| alert_cast<peer_disconnected_alert>(a))
 			{
-				goto done;
+				if (--g_num_peer_connections == 0)
+					goto done;
 			}
 		}
 	}
