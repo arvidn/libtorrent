@@ -970,11 +970,16 @@ class StorageMovedFailedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.storage_moved_failed_alert, timeout=5)
 
+        print(f"{alert.error.message()} : {alert.error.category().name()}")
+
         self.assert_alert(alert, lt.alert_category.storage, "storage_moved_failed")
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.error.value(), int)
         self.assertNotEqual(alert.error.value(), 0)
-        self.assertEqual(alert.error.category(), lt.system_category())
+        self.assertTrue(
+            alert.error.category() == lt.system_category()
+            or alert.error.category() == lt.generic_category()
+        )
         self.assertEqual(alert.file_path(), self.file_path)
         self.assertEqual(alert.op, lt.operation_t.file_rename)
         self.assertEqual(alert.operation, "file_rename")
