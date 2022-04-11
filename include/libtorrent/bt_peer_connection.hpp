@@ -364,6 +364,10 @@ namespace libtorrent {
 
 	private:
 
+#if !defined TORRENT_DISABLE_ENCRYPTION
+		void init_bt_handshake();
+#endif
+
 		enum class state_t : std::uint8_t
 		{
 #if !defined TORRENT_DISABLE_ENCRYPTION
@@ -374,7 +378,6 @@ namespace libtorrent {
 			read_pe_cryptofield,
 			read_pe_pad,
 			read_pe_ia,
-			init_bt_handshake,
 #endif
 			read_protocol_identifier,
 			read_info_hash,
