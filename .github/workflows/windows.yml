@@ -130,7 +130,9 @@ jobs:
          matrix:
            include:
              - config: asio-debugging=on picker-debugging=on windows-version=vista
-             - config: windows-api=store windows-version=win10
+             # the Windows Store API build is disabled because boost.container
+             # contains a .c file that cannot be built with /ZW in msvc
+             #- config: windows-api=store windows-version=win10
              - config: deprecated-functions=off
 
       steps:
