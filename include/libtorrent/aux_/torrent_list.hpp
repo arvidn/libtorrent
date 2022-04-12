@@ -211,7 +211,9 @@ struct torrent_list
 #endif
 
 		TORRENT_ASSERT(all_torrents == all_indexed_torrents);
+#if !defined TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT(all_torrents == all_obf_indexed_torrents);
+#endif
 	}
 #endif
 

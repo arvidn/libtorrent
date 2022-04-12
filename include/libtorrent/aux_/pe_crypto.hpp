@@ -51,7 +51,6 @@ namespace libtorrent::aux {
 	{
 	public:
 		dh_key_exchange();
-		bool good() const { return true; }
 
 		// Get local public key
 		key_t const& get_local_key() const { return m_dh_local_key; }

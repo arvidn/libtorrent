@@ -156,8 +156,7 @@ rule linking ( properties * )
 		result += <framework>CoreFoundation <framework>SystemConfiguration ;
 	}
 
-	if ( <toolset>gcc in $(properties)
-			|| <toolset>clang in $(properties) )
+	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
