@@ -395,20 +395,14 @@ namespace {
 				case IFLA_OPERSTATE: std::memcpy(&ret.oper_state, ptr, sizeof(int)); break;
 
 				// ignore these attributes
-				case IFLA_CARRIER:
 				case IFLA_ADDRESS:
 				case IFLA_BROADCAST:
 				case IFLA_QDISC:
 				case IFLA_COST:
-				case IFLA_PRIORITY:
-				case IFLA_MASTER:
 				case IFLA_WIRELESS:
 				case IFLA_WEIGHT:
 				case IFLA_LINKMODE:
 				case IFLA_LINKINFO:
-				case IFLA_STATS64:
-				case IFLA_STATS:
-				case IFLA_PROMISCUITY:
 				default:
 					break;
 			}
