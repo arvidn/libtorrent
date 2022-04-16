@@ -678,9 +678,10 @@ namespace {
 		TORRENT_ASSERT(m_nodes.find(s) != m_nodes.end());
 
 		static_assert(LIBTORRENT_VERSION_MINOR < 16, "version number not supported by DHT");
-		static_assert(LIBTORRENT_VERSION_TINY < 16, "version number not supported by DHT");
+//		static_assert(LIBTORRENT_VERSION_TINY < 16, "version number not supported by DHT");
+		auto const tiny = std::min(15, LIBTORRENT_VERSION_TINY);
 		static char const version_str[] = {'L', 'T'
-			, LIBTORRENT_VERSION_MAJOR, (LIBTORRENT_VERSION_MINOR << 4) | LIBTORRENT_VERSION_TINY};
+			, LIBTORRENT_VERSION_MAJOR, char((LIBTORRENT_VERSION_MINOR << 4) | tiny)};
 		e["v"] = std::string(version_str, version_str + 4);
 
 		m_send_buf.clear();

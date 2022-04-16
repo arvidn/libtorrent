@@ -1,3 +1,5 @@
+1.2.16 released
+
 	* send User-Agent field in anonymous mode
 	* fix python binding for settings_pack conversion
 	* fix DHT announce timer issue
