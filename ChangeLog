@@ -1,3 +1,5 @@
+* 2.0.6 released
+
 	* fix issue creating a v2 torrent from torrent_info containing an empty file
 	* make recheck files also update which files use partfile
 	* add write_through disk_io_write_mode, which flushes pieces to disk immediately
