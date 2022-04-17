@@ -1,3 +1,5 @@
+	* fix bdecode support for large strings (>= 100 MB)
+
 1.2.16 released
 
 	* send User-Agent field in anonymous mode
