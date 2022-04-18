@@ -1,3 +1,4 @@
+	* rename peer_tos setting to peer_dscp
 	* fix bdecode support for large strings (>= 100 MB)
 
 1.2.16 released
