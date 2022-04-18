@@ -1147,12 +1147,17 @@ namespace aux {
 			outgoing_port,
 			num_outgoing_ports,
 
-			// ``peer_tos`` determines the TOS byte set in the IP header of every
+			// ``peer_dscp`` determines the DSCP field in the IP header of every
 			// packet sent to peers (including web seeds). ``0x0`` means no marking,
 			// ``0x04`` represents Lower Effort. For more details see `RFC 8622`_.
 			//
 			// .. _`RFC 8622`: http://www.faqs.org/rfcs/rfc8622.html
-			peer_tos,
+			//
+			// ``peer_tos`` is the backwards compatible name for this setting.
+			peer_dscp,
+
+			// hidden
+			peer_tos = peer_dscp,
 
 			// for auto managed torrents, these are the limits they are subject
 			// to. If there are too many torrents some of the auto managed ones
