@@ -116,7 +116,7 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
 		auto& ses = static_cast<session_impl&>(t->session());
-		dispatch(ses.get_context(), [=,&ses] ()
+		dispatch(ses.get_context(), [=, this, &ses] ()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
