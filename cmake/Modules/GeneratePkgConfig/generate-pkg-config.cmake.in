@@ -1,3 +1,6 @@
+cmake_policy(SET CMP0007 NEW)
+cmake_policy(SET CMP0011 NEW)
+
 include("@_variables_file_name@")
 
 function (cmake_list_to_pkg_config _result _list _prefix)
