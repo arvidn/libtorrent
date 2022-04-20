@@ -52,7 +52,7 @@ function(_get_target_property_merging_configs _var_name _target_name _propert_na
 	# but we need INSTALL_INTERFACE here.
 	# See https://gitlab.kitware.com/cmake/cmake/issues/17984
 	string(REPLACE "$<BUILD_INTERFACE:" "$<0:" vals "${vals}")
-	string(REPLACE "$<INSTALL_INTERFACE:" "@CMAKE_INSTALL_PREFIX@/$<1:" vals "${vals}")
+	string(REPLACE "$<INSTALL_INTERFACE:" "\${CMAKE_INSTALL_PREFIX}/$<1:" vals "${vals}")
 	set(${_var_name} "${vals}" PARENT_SCOPE)
 endfunction()
 
