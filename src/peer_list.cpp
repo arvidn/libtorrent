@@ -143,11 +143,12 @@ namespace libtorrent {
 
 	constexpr erase_peer_flags_t peer_list::force_erase;
 
-	peer_list::peer_list(torrent_peer_allocator_interface& alloc)
+	peer_list::peer_list(torrent_peer_allocator_interface& alloc, bool share_mode)
 		: m_locked_peer(nullptr)
 		, m_peer_allocator(alloc)
 		, m_num_seeds(0)
 		, m_finished(0)
+        , m_share_mode(share_mode)
 	{
 		thread_started();
 	}
@@ -501,7 +502,7 @@ namespace libtorrent {
 			|| p.banned
 			|| p.web_seed
 			|| !p.connectable
-			|| (p.seed && m_finished)
+			|| !m_share_mode && (p.seed && m_finished)
 			|| int(p.failcount) >= m_max_failcount)
 			return false;
 

@@ -1124,7 +1124,7 @@ bool is_downloading_state(int const st)
 	void torrent::need_peer_list()
 	{
 		if (m_peer_list) return;
-		m_peer_list.reset(new peer_list(m_ses.get_peer_allocator()));
+		m_peer_list.reset(new peer_list(m_ses.get_peer_allocator(), share_mode()));
 	}
 
 	void torrent::handle_exception()
