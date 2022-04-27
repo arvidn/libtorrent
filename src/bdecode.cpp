@@ -335,6 +335,7 @@ namespace aux {
 				}
 				break;
 			case bdecode_token::string:
+			case bdecode_token::long_string:
 				if (m_buffer[tokens[token].offset] == '0'
 					&& m_buffer[tokens[token].offset + 1] != ':')
 				{
@@ -401,6 +402,8 @@ namespace aux {
 	bdecode_node::type_t bdecode_node::type() const noexcept
 	{
 		if (m_token_idx == -1) return none_t;
+		if (m_root_tokens[m_token_idx].type == bdecode_token::long_string)
+			return bdecode_node::string_t;
 		return static_cast<bdecode_node::type_t>(m_root_tokens[m_token_idx].type);
 	}
 
@@ -526,7 +529,8 @@ namespace aux {
 
 		while (item < i)
 		{
-			TORRENT_ASSERT(tokens[token].type == bdecode_token::string);
+			TORRENT_ASSERT(tokens[token].type == bdecode_token::string
+				|| tokens[token].type == bdecode_token::long_string);
 
 			// skip the key
 			token += tokens[token].next_item;
@@ -614,7 +618,8 @@ namespace aux {
 		while (tokens[token].type != bdecode_token::end)
 		{
 			bdecode_token const& t = tokens[token];
-			TORRENT_ASSERT(t.type == bdecode_token::string);
+			TORRENT_ASSERT(t.type == bdecode_token::string
+				|| t.type == bdecode_token::long_string);
 			int const size = token_source_span(t) - t.start_offset();
 			if (int(key.size()) == size
 				&& std::equal(key.data(), key.data() + size, m_buffer
@@ -712,7 +717,8 @@ namespace aux {
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		auto const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
-		TORRENT_ASSERT(t.type == bdecode_token::string);
+		TORRENT_ASSERT(t.type == bdecode_token::string
+			|| t.type == bdecode_token::long_string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);
 	}
@@ -729,7 +735,8 @@ namespace aux {
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		TORRENT_ASSERT(t.type == bdecode_token::string);
+		TORRENT_ASSERT(t.type == bdecode_token::string
+			|| t.type == bdecode_token::long_string);
 		return m_buffer + t.offset + t.start_offset();
 	}
 
@@ -737,7 +744,8 @@ namespace aux {
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		TORRENT_ASSERT(t.type == bdecode_token::string);
+		TORRENT_ASSERT(t.type == bdecode_token::string
+			|| t.type == bdecode_token::long_string);
 		return token_source_span(t) - t.start_offset();
 	}
 
@@ -959,13 +967,16 @@ namespace aux {
 					// the check above ensures that the buffer is long enough to hold
 					// the string's length which guarantees that start <= end
 
+					int const header = int(start - str_start);
+					TORRENT_ASSERT(header >= 0);
+
 					// the bdecode_token only has 8 bits to keep the header size
 					// in. If it overflows, fail!
-					if (start - str_start - 2 > aux::bdecode_token::max_header)
+					if (header > aux::bdecode_token::long_string_max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 					ret.m_tokens.push_back({str_start - orig_start
-						, 1, bdecode_token::string, std::uint8_t(start - str_start)});
+						, 1, bdecode_token::string, std::uint32_t(header)});
 					start += len;
 					break;
 				}
