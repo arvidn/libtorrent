@@ -5564,7 +5564,6 @@ namespace {
 		if (m_torrent_file->num_pieces() == 0) return;
 
 		bool need_update = false;
-		std::int64_t position = 0;
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
 		aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
@@ -5574,7 +5573,6 @@ namespace {
 		{
 			std::int64_t const size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
-			position += size;
 
 			// pad files always have priority 0
 			download_priority_t const file_prio
