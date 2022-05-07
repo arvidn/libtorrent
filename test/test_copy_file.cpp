@@ -119,7 +119,7 @@ bool fs_supports_sparse_files()
 	using fsword_t = decltype(statfs::f_type);
 	static fsword_t const ufs = 0x00011954;
 	static const std::set<fsword_t> sparse_filesystems{
-		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, BTRFS_SUPER_MAGIC
+		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
 			, ufs, REISERFS_SUPER_MAGIC
 	};
 	printf("filesystem: %ld\n", long(st.f_type));
