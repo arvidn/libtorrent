@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/settings_for_path.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/disk_interface.hpp"
@@ -290,8 +291,7 @@ namespace {
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		aux::session_settings sett;
-		int const num_threads = std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2));
-		sett.set_int(settings_pack::hashing_threads, num_threads);
+		settings_for_path(sett, p);
 		set_piece_hashes(t, p, sett, f, ec);
 	}
 

@@ -1,3 +1,6 @@
+
+	* added settings_for_path() utility, to optimize disk settings based on save directory
+
 * 2.0.6 released
 
 	* fix issue creating a v2 torrent from torrent_info containing an empty file

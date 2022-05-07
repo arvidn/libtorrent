@@ -259,7 +259,8 @@ TOOLS_FILES= \
   parse_sample.py        \
   parse_session_stats.py \
   parse_utp_log.py       \
-  session_log_alerts.cpp
+  session_log_alerts.cpp \
+  settings_for_path.cpp
 
 KADEMLIA_SOURCES = \
   dht_settings.cpp     \
@@ -380,6 +381,7 @@ SOURCES = \
   session_params.cpp              \
   session_settings.cpp            \
   session_stats.cpp               \
+  settings_for_path.cpp           \
   settings_pack.cpp               \
   sha1.cpp                        \
   sha1_hash.cpp                   \
@@ -517,6 +519,7 @@ HEADERS = \
   session_stats.hpp            \
   session_status.hpp           \
   session_types.hpp            \
+  settings_for_path.hpp        \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
@@ -594,6 +597,8 @@ HEADERS = \
   aux_/escape_string.hpp            \
   aux_/export.hpp                   \
   aux_/ffs.hpp                      \
+  aux_/file_descriptor.hpp          \
+  aux_/file_handle.hpp              \
   aux_/file_pointer.hpp             \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \

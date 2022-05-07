@@ -328,6 +328,8 @@ private:
 	// synchronize with the writing thread(s)
 	aux::store_buffer m_store_buffer;
 
+	// this points to the internal settings of the main thread. Technically we
+	// should only access this in settings_updated().
 	settings_interface const& m_settings;
 
 	// LRU cache of open files

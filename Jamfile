@@ -771,6 +771,7 @@ SOURCES =
 	session_handle
 	session_impl
 	session_call
+	settings_for_path
 	settings_pack
 	sha1
 	sha1_hash

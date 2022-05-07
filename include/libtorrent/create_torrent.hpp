@@ -482,7 +482,22 @@ namespace aux {
 	// 	void Fun(piece_index_t);
 	//
 	// The overloads taking a settings_pack may be used to configure the
-	// underlying disk access. Such as ``settings_pack::aio_threads``.
+	// underlying disk access. Such as ``settings_pack::hashing_threads``. Note
+	// that the ideal number of hashing threads is most likely 1 for an HDD and
+	// close to the number of CPU cores
+	// (``std::thread::hardware_concurrency()``) on an SSD.
+	// For optimal performance, set the number of hashing threads depending on
+	// the drive type. This is also the default. See settings_for_path():
+	//
+	// .. code:: c++
+	//
+	// 	create_torrent t;
+	// 	std::string path = ...
+	// 	...
+	// 	lt::error_code ec;
+	// 	lt::settings_pack sett;
+	// 	lt::settings_for_path(sett, path);
+	// 	lt::set_piece_hashes(t, path, sett, {}, ec);
 	//
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.

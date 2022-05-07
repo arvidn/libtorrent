@@ -111,6 +111,7 @@ set(libtorrent_include_files
 	session_stats.hpp
 	session_status.hpp
 	session_types.hpp
+	settings_for_path.hpp
 	settings_pack.hpp
 	sha1.hpp
 	sha1_hash.hpp
@@ -222,6 +223,8 @@ set(libtorrent_aux_include_files
 	escape_string.hpp
 	export.hpp
 	ffs.hpp
+	file_descriptor.hpp
+	file_handle.hpp
 	file_progress.hpp
 	file_view_pool.hpp
 	has_block.hpp
@@ -382,6 +385,7 @@ set(sources
 	session_params.cpp
 	session_settings.cpp
 	session_stats.cpp
+	settings_for_path.cpp
 	settings_pack.cpp
 	sha1.cpp
 	sha1_hash.cpp

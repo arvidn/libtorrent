@@ -91,8 +91,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winioctl.h>
 #ifndef TORRENT_MINGW
 #include <direct.h> // for _getcwd, _mkdir
-#else
-#include <dirent.h>
 #endif
 #include <sys/types.h>
 #else
@@ -101,7 +99,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <sys/types.h>
 #include <cerrno>
-#include <dirent.h>
 #include <sys/ioctl.h>
 
 #endif // posix part
