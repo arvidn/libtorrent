@@ -4760,10 +4760,11 @@ namespace {
 		INVARIANT_CHECK;
 
 		auto t = m_torrent.lock();
-
+		if (t)
+		{
 		std::uint8_t warning = 0;
 		// drain the IP overhead from the bandwidth limiters
-		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead) && t)
+			if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead))
 		{
 			warning |= m_ses.use_quota_overhead(*this
 				, m_statistics.download_ip_overhead()
@@ -4784,7 +4785,7 @@ namespace {
 					: performance_alert::upload_limit_too_low);
 			}
 		}
-
+		}
 		if (!t || m_disconnecting)
 		{
 			TORRENT_ASSERT(t || !m_connecting);
