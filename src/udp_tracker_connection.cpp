@@ -204,7 +204,7 @@ namespace libtorrent {
 
 		if (!tracker_req().outgoing_socket)
 		{
-			fail(error_code(errors::invalid_listen_socket), operation_t::hostname_lookup);
+			fail(error_code(errors::invalid_listen_socket), operation_t::get_interface);
 			return;
 		}
 
@@ -221,7 +221,7 @@ namespace libtorrent {
 
 		if (m_endpoints.empty())
 		{
-			fail(lt::errors::announce_skipped, operation_t::hostname_lookup);
+			fail(lt::errors::announce_skipped, operation_t::get_interface);
 			return;
 		}
 

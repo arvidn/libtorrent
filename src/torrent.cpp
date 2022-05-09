@@ -11927,8 +11927,9 @@ namespace {
 					deprioritize_tracker(tracker_index);
 				}
 			}
-			if (m_ses.alerts().should_post<tracker_error_alert>()
-				|| r.triggered_manually)
+			if (r.triggered_manually
+				|| (m_ses.alerts().should_post<tracker_error_alert>()
+					&& ec != errors::announce_skipped))
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
 					, local_endpoint, fails, r.url, op, ec, msg);
@@ -11948,8 +11949,9 @@ namespace {
 			// if this was triggered manually we need to post this unconditionally,
 			// since the client expects a response from its action, regardless of
 			// whether all tracker events have been enabled by the alert mask
-			if (m_ses.alerts().should_post<scrape_failed_alert>()
-				|| r.triggered_manually)
+			if (r.triggered_manually
+				|| (m_ses.alerts().should_post<scrape_failed_alert>()
+					&& ec != errors::announce_skipped))
 			{
 				tcp::endpoint local_endpoint;
 				if (ae != nullptr)
