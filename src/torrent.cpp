@@ -4450,7 +4450,7 @@ namespace {
 			// did we receive this piece from a single peer?
 			// if we know exactly which blocks failed the hash, we can also be certain
 			// that all peers in the list sent us bad data
-			bool const known_bad_peer = (!found_on_disk && peers.size() == 1) || !blocks.empty();
+			bool const known_bad_peer = peers.size() == 1 || !blocks.empty();
 
 			penalize_peers(peers, index, known_bad_peer);
 		}
