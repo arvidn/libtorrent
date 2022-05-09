@@ -84,6 +84,46 @@ void run_test(Setup const& setup, Test const& test)
 	sim.run();
 }
 
+template <typename SetupTorrent, typename SetupFiles, typename Test>
+void run_force_recheck_test(SetupTorrent const& setup1, SetupFiles const& setup2, Test const& test)
+{
+	// this is a seeding torrent
+	lt::add_torrent_params atp = create_torrent(0, true);
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	auto ios = std::make_unique<sim::asio::io_context>(
+		sim, lt::make_address_v4("50.0.0.1"));
+	lt::session_proxy zombie;
+
+	// setup settings pack to use for the session (customization point)
+	lt::settings_pack pack = settings();
+	setup1(atp, pack);
+
+	auto ses = std::make_shared<lt::session>(pack, *ios);
+
+	ses->async_add_torrent(atp);
+
+	print_alerts(*ses);
+
+	sim::timer t1(sim, lt::seconds(6), [&](boost::system::error_code const&)
+	{
+		setup2(atp);
+		ses->get_torrents()[0].force_recheck();
+	});
+
+	sim::timer t2(sim, lt::seconds(12), [&](boost::system::error_code const&)
+	{
+		test(*ses);
+
+		// shut down
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
 TORRENT_TEST(no_truncate_checking)
 {
 	std::string filename;
@@ -123,6 +163,36 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	std::vector<char> buf;
 	lt::bencode(std::back_inserter(buf), t.generate());
 	return std::make_shared<lt::torrent_info>(buf, lt::from_span);
+}
+
+TORRENT_TEST(checking_first_piece_missing)
+{
+	run_force_recheck_test(
+		[&](lt::add_torrent_params&, lt::settings_pack& pack) {
+			pack.set_int(lt::settings_pack::checking_mem_usage, 1);
+		},
+		[&](lt::add_torrent_params& atp) {
+		std::string filename = lt::combine_path(
+			atp.save_path, atp.ti->files().file_path(lt::file_index_t{0}));
+			FILE* f = ::fopen(filename.c_str(), "rb+");
+			::fwrite("0000", 4, 1, f);
+			::fclose(f);
+		},
+		[](lt::session& ses) {
+			lt::torrent_handle tor = ses.get_torrents()[0];
+			lt::torrent_status st = tor.status(lt::torrent_handle::query_pieces);
+
+			TEST_EQUAL(st.is_finished, false);
+
+
+			lt::typed_bitfield<lt::piece_index_t> expected_pieces(st.pieces.size(), true);
+			expected_pieces.clear_bit(0);
+
+			// check that just the first piece is missing
+			for (lt::piece_index_t p : expected_pieces.range())
+				TEST_EQUAL(st.pieces[p], expected_pieces[p]);
+		}
+	);
 }
 
 TORRENT_TEST(aligned_zero_priority)

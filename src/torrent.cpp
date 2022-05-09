@@ -2505,7 +2505,7 @@ bool is_downloading_state(int const st)
 				m_picker->mark_as_finished(piece_block(piece, i), nullptr);
 		}
 
-		if (m_checking_piece < m_torrent_file->end_piece())
+		if (m_checking_piece < m_torrent_file->end_piece() && has_picker())
 		{
 			// skip pieces we already have
 			while (m_picker->have_piece(m_checking_piece))
