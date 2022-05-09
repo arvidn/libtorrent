@@ -1,3 +1,6 @@
+
+	* Fix bug when checking files and the first piece is invalid
+
 * 2.0.6 released
 
 	* fix issue creating a v2 torrent from torrent_info containing an empty file
