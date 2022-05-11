@@ -439,7 +439,7 @@ void upnp::connect(rootdevice& d)
 			, &m_ssl_ctx
 #endif
 			);
-		d.upnp_connection->get(d.url, seconds(30), 1);
+		d.upnp_connection->get(d.url, seconds(30));
 	}
 	TORRENT_CATCH (std::exception const& exc)
 	{
@@ -854,7 +854,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 			);
 
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1, nullptr, false, 5, m.local_ep.address());
+			, seconds(10), nullptr, false, 5, m.local_ep.address());
 	}
 	else if (m.act == portmap_action::del)
 	{
@@ -871,7 +871,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 #endif
 			);
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), 1, nullptr, false, 5, m.local_ep.address());
+			, seconds(10), nullptr, false, 5, m.local_ep.address());
 	}
 
 	m.act = portmap_action::none;
@@ -1092,8 +1092,7 @@ void upnp::on_upnp_xml(error_code const& e
 		, &m_ssl_ctx
 #endif
 		);
-	d.upnp_connection->start(d.hostname, d.port
-		, seconds(10), 1);
+	d.upnp_connection->start(d.hostname, d.port, seconds(10));
 }
 
 void upnp::get_ip_address(rootdevice& d)

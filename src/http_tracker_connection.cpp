@@ -245,7 +245,6 @@ namespace libtorrent {
 		// attempt. It's not worth stalling shutdown.
 		aux::proxy_settings ps(settings);
 		m_tracker_connection->get(url, seconds(timeout)
-			, tracker_req().event == tracker_request::stopped ? 2 : 1
 			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, user_agent, bind_interface()
 			, (tracker_req().event == tracker_request::stopped
