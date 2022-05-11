@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for async_shutdown
+#include "libtorrent/aux_/bind_to_device.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -105,7 +106,8 @@ http_connection::~http_connection() = default;
 
 void http_connection::get(std::string const& url, time_duration timeout
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, boost::optional<address> const& bind_addr, resolver_flags const resolve_flags, std::string const& auth_
+	, boost::optional<bind_info_t> const& bind_addr, resolver_flags const resolve_flags
+	, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -219,7 +221,7 @@ void http_connection::get(std::string const& url, time_duration timeout
 void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
-	, boost::optional<address> const& bind_addr
+	, boost::optional<bind_info_t> const& bind_addr
 	, resolver_flags const resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
@@ -327,8 +329,12 @@ void http_connection::start(std::string const& hostname, int port
 
 		if (m_bind_addr)
 		{
-			m_sock.open(m_bind_addr->is_v4() ? tcp::v4() : tcp::v6(), ec);
-			m_sock.bind(tcp::endpoint(*m_bind_addr, 0), ec);
+			m_sock.open(m_bind_addr->ip.is_v4() ? tcp::v4() : tcp::v6(), ec);
+#if TORRENT_HAS_BINDTODEVICE
+			error_code ignore;
+			bind_device(m_sock, m_bind_addr->device.c_str(), ignore);
+#endif
+			m_sock.bind(tcp::endpoint(m_bind_addr->ip, 0), ec);
 			if (ec)
 			{
 				lt::get_io_service(m_timer).post(std::bind(&http_connection::callback
@@ -513,7 +519,7 @@ void http_connection::on_resolve(error_code const& e
 	if (m_bind_addr)
 	{
 		auto const new_end = std::remove_if(m_endpoints.begin(), m_endpoints.end()
-			, [&](tcp::endpoint const& ep) { return is_v4(ep) != m_bind_addr->is_v4(); });
+			, [&](tcp::endpoint const& ep) { return is_v4(ep) != m_bind_addr->ip.is_v4(); });
 
 		m_endpoints.erase(new_end, m_endpoints.end());
 		if (m_endpoints.empty())

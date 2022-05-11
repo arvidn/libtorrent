@@ -343,7 +343,7 @@ void natpmp::delete_mapping(port_mapping_t const index)
 }
 
 port_mapping_t natpmp::add_mapping(portmap_protocol const p, int const external_port
-	, tcp::endpoint const local_ep)
+	, tcp::endpoint const local_ep, std::string const&)
 {
 	TORRENT_ASSERT(is_single_thread());
 

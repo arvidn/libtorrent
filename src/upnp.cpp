@@ -272,7 +272,7 @@ void upnp::discover_device_impl()
 
 // returns a reference to a mapping or -1 on failure
 port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_port
-	, tcp::endpoint const local_ep)
+	, tcp::endpoint const local_ep, std::string const& device)
 {
 	TORRENT_ASSERT(is_single_thread());
 	// external port 0 means _every_ port
@@ -282,9 +282,10 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 	if (should_log())
 	{
 		log("adding port map: [ protocol: %s ext_port: %d "
-			"local_ep: %s ] %s", (p == portmap_protocol::tcp?"tcp":"udp")
+			"local_ep: %s device: %s] %s", (p == portmap_protocol::tcp?"tcp":"udp")
 			, external_port
-			, print_endpoint(local_ep).c_str(), m_disabled ? "DISABLED": "");
+			, print_endpoint(local_ep).c_str(), device.c_str()
+			, m_disabled ? "DISABLED": "");
 	}
 #endif
 	if (m_disabled) return port_mapping_t{-1};
@@ -309,6 +310,7 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 	mapping_it->protocol = p;
 	mapping_it->external_port = external_port;
 	mapping_it->local_ep = local_ep;
+	mapping_it->device = device;
 
 	port_mapping_t const mapping_index{static_cast<int>(mapping_it - m_mappings.begin())};
 
@@ -326,6 +328,7 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 		m.protocol = p;
 		m.external_port = external_port;
 		m.local_ep = local_ep;
+		m.device = device;
 
 		if (!d.service_namespace.empty()) update_map(d, mapping_index);
 	}
@@ -345,8 +348,10 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 	if (should_log())
 	{
 		log("deleting port map: [ protocol: %s ext_port: %u "
-			"local_ep: %s ]", (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
-			, print_endpoint(m.local_ep).c_str());
+			"local_ep: %s device: %s]"
+			, (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
+			, print_endpoint(m.local_ep).c_str()
+			, m.device.c_str());
 	}
 #endif
 
@@ -654,6 +659,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 			mapping_t m;
 			m.act = portmap_action::add;
 			m.local_ep = j.local_ep;
+			m.device = j.device;
 			m.external_port = j.external_port;
 			m.protocol = j.protocol;
 			d.mapping.push_back(m);
@@ -853,8 +859,9 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 #endif
 			);
 
+		bind_info_t bi{m.device, m.local_ep.address()};
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), nullptr, false, 5, m.local_ep.address());
+			, seconds(10), nullptr, false, 5, bi);
 	}
 	else if (m.act == portmap_action::del)
 	{
@@ -870,8 +877,9 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 			, &m_ssl_ctx
 #endif
 			);
+		bind_info_t bi{m.device, m.local_ep.address()};
 		d.upnp_connection->start(d.hostname, d.port
-			, seconds(10), nullptr, false, 5, m.local_ep.address());
+			, seconds(10), nullptr, false, 5, bi);
 	}
 
 	m.act = portmap_action::none;

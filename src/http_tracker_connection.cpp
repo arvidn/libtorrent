@@ -239,6 +239,9 @@ namespace libtorrent {
 			? "curl/7.81.0"
 			: settings.get_str(settings_pack::user_agent);
 
+		auto const ls = bind_socket();
+		bind_info_t bi{ls.device(), ls.get_local_endpoint().address()};
+
 		// when sending stopped requests, prefer the cached DNS entry
 		// to avoid being blocked for slow or failing responses. Chances
 		// are that we're shutting down, and this should be a best-effort
@@ -246,7 +249,7 @@ namespace libtorrent {
 		aux::proxy_settings ps(settings);
 		m_tracker_connection->get(url, seconds(timeout)
 			, ps.proxy_tracker_connections ? &ps : nullptr
-			, 5, user_agent, bind_interface()
+			, 5, user_agent, bi
 			, (tracker_req().event == tracker_request::stopped
 				? resolver_interface::cache_only : resolver_flags{})
 				| resolver_interface::abort_on_shutdown
