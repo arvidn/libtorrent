@@ -175,7 +175,8 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
-	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep
+		, std::string const& device);
 
 	// This function removes a port mapping. ``mapping_index`` is the index that refers
 	// to the mapping you want to remove, which was returned from add_mapping().
@@ -250,6 +251,9 @@ private:
 		portmap_protocol protocol = portmap_protocol::none;
 		int external_port = 0;
 		tcp::endpoint local_ep;
+		// may be set to a device name, if this mapping is for a network bound
+		// to a specific network device
+		std::string device;
 	};
 
 	struct mapping_t : aux::base_mapping
@@ -257,6 +261,9 @@ private:
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
 		tcp::endpoint local_ep;
+
+		// may be set to a network device name to bind to
+		std::string device;
 
 		// the number of times this mapping has failed
 		int failcount = 0;

@@ -59,6 +59,14 @@ namespace libtorrent { namespace aux {
 		return s->ssl == transport::ssl;
 	}
 
+	std::string listen_socket_handle::device() const
+	{
+		auto s = m_sock.lock();
+		TORRENT_ASSERT(s);
+		if (!s) return {};
+		return s->device;
+	}
+
 	listen_socket_t* listen_socket_handle::get() const
 	{
 		return m_sock.lock().get();
