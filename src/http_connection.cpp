@@ -94,7 +94,6 @@ http_connection::http_connection(io_service& ios
 	, m_max_bottled_buffer_size(max_bottled_buffer_size)
 	, m_rate_limit(0)
 	, m_download_quota(0)
-	, m_priority(0)
 	, m_resolve_flags{}
 	, m_port(0)
 	, m_bottled(bottled)
@@ -104,7 +103,7 @@ http_connection::http_connection(io_service& ios
 
 http_connection::~http_connection() = default;
 
-void http_connection::get(std::string const& url, time_duration timeout, int prio
+void http_connection::get(std::string const& url, time_duration timeout
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
 	, boost::optional<address> const& bind_addr, resolver_flags const resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
@@ -163,8 +162,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		return;
 	}
 
-	TORRENT_ASSERT(prio >= 0 && prio < 3);
-
 	bool const ssl = (protocol == "https");
 
 	std::stringstream request;
@@ -211,7 +208,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	m_sendbuffer.assign(request.str());
 	m_url = url;
-	start(hostname, port, timeout, prio
+	start(hostname, port, timeout
 		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 		, i2p_conn
@@ -220,7 +217,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 }
 
 void http_connection::start(std::string const& hostname, int port
-	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
+	, time_duration timeout, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
 	, boost::optional<address> const& bind_addr
 	, resolver_flags const resolve_flags
@@ -229,8 +226,6 @@ void http_connection::start(std::string const& hostname, int port
 #endif
 	)
 {
-	TORRENT_ASSERT(prio >= 0 && prio < 3);
-
 	m_redirects = handle_redirects;
 	m_resolve_flags = resolve_flags;
 	if (ps) m_proxy = *ps;
@@ -249,7 +244,6 @@ void http_connection::start(std::string const& hostname, int port
 	m_parser.reset();
 	m_recvbuffer.clear();
 	m_read_pos = 0;
-	m_priority = prio;
 
 #ifdef TORRENT_USE_OPENSSL
 	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
@@ -769,7 +763,7 @@ void http_connection::on_read(error_code const& e
 				m_sock.close(ec);
 
 				std::string url = resolve_redirect_location(m_url, location);
-				get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
+				get(url, m_completion_timeout, &m_proxy, m_redirects - 1
 					, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
 #if TORRENT_USE_I2P
 					, m_i2p_conn

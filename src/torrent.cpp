@@ -753,7 +753,7 @@ bool is_downloading_state(int const st)
 #endif
 				));
 		aux::proxy_settings ps = m_ses.proxy();
-		conn->get(m_url, seconds(30), 0, &ps
+		conn->get(m_url, seconds(30), &ps
 			, 5
 			, settings().get_bool(settings_pack::anonymous_mode)
 				? "" : settings().get_str(settings_pack::user_agent));
