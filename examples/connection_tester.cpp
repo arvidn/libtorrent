@@ -916,7 +916,7 @@ void write_handler(file_storage const& fs
 	disk.submit_jobs();
 }
 
-void generate_data(char const* path, torrent_info const& ti)
+void generate_data(std::string const path, torrent_info const& ti)
 {
 	io_context ios;
 	counters stats_counters;
