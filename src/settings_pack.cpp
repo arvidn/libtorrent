@@ -346,7 +346,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(torrent_connect_boost, 30, nullptr),
 		SET(alert_queue_size, 2000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
-		SET(hashing_threads, 2, &session_impl::update_disk_threads),
+		SET(hashing_threads, 1, &session_impl::update_disk_threads),
 		SET(checking_mem_usage, 256, nullptr),
 		SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 10, &session_impl::update_disk_threads),
