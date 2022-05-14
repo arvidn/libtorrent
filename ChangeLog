@@ -1,4 +1,5 @@
 
+	* default to a single hashing thread, for full checks
 	* Fix bug when checking files and the first piece is invalid
 
 * 2.0.6 released

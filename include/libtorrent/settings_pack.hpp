@@ -1716,9 +1716,13 @@ namespace aux {
 			// ``hashing_threads`` is the number of disk I/O threads to use for
 			// piece hash verification. These threads are *in addition* to the
 			// regular disk I/O threads specified by settings_pack::aio_threads.
+			// These threads are only used for full checking of torrents. The
+			// hash checking done while downloading are done by the regular disk
+			// I/O threads.
 			// The hasher threads do not only compute hashes, but also perform
 			// the read from disk. On storage optimal for sequential access,
-			// such as hard drives, this setting should probably be set to 1.
+			// such as hard drives, this setting should be set to 1, which is
+			// also the default.
 			hashing_threads,
 
 			// the number of blocks to keep outstanding at any given time when
