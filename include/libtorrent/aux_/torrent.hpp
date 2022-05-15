@@ -71,6 +71,7 @@ see LICENSE file.
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
 #include "libtorrent/aux_/ssl.hpp"
+#include "libtorrent/aux_/tracker_list.hpp"
 
 #if TORRENT_USE_RTC
     #include "libtorrent/aux_/rtc_signaling.hpp"
@@ -783,8 +784,6 @@ namespace libtorrent::aux {
 		void set_tracker_login(std::string const& name, std::string const& pw);
 #endif
 
-		aux::announce_entry* find_tracker(std::string const& url);
-
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
@@ -1264,10 +1263,7 @@ namespace libtorrent::aux {
 		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;
 
-		int deprioritize_tracker(int tracker_index);
-
 		void update_peer_interest(bool was_finished);
-		void prioritize_udp_trackers();
 
 		void update_tracker_timer(time_point32 now);
 
@@ -1357,7 +1353,7 @@ namespace libtorrent::aux {
 		// us.
 		aux::suggest_piece m_suggest_pieces;
 
-		aux::vector<aux::announce_entry> m_trackers;
+		aux::tracker_list m_trackers;
 
 #ifndef TORRENT_DISABLE_STREAMING
 		// this list is sorted by time_critical_piece::deadline
@@ -1571,9 +1567,6 @@ namespace libtorrent::aux {
 		// the torrent this last time. When the torrent is paused, this counter is
 		// incremented to include this current session.
 		seconds32 m_active_time{0};
-
-		// the index to the last tracker that worked
-		std::int8_t m_last_working_tracker = -1;
 
 // ----
 

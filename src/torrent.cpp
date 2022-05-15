@@ -99,6 +99,7 @@ see LICENSE file.
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
+#include "libtorrent/aux_/tracker_list.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -281,15 +282,15 @@ bool is_downloading_state(int const st)
 		// if override trackers flag is set, don't load trackers from torrent file
 		if (!(p.flags & torrent_flags::override_trackers))
 		{
-			m_trackers.clear();
-			for (auto const& ae : m_torrent_file->trackers())
-				m_trackers.emplace_back(ae);
+			m_trackers.replace(m_torrent_file->trackers());
 		}
 
 		int tier = 0;
 		auto tier_iter = p.tracker_tiers.begin();
 		for (auto const& url : p.trackers)
 		{
+			if (url.empty()) continue;
+
 			aux::announce_entry e(url);
 			if (tier_iter != p.tracker_tiers.end())
 				tier = *tier_iter++;
@@ -297,24 +298,19 @@ bool is_downloading_state(int const st)
 			e.fail_limit = 0;
 			e.source = lt::announce_entry::source_magnet_link;
 			e.tier = std::uint8_t(tier);
-			if (!find_tracker(e.url))
-			{
-				if (e.url.empty()) continue;
-				m_trackers.push_back(e);
-				// add the tracker to the m_torrent_file here so that the trackers
-				// will be preserved via create_torrent() when passing in just the
-				// torrent_info object.
-				if (!m_torrent_file->is_valid())
-					m_torrent_file->add_tracker(e.url, e.tier, lt::announce_entry::tracker_source(e.source));
-			}
+
+			if (!m_trackers.add_tracker(e))
+				continue;
+
+			// add the tracker to the m_torrent_file here so that the trackers
+			// will be preserved via create_torrent() when passing in just the
+			// torrent_info object.
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_tracker(e.url, e.tier, lt::announce_entry::tracker_source(e.source));
 		}
 
-		std::sort(m_trackers.begin(), m_trackers.end()
-			, [] (aux::announce_entry const& lhs, aux::announce_entry const& rhs)
-			{ return lhs.tier < rhs.tier; });
-
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
-			prioritize_udp_trackers();
+			m_trackers.prioritize_udp_trackers();
 
 		if (m_torrent_file->is_valid())
 		{
@@ -651,8 +647,7 @@ bool is_downloading_state(int const st)
 		if (m_trackers.empty()) return true;
 		if (!settings().get_bool(settings_pack::use_dht_as_fallback)) return true;
 
-		return std::none_of(m_trackers.begin(), m_trackers.end()
-			, [](aux::announce_entry const& tr) { return bool(tr.verified); });
+		return !m_trackers.any_verified();
 	}
 
 #endif
@@ -2707,14 +2702,10 @@ bool is_downloading_state(int const st)
 				if (m_torrent_file->is_valid() && m_torrent_file->priv())
 					debug_log("DHT: private torrent, no DHT announce");
 
-				if (settings().get_bool(settings_pack::use_dht_as_fallback))
+				if (settings().get_bool(settings_pack::use_dht_as_fallback)
+					&& m_trackers.any_verified())
 				{
-					int const verified_trackers = static_cast<int>(std::count_if(
-						m_trackers.begin(), m_trackers.end()
-						, [](aux::announce_entry const& t) { return t.verified; }));
-
-					if (verified_trackers > 0)
-						debug_log("DHT: only using DHT as fallback, and there are %d working trackers", verified_trackers);
+					debug_log("DHT: only using DHT as fallback and there are working trackers");
 				}
 			}
 #endif
@@ -3045,6 +3036,8 @@ namespace {
 		}
 #endif
 
+		// TODO: it would be nice to raise the abstraction level of the
+		// tracker_list or trackers a bit here
 		for (auto& ae : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3233,8 +3226,17 @@ namespace {
 
 		if (m_trackers.empty()) return;
 
-		if (idx < 0 || idx >= int(m_trackers.size())) idx = m_last_working_tracker;
-		if (idx < 0) idx = 0;
+		aux::announce_entry* ae = nullptr;
+		if (idx < 0 || idx >= int(m_trackers.size()))
+		{
+			ae = m_trackers.last_working();
+			if (ae == nullptr) ae = m_trackers.first();
+		}
+		else
+		{
+			ae = m_trackers.find(idx);
+		}
+		if (ae == nullptr) return;
 
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
@@ -3242,16 +3244,15 @@ namespace {
 			req.filter = m_ip_filter;
 
 		req.kind |= tracker_request::scrape_request;
-		auto& ae = m_trackers[idx];
-		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.url, ae.endpoints);
-		req.url = ae.url;
+		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae->url, ae->endpoints);
+		req.url = ae->url;
 		req.private_torrent = m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
 		req.key = tracker_key();
 		req.triggered_manually = user_triggered;
-		for (aux::announce_endpoint const& aep : ae.endpoints)
+		for (aux::announce_endpoint const& aep : ae->endpoints)
 		{
 			if (!aep.enabled) continue;
 			req.outgoing_socket = aep.socket;
@@ -3272,7 +3273,7 @@ namespace {
 		protocol_version const hash_version = req.info_hash == m_info_hash.v1
 			? protocol_version::V1 : protocol_version::V2;
 
-		aux::announce_entry* ae = find_tracker(req.url);
+		aux::announce_entry* ae = m_trackers.find_tracker(req.url);
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
@@ -3301,7 +3302,7 @@ namespace {
 		protocol_version const hash_version = req.info_hash == m_info_hash.v1
 			? protocol_version::V1 : protocol_version::V2;
 
-		aux::announce_entry* ae = find_tracker(req.url);
+		aux::announce_entry* ae = m_trackers.find_tracker(req.url);
 		tcp::endpoint local_endpoint;
 		if (ae)
 		{
@@ -3393,7 +3394,8 @@ namespace {
 		protocol_version const v = r.info_hash == torrent_file().info_hashes().v1
 			? protocol_version::V1 : protocol_version::V2;
 
-		aux::announce_entry* ae = find_tracker(r.url);
+		// TODO: move this into a function on tracker_list
+		aux::announce_entry* ae = m_trackers.find_tracker(r.url);
 
 		tcp::endpoint local_endpoint;
 		if (ae)
@@ -3424,8 +3426,7 @@ namespace {
 				a.fails = 0;
 				a.last_error.clear();
 				a.message = !resp.warning_message.empty() ? resp.warning_message : std::string();
-				int const tracker_index = int(ae - m_trackers.data());
-				m_last_working_tracker = std::int8_t(tracker_index);
+				m_trackers.record_working(ae);
 
 				if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
 				{
@@ -3687,7 +3688,7 @@ namespace {
 		{
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
-			aux::announce_entry& e = m_trackers[tracker_idx];
+			aux::announce_entry& e = *m_trackers.find(tracker_idx);
 			for (auto& aep : e.endpoints)
 			{
 				for (auto& a : aep.info_hashes)
@@ -5722,78 +5723,22 @@ namespace {
 
 	void torrent::replace_trackers(std::vector<lt::announce_entry> const& urls)
 	{
-		m_trackers.clear();
-		for (auto const& t : urls)
-		{
-			if (t.url.empty()) continue;
-			m_trackers.emplace_back(t);
-		}
-
-		// make sure the trackers are correctly ordered by tier
-		std::sort(m_trackers.begin(), m_trackers.end()
-			, [](aux::announce_entry const& lhs, aux::announce_entry const& rhs)
-			{ return lhs.tier < rhs.tier; });
-
-		m_last_working_tracker = -1;
+		m_trackers.replace(urls);
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
-			prioritize_udp_trackers();
+			m_trackers.prioritize_udp_trackers();
 
 		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
 
 		set_need_save_resume();
-	}
-
-	void torrent::prioritize_udp_trackers()
-	{
-		// look for udp-trackers
-		for (auto i = m_trackers.begin(), end(m_trackers.end()); i != end; ++i)
-		{
-			if (i->url.substr(0, 6) != "udp://") continue;
-			// now, look for trackers with the same hostname
-			// that is has higher priority than this one
-			// if we find one, swap with the udp-tracker
-			error_code ec;
-			std::string udp_hostname;
-			using std::ignore;
-			std::tie(ignore, ignore, udp_hostname, ignore, ignore)
-				= parse_url_components(i->url, ec);
-			for (auto j = m_trackers.begin(); j != i; ++j)
-			{
-				std::string hostname;
-				std::tie(ignore, ignore, hostname, ignore, ignore)
-					= parse_url_components(j->url, ec);
-				if (hostname != udp_hostname) continue;
-				if (j->url.substr(0, 6) == "udp://") continue;
-				using std::swap;
-				using std::iter_swap;
-				swap(i->tier, j->tier);
-				iter_swap(i, j);
-				break;
-			}
-		}
 	}
 
 	bool torrent::add_tracker(lt::announce_entry const& url)
 	{
-		if (url.url.empty()) return false;
-		if (auto* k = find_tracker(url.url))
-		{
-			k->source |= url.source;
-			return false;
-		}
-		auto k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url.tier
-			, [] (int tier, aux::announce_entry const& v) { return tier < v.tier; });
-		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
-		k = m_trackers.insert(k, aux::announce_entry(url.url));
-		if (url.source == 0) k->source = lt::announce_entry::source_client;
-		else k->source = url.source;
-		k->trackerid = url.trackerid;
-		k->tier = url.tier;
-		k->fail_limit = url.fail_limit;
+		bool const added = m_trackers.add_tracker(aux::announce_entry(url));
 		set_need_save_resume();
-		if (m_announcing && !m_trackers.empty()) announce_with_tracker();
-		return true;
+		if (m_announcing && added) announce_with_tracker();
+		return added;
 	}
 
 	bool torrent::choke_peer(peer_connection& c)
@@ -6873,9 +6818,7 @@ namespace {
 
 	void torrent::enable_all_trackers()
 	{
-		for (aux::announce_entry& ae : m_trackers)
-			for (aux::announce_endpoint& aep : ae.endpoints)
-				aep.enabled = true;
+		m_trackers.enable_all();
 	}
 
 	void torrent::write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const
@@ -8351,40 +8294,8 @@ namespace {
 
 		if (!m_announcing) return;
 
-		time_point32 const now = aux::time_now32();
-		for (auto& t : m_trackers)
-		{
-			for (auto& aep : t.endpoints)
-			{
-				if (!aep.enabled) continue;
-				for (auto& a : aep.info_hashes)
-				{
-					if (a.complete_sent) continue;
-					a.next_announce = now;
-					a.min_announce = now;
-				}
-			}
-		}
+		m_trackers.completed(m_became_seed);
 		announce_with_tracker();
-	}
-
-	int torrent::deprioritize_tracker(int index)
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < int(m_trackers.size()));
-		if (index >= int(m_trackers.size())) return -1;
-
-		while (index < int(m_trackers.size()) - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
-		{
-			using std::swap;
-			swap(m_trackers[index], m_trackers[index + 1]);
-			if (m_last_working_tracker == index) ++m_last_working_tracker;
-			else if (m_last_working_tracker == index + 1) --m_last_working_tracker;
-			++index;
-		}
-		return index;
 	}
 
 	void torrent::files_checked()
@@ -8433,14 +8344,7 @@ namespace {
 			// have all of it. Assume that we sent the event=completed when we
 			// finished downloading it, and don't send any more.
 			m_complete_sent = true;
-			for (auto& t : m_trackers)
-			{
-				for (auto& aep : t.endpoints)
-				{
-					for (auto& a : aep.info_hashes)
-						a.complete_sent = true;
-				}
-			}
+			m_trackers.set_complete_sent();
 
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)
@@ -9890,11 +9794,8 @@ namespace {
 		}
 #endif
 
-		if (!m_trackers.empty())
-		{
-			// tell the tracker that we're back
-			for (auto& t : m_trackers) t.reset();
-		}
+		// tell the tracker that we're back
+		m_trackers.reset();
 
 		// reset the stats, since from the tracker's
 		// point of view, this is a new session
@@ -9918,18 +9819,8 @@ namespace {
 
 		m_announcing = false;
 
-		time_point32 const now = aux::time_now32();
-		for (auto& t : m_trackers)
-		{
-			for (auto& aep : t.endpoints)
-			{
-				for (auto& a : aep.info_hashes)
-				{
-					a.next_announce = now;
-					a.min_announce = now;
-				}
-			}
-		}
+		m_trackers.stop_announcing(aux::time_now32());
+
 		announce_with_tracker(event_t::stopped);
 	}
 
@@ -11208,14 +11099,6 @@ namespace {
 		m_ses.deferred_submit_jobs();
 	}
 
-	aux::announce_entry* torrent::find_tracker(std::string const& url)
-	{
-		auto i = std::find_if(m_trackers.begin(), m_trackers.end()
-			, [&url](aux::announce_entry const& ae) { return ae.url == url; });
-		if (i == m_trackers.end()) return nullptr;
-		return &*i;
-	}
-
 	void torrent::ip_filter_updated()
 	{
 		if (!m_apply_ip_filter) return;
@@ -11712,14 +11595,8 @@ namespace {
 		st->announce_interval = seconds(0);
 #endif
 
-		st->current_tracker.clear();
-		if (m_last_working_tracker >= 0)
-		{
-			TORRENT_ASSERT(m_last_working_tracker < m_trackers.end_index());
-			const int i = m_last_working_tracker;
-			st->current_tracker = m_trackers[i].url;
-		}
-		else
+		st->current_tracker = m_trackers.last_working_url();
+		if (st->current_tracker.empty())
 		{
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -11736,6 +11613,7 @@ namespace {
 
 			for (auto const& t : m_trackers)
 			{
+				if (!t.verified) continue;
 				if (std::any_of(t.endpoints.begin(), t.endpoints.end()
 					, [supports_protocol](aux::announce_endpoint const& aep) {
 						for (protocol_version const ih : all_versions)
@@ -11745,7 +11623,6 @@ namespace {
 						}
 						return true;
 					})) continue;
-				if (!t.verified) continue;
 				st->current_tracker = t.url;
 				break;
 			}
@@ -11974,16 +11851,14 @@ namespace {
 		if (!(r.kind & tracker_request::scrape_request))
 		{
 			// announce request
-			aux::announce_entry* ae = find_tracker(r.url);
+			aux::announce_entry* ae = m_trackers.find_tracker(r.url);
 			int fails = 0;
 			tcp::endpoint local_endpoint;
 			protocol_version hash_version = protocol_version::V1;
 			if (ae)
 			{
-				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
-					, [&](aux::announce_endpoint const& e) { return e.socket == r.outgoing_socket; });
-
-				if (aep != ae->endpoints.end())
+				auto* aep = ae->find_endpoint(r.outgoing_socket);
+				if (aep)
 				{
 					hash_version = r.info_hash == m_info_hash.v1
 						? protocol_version::V1 : protocol_version::V2;
@@ -12017,10 +11892,8 @@ namespace {
 #endif
 				}
 
-				int const tracker_index = int(ae - m_trackers.data());
-
 				// never talk to this tracker again
-				if (ec == error_code(410, http_category())) ae->fail_limit = 1;
+				if (ec == error_code(410, http_category())) m_trackers.dont_try_again(ae);
 
 				// if all endpoints fail, then we de-prioritize the tracker and try
 				// the next one in the tier
@@ -12033,7 +11906,7 @@ namespace {
 						return true;
 					}))
 				{
-					deprioritize_tracker(tracker_index);
+					m_trackers.deprioritize_tracker(ae);
 				}
 			}
 			if (m_ses.alerts().should_post<tracker_error_alert>()
@@ -12045,14 +11918,11 @@ namespace {
 		}
 		else
 		{
-			aux::announce_entry* ae = find_tracker(r.url);
+			aux::announce_entry* ae = m_trackers.find_tracker(r.url);
 
 			// scrape request
-			if (ec == error_code(410, http_category()))
-			{
-				// never talk to this tracker again
-				if (ae != nullptr) ae->fail_limit = 1;
-			}
+			if (ec == error_code(410, http_category()) && ae)
+				m_trackers.dont_try_again(ae);
 
 			// if this was triggered manually we need to post this unconditionally,
 			// since the client expects a response from its action, regardless of
@@ -12061,9 +11931,9 @@ namespace {
 				|| r.triggered_manually)
 			{
 				tcp::endpoint local_endpoint;
-				if (ae != nullptr)
+				if (ae)
 				{
-					auto* aep = ae->find_endpoint(r.outgoing_socket);
+					auto const* aep = ae->find_endpoint(r.outgoing_socket);
 					if (aep != nullptr) local_endpoint = aep->local_endpoint;
 				}
 

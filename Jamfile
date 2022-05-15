@@ -808,6 +808,7 @@ SOURCES =
 	torrent_peer
 	torrent_peer_allocator
 	torrent_status
+	tracker_list
 	time
 	tracker_manager
 	http_tracker_connection
