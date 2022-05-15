@@ -22,6 +22,10 @@ see LICENSE file.
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/info_hash.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/intrusive/list.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -150,7 +154,12 @@ namespace aux {
 		announce_entry();
 		~announce_entry();
 		announce_entry(announce_entry const&);
+		announce_entry(announce_entry&&);
 		announce_entry& operator=(announce_entry const&) &;
+		announce_entry& operator=(announce_entry&&) &;
+
+		// next and prev pointers for the list of
+		boost::intrusive::list_member_hook<> list_hook;
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
@@ -185,6 +194,7 @@ namespace aux {
 
 		// internal
 		announce_endpoint* find_endpoint(aux::listen_socket_handle const& s);
+		announce_endpoint const* find_endpoint(aux::listen_socket_handle const& s) const;
 	};
 
 }

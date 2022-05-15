@@ -203,7 +203,9 @@ namespace aux {
 
 	announce_entry::~announce_entry() = default;
 	announce_entry::announce_entry(announce_entry const&) = default;
+	announce_entry::announce_entry(announce_entry&&) = default;
 	announce_entry& announce_entry::operator=(announce_entry const&) & = default;
+	announce_entry& announce_entry::operator=(announce_entry&&) & = default;
 
 	void announce_infohash::reset()
 	{
@@ -256,6 +258,14 @@ namespace aux {
 	}
 
 	announce_endpoint* announce_entry::find_endpoint(aux::listen_socket_handle const& s)
+	{
+		auto aep = std::find_if(endpoints.begin(), endpoints.end()
+			, [&](aux::announce_endpoint const& a) { return a.socket == s; });
+		if (aep != endpoints.end()) return &*aep;
+		else return nullptr;
+	}
+
+	announce_endpoint const* announce_entry::find_endpoint(aux::listen_socket_handle const& s) const
 	{
 		auto aep = std::find_if(endpoints.begin(), endpoints.end()
 			, [&](aux::announce_endpoint const& a) { return a.socket == s; });

@@ -261,6 +261,7 @@ set(libtorrent_aux_include_files
 	torrent_list.hpp
 	torrent_peer.hpp
 	torrent_peer_allocator.hpp
+	tracker_list.hpp
 	tracker_manager.hpp
 	udp_socket.hpp
 	udp_tracker_connection.hpp
@@ -407,6 +408,7 @@ set(sources
 	torrent_peer_allocator.cpp
 	torrent_status.cpp
 	tracker_manager.cpp
+	tracker_list.cpp
 	truncate.cpp
 	udp_socket.cpp
 	udp_tracker_connection.cpp

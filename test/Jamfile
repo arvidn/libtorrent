@@ -207,6 +207,7 @@ run test_ssl.cpp : :
 	: <crypto>openssl:<library>/torrent//ssl
 	<crypto>openssl:<library>/torrent//crypto ;
 run test_tracker.cpp ;
+run test_tracker_list.cpp ;
 run test_tracker_manager.cpp ;
 run test_checking.cpp ;
 run test_url_seed.cpp ;
@@ -314,6 +315,7 @@ alias deterministic-tests :
 	test_torrent
 	test_torrent_info
 	test_torrent_list
+	test_tracker_list
 	test_utf8
 	test_xml
 	test_store_buffer
