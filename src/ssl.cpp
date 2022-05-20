@@ -178,7 +178,7 @@ namespace {
 		{
 			// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 #if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
-			OpenSSL_add_all_algorithms();
+			// OpenSSL_add_all_algorithms();
 #else
 			OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, nullptr);
 #endif
@@ -196,7 +196,7 @@ namespace {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 			// openssl requires this to clean up internal structures it allocates
-			CRYPTO_cleanup_all_ex_data();
+			// CRYPTO_cleanup_all_ex_data();
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic pop
 #endif
