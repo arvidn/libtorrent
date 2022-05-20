@@ -49,7 +49,7 @@ namespace aux {
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_Init(&m_context);
+		EVP_DigestInit(m_context, EVP_sha512());
 #else
 		SHA512_init(&m_context);
 #endif
@@ -91,8 +91,7 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
-			, static_cast<std::size_t>(data.size()));
+		EVP_DigestUpdate(m_context, data.data(), static_cast<std::size_t>(data.size()));
 #else
 		SHA512_update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -113,7 +112,7 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
+		EVP_DigestFinal(m_context, reinterpret_cast<unsigned char*>(digest.data()), nullptr);
 #else
 		SHA512_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
@@ -131,7 +130,7 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_Init(&m_context);
+		EVP_DigestInit(m_context, EVP_sha512());
 #else
 		SHA512_init(&m_context);
 #endif

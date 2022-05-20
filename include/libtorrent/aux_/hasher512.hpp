@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 	extern "C" {
 	#include <openssl/sha.h>
+	#include <openssl/evp.h>
 	}
 
 #else
@@ -122,7 +123,7 @@ namespace aux {
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		aux::crypt_hash<CALG_SHA_512, PROV_RSA_AES> m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_CTX m_context;
+		EVP_MD_CTX *m_context = EVP_MD_CTX_new();
 #else
 		sha512_ctx m_context;
 #endif
