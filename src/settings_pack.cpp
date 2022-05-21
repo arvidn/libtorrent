@@ -379,6 +379,11 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 			if (key != bool_settings[k].name) continue;
 			return settings_pack::bool_type_base + k;
 		}
+
+		// backwards compatibility with previous name
+		if (key == "peer_tos")
+			return settings_pack::peer_dscp;
+
 		return -1;
 	}
 
