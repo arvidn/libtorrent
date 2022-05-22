@@ -99,7 +99,7 @@ for line in f:
         if description == '':
             for n in names:
                 print('WARNING: no description for "%s"' % n)
-        else:
+        elif description.strip() != 'hidden':
             default_values = []
             for n in names:
                 default_values.append(def_map[n])

@@ -64,6 +64,8 @@ namespace libtorrent { namespace aux {
 		tcp::endpoint get_local_endpoint() const;
 		bool can_route(address const&) const;
 
+		std::string device() const;
+
 		bool is_ssl() const;
 
 		bool operator==(listen_socket_handle const& o) const

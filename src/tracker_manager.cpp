@@ -176,11 +176,6 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		close();
 	}
 
-	address tracker_connection::bind_interface() const
-	{
-		return m_req.outgoing_socket.get_local_endpoint().address();
-	}
-
 	void tracker_connection::sent_bytes(int bytes)
 	{
 		m_man.sent_bytes(bytes);

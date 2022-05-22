@@ -828,7 +828,7 @@ namespace aux {
 			void update_dht_upload_rate_limit();
 			void update_proxy();
 			void update_i2p_bridge();
-			void update_peer_tos();
+			void update_peer_dscp();
 			void update_user_agent();
 			void update_unchoke_limit();
 			void update_connection_speed();

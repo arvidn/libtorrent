@@ -95,7 +95,8 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
-	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep);
+	port_mapping_t add_mapping(portmap_protocol p, int external_port, tcp::endpoint local_ep
+		, std::string const& device);
 	void delete_mapping(port_mapping_t mapping_index);
 	bool get_mapping(port_mapping_t mapping_index, int& local_port, int& external_port
 		, portmap_protocol& protocol) const;

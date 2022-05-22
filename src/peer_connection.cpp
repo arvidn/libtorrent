@@ -337,15 +337,15 @@ namespace libtorrent {
 				disconnect(ec, operation_t::getname);
 				return;
 			}
-			if (m_settings.get_int(settings_pack::peer_tos) != 0)
+			if (m_settings.get_int(settings_pack::peer_dscp) != 0)
 			{
-				int const tos = m_settings.get_int(settings_pack::peer_tos);
-				aux::set_traffic_class(m_socket, tos, ec);
+				int const value = m_settings.get_int(settings_pack::peer_dscp);
+				aux::set_traffic_class(m_socket, value, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (ec && should_log(peer_log_alert::outgoing))
 				{
-					peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-						, tos, ec.message().c_str());
+					peer_log(peer_log_alert::outgoing, "SET_DSCP", "value: %d e: %s"
+						, value, ec.message().c_str());
 				}
 #endif
 			}
@@ -6323,15 +6323,15 @@ namespace libtorrent {
 			return;
 		}
 
-		if (m_settings.get_int(settings_pack::peer_tos) != 0)
+		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
 		{
-			int const tos = m_settings.get_int(settings_pack::peer_tos);
-			aux::set_traffic_class(m_socket, tos, ec);
+			int const value = m_settings.get_int(settings_pack::peer_dscp);
+			aux::set_traffic_class(m_socket, value, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log(peer_log_alert::outgoing))
 			{
-				peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-					, tos, ec.message().c_str());
+				peer_log(peer_log_alert::outgoing, "SET_DSCP", "value: %d e: %s"
+					, value, ec.message().c_str());
 			}
 #endif
 		}

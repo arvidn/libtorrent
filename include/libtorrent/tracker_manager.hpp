@@ -286,7 +286,6 @@ enum class event_t : std::uint8_t
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 		virtual void start() = 0;
 		virtual void close() = 0;
-		address bind_interface() const;
 		aux::listen_socket_handle const& bind_socket() const { return m_req.outgoing_socket; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);

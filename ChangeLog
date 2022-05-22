@@ -108,6 +108,8 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix bind-to-device for tracker announces and UPnP
+	* rename peer_tos setting to peer_dscp
 	* fix bdecode support for large strings (>= 100 MB)
 
 1.2.16 released

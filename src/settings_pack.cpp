@@ -284,7 +284,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
 		SET(outgoing_port, 0, nullptr),
 		SET(num_outgoing_ports, 0, nullptr),
-		SET(peer_tos, 0x04, &session_impl::update_peer_tos),
+		SET(peer_dscp, 0x04, &session_impl::update_peer_dscp),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET(active_checking, 1, &session_impl::trigger_auto_manage),
@@ -421,6 +421,11 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 			if (key != bool_settings[k].name) continue;
 			return settings_pack::bool_type_base + k;
 		}
+
+		// backwards compatibility with previous name
+		if (key == "peer_tos")
+			return settings_pack::peer_dscp;
+
 		return -1;
 	}
 
