@@ -33,9 +33,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(self.serve_data)
 
 
-@unittest.skipIf(sys.platform != "linux", "pty control only works on linux")
 class TestClient(unittest.TestCase):
     def setUp(self) -> None:
+        if sys.platform != "linux":
+            return
+
         # path relative to this file
         self.script_path = pathlib.Path(__file__).parent / ".." / "client.py"
 
@@ -63,12 +65,15 @@ class TestClient(unittest.TestCase):
         self.pty_master, self.pty_slave = pty.openpty()
 
     def tearDown(self) -> None:
+        if sys.platform != "linux":
+            return
         self.server.shutdown()
         self.server.server_close()
         self.tempdir.cleanup()
         os.close(self.pty_master)
         os.close(self.pty_slave)
 
+    @unittest.skipIf(sys.platform != "linux", "pty control only works on linux")
     def test_download_from_web_seed(self) -> None:
         proc = subprocess.Popen(
             [
