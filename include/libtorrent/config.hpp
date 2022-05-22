@@ -132,7 +132,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // Mac platforms added support for preadv()/pwritev() in MacOS 11, iOS 14 etc.
-#if defined MAC_OS_X_VERSION_MIN_REQUIRED && MAC_OS_X_VERSION_MIN_REQUIRED >= 1100
+#if defined MAC_OS_X_VERSION_MIN_REQUIRED && MAC_OS_X_VERSION_MIN_REQUIRED >= 110000
 # define TORRENT_USE_PREADV 1
 #endif
 
