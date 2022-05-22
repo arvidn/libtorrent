@@ -90,7 +90,7 @@ bool from_hex(span<char const> in, span<char> out)
 		if (i == in.end()) return false;
 		int const t2 = hex_to_int(*i);
 		if (t2 == -1) return false;
-		*o = (t1 << 4) | (t2 & 0xf);
+		*o = char((t1 << 4) | (t2 & 0xf));
 	}
 	return true;
 }
