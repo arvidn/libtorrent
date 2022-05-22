@@ -1972,8 +1972,9 @@ COLUMN OPTIONS
 							if (!s.info_hashes.has(v)) continue;
 							auto const& av = ep.info_hashes[v];
 
-							std::snprintf(str, sizeof(str), "  [%2d] fails: %-3d (%-3d) %s %5d \"%s\" %s\x1b[K\n"
+							std::snprintf(str, sizeof(str), "  [%2d] %s fails: %-3d (%-3d) %s %5d \"%s\" %s\x1b[K\n"
 								, idx
+								, v == lt::protocol_version::V1 ? "v1" : "v2"
 								, av.fails, ae.fail_limit
 								, to_string(int(total_seconds(av.next_announce - now)), 8).c_str()
 								, av.min_announce > now ? int(total_seconds(av.min_announce - now)) : 0

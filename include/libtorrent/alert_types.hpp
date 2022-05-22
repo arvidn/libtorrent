@@ -539,7 +539,8 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT tracker_error_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int times, string_view u, operation_t op, error_code const& e, string_view m);
+			, int times, protocol_version v, string_view u
+			, operation_t op, error_code const& e, string_view m);
 
 		TORRENT_DEFINE_ALERT_PRIO(tracker_error_alert, 11, alert_priority::high)
 
@@ -571,6 +572,9 @@ TORRENT_VERSION_NAMESPACE_3
 		TORRENT_DEPRECATED int const status_code;
 		TORRENT_DEPRECATED std::string msg;
 #endif
+	public:
+		// the bittorrent protocol version that was announced
+		protocol_version version;
 	};
 
 	// This alert is triggered if the tracker reply contains a warning field.
@@ -581,7 +585,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT tracker_warning_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, string_view m);
+			, string_view u, protocol_version v, string_view m);
 
 		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
 
@@ -598,6 +602,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// contains the warning message from the tracker.
 		TORRENT_DEPRECATED std::string msg;
 #endif
+	public:
+		// the bittorrent protocol version that was announced
+		protocol_version version;
 	};
 
 	// This alert is generated when a scrape request succeeds.
@@ -606,7 +613,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT scrape_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int incomp, int comp, string_view u);
+			, int incomp, int comp, string_view u, protocol_version v);
 
 		TORRENT_DEFINE_ALERT_PRIO(scrape_reply_alert, 13, alert_priority::critical)
 
@@ -617,6 +624,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// may be -1 if the response was malformed.
 		int const incomplete;
 		int const complete;
+
+		// the bittorrent protocol version that was scraped
+		protocol_version version;
 	};
 
 	// If a scrape request fails, this alert is generated. This might be due
@@ -627,7 +637,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT scrape_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, error_code const& e);
+			, string_view u, protocol_version v, error_code const& e);
 		TORRENT_UNEXPORT scrape_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
 			, string_view u, string_view m);
@@ -653,6 +663,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// contains a message describing the error.
 		TORRENT_DEPRECATED std::string msg;
 #endif
+	public:
+		// the bittorrent protocol version that was scraped
+		protocol_version version;
 	};
 
 	// This alert is only for informational purpose. It is generated when a tracker announce
@@ -663,7 +676,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT tracker_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, int np, string_view u);
+			, int np, protocol_version v, string_view u);
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
 
@@ -674,6 +687,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// not expected to be greater than the ``num_want`` settings. These are not necessarily
 		// all new peers, some of them may already be connected.
 		int const num_peers;
+
+		// the bittorrent protocol version that was announced
+		protocol_version version;
 	};
 
 	// This alert is generated each time the DHT receives peers from a node. ``num_peers``
@@ -703,7 +719,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		TORRENT_UNEXPORT tracker_announce_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, string_view u, event_t e);
+			, string_view u, protocol_version v, event_t e);
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
 
@@ -712,6 +728,9 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// specifies what event was sent to the tracker. See event_t.
 		event_t const event;
+
+		// the bittorrent protocol version that is announced
+		protocol_version version;
 	};
 
 	// This alert is generated when a finished piece fails its hash check. You can get the handle

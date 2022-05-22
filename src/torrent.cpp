@@ -3131,7 +3131,7 @@ namespace {
 #endif
 
 					req.outgoing_socket = aep.socket;
-					req.info_hash = m_torrent_file->info_hashes().get(protocol_version(ih));
+					req.info_hash = m_torrent_file->info_hashes().get(ih);
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
@@ -3174,7 +3174,7 @@ namespace {
 					if (m_ses.alerts().should_post<tracker_announce_alert>())
 					{
 						m_ses.alerts().emplace_alert<tracker_announce_alert>(
-							get_handle(), aep.local_endpoint, req.url, req.event);
+							get_handle(), aep.local_endpoint, req.url, ih, req.event);
 					}
 
 					state.sent_announce = true;
@@ -3264,7 +3264,7 @@ namespace {
 
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
 			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle()
-				, local_endpoint, req.url, msg);
+				, local_endpoint, req.url, hash_version, msg);
 	}
 
 	void torrent::tracker_scrape_response(tracker_request const& req
@@ -3301,7 +3301,7 @@ namespace {
 			|| req.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<scrape_reply_alert>(
-				get_handle(), local_endpoint, incomplete, complete, req.url);
+				get_handle(), local_endpoint, incomplete, complete, req.url, hash_version);
 		}
 	}
 
@@ -3535,8 +3535,7 @@ namespace {
 		{
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
 				get_handle(), local_endpoint, int(resp.peers.size() + resp.peers4.size())
-				+ int(resp.peers6.size())
-				, r.url);
+				+ int(resp.peers6.size()), v, r.url);
 		}
 
 		do_connect_boost();
@@ -11886,6 +11885,7 @@ namespace {
 			aux::announce_entry* ae = find_tracker(r.url);
 			int fails = 0;
 			tcp::endpoint local_endpoint;
+			protocol_version hash_version = protocol_version::V1;
 			if (ae)
 			{
 				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
@@ -11893,7 +11893,7 @@ namespace {
 
 				if (aep != ae->endpoints.end())
 				{
-					protocol_version const hash_version = r.info_hash == m_info_hash.v1
+					hash_version = r.info_hash == m_info_hash.v1
 						? protocol_version::V1 : protocol_version::V2;
 					auto& a = aep->info_hashes[hash_version];
 					local_endpoint = aep->local_endpoint;
@@ -11948,7 +11948,7 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, local_endpoint, fails, r.url, op, ec, msg);
+					, local_endpoint, fails, hash_version, r.url, op, ec, msg);
 			}
 		}
 		else
@@ -11975,7 +11975,11 @@ namespace {
 					if (aep != nullptr) local_endpoint = aep->local_endpoint;
 				}
 
-				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle(), local_endpoint, r.url, ec);
+				protocol_version hash_version = r.info_hash == m_info_hash.v1
+					? protocol_version::V1 : protocol_version::V2;
+
+				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle()
+					, local_endpoint, r.url, hash_version, ec);
 			}
 		}
 		// announce to the next working tracker
