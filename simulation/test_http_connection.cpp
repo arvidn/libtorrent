@@ -168,7 +168,7 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 #endif
 		);
 
-	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", std::nullopt
+	h->get(url, seconds(1), &ps, 5, "test/user-agent", std::nullopt
 		, lt::aux::resolver_flags{}, auth);
 	return h;
 }
@@ -628,7 +628,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 #endif
 		);
 
-	h->start("10.0.0.2", 8080, seconds(1), 0, &ps, true /*ssl*/);
+	h->start("10.0.0.2", 8080, seconds(1), &ps, true /*ssl*/);
 
 	sim.run();
 

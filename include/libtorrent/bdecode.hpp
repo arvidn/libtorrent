@@ -146,15 +146,18 @@ void escape_string(std::string& ret, char const* str, int len);
 struct bdecode_token
 {
 	// the node with type 'end' is a logical node, pointing to the end
-	// of the bencoded buffer.
+	// of the bencoded buffer. The `long_string` type is for strings that are so
+	// long they need a length prefix that's longer than 8 decimal digits.
+	// these enum values need to be compatible with bdecode_node::type_t
 	enum type_t : std::uint8_t
-	{ none, dict, list, string, integer, end };
+	{ none, dict, list, string, integer, long_string, end };
 
 	enum limits_t
 	{
 		max_offset = (1 << 29) - 1,
 		max_next_item = (1 << 29) - 1,
-		max_header = (1 << 3) - 1
+		short_string_max_header = (1 << 3) - 1 + 2,
+		long_string_max_header = 8 + (1 << 3) - 1 + 2
 	};
 
 	bdecode_token(std::ptrdiff_t off, bdecode_token::type_t t)
@@ -170,25 +173,35 @@ struct bdecode_token
 			, "we need to assert t >= 0 here");
 	}
 
-	bdecode_token(std::ptrdiff_t off, std::uint32_t next
-		, bdecode_token::type_t t, std::uint8_t header_size = 0)
+	bdecode_token(std::ptrdiff_t const off, std::uint32_t const next
+		, bdecode_token::type_t const t, std::uint32_t const header_size = 0)
 		: offset(std::uint32_t(off))
-		, type(t)
+		, type(t == string && header_size > aux::bdecode_token::short_string_max_header ? long_string : t)
 		, next_item(next)
-		, header(type == string ? std::uint32_t(header_size - 2) : 0)
+		, header(type == string ? std::uint32_t(header_size - 2)
+			: type == long_string ? std::uint32_t(header_size - 8 - 2) : 0)
 	{
-		TORRENT_ASSERT(type != string || header_size >= 2);
+		TORRENT_ASSERT((type != string && type != long_string) || header_size >= 2);
 		TORRENT_ASSERT(off >= 0);
 		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(next <= max_next_item);
 		// the string has 2 implied header bytes, to allow for longer prefixes
-		TORRENT_ASSERT(header_size < 8 || (type == string && header_size < 10));
+		TORRENT_ASSERT(header_size < 8
+			|| (type == string && header_size < 10)
+			|| (type == long_string && header_size < 18));
 		TORRENT_ASSERT(t <= end);
 		static_assert(std::is_unsigned<std::underlying_type<bdecode_token::type_t>::type>::value
 			, "we need to assert t >= 0 here");
 	}
 
-	int start_offset() const { TORRENT_ASSERT(type == string); return int(header) + 2; }
+	int start_offset() const
+	{
+		TORRENT_ASSERT(type == string || type == long_string);
+		if (type == string)
+			return int(header) + 2;
+		else
+			return int(header) + 8 + 2;
+	}
 
 	// offset into the bdecoded buffer where this node is
 	std::uint32_t offset:29;
@@ -204,11 +217,15 @@ struct bdecode_token
 	// this is the _relative_ offset to the next node
 	std::uint32_t next_item:29;
 
-	// this is the number of bytes to skip forward from the offset to get to the
-	// first character of the string, if this is a string. This field is not
-	// used for other types. Essentially this is the length of the length prefix
-	// and the colon. Since a string always has at least one character of length
-	// prefix and always a colon, those 2 characters are implied.
+	// This field is only used for ``string`` and ``long_string`` type tokens.
+	// It is the number of bytes to skip forward from the offset to get to the
+	// first character of the string. This is essentially the length of the
+	// length prefix and the colon. Since a string always has at least one
+	// character of length prefix and always a colon, those 2 characters are
+	// implied. 3 bits gives us a maximum length of 7, plus one implied digit.
+	// if the string is 100'000'000 bytes long (100 megabytes), we need more
+	// digits. That's what the ``long_string`` type is used for. It has 8
+	// implied digits in the length prefix (+ the colon).
 	std::uint32_t header:3;
 };
 }

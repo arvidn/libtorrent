@@ -1210,7 +1210,8 @@ BITTORRENT OPTIONS
 
 NETWORK OPTIONS
   -x <file>             loads an emule IP-filter file
-  -Y                    Rate limit local peers)"
+  -Y                    Rate limit local peers
+)"
 #if TORRENT_USE_I2P
 R"(  -i <i2p-host>         the hostname to an I2P SAM bridge to use
 )"

@@ -1276,12 +1276,17 @@ namespace aux {
 			outgoing_port,
 			num_outgoing_ports,
 
-			// ``peer_tos`` determines the TOS byte set in the IP header of every
+			// ``peer_dscp`` determines the DSCP field in the IP header of every
 			// packet sent to peers (including web seeds). ``0x0`` means no marking,
 			// ``0x04`` represents Lower Effort. For more details see `RFC 8622`_.
 			//
 			// .. _`RFC 8622`: http://www.faqs.org/rfcs/rfc8622.html
-			peer_tos,
+			//
+			// ``peer_tos`` is the backwards compatible name for this setting.
+			peer_dscp,
+
+			// hidden
+			peer_tos = peer_dscp,
 
 			// for auto managed torrents, these are the limits they are subject
 			// to. If there are too many torrents some of the auto managed ones
@@ -1698,9 +1703,13 @@ namespace aux {
 			// ``hashing_threads`` is the number of disk I/O threads to use for
 			// piece hash verification. These threads are *in addition* to the
 			// regular disk I/O threads specified by settings_pack::aio_threads.
+			// These threads are only used for full checking of torrents. The
+			// hash checking done while downloading are done by the regular disk
+			// I/O threads.
 			// The hasher threads do not only compute hashes, but also perform
 			// the read from disk. On storage optimal for sequential access,
-			// such as hard drives, this setting should probably be set to 1.
+			// such as hard drives, this setting should be set to 1, which is
+			// also the default.
 			hashing_threads,
 
 			// the number of blocks to keep outstanding at any given time when

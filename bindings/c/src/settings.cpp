@@ -120,6 +120,7 @@ int settings_key(int const tag)
 		case SET_DISK_IO_READ_MODE: return sp::disk_io_read_mode;
 		case SET_OUTGOING_PORT: return sp::outgoing_port;
 		case SET_NUM_OUTGOING_PORTS: return sp::num_outgoing_ports;
+		case SET_PEER_DSCP: return sp::peer_dscp;
 		case SET_PEER_TOS: return sp::peer_tos;
 		case SET_ACTIVE_DOWNLOADS: return sp::active_downloads;
 		case SET_ACTIVE_SEEDS: return sp::active_seeds;

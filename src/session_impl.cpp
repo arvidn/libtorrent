@@ -2179,9 +2179,9 @@ namespace {
 			}
 		}
 
-		if (m_settings.get_int(settings_pack::peer_tos) != 0)
+		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
 		{
-			update_peer_tos();
+			update_peer_dscp();
 		}
 
 		ec.clear();
@@ -2236,7 +2236,7 @@ namespace {
 	namespace {
 		template <typename MapProtocol, typename ProtoType, typename EndpointType>
 		void map_port(MapProtocol& m, ProtoType protocol, EndpointType const& ep
-			, port_mapping_t& map_handle)
+			, port_mapping_t& map_handle, std::string const& device)
 		{
 			if (map_handle != port_mapping_t{-1}) m.delete_mapping(map_handle);
 			map_handle = port_mapping_t{-1};
@@ -2249,7 +2249,7 @@ namespace {
 
 			// only update this mapping if we actually have a socket listening
 			if (ep != EndpointType())
-				map_handle = m.add_mapping(protocol, ep.port(), ep);
+				map_handle = m.add_mapping(protocol, ep.port(), ep, device);
 		}
 	}
 
@@ -2262,16 +2262,16 @@ namespace {
 		if ((mask & remap_natpmp) && s.natpmp_mapper)
 		{
 			map_port(*s.natpmp_mapper, portmap_protocol::tcp, tcp_ep
-				, s.tcp_port_mapping[portmap_transport::natpmp].mapping);
+				, s.tcp_port_mapping[portmap_transport::natpmp].mapping, s.device);
 			map_port(*s.natpmp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
-				, s.udp_port_mapping[portmap_transport::natpmp].mapping);
+				, s.udp_port_mapping[portmap_transport::natpmp].mapping, s.device);
 		}
 		if ((mask & remap_upnp) && s.upnp_mapper)
 		{
 			map_port(*s.upnp_mapper, portmap_protocol::tcp, tcp_ep
-				, s.tcp_port_mapping[portmap_transport::upnp].mapping);
+				, s.tcp_port_mapping[portmap_transport::upnp].mapping, s.device);
 			map_port(*s.upnp_mapper, portmap_protocol::udp, make_tcp(udp_ep)
-				, s.udp_port_mapping[portmap_transport::upnp].mapping);
+				, s.udp_port_mapping[portmap_transport::upnp].mapping, s.device);
 		}
 	}
 
@@ -6277,22 +6277,22 @@ namespace {
 
 	// TODO: 2 this should be factored into the udp socket, so we only have the
 	// code once
-	void session_impl::update_peer_tos()
+	void session_impl::update_peer_dscp()
 	{
-		int const tos = m_settings.get_int(settings_pack::peer_tos);
+		int const value = m_settings.get_int(settings_pack::peer_dscp);
 		for (auto const& l : m_listen_sockets)
 		{
 			if (l->sock)
 			{
 				error_code ec;
-				set_traffic_class(*l->sock, tos, ec);
+				set_traffic_class(*l->sock, value, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
+					session_log(">>> SET_DSCP [ tcp (%s %d) value: %x e: %s ]"
 						, l->sock->local_endpoint().address().to_string().c_str()
-						, l->sock->local_endpoint().port(), tos, ec.message().c_str());
+						, l->sock->local_endpoint().port(), value, ec.message().c_str());
 				}
 #endif
 			}
@@ -6300,15 +6300,15 @@ namespace {
 			if (l->udp_sock)
 			{
 				error_code ec;
-				set_traffic_class(l->udp_sock->sock, tos, ec);
+				set_traffic_class(l->udp_sock->sock, value, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
-					session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
+					session_log(">>> SET_DSCP [ udp (%s %d) value: %x e: %s ]"
 						, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 						, l->udp_sock->sock.local_port()
-						, tos, ec.message().c_str());
+						, value, ec.message().c_str());
 				}
 #endif
 			}
@@ -6802,10 +6802,11 @@ namespace {
 		std::vector<port_mapping_t> ret;
 		for (auto& s : m_listen_sockets)
 		{
-			if (s->upnp_mapper) ret.push_back(s->upnp_mapper->add_mapping(t, external_port
-				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
-			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(t, external_port
-				, tcp::endpoint(s->local_endpoint.address(), static_cast<std::uint16_t>(local_port))));
+			tcp::endpoint const ep{s->local_endpoint.address(), static_cast<std::uint16_t>(local_port)};
+			if (s->upnp_mapper) ret.push_back(s->upnp_mapper->add_mapping(
+				t, external_port, ep, s->device));
+			if (s->natpmp_mapper) ret.push_back(s->natpmp_mapper->add_mapping(
+				t, external_port, ep, s->device));
 		}
 		return ret;
 	}

@@ -45,6 +45,16 @@ using http_connect_handler = std::function<void(http_connection&)>;
 using http_filter_handler = std::function<void(http_connection&, std::vector<tcp::endpoint>&)>;
 using hostname_filter_handler = std::function<bool(http_connection&, string_view)>;
 
+struct bind_info_t
+{
+	std::string device;
+	address ip;
+	bool operator==(bind_info_t const& rhs) const
+	{
+		return device == rhs.device && ip == rhs.ip;
+	}
+};
+
 // when bottled, the last two arguments to the handler
 // will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
@@ -78,9 +88,9 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	std::string m_sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, int prio = 0, aux::proxy_settings const* ps = nullptr, int handle_redirects = 5
+		, aux::proxy_settings const* ps = nullptr, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
-		, std::optional<address> const& bind_addr = std::optional<address>()
+		, std::optional<bind_info_t> const& bind_addr = std::nullopt
 		, aux::resolver_flags resolve_flags = aux::resolver_flags{}, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = nullptr
@@ -88,9 +98,9 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		);
 
 	void start(std::string const& hostname, int port
-		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = nullptr
+		, time_duration timeout, aux::proxy_settings const* ps = nullptr
 		, bool ssl = false, int handle_redirect = 5
-		, std::optional<address> const& bind_addr = std::optional<address>()
+		, std::optional<bind_info_t> const& bind_addr = std::nullopt
 		, aux::resolver_flags resolve_flags = aux::resolver_flags{}
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = nullptr
@@ -112,8 +122,7 @@ private:
 	void on_i2p_resolve(error_code const& e
 		, char const* destination);
 #endif
-	void on_resolve(error_code const& e
-		, std::vector<address> const& addresses);
+	void on_resolve(error_code const& e, std::vector<address> const& addresses);
 	void connect();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
@@ -168,8 +177,8 @@ private:
 	// configured to use a proxy
 	aux::proxy_settings m_proxy;
 
-	// the address to bind to. unset means do not bind
-	std::optional<address> m_bind_addr;
+	// the address and/or device to bind to. unset means do not bind
+	std::optional<bind_info_t> m_bind_addr;
 
 	// if username password was passed in, remember it in case we need to
 	// re-issue the request for a redirect
@@ -189,10 +198,6 @@ private:
 
 	// the number of bytes we are allowed to receive
 	int m_download_quota;
-
-	// the priority we have in the connection queue.
-	// 0 is normal, 1 is high
-	int m_priority;
 
 	// used for DNS lookups
 	aux::resolver_flags m_resolve_flags;

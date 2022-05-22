@@ -2013,13 +2013,9 @@ bool is_downloading_state(int const st)
 		if (status == status_t::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
-			m_add_torrent_params.reset();
 			handle_disk_error("check_resume_data", error);
 			auto_managed(false);
 			pause();
-			set_state(torrent_status::checking_files);
-			if (should_check_files()) start_checking();
-			return;
 		}
 
 		state_updated();
@@ -2513,7 +2509,7 @@ bool is_downloading_state(int const st)
 				m_picker->mark_as_finished(piece_block(piece, i), nullptr);
 		}
 
-		if (m_checking_piece < m_torrent_file->end_piece())
+		if (m_checking_piece < m_torrent_file->end_piece() && has_picker())
 		{
 			// skip pieces we already have
 			while (m_picker->have_piece(m_checking_piece))

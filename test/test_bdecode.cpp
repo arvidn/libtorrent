@@ -1276,6 +1276,32 @@ TORRENT_TEST(switch_buffer)
 	TEST_EQUAL(string1, string2);
 }
 
+TORRENT_TEST(long_string_99999999)
+{
+	std::string input;
+	input += "99999999:";
+	input.resize(9 + 99999999, '_');
+
+	error_code ec;
+	int pos;
+	bdecode_node e = bdecode(input, ec, &pos);
+	TEST_EQUAL(e.type(), bdecode_node::string_t);
+	TEST_EQUAL(e.string_value(), input.substr(9));
+}
+
+TORRENT_TEST(long_string_100000000)
+{
+	std::string input;
+	input += "100000000:";
+	input.resize(10 + 100000000, '_');
+
+	error_code ec;
+	int pos;
+	bdecode_node e = bdecode(input, ec, &pos);
+	TEST_EQUAL(e.type(), bdecode_node::string_t);
+	TEST_EQUAL(e.string_value(), input.substr(10));
+}
+
 TORRENT_TEST(data_offset)
 {
 	char const b[] = "li1e3:fooli1ei2eed1:xi1eee";

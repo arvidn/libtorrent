@@ -154,11 +154,6 @@ namespace libtorrent::aux {
 		close();
 	}
 
-	address tracker_connection::bind_interface() const
-	{
-		return m_req.outgoing_socket.get_local_endpoint().address();
-	}
-
 	void tracker_connection::sent_bytes(int bytes)
 	{
 		m_man.sent_bytes(bytes);

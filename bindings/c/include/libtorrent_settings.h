@@ -115,6 +115,7 @@ enum settings_tags_t {
 	SET_DISK_IO_READ_MODE, // int
 	SET_OUTGOING_PORT, // int
 	SET_NUM_OUTGOING_PORTS, // int
+	SET_PEER_DSCP, // int
 	SET_PEER_TOS, // int
 	SET_ACTIVE_DOWNLOADS, // int
 	SET_ACTIVE_SEEDS, // int

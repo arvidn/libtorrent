@@ -22,6 +22,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_type.hpp" // for async_shutdown
 #include "libtorrent/aux_/resolver_interface.hpp"
+#include "libtorrent/aux_/bind_to_device.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/random.hpp"
@@ -76,7 +77,6 @@ http_connection::http_connection(io_context& ios
 	, m_max_bottled_buffer_size(max_bottled_buffer_size)
 	, m_rate_limit(0)
 	, m_download_quota(0)
-	, m_priority(0)
 	, m_port(0)
 	, m_bottled(bottled)
 {
@@ -85,9 +85,10 @@ http_connection::http_connection(io_context& ios
 
 http_connection::~http_connection() = default;
 
-void http_connection::get(std::string const& url, time_duration timeout, int prio
+void http_connection::get(std::string const& url, time_duration timeout
 	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, std::optional<address> const& bind_addr, aux::resolver_flags const resolve_flags, std::string const& auth_
+	, std::optional<bind_info_t> const& bind_addr
+	, aux::resolver_flags const resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -139,8 +140,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		return;
 	}
 
-	TORRENT_ASSERT(prio >= 0 && prio < 3);
-
 	bool const ssl = (protocol == "https");
 
 	std::stringstream request;
@@ -187,7 +186,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	m_sendbuffer.assign(request.str());
 	m_url = url;
-	start(hostname, port, timeout, prio
+	start(hostname, port, timeout
 		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 		, i2p_conn
@@ -196,17 +195,15 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 }
 
 void http_connection::start(std::string const& hostname, int port
-	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
+	, time_duration timeout, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
-	, std::optional<address> const& bind_addr
+	, std::optional<bind_info_t> const& bind_addr
 	, aux::resolver_flags const resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
 	)
 {
-	TORRENT_ASSERT(prio >= 0 && prio < 3);
-
 	m_redirects = handle_redirects;
 	m_resolve_flags = resolve_flags;
 	if (ps) m_proxy = *ps;
@@ -224,7 +221,6 @@ void http_connection::start(std::string const& hostname, int port
 	m_parser.reset();
 	m_recvbuffer.clear();
 	m_read_pos = 0;
-	m_priority = prio;
 
 #if TORRENT_USE_SSL
 	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
@@ -300,8 +296,12 @@ void http_connection::start(std::string const& hostname, int port
 		if (m_bind_addr)
 		{
 			error_code ec;
-			m_sock->open(m_bind_addr->is_v4() ? tcp::v4() : tcp::v6(), ec);
-			m_sock->bind(tcp::endpoint(*m_bind_addr, 0), ec);
+			m_sock->open(m_bind_addr->ip.is_v4() ? tcp::v4() : tcp::v6(), ec);
+#if TORRENT_HAS_BINDTODEVICE
+			error_code ignore;
+			bind_device(*m_sock, m_bind_addr->device.c_str(), ignore);
+#endif
+			m_sock->bind(tcp::endpoint(m_bind_addr->ip, 0), ec);
 			if (ec)
 			{
 				post(m_ios, std::bind(&http_connection::callback
@@ -490,7 +490,7 @@ void http_connection::on_resolve(error_code const& e
 	if (m_bind_addr)
 	{
 		auto const new_end = std::remove_if(m_endpoints.begin(), m_endpoints.end()
-			, [&](tcp::endpoint const& ep) { return aux::is_v4(ep) != m_bind_addr->is_v4(); });
+			, [&](tcp::endpoint const& ep) { return aux::is_v4(ep) != m_bind_addr->ip.is_v4(); });
 
 		m_endpoints.erase(new_end, m_endpoints.end());
 		if (m_endpoints.empty())
@@ -739,7 +739,7 @@ void http_connection::on_read(error_code const& e
 				m_sock->close(ec);
 
 				std::string url = aux::resolve_redirect_location(m_url, location);
-				get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
+				get(url, m_completion_timeout, &m_proxy, m_redirects - 1
 					, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
 #if TORRENT_USE_I2P
 					, m_i2p_conn
