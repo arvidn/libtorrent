@@ -1,4 +1,5 @@
 
+	* add missing protocol version to tracker_reply_alert and tracker_error_alert
 	* fix privilege issue with SetFileValidData()
 	* add asynchronous overload of torrent_handle::add_piece()
 	* default to a single hashing thread, for full checks

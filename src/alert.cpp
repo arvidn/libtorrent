@@ -387,7 +387,8 @@ namespace libtorrent {
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, int times
-		, string_view u, operation_t const operation, error_code const& e
+		, protocol_version v, string_view u, operation_t const operation
+		, error_code const& e
 		, string_view m)
 		: tracker_alert(alloc, h, ep, u)
 		, times_in_row(times)
@@ -398,6 +399,8 @@ namespace libtorrent {
 		, status_code(e && e.category() == http_category() ? e.value() : -1)
 		, msg(m)
 #endif
+		// TODO: move this field into tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -413,8 +416,9 @@ namespace libtorrent {
 		return {};
 #else
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s %s \"%s\" (%d)"
+		std::snprintf(ret, sizeof(ret), "%s %s %s \"%s\" (%d)"
 			, tracker_alert::message().c_str()
+			, version == protocol_version::V1 ? "v1" : "v2"
 			, convert_from_native(error.message()).c_str(), error_message()
 			, times_in_row);
 		return ret;
@@ -423,12 +427,14 @@ namespace libtorrent {
 
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, string_view u, string_view m)
+		, string_view u, protocol_version v, string_view m)
 		: tracker_alert(alloc, h, ep, u)
 		, m_msg_idx(alloc.copy_string(m))
 #if TORRENT_ABI_VERSION == 1
 		, msg(m)
 #endif
+		// TODO: move this into tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -443,16 +449,18 @@ namespace libtorrent {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		return tracker_alert::message() + " warning: " + warning_message();
+		return tracker_alert::message() + (version == protocol_version::V1 ? " v1" : " v2") + " warning: " + warning_message();
 #endif
 	}
 
 	scrape_reply_alert::scrape_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, int incomp, int comp, string_view u)
+		, int incomp, int comp, string_view u, protocol_version const v)
 		: tracker_alert(alloc, h, ep, u)
 		, incomplete(incomp)
 		, complete(comp)
+		// TODO: move this into tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -463,21 +471,25 @@ namespace libtorrent {
 		return {};
 #else
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s scrape reply: %d %d"
-			, tracker_alert::message().c_str(), incomplete, complete);
+		std::snprintf(ret, sizeof(ret), "%s %s scrape reply: %d %d"
+			, tracker_alert::message().c_str()
+			, version == protocol_version::V1 ? "v1" : "v2"
+			, incomplete, complete);
 		return ret;
 #endif
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, string_view u, error_code const& e)
+		, string_view u, protocol_version const v, error_code const& e)
 		: tracker_alert(alloc, h, ep, u)
 		, error(e)
 		, m_msg_idx()
 #if TORRENT_ABI_VERSION == 1
 		, msg(convert_from_native(e.message()))
 #endif
+		// TODO: move this into tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -512,9 +524,11 @@ namespace libtorrent {
 
 	tracker_reply_alert::tracker_reply_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, int np, string_view u)
+		, int np, protocol_version v, string_view u)
 		: tracker_alert(alloc, h, ep, u)
 		, num_peers(np)
+		// TODO: move this field into tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -525,8 +539,10 @@ namespace libtorrent {
 		return {};
 #else
 		char ret[400];
-		std::snprintf(ret, sizeof(ret), "%s received peers: %d"
-			, tracker_alert::message().c_str(), num_peers);
+		std::snprintf(ret, sizeof(ret), "%s %s received peers: %d"
+			, tracker_alert::message().c_str()
+			, version == protocol_version::V1 ? "v1" : "v2"
+			, num_peers);
 		return ret;
 #endif
 	}
@@ -552,9 +568,11 @@ namespace libtorrent {
 
 	tracker_announce_alert::tracker_announce_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, string_view u
-		, event_t const e)
+		, protocol_version const v, event_t const e)
 		: tracker_alert(alloc, h, ep, u)
 		, event(e)
+		// TODO: move this to tracker_alert
+		, version(v)
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -565,7 +583,9 @@ namespace libtorrent {
 		return {};
 #else
 		static const char* const event_str[] = {"none", "completed", "started", "stopped", "paused"};
-		return tracker_alert::message() + " sending announce (" + event_str[static_cast<int>(event)] + ")";
+		return tracker_alert::message()
+			+ (version == protocol_version::V1 ? " v1" : " v2")
+			+ " sending announce (" + event_str[static_cast<int>(event)] + ")";
 #endif
 	}
 
