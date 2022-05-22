@@ -34,6 +34,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 class TestClient(unittest.TestCase):
+    script_path: pathlib.Path
+    tempdir_path: pathlib.Path
+    torrent_path: pathlib.Path
+    pty_master: Any
+    pty_slave: Any
+    torrent: tdummy.Torrent
+
     def setUp(self) -> None:
         if sys.platform != "linux":
             return
