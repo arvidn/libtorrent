@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <iostream>
+
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/magnet_uri.hpp"
@@ -45,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "settings.hpp"
+#include "test_utils.hpp" // for _pri
 
 using namespace lt;
 
@@ -670,3 +673,159 @@ TORRENT_TEST(magnet_tr_x_uri)
 	TEST_CHECK((p.trackers == std::vector<std::string>{"http://2" }));
 	TEST_CHECK((p.tracker_tiers == std::vector<int>{0}));
 }
+
+TORRENT_TEST(info_hash_v2)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v2.assign("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btmh:12206161616161616161616161616161616161616161616161616161616161616161");
+}
+
+TORRENT_TEST(hybrid_info_hashes)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("aaaaaaaaaaaaaaaaaaaa");
+	atp.info_hashes.v2.assign("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&xt=urn:btmh:12206262626262626262626262626262626262626262626262626262626262626262");
+}
+
+TORRENT_TEST(torrent_info_hash)
+{
+	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
+		, true);
+
+	add_torrent_params atp;
+	atp.ti = ti;
+
+	TEST_EQUAL(make_magnet_uri(atp), std::string{}
+		+ "magnet:?xt=urn:btih:" + aux::to_hex(ti->info_hashes().v1)
+		+ "&xt=urn:btmh:1220" + aux::to_hex(ti->info_hashes().v2));
+}
+
+#if TORRENT_ABI_VERSION < 3
+TORRENT_TEST(deprecated_info_hashe)
+{
+	add_torrent_params atp;
+	atp.info_hash.assign("aaaaaaaaaaaaaaaaaaaa");
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161");
+}
+#endif
+
+TORRENT_TEST(select_only)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("aaaaaaaaaaaaaaaaaaaa");
+
+	using dpv = std::vector<download_priority_t>;
+
+	atp.file_priorities = dpv{0_pri, 1_pri};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&so=1");
+
+	atp.file_priorities = dpv{1_pri, 1_pri};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161");
+
+	atp.file_priorities = dpv{1_pri, 0_pri};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&so=0");
+
+	atp.file_priorities = dpv{1_pri, 0_pri, 1_pri, 1_pri, 1_pri };
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&so=0,2-4");
+
+	atp.file_priorities = dpv{1_pri, 1_pri, 0_pri, 1_pri, 1_pri, 1_pri };
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&so=0-1,3-5");
+
+	atp.file_priorities = dpv{1_pri, 0_pri, 1_pri, 0_pri, 1_pri };
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&so=0,2,4");
+}
+
+TORRENT_TEST(peers)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("aaaaaaaaaaaaaaaaaaaa");
+
+	using ep = tcp::endpoint;
+	using pv = std::vector<ep>;
+
+	atp.peers = pv{ep(make_address("127.0.0.1"), 6881)};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&x.pe=127.0.0.1:6881");
+
+	atp.peers = pv{ep(make_address("127.0.0.1"), 6881), ep(make_address("1.2.3.4"), 1234)};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&x.pe=127.0.0.1:6881&x.pe=1.2.3.4:1234");
+}
+
+TORRENT_TEST(dht_nodes)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("aaaaaaaaaaaaaaaaaaaa");
+
+	using node = std::pair<std::string, int>;
+	using nv =std::vector<node>;
+
+	atp.dht_nodes = nv{node("127.0.0.1", 6881)};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&dht=127.0.0.1:6881");
+
+	atp.dht_nodes = nv{node("127.0.0.1", 6881), node("1.2.3.4", 1234)};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&dht=127.0.0.1:6881&dht=1.2.3.4:1234");
+
+	atp.dht_nodes = nv{node("foobar.com", 1)};
+	TEST_EQUAL(make_magnet_uri(atp), "magnet:?xt=urn:btih:6161616161616161616161616161616161616161&dht=foobar.com:1");
+}
+
+namespace {
+
+bool compare(add_torrent_params const& lhs, add_torrent_params const& rhs)
+{
+	if (lhs.info_hashes != rhs.info_hashes) return false;
+	if (lhs.trackers != rhs.trackers) return false;
+	if (lhs.url_seeds != rhs.url_seeds) return false;
+	if (lhs.peers != rhs.peers) return false;
+	if (lhs.dht_nodes != rhs.dht_nodes) return false;
+	if (lhs.peers != rhs.peers) return false;
+	if (lhs.file_priorities != rhs.file_priorities) return false;
+	if (lhs.name != rhs.name) return false;
+	return true;
+}
+
+bool test_round_trip(add_torrent_params const& atp)
+{
+	auto magnet = make_magnet_uri(atp);
+	std::cout << magnet << '\n';
+	auto new_atp = parse_magnet_uri(magnet);
+	return compare(atp, new_atp);
+}
+
+}
+
+TORRENT_TEST(round_trip)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("aaaaaaaaaaaaaaaaaaaa");
+
+	using node = std::pair<std::string, int>;
+	using nv =std::vector<node>;
+	using ep = tcp::endpoint;
+	using pv = std::vector<ep>;
+	using dpv = std::vector<download_priority_t>;
+
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.dht_nodes = nv{node("foobar.com", 1)};
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.peers = pv{ep(make_address("127.0.0.1"), 6881)};
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.file_priorities = dpv{0_pri, 4_pri};
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.file_priorities = dpv{4_pri, 0_pri, 4_pri, 4_pri, 4_pri };
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.file_priorities = dpv{4_pri, 4_pri, 0_pri, 4_pri, 4_pri, 4_pri };
+	TEST_CHECK(test_round_trip(atp));
+
+	atp.file_priorities = dpv{4_pri, 0_pri, 4_pri, 0_pri, 4_pri };
+	TEST_CHECK(test_round_trip(atp));
+}
+

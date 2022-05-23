@@ -44,11 +44,34 @@ namespace libtorrent {
 	struct torrent_handle;
 	struct session;
 
-	// Generates a magnet URI from the specified torrent. If the torrent
-	// handle is invalid, an empty string is returned.
+	// Generates a magnet URI from the specified torrent.
+	//
+	// Several fields from the add_torrent_params objects are recorded in the
+	// magnet link. In order to not include them, they have to be cleared before
+	// calling make_magnet_uri(). These fields are used:
+	//
+	//  ``ti``, ``info_hashes``, ``url_seeds``, ``dht_nodes``,
+	//  ``file_priorities``, ``trackers``, ``name``, ``peers``.
+	//
+	// Depending on what the use case for the resulting magnet link is, clearing
+	// ``peers`` and ``dht_nodes`` is probably a good idea if the add_torrent_params
+	// came from a running torrent. Those lists may be long and be ephemeral.
+	//
+	// If none of the ``info_hashes`` or ``ti`` fields are set, there is not
+	// info-hash available, and a magnet link cannot be created. In this case
+	// make_magnet_uri() returns an empty string.
+	//
+	// The recommended way to generate a magnet link from a torrent_handle is to
+	// call save_resume_data(), which will post a save_resume_data_alert
+	// containing an add_torrent_params object. This can then be passed to
+	// make_magnet_uri().
+	//
+	// The overload that takes a torrent_handle will make blocking calls to
+	// query information about the torrent. If the torrent handle is invalid,
+	// an empty string is returned.
 	//
 	// For more information about magnet links, see magnet-links_.
-	//
+	TORRENT_EXPORT std::string make_magnet_uri(add_torrent_params const& atp);
 	TORRENT_EXPORT std::string make_magnet_uri(torrent_handle const& handle);
 	TORRENT_EXPORT std::string make_magnet_uri(torrent_info const& info);
 
