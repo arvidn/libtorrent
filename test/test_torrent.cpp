@@ -875,10 +875,10 @@ TORRENT_TEST(redundant_add_piece)
 	auto h = ses.add_torrent(atp);
 	wait_for_downloading(ses, "");
 
-	h.add_piece(0_piece, piece_data.data());
+	h.add_piece(0_piece, piece_data);
 	h.set_piece_deadline(0_piece, 0, torrent_handle::alert_when_available);
 	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(ti->num_pieces()), lt::dont_download));
-	h.add_piece(0_piece, piece_data.data());
+	h.add_piece(0_piece, std::move(piece_data));
 	std::this_thread::sleep_for(lt::seconds(2));
 }
 
