@@ -229,6 +229,18 @@ namespace {
 
 	auto create_file(const native_path_string & name, open_mode_t const mode)
 	{
+
+		if (mode & aux::open_mode::allow_set_file_valid_data)
+		{
+			// Enable privilege required by SetFileValidData()
+			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+			// This must happen before the file is opened:
+			// https://devblogs.microsoft.com/oldnewthing/20160603-00/?p=93565
+			// SetFileValidData() is not available on WinRT, so there is no
+			// corresponding call in that version of create_file()
+			std::call_once(g_once_flag, acquire_manage_volume_privs);
+		}
+
 		return CreateFileW(name.c_str()
 			, file_access(mode)
 			, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
@@ -274,10 +286,6 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_truncate);
 
 #ifndef TORRENT_WINRT
-		// Enable privilege required by SetFileValidData()
-		// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
-		std::call_once(g_once_flag, acquire_manage_volume_privs);
-
 		// if the user has permissions, avoid filling
 		// the file with zeroes, but just fill it with
 		// garbage instead
