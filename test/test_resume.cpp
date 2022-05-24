@@ -1801,7 +1801,7 @@ TORRENT_TEST(resume_data_have_pieces)
 	atp.save_path = ".";
 	auto h = ses.add_torrent(atp);
 	wait_for_downloading(ses, "");
-	h.add_piece(0_piece, piece_data.data());
+	h.add_piece(0_piece, std::move(piece_data));
 
 	h.save_resume_data();
 	ses.pause();

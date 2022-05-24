@@ -268,10 +268,7 @@ namespace aux {
 		static constexpr add_piece_flags_t overwrite_existing = 0_bit;
 
 		// This function will write ``data`` to the storage as piece ``piece``,
-		// as if it had been downloaded from a peer. ``data`` is expected to
-		// point to a buffer of as many bytes as the size of the specified piece.
-		// The data in the buffer is copied and passed on to the disk IO thread
-		// to be written at a later point.
+		// as if it had been downloaded from a peer.
 		//
 		// By default, data that's already been downloaded is not overwritten by
 		// this buffer. If you trust this data to be correct (and pass the piece
@@ -285,7 +282,20 @@ namespace aux {
 		//
 		// Adding pieces while the torrent is being checked (i.e. in
 		// torrent_status::checking_files state) is not supported.
+		//
+		// The overload taking a raw pointer to the data is a blocking call. It
+		// won't return until the libtorrent thread has copied the data into its
+		// disk write buffer. ``data`` is expected to point to a buffer of as
+		// many bytes as the size of the specified piece. See
+		// file_storage::piece_size().
+		//
+		// The data in the buffer is copied and passed on to the disk IO thread
+		// to be written at a later point.
+		//
+		// The overload taking a ``std::vector<char>`` is not blocking, it will
+		// send the buffer to the main thread and return immediately.
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags = {}) const;
+		void add_piece(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified
 		// piece from this torrent. You must have completed the download of the
