@@ -413,6 +413,7 @@ std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 
 #endif // TORRENT_ABI_VERSION
 
+// TODO: this overload should probably be deprecated
 void add_piece_str(torrent_handle& th, piece_index_t piece, char const *data
     , add_piece_flags_t const flags)
 {
@@ -422,7 +423,10 @@ void add_piece_str(torrent_handle& th, piece_index_t piece, char const *data
 void add_piece_bytes(torrent_handle& th, piece_index_t piece, bytes data
     , add_piece_flags_t const flags)
 {
-    th.add_piece(piece, data.arr.c_str(), flags);
+    std::vector<char> buffer;
+    buffer.reserve(data.arr.size());
+    std::copy(data.arr.begin(), data.arr.end(), std::back_inserter(buffer));
+    th.add_piece(piece, std::move(buffer), flags);
 }
 
 class dummy5 {};
