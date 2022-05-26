@@ -164,7 +164,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
         pass
 
     script = os.path.join(output_dir, '%s_%04d.gnuplot' % (name, generation))
-    out = open(script, 'wb')
+    out = open(script, 'w')
     print("set term png size 1200,700", file=out)
     print('set output "%s"' % filename, file=out)
     if 'allow-negative' not in options:

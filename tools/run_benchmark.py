@@ -74,9 +74,12 @@ def run_test(name, test_cmd, client_arg, num_peers):
     except Exception:
         pass
 
-    start = time.time()
+    print("drop caches now. e.g. \"echo 1 | sudo tee /proc/sys/vm/drop_caches\"")
+    input("Press Enter to continue...")
+
+    start = time.monotonic()
     client_cmd = '../examples/client_test -k --listen_interfaces=127.0.0.1:%d cpu_benchmark.torrent ' \
-        '--disable_hash_checks=1 --enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' \
+        '--enable_dht=0 --enable_lsd=0 --enable_upnp=0 --enable_natpmp=0 ' \
         '-e 120 %s -O --allow_multiple_connections_per_ip=1 --connections_limit=%d -T %d ' \
         '--cache_size=%d -f %s/events.log --alert_mask=8747' \
         % (port, client_arg, num_peers * 2, num_peers * 2, cache_size * 16, output_dir)
@@ -93,7 +96,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     t.wait()
 
-    end = time.time()
+    end = time.monotonic()
 
     try:
         c.communicate('q')
@@ -104,7 +107,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
     client_out.close()
     test_out.close()
 
-    print('runtime %d seconds' % (end - start))
+    print(f'runtime {end-start:0.2f} seconds')
     print('analyzing proile...')
     os.system('gprof ../examples/client_test >%s/gprof.out' % output_dir)
     print('generating profile graph...')
