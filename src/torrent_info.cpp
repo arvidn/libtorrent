@@ -922,41 +922,16 @@ namespace {
 
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
-	{
-		error_code ec;
-		if (!parse_torrent_file(torrent_file, ec, load_torrent_limits{}.max_pieces))
-			aux::throw_ex<system_error>(ec);
-
-		INVARIANT_CHECK;
-	}
+		: torrent_info(torrent_file, load_torrent_limits{})
+	{}
 
 	torrent_info::torrent_info(span<char const> buffer, from_span_t)
-	{
-		error_code ec;
-		bdecode_node e = bdecode(buffer, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
-			aux::throw_ex<system_error>(ec);
-
-		INVARIANT_CHECK;
-	}
+		: torrent_info(buffer, load_torrent_limits{}, from_span)
+	{}
 
 	torrent_info::torrent_info(std::string const& filename)
-	{
-		std::vector<char> buf;
-		error_code ec;
-		int ret = load_file(filename, buf, ec);
-		if (ret < 0) aux::throw_ex<system_error>(ec);
-
-		bdecode_node e = bdecode(buf, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}.max_pieces))
-			aux::throw_ex<system_error>(ec);
-
-		INVARIANT_CHECK;
-	}
+		: torrent_info(filename, load_torrent_limits{})
+	{}
 
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, load_torrent_limits const& cfg)
