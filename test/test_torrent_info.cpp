@@ -408,7 +408,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
 	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
 	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
-	{ "v2_deep_recursion.torrent", errors::torrent_file_parse_failed},
+	{ "v2_deep_recursion.torrent", bdecode_errors::depth_exceeded},
 	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
@@ -1043,13 +1043,10 @@ TORRENT_TEST(parse_invalid_torrents)
 	{
 		error_code ec;
 		std::printf("loading %s\n", e.file);
-		std::vector<char> data;
 		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
 			, e.file);
-		TEST_CHECK(load_file(filename, data, ec) == 0);
-		TEST_CHECK(!ec);
 
-		auto ti = std::make_shared<torrent_info>(bdecode(data, 1000), ec);
+		auto ti = std::make_shared<torrent_info>(filename, ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, e.error.message().c_str());
 		TEST_EQUAL(ec.message(), e.error.message());

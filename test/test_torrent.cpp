@@ -104,7 +104,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	p.file_priorities = zeroes;
 
 	error_code ec;
-	torrent_handle h = ses.add_torrent(p, ec);
+	torrent_handle h = ses.add_torrent(std::move(p), ec);
 	if (ec)
 	{
 		std::printf("add_torrent: %s\n", ec.message().c_str());
@@ -190,7 +190,7 @@ void test_large_piece_size(int const size)
 	atp.save_path = ".";
 
 	lt::session ses;
-	auto h = ses.add_torrent(atp);
+	auto h = ses.add_torrent(std::move(atp));
 	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
 	h.clear_error();
 	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
@@ -694,7 +694,7 @@ TORRENT_TEST(test_move_storage_no_metadata)
 	lt::session ses(settings());
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	TEST_EQUAL(h.status().save_path, complete("save_path"));
 
@@ -708,7 +708,7 @@ TORRENT_TEST(test_have_piece_no_metadata)
 	lt::session ses(settings());
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
 	TEST_EQUAL(h.have_piece(0_piece), false);
@@ -729,7 +729,7 @@ TORRENT_TEST(test_have_piece_out_of_range)
 
 	p.save_path = ".";
 	p.flags |= torrent_flags::seed_mode;
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
 	TEST_EQUAL(h.have_piece(0_piece), true);
@@ -741,7 +741,7 @@ TORRENT_TEST(test_read_piece_no_metadata)
 	lt::session ses(settings());
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab");
 	p.save_path = "save_path";
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	h.read_piece(piece_index_t{-1});
 
@@ -763,7 +763,7 @@ TORRENT_TEST(test_read_piece_out_of_range)
 	p.ti = make_torrent(file_sizes, piece_size);
 	p.save_path = "save_path";
 	p.flags |= torrent_flags::seed_mode;
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	h.read_piece(piece_index_t{-1});
 
@@ -838,7 +838,7 @@ TORRENT_TEST(symlinks_restore)
 	settings_pack pack = settings();
 	pack.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
 	lt::session ses(std::move(pack));
-	ses.add_torrent(p);
+	ses.add_torrent(std::move(p));
 
 	wait_for_alert(ses, torrent_checked_alert::alert_type, "torrent_checked_alert");
 
@@ -872,7 +872,7 @@ TORRENT_TEST(redundant_add_piece)
 	atp.ti = ti;
 	atp.flags &= ~torrent_flags::paused;
 	atp.save_path = ".";
-	auto h = ses.add_torrent(atp);
+	auto h = ses.add_torrent(std::move(atp));
 	wait_for_downloading(ses, "");
 
 	h.add_piece(0_piece, piece_data);
@@ -889,7 +889,7 @@ TORRENT_TEST(test_in_session)
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 	TEST_CHECK(h.in_session());
 	ses.remove_torrent(h);
 	TEST_CHECK(!h.in_session());
