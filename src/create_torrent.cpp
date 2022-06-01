@@ -290,8 +290,6 @@ namespace {
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		aux::session_settings sett;
-		int const num_threads = std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2));
-		sett.set_int(settings_pack::hashing_threads, num_threads);
 		set_piece_hashes(t, p, sett, f, ec);
 	}
 
