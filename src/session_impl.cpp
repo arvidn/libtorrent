@@ -4870,9 +4870,12 @@ namespace {
 		alert_params.info_hashes = info_hash;
 
 		torrent_handle handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 
-		if (!torrent_ptr) return handle;
+        if (!torrent_ptr)
+        {
+            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
+            return handle;
+        }
 
 		TORRENT_ASSERT(info_hash.has_v1() || info_hash.has_v2());
 
@@ -4886,6 +4889,7 @@ namespace {
 		if (!added)
 		{
 			abort_torrent.disarm();
+            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 			return handle;
 		}
 
@@ -4904,6 +4908,8 @@ namespace {
 
 		TORRENT_ASSERT(info_hash == torrent_ptr->torrent_file().info_hashes());
 		insert_torrent(info_hash, torrent_ptr);
+
+        m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
