@@ -508,6 +508,9 @@ void http_connection::on_resolve(error_code const& e
 		m_endpoints.emplace_back(addr, m_port);
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
+
+	if (m_abort) return;
+
 	if (m_endpoints.empty())
 	{
 		close();
