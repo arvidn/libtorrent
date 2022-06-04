@@ -353,7 +353,7 @@ TORRENT_VERSION_NAMESPACE_3_END
 
 	// peer plugins are associated with a specific peer. A peer could be
 	// both a regular bittorrent peer (``bt_peer_connection``) or one of the
-	// web seed connections (``web_peer_connection`` or ``http_seed_connection``).
+	// web seed connections (``web_peer_connection``).
 	// In order to only attach to certain peers, make your
 	// torrent_plugin::new_connection only return a plugin for certain peer
 	// connection types
