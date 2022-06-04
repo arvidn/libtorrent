@@ -708,6 +708,7 @@ struct peer_conn
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
 		"    -t <file>          the file to save the .torrent file to\n"
+		"    -U <num>           Add <num> random test tracker URLs\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
@@ -799,7 +800,7 @@ out:
 
 // size is in megabytes
 void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
-	, char const* torrent_name)
+	, char const* torrent_name, int num_trackers)
 {
 	file_storage fs;
 	// 1 MiB piece size
@@ -843,6 +844,13 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 
 	for (auto i : t.files().piece_range())
 		t.set_hash(i, hashes[i]);
+
+	for (int i = 0; i < num_trackers; ++i)
+	{
+		char b[100];
+		std::snprintf(b, sizeof(b), "http://test.tracker%d.com/announce", i);
+		t.add_tracker(b);
+	}
 
 	bencode(std::back_inserter(buf), t.generate());
 }
@@ -957,6 +965,7 @@ int main(int argc, char* argv[])
 	int size = 1000;
 	int num_files = 10;
 	int num_torrents = 1;
+	int num_trackers = 0;
 	char const* torrent_file = "benchmark.torrent";
 	char const* data_path = ".";
 	int num_connections = 50;
@@ -1003,6 +1012,7 @@ int main(int argc, char* argv[])
 			case 'N': num_torrents = atoi(opt); break;
 			case 't': torrent_file = opt; break;
 			case 'T': trackers.push_back(opt); break;
+			case 'U': num_trackers = atoi(opt); break;
 			case 'P': data_path = opt; break;
 			case 'c': num_connections = atoi(opt); break;
 			case 'p': destination_port = atoi(opt); break;
@@ -1019,7 +1029,7 @@ int main(int argc, char* argv[])
 		name = name.substr(0, name.find_last_of('.'));
 		std::printf("generating torrent: %s\n", name.c_str());
 		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
-			, name.c_str() );
+			, name.c_str(), num_trackers);
 
 		FILE* output = stdout;
 		if ("-"_sv != torrent_file)
