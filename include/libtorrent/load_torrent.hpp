@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019-2020, Arvid Norberg
+Copyright (c) 2022, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,66 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
+#ifndef TORRENT_LOAD_TORRENT_HPP_INCLUDED
+#define TORRENT_LOAD_TORRENT_HPP_INCLUDED
 
-#include "libtorrent/load_torrent.hpp"
-#include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/load_torrent.hpp"
+#include "libtorrent/bdecode.hpp"
+#include "libtorrent/torrent_info.hpp" // for load_torrent_limits
+#include "libtorrent/aux_/export.hpp"
 
-namespace {
+namespace libtorrent {
 
-[[noreturn]] void print_usage()
-{
-	std::cerr << R"(usage: torrent2magnet torrent-file [options]
-    OPTIONS:
-    --no-trackers    do not include trackers in the magnet link
-    --no-web-seeds   do not include web seeds in the magnet link
-)";
-	std::exit(1);
+	// These functions load the content of a .torrent file into an
+	// add_torrent_params object.
+	// The immutable part of a torrent file (the info-dictionary) is stored in
+	// the ``ti`` field in the add_torrent_params object (as a torrent_info
+	// object).
+	// The returned object is suitable to be:
+	//
+	//   * added to a session via add_torrent() or async_add_torrent()
+	//   * saved as a .torrent_file via write_torrent_file()
+	//   * turned into a magnet link via make_magnet_uri()
+	TORRENT_EXPORT add_torrent_params load_torrent_file(
+		std::string const& filename, load_torrent_limits const& cfg);
+	TORRENT_EXPORT add_torrent_params load_torrent_file(
+		std::string const& filename);
+	TORRENT_EXPORT add_torrent_params load_torrent_buffer(
+		span<char const> buffer, load_torrent_limits const& cfg);
+	TORRENT_EXPORT add_torrent_params load_torrent_buffer(
+		span<char const> buffer);
+	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
+		bdecode_node const& torrent_file, load_torrent_limits const& cfg);
+	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
+		bdecode_node const& torrent_file);
+
 }
 
-} // anonymous namespace
-
-int main(int argc, char const* argv[]) try
-{
-	lt::span<char const*> args(argv, argc);
-
-	// strip executable name
-	args = args.subspan(1);
-
-	if (args.empty()) print_usage();
-
-	char const* filename = args[0];
-	args = args.subspan(1);
-
-	lt::add_torrent_params atp = lt::load_torrent_file(filename);
-
-	using namespace lt::literals;
-
-	while (!args.empty())
-	{
-		if (args[0] == "--no-trackers"_sv)
-		{
-			atp.trackers.clear();
-		}
-		else if (args[0] == "--no-web-seeds"_sv)
-		{
-			atp.url_seeds.clear();
-			atp.http_seeds.clear();
-		}
-		else
-		{
-			std::cerr << "unknown option: " << args[0] << "\n";
-			print_usage();
-		}
-		args = args.subspan(1);
-	}
-
-	std::cout << lt::make_magnet_uri(atp) << '\n';
-	return 0;
-}
-catch (std::exception const& e)
-{
-	std::cerr << "ERROR: " << e.what() << "\n";
-}
+#endif

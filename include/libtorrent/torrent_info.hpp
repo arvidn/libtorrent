@@ -340,6 +340,9 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
 		void set_web_seeds(std::vector<web_seed_entry> seeds);
 
+		// internal
+		void clear_web_seeds() { m_web_seeds.clear(); }
+
 		// ``total_size()`` returns the total number of bytes the torrent-file
 		// represents. Note that this is the number of pieces times the piece
 		// size (modulo the last piece possibly being smaller). With pad files,

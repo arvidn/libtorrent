@@ -643,12 +643,12 @@ namespace {
 				if (url.second != current_tier)
 				{
 					current_tier = url.second;
-					trackers.push_back(std::move(tier));
+					trackers.emplace_back(std::move(tier));
 					tier.clear();
 				}
 				tier.emplace_back(url.first);
 			}
-			trackers.push_back(tier);
+			trackers.emplace_back(std::move(tier));
 			dict["announce-list"] = std::move(trackers);
 		}
 

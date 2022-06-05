@@ -338,6 +338,7 @@ SOURCES = \
   ip_notifier.cpp                 \
   ip_voter.cpp                    \
   listen_socket_handle.cpp        \
+  load_torrent.cpp                \
   lsd.cpp                         \
   magnet_uri.cpp                  \
   merkle.cpp                      \
@@ -474,6 +475,7 @@ HEADERS = \
   ip_voter.hpp                 \
   libtorrent.hpp               \
   link.hpp                     \
+  load_torrent.hpp             \
   lsd.hpp                      \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \

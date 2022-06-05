@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
 #include "libtorrent/disabled_disk_io.hpp" // for disabled_disk_io_constructor
+#include "libtorrent/load_torrent.hpp"
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -754,9 +755,8 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 }
 
 // return false on failure
-bool add_torrent(lt::session& ses, std::string torrent)
+bool add_torrent(lt::session& ses, std::string torrent) try
 {
-	using lt::add_torrent_params;
 	using lt::storage_mode_t;
 
 	static int counter = 0;
@@ -764,29 +764,27 @@ bool add_torrent(lt::session& ses, std::string torrent)
 	std::printf("[%d] %s\n", counter++, torrent.c_str());
 
 	lt::error_code ec;
-	auto ti = std::make_shared<lt::torrent_info>(torrent, ec);
-	if (ec)
-	{
-		std::printf("failed to load torrent \"%s\": %s\n"
-			, torrent.c_str(), ec.message().c_str());
-		return false;
-	}
-
-	add_torrent_params p;
+	lt::add_torrent_params atp = lt::load_torrent_file(torrent);
 
 	std::vector<char> resume_data;
-	if (load_file(resume_file(ti->info_hashes()), resume_data))
+	if (load_file(resume_file(atp.info_hashes), resume_data))
 	{
-		p = lt::read_resume_data(resume_data, ec);
+		lt::add_torrent_params rd = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
+		else atp = rd;
 	}
 
-	set_torrent_params(p);
+	set_torrent_params(atp);
 
-	p.ti = ti;
-	p.flags &= ~lt::torrent_flags::duplicate_is_error;
-	ses.async_add_torrent(std::move(p));
+	atp.flags &= ~lt::torrent_flags::duplicate_is_error;
+	ses.async_add_torrent(std::move(atp));
 	return true;
+}
+catch (lt::system_error const& e)
+{
+	std::printf("failed to load torrent \"%s\": %s\n"
+		, torrent.c_str(), e.code().message().c_str());
+	return false;
 }
 
 std::vector<std::string> list_dir(std::string path
