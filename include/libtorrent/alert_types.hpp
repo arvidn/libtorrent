@@ -1194,9 +1194,13 @@ TORRENT_VERSION_NAMESPACE_3
 		static constexpr alert_category_t static_category = alert_category::storage;
 		std::string message() const override;
 
-		// the ``params`` structure is populated with the fields to be passed to
-		// add_torrent() or async_add_torrent() to resume the torrent. To
-		// save the state to disk, you may pass it on to write_resume_data().
+		// the ``params`` object is populated with the torrent file whose resume
+		// data was saved. It is suitable to be:
+		//
+		// * added to a session with add_torrent() or async_add_torrent()
+		// * saved to disk with write_resume_data()
+		// * turned into a magnet link with make_magnet_uri()
+		// * saved as a .torrent file with write_torrent_file()
 		add_torrent_params params;
 
 #if TORRENT_ABI_VERSION == 1

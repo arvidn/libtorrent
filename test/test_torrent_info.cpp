@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for load_file
 #include "test_utils.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -1034,9 +1035,22 @@ TORRENT_TEST(parse_torrents)
 		error_code ec;
 		auto ti = std::make_shared<torrent_info>(filename, ec);
 		TEST_CHECK(!ec);
-		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
-			, ec.message().c_str());
+		if (ec) std::printf(" -> failed %s\n", ec.message().c_str());
 		sanity_check(ti);
+
+		add_torrent_params atp = load_torrent_file(filename);
+		TEST_CHECK(atp.info_hashes == ti->info_hashes());
+		sanity_check(atp.ti);
+
+		// trackers are loaded into atp.trackers
+		TEST_CHECK(atp.ti->trackers().empty());
+
+		// web seeds are loaded into atp.trackers
+		TEST_CHECK(atp.ti->web_seeds().empty());
+
+		// piece layers are loaded into atp.merkle_trees and
+		// atp.merkle_trees_mask
+		TEST_CHECK(!atp.ti->v2_piece_hashes_verified());
 
 		if (t.test) t.test(ti.get());
 
@@ -1078,6 +1092,17 @@ TORRENT_TEST(parse_invalid_torrents)
 			, e.error.message().c_str());
 		TEST_EQUAL(ec.message(), e.error.message());
 		TEST_EQUAL(ti->is_valid(), false);
+
+		try
+		{
+			add_torrent_params atp = load_torrent_file(filename);
+		}
+		catch (system_error const& err)
+		{
+			std::printf("E:        \"%s\"\nexpected: \"%s\"\n", err.code().message().c_str()
+				, e.error.message().c_str());
+			TEST_EQUAL(err.code().message(), e.error.message());
+		}
 	}
 }
 
@@ -1228,6 +1253,19 @@ TORRENT_TEST(empty_file2)
 	try
 	{
 		auto ti = std::make_shared<torrent_info>("", from_span);
+		TEST_ERROR("expected exception thrown");
+	}
+	catch (system_error const& e)
+	{
+		std::printf("Expected error: %s\n", e.code().message().c_str());
+	}
+}
+
+TORRENT_TEST(load_torrent_empty_file)
+{
+	try
+	{
+		auto atp = load_torrent_buffer({});
 		TEST_ERROR("expected exception thrown");
 	}
 	catch (system_error const& e)
@@ -1428,24 +1466,47 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
 
 		TORRENT_ASSERT(a);
-		auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
-		entry e = write_torrent_file(p);
-		std::vector<char> out_buffer;
-		bencode(std::back_inserter(out_buffer), e);
-
-		if (out_buffer != data)
 		{
-			std::cout << "GOT:\n";
-			for (char b : out_buffer)
-				std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
-			std::cout << '\n';
+			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
+			entry e = write_torrent_file(p);
+			std::vector<char> out_buffer;
+			bencode(std::back_inserter(out_buffer), e);
 
-			std::cout << "EXPECTED:\n";
-			for (char b : data)
-				std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
-			std::cout << '\n';
+			if (out_buffer != data)
+			{
+				std::cout << "GOT:\n";
+				for (char b : out_buffer)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+
+				std::cout << "EXPECTED:\n";
+				for (char b : data)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+			}
+			TEST_CHECK(out_buffer == data);
 		}
-		TEST_CHECK(out_buffer == data);
+
+		{
+			add_torrent_params p = load_torrent_file(filename);
+			entry e = write_torrent_file(p);
+			std::vector<char> out_buffer;
+			bencode(std::back_inserter(out_buffer), e);
+
+			if (out_buffer != data)
+			{
+				std::cout << "GOT:\n";
+				for (char b : out_buffer)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+
+				std::cout << "EXPECTED:\n";
+				for (char b : data)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+			}
+			TEST_CHECK(out_buffer == data);
+		}
 	}
 }
 

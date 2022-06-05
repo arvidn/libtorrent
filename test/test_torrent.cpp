@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -185,8 +186,7 @@ void test_large_piece_size(int const size)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	add_torrent_params atp;
-	atp.ti = std::make_shared<torrent_info>(buf, from_span);
+	add_torrent_params atp = load_torrent_buffer(buf);
 	atp.save_path = ".";
 
 	lt::session ses;
@@ -215,6 +215,8 @@ TORRENT_TEST(long_names)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	auto ti = std::make_shared<torrent_info>(buf, from_span);
+	auto atp = load_torrent_buffer(buf);
+	TEST_CHECK(atp.ti->info_hashes() == ti->info_hashes());
 }
 
 TORRENT_TEST(large_piece_size)
@@ -240,17 +242,14 @@ TORRENT_TEST(total_wanted)
 
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
+	add_torrent_params p = load_torrent_buffer(tmp);
+	p.save_path = ".";
 
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert_category::storage);
 	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
-
-	add_torrent_params p;
-	p.ti = info;
-	p.save_path = ".";
 
 	// we just want 1 out of 4 files, 1024 out of 4096 bytes
 	p.file_priorities.resize(8, 0_pri);
@@ -315,10 +314,7 @@ TORRENT_TEST(mismatching_info_hash)
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
-
-	add_torrent_params p;
-	p.ti = std::move(info);
+	add_torrent_params p = load_torrent_buffer(tmp);
 
 	// this info-hash is definitely different from the one in `info`, this
 	// should trigger a failure
@@ -340,11 +336,7 @@ TORRENT_TEST(exceed_file_prio)
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
-
-	add_torrent_params p;
-	p.ti = std::move(info);
-
+	add_torrent_params p = load_torrent_buffer(tmp);
 	p.file_priorities.resize(9999, lt::low_priority);
 	p.save_path = ".";
 
@@ -362,12 +354,9 @@ TORRENT_TEST(exceed_piece_prio)
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
-	std::size_t const num_pieces = std::size_t(info->num_pieces());
 
-	add_torrent_params p;
-	p.ti = std::move(info);
-
+	add_torrent_params p = load_torrent_buffer(tmp);
+	std::size_t const num_pieces = std::size_t(p.ti->num_pieces());
 	p.piece_priorities.resize(9999, lt::low_priority);
 	p.save_path = ".";
 
@@ -489,8 +478,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	int called = 0;
 	plugin_creator creator(called);
 
-	add_torrent_params p;
-	p.ti = std::make_shared<torrent_info>(tmp, from_span);
+	add_torrent_params p = load_torrent_buffer(tmp);
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags &= ~torrent_flags::duplicate_is_error;
@@ -865,11 +853,10 @@ TORRENT_TEST(redundant_add_piece)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, from_span);
 
 	lt::session ses(settings());
-	lt::add_torrent_params atp;
-	atp.ti = ti;
+	lt::add_torrent_params atp = load_torrent_buffer(buf);
+	int const num_pieces = atp.ti->num_pieces();
 	atp.flags &= ~torrent_flags::paused;
 	atp.save_path = ".";
 	auto h = ses.add_torrent(std::move(atp));
@@ -877,7 +864,7 @@ TORRENT_TEST(redundant_add_piece)
 
 	h.add_piece(0_piece, piece_data);
 	h.set_piece_deadline(0_piece, 0, torrent_handle::alert_when_available);
-	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(ti->num_pieces()), lt::dont_download));
+	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(num_pieces), lt::dont_download));
 	h.add_piece(0_piece, std::move(piece_data));
 	std::this_thread::sleep_for(lt::seconds(2));
 }

@@ -828,6 +828,7 @@ SOURCES =
 	posix_storage
 	ssl
 	truncate
+	load_torrent
 
 # -- extensions --
 	ut_pex
