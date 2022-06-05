@@ -6900,6 +6900,8 @@ namespace {
 				ret.http_seeds.push_back(ws.url);
 		}
 
+		ret.dht_nodes = m_torrent_file->nodes();
+
 		// write have bitmask
 		// the pieces string has one byte per piece. Each
 		// byte is a bitmask representing different properties
@@ -7064,15 +7066,17 @@ namespace {
 
 			if (!has_hash_picker() && !m_have_all)
 			{
-				ret.verified_leaf_hashes.reserve(m_torrent_file->files().num_files());
-				for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
+				file_storage const& fs = m_torrent_file->files();
+				ret.verified_leaf_hashes.reserve(fs.num_files());
+				for (file_index_t f(0); f != fs.end_file(); ++f)
 				{
-					if (m_torrent_file->files().pad_file_at(f))
+					if (fs.pad_file_at(f) || fs.file_size(f) == 0)
 					{
 						ret.verified_leaf_hashes.emplace_back();
 						continue;
 					}
-					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f), false);
+					ret.verified_leaf_hashes.emplace_back(
+						fs.file_num_blocks(f), false);
 				}
 			}
 		}
