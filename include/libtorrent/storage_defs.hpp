@@ -110,8 +110,32 @@ namespace libtorrent {
 
 		// if any file exist in the target, take those files instead
 		// of the ones we may have in the source.
-		dont_replace
+		dont_replace,
+
+		// hidden
+		mask = 0xf,
+
+		// This is not an enum value, buf a flag that can be ORed into on of the
+		// values. When this bit is set, move_storage() will not attempt to
+		// rename the files (i.e. move them) in the hopes that the move happen
+		// to the same physical volume. Instead it will go straight to the
+		// fall-back of copying the files to the new location.
+		force_copy = 0x10,
 	};
+
+	// internal
+	inline move_flags_t operator|(move_flags_t lhs, move_flags_t rhs)
+	{
+		return move_flags_t(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
+	}
+	inline move_flags_t operator&(move_flags_t lhs, move_flags_t rhs)
+	{
+		return move_flags_t(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
+	}
+	inline move_flags_t operator~(move_flags_t lhs)
+	{
+		return move_flags_t(~static_cast<std::uint8_t>(lhs));
+	}
 
 #if TORRENT_ABI_VERSION == 1
 	// deprecated in 1.2

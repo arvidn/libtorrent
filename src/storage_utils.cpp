@@ -217,10 +217,13 @@ namespace libtorrent { namespace aux {
 		, std::string save_path
 		, std::string const& destination_save_path
 		, std::function<void(std::string const&, error_code&)> const& move_partfile
-		, move_flags_t const flags, storage_error& ec)
+		, move_flags_t flags, storage_error& ec)
 	{
 		status_t ret = status_t::no_error;
 		std::string const new_save_path = complete(destination_save_path);
+
+		bool const force_copy = bool(flags & move_flags_t::force_copy);
+		flags = flags & move_flags_t::mask;
 
 		// check to see if any of the files exist
 		if (flags == move_flags_t::fail_if_exist)
@@ -295,25 +298,35 @@ namespace libtorrent { namespace aux {
 				continue;
 			}
 
-			// TODO: ideally, if we end up copying files because of a move across
-			// volumes, the source should not be deleted until they've all been
-			// copied. That would let us rollback with higher confidence.
-			move_file(old_path, new_path, e);
-
-			// if the source file doesn't exist. That's not a problem
-			// we just ignore that file
-			if (e == boost::system::errc::no_such_file_or_directory)
-				e.clear();
-			else if (e
-				&& e != boost::system::errc::invalid_argument
-				&& e != boost::system::errc::permission_denied)
+			if (force_copy)
 			{
-				// moving the file failed
-				// on OSX, the error when trying to rename a file across different
-				// volumes is EXDEV, which will make it fall back to copying.
-				e.clear();
 				copy_file(old_path, new_path, e);
 				if (!e) copied_files[i] = true;
+				if (e == boost::system::errc::no_such_file_or_directory)
+					e.clear();
+			}
+			else
+			{
+				// TODO: ideally, if we end up copying files because of a move across
+				// volumes, the source should not be deleted until they've all been
+				// copied. That would let us rollback with higher confidence.
+				move_file(old_path, new_path, e);
+
+				// if the source file doesn't exist. That's not a problem
+				// we just ignore that file
+				if (e == boost::system::errc::no_such_file_or_directory)
+					e.clear();
+				else if (e
+					&& e != boost::system::errc::invalid_argument
+					&& e != boost::system::errc::permission_denied)
+				{
+					// moving the file failed
+					// on OSX, the error when trying to rename a file across different
+					// volumes is EXDEV, which will make it fall back to copying.
+					e.clear();
+					copy_file(old_path, new_path, e);
+					if (!e) copied_files[i] = true;
+				}
 			}
 
 			if (e)

@@ -1463,7 +1463,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 }
 
 template <typename StorageType>
-void test_move_storage_to_self()
+void test_move_storage_to_self(move_flags_t const f, boost::system::errc::errc_t expect)
 {
 	// call move_storage with the path to the exising storage. should be a no-op
 	std::string const save_path = current_working_directory();
@@ -1486,8 +1486,8 @@ void test_move_storage_to_self()
 	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
-	s->move_storage(save_path, move_flags_t::always_replace_files, se);
-	TEST_EQUAL(se.ec, boost::system::errc::success);
+	s->move_storage(save_path, move_flags_t::always_replace_files | f, se);
+	TEST_EQUAL(se.ec, expect);
 	std::cerr << "file: " << se.file() << '\n';
 	std::cerr << "op: " << int(se.operation) << '\n';
 	std::cerr << "ec: " << se.ec.message() << '\n';
@@ -1499,7 +1499,7 @@ void test_move_storage_to_self()
 }
 
 template <typename StorageType>
-void test_move_storage_into_self()
+void test_move_storage_into_self(move_flags_t const f)
 {
 	std::string const save_path = current_working_directory();
 	delete_dirs("temp_storage");
@@ -1516,7 +1516,7 @@ void test_move_storage_into_self()
 	writev(s, set, b, 2_piece, 0, aux::open_mode::write, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
-	s->move_storage(test_path, move_flags_t::always_replace_files, se);
+	s->move_storage(test_path, move_flags_t::always_replace_files | f, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
@@ -1532,24 +1532,46 @@ void test_move_storage_into_self()
 #if TORRENT_HAVE_MMAP
 TORRENT_TEST(move_default_storage_to_self)
 {
-	test_move_storage_to_self<mmap_storage>();
+	test_move_storage_to_self<mmap_storage>({}, boost::system::errc::success);
+}
+
+TORRENT_TEST(move_default_storage_to_self_force_copy)
+{
+	test_move_storage_to_self<mmap_storage>(move_flags_t::force_copy
+		, boost::system::errc::invalid_argument);
 }
 
 TORRENT_TEST(move_default_storage_into_self)
 {
-	test_move_storage_into_self<mmap_storage>();
+	test_move_storage_into_self<mmap_storage>({});
+}
+
+TORRENT_TEST(move_default_storage_into_self_force_copy)
+{
+	test_move_storage_into_self<mmap_storage>(move_flags_t::force_copy);
 }
 
 #endif
 
 TORRENT_TEST(move_posix_storage_to_self)
 {
-	test_move_storage_to_self<posix_storage>();
+	test_move_storage_to_self<posix_storage>({}, boost::system::errc::success);
+}
+
+TORRENT_TEST(move_posix_storage_to_self_force_copy)
+{
+	test_move_storage_to_self<posix_storage>(move_flags_t::force_copy
+		, boost::system::errc::invalid_argument);
 }
 
 TORRENT_TEST(move_posix_storage_into_self)
 {
-	test_move_storage_into_self<posix_storage>();
+	test_move_storage_into_self<posix_storage>({});
+}
+
+TORRENT_TEST(move_posix_storage_into_self_force_copy)
+{
+	test_move_storage_into_self<posix_storage>(move_flags_t::force_copy);
 }
 
 TORRENT_TEST(storage_paths_string_pooling)
@@ -1565,7 +1587,7 @@ TORRENT_TEST(storage_paths_string_pooling)
 }
 
 #if TORRENT_HAVE_MMAP
-TORRENT_TEST(dont_move_intermingled_files)
+void dont_move_intermingled_files(move_flags_t const f)
 {
 	std::string const save_path = complete("save_path_1");
 	delete_dirs(combine_path(save_path, "temp_storage"));
@@ -1592,7 +1614,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	ofstream(combine_path(save_path, combine_path("temp_storage", "alien1.tmp")).c_str());
 	ofstream(combine_path(save_path, combine_path("temp_storage", combine_path("folder1", "alien2.tmp"))).c_str());
 
-	s->move_storage(test_path, move_flags_t::always_replace_files, se);
+	s->move_storage(test_path, move_flags_t::always_replace_files | f, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
 	// torrent files moved to new place
@@ -1618,6 +1640,17 @@ TORRENT_TEST(dont_move_intermingled_files)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1")))));
 }
+
+TORRENT_TEST(dont_move_intermingled_files)
+{
+	dont_move_intermingled_files({});
+}
+
+TORRENT_TEST(dont_move_intermingled_files_force_copy)
+{
+	dont_move_intermingled_files(move_flags_t::force_copy);
+}
+
 #endif
 
 namespace {
