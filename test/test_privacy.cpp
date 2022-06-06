@@ -131,19 +131,21 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char http_tracker_url[200];
 	std::snprintf(http_tracker_url, sizeof(http_tracker_url)
 		, "http://127.0.0.1:%d/announce", http_port);
-	t->add_tracker(http_tracker_url, 0);
+	addp.trackers.push_back(http_tracker_url);
+	addp.tracker_tiers.push_back(0);
 	std::printf("http tracker: %s\n", http_tracker_url);
 
 	char udp_tracker_url[200];
 	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url)
 		, "udp://127.0.0.1:%d/announce", udp_port);
-	t->add_tracker(udp_tracker_url, 1);
+	addp.trackers.push_back(udp_tracker_url);
+	addp.tracker_tiers.push_back(1);
 	std::printf("udp tracker: %s\n", udp_tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 
