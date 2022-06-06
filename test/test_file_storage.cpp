@@ -973,6 +973,9 @@ TORRENT_TEST(file_num_blocks)
 	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/5", 0, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.canonicalize();
 
 	// generally the number of blocks in a file is:
 	// (file_size + lt::default_block_size - 1) / lt::default_block_size
@@ -985,6 +988,7 @@ TORRENT_TEST(file_num_blocks)
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{5}), 3);
 	// pad file at index 6
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{7}), 1);
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{8}), 0);
 }
 
 TORRENT_TEST(file_num_pieces)
@@ -996,6 +1000,9 @@ TORRENT_TEST(file_num_pieces)
 	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
 	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/5", 0, {}, 0, {}, "01234567890123456789012345678901");
+
+	fs.canonicalize();
 
 	// generally the number of blocks in a file is:
 	// (file_size + lt::default_block_size - 1) / lt::default_block_size
@@ -1008,6 +1015,7 @@ TORRENT_TEST(file_num_pieces)
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{5}), 2);
 	// pad file at index 6
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{8}), 0);
 }
 
 namespace {
