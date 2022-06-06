@@ -384,6 +384,9 @@ TORRENT_TEST(finish_time_shift_paused)
 // first
 TORRENT_TEST(alert_order)
 {
+#if TORRENT_ABI_VERSION == 1
+	bool received_torrent_add_alert = false;
+#endif
 	bool received_add_torrent_alert = false;
 	int num_torrent_alerts = 0;
 
@@ -398,14 +401,30 @@ TORRENT_TEST(alert_order)
 		, [](lt::add_torrent_params ) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
+#if TORRENT_ABI_VERSION == 1
+			if (alert_cast<torrent_added_alert>(a))
+			{
+				TEST_EQUAL(received_torrent_add_alert, false);
+				received_torrent_add_alert = true;
+			}
+			else
+#endif
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
+#if TORRENT_ABI_VERSION == 1
+				TEST_EQUAL(received_torrent_add_alert, true);
+#endif
 				TEST_EQUAL(received_add_torrent_alert, false);
 				received_add_torrent_alert = true;
 				handle = ta->handle;
 			}
-
-			if (auto ta = dynamic_cast<torrent_alert const*>(a))
+			else if (dynamic_cast<torrent_log_alert const*>(a))
+			{
+				// it's acceptable to receive torrent_log_alert before
+				// add_torrent_alert, since they are for debugging
+				return;
+			}
+			else if (auto ta = dynamic_cast<torrent_alert const*>(a))
 			{
 				TEST_EQUAL(received_add_torrent_alert, true);
 				TEST_CHECK(handle == ta->handle);
