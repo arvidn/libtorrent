@@ -1,4 +1,5 @@
 
+	* fix file_num_blocks() and file_num_pieces() for empty files
 	* add new overload to make_magnet_uri()
 	* add missing protocol version to tracker_reply_alert and tracker_error_alert
 	* fix privilege issue with SetFileValidData()
