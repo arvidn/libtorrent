@@ -494,14 +494,14 @@ void http_connection::on_resolve(error_code const& e
 {
 	COMPLETE_ASYNC("http_connection::on_resolve");
 	m_resolving_host = false;
-
-	if (m_abort) return;
-
 	if (e)
 	{
 		callback(e);
 		return;
 	}
+
+	if (m_abort) return;
+	
 	TORRENT_ASSERT(!addresses.empty());
 
 	// reset timeout
@@ -511,7 +511,6 @@ void http_connection::on_resolve(error_code const& e
 		m_endpoints.emplace_back(addr, m_port);
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
-
 	if (m_endpoints.empty())
 	{
 		close();
