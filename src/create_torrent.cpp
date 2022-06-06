@@ -643,7 +643,7 @@ namespace {
 				if (url.second != current_tier)
 				{
 					current_tier = url.second;
-					trackers.push_back(tier);
+					trackers.push_back(std::move(tier));
 					tier.clear();
 				}
 				tier.emplace_back(url.first);

@@ -362,11 +362,11 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "udp://%s:%d/announce", iface.c_str(), udp_port);
-	t->add_tracker(tracker_url, 0);
+	addp.trackers.push_back(tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
@@ -460,12 +460,12 @@ TORRENT_TEST(http_peers)
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
-	t->add_tracker(tracker_url, 0);
+	addp.trackers.push_back(tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
@@ -533,12 +533,12 @@ TORRENT_TEST(current_tracker)
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
-	t->add_tracker(tracker_url, 0);
+	addp.trackers.push_back(tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
@@ -593,13 +593,13 @@ void test_proxy(bool proxy_trackers)
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
-	t->add_tracker(tracker_url, 0);
+	addp.trackers.push_back(tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;

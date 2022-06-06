@@ -968,6 +968,20 @@ TORRENT_TEST(verify_encoding)
 	TEST_CHECK(test == "filename_");
 }
 
+namespace {
+void sanity_check(std::shared_ptr<torrent_info> const& ti)
+{
+	// construct a piece_picker to get some more test coverage. Perhaps
+	// loading the torrent is fine, but if we can't construct a piece_picker
+	// for it, it's still no good.
+	piece_picker pp(ti->total_size(), ti->piece_length());
+
+	TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
+	TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());
+	TEST_EQUAL(ti->v2(), ti->info_hashes().has_v2());
+}
+}
+
 TORRENT_TEST(parse_torrents)
 {
 	// test torrent parsing
@@ -1022,15 +1036,7 @@ TORRENT_TEST(parse_torrents)
 		TEST_CHECK(!ec);
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
-
-		// construct a piece_picker to get some more test coverage. Perhaps
-		// loading the torrent is fine, but if we can't construct a piece_picker
-		// for it, it's still no good.
-		piece_picker pp(ti->total_size(), ti->piece_length());
-
-		TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
-		TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());
-		TEST_EQUAL(ti->v2(), ti->info_hashes().has_v2());
+		sanity_check(ti);
 
 		if (t.test) t.test(ti.get());
 
@@ -1422,7 +1428,8 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
 
 		TORRENT_ASSERT(a);
-		entry e = write_torrent_file(static_cast<save_resume_data_alert const*>(a)->params);
+		auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
+		entry e = write_torrent_file(p);
 		std::vector<char> out_buffer;
 		bencode(std::back_inserter(out_buffer), e);
 
