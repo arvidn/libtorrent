@@ -84,3 +84,8 @@ examples/upnp_test
 # binaries in the tests directory
 tools/dht_put
 tools/session_log_alerts
+
+# visual studio files and folders
+/out
+/CMakeSettings.json
+/.vs
