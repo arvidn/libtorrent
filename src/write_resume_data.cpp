@@ -299,7 +299,7 @@ namespace {
 			std::vector<bool> const empty_verified;
 			for (file_index_t f : fs.file_range())
 			{
-				if (fs.pad_file_at(f) || fs.file_size(f) < fs.piece_length())
+				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
 					continue;
 
 				aux::merkle_tree t(fs.file_num_blocks(f)
@@ -338,17 +338,49 @@ namespace {
 		// save web seeds
 		if (!atp.url_seeds.empty())
 		{
-			entry::list_type& url_list = ret["url-list"].list();
+			auto& url_list = ret["url-list"].list();
+			url_list.reserve(atp.url_seeds.size());
 			std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 		}
 
 #if TORRENT_ABI_VERSION < 4
 		if (!atp.http_seeds.empty())
 		{
-			entry::list_type& httpseeds_list = ret["httpseeds"].list();
+			auto& httpseeds_list = ret["httpseeds"].list();
+			httpseeds_list.reserve(atp.http_seeds.size());
 			std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
 		}
 #endif
+
+		// save DHT nodes
+		if (!atp.dht_nodes.empty())
+		{
+			auto& nodes = ret["nodes"].list();
+			nodes.reserve(atp.dht_nodes.size());
+			for (auto const& n : atp.dht_nodes)
+			{
+				entry::list_type node(2);
+				node[0] = std::move(n.first);
+				node[1] = n.second;
+				nodes.emplace_back(std::move(node));
+			}
+		}
+
+		if (!atp.ti->similar_torrents().empty() && !atp.ti->info("similar"))
+		{
+			auto& l = ret["similar"].list();
+			l.reserve(atp.ti->similar_torrents().size());
+			for (auto const& n : atp.ti->similar_torrents())
+				l.emplace_back(n.to_string());
+		}
+
+		if (!atp.ti->collections().empty() && !atp.ti->info("collections"))
+		{
+			auto& l = ret["collections"].list();
+			l.reserve(atp.ti->collections().size());
+			for (auto const& n : atp.ti->collections())
+				l.emplace_back(n);
+		}
 
 		// save trackers
 		if (atp.trackers.size() == 1)

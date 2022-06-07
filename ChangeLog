@@ -5,6 +5,12 @@
 	* added support for WebTorrent
 
 
+	* fix issue in write_torrent_file() when file size is exactly piece size
+	* fix file_num_blocks() and file_num_pieces() for empty files
+	* add new overload to make_magnet_uri()
+	* add missing protocol version to tracker_reply_alert and tracker_error_alert
+	* fix privilege issue with SetFileValidData()
+	* add asynchronous overload of torrent_handle::add_piece()
 	* default to a single hashing thread, for full checks
 	* Fix bug when checking files and the first piece is invalid
 

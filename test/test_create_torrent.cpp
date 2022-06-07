@@ -37,11 +37,6 @@ TORRENT_TEST(create_verbatim_torrent)
 		"12:piece lengthi65536e6:pieces20:ababababababababababee";
 
 	lt::torrent_info info(test_torrent, lt::from_span);
-
-	info.add_tracker("http://test.com");
-	info.add_tracker("http://test.com");
-	TEST_EQUAL(info.trackers().size(), 1);
-
 	lt::create_torrent t(info);
 
 	std::vector<char> buffer;

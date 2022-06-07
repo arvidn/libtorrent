@@ -987,7 +987,10 @@ TEST_TORRENTS = \
   backslash_path.torrent \
   bad_name.torrent \
   base.torrent \
+  collection.torrent \
+  collection2.torrent \
   creation_date.torrent \
+  dht_nodes.torrent \
   duplicate_files.torrent \
   duplicate_files2.torrent \
   duplicate_web_seeds.torrent \
@@ -1028,6 +1031,8 @@ TEST_TORRENTS = \
   pad_file_no_path.torrent \
   parent_path.torrent \
   sample.torrent \
+  similar.torrent \
+  similar2.torrent \
   single_multi_file.torrent \
   slash_path.torrent \
   slash_path2.torrent \

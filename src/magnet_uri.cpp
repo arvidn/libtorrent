@@ -12,12 +12,13 @@ see LICENSE file.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for to_string()
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-#include "libtorrent/aux_/socket_io.hpp"
+#include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
 
 namespace libtorrent {
 
@@ -64,39 +65,153 @@ namespace libtorrent {
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
+		add_torrent_params atp;
+		atp.info_hashes = info.info_hashes();
+		atp.name = info.name();
+		atp.trackers.reserve(info.trackers().size());
+		for (auto const& tr : info.trackers())
+			atp.trackers.emplace_back(tr.url);
+		for (auto const& s : info.web_seeds())
+			atp.url_seeds.emplace_back(s.url);
+
+		return make_magnet_uri(atp);
+	}
+
+	std::string make_magnet_uri(add_torrent_params const& atp)
+	{
 		std::string ret = "magnet:?";
 
-		if (info.info_hashes().has_v1())
+		bool first = true;
+		if (atp.info_hashes.has_v1())
 		{
 			ret += "xt=urn:btih:";
-			ret += aux::to_hex(info.info_hashes().v1);
+			ret += aux::to_hex(atp.info_hashes.v1);
+			first = false;
 		}
 
-		if (info.info_hashes().has_v2())
+		if (atp.info_hashes.has_v2())
 		{
-			if (info.info_hashes().has_v1()) ret += '&';
+			if (!first) ret += '&';
 			ret += "xt=urn:btmh:1220";
-			ret += aux::to_hex(info.info_hashes().v2);
+			ret += aux::to_hex(atp.info_hashes.v2);
+			first = false;
 		}
 
-		std::string const& name = info.name();
+		auto ti = atp.ti;
+		if (first && ti)
+		{
+			if (ti->info_hashes().has_v1())
+			{
+				ret += "xt=urn:btih:";
+				ret += aux::to_hex(ti->info_hashes().v1);
+				first = false;
+			}
 
-		if (!name.empty())
+			if (ti->info_hashes().has_v2())
+			{
+				if (!first) ret += '&';
+				ret += "xt=urn:btmh:1220";
+				ret += aux::to_hex(ti->info_hashes().v2);
+				first = false;
+			}
+		}
+
+#if TORRENT_ABI_VERSION < 3
+		if (first && !atp.info_hash.is_all_zeros())
+		{
+			ret += "xt=urn:btih:";
+			ret += aux::to_hex(atp.info_hash);
+			first = false;
+		}
+#endif
+
+		if (first)
+		{
+			// if we couldn't find any info-hashes, we can't make a magnet link
+			return {};
+		}
+
+		if (!atp.name.empty())
 		{
 			ret += "&dn=";
-			ret += escape_string(name);
+			ret += escape_string(atp.name);
 		}
 
-		for (auto const& tr : info.trackers())
+		for (auto const& tr : atp.trackers)
 		{
 			ret += "&tr=";
-			ret += escape_string(tr.url);
+			ret += escape_string(tr);
 		}
 
-		for (auto const& s : info.web_seeds())
+		for (auto const& s : atp.url_seeds)
 		{
 			ret += "&ws=";
-			ret += escape_string(s.url);
+			ret += escape_string(s);
+		}
+
+		for (auto const& node : atp.dht_nodes)
+		{
+			ret += "&dht=";
+			ret += escape_string(node.first);
+			ret += ':';
+			ret += aux::to_string(node.second).data();
+		}
+
+		for (auto const& p : atp.peers)
+		{
+			ret += "&x.pe=";
+			ret += aux::print_endpoint(p);
+		}
+
+		// only include the "&so=" argument if there's at least one file
+		// selected to not be downloaded
+		if (std::any_of(atp.file_priorities.begin(), atp.file_priorities.end()
+			, [](download_priority_t const p) { return p == lt::dont_download; }))
+		{
+			ret += "&so=";
+			int idx = 0;
+			bool need_comma = false;
+			int range_start = -1;
+			for (auto prio : atp.file_priorities)
+			{
+				if (prio != lt::dont_download)
+				{
+					if (range_start == -1)
+						range_start = idx;
+				}
+				else if (range_start != -1)
+				{
+					if (need_comma) ret += ',';
+					if (range_start == idx - 1)
+					{
+						ret += aux::to_string(range_start).data();
+					}
+					else
+					{
+						ret += aux::to_string(range_start).data();
+						ret += '-';
+						ret += aux::to_string(idx - 1).data();
+					}
+					need_comma = true;
+					range_start = -1;
+				}
+				++idx;
+			}
+
+			if (range_start != -1)
+			{
+				if (need_comma) ret += ',';
+				if (range_start == idx - 1)
+				{
+					ret += aux::to_string(range_start).data();
+				}
+				else
+				{
+					ret += aux::to_string(range_start).data();
+					ret += '-';
+					ret += aux::to_string(idx - 1).data();
+				}
+			}
 		}
 
 		return ret;

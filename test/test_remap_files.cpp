@@ -94,7 +94,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	for (auto const i : fs.piece_range())
 	{
 		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
-		tor1.add_piece(i, piece.data());
+		tor1.add_piece(i, std::move(piece));
 	}
 
 	// read pieces

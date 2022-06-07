@@ -245,8 +245,6 @@ namespace {
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		aux::session_settings sett;
-		int const num_threads = std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2));
-		sett.set_int(settings_pack::hashing_threads, num_threads);
 		set_piece_hashes(t, p, sett, f, ec);
 	}
 
@@ -578,30 +576,30 @@ namespace {
 			entry::list_type& nodes_list = nodes.list();
 			for (auto const& n : m_nodes)
 			{
-				entry::list_type node;
-				node.emplace_back(n.first);
-				node.emplace_back(n.second);
-				nodes_list.emplace_back(node);
+				entry::list_type node(2);
+				node[0] = n.first;
+				node[1] = n.second;
+				nodes_list.emplace_back(std::move(node));
 			}
 		}
 
 		if (m_urls.size() > 1)
 		{
-			entry trackers(entry::list_t);
-			entry tier(entry::list_t);
+			entry::list_type trackers;
+			entry::list_type tier;
 			int current_tier = m_urls.front().second;
 			for (auto const& url : m_urls)
 			{
 				if (url.second != current_tier)
 				{
 					current_tier = url.second;
-					trackers.list().push_back(tier);
-					tier.list().clear();
+					trackers.push_back(std::move(tier));
+					tier.clear();
 				}
-				tier.list().emplace_back(url.first);
+				tier.emplace_back(url.first);
 			}
-			trackers.list().push_back(tier);
-			dict["announce-list"] = trackers;
+			trackers.push_back(tier);
+			dict["announce-list"] = std::move(trackers);
 		}
 
 		if (!m_comment.empty())

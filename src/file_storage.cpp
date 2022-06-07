@@ -1101,6 +1101,8 @@ namespace {
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
 		auto const& f = m_files[index];
 
+		if (f.size == 0) return 0;
+
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
@@ -1119,6 +1121,8 @@ namespace {
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
 		auto const& f = m_files[index];
+
+		if (f.size == 0) return 0;
 
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces

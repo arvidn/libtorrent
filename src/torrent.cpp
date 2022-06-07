@@ -1267,12 +1267,33 @@ bool is_downloading_state(int const st)
 		piece_index_t m_piece;
 	};
 
+	void torrent::add_piece_async(piece_index_t const piece
+		, std::vector<char> data, add_piece_flags_t const flags)
+	{
+		TORRENT_ASSERT(is_single_thread());
+
+		// make sure the piece index is correct
+		if (piece >= torrent_file().end_piece())
+			return;
+
+		// make sure the piece size is correct
+		if (data.size() != std::size_t(m_torrent_file->piece_size(piece)))
+			return;
+
+		add_piece(piece, data.data(), flags);
+	}
+
 	// TODO: 3 there's some duplication between this function and
 	// peer_connection::incoming_piece(). is there a way to merge something?
 	void torrent::add_piece(piece_index_t const piece, char const* data
 		, add_piece_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		// make sure the piece index is correct
+		if (piece >= torrent_file().end_piece())
+			return;
+
 		int const piece_size = m_torrent_file->piece_size(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
@@ -3133,7 +3154,7 @@ namespace {
 #endif
 
 					req.outgoing_socket = aep.socket;
-					req.info_hash = m_torrent_file->info_hashes().get(protocol_version(ih));
+					req.info_hash = m_torrent_file->info_hashes().get(ih);
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
@@ -3176,7 +3197,7 @@ namespace {
 					if (m_ses.alerts().should_post<tracker_announce_alert>())
 					{
 						m_ses.alerts().emplace_alert<tracker_announce_alert>(
-							get_handle(), aep.local_endpoint, req.url, req.event);
+							get_handle(), aep.local_endpoint, req.url, ih, req.event);
 					}
 
 					state.sent_announce = true;
@@ -3266,7 +3287,7 @@ namespace {
 
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
 			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle()
-				, local_endpoint, req.url, msg);
+				, local_endpoint, req.url, hash_version, msg);
 	}
 
 	void torrent::tracker_scrape_response(tracker_request const& req
@@ -3303,7 +3324,7 @@ namespace {
 			|| req.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<scrape_reply_alert>(
-				get_handle(), local_endpoint, incomplete, complete, req.url);
+				get_handle(), local_endpoint, incomplete, complete, req.url, hash_version);
 		}
 	}
 
@@ -3535,8 +3556,7 @@ namespace {
 		{
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
 				get_handle(), local_endpoint, int(resp.peers.size() + resp.peers4.size())
-				+ int(resp.peers6.size())
-				, r.url);
+				+ int(resp.peers6.size()), v, r.url);
 		}
 
 		do_connect_boost();
@@ -6940,6 +6960,8 @@ namespace {
 			ret.url_seeds.push_back(ws.url);
 		}
 
+		ret.dht_nodes = m_torrent_file->nodes();
+
 		// write have bitmask
 		// the pieces string has one byte per piece. Each
 		// byte is a bitmask representing different properties
@@ -7101,15 +7123,17 @@ namespace {
 
 			if (!has_hash_picker() && !m_have_all)
 			{
-				ret.verified_leaf_hashes.reserve(m_torrent_file->files().num_files());
-				for (file_index_t f(0); f != m_torrent_file->files().end_file(); ++f)
+				file_storage const& fs = m_torrent_file->files();
+				ret.verified_leaf_hashes.reserve(fs.num_files());
+				for (file_index_t f(0); f != fs.end_file(); ++f)
 				{
-					if (m_torrent_file->files().pad_file_at(f))
+					if (fs.pad_file_at(f) || fs.file_size(f) == 0)
 					{
 						ret.verified_leaf_hashes.emplace_back();
 						continue;
 					}
-					ret.verified_leaf_hashes.emplace_back(m_torrent_file->files().file_num_blocks(f), false);
+					ret.verified_leaf_hashes.emplace_back(
+						fs.file_num_blocks(f), false);
 				}
 			}
 		}
@@ -11932,6 +11956,7 @@ namespace {
 			aux::announce_entry* ae = find_tracker(r.url);
 			int fails = 0;
 			tcp::endpoint local_endpoint;
+			protocol_version hash_version = protocol_version::V1;
 			if (ae)
 			{
 				auto aep = std::find_if(ae->endpoints.begin(), ae->endpoints.end()
@@ -11939,7 +11964,7 @@ namespace {
 
 				if (aep != ae->endpoints.end())
 				{
-					protocol_version const hash_version = r.info_hash == m_info_hash.v1
+					hash_version = r.info_hash == m_info_hash.v1
 						? protocol_version::V1 : protocol_version::V2;
 					auto& a = aep->info_hashes[hash_version];
 					local_endpoint = aep->local_endpoint;
@@ -11994,7 +12019,7 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, local_endpoint, fails, r.url, op, ec, msg);
+					, local_endpoint, fails, hash_version, r.url, op, ec, msg);
 			}
 		}
 		else
@@ -12021,7 +12046,11 @@ namespace {
 					if (aep != nullptr) local_endpoint = aep->local_endpoint;
 				}
 
-				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle(), local_endpoint, r.url, ec);
+				protocol_version hash_version = r.info_hash == m_info_hash.v1
+					? protocol_version::V1 : protocol_version::V2;
+
+				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle()
+					, local_endpoint, r.url, hash_version, ec);
 			}
 		}
 		// announce to the next working tracker

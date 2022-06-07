@@ -141,7 +141,7 @@ TORRENT_VERSION_NAMESPACE_3
 	{
 	public:
 
-		// The constructor that takes an info-hash  will initialize the info-hash
+		// The constructor that takes an info-hash will initialize the info-hash
 		// to the given value, but leave all other fields empty. This is used
 		// internally when downloading torrents without the metadata. The
 		// metadata will be created by libtorrent as soon as it has been

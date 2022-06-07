@@ -476,8 +476,12 @@ namespace {
 		int const piece = int(i - m_requested_metadata.begin());
 
 		// don't request the same block more than once every 3 seconds
+		// unless the source is disconnected
+		auto source = m_requested_metadata[piece].source.lock();
 		time_point const now = aux::time_now();
 		if (m_requested_metadata[piece].last_request != min_time()
+			&& source
+			&& !source->m_pc.is_disconnecting()
 			&& total_seconds(now - m_requested_metadata[piece].last_request) < 3)
 			return -1;
 

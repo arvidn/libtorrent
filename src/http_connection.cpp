@@ -468,6 +468,9 @@ void http_connection::on_resolve(error_code const& e
 		callback(e);
 		return;
 	}
+
+	if (m_abort) return;
+
 	TORRENT_ASSERT(!addresses.empty());
 
 	// reset timeout
