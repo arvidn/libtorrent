@@ -51,6 +51,7 @@ Python3_add_library(python-libtorrent MODULE WITH_SOABI
 	src/fingerprint.cpp
 	src/info_hash.cpp
 	src/ip_filter.cpp
+	src/load_torrent.cpp
 	src/magnet_uri.cpp
 	src/module.cpp
 	src/peer_info.cpp

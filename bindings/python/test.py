@@ -389,6 +389,30 @@ class TestAddPiece(unittest.TestCase):
         self.wait_until_torrent_finished()
 
 
+class test_load_torrent(unittest.TestCase):
+
+    def test_bytearray(self):
+        # a bytearray object is interpreted as a bencoded buffer
+        atp = lt.load_torrent_buffer(bytearray(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(atp.ti.num_files(), 1)
+
+    def test_bytes(self):
+        # a bytes object is interpreted as a bencoded buffer
+        atp = lt.load_torrent_buffer(bytes(lt.bencode({'info': {
+            'name': 'test_torrent', 'length': 1234,
+            'piece length': 16 * 1024,
+            'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})))
+        self.assertEqual(atp.ti.num_files(), 1)
+
+    def test_info_section(self):
+        atp = lt.load_torrent_file('base.torrent')
+
+        self.assertTrue(len(atp.ti.info_section()) != 0)
+        self.assertTrue(len(atp.ti.hash_for_piece(0)) != 0)
+
 class test_torrent_info(unittest.TestCase):
 
     def test_non_ascii_file(self):
