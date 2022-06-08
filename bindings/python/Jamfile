@@ -276,6 +276,7 @@ my-python-extension libtorrent
 	src/ip_filter.cpp
 	src/magnet_uri.cpp
 	src/error_code.cpp
+	src/load_torrent.cpp
 	: # requirements
 	<include>src
 	<toolset>gcc:<cxxflags>-Wno-deprecated-declarations

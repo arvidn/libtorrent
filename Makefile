@@ -207,6 +207,7 @@ PYTHON_FILES= \
   src/fingerprint.cpp       \
   src/gil.hpp               \
   src/ip_filter.cpp         \
+  src/load_torrent.cpp      \
   src/magnet_uri.cpp        \
   src/module.cpp            \
   src/optional.hpp          \
