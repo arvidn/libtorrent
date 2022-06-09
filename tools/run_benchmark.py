@@ -104,7 +104,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
     client_out.close()
     test_out.close()
 
-    print('runtime %d seconds' % (end - start))
+    print(f'runtime {end-start:0.2f} seconds')
     print('analyzing profile...')
     os.system(f'gprof ../examples/client_test{exe} >%s/gprof.out' % output_dir)
     print('generating profile graph...')
