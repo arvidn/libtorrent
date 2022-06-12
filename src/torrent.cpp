@@ -3432,7 +3432,7 @@ namespace {
 					ae->trackerid = resp.trackerid;
 					if (m_ses.alerts().should_post<trackerid_alert>())
 						m_ses.alerts().emplace_alert<trackerid_alert>(get_handle()
-							, aep->local_endpoint, r.url, resp.trackerid);
+							, aep->local_endpoint, v, r.url, resp.trackerid);
 				}
 
 				update_scrape_state();
@@ -12050,7 +12050,7 @@ namespace {
 					? protocol_version::V1 : protocol_version::V2;
 
 				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle()
-					, local_endpoint, r.url, hash_version, ec);
+					, local_endpoint, hash_version, r.url, ec);
 			}
 		}
 		// announce to the next working tracker
