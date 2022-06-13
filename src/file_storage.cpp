@@ -49,9 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio>
 #include <cinttypes>
-#include <algorithm>
 #include <functional>
-#include <set>
+#include <unordered_set>
 #include <atomic>
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
@@ -1447,47 +1446,10 @@ namespace {
 
 			std::string target = m_symlinks[fe.symlink_index];
 
-			// to avoid getting stuck in an infinite loop, we only allow traversing
-			// a symlink once
-			std::set<std::string> traversed;
-
-			// this is where we check every path element for existence. If it's not
-			// among the concrete paths, it may be a symlink, which is also OK
-			// note that we won't iterate through this for the last step, where the
-			// filename is included. The filename is validated after the loop
-			for (string_view branch = lsplit_path(target).first;
-				branch.size() < target.size();
-				branch = lsplit_path(target, branch.size() + 1).first)
-			{
-				auto branch_temp = branch.to_string();
-				// this is a concrete directory
-				if (dir_map.count(branch_temp)) continue;
-
-				auto const iter = dir_links.find(branch_temp);
-				if (iter == dir_links.end()) goto failed;
-				if (traversed.count(branch_temp)) goto failed;
-				traversed.insert(std::move(branch_temp));
-
-				// this path element is a symlink. substitute the branch so far by
-				// the link target
-				target = combine_path(iter->second, target.substr(branch.size() + 1));
-
-				// start over with the new (concrete) path
-				branch = {};
+			if (!aux::check_valid_symlink(std::move(target), dir_map, dir_links, file_map)) {
+				// this symlink is invalid, make it point to itself
+				m_symlinks[fe.symlink_index] = internal_file_path(i);
 			}
-
-			// the final (resolved) target must be a valid file
-			// or directory
-			if (file_map.count(target) == 0
-				&& dir_map.count(target) == 0) goto failed;
-
-			// this is OK
-			continue;
-
-failed:
-
-			// this symlink is invalid, make it point to itself
-			m_symlinks[fe.symlink_index] = internal_file_path(i);
 		}
 	}
 
@@ -1578,6 +1540,52 @@ namespace aux {
 			ret += fs.file_size(i);
 		}
 		return ret;
+	}
+
+	bool check_valid_symlink(std::string&& target
+			, const std::unordered_set<std::string>& dir_map
+			, const std::unordered_map<std::string, std::string>& dir_links
+			, const std::unordered_map<std::string, file_index_t>& file_map)
+	{
+		// to avoid getting stuck in an infinite loop, we only allow traversing
+		// a symlink once
+		std::unordered_set<std::string> traversed;
+
+		// this is where we check every path element for existence. If it's not
+		// among the concrete paths, it may be a symlink, which is also OK
+		// note that we won't iterate through this for the last step, where the
+		// filename is included. The filename is validated after the loop
+		for (string_view branch = lsplit_path(target).first;
+			 branch.size() < target.size();
+			 branch = lsplit_path(target, branch.size() + 1).first)
+		{
+			auto branch_temp = branch.to_string();
+			// this is a concrete directory
+			if (dir_map.count(branch_temp)) continue;
+
+			auto const iter = dir_links.find(branch_temp);
+			if (iter == dir_links.end())
+				return false;
+			if (traversed.count(branch_temp))
+				return false;
+
+			traversed.insert(std::move(branch_temp));
+
+			// this path element is a symlink. substitute the branch so far by
+			// the link target
+			target = combine_path(iter->second, target.substr(branch.size() + 1));
+
+			// start over with the new (concrete) path
+			branch = {};
+		}
+
+		// the final (resolved) target must be a valid file
+		// or directory
+		if (file_map.count(target) == 0
+			&& dir_map.count(target) == 0) {
+			return false;
+		}
+		return true;
 	}
 
 	} // namespace aux

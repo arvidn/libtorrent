@@ -716,6 +716,12 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT
 	std::int64_t size_on_disk(file_storage const& fs);
 
+	TORRENT_EXTRA_EXPORT
+	bool check_valid_symlink(std::string&& target
+				, const std::unordered_set<std::string>& dir_map
+				, const std::unordered_map<std::string, std::string>& dir_links
+				, const std::unordered_map<std::string, file_index_t>& file_map);
+
 } // namespace aux
 } // namespace libtorrent
 

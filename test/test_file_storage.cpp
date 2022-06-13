@@ -1192,5 +1192,55 @@ TORRENT_TEST(size_on_disk_explicit_pads)
 	TEST_CHECK(aux::size_on_disk(fs) < fs.total_size());
 }
 
+TORRENT_TEST(check_valid_symlink_short_target)
+{
+	std::string target = "ZZ";
+	std::unordered_set<std::string> dir_map;
+	std::unordered_map<std::string, std::string> dir_links;
+	std::unordered_map<std::string, file_index_t> file_map;
+
+	bool result = lt::aux::check_valid_symlink(std::move(target),
+												 dir_map, dir_links,
+												 file_map);
+	TEST_EQUAL(result, false);
+
+	target = "ZZ";
+	dir_map.emplace("ZZ");
+	file_map.emplace("ZZ", 1);
+
+	result = lt::aux::check_valid_symlink(std::move(target),
+									  dir_map, dir_links,
+									  file_map);
+	TEST_EQUAL(result, true);
+}
+
+TORRENT_TEST(check_valid_symlink_no_target_in_dirlinks) {
+	std::string target = "B/B/ZZ";
+	std::unordered_set<std::string> dir_map;
+	std::unordered_map<std::string, std::string> dir_links;
+	std::unordered_map<std::string, file_index_t> file_map;
+
+	dir_links.emplace("2", "B/B/ZZ");
+
+	bool result = lt::aux::check_valid_symlink(std::move(target),
+											   dir_map, dir_links,
+											   file_map);
+	TEST_EQUAL(result, false);
+}
+
+TORRENT_TEST(check_valid_symlink_target_in_dirlinks) {
+	std::string target = "4/B";
+	std::unordered_set<std::string> dir_map;
+	std::unordered_map<std::string, std::string> dir_links;
+	std::unordered_map<std::string, file_index_t> file_map;
+
+	dir_links.emplace("4", "A");
+
+	bool result = lt::aux::check_valid_symlink(std::move(target),
+											   dir_map, dir_links,
+											   file_map);
+	TEST_EQUAL(result, false);
+}
+
 // TODO: test file attributes
 // TODO: test symlinks
