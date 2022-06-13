@@ -7525,7 +7525,8 @@ namespace {
 		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
 			, settings().get_int(settings_pack::metadata_token_limit));
 
-		if (ec || !m_torrent_file->parse_info_section(metadata, ec
+		auto info = std::make_shared<torrent_info>(old_ih);
+		if (ec || !info->parse_info_section(metadata, ec
 			, settings().get_int(settings_pack::max_piece_count)))
 		{
 			update_gauge();
@@ -7541,22 +7542,30 @@ namespace {
 			return false;
 		}
 
-		// now, we might already have this torrent in the session.
-		m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
+		// we might already have this torrent in the session.
+		bool failed = false;
+		info->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
 		{
 			auto t = m_ses.find_torrent(info_hash_t(ih)).lock();
 			if (t && t != shared_from_this())
 			{
-				// TODO: if the existing torrent doesn't have metadata, insert
-				// the metadata we just downloaded into it.
+				TORRENT_ASSERT(!t->valid_metadata());
+
+				// if we get a collision, both torrents fail and have to be
+				// removed.
+				t->set_error(errors::duplicate_torrent, torrent_status::error_file_metadata);
+				t->pause();
 
 				set_error(errors::duplicate_torrent, torrent_status::error_file_metadata);
-				abort();
+				pause();
+				failed = true;
 			}
 		});
 
-		if (m_abort) return false;
+		if (failed) return true;
+		if (m_abort) return true;
 
+		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
 
 		m_size_on_disk = aux::size_on_disk(m_torrent_file->files());

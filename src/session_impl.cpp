@@ -4536,7 +4536,7 @@ namespace {
 		, info_hash_t const& old_ih)
 	{
 		m_torrents.erase(old_ih);
-		m_torrents.insert(t->torrent_file().info_hashes(), t);
+		m_torrents.insert(t->info_hash(), t);
 	}
 
 	void session_impl::set_queue_position(torrent* me, queue_position_t p)
@@ -5236,7 +5236,7 @@ namespace {
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
 		, remove_flags_t const options)
 	{
-		m_torrents.erase(tptr->torrent_file().info_hashes());
+		m_torrents.erase(tptr->info_hash());
 
 		torrent& t = *tptr;
 		if (options)
