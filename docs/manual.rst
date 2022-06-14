@@ -213,6 +213,29 @@ The resume data format is very similar to the .torrent file format, and when
 including the info-dict in the resume data, the resume file can be used as a
 .torrent file (with just a few minor exceptions).
 
+BitTorrent v2 torrents
+======================
+
+BitTorrent v2 introduces a number of features outlined in `this blog post`_ as
+well as `BEP 52`_. The v2 protocol introduces the possibility to use a merkle
+hash tree instead of a flat list of piece hashes. It also supports *hybrid* torrents,
+that are both valid classing torrents (v1) as well as valid v2 torrents. Hybrid
+torrents contain both a flat list of piece hashes as well as a merkle hash tree.
+
+.. _`this blog post`: https://blog.libtorrent.org/2020/09/bittorrent-v2/
+.. _`BEP 52`: https://www.bittorrent.org/beps/bep_0052.html
+
+This introduces a few new error cases. A hybrid torrent may have mismatching v1
+and v2 hashes. Since v2 torrents use SHA-256 and v1 uses SHA-1 the fact that the
+hashes are mismatching won't be detectable until the piece has been downloaded.
+It results in a ``torrent_inconsistent_hashes`` error.
+
+A magnet link may contain just a v1 info-hash or a v2 info-hash. If two separate
+magnet links, one v1-only and one v2-only, end up resolving to the same hybrid torrent,
+both torrent_handle objects are put into an error state of ``duplicate_torrent``.
+In this state, one of them has to be removed, and the other one can be resumed,
+in order to download the metadata again.
+
 queuing
 =======
 
