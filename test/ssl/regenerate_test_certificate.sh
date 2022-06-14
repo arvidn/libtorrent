@@ -10,7 +10,7 @@ printf "\n\n   ======== \e[33muse common name: * \e[0m=========\n\n"
 openssl req -newkey rsa:4096 -nodes -keyout server_key.pem -x509 -days 1097 -out server_cert.pem
 cat server_key.pem server_cert.pem >server.pem
 
-PATH=$PATH:/usr/local/etc/openssl/misc:/usr/lib/ssl/misc
+PATH=/opt/homebrew/Cellar/openssl@3/3.0.3/bin:/opt/homebrew/etc/openssl@1.1/misc:$PATH:/usr/local/etc/openssl/misc:/usr/lib/ssl/misc
 
 rm -rf demoCA
 
