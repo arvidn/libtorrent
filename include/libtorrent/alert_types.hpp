@@ -1985,6 +1985,9 @@ TORRENT_VERSION_NAMESPACE_3
 	};
 
 	// This is posted whenever a torrent is transitioned into the error state.
+	// If the error code is duplicate_torrent (error_code_enum) error, it suggests two magnet
+	// links ended up resolving to the same hybrid torrent. For more details,
+	// see BitTorrent-v2-torrents_.
 	struct TORRENT_EXPORT torrent_error_alert final : torrent_alert
 	{
 		// internal
