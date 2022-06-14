@@ -357,3 +357,24 @@ TORRENT_TEST(suggest)
 
 	cleanup();
 }
+
+TORRENT_TEST(disable_os_cache)
+{
+	using namespace lt;
+	settings_pack p;
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+	test_transfer(0, p, {}, storage_mode_allocate);
+
+	cleanup();
+}
+
+
+TORRENT_TEST(write_through)
+{
+	using namespace lt;
+	settings_pack p;
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
+	test_transfer(0, p, {}, storage_mode_allocate);
+
+	cleanup();
+}

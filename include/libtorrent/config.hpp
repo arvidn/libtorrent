@@ -192,6 +192,8 @@ see LICENSE file.
 #define TORRENT_HAS_FALLOCATE 0
 #endif
 
+#define TORRENT_USE_SYNC_FILE_RANGE 1
+
 #endif // ANDROID
 
 #if defined __GLIBC__ && ( defined __x86_64__ || defined __i386 \
@@ -449,6 +451,10 @@ see LICENSE file.
 
 #ifndef TORRENT_USE_MADVISE
 #define TORRENT_USE_MADVISE 0
+#endif
+
+#ifndef TORRENT_USE_SYNC_FILE_RANGE
+#define TORRENT_USE_SYNC_FILE_RANGE 0
 #endif
 
 #ifndef TORRENT_USE_FDATASYNC

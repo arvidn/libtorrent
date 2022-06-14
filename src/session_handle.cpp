@@ -22,6 +22,7 @@ see LICENSE file.
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/magnet_uri.hpp"
 #endif
 
 using libtorrent::aux::session_impl;
@@ -328,6 +329,14 @@ namespace {
 		{
 			if (atp.file_priorities.empty())
 				atp.file_priorities = resume_data.file_priorities;
+		}
+
+		if (atp.info_hash.is_all_zeros()
+			&& aux::string_begins_no_case("magnet:", atp.url.c_str()))
+		{
+			error_code err;
+			parse_magnet_uri(atp.url, atp, err);
+			if (!err) atp.url.clear();
 		}
 	}
 

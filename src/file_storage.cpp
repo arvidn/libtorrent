@@ -1506,13 +1506,13 @@ namespace {
 				branch.size() < target.size();
 				branch = lsplit_path(target, branch.size() + 1).first)
 			{
+				std::string branch_temp(branch);
 				// this is a concrete directory
-				if (dir_map.count(branch)) continue;
-
-				auto const iter = dir_links.find(std::string(branch));
+				if (dir_map.count(branch_temp)) continue;
+				auto const iter = dir_links.find(branch_temp);
 				if (iter == dir_links.end()) goto failed;
-				if (traversed.count(std::string(branch))) goto failed;
-				traversed.insert(std::string(branch));
+				if (traversed.count(branch_temp)) goto failed;
+				traversed.insert(std::move(branch_temp));
 
 				// this path element is a symlink. substitute the branch so far by
 				// the link target

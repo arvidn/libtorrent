@@ -39,6 +39,10 @@ auto const map_failed = MAP_FAILED;
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
+#if TORRENT_USE_SYNC_FILE_RANGE
+#include <fcntl.h> // for sync_file_range
+#endif
+
 namespace libtorrent {
 namespace aux {
 
@@ -712,8 +716,13 @@ void file_mapping::page_out(span<byte const> range)
 	auto const size = static_cast<std::size_t>(range.size());
 #if TORRENT_USE_MADVISE && defined MADV_PAGEOUT
 	::madvise(start, size, MADV_PAGEOUT);
+#elif TORRENT_USE_SYNC_FILE_RANGE
+	// this is best-effort. ignore errors
+	::sync_file_range(m_file.fd(), start - static_cast<const byte*>(m_mapping)
+		, size, SYNC_FILE_RANGE_WRITE);
 #endif
 
+	// msync(MS_ASYNC) is a no-op on Linux > 2.6.19.
 	::msync(start, size, MS_ASYNC);
 
 #endif // MAP_VIEW_OF_FILE

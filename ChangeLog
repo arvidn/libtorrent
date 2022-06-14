@@ -5,6 +5,7 @@
 	* added support for WebTorrent
 
 
+	* support sync_file_range() on linux
 	* fix issue in write_torrent_file() when file size is exactly piece size
 	* fix file_num_blocks() and file_num_pieces() for empty files
 	* add new overload to make_magnet_uri()
@@ -120,6 +121,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* improve backwards compatibility with loading magnet link resume files
 	* fix bind-to-device for tracker announces and UPnP
 	* rename peer_tos setting to peer_dscp
 	* fix bdecode support for large strings (>= 100 MB)
