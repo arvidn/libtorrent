@@ -272,6 +272,8 @@ namespace boost
 	POLY(session_stats_alert)
 	POLY(socks5_alert)
 	POLY(file_prio_alert)
+	POLY(oversized_file_alert)
+	POLY(torrent_conflict_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -1139,6 +1141,16 @@ void bind_alert()
 
     class_<dht_bootstrap_alert, bases<alert>, noncopyable>(
         "dht_bootstrap_alert", no_init)
+        ;
+
+    class_<oversized_file_alert, bases<torrent_alert>, noncopyable>(
+        "oversized_file_alert", no_init)
+        ;
+
+    class_<torrent_conflict_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_conflict_alert", no_init)
+        .add_property("conflicting_torrent", make_getter(&torrent_conflict_alert::conflicting_torrent, by_value()))
+        .add_property("metadata", make_getter(&torrent_conflict_alert::metadata, by_value()))
         ;
 
 }

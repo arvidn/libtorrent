@@ -115,7 +115,7 @@ void run_test(
 	sim.run();
 }
 
-void setup_conflict(lt::session& seed, lt::session& downloader)
+lt::info_hash_t setup_conflict(lt::session& seed, lt::session& downloader)
 {
 	lt::add_torrent_params atp = ::create_test_torrent(10, lt::create_flags_t{}, 2);
 	atp.flags &= ~lt::torrent_flags::auto_managed;
@@ -135,6 +135,7 @@ void setup_conflict(lt::session& seed, lt::session& downloader)
 	atp.info_hashes.v1.clear();
 	atp.info_hashes.v2 = ih.v2;
 	downloader.async_add_torrent(atp);
+	return ih;
 }
 
 } // anonymous namespace
@@ -147,8 +148,10 @@ TORRENT_TEST(hybrid_torrent_conflict)
 	std::vector<lt::torrent_handle> handles;
 
 	int errors = 0;
-	run_test([](lt::session& ses0, lt::session& ses1) {
-		setup_conflict(ses1, ses0);
+	int conflict = 0;
+	lt::info_hash_t added_ih;
+	run_test([&](lt::session& ses0, lt::session& ses1) {
+		added_ih = setup_conflict(ses1, ses0);
 	},
 	[&](lt::session& ses, lt::alert const* a) {
 		if (auto const* ta = lt::alert_cast<lt::torrent_added_alert>(a))
@@ -165,6 +168,16 @@ TORRENT_TEST(hybrid_torrent_conflict)
 			// both handles are expected to fail with duplicate torrent error
 			TEST_EQUAL(te->error, lt::error_code(lt::errors::duplicate_torrent));
 		}
+		else if (auto const* tc = lt::alert_cast<lt::torrent_conflict_alert>(a))
+		{
+			++conflict;
+			TEST_EQUAL(std::count(handles.begin(), handles.end(), tc->handle), 1);
+			TEST_EQUAL(std::count(handles.begin(), handles.end(), tc->conflicting_torrent), 1);
+			TEST_CHECK(tc->handle != tc->conflicting_torrent);
+
+			TEST_CHECK(added_ih == tc->metadata->info_hashes());
+		}
+
 		for (auto& h : handles)
 			TEST_CHECK(h.is_valid());
 
@@ -177,6 +190,7 @@ TORRENT_TEST(hybrid_torrent_conflict)
 	);
 
 	TEST_EQUAL(errors, 2);
+	TEST_EQUAL(conflict, 1);
 }
 
 // try to resume the torrents after failing with a conflict. Ensure they both
@@ -271,4 +285,59 @@ TORRENT_TEST(resolve_conflict)
 	TEST_EQUAL(errors, 2);
 	TEST_EQUAL(finished, 1);
 	TEST_EQUAL(removed, 1);
+}
+
+TORRENT_TEST(conflict_readd)
+{
+	std::vector<lt::torrent_handle> handles;
+	int errors = 0;
+	int finished = 0;
+	int removed = 0;
+	int conflict = 0;
+
+	run_test([](lt::session& ses0, lt::session& ses1) {
+		setup_conflict(ses1, ses0);
+	},
+	[&](lt::session& ses, lt::alert const* a) {
+		if (auto const* ta = lt::alert_cast<lt::torrent_added_alert>(a))
+		{
+			handles.push_back(ta->handle);
+		}
+		else if (auto const* tr = lt::alert_cast<lt::torrent_removed_alert>(a))
+		{
+			++removed;
+		}
+		else if (auto const* te = lt::alert_cast<lt::torrent_error_alert>(a))
+		{
+			++errors;
+			// both handles are expected to fail with duplicate torrent error
+			TEST_EQUAL(te->error, lt::error_code(lt::errors::duplicate_torrent));
+		}
+		else if (auto const* tf = lt::alert_cast<lt::torrent_finished_alert>(a))
+		{
+			++finished;
+			TEST_EQUAL(handles.size(), 1);
+			TEST_CHECK(handles[0] == tf->handle);
+		}
+		else if (auto const* tc = lt::alert_cast<lt::torrent_conflict_alert>(a))
+		{
+			++conflict;
+			ses.remove_torrent(tc->handle);
+			ses.remove_torrent(tc->conflicting_torrent);
+			handles.clear();
+
+			lt::add_torrent_params atp;
+			atp.ti = std::move(tc->metadata);
+			atp.save_path = ".";
+			ses.async_add_torrent(std::move(atp));
+		}
+
+		for (auto& h : handles)
+			TEST_CHECK(h.is_valid());
+	});
+
+	TEST_EQUAL(errors, 2);
+	TEST_EQUAL(finished, 1);
+	TEST_EQUAL(removed, 2);
+	TEST_EQUAL(conflict, 1);
 }
