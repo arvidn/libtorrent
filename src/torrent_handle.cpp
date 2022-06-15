@@ -777,9 +777,20 @@ namespace libtorrent {
 		async_call(&aux::torrent::lsd_announce);
 	}
 
-	void torrent_handle::force_reannounce(int s, int idx, reannounce_flags_t const flags) const
+	// TODO: deprecate the overload that takes an index
+	void torrent_handle::force_reannounce(int const s, int const idx, reannounce_flags_t const flags) const
 	{
 		async_call(&aux::torrent::force_tracker_request, aux::time_now() + seconds(s), idx, flags);
+	}
+
+	void torrent_handle::force_reannounce(int const s, std::string const& url, reannounce_flags_t const flags) const
+	{
+		async_call(&aux::torrent::force_tracker_request_url, aux::time_now() + seconds(s), url, flags);
+	}
+
+	void torrent_handle::force_reannounce(int const s, reannounce_flags_t const flags) const
+	{
+		async_call(&aux::torrent::force_tracker_request, aux::time_now() + seconds(s), -1, flags);
 	}
 
 	std::vector<open_file_state> torrent_handle::file_status() const
@@ -793,6 +804,16 @@ namespace libtorrent {
 	void torrent_handle::scrape_tracker(int idx) const
 	{
 		async_call(&aux::torrent::scrape_tracker, idx, true);
+	}
+
+	void torrent_handle::scrape_tracker(std::string url) const
+	{
+		async_call(&aux::torrent::scrape_tracker_url, std::move(url), true);
+	}
+
+	void torrent_handle::scrape_tracker() const
+	{
+		async_call(&aux::torrent::scrape_tracker, -1, true);
 	}
 
 #if TORRENT_ABI_VERSION == 1

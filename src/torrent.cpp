@@ -3220,9 +3220,6 @@ namespace {
 	void torrent::scrape_tracker(int idx, bool const user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if TORRENT_ABI_VERSION == 1
-		m_last_scrape = aux::time_now32();
-#endif
 
 		if (m_trackers.empty()) return;
 
@@ -3238,21 +3235,40 @@ namespace {
 		}
 		if (ae == nullptr) return;
 
+		scrape_tracker_impl(*ae, user_triggered);
+	}
+
+	void torrent::scrape_tracker_url(std::string url, bool const user_triggered)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		if (m_trackers.empty()) return;
+
+		aux::announce_entry* ae = m_trackers.find_tracker(url);
+		if (ae == nullptr) ae = m_trackers.last_working();
+		if (ae == nullptr) ae = m_trackers.first();
+		if (ae == nullptr) return;
+
+		scrape_tracker_impl(*ae, user_triggered);
+	}
+
+	void torrent::scrape_tracker_impl(aux::announce_entry& ae, bool user_triggered)
+	{
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
 			&& m_apply_ip_filter)
 			req.filter = m_ip_filter;
 
 		req.kind |= tracker_request::scrape_request;
-		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae->url, ae->endpoints);
-		req.url = ae->url;
+
+		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.url, ae.endpoints);
+		req.url = ae.url;
 		req.private_torrent = m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
 		req.key = tracker_key();
 		req.triggered_manually = user_triggered;
-		for (aux::announce_endpoint const& aep : ae->endpoints)
+		for (aux::announce_endpoint const& aep : ae.endpoints)
 		{
 			if (!aep.enabled) continue;
 			req.outgoing_socket = aep.socket;
@@ -3262,6 +3278,9 @@ namespace {
 				m_ses.queue_tracker_request(req, shared_from_this());
 			});
 		}
+#if TORRENT_ABI_VERSION == 1
+		m_last_scrape = aux::time_now32();
+#endif
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
@@ -3651,6 +3670,34 @@ namespace {
 		if (want_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
 
+namespace {
+
+	bool trigger_announce(aux::session_interface& ses
+		, bool const is_ssl
+		, bool const complete_sent
+		, reannounce_flags_t const flags
+		, time_point const t
+		, aux::announce_entry& e)
+	{
+		bool ret = false;
+		// make sure we check for new endpoints from the listen sockets
+		refresh_endpoint_list(ses, is_ssl, complete_sent, e.url, e.endpoints);
+		for (auto& aep : e.endpoints)
+		{
+			for (auto& a : aep.info_hashes)
+			{
+				a.next_announce = (flags & torrent_handle::ignore_min_interval)
+					? time_point_cast<seconds32>(t) + seconds32(1)
+					: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
+				a.min_announce = a.next_announce;
+				a.triggered_manually = true;
+				ret = true;
+			}
+		}
+		return ret;
+	}
+}
+
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
@@ -3662,47 +3709,19 @@ namespace {
 			|| tracker_idx == -1);
 
 		if (is_paused()) return;
-#ifndef TORRENT_DISABLE_LOGGING
 		bool found_one = false;
-#endif
 		if (tracker_idx == -1)
 		{
 			for (auto& e : m_trackers)
-			{
-				// make sure we check for new endpoints from the listen sockets
-				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e.url, e.endpoints);
-				for (auto& aep : e.endpoints)
-				{
-					for (auto& a : aep.info_hashes)
-					{
-						a.next_announce = (flags & torrent_handle::ignore_min_interval)
-							? time_point_cast<seconds32>(t) + seconds32(1)
-							: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
-						a.min_announce = a.next_announce;
-						a.triggered_manually = true;
-					}
-				}
-			}
+				found_one |= trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, e);
 		}
 		else
 		{
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
-			aux::announce_entry& e = *m_trackers.find(tracker_idx);
-			for (auto& aep : e.endpoints)
-			{
-				for (auto& a : aep.info_hashes)
-				{
-					a.next_announce = (flags & torrent_handle::ignore_min_interval)
-						? time_point_cast<seconds32>(t) + seconds32(1)
-						: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
-					a.min_announce = a.next_announce;
-					a.triggered_manually = true;
-#ifndef TORRENT_DISABLE_LOGGING
-					found_one = true;
-#endif
-				}
-			}
+			auto* e = m_trackers.find(tracker_idx);
+			if (e == nullptr) return;
+			found_one |= trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, *e);
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3712,6 +3731,36 @@ namespace {
 		}
 #endif
 		update_tracker_timer(aux::time_now32());
+	}
+
+	// this is the entry point for the client to force a re-announce. It's
+	// considered a client-initiated announce (as opposed to the regular ones,
+	// issued by libtorrent)
+	void torrent::force_tracker_request_url(time_point const t, std::string const& url
+		, reannounce_flags_t const flags)
+	{
+		if (is_paused()) return;
+		aux::announce_entry* e = m_trackers.find_tracker(url);
+		if (e == nullptr)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** tracker URL not found %s", url.c_str());
+#endif
+			return;
+		}
+
+		bool const found = trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, *e);
+
+		if (found)
+		{
+			update_tracker_timer(aux::time_now32());
+		}
+#ifndef TORRENT_DISABLE_LOGGING
+		else
+		{
+			debug_log("*** found no tracker endpoints to announce");
+		}
+#endif
 	}
 
 #if TORRENT_ABI_VERSION == 1

@@ -457,6 +457,11 @@ void bind_torrent_handle()
 {
     // arguments are: number of seconds and tracker index
     void (torrent_handle::*force_reannounce0)(int, int, reannounce_flags_t) const = &torrent_handle::force_reannounce;
+    void (torrent_handle::*force_reannounce1)(int, std::string const&, reannounce_flags_t) const = &torrent_handle::force_reannounce;
+    void (torrent_handle::*force_reannounce3)(int, reannounce_flags_t) const = &torrent_handle::force_reannounce;
+    void (torrent_handle::*scrape_tracker0)() const = &torrent_handle::scrape_tracker;
+    void (torrent_handle::*scrape_tracker1)(int) const = &torrent_handle::scrape_tracker;
+    void (torrent_handle::*scrape_tracker2)(std::string) const = &torrent_handle::scrape_tracker;
 
 #if TORRENT_ABI_VERSION == 1
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
@@ -541,12 +546,15 @@ void bind_torrent_handle()
         .def("file_status", _(file_status0))
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
-        .def("force_reannounce", _(force_reannounce0)
-            , (arg("seconds") = 0, arg("tracker_idx") = -1, arg("flags") = reannounce_flags_t{}))
+        .def("force_reannounce", _(force_reannounce0), (arg("seconds"), arg("tracker_idx"), arg("flags") = reannounce_flags_t{}))
+        .def("force_reannounce", _(force_reannounce1), (arg("seconds"), arg("url"), arg("flags") = reannounce_flags_t{}))
+        .def("force_reannounce", _(force_reannounce3), (arg("seconds") = 0, arg("flags") = reannounce_flags_t{}))
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
-        .def("scrape_tracker", _(&torrent_handle::scrape_tracker), arg("index") = -1)
+        .def("scrape_tracker", _(scrape_tracker0))
+        .def("scrape_tracker", _(scrape_tracker1), (arg("index")))
+        .def("scrape_tracker", _(scrape_tracker2), (arg("url")))
         .def("flush_cache", &torrent_handle::flush_cache)
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("upload_limit", _(&torrent_handle::upload_limit))

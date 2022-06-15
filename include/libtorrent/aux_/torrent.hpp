@@ -771,7 +771,10 @@ namespace libtorrent::aux {
 
 		// forcefully sets next_announce to the current time
 		void force_tracker_request(time_point, int tracker_idx, reannounce_flags_t flags);
+		void force_tracker_request_url(time_point, std::string const& url, reannounce_flags_t flags);
 		void scrape_tracker(int idx, bool user_triggered);
+		void scrape_tracker_url(std::string url, bool user_triggered);
+		void scrape_tracker_impl(aux::announce_entry& ae, bool user_triggered);
 		void announce_with_tracker(event_t e = event_t::none);
 
 #ifndef TORRENT_DISABLE_DHT
