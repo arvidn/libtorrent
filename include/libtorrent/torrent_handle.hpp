@@ -1109,7 +1109,9 @@ namespace aux {
 		//
 		// ``force_lsd_announce`` will announce the torrent on LSD
 		// immediately.
-		void force_reannounce(int seconds = 0, int idx = -1, reannounce_flags_t = {}) const;
+		void force_reannounce(int seconds, int idx, reannounce_flags_t = {}) const;
+		void force_reannounce(int seconds, std::string const& url, reannounce_flags_t = {}) const;
+		void force_reannounce(int seconds = 0, reannounce_flags_t = {}) const;
 		void force_dht_announce() const;
 		void force_lsd_announce() const;
 
@@ -1133,7 +1135,9 @@ namespace aux {
 		// ``num_incomplete`` fields in the torrent_status struct once it
 		// completes. When it completes, it will generate a scrape_reply_alert.
 		// If it fails, it will generate a scrape_failed_alert.
-		void scrape_tracker(int idx = -1) const;
+		void scrape_tracker(int idx) const;
+		void scrape_tracker() const;
+		void scrape_tracker(std::string url) const;
 
 		// ``set_upload_limit`` will limit the upload bandwidth used by this
 		// particular torrent to the limit you set. It is given as the number of
