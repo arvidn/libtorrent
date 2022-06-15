@@ -107,7 +107,7 @@ namespace alert_category {
 	// Low level alerts for when peers are connected and disconnected.
 	constexpr alert_category_t connect = 5_bit;
 
-		// Enables alerts for when a torrent or the session changes state.
+	// Enables alerts for when a torrent or the session changes state.
 	constexpr alert_category_t status = 6_bit;
 
 	// Alerts when a peer is blocked by the ip blocker or port blocker.

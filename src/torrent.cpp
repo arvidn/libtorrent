@@ -7546,19 +7546,31 @@ namespace {
 		bool failed = false;
 		info->info_hashes().for_each([&](sha1_hash const& ih, protocol_version)
 		{
+			if (failed) return;
+
 			auto t = m_ses.find_torrent(info_hash_t(ih)).lock();
 			if (t && t != shared_from_this())
 			{
 				TORRENT_ASSERT(!t->valid_metadata());
 
 				// if we get a collision, both torrents fail and have to be
-				// removed.
+				// removed. This is because updating the info_hash_t for this
+				// torrent would conflict with torrent "t". That would violate
+				// the invariants:
+				//   1. an info-hash can only refer to a single torrent
+				//   2. every torrent needs at least one info-hash.
 				t->set_error(errors::duplicate_torrent, torrent_status::error_file_metadata);
 				t->pause();
 
 				set_error(errors::duplicate_torrent, torrent_status::error_file_metadata);
 				pause();
 				failed = true;
+
+				if (alerts().should_post<torrent_conflict_alert>())
+				{
+					alerts().emplace_alert<torrent_conflict_alert>(get_handle()
+						, torrent_handle(std::move(t)), std::move(info));
+				}
 			}
 		});
 

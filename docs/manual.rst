@@ -236,6 +236,18 @@ both torrent_handle objects are put into an error state of ``duplicate_torrent``
 In this state, one of them has to be removed, and the other one can be resumed,
 in order to download the metadata again.
 
+When a conflict between two torrents occur, a torrent_conflict_alert is posted.
+This alert derives from torrent_alert, so is associated with a torrent_handle.
+It contains a second torrent_handle referring to the other torrent in the
+conflict as well as the metadata that was downloaded. One way to resolve the
+conflict is to remove both torrents and add it back using the metadata supplied
+in the torrent_conflict_alert.
+
+When a v1-only or v2-only magnet link resolves to a hybrid torrent, the
+info_hash_t object associated with the torrent will be updated to include both
+the v1 and v2 info hash. This applies both to torrent_handle::info_hashes() as
+well as torrent_info::info_hashes().
+
 queuing
 =======
 
