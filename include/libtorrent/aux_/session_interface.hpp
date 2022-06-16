@@ -172,6 +172,7 @@ namespace libtorrent::aux {
 
 		virtual int listen_port(aux::transport ssl, address const& local_addr) const = 0;
 
+		virtual std::uint32_t listen_socket_version() const = 0;
 		virtual void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) const = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on

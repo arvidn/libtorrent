@@ -173,6 +173,10 @@ namespace aux {
 		// list contains state per endpoint.
 		std::vector<announce_endpoint> endpoints;
 
+		// last time we ran "refresh_endpoint_list()" on this tracker entry,
+		// this was the version of listen sockets in the session.
+		std::uint32_t listen_socket_version = 0;
+
 		// the tier this tracker belongs to
 		std::uint8_t tier = 0;
 
