@@ -38,7 +38,7 @@ struct obs : dht::dht_observer
 	void set_external_address(lt::aux::listen_socket_handle const&, address const& /* addr */
 		, address const& /* source */) override
 	{}
-	int get_listen_port(lt::aux::transport, lt::aux::listen_socket_handle const& s) override
+	int get_listen_port(lt::aux::transport, lt::aux::listen_socket_handle const& s) const override
 	{ return s.get()->udp_external_port(); }
 	void get_peers(sha1_hash const&) override {}
 	void outgoing_get_peers(sha1_hash const& /* target */

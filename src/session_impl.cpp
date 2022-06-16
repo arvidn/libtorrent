@@ -5124,7 +5124,7 @@ namespace {
 	}
 
 	// verify that ``addr``s interface allows incoming connections
-	bool session_impl::verify_incoming_interface(address const& addr)
+	bool session_impl::verify_incoming_interface(address const& addr) const
 	{
 		auto const iter = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&addr](std::shared_ptr<listen_socket_t> const& s)
@@ -5486,7 +5486,7 @@ namespace {
 		return 0;
 	}
 
-	int session_impl::get_listen_port(transport const ssl, aux::listen_socket_handle const& s)
+	int session_impl::get_listen_port(transport const ssl, aux::listen_socket_handle const& s) const
 	{
 		auto* socket = s.get();
 		if (socket->ssl != ssl)
@@ -5504,7 +5504,7 @@ namespace {
 		return socket->udp_external_port();
 	}
 
-	int session_impl::listen_port(transport const ssl, address const& local_addr)
+	int session_impl::listen_port(transport const ssl, address const& local_addr) const
 	{
 		auto socket = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&](std::shared_ptr<listen_socket_t> const& e)

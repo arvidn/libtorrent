@@ -89,9 +89,9 @@ struct session_mock : aux::session_interface
 	std::uint16_t listen_port() const override { return 0; }
 	std::uint16_t ssl_listen_port() const override { return 0; }
 
-	int listen_port(aux::transport, address const&) override { return 0; }
+	int listen_port(aux::transport, address const&) const override { return 0; }
 
-	void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)>) override {}
+	void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)>) const override {}
 
 	tcp::endpoint bind_outgoing_socket(aux::socket_type&, address const&, error_code&) const override { return {}; }
 	bool verify_bound_address(address const&, bool, error_code&) override { return false; }
