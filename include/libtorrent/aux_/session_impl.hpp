@@ -661,12 +661,12 @@ namespace aux {
 			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
 
 			// used by the DHT tracker, returns a UDP listen port
-			int get_listen_port(transport ssl, aux::listen_socket_handle const& s) override;
+			int get_listen_port(transport ssl, aux::listen_socket_handle const& s) const override;
 			// used by peer connections, returns a TCP listen port
 			// or zero if no matching listen socket is found
-			int listen_port(transport ssl, address const& local_addr) override;
+			int listen_port(transport ssl, address const& local_addr) const override;
 
-			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) override
+			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) const override
 			{
 				for (auto& s : m_listen_sockets)
 				{
@@ -766,7 +766,7 @@ namespace aux {
 			// implements session_interface
 			tcp::endpoint bind_outgoing_socket(socket_type& s
 				, address const& remote_address, error_code& ec) const override;
-			bool verify_incoming_interface(address const& addr);
+			bool verify_incoming_interface(address const& addr) const;
 			bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
