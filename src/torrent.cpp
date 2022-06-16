@@ -2806,44 +2806,46 @@ bool is_downloading_state(int const st)
 namespace {
 	void refresh_endpoint_list(aux::session_interface& ses
 		, bool const is_ssl, bool const complete_sent
-		, string_view url
-		, std::vector<aux::announce_endpoint>& aeps)
+		, aux::announce_entry& ae)
 	{
+		auto const ver = ses.listen_socket_version();
+		if (ver == ae.listen_socket_version)
+			return;
+
 		// update the endpoint list by adding entries for new listen sockets
 		// and removing entries for non-existent ones
 		std::size_t valid_endpoints = 0;
 		ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
 			if (s.is_ssl() != is_ssl)
 				return;
-			for (auto& aep : aeps)
+			for (auto& aep : ae.endpoints)
 			{
 				if (aep.socket != s) continue;
-				std::swap(aeps[valid_endpoints], aep);
+				std::swap(ae.endpoints[valid_endpoints], aep);
 				valid_endpoints++;
 				return;
 			}
 
-			aeps.emplace_back(s, complete_sent);
-			std::swap(aeps[valid_endpoints], aeps.back());
+			ae.endpoints.emplace_back(s, complete_sent);
+			std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
 			valid_endpoints++;
 		});
 
 #if TORRENT_USE_RTC
-		if(auto pos = url.find(':'); pos != string_view::npos)
+		if(auto pos = ae.url.find(':'); pos != string_view::npos)
 		{
-			string_view const protocol = url.substr(0, pos);
+			string_view const protocol = string_view(ae.url).substr(0, pos);
 			if (protocol == "ws" || protocol == "wss")
 			{
 				// WebSocket trackers will ignore the endpoint anyway
 				valid_endpoints = std::min(valid_endpoints, std::size_t(1));
 			}
 		}
-#else
-		TORRENT_UNUSED(url);
 #endif
 
-		TORRENT_ASSERT(valid_endpoints <= aeps.size());
-		aeps.erase(aeps.begin() + int(valid_endpoints), aeps.end());
+		TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
+		ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
+		ae.listen_socket_version = ver;
 	}
 }
 
@@ -3043,7 +3045,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.url, ae.endpoints);
+			refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3260,7 +3262,7 @@ namespace {
 
 		req.kind |= tracker_request::scrape_request;
 
-		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.url, ae.endpoints);
+		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
 		req.url = ae.url;
 		req.private_torrent = m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
@@ -3681,7 +3683,7 @@ namespace {
 	{
 		bool ret = false;
 		// make sure we check for new endpoints from the listen sockets
-		refresh_endpoint_list(ses, is_ssl, complete_sent, e.url, e.endpoints);
+		refresh_endpoint_list(ses, is_ssl, complete_sent, e);
 		for (auto& aep : e.endpoints)
 		{
 			for (auto& a : aep.info_hashes)

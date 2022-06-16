@@ -1986,6 +1986,7 @@ namespace {
 			listen_endpoint_t ep(address_v4::any(), port, {}
 				, transport::plaintext, listen_socket_t::proxy);
 			eps.emplace_back(ep);
+			++m_listen_socket_version;
 		}
 		else
 		{
@@ -2054,6 +2055,9 @@ namespace {
 		}
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
+
+		if (remove_iter != m_listen_sockets.end() || !eps.empty())
+			++m_listen_socket_version;
 
 		while (remove_iter != m_listen_sockets.end())
 		{

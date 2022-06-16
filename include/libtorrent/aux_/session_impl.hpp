@@ -666,6 +666,7 @@ namespace aux {
 			// or zero if no matching listen socket is found
 			int listen_port(transport ssl, address const& local_addr) const override;
 
+			std::uint32_t listen_socket_version() const override { return m_listen_socket_version; }
 			void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)> f) const override
 			{
 				for (auto& s : m_listen_sockets)
@@ -1003,6 +1004,9 @@ namespace aux {
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::vector<std::shared_ptr<listen_socket_t>> m_listen_sockets;
+
+			// increment every time we change which sockets we're listening on
+			std::uint32_t m_listen_socket_version = 0;
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
