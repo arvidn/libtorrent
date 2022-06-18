@@ -5,6 +5,8 @@
 	* added support for WebTorrent
 
 
+	* fix issue with duplicate hybrid torrent via separate v1 and v2 magnet links
+	* added new function to load torrent files, load_torrent_*()
 	* support sync_file_range() on linux
 	* fix issue in write_torrent_file() when file size is exactly piece size
 	* fix file_num_blocks() and file_num_pieces() for empty files

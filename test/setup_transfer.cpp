@@ -877,12 +877,10 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 		int to_write = file_sizes[i];
 		if (fs) fs->add_file(full_path, to_write);
 		ofstream f(full_path.c_str());
-		std::int64_t offset = 0;
 		while (to_write > 0)
 		{
 			int const s = std::min(to_write, static_cast<int>(random_data.size()));
 			f.write(random_data.data(), s);
-			offset += s;
 			to_write -= s;
 		}
 	}

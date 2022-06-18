@@ -64,7 +64,8 @@ symbols = \
         "ssl-torrents_": "manual-ref.html#ssl-torrents",
         "dynamic-loading-of-torrent-files_": "manual-ref.html#dynamic-loading-of-torrent-files",
         "session-statistics_": "manual-ref.html#session-statistics",
-        "peer-classes_": "manual-ref.html#peer-classes"
+        "peer-classes_": "manual-ref.html#peer-classes",
+        "BitTorrent-v2-torrents_": "manual-ref.html#bittorrent-v2-torrents",
     }
 
 # parse out names of settings, and add them to the symbols list, to get cross
@@ -85,6 +86,7 @@ static_links = \
         ".. _`BEP 19`: https://www.bittorrent.org/beps/bep_0019.html",
         ".. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html",
         ".. _`BEP 42`: https://www.bittorrent.org/beps/bep_0042.html",
+        ".. _`BEP 52`: https://www.bittorrent.org/beps/bep_0052.html",
         ".. _`rate based choking`: manual-ref.html#rate-based-choking",
         ".. _extensions: manual-ref.html#extensions",
     }

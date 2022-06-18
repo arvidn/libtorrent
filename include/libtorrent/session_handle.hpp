@@ -259,6 +259,10 @@ namespace aux { struct torrent; }
 		// torrent_flags::auto_managed. In order to add a magnet link that will
 		// just download the metadata, but no payload, set the
 		// torrent_flags::upload_mode flag.
+		//
+		// Special consideration has to be taken when adding hybrid torrents
+		// (i.e. torrents that are BitTorrent v2 torrents that are backwards
+		// compatible with v1). For more details, see BitTorrent-v2-torrents_.
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params&& params);
 		torrent_handle add_torrent(add_torrent_params const& params);

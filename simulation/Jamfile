@@ -54,6 +54,7 @@ run test_thread_pool.cpp ;
 run test_ip_filter.cpp ;
 run test_dht_rate_limit.cpp ;
 run test_fast_extensions.cpp ;
+run test_v2.cpp ;
 # TODO figure out what to do with this
 # since v2 support was added re-mapped files are required to be piece aligned
 # but test_file_pool requires mapping more files than there are pieces

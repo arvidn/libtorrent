@@ -341,6 +341,7 @@ set(sources
 	ip_notifier.cpp
 	ip_voter.cpp
 	listen_socket_handle.cpp
+	load_torrent.cpp
 	lsd.cpp
 	magnet_uri.cpp
 	merkle.cpp

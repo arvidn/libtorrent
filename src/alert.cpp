@@ -2931,7 +2931,7 @@ namespace {
 		"picker_log", "session_error", "dht_live_nodes",
 		"session_stats_header", "dht_sample_infohashes",
 		"block_uploaded", "alerts_dropped", "socks5",
-		"file_prio", "oversized_file"
+		"file_prio", "oversized_file", "torrent_conflict"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -3000,6 +3000,22 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " has an oversized file";
+#endif
+	}
+
+	torrent_conflict_alert::torrent_conflict_alert(aux::stack_allocator& alloc, torrent_handle h1
+		, torrent_handle h2, std::shared_ptr<torrent_info> ti)
+		: torrent_alert(alloc, h1)
+		, conflicting_torrent(std::move(h2))
+		, metadata(std::move(ti))
+	{}
+
+	std::string torrent_conflict_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " has a conflict with another torrent";
 #endif
 	}
 

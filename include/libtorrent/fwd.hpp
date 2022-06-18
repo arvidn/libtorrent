@@ -122,6 +122,7 @@ struct socks5_alert;
 struct file_prio_alert;
 TORRENT_VERSION_NAMESPACE_3_END
 struct oversized_file_alert;
+struct torrent_conflict_alert;
 
 // include/libtorrent/announce_entry.hpp
 TORRENT_VERSION_NAMESPACE_2

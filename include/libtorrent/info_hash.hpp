@@ -104,7 +104,7 @@ namespace {
 		// calls the function object ``f`` for each hash that is available.
 		// starting with v1. The signature of ``F`` is::
 		//
-		//	void(sha1_hash, protocol_version);
+		//	void(sha1_hash const&, protocol_version);
 		template <typename F> void for_each(F f) const
 		{
 			if (has_v1()) f(v1, protocol_version::V1);

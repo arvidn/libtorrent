@@ -65,6 +65,7 @@
 #include "libtorrent/kademlia/sample_infohashes.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
 #include "libtorrent/kademlia/types.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/natpmp.hpp"

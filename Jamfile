@@ -850,6 +850,7 @@ SOURCES =
 	posix_storage
 	ssl
 	truncate
+	load_torrent
 	rtc_signaling
 	rtc_stream
 	websocket_stream

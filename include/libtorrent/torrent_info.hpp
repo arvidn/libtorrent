@@ -331,6 +331,9 @@ TORRENT_VERSION_NAMESPACE_3
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
 #endif
 
+		// internal
+		void clear_web_seeds() { m_web_seeds.clear(); }
+
 		// ``total_size()`` returns the total number of bytes the torrent-file
 		// represents. Note that this is the number of pieces times the piece
 		// size (modulo the last piece possibly being smaller). With pad files,

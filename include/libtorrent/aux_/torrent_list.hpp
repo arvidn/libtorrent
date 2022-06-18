@@ -67,6 +67,7 @@ struct torrent_list
 
 	bool insert(info_hash_t const& ih, std::shared_ptr<T> t)
 	{
+		INVARIANT_CHECK;
 		TORRENT_ASSERT(t);
 
 		bool duplicate = false;

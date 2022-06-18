@@ -30,6 +30,7 @@ void bind_magnet_uri();
 void bind_converters();
 void bind_create_torrent();
 void bind_error_code();
+void bind_load_torrent();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
@@ -57,4 +58,5 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_ip_filter();
     bind_magnet_uri();
     bind_create_torrent();
+    bind_load_torrent();
 }

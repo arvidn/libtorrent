@@ -215,6 +215,7 @@ PYTHON_FILES= \
   src/fingerprint.cpp       \
   src/gil.hpp               \
   src/ip_filter.cpp         \
+  src/load_torrent.cpp      \
   src/magnet_uri.cpp        \
   src/module.cpp            \
   src/optional.hpp          \
@@ -344,6 +345,7 @@ SOURCES = \
   ip_notifier.cpp                 \
   ip_voter.cpp                    \
   listen_socket_handle.cpp        \
+  load_torrent.cpp                \
   lsd.cpp                         \
   magnet_uri.cpp                  \
   merkle.cpp                      \
@@ -466,6 +468,7 @@ HEADERS = \
   io_service.hpp               \
   ip_filter.hpp                \
   libtorrent.hpp               \
+  load_torrent.hpp             \
   magnet_uri.hpp               \
   mmap_disk_io.hpp             \
   natpmp.hpp                   \
