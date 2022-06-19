@@ -4640,10 +4640,10 @@ namespace {
 		if ((lhs->num_peers() == 0) != (rhs->num_peers() == 0))
 			return lhs->num_peers() != 0;
 
-		// other than that, always prefer to disconnect peers from seeding torrents
+		// other than that, always prefer to disconnect peers from finished torrents
 		// in order to not harm downloading ones
-		if (lhs->is_seed() != rhs->is_seed())
-			return lhs->is_seed();
+		if (lhs->is_finished() != rhs->is_finished())
+			return lhs->is_finished();
 
 		return lhs->num_peers() > rhs->num_peers();
 	}
