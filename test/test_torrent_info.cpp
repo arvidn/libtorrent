@@ -1468,7 +1468,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		TORRENT_ASSERT(a);
 		{
 			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
-			entry e = write_torrent_file(p);
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
 
@@ -1489,7 +1489,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 		{
 			add_torrent_params p = load_torrent_file(filename);
-			entry e = write_torrent_file(p);
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
 

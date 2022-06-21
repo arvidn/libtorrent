@@ -298,6 +298,11 @@ namespace {
 
 	entry write_torrent_file(add_torrent_params const& atp)
 	{
+		return write_torrent_file(atp, {});
+	}
+
+	entry write_torrent_file(add_torrent_params const& atp, write_torrent_flags_t const flags)
+	{
 		entry ret;
 		if (!atp.ti)
 			aux::throw_ex<system_error>(errors::torrent_missing_info);
@@ -351,7 +356,7 @@ namespace {
 					layer += h.to_string();
 			}
 		}
-		else if (atp.ti->v2())
+		else if (atp.ti->v2() && !(flags & write_flags::allow_missing_piece_layer))
 		{
 			// we must have piece layers for v2 torrents for them to be valid
 			// .torrent files
@@ -359,14 +364,14 @@ namespace {
 		}
 
 		// save web seeds
-		if (!atp.url_seeds.empty())
+		if (!atp.url_seeds.empty() && !(flags & write_flags::no_http_seeds))
 		{
 			auto& url_list = ret["url-list"].list();
 			url_list.reserve(atp.url_seeds.size());
 			std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 		}
 
-		if (!atp.http_seeds.empty())
+		if (!atp.http_seeds.empty() && !(flags & write_flags::no_http_seeds))
 		{
 			auto& httpseeds_list = ret["httpseeds"].list();
 			httpseeds_list.reserve(atp.http_seeds.size());
@@ -374,7 +379,7 @@ namespace {
 		}
 
 		// save DHT nodes
-		if (!atp.dht_nodes.empty())
+		if (!atp.dht_nodes.empty() && (flags & write_flags::include_dht_nodes))
 		{
 			auto& nodes = ret["nodes"].list();
 			nodes.reserve(atp.dht_nodes.size());
