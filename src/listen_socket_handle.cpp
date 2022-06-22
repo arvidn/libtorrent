@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2017, Steven Siloti
-Copyright (c) 2020, Arvid Norberg
+Copyright (c) 2020, 2022, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

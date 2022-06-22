@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2016, Andrei Kurushin
-Copyright (c) 2015-2016, 2019-2020, Arvid Norberg
+Copyright (c) 2015-2016, 2019-2021, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

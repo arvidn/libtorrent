@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2009, Georg Rudoy
 Copyright (c) 2009-2011, 2016-2017, 2019-2020, Arvid Norberg
+Copyright (c) 2009, Georg Rudoy
 Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2018, 2020, Alden Torres
 All rights reserved.

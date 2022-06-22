@@ -2,9 +2,9 @@
 
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2004-2020, Arvid Norberg
-Copyright (c) 2016-2017, Steven Siloti
-Copyright (c) 2016, Pavel Pimenov
 Copyright (c) 2016-2018, 2020, Alden Torres
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2016-2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,8 +1,9 @@
 /*
 
-Copyright (c) 2017, Steven Siloti
-Copyright (c) 2017-2020, Arvid Norberg
 Copyright (c) 2017-2018, Alden Torres
+Copyright (c) 2017-2022, Arvid Norberg
+Copyright (c) 2017, Steven Siloti
+Copyright (c) 2021, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

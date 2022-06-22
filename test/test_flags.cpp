@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2017, 2019-2020, Arvid Norberg
 Copyright (c) 2017, AllSeeingEyeTolledEweSew
+Copyright (c) 2017, 2019-2020, Arvid Norberg
 Copyright (c) 2018, Alden Torres
 All rights reserved.
 

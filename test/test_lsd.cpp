@@ -1,9 +1,9 @@
 /*
 
-Copyright (c) 2007-2010, 2013-2020, Arvid Norberg
+Copyright (c) 2018, d-komarov
+Copyright (c) 2007-2010, 2013-2021, Arvid Norberg
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2016, Luca Bruno
-Copyright (c) 2018, d-komarov
 Copyright (c) 2018, Alden Torres
 All rights reserved.
 

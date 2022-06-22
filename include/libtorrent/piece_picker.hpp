@@ -1,10 +1,11 @@
 /*
 
-Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2003-2021, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2017, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2019, Steven Siloti
+Copyright (c) 2021, Denis Kuzmenok
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2014-2020, Arvid Norberg
+Copyright (c) 2014-2022, Arvid Norberg
 Copyright (c) 2015, Jakob Petsovits
 Copyright (c) 2016, Eugene Shalygin
-Copyright (c) 2017, Steven Siloti
 Copyright (c) 2017-2018, Alden Torres
+Copyright (c) 2017, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
