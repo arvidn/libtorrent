@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2017-2019, Arvid Norberg
 Copyright (c) 2017, Alden Torres
+Copyright (c) 2017-2019, Arvid Norberg
 Copyright (c) 2018, Eugene Shalygin
 All rights reserved.
 

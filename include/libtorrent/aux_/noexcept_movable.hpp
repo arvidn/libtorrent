@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2017-2020, Arvid Norberg
+Copyright (c) 2017-2019, 2021, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

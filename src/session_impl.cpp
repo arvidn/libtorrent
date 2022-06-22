@@ -1,19 +1,22 @@
 /*
 
 Copyright (c) 2003, Magnus Jonsson
-Copyright (c) 2006-2020, Arvid Norberg
+Copyright (c) 2015, Thomas
+Copyright (c) 2006-2022, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
 Copyright (c) 2014-2020, Steven Siloti
-Copyright (c) 2015-2020, Alden Torres
-Copyright (c) 2015, Thomas
+Copyright (c) 2015-2021, Alden Torres
 Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016, Falcosc
 Copyright (c) 2016-2017, Pavel Pimenov
-Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, sledgehammer_999
 Copyright (c) 2018, Xiyue Deng
 Copyright (c) 2020, Fonic
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2022, Vladimir Golovnev (glassez)
+Copyright (c) 2022, thrnz
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

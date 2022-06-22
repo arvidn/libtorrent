@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2020, Arvid Norberg
+Copyright (c) 2007-2022, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016-2018, 2020, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
@@ -8,6 +8,7 @@ Copyright (c) 2017, Jan Berkel
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2019, patch3proxyheaders915360
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2022, AlexeyKhrolenko
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

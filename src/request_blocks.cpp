@@ -1,7 +1,8 @@
 /*
 
-Copyright (c) 2014-2020, Arvid Norberg
+Copyright (c) 2014-2021, Arvid Norberg
 Copyright (c) 2016, 2019-2020, Alden Torres
+Copyright (c) 2021, Denis Kuzmenok
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

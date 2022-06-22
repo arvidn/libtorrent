@@ -2,7 +2,7 @@
 
 Copyright (c) 2007-2012, 2014-2019, Arvid Norberg
 Copyright (c) 2015, Steven Siloti
-Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016, 2018, Alden Torres
 Copyright (c) 2017, Andrei Kurushin
 All rights reserved.
 

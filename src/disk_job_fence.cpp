@@ -1,8 +1,8 @@
 /*
 
 Copyright (c) 2003, Daniel Wallin
-Copyright (c) 2016-2020, Arvid Norberg
 Copyright (c) 2017, 2020, Alden Torres
+Copyright (c) 2016-2020, 2022, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

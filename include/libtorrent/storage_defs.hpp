@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2006-2007, 2009, 2013-2014, 2016-2020, Arvid Norberg
-Copyright (c) 2016, Alden Torres
+Copyright (c) 2006-2007, 2009, 2013-2014, 2016-2020, 2022, Arvid Norberg
+Copyright (c) 2016, 2021, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

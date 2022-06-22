@@ -3,8 +3,8 @@
 Copyright (c) 2013-2020, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016, 2018, Alden Torres
-Copyright (c) 2016, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, Steven Siloti
 Copyright (c) 2017, Pavel Pimenov
 All rights reserved.
 

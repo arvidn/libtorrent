@@ -2,8 +2,8 @@
 
 Copyright (c) 2019, Amir Abrams
 Copyright (c) 2014-2020, Arvid Norberg
-Copyright (c) 2016, Steven Siloti
 Copyright (c) 2016, 2018, Alden Torres
+Copyright (c) 2016, Steven Siloti
 Copyright (c) 2019, Monson Shao
 All rights reserved.
 

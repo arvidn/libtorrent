@@ -1,11 +1,12 @@
 /*
 
-Copyright (c) 2008-2020, Arvid Norberg
+Copyright (c) 2008-2021, Arvid Norberg
 Copyright (c) 2016-2017, Alden Torres
-Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2018, TheOriginalWinCat
+Copyright (c) 2021, Dmtry Soloviev
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

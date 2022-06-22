@@ -2,8 +2,8 @@
 
 Copyright (c) 2004, 2006-2007, 2009-2011, 2013, 2015-2020, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
-Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016-2017, Alden Torres
+Copyright (c) 2016-2017, Andrei Kurushin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,11 +1,11 @@
 /*
 
 Copyright (c) 2016, Falcosc
-Copyright (c) 2003-2020, Arvid Norberg
+Copyright (c) 2003-2022, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2016-2018, 2020, Alden Torres
-Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2017, Pavel Pimenov
+Copyright (c) 2017-2018, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

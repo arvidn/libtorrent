@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2020, Arvid Norberg
+Copyright (c) 2015-2020, 2022, Arvid Norberg
 Copyright (c) 2016, Alden Torres
 All rights reserved.
 

@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2005, 2007-2010, 2012-2020, Arvid Norberg
-Copyright (c) 2016, 2018, 2020, Alden Torres
-Copyright (c) 2016, Vladimir Golovnev
-Copyright (c) 2016-2018, Steven Siloti
+Copyright (c) 2005, 2007-2010, 2012-2022, Arvid Norberg
+Copyright (c) 2016, 2018, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
+Copyright (c) 2016-2018, Steven Siloti
+Copyright (c) 2016, Vladimir Golovnev
 Copyright (c) 2018, d-komarov
 All rights reserved.
 

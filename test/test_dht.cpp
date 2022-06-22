@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2009-2020, Arvid Norberg
-Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2009-2021, Arvid Norberg
 Copyright (c) 2015-2019, Steven Siloti
+Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2020, Fonic
 Copyright (c) 2020, FranciscoPombal

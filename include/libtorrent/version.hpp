@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2004, 2006, 2010, 2012, 2015, 2017-2020, Arvid Norberg
+Copyright (c) 2004, 2006, 2010, 2015, 2017-2020, 2022, Arvid Norberg
 Copyright (c) 2016, Jan Berkel
 All rights reserved.
 

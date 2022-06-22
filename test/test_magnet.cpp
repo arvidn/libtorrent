@@ -1,9 +1,9 @@
 /*
 
-Copyright (c) 2013-2020, Arvid Norberg
-Copyright (c) 2016, 2018, Steven Siloti
-Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2013-2020, 2022, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016, Pavel Pimenov
+Copyright (c) 2016, 2018, Steven Siloti
 Copyright (c) 2017, Jan Berkel
 All rights reserved.
 
