@@ -42,20 +42,12 @@ def pretty_years(s):
     return ", ".join(r)
 
 
-def order_by_year(a, b):
+def order_by_year(a):
 
     la = list(a[2])
     la.sort()
-
-    lb = list(b[2])
-    lb.sort()
-
-    if la[0] < lb[0]:
-        return -1
-    elif la[0] > lb[0]:
-        return 1
-    else:
-        return 0
+    # sort by year first, then by author
+    return (la[0], a[0])
 
 
 author_map = {
@@ -84,6 +76,7 @@ def get_authors(f):
 
     for ln in Popen(["git", "blame", "--incremental", f], stdout=PIPE).stdout:
 
+        ln = ln.decode('utf8')
         if ln.startswith("filename "):
             if len(data) > 0:
                 commits.append(data)
@@ -117,8 +110,8 @@ def get_authors(f):
 
         n[2].add(year)
 
-    for an, a in list(by_author.iteritems()):
-        for bn, b in list(by_author.iteritems()):
+    for an, a in list(by_author.items()):
+        for bn, b in list(by_author.items()):
             if a is b:
                 continue
 
@@ -128,8 +121,8 @@ def get_authors(f):
                 if an in by_author and bn in by_author:
                     del by_author[bn]
 
-    copyright = list(by_author.itervalues())
-    copyright.sort(order_by_year)
+    copyright = list(by_author.values())
+    copyright.sort(key=order_by_year)
 
     ret = ''
     for name, mail, years in copyright:

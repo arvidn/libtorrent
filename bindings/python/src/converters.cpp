@@ -24,6 +24,7 @@
 #include "libtorrent/pex_flags.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include <vector>
 #include <map>
 
@@ -463,6 +464,7 @@ void bind_converters()
     to_python_converter<lt::pex_flags_t, from_bitfield_flag<lt::pex_flags_t>>();
     to_python_converter<lt::reannounce_flags_t, from_bitfield_flag<lt::reannounce_flags_t>>();
     to_python_converter<lt::file_progress_flags_t, from_bitfield_flag<lt::file_progress_flags_t>>();
+    to_python_converter<lt::write_torrent_flags_t, from_bitfield_flag<lt::write_torrent_flags_t>>();
     to_python_converter<lt::string_view, from_string_view>();
 
     // work-around types
@@ -555,4 +557,5 @@ void bind_converters()
     to_string_view();
     to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::file_progress_flags_t>();
+    to_bitfield_flag<lt::write_torrent_flags_t>();
 }

@@ -1,20 +1,24 @@
 /*
 
 Copyright (c) 2003, Magnus Jonsson
-Copyright (c) 2006-2021, Arvid Norberg
+Copyright (c) 2015, Thomas
+Copyright (c) 2015, Thomas
+Copyright (c) 2006-2022, Arvid Norberg
 Copyright (c) 2009, Andrew Resch
 Copyright (c) 2014-2020, Steven Siloti
 Copyright (c) 2015-2021, Alden Torres
-Copyright (c) 2015, Thomas
 Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2015, Thomas Yuan
+Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016, Falcosc
 Copyright (c) 2016-2017, Pavel Pimenov
-Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2017, sledgehammer_999
 Copyright (c) 2018, Xiyue Deng
 Copyright (c) 2020, Fonic
-Copyright (c) 2020, Rosen Penev
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2020, Rosen Penev
+Copyright (c) 2022, Vladimir Golovnev (glassez)
+Copyright (c) 2022, thrnz
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -4604,10 +4608,10 @@ namespace {
 		if ((lhs->num_peers() == 0) != (rhs->num_peers() == 0))
 			return lhs->num_peers() != 0;
 
-		// other than that, always prefer to disconnect peers from seeding torrents
+		// other than that, always prefer to disconnect peers from finished torrents
 		// in order to not harm downloading ones
-		if (lhs->is_seed() != rhs->is_seed())
-			return lhs->is_seed();
+		if (lhs->is_finished() != rhs->is_finished())
+			return lhs->is_finished();
 
 		return lhs->num_peers() > rhs->num_peers();
 	}

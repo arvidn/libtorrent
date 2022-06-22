@@ -1,17 +1,18 @@
 /*
 
 Copyright (c) 2017, toinetoine
-Copyright (c) 2004-2021, Arvid Norberg
+Copyright (c) 2015, Thomas
+Copyright (c) 2004-2022, Arvid Norberg
 Copyright (c) 2008, Andrew Resch
 Copyright (c) 2014-2018, Steven Siloti
-Copyright (c) 2015, Thomas
 Copyright (c) 2015-2018, 2020-2021, Alden Torres
+Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2017, Antoine Dahan
 Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2020, Fonic
 Copyright (c) 2020, Viktor Elofsson
-Copyright (c) 2020, AllSeeingEyeTolledEweSew
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

@@ -1,7 +1,7 @@
 /*
 
+Copyright (c) 2015-2017, 2019-2022, Arvid Norberg
 Copyright (c) 2015, Steven Siloti
-Copyright (c) 2015-2017, 2019-2021, Arvid Norberg
 Copyright (c) 2016, 2021, Alden Torres
 All rights reserved.
 

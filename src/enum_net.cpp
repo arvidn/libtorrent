@@ -5,8 +5,8 @@ Copyright (c) 2015-2018, 2020-2021, Alden Torres
 Copyright (c) 2015-2018, 2020, Steven Siloti
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2018, Alexandre Janniaux
-Copyright (c) 2020, Tiger Wang
 Copyright (c) 2020, Pave Pimenov
+Copyright (c) 2020, Tiger Wang
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

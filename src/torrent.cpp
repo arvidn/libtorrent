@@ -1,28 +1,30 @@
 /*
 
-Copyright (c) 2003-2021, Arvid Norberg
+Copyright (c) 2016-2018, Pavel Pimenov
+Copyright (c) 2016-2018, Pavel Pimenov
+Copyright (c) 2003-2022, Arvid Norberg
 Copyright (c) 2003, Daniel Wallin
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2008, Andrew Resch
-Copyright (c) 2015-2020, Steven Siloti
 Copyright (c) 2015, Mikhail Titov
+Copyright (c) 2015-2020, Steven Siloti
 Copyright (c) 2016-2021, Alden Torres
-Copyright (c) 2016-2018, Pavel Pimenov
 Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016, Jonathan McDougall
-Copyright (c) 2017, Falcosc
+Copyright (c) 2016-2018, 2022, Pave Pimenov
 Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
+Copyright (c) 2017, Falcosc
 Copyright (c) 2017, ximply
 Copyright (c) 2018, Fernando Rodriguez
-Copyright (c) 2018, d-komarov
 Copyright (c) 2018, airium
+Copyright (c) 2018, d-komarov
+Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2020, Rosen Penev
 Copyright (c) 2020, Viktor Elofsson
-Copyright (c) 2020, Paul-Louis Ageneau
-Copyright (c) 2021, thrnz
+Copyright (c) 2021, AdvenT
 Copyright (c) 2021, Joris CARRIER
 Copyright (c) 2021, Mark Scott
-Copyright (c) 2021, AdvenT
+Copyright (c) 2021, thrnz
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

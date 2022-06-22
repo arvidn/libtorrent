@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013, 2015, 2017, 2020-2021, Arvid Norberg
+Copyright (c) 2013, 2015, 2017, 2020-2022, Arvid Norberg
 Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
 

@@ -2,8 +2,8 @@
 
 Copyright (c) 2003-2005, 2007-2008, 2010, 2015-2021, Arvid Norberg
 Copyright (c) 2016, Steven Siloti
-Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2017, 2020, Alden Torres
+Copyright (c) 2017, Andrei Kurushin
 Copyright (c) 2019, Amir Abrams
 All rights reserved.
 

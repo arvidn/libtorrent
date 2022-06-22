@@ -853,6 +853,7 @@ struct dummy2 {};
 struct dummy9 {};
 struct dummy10 {};
 struct dummy11 {};
+struct dummy17 {};
 
 void bind_session()
 {
@@ -1341,6 +1342,16 @@ void bind_session()
     def("read_resume_data", read_resume_data_wrapper1);
     def("write_resume_data", write_resume_data);
     def("write_resume_data_buf", write_resume_data_buf_);
+
+    entry (*write_torrent_file0)(add_torrent_params const&, write_torrent_flags_t) = &write_torrent_file;
+    def("write_torrent_file", write_torrent_file0, (arg("atp"), arg("flags") = 0));
+
+    {
+        scope s = class_<dummy17>("write_flags");
+        s.attr("allow_missing_piece_layer") = lt::write_flags::allow_missing_piece_layer;
+        s.attr("no_http_seeds") = lt::write_flags::no_http_seeds;
+        s.attr("include_dht_nodes") = lt::write_flags::include_dht_nodes;
+    }
 
 	class_<stats_metric>("stats_metric")
 		.def_readonly("name", &stats_metric::name)

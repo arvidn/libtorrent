@@ -1,9 +1,9 @@
 /*
 
-Copyright (c) 2004, 2006-2007, 2009-2011, 2013, 2015-2021, Arvid Norberg
+Copyright (c) 2004, 2006-2007, 2009-2011, 2013, 2015-2022, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
-Copyright (c) 2016-2017, Andrei Kurushin
 Copyright (c) 2016-2017, 2020-2021, Alden Torres
+Copyright (c) 2016-2017, Andrei Kurushin
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

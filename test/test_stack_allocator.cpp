@@ -1,7 +1,7 @@
 /*
 
+Copyright (c) 2016-2022, Arvid Norberg
 Copyright (c) 2016, Mokhtar Naamani
-Copyright (c) 2016-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 

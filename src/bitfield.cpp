@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2016-2021, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
+Copyright (c) 2016-2022, Arvid Norberg
 Copyright (c) 2017, Falcosc
 All rights reserved.
 

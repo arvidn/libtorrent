@@ -1,8 +1,8 @@
 /*
 
+Copyright (c) 2009, 2012, 2016-2017, 2020, 2022, Arvid Norberg
 Copyright (c) 2009, Georg Rudoy
-Copyright (c) 2009, 2012, 2016-2017, 2019-2020, Arvid Norberg
-Copyright (c) 2018, 2020, Alden Torres
+Copyright (c) 2018, 2020, 2022, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

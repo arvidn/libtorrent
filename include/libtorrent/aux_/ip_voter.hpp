@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2013-2015, 2017, 2019-2021, Arvid Norberg
-Copyright (c) 2016, Steven Siloti
+Copyright (c) 2013-2015, 2017, 2019-2020, Arvid Norberg
 Copyright (c) 2016, 2020, Alden Torres
+Copyright (c) 2016, Steven Siloti
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

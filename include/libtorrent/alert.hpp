@@ -1,8 +1,8 @@
 /*
 
 Copyright (c) 2003, Daniel Wallin
+Copyright (c) 2004-2005, 2008-2009, 2013-2020, 2022, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
-Copyright (c) 2004-2005, 2008-2009, 2013-2020, Arvid Norberg
 Copyright (c) 2016, Alden Torres
 All rights reserved.
 

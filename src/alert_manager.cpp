@@ -3,7 +3,7 @@
 Copyright (c) 2003-2013, Daniel Wallin
 Copyright (c) 2013-2020, Arvid Norberg
 Copyright (c) 2015, Steven Siloti
-Copyright (c) 2016, 2020, Alden Torres
+Copyright (c) 2016, 2020, 2022, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

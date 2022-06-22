@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, 2014-2021, Arvid Norberg
+Copyright (c) 2007-2012, 2014-2022, Arvid Norberg
 Copyright (c) 2015, Steven Siloti
 Copyright (c) 2016, 2018, 2020-2021, Alden Torres
 Copyright (c) 2017, Andrei Kurushin

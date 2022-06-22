@@ -1,8 +1,8 @@
 /*
 
-Copyright (c) 2005, 2008, 2015-2020, Arvid Norberg
-Copyright (c) 2018, Eugene Shalygin
+Copyright (c) 2005, 2008, 2015-2020, 2022, Arvid Norberg
 Copyright (c) 2018, Alden Torres
+Copyright (c) 2018, Eugene Shalygin
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,

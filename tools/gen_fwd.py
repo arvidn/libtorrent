@@ -5,14 +5,13 @@ import os
 
 file_header = '''/*
 
+Copyright (c) 2017-2022, Arvid Norberg
 Copyright (c) 2017-2018, Steven Siloti
-Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
-
 */
 
 #ifndef TORRENT_FWD_HPP

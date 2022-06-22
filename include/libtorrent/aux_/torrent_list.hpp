@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2018, Steven Siloti
-Copyright (c) 2019-2021, Arvid Norberg
+Copyright (c) 2019-2022, Arvid Norberg
 Copyright (c) 2019, Pavel Pimenov
 All rights reserved.
 

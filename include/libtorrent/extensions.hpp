@@ -2,7 +2,7 @@
 
 Copyright (c) 2006-2007, 2011, 2013-2020, Arvid Norberg
 Copyright (c) 2014-2019, Steven Siloti
-Copyright (c) 2016, Alden Torres
+Copyright (c) 2016, 2022, Alden Torres
 Copyright (c) 2018, Greg Hazel
 All rights reserved.
 

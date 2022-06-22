@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, 2018-2021, Arvid Norberg
+Copyright (c) 2016, 2018-2022, Arvid Norberg
 Copyright (c) 2019, Steven Siloti
 All rights reserved.
 

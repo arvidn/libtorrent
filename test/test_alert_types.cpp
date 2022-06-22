@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2017, 2020, Alden Torres
+Copyright (c) 2017-2022, Arvid Norberg
 Copyright (c) 2020, Fonic
 All rights reserved.
 

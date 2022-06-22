@@ -1,8 +1,8 @@
 /*
 
 Copyright (c) 2014-2018, Steven Siloti
-Copyright (c) 2015-2021, Arvid Norberg
 Copyright (c) 2015-2018, 2020, Alden Torres
+Copyright (c) 2015-2022, Arvid Norberg
 Copyright (c) 2020, AllSeeingEyeTolledEweSew
 All rights reserved.
 

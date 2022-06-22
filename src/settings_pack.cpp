@@ -1,10 +1,10 @@
 /*
 
-Copyright (c) 2014-2021, Arvid Norberg
+Copyright (c) 2014-2022, Arvid Norberg
 Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2016-2018, 2020, Alden Torres
-Copyright (c) 2017, Steven Siloti
 Copyright (c) 2017, Andrei Kurushin
+Copyright (c) 2017, Steven Siloti
 Copyright (c) 2020, Paul-Louis Ageneau
 All rights reserved.
 

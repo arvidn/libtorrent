@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2021, Arvid Norberg
+Copyright (c) 2013-2022, Arvid Norberg
 Copyright (c) 2016, 2018, 2021, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017-2019, Steven Siloti
@@ -1444,7 +1444,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		TORRENT_ASSERT(a);
 		{
 			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
-			entry e = write_torrent_file(p);
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
 
@@ -1465,7 +1465,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 		{
 			add_torrent_params p = load_torrent_file(filename);
-			entry e = write_torrent_file(p);
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
 

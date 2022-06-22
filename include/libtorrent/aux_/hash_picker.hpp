@@ -1,8 +1,8 @@
 /*
 
 Copyright (c) 2017, BitTorrent Inc.
+Copyright (c) 2019-2022, Arvid Norberg
 Copyright (c) 2019, Steven Siloti
-Copyright (c) 2019-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 
