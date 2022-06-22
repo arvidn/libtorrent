@@ -42,13 +42,14 @@ exe dump_bdecode : dump_bdecode.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe connection_tester : connection_tester.cpp ;
 exe upnp_test : upnp_test.cpp ;
+exe check_files : check_files.cpp ;
 
 explicit stage_client_test ;
 explicit stage_connection_tester ;
 explicit stage ;
 explicit stage_dependencies ;
 
-install stage : client_test connection_tester torrent2magnet magnet2torrent make_torrent dump_torrent upnp_test stats_counters bt-get bt-get2 simple_client dump_bdecode custom_storage : <location>. ;
+install stage : client_test connection_tester torrent2magnet magnet2torrent make_torrent dump_torrent check_files upnp_test stats_counters bt-get bt-get2 simple_client dump_bdecode custom_storage : <location>. ;
 install stage_client_test : client_test : <location>. ;
 install stage_connection_tester : connection_tester : <location>. ;
 
