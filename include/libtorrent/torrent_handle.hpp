@@ -578,7 +578,9 @@ namespace aux {
 		// disconnected. This is a graceful shut down of the torrent in the sense
 		// that no downloaded bytes are wasted.
 		static constexpr pause_flags_t graceful_pause = 0_bit;
-		static constexpr pause_flags_t clear_disk_cache = 1_bit;
+
+		// hidden
+		TORRENT_DEPRECATED static constexpr pause_flags_t clear_disk_cache = 1_bit;
 
 		// ``pause()``, and ``resume()`` will disconnect all peers and reconnect
 		// all peers respectively. When a torrent is paused, it will however

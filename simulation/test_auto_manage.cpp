@@ -610,6 +610,8 @@ TORRENT_TEST(stop_when_ready)
 			lt::time_point start_time = alerts[0]->timestamp();
 
 			int num_paused = 0;
+			int num_seeding = 0;
+			time_point seeding_time;
 			for (alert* a : alerts)
 			{
 				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
@@ -618,21 +620,25 @@ TORRENT_TEST(stop_when_ready)
 				if (alert_cast<torrent_paused_alert>(a))
 				{
 					++num_paused;
+					TEST_EQUAL(num_seeding, 1);
+					TEST_CHECK(a->timestamp() == seeding_time);
 				}
 
 				if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
 				{
 					if (sc->state == torrent_status::seeding)
 					{
-						// once we turn into being a seed. we should have been paused
-						// already.
-						TEST_EQUAL(num_paused, 1);
+						++num_seeding;
+						seeding_time = a->timestamp();
 					}
 				}
 				// there should not have been any announces. the torrent should have
 				// been stopped *before* announcing.
 				TEST_CHECK(alert_cast<tracker_announce_alert>(a) == nullptr);
 			}
+
+			TEST_EQUAL(num_paused, 1);
+			TEST_EQUAL(num_seeding, 1);
 
 			for (torrent_handle const& h : ses.get_torrents())
 			{
