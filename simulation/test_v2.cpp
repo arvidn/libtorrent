@@ -158,7 +158,7 @@ TORRENT_TEST(hybrid_torrent_conflict)
 		{
 			handles.push_back(ta->handle);
 		}
-		else if (auto const* tr = lt::alert_cast<lt::torrent_removed_alert>(a))
+		else if (lt::alert_cast<lt::torrent_removed_alert>(a))
 		{
 			TEST_ERROR("a torrent was removed");
 		}
@@ -210,7 +210,7 @@ TORRENT_TEST(resume_conflict)
 		{
 			handles.push_back(ta->handle);
 		}
-		else if (auto const* tr = lt::alert_cast<lt::torrent_removed_alert>(a))
+		else if (lt::alert_cast<lt::torrent_removed_alert>(a))
 		{
 			TEST_ERROR("a torrent was removed");
 		}
@@ -251,7 +251,7 @@ TORRENT_TEST(resolve_conflict)
 		setup_conflict(ses1, ses0);
 	},
 	[&](lt::session& ses, lt::alert const* a) {
-		if (auto const* tr = lt::alert_cast<lt::torrent_removed_alert>(a))
+		if (lt::alert_cast<lt::torrent_removed_alert>(a))
 		{
 			++removed;
 		}
@@ -270,7 +270,7 @@ TORRENT_TEST(resolve_conflict)
 				te->handle.resume();
 			}
 		}
-		else if (auto const* tf = lt::alert_cast<lt::torrent_finished_alert>(a))
+		else if (lt::alert_cast<lt::torrent_finished_alert>(a))
 		{
 			++finished;
 		}
@@ -303,7 +303,7 @@ TORRENT_TEST(conflict_readd)
 		{
 			handles.push_back(ta->handle);
 		}
-		else if (auto const* tr = lt::alert_cast<lt::torrent_removed_alert>(a))
+		else if (lt::alert_cast<lt::torrent_removed_alert>(a))
 		{
 			++removed;
 		}
