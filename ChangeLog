@@ -1,4 +1,5 @@
 
+	* fixed error in pkg-config file generation in Jamfile
 	* improve backwards compatibility with loading magnet link resume files
 	* fix bind-to-device for tracker announces and UPnP
 	* rename peer_tos setting to peer_dscp
