@@ -103,7 +103,7 @@ jobs:
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
-        python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.9/site-packages
+        $(brew --prefix)/bin/python3 setup.py build_ext install
 
     - name: tests
       if: runner.os != 'Windows'
