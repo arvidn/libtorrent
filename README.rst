@@ -45,7 +45,7 @@ The main goals of libtorrent are to be efficient and easy to use.
 
 See `libtorrent.org`__ for more detailed build and usage instructions.
 
-.. __: http://libtorrent.org
+.. __: https://libtorrent.org
 
 To build with boost-build, make sure boost and boost-build is installed and run:
 
