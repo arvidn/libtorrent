@@ -1373,6 +1373,15 @@ namespace libtorrent {
 			TORRENT_ASSERT(t->info_hash().has_v2());
 		}
 
+		// Since accepting the slack connection, we might have fallen below the connections limit in which case we
+		// no longer need to disconnect anything
+		if (m_exceeded_limit
+			&& m_counters[counters::num_peers_connected] + m_counters[counters::num_peers_half_open]
+			<= m_settings.get_int(settings_pack::connections_limit))
+		{
+			m_exceeded_limit = false;
+		}
+
 		if (m_exceeded_limit)
 		{
 			// find a peer in some torrent (presumably the one with most peers)
