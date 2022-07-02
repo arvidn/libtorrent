@@ -27,7 +27,7 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.9 openssl
+        brew install boost-build boost boost-python3 python@3.9 openssl@1.1
         echo "using darwin ;" >>~/user-config.jam
 
     - name: update package lists (linux)

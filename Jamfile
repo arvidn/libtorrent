@@ -981,8 +981,8 @@ rule generate-pkg-config ( properties * )
 
 	p = [ install-paths $(properties) ] ;
 
-	local libdir = $(p[0]) ;
-	local includes = $(p[1]) ;
+	local libdir = $(p[1]) ;
+	local includes = $(p[2]) ;
 
 	local defines ;
 	local shared_deps ;
