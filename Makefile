@@ -238,11 +238,13 @@ EXAMPLE_FILES= \
   bt-get.cpp \
   bt-get2.cpp \
   bt-get3.cpp \
+  check_files.cpp \
   client_test.cpp \
   cmake/FindLibtorrentRasterbar.cmake \
   connection_tester.cpp \
   dump_torrent.cpp \
   dump_bdecode.cpp \
+  magnet2torrent.cpp \
   make_torrent.cpp \
   print.cpp \
   print.hpp \
@@ -251,6 +253,7 @@ EXAMPLE_FILES= \
   simple_client.cpp \
   custom_storage.cpp \
   stats_counters.cpp \
+  torrent2magnet.cpp \
   torrent_view.cpp \
   torrent_view.hpp \
   upnp_test.cpp

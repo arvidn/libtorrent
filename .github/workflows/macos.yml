@@ -38,7 +38,7 @@ jobs:
 
       - name: install boost
         run: |
-          brew install openssl boost-build boost
+          brew install boost-build boost openssl@1.1
           pip3 install websockets
           echo "using darwin ;" >>~/user-config.jam
 
@@ -72,7 +72,7 @@ jobs:
 
       - name: install boost
         run: |
-          brew install boost-build boost openssl
+          brew install boost-build boost openssl@1.1
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build and run simulations
@@ -104,7 +104,7 @@ jobs:
 
       - name: install boost
         run: |
-          brew install boost-build boost openssl
+          brew install boost-build boost openssl@1.1
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build library
