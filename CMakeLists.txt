@@ -246,6 +246,7 @@ set(libtorrent_aux_include_files
 	stack_allocator.hpp
 	stat.hpp
 	stat_cache.hpp
+	storage_array.hpp
 	storage_free_list.hpp
 	storage_utils.hpp
 	string_ptr.hpp

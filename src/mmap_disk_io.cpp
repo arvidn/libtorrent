@@ -40,7 +40,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
-#include "libtorrent/aux_/storage_free_list.hpp"
+#include "libtorrent/aux_/storage_array.hpp"
 
 #ifdef TORRENT_WINDOWS
 #include "signal_error_code.hpp"
@@ -343,10 +343,7 @@ private:
 	// completion callbacks in m_completed jobs
 	bool m_job_completions_in_flight = false;
 
-	aux::vector<std::shared_ptr<aux::mmap_storage>, storage_index_t> m_torrents;
-
-	// indices into m_torrents to empty slots
-	aux::storage_free_list m_free_slots;
+	aux::storage_array<aux::mmap_storage> m_torrents;
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
@@ -387,21 +384,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		TORRENT_ASSERT(params.files.is_valid());
 
-		storage_index_t const idx = m_free_slots.new_index(m_torrents.end_index());
 		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
-		storage->set_storage_index(idx);
 		storage->set_owner(owner);
-		if (idx == m_torrents.end_index())
-			m_torrents.emplace_back(std::move(storage));
-		else m_torrents[idx] = std::move(storage);
+		storage_index_t const idx = m_torrents.add(std::move(storage));
 		return storage_holder(idx, *this);
 	}
 
 	void mmap_disk_io::remove_torrent(storage_index_t const idx)
 	{
-		TORRENT_ASSERT(m_torrents[idx] != nullptr);
-		m_torrents[idx].reset();
-		m_free_slots.add(idx);
+		m_torrents.remove(idx);
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -418,7 +409,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_store_buffer.size() == 0);
 
 		// all torrents are supposed to have been removed by now
-		TORRENT_ASSERT(m_torrents.size() == m_free_slots.size());
+		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_generic_threads.num_threads() == 0);
 		TORRENT_ASSERT(m_hash_threads.num_threads() == 0);
 		if (!m_generic_io_jobs.m_queued_jobs.empty())

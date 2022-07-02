@@ -640,6 +640,7 @@ HEADERS = \
   aux_/stack_allocator.hpp          \
   aux_/stat.hpp                     \
   aux_/stat_cache.hpp               \
+  aux_/storage_array.hpp            \
   aux_/storage_free_list.hpp        \
   aux_/storage_utils.hpp            \
   aux_/store_buffer.hpp             \
