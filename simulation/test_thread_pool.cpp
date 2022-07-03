@@ -12,83 +12,35 @@ see LICENSE file.
 #include "test.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
+#include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/io_context.hpp"
 #include <condition_variable>
+#include <thread>
+#include <chrono>
 
 using lt::io_context;
 
-struct test_threads : lt::aux::pool_thread_interface
+using namespace std::chrono_literals;
+
+std::mutex g_job_mutex;
+
+void thread_fun(lt::aux::disk_io_thread_pool& pool, lt::executor_work_guard<io_context::executor_type>)
 {
-	test_threads() {}
-
-	void notify_all() override { m_cond.notify_all(); }
-	void thread_fun(lt::aux::disk_io_thread_pool&, lt::executor_work_guard<io_context::executor_type>) override
+	std::unique_lock<std::mutex> l(g_job_mutex);
+	for (;;)
 	{
-		std::unique_lock<std::mutex> l(m_mutex);
-		for (;;)
-		{
-			m_pool->thread_idle();
-			while (!m_pool->should_exit() && m_active_threads >= m_target_active_threads)
-				m_cond.wait(l);
-			m_pool->thread_active();
-
-			if (m_pool->try_thread_exit(std::this_thread::get_id()))
-				break;
-
-			if (m_active_threads < m_target_active_threads)
-			{
-				++m_active_threads;
-				while (!m_pool->should_exit() && m_active_threads <= m_target_active_threads)
-					m_cond.wait(l);
-				--m_active_threads;
-			}
-
-			if (m_pool->try_thread_exit(std::this_thread::get_id()))
-				break;
-		}
-
+		bool const should_exit = pool.wait_for_job(l);
+		if (should_exit) break;
+		lt::aux::disk_job* j = static_cast<lt::aux::disk_job*>(pool.pop_front());
 		l.unlock();
-		m_exit_cond.notify_all();
+
+		// pretend to perform job
+		TORRENT_UNUSED(j);
+		std::this_thread::sleep_for(1ms);
+
+		l.lock();
 	}
-
-	// change the number of active threads and wait for the threads
-	// to settle at the new value
-	void set_active_threads(int target)
-	{
-		std::unique_lock<std::mutex> l(m_mutex);
-		assert(target <= m_pool->num_threads());
-		m_target_active_threads = target;
-		while (m_active_threads != m_target_active_threads)
-		{
-			l.unlock();
-			m_cond.notify_all();
-			std::this_thread::yield();
-			l.lock();
-		}
-	}
-
-	// this is to close a race between a thread exiting and a test checking the
-	// thread count
-	void wait_for_thread_exit(int num_threads)
-	{
-		std::unique_lock<std::mutex> l(m_mutex);
-		m_exit_cond.wait_for(l, std::chrono::seconds(30), [&]()
-		{
-			return m_pool->num_threads() == num_threads;
-		});
-	}
-
-	lt::aux::disk_io_thread_pool* m_pool;
-	std::mutex m_mutex;
-	std::condition_variable m_cond;
-	std::condition_variable m_exit_cond;
-
-	// must hold m_mutex to access
-	int m_active_threads = 0;
-	// must hold m_mutex to access
-	int m_target_active_threads = 0;
-};
-
+}
 /*
 TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 {
@@ -142,12 +94,17 @@ TORRENT_TEST(disk_io_thread_pool_abort_wait)
 	sim::default_config cfg;
 	sim::simulation sim{ cfg };
 
-	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::aux::disk_io_thread_pool pool(threads, ios);
-	threads.m_pool = &pool;
+	lt::aux::disk_io_thread_pool pool(&thread_fun, ios);
 	pool.set_max_threads(3);
-	pool.job_queued(3);
+	lt::aux::disk_job jobs[3];
+
+	{
+		std::unique_lock<std::mutex> l(g_job_mutex);
+		for (auto& j : jobs)
+			pool.push_back(&j);
+		pool.submit_jobs();
+	}
 	TEST_EQUAL(pool.num_threads(), 3);
 	pool.abort(true);
 	TEST_EQUAL(pool.num_threads(), 0);
@@ -161,10 +118,8 @@ TORRENT_TEST(disk_io_thread_pool_abort_no_wait)
 	sim::default_config cfg;
 	sim::simulation sim{ cfg };
 
-	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::aux::disk_io_thread_pool pool(threads, ios);
-	threads.m_pool = &pool;
+	lt::aux::disk_io_thread_pool pool(&thread_fun, ios);
 	pool.set_max_threads(3);
 	pool.job_queued(3);
 	TEST_EQUAL(pool.num_threads(), 3);
@@ -179,17 +134,20 @@ TORRENT_TEST(disk_io_thread_pool_max_threads)
 	sim::default_config cfg;
 	sim::simulation sim{ cfg };
 
-	test_threads threads;
 	sim::asio::io_context ios(sim);
-	lt::aux::disk_io_thread_pool pool(threads, ios);
-	threads.m_pool = &pool;
+	lt::aux::disk_io_thread_pool pool(thread_fun, ios);
 	// first check that the thread limit is respected when adding jobs
 	pool.set_max_threads(3);
-	pool.job_queued(4);
+	lt::aux::disk_job jobs[4];
+	{
+		std::unique_lock<std::mutex> l(g_job_mutex);
+		for (auto& j : jobs)
+			pool.push_back(&j);
+		pool.submit_jobs();
+	}
 	TEST_EQUAL(pool.num_threads(), 3);
 	// now check that the number of threads is reduced when the max threads is reduced
 	pool.set_max_threads(2);
-	// see comment above about this kludge
-	threads.wait_for_thread_exit(2);
+	std::this_thread::sleep_for(10ms);
 	TEST_EQUAL(pool.num_threads(), 2);
 }
