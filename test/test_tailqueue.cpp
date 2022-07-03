@@ -97,7 +97,7 @@ TORRENT_TEST(tailqueue)
 	build_chain(t1, "abcdef");
 	build_chain(t2, "12345");
 
-	t1.prepend(t2);
+	t1.prepend(std::move(t2));
 	check_chain(t1, "12345abcdef");
 	check_chain(t2, "");
 
@@ -105,7 +105,7 @@ TORRENT_TEST(tailqueue)
 	build_chain(t1, "abcdef");
 	build_chain(t2, "12345");
 
-	t1.append(t2);
+	t1.append(std::move(t2));
 	check_chain(t1, "abcdef12345");
 	check_chain(t2, "");
 
