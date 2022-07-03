@@ -1289,11 +1289,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
-
-			if (num_threads() == 0 && user_add)
-				immediate_execute();
-
-			return;
 		}
 
 		if (num_threads() == 0 && user_add)
@@ -1329,10 +1324,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// we need to defer executing it. We only want the top level to loop
 			// over the job queue (as is done below)
 			if (num_threads() == 0 && user_add)
-			{
-				l.unlock();
 				immediate_execute();
-			}
 			return;
 		}
 
@@ -1360,15 +1352,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		auto& q = pool_for_job(j);
 		q.push_back(j);
+		l.unlock();
 		// if we literally have 0 disk threads, we have to execute the jobs
 		// immediately. If add job is called internally by the mmap_disk_io,
 		// we need to defer executing it. We only want the top level to loop
 		// over the job queue (as is done below)
 		if (pool_for_job(j).max_threads() == 0 && user_add)
-		{
-			l.unlock();
 			immediate_execute();
-		}
 	}
 
 	void mmap_disk_io::immediate_execute()
