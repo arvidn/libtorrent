@@ -21,9 +21,9 @@ namespace {
 
 namespace libtorrent::aux {
 
-	disk_io_thread_pool::disk_io_thread_pool(pool_thread_interface& thread_iface
+	disk_io_thread_pool::disk_io_thread_pool(disk_thread_fun thread_fun
 		, io_context& ios)
-		: m_thread_iface(thread_iface)
+		: m_thread_fun(std::move(thread_fun))
 		, m_max_threads(0)
 		, m_threads_to_exit(0)
 		, m_abort(false)
@@ -36,6 +36,17 @@ namespace libtorrent::aux {
 	disk_io_thread_pool::~disk_io_thread_pool()
 	{
 		abort(true);
+
+		TORRENT_ASSERT(num_threads() == 0);
+
+#if TORRENT_USE_ASSERTS
+		if (!m_queued_jobs.empty())
+		{
+			for (auto i = m_queued_jobs.iterate(); i.get(); i.next())
+				std::printf("job: %d\n", int(i.get()->action.index()));
+		}
+		TORRENT_ASSERT(m_queued_jobs.empty());
+#endif
 	}
 
 	void disk_io_thread_pool::set_max_threads(int const i)
@@ -151,9 +162,7 @@ namespace libtorrent::aux {
 			// that the event is destructed after the disk_io_thread. If the
 			// event refers to a disk buffer it will try to free it, but the
 			// buffer pool won't exist anymore, and crash. This prevents that.
-			m_threads.emplace_back(&pool_thread_interface::thread_fun
-				, &m_thread_iface, std::ref(*this)
-				, make_work_guard(m_ioc));
+			m_threads.emplace_back(m_thread_fun, std::ref(*this), make_work_guard(m_ioc));
 		}
 	}
 
@@ -178,7 +187,48 @@ namespace libtorrent::aux {
 	void disk_io_thread_pool::stop_threads(int num_to_stop)
 	{
 		m_threads_to_exit = num_to_stop;
-		m_thread_iface.notify_all();
+		m_job_cond.notify_all();
 	}
+
+	bool disk_io_thread_pool::wait_for_job(std::unique_lock<std::mutex>& l)
+	{
+		TORRENT_ASSERT(l.owns_lock());
+
+		// the thread should only go active if it is exiting or there is work to do
+		// if the thread goes active on every wakeup it causes the minimum idle thread
+		// count to be lower than it should be
+		// for performance reasons we also want to avoid going idle and active again
+		// if there is already work to do
+		if (m_queued_jobs.empty())
+		{
+			thread_idle();
+
+			do
+			{
+				// if the number of wanted threads is decreased,
+				// we may stop this thread
+				// when we're terminating the last thread, make sure
+				// we finish up all queued jobs first
+				if (should_exit()
+					&& (m_queued_jobs.empty()
+						|| num_threads() > 1)
+					// try_thread_exit must be the last condition
+					&& try_thread_exit(std::this_thread::get_id()))
+				{
+					// time to exit this thread.
+					thread_active();
+					return true;
+				}
+
+				using namespace std::literals::chrono_literals;
+				m_job_cond.wait_for(l, 1s);
+			} while (m_queued_jobs.empty());
+
+			thread_active();
+		}
+
+		return false;
+	}
+
 
 } // namespace libtorrent::aux
