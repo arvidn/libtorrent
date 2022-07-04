@@ -355,7 +355,7 @@ SOURCES = \
   merkle_tree.cpp                 \
   mmap.cpp                        \
   mmap_disk_io.cpp                \
-  mmap_disk_job.cpp               \
+  disk_job.cpp                    \
   mmap_storage.cpp                \
   natpmp.cpp                      \
   packet_buffer.cpp               \
@@ -588,6 +588,7 @@ HEADERS = \
   aux_/mmap.hpp                     \
   aux_/mmap_storage.hpp             \
   aux_/mmap_disk_job.hpp            \
+  aux_/disk_job.hpp                 \
   aux_/netlink.hpp                  \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \

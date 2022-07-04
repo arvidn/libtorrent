@@ -46,9 +46,9 @@ namespace aux {
 			TORRENT_ASSERT(buf);
 
 			auto* ptr = new (buf) mmap_disk_job{
-				tailqueue_node<mmap_disk_job>{},
+				{
+				tailqueue_node<disk_job>{},
 				flags,
-				std::move(storage),
 				status_t::no_error,
 				storage_error{},
 				JobType{std::forward<Args>(args)...},
@@ -58,6 +58,8 @@ namespace aux {
 				false, // callback_called
 				false, // blocked
 #endif
+				},
+				std::move(storage),
 			};
 
 			return ptr;

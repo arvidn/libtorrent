@@ -24,7 +24,7 @@ struct counters;
 
 namespace libtorrent::aux {
 
-	struct mmap_disk_job;
+	struct disk_job;
 
 	// implements the disk I/O job fence used by the default_storage
 	// to provide to the disk thread. Whenever a disk job needs
@@ -50,19 +50,19 @@ namespace libtorrent::aux {
 		// storage, fence_post_fence is returned.
 		// fence_post_none if the fence job was queued.
 		enum { fence_post_fence = 0, fence_post_none = 1 };
-		int raise_fence(mmap_disk_job*, counters&);
+		int raise_fence(disk_job*, counters&);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
 		// fence being lowered.
-		int job_complete(mmap_disk_job*, tailqueue<mmap_disk_job>&);
+		int job_complete(disk_job*, tailqueue<disk_job>&);
 		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
 		// if there is a fence up, returns true and adds the job
 		// to the queue of blocked jobs
-		bool is_blocked(mmap_disk_job*);
+		bool is_blocked(disk_job*);
 
 		// the number of blocked jobs
 		int num_blocked() const;
@@ -76,9 +76,9 @@ namespace libtorrent::aux {
 
 		// when there's a fence up, jobs are queued up in here
 		// until the fence is lowered
-		tailqueue<mmap_disk_job> m_blocked_jobs;
+		tailqueue<disk_job> m_blocked_jobs;
 
-		// the number of mmap_disk_job objects there are, belonging
+		// the number of disk_job objects there are, belonging
 		// to this torrent, currently pending, hanging off of
 		// cached_piece_entry objects. This is used to determine
 		// when the fence can be lowered

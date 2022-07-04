@@ -844,7 +844,6 @@ SOURCES =
 	generate_peer_id
 	mmap
 	mmap_disk_io
-	mmap_disk_job
 	mmap_storage
 	posix_disk_io
 	posix_part_file
@@ -856,6 +855,7 @@ SOURCES =
 	rtc_stream
 	websocket_stream
 	websocket_tracker_connection
+	disk_job
 
 # -- extensions --
 	ut_pex

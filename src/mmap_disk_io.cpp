@@ -392,9 +392,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// abort outstanding jobs belonging to this torrent
 
 		DLOG("aborting hash jobs\n");
-		m_hash_threads.visit_jobs([](aux::mmap_disk_job* j)
+		m_hash_threads.visit_jobs([](aux::disk_job* j)
 		{
-			j->flags |= aux::mmap_disk_job::aborted;
+			j->flags |= aux::disk_job::aborted;
 		});
 		l.unlock();
 
@@ -431,8 +431,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		while (!src.empty())
 		{
-			aux::mmap_disk_job* j = src.pop_front();
-			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+			auto* j = static_cast<aux::mmap_disk_job*>(src.pop_front());
+			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 			if (auto const* a = std::get_if<aux::job::write>(&j->action))
 			{
@@ -447,7 +447,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->next == nullptr);
-		TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 #if DEBUG_DISK_THREAD
 		{
@@ -455,8 +455,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
 				, job_action_name[j->action]
-				, (j->flags & mmap_disk_job::fence) ? "fence ": ""
-				, (j->flags & mmap_disk_job::force_copy) ? "force_copy ": ""
+				, (j->flags & disk_job::fence) ? "fence ": ""
+				, (j->flags & disk_job::force_copy) ? "force_copy ": ""
 				, static_cast<int>(j->piece), j->d.io.offset
 				, j->storage ? j->storage->num_outstanding_jobs() : -1);
 		}
@@ -861,15 +861,16 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		auto st = m_torrents[storage]->shared_from_this();
 		// hash jobs
-		m_hash_threads.visit_jobs([&](aux::mmap_disk_job* j)
+		m_hash_threads.visit_jobs([&](aux::disk_job* gj)
 		{
+			auto* j = static_cast<aux::mmap_disk_job*>(gj);
 			if (j->storage != st) return;
 			// only cancel volatile-read jobs. This means only full checking
 			// jobs. These jobs are likely to have a pretty deep queue and
 			// really gain from being cancelled. They can also be restarted
 			// easily.
 			if (j->flags & disk_interface::volatile_read)
-				j->flags |= aux::mmap_disk_job::aborted;
+				j->flags |= aux::disk_job::aborted;
 		});
 	}
 
@@ -1365,7 +1366,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		while (!m_generic_threads.empty())
 		{
-			aux::mmap_disk_job* j = m_generic_threads.pop_front();
+			auto* j = static_cast<aux::mmap_disk_job*>(m_generic_threads.pop_front());
 			execute_job(j);
 		}
 	}
@@ -1443,7 +1444,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			aux::mmap_disk_job* j = nullptr;
 			bool const should_exit = pool.wait_for_job(l);
 			if (should_exit) break;
-			j = pool.pop_front();
+			j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
 			l.unlock();
 
 			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
@@ -1595,7 +1596,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int ret = 0;
 		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
-			aux::mmap_disk_job* j = i.get();
+			auto* j = static_cast<aux::mmap_disk_job*>(i.get());
 			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 
 			if (j->flags & aux::mmap_disk_job::fence)
@@ -1629,7 +1630,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			while (!new_jobs.empty())
 			{
-				aux::mmap_disk_job* j = new_jobs.pop_front();
+				auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
 				TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
 				j->ret = status_t::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
@@ -1675,7 +1676,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(m_job_completions_in_flight);
 		m_job_completions_in_flight = false;
 
-		aux::mmap_disk_job* j = m_completed_jobs.get_all();
+		auto* j = static_cast<aux::mmap_disk_job*>(m_completed_jobs.get_all());
 		l.unlock();
 
 		aux::array<aux::mmap_disk_job*, 64> to_delete;
@@ -1686,7 +1687,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
 			DLOG("   callback: %s\n", job_name(j->get_type()));
-			aux::mmap_disk_job* next = j->next;
+			auto* next = static_cast<aux::mmap_disk_job*>(j->next);
 
 #if TORRENT_USE_ASSERTS
 			j->callback_called = true;
