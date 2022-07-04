@@ -16,8 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 
-// TODO: this should be a generic job type
-#include "libtorrent/aux_/mmap_disk_job.hpp"
+#include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/error_code.hpp"
@@ -29,7 +28,7 @@ see LICENSE file.
 
 namespace libtorrent {
 	// TODO: move into aux namespace
-	using jobqueue_t = aux::tailqueue<aux::mmap_disk_job>;
+	using jobqueue_t = aux::tailqueue<aux::disk_job>;
 }
 
 namespace libtorrent::aux {
@@ -104,13 +103,13 @@ namespace libtorrent::aux {
 		}
 
 		// TODO: the job mutex must be held when this is called
-		void push_back(aux::mmap_disk_job* j)
+		void push_back(aux::disk_job* j)
 		{
 			m_queued_jobs.push_back(j);
 		}
 
 		// TODO: the job mutex must be held when this is called
-		aux::mmap_disk_job* pop_front()
+		aux::disk_job* pop_front()
 		{
 			return m_queued_jobs.pop_front();
 		}
