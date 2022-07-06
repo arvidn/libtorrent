@@ -5,6 +5,7 @@
 	* added support for WebTorrent
 
 
+	* fix issue where stop-when-ready would not close files
 	* fix issue with duplicate hybrid torrent via separate v1 and v2 magnet links
 	* added new function to load torrent files, load_torrent_*()
 	* support sync_file_range() on linux
@@ -123,6 +124,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fixed tracker connections spinning when hostname lookups stall
 	* fixed error in pkg-config file generation in Jamfile
 	* improve backwards compatibility with loading magnet link resume files
 	* fix bind-to-device for tracker announces and UPnP

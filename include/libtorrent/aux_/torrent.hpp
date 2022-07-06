@@ -526,7 +526,7 @@ namespace libtorrent::aux {
 		void resume();
 
 		void set_session_paused(bool b);
-		void set_paused(bool b, pause_flags_t flags = torrent_handle::clear_disk_cache);
+		void set_paused(bool b, pause_flags_t flags = {});
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
@@ -535,7 +535,7 @@ namespace libtorrent::aux {
 
 		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause(pause_flags_t flags = torrent_handle::clear_disk_cache, bool was_paused = false);
+		void do_pause(bool was_paused = false);
 		void do_resume();
 
 		seconds32 finished_time() const;

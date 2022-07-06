@@ -252,8 +252,8 @@ private:
 	static bool wait_for_job(job_queue& jobq, aux::disk_io_thread_pool& threads
 		, std::unique_lock<std::mutex>& l);
 
-	void add_completed_jobs(jobqueue_t& jobs);
-	void add_completed_jobs_impl(jobqueue_t& jobs, jobqueue_t& completed);
+	void add_completed_jobs(jobqueue_t jobs);
+	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed);
 
 	void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
@@ -1453,13 +1453,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			j->ret = status_t::fatal_disk_error;
 			j->error = storage_error(boost::asio::error::operation_aborted);
 			completed_jobs.push_back(j);
-			add_completed_jobs(completed_jobs);
+			add_completed_jobs(std::move(completed_jobs));
 			return;
 		}
 
 		perform_job(j, completed_jobs);
 		if (!completed_jobs.empty())
-			add_completed_jobs(completed_jobs);
+			add_completed_jobs(std::move(completed_jobs));
 	}
 
 	bool mmap_disk_io::wait_for_job(job_queue& jobq, aux::disk_io_thread_pool& threads
@@ -1687,7 +1687,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return m_generic_threads;
 	}
 
-	void mmap_disk_io::add_completed_jobs(jobqueue_t& jobs)
+	void mmap_disk_io::add_completed_jobs(jobqueue_t jobs)
 	{
 		jobqueue_t completed = std::move(jobs);
 		jobqueue_t new_jobs;
@@ -1696,13 +1696,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// when a job completes, it's possible for it to cause
 			// a fence to be lowered, issuing the jobs queued up
 			// behind the fence
-			add_completed_jobs_impl(completed, new_jobs);
+			add_completed_jobs_impl(std::move(completed), new_jobs);
 			TORRENT_ASSERT(completed.empty());
-			completed.swap(new_jobs);
+			completed = std::move(new_jobs);
 		} while (!completed.empty());
 	}
 
-	void mmap_disk_io::add_completed_jobs_impl(jobqueue_t& jobs, jobqueue_t& completed)
+	void mmap_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed)
 	{
 		jobqueue_t new_jobs;
 		int ret = 0;
@@ -1755,7 +1755,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			{
 				{
 					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_io_jobs.m_queued_jobs.append(new_jobs);
+					m_generic_io_jobs.m_queued_jobs.append(std::move(new_jobs));
 				}
 
 				{
@@ -1767,7 +1767,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
-		m_completed_jobs.append(jobs);
+		m_completed_jobs.append(std::move(jobs));
 
 		if (!m_job_completions_in_flight)
 		{

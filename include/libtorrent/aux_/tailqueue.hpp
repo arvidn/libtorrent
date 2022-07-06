@@ -12,6 +12,7 @@ see LICENSE file.
 #define TORRENT_TAILQUEUE_HPP
 
 #include "libtorrent/assert.hpp"
+#include <utility> // for std::move
 
 namespace libtorrent::aux {
 
@@ -50,11 +51,29 @@ namespace libtorrent::aux {
 	{
 		tailqueue(): m_first(nullptr), m_last(nullptr), m_size(0) {}
 
+		tailqueue(tailqueue const&) = delete;
 		tailqueue(tailqueue&& t): m_first(t.m_first), m_last(t.m_last), m_size(t.m_size)
 		{
 			t.m_first = nullptr;
 			t.m_last = nullptr;
 			t.m_size = 0;
+		}
+
+		tailqueue& operator=(tailqueue const&) = delete;
+		tailqueue& operator=(tailqueue&& t)
+		{
+			TORRENT_ASSERT(m_first == nullptr);
+			TORRENT_ASSERT(m_last == nullptr);
+			TORRENT_ASSERT(m_size == 0);
+
+			m_first = t.m_first;
+			m_last = t.m_last;
+			m_size = t.m_size;
+
+			t.m_first = nullptr;
+			t.m_last = nullptr;
+			t.m_size = 0;
+			return *this;
 		}
 
 		tailqueue_iterator<const T> iterate() const
@@ -63,7 +82,7 @@ namespace libtorrent::aux {
 		tailqueue_iterator<T> iterate()
 		{ return tailqueue_iterator<T>(m_first); }
 
-		void append(tailqueue<T>& rhs)
+		void append(tailqueue<T> rhs) &
 		{
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			TORRENT_ASSERT(rhs.m_last == nullptr || rhs.m_last->next == nullptr);
@@ -79,14 +98,11 @@ namespace libtorrent::aux {
 			m_last->next = rhs.m_first;
 			m_last = rhs.m_last;
 			m_size += rhs.m_size;
-			rhs.m_first = nullptr;
-			rhs.m_last = nullptr;
-			rhs.m_size = 0;
 
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 		}
 
-		void prepend(tailqueue<T>& rhs)
+		void prepend(tailqueue<T> rhs) &
 		{
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			TORRENT_ASSERT(rhs.m_last == nullptr || rhs.m_last->next == nullptr);
@@ -102,7 +118,7 @@ namespace libtorrent::aux {
 			}
 
 			swap(rhs);
-			append(rhs);
+			append(std::move(rhs));
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			TORRENT_ASSERT(rhs.m_last == nullptr || rhs.m_last->next == nullptr);
 		}
@@ -117,7 +133,7 @@ namespace libtorrent::aux {
 			--m_size;
 			return e;
 		}
-		void push_front(T* e)
+		void push_front(T* e) &
 		{
 			TORRENT_ASSERT(e->next == nullptr);
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
@@ -126,7 +142,7 @@ namespace libtorrent::aux {
 			if (!m_last) m_last = e;
 			++m_size;
 		}
-		void push_back(T* e)
+		void push_back(T* e) &
 		{
 			TORRENT_ASSERT(e->next == nullptr);
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
@@ -136,7 +152,7 @@ namespace libtorrent::aux {
 			e->next = nullptr;
 			++m_size;
 		}
-		T* get_all()
+		T* get_all() &
 		{
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			T* e = m_first;
@@ -147,25 +163,29 @@ namespace libtorrent::aux {
 		}
 		void swap(tailqueue<T>& rhs)
 		{
-			T* tmp = m_first;
-			m_first = rhs.m_first;
-			rhs.m_first = tmp;
-			tmp = m_last;
-			m_last = rhs.m_last;
-			rhs.m_last = tmp;
-			int tmp2 = m_size;
-			m_size = rhs.m_size;
-			rhs.m_size = tmp2;
+			std::swap(m_first, rhs.m_first);
+			std::swap(m_last, rhs.m_last);
+			std::swap(m_size, rhs.m_size);
 		}
 		int size() const { TORRENT_ASSERT(m_size >= 0); return m_size; }
 		bool empty() const { TORRENT_ASSERT(m_size >= 0); return m_size == 0; }
-		T* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
-		T* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
+		T* first() const& { TORRENT_ASSERT(m_size > 0); return m_first; }
+		T* last() const& { TORRENT_ASSERT(m_size > 0); return m_last; }
 	private:
 		T* m_first;
 		T* m_last;
 		int m_size;
 	};
+}
+
+namespace std {
+
+template <typename T>
+void swap(libtorrent::aux::tailqueue<T>& lhs, libtorrent::aux::tailqueue<T>& rhs)
+{
+	lhs.swap(rhs);
+}
+
 }
 
 #endif // TAILQUEUE_HPP
