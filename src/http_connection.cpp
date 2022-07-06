@@ -404,7 +404,16 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	// be forgiving of timeout while we're still resolving the hostname
 	// it may be delayed because we're queued up behind another slow lookup
-	if (c->m_start_time + (c->m_completion_timeout * (int(c->m_resolving_host) + 1)) <= now)
+	if (c->m_resolving_host
+		&& (c->m_start_time + (c->m_completion_timeout * 2) > now))
+	{
+		ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
+		c->m_timer.expires_at(c->m_start_time + c->m_completion_timeout * 2);
+		c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
+		return;
+	}
+
+	if (c->m_start_time + c->m_completion_timeout <= now)
 	{
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
