@@ -249,7 +249,7 @@ private:
 	// must hold the job mutex to access
 	int m_num_running_threads = 0;
 
-	aux::disk_job_pool m_job_pool;
+	aux::disk_job_pool<aux::mmap_disk_job> m_job_pool;
 
 	// std::mutex to protect the m_generic_threads and m_hash_threads lists
 	mutable std::mutex m_job_mutex;
