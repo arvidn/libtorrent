@@ -542,6 +542,7 @@ HEADERS = \
   aux_/crc32c.hpp                   \
   aux_/deadline_timer.hpp           \
   aux_/debug.hpp                    \
+  aux_/debug_disk_thread.hpp        \
   aux_/deferred_handler.hpp         \
   aux_/deprecated.hpp               \
   aux_/deque.hpp                    \

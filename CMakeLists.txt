@@ -154,6 +154,7 @@ set(libtorrent_aux_include_files
 	crc32c.hpp
 	deadline_timer.hpp
 	debug.hpp
+	debug_disk_thread.hpp
 	deferred_handler.hpp
 	deprecated.hpp
 	deque.hpp
