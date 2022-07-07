@@ -12,24 +12,23 @@ see LICENSE file.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/mmap_disk_job.hpp" // for job_action_t
 #include "libtorrent/aux_/pool.hpp"
+#include "libtorrent/aux_/disk_job.hpp"
 #include <mutex>
 
 namespace libtorrent {
 namespace aux {
 
-	struct mmap_disk_job;
-
-	struct TORRENT_EXTRA_EXPORT disk_job_pool
+	template <typename T>
+	struct disk_job_pool
 	{
 		disk_job_pool();
 		~disk_job_pool();
 
-		template <typename JobType, typename... Args>
-		mmap_disk_job* allocate_job(
+		template <typename JobType, typename Storage, typename... Args>
+		T* allocate_job(
 			disk_job_flags_t const flags
-			, std::shared_ptr<mmap_storage> storage
+			, Storage stor
 			, Args&&... args)
 		{
 			void* buf;
@@ -43,9 +42,10 @@ namespace aux {
 				else if constexpr (std::is_same_v<JobType, job::write>)
 					++m_write_jobs;
 			}
+
 			TORRENT_ASSERT(buf);
 
-			auto* ptr = new (buf) mmap_disk_job{
+			auto* ptr = new (buf) T{
 				{
 				tailqueue_node<disk_job>{},
 				flags,
@@ -59,14 +59,14 @@ namespace aux {
 				false, // blocked
 #endif
 				},
-				std::move(storage),
+				std::move(stor)
 			};
 
 			return ptr;
 		}
 
-		void free_job(mmap_disk_job* j);
-		void free_jobs(mmap_disk_job** j, int num);
+		void free_job(T* j);
+		void free_jobs(T** j, int num);
 
 		int jobs_in_use() const { return m_jobs_in_use; }
 		int read_jobs_in_use() const { return m_read_jobs; }
@@ -84,6 +84,9 @@ namespace aux {
 		std::mutex m_job_mutex;
 		aux::pool m_job_pool;
 	};
+
+	struct mmap_disk_job;
+	extern template struct disk_job_pool<aux::mmap_disk_job>;
 }
 }
 
