@@ -59,62 +59,10 @@ see LICENSE file.
 #include <boost/variant/get.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#define DEBUG_DISK_THREAD 0
-
-namespace libtorrent {
-char const* job_name(aux::job_action_t job);
-}
-
-#if DEBUG_DISK_THREAD
-#include <cstdarg> // for va_list
-#include <sstream>
-#include <cstdio> // for vsnprintf
-
-#define DLOG(...) debug_log(__VA_ARGS__)
-#else
-#define DLOG(...) do {} while(false)
-#endif
+#include "libtorrent/aux_/debug_disk_thread.hpp"
 
 namespace libtorrent {
 namespace {
-
-#if DEBUG_DISK_THREAD
-
-	void debug_log(char const* fmt, ...)
-	{
-		static std::mutex log_mutex;
-		static const time_point start = clock_type::now();
-		// map thread IDs to low numbers
-		static std::unordered_map<std::thread::id, int> thread_ids;
-
-		std::thread::id const self = std::this_thread::get_id();
-
-		std::unique_lock<std::mutex> l(log_mutex);
-		auto it = thread_ids.insert({self, int(thread_ids.size())}).first;
-
-		va_list v;
-		va_start(v, fmt);
-
-		char usr[2048];
-		int len = std::vsnprintf(usr, sizeof(usr), fmt, v);
-
-		static bool prepend_time = true;
-		if (!prepend_time)
-		{
-			prepend_time = (usr[len-1] == '\n');
-			fputs(usr, stderr);
-			return;
-		}
-		va_end(v);
-		char buf[2300];
-		int const t = int(total_milliseconds(clock_type::now() - start));
-		std::snprintf(buf, sizeof(buf), "\x1b[3%dm%05d: [%d] %s\x1b[0m"
-			, (it->second % 7) + 1, t, it->second, usr);
-		prepend_time = (usr[len-1] == '\n');
-		fputs(buf, stderr);
-	}
-
-#endif // DEBUG_DISK_THREAD
 
 	aux::open_mode_t file_mode_for_job(aux::mmap_disk_job* j)
 	{
@@ -453,11 +401,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
 
-			DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
-				, job_action_name[j->action]
-				, (j->flags & disk_job::fence) ? "fence ": ""
-				, (j->flags & disk_job::force_copy) ? "force_copy ": ""
-				, static_cast<int>(j->piece), j->d.io.offset
+			DLOG("perform_job job: %s outstanding: %d\n"
+				, print_job(*j).c_str()
 				, j->storage ? j->storage->num_outstanding_jobs() : -1);
 		}
 #endif
@@ -695,7 +640,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					// this means the job was queued up inside storage
 					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 					DLOG("blocked job: %s (torrent: %d total: %d)\n"
-						, job_name(j->get_type()), j->storage ? j->storage->num_blocked() : 0
+						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 						, int(m_stats_counters[counters::blocked_disk_jobs]));
 				}
 				else
@@ -743,7 +688,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_name(j->get_type()), j->storage ? j->storage->num_blocked() : 0
+				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 		}
 		else
@@ -786,7 +731,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_name(j->get_type()), j->storage ? j->storage->num_blocked() : 0
+				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return exceeded;
 		}
@@ -1073,7 +1018,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		hasher256 h;
 		int ret = 0;
 
-		DLOG("do_hash2: reading (piece: %d offset: %d)\n", int(p.piece), int(p.offset));
+		DLOG("do_hash2: reading (piece: %d offset: %d)\n", int(a.piece), int(a.offset));
 
 		time_point const start_time = clock_type::now();
 
@@ -1248,7 +1193,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		j->ret = status_t::fatal_disk_error;
 		j->error = storage_error(boost::asio::error::operation_aborted);
-		j->flags |= aux::mmap_disk_job::aborted;
+		j->flags |= aux::disk_job::aborted;
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->job_posted == false);
 		j->job_posted = true;
@@ -1277,7 +1222,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		DLOG("add_fence:job: %s (outstanding: %d)\n"
-			, job_name(j->get_type())
+			, print_job(*j).c_str()
 			, j->storage->num_outstanding_jobs());
 
 		TORRENT_ASSERT(j->storage);
@@ -1287,7 +1232,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
 		}
@@ -1313,10 +1258,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// this happens for read jobs that get hung on pieces in the
 		// block cache, and then get issued
-		if (j->flags & aux::mmap_disk_job::in_progress)
+		if (j->flags & aux::disk_job::in_progress)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
 
@@ -1330,7 +1275,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		DLOG("add_job: %s (outstanding: %d)\n"
-			, job_name(j->get_type())
+			, print_job(*j).c_str()
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 		// is the fence up for this storage?
@@ -1342,14 +1287,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, job_name(j->get_type()), j->storage ? j->storage->num_blocked() : 0
+				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));
 			return;
 		}
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
 
-		TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 		auto& q = pool_for_job(j);
 		q.push_back(j);
@@ -1381,7 +1326,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::execute_job(aux::mmap_disk_job* j)
 	{
 		jobqueue_t completed_jobs;
-		if (j->flags & aux::mmap_disk_job::aborted)
+		if (j->flags & aux::disk_job::aborted)
 		{
 			j->ret = status_t::fatal_disk_error;
 			j->error = storage_error(boost::asio::error::operation_aborted);
@@ -1447,7 +1392,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
 			l.unlock();
 
-			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 			if (&pool == &m_generic_threads && thread_id == pool.first_thread_id())
 			{
@@ -1514,16 +1459,16 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return;
 		}
 
+		DLOG("last thread alive. (left: %d) cleaning up. (generic-jobs: %d hash-jobs: %d)\n"
+			, threads_left
+			, m_generic_threads.queue_size()
+			, m_hash_threads.queue_size());
+
 		// it is important to hold the job mutex while calling try_thread_exit()
 		// and continue to hold it until checking m_abort above so that abort()
 		// doesn't inadvertently trigger the code below when it thinks there are no
 		// more disk I/O threads running
 		l.unlock();
-
-		DLOG("last thread alive. (left: %d) cleaning up. (generic-jobs: %d hash-jobs: %d)\n"
-			, threads_left
-			, m_generic_threads.queued_size()
-			, m_hash_threads.queued_size());
 
 		// at this point, there are no queued jobs left. However, main
 		// thread is still running and may still have peer_connections
@@ -1597,9 +1542,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
 			auto* j = static_cast<aux::mmap_disk_job*>(i.get());
-			TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
-			if (j->flags & aux::mmap_disk_job::fence)
+			if (j->flags & aux::disk_job::fence)
 			{
 				m_stats_counters.inc_stats_counter(
 					counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
@@ -1610,7 +1555,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				ret += j->storage->job_complete(j, new_jobs);
 
 			TORRENT_ASSERT(ret == new_jobs.size());
-			TORRENT_ASSERT(!(j->flags & aux::mmap_disk_job::in_progress));
+			TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(j->job_posted == false);
 			j->job_posted = true;
@@ -1631,7 +1576,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			while (!new_jobs.empty())
 			{
 				auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
-				TORRENT_ASSERT((j->flags & aux::mmap_disk_job::in_progress) || !j->storage);
+				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 				j->ret = status_t::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
 				completed.push_back(j);
@@ -1686,7 +1631,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
-			DLOG("   callback: %s\n", job_name(j->get_type()));
+			DLOG("   callback: %s\n", print_job(*j).c_str());
 			auto* next = static_cast<aux::mmap_disk_job*>(j->next);
 
 #if TORRENT_USE_ASSERTS
