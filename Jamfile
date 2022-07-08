@@ -746,6 +746,7 @@ SOURCES =
 	directory
 	disk_buffer_holder
 	disk_buffer_pool
+	disk_completed_queue
 	disk_io_thread_pool
 	disabled_disk_io
 	disk_job_fence
