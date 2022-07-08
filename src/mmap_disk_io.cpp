@@ -41,6 +41,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/storage_array.hpp"
+#include "libtorrent/aux_/disk_completed_queue.hpp"
 
 #ifdef TORRENT_WINDOWS
 #include "signal_error_code.hpp"
@@ -157,8 +158,6 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	status_t do_job(aux::job::file_priority& a, aux::mmap_disk_job* j);
 	status_t do_job(aux::job::clear_piece& a, aux::mmap_disk_job* j);
 
-	void call_job_handlers();
-
 private:
 
 	void thread_fun(aux::disk_io_thread_pool& pool
@@ -167,16 +166,11 @@ private:
 	void add_completed_jobs(jobqueue_t jobs);
 	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed);
 
-	void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
-
 	void perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs);
 
 	// this queues up another job to be submitted
 	void add_job(aux::mmap_disk_job* j, bool user_add = true);
 	void add_fence_job(aux::mmap_disk_job* j, bool user_add = true);
-
-	// called when a job cannot be queued. Immediate failure/abort
-	void job_fail_add(aux::mmap_disk_job* j);
 
 	void execute_job(aux::mmap_disk_job* j);
 	void immediate_execute();
@@ -233,24 +227,12 @@ private:
 	// the main thread.
 	io_context& m_ios;
 
-	// jobs that are completed are put on this queue
-	// whenever the queue size grows from 0 to 1
-	// a message is posted to the network thread, which
-	// will then drain the queue and execute the jobs'
-	// handler functions
-	std::mutex m_completed_jobs_mutex;
-	jobqueue_t m_completed_jobs;
+	aux::disk_completed_queue m_completed_jobs;
 
 	// storages that have had write activity recently and will get ticked
 	// soon, for deferred actions (say, flushing partfile metadata)
 	std::vector<std::pair<time_point, std::weak_ptr<aux::mmap_storage>>> m_need_tick;
 	std::mutex m_need_tick_mutex;
-
-	// this is protected by the completed_jobs_mutex. It's true whenever
-	// there's a call_job_handlers message in-flight to the network thread. We
-	// only ever keep one such message in flight at a time, and coalesce
-	// completion callbacks in m_completed jobs
-	bool m_job_completions_in_flight = false;
 
 	aux::storage_array<aux::mmap_storage> m_torrents;
 
@@ -280,6 +262,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, m_buffer_pool(ios)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
+		, m_completed_jobs([&](aux::disk_job** j, int const n) {
+			m_job_pool.free_jobs(reinterpret_cast<aux::mmap_disk_job**>(j), n);
+			}, cnt)
 	{
 		settings_updated();
 	}
@@ -373,23 +358,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		m_generic_threads.set_max_threads(num_threads);
 		m_hash_threads.set_max_threads(num_hash_threads);
-	}
-
-	void mmap_disk_io::fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst)
-	{
-		while (!src.empty())
-		{
-			auto* j = static_cast<aux::mmap_disk_job*>(src.pop_front());
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-
-			if (auto const* a = std::get_if<aux::job::write>(&j->action))
-			{
-				m_store_buffer.erase({j->storage->storage_index(), a->piece, a->offset});
-			}
-			j->ret = status_t::fatal_disk_error;
-			j->error = e;
-			dst.push_back(j);
-		}
 	}
 
 	void mmap_disk_io::perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs)
@@ -1189,27 +1157,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return status_t::no_error;
 	}
 
-	void mmap_disk_io::job_fail_add(aux::mmap_disk_job* j)
-	{
-		j->ret = status_t::fatal_disk_error;
-		j->error = storage_error(boost::asio::error::operation_aborted);
-		j->flags |= aux::disk_job::aborted;
-#if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT(j->job_posted == false);
-		j->job_posted = true;
-#endif
-		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
-		m_completed_jobs.push_back(j);
-
-		if (!m_job_completions_in_flight)
-		{
-			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
-
-			post(m_ios, [this] { this->call_job_handlers(); });
-			m_job_completions_in_flight = true;
-		}
-	}
-
 	void mmap_disk_io::add_fence_job(aux::mmap_disk_job* j, bool const user_add)
 	{
 		// if this happens, it means we started to shut down
@@ -1217,7 +1164,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// before the disk threads are shut down
 		if (m_abort)
 		{
-			job_fail_add(j);
+			m_completed_jobs.abort_job(m_ios, j);
 			return;
 		}
 
@@ -1252,7 +1199,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// before the disk threads are shut down
 		if (m_abort)
 		{
-			job_fail_add(j);
+			m_completed_jobs.abort_job(m_ios, j);
 			return;
 		}
 
@@ -1598,56 +1545,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			}
 		}
 
-		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
-		m_completed_jobs.append(std::move(jobs));
-
-		if (!m_job_completions_in_flight)
-		{
-			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
-
-			post(m_ios, [this] { this->call_job_handlers(); });
-			m_job_completions_in_flight = true;
-		}
-	}
-
-	// This is run in the network thread
-	void mmap_disk_io::call_job_handlers()
-	{
-		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
-		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
-
-		DLOG("call_job_handlers (%d)\n", m_completed_jobs.size());
-
-		TORRENT_ASSERT(m_job_completions_in_flight);
-		m_job_completions_in_flight = false;
-
-		auto* j = static_cast<aux::mmap_disk_job*>(m_completed_jobs.get_all());
-		l.unlock();
-
-		aux::array<aux::mmap_disk_job*, 64> to_delete;
-		int cnt = 0;
-
-		while (j)
-		{
-			TORRENT_ASSERT(j->job_posted == true);
-			TORRENT_ASSERT(j->callback_called == false);
-			DLOG("   callback: %s\n", print_job(*j).c_str());
-			auto* next = static_cast<aux::mmap_disk_job*>(j->next);
-
-#if TORRENT_USE_ASSERTS
-			j->callback_called = true;
-#endif
-			j->call_callback();
-			to_delete[cnt++] = j;
-			j = next;
-			if (cnt == int(to_delete.size()))
-			{
-				cnt = 0;
-				m_job_pool.free_jobs(to_delete.data(), int(to_delete.size()));
-			}
-		}
-
-		if (cnt > 0) m_job_pool.free_jobs(to_delete.data(), cnt);
+		m_completed_jobs.append(m_ios, std::move(jobs));
 	}
 }
 
