@@ -15,6 +15,10 @@ see LICENSE file.
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/aux_/array.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/container/static_vector.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 namespace libtorrent::aux {
 
 void disk_completed_queue::abort_job(io_context& ioc, aux::disk_job* j)
@@ -66,9 +70,7 @@ void disk_completed_queue::call_job_handlers()
 	auto* j = static_cast<aux::disk_job*>(m_completed_jobs.get_all());
 	l.unlock();
 
-	// TODO: use boost static_vector
-	aux::array<aux::disk_job*, 64> to_delete;
-	int cnt = 0;
+	boost::container::static_vector<aux::disk_job*, 64> to_delete;
 
 	while (j)
 	{
@@ -81,16 +83,16 @@ void disk_completed_queue::call_job_handlers()
 		j->callback_called = true;
 #endif
 		j->call_callback();
-		to_delete[cnt++] = j;
+		to_delete.push_back(j);
 		j = next;
-		if (cnt == int(to_delete.size()))
+		if (to_delete.size() == to_delete.capacity())
 		{
-			cnt = 0;
 			m_free_jobs(to_delete.data(), int(to_delete.size()));
+			to_delete.clear();
 		}
 	}
 
-	if (cnt > 0) m_free_jobs(to_delete.data(), cnt);
+	if (!to_delete.empty()) m_free_jobs(to_delete.data(), int(to_delete.size()));
 }
 
 }
