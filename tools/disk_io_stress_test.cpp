@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct disk_test_mode_tag>;
 
@@ -122,49 +123,65 @@ void generate_block_fill(lt::peer_request const& req, char* buf, int len)
 		std::memcpy(buf + i, reinterpret_cast<char const*>(&v), 4);
 }
 
-int run_test(disk_test_mode_t const flags
-	, int const num_threads
-	, int const file_pool_size
-	, int const num_files
-	, int const queue_limit
-	, int const read_multiplier) try
+struct test_case
 {
+	int num_files;
+	int queue_size;
+	int num_threads;
+	int read_multiplier;
+	int file_pool_size;
+	disk_test_mode_t flags;
+};
+
+int run_test(test_case const& t) try
+{
+	lt::file_storage fs;
+
+	std::int64_t file_size = (t.flags & test_mode::even_file_sizes)
+		? 0x1000
+		: 1337;
+
+	int const piece_size = 0x8000;
+	int const blocks_per_piece = std::max(1, piece_size / lt::default_block_size);
+
+	std::int64_t off = 0;
+	for (int i = 0; i < t.num_files; ++i)
+	{
+		fs.add_file("test/" + std::to_string(i), file_size);
+		std::cout << " test/" << std::setw(2) << i
+			<< " size: " << std::setw(10) << file_size
+			<< " first piece: (" << (off / piece_size) << "," << (off % piece_size) << ")"
+			<< '\n';
+		off += file_size;
+		file_size *= 2;
+	}
+	std::int64_t const total_size = fs.total_size();
+	int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
+
+	std::cout << "                           last piece: ("
+		<< (off / piece_size) << "," << (off % piece_size) << ")\n";
+	std::cout << "num pieces: " << num_pieces << '\n';
+
+	fs.set_num_pieces(num_pieces);
+	fs.set_piece_length(piece_size);
 	lt::io_context ioc;
 	lt::counters cnt;
 	lt::settings_pack pack;
-	pack.set_int(lt::settings_pack::aio_threads, num_threads);
-	pack.set_int(lt::settings_pack::file_pool_size, file_pool_size);
+	pack.set_int(lt::settings_pack::aio_threads, t.num_threads);
+	pack.set_int(lt::settings_pack::file_pool_size, t.file_pool_size);
 
 	std::unique_ptr<lt::disk_interface> disk_io
 		= lt::default_disk_io_constructor(ioc, pack, cnt);
 
-	lt::file_storage fs;
-
-	std::int64_t file_size = (flags & test_mode::even_file_sizes)
-		? 0x1000
-		: 1337;
-	for (int i = 0; i < num_files; ++i)
-	{
-		fs.add_file("test/" + std::to_string(i), file_size);
-		file_size *= 2;
-	}
-
-	std::int64_t const total_size = fs.total_size();
-	int const piece_size = 0x8000;
-	int const blocks_per_piece = std::max(1, piece_size / lt::default_block_size);
-	int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
-	fs.set_num_pieces(num_pieces);
-	fs.set_piece_length(piece_size);
-
 	std::cerr << "RUNNING: "
-		<< ((flags & test_mode::sparse) ? "s-" : "f-")
-		<< ((flags & test_mode::even_file_sizes) ? "e-" : "o-")
-		<< ((flags & test_mode::read_random_order) ? "rr-" : "or-")
-		<< ((flags & test_mode::flush_files) ? "f-" : "a-")
+		<< ((t.flags & test_mode::sparse) ? "s-" : "f-")
+		<< ((t.flags & test_mode::even_file_sizes) ? "e-" : "o-")
+		<< ((t.flags & test_mode::read_random_order) ? "rr-" : "or-")
+		<< ((t.flags & test_mode::flush_files) ? "f-" : "a-")
 		<< num_pieces << '-'
-		<< file_pool_size << '-'
-		<< queue_limit << '-'
-		<< read_multiplier
+		<< t.file_pool_size << '-'
+		<< t.queue_size << '-'
+		<< t.read_multiplier
 		<< ": ";
 
 	// TODO: in C++17, use std::filesystem
@@ -176,11 +193,11 @@ int run_test(disk_test_mode_t const flags
 	std::string save_path = "./scratch-area";
 	lt::storage_params params(fs, nullptr
 		, save_path
-		, (flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
+		, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
 		, prios
 		, lt::sha1_hash("01234567890123456789"));
 
-	lt::storage_holder t = disk_io->new_torrent(params, {});
+	lt::storage_holder tor = disk_io->new_torrent(params, {});
 
 	std::vector<lt::peer_request> blocks_to_write;
 	for (int p = 0; p < num_pieces; ++p)
@@ -202,7 +219,7 @@ int run_test(disk_test_mode_t const flags
 
 	lt::add_torrent_params atp;
 
-	disk_io->async_check_files(t, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
+	disk_io->async_check_files(tor, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
 		, [&](lt::status_t, lt::storage_error const&) { --outstanding; });
 	++outstanding;
 	disk_io->submit_jobs();
@@ -219,14 +236,14 @@ int run_test(disk_test_mode_t const flags
 		|| !blocks_to_read.empty()
 		|| outstanding > 0)
 	{
-		for (int i = 0; i < read_multiplier; ++i)
+		for (int i = 0; i < t.read_multiplier; ++i)
 		{
-			if (!blocks_to_read.empty() && outstanding < queue_limit)
+			if (!blocks_to_read.empty() && outstanding < t.queue_size)
 			{
 				auto const req = blocks_to_read.back();
 				blocks_to_read.erase(blocks_to_read.end() - 1);
 
-				disk_io->async_read(t, req
+				disk_io->async_read(tor, req
 					, [&, req](lt::disk_buffer_holder h, lt::storage_error const& ec)
 					{
 						--outstanding;
@@ -245,43 +262,43 @@ int run_test(disk_test_mode_t const flags
 			}
 		}
 
-		if (!blocks_to_write.empty() && outstanding < queue_limit)
+		if (!blocks_to_write.empty() && outstanding < t.queue_size)
 		{
 			auto const req = blocks_to_write.back();
 			blocks_to_write.erase(blocks_to_write.end() - 1);
 
 			generate_block_fill(req, write_buffer.data(), lt::default_block_size);
 
-			disk_io->async_write(t, req, write_buffer.data()
-				, {}, [&,req](lt::storage_error const& ec)
+			disk_io->async_write(tor, req, write_buffer.data()
+				, {}, [&](lt::storage_error const& ec)
 				{
 					--outstanding;
 					++job_counter;
 					if (ec) throw std::runtime_error("async_write failed " + ec.ec.message());
-					if (flags & test_mode::read_random_order)
-					{
-						std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
-						blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
-					}
-					else
-					{
-						blocks_to_read.push_back(req);
-					}
-					// if read_multiplier > 1, put this block more times in the
-					// read queue
-					for (int i = 1; i < read_multiplier; ++i)
-					{
-						std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
-						blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
-					}
 				});
+			if (t.flags & test_mode::read_random_order)
+			{
+				std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
+				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+			}
+			else
+			{
+				blocks_to_read.push_back(req);
+			}
+			// if read_multiplier > 1, put this block more times in the
+			// read queue
+			for (int i = 1; i < t.read_multiplier; ++i)
+			{
+				std::uniform_int_distribution<> d(0, int(blocks_to_read.size()));
+				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+			}
 
 			++outstanding;
 		}
 
-		if ((flags & test_mode::flush_files) && (job_counter % 500) == 499)
+		if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
 		{
-			disk_io->async_release_files(t, [&]()
+			disk_io->async_release_files(tor, [&]()
 				{
 					--outstanding;
 					++job_counter;
@@ -297,18 +314,18 @@ int run_test(disk_test_mode_t const flags
 		// TODO: add test_mode for async_set_file_priority
 
 		disk_io->submit_jobs();
-		if (outstanding >= queue_limit)
+		if (outstanding >= t.queue_size)
 			ioc.run_one();
 		else
 			ioc.poll();
 		ioc.restart();
 	}
 
-	disk_io->remove_torrent(t);
+	disk_io->remove_torrent(tor);
 
 	disk_io->abort(true);
 
-	std::cerr << "OK\n";
+	std::cerr << "OK (" << job_counter << " jobs)\n";
 	return 0;
 }
 catch (std::exception const& e)
@@ -317,24 +334,124 @@ catch (std::exception const& e)
 	return 1;
 }
 
-int main(int, char const*[])
+void print_usage()
 {
-	// TODO: make it possible to run a test with all custom arguments from the
-	// command line
+	std::cerr << "USAGE: disk_io_stress_test <options>\n"
+		"If no options are specified, the default suite of tests are run\n\n"
+		"OPTIONS:\n"
+		"   alloc\n"
+		"      open files in pre-allocate mode\n"
+		"   even-size\n"
+		"      make test files even multiples of 1 kB\n"
+		"   random-read\n"
+		"      instead of reading blocks back in the same order they were written,\n"
+		"      read them back in random order\n"
+		"   flush\n"
+		"      issue a 'release-files' disk job every 500 jobs\n"
+		"   -f <val>\n"
+		"      specifies the number of files to use in the test torrent\n"
+		"   -q <val>\n"
+		"      specifies the job queue size. i.e. the max number of outstanding\n"
+		"      jobs to post to the disk I/O subsystem\n"
+		"   -t <val>\n"
+		"      specifies the number of disk I/O threads to use\n"
+		"   -r <val>\n"
+		"      specifies the read multiplier. Each block that's written, is read this many times\n"
+		"   -p <val>\n"
+		"      specifies the file pool size. This is the number of files to keep open\n"
+		;
 
-	int num_files = 20;
-	int queue_size = 32;
-	int num_threads = 16;
-	int read_multiplier = 3;
-	int file_pool_size = 10;
-
-	int ret = 0;
-	ret |= run_test(test_mode::sparse, num_threads, file_pool_size, num_files, queue_size, read_multiplier);
-	ret |= run_test(test_mode::sparse | test_mode::even_file_sizes, num_threads, file_pool_size, num_files, queue_size, read_multiplier);
-	ret |= run_test(test_mode::read_random_order | test_mode::sparse, num_threads, file_pool_size, num_files, queue_size, read_multiplier);
-	ret |= run_test(test_mode::read_random_order | test_mode::sparse | test_mode::even_file_sizes, num_threads, file_pool_size, num_files, queue_size, read_multiplier);
-	ret |= run_test(test_mode::flush_files | test_mode::read_random_order | test_mode::sparse | test_mode::even_file_sizes, num_threads, file_pool_size, num_files, queue_size, read_multiplier);
-
-	return ret;
 }
 
+int main(int argc, char const* argv[])
+{
+	if (argc == 1)
+	{
+		// the default test suite
+		namespace tm = test_mode;
+
+		test_case tests[] = {
+			// files, queue, threads, read-mult, pool, flags
+			{20, 32, 16, 3, 10, tm::sparse},
+			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes},
+			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order},
+			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes},
+			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes},
+
+			// test with small pool size
+			{10, 32, 16, 3, 1, tm::sparse | tm::read_random_order},
+
+			// test with many threads pool size
+			{10, 32, 64, 3, 9, tm::sparse | tm::read_random_order},
+		};
+
+		int ret = 0;
+		for (auto const& t : tests)
+			ret |= run_test(t);
+
+		return ret;
+	}
+
+	// strip program name
+	argc -= 1;
+	argv += 1;
+	test_case tc{20, 32, 16, 3, 10, test_mode::sparse};
+	while (argc > 0)
+	{
+		lt::string_view opt(argv[0]);
+
+		if (opt == "-h" || opt == "--help")
+		{
+			print_usage();
+			return 0;
+		}
+
+		if (opt.substr(0, 1) == "-")
+		{
+			if (argc < 1)
+			{
+				std::cerr << "missing value associated with \"" << opt << "\"\n";
+				print_usage();
+				return 1;
+			}
+			if (opt == "-f")
+				tc.num_files = std::atoi(argv[1]);
+			else if (opt == "-q")
+				tc.queue_size = std::atoi(argv[1]);
+			else if (opt == "-t")
+				tc.num_threads = std::atoi(argv[1]);
+			else if (opt == "-r")
+				tc.read_multiplier = std::atoi(argv[1]);
+			else if (opt == "-p")
+				tc.file_pool_size = std::atoi(argv[1]);
+			else
+			{
+				std::cerr << "unknown option \"" << opt << "\"\n";
+				print_usage();
+				return 1;
+			}
+
+			argc -= 1;
+			argv += 1;
+		}
+		else if (opt == "alloc")
+			tc.flags &= ~test_mode::sparse;
+		else if (opt == "even-size")
+			tc.flags |= test_mode::even_file_sizes;
+		else if (opt == "random-read")
+			tc.flags |= test_mode::read_random_order;
+		else if (opt == "flush")
+			tc.flags |= test_mode::flush_files;
+		else
+		{
+			std::cerr << "unknown option \"" << opt << "\"\n";
+			print_usage();
+			return 1;
+		}
+
+		argc -= 1;
+		argv += 1;
+	}
+
+	return run_test(tc);
+}
