@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
+#define TRACE_FILE_VIEW_POOL 0
+
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/error_code.hpp"
@@ -48,6 +50,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <limits>
+
+#if TRACE_FILE_VIEW_POOL
+#include <iostream>
+#include <thread>
+#endif
+
 
 using namespace libtorrent::flags;
 
@@ -91,12 +99,27 @@ namespace libtorrent { namespace aux {
 				wait_open_entry woe;
 				opening->waiters.push_back(woe);
 
+#if TRACE_FILE_VIEW_POOL
+				std::cout << std::this_thread::get_id() << " waiting for: ("
+					<< file_key.first << ", " << file_key.second << ")\n";
+#endif
 				do {
 					woe.cond.wait(l);
 				} while (!woe.mapping && !woe.error);
 				if (woe.error)
+				{
+#if TRACE_FILE_VIEW_POOL
+					std::cout << std::this_thread::get_id() << " open failed: ("
+						<< file_key.first << ", " << file_key.second
+						<< "): " << woe.error.ec << std::endl;
+#endif
 					throw_ex<storage_error>(woe.error);
+				}
 
+#if TRACE_FILE_VIEW_POOL
+				std::cout << std::this_thread::get_id() << " file opened: ("
+					<< file_key.first << ", " << file_key.second << ")\n";
+#endif
 				return woe.mapping->view();
 			}
 		}
@@ -130,6 +153,11 @@ namespace libtorrent { namespace aux {
 		ofe.file_key = file_key;
 		ofe.mode = m;
 		m_opening_files.push_back(ofe);
+
+#if TRACE_FILE_VIEW_POOL
+		std::cout << std::this_thread::get_id() << " opening file: ("
+			<< file_key.first << ", " << file_key.second << ")\n";
+#endif
 
 		l.unlock();
 
@@ -216,6 +244,14 @@ namespace libtorrent { namespace aux {
 		, std::shared_ptr<file_mapping> mapping
 		, lt::storage_error const& se = lt::storage_error())
 	{
+#if TRACE_FILE_VIEW_POOL
+		if (!ofe.waiters.empty())
+		{
+			std::cout << std::this_thread::get_id() << " notify_file_open: ("
+				<< ofe.file_key.first << ", " << ofe.file_key.second << ")\n";
+		}
+#endif
+
 		m_opening_files.erase(m_opening_files.s_iterator_to(ofe));
 		for (auto& woe : ofe.waiters)
 		{
@@ -258,6 +294,11 @@ namespace libtorrent { namespace aux {
 	{
 		auto& lru_view = m_files.get<1>();
 		if (lru_view.size() == 0) return {};
+
+#if TRACE_FILE_VIEW_POOL
+		std::cout << std::this_thread::get_id() << " removing: ("
+			<< lru_view.back().key.first << ", " << lru_view.back().key.second << ")\n";
+#endif
 
 		auto mapping = std::move(lru_view.back().mapping);
 		lru_view.pop_back();
