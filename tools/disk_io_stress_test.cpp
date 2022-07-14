@@ -103,6 +103,25 @@ void remove_all(std::string path)
 #endif
 }
 
+bool check_block_fill(lt::peer_request const& req, char const* buf, int len)
+{
+	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
+	for (int i = 0; i < len; i += 4)
+		if (std::memcmp(buf + i, reinterpret_cast<char const*>(&v), 4) != 0)
+		{
+			std::cout << "buffer diverged at byte: " << i << '\n';
+			return false;
+		}
+	return true;
+}
+
+void generate_block_fill(lt::peer_request const& req, char* buf, int len)
+{
+	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
+	for (int i = 0; i < len; i += 4)
+		std::memcpy(buf + i, reinterpret_cast<char const*>(&v), 4);
+}
+
 int run_test(disk_test_mode_t const flags
 	, int const num_threads
 	, int const file_pool_size
@@ -208,14 +227,18 @@ int run_test(disk_test_mode_t const flags
 				blocks_to_read.erase(blocks_to_read.end() - 1);
 
 				disk_io->async_read(t, req
-					, [&](lt::disk_buffer_holder h, lt::storage_error const& ec)
+					, [&, req](lt::disk_buffer_holder h, lt::storage_error const& ec)
 					{
-						TORRENT_UNUSED(h);
 						--outstanding;
 						++job_counter;
 						if (ec) throw std::runtime_error("async_read failed " + ec.ec.message());
-						// TODO: validate that we read the correct data. buffer
-						// in h
+
+						int const block_size = std::min((fs.piece_size(req.piece) - req.start), int(h.size()));
+						if (!check_block_fill(req, h.data(), block_size))
+						{
+							std::cerr << "read buffer mismatch: (" << req.piece << ", " << req.start << ")\n";
+							throw std::runtime_error("read buffer mismatch!");
+						}
 					});
 
 				++outstanding;
@@ -227,8 +250,8 @@ int run_test(disk_test_mode_t const flags
 			auto const req = blocks_to_write.back();
 			blocks_to_write.erase(blocks_to_write.end() - 1);
 
-			// TODO: put a pattern in write_buffer that can be validated in read
-			// operations
+			generate_block_fill(req, write_buffer.data(), lt::default_block_size);
+
 			disk_io->async_write(t, req, write_buffer.data()
 				, {}, [&,req](lt::storage_error const& ec)
 				{
