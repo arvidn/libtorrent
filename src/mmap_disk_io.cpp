@@ -314,14 +314,6 @@ private:
 	// std::mutex to protect the m_generic_io_jobs and m_hash_io_jobs lists
 	mutable std::mutex m_job_mutex;
 
-	// most jobs are posted to m_generic_io_jobs
-	// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
-	// has a non-zero maximum thread count
-	job_queue m_generic_io_jobs;
-	aux::disk_io_thread_pool m_generic_threads;
-	job_queue m_hash_io_jobs;
-	aux::disk_io_thread_pool m_hash_threads;
-
 	// every write job is inserted into this map while it is in the job queue.
 	// It is removed after the write completes. This will let subsequent reads
 	// pull the buffers straight out of the queue instead of having to
@@ -373,6 +365,14 @@ private:
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
+	// most jobs are posted to m_generic_io_jobs
+	// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
+	// has a non-zero maximum thread count
+	job_queue m_generic_io_jobs;
+	aux::disk_io_thread_pool m_generic_threads;
+	job_queue m_hash_io_jobs;
+	aux::disk_io_thread_pool m_hash_threads;
+
 #if TORRENT_USE_ASSERTS
 	int m_magic = 0x1337;
 #endif
@@ -387,15 +387,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 // ------- mmap_disk_io ------
 
 	mmap_disk_io::mmap_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
-		: m_generic_io_jobs(*this)
-		, m_generic_threads(m_generic_io_jobs, ios)
-		, m_hash_io_jobs(*this)
-		, m_hash_threads(m_hash_io_jobs, ios)
-		, m_settings(sett)
+		: m_settings(sett)
 		, m_file_pool(sett.get_int(settings_pack::file_pool_size))
 		, m_buffer_pool(ios)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
+		, m_generic_io_jobs(*this)
+		, m_generic_threads(m_generic_io_jobs, ios)
+		, m_hash_io_jobs(*this)
+		, m_hash_threads(m_hash_io_jobs, ios)
 	{
 		settings_updated();
 	}
