@@ -569,7 +569,7 @@ target_compile_features(torrent-rasterbar
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(torrent-rasterbar
 		PRIVATE TORRENT_BUILDING_SHARED
-		INTERFACE TORRENT_LINKING_SHARED
+		PUBLIC TORRENT_LINKING_SHARED
 	)
 endif()
 
