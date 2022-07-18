@@ -4,7 +4,9 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+* 2.0.7 released
 
+	* fix issue in use of copy_file_range() on linux
 	* avoid open-file race in the file_view_pool
 	* fix issue where stop-when-ready would not close files
 	* fix issue with duplicate hybrid torrent via separate v1 and v2 magnet links
@@ -124,6 +126,7 @@
 	* libtorrent now requires C++14 to build
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
+1.2.17 released
 
 	* fixed tracker connections spinning when hostname lookups stall
 	* fixed error in pkg-config file generation in Jamfile

@@ -470,7 +470,7 @@ def find_all_files(path: str) -> Iterator[str]:
 
 setuptools.setup(
     name="libtorrent",
-    version="2.0.6",
+    version="2.0.7",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
     description="Python bindings for libtorrent-rasterbar",

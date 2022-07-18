@@ -258,26 +258,14 @@ private:
 	int m_fd;
 };
 
-ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
+struct copy_range_mode
+{
+	bool use_fallback = false;
+};
+
+ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 	, std::int64_t len, error_code& ec)
 {
-#if TORRENT_HAS_COPY_FILE_RANGE
-	off_t out_offset = in_offset;
-	ssize_t ret = 0;
-	do
-	{
-		ret = ::copy_file_range(fd_in, &in_offset
-			, fd_out, &out_offset, std::size_t(len), 0);
-		if (ret < 0)
-		{
-			ec.assign(errno, system_category());
-			return -1;
-		}
-
-		len -= ret;
-	} while (len > 0 && ret > 0);
-	return ret;
-#else
 	char buffer[16384];
 	ssize_t total_copied = 0;
 	while (len > 0)
@@ -308,6 +296,41 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 		}
 	}
 	return total_copied;
+}
+
+ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
+	, std::int64_t len, copy_range_mode* const m, error_code& ec)
+{
+#if TORRENT_HAS_COPY_FILE_RANGE
+	if (m->use_fallback)
+		return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
+
+	ssize_t total_copied = 0;
+	off_t out_offset = in_offset;
+	ssize_t ret = 0;
+	do
+	{
+		ret = ::copy_file_range(fd_in, &in_offset
+			, fd_out, &out_offset, std::size_t(len), 0);
+		if (ret < 0)
+		{
+			int const err = errno;
+			if (err == EXDEV)
+			{
+				m->use_fallback = true;
+				return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
+			}
+			ec.assign(err, system_category());
+			return -1;
+		}
+
+		len -= ret;
+		total_copied += ret;
+	} while (len > 0 && ret > 0);
+	return total_copied;
+#else
+	TORRENT_UNUSED(m);
+	return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
 #endif
 }
 
@@ -369,6 +392,7 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 #ifdef SEEK_HOLE
 	if (input_is_sparse)
 	{
+		copy_range_mode m;
 		ssize_t ret = 0;
 		off_t data_start = 0;
 		off_t data_end = 0;
@@ -388,14 +412,15 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 				return;
 			}
 
-			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, ec);
+			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, &m, ec);
 			if (ret <= 0) return;
 			if (data_end == in_stat.st_size) return;
 		}
 	}
 #endif
 
-	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, ec);
+	copy_range_mode m;
+	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, &m, ec);
 }
 
 #endif // TORRENT_WINDOWS
