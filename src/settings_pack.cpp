@@ -244,7 +244,7 @@ namespace {
 		SET(initial_picker_threshold, 4, nullptr),
 		SET(allowed_fast_set_size, 5, nullptr),
 		SET(suggest_mode, settings_pack::no_piece_suggestions, nullptr),
-		SET(max_queued_disk_bytes, 1024 * 1024, nullptr),
+		SET(max_queued_disk_bytes, 50 * 1024 * 1024, nullptr),
 		SET(handshake_timeout, 10, nullptr),
 		SET(send_buffer_low_watermark, 10 * 1024, nullptr),
 		SET(send_buffer_watermark, 500 * 1024, nullptr),
