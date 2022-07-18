@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/aux_/platform_util.hpp"
 
 namespace libtorrent {
@@ -496,9 +497,10 @@ namespace {
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		if (sizeof(void*) == 8)
 			return mmap_disk_io_constructor(ios, sett, cnt);
-		else
-			return posix_disk_io_constructor(ios, sett, cnt);
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
+		return pread_disk_io_constructor(ios, sett, cnt);
 #else
 		return posix_disk_io_constructor(ios, sett, cnt);
 #endif
