@@ -25,6 +25,7 @@ see LICENSE file.
 #include <mutex>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/span.hpp"
 #include "libtorrent/disk_buffer_holder.hpp" // for buffer_allocator_interface
