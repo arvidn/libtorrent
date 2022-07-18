@@ -37,10 +37,6 @@ see LICENSE file.
 #define _GNU_SOURCE
 #endif
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#endif
-
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
@@ -67,6 +63,11 @@ namespace libtorrent::aux {
 
 	int pwrite_all(handle_type handle
 		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec);
+
+	int pwritev_all(handle_type handle
+		, span<span<char const> const> bufs
 		, std::int64_t file_offset
 		, error_code& ec);
 
