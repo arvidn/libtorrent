@@ -42,12 +42,39 @@ void disk_completed_queue::abort_job(io_context& ioc, aux::disk_job* j)
 	}
 }
 
+void disk_completed_queue::abort_jobs(io_context& ioc, jobqueue_t jobs)
+{
+	if (jobs.empty()) return;
+
+	for (auto i = jobs.iterate(); i.get(); i.next())
+	{
+		auto* j = i.get();
+		j->ret = disk_status::fatal_disk_error;
+		j->error = storage_error(boost::asio::error::operation_aborted);
+		j->flags |= aux::disk_job::aborted;
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(j->job_posted == false);
+		j->job_posted = true;
+#endif
+	}
+	std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
+	m_completed_jobs.append(std::move(jobs));
+
+	if (!m_job_completions_in_flight && !m_completed_jobs.empty())
+	{
+		DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
+
+		post(ioc, [this] { this->call_job_handlers(); });
+		m_job_completions_in_flight = true;
+	}
+}
+
 void disk_completed_queue::append(io_context& ioc, jobqueue_t jobs)
 {
 	std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
 	m_completed_jobs.append(std::move(jobs));
 
-	if (!m_job_completions_in_flight)
+	if (!m_job_completions_in_flight && !m_completed_jobs.empty())
 	{
 		DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 

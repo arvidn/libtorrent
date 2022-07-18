@@ -91,6 +91,10 @@ see LICENSE file.
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
 
+#ifdef __NetBSD__
+#define TORRENT_HAS_FSYNC_RANGE 1
+#endif
+
 #if defined __APPLE__
 
 #include <AvailabilityMacros.h>
@@ -124,6 +128,23 @@ see LICENSE file.
 #define TORRENT_USE_SC_NETWORK_REACHABILITY 1
 #endif
 
+// Mac platforms added support for preadv()/pwritev() in MacOS 11, iOS 14 etc.
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 110000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __IPHONE_OS_VERSION_MIN_REQUIRED && __IPHONE_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __TV_OS_VERSION_MIN_REQUIRED && __TV_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __WATCH_OS_VERSION_MIN_REQUIRED && __WATCH_OS_VERSION_MIN_REQUIRED >= 70000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
 #define TORRENT_USE_DEV_RANDOM 1
 
 #else
@@ -131,6 +152,7 @@ see LICENSE file.
 // non-Apple BSD
 #define TORRENT_USE_GETRANDOM 1
 #define TORRENT_HAS_PTHREAD_SET_NAME 1
+#define TORRENT_USE_PWRITEV 1
 
 #endif // __APPLE__
 
@@ -154,6 +176,10 @@ see LICENSE file.
 
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+#define TORRENT_USE_PWRITEV 1
 #endif
 
 #if defined __GLIBC__ && (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 27))
@@ -181,6 +207,11 @@ see LICENSE file.
 #if defined __ANDROID__
 #define TORRENT_ANDROID
 #define TORRENT_HAS_PTHREAD_SET_NAME 1
+
+#if __ANDROID_API__ >= 24
+// TODO: confirm this
+#define TORRENT_USE_PWRITEV 1
+#endif
 
 #if __ANDROID_API__ < 21
 #define TORRENT_HAS_FALLOCATE 0
@@ -356,6 +387,11 @@ see LICENSE file.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_GRTTABLE 1
 
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 0
+#endif
+
+
 // ==== GNU/Hurd ===
 #elif defined __GNU__
 #define TORRENT_HURD
@@ -470,6 +506,11 @@ see LICENSE file.
 #define TORRENT_HAVE_MMAP 0
 #endif
 
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 1
+#endif
+
+
 #ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
 #define TORRENT_HAVE_MAP_VIEW_OF_FILE 0
 #endif
@@ -548,6 +589,15 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_COPYFILE
 #define TORRENT_HAS_COPYFILE 0
+#endif
+
+#ifndef TORRENT_HAS_FSYNC_RANGE
+#define TORRENT_HAS_FSYNC_RANGE 0
+#endif
+
+// if pwritev() exists
+#ifndef TORRENT_USE_PWRITEV
+#define TORRENT_USE_PWRITEV 0
 #endif
 
 // debug builds have asserts enabled by default, release

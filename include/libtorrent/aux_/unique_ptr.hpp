@@ -31,6 +31,8 @@ namespace libtorrent { namespace aux {
 		unique_ptr() = default;
 		explicit unique_ptr(T* arr) : base(arr) {}
 
+		unique_ptr(base b): base(std::move(b)) {}
+
 		decltype(auto) operator[](IndexType idx) const
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
@@ -38,6 +40,11 @@ namespace libtorrent { namespace aux {
 		}
 	};
 
+	template <typename T, typename IndexType = std::ptrdiff_t>
+	unique_ptr<T, IndexType> make_unique(IndexType const num) {
+		static_assert(std::is_array_v<T>);
+		return unique_ptr<T, IndexType>(new std::remove_extent_t<T>[std::size_t(num)]);
+	}
 }}
 
 #endif

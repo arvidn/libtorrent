@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 #include "libtorrent/settings_pack.hpp" // for default_settings
 #include "libtorrent/flags.hpp"
@@ -128,4 +129,9 @@ TORRENT_TEST(test_mmap_disk_io)
 TORRENT_TEST(test_posix_disk_io)
 {
 	disk_io_test_suite(&lt::posix_disk_io_constructor, test_mode::v1 | test_mode::v2, 0x8000, 3);
+}
+
+TORRENT_TEST(test_pread_disk_io)
+{
+	disk_io_test_suite(&lt::pread_disk_io_constructor, test_mode::v1 | test_mode::v2, 0x8000, 3);
 }

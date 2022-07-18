@@ -92,9 +92,96 @@ see LICENSE file.
 
 #endif // posix part
 
+#if TORRENT_USE_PWRITEV && defined TORRENT_BSD
+#include <unistd.h>
+#include <sys/uio.h> // for pwritev() and iovec
+#include <sys/types.h> // for pwritev() and iovec
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include "libtorrent/aux_/alloca.hpp"
+
 namespace libtorrent::aux {
+
+#if TORRENT_USE_PWRITEV
+namespace {
+	span<iovec> advance_iovec(span<iovec> bufs, ssize_t advance_bytes)
+	{
+		while (advance_bytes > 0)
+		{
+			if (static_cast<ssize_t>(bufs.front().iov_len) <= advance_bytes)
+			{
+				advance_bytes -= bufs.front().iov_len;
+				bufs = bufs.subspan(1);
+				continue;
+			}
+
+			bufs.front().iov_base = static_cast<char*>(bufs.front().iov_base) + advance_bytes;
+			bufs.front().iov_len -= static_cast<size_t>(advance_bytes);
+			return bufs;
+		}
+		return bufs;
+	}
+}
+
+	int pwritev_all(handle_type const handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		// TODO: if bufs.size() > UIO_MAXIOV, we need to split up the call
+		// into multiple ones
+		int ret = 0;
+		TORRENT_ALLOCA(vec, iovec, bufs.size());
+		for (int i = 0; i < bufs.size(); ++i)
+		{
+			vec[i].iov_base = const_cast<char*>(bufs[i].data());
+			vec[i].iov_len = static_cast<size_t>(bufs[i].size());
+		}
+
+		do {
+			ssize_t const r = ::pwritev(handle, vec.data(), static_cast<int>(vec.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += r;
+			file_offset += r;
+			vec = advance_iovec(vec, r);
+		} while (vec.size() > 0);
+		return ret;
+	}
+#else
+	int pwritev_all(handle_type const handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		TORRENT_ASSERT(bufs.size() > 0);
+		if (bufs.size() == 1)
+			return pwrite_all(handle, bufs[0], file_offset, ec);
+
+		int ret = 0;
+		// TODO: if we have more than 1 buffer, coalesce into a single buffer
+		// and a single call
+		for (auto const& b : bufs)
+		{
+			int r = pwrite_all(handle, b, file_offset, ec);
+			if (ec) return -1;
+			TORRENT_ASSERT(r > 0);
+			file_offset += r;
+			ret += r;
+		}
+		return ret;
+	}
+#endif
 
 #ifdef TORRENT_WINDOWS
 	int pread_all(handle_type const fd
@@ -132,6 +219,7 @@ namespace libtorrent::aux {
 
 		return int(bytes_written);
 	}
+
 #else
 
 	int pread_all(handle_type const handle

@@ -220,7 +220,10 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 		{
 			bool const expect = !fs.pad_file_at(i);
 			std::string file_path = combine_path(save_path, fs.file_path(i));
-			std::printf("checking file: %s\n", file_path.c_str());
+			std::printf("checking file: %s (pad-file: %d size: %" PRId64 ")\n"
+				, file_path.c_str()
+				, !expect
+				, fs.file_size(i));
 			TEST_EQUAL(exists(file_path), expect);
 		}
 	}
@@ -338,7 +341,6 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 
 		{
 			settings_pack pack = settings();
-			pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 			pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
 			pack.set_int(settings_pack::max_retry_port_bind, 1000);
 			pack.set_bool(settings_pack::enable_lsd, false);
