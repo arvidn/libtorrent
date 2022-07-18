@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -364,6 +365,13 @@ TORRENT_TEST(move_storage_posix)
 	cleanup();
 }
 
+TORRENT_TEST(move_storage_pread)
+{
+	using namespace lt;
+	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, pread_disk_io_constructor);
+	cleanup();
+}
+
 TORRENT_TEST(piece_deadline)
 {
 	using namespace lt;
@@ -390,6 +398,16 @@ TORRENT_TEST(delete_files_posix)
 	test_transfer(0, p, delete_files, storage_mode_sparse, posix_disk_io_constructor);
 	cleanup();
 }
+
+TORRENT_TEST(delete_files_pread)
+{
+	using namespace lt;
+	settings_pack p = settings_pack();
+	p.set_int(settings_pack::aio_threads, 10);
+	test_transfer(0, p, delete_files, storage_mode_sparse, pread_disk_io_constructor);
+	cleanup();
+}
+
 
 TORRENT_TEST(allow_fast)
 {
@@ -422,6 +440,15 @@ TORRENT_TEST(large_pieces_posix)
 	cleanup();
 }
 
+TORRENT_TEST(large_pieces_pread)
+{
+	using namespace lt;
+	std::printf("large pieces\n");
+	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, pread_disk_io_constructor);
+
+	cleanup();
+}
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(allocate_mmap)
 {
@@ -440,6 +467,16 @@ TORRENT_TEST(allocate_posix)
 	// test storage_mode_allocate
 	std::printf("full allocation mode\n");
 	test_transfer(0, settings_pack(), {}, storage_mode_allocate, posix_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(allocate_pread)
+{
+	using namespace lt;
+	// test storage_mode_allocate
+	std::printf("full allocation mode\n");
+	test_transfer(0, settings_pack(), {}, storage_mode_allocate, pread_disk_io_constructor);
 
 	cleanup();
 }
@@ -476,6 +513,16 @@ TORRENT_TEST(disable_os_cache_posix)
 	cleanup();
 }
 
+TORRENT_TEST(disable_os_cache_pread)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
+
+	cleanup();
+}
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(write_through_mmap)
 {
@@ -494,6 +541,16 @@ TORRENT_TEST(write_through_posix)
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
 	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(write_through_pread)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
+	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
 
 	cleanup();
 }

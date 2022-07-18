@@ -306,6 +306,7 @@ namespace {
 		METRIC(disk, request_latency)
 
 		METRIC(disk, disk_blocks_in_use)
+		METRIC(disk, disk_cache_pieces)
 
 		// ``queued_disk_jobs`` is the number of disk jobs currently queued,
 		// waiting to be executed by a disk thread.
