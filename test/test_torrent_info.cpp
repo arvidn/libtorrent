@@ -14,7 +14,8 @@ see LICENSE file.
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
 #include "test_utils.hpp"
-#include "settings.hpp"
+#include "settings.hpp" // for settings()
+
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"

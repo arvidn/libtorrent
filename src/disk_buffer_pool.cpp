@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp" // for settings_interface
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
+#include "libtorrent/aux_/debug_disk_thread.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

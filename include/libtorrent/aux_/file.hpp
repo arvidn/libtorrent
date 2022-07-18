@@ -37,10 +37,6 @@ see LICENSE file.
 #define _GNU_SOURCE
 #endif
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#endif
-
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
@@ -70,10 +66,18 @@ namespace libtorrent::aux {
 		, std::int64_t file_offset
 		, error_code& ec);
 
+	int pwritev_all(handle_type handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec);
+
 	int pread_all(handle_type handle
 		, span<char> buf
 		, std::int64_t file_offset
 		, error_code& ec);
+
+	void advise_dont_need(handle_type handle, std::int64_t offset, std::int64_t len);
+	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len);
 
 	struct TORRENT_EXTRA_EXPORT file_handle
 	{

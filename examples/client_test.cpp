@@ -56,6 +56,7 @@ see LICENSE file.
 
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/disabled_disk_io.hpp"
 
 #include "torrent_view.hpp"
@@ -1371,7 +1372,7 @@ CLIENT OPTIONS
   -O <log file>         print session stats counters to the specified log file
   -1                    exit on first torrent completing (useful for benchmarks)
   -i <disk-io>          specify which disk I/O back-end to use. One of:
-                        mmap, posix, disabled
+                        mmap, posix, pread, disabled
 )"
 #ifdef TORRENT_UTP_LOG_ENABLE
 R"(
@@ -1585,6 +1586,10 @@ int main(int argc, char* argv[])
 #endif
 				if (arg == "posix"_sv)
 					params.disk_io_constructor = lt::posix_disk_io_constructor;
+#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
+				else if (arg == "pread"_sv)
+					params.disk_io_constructor = lt::pread_disk_io_constructor;
+#endif
 				else if (arg == "disabled"_sv)
 					params.disk_io_constructor = lt::disabled_disk_io_constructor;
 				else
