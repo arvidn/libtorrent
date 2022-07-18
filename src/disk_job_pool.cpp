@@ -10,6 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/mmap_disk_job.hpp"
+#include "libtorrent/aux_/pread_disk_job.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -69,5 +70,6 @@ namespace aux {
 	}
 
 	template struct disk_job_pool<aux::mmap_disk_job>;
+	template struct disk_job_pool<aux::pread_disk_job>;
 }
 }
