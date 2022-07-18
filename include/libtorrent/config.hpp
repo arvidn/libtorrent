@@ -356,6 +356,11 @@ see LICENSE file.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_GRTTABLE 1
 
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 0
+#endif
+
+
 // ==== GNU/Hurd ===
 #elif defined __GNU__
 #define TORRENT_HURD
@@ -469,6 +474,11 @@ see LICENSE file.
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 0
 #endif
+
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 1
+#endif
+
 
 #ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
 #define TORRENT_HAVE_MAP_VIEW_OF_FILE 0
