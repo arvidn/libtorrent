@@ -55,7 +55,6 @@ namespace aux {
 	{
 		explicit posix_storage(storage_params const& p);
 		file_storage const& files() const;
-		file_storage const& orig_files() const { return m_files; }
 		~posix_storage();
 
 		int readv(settings_interface const& sett
