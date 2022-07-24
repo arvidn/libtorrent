@@ -55,6 +55,7 @@ bool compare_files(std::string const& file1, std::string const& file2)
 	return std::equal(it(f1), it{}, it(f2));
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 #if defined TORRENT_WINDOWS
 bool fs_supports_sparse_files()
 {
@@ -109,6 +110,7 @@ bool fs_supports_sparse_files()
 #endif
 }
 
+#endif
 #endif
 }
 

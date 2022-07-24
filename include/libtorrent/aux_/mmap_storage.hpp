@@ -15,6 +15,8 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+
 #include <mutex>
 #include <atomic>
 #include <memory>
@@ -30,11 +32,11 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
+#include "libtorrent/aux_/file_view_pool.hpp"
 
 namespace libtorrent::aux {
 
 	struct session_settings;
-	struct file_view_pool;
 	struct file_view;
 
 	struct TORRENT_EXTRA_EXPORT mmap_storage
@@ -194,5 +196,7 @@ namespace libtorrent::aux {
 	};
 
 }
+
+#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 #endif // TORRENT_STORAGE_HPP_INCLUDED
