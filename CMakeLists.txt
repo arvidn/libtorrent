@@ -177,6 +177,8 @@ set(libtorrent_aux_include_files
 	file.hpp
 	file_progress.hpp
 	file_view_pool.hpp
+	file_pool.hpp
+	file_pool_impl.hpp
 	has_block.hpp
 	hash_picker.hpp
 	heterogeneous_queue.hpp
@@ -329,7 +331,7 @@ set(sources
 	file.cpp
 	file_progress.cpp
 	file_storage.cpp
-	file_view_pool.cpp
+	file_pool_impl.cpp
 	fingerprint.cpp
 	generate_peer_id.cpp
 	gzip.cpp

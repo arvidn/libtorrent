@@ -826,7 +826,7 @@ SOURCES =
 	utf8
 	utp_socket_manager
 	utp_stream
-	file_view_pool
+	file_pool_impl
 	lsd
 	enum_net
 	magnet_uri

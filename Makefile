@@ -329,9 +329,9 @@ SOURCES = \
   escape_string.cpp               \
   ffs.cpp                         \
   file.cpp                        \
+  file_pool_impl.cpp              \
   file_progress.cpp               \
   file_storage.cpp                \
-  file_view_pool.cpp              \
   fingerprint.cpp                 \
   generate_peer_id.cpp            \
   gzip.cpp                        \
@@ -564,8 +564,10 @@ HEADERS = \
   aux_/ffs.hpp                      \
   aux_/file.hpp                     \
   aux_/file_pointer.hpp             \
+  aux_/file_pool_impl.hpp           \
   aux_/file_progress.hpp            \
   aux_/file_view_pool.hpp           \
+  aux_/file_pool.hpp                \
   aux_/generate_peer_id.hpp         \
   aux_/has_block.hpp                \
   aux_/hash_picker.hpp              \

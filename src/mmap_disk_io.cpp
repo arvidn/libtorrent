@@ -1327,10 +1327,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// time we should call it
 		time_point next_close_oldest_file = min_time();
 
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-		time_point next_flush_file = min_time();
-#endif
-
 		for (;;)
 		{
 			aux::mmap_disk_job* j = nullptr;
@@ -1373,16 +1369,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 						m_file_pool.close_oldest();
 					}
 				}
-
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-				if (now > next_flush_file)
-				{
-					// on windows we need to explicitly ask the operating system to flush
-					// dirty pages from time to time
-					m_file_pool.flush_next_file();
-					next_flush_file = now + seconds(30);
-				}
-#endif
 			}
 
 			execute_job(j);

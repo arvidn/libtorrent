@@ -633,10 +633,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 				return -1;
 			}
 
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			m_pool.record_file_write(storage_index(), file_index, ret);
-#endif
-
 			return ret;
 		});
 	}
@@ -866,7 +862,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				, std::shared_ptr<std::mutex>(m_file_open_unmap_lock
 					, &m_file_open_unmap_lock.get()[int(file)])
 #endif
-				);
+				)->view();
 		}
 		catch (storage_error const& se)
 		{
