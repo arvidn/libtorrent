@@ -2148,13 +2148,9 @@ bool is_downloading_state(int const st)
 		if (status == status_t::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
-			m_add_torrent_params.reset();
 			handle_disk_error("check_resume_data", error);
 			auto_managed(false);
 			pause();
-			set_state(torrent_status::checking_files);
-			if (should_check_files()) start_checking();
-			return;
 		}
 
 		state_updated();
