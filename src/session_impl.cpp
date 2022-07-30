@@ -4796,9 +4796,12 @@ namespace {
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
-		if (!torrent_ptr) return handle;
+		if (!torrent_ptr)
+		{
+			m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
+			return handle;
+		}
 
 		// params.info_hash should have been initialized by add_torrent_impl()
 		TORRENT_ASSERT(params.info_hash != sha1_hash(nullptr));
@@ -4821,6 +4824,7 @@ namespace {
 		if (!added)
 		{
 			abort_torrent.disarm();
+			m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 			return handle;
 		}
 
@@ -4846,6 +4850,8 @@ namespace {
 				: params.uuid
 #endif
 		);
+
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
 		// once we successfully add the torrent, we can disarm the abort action
 		abort_torrent.disarm();
