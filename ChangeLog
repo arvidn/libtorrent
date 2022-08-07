@@ -1,4 +1,4 @@
-	* made UPnP code to avoid using select_reactor (to work around an issue on windows in boost.asio < 1.80)
+	* made UPnP and LSD code avoid using select_reactor (to work around an issue on windows in boost.asio < 1.80)
 
 1.2.17 released
 
