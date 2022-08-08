@@ -497,8 +497,8 @@ error_code translate_error(std::system_error const& err, bool const write)
 		return { ret, m_save_path };
 	}
 
-	int mmap_storage::readv(settings_interface const& sett
-		, span<iovec_t const> bufs
+	int mmap_storage::read(settings_interface const& sett
+		, span<char> buffer
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const mode
 		, disk_job_flags_t const flags
@@ -507,13 +507,13 @@ error_code translate_error(std::system_error const& err, bool const write)
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
-		return readwritev(files(), bufs, piece, offset, error
+		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+				, span<char> buf, storage_error& ec)
 		{
 			// reading from a pad file yields zeroes
-			if (files().pad_file_at(file_index)) return aux::read_zeroes(vec);
+			if (files().pad_file_at(file_index)) return aux::read_zeroes(buf);
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
@@ -523,7 +523,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(vec, map.piece, map.start, e);
+				int const ret = m_part_file->readv(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -546,28 +546,32 @@ error_code translate_error(std::system_error const& err, bool const write)
 			// short reads as errors
 			ec.operation = operation_t::file_read;
 
+			if (file_range.size() <= file_offset)
+			{
+				ec.ec = boost::asio::error::eof;
+				ec.file(file_index);
+				return -1;
+			}
+
 			try
 			{
-				if (file_range.size() > file_offset)
+				file_range = file_range.subspan(static_cast<std::ptrdiff_t>(file_offset));
+				if (!file_range.empty())
 				{
-					file_range = file_range.subspan(static_cast<std::ptrdiff_t>(file_offset));
-					for (auto buf : vec)
-					{
-						if (file_range.empty()) break;
-						if (file_range.size() < buf.size()) buf = buf.first(file_range.size());
+					if (file_range.size() < buf.size()) buf = buf.first(file_range.size());
 
-						sig::try_signal([&]{
-							std::memcpy(buf.data(), const_cast<char*>(file_range.data())
-								, static_cast<std::size_t>(buf.size()));
-							});
+					sig::try_signal([&]{
+						std::memcpy(buf.data(), const_cast<char*>(file_range.data())
+							, static_cast<std::size_t>(buf.size()));
+						});
 
-						file_range = file_range.subspan(buf.size());
-						ret += static_cast<int>(buf.size());
-					}
 					if (flags & disk_interface::volatile_read)
-						handle->dont_need(file_range);
+						handle->dont_need(file_range.first(buf.size()));
 					if (flags & disk_interface::flush_piece)
-						handle->page_out(file_range);
+						handle->page_out(file_range.first(buf.size()));
+
+					file_range = file_range.subspan(buf.size());
+					ret += static_cast<int>(buf.size());
 				}
 			}
 			catch (std::system_error const& err)
@@ -579,7 +583,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret > 0);
-			TORRENT_ASSERT(ret <= bufs_size(vec));
 
 			if (e)
 			{
@@ -592,22 +595,22 @@ error_code translate_error(std::system_error const& err, bool const write)
 		});
 	}
 
-	int mmap_storage::writev(settings_interface const& sett
-		, span<iovec_t const> bufs
+	int mmap_storage::write(settings_interface const& sett
+		, span<char> buffer
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const mode
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
-		return readwritev(files(), bufs, piece, offset, error
+		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+				, span<char> buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 			{
 				// writing to a pad-file is a no-op
-				return bufs_size(vec);
+				return int(buf.size());
 			}
 
 			if (file_index < m_file_priority.end_index()
@@ -619,7 +622,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->writev(vec, map.piece, map.start, e);
+				int const ret = m_part_file->writev(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -649,22 +652,19 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 			try
 			{
-				for (auto buf : vec)
-				{
-					TORRENT_ASSERT(file_range.size() >= buf.size());
+				TORRENT_ASSERT(file_range.size() >= buf.size());
 
-					sig::try_signal([&]{
-						std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
-						});
+				sig::try_signal([&]{
+					std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
+					});
 
-					file_range = file_range.subspan(buf.size());
-					ret += static_cast<int>(buf.size());
-				}
+				file_range = file_range.subspan(buf.size());
+				ret += static_cast<int>(buf.size());
 
 				if (flags & disk_interface::volatile_read)
-					handle->dont_need(file_range);
+					handle->dont_need(file_range.first(buf.size()));
 				if (flags & disk_interface::flush_piece)
-					handle->page_out(file_range);
+					handle->page_out(file_range.first(buf.size()));
 			}
 			catch (std::system_error const& err)
 			{
@@ -688,7 +688,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		});
 	}
 
-	int mmap_storage::hashv(settings_interface const& sett
+	int mmap_storage::hash(settings_interface const& sett
 		, hasher& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const mode
@@ -698,27 +698,23 @@ error_code translate_error(std::system_error const& err, bool const write)
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
 #endif
-		char dummy = 0;
-		iovec_t dummy1 = {&dummy, len};
-		span<iovec_t> dummy2(&dummy1, 1);
 
-		return readwritev(files(), dummy2, piece, offset, error
+		char dummy;
+		return readwrite(files(), {&dummy, len}, piece, offset, error
 			, [this, mode, flags, &ph, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+				, span<char> const buf, storage_error& ec)
 		{
-			auto const read_size = bufs_size(vec);
-
 			if (files().pad_file_at(file_index))
 			{
 				std::array<char, 64> zero_buf;
 				zero_buf.fill(0);
 				span<char> zeroes = zero_buf;
-				for (std::ptrdiff_t left = read_size; left > 0; left -= zeroes.size())
+				for (std::ptrdiff_t left = buf.size(); left > 0; left -= zeroes.size())
 				{
 					ph.update({zeroes.data(), std::min(zeroes.size(), left)});
 				}
-				return read_size;
+				return int(buf.size());
 			}
 
 			if (file_index < m_file_priority.end_index()
@@ -727,7 +723,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			{
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->hashv(ph, read_size
+				int const ret = m_part_file->hashv(ph, buf.size()
 					, map.piece, map.start, e);
 
 				if (e)
@@ -748,7 +744,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (file_range.size() > file_offset)
 			{
 				file_range = file_range.subspan(std::ptrdiff_t(file_offset)
-					, std::min(std::ptrdiff_t(read_size), std::ptrdiff_t(file_range.size() - file_offset)));
+					, std::min(buf.size(), std::ptrdiff_t(file_range.size() - file_offset)));
 
 				sig::try_signal([&]{
 					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
@@ -764,7 +760,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		});
 	}
 
-	int mmap_storage::hashv2(settings_interface const& sett
+	int mmap_storage::hash2(settings_interface const& sett
 		, hasher256& ph, std::ptrdiff_t const len
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const mode

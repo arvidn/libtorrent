@@ -202,9 +202,9 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 			buffer[static_cast<std::size_t>(o)] = data;
 		}
 
-		iovec_t b = { &buffer[0], piece_size };
+		span<char> const b = { &buffer[0], piece_size };
 		storage_error ec;
-		int ret = st.writev(sett, b, i, 0, ec);
+		int ret = st.write(sett, b, i, 0, ec);
 		if (ret != piece_size || ec)
 		{
 			std::printf("ERROR writing files: (%d expected %d) %s\n"
