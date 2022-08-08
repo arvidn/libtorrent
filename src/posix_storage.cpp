@@ -13,7 +13,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
-#include "libtorrent/aux_/path.hpp" // for bufs_size
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
@@ -135,18 +135,18 @@ namespace aux {
 		}
 	}
 
-	int posix_storage::readv(settings_interface const&
-		, span<iovec_t const> bufs
+	int posix_storage::read(settings_interface const&
+		, span<char> buffer
 		, piece_index_t const piece, int const offset
 		, storage_error& error)
 	{
-		return readwritev(files(), bufs, piece, offset, error
+		return readwrite(files(), buffer, piece, offset, error
 			, [this](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+				, span<char> buf, storage_error& ec)
 		{
 			// reading from a pad file yields zeroes
-			if (files().pad_file_at(file_index)) return aux::read_zeroes(vec);
+			if (files().pad_file_at(file_index)) return aux::read_zeroes(buf);
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
@@ -156,12 +156,11 @@ namespace aux {
 
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(vec, map.piece, map.start, e);
+				int const ret = m_part_file->readv(buf, map.piece, map.start, e);
 
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_read;
 					return -1;
 				}
@@ -177,50 +176,36 @@ namespace aux {
 			ec.operation = operation_t::file_read;
 
 			int ret = 0;
-			for (auto buf : vec)
+			int const r = static_cast<int>(::fread(buf.data(), 1
+				, static_cast<std::size_t>(buf.size()), f.file()));
+			if (r == 0)
 			{
-				int const r = static_cast<int>(fread(buf.data(), 1
-					, static_cast<std::size_t>(buf.size()), f.file()));
-				if (r == 0)
-				{
-					if (ferror(f.file())) ec.ec.assign(errno, generic_category());
-					else ec.ec.assign(errors::file_too_short, libtorrent_category());
-					break;
-				}
-				ret += r;
-
-				// the file may be shorter than we think
-				if (r < buf.size()) break;
+				if (::ferror(f.file())) ec.ec.assign(errno, generic_category());
+				else ec.ec.assign(errors::file_too_short, libtorrent_category());
 			}
+			ret += r;
 
 			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(ec.ec || ret > 0);
-			TORRENT_ASSERT(ret <= bufs_size(vec));
-
-			if (ec.ec)
-			{
-				ec.file(file_index);
-				return -1;
-			}
-
+			TORRENT_ASSERT(ret <= buf.size());
 			return ret;
 		});
 	}
 
-	int posix_storage::writev(settings_interface const&
-		, span<iovec_t const> bufs
+	int posix_storage::write(settings_interface const&
+		, span<char> buffer
 		, piece_index_t const piece, int const offset
 		, storage_error& error)
 	{
-		return readwritev(files(), bufs, piece, offset, error
+		return readwrite(files(), buffer, piece, offset, error
 			, [this](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<iovec_t const> vec, storage_error& ec)
+				, span<char> buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 			{
 				// writing to a pad-file is a no-op
-				return bufs_size(vec);
+				return int(buf.size());
 			}
 
 			if (file_index < m_file_priority.end_index()
@@ -232,14 +217,12 @@ namespace aux {
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->writev(vec, map.piece, map.start, e);
+				int const ret = m_part_file->writev(buf, map.piece, map.start, e);
 
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_write;
-					return -1;
 				}
 				return ret;
 			}
@@ -253,29 +236,18 @@ namespace aux {
 			ec.operation = operation_t::file_write;
 
 			int ret = 0;
-			for (auto buf : vec)
+			auto const r = static_cast<int>(::fwrite(buf.data(), 1
+				, static_cast<std::size_t>(buf.size()), f.file()));
+			if (r != buf.size())
 			{
-				auto const r = static_cast<int>(fwrite(buf.data(), 1
-					, static_cast<std::size_t>(buf.size()), f.file()));
-				if (r != buf.size())
-				{
-					if (ferror(f.file())) ec.ec.assign(errno, generic_category());
-					else ec.ec.assign(errors::file_too_short, libtorrent_category());
-					break;
-				}
-				ret += r;
+				if (::ferror(f.file())) ec.ec.assign(errno, generic_category());
+				else ec.ec.assign(errors::file_too_short, libtorrent_category());
 			}
+			ret += r;
 
 			// invalidate our stat cache for this file, since
 			// we're writing to it
 			m_stat_cache.set_dirty(file_index);
-
-			if (ec)
-			{
-				ec.file(file_index);
-				return -1;
-			}
-
 			return ret;
 		});
 	}

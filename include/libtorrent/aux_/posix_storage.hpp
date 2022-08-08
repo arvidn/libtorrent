@@ -33,16 +33,15 @@ namespace aux {
 	{
 		explicit posix_storage(storage_params const& p);
 		file_storage const& files() const;
-		file_storage const& orig_files() const { return m_files; }
 		~posix_storage();
 
-		int readv(settings_interface const& sett
-			, span<iovec_t const> bufs
+		int read(settings_interface const& sett
+			, span<char> buffer
 			, piece_index_t const piece, int const offset
 			, storage_error& error);
 
-		int writev(settings_interface const& sett
-			, span<iovec_t const> bufs
+		int write(settings_interface const& sett
+			, span<char> buffer
 			, piece_index_t const piece, int const offset
 			, storage_error& error);
 

@@ -77,25 +77,24 @@ namespace libtorrent::aux {
 			, storage_error&);
 		bool tick();
 
-		int readv(settings_interface const&, span<iovec_t const> bufs
+		int read(settings_interface const&, span<char> buffer
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags
 			, storage_error&);
-		int writev(settings_interface const&, span<iovec_t const> bufs
+		int write(settings_interface const&, span<char> buffer
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags
 			, storage_error&);
-		int hashv(settings_interface const&, hasher& ph, std::ptrdiff_t len
+		int hash(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
-		int hashv2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
+		int hash2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files ? *m_mapped_files : m_files; }
-		file_storage const& orig_files() const { return m_files; }
 
 		bool set_need_tick()
 		{

@@ -90,9 +90,9 @@ namespace {
 
 			time_point const start_time = clock_type::now();
 
-			iovec_t buf = {buffer.data(), r.length};
+			span<char> const buf = {buffer.data(), r.length};
 
-			m_torrents[storage]->readv(m_settings, buf, r.piece, r.start, error);
+			m_torrents[storage]->read(m_settings, buf, r.piece, r.start, error);
 
 			if (!error.ec)
 			{
@@ -114,14 +114,12 @@ namespace {
 			, std::function<void(storage_error const&)> handler
 			, disk_job_flags_t) override
 		{
-			// TODO: 3 this const_cast can be removed once iovec_t is no longer a
-			// thing, but we just use plain spans
-			iovec_t const b = { const_cast<char*>(buf), r.length };
+			span<char> const b = { const_cast<char*>(buf), r.length };
 
 			time_point const start_time = clock_type::now();
 
 			storage_error error;
-			m_torrents[storage]->writev(m_settings, b, r.piece, r.start, error);
+			m_torrents[storage]->write(m_settings, b, r.piece, r.start, error);
 
 			if (!error.ec)
 			{
@@ -160,9 +158,9 @@ namespace {
 			posix_storage* st = m_torrents[storage].get();
 
 			int const piece_size = v1 ? st->files().piece_size(piece) : 0;
-			int const piece_size2 = v2 ? st->orig_files().piece_size2(piece) : 0;
+			int const piece_size2 = v2 ? st->files().piece_size2(piece) : 0;
 			int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
-			int const blocks_in_piece2 = v2 ? st->orig_files().blocks_in_piece2(piece) : 0;
+			int const blocks_in_piece2 = v2 ? st->files().blocks_in_piece2(piece) : 0;
 
 			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);
 
@@ -175,8 +173,8 @@ namespace {
 				auto const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 				auto const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
-				iovec_t b = {buffer.data(), std::max(len, len2)};
-				int const ret = st->readv(m_settings, b, piece, offset, error);
+				span<char> const b = {buffer.data(), std::max(len, len2)};
+				int const ret = st->read(m_settings, b, piece, offset, error);
 				offset += default_block_size;
 				if (ret <= 0) break;
 				if (v1)
@@ -223,8 +221,8 @@ namespace {
 			std::ptrdiff_t const len = std::min(default_block_size, piece_size - offset);
 
 			hasher256 ph;
-			iovec_t b = {buffer.data(), len};
-			int const ret = st->readv(m_settings, b, piece, offset, error);
+			span<char> const b = {buffer.data(), len};
+			int const ret = st->read(m_settings, b, piece, offset, error);
 			if (ret > 0)
 				ph.update(b.first(ret));
 

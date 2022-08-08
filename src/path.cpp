@@ -48,6 +48,7 @@ see LICENSE file.
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include <cstring>
+#include <algorithm> // for std::replace
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
 #include "libtorrent/assert.hpp"
@@ -85,13 +86,6 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
-
-	int bufs_size(span<iovec_t const> bufs)
-	{
-		std::ptrdiff_t size = 0;
-		for (auto buf : bufs) size += buf.size();
-		return int(size);
-	}
 
 #if defined TORRENT_WINDOWS
 	std::string convert_from_native_path(wchar_t const* s)

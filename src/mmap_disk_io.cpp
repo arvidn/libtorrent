@@ -421,9 +421,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(a.buf);
 		time_point const start_time = clock_type::now();
 
-		iovec_t b = {a.buf.data() + a.buffer_offset, a.buffer_size};
+		span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
-		int const ret = j->storage->readv(m_settings, b
+		int const ret = j->storage->read(m_settings, b
 			, a.piece, a.offset, file_mode_for_job(j), j->flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -455,9 +455,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
-		iovec_t b = {a.buf.data(), a.buffer_size};
+		span<char> const b = {a.buf.data(), a.buffer_size};
 
-		int const ret = j->storage->readv(m_settings, b
+		int const ret = j->storage->read(m_settings, b
 			, a.piece, a.offset, file_mode, j->flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -481,13 +481,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(a.buf);
 
-		iovec_t const b = { buffer.data(), a.buffer_size};
+		span<char> const b = { buffer.data(), a.buffer_size};
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
-		int const ret = j->storage->writev(m_settings, b
+		int const ret = j->storage->write(m_settings, b
 			, a.piece, a.offset, file_mode, j->flags, j->error);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
@@ -894,9 +894,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		bool const v2 = !a.block_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
-		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(a.piece) : 0;
+		int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
 		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
-		int const blocks_in_piece2 = v2 ? j->storage->orig_files().blocks_in_piece2(a.piece) : 0;
+		int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
@@ -936,18 +936,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			{
 				if (v1)
 				{
-					// if we will call hashv2() in a bit, don't trigger a flush
-					// just yet, let hashv2() do it
+					// if we will call hash2() in a bit, don't trigger a flush
+					// just yet, let hash2() do it
 					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 					j->error.ec.clear();
-					ret = j->storage->hashv(m_settings, h, len, a.piece, offset
+					ret = j->storage->hash(m_settings, h, len, a.piece, offset
 						, file_mode, flags, j->error);
 					if (ret < 0) break;
 				}
 				if (v2_block)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv2(m_settings, h2, len2, a.piece, offset
+					ret = j->storage->hash2(m_settings, h2, len2, a.piece, offset
 						, file_mode, j->flags, j->error);
 					if (ret < 0) break;
 				}
@@ -1000,7 +1000,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			ret = int(len);
 		}))
 		{
-			ret = j->storage->hashv2(m_settings, h, len, a.piece, a.offset
+			ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 				, file_mode, j->flags, j->error);
 			if (ret < 0) return status_t::fatal_disk_error;
 		}

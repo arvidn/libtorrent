@@ -17,6 +17,8 @@ VERSION = 2.0.7 ;
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 ECHO "OS =" [ os.name ] ;
 
+jam-version = [ modules.peek : JAM_VERSION ] ;
+
 if $(BOOST_ROOT)
 {
 	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
@@ -167,10 +169,11 @@ rule linking ( properties * )
 		result += <linkflags>-Wl,--export-dynamic <linkflags>-rdynamic ;
 		result += <local-visibility>global ;
 	}
-	else
+	else if [ version.version-less $(jam-version) : 1990 0 ]
 	{
-		# backtraces don't work with visibility=hidden, so we only add that in
-		# the else-block
+		# the visibility feature was introduced in boost-1.69. This was close to
+		# when the verisoning scheme changed from year to (low) version numbers.
+		# in boost-1.70
 		result += <visibility>hidden ;
 	}
 
@@ -976,8 +979,10 @@ rule install-paths ( properties * )
 	# package.paths was introduced in boost-1.70 (2018.02)
 	# however, boost build's versioning scheme changed in boost-1.71 to version
 	# 4.0
-	local boost-build-version = [ SPLIT_BY_CHARACTERS [ version.boost-build ] : "-" ] ;
-	if [ version.version-less [ SPLIT_BY_CHARACTERS $(boost-build-version[1]) : "." ] : 2018 03 ]
+	# so, if versions are 4.0+ we want to use package.paths, but if it's a year,
+	# say 2018, that means it's old and we use the fallback below. Any version <
+	# 1990 is considered the 4.0 and later numbering scheme.
+	if [ version.version-less 1990 0 : $(jam-version) ]
 	{
 		import option ;
 		import property ;
