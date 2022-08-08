@@ -160,9 +160,9 @@ namespace {
 			posix_storage* st = m_torrents[storage].get();
 
 			int const piece_size = v1 ? st->files().piece_size(piece) : 0;
-			int const piece_size2 = v2 ? st->orig_files().piece_size2(piece) : 0;
+			int const piece_size2 = v2 ? st->files().piece_size2(piece) : 0;
 			int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
-			int const blocks_in_piece2 = v2 ? st->orig_files().blocks_in_piece2(piece) : 0;
+			int const blocks_in_piece2 = v2 ? st->files().blocks_in_piece2(piece) : 0;
 
 			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);
 
