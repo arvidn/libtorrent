@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -180,8 +179,6 @@ namespace libtorrent {
 // internal export should be used at unit tests only
 	TORRENT_EXTRA_EXPORT std::string convert_from_native_path(char const* s);
 #endif
-
-	TORRENT_EXTRA_EXPORT int bufs_size(span<iovec_t const> bufs);
 }
 
 #endif // TORRENT_PATH_HPP_INCLUDED
