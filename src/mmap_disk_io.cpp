@@ -620,9 +620,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
-		iovec_t b = {buffer.data() + j->d.io.buffer_offset, j->d.io.buffer_size};
+		span<char> const b = {buffer.data() + j->d.io.buffer_offset, j->d.io.buffer_size};
 
-		int const ret = j->storage->readv(m_settings, b
+		int const ret = j->storage->read(m_settings, b
 			, j->piece, j->d.io.offset, file_mode, j->flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -655,9 +655,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 
 		aux::open_mode_t const file_mode= file_mode_for_job(j);
-		iovec_t b = {buffer.data(), j->d.io.buffer_size};
+		span<char> const b = {buffer.data(), j->d.io.buffer_size};
 
-		int const ret = j->storage->readv(m_settings, b
+		int const ret = j->storage->read(m_settings, b
 			, j->piece, j->d.io.offset, file_mode, j->flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -681,13 +681,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(boost::get<disk_buffer_holder>(j->argument));
 
-		iovec_t const b = { buffer.data(), j->d.io.buffer_size};
+		span<char> const b = { buffer.data(), j->d.io.buffer_size};
 		aux::open_mode_t const file_mode= file_mode_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
-		int const ret = j->storage->writev(m_settings, b
+		int const ret = j->storage->write(m_settings, b
 			, j->piece, j->d.io.offset, file_mode, j->flags, j->error);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
@@ -1108,18 +1108,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			{
 				if (v1)
 				{
-					// if we will call hashv2() in a bit, don't trigger a flush
-					// just yet, let hashv2() do it
+					// if we will call hash2() in a bit, don't trigger a flush
+					// just yet, let hash2() do it
 					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 					j->error.ec.clear();
-					ret = j->storage->hashv(m_settings, h, len, j->piece, offset
+					ret = j->storage->hash(m_settings, h, len, j->piece, offset
 						, file_mode, flags, j->error);
 					if (ret < 0) break;
 				}
 				if (v2_block)
 				{
 					j->error.ec.clear();
-					ret = j->storage->hashv2(m_settings, h2, len2, j->piece, offset
+					ret = j->storage->hash2(m_settings, h2, len2, j->piece, offset
 						, file_mode, j->flags, j->error);
 					if (ret < 0) break;
 				}
@@ -1172,7 +1172,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			ret = int(len);
 		}))
 		{
-			ret = j->storage->hashv2(m_settings, h, len, j->piece, j->d.io.offset
+			ret = j->storage->hash2(m_settings, h, len, j->piece, j->d.io.offset
 				, file_mode, j->flags, j->error);
 			if (ret < 0) return status_t::fatal_disk_error;
 		}
