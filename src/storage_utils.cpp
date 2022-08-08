@@ -53,25 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-	int copy_bufs(span<iovec_t const> bufs, int bytes
-		, span<iovec_t> target)
-	{
-		TORRENT_ASSERT(bytes >= 0);
-		auto dst = target.begin();
-		int ret = 0;
-		if (bytes == 0) return ret;
-		for (iovec_t const& src : bufs)
-		{
-			auto const to_copy = std::min(src.size(), std::ptrdiff_t(bytes));
-			*dst = src.first(to_copy);
-			bytes -= int(to_copy);
-			++ret;
-			++dst;
-			if (bytes <= 0) return ret;
-		}
-		return ret;
-	}
-
 	// much of what needs to be done when reading and writing is buffer
 	// management and piece to file mapping. Most of that is the same for reading
 	// and writing. This function is a template, and the fileop decides what to

@@ -57,9 +57,6 @@ namespace libtorrent {
 
 namespace aux {
 
-	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs
-		, int bytes, span<iovec_t> target);
-
 	// this is a read or write operation so that readwrite() knows
 	// what to do when it's actually touching the file
 	using fileop = std::function<int(file_index_t, std::int64_t, span<char>, storage_error&)>;

@@ -1084,34 +1084,6 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 
 } // anonymous namespace
 
-TORRENT_TEST(iovec_copy_bufs)
-{
-	span<char> iov1[10];
-	span<char> iov2[10];
-
-	alloc_iov(iov1, 10);
-	fill_pattern(iov1, 10);
-
-	// copy exactly 106 bytes from iov1 to iov2
-	int num_bufs = aux::copy_bufs(iov1, 106, iov2);
-
-	// verify that the first 100 bytes is pattern 1
-	// and that the remaining bytes are pattern 2
-
-	int counter = 0;
-	for (int i = 0; i < num_bufs; ++i)
-	{
-		for (char v : iov2[i])
-		{
-			TEST_EQUAL(int(v), (counter & 0xff));
-			++counter;
-		}
-	}
-	TEST_EQUAL(counter, 106);
-
-	free_iov(iov1, 10);
-}
-
 #if TORRENT_HAVE_MMAP
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
