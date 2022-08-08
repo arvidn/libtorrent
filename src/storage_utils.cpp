@@ -72,22 +72,6 @@ namespace libtorrent { namespace aux {
 		return ret;
 	}
 
-	span<iovec_t> advance_bufs(span<iovec_t> bufs, int const bytes)
-	{
-		TORRENT_ASSERT(bytes >= 0);
-		std::ptrdiff_t size = 0;
-		for (;;)
-		{
-			size += bufs.front().size();
-			if (size >= bytes)
-			{
-				bufs.front() = bufs.front().last(size - bytes);
-				return bufs;
-			}
-			bufs = bufs.subspan(1);
-		}
-	}
-
 	// much of what needs to be done when reading and writing is buffer
 	// management and piece to file mapping. Most of that is the same for reading
 	// and writing. This function is a template, and the fileop decides what to

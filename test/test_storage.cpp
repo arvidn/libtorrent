@@ -1112,35 +1112,6 @@ TORRENT_TEST(iovec_copy_bufs)
 	free_iov(iov1, 10);
 }
 
-TORRENT_TEST(iovec_advance_bufs)
-{
-	iovec_t iov1[10];
-	iovec_t iov2[10];
-	alloc_iov(iov1, 10);
-	fill_pattern(iov1, 10);
-
-	memcpy(iov2, iov1, sizeof(iov1));
-
-	span<iovec_t> iov = iov2;
-
-	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
-	// 13 bytes
-	iov = aux::advance_bufs(iov, 13);
-
-	// make sure what's in
-	int counter = 13;
-	for (auto buf : iov)
-	{
-		for (char v : buf)
-		{
-			TEST_EQUAL(v, static_cast<char>(counter));
-			++counter;
-		}
-	}
-
-	free_iov(iov1, 10);
-}
-
 #if TORRENT_HAVE_MMAP
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
