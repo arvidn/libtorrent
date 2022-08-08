@@ -528,7 +528,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_read;
 					return -1;
 				}
@@ -549,7 +548,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (file_range.size() <= file_offset)
 			{
 				ec.ec = boost::asio::error::eof;
-				ec.file(file_index);
 				return -1;
 			}
 
@@ -576,7 +574,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 			catch (std::system_error const& err)
 			{
-				ec.file(file_index);
 				ec.ec = translate_error(err, false);
 				return -1;
 			}
@@ -587,7 +584,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (e)
 			{
 				ec.ec = e;
-				ec.file(file_index);
 				return -1;
 			}
 
@@ -627,7 +623,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_write;
 					return -1;
 				}
@@ -643,7 +638,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (ec) return -1;
 
 			int ret = 0;
-			error_code e;
 			span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
 
 			// set this unconditionally in case the upper layer would like to treat
@@ -668,7 +662,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 			catch (std::system_error const& err)
 			{
-				ec.file(file_index);
 				ec.ec = translate_error(err, true);
 				return -1;
 			}
@@ -676,13 +669,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			m_pool.record_file_write(storage_index(), file_index, ret);
 #endif
-
-			if (e)
-			{
-				ec.ec = e;
-				ec.file(file_index);
-				return -1;
-			}
 
 			return ret;
 		});
@@ -729,7 +715,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_read;
 					return -1;
 				}
@@ -901,9 +886,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			mode |= aux::open_mode::sparse;
 
 		if (sett.get_bool(settings_pack::no_atime_storage))
-		{
 			mode |= aux::open_mode::no_atime;
-		}
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);

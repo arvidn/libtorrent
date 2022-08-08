@@ -115,7 +115,11 @@ namespace libtorrent { namespace aux {
 			int const bytes_transferred = op(file_index, file_offset
 				, buf.first(file_bytes_left), ec);
 			TORRENT_ASSERT(bytes_transferred <= file_bytes_left);
-			if (ec) return ret;
+			if (ec)
+			{
+				ec.file(file_index);
+				return ret;
+			}
 
 			buf = buf.subspan(bytes_transferred);
 			file_offset += bytes_transferred;
