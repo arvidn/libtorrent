@@ -110,13 +110,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	int bufs_size(span<iovec_t const> bufs)
-	{
-		std::ptrdiff_t size = 0;
-		for (auto buf : bufs) size += buf.size();
-		return int(size);
-	}
-
 #if defined TORRENT_WINDOWS
 	std::string convert_from_native_path(wchar_t const* s)
 	{

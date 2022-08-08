@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
-#include "libtorrent/aux_/path.hpp" // for bufs_size
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
