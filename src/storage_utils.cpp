@@ -88,12 +88,6 @@ namespace libtorrent { namespace aux {
 		}
 	}
 
-	void clear_bufs(span<iovec_t const> bufs)
-	{
-		for (auto buf : bufs)
-			std::fill(buf.begin(), buf.end(), char(0));
-	}
-
 	// much of what needs to be done when reading and writing is buffer
 	// management and piece to file mapping. Most of that is the same for reading
 	// and writing. This function is a template, and the fileop decides what to
