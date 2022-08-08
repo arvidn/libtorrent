@@ -186,7 +186,6 @@ namespace aux {
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_read;
 					return -1;
 				}
@@ -214,13 +213,6 @@ namespace aux {
 			// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(ec.ec || ret > 0);
 			TORRENT_ASSERT(ret <= buf.size());
-
-			if (ec.ec)
-			{
-				ec.file(file_index);
-				return -1;
-			}
-
 			return ret;
 		});
 	}
@@ -255,7 +247,6 @@ namespace aux {
 				if (e)
 				{
 					ec.ec = e;
-					ec.file(file_index);
 					ec.operation = operation_t::partfile_write;
 				}
 				return ret;
@@ -282,13 +273,6 @@ namespace aux {
 			// invalidate our stat cache for this file, since
 			// we're writing to it
 			m_stat_cache.set_dirty(file_index);
-
-			if (ec)
-			{
-				ec.file(file_index);
-				return -1;
-			}
-
 			return ret;
 		});
 	}
