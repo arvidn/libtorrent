@@ -1112,23 +1112,6 @@ TORRENT_TEST(iovec_copy_bufs)
 	free_iov(iov1, 10);
 }
 
-TORRENT_TEST(iovec_clear_bufs)
-{
-	iovec_t iov[10];
-	alloc_iov(iov, 10);
-	fill_pattern(iov, 10);
-
-	lt::aux::clear_bufs({iov, 10});
-	for (int i = 0; i < 10; ++i)
-	{
-		for (char v : iov[i])
-		{
-			TEST_EQUAL(int(v), 0);
-		}
-	}
-	free_iov(iov, 10);
-}
-
 TORRENT_TEST(iovec_advance_bufs)
 {
 	iovec_t iov1[10];
