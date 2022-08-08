@@ -682,16 +682,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				, span<char> const buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
-			{
-				std::array<char, 64> zero_buf;
-				zero_buf.fill(0);
-				span<char> zeroes = zero_buf;
-				for (std::ptrdiff_t left = buf.size(); left > 0; left -= zeroes.size())
-				{
-					ph.update({zeroes.data(), std::min(zeroes.size(), left)});
-				}
-				return int(buf.size());
-			}
+				return aux::hash_zeroes(ph, buf.size());
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
