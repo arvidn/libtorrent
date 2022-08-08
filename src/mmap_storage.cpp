@@ -538,7 +538,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (ec) return -1;
 
 			int ret = 0;
-			error_code e;
 			span<byte const> file_range = handle->range();
 
 			// set this unconditionally in case the upper layer would like to treat
@@ -575,15 +574,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			catch (std::system_error const& err)
 			{
 				ec.ec = translate_error(err, false);
-				return -1;
-			}
-
-			// we either get an error or 0 or more bytes read
-			TORRENT_ASSERT(e || ret > 0);
-
-			if (e)
-			{
-				ec.ec = e;
 				return -1;
 			}
 
