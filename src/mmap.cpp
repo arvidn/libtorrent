@@ -310,6 +310,9 @@ namespace {
 #ifdef O_NOATIME
 			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
 #endif
+#ifdef O_SYNC
+			| ((mode & open_mode::no_cache) ? O_SYNC : 0)
+#endif
 			;
 	}
 
