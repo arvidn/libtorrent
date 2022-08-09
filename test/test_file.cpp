@@ -597,7 +597,7 @@ TORRENT_TEST(unc_paths)
 	std::string const reserved_name = "con";
 	error_code ec;
 	{
-		file f(reserved_name, aux::open_mode::write, ec);
+		aux::file_handle f(reserved_name, 0, aux::open_mode::write);
 		TEST_CHECK(!ec);
 	}
 	remove(reserved_name, ec);

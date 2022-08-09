@@ -83,7 +83,7 @@ namespace libtorrent {
 
 	private:
 
-		file open_file(aux::open_mode_t mode, error_code& ec);
+		aux::file_handle open_file(aux::open_mode_t mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const

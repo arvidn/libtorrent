@@ -100,7 +100,7 @@ namespace libtorrent {
 
 		// parse header
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
-		int const n = int(f.read(0, header, ec));
+		int const n = int(aux::pread_all(f.fd(), header, 0, ec));
 		if (ec) return;
 
 		// we don't have a full header. consider the file empty
@@ -188,7 +188,7 @@ namespace libtorrent {
 
 		l.unlock();
 
-		return int(f.write(slot_offset(slot) + offset, buf, ec));
+		return int(aux::pwrite_all(f.fd(), buf, slot_offset(slot) + offset, ec));
 	}
 
 	int part_file::read(span<char> buf
@@ -212,7 +212,7 @@ namespace libtorrent {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return int(f.read(slot_offset(slot) + offset, buf, ec));
+		return int(aux::pread_all(f.fd(), buf, slot_offset(slot) + offset, ec));
 	}
 
 	int part_file::hash(hasher& ph
@@ -258,16 +258,16 @@ namespace libtorrent {
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		int const ret = int(f.read(slot_offset + offset, buffer, ec));
+		int const ret = int(aux::pread_all(f.fd(), buffer, slot_offset + offset, ec));
 		ph.update(buffer);
 		return ret;
 	}
 
-	file part_file::open_file(aux::open_mode_t const mode, error_code& ec) try
+	aux::file_handle part_file::open_file(aux::open_mode_t const mode, error_code& ec) try
 	{
 		std::string const fn = combine_path(m_path, m_name);
 		try {
-			return file(fn, mode);
+			return aux::file_handle(fn, 0, mode);
 		}
 		catch (storage_error const& e)
 		{
@@ -279,7 +279,7 @@ namespace libtorrent {
 				ec.clear();
 				create_directories(m_path, ec);
 				if (ec) return {};
-				return file(fn, mode);
+				return aux::file_handle(fn, 0, mode);
 			}
 			return {};
 		}
@@ -366,7 +366,7 @@ namespace libtorrent {
 				l.unlock();
 
 				span<char> v = {buf.get(), block_to_copy};
-				auto bytes_read = file.read(slot_offset(slot) + piece_offset, v, ec);
+				auto bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
 				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.empty()) return;
@@ -445,7 +445,7 @@ namespace libtorrent {
 			write_int32(static_cast<int>(slot), ptr);
 		}
 		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - header.data())));
-		f.write(0, header, ec);
+		aux::pwrite_all(f.fd(), header, 0, ec);
 		if (ec) return;
 		m_dirty_metadata = false;
 	}
