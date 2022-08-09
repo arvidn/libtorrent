@@ -108,11 +108,11 @@ namespace aux {
 						// move stuff out of the part file
 						file_pointer const f = open_file(i, open_mode::write, file_offset, ec);
 						if (ec) return;
-						int const r = static_cast<int>(fwrite(buf.data(), 1
+						int const r = static_cast<int>(std::fwrite(buf.data(), 1
 							, static_cast<std::size_t>(buf.size()), f.file()));
 						if (r != buf.size())
 						{
-							if (ferror(f.file())) ec.ec.assign(errno, generic_category());
+							if (std::ferror(f.file())) ec.ec.assign(errno, generic_category());
 							else ec.ec.assign(errors::file_too_short, libtorrent_category());
 							return;
 						}
@@ -181,7 +181,7 @@ namespace aux {
 
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(buf, map.piece, map.start, e);
+				int const ret = m_part_file->read(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -201,11 +201,11 @@ namespace aux {
 			ec.operation = operation_t::file_read;
 
 			int ret = 0;
-			int const r = static_cast<int>(::fread(buf.data(), 1
+			int const r = static_cast<int>(std::fread(buf.data(), 1
 				, static_cast<std::size_t>(buf.size()), f.file()));
 			if (r == 0)
 			{
-				if (::ferror(f.file())) ec.ec.assign(errno, generic_category());
+				if (std::ferror(f.file())) ec.ec.assign(errno, generic_category());
 				else ec.ec.assign(errors::file_too_short, libtorrent_category());
 			}
 			ret += r;
@@ -242,7 +242,7 @@ namespace aux {
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->writev(buf, map.piece, map.start, e);
+				int const ret = m_part_file->write(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -261,11 +261,11 @@ namespace aux {
 			ec.operation = operation_t::file_write;
 
 			int ret = 0;
-			auto const r = static_cast<int>(::fwrite(buf.data(), 1
+			auto const r = static_cast<int>(std::fwrite(buf.data(), 1
 				, static_cast<std::size_t>(buf.size()), f.file()));
 			if (r != buf.size())
 			{
-				if (::ferror(f.file())) ec.ec.assign(errno, generic_category());
+				if (std::ferror(f.file())) ec.ec.assign(errno, generic_category());
 				else ec.ec.assign(errors::file_too_short, libtorrent_category());
 			}
 			ret += r;
