@@ -263,23 +263,31 @@ namespace libtorrent {
 		return ret;
 	}
 
-	file part_file::open_file(aux::open_mode_t const mode, error_code& ec)
+	file part_file::open_file(aux::open_mode_t const mode, error_code& ec) try
 	{
 		std::string const fn = combine_path(m_path, m_name);
-		file f(fn, mode, ec);
-		if ((mode & aux::open_mode::write)
-			&& ec == boost::system::errc::no_such_file_or_directory)
-		{
-			// this means the directory the file is in doesn't exist.
-			// so create it
-			ec.clear();
-			create_directories(m_path, ec);
-
-			if (ec) return {};
-			f = file(fn, mode, ec);
+		try {
+			return file(fn, mode);
 		}
-		if (ec) return {};
-		return f;
+		catch (storage_error const& e)
+		{
+			if ((mode & aux::open_mode::write)
+				&& e.ec == boost::system::errc::no_such_file_or_directory)
+			{
+				// this means the directory the file is in doesn't exist.
+				// so create it
+				ec.clear();
+				create_directories(m_path, ec);
+				if (ec) return {};
+				return file(fn, mode);
+			}
+			return {};
+		}
+	}
+	catch (storage_error const& e)
+	{
+		ec = e.ec;
+		return {};
 	}
 
 	void part_file::free_piece(piece_index_t const piece)

@@ -81,17 +81,46 @@ namespace libtorrent {
 
 #ifdef TORRENT_WINDOWS
 	using handle_type = HANDLE;
+	const handle_type invalid_handle = INVALID_HANDLE_VALUE;
 #else
 	using handle_type = int;
+	const handle_type invalid_handle = -1;
 #endif
+
+namespace aux {
+
+	struct TORRENT_EXTRA_EXPORT file_handle
+	{
+		file_handle(): m_fd(invalid_handle) {}
+		file_handle(string_view name, std::int64_t size, open_mode_t mode);
+		file_handle(file_handle const& rhs) = delete;
+		file_handle& operator=(file_handle const& rhs) = delete;
+
+		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
+		file_handle& operator=(file_handle&& rhs) &;
+
+		~file_handle();
+
+		std::int64_t get_size() const;
+
+		handle_type fd() const { return m_fd; }
+	private:
+		void close();
+		handle_type m_fd;
+#ifdef TORRENT_WINDOWS
+		aux::open_mode_t m_open_mode;
+#endif
+	};
+
+} // namespace aux
 
 	struct TORRENT_EXTRA_EXPORT file
 	{
-		file();
-		file(std::string const& p, aux::open_mode_t m, error_code& ec);
-		file(file&&) noexcept;
-		file& operator=(file&&);
-		~file();
+		file() = default;
+		file(std::string const& p, aux::open_mode_t m);
+		file(file&&) noexcept = default;
+		file& operator=(file&&) = default;
+		~file() = default;
 
 		file(file const&) = delete;
 		file& operator=(file const&) = delete;
@@ -102,7 +131,7 @@ namespace libtorrent {
 			, error_code& ec, aux::open_mode_t flags = {});
 
 	private:
-		handle_type m_file_handle;
+		aux::file_handle m_file_handle;
 	};
 }
 
