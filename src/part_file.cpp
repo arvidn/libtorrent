@@ -100,8 +100,7 @@ namespace libtorrent {
 
 		// parse header
 		std::vector<char> header(static_cast<std::size_t>(m_header_size));
-		iovec_t b = header;
-		int const n = int(f.readv(0, b, ec));
+		int const n = int(f.read(0, header, ec));
 		if (ec) return;
 
 		// we don't have a full header. consider the file empty
@@ -189,7 +188,7 @@ namespace libtorrent {
 
 		l.unlock();
 
-		return int(f.writev(slot_offset(slot) + offset, buf, ec));
+		return int(f.write(slot_offset(slot) + offset, buf, ec));
 	}
 
 	int part_file::read(span<char> buf
@@ -213,7 +212,7 @@ namespace libtorrent {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return int(f.readv(slot_offset(slot) + offset, buf, ec));
+		return int(f.read(slot_offset(slot) + offset, buf, ec));
 	}
 
 	int part_file::hash(hasher& ph
@@ -258,9 +257,8 @@ namespace libtorrent {
 		l.unlock();
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
-		iovec_t v = buffer;
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		int const ret = int(f.readv(slot_offset + offset, v, ec));
+		int const ret = int(f.read(slot_offset + offset, buffer, ec));
 		ph.update(buffer);
 		return ret;
 	}
@@ -359,8 +357,8 @@ namespace libtorrent {
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				iovec_t v = {buf.get(), block_to_copy};
-				auto bytes_read = file.readv(slot_offset(slot) + piece_offset, v, ec);
+				span<char> v = {buf.get(), block_to_copy};
+				auto bytes_read = file.read(slot_offset(slot) + piece_offset, v, ec);
 				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.empty()) return;
@@ -439,8 +437,7 @@ namespace libtorrent {
 			write_int32(static_cast<int>(slot), ptr);
 		}
 		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - header.data())));
-		iovec_t b = header;
-		f.writev(0, b, ec);
+		f.write(0, header, ec);
 		if (ec) return;
 		m_dirty_metadata = false;
 	}

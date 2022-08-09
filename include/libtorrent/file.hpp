@@ -96,9 +96,9 @@ namespace libtorrent {
 		file(file const&) = delete;
 		file& operator=(file const&) = delete;
 
-		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
+		std::int64_t write(std::int64_t file_offset, span<char const> buf
 			, error_code& ec, aux::open_mode_t flags = {});
-		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
+		std::int64_t read(std::int64_t file_offset, span<char> buf
 			, error_code& ec, aux::open_mode_t flags = {});
 
 	private:
