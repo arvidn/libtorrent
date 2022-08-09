@@ -173,11 +173,11 @@ namespace libtorrent {
 		return slot;
 	}
 
-	int part_file::writev(span<iovec_t const> bufs, piece_index_t const piece
+	int part_file::write(span<char> buf, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(int(bufs.size()) + offset <= m_piece_size);
+		TORRENT_ASSERT(int(buf.size()) + offset <= m_piece_size);
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		auto f = open_file(aux::open_mode::write | aux::open_mode::hidden, ec);
@@ -189,15 +189,15 @@ namespace libtorrent {
 
 		l.unlock();
 
-		return int(f.writev(slot_offset(slot) + offset, bufs, ec));
+		return int(f.writev(slot_offset(slot) + offset, buf, ec));
 	}
 
-	int part_file::readv(span<iovec_t const> bufs
+	int part_file::read(span<char> buf
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(int(bufs.size()) + offset <= m_piece_size);
+		TORRENT_ASSERT(int(buf.size()) + offset <= m_piece_size);
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		auto const i = m_piece_map.find(piece);
@@ -213,27 +213,27 @@ namespace libtorrent {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return int(f.readv(slot_offset(slot) + offset, bufs, ec));
+		return int(f.readv(slot_offset(slot) + offset, buf, ec));
 	}
 
-	int part_file::hashv(hasher& ph
+	int part_file::hash(hasher& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
-		return do_hashv(ph, len, piece, offset, ec);
+		return do_hash(ph, len, piece, offset, ec);
 	}
 
-	int part_file::hashv2(hasher256& ph
+	int part_file::hash2(hasher256& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
-		return do_hashv(ph, len, piece, offset, ec);
+		return do_hash(ph, len, piece, offset, ec);
 	}
 
 	template <typename Hasher>
-	int part_file::do_hashv(Hasher& ph
+	int part_file::do_hash(Hasher& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)

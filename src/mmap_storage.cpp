@@ -523,7 +523,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(buf, map.piece, map.start, e);
+				int const ret = m_part_file->read(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -608,7 +608,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->writev(buf, map.piece, map.start, e);
+				int const ret = m_part_file->write(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -690,7 +690,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			{
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->hashv(ph, buf.size()
+				int const ret = m_part_file->hash(ph, buf.size()
 					, map.piece, map.start, e);
 
 				if (e)
@@ -745,7 +745,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		{
 			error_code e;
 			peer_request map = files().map_file(file_index, file_offset, 0);
-			int const ret = m_part_file->hashv2(ph, len
+			int const ret = m_part_file->hash2(ph, len
 				, map.piece, map.start, e);
 
 			if (e)
