@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file.hpp" // for file_handle
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/scope_exit.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <cstdint>
 
 #ifdef TORRENT_WINDOWS

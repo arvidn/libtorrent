@@ -117,10 +117,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+namespace aux {
 
-namespace {
 #ifdef TORRENT_WINDOWS
-	std::int64_t pread_all(HANDLE const fd
+	int pread_all(handle_type const fd
 		, span<char> const buf
 		, std::int64_t const offset
 		, error_code& ec)
@@ -135,10 +135,10 @@ namespace {
 			return -1;
 		}
 
-		return bytes_read;
+		return int(bytes_read);
 	}
 
-	std::int64_t pwrite_all(HANDLE const fd
+	int pwrite_all(handle_type const fd
 		, span<char const> const buf
 		, std::int64_t const offset
 		, error_code& ec)
@@ -153,11 +153,11 @@ namespace {
 			return -1;
 		}
 
-		return bytes_written;
+		return int(bytes_written);
 	}
 #else
 
-	int pread_all(int const handle
+	int pread_all(handle_type const handle
 		, span<char> buf
 		, std::int64_t file_offset
 		, error_code& ec)
@@ -182,7 +182,7 @@ namespace {
 		return ret;
 	}
 
-	int pwrite_all(int const handle
+	int pwrite_all(handle_type const handle
 		, span<char const> buf
 		, std::int64_t file_offset
 		, error_code& ec)
@@ -207,9 +207,6 @@ namespace {
 		return ret;
 	}
 #endif
-}
-
-namespace aux {
 
 namespace {
 #ifdef TORRENT_WINDOWS
@@ -637,29 +634,4 @@ std::int64_t file_handle::get_size() const
 
 } // namespace aux
 
-	file::file(std::string const& path, aux::open_mode_t const mode)
-		: m_file_handle(path, 0, mode)
-	{
-	}
-
-	// this has to be thread safe and atomic. i.e. on posix systems it has to be
-	// turned into a series of pread() calls
-	std::int64_t file::read(std::int64_t file_offset, span<char> buf
-		, error_code& ec, aux::open_mode_t)
-	{
-		TORRENT_ASSERT(!buf.empty());
-		ec.clear();
-		return pread_all(m_file_handle.fd(), buf, file_offset, ec);
-	}
-
-	// This has to be thread safe, i.e. atomic.
-	// that means, on posix this has to be turned into a series of
-	// pwrite() calls
-	std::int64_t file::write(std::int64_t file_offset, span<char const> buf
-		, error_code& ec, aux::open_mode_t)
-	{
-		TORRENT_ASSERT(!buf.empty());
-		ec.clear();
-		return pwrite_all(m_file_handle.fd(), buf, file_offset, ec);
-	}
 }

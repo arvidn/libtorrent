@@ -89,6 +89,16 @@ namespace libtorrent {
 
 namespace aux {
 
+	int pwrite_all(handle_type handle
+		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec);
+
+	int pread_all(handle_type handle
+		, span<char> buf
+		, std::int64_t file_offset
+		, error_code& ec);
+
 	struct TORRENT_EXTRA_EXPORT file_handle
 	{
 		file_handle(): m_fd(invalid_handle) {}
@@ -113,26 +123,6 @@ namespace aux {
 	};
 
 } // namespace aux
-
-	struct TORRENT_EXTRA_EXPORT file
-	{
-		file() = default;
-		file(std::string const& p, aux::open_mode_t m);
-		file(file&&) noexcept = default;
-		file& operator=(file&&) = default;
-		~file() = default;
-
-		file(file const&) = delete;
-		file& operator=(file const&) = delete;
-
-		std::int64_t write(std::int64_t file_offset, span<char const> buf
-			, error_code& ec, aux::open_mode_t flags = {});
-		std::int64_t read(std::int64_t file_offset, span<char> buf
-			, error_code& ec, aux::open_mode_t flags = {});
-
-	private:
-		aux::file_handle m_file_handle;
-	};
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED
