@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include "libtorrent/span.hpp"
 #include <mutex> // for call_once
 
@@ -50,19 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
 #pragma clang diagnostic ignored "-Wunused-macros"
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
-#endif
-
-#ifndef TORRENT_WINDOWS
-#include <sys/uio.h> // for iovec
-#else
-#include <boost/scope_exit.hpp>
-namespace {
-struct iovec
-{
-	void* iov_base;
-	std::size_t iov_len;
-};
-} // anonymous namespace
 #endif
 
 // on mingw this is necessary to enable 64-bit time_t, specifically used for
@@ -80,8 +66,6 @@ struct iovec
 #pragma GCC diagnostic pop
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/string_util.hpp"
@@ -90,6 +74,7 @@ struct iovec
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -114,6 +99,8 @@ struct iovec
 #include <cerrno>
 #include <dirent.h>
 
+#include <boost/asio/error.hpp> // for boost::asio::error::eof
+
 #ifdef TORRENT_LINUX
 // linux specifics
 
@@ -134,36 +121,96 @@ struct iovec
 
 namespace libtorrent {
 
-#ifdef TORRENT_WINDOWS
 namespace {
-	std::int64_t pread(HANDLE fd, void* data, std::size_t len, std::int64_t const offset)
+#ifdef TORRENT_WINDOWS
+	std::int64_t pread_all(HANDLE const fd
+		, span<char> const buf
+		, std::int64_t const offset
+		, error_code& ec)
 	{
 		OVERLAPPED ol{};
 		ol.Offset = offset & 0xffffffff;
 		ol.OffsetHigh = offset >> 32;
 		DWORD bytes_read = 0;
-		if (ReadFile(fd, data, DWORD(len), &bytes_read, &ol) == FALSE)
+		if (ReadFile(fd, buf.data(), DWORD(buf.size()), &bytes_read, &ol) == FALSE)
 		{
-			if (GetLastError() == ERROR_HANDLE_EOF) return 0;
+			ec = error_code(::GetLastError(), system_category());
 			return -1;
 		}
 
 		return bytes_read;
 	}
 
-	std::int64_t pwrite(HANDLE fd, void const* data, std::size_t len, std::int64_t const offset)
+	std::int64_t pwrite_all(HANDLE const fd
+		, span<char const> const buf
+		, std::int64_t const offset
+		, error_code& ec)
 	{
 		OVERLAPPED ol{};
 		ol.Offset = offset & 0xffffffff;
 		ol.OffsetHigh = offset >> 32;
 		DWORD bytes_written = 0;
-		if (WriteFile(fd, data, DWORD(len), &bytes_written, &ol) == FALSE)
+		if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
+		{
+			ec = error_code(::GetLastError(), system_category());
 			return -1;
+		}
 
 		return bytes_written;
 	}
-}
+#else
+
+	int pread_all(int const handle
+		, span<char> buf
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		do {
+			auto const r = ::pread(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
+		return ret;
+	}
+
+	int pwrite_all(int const handle
+		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		do {
+			auto const r = ::pwrite(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
+		return ret;
+	}
 #endif
+}
 
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE) {}
 
@@ -255,38 +302,9 @@ namespace {
 		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
 	}
 
-namespace {
-
-	template <class Fun>
-	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
-		, span<iovec_t const> bufs, error_code& ec)
-	{
-		std::int64_t ret = 0;
-		for (auto i : bufs)
-		{
-			std::int64_t const tmp_ret = f(fd, i.data(), static_cast<std::size_t>(i.size()), file_offset);
-			if (tmp_ret < 0)
-			{
-#ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), system_category());
-#else
-				ec.assign(errno, system_category());
-#endif
-				return -1;
-			}
-			file_offset += tmp_ret;
-			ret += tmp_ret;
-			if (tmp_ret < int(i.size())) break;
-		}
-
-		return ret;
-	}
-
-} // anonymous namespace
-
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
-	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
+	std::int64_t file::read(std::int64_t file_offset, span<char> buf
 		, error_code& ec, aux::open_mode_t)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -298,16 +316,15 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT(!bufs.empty());
-		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
+		TORRENT_ASSERT(!buf.empty());
 
-		return iov(&pread, m_file_handle, file_offset, bufs, ec);
+		return pread_all(m_file_handle, buf, file_offset, ec);
 	}
 
 	// This has to be thread safe, i.e. atomic.
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
-	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
+	std::int64_t file::write(std::int64_t file_offset, span<char const> buf
 		, error_code& ec, aux::open_mode_t)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -319,13 +336,11 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT(!bufs.empty());
+		TORRENT_ASSERT(!buf.empty());
 		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
 
 		ec.clear();
 
-		std::int64_t ret = iov(&pwrite, m_file_handle, file_offset, bufs, ec);
-
-		return ret;
+		return pwrite_all(m_file_handle, buf, file_offset, ec);
 	}
 }
