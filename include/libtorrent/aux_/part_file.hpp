@@ -39,10 +39,10 @@ namespace libtorrent::aux {
 		part_file(std::string path, std::string name, int num_pieces, int piece_size);
 		~part_file();
 
-		int writev(span<iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
-		int readv(span<iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
-		int hashv(hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
-		int hashv2(hasher256& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
+		int write(span<char> buf, piece_index_t piece, int offset, error_code& ec);
+		int read(span<char> buf, piece_index_t piece, int offset, error_code& ec);
+		int hash(hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
+		int hash2(hasher256& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 
 		// free the slot the given piece is stored in. We no longer need to store this
 		// piece in the part file
@@ -61,7 +61,7 @@ namespace libtorrent::aux {
 
 	private:
 
-		file open_file(aux::open_mode_t mode, error_code& ec);
+		aux::file_handle open_file(aux::open_mode_t mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::int64_t slot_offset(slot_index_t const slot) const
@@ -71,7 +71,7 @@ namespace libtorrent::aux {
 		}
 
 		template <typename Hasher>
-		int do_hashv(Hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
+		int do_hash(Hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 
 		std::string m_path;
 		std::string const m_name;

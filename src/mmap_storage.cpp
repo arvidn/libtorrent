@@ -500,7 +500,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->readv(buf, map.piece, map.start, e);
+				int const ret = m_part_file->read(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -515,7 +515,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (ec) return -1;
 
 			int ret = 0;
-			error_code e;
 			span<byte const> file_range = handle->range();
 
 			// set this unconditionally in case the upper layer would like to treat
@@ -555,15 +554,6 @@ error_code translate_error(std::system_error const& err, bool const write)
 				return -1;
 			}
 
-			// we either get an error or 0 or more bytes read
-			TORRENT_ASSERT(e || ret > 0);
-
-			if (e)
-			{
-				ec.ec = e;
-				return -1;
-			}
-
 			return static_cast<int>(ret);
 		});
 	}
@@ -595,7 +585,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->writev(buf, map.piece, map.start, e);
+				int const ret = m_part_file->write(buf, map.piece, map.start, e);
 
 				if (e)
 				{
@@ -669,16 +659,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 				, span<char> const buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
-			{
-				std::array<char, 64> zero_buf;
-				zero_buf.fill(0);
-				span<char> zeroes = zero_buf;
-				for (std::ptrdiff_t left = buf.size(); left > 0; left -= zeroes.size())
-				{
-					ph.update({zeroes.data(), std::min(zeroes.size(), left)});
-				}
-				return int(buf.size());
-			}
+				return aux::hash_zeroes(ph, buf.size());
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
@@ -686,7 +667,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			{
 				error_code e;
 				peer_request map = files().map_file(file_index, file_offset, 0);
-				int const ret = m_part_file->hashv(ph, buf.size()
+				int const ret = m_part_file->hash(ph, buf.size()
 					, map.piece, map.start, e);
 
 				if (e)
@@ -741,7 +722,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		{
 			error_code e;
 			peer_request map = files().map_file(file_index, file_offset, 0);
-			int const ret = m_part_file->hashv2(ph, len
+			int const ret = m_part_file->hash2(ph, len
 				, map.piece, map.start, e);
 
 			if (e)
@@ -759,7 +740,12 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 		span<byte const> file_range = handle->range();
 		if (std::int64_t(file_range.size()) <= file_offset)
-			return 0;
+		{
+			error.ec = boost::asio::error::eof;
+			error.file(file_index);
+			error.operation = operation_t::file_read;
+			return -1;
+		}
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
 		ph.update(file_range);

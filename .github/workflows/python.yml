@@ -46,7 +46,7 @@ jobs:
           - os: ubuntu-20.04
             python-version: 3.8
           - os: macos-latest
-            python-version: 3.9
+            python-version: "3.10"
           - os: windows-2019
             python-version: 3.6
 
@@ -74,7 +74,8 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.9 openssl@1.1
+        brew update
+        brew install boost-build boost boost-python3 python@3.10 openssl@1.1
         echo "using darwin ;" >>~/user-config.jam
 
     - name: update package lists (linux)
@@ -130,9 +131,17 @@ jobs:
         set PYTHON_INTERPRETER=python
         tox -e py
 
-    - name: tests
-      if: runner.os != 'Windows'
+    - name: tests (Linux)
+      if: runner.os == 'Linux'
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
+        tox -e py
+
+    - name: tests (MacOS)
+      if: runner.os == 'macOS'
+      run: |
+        # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
+        export SYSTEM_VERSION_COMPAT=0
+        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.10/bin/python3
         tox -e py

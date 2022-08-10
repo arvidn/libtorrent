@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/hasher.hpp"
 
 #if TORRENT_HAS_SYMLINK
 #include <unistd.h> // for symlink()
@@ -579,6 +580,15 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 	{
 		std::fill(buf.begin(), buf.end(), '\0');
 		return int(buf.size());
+	}
+
+	int hash_zeroes(hasher& ph, std::int64_t const size)
+	{
+		std::array<char, 64> zeroes;
+		zeroes.fill(0);
+		for (auto left = std::ptrdiff_t(size); left > 0; left -= zeroes.size())
+			ph.update({zeroes.data(), std::min(std::ptrdiff_t(zeroes.size()), left)});
+		return int(size);
 	}
 
 	void initialize_storage(file_storage const& fs

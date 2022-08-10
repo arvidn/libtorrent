@@ -17,6 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/disk_interface.hpp" // for open_file_state
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/aux_/file.hpp" // for file_handle
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 
@@ -33,40 +34,6 @@ using byte = char;
 namespace aux {
 
 	using namespace flags;
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-	using native_handle_t = HANDLE;
-	const native_handle_t invalid_handle = INVALID_HANDLE_VALUE;
-#else
-	using native_handle_t = int;
-	const native_handle_t invalid_handle = -1;
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-	struct TORRENT_EXTRA_EXPORT file_handle
-	{
-		file_handle(string_view name, std::int64_t size, open_mode_t mode);
-		file_handle(file_handle const& rhs) = delete;
-		file_handle& operator=(file_handle const& rhs) = delete;
-
-		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
-		file_handle& operator=(file_handle&& rhs) &;
-
-		~file_handle();
-
-		std::int64_t get_size() const;
-
-		native_handle_t fd() const { return m_fd; }
-	private:
-		void close();
-		native_handle_t m_fd;
-#ifdef TORRENT_WINDOWS
-		aux::open_mode_t m_open_mode;
-#endif
-	};
 
 	struct file_view;
 

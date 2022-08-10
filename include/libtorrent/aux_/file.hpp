@@ -59,29 +59,45 @@ namespace libtorrent::aux {
 
 #ifdef TORRENT_WINDOWS
 	using handle_type = HANDLE;
+	const handle_type invalid_handle = INVALID_HANDLE_VALUE;
 #else
 	using handle_type = int;
+	const handle_type invalid_handle = -1;
 #endif
 
-	struct TORRENT_EXTRA_EXPORT file
+	int pwrite_all(handle_type handle
+		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec);
+
+	int pread_all(handle_type handle
+		, span<char> buf
+		, std::int64_t file_offset
+		, error_code& ec);
+
+	struct TORRENT_EXTRA_EXPORT file_handle
 	{
-		file();
-		file(std::string const& p, aux::open_mode_t m, error_code& ec);
-		file(file&&) noexcept;
-		file& operator=(file&&);
-		~file();
+		file_handle(): m_fd(invalid_handle) {}
+		file_handle(string_view name, std::int64_t size, open_mode_t mode);
+		file_handle(file_handle const& rhs) = delete;
+		file_handle& operator=(file_handle const& rhs) = delete;
 
-		file(file const&) = delete;
-		file& operator=(file const&) = delete;
+		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
+		file_handle& operator=(file_handle&& rhs) &;
 
-		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, aux::open_mode_t flags = {});
-		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, aux::open_mode_t flags = {});
+		~file_handle();
 
+		std::int64_t get_size() const;
+
+		handle_type fd() const { return m_fd; }
 	private:
-		handle_type m_file_handle;
+		void close();
+		handle_type m_fd;
+#ifdef TORRENT_WINDOWS
+		aux::open_mode_t m_open_mode;
+#endif
 	};
+
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED

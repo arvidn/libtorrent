@@ -13,7 +13,6 @@ see LICENSE file.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include "libtorrent/span.hpp"
 #include <mutex> // for call_once
 
@@ -27,19 +26,6 @@ see LICENSE file.
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
 #pragma clang diagnostic ignored "-Wunused-macros"
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
-#endif
-
-#ifndef TORRENT_WINDOWS
-#include <sys/uio.h> // for iovec
-#else
-#include <boost/scope_exit.hpp>
-namespace {
-struct iovec
-{
-	void* iov_base;
-	std::size_t iov_len;
-};
-} // anonymous namespace
 #endif
 
 // on mingw this is necessary to enable 64-bit time_t, specifically used for
@@ -57,8 +43,6 @@ struct iovec
 #pragma GCC diagnostic pop
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
@@ -67,6 +51,7 @@ struct iovec
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -76,6 +61,7 @@ struct iovec
 // windows part
 
 #include "libtorrent/aux_/win_util.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -91,6 +77,8 @@ struct iovec
 #include <cerrno>
 #include <dirent.h>
 
+#include <boost/asio/error.hpp> // for boost::asio::error::eof
+
 #ifdef TORRENT_LINUX
 // linux specifics
 
@@ -105,204 +93,517 @@ struct iovec
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE (-1)
-#endif
-
 namespace libtorrent::aux {
 
 #ifdef TORRENT_WINDOWS
-namespace {
-	std::int64_t pread(HANDLE fd, void* data, std::size_t len, std::int64_t const offset)
+	int pread_all(handle_type const fd
+		, span<char> const buf
+		, std::int64_t const offset
+		, error_code& ec)
 	{
 		OVERLAPPED ol{};
 		ol.Offset = offset & 0xffffffff;
 		ol.OffsetHigh = offset >> 32;
 		DWORD bytes_read = 0;
-		if (ReadFile(fd, data, DWORD(len), &bytes_read, &ol) == FALSE)
+		if (ReadFile(fd, buf.data(), DWORD(buf.size()), &bytes_read, &ol) == FALSE)
 		{
-			if (GetLastError() == ERROR_HANDLE_EOF) return 0;
+			ec = error_code(::GetLastError(), system_category());
 			return -1;
 		}
 
-		return bytes_read;
+		return int(bytes_read);
 	}
 
-	std::int64_t pwrite(HANDLE fd, void const* data, std::size_t len, std::int64_t const offset)
+	int pwrite_all(handle_type const fd
+		, span<char const> const buf
+		, std::int64_t const offset
+		, error_code& ec)
 	{
 		OVERLAPPED ol{};
 		ol.Offset = offset & 0xffffffff;
 		ol.OffsetHigh = offset >> 32;
 		DWORD bytes_written = 0;
-		if (WriteFile(fd, data, DWORD(len), &bytes_written, &ol) == FALSE)
+		if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
+		{
+			ec = error_code(::GetLastError(), system_category());
 			return -1;
-
-		return bytes_written;
-	}
-}
-#endif
-
-	file::file() : m_file_handle(INVALID_HANDLE_VALUE) {}
-
-	file::file(file&& f) noexcept
-		: m_file_handle(f.m_file_handle)
-	{
-		f.m_file_handle = INVALID_HANDLE_VALUE;
-	}
-
-	file& file::operator=(file&& f)
-	{
-		file tmp(std::move(*this)); // close at end of scope
-		m_file_handle = f.m_file_handle;
-		f.m_file_handle = INVALID_HANDLE_VALUE;
-		return *this;
-	}
-
-	file::~file()
-	{
-		if (m_file_handle == INVALID_HANDLE_VALUE) return;
-
-#ifdef TORRENT_WINDOWS
-		CloseHandle(m_file_handle);
-#else
-		if (m_file_handle != INVALID_HANDLE_VALUE)
-			::close(m_file_handle);
-#endif
-
-		m_file_handle = INVALID_HANDLE_VALUE;
-	}
-
-	file::file(std::string const& path, aux::open_mode_t const mode, error_code& ec)
-		: m_file_handle(INVALID_HANDLE_VALUE)
-	{
-		// the return value is not important, since the
-		// error code contains the same information
-		native_path_string file_path = convert_to_native_path_string(path);
-
-#ifdef TORRENT_WINDOWS
-#ifdef TORRENT_WINRT
-
-		const auto handle = CreateFile2(file_path.c_str()
-			, (mode & aux::open_mode::write) ? GENERIC_WRITE | GENERIC_READ : GENERIC_READ
-			, FILE_SHARE_READ | FILE_SHARE_WRITE
-			, (mode & aux::open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING
-			, nullptr);
-
-#else
-
-		handle_type handle = CreateFileW(file_path.c_str()
-			, (mode & aux::open_mode::write) ? GENERIC_WRITE | GENERIC_READ : GENERIC_READ
-			, FILE_SHARE_READ | FILE_SHARE_WRITE
-			, nullptr
-			, (mode & aux::open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING
-			, (mode & aux::open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : 0
-			, nullptr);
-
-#endif
-
-		if (handle == INVALID_HANDLE_VALUE)
-		{
-			ec.assign(GetLastError(), system_category());
-			TORRENT_ASSERT(ec);
-			return;
 		}
 
-		m_file_handle = handle;
-#else // TORRENT_WINDOWS
-
-		handle_type handle = ::open(file_path.c_str()
-			, ((mode & aux::open_mode::write) ? O_RDWR | O_CREAT : O_RDONLY)
-#ifdef O_BINARY
-			| O_BINARY
-#endif
-			, S_IRUSR | S_IWUSR
-			| S_IRGRP | S_IWGRP
-			| S_IROTH | S_IWOTH);
-
-		if (handle == INVALID_HANDLE_VALUE)
-		{
-			ec.assign(errno, system_category());
-			TORRENT_ASSERT(ec);
-			return;
-		}
-
-		m_file_handle = handle;
-#endif
-
-		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
+		return int(bytes_written);
 	}
+#else
 
-namespace {
-
-	template <class Fun>
-	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
-		, span<iovec_t const> bufs, error_code& ec)
+	int pread_all(handle_type const handle
+		, span<char> buf
+		, std::int64_t file_offset
+		, error_code& ec)
 	{
-		std::int64_t ret = 0;
-		for (auto i : bufs)
-		{
-			std::int64_t const tmp_ret = f(fd, i.data(), static_cast<std::size_t>(i.size()), file_offset);
-			if (tmp_ret < 0)
+		int ret = 0;
+		do {
+			auto const r = ::pread(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
 			{
-#ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), system_category());
-#else
-				ec.assign(errno, system_category());
-#endif
-				return -1;
+				ec = boost::asio::error::eof;
+				return ret;
 			}
-			file_offset += tmp_ret;
-			ret += tmp_ret;
-			if (tmp_ret < int(i.size())) break;
-		}
-
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
 		return ret;
 	}
+
+	int pwrite_all(handle_type const handle
+		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		do {
+			auto const r = ::pwrite(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
+		return ret;
+	}
+#endif
+
+namespace {
+#ifdef TORRENT_WINDOWS
+	// returns true if the given file has any regions that are
+	// sparse, i.e. not allocated.
+	bool is_sparse(HANDLE file)
+	{
+		LARGE_INTEGER file_size;
+		if (!GetFileSizeEx(file, &file_size))
+			return false;
+
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+	LARGE_INTEGER FileOffset;
+	LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER;
+#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
+		FILE_ALLOCATED_RANGE_BUFFER in;
+		in.FileOffset.QuadPart = 0;
+		in.Length.QuadPart = file_size.QuadPart;
+
+		FILE_ALLOCATED_RANGE_BUFFER out[2];
+
+		DWORD returned_bytes = 0;
+		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, static_cast<void*>(&in), sizeof(in)
+			, out, sizeof(out), &returned_bytes, nullptr);
+
+		if (ret == FALSE)
+		{
+			return true;
+		}
+
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
+	}
+
+	DWORD file_access(open_mode_t const mode)
+	{
+		return (mode & open_mode::write)
+			? GENERIC_WRITE | GENERIC_READ
+			: GENERIC_READ;
+	}
+
+	DWORD file_create(open_mode_t const mode)
+	{
+		return (mode & open_mode::write) ? OPEN_ALWAYS : OPEN_EXISTING;
+	}
+
+#ifndef TORRENT_WINRT
+	std::once_flag g_once_flag;
+
+	void acquire_manage_volume_privs()
+	{
+		using OpenProcessToken_t = BOOL (WINAPI*)(HANDLE, DWORD, PHANDLE);
+
+		using LookupPrivilegeValue_t = BOOL (WINAPI*)(LPCSTR, LPCSTR, PLUID);
+
+		using AdjustTokenPrivileges_t = BOOL (WINAPI*)(
+			HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+
+		auto OpenProcessToken =
+			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
+		auto LookupPrivilegeValue =
+			aux::get_library_procedure<aux::advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
+		auto AdjustTokenPrivileges =
+			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
+
+		if (OpenProcessToken == nullptr
+			|| LookupPrivilegeValue == nullptr
+			|| AdjustTokenPrivileges == nullptr)
+		{
+			return;
+		}
+
+		HANDLE token;
+		if (!OpenProcessToken(GetCurrentProcess()
+			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+			return;
+
+		auto close_handle = aux::scope_end([&token] {
+			CloseHandle(token);
+		});
+
+		TOKEN_PRIVILEGES privs{};
+		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
+			, &privs.Privileges[0].Luid))
+		{
+			return;
+		}
+
+		privs.PrivilegeCount = 1;
+		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+		AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr);
+	}
+#endif // TORRENT_WINRT
+
+#ifdef TORRENT_WINRT
+
+	DWORD file_flags(open_mode_t const mode)
+	{
+		return ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
+			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+			;
+	}
+
+	DWORD file_attributes(open_mode_t const mode)
+	{
+		return (mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL;
+	}
+
+	auto create_file(native_path_string const& name, open_mode_t const mode)
+	{
+		CREATEFILE2_EXTENDED_PARAMETERS Extended
+		{
+			sizeof(CREATEFILE2_EXTENDED_PARAMETERS),
+			file_attributes(mode),
+			file_flags(mode)
+		};
+
+		return CreateFile2(name.c_str()
+			, file_access(mode)
+			, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
+			, file_create(mode)
+			, &Extended);
+	}
+
+#else
+
+	DWORD file_flags(open_mode_t const mode)
+	{
+		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
+		// turns out that it isn't. That flag will break your operating system:
+		// http://support.microsoft.com/kb/2549369
+		return ((mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL)
+			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
+			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN);
+	}
+
+	auto create_file(native_path_string const& name, open_mode_t const mode)
+	{
+
+		if (mode & aux::open_mode::allow_set_file_valid_data)
+		{
+			// Enable privilege required by SetFileValidData()
+			// https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-setfilevaliddata
+			// This must happen before the file is opened:
+			// https://devblogs.microsoft.com/oldnewthing/20160603-00/?p=93565
+			// SetFileValidData() is not available on WinRT, so there is no
+			// corresponding call in that version of create_file()
+			std::call_once(g_once_flag, acquire_manage_volume_privs);
+		}
+
+		return CreateFileW(name.c_str()
+			, file_access(mode)
+			, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
+			, nullptr
+			, file_create(mode)
+			, file_flags(mode)
+			, nullptr);
+	}
+
+#endif
+
+#else
+	// non-windows
+
+	int file_flags(open_mode_t const mode)
+	{
+		return ((mode & open_mode::write)
+			? O_RDWR | O_CREAT : O_RDONLY)
+#ifdef O_NOATIME
+			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
+#endif
+#ifdef O_SYNC
+			| ((mode & open_mode::no_cache) ? O_SYNC : 0)
+#endif
+			;
+	}
+
+	mode_t file_perms(open_mode_t const mode)
+	{
+		// rely on default umask to filter x and w permissions
+		// for group and others
+		mode_t permissions = S_IRUSR | S_IWUSR
+			| S_IRGRP | S_IWGRP
+			| S_IROTH | S_IWOTH;
+
+		if ((mode & aux::open_mode::executable))
+			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
+
+		return permissions;
+	}
+
+	int open_file(std::string const filename, open_mode_t const mode)
+	{
+		int ret = ::open(filename.c_str(), file_flags(mode), file_perms(mode));
+
+#ifdef O_NOATIME
+		if (ret < 0 && (mode & open_mode::no_atime))
+		{
+			// NOATIME may not be allowed for certain files, it's best-effort,
+			// so just try again without NOATIME
+			ret = ::open(filename.c_str()
+				, file_flags(mode & ~open_mode::no_atime), file_perms(mode));
+		}
+#endif
+		if (ret < 0) throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_open);
+		return ret;
+	}
+#endif // TORRENT_WINDOWS
 
 } // anonymous namespace
 
-	// this has to be thread safe and atomic. i.e. on posix systems it has to be
-	// turned into a series of pread() calls
-	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, aux::open_mode_t)
-	{
-		if (m_file_handle == INVALID_HANDLE_VALUE)
-		{
 #ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, system_category());
-#else
-			ec = error_code(boost::system::errc::bad_file_descriptor, generic_category());
-#endif
-			return -1;
-		}
-		TORRENT_ASSERT(!bufs.empty());
-		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
-
-		return iov(&pread, m_file_handle, file_offset, bufs, ec);
+file_handle::file_handle(string_view name, std::int64_t const size
+	, open_mode_t const mode)
+	: m_fd(create_file(convert_to_native_path_string(std::string(name)), mode))
+	, m_open_mode(mode)
+{
+	if (m_fd == invalid_handle)
+	{
+		throw_ex<storage_error>(error_code(GetLastError(), system_category())
+			, operation_t::file_open);
 	}
 
-	// This has to be thread safe, i.e. atomic.
-	// that means, on posix this has to be turned into a series of
-	// pwrite() calls
-	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, aux::open_mode_t)
+	// try to make the file sparse if supported
+	// only set this flag if the file is opened for writing
+	if ((mode & aux::open_mode::sparse) && (mode & aux::open_mode::write))
 	{
-		if (m_file_handle == INVALID_HANDLE_VALUE)
-		{
-#ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, system_category());
-#else
-			ec = error_code(boost::system::errc::bad_file_descriptor, generic_category());
+		DWORD temp;
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &temp, nullptr);
+	}
+
+	if ((mode & open_mode::truncate)
+		&& !(mode & aux::open_mode::sparse)
+		&& (mode & aux::open_mode::allow_set_file_valid_data))
+	{
+		LARGE_INTEGER sz;
+		sz.QuadPart = size;
+		if (SetFilePointerEx(m_fd, sz, nullptr, FILE_BEGIN) == FALSE)
+			throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_seek);
+
+		if (::SetEndOfFile(m_fd) == FALSE)
+			throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_truncate);
+
+#ifndef TORRENT_WINRT
+		// if the user has permissions, avoid filling
+		// the file with zeroes, but just fill it with
+		// garbage instead
+		SetFileValidData(m_fd, size);
 #endif
-			return -1;
-		}
-		TORRENT_ASSERT(!bufs.empty());
-		TORRENT_ASSERT(m_file_handle != INVALID_HANDLE_VALUE);
-
-		ec.clear();
-
-		std::int64_t ret = iov(&pwrite, m_file_handle, file_offset, bufs, ec);
-
-		return ret;
 	}
 }
+
+#else
+
+file_handle::file_handle(string_view name, std::int64_t const size
+	, open_mode_t const mode)
+	: m_fd(open_file(convert_to_native_path_string(std::string(name)), mode))
+{
+#ifdef DIRECTIO_ON
+	// for solaris
+	if (mode & open_mode::no_cache)
+		directio(m_fd, DIRECTIO_ON);
+#endif
+
+	if (mode & open_mode::truncate)
+	{
+		static_assert(sizeof(off_t) >= sizeof(size), "There seems to be a large-file issue in truncate()");
+		if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
+		{
+			int const err = errno;
+			::close(m_fd);
+			throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_truncate);
+		}
+
+		if (!(mode & open_mode::sparse))
+		{
+#if TORRENT_HAS_FALLOCATE
+			// if you get a compile error here, you might want to
+			// define TORRENT_HAS_FALLOCATE to 0.
+			int const ret = ::posix_fallocate(m_fd, 0, size);
+			// posix_allocate fails with EINVAL in case the underlying
+			// filesystem does not support this operation
+			if (ret != 0 && ret != EINVAL)
+			{
+				::close(m_fd);
+				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
+			}
+#elif defined F_ALLOCSP64
+			flock64 fl64;
+			fl64.l_whence = SEEK_SET;
+			fl64.l_start = 0;
+			fl64.l_len = size;
+			if (fcntl(m_fd, F_ALLOCSP64, &fl64) < 0)
+			{
+				int const err = errno;
+				::close(m_fd);
+				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
+			}
+#elif defined F_PREALLOCATE
+			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, size, 0};
+			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+			{
+				// It appears Apple's new filesystem (APFS) does not
+				// support this control message and fails with EINVAL
+				// if so, just skip it
+				if (errno != EINVAL)
+				{
+					if (errno != ENOSPC)
+					{
+						int const err = errno;
+						::close(m_fd);
+						throw_ex<storage_error>(error_code(err, system_category())
+							, operation_t::file_fallocate);
+					}
+					// ok, let's try to allocate non contiguous space then
+					f.fst_flags = F_ALLOCATEALL;
+					if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+					{
+						int const err = errno;
+						::close(m_fd);
+						throw_ex<storage_error>(error_code(err, system_category())
+							, operation_t::file_fallocate);
+					}
+				}
+			}
+#endif // F_PREALLOCATE
+		}
+	}
+
+#ifdef F_NOCACHE
+	// for BSD/Mac
+	if (mode & aux::open_mode::no_cache)
+	{
+		int yes = 1;
+		::fcntl(m_fd, F_NOCACHE, &yes);
+
+#ifdef F_NODIRECT
+		// it's OK to temporarily cache written pages
+		::fcntl(m_fd, F_NODIRECT, &yes);
+#endif
+	}
+#endif
+
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_RANDOM)
+	if (mode & aux::open_mode::random_access)
+	{
+		// disable read-ahead
+		::posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+	}
+#endif
+}
+#endif
+
+void file_handle::close()
+{
+	if (m_fd == invalid_handle) return;
+
+#ifdef TORRENT_WINDOWS
+
+	// if this file is open for writing, has the sparse
+	// flag set, but there are no sparse regions, unset
+	// the flag
+	if ((m_open_mode & aux::open_mode::write)
+		&& (m_open_mode & aux::open_mode::sparse)
+		&& !is_sparse(m_fd))
+	{
+		// according to MSDN, clearing the sparse flag of a file only
+		// works on windows vista and later
+#ifdef TORRENT_MINGW
+		typedef struct _FILE_SET_SPARSE_BUFFER {
+			BOOLEAN SetSparse;
+		} FILE_SET_SPARSE_BUFFER;
+#endif
+		DWORD temp;
+		FILE_SET_SPARSE_BUFFER b;
+		b.SetSparse = FALSE;
+		::DeviceIoControl(m_fd, FSCTL_SET_SPARSE, &b, sizeof(b)
+			, nullptr, 0, &temp, nullptr);
+	}
+#endif
+
+#ifdef TORRENT_WINDOWS
+	CloseHandle(m_fd);
+#else
+	::close(m_fd);
+#endif
+	m_fd = invalid_handle;
+}
+
+file_handle::~file_handle() { close(); }
+
+file_handle& file_handle::operator=(file_handle&& rhs) &
+{
+	if (&rhs == this) return *this;
+	close();
+	m_fd = rhs.m_fd;
+	rhs.m_fd = invalid_handle;
+	return *this;
+}
+
+std::int64_t file_handle::get_size() const
+{
+#ifdef  TORRENT_WINDOWS
+	LARGE_INTEGER file_size;
+	if (GetFileSizeEx(fd(), &file_size) == 0)
+		throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_stat);
+	return file_size.QuadPart;
+#else
+	struct ::stat fs;
+	if (::fstat(fd(), &fs) != 0)
+		throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_stat);
+	return fs.st_size;
+#endif
+}
+
+} // namespace libtorrent::aux

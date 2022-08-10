@@ -153,11 +153,11 @@ namespace aux {
 		return slot;
 	}
 
-	int posix_part_file::writev(span<iovec_t const> bufs, piece_index_t const piece
+	int posix_part_file::write(span<char> buf, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(int(bufs.size()) + offset <= m_piece_size);
+		TORRENT_ASSERT(int(buf.size()) + offset <= m_piece_size);
 
 		auto f = open_file(open_mode::read_write, ec);
 		if (ec) return -1;
@@ -171,26 +171,21 @@ namespace aux {
 			ec.assign(errno, generic_category());
 			return -1;
 		}
-		int ret = 0;
-		for (auto const& b : bufs)
+		auto const written = std::fwrite(buf.data(), 1, std::size_t(buf.size()), f.file());
+		if (written != std::size_t(buf.size()))
 		{
-			auto const written = std::fwrite(b.data(), 1, std::size_t(b.size()), f.file());
-			if (written != std::size_t(b.size()))
-			{
-				ec.assign(errno, generic_category());
-				return -1;
-			}
-			ret += int(written);
+			ec.assign(errno, generic_category());
+			return -1;
 		}
-		return ret;
+		return int(written);
 	}
 
-	int posix_part_file::readv(span<iovec_t const> bufs
+	int posix_part_file::read(span<char> buf
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(int(bufs.size()) + offset <= m_piece_size);
+		TORRENT_ASSERT(int(buf.size()) + offset <= m_piece_size);
 
 		auto const i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
@@ -209,38 +204,34 @@ namespace aux {
 			ec.assign(errno, generic_category());
 			return -1;
 		}
-		int ret = 0;
-		for (auto const& b : bufs)
+		auto const read = std::fread(buf.data(), 1, std::size_t(buf.size()), f.file());
+		if (read != std::size_t(buf.size()))
 		{
-			auto const read = std::fread(b.data(), 1, std::size_t(b.size()), f.file());
-			if (read != std::size_t(b.size()))
-			{
-				ec.assign(errno, generic_category());
-				return -1;
-			}
-			ret += int(read);
+			if (std::ferror(f.file())) ec.assign(errno, generic_category());
+			else ec.assign(errors::file_too_short, libtorrent_category());
+			return -1;
 		}
-		return ret;
+		return int(read);
 	}
 
-	int posix_part_file::hashv(hasher& ph
+	int posix_part_file::hash(hasher& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
-		return do_hashv(ph, len, piece, offset, ec);
+		return do_hash(ph, len, piece, offset, ec);
 	}
 
-	int posix_part_file::hashv2(hasher256& ph
+	int posix_part_file::hash2(hasher256& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
-		return do_hashv(ph, len, piece, offset, ec);
+		return do_hash(ph, len, piece, offset, ec);
 	}
 
 	template <typename Hasher>
-	int posix_part_file::do_hashv(Hasher& ph
+	int posix_part_file::do_hash(Hasher& ph
 		, std::ptrdiff_t const len
 		, piece_index_t const piece
 		, int const offset, error_code& ec)

@@ -4,6 +4,10 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+
+	* fix madvise range for flushing cache in mmap_storage
+	* open files with no_cache set in O_SYNC mode
+
 * 2.0.7 released
 
 	* fix issue in use of copy_file_range() on linux

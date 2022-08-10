@@ -80,6 +80,8 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 
+	TORRENT_EXTRA_EXPORT int hash_zeroes(hasher& ph, std::int64_t size);
+
 	TORRENT_EXTRA_EXPORT void initialize_storage(
 		file_storage const& fs
 		, std::string const& save_path

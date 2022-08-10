@@ -51,9 +51,8 @@ TORRENT_TEST(part_file)
 		// write something to the metadata file
 		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
-		iovec_t v = buf;
-		pf.writev(v, 10_piece, 0, ec);
-		if (ec) std::printf("part_file::writev: %s\n", ec.message().c_str());
+		pf.write(buf, 10_piece, 0, ec);
+		if (ec) std::printf("part_file::write: %s\n", ec.message().c_str());
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -70,8 +69,8 @@ TORRENT_TEST(part_file)
 
 		buf.fill(0);
 
-		pf.readv(v, 10_piece, 0, ec);
-		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
+		pf.read(buf, 10_piece, 0, ec);
+		if (ec) std::printf("part_file::read: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < int(buf.size()); ++i)
 			TEST_CHECK(buf[std::size_t(i)] == char(i));
@@ -79,8 +78,8 @@ TORRENT_TEST(part_file)
 		sha1_hash const cmp_hash = hasher(buf).final();
 
 		hasher ph;
-		pf.hashv(ph, sizeof(buf), 10_piece, 0, ec);
-		if (ec) std::printf("part_file::hashv: %s\n", ec.message().c_str());
+		pf.hash(ph, sizeof(buf), 10_piece, 0, ec);
+		if (ec) std::printf("part_file::hash: %s\n", ec.message().c_str());
 
 		TEST_CHECK(ph.final() == cmp_hash);
 	}
@@ -91,9 +90,8 @@ TORRENT_TEST(part_file)
 
 		buf.fill(0);
 
-		iovec_t v = buf;
-		pf.readv(v, 10_piece, 0, ec);
-		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
+		pf.read(buf, 10_piece, 0, ec);
+		if (ec) std::printf("part_file::read: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
 			TEST_CHECK(buf[std::size_t(i)] == static_cast<char>(i));
@@ -158,9 +156,8 @@ TORRENT_TEST(posix_part_file)
 		// write something to the metadata file
 		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
-		iovec_t v = buf;
-		pf.writev(v, 10_piece, 0, ec);
-		if (ec) std::printf("posix_part_file::writev: %s\n", ec.message().c_str());
+		pf.write(buf, 10_piece, 0, ec);
+		if (ec) std::printf("posix_part_file::write: %s\n", ec.message().c_str());
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -177,8 +174,8 @@ TORRENT_TEST(posix_part_file)
 
 		buf.fill(0);
 
-		pf.readv(v, 10_piece, 0, ec);
-		if (ec) std::printf("posix_part_file::readv: %s\n", ec.message().c_str());
+		pf.read(buf, 10_piece, 0, ec);
+		if (ec) std::printf("posix_part_file::read: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < int(buf.size()); ++i)
 			TEST_CHECK(buf[std::size_t(i)] == char(i));
@@ -186,8 +183,8 @@ TORRENT_TEST(posix_part_file)
 		sha1_hash const cmp_hash = hasher(buf).final();
 
 		hasher ph;
-		pf.hashv(ph, sizeof(buf), 10_piece, 0, ec);
-		if (ec) std::printf("posix_part_file::hashv: %s\n", ec.message().c_str());
+		pf.hash(ph, sizeof(buf), 10_piece, 0, ec);
+		if (ec) std::printf("posix_part_file::hash: %s\n", ec.message().c_str());
 
 		TEST_CHECK(ph.final() == cmp_hash);
 	}
@@ -198,9 +195,8 @@ TORRENT_TEST(posix_part_file)
 
 		buf.fill(0);
 
-		iovec_t v = buf;
-		pf.readv(v, 10_piece, 0, ec);
-		if (ec) std::printf("posix_part_file::readv: %s\n", ec.message().c_str());
+		pf.read(buf, 10_piece, 0, ec);
+		if (ec) std::printf("posix_part_file::read: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
 			TEST_CHECK(buf[std::size_t(i)] == static_cast<char>(i));
