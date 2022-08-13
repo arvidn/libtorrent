@@ -52,8 +52,12 @@ see LICENSE file.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
-#include "libtorrent/disabled_disk_io.hpp" // for disabled_disk_io_constructor
 #include "libtorrent/load_torrent.hpp"
+
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
+#include "libtorrent/disabled_disk_io.hpp"
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -1342,7 +1346,10 @@ CLIENT OPTIONS
   -e <loops>            exit client after the specified number of iterations
                         through the main loop
   -O                    print session stats counters to the log
-  -1                    exit on first torrent completing (useful for benchmarks))"
+  -1                    exit on first torrent completing (useful for benchmarks)
+  -i <disk-io>          specify which disk I/O back-end to use. One of:
+                        mmap, posix, pread, disabled
+)"
 #ifdef TORRENT_UTP_LOG_ENABLE
 R"(
   -q                    Enable uTP transport-level verbose logging
@@ -1365,12 +1372,7 @@ BITTORRENT OPTIONS
 NETWORK OPTIONS
   -x <file>             loads an emule IP-filter file
   -Y                    Rate limit local peers
-)"
-#if TORRENT_USE_I2P
-R"(  -i <i2p-host>         the hostname to an I2P SAM bridge to use
-)"
-#endif
-R"(
+
 DISK OPTIONS
   -a <mode>             sets the allocation mode. [sparse|allocate]
   -0                    disable disk I/O, read garbage and don't flush to disk
@@ -1552,6 +1554,25 @@ int main(int argc, char* argv[])
 				break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
 			case 'r': peer = arg; break;
+			case 'i': {
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+				if (arg == "mmap"_sv)
+					params.disk_io_constructor = lt::mmap_disk_io_constructor;
+				else
+#endif
+				if (arg == "posix"_sv)
+					params.disk_io_constructor = lt::posix_disk_io_constructor;
+				else if (arg == "pread"_sv)
+					params.disk_io_constructor = lt::pread_disk_io_constructor;
+				else if (arg == "disabled"_sv)
+					params.disk_io_constructor = lt::disabled_disk_io_constructor;
+				else
+				{
+					std::fprintf(stderr, "unknown disk-io subsystem: \"%s\"\n", arg);
+					std::exit(1);
+				}
+				break;
+			}
 			case 'e':
 				{
 					loop_limit = atoi(arg);
