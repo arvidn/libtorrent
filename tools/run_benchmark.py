@@ -49,10 +49,11 @@ def main():
 
     rm_file_or_dir('t')
 
-    run_test('download-write-through', 'upload', ['-1', '--disk_io_write_mode=write_through', '-s', args.save_path], args.download_peers)
-    reset_download(args.save_path)
-    run_test('download-full-cache', 'upload', ['-1', '--disk_io_write_mode=enable_os_cache', '-s', args.save_path], args.download_peers)
-    run_test('upload', 'download', ['-G', '-e', '240', '-s', args.save_path], args.upload_peers)
+    for io_backend in ["mmap", "pread", "posix"]:
+        run_test(f'download-write-through-{io_backend}', 'upload', ['-i', io_backend, '-1', '--disk_io_write_mode=write_through', '-s', args.save_path], args.download_peers)
+        reset_download(args.save_path)
+        run_test(f'download-full-cache-{io_backend}', 'upload', ['-i', io_backend, '-1', '--disk_io_write_mode=enable_os_cache', '-s', args.save_path], args.download_peers)
+        run_test(f'upload-{io_backend}', 'download', ['-i', io_backend, '-G', '-e', '240', '-s', args.save_path], args.upload_peers)
 
 
 def run_test(name, test_cmd, client_arg, num_peers):
