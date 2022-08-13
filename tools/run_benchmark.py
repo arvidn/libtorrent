@@ -42,7 +42,7 @@ def main():
     reset_download(args.save_path)
 
     if not os.path.exists('cpu_benchmark.torrent'):
-        ret = subprocess.check_call([f'../examples/connection_tester{exe}', 'gen-torrent', '-s', '100000', '-n', '15', '-t', 'cpu_benchmark.torrent'])
+        ret = subprocess.check_call([f'../examples/connection_tester{exe}', 'gen-torrent', '-s', '50000', '-n', '15', '-t', 'cpu_benchmark.torrent'])
         if ret != 0:
             print('ERROR: connection_tester failed: %d' % ret)
             sys.exit(1)
@@ -89,10 +89,10 @@ def run_test(name, test_cmd, client_arg, num_peers):
     t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
     out = {}
-    while c.returncode is None:
+    while t.returncode is None:
         capture_sample(c.pid, start, out)
         time.sleep(0.1)
-        c.poll()
+        t.poll()
     end = time.monotonic()
 
     stats_filename = f"{output_dir}/memory_stats.log"
@@ -106,12 +106,15 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
     print(f'runtime {end-start:0.2f} seconds')
     print('analyzing profile...')
-    os.system(f'gprof ../examples/client_test{exe} >%s/gprof.out' % output_dir)
-    print('generating profile graph...')
     try:
-        os.system('gprof2dot --strip <%s/gprof.out | dot -Tpng -o %s/cpu_profile.png' % (output_dir, output_dir))
+        os.system(f'gprof ../examples/client_test{exe} >%s/gprof.out' % output_dir)
+        print('generating profile graph...')
+        try:
+            os.system('gprof2dot --strip <%s/gprof.out | dot -Tpng -o %s/cpu_profile.png' % (output_dir, output_dir))
+        except Exception:
+            print('please install gprof2dot and dot:\nsudo pip install gprof2dot\nsudo apt install graphviz')
     except Exception:
-        print('please install gprof2dot and dot:\nsudo pip install gprof2dot\nsudo apt install graphviz')
+        print("gprof failed")
 
     os.system('python3 parse_session_stats.py %s/events.log' % output_dir)
 
