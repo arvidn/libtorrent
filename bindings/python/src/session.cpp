@@ -28,6 +28,10 @@
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
 
+#include <libtorrent/mmap_disk_io.hpp>
+#include <libtorrent/posix_disk_io.hpp>
+#include <libtorrent/pread_disk_io.hpp>
+
 namespace boost
 {
 	// this fixes mysterious link error on msvc
@@ -864,6 +868,27 @@ namespace
     }
 #endif
 
+    std::string get_disk_io(session_params const& s)
+    {
+        // this field is write-only
+        return "default_disk_io_constructor";
+    }
+
+    void set_disk_io(session_params& s, std::string disk_io)
+    {
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+        if (disk_io == "mmap_disk_io_constructor")
+            s.disk_io_constructor = &lt::mmap_disk_io_constructor;
+        else
+#endif
+        if (disk_io == "posix_disk_io_constructor")
+            s.disk_io_constructor = &lt::posix_disk_io_constructor;
+        else if (disk_io == "pread_disk_io_constructor")
+            s.disk_io_constructor = &lt::pread_disk_io_constructor;
+        else
+            s.disk_io_constructor = &lt::default_disk_io_constructor;
+    }
+
 } // anonymous namespace
 
 struct dummy1 {};
@@ -1040,6 +1065,7 @@ void bind_session()
         .def_readwrite("dht_state", &session_params::dht_state)
 #endif
         .def_readwrite("ip_filter", &session_params::ip_filter)
+        .add_property("disk_io_constructor", &get_disk_io, &set_disk_io)
         ;
 
     def("read_session_params", &read_session_params_entry, (arg("dict"), arg("flags")=save_state_flags_t::all()));
