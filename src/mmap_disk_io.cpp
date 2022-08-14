@@ -21,14 +21,13 @@ see LICENSE file.
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/aux_/platform_util.hpp"
+#include "libtorrent/aux_/platform_util.hpp" // for set_thread_name
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/store_buffer.hpp"
@@ -39,7 +38,6 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
-#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/storage_array.hpp"
 #include "libtorrent/aux_/disk_completed_queue.hpp"
 

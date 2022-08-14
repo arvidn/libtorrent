@@ -12,22 +12,7 @@ see LICENSE file.
 #ifndef TORRENT_MMAP_DISK_JOB_HPP
 #define TORRENT_MMAP_DISK_JOB_HPP
 
-#include "libtorrent/fwd.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/aux_/tailqueue.hpp"
-#include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/disk_interface.hpp"
-#include "libtorrent/aux_/vector.hpp"
-#include "libtorrent/units.hpp"
-#include "libtorrent/session_types.hpp"
-#include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/disk_job.hpp"
-
-#include <variant>
-#include <string>
-#include <vector>
-#include <memory>
-#include <functional>
 
 namespace libtorrent::aux {
 
