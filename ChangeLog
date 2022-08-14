@@ -1,3 +1,4 @@
+	* add a multi-threaded, pread()-based, disk I/O backend (pread_disk_io)
 	* made disk_interface's status_t type a flags type
 	* optimize resume data format to use less space
 	* add a simpler overload to bencode() returning a vector<char>
