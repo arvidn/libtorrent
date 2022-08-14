@@ -28,6 +28,7 @@ see LICENSE file.
 #endif
 
 #include <set>
+#include <algorithm>
 
 namespace libtorrent { namespace aux {
 
