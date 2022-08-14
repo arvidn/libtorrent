@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
-#include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -82,8 +81,10 @@ namespace aux {
 
 namespace {
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+using lt::mmap_storage;
+#endif
 using lt::aux::posix_storage;
-using lt::aux::mmap_disk_job;
 
 constexpr int piece_size = 16 * 1024 * 16;
 constexpr int half = piece_size / 2;
@@ -191,9 +192,30 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	return info;
 }
 
+// file_pool_type is a meta function returning the file pool type for a specific
+// StorageType
+// maybe this would be easier to follow if it was all bundled up in a
+// traits class
+template <typename StorageType>
+struct file_pool_type {};
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+template <>
+struct file_pool_type<mmap_storage>
+{
+	using type = aux::file_view_pool;
+};
+#endif
+
+template <>
+struct file_pool_type<posix_storage>
+{
+	using type = int;
+};
+
 template <typename StorageType>
 std::shared_ptr<StorageType> make_storage(storage_params const& p
-	, aux::file_view_pool& fp);
+	, typename file_pool_type<StorageType>::type& fp);
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 template <>
@@ -202,22 +224,18 @@ std::shared_ptr<mmap_storage> make_storage(storage_params const& p
 {
 	return std::make_shared<mmap_storage>(p, fp);
 }
-#else
-template <>
-std::shared_ptr<mmap_storage> make_storage(storage_params const& p
-	, aux::file_view_pool& fp) = delete;
 #endif
 
 template <>
 std::shared_ptr<posix_storage> make_storage(storage_params const& p
-	, aux::file_view_pool&)
+	, int&)
 {
 	return std::make_shared<posix_storage>(p);
 }
 
-template <typename StorageType>
+template <typename StorageType, typename FilePool>
 std::shared_ptr<StorageType> setup_torrent(file_storage& fs
-	, aux::file_view_pool& fp
+	, FilePool& fp
 	, std::vector<char>& buf
 	, std::string const& test_path
 	, aux::session_settings& set)
@@ -334,7 +352,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 
 	{
 	// avoid having two storages use the same files
-	aux::file_view_pool fp;
+	typename file_pool_type<StorageType>::type fp;
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
@@ -424,7 +442,7 @@ void test_remove(std::string const& test_path)
 
 	file_storage fs;
 	std::vector<char> buf;
-	aux::file_view_pool fp;
+	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 
 	aux::session_settings set;
@@ -494,7 +512,7 @@ void test_rename(std::string const& test_path)
 
 	file_storage fs;
 	std::vector<char> buf;
-	aux::file_view_pool fp;
+	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 	aux::session_settings set;
 
@@ -1313,7 +1331,7 @@ void test_move_storage_to_self()
 	aux::session_settings set;
 	file_storage fs;
 	std::vector<char> buf;
-	aux::file_view_pool fp;
+	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
 
@@ -1347,7 +1365,7 @@ void test_move_storage_into_self()
 	aux::session_settings set;
 	file_storage fs;
 	std::vector<char> buf;
-	aux::file_view_pool fp;
+	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
 
@@ -1416,7 +1434,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	aux::session_settings set;
 	file_storage fs;
 	std::vector<char> buf;
-	aux::file_view_pool fp;
+	typename file_pool_type<mmap_storage>::type fp;
 	io_context ios;
 	auto s = setup_torrent<mmap_storage>(fs, fp, buf, save_path, set);
 
