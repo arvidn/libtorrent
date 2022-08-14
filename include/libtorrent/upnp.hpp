@@ -59,6 +59,17 @@ namespace libtorrent {
 	struct http_connection;
 	class http_parser;
 
+namespace aux {
+
+	struct socket_package
+	{
+		socket_package(io_context& ios) : socket(ios) {}
+		udp::socket socket;
+		std::array<char, 1500> buffer;
+		udp::endpoint remote;
+	};
+}
+
 namespace upnp_errors {
 	// error codes for the upnp_error_category. They hold error codes
 	// returned by UPnP routers when mapping ports
@@ -205,15 +216,15 @@ private:
 
 	std::shared_ptr<upnp> self() { return shared_from_this(); }
 
-	void open_multicast_socket(udp::socket& s, error_code& ec);
-	void open_unicast_socket(udp::socket& s, error_code& ec);
+	void open_multicast_socket(aux::socket_package& s, error_code& ec);
+	void open_unicast_socket(aux::socket_package& s, error_code& ec);
 
 	void map_timer(error_code const& ec);
 	void try_map_upnp();
 	void discover_device_impl();
 
 	void resend_request(error_code const& e);
-	void on_reply(udp::socket& s, error_code const& ec);
+	void on_reply(aux::socket_package& s, error_code const& ec, std::size_t len);
 
 	struct rootdevice;
 	void next(rootdevice& d, port_mapping_t i);
@@ -346,8 +357,8 @@ private:
 
 	// the udp socket used to send and receive
 	// multicast messages on the network
-	udp::socket m_multicast_socket;
-	udp::socket m_unicast_socket;
+	aux::socket_package m_multicast;
+	aux::socket_package m_unicast;
 
 	// used to resend udp packets in case
 	// they time out

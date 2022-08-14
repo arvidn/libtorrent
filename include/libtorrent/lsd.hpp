@@ -62,7 +62,7 @@ private:
 	void announce_impl(sha1_hash const& ih, int listen_port, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& info_hash
 		, int listen_port, int retry_count);
-	void on_announce(error_code const& ec);
+	void on_announce(error_code const& ec, std::size_t len);
 
 	aux::lsd_callback& m_callback;
 
@@ -70,6 +70,8 @@ private:
 	address m_netmask;
 
 	udp::socket m_socket;
+	std::array<char, 1500> m_buffer;
+	udp::endpoint m_remote;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;

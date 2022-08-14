@@ -49,8 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -115,8 +115,8 @@ upnp::upnp(io_context& ios
 	, m_callback(cb)
 	, m_io_service(ios)
 	, m_resolver(ios)
-	, m_multicast_socket(ios)
-	, m_unicast_socket(ios)
+	, m_multicast(ios)
+	, m_unicast(ios)
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
@@ -138,7 +138,7 @@ void upnp::start()
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	open_multicast_socket(m_multicast_socket, ec);
+	open_multicast_socket(m_multicast, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 	if (ec && should_log())
 	{
@@ -149,7 +149,7 @@ void upnp::start()
 	}
 #endif
 
-	open_unicast_socket(m_unicast_socket, ec);
+	open_unicast_socket(m_unicast, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 	if (ec && should_log())
 	{
@@ -171,39 +171,39 @@ namespace {
 
 }
 
-void upnp::open_multicast_socket(udp::socket& s, error_code& ec)
+void upnp::open_multicast_socket(aux::socket_package& s, error_code& ec)
 {
 	using namespace boost::asio::ip::multicast;
-	s.open(udp::v4(), ec);
+	s.socket.open(udp::v4(), ec);
 	if (ec) return;
-	s.set_option(udp::socket::reuse_address(true), ec);
+	s.socket.set_option(udp::socket::reuse_address(true), ec);
 	if (ec) return;
-	s.bind(udp::endpoint(m_listen_address, ssdp_port), ec);
+	s.socket.bind(udp::endpoint(m_listen_address, ssdp_port), ec);
 	if (ec) return;
-	s.set_option(join_group(ssdp_multicast_addr), ec);
+	s.socket.set_option(join_group(ssdp_multicast_addr), ec);
 	if (ec) return;
-	s.set_option(hops(255), ec);
+	s.socket.set_option(hops(255), ec);
 	if (ec) return;
-	s.set_option(enable_loopback(true), ec);
+	s.socket.set_option(enable_loopback(true), ec);
 	if (ec) return;
-	s.set_option(outbound_interface(m_listen_address), ec);
+	s.socket.set_option(outbound_interface(m_listen_address), ec);
 	if (ec) return;
 
 	ADD_OUTSTANDING_ASYNC("upnp::on_reply");
-	s.async_receive(boost::asio::null_buffers{}
-		, std::bind(&upnp::on_reply, self(), std::ref(s), _1));
+	s.socket.async_receive_from(boost::asio::buffer(s.buffer), s.remote
+		, std::bind(&upnp::on_reply, self(), std::ref(s), _1, _2));
 }
 
-void upnp::open_unicast_socket(udp::socket& s, error_code& ec)
+void upnp::open_unicast_socket(aux::socket_package& s, error_code& ec)
 {
-	s.open(udp::v4(), ec);
+	s.socket.open(udp::v4(), ec);
 	if (ec) return;
-	s.bind(udp::endpoint(m_listen_address, 0), ec);
+	s.socket.bind(udp::endpoint(m_listen_address, 0), ec);
 	if (ec) return;
 
 	ADD_OUTSTANDING_ASYNC("upnp::on_reply");
-	s.async_receive(boost::asio::null_buffers{}
-		, std::bind(&upnp::on_reply, self(), std::ref(s), _1));
+	s.socket.async_receive_from(boost::asio::buffer(s.buffer), s.remote
+		, std::bind(&upnp::on_reply, self(), std::ref(s), _1, _2));
 }
 
 upnp::~upnp() = default;
@@ -246,9 +246,9 @@ void upnp::discover_device_impl()
 
 	error_code mcast_ec;
 	error_code ucast_ec;
-	m_multicast_socket.send_to(boost::asio::buffer(msearch, sizeof(msearch) - 1)
+	m_multicast.socket.send_to(boost::asio::buffer(msearch, sizeof(msearch) - 1)
 		, udp::endpoint(ssdp_multicast_addr, ssdp_port), 0, mcast_ec);
-	m_unicast_socket.send_to(boost::asio::buffer(msearch, sizeof(msearch) - 1)
+	m_unicast.socket.send_to(boost::asio::buffer(msearch, sizeof(msearch) - 1)
 		, udp::endpoint(ssdp_multicast_addr, ssdp_port), 0, ucast_ec);
 
 	if (mcast_ec && ucast_ec)
@@ -463,7 +463,7 @@ void upnp::connect(rootdevice& d)
 	}
 }
 
-void upnp::on_reply(udp::socket& s, error_code const& ec)
+void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t const len)
 {
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("upnp::on_reply");
@@ -472,13 +472,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 	if (m_closing) return;
 
 	std::shared_ptr<upnp> me(self());
-
-	std::array<char, 1500> buffer{};
-	udp::endpoint from;
-	error_code err;
-	int const len = static_cast<int>(s.receive_from(boost::asio::buffer(buffer)
-		, from, 0, err));
-
+	udp::endpoint const from = s.remote;
 	// parse out the url for the device
 
 /*
@@ -506,11 +500,15 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 */
 
-	ADD_OUTSTANDING_ASYNC("upnp::on_reply");
-	s.async_receive(boost::asio::null_buffers{}
-		, std::bind(&upnp::on_reply, self(), std::ref(s), _1));
+	// reissue the async receive as we exit the function. We can't do this
+	// earlier because we still need to use s.buffer
+	auto reissue_receive = scope_end([&] {
+		ADD_OUTSTANDING_ASYNC("upnp::on_reply");
+		s.socket.async_receive_from(boost::asio::buffer(s.buffer), s.remote
+			, std::bind(&upnp::on_reply, self(), std::ref(s), _1, _2));
+	});
 
-	if (err) return;
+	if (ec) return;
 
 	if (m_settings.get_bool(settings_pack::upnp_ignore_nonrouters)
 		&& !match_addr_mask(m_listen_address, from.address(), m_netmask))
@@ -529,7 +527,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 
 	http_parser p;
 	bool error = false;
-	p.incoming({buffer.data(), len}, error);
+	p.incoming({s.buffer.data(), std::ptrdiff_t(len)}, error);
 	if (error)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -596,6 +594,7 @@ void upnp::on_reply(udp::socket& s, error_code const& ec)
 	{
 		std::string protocol;
 		std::string auth;
+		error_code err;
 		// we don't have this device in our list. Add it
 		std::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, err);
@@ -1161,8 +1160,8 @@ void upnp::disable(error_code const& ec)
 	m_refresh_timer.cancel();
 	m_map_timer.cancel();
 	error_code e;
-	m_unicast_socket.close(e);
-	m_multicast_socket.close(e);
+	m_unicast.socket.close(e);
+	m_multicast.socket.close(e);
 }
 
 void find_error_code(int const type, string_view string, error_code_parse_state& state)
@@ -1657,8 +1656,8 @@ void upnp::close()
 	m_map_timer.cancel();
 	m_closing = true;
 	error_code ec;
-	m_unicast_socket.close(ec);
-	m_multicast_socket.close(ec);
+	m_unicast.socket.close(ec);
+	m_multicast.socket.close(ec);
 
 	for (auto& dev : m_devices)
 	{

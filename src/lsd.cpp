@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/multicast.hpp>
@@ -136,8 +137,8 @@ void lsd::start(error_code& ec)
 	}
 
 	ADD_OUTSTANDING_ASYNC("lsd::on_announce");
-	m_socket.async_wait(udp::socket::wait_read
-		, std::bind(&lsd::on_announce, self(), _1));
+	m_socket.async_receive_from(boost::asio::buffer(m_buffer), m_remote
+		, std::bind(&lsd::on_announce, self(), _1, _2));
 }
 
 lsd::~lsd() = default;
@@ -207,20 +208,26 @@ void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	announce_impl(info_hash, listen_port, retry_count);
 }
 
-void lsd::on_announce(error_code const& ec)
+void lsd::on_announce(error_code const& ec, std::size_t len)
 {
 	COMPLETE_ASYNC("lsd::on_announce");
-	if (ec) return;
+	if (ec)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("<== LSD: receive error: %s", ec.message().c_str());
+#endif
+		return;
+	}
 
-	std::array<char, 1500> buffer;
-	udp::endpoint from;
-	error_code err;
-	int const len = static_cast<int>(m_socket.receive_from(
-		boost::asio::buffer(buffer), from, {}, err));
+	udp::endpoint const from = m_remote;
 
-	ADD_OUTSTANDING_ASYNC("lsd::on_announce");
-	m_socket.async_wait(udp::socket::wait_read
-		, std::bind(&lsd::on_announce, self(), _1));
+	// reissue the async receive as we exit the function. We can't do this
+	// earlier because we still need to use m_buffer
+	auto reissue_receive = aux::scope_end([&] {
+		ADD_OUTSTANDING_ASYNC("lsd::on_announce");
+		m_socket.async_receive_from(boost::asio::buffer(m_buffer), m_remote
+			, std::bind(&lsd::on_announce, self(), _1, _2));
+	});
 
 	if (!match_addr_mask(from.address(), m_listen_address, m_netmask))
 	{
@@ -232,18 +239,10 @@ void lsd::on_announce(error_code const& ec)
 		return;
 	}
 
-	if (err)
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("<== LSD: receive error: %s", err.message().c_str());
-#endif
-		return;
-	}
-
 	http_parser p;
 
 	bool error = false;
-	p.incoming(span<char const>{buffer.data(), len}, error);
+	p.incoming(span<char const>{m_buffer.data(), std::ptrdiff_t(len)}, error);
 
 	if (!p.header_finished() || error)
 	{
