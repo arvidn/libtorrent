@@ -379,6 +379,8 @@ SOURCES = \
   posix_disk_io.cpp               \
   posix_part_file.cpp             \
   posix_storage.cpp               \
+  pread_disk_io.cpp               \
+  pread_storage.cpp               \
   proxy_base.cpp                  \
   proxy_settings.cpp              \
   puff.cpp                        \
@@ -626,6 +628,7 @@ HEADERS = \
   aux_/portmap.hpp                  \
   aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
+  aux_/pread_disk_job.hpp           \
   aux_/proxy_base.hpp               \
   aux_/proxy_settings.hpp           \
   aux_/puff.hpp                     \
