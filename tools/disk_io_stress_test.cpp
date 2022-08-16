@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 // TODO: remove this dependency
 #include "libtorrent/aux_/path.hpp"
@@ -142,7 +143,6 @@ int run_test(test_case const& t) try
 		: 1337;
 
 	int const piece_size = 0x8000;
-	int const blocks_per_piece = std::max(1, piece_size / lt::default_block_size);
 
 	std::int64_t off = 0;
 	for (int i = 0; i < t.num_files; ++i)
@@ -199,13 +199,18 @@ int run_test(test_case const& t) try
 
 	lt::storage_holder tor = disk_io->new_torrent(params, {});
 
+	auto abort_disk = lt::aux::scope_end([&] { disk_io->abort(true); });
+
 	std::vector<lt::peer_request> blocks_to_write;
-	for (int p = 0; p < num_pieces; ++p)
+	for (lt::piece_index_t p : fs.piece_range())
 	{
-		for (int b = 0; b < blocks_per_piece; ++b)
+		int const local_piece_size = fs.piece_size(p);
+		for (int offset = 0, left = local_piece_size;
+			offset < local_piece_size;
+			offset += lt::default_block_size, left -= lt::default_block_size)
 		{
 			blocks_to_write.push_back(
-				{lt::piece_index_t{p}, b * lt::default_block_size, lt::default_block_size});
+				{lt::piece_index_t{p}, offset, std::min(lt::default_block_size, left)});
 		}
 	}
 	std::shuffle(blocks_to_write.begin(), blocks_to_write.end(), random_engine);
@@ -248,7 +253,13 @@ int run_test(test_case const& t) try
 					{
 						--outstanding;
 						++job_counter;
-						if (ec) throw std::runtime_error("async_read failed " + ec.ec.message());
+						if (ec)
+						{
+							std::cerr << "async_write() failed: " << ec.ec.message()
+								<< " " << lt::operation_name(ec.operation)
+								<< " " << static_cast<int>(ec.file()) << "\n";
+							throw std::runtime_error("async_read failed");
+						}
 
 						int const block_size = std::min((fs.piece_size(req.piece) - req.start), int(h.size()));
 						if (!check_block_fill(req, h.data(), block_size))
@@ -274,7 +285,13 @@ int run_test(test_case const& t) try
 				{
 					--outstanding;
 					++job_counter;
-					if (ec) throw std::runtime_error("async_write failed " + ec.ec.message());
+					if (ec)
+					{
+						std::cerr << "async_write() failed: " << ec.ec.message()
+							<< " " << lt::operation_name(ec.operation)
+							<< " " << static_cast<int>(ec.file()) << "\n";
+						throw std::runtime_error("async_write failed");
+					}
 				});
 			if (t.flags & test_mode::read_random_order)
 			{
@@ -321,9 +338,7 @@ int run_test(test_case const& t) try
 		ioc.restart();
 	}
 
-	disk_io->remove_torrent(tor);
-
-	disk_io->abort(true);
+	tor.reset();
 
 	std::cerr << "OK (" << job_counter << " jobs)\n";
 	return 0;
@@ -372,8 +387,8 @@ int main(int argc, char const* argv[])
 
 		test_case tests[] = {
 			// files, queue, threads, read-mult, pool, flags
-			{20, 32, 16, 3, 10, tm::sparse},
 			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes},
+			{20, 32, 16, 3, 10, tm::sparse},
 			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order},
 			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes},
 			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes},
