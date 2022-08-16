@@ -873,6 +873,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(r.start % default_block_size == 0);
 		TORRENT_ASSERT(r.length <= default_block_size);
+		TORRENT_ASSERT(r.start + r.length <= m_torrents[storage]->files().piece_size(r.piece));
 
 		aux::mmap_disk_job* j = m_job_pool.allocate_job(aux::job_action_t::write);
 		j->storage = m_torrents[storage]->shared_from_this();
