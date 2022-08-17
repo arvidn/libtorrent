@@ -623,44 +623,17 @@ error_code translate_error(std::system_error const& err, bool const write)
 			// we're writing to it
 			m_stat_cache.set_dirty(file_index);
 
+			TORRENT_ASSERT(file_index < m_files.end_file());
+
 			auto handle = open_file(sett, file_index
 				, aux::open_mode::write | mode, ec);
 			if (ec) return -1;
-
-			int ret = 0;
-			span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
 			ec.operation = operation_t::file_write;
 
-			try
-			{
-				TORRENT_ASSERT(file_range.size() >= buf.size());
-
-				sig::try_signal([&]{
-					std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
-					});
-
-				file_range = file_range.subspan(buf.size());
-				ret += static_cast<int>(buf.size());
-
-				if (flags & disk_interface::volatile_read)
-					handle->dont_need(file_range.first(buf.size()));
-				if (flags & disk_interface::flush_piece)
-					handle->page_out(file_range.first(buf.size()));
-			}
-			catch (std::system_error const& err)
-			{
-				ec.ec = translate_error(err, true);
-				return -1;
-			}
-
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			m_pool.record_file_write(storage_index(), file_index, ret);
-#endif
-
-			return ret;
+			return aux::pwrite_all(handle->fd(), buf, file_offset, ec.ec);
 		});
 	}
 
