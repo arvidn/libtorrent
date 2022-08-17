@@ -72,6 +72,7 @@ namespace aux {
 		file_mapping_handle& operator=(file_mapping_handle&& fm) &;
 
 		HANDLE handle() const { return m_mapping; }
+		handle_type fd() const { return m_file.fd(); }
 	private:
 		void close();
 		file_handle m_file;
@@ -103,6 +104,8 @@ namespace aux {
 
 		// ...
 		file_view view();
+
+		handle_type fd() const { return m_file.fd(); }
 	private:
 
 		void close();
@@ -162,6 +165,7 @@ namespace aux {
 			m_mapping->page_out(range);
 		}
 
+		handle_type fd() const { return m_mapping->fd(); }
 
 	private:
 		explicit file_view(std::shared_ptr<file_mapping> m) : m_mapping(std::move(m)) {}
