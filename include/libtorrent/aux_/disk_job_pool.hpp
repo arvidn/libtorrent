@@ -67,7 +67,7 @@ namespace aux {
 		int m_write_jobs;
 
 		std::mutex m_job_mutex;
-		aux::pool m_job_pool;
+		aux::object_pool<mmap_disk_job> m_job_pool;
 	};
 }
 }
