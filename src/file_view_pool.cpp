@@ -163,18 +163,11 @@ namespace libtorrent { namespace aux {
 
 		try
 		{
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			std::unique_lock<std::mutex> lou(*open_unmap_lock);
-#endif
-			file_entry e(file_key, fs.file_path(file_index, p), m
-				, fs.file_size(file_index)
+			file_entry e = open_file_impl(p, file_index, fs, m, file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, open_unmap_lock
 #endif
 				);
-#if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			lou.unlock();
-#endif
 
 			l.lock();
 
@@ -258,6 +251,65 @@ namespace libtorrent { namespace aux {
 			woe.mapping = mapping;
 			woe.error = se;
 			woe.cond.notify_all();
+		}
+	}
+
+	file_view_pool::file_entry file_view_pool::open_file_impl(std::string const& p
+		, file_index_t const file_index, file_storage const& fs
+		, open_mode_t const m, file_id const file_key
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+		)
+	{
+		std::string const file_path = fs.file_path(file_index, p);
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		std::unique_lock<std::mutex> lou(*open_unmap_lock);
+#endif
+		try
+		{
+			return file_entry(file_key, file_path, m, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				, open_unmap_lock
+#endif
+				);
+		}
+		catch (storage_error& se)
+		{
+			// opening the file failed. If it was becase the directory was
+			// missing, create it and try again. Otherwise, propagate the
+			// error
+			if (!(m & open_mode::write)
+				|| (se.ec != boost::system::errc::no_such_file_or_directory
+#ifdef TORRENT_WINDOWS
+					// this is a workaround for improper handling of files on windows shared drives.
+					// if the directory on a shared drive does not exist,
+					// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
+					&& se.ec != error_code(ERROR_IO_DEVICE, system_category())
+#endif
+				   ))
+			{
+				throw;
+			}
+
+			// create directory and try again
+			// this means the directory the file is in doesn't exist.
+			// so create it
+			se.ec.clear();
+			create_directories(parent_path(fs.file_path(file_index, p)), se.ec);
+
+			if (se.ec)
+			{
+				// if the directory creation failed, don't try to open the file again
+				// but actually just fail
+				throw_ex<storage_error>(se);
+			}
+
+			return file_entry(file_key, file_path, m, fs.file_size(file_index)
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				, open_unmap_lock
+#endif
+				);
 		}
 	}
 
