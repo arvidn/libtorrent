@@ -673,33 +673,6 @@ namespace {
 #endif
 
 		auto h = open_file_impl(sett, file, mode, ec);
-		if ((mode & open_mode::write)
-			&& (ec.ec == boost::system::errc::no_such_file_or_directory
-#ifdef TORRENT_WINDOWS
-				// this is a workaround for improper handling of files on windows shared drives.
-				// if the directory on a shared drive does not exist,
-				// windows returns ERROR_IO_DEVICE instead of ERROR_FILE_NOT_FOUND
-				|| ec.ec == error_code(ERROR_IO_DEVICE, system_category())
-#endif
-		))
-		{
-			// this means the directory the file is in doesn't exist.
-			// so create it
-			ec.ec.clear();
-			std::string path = files().file_path(file, m_save_path);
-			create_directories(parent_path(path), ec.ec);
-
-			if (ec.ec)
-			{
-				// if the directory creation failed, don't try to open the file again
-				// but actually just fail
-				ec.file(file);
-				ec.operation = operation_t::mkdir;
-				return {};
-			}
-
-			h = open_file_impl(sett, file, mode, ec);
-		}
 		if (ec.ec)
 		{
 			ec.file(file);
