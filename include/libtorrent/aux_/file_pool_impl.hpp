@@ -147,6 +147,14 @@ namespace libtorrent::aux {
 
 		void notify_file_open(opening_file_entry& ofe, FileHandle, lt::storage_error const&);
 
+		FileEntry open_file_impl(std::string const& p
+			, file_index_t file_index, file_storage const& fs
+			, open_mode_t m, file_id file_key
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+			, std::shared_ptr<std::mutex> open_unmap_lock
+#endif
+			);
+
 		// In order to avoid multiple threads opening the same file in parallel,
 		// just to race to add it to the pool. This list, also protected by
 		// m_mutex, contains files that one thread is currently opening. If

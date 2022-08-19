@@ -31,22 +31,10 @@ namespace aux {
 			, Storage stor
 			, Args&&... args)
 		{
-			void* buf;
-			{
-				std::lock_guard<std::mutex> l(m_job_mutex);
-				buf = m_job_pool.malloc();
-				m_job_pool.set_next_size(100);
-				++m_jobs_in_use;
-				if constexpr (std::is_same_v<JobType, job::read>)
-					++m_read_jobs;
-				else if constexpr (std::is_same_v<JobType, job::write>)
-					++m_write_jobs;
-			}
-
-			TORRENT_ASSERT(buf);
-
-			auto* ptr = new (buf) T{
-				{
+			std::lock_guard<std::mutex> l(m_job_mutex);
+			auto* ptr = m_job_pool.malloc();
+			new (ptr) T{
+				disk_job{
 				tailqueue_node<disk_job>{},
 				flags,
 				status_t::no_error,
@@ -59,8 +47,13 @@ namespace aux {
 				false, // blocked
 #endif
 				},
-				std::move(stor)
-			};
+				std::move(stor)};
+			m_job_pool.set_next_size(100);
+			++m_jobs_in_use;
+			if constexpr (std::is_same_v<JobType, job::read>)
+				++m_read_jobs;
+			else if constexpr (std::is_same_v<JobType, job::write>)
+				++m_write_jobs;
 
 			return ptr;
 		}
@@ -82,7 +75,7 @@ namespace aux {
 		int m_write_jobs;
 
 		std::mutex m_job_mutex;
-		aux::pool m_job_pool;
+		aux::object_pool<T> m_job_pool;
 	};
 
 	struct mmap_disk_job;

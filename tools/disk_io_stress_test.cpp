@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 // TODO: remove this dependency
 #include "libtorrent/aux_/path.hpp"
@@ -81,23 +82,35 @@ void remove_all(std::string path)
 #endif
 }
 
-bool check_block_fill(lt::peer_request const& req, char const* buf, int len)
+bool check_block_fill(lt::peer_request const& req, lt::span<char const> buf)
 {
 	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
-	for (int i = 0; i < len; i += 4)
-		if (std::memcmp(buf + i, reinterpret_cast<char const*>(&v), 4) != 0)
+	int offset = 0;
+	int const tail = buf.size() % 4;
+	for (; offset < buf.size() - tail; offset += 4)
+		if (std::memcmp(buf.data() + offset, reinterpret_cast<char const*>(&v), 4) != 0)
 		{
-			std::cout << "buffer diverged at byte: " << i << '\n';
+			std::cout << "buffer diverged at word: " << offset << '\n';
+			return false;
+		}
+	if (tail > 0)
+		if (std::memcmp(buf.data() + offset, reinterpret_cast<char const*>(&v), tail) != 0)
+		{
+			std::cout << "buffer diverged at word: " << offset << '\n';
 			return false;
 		}
 	return true;
 }
 
-void generate_block_fill(lt::peer_request const& req, char* buf, int len)
+void generate_block_fill(lt::peer_request const& req, lt::span<char> buf)
 {
 	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
-	for (int i = 0; i < len; i += 4)
-		std::memcpy(buf + i, reinterpret_cast<char const*>(&v), 4);
+	int offset = 0;
+	int const tail = buf.size() % 4;
+	for (; offset < buf.size() - tail; offset += 4)
+		std::memcpy(buf.data() + offset, reinterpret_cast<char const*>(&v), 4);
+	if (tail > 0)
+		std::memcpy(buf.data() + offset, reinterpret_cast<char const*>(&v), tail);
 }
 
 struct test_case
@@ -110,7 +123,7 @@ struct test_case
 	disk_test_mode_t flags;
 };
 
-int run_test(test_case const& t) try
+int run_test(test_case const& t)
 {
 	lt::file_storage fs;
 
@@ -119,28 +132,20 @@ int run_test(test_case const& t) try
 		: 1337;
 
 	int const piece_size = 0x8000;
-	int const blocks_per_piece = std::max(1, piece_size / lt::default_block_size);
 
-	std::int64_t off = 0;
-	for (int i = 0; i < t.num_files; ++i)
 	{
-		fs.add_file("test/" + std::to_string(i), file_size);
-		std::cout << " test/" << std::setw(2) << i
-			<< " size: " << std::setw(10) << file_size
-			<< " first piece: (" << (off / piece_size) << "," << (off % piece_size) << ")"
-			<< '\n';
-		off += file_size;
-		file_size *= 2;
+		std::int64_t off = 0;
+		for (int i = 0; i < t.num_files; ++i)
+		{
+			fs.add_file("test/" + std::to_string(i), file_size);
+			off += file_size;
+			file_size *= 2;
+		}
+		std::int64_t const total_size = fs.total_size();
+		int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
+		fs.set_num_pieces(num_pieces);
+		fs.set_piece_length(piece_size);
 	}
-	std::int64_t const total_size = fs.total_size();
-	int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
-
-	std::cout << "                           last piece: ("
-		<< (off / piece_size) << "," << (off % piece_size) << ")\n";
-	std::cout << "num pieces: " << num_pieces << '\n';
-
-	fs.set_num_pieces(num_pieces);
-	fs.set_piece_length(piece_size);
 	lt::io_context ioc;
 	lt::counters cnt;
 	lt::settings_pack pack;
@@ -150,165 +155,194 @@ int run_test(test_case const& t) try
 	std::unique_ptr<lt::disk_interface> disk_io
 		= lt::default_disk_io_constructor(ioc, pack, cnt);
 
-	std::cerr << "RUNNING: "
-		<< ((t.flags & test_mode::sparse) ? "s-" : "f-")
-		<< ((t.flags & test_mode::even_file_sizes) ? "e-" : "o-")
-		<< ((t.flags & test_mode::read_random_order) ? "rr-" : "or-")
-		<< ((t.flags & test_mode::flush_files) ? "f-" : "a-")
-		<< num_pieces << '-'
-		<< t.file_pool_size << '-'
-		<< t.queue_size << '-'
-		<< t.read_multiplier
-		<< ": ";
+	std::cerr << "RUNNING: -f " << t.num_files
+		<< " -q " << t.queue_size
+		<< " -t " << t.num_threads
+		<< " -r " << t.read_multiplier
+		<< " -p " << t.file_pool_size
+		<< ((t.flags & test_mode::sparse) ? "" : " alloc")
+		<< ((t.flags & test_mode::even_file_sizes) ? " even-size" : "")
+		<< ((t.flags & test_mode::read_random_order) ? " random-read" : "")
+		<< ((t.flags & test_mode::flush_files) ? " flush" : "")
+		<< "\n";
 
-	// TODO: in C++17, use std::filesystem
-	remove_all("scratch-area");
-
-	// TODO: add test mode where some file priorities are 0
-
-	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
-	std::string save_path = "./scratch-area";
-	lt::storage_params params(fs, nullptr
-		, save_path
-		, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
-		, prios
-		, lt::sha1_hash("01234567890123456789"));
-
-	lt::storage_holder tor = disk_io->new_torrent(params, {});
-
-	std::vector<lt::peer_request> blocks_to_write;
-	for (int p = 0; p < num_pieces; ++p)
+	try
 	{
-		for (int b = 0; b < blocks_per_piece; ++b)
+		// TODO: in C++17, use std::filesystem
+		remove_all("scratch-area");
+
+		// TODO: add test mode where some file priorities are 0
+
+		lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
+		std::string save_path = "./scratch-area";
+		lt::storage_params params(fs, nullptr
+			, save_path
+			, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
+			, prios
+			, lt::sha1_hash("01234567890123456789"));
+
+		auto abort_disk = lt::aux::scope_end([&] { disk_io->abort(true); });
+
+		lt::storage_holder tor = disk_io->new_torrent(params, {});
+
+		std::vector<lt::peer_request> blocks_to_write;
+		for (lt::piece_index_t p : fs.piece_range())
 		{
-			blocks_to_write.push_back(
-				{lt::piece_index_t{p}, b * lt::default_block_size, lt::default_block_size});
-		}
-	}
-	std::shuffle(blocks_to_write.begin(), blocks_to_write.end(), random_engine);
-
-	lt::aux::vector<lt::peer_request> blocks_to_read;
-	blocks_to_read.reserve(blocks_to_write.size());
-
-	std::vector<char> write_buffer(lt::default_block_size);
-
-	int outstanding = 0;
-
-	lt::add_torrent_params atp;
-
-	disk_io->async_check_files(tor, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
-		, [&](lt::status_t, lt::storage_error const&) { --outstanding; });
-	++outstanding;
-	disk_io->submit_jobs();
-
-	while (outstanding > 0)
-	{
-		ioc.run_one();
-		ioc.restart();
-	}
-
-	int job_counter = 0;
-
-	while (!blocks_to_write.empty()
-		|| !blocks_to_read.empty()
-		|| outstanding > 0)
-	{
-		for (int i = 0; i < t.read_multiplier; ++i)
-		{
-			if (!blocks_to_read.empty() && outstanding < t.queue_size)
+			int const local_piece_size = fs.piece_size(p);
+			for (int offset = 0, left = local_piece_size;
+				offset < local_piece_size;
+				offset += lt::default_block_size, left -= lt::default_block_size)
 			{
-				auto const req = blocks_to_read.back();
-				blocks_to_read.erase(blocks_to_read.end() - 1);
+				blocks_to_write.push_back(
+					{lt::piece_index_t{p}, offset, std::min(lt::default_block_size, left)});
+			}
+		}
+		std::shuffle(blocks_to_write.begin(), blocks_to_write.end(), random_engine);
 
-				disk_io->async_read(tor, req
-					, [&, req](lt::disk_buffer_holder h, lt::storage_error const& ec)
+		lt::aux::vector<lt::peer_request> blocks_to_read;
+		blocks_to_read.reserve(blocks_to_write.size());
+
+		std::vector<char> write_buffer(lt::default_block_size);
+
+		int outstanding = 0;
+
+		lt::add_torrent_params atp;
+
+		disk_io->async_check_files(tor, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
+			, [&](lt::status_t, lt::storage_error const&) { --outstanding; });
+		++outstanding;
+		disk_io->submit_jobs();
+
+		while (outstanding > 0)
+		{
+			ioc.run_one();
+			ioc.restart();
+		}
+
+		int job_counter = 0;
+
+		while (!blocks_to_write.empty()
+			|| !blocks_to_read.empty()
+			|| outstanding > 0)
+		{
+			for (int i = 0; i < t.read_multiplier; ++i)
+			{
+				if (!blocks_to_read.empty() && outstanding < t.queue_size)
+				{
+					auto const req = blocks_to_read.back();
+					blocks_to_read.erase(blocks_to_read.end() - 1);
+
+					disk_io->async_read(tor, req, [&, req](lt::disk_buffer_holder h, lt::storage_error const& ec)
 					{
 						--outstanding;
 						++job_counter;
-						if (ec) throw std::runtime_error("async_read failed " + ec.ec.message());
+						if (ec)
+						{
+							std::cerr << "async_write() failed: " << ec.ec.message()
+								<< " " << lt::operation_name(ec.operation)
+								<< " " << static_cast<int>(ec.file()) << "\n";
+							throw std::runtime_error("async_read failed");
+						}
 
 						int const block_size = std::min((fs.piece_size(req.piece) - req.start), int(h.size()));
-						if (!check_block_fill(req, h.data(), block_size))
+						if (!check_block_fill(req, {h.data(), block_size}))
 						{
 							std::cerr << "read buffer mismatch: (" << req.piece << ", " << req.start << ")\n";
 							throw std::runtime_error("read buffer mismatch!");
 						}
 					});
 
+					++outstanding;
+				}
+			}
+
+			if (!blocks_to_write.empty() && outstanding < t.queue_size)
+			{
+				auto const req = blocks_to_write.back();
+				blocks_to_write.erase(blocks_to_write.end() - 1);
+
+				generate_block_fill(req, {write_buffer.data(), lt::default_block_size});
+
+				disk_io->async_write(tor, req, write_buffer.data()
+					, {}, [&](lt::storage_error const& ec)
+					{
+						--outstanding;
+						++job_counter;
+						if (ec)
+						{
+							std::cerr << "async_write() failed: " << ec.ec.message()
+								<< " " << lt::operation_name(ec.operation)
+								<< " " << static_cast<int>(ec.file()) << "\n";
+							throw std::runtime_error("async_write failed");
+						}
+					});
+				if (t.flags & test_mode::read_random_order)
+				{
+					std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
+					blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+				}
+				else
+				{
+					blocks_to_read.push_back(req);
+				}
+				// if read_multiplier > 1, put this block more times in the
+				// read queue
+				for (int i = 1; i < t.read_multiplier; ++i)
+				{
+					std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
+					blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+				}
+
 				++outstanding;
 			}
-		}
 
-		if (!blocks_to_write.empty() && outstanding < t.queue_size)
-		{
-			auto const req = blocks_to_write.back();
-			blocks_to_write.erase(blocks_to_write.end() - 1);
-
-			generate_block_fill(req, write_buffer.data(), lt::default_block_size);
-
-			disk_io->async_write(tor, req, write_buffer.data()
-				, {}, [&](lt::storage_error const& ec)
+			if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
+			{
+				disk_io->async_release_files(tor, [&]()
 				{
 					--outstanding;
 					++job_counter;
-					if (ec) throw std::runtime_error("async_write failed " + ec.ec.message());
 				});
-			if (t.flags & test_mode::read_random_order)
-			{
-				std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
-				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
 			}
+
+			// TODO: add test_mode for async_move_storage
+			// TODO: add test_mode for async_hash and async_hash2
+			// TODO: add test_mode for abort_hash_jobs
+			// TODO: add test_mode for async_delete_files
+			// TODO: add test_mode for async_rename_file
+			// TODO: add test_mode for async_set_file_priority
+
+			disk_io->submit_jobs();
+			if (outstanding >= t.queue_size)
+				ioc.run_one();
 			else
-			{
-				blocks_to_read.push_back(req);
-			}
-			// if read_multiplier > 1, put this block more times in the
-			// read queue
-			for (int i = 1; i < t.read_multiplier; ++i)
-			{
-				std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
-				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
-			}
-
-			++outstanding;
+				ioc.poll();
+			ioc.restart();
 		}
 
-		if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
-		{
-			disk_io->async_release_files(tor, [&]()
-				{
-					--outstanding;
-					++job_counter;
-				});
-			++outstanding;
-		}
-
-		// TODO: add test_mode for async_move_storage
-		// TODO: add test_mode for async_hash and async_hash2
-		// TODO: add test_mode for abort_hash_jobs
-		// TODO: add test_mode for async_delete_files
-		// TODO: add test_mode for async_rename_file
-		// TODO: add test_mode for async_set_file_priority
-
-		disk_io->submit_jobs();
-		if (outstanding >= t.queue_size)
-			ioc.run_one();
-		else
-			ioc.poll();
-		ioc.restart();
+		std::cerr << "OK (" << job_counter << " jobs)\n";
+		return 0;
 	}
+	catch (std::exception const& e)
+	{
+		std::cerr << "FAILED WITH EXCEPTION: " << e.what() << '\n';
 
-	disk_io->remove_torrent(tor);
-
-	disk_io->abort(true);
-
-	std::cerr << "OK (" << job_counter << " jobs)\n";
-	return 0;
-}
-catch (std::exception const& e)
-{
-	std::cerr << "FAILED WITH EXCEPTION: " << e.what() << '\n';
-	return 1;
+		auto const ps = fs.piece_length();
+		for (lt::file_index_t f : fs.file_range())
+		{
+			auto const off = fs.file_offset(f);
+			std::cout << " test/" << std::setw(2) << int(f)
+			   << " size: " << std::setw(10) << fs.file_size(f)
+			   << " first piece: (" << (off / ps) << " offset: " << (off % ps) << ")"
+			   << '\n';
+		}
+		auto const total_size = fs.total_size();
+		auto const num_pieces = fs.num_pieces();
+		std::cout << "                           last piece: ("
+		   << (total_size / ps) << " offset: " << (total_size % ps) << ")\n";
+		std::cout << "num pieces: " << num_pieces << '\n';
+		return 1;
+	}
 }
 
 void print_usage()
@@ -349,8 +383,8 @@ int main(int argc, char const* argv[])
 
 		test_case tests[] = {
 			// files, queue, threads, read-mult, pool, flags
-			{20, 32, 16, 3, 10, tm::sparse},
 			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes},
+			{20, 32, 16, 3, 10, tm::sparse},
 			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order},
 			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes},
 			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes},

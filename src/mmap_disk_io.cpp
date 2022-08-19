@@ -189,8 +189,6 @@ private:
 	// must hold the job mutex to access
 	int m_num_running_threads = 0;
 
-	aux::disk_job_pool<aux::mmap_disk_job> m_job_pool;
-
 	// std::mutex to protect the m_generic_threads and m_hash_threads lists
 	mutable std::mutex m_job_mutex;
 
@@ -204,6 +202,8 @@ private:
 
 	// LRU cache of open files
 	aux::file_view_pool m_file_pool;
+
+	aux::disk_job_pool<aux::mmap_disk_job> m_job_pool;
 
 	// disk cache
 	aux::disk_buffer_pool m_buffer_pool;
@@ -520,6 +520,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_ASSERT(r.length > 0);
 		TORRENT_ASSERT(r.start >= 0);
+		TORRENT_ASSERT(r.start + r.length <= m_torrents[storage]->files().piece_size(r.piece));
 
 		storage_error ec;
 		if (r.length <= 0 || r.start < 0)
@@ -677,6 +678,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(r.start % default_block_size == 0);
 		TORRENT_ASSERT(r.length <= default_block_size);
+		TORRENT_ASSERT(r.start + r.length <= m_torrents[storage]->files().piece_size(r.piece));
 
 		auto data_ptr = buffer.data();
 

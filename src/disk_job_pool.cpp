@@ -19,7 +19,7 @@ namespace aux {
 		: m_jobs_in_use(0)
 		, m_read_jobs(0)
 		, m_write_jobs(0)
-		, m_job_pool(sizeof(T))
+		, m_job_pool()
 	{}
 
 	template <typename T>
@@ -39,12 +39,11 @@ namespace aux {
 		j->in_use = false;
 #endif
 		job_action_t const type = j->get_type();
-		j->~T();
 		std::lock_guard<std::mutex> l(m_job_mutex);
 		if (type == job_action_t::read) --m_read_jobs;
 		else if (type == job_action_t::write) --m_write_jobs;
 		--m_jobs_in_use;
-		m_job_pool.free(j);
+		m_job_pool.destroy(j);
 	}
 
 	template <typename T>
@@ -57,7 +56,6 @@ namespace aux {
 		for (int i = 0; i < num; ++i)
 		{
 			job_action_t const type = j[i]->get_type();
-			j[i]->~T();
 			if (type == job_action_t::read) ++read_jobs;
 			else if (type == job_action_t::write) ++write_jobs;
 		}
@@ -67,7 +65,7 @@ namespace aux {
 		m_write_jobs -= write_jobs;
 		m_jobs_in_use -= num;
 		for (int i = 0; i < num; ++i)
-			m_job_pool.free(j[i]);
+			m_job_pool.destroy(j[i]);
 	}
 
 	template struct disk_job_pool<aux::mmap_disk_job>;
