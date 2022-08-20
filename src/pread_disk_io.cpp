@@ -858,9 +858,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		bool const v2 = !a.block_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
-		int const piece_size2 = v2 ? j->storage->orig_files().piece_size2(a.piece) : 0;
+		int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
 		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
-		int const blocks_in_piece2 = v2 ? j->storage->orig_files().blocks_in_piece2(a.piece) : 0;
+		int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
@@ -870,6 +870,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		int ret = 0;
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
+
+		// Since there may be outstanding write operations on this piece,
+		// we have to check the store buffer for every block. However, if
+		// there are no blocks being written, we would like to issue as
+		// large of a read as possible (i.e. not just individual blocks).
+		// so we defer calling hash() and hash2()
+		std::int64_t deferred_offset = 0;
+		int deferred_length = 0;
+
 		for (int i = 0; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
@@ -886,6 +895,17 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, offset }
 				, [&](char const* buf)
 				{
+					if (deferred_length > 0)
+					{
+						// if we will call hash2() in a bit, don't trigger a flush
+						// just yet, let hash2() do it
+						auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
+						j->error.ec.clear();
+						ret = j->storage->hash(m_settings, h, deferred_length, a.piece
+							, deferred_offset, file_mode, flags, j->error);
+						// TODO: handle errors here
+						deferred_length = 0;
+					}
 					if (v1)
 					{
 						h.update({ buf, len });
@@ -896,18 +916,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 						h2.update({ buf, len2 });
 						ret = int(len2);
 					}
+					deferred_offset = offset + len;
 				}))
 			{
 				if (v1)
 				{
-					// if we will call hash2() in a bit, don't trigger a flush
-					// just yet, let hash2() do it
-					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
-					j->error.ec.clear();
-					ret = j->storage->hash(m_settings, h, len, a.piece, offset
-						, file_mode, flags, j->error);
-					if (ret < 0) break;
+					deferred_length += len;
+					ret = len;
 				}
+
 				if (v2_block)
 				{
 					j->error.ec.clear();
@@ -933,6 +950,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			if (ret <= 0) break;
 
 			offset += default_block_size;
+		}
+
+		if (deferred_length > 0)
+		{
+			j->error.ec.clear();
+			ret = j->storage->hash(m_settings, h, deferred_length, a.piece
+				, deferred_offset, file_mode, j->flags, j->error);
 		}
 
 		if (v1)

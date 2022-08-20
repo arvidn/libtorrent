@@ -82,7 +82,6 @@ namespace libtorrent::aux {
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files ? *m_mapped_files : m_files; }
-		file_storage const& orig_files() const { return m_files; }
 
 		bool set_need_tick()
 		{

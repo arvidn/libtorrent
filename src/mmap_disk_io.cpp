@@ -52,11 +52,6 @@ see LICENSE file.
 #endif
 
 #include <functional>
-#include <condition_variable>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/variant/get.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 
