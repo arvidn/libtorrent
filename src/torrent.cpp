@@ -10165,7 +10165,6 @@ namespace {
 		int num_peers = 0;
 		int num_downloaders = 0;
 		int missing_pieces = 0;
-		int num_interested = 0;
 		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
@@ -10180,8 +10179,6 @@ namespace {
 
 			if (p->share_mode()) continue;
 			if (p->upload_only()) continue;
-
-			if (p->is_peer_interested()) ++num_interested;
 
 			++num_downloaders;
 			missing_pieces += pieces_in_torrent - p->num_have_pieces();
