@@ -3,6 +3,7 @@
 Copyright (c) 2016, 2018, 2021, Alden Torres
 Copyright (c) 2016-2022, Arvid Norberg
 Copyright (c) 2017, Steven Siloti
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -19,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
@@ -362,14 +364,14 @@ TORRENT_TEST(round_trip_merkle_tree_mask)
 		{sha256_hash{"01010101010101010101010101010101"}, sha256_hash{"21212121212121212121212121212121"}}
 		, {sha256_hash{"23232323232323232323232323232323"}, sha256_hash{"43434343434343434343434343434343"}}
 		};
-	atp.merkle_tree_mask = aux::vector<std::vector<bool>, file_index_t>{{false, false, false, true, true, true, true}};
+	atp.merkle_tree_mask = aux::vector<bitfield, file_index_t>{bitfield("\x1e" /* 0b00011110 */, 7)};
 	test_roundtrip(atp);
 }
 
 TORRENT_TEST(round_trip_verified_leaf_hashes)
 {
 	add_torrent_params atp;
-	atp.verified_leaf_hashes = aux::vector<std::vector<bool>, file_index_t>{
-		{true, true, false, false}, {false, true, false, true}};
+	atp.verified_leaf_hashes = aux::vector<bitfield, file_index_t>{
+		bitfield("\xc0" /* 0b11000000 */, 4), bitfield("\x50" /* 0b01010000 */, 4)};
 	test_roundtrip(atp);
 }

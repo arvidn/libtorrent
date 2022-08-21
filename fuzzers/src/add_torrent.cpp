@@ -115,15 +115,15 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		auto& mask = ret.unfinished_pieces[piece_index_t(bits.read(32))];
 		mask.resize(bits.read(5));
 		for (int i = 0; i < mask.size(); ++i)
-			if (bits.read(1)) mask.set_bit(i); else mask.set_bit(i);
+			if (bits.read(1)) mask.set_bit(i); else mask.clear_bit(i);
 	}
 	ret.have_pieces.resize(bits.read(6));
 	for (int i = 0; i < ret.have_pieces.size(); ++i)
-		if (bits.read(1)) ret.have_pieces.set_bit(i); else ret.have_pieces.set_bit(i);
+		if (bits.read(1)) ret.have_pieces.set_bit(i); else ret.have_pieces.clear_bit(i);
 
 	ret.verified_pieces.resize(bits.read(6));
 	for (int i = 0; i < ret.verified_pieces.size(); ++i)
-		if (bits.read(1)) ret.verified_pieces.set_bit(i); else ret.verified_pieces.set_bit(i);
+		if (bits.read(1)) ret.verified_pieces.set_bit(i); else ret.verified_pieces.clear_bit(i);
 
 	ret.piece_priorities.resize(bits.read(6));
 	for (auto& p : ret.piece_priorities)
@@ -145,7 +145,7 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		{
 			++idx;
 			if (h.is_all_zeros()) continue;
-			mask[std::size_t(idx)] = true;
+			mask.set_bit(idx);
 			t.push_back(g_tree[std::size_t(idx)]);
 		}
 	}
@@ -166,15 +166,15 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		for (auto& m : ret.merkle_tree_mask)
 		{
 			m.resize(bits.read(13));
-			for (std::size_t i = 0; i < m.size(); ++i)
-				m[i] = bits.read(1);
+			for (int i = 0; i < m.size(); ++i)
+				if (bits.read(1)) m.set_bit(i); else m.clear_bit(i);
 		}
 		ret.verified_leaf_hashes.resize(bits.read(2));
 		for (auto& m : ret.verified_leaf_hashes)
 		{
 			m.resize(bits.read(4));
-			for (std::size_t i = 0; i < m.size(); ++i)
-				m[i] = bits.read(1);
+			for (int i = 0; i < m.size(); ++i)
+				if (bits.read(1)) m.set_bit(i); else m.clear_bit(i);
 		}
 	}
 

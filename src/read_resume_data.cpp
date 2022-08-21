@@ -4,7 +4,7 @@ Copyright (c) 2015-2021, Arvid Norberg
 Copyright (c) 2016-2018, 2020-2021, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017, Steven Siloti
-Copyright (c) 2020, Vladimir Golovnev (glassez)
+Copyright (c) 2020, 2022, Vladimir Golovnev (glassez)
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -143,16 +143,20 @@ namespace {
 				}
 
 				auto const verified = de.dict_find_string_value("verified");
-				ret.verified_leaf_hashes.emplace_back();
-				ret.verified_leaf_hashes.back().reserve(verified.size());
-				for (auto const bit : verified)
-					ret.verified_leaf_hashes.back().emplace_back(bit == '1');
+				ret.verified_leaf_hashes.emplace_back(int(verified.size()));
+				for (int j = 0; j < int(verified.size()); ++j)
+				{
+					if (verified[std::size_t(j)] == '1')
+						ret.verified_leaf_hashes.back().set_bit(j);
+				}
 
 				auto const mask = de.dict_find_string_value("mask");
-				ret.merkle_tree_mask.emplace_back();
-				ret.merkle_tree_mask.back().reserve(mask.size());
-				for (auto const bit : mask)
-					ret.merkle_tree_mask.back().emplace_back(bit == '1');
+				ret.merkle_tree_mask.emplace_back(int(mask.size()));
+				for (int j = 0; j < int(mask.size()); ++j)
+				{
+					if (mask[std::size_t(j)] == '1')
+						ret.merkle_tree_mask.back().set_bit(j);
+				}
 			}
 		}
 

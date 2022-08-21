@@ -1,6 +1,7 @@
 /*
 
 Copyright (c) 2020-2021, Arvid Norberg
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -67,10 +68,10 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 	sha256_hash root() const;
 
-	void load_tree(span<sha256_hash const> t, std::vector<bool> const& verified);
-	void load_sparse_tree(span<sha256_hash const> t, std::vector<bool> const& mask
-		, std::vector<bool> const& verified);
-	void load_verified_bits(std::vector<bool> const& verified);
+	void load_tree(span<sha256_hash const> t, bitfield const& verified);
+	void load_sparse_tree(span<sha256_hash const> t, bitfield const& mask
+		, bitfield const& verified);
+	void load_verified_bits(bitfield const& verified);
 
 	std::size_t size() const;
 	int end_index() const { return int(size()); }
@@ -82,10 +83,10 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	sha256_hash operator[](int idx) const;
 
 	std::vector<sha256_hash> build_vector() const;
-	std::pair<std::vector<sha256_hash>, aux::vector<bool>> build_sparse_vector() const;
+	std::pair<std::vector<sha256_hash>, bitfield> build_sparse_vector() const;
 
 	// get bits indicating if each leaf hash is verified
-	std::vector<bool> verified_leafs() const;
+	bitfield verified_leafs() const;
 
 	// returns true if the entire tree is known and verified
 	bool is_complete() const;

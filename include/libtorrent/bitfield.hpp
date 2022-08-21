@@ -3,6 +3,7 @@
 Copyright (c) 2008-2009, 2012-2021, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2017, Falcosc
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -166,6 +167,10 @@ namespace libtorrent {
 			const_iterator& operator--() noexcept { dec(); return *this; }
 			const_iterator operator--(int) noexcept
 			{ const_iterator ret(*this); dec(); return ret; }
+			const_iterator operator+(int n) noexcept
+			{ const_iterator ret(*this); ret.add(n); return ret; }
+			const_iterator operator-(int n) noexcept
+			{ const_iterator ret(*this); ret.sub(n); return ret; }
 
 			const_iterator() noexcept {}
 			bool operator==(const_iterator const& rhs) const noexcept
@@ -200,6 +205,32 @@ namespace libtorrent {
 				{
 					bit <<= 1;
 				}
+			}
+			void add(int n)
+			{
+				TORRENT_ASSERT(buf);
+				if (n == 0)
+					return;
+
+				if (n < 0)
+					return sub(-n);
+
+				buf += (n / 32);
+				int const remaining_bits = (n % 32);
+				for (int i = 0; i < remaining_bits; ++i) inc();
+			}
+			void sub(int n)
+			{
+				TORRENT_ASSERT(buf);
+				if (n == 0)
+					return;
+
+				if (n < 0)
+					return add(-n);
+
+				buf -= (n / 32);
+				int const remaining_bits = (n % 32);
+				for (int i = 0; i < remaining_bits; ++i) dec();
 			}
 			const_iterator(std::uint32_t const* ptr, int offset)
 				: buf(ptr), bit(0x80000000 >> offset) {}
@@ -252,6 +283,8 @@ namespace libtorrent {
 		// number of bits.
 		aux::unique_ptr<std::uint32_t[]> m_buf;
 	};
+
+	TORRENT_EXPORT bool operator==(bitfield const& lhs, bitfield const& rhs);
 
 	template <typename IndexType>
 	struct typed_bitfield : bitfield

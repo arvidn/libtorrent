@@ -4,6 +4,7 @@ Copyright (c) 2009-2020, Arvid Norberg
 Copyright (c) 2016-2017, Alden Torres
 Copyright (c) 2017-2018, Steven Siloti
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -318,12 +319,12 @@ TORRENT_VERSION_NAMESPACE_3
 		// set bit means the next hash in the corresponding vector in
 		// ``merkle_trees`` is the hash for that node. This is an optimization
 		// to avoid storing a lot of zeros.
-		aux::vector<std::vector<bool>, file_index_t> merkle_tree_mask;
+		aux::vector<bitfield, file_index_t> merkle_tree_mask;
 
 		// bit-fields indicating which v2 leaf hashes have been verified
 		// against the root hash. If this vector is empty and merkle_trees is
 		// non-empty it implies that all hashes in merkle_trees are verified.
-		aux::vector<std::vector<bool>, file_index_t> verified_leaf_hashes;
+		aux::vector<bitfield, file_index_t> verified_leaf_hashes;
 
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.

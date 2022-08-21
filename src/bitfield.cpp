@@ -3,6 +3,7 @@
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2016-2022, Arvid Norberg
 Copyright (c) 2017, Falcosc
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -195,6 +196,13 @@ namespace libtorrent {
 		return last != 0
 			? (num - 1) * 32 + ext
 			: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
+	}
+
+	bool operator==(bitfield const& lhs, bitfield const& rhs)
+	{
+		if (lhs.size() != rhs.size())
+			return false;
+		return (std::memcmp(lhs.data(), rhs.data(), std::size_t((lhs.size() + 7) / 8)) == 0);
 	}
 
 	static_assert(std::is_nothrow_move_constructible<bitfield>::value

@@ -1,6 +1,7 @@
 /*
 
 Copyright (c) 2022, Arvid Norberg
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -61,11 +62,11 @@ namespace {
 					merkle_num_leafs(fs.file_num_blocks(f)));
 				int const num_pieces = fs.file_num_pieces(f);
 				int const piece_layer_size = merkle_num_leafs(num_pieces);
-				mask.resize(std::size_t(full_size), false);
+				mask.resize(full_size, false);
 				for (int i = merkle_first_leaf(piece_layer_size)
 					, end = i + num_pieces; i < end; ++i)
 				{
-					mask[std::size_t(i)] = true;
+					mask.set_bit(i);
 				}
 			}
 			ti->free_piece_layers();

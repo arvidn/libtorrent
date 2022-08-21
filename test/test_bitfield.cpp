@@ -4,6 +4,7 @@ Copyright (c) 2013-2020, 2022, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2017, Falcosc
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -158,6 +159,45 @@ TORRENT_TEST(test_iterators)
 	}
 }
 
+TORRENT_TEST(test_iterators2)
+{
+	bitfield test1(64, false);
+
+	test1.set_bit(0);
+	test1.set_bit(7);
+	test1.set_bit(8);
+	test1.set_bit(63);
+	print_bitfield(test1);
+
+	TEST_EQUAL(*(test1.begin() + 0), true);
+	TEST_EQUAL(*(test1.begin() - 0), true);
+	TEST_EQUAL(*(test1.end() - 64), true);
+	TEST_EQUAL(*(test1.begin() + 2), false);
+	TEST_EQUAL(*(test1.end() - 63), false);
+
+	TEST_EQUAL(*(test1.begin() + 6), false);
+	TEST_EQUAL(*(test1.end() - 58), false);
+	TEST_EQUAL(*(test1.begin() + 7), true);
+	TEST_EQUAL(*(test1.end() - 57), true);
+
+	TEST_EQUAL(*(test1.begin() + 8), true);
+	TEST_EQUAL(*(test1.end() - 56), true);
+	TEST_EQUAL(*(test1.begin() + 9), false);
+	TEST_EQUAL(*(test1.end() - 55), false);
+
+	TEST_EQUAL(*(test1.begin() + 62), false);
+	TEST_EQUAL(*(test1.end() - 2), false);
+	TEST_EQUAL(*(test1.begin() + 63), true);
+	TEST_EQUAL(*(test1.end() - 1), true);
+
+	TEST_EQUAL(test1.get_bit(0), *(test1.begin() + 0));
+	TEST_EQUAL(test1.get_bit(0), *(test1.begin() - 0));
+	TEST_EQUAL(test1.get_bit(0), *(test1.end() - 64));
+
+	const int n = -64;
+	TEST_EQUAL(test1.get_bit(0), *(test1.end() + n));
+}
+
 TORRENT_TEST(test_assign)
 {
 	std::array<char, 16> b;
@@ -207,7 +247,7 @@ TORRENT_TEST(test_resize_val)
 		test1.resize(8 * 8 + i, true);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 4 * 8 + i);
-	}
+    }
 }
 
 TORRENT_TEST(test_resize_up)

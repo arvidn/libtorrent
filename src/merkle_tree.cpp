@@ -2,6 +2,7 @@
 
 Copyright (c) 2020, Alden Torres
 Copyright (c) 2020-2022, Arvid Norberg
+Copyright (c) 2022, Vladimir Golovnev
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -35,23 +36,23 @@ namespace aux {
 
 	sha256_hash merkle_tree::root() const { return sha256_hash(m_root); }
 
-	void merkle_tree::load_verified_bits(std::vector<bool> const& verified)
+	void merkle_tree::load_verified_bits(bitfield const& verified)
 	{
-		TORRENT_ASSERT(int(verified.size()) <= m_num_blocks);
+		TORRENT_ASSERT(verified.size() <= m_num_blocks);
 		TORRENT_ASSERT(m_block_verified.size() == m_num_blocks);
 
 		// The verified bitfield may be invalid. If so, correct it to
 		// maintain the invariant of this class
 		int block_index = block_layer_start();
-		for (int i = 0; i < int(verified.size()); ++i)
+		for (int i = 0; i < verified.size(); ++i)
 		{
-			if (verified[std::size_t(i)] && has_node(block_index))
+			if (verified[i] && has_node(block_index))
 				m_block_verified.set_bit(i);
 			++block_index;
 		}
 	}
 
-	void merkle_tree::load_tree(span<sha256_hash const> t, std::vector<bool> const& verified)
+	void merkle_tree::load_tree(span<sha256_hash const> t, bitfield const& verified)
 	{
 		INVARIANT_CHECK;
 		if (t.empty()) return;
@@ -94,18 +95,18 @@ namespace {
 }
 
 	void merkle_tree::load_sparse_tree(span<sha256_hash const> t
-		, std::vector<bool> const& mask
-		, std::vector<bool> const& verified)
+		, bitfield const& mask
+		, bitfield const& verified)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(mask.size() == size());
-		if (size() != mask.size()) return;
+        TORRENT_ASSERT(std::size_t(mask.size()) == size());
+        if (size() != std::size_t(mask.size())) return;
 
 		int const first_block = block_layer_start();
 		int const end_block = first_block + m_num_blocks;
 
-		TORRENT_ASSERT(first_block < int(mask.size()));
-		TORRENT_ASSERT(end_block <= int(mask.size()));
+        TORRENT_ASSERT(first_block < mask.size());
+        TORRENT_ASSERT(end_block <= mask.size());
 
 		// if the mask covers all blocks, go straight to block_layer
 		// mode, and validate
@@ -167,7 +168,7 @@ namespace {
 
 		allocate_full();
 		int cursor = 0;
-		for (std::size_t i = 0, end = mask.size(); i < end; ++i)
+		for (int i = 0, end = mask.size(); i < end; ++i)
 		{
 			if (!mask[i]) continue;
 			if (cursor >= t.size()) break;
@@ -725,11 +726,11 @@ namespace {
 		return ret;
 	}
 
-	std::pair<std::vector<sha256_hash>, aux::vector<bool>> merkle_tree::build_sparse_vector() const
+	std::pair<std::vector<sha256_hash>, bitfield> merkle_tree::build_sparse_vector() const
 	{
 		if (m_mode == mode_t::uninitialized_tree) return {{}, {}};
 
-		aux::vector<bool> mask(size(), false);
+		bitfield mask(int(size()), false);
 		std::vector<sha256_hash> ret;
 		switch (m_mode)
 		{
@@ -740,14 +741,14 @@ namespace {
 				{
 					if (m_tree[i].is_all_zeros()) continue;
 					ret.push_back(m_tree[i]);
-					mask[i] = true;
+					mask.set_bit(i);
 				}
 				break;
 			case mode_t::piece_layer:
 			{
 				int const piece_layer_size = merkle_num_leafs(num_pieces());
 				for (int i = merkle_first_leaf(piece_layer_size), end = i + m_tree.end_index(); i < end; ++i)
-					mask[i] = true;
+					mask.set_bit(i);
 				ret = m_tree;
 				break;
 			}
@@ -755,7 +756,7 @@ namespace {
 			{
 				int const num_leafs = merkle_num_leafs(m_num_blocks);
 				for (int i = merkle_first_leaf(num_leafs), end = i + m_tree.end_index(); i < end; ++i)
-					mask[i] = true;
+					mask.set_bit(i);
 				ret = m_tree;
 				break;
 			}
@@ -763,7 +764,7 @@ namespace {
 		return {std::move(ret), std::move(mask)};
 	}
 
-	std::vector<bool> merkle_tree::verified_leafs() const
+	bitfield merkle_tree::verified_leafs() const
 	{
 		// note that for an empty tree (where the root is the full tree) and a
 		// tree where we have the piece layer, we also know all leaves in case
@@ -772,22 +773,16 @@ namespace {
 		{
 			case mode_t::uninitialized_tree:
 			case mode_t::empty_tree:
-				return std::vector<bool>(std::size_t(m_num_blocks), m_num_blocks == 1);
+				return bitfield(m_num_blocks, (m_num_blocks == 1));
 			case mode_t::piece_layer:
-				return std::vector<bool>(std::size_t(m_num_blocks), piece_levels() == 0);
+				return bitfield(m_num_blocks, (piece_levels() == 0));
 			case mode_t::block_layer:
-				return std::vector<bool>(std::size_t(m_num_blocks), true);
+				return bitfield(m_num_blocks, true);
 			case mode_t::full_tree:
-			{
-				std::vector<bool> ret;
-				ret.resize(std::size_t(m_num_blocks), false);
-				for (int i = 0; i < m_block_verified.size(); ++i)
-					if (m_block_verified.get_bit(i)) ret[std::size_t(i)] = true;
-				return ret;
-			}
+				return m_block_verified;
 		}
 		TORRENT_ASSERT_FAIL();
-		return std::vector<bool>();
+		return bitfield();
 	}
 
 	bool merkle_tree::is_complete() const

@@ -142,7 +142,7 @@ namespace {
 					if (!verified.empty())
 					{
 						auto& ret_verified = ret_dict["verified"].string();
-						ret_verified.reserve(verified.size());
+						ret_verified.reserve(std::size_t(verified.size()));
 						for (auto const bit : verified)
 							ret_verified.push_back(bit ? '1' : '0');
 					}
@@ -154,7 +154,7 @@ namespace {
 					if (!mask.empty())
 					{
 						auto& ret_mask = ret_dict["mask"].string();
-						ret_mask.reserve(mask.size());
+						ret_mask.reserve(std::size_t(mask.size()));
 						for (auto const bit : mask)
 							ret_mask.push_back(bit ? '1' : '0');
 					}
@@ -301,7 +301,7 @@ namespace {
 				aux::throw_ex<system_error>(errors::torrent_missing_piece_layer);
 
 			auto& piece_layers = ret["piece layers"].dict();
-			std::vector<bool> const empty_verified;
+			bitfield const empty_verified;
 			for (file_index_t f : fs.file_range())
 			{
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
@@ -310,7 +310,7 @@ namespace {
 				aux::merkle_tree t(fs.file_num_blocks(f)
 					, fs.piece_length() / default_block_size, fs.root_ptr(f));
 
-				std::vector<bool> const& verified = (f >= atp.verified_leaf_hashes.end_index())
+				bitfield const& verified = (f >= atp.verified_leaf_hashes.end_index())
 					? empty_verified : atp.verified_leaf_hashes[f];
 
 				auto const& tree = trees[f];

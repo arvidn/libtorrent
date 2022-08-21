@@ -381,9 +381,9 @@ namespace libtorrent::aux {
 		// it will initialize the storage and the piece-picker
 		void init();
 
-		void load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
-			, aux::vector<std::vector<bool>, file_index_t> mask
-			, aux::vector<std::vector<bool>, file_index_t> verified);
+        void load_merkle_trees(aux::vector<std::vector<sha256_hash>, file_index_t> t
+            , aux::vector<bitfield, file_index_t> mask
+            , aux::vector<bitfield, file_index_t> verified);
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
