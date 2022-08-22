@@ -5,6 +5,7 @@ Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2016-2018, 2020, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2016, Steven Siloti
+Copyright (c) 2022, Andrei Borzenkov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -111,6 +112,8 @@ private:
 	void socks_forward_udp();
 	void connect1(error_code const& e);
 	void connect2(error_code const& e);
+	void read_bindaddr(error_code const& e);
+	void read_domainname(error_code const& e);
 	void hung_up(error_code const& e);
 	void on_retry_socks_connect(error_code const& e);
 
@@ -902,7 +905,7 @@ void socks5::connect1(error_code const& e)
 	}
 
 	ADD_OUTSTANDING_ASYNC("socks5::connect2");
-	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
+	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 5)
 		, std::bind(&socks5::connect2, self(), _1));
 }
 
@@ -932,8 +935,23 @@ void socks5::connect2(error_code const& e)
 
 	if (atyp == 1)
 	{
-		m_udp_proxy_addr.address(address_v4(read_uint32(p)));
-		m_udp_proxy_addr.port(read_uint16(p));
+		ADD_OUTSTANDING_ASYNC("socks5::read_bindaddr");
+		// save the first byte of the IP address in the buffer. The
+		// read_bindaddr() callback will use it
+		m_tmp_buf[0] = *p;
+		boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data() + 1, 5)
+			, std::bind(&socks5::read_bindaddr, self(), _1));
+	}
+	else if (atyp == 3)
+	{
+		// we need to skip DOMAINNAME to imitate Python socks client
+		std::size_t const len = read_uint8(p);
+		ADD_OUTSTANDING_ASYNC("socks5::read_domainname");
+		// save the string length in the buffer. The read_domainname() callback
+		// will use it
+		m_tmp_buf[0] = char(len);
+		boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data()+1, len + 2)
+			, std::bind(&socks5::read_domainname, self(), _1));
 	}
 	else
 	{
@@ -942,6 +960,58 @@ void socks5::connect2(error_code const& e)
 		TORRENT_ASSERT_FAIL();
 		return;
 	}
+}
+
+void socks5::read_bindaddr(error_code const& e)
+{
+	COMPLETE_ASYNC("socks5::read_bindaddr");
+
+	if (m_abort) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
+		return;
+	}
+
+	using namespace libtorrent::aux;
+
+	char* p = m_tmp_buf.data();
+	m_udp_proxy_addr.address(address_v4(read_uint32(p)));
+	m_udp_proxy_addr.port(read_uint16(p));
+
+	// we're done!
+	m_active = true;
+	m_failures = 0;
+
+	ADD_OUTSTANDING_ASYNC("socks5::hung_up");
+	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
+		, std::bind(&socks5::hung_up, self(), _1));
+}
+
+void socks5::read_domainname(error_code const& e)
+{
+	COMPLETE_ASYNC("socks5::read_domainname");
+
+	if (m_abort) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
+		return;
+	}
+
+	using namespace libtorrent::aux;
+
+	char* p = m_tmp_buf.data();
+	int const len = read_uint8(p);
+	p += len;
+	m_udp_proxy_addr.address(m_proxy_addr.address());
+	m_udp_proxy_addr.port(read_uint16(p));
 
 	// we're done!
 	m_active = true;
