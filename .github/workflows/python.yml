@@ -27,8 +27,10 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.9 openssl@1.1
+        brew update
+        brew install boost-build boost boost-python3 python@3.10 openssl@1.1
         echo "using darwin ;" >>~/user-config.jam
+        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -103,10 +105,18 @@ jobs:
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
-        python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.9/site-packages
+        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
+        python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.10/site-packages
 
-    - name: tests
-      if: runner.os != 'Windows'
+    - name: tests (Linux)
+      if: runner.os == 'Linux'
       run: |
         cd bindings/python
+        python3 test.py
+
+    - name: tests (MacOS)
+      if: runner.os == 'macOS'
+      run: |
+        cd bindings/python
+        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
         python3 test.py
