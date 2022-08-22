@@ -57,7 +57,8 @@ using namespace lt;
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup
 	, HandleAlerts const& on_alert
-	, Test const& test)
+	, Test const& test
+	, std::uint32_t const flags = 0)
 {
 	// setup the simulation
 	sim::default_config network_cfg;
@@ -66,8 +67,8 @@ void run_test(Setup const& setup
 	lt::session_proxy zombie;
 
 	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
-	sim::socks_server socks4(proxy_ios, 4444, 4);
-	sim::socks_server socks5(proxy_ios, 5555, 5);
+	sim::socks_server socks4(proxy_ios, 4444, 4, flags);
+	sim::socks_server socks5(proxy_ios, 5555, 5, flags);
 
 	lt::settings_pack pack = settings();
 	// create session
@@ -157,7 +158,7 @@ TORRENT_TEST(socks5_tcp_announce)
 	TEST_CHECK(alert_port != -1);
 }
 
-TORRENT_TEST(udp_tracker)
+void test_udp_tracker(std::uint32_t const flags)
 {
 	using namespace lt;
 	bool tracker_alert = false;
@@ -237,11 +238,22 @@ TORRENT_TEST(udp_tracker)
 
 			sim.run();
 		}
+		, flags
 	);
 
 	TEST_CHECK(tracker_alert);
 	TEST_CHECK(connected);
 	TEST_CHECK(announced);
+}
+
+TORRENT_TEST(udp_tracker)
+{
+	test_udp_tracker(0);
+}
+
+TORRENT_TEST(udp_tracker_empty_domainname)
+{
+	test_udp_tracker(socks_flag::udp_associate_respond_empty_hostname);
 }
 
 TORRENT_TEST(socks5_udp_retry)
