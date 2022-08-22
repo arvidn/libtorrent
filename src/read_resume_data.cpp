@@ -4,7 +4,7 @@ Copyright (c) 2015-2020, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2017, Steven Siloti
-Copyright (c) 2020, Vladimir Golovnev (glassez)
+Copyright (c) 2020, 2022, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -165,16 +165,20 @@ namespace {
 				}
 
 				auto const verified = de.dict_find_string_value("verified");
-				ret.verified_leaf_hashes.emplace_back();
-				ret.verified_leaf_hashes.back().reserve(verified.size());
-				for (auto const bit : verified)
-					ret.verified_leaf_hashes.back().emplace_back(bit == '1');
+				ret.verified_leaf_hashes.emplace_back(verified.size(), false);
+				for (std::size_t j = 0; j < verified.size(); ++j)
+				{
+					if (verified[j] == '1')
+						ret.verified_leaf_hashes.back()[j] = true;
+				}
 
 				auto const mask = de.dict_find_string_value("mask");
-				ret.merkle_tree_mask.emplace_back();
-				ret.merkle_tree_mask.back().reserve(mask.size());
-				for (auto const bit : mask)
-					ret.merkle_tree_mask.back().emplace_back(bit == '1');
+				ret.merkle_tree_mask.emplace_back(mask.size(), false);
+				for (std::size_t j = 0; j < mask.size(); ++j)
+				{
+					if (mask[j] == '1')
+						ret.merkle_tree_mask.back()[j] = true;
+				}
 			}
 		}
 
