@@ -283,6 +283,14 @@ namespace torrent_flags {
 	// should not be set.
 	constexpr torrent_flags_t no_verify_files = 22_bit;
 
+	// default all file priorities to dont_download. This is useful for adding
+	// magnet links where the number of files is unknown, but the
+	// file_priorities is still set for some files. Any file not covered by
+	// the file_priorities list will be set to normal download priority,
+	// unless this flag is set, in which case they will be set to 0
+	// (dont_download).
+	constexpr torrent_flags_t default_dont_download = 23_bit;
+
 	// all torrent flags combined. Can conveniently be used when creating masks
 	// for flags
 	constexpr torrent_flags_t all = torrent_flags_t::all();
