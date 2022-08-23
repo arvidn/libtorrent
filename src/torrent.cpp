@@ -1734,6 +1734,8 @@ bool is_downloading_state(int const st)
 
 		if (int(m_file_priority.size()) > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
+		else if (m_add_torrent_params->flags & torrent_flags::default_dont_download)
+			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
 
 		auto cert = m_torrent_file->ssl_cert();
 		if (!cert.empty())
