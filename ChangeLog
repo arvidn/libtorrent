@@ -1,3 +1,4 @@
+	* fix merging metadata with magnet links added on top of existing torrents
 	* add torrent_flag to default all file priorities to dont_download
 	* fix &so= feature in magnet links
 	* improve compatibility of SOCKS5 UDP ASSOCIATE
