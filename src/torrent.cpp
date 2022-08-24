@@ -7541,7 +7541,7 @@ namespace {
 		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
 			, settings().get_int(settings_pack::metadata_token_limit));
 
-		auto info = std::make_shared<torrent_info>(old_ih);
+		auto info = std::make_shared<torrent_info>(*m_torrent_file);
 		if (ec || !info->parse_info_section(metadata, ec
 			, settings().get_int(settings_pack::max_piece_count)))
 		{
