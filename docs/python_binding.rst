@@ -30,7 +30,7 @@ install the build prerequisites on your system:
    boost libraries and ``b2``, and your building toolchain (``gcc``, visual
    studio, etc).
 2. Boost.Python, if not otherwise included in your boost installation
-3. Python 3.6+. Older versions may work, but are not tested.
+3. Python 3.7+. Older versions may work, but are not tested.
 
 .. __: building.html
 
@@ -71,8 +71,8 @@ build for a different python version
 ``setup.py`` will target the running interpreter. To build for different python
 versions, you must change how you invoke ``setup.py``::
 
-	# build for python3.6
-	python3.6 setup.py build
+	# build for python3.7
+	python3.7 setup.py build
 	# build for python3.7
 	python3.7 setup.py build
 
@@ -111,16 +111,16 @@ installation.
 
 ``b2`` has some auto-detection capabilities. You may be able to do just this::
 
-	using python : 3.6 ;
+	using python : 3.7 ;
 
 However you may need to specify full paths. On windows, it make look like
 this::
 
-	using python : 3.6 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/libs ;
+	using python : 3.7 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36 : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/include : C:/Users/<UserName>/AppData/Local/Programs/Python/Python36/libs ;
 
 Or on Linux, like this::
 
-	using python : 3.6 : /usr/bin/python3.6 : /usr/include/python3.6 : /usr/lib/python3.6 ;
+	using python : 3.7 : /usr/bin/python3.7 : /usr/include/python3.7 : /usr/lib/python3.7 ;
 
 Note that ``b2``'s python path detection is known to only work for global
 python installations. It is known to be broken for virtualenvs or ``pyenv``. If
@@ -133,7 +133,7 @@ invoking b2
 Build the bindings like so::
 
 	cd bindings/python
-	b2 release python=3.6 address-model=64
+	b2 release python=3.7 address-model=64
 
 Note that ``address-model`` should match the python installation you are
 building for.
@@ -161,14 +161,14 @@ root directory of the boost source distribution.
 
 For example, to build a self-contained python module::
 
-	b2 release python=3.6 libtorrent-link=static boost-link=static
+	b2 release python=3.7 libtorrent-link=static boost-link=static
 
 helper targets
 --------------
 
 There are some targets for placing the build artifact in a helpful location::
 
-	$ b2 release python=3.6 stage_module stage_dependencies
+	$ b2 release python=3.7 stage_module stage_dependencies
 
 This will produce a ``libtorrent`` python module in the current directory (file
 name extension depends on operating system). The libraries the python module depends
@@ -176,18 +176,18 @@ on will be copied into ``./dependencies``.
 
 To install the python module, build it with the following command::
 
-	b2 release python=3.6 install_module
+	b2 release python=3.7 install_module
 
 By default the module will be installed to the python user site. This can be
 changed with the ``python-install-scope`` feature. The valid values are ``user``
 (default) and ``system``. e.g.::
 
-	b2 release python=3.6 install_module python-install-scope=system
+	b2 release python=3.7 install_module python-install-scope=system
 
 To specify a custom installation path for the python module, specify the desired
 path with the ``python-install-path`` feature. e.g.::
 
-	b2 release python=3.6 install_module python-install-path=/home/foobar/python-site/
+	b2 release python=3.7 install_module python-install-path=/home/foobar/python-site/
 
 using libtorrent in python
 ==========================

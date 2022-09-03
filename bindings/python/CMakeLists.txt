@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= C
 # The code below assumes default boost installation, when the module for python 3 is named 'python3'.
 # To customize that one can provide a name for the Boost::python module via
 # 'boost-python-module-name' variable when invoking cmake.
-# E.g. on Gentoo with python 3.6 and Boost::python library name 'libboost_python-3.6.so'
-# the parameter would be -Dboost-python-module-name="python-3.6".
+# E.g. on Gentoo with python 3.7 and Boost::python library name 'libboost_python-3.7.so'
+# the parameter would be -Dboost-python-module-name="python-3.7".
 
 # The extension module and the cpython executable have to use the same C runtime library. On Windows
 # Python is compiled with MSVC and we will test MSVC version to make sure that it is the same for
@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= C
 # See https://devguide.python.org/#status-of-python-branches for supported python versions
 function(_get_compatible_python_versions _ret)
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19 AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 20)
-		list(APPEND _tmp 3.6 3.7 3.8 3.9)
+		list(APPEND _tmp 3.6 3.7 3.8 3.9 3.10)
 	endif()
 	set(${_ret} ${_tmp} PARENT_SCOPE)
 endfunction()
@@ -37,7 +37,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC" AND NOT skip-python-runtime-test)
 	endif()
 endif()
 
-set(boost-python-module-name "python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}" CACHE STRING "Boost::python module name, e.g. 'python-3.6'")
+set(boost-python-module-name "python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}" CACHE STRING "Boost::python module name, e.g. 'python-3.7'")
 
 find_package(Boost REQUIRED COMPONENTS ${boost-python-module-name})
 
