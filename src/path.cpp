@@ -823,7 +823,9 @@ namespace {
 		stat_file(f, &s, ec);
 		if (ec)
 		{
-			if (ec == boost::system::errc::no_such_file_or_directory)
+			// if the filename is too long, the file also cannot exist
+			if (ec == boost::system::errc::no_such_file_or_directory
+				|| ec == boost::system::errc::filename_too_long)
 				ec.clear();
 			return false;
 		}
