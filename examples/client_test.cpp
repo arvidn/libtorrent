@@ -1115,6 +1115,26 @@ void pop_alerts(torrent_view& view, session_view& ses_view
 	}
 }
 
+void print_compact_piece(lt::partial_piece_info const& pp, std::string& out)
+{
+	using namespace lt;
+
+	char str[50];
+	int const piece = static_cast<int>(pp.piece_index);
+	int const num_blocks = pp.blocks_in_piece;
+
+	std::snprintf(str, sizeof(str), "%5d:[", piece);
+	out += str;
+	out += esc("32");
+	lt::bitfield blocks(num_blocks);
+	for (int j = 0; j < num_blocks; ++j)
+		if (pp.blocks[j].state == block_info::finished) blocks.set_bit(j);
+	int height = 0;
+	out += piece_matrix(blocks, num_blocks / 4, &height);
+	out += esc("0");
+	out += "]";
+}
+
 void print_piece(lt::partial_piece_info const& pp
 	, std::vector<lt::peer_info> const& peers
 	, std::string& out)
@@ -1996,6 +2016,7 @@ done:
 			{
 				int height_out = 0;
 				print(piece_matrix(s.pieces, terminal_width, &height_out).c_str());
+				print("\n");
 				pos += height_out;
 			}
 
@@ -2008,20 +2029,17 @@ done:
 				{
 					if (pos + 3 >= terminal_height) break;
 
-					print_piece(i, peers, out);
-
 					int const num_blocks = i.blocks_in_piece;
 					p += num_blocks + 8;
-					bool continuous_mode = 8 + num_blocks > terminal_width;
-					if (continuous_mode)
+					if (8 + num_blocks > terminal_width)
 					{
-						while (p > terminal_width)
-						{
-							p -= terminal_width;
-							++pos;
-						}
+						print_compact_piece(i, out);
 					}
-					else if (p + num_blocks + 8 > terminal_width)
+					else
+					{
+						print_piece(i, peers, out);
+					}
+					if (p + num_blocks + 8 > terminal_width)
 					{
 						out += "\x1b[K\n";
 						pos += 1;
