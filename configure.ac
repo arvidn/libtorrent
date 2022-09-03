@@ -486,6 +486,7 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
   ["yes"], [
       AC_MSG_RESULT([yes])
 
+      # TODO: bump to 3.7+, once ubuntu-18.04 is EOL in 2023-04
       AM_PATH_PYTHON([3.6], [], AC_MSG_ERROR([Python interpreter not found.]))
       AX_PYTHON_DEVEL([>= '2.4'])
       AX_BOOST_PYTHON()
