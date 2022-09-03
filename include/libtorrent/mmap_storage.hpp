@@ -145,6 +145,8 @@ namespace aux {
 	private:
 
 		bool m_need_tick = false;
+		bool m_use_mmap_writes = false;
+
 		file_storage const& m_files;
 
 		// the reason for this to be a void pointer

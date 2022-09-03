@@ -727,6 +727,7 @@ SOURCES =
 	disabled_disk_io
 	disk_job_fence
 	disk_job_pool
+	drive_info
 	entry
 	error_code
 	file_storage

@@ -218,10 +218,12 @@ set(libtorrent_aux_include_files
 	disk_io_thread_pool.hpp
 	disk_job_fence.hpp
 	disk_job_pool.hpp
+	drive_info.hpp
 	ed25519.hpp
 	escape_string.hpp
 	export.hpp
 	ffs.hpp
+	file_descriptor.hpp
 	file_progress.hpp
 	file_view_pool.hpp
 	has_block.hpp
@@ -275,6 +277,7 @@ set(libtorrent_aux_include_files
 	utp_stream.hpp
 	vector.hpp
 	win_crypto_provider.hpp
+	win_file_handle.hpp
 	win_util.hpp
 )
 
@@ -314,6 +317,7 @@ set(sources
 	disk_io_thread_pool.cpp
 	disk_job_fence.cpp
 	disk_job_pool.cpp
+	drive_info.cpp
 	entry.cpp
 	enum_net.cpp
 	error_code.cpp

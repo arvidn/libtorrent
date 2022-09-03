@@ -1,7 +1,6 @@
 /*
 
-Copyright (c) 2018, Arvid Norberg, Steven Siloti
-Copyright (c) 2018, 2020, Arvid Norberg
+Copyright (c) 2022, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,21 +30,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WINDOWS_HPP_INCLUDED
-#define TORRENT_WINDOWS_HPP_INCLUDED
+#include <string>
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef VC_EXTRALEAN
-#define VC_EXTRALEAN
-#endif
-#ifndef STRICT
-#define STRICT
-#endif
-#include <windows.h>
+namespace libtorrent {
+namespace aux {
 
-#endif // TORRENT_WINDOWS_HPP_INCLUDED
+enum class drive_info
+{
+	spinning,
+	ssd_disk,
+	ssd_dax,
+	remote,
+};
 
+drive_info get_drive_info(std::string const& path);
 
-
+}
+}
