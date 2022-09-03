@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/drive_info.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
@@ -290,14 +291,20 @@ error_code translate_error(std::system_error const& err, bool const write)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-#ifdef TORRENT_WINDOWS
-		// don't do full file allocations on network drives
-		auto const file_name = convert_to_native_path_string(m_save_path);
-		int const drive_type = GetDriveTypeW(file_name.c_str());
-
-		if (drive_type == DRIVE_REMOTE)
+		auto const di = aux::get_drive_info(m_save_path);
+		if (di == aux::drive_info::remote)
+		{
+			// don't do full file allocations on network drives
 			m_allocate_files = false;
-#endif
+		}
+
+		switch (sett.get_int(settings_pack::disk_write_mode))
+		{
+			case settings_pack::always_pwrite: m_use_mmap_writes = false; break;
+			case settings_pack::always_mmap_write: m_use_mmap_writes = true; break;
+			case settings_pack::auto_mmap_write: m_use_mmap_writes = (di == aux::drive_info::ssd_dax); break;
+		}
+
 		{
 			std::unique_lock<std::mutex> l(m_file_created_mutex);
 			m_file_created.resize(files().num_files(), false);
@@ -633,7 +640,43 @@ error_code translate_error(std::system_error const& err, bool const write)
 			// short reads as errors
 			ec.operation = operation_t::file_write;
 
-			return aux::pwrite_all(handle->fd(), buf, file_offset, ec.ec);
+			if (m_use_mmap_writes)
+			{
+				int ret = 0;
+				span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
+
+				try
+				{
+					TORRENT_ASSERT(file_range.size() >= buf.size());
+
+					sig::try_signal([&]{
+						std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
+						});
+
+					file_range = file_range.subspan(buf.size());
+					ret += static_cast<int>(buf.size());
+
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range.first(buf.size()));
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range.first(buf.size()));
+				}
+				catch (std::system_error const& err)
+				{
+					ec.ec = translate_error(err, true);
+					return -1;
+				}
+
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+				m_pool.record_file_write(storage_index(), file_index, ret);
+#endif
+
+				return ret;
+			}
+			else
+			{
+				return aux::pwrite_all(handle->fd(), buf, file_offset, ec.ec);
+			}
 		});
 	}
 

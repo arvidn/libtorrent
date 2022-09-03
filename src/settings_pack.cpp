@@ -396,6 +396,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
 		SET(max_piece_count, 0x200000, nullptr),
 		SET(metadata_token_limit, 2500000, nullptr),
+		SET(disk_write_mode, settings_pack::mmap_write_mode_t::auto_mmap_write, nullptr),
 	}});
 
 #undef SET
