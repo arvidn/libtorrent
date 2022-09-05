@@ -48,7 +48,7 @@ jobs:
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
             {"os": "macos-12", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2019", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
+            {"os": "windows-2022", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
@@ -59,8 +59,8 @@ jobs:
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
             {"os": "macos-12", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
-            {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
+            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
           ]
         }
 

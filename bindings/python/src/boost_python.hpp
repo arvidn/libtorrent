@@ -7,6 +7,8 @@
 
 #include <cstdio>
 #include <libtorrent/aux_/disable_warnings_push.hpp>
+// https://github.com/boostorg/system/issues/32#issuecomment-462912013
+#define HAVE_SNPRINTF
 #include <boost/python.hpp>
 
 #include <boost/bind/placeholders.hpp>
