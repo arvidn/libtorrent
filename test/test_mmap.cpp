@@ -60,21 +60,24 @@ std::vector<char> filled_buffer(std::ptrdiff_t const size)
 
 TORRENT_TEST(mmap_read)
 {
-	std::vector<char> buf = filled_buffer(100);
+	std::vector<char> buf = filled_buffer(1024 * 1024);
 
 	{
 		std::ofstream file("test_file1", std::ios::binary);
 		file.write(buf.data(), std::streamsize(buf.size()));
 	}
 
-	auto m = std::make_shared<file_mapping>(aux::file_handle("test_file1", 100, open_mode::read_only)
-		, open_mode::read_only, 100
+	auto m = std::make_shared<file_mapping>(aux::file_handle("test_file1"
+		, std::int64_t(buf.size()), open_mode::read_only)
+		, open_mode::read_only, buf.size()
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		, std::make_shared<std::mutex>()
 #endif
 		);
 
-	for (auto const i : boost::combine(m->view().range(), buf))
+	TORRENT_ASSERT(m->has_memory_map());
+
+	for (auto const i : boost::combine(m->range(), buf))
 	{
 		if (boost::get<0>(i) != boost::get<1>(i)) TEST_ERROR("mmap view mismatching");
 	}
@@ -82,28 +85,28 @@ TORRENT_TEST(mmap_read)
 
 TORRENT_TEST(mmap_write)
 {
-	std::vector<char> buf = filled_buffer(100);
+	std::vector<char> buf = filled_buffer(1024 * 1024);
 
 	{
-		auto m = std::make_shared<file_mapping>(aux::file_handle("test_file2", 100
+		auto m = std::make_shared<file_mapping>(aux::file_handle("test_file2"
+				, std::int64_t(buf.size())
 				, open_mode::write | open_mode::truncate)
-			, open_mode::write | open_mode::truncate, 100
+			, open_mode::write | open_mode::truncate, buf.size()
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			, std::make_shared<std::mutex>()
 #endif
 			);
 
-		file_view v = m->view();
-		auto range = v.range();
+		auto range = m->range();
 
 		std::copy(buf.begin(), buf.end(), range.begin());
 	}
 
 	std::ifstream file("test_file2", std::ios_base::binary);
 	std::vector<char> buf2;
-	buf2.resize(100);
+	buf2.resize(buf.size());
 	file.read(buf2.data(), std::streamsize(buf2.size()));
-	TEST_EQUAL(file.gcount(), 100);
+	TEST_EQUAL(file.gcount(), std::streamsize(buf.size()));
 
 	for (auto const i : boost::combine(buf2, buf))
 	{

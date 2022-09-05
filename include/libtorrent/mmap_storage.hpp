@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+
 #include <mutex>
 #include <atomic>
 #include <memory>
@@ -52,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
+#include "libtorrent/aux_/mmap.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
@@ -62,7 +65,6 @@ namespace libtorrent {
 namespace aux {
 	struct session_settings;
 	struct file_view_pool;
-	struct file_view;
 }
 
 	struct TORRENT_EXTRA_EXPORT mmap_storage
@@ -170,9 +172,9 @@ namespace aux {
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::optional<aux::file_view> open_file(settings_interface const&, file_index_t
+		std::shared_ptr<aux::file_mapping> open_file(settings_interface const&, file_index_t
 			, aux::open_mode_t, storage_error&) const;
-		boost::optional<aux::file_view> open_file_impl(settings_interface const&
+		std::shared_ptr<aux::file_mapping> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, storage_error&) const;
 
 		bool use_partfile(file_index_t index) const;
@@ -224,5 +226,7 @@ namespace aux {
 	};
 
 }
+
+#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 #endif // TORRENT_STORAGE_HPP_INCLUDED

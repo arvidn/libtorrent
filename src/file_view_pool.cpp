@@ -64,7 +64,8 @@ namespace libtorrent { namespace aux {
 	file_view_pool::file_view_pool(int size) : m_size(size) {}
 	file_view_pool::~file_view_pool() = default;
 
-	file_view file_view_pool::open_file(storage_index_t st, std::string const& p
+	std::shared_ptr<file_mapping>
+	file_view_pool::open_file(storage_index_t st, std::string const& p
 		, file_index_t const file_index, file_storage const& fs
 		, open_mode_t const m
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -120,7 +121,7 @@ namespace libtorrent { namespace aux {
 				std::cout << std::this_thread::get_id() << " file opened: ("
 					<< file_key.first << ", " << file_key.second << ")\n";
 #endif
-				return woe.mapping->view();
+				return woe.mapping;
 			}
 		}
 
@@ -139,7 +140,7 @@ namespace libtorrent { namespace aux {
 			auto& lru_view = m_files.get<1>();
 			lru_view.relocate(m_files.project<1>(i), lru_view.begin());
 
-			return i->mapping->view();
+			return i->mapping;
 		}
 
 		if (int(m_files.size()) >= m_size - 1)
@@ -202,7 +203,7 @@ namespace libtorrent { namespace aux {
 				lru_view.relocate(m_files.project<1>(i), lru_view.begin());
 			}
 			notify_file_open(ofe, i->mapping, storage_error());
-			return i->mapping->view();
+			return i->mapping;
 		}
 		catch (storage_error const& se)
 		{

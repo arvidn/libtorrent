@@ -172,14 +172,14 @@ file_mapping_handle::file_mapping_handle(file_handle file, open_mode_t const mod
 file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_t const file_size)
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file))
-	, m_mapping(m_size > 0 ? mmap(nullptr, static_cast<std::size_t>(m_size)
+	, m_mapping(m_size >= mapped_file_cutoff ? mmap(nullptr, static_cast<std::size_t>(m_size)
 			, mmap_prot(mode), mmap_flags(mode), m_file.fd(), 0)
 	: nullptr)
 {
 	TORRENT_ASSERT(file_size >= 0);
 	// you can't create an mmap of size 0, so we just set it to null. We
 	// still need to create the empty file.
-	if (file_size > 0 && m_mapping == map_failed)
+	if (file_size >= mapped_file_cutoff && m_mapping == map_failed)
 	{
 		throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_mmap);
 	}
@@ -228,12 +228,13 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file), mode, m_size)
 	, m_open_unmap_lock(open_unmap_lock)
-	, m_mapping(MapViewOfFile(m_file.handle()
-		, map_access(mode), 0, 0, static_cast<std::size_t>(m_size)))
+	, m_mapping(m_size >= mapped_file_cutoff ? MapViewOfFile(m_file.handle()
+		, map_access(mode), 0, 0, static_cast<std::size_t>(m_size))
+		: nullptr)
 {
 	// you can't create an mmap of size 0, so we just set it to null. We
 	// still need to create the empty file.
-	if (m_size > 0 && m_mapping == nullptr)
+	if (m_size >= mapped_file_cutoff && m_mapping == nullptr)
 		throw_ex<storage_error>(error_code(GetLastError(), system_category()), operation_t::file_mmap);
 }
 
@@ -264,24 +265,18 @@ file_mapping::file_mapping(file_mapping&& rhs)
 		rhs.m_mapping = nullptr;
 	}
 
-	file_mapping& file_mapping::operator=(file_mapping&& rhs) &
-	{
-		if (&rhs == this) return *this;
-		close();
-		m_file = std::move(rhs.m_file);
-		m_size = rhs.m_size;
-		m_mapping = rhs.m_mapping;
-		rhs.m_mapping = nullptr;
-		return *this;
-	}
+file_mapping& file_mapping::operator=(file_mapping&& rhs) &
+{
+	if (&rhs == this) return *this;
+	close();
+	m_file = std::move(rhs.m_file);
+	m_size = rhs.m_size;
+	m_mapping = rhs.m_mapping;
+	rhs.m_mapping = nullptr;
+	return *this;
+}
 
-	file_mapping::~file_mapping() { close(); }
-
-	file_view file_mapping::view()
-	{
-		return file_view(shared_from_this());
-	}
-
+file_mapping::~file_mapping() { close(); }
 
 void file_mapping::dont_need(span<byte const> range)
 {

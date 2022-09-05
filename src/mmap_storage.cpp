@@ -165,7 +165,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
-				boost::optional<aux::file_view> f = open_file(sett, i, aux::open_mode::write, ec);
+				std::shared_ptr<aux::file_mapping> f = open_file(sett, i, aux::open_mode::write, ec);
 				if (ec)
 				{
 					prio = m_file_priority;
@@ -176,15 +176,22 @@ error_code translate_error(std::system_error const& err, bool const write)
 				{
 					try
 					{
-						m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf)
+						m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf) {
+							if (!f->has_memory_map())
 							{
+								lt::error_code err;
+								aux::pwrite_all(f->fd(), buf, file_offset, err);
+								if (err) throw std::system_error(err);
+								return;
+							}
+
 							auto file_range = f->range().subspan(std::ptrdiff_t(file_offset));
 							TORRENT_ASSERT(file_range.size() >= buf.size());
 							sig::try_signal([&]{
 								std::memcpy(const_cast<char*>(file_range.data()), buf.data()
 									, static_cast<std::size_t>(buf.size()));
 								});
-							}, fs.file_offset(i), fs.file_size(i), ec.ec);
+						}, fs.file_offset(i), fs.file_size(i), ec.ec);
 
 						if (ec)
 						{
@@ -543,6 +550,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
+			TORRENT_ASSERT(handle);
+
+			if (!handle->has_memory_map())
+				return aux::pread_all(handle->fd(), buf, file_offset, ec.ec);
 
 			int ret = 0;
 			span<byte const> file_range = handle->range();
@@ -640,43 +651,39 @@ error_code translate_error(std::system_error const& err, bool const write)
 			// short reads as errors
 			ec.operation = operation_t::file_write;
 
-			if (m_use_mmap_writes)
+			if (!m_use_mmap_writes || !handle->has_memory_map())
+				return aux::pwrite_all(handle->fd(), buf, file_offset, ec.ec);
+
+			int ret = 0;
+			span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
+
+			try
 			{
-				int ret = 0;
-				span<byte> file_range = handle->range().subspan(static_cast<std::ptrdiff_t>(file_offset));
+				TORRENT_ASSERT(file_range.size() >= buf.size());
 
-				try
-				{
-					TORRENT_ASSERT(file_range.size() >= buf.size());
+				sig::try_signal([&]{
+					std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
+					});
 
-					sig::try_signal([&]{
-						std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
-						});
+				file_range = file_range.subspan(buf.size());
+				ret += static_cast<int>(buf.size());
 
-					file_range = file_range.subspan(buf.size());
-					ret += static_cast<int>(buf.size());
-
-					if (flags & disk_interface::volatile_read)
-						handle->dont_need(file_range.first(buf.size()));
-					if (flags & disk_interface::flush_piece)
-						handle->page_out(file_range.first(buf.size()));
-				}
-				catch (std::system_error const& err)
-				{
-					ec.ec = translate_error(err, true);
-					return -1;
-				}
+				if (flags & disk_interface::volatile_read)
+					handle->dont_need(file_range.first(buf.size()));
+				if (flags & disk_interface::flush_piece)
+					handle->page_out(file_range.first(buf.size()));
+			}
+			catch (std::system_error const& err)
+			{
+				ec.ec = translate_error(err, true);
+				return -1;
+			}
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-				m_pool.record_file_write(storage_index(), file_index, ret);
+			m_pool.record_file_write(storage_index(), file_index, ret);
 #endif
 
-				return ret;
-			}
-			else
-			{
-				return aux::pwrite_all(handle->fd(), buf, file_offset, ec.ec);
-			}
+			return ret;
 		});
 	}
 
@@ -692,8 +699,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 #endif
 
 		char dummy;
+		std::vector<char> scratch;
+
 		return readwrite(files(), {&dummy, len}, piece, offset, error
-			, [this, mode, flags, &ph, &sett](file_index_t const file_index
+			, [this, mode, flags, &ph, &sett, &scratch](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<char> const buf, storage_error& ec)
 		{
@@ -720,6 +729,15 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 			auto handle = open_file(sett, file_index, mode, ec);
 			if (ec) return -1;
+
+			if (!handle->has_memory_map())
+			{
+				scratch.resize(std::size_t(buf.size()));
+				int const ret = aux::pread_all(handle->fd(), scratch, file_offset, ec.ec);
+				if (ec) return -1;
+				ph.update(scratch);
+				return ret;
+			}
 
 			int ret = 0;
 			span<byte const> file_range = handle->range();
@@ -777,6 +795,20 @@ error_code translate_error(std::system_error const& err, bool const write)
 		auto handle = open_file(sett, file_index, mode, error);
 		if (error) return -1;
 
+		if (!handle->has_memory_map())
+		{
+			std::vector<char> scratch(static_cast<std::size_t>(len));
+			int const ret = aux::pread_all(handle->fd(), scratch, file_offset, error.ec);
+			if (error)
+			{
+				error.file(file_index);
+				error.operation = operation_t::file_read;
+				return -1;
+			}
+			ph.update(scratch);
+			return ret;
+		}
+
 		span<byte const> file_range = handle->range();
 		if (std::int64_t(file_range.size()) <= file_offset)
 		{
@@ -798,7 +830,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
 	// directories have been created and retries
-	boost::optional<aux::file_view> mmap_storage::open_file(settings_interface const& sett
+	std::shared_ptr<aux::file_mapping> mmap_storage::open_file(settings_interface const& sett
 		, file_index_t const file
 		, aux::open_mode_t mode, storage_error& ec) const
 	{
@@ -827,7 +859,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		}
 #endif
 
-		boost::optional<aux::file_view> h = open_file_impl(sett, file, mode, ec);
+		std::shared_ptr<aux::file_mapping> h = open_file_impl(sett, file, mode, ec);
 		if (ec.ec)
 		{
 			ec.file(file);
@@ -848,7 +880,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		return h;
 	}
 
-	boost::optional<aux::file_view> mmap_storage::open_file_impl(settings_interface const& sett
+	std::shared_ptr<aux::file_mapping> mmap_storage::open_file_impl(settings_interface const& sett
 		, file_index_t file
 		, aux::open_mode_t mode
 		, storage_error& ec) const
