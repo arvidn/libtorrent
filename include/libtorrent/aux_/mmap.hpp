@@ -56,9 +56,11 @@ using byte = char;
 
 namespace aux {
 
-	using namespace flags;
+	// files smaller than this will not be mapped into memory, they will just
+	// have a file descriptor to be used with regular pread/pwrite calls
+	std::int64_t const mapped_file_cutoff = 1024 * 1024;
 
-	struct file_view;
+	using namespace flags;
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 	struct TORRENT_EXTRA_EXPORT file_mapping_handle
@@ -82,8 +84,6 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT file_mapping : std::enable_shared_from_this<file_mapping>
 	{
-		friend struct file_view;
-
 		file_mapping(file_handle file, open_mode_t mode, std::int64_t file_size
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			, std::shared_ptr<std::mutex> open_unmap_lock
@@ -102,18 +102,14 @@ namespace aux {
 		file_mapping& operator=(file_mapping&& rhs) &;
 		~file_mapping();
 
-		// ...
-		file_view view();
-
 		handle_type fd() const { return m_file.fd(); }
-	private:
 
-		void close();
+		bool has_memory_map() const { return m_mapping != nullptr; }
 
 		// the memory range this file has been mapped into
-		span<byte> memory()
+		span<byte> range()
 		{
-			TORRENT_ASSERT(m_mapping || m_size == 0);
+			TORRENT_ASSERT(m_mapping || m_size < aux::mapped_file_cutoff);
 			return { static_cast<byte*>(m_mapping), static_cast<std::ptrdiff_t>(m_size) };
 		}
 
@@ -125,6 +121,10 @@ namespace aux {
 		// flushed to disk
 		void page_out(span<byte const> range);
 
+	private:
+
+		void close();
+
 		std::int64_t m_size;
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		file_mapping_handle m_file;
@@ -134,44 +134,6 @@ namespace aux {
 #endif
 		void* m_mapping;
 	};
-
-	struct TORRENT_EXTRA_EXPORT file_view
-	{
-		friend struct file_mapping;
-		file_view(file_view&&) = default;
-		file_view& operator=(file_view&&) = default;
-
-		span<byte const> range() const
-		{
-			TORRENT_ASSERT(m_mapping);
-			return m_mapping->memory();
-		}
-
-		span<byte> range()
-		{
-			TORRENT_ASSERT(m_mapping);
-			return m_mapping->memory();
-		}
-
-		void dont_need(span<byte const> range)
-		{
-			TORRENT_ASSERT(m_mapping);
-			m_mapping->dont_need(range);
-		}
-
-		void page_out(span<byte const> range)
-		{
-			TORRENT_ASSERT(m_mapping);
-			m_mapping->page_out(range);
-		}
-
-		handle_type fd() const { return m_mapping->fd(); }
-
-	private:
-		explicit file_view(std::shared_ptr<file_mapping> m) : m_mapping(std::move(m)) {}
-		std::shared_ptr<file_mapping> m_mapping;
-	};
-
 } // aux
 } // libtorrent
 

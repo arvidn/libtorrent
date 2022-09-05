@@ -89,7 +89,8 @@ namespace aux {
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
-		file_view open_file(storage_index_t st, std::string const& p
+		std::shared_ptr<file_mapping>
+		open_file(storage_index_t st, std::string const& p
 			, file_index_t file_index, file_storage const& fs, open_mode_t m
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			, std::shared_ptr<std::mutex> open_unmap_lock
