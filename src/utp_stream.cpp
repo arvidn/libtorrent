@@ -1857,8 +1857,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 	utp_header* h = nullptr;
 
 	// payload size being zero means we're just sending
-	// an force. We should not pick up the nagle packet
-	if (!m_nagle_packet || (payload_size == 0 && force))
+	// an force. For efficiency, pick up the nagle packet
+	// if there's room
+	if (!m_nagle_packet || (payload_size == 0 && force
+		&& m_bytes_in_flight + m_nagle_packet->size
+		> std::min(int(m_cwnd >> 16), int(m_adv_wnd))))
 	{
 		p = acquire_packet(effective_mtu);
 
@@ -1893,6 +1896,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 	else
 	{
+#if TORRENT_UTP_LOG
+		if (payload_size == 0 && force)
+			UTP_LOGV("%8p: Picking up Nagled packet due to forced send\n"
+				, static_cast<void*>(this));
+#endif
+
 		// pick up the nagle packet and keep adding bytes to it
 		p = std::move(m_nagle_packet);
 		m_nagle_packet.reset();
