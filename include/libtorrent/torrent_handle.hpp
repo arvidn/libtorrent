@@ -1279,6 +1279,9 @@ namespace aux {
 		// client builds.
 		std::shared_ptr<torrent> native_handle() const;
 
+		// returns the userdata pointer as set in add_torrent_params
+		void* userdata() const;
+
 		// Returns true if the torrent is in the session. It returns true before
 		// session::remove_torrent() is called, and false afterward.
 		//

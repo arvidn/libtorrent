@@ -863,6 +863,12 @@ namespace libtorrent {
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
 
+	void* torrent_handle::userdata() const
+	{
+		std::shared_ptr<torrent> t = m_torrent.lock();
+		return t ? t->get_userdata() : nullptr;
+	}
+
 	bool torrent_handle::in_session() const
 	{ return !sync_call_ret<bool>(false, &torrent::is_aborted); }
 

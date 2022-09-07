@@ -181,7 +181,8 @@ TORRENT_VERSION_NAMESPACE_2
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
-		// (see torrent_handle::add_extension()).
+		// (see torrent_handle::add_extension()). It will also be possible to
+		// retrieve via torrent_handle::userdata().
 		void* userdata = nullptr;
 
 		// can be set to control the initial file priorities when adding a
