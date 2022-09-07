@@ -1,3 +1,4 @@
+	* fix total_want/want accounting when forcing a recheck
 	* fix merging metadata with magnet links added on top of existing torrents
 	* add torrent_flag to default all file priorities to dont_download
 	* fix &so= feature in magnet links
