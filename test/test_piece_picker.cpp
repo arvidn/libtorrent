@@ -621,27 +621,44 @@ TORRENT_TEST(resize)
 {
 	// make sure init preserves priorities
 	auto p = setup_picker("1111111", "       ", "1111111", "");
+	p->set_pad_bytes(0_piece, 10);
+	p->set_pad_bytes(2_piece, 20);
 
 	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->want().pad_bytes, 30);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().pad_bytes, 0);
 	TEST_EQUAL(p->have().num_pieces, 0);
+	TEST_EQUAL(p->have().pad_bytes, 0);
 
 	p->set_piece_priority(0_piece, dont_download);
 	TEST_EQUAL(p->want().num_pieces, 6);
+	TEST_EQUAL(p->want().pad_bytes, 20);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().pad_bytes, 0);
 	TEST_EQUAL(p->have().num_pieces, 0);
+	TEST_EQUAL(p->have().pad_bytes, 0);
 
 	p->we_have(0_piece);
 
 	TEST_EQUAL(p->want().num_pieces, 6);
+	TEST_EQUAL(p->want().pad_bytes, 20);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().pad_bytes, 0);
 	TEST_EQUAL(p->have().num_pieces, 1);
+	TEST_EQUAL(p->have().pad_bytes, 10);
 
 	p->resize(28 * default_piece_size, default_piece_size);
+
+	// the piece priority is expected to be preserved
 	TEST_EQUAL(p->piece_priority(0_piece), dont_download);
+
 	TEST_EQUAL(p->want().num_pieces, 28 - 1);
+	TEST_EQUAL(p->want().pad_bytes, 20);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().pad_bytes, 0);
 	TEST_EQUAL(p->have().num_pieces, 0);
+	TEST_EQUAL(p->have().pad_bytes, 0);
 }
 
 TORRENT_TEST(we_have_all)
