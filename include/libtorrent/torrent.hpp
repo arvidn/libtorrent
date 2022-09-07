@@ -1189,6 +1189,8 @@ namespace libtorrent {
 		}
 		void add_suggest_piece(piece_index_t index);
 
+		void* get_userdata() const { return m_userdata; }
+
 		static constexpr int no_gauge_state = 0xf;
 
 	private:
@@ -1684,6 +1686,9 @@ namespace libtorrent {
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// seconds since epoch.
 		time_point32 m_last_upload{seconds32(0)};
+
+		// user data as passed in by add_torrent_params
+		void* m_userdata;
 
 // ----
 
