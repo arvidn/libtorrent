@@ -173,7 +173,7 @@ namespace libtorrent {
 		m_num_have_filtered = 0;
 		m_num_have = 0;
 		m_have_pad_blocks = 0;
-		m_filtered_pad_blocks = 0;
+		m_filtered_pad_blocks += m_have_filtered_pad_blocks;
 		m_have_filtered_pad_blocks = 0;
 		m_num_passed = 0;
 		m_dirty = true;
