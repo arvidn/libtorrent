@@ -359,6 +359,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             self._maybe_add_arg("--debug-generators")
 
         if sys.platform == "darwin":
+            # boost.build defaults to toolset=clang on mac. However python.jam
+            # on boost 1.77+ breaks with toolset=clang if using a framework-type
+            # python installation, such as installed by homebrew.
+            self._maybe_add_arg("toolset=darwin")
             self._maybe_add_arg("cxxstd=11")
 
         self._configure_from_autotools()
