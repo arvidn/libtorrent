@@ -238,7 +238,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 				// if the source IP doesn't match the proxy's, ignore the packet
 				if (p.from != m_socks5_connection->target()) continue;
 				// if we failed to unwrap, silently ignore the packet
-				if (!unwrap(p.from, p.data)) continue;
+				if (!unwrap(p)) continue;
 			}
 			else
 			{
@@ -405,15 +405,15 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 // buf is an in-out parameter. It will be updated
 // return false if the packet should be ignored. It's not a valid Socks5 UDP
 // forwarded packet
-bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
+bool udp_socket::unwrap(udp_socket::packet& pack)
 {
 	using namespace libtorrent::aux;
 
 	// the minimum socks5 header size
-	auto const size = aux::numeric_cast<int>(buf.size());
+	auto const size = aux::numeric_cast<int>(pack.data.size());
 	if (size <= 10) return false;
 
-	char* p = buf.data();
+	char* p = pack.data.data();
 	p += 2; // reserved
 	int const frag = read_uint8(p);
 	// fragmentation is not supported
@@ -423,27 +423,30 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 	if (atyp == 1)
 	{
 		// IPv4
-		from = read_v4_endpoint<udp::endpoint>(p);
+		pack.from = read_v4_endpoint<udp::endpoint>(p);
 	}
 	else if (atyp == 4)
 	{
 		// IPv6
-		from = read_v6_endpoint<udp::endpoint>(p);
+		pack.from = read_v6_endpoint<udp::endpoint>(p);
 	}
 	else
 	{
-		int const len = read_uint8(p);
-		if (len > buf.end() - p) return false;
-		std::string hostname(p, p + len);
-		error_code ec;
-		address addr = make_address(hostname, ec);
-		// we only support "hostnames" that are a dotted decimal IP
-		if (ec) return false;
+		std::uint8_t const len = read_uint8(p);
+		if (len > pack.data.end() - p) return false;
+		string_view hostname(p, len);
 		p += len;
-		from = udp::endpoint(addr, read_uint16(p));
+
+		error_code ec;
+		address addr = make_address(std::string(hostname), ec);
+		std::uint16_t const port = read_uint16(p);
+		if (!ec)
+			pack.from = udp::endpoint(addr, port);
+		else
+			pack.hostname = hostname;
 	}
 
-	buf = {p, size - (p - buf.data())};
+	pack.data = span<char>{p, size - (p - pack.data.data())};
 	return true;
 }
 

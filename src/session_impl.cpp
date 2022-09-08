@@ -2572,6 +2572,14 @@ namespace {
 				}
 
 				span<char const> const buf = packet.data;
+				if (!packet.hostname.empty())
+				{
+					// only the tracker manager supports receiveing UDP packets
+					// from hostnames. If it won't handle it, no one else will
+					// either
+					m_tracker_manager.incoming_packet(packet.hostname, buf);
+					continue;
+				}
 
 				// give the uTP socket manager first dibs on the packet. Presumably
 				// the majority of packets are uTP packets.

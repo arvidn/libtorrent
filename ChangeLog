@@ -1,3 +1,4 @@
+	* support incoming SOCKS5 packets with hostnames as source address, for UDP trackers
 	* ignore duplicate network interface change notifications on linux
 	* fix total_want/want accounting when forcing a recheck
 	* fix merging metadata with magnet links added on top of existing torrents

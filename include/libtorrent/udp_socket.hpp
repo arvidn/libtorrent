@@ -88,6 +88,7 @@ namespace aux { struct alert_manager; }
 		{
 			span<char> data;
 			udp::endpoint from;
+			string_view hostname;
 			error_code error;
 		};
 
@@ -150,7 +151,7 @@ namespace aux { struct alert_manager; }
 
 		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, udp_send_flags_t flags);
 		void wrap(char const* hostname, int port, span<char const> p, error_code& ec, udp_send_flags_t flags);
-		bool unwrap(udp::endpoint& from, span<char>& buf);
+		bool unwrap(udp_socket::packet& pack);
 
 		udp::socket m_socket;
 
