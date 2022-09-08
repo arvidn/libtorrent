@@ -45,20 +45,20 @@ jobs:
       MATRIX_PULL_REQUEST: |
         {
           "include": [
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "macos-10.15", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "macos-12", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
             {"os": "windows-2019", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
         {
           "include": [
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "aarch64"},
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-20.04", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
-            {"os": "macos-10.15", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "aarch64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
+            {"os": "macos-12", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
             {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
             {"os": "windows-2019", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
           ]

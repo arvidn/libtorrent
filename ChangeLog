@@ -129,6 +129,8 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix wanted_done/done accounting when force-rechecking
+	* expose userdata via torrent_handle (back-port from 2.0)
 	* fix renaming of filenames that are too long for the filesystem
 	* made UPnP and LSD code avoid using select_reactor (to work around an issue on windows in boost.asio < 1.80)
 
