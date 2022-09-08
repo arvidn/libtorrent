@@ -238,6 +238,7 @@ set(libtorrent_aux_include_files
 	lsd.hpp
 	merkle.hpp
 	merkle_tree.hpp
+	netlink_utils.hpp
 	noexcept_movable.hpp
 	numeric_cast.hpp
 	packet_buffer.hpp
