@@ -226,7 +226,8 @@ udp::endpoint utp_socket_impl::remote_endpoint() const
 
 void utp_socket_impl::send_ack()
 {
-	TORRENT_ASSERT(m_deferred_ack);
+	if(!m_deferred_ack)
+		return;
 	m_deferred_ack = false;
 	send_pkt(utp_socket_impl::pkt_ack);
 }
@@ -1662,6 +1663,16 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	if (!m_stalled)
 		++p->num_transmissions;
+
+	// Any queued up deferred ack is now redundant
+	if (m_deferred_ack)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: Cancelling redundant deferred ack\n"
+			, static_cast<void*>(this));
+#endif
+		m_deferred_ack = false;
+	}
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
