@@ -103,7 +103,7 @@ jobs:
     - uses: docker/setup-qemu-action@v1
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.2.2
+    - uses: pypa/cibuildwheel@v2.9.0
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v2
