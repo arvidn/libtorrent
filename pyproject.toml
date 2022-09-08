@@ -2,7 +2,7 @@
 requires-python = ">=3.7"
 
 [tool.cibuildwheel]
-skip = "pp*"
+skip = "{pp*,cp311-*}"
 
 [tool.cibuildwheel.macos]
 before-all = [
