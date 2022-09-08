@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/netlink.hpp"
 #include "libtorrent/socket.hpp"
 #include <array>
+#include <unordered_map>
 #elif TORRENT_USE_SYSTEMCONFIGURATION
 #include <SystemConfiguration/SystemConfiguration.h>
 #elif defined TORRENT_WINDOWS
@@ -55,6 +56,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
+
+#include "libtorrent/aux_/netlink_utils.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -96,9 +99,12 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		using namespace std::placeholders;
 		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, std::bind(&ip_change_notifier_impl::on_notify, _1, _2, std::move(cb)));
+			, [cb=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
+			{
+				if (ec) cb(ec);
+				else this->on_notify(int(bytes_transferred), std::move(cb));
+			});
 	}
 
 	void cancel() override
@@ -108,17 +114,69 @@ private:
 	netlink::socket m_socket;
 	std::array<char, 4096> m_buf;
 
-	static void on_notify(error_code const& ec, std::size_t bytes_transferred
-		, std::function<void(error_code const&)> const& cb)
+	struct local_address
 	{
-		TORRENT_UNUSED(bytes_transferred);
+		int family;
+		std::array<char, 16> data;
+	};
+	// maps if_index to the most recently advertized local address
+	// this is used to filter duplicate updates
+	std::unordered_map<std::uint32_t, local_address> m_state;
 
-		// on linux we could parse the message to get information about the
-		// change but Windows requires the application to enumerate the
-		// interfaces after a notification so do that for Linux as well to
-		// minimize the difference between platforms
+	void on_notify(int len, std::function<void(error_code const& ec)> cb)
+	{
+		bool pertinent = false;
 
-		cb(ec);
+		for (auto const* nh = reinterpret_cast<nlmsghdr const*>(this->m_buf.data());
+			nlmsg_ok (nh, len);
+			nh = nlmsg_next(nh, len))
+		{
+			if (nh->nlmsg_type != RTM_NEWADDR)
+				continue;
+
+			auto const* addr_msg = static_cast<ifaddrmsg const*>(nlmsg_data(nh));
+			std::uint32_t const index = addr_msg->ifa_index;
+			int const family = addr_msg->ifa_family;
+			std::size_t attr_len = ifa_payload(nh);
+			auto const* rta_ptr = ifa_rta(addr_msg);
+
+			for (; rta_ok(rta_ptr, attr_len); rta_ptr = rta_next(rta_ptr, attr_len))
+			{
+				auto* const ptr = rta_data(rta_ptr);
+				if (rta_ptr->rta_type != IFA_LOCAL)
+					continue;
+
+				auto& existing = m_state[index];
+				std::size_t const address_len = family == AF_INET ? 4 : 16;
+				if (existing.family == family
+					&& std::memcmp(&existing.data, ptr, address_len) == 0)
+				{
+					break;
+				}
+
+				existing.family = family;
+				std::memcpy(existing.data.data(), ptr, address_len);
+				pertinent = true;
+			}
+		}
+
+		if (!pertinent)
+		{
+			m_socket.async_receive(boost::asio::buffer(m_buf)
+				, [cb=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
+				{
+					if (ec) cb(ec);
+					else this->on_notify(int(bytes_transferred), std::move(cb));
+				});
+		}
+		else
+		{
+			// on linux we could parse the message to get information about the
+			// change but Windows requires the application to enumerate the
+			// interfaces after a notification so do that for Linux as well to
+			// minimize the difference between platforms
+			cb(error_code());
+		}
 	}
 };
 #elif TORRENT_USE_SYSTEMCONFIGURATION

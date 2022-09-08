@@ -622,6 +622,7 @@ HEADERS = \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
   aux_/mmap_disk_job.hpp            \
+  aux_/netlink_utils.hpp            \
   aux_/noexcept_movable.hpp         \
   aux_/numeric_cast.hpp             \
   aux_/open_mode.hpp                \

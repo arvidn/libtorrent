@@ -89,6 +89,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#include "libtorrent/aux_/netlink_utils.hpp"
+
 #if TORRENT_USE_NETLINK
 
 // We really should be including <linux/if.h> here, for the IF_OPER_* flags.
@@ -112,8 +114,6 @@ enum : int {
 };
 }
 
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 #include <asm/types.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
@@ -251,53 +251,6 @@ namespace {
 
 #if TORRENT_USE_NETLINK
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-compare"
-#pragma clang diagnostic ignored "-Wcast-qual"
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
-	// these are here to concentrate all the shady casts these macros expand to,
-	// to disable the warnings for them all
-	bool nlmsg_ok(nlmsghdr const* hdr, int const len)
-	{ return NLMSG_OK(hdr, len); }
-
-	nlmsghdr const* nlmsg_next(nlmsghdr const* hdr, int& len)
-	{ return NLMSG_NEXT(hdr, len); }
-
-	void const* nlmsg_data(nlmsghdr const* hdr)
-	{ return NLMSG_DATA(hdr); }
-
-	rtattr const* rtm_rta(rtmsg const* hdr)
-	{ return static_cast<rtattr const*>(RTM_RTA(hdr)); }
-
-	std::size_t rtm_payload(nlmsghdr const* hdr)
-	{ return RTM_PAYLOAD(hdr); }
-
-	bool rta_ok(rtattr const* rt, std::size_t const len)
-	{ return RTA_OK(rt, len); }
-
-	void const* rta_data(rtattr const* rt)
-	{ return RTA_DATA(rt); }
-
-	rtattr const* rta_next(rtattr const* rt, std::size_t& len)
-	{ return RTA_NEXT(rt, len); }
-
-	rtattr const* ifa_rta(ifaddrmsg const* ifa)
-	{ return static_cast<rtattr const*>(IFA_RTA(ifa)); }
-
-	std::size_t ifa_payload(nlmsghdr const* hdr)
-	{ return IFA_PAYLOAD(hdr); }
-
-	rtattr const* ifla_rta(ifinfomsg const* ifinfo)
-	{ return static_cast<rtattr const*>(IFLA_RTA(ifinfo)); }
-
-	std::size_t ifla_payload(nlmsghdr const* hdr)
-	{ return IFLA_PAYLOAD(hdr); }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
 	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
 		, std::function<void(nlmsghdr const*)> on_msg)
 	{
@@ -310,11 +263,11 @@ namespace {
 			auto const* nl_hdr = reinterpret_cast<nlmsghdr const*>(buf.data());
 			int len = read_len;
 
-			for (; len > 0 && nlmsg_ok(nl_hdr, len); nl_hdr = nlmsg_next(nl_hdr, len))
+			for (; len > 0 && aux::nlmsg_ok(nl_hdr, len); nl_hdr = aux::nlmsg_next(nl_hdr, len))
 			{
 				// TODO: if we get here, the caller still assumes the error code
 				// is reported via errno
-				if ((nlmsg_ok(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
+				if ((aux::nlmsg_ok(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 					return -1;
 				// this function doesn't handle multiple requests at the same time
 				// so report an error if the message does not have the expected seq and pid
@@ -373,17 +326,17 @@ namespace {
 
 	link_info parse_nl_link(nlmsghdr const* nl_hdr)
 	{
-		auto const* if_msg = static_cast<ifinfomsg const*>(nlmsg_data(nl_hdr));
-		rtattr const* rta_ptr = ifla_rta(if_msg);
-		std::size_t attr_len = ifla_payload(nl_hdr);
+		auto const* if_msg = static_cast<ifinfomsg const*>(aux::nlmsg_data(nl_hdr));
+		rtattr const* rta_ptr = aux::ifla_rta(if_msg);
+		std::size_t attr_len = aux::ifla_payload(nl_hdr);
 
 		link_info ret{};
 		ret.flags = convert_if_flags(if_msg->ifi_flags);
 		ret.if_idx = if_msg->ifi_index;
 
-		for (; rta_ok(rta_ptr, attr_len); rta_ptr = rta_next(rta_ptr, attr_len))
+		for (; aux::rta_ok(rta_ptr, attr_len); rta_ptr = aux::rta_next(rta_ptr, attr_len))
 		{
-			auto* const ptr = rta_data(rta_ptr);
+			auto* const ptr = aux::rta_data(rta_ptr);
 			switch (rta_ptr->rta_type)
 			{
 				case IFLA_IFNAME:
@@ -415,7 +368,7 @@ namespace {
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWROUTE) return false;
 
-		auto const* rt_msg = static_cast<rtmsg const*>(nlmsg_data(nl_hdr));
+		auto const* rt_msg = static_cast<rtmsg const*>(aux::nlmsg_data(nl_hdr));
 
 		if (!valid_addr_family(rt_msg->rtm_family))
 			return false;
@@ -429,23 +382,23 @@ namespace {
 		}
 
 		int if_index = 0;
-		std::size_t rt_len = rtm_payload(nl_hdr);
-		for (rtattr const* rt_attr = rtm_rta(rt_msg);
-			rta_ok(rt_attr, rt_len); rt_attr = rta_next(rt_attr, rt_len))
+		std::size_t rt_len = aux::rtm_payload(nl_hdr);
+		for (rtattr const* rt_attr = aux::rtm_rta(rt_msg);
+			aux::rta_ok(rt_attr, rt_len); rt_attr = aux::rta_next(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
 				case RTA_OIF:
-					std::memcpy(&if_index, rta_data(rt_attr), sizeof(int));
+					std::memcpy(&if_index, aux::rta_data(rt_attr), sizeof(int));
 					break;
 				case RTA_GATEWAY:
-					rt_info->gateway = to_address(rt_msg->rtm_family, rta_data(rt_attr));
+					rt_info->gateway = to_address(rt_msg->rtm_family, aux::rta_data(rt_attr));
 					break;
 				case RTA_DST:
-					rt_info->destination = to_address(rt_msg->rtm_family, rta_data(rt_attr));
+					rt_info->destination = to_address(rt_msg->rtm_family, aux::rta_data(rt_attr));
 					break;
 				case RTA_PREFSRC:
-					rt_info->source_hint = to_address(rt_msg->rtm_family, rta_data(rt_attr));
+					rt_info->source_hint = to_address(rt_msg->rtm_family, aux::rta_data(rt_attr));
 					break;
 			}
 		}
@@ -473,7 +426,7 @@ namespace {
 		// sanity check
 		if (nl_hdr->nlmsg_type != RTM_NEWADDR) return false;
 
-		auto const* addr_msg = static_cast<ifaddrmsg const*>(nlmsg_data(nl_hdr));
+		auto const* addr_msg = static_cast<ifaddrmsg const*>(aux::nlmsg_data(nl_hdr));
 
 		if (!valid_addr_family(addr_msg->ifa_family))
 			return false;
@@ -487,9 +440,9 @@ namespace {
 		ip_info->netmask = build_netmask(addr_msg->ifa_prefixlen, addr_msg->ifa_family);
 
 		ip_info->interface_address = address();
-		std::size_t rt_len = ifa_payload(nl_hdr);
-		for (rtattr const* rt_attr = ifa_rta(addr_msg);
-			rta_ok(rt_attr, rt_len); rt_attr = rta_next(rt_attr, rt_len))
+		std::size_t rt_len = aux::ifa_payload(nl_hdr);
+		for (rtattr const* rt_attr = aux::ifa_rta(addr_msg);
+			aux::rta_ok(rt_attr, rt_len); rt_attr = aux::rta_next(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
@@ -503,14 +456,14 @@ namespace {
 			case IFA_LOCAL:
 				if (addr_msg->ifa_family == AF_INET6)
 				{
-					address_v6 addr = inaddr6_to_address(rta_data(rt_attr));
+					address_v6 addr = inaddr6_to_address(aux::rta_data(rt_attr));
 					if (addr_msg->ifa_scope == RT_SCOPE_LINK)
 						addr.scope_id(addr_msg->ifa_index);
 					ip_info->interface_address = addr;
 				}
 				else
 				{
-					ip_info->interface_address = inaddr_to_address(rta_data(rt_attr));
+					ip_info->interface_address = inaddr_to_address(aux::rta_data(rt_attr));
 				}
 				break;
 			}
