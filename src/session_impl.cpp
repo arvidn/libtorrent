@@ -573,7 +573,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		if (ec) session_log("SSL set_default verify_paths failed: %s", ec.message().c_str());
 		ec.clear();
 #endif
-#if defined TORRENT_WINDOWS && defined TORRENT_USE_OPENSSL
+#if defined TORRENT_WINDOWS && defined TORRENT_USE_OPENSSL && !defined TORRENT_WINRT
 		// TODO: come up with some abstraction to do this for gnutls as well
 		// load certificates from the windows system certificate store
 		X509_STORE* store = X509_STORE_new();
@@ -2537,6 +2537,14 @@ namespace {
 				}
 
 				span<char const> const buf = packet.data;
+				if (!packet.hostname.empty())
+				{
+					// only the tracker manager supports receiveing UDP packets
+					// from hostnames. If it won't handle it, no one else will
+					// either
+					m_tracker_manager.incoming_packet(packet.hostname, buf);
+					continue;
+				}
 
 				// give the uTP socket manager first dibs on the packet. Presumably
 				// the majority of packets are uTP packets.

@@ -45,6 +45,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/tracker_event.hpp" // for event_t enum
+#include "libtorrent/string_view.hpp"
 
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/rtc_signaling.hpp"
@@ -351,9 +352,7 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
-		// TODO: 3 make sure the udp_socket supports passing on string-hostnames
-		// too, and that this function is used
-		bool incoming_packet(char const* hostname, span<char const> buf);
+		bool incoming_packet(string_view hostname, span<char const> buf);
 
 		void update_transaction_id(
 			std::shared_ptr<aux::udp_tracker_connection> c

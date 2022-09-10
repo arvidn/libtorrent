@@ -2010,6 +2010,15 @@ namespace aux {
 			// torrents, this limit may have to be raised.
 			metadata_token_limit,
 
+			// controls whether disk writes will be made through a memory mapped
+			// file or via normal write calls. This only affects the
+			// mmap_disk_io. When saving to a non-local drive (network share,
+			// NFS or NAS) using memory mapped files is most likely inferior.
+			// When writing to a local SSD (especially in DAX mode) using memory
+			// mapped files likely gives the best performance.
+			// The values for this setting are specified as mmap_write_mode_t.
+			disk_write_mode,
+
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is
 			// specified in seconds and is used as a sanity check on what is
@@ -2026,6 +2035,20 @@ namespace aux {
 		constexpr static int num_string_settings = int(max_string_setting_internal) - int(string_type_base);
 		constexpr static int num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base);
 		constexpr static int num_int_settings = int(max_int_setting_internal) - int(int_type_base);
+
+		enum mmap_write_mode_t : std::uint8_t
+		{
+			// disable writing to disk via mmap, always use normal write calls
+			always_pwrite = 0,
+
+			// prefer using memory mapped files for disk writes (at least for
+			// large files where it might make sense)
+			always_mmap_write,
+
+			// determine whether to use pwrite or memory mapped files for disk
+			// writes depending on the kind of storage behind the save path
+			auto_mmap_write,
+		};
 
 		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 

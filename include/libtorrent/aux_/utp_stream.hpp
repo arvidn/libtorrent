@@ -844,6 +844,12 @@ private:
 	// to that packet's sequence number
 	std::uint16_t m_fast_resend_seq_nr = 0;
 
+	// this is the sequence number of the last undersized
+	// packet that we sent. this is used to ensure there
+	// is no more than one undersized packet in flight
+	// at a time
+	std::uint16_t m_nagle_seq_nr = 0;
+
 	// this is the sequence number of the FIN packet
 	// we've received. This sequence number is only
 	// valid if m_eof is true. We should not accept

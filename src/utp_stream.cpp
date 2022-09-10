@@ -202,7 +202,8 @@ udp::endpoint utp_socket_impl::remote_endpoint() const
 
 void utp_socket_impl::send_ack()
 {
-	TORRENT_ASSERT(m_deferred_ack);
+	if(!m_deferred_ack)
+		return;
 	m_deferred_ack = false;
 	send_pkt(utp_socket_impl::pkt_ack);
 }
@@ -1410,8 +1411,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 	utp_header* h = nullptr;
 
 	// payload size being zero means we're just sending
-	// an force. We should not pick up the nagle packet
-	if (!m_nagle_packet || (payload_size == 0 && force))
+	// an force. For efficiency, pick up the nagle packet
+	// if there's room
+	if (!m_nagle_packet || (payload_size == 0 && force
+		&& m_bytes_in_flight + m_nagle_packet->size
+		> std::min(int(m_cwnd >> 16), int(m_adv_wnd))))
 	{
 		p = acquire_packet(effective_mtu);
 
@@ -1446,6 +1450,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 	else
 	{
+#if TORRENT_UTP_LOG
+		if (payload_size == 0 && force)
+			UTP_LOGV("%8p: Picking up Nagled packet due to forced send\n"
+				, static_cast<void*>(this));
+#endif
+
 		// pick up the nagle packet and keep adding bytes to it
 		p = std::move(m_nagle_packet);
 		m_nagle_packet.reset();
@@ -1489,11 +1499,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
-		// no bytes in flight
+		// no undersized packet currently in flight
 		if (m_bytes_in_flight > 0
 			&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 			&& !force
-			&& m_nagle)
+			&& m_nagle
+			&& compare_less_wrap(m_acked_seq_nr, m_nagle_seq_nr, ACK_MASK))
 		{
 			// the packet is still not a full MSS, so put it back into the nagle
 			// packet
@@ -1525,11 +1536,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 	if (m_bytes_in_flight > 0
 		&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 		&& !force
-		&& m_nagle)
+		&& m_nagle
+		&& compare_less_wrap(m_acked_seq_nr, m_nagle_seq_nr, ACK_MASK))
 	{
 		// this is nagle. If we don't have a full packet
 		// worth of payload to send AND we have at least
-		// one outstanding packet, hold off. Once the
+		// one outstanding undersized packet, hold off. Once the
 		// outstanding packet is acked, we'll send this
 		// payload
 		UTP_LOGV("%8p: NAGLE not enough payload send_buffer_size:%d cwnd:%d "
@@ -1639,6 +1651,16 @@ bool utp_socket_impl::send_pkt(int const flags)
 	if (!m_stalled)
 		++p->num_transmissions;
 
+	// Any queued up deferred ack is now redundant
+	if (m_deferred_ack)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: Cancelling redundant deferred ack\n"
+			, static_cast<void*>(this));
+#endif
+		m_deferred_ack = false;
+	}
+
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
 	if (p->size > p->header_size)
@@ -1653,6 +1675,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// we never send an mtu probe for sequence number 0
 		TORRENT_ASSERT(p->mtu_probe == (m_seq_nr == m_mtu_seq)
 			|| m_seq_nr == 0);
+
+		// If this packet is undersized then note the sequenece number so we
+		// never have more than one undersized packet in flight at once
+		if (int(p->size) < std::min(int(p->allocated), effective_mtu))
+			m_nagle_seq_nr = m_seq_nr;
 
 		// release the buffer, we're saving it in the circular
 		// buffer of outgoing packets
@@ -2322,7 +2349,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// Note that when we send a FIN, we don't increment m_seq_nr
 	std::uint16_t const cmp_seq_nr =
 		((state() == state_t::syn_sent || state() == state_t::fin_sent)
-			&& ph->get_type() == ST_STATE)
+			&& (ph->get_type() == ST_STATE || ph->get_type() == ST_FIN))
 		? m_seq_nr : (m_seq_nr - 1) & ACK_MASK;
 
 	if ((state() != state_t::none || ph->get_type() != ST_SYN)

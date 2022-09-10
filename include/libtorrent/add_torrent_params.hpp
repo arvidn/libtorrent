@@ -160,6 +160,10 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``torrent_handle::prioritize_files()``. The file priorities specified
 		// in here take precedence over those specified in the resume data, if
 		// any.
+		// If this vector of file priorities is shorter than the number of files
+		// in the torrent, the remaining files (not covered by this) will still
+		// have the default download priority. This default can be changed by
+		// setting the default_dont_download torrent_flag.
 		std::vector<download_priority_t> file_priorities;
 
 		// torrent extension construction functions can be added to this vector

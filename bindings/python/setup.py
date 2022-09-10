@@ -357,6 +357,12 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             self._maybe_add_arg("--debug-building")
             self._maybe_add_arg("--debug-generators")
 
+        if sys.platform == "darwin":
+            # boost.build defaults to toolset=clang on mac. However python.jam
+            # on boost 1.77+ breaks with toolset=clang if using a framework-type
+            # python installation, such as installed by homebrew.
+            self._maybe_add_arg("toolset=darwin")
+
         # Default feature configuration
         self._maybe_add_arg("deprecated-functions=on")
         self._maybe_add_arg("boost-link=static")
@@ -366,7 +372,7 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         variant = "debug" if self.debug else "release"
         self._maybe_add_arg(f"variant={variant}")
-        bits = 64 if sys.maxsize > 2 ** 32 else 32
+        bits = 64 if sys.maxsize > 2**32 else 32
         self._maybe_add_arg(f"address-model={bits}")
 
         # Cross-compiling logic: tricky, because autodetection is usually
@@ -447,7 +453,7 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             yield
 
 
-class InstallDataToLibDir(install_data_lib.install_data):  # type: ignore
+class InstallDataToLibDir(install_data_lib.install_data):
     def finalize_options(self) -> None:
         # install_data installs to the *base* directory, which is useless.
         # Nothing ever gets installed there, no tools search there. You could

@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
 
@@ -65,7 +66,7 @@ namespace libtorrent::aux {
 		void start_announce();
 
 		bool on_receive(udp::endpoint const& ep, span<char const> buf);
-		bool on_receive_hostname(char const* hostname, span<char const> buf);
+		bool on_receive_hostname(string_view hostname, span<char const> buf);
 		bool on_connect_response(span<char const> buf);
 		bool on_announce_response(span<char const> buf);
 		bool on_scrape_response(span<char const> buf);

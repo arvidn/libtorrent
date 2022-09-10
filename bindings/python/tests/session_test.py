@@ -1249,7 +1249,7 @@ class StateTest(unittest.TestCase):
 
     def test_save(self) -> None:
         self.check_state(self.session.save_state())
-        self.check_state(self.session.save_state(flags=2 ** 32 - 1))
+        self.check_state(self.session.save_state(flags=2**32 - 1))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_deprecated(self) -> None:
@@ -1262,7 +1262,7 @@ class StateTest(unittest.TestCase):
     def test_load(self) -> None:
         state = self.session.save_state()
         self.session.load_state(state)
-        self.session.load_state(state, flags=2 ** 32 - 1)
+        self.session.load_state(state, flags=2**32 - 1)
 
 
 class GetTorrentsTest(unittest.TestCase):

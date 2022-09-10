@@ -133,7 +133,6 @@ TORRENT_TEST(sparse_file)
 {
 	using lt::aux::file_handle;
 	using lt::aux::file_mapping;
-	using lt::aux::file_view;
 	namespace open_mode = lt::aux::open_mode;
 
 	{
@@ -148,8 +147,7 @@ TORRENT_TEST(sparse_file)
 			, open_unmap_lock
 #endif
 			);
-		file_view view = map->view();
-		auto range = view.range();
+		auto range = map->range();
 		TEST_CHECK(range.size() == 50'000'000);
 
 		range[0] = 1;

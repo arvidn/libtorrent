@@ -48,11 +48,11 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc ;`nusing python : 3.6 : c:\\Python36-x64 : c:\\Python36-x64\\include : c:\\Python36-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing python : 3.7 : c:\\Python37-x64 : c:\\Python37-x64\\include : c:\\Python37-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
-  - set PATH=c:\Python36-x64;%PATH%
-  - set PYTHON_INTERPRETER=c:\Python36-x64\python.exe
+  - set PATH=c:\Python37-x64;%PATH%
+  - set PYTHON_INTERPRETER=c:\Python37-x64\python.exe
   - python --version
   - python -m pip install websockets
   - echo %ROOT_DIRECTORY%
@@ -83,7 +83,7 @@ build_script:
     b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 libtorrent-link=shared stage_module stage_dependencies
     )
   - if defined python_dist (
-    c:\Python36-x64\python.exe setup.py bdist --format=msi
+    c:\Python37-x64\python.exe setup.py bdist --format=msi
     )
 
   # minimal support for cmake build

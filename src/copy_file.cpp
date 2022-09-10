@@ -15,6 +15,7 @@ see LICENSE file.
 #ifdef TORRENT_WINDOWS
 // windows part
 #include "libtorrent/aux_/windows.hpp"
+#include "libtorrent/aux_/win_file_handle.hpp"
 #else
 
 #ifndef _GNU_SOURCE
@@ -24,6 +25,8 @@ see LICENSE file.
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
 #endif
+
+#include "libtorrent/aux_/file_descriptor.hpp"
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -83,26 +86,6 @@ std::pair<std::int64_t, std::int64_t> next_allocated_region(HANDLE file
 
 	return {out.FileOffset.QuadPart, out.FileOffset.QuadPart + out.Length.QuadPart};
 }
-
-struct file_handle
-{
-	file_handle(HANDLE h) : m_h(h) {}
-
-	~file_handle()
-	{
-		if (m_h != INVALID_HANDLE_VALUE) ::CloseHandle(m_h);
-	}
-
-	file_handle(file_handle const&) = delete;
-	file_handle(file_handle&& rhs)
-		: m_h(rhs.m_h)
-	{
-		rhs.m_h = INVALID_HANDLE_VALUE;
-	}
-	HANDLE handle() const { return m_h; }
-private:
-	HANDLE m_h;
-};
 
 void copy_range(HANDLE const in_handle, HANDLE const out_handle
 	, std::int64_t in_offset, std::int64_t len, error_code& ec)
@@ -173,13 +156,13 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 		| in_stat.nFileSizeLow;
 
 #ifdef TORRENT_WINRT
-	file_handle in_handle = ::CreateFile2(f1.c_str()
+	aux::win_file_handle in_handle = ::CreateFile2(f1.c_str()
 			, GENERIC_READ
 			, FILE_SHARE_READ
 			, OPEN_EXISTING
 			, nullptr);
 #else
-	file_handle in_handle = ::CreateFileW(f1.c_str()
+	aux::win_file_handle in_handle = ::CreateFileW(f1.c_str()
 			, GENERIC_READ
 			, FILE_SHARE_READ
 			, nullptr
@@ -194,13 +177,13 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	}
 
 #ifdef TORRENT_WINRT
-	file_handle out_handle = ::CreateFile2(f1.c_str()
+	aux::win_file_handle out_handle = ::CreateFile2(f1.c_str()
 			, GENERIC_WRITE
 			, FILE_SHARE_WRITE
 			, OPEN_ALWAYS
 			, nullptr);
 #else
-	file_handle out_handle = ::CreateFileW(f2.c_str()
+	aux::win_file_handle out_handle = ::CreateFileW(f2.c_str()
 			, GENERIC_WRITE
 			, FILE_SHARE_WRITE
 			, nullptr
@@ -241,22 +224,6 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 // Generic/linux implementation
 
 namespace {
-
-struct file_descriptor
-{
-	file_descriptor(int fd) : m_fd(fd) {}
-
-	~file_descriptor()
-	{
-		if (m_fd >= 0) ::close(m_fd);
-	}
-
-	file_descriptor(file_descriptor const&) = delete;
-	file_descriptor(file_descriptor&& rhs) = delete;
-	int fd() const { return m_fd; }
-private:
-	int m_fd;
-};
 
 struct copy_range_mode
 {
@@ -342,7 +309,7 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	native_path_string f1 = convert_to_native_path_string(inf);
 	native_path_string f2 = convert_to_native_path_string(newf);
 
-	file_descriptor const infd = ::open(f1.c_str(), O_RDONLY);
+	aux::file_descriptor const infd = ::open(f1.c_str(), O_RDONLY);
 	if (infd.fd() < 0)
 	{
 		ec.assign(errno, system_category());
@@ -361,7 +328,7 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	// if the source file is not sparse we'll end up copying every byte anyway,
 	// there's no point in passing O_TRUNC. However, in order to preserve sparse
 	// regions, we *do* need to truncate the output file.
-	file_descriptor const outfd = ::open(f2.c_str()
+	aux::file_descriptor const outfd = ::open(f2.c_str()
 		, input_is_sparse ? (O_RDWR | O_CREAT | O_TRUNC) : (O_RDWR | O_CREAT), in_stat.st_mode);
 	if (outfd.fd() < 0)
 	{

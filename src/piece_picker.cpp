@@ -158,7 +158,7 @@ namespace libtorrent::aux {
 		m_num_have_filtered = 0;
 		m_num_have = 0;
 		m_have_pad_bytes = 0;
-		m_filtered_pad_bytes = 0;
+		m_filtered_pad_bytes += m_have_filtered_pad_bytes;
 		m_have_filtered_pad_bytes = 0;
 		m_num_passed = 0;
 		m_dirty = true;

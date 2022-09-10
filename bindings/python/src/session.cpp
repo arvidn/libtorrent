@@ -1063,6 +1063,7 @@ void bind_session()
     s.attr("disable_lsd") = torrent_flags::disable_lsd;
     s.attr("disable_pex") = torrent_flags::disable_pex;
     s.attr("no_verify_files") = torrent_flags::no_verify_files;
+    s.attr("default_dont_download") = torrent_flags::default_dont_download;
     s.attr("default_flags") = torrent_flags::default_flags;
     }
 

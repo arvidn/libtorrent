@@ -1296,7 +1296,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		ADD_OUTSTANDING_ASYNC("mmap_disk_io::work");
 		std::thread::id const thread_id = std::this_thread::get_id();
 
-		aux::set_thread_name("Disk");
+		aux::set_thread_name("libtorrent-disk-thread");
 
 #ifdef _WIN32
 		using SetThreadInformation_t = BOOL (WINAPI*)(HANDLE, THREAD_INFORMATION_CLASS, LPVOID, DWORD);

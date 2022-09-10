@@ -41,7 +41,8 @@ class ParseMagnetTest(unittest.TestCase):
             params,
             {
                 "dht_nodes": [("1.2.3.4", 5678)],
-                "flags": lt.add_torrent_params_flags_t.default_flags,
+                "flags": lt.torrent_flags.default_flags
+                | lt.torrent_flags.default_dont_download,
                 "info_hash": bytes.fromhex(self.info_hash_sha1),
                 "info_hashes": bytes.fromhex(self.info_hash_sha1),
                 "name": "test.txt",
@@ -84,7 +85,8 @@ class ParseMagnetTest(unittest.TestCase):
             {
                 "dht_nodes": [("1.2.3.4", 5678)],
                 "file_priorities": [4, 4, 4, 0, 4],
-                "flags": lt.add_torrent_params_flags_t.default_flags,
+                "flags": lt.torrent_flags.default_flags
+                | lt.torrent_flags.default_dont_download,
                 "info_hash": bytes.fromhex(self.info_hash_sha1),
                 "info_hashes": bytes.fromhex(self.info_hash_sha1),
                 "name": "test.txt",
@@ -126,7 +128,8 @@ class ParseMagnetTest(unittest.TestCase):
             params,
             {
                 "dht_nodes": [("1.2.3.4", 5678)],
-                "flags": lt.add_torrent_params_flags_t.default_flags,
+                "flags": lt.torrent_flags.default_flags
+                | lt.torrent_flags.default_dont_download,
                 "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
                 "info_hashes": bytes.fromhex(self.info_hash_sha256),
                 "name": "test.txt",
@@ -169,7 +172,8 @@ class ParseMagnetTest(unittest.TestCase):
             {
                 "dht_nodes": [("1.2.3.4", 5678)],
                 "file_priorities": [4, 4, 4, 0, 4],
-                "flags": lt.add_torrent_params_flags_t.default_flags,
+                "flags": lt.torrent_flags.default_flags
+                | lt.torrent_flags.default_dont_download,
                 "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
                 "info_hashes": bytes.fromhex(self.info_hash_sha256),
                 "name": "test.txt",

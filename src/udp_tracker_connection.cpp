@@ -281,7 +281,7 @@ namespace libtorrent::aux {
 		m_man.remove_request(this);
 	}
 
-	bool udp_tracker_connection::on_receive_hostname(char const* hostname
+	bool udp_tracker_connection::on_receive_hostname(string_view const hostname
 		, span<char const> buf)
 	{
 		TORRENT_UNUSED(hostname);

@@ -44,4 +44,5 @@ exe dht : dht_put.cpp : <include>../ed25519/src ;
 exe dht-sample : dht_sample.cpp : <include>../ed25519/src ;
 exe session_log_alerts : session_log_alerts.cpp ;
 exe disk_io_stress_test : disk_io_stress_test.cpp ;
+exe checking_benchmark : checking_benchmark.cpp ;
 

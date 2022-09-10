@@ -52,6 +52,7 @@ version: str
 version_major: int
 version_minor: int
 __version__: str
+
 @overload
 def add_files(fs: file_storage, path: _PathLike, flags: int = ...) -> None: ...
 @overload
@@ -1184,6 +1185,7 @@ class proxy_type_t(int):
     i2p_proxy: proxy_type_t
     names: Mapping[str, proxy_type_t]
     none: proxy_type_t
+
     class proxy_settings:
         hostname: str
         port: int
@@ -1620,6 +1622,7 @@ class torrent_finished_alert(torrent_alert):
 class torrent_flags:
     apply_ip_filter: int
     auto_managed: int
+    default_dont_download: int
     default_flags: int
     disable_dht: int
     disable_lsd: int
@@ -1946,6 +1949,7 @@ class torrent_status:
     finished: torrent_status.states
     queued_for_checking: torrent_status.states
     seeding: torrent_status.states
+
     class states(int):
         allocating: torrent_status.states
         checking_files: torrent_status.states

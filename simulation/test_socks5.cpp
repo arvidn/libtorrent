@@ -28,6 +28,27 @@ see LICENSE file.
 using namespace sim;
 using namespace lt;
 
+using socks_flags_t = lt::flags::bitfield_flag<std::uint64_t, struct socks_test_type_tag>;
+
+constexpr socks_flags_t proxy_hostname = 0_bit;
+
+struct sim_config : sim::default_config
+{
+	chrono::high_resolution_clock::duration hostname_lookup(
+		asio::ip::address const& requestor
+		, std::string hostname
+		, std::vector<asio::ip::address>& result
+		, boost::system::error_code& ec) override
+	{
+		if (hostname == "tracker.hostname.org")
+		{
+			result.push_back(make_address_v4("2.2.2.2"));
+			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+		}
+
+		return default_config::hostname_lookup(requestor, hostname, result, ec);
+	}
+};
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
@@ -35,17 +56,18 @@ using namespace lt;
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup
 	, HandleAlerts const& on_alert
-	, Test const& test)
+	, Test const& test
+	, std::uint32_t const flags = 0)
 {
 	// setup the simulation
-	sim::default_config network_cfg;
+	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
 	lt::session_proxy zombie;
 
 	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
-	sim::socks_server socks4(proxy_ios, 4444, 4);
-	sim::socks_server socks5(proxy_ios, 5555, 5);
+	sim::socks_server socks4(proxy_ios, 4444, 4, flags);
+	sim::socks_server socks5(proxy_ios, 5555, 5, flags);
 
 	lt::settings_pack pack = settings();
 	// create session
@@ -135,26 +157,29 @@ TORRENT_TEST(socks5_tcp_announce)
 	TEST_CHECK(alert_port != -1);
 }
 
-TORRENT_TEST(udp_tracker)
+void test_udp_tracker(std::uint32_t const flags, socks_flags_t const sflags)
 {
 	using namespace lt;
 	bool tracker_alert = false;
 	bool connected = false;
 	bool announced = false;
 	run_test(
-		[](lt::session& ses)
+		[sflags](lt::session& ses)
 		{
 			set_proxy(ses, settings_pack::socks5);
 
 			// The socks server in libsimulator does not support forwarding UDP
 			// packets to hostnames (just IPv4 destinations)
 			settings_pack p;
-			p.set_bool(settings_pack::proxy_hostnames, false);
+			p.set_bool(settings_pack::proxy_hostnames, sflags & proxy_hostname);
 			ses.apply_settings(p);
 
 			lt::add_torrent_params params;
 			params.info_hashes.v1 = sha1_hash("abababababababababab");
-			params.trackers.push_back("udp://2.2.2.2:8080/announce");
+			if (sflags & proxy_hostname)
+				params.trackers.push_back("udp://tracker.hostname.org:8080/announce");
+			else
+				params.trackers.push_back("udp://2.2.2.2:8080/announce");
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},
@@ -215,11 +240,27 @@ TORRENT_TEST(udp_tracker)
 
 			sim.run();
 		}
+		, flags
 	);
 
 	TEST_CHECK(tracker_alert);
 	TEST_CHECK(connected);
 	TEST_CHECK(announced);
+}
+
+TORRENT_TEST(udp_tracker)
+{
+	test_udp_tracker(0, {});
+}
+
+TORRENT_TEST(udp_tracker_empty_domainname)
+{
+	test_udp_tracker(socks_flag::udp_associate_respond_empty_hostname, {});
+}
+
+TORRENT_TEST(udp_tracker_hostname)
+{
+	test_udp_tracker(0, proxy_hostname);
 }
 
 TORRENT_TEST(socks5_udp_retry)

@@ -223,6 +223,8 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 	ret.reserve(std::size_t((p.size() + width * 2 - 1) / width / 2 * 4));
 	while (piece < p.size())
 	{
+		if (piece > 0)
+			ret += "\n";
 		for (int i = 0; i < width; ++i)
 		{
 			// braille dots are mapped to the following bits, in the lower byte
@@ -246,7 +248,7 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 			lt::aux::append_utf8_codepoint(ret, codepoint);
 			piece += 2;
 		}
-		ret += "\x1b[K\n";
+		ret += "\x1b[K";
 		++*height;
 		piece += width * 4; // skip 4 rows, as we've already printed them
 	}
@@ -264,6 +266,8 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 	ret.reserve((p.size() + width * 2 - 1) / width);
 	while (piece < p.size())
 	{
+		if (piece > 0)
+			ret += '\n';
 		for (int i = 0; i < width; ++i)
 		{
 			// each character has 8 pieces. store them in a byte to use for lookups
@@ -282,7 +286,6 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 			ret += chars[c];
 			++piece;
 		}
-		ret += '\n';
 		++*height;
 		piece += width * 2; // skip another row, as we've already printed it
 	}

@@ -391,6 +391,10 @@ namespace libtorrent {
 					{ return !aux::is_digit(c) && c != '-' && c != ','; }))
 					continue;
 
+				// make sure all file priorities are set to 0, except the ones
+				// we specify in the file_priorities
+				p.flags |= torrent_flags::default_dont_download;
+
 				do
 				{
 					string_view token;

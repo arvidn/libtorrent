@@ -5,6 +5,7 @@ Copyright (c) 2015, Thomas Yuan
 Copyright (c) 2016-2018, 2020-2021, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2016, Steven Siloti
+Copyright (c) 2022, Andrei Borzenkov
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -88,6 +89,8 @@ private:
 	void socks_forward_udp();
 	void connect1(error_code const& e);
 	void connect2(error_code const& e);
+	void read_bindaddr(error_code const& e);
+	void read_domainname(error_code const& e);
 	void hung_up(error_code const& e);
 	void on_retry_socks_connect(error_code const& e);
 
@@ -212,7 +215,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 				// if the source IP doesn't match the proxy's, ignore the packet
 				if (p.from != m_socks5_connection->target()) continue;
 				// if we failed to unwrap, silently ignore the packet
-				if (!unwrap(p.from, p.data)) continue;
+				if (!unwrap(p)) continue;
 			}
 			else
 			{
@@ -379,15 +382,15 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 // buf is an in-out parameter. It will be updated
 // return false if the packet should be ignored. It's not a valid Socks5 UDP
 // forwarded packet
-bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
+bool udp_socket::unwrap(udp_socket::packet& pack)
 {
 	using namespace libtorrent::aux;
 
 	// the minimum socks5 header size
-	auto const size = aux::numeric_cast<int>(buf.size());
+	auto const size = aux::numeric_cast<int>(pack.data.size());
 	if (size <= 10) return false;
 
-	char* p = buf.data();
+	char* p = pack.data.data();
 	p += 2; // reserved
 	int const frag = read_uint8(p);
 	// fragmentation is not supported
@@ -397,27 +400,30 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 	if (atyp == 1)
 	{
 		// IPv4
-		from = read_v4_endpoint<udp::endpoint>(p);
+		pack.from = read_v4_endpoint<udp::endpoint>(p);
 	}
 	else if (atyp == 4)
 	{
 		// IPv6
-		from = read_v6_endpoint<udp::endpoint>(p);
+		pack.from = read_v6_endpoint<udp::endpoint>(p);
 	}
 	else
 	{
-		int const len = read_uint8(p);
-		if (len > buf.end() - p) return false;
-		std::string hostname(p, p + len);
-		error_code ec;
-		address addr = make_address(hostname, ec);
-		// we only support "hostnames" that are a dotted decimal IP
-		if (ec) return false;
+		std::uint8_t const len = read_uint8(p);
+		if (len > pack.data.end() - p) return false;
+		string_view hostname(p, len);
 		p += len;
-		from = udp::endpoint(addr, read_uint16(p));
+
+		error_code ec;
+		address addr = make_address(std::string(hostname), ec);
+		std::uint16_t const port = read_uint16(p);
+		if (!ec)
+			pack.from = udp::endpoint(addr, port);
+		else
+			pack.hostname = hostname;
 	}
 
-	buf = {p, size - (p - buf.data())};
+	pack.data = span<char>{p, size - (p - pack.data.data())};
 	return true;
 }
 
@@ -879,7 +885,7 @@ void socks5::connect1(error_code const& e)
 	}
 
 	ADD_OUTSTANDING_ASYNC("socks5::connect2");
-	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
+	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 5)
 		, std::bind(&socks5::connect2, self(), _1));
 }
 
@@ -909,8 +915,23 @@ void socks5::connect2(error_code const& e)
 
 	if (atyp == 1)
 	{
-		m_udp_proxy_addr.address(address_v4(read_uint32(p)));
-		m_udp_proxy_addr.port(read_uint16(p));
+		ADD_OUTSTANDING_ASYNC("socks5::read_bindaddr");
+		// save the first byte of the IP address in the buffer. The
+		// read_bindaddr() callback will use it
+		m_tmp_buf[0] = *p;
+		boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data() + 1, 5)
+			, std::bind(&socks5::read_bindaddr, self(), _1));
+	}
+	else if (atyp == 3)
+	{
+		// we need to skip DOMAINNAME to imitate Python socks client
+		std::size_t const len = read_uint8(p);
+		ADD_OUTSTANDING_ASYNC("socks5::read_domainname");
+		// save the string length in the buffer. The read_domainname() callback
+		// will use it
+		m_tmp_buf[0] = char(len);
+		boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data()+1, len + 2)
+			, std::bind(&socks5::read_domainname, self(), _1));
 	}
 	else
 	{
@@ -919,6 +940,58 @@ void socks5::connect2(error_code const& e)
 		TORRENT_ASSERT_FAIL();
 		return;
 	}
+}
+
+void socks5::read_bindaddr(error_code const& e)
+{
+	COMPLETE_ASYNC("socks5::read_bindaddr");
+
+	if (m_abort) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
+		return;
+	}
+
+	using namespace libtorrent::aux;
+
+	char* p = m_tmp_buf.data();
+	m_udp_proxy_addr.address(address_v4(read_uint32(p)));
+	m_udp_proxy_addr.port(read_uint16(p));
+
+	// we're done!
+	m_active = true;
+	m_failures = 0;
+
+	ADD_OUTSTANDING_ASYNC("socks5::hung_up");
+	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf.data(), 10)
+		, std::bind(&socks5::hung_up, self(), _1));
+}
+
+void socks5::read_domainname(error_code const& e)
+{
+	COMPLETE_ASYNC("socks5::read_domainname");
+
+	if (m_abort) return;
+	if (e)
+	{
+		if (m_alerts.should_post<socks5_alert>())
+			m_alerts.emplace_alert<socks5_alert>(m_proxy_addr, operation_t::handshake, e);
+		++m_failures;
+		retry_connection();
+		return;
+	}
+
+	using namespace libtorrent::aux;
+
+	char* p = m_tmp_buf.data();
+	int const len = read_uint8(p);
+	p += len;
+	m_udp_proxy_addr.address(m_proxy_addr.address());
+	m_udp_proxy_addr.port(read_uint16(p));
 
 	// we're done!
 	m_active = true;
