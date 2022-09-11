@@ -204,14 +204,14 @@ TORRENT_TEST(large_piece_size)
 
 TORRENT_TEST(total_wanted)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test_torrent_dir4/tmp1", default_block_size);
-	fs.add_file("test_torrent_dir4/tmp2", default_block_size);
-	fs.add_file("test_torrent_dir4/tmp3", default_block_size);
-	fs.add_file("test_torrent_dir4/tmp4", default_block_size);
+	fs.emplace_back("test_torrent_dir4/tmp1", default_block_size);
+	fs.emplace_back("test_torrent_dir4/tmp2", default_block_size);
+	fs.emplace_back("test_torrent_dir4/tmp3", default_block_size);
+	fs.emplace_back("test_torrent_dir4/tmp4", default_block_size);
 
-	lt::create_torrent t(fs, default_block_size);
+	lt::create_torrent t(std::move(fs), default_block_size);
 	t.set_hash(0_piece, sha1_hash::max());
 	t.set_hash(1_piece, sha1_hash::max());
 	t.set_hash(2_piece, sha1_hash::max());
@@ -248,11 +248,11 @@ TORRENT_TEST(total_wanted)
 
 TORRENT_TEST(added_peers)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
+	fs.emplace_back("test_torrent_dir4/tmp1", 1024);
 
-	lt::create_torrent t(fs, 1024);
+	lt::create_torrent t(std::move(fs), 1024);
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -285,9 +285,9 @@ TORRENT_TEST(added_peers)
 
 TORRENT_TEST(mismatching_info_hash)
 {
-	file_storage fs;
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
-	lt::create_torrent t(fs, 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(std::move(fs), 1024);
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -307,9 +307,9 @@ TORRENT_TEST(mismatching_info_hash)
 
 TORRENT_TEST(exceed_file_prio)
 {
-	file_storage fs;
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
-	lt::create_torrent t(fs, 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(std::move(fs), 1024, create_torrent::v1_only);
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -325,9 +325,9 @@ TORRENT_TEST(exceed_file_prio)
 
 TORRENT_TEST(exceed_piece_prio)
 {
-	file_storage fs;
-	fs.add_file("test_torrent_dir4/tmp1", 1024);
-	lt::create_torrent t(fs, 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_torrent_dir4/tmp1", 1024);
+	lt::create_torrent t(std::move(fs), 1024);
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
@@ -362,12 +362,12 @@ TORRENT_TEST(torrent)
 		remove("test_torrent_dir2/tmp1");
 		remove("test_torrent_dir2/tmp2");
 		remove("test_torrent_dir2/tmp3");
-		file_storage fs;
+		std::vector<lt::create_file_entry> fs;
 		std::int64_t file_size = 256 * 1024;
-		fs.add_file("test_torrent_dir2/tmp1", file_size);
-		fs.add_file("test_torrent_dir2/tmp2", file_size);
-		fs.add_file("test_torrent_dir2/tmp3", file_size);
-		lt::create_torrent t(fs, 128 * 1024);
+		fs.emplace_back("test_torrent_dir2/tmp1", file_size);
+		fs.emplace_back("test_torrent_dir2/tmp2", file_size);
+		fs.emplace_back("test_torrent_dir2/tmp3", file_size);
+		lt::create_torrent t(std::move(fs), 128 * 1024);
 		t.add_tracker("http://non-existing.com/announce");
 
 		std::vector<char> piece(128 * 1024);
@@ -391,10 +391,10 @@ TORRENT_TEST(torrent)
 	}
 */
 	{
-		file_storage fs;
+		std::vector<lt::create_file_entry> fs;
 
-		fs.add_file("test_torrent_dir2/tmp1", default_block_size);
-		lt::create_torrent t(fs, default_block_size);
+		fs.emplace_back("test_torrent_dir2/tmp1", default_block_size);
+		lt::create_torrent t(std::move(fs), default_block_size);
 
 		std::vector<char> piece(default_block_size);
 		for (int i = 0; i < int(piece.size()); ++i)
@@ -434,10 +434,10 @@ struct plugin_creator
 
 TORRENT_TEST(duplicate_is_not_error)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test_torrent_dir2/tmp1", 1024);
-	lt::create_torrent t(fs, 128 * 1024);
+	fs.emplace_back("test_torrent_dir2/tmp1", 1024);
+	lt::create_torrent t(std::move(fs), 128 * 1024);
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -475,34 +475,26 @@ TORRENT_TEST(duplicate_is_not_error)
 
 TORRENT_TEST(torrent_total_size_zero)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test_torrent_dir2/tmp1", 0);
-	TEST_CHECK(fs.num_files() == 1);
-	TEST_CHECK(fs.total_size() == 0);
+	fs.emplace_back("test_torrent_dir2/tmp1", 0);
+	TEST_CHECK(fs.size() == 1);
 
-	error_code ec;
-	lt::create_torrent t1(fs);
-	set_piece_hashes(t1, ".", ec);
-	TEST_CHECK(ec);
+	TEST_THROW(lt::create_torrent t1(fs));
 
-	fs.add_file("test_torrent_dir2/tmp2", 0);
-	TEST_CHECK(fs.num_files() == 2);
-	TEST_CHECK(fs.total_size() == 0);
+	fs.emplace_back("test_torrent_dir2/tmp2", 0);
+	TEST_CHECK(fs.size() == 2);
 
-	ec.clear();
-	lt::create_torrent t2(fs);
-	set_piece_hashes(t2, ".", ec);
-	TEST_CHECK(ec);
+	TEST_THROW(lt::create_torrent t2(fs));
 }
 
 TORRENT_TEST(rename_file)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test3/tmp1", 20);
-	fs.add_file("test3/tmp2", 20);
-	lt::create_torrent t(fs, 128 * 1024, lt::create_torrent::v1_only);
+	fs.emplace_back("test3/tmp1", 20);
+	fs.emplace_back("test3/tmp2", 20);
+	lt::create_torrent t(std::move(fs), 128 * 1024, lt::create_torrent::v1_only);
 	t.set_hash(0_piece, sha1_hash::max());
 
 	std::vector<char> tmp;
@@ -537,11 +529,11 @@ void test_queue(add_torrent_params const& atp)
 	std::vector<torrent_handle> torrents;
 	for(int i = 0; i < 6; i++)
 	{
-		file_storage fs;
+		std::vector<lt::create_file_entry> fs;
 		std::stringstream file_path;
 		file_path << "test_torrent_dir4/queue" << i;
-		fs.add_file(file_path.str(), 1024);
-		lt::create_torrent t(fs, 128 * 1024);
+		fs.emplace_back(file_path.str(), 1024);
+		lt::create_torrent t(std::move(fs), 128 * 1024);
 		t.set_hash(0_piece, sha1_hash::max());
 
 		std::vector<char> buf;
@@ -687,10 +679,8 @@ TORRENT_TEST(test_have_piece_out_of_range)
 	add_torrent_params p;
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};
 	int const piece_size = 0x8000;
-	lt::file_storage fs;
-	fs.set_piece_length(piece_size);
-	create_random_files(".", file_sizes, &fs);
-	p.ti = make_torrent(fs);
+	auto files = create_random_files(".", file_sizes);
+	p.ti = make_torrent(std::move(files), piece_size);
 
 	p.save_path = ".";
 	p.flags |= torrent_flags::seed_mode;
@@ -723,9 +713,8 @@ TORRENT_TEST(test_read_piece_out_of_range)
 	lt::session ses(settings());
 
 	add_torrent_params p;
-	static std::array<const int, 2> const file_sizes{{100000, 100000}};
 	int const piece_size = 0x8000;
-	p.ti = make_torrent(file_sizes, piece_size);
+	p.ti = make_torrent(make_files({{100000, false}, {100000, false}}), piece_size);
 	p.save_path = "save_path";
 	p.flags |= torrent_flags::seed_mode;
 	torrent_handle h = ses.add_torrent(std::move(p));
@@ -819,9 +808,9 @@ TORRENT_TEST(symlinks_restore)
 
 TORRENT_TEST(redundant_add_piece)
 {
-	file_storage fs;
-	fs.add_file("tmp1", 128 * 1024 * 8);
-	lt::create_torrent t(fs, 128 * 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("tmp1", 128 * 1024 * 8);
+	lt::create_torrent t(std::move(fs), 128 * 1024);
 
 	TEST_CHECK(t.num_pieces() > 0);
 

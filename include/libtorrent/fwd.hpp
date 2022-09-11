@@ -140,7 +140,10 @@ struct bitfield;
 struct client_data_t;
 
 // include/libtorrent/create_torrent.hpp
+TORRENT_VERSION_NAMESPACE_4
+struct create_file_entry;
 struct create_torrent;
+TORRENT_VERSION_NAMESPACE_4_END
 
 // include/libtorrent/disk_buffer_holder.hpp
 struct buffer_allocator_interface;

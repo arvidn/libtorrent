@@ -84,7 +84,6 @@ void test_checking(int const flags)
 	if (ec) fprintf(stdout, "ERROR: creating directory test_torrent_dir: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	file_storage fs;
 	int const piece_size = (flags & single_file) ? 0x8000 : 0x4000;
 
 	auto const file_sizes = (flags & single_file)
@@ -92,9 +91,9 @@ void test_checking(int const flags)
 		: std::vector<int>{0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 		,1,1,1,1,1,1,13,65000,34,75,2,30,400,50000,73000,900,43000,400,4300,6, 4 };
 
-	create_random_files("test_torrent_dir", file_sizes, &fs);
+	auto fs = create_random_files("test_torrent_dir", file_sizes);
 
-	lt::create_torrent t(fs, piece_size, (flags & v2) ? create_torrent::v2_only : create_torrent::v1_only);
+	lt::create_torrent t(std::move(fs), piece_size, (flags & v2) ? create_torrent::v2_only : create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".", ec);
@@ -371,11 +370,10 @@ TORRENT_TEST(discrete_checking)
 	int const piece_size = 2 * megabyte;
 	static std::array<int const, 2> const file_sizes{{ 9 * megabyte, 3 * megabyte }};
 
-	file_storage fs;
-	create_random_files("test_torrent_dir", file_sizes, &fs);
-	TEST_EQUAL(fs.num_files(), 2);
+	auto fs = create_random_files("test_torrent_dir", file_sizes);
+	TEST_EQUAL(fs.size(), 2);
 
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(std::move(fs), piece_size);
 	set_piece_hashes(t, ".", ec);
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 

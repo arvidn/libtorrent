@@ -68,11 +68,11 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 		ofstream("test_resume/tmp2").write(b.data(), std::streamsize(b.size()));
 		ofstream("test_resume/tmp3").write(b.data(), std::streamsize(b.size()));
 	}
-	file_storage fs;
-	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
-	fs.add_file("test_resume/tmp2", 128 * 1024);
-	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_resume/tmp1", 128 * 1024 * 8);
+	fs.emplace_back("test_resume/tmp2", 128 * 1024);
+	fs.emplace_back("test_resume/tmp3", 128 * 1024);
+	lt::create_torrent t(std::move(fs), 128 * 1024);
 
 	t.set_comment("test comment");
 	t.set_creator("libtorrent test");
@@ -94,12 +94,14 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 			t.set_hash(i, ph);
 		}
 
-		for (piece_index_t i : t.piece_range())
+		for (file_index_t f : t.file_range())
 		{
-			sha256_hash ph;
-			aux::random_bytes(ph);
-			file_index_t const f(fs.file_index_at_piece(i));
-			t.set_hash2(f, i - fs.piece_index_at_file(f), ph);
+			for (auto const i : t.file_piece_range(f))
+			{
+				sha256_hash ph;
+				aux::random_bytes(ph);
+				t.set_hash2(f, i, ph);
+			}
 		}
 	}
 
@@ -818,34 +820,69 @@ lt::file_storage make_file_storage(span<const int> const file_sizes
 	return fs;
 }
 
-std::shared_ptr<lt::torrent_info> make_torrent(span<const int> const file_sizes
-	, int const piece_size)
+std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry> files
+	, int piece_size,  lt::create_flags_t const flags)
 {
-	using namespace lt;
-	file_storage fs = make_file_storage(file_sizes, piece_size);
-	return make_torrent(fs);
-}
+	lt::create_torrent ct(std::move(files), piece_size, flags);
 
-std::shared_ptr<lt::torrent_info> make_torrent(lt::file_storage& fs)
-{
-	lt::create_torrent ct(fs, fs.piece_length());
+	piece_size = ct.piece_length();
 
-	for (auto const i : ct.piece_range())
+	aux::vector<sha256_hash> tree(merkle_num_nodes(piece_size / default_block_size));
+
+	std::int64_t file_offset = 0;
+	std::int64_t const total_size = ct.total_size();
+	for (auto const f : ct.file_range())
 	{
-		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
-		ct.set_hash(i, hasher(piece).final());
-
-		aux::vector<sha256_hash> tree(merkle_num_nodes(ct.piece_length() / default_block_size));
-
-		int const blocks_per_piece = ct.piece_length() / default_block_size;
-		for (int j = 0; j < int(piece.size()); j += default_block_size)
+		if (ct.file_at(f).flags & lt::file_storage::flag_pad_file)
 		{
-			tree[tree.end_index() - blocks_per_piece + j / default_block_size]
-				= hasher256(piece.data() + j, std::min(default_block_size, int(piece.size()) - j)).final();
+			file_offset += ct.file_at(f).size;
+			continue;
 		}
-		merkle_fill_tree(tree, ct.piece_length() / default_block_size);
-		file_index_t const f(fs.file_index_at_piece(i));
-		ct.set_hash2(f, i - fs.piece_index_at_file(f), tree[0]);
+		lt::piece_index_t const first_piece(int(file_offset / piece_size));
+		std::int64_t piece_offset = static_cast<int>(first_piece) * std::int64_t(piece_size);
+		bool const aligned = piece_offset == file_offset;
+		file_offset += ct.file_at(f).size;
+		lt::piece_index_t const end_piece(int((file_offset + piece_size - 1) / piece_size));
+		for (auto piece = first_piece; piece < end_piece; ++piece, piece_offset += piece_size)
+		{
+			auto const this_piece_size = int(std::min(std::int64_t(piece_size), total_size - piece_offset));
+			auto const piece_size2 = int(std::min(std::int64_t(piece_size), file_offset - piece_offset));
+			auto const blocks_in_piece = (piece_size2 + lt::default_block_size - 1)
+				/ lt::default_block_size;
+
+			std::vector<char> piece_buf = generate_piece(piece, this_piece_size);
+			if (aligned
+				&& piece_offset + this_piece_size > file_offset
+				&& ct.file_at(next(f)).flags & file_storage::flag_pad_file)
+			{
+				// this piece spans the next file. if it's a pad file, we need
+				// to set that part to zeros
+				int const pad_start = int(file_offset - piece_offset);
+				std::size_t const pad_size = std::size_t(this_piece_size - pad_start);
+				TORRENT_ASSERT(pad_start >= 0);
+				TORRENT_ASSERT(pad_start < this_piece_size);
+				TORRENT_ASSERT(pad_start < this_piece_size);
+				std::memset(piece_buf.data() + pad_start, 0, pad_size);
+				TORRENT_ASSERT(ct.file_at(next(f)).size + pad_start == this_piece_size);
+				TORRENT_ASSERT(ct.file_at(next(f)).size == std::int64_t(pad_size));
+			}
+
+			if (!(flags & lt::create_torrent::v1_only))
+			{
+				for (int j = 0; j < piece_size2; j += default_block_size)
+				{
+					tree[tree.end_index() - blocks_in_piece + j / default_block_size]
+						= hasher256(piece_buf.data() + j, std::min(default_block_size, piece_size2 - j)).final();
+				}
+
+				merkle_fill_tree(tree, blocks_in_piece);
+				ct.set_hash2(f, piece - first_piece, tree[0]);
+			}
+			if (!(flags & lt::create_torrent::v2_only))
+			{
+				ct.set_hash(piece, hasher(piece_buf).final());
+			}
+		}
 	}
 
 	std::vector<char> buf;
@@ -853,9 +890,9 @@ std::shared_ptr<lt::torrent_info> make_torrent(lt::file_storage& fs)
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 
-void create_random_files(std::string const& path, span<const int> file_sizes
-	, file_storage* fs)
+std::vector<lt::create_file_entry> create_random_files(std::string const& path, span<const int> file_sizes)
 {
+	std::vector<create_file_entry> fs;
 	error_code ec;
 	aux::vector<char> random_data(300000);
 	for (std::ptrdiff_t i = 0; i != file_sizes.size(); ++i)
@@ -875,7 +912,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 		std::printf("creating file: %s\n", full_path.c_str());
 
 		int to_write = file_sizes[i];
-		if (fs) fs->add_file(full_path, to_write);
+		fs.emplace_back(full_path, to_write);
 		ofstream f(full_path.c_str());
 		while (to_write > 0)
 		{
@@ -884,6 +921,7 @@ void create_random_files(std::string const& path, span<const int> file_sizes
 			to_write -= s;
 		}
 	}
+	return fs;
 }
 
 std::shared_ptr<torrent_info> create_torrent(std::ostream* file
@@ -895,10 +933,10 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
 
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 	int total_size = piece_size * num_pieces;
-	fs.add_file(name, total_size);
-	lt::create_torrent t(fs, piece_size, flags);
+	fs.emplace_back(name, total_size);
+	lt::create_torrent t(std::move(fs), piece_size, flags);
 	if (add_tracker)
 	{
 		t.add_tracker(invalid_tracker_url);

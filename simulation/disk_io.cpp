@@ -73,14 +73,14 @@ lt::sha1_hash generate_hash1(lt::piece_index_t const p, int const piece_size, in
 	return ret.final();
 }
 
-lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
+lt::sha1_hash generate_hash2(lt::piece_index_t p
+	, int const piece_size
+	, int const piece_size2
 	, lt::span<lt::sha256_hash> const hashes, int const pad_bytes)
 {
-	int const piece_size = fs.piece_size(p);
 	int const payload_size = piece_size - pad_bytes;
-	int const piece_size2 = fs.piece_size2(p);
 	int const blocks_in_piece = (piece_size + lt::default_block_size - 1) / lt::default_block_size;
-	int const blocks_in_piece2 = fs.blocks_in_piece2(p);
+	int const blocks_in_piece2 = (piece_size2 + lt::default_block_size - 1) / lt::default_block_size;
 	TORRENT_ASSERT(int(hashes.size()) >= blocks_in_piece2);
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
@@ -159,6 +159,54 @@ std::unordered_map<lt::piece_index_t, int> compute_pad_bytes(lt::file_storage co
 	return ret;
 }
 
+std::unordered_map<lt::piece_index_t, int> compute_pad_bytes(lt::create_torrent const& t)
+{
+	std::unordered_map<lt::piece_index_t, int> ret;
+
+	std::int64_t off = 0;
+	int const piece_size = t.piece_length();
+	for (auto const i : t.file_range())
+	{
+		off += t.file_at(i).size;
+		if (!(t.file_at(i).flags & lt::file_storage::flag_pad_file)
+			|| t.file_at(i).size == 0)
+		{
+			continue;
+		}
+
+		// this points to the last byte of the pad file
+		int piece = (off - 1) / piece_size;
+		int const start = (off - 1) & (piece_size - 1);
+
+		// This pad file may be the last file in the torrent, and the
+		// last piece may have an odd size.
+		if ((start + 1) % piece_size != 0 && i < prev(t.end_file()))
+		{
+			// this is a pre-requisite of the piece picker. Pad files
+			// that don't align with pieces are kind of useless anyway.
+			// They probably aren't real padfiles, treat them as normal
+			// files.
+			continue;
+		}
+
+		std::int64_t pad_bytes_left = t.file_at(i).size;
+
+		while (pad_bytes_left > 0)
+		{
+			// The last piece may have an odd size, that's why
+			// we ask for the piece size for every piece. (it would be
+			// odd, but it's still possible).
+			int const bytes = int(std::min(pad_bytes_left, std::int64_t(piece_size)));
+			TORRENT_ASSERT(bytes > 0);
+			ret.emplace(piece, bytes);
+			pad_bytes_left -= bytes;
+			--piece;
+		}
+	}
+	return ret;
+}
+
+
 int pads_in_piece(std::unordered_map<lt::piece_index_t, int> const& pb, lt::piece_index_t const p)
 {
 	auto it = pb.find(p);
@@ -179,11 +227,11 @@ int pads_in_req(std::unordered_map<lt::piece_index_t, int> const& pb
 std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	, int const num_pieces, lt::create_flags_t const flags, int const num_files)
 {
-	lt::file_storage ifs;
+	std::vector<lt::create_file_entry> ifs;
 	int total_size = num_files * piece_size * num_pieces + 1234;
 	if (num_files == 1)
 	{
-		ifs.add_file("file-1", total_size);
+		ifs.emplace_back("file-1", total_size);
 	}
 	else
 	{
@@ -191,19 +239,17 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 		for (int i = 0; i < num_files; ++i)
 		{
 			int const this_size = std::min(file_size, total_size);
-			ifs.add_file("test-torrent/file-" + std::to_string(i + 1), this_size);
+			ifs.emplace_back("test-torrent/file-" + std::to_string(i + 1), this_size);
 			total_size -= this_size;
 		}
 	}
-	lt::create_torrent t(ifs, piece_size, flags);
+	lt::create_torrent t(std::move(ifs), piece_size, flags);
 
-	lt::file_storage const& fs = t.files();
-
-	auto const pad_bytes = compute_pad_bytes(fs);
+	auto const pad_bytes = compute_pad_bytes(t);
 
 	if (flags & lt::create_torrent::v1_only)
 	{
-		for (auto const i : fs.piece_range())
+		for (auto const i : t.piece_range())
 			t.set_hash(i, generate_hash1(i, t.piece_length(), pads_in_piece(pad_bytes, i)));
 	}
 	else
@@ -216,26 +262,41 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 		lt::aux::vector<lt::sha256_hash> blocks(blocks_per_piece);
 		std::vector<lt::sha256_hash> scratch_space;
 
+		std::int64_t file_offset = 0;
+		std::int64_t const total_size = t.total_size();
 		for (auto const f : t.file_range())
 		{
-			if (fs.pad_file_at(f)) continue;
-			auto const file_piece = fs.piece_index_at_file(f);
-			for (auto const p : fs.file_piece_range(f))
+			if (t.file_at(f).flags & lt::file_storage::flag_pad_file)
 			{
-				auto const piece = file_piece + p;
-				auto const blocks_in_piece = fs.blocks_in_piece2(piece);
+				file_offset += t.file_at(f).size;
+				continue;
+			}
+			auto piece_offset = file_offset;
+			lt::piece_index_t const first_piece(int(file_offset / piece_size));
+			file_offset += t.file_at(f).size;
+			lt::piece_index_t const end_piece(int((file_offset + piece_size - 1) / piece_size));
+			for (auto piece = first_piece; piece < end_piece; ++piece)
+			{
+				auto const this_piece_size = int(std::min(std::int64_t(piece_size), total_size - piece_offset));
+				auto const piece_size2 = std::min(std::int64_t(piece_size), file_offset - piece_offset);
+				auto const blocks_in_piece = (piece_size2 + lt::default_block_size - 1)
+					/ lt::default_block_size;
 				TORRENT_ASSERT(blocks_in_piece > 0);
 				TORRENT_ASSERT(blocks_in_piece <= int(blocks.size()));
-				auto const hash = generate_hash2(piece, fs, blocks, pads_in_piece(pad_bytes, piece));
+				auto const hash = generate_hash2(piece
+					, this_piece_size
+					, piece_size2
+					, blocks, pads_in_piece(pad_bytes, piece));
 				auto const piece_layer_hash = lt::merkle_root_scratch(
 					lt::span<lt::sha256_hash const>(blocks).first(blocks_in_piece)
 					, blocks_per_piece
 					, {}
 					, scratch_space);
-				t.set_hash2(f, p, piece_layer_hash);
+				t.set_hash2(f, piece - first_piece, piece_layer_hash);
 
 				if (!(flags & lt::create_torrent::v2_only))
-					t.set_hash(file_piece + p, hash);
+					t.set_hash(piece, hash);
+				piece_offset += this_piece_size;
 			}
 		}
 	}
@@ -441,7 +502,10 @@ struct test_disk_io final : lt::disk_interface
 			if (block_hashes.empty())
 				hash = generate_hash1(piece, m_files->piece_length(), pads_in_piece(m_pad_bytes, piece));
 			else
-				hash = generate_hash2(piece, *m_files, block_hashes, pads_in_piece(m_pad_bytes, piece));
+				hash = generate_hash2(piece
+					, m_files->piece_size(piece)
+					, m_files->piece_size2(piece)
+					, block_hashes, pads_in_piece(m_pad_bytes, piece));
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
 		});
 	}

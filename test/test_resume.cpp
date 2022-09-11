@@ -1744,13 +1744,13 @@ TORRENT_TEST(resume_data_have_pieces)
 		return;
 	}
 
-	file_storage fs;
-	fs.add_file("tmp1", 128 * 1024 * 8);
-	lt::create_torrent t(fs, 128 * 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("tmp1", 128 * 1024 * 8);
+	lt::create_torrent t(std::move(fs), 128 * 1024);
 
 	TEST_CHECK(t.num_pieces() > 0);
 
-	std::vector<char> piece_data(std::size_t(fs.piece_length()), 0);
+	std::vector<char> piece_data(std::size_t(t.piece_length()), 0);
 	aux::random_bytes(piece_data);
 
 	sha1_hash const ph = lt::hasher(piece_data).final();

@@ -207,7 +207,6 @@ int main(int argc_, char const* argv_[]) try
 		args = args.subspan(1);
 	}
 
-	lt::file_storage fs;
 #ifdef TORRENT_WINDOWS
 	if (full_path[1] != ':')
 #else
@@ -236,13 +235,14 @@ int main(int argc_, char const* argv_[]) try
 #endif
 	}
 
-	lt::add_files(fs, full_path, file_filter, flags);
-	if (fs.num_files() == 0) {
+	std::vector<lt::create_file_entry> fs
+		= lt::list_files(full_path, file_filter, flags);
+	if (fs.empty()) {
 		std::cerr << "no files specified.\n";
 		return 1;
 	}
 
-	lt::create_torrent t(fs, piece_size, flags);
+	lt::create_torrent t(std::move(fs), piece_size, flags);
 	int tier = 0;
 	for (std::string const& tr : trackers) {
 		if (tr == "-") ++tier;

@@ -167,11 +167,11 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 namespace {
 std::shared_ptr<torrent_info> generate_torrent()
 {
-	file_storage fs;
-	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
-	fs.add_file("test_resume/tmp2", 128 * 1024);
-	fs.add_file("test_resume/tmp3", 128 * 1024);
-	lt::create_torrent t(fs, 128 * 1024);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_resume/tmp1", 128 * 1024 * 8);
+	fs.emplace_back("test_resume/tmp2", 128 * 1024);
+	fs.emplace_back("test_resume/tmp3", 128 * 1024);
+	lt::create_torrent t(std::move(fs), 128 * 1024);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");

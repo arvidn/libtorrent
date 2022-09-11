@@ -39,7 +39,9 @@ constexpr inline lt::file_index_t operator "" _file(unsigned long long const p)
 constexpr inline lt::piece_index_t operator "" _piece(unsigned long long const p)
 { return lt::piece_index_t(static_cast<int>(p)); }
 
+#if TORRENT_ABI_VERSION < 4
 EXPORT std::vector<char> serialize(lt::torrent_info const& ti);
+#endif
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
 
@@ -60,7 +62,7 @@ struct file_ent
 	bool pad;
 };
 
-EXPORT lt::file_storage make_files(std::vector<file_ent> files, int piece_size);
+EXPORT std::vector<lt::create_file_entry> make_files(std::vector<file_ent> files);
 
 #endif
 

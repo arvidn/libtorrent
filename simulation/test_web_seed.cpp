@@ -25,6 +25,7 @@ see LICENSE file.
 #include "setup_swarm.hpp"
 #include "utils.hpp"
 #include "make_proxy_settings.hpp"
+#include "setup_transfer.hpp"
 #include "simulator/utils.hpp"
 #include <iostream>
 #include <numeric>
@@ -35,50 +36,11 @@ using namespace lt;
 
 int const piece_size = 0x4000;
 
-add_torrent_params create_torrent(file_storage& fs, bool const v1_only = false)
+add_torrent_params create_torrent(std::vector<lt::create_file_entry> files
+	, bool const v1_only = false)
 {
-	lt::create_torrent t(fs, piece_size
-		, v1_only ? create_torrent::v1_only : create_flags_t{});
-
-	std::vector<char> piece;
-	piece.reserve(fs.piece_length());
-	piece_index_t const num = fs.end_piece();
-	for (piece_index_t i(0); i < num; ++i)
-	{
-		int k = 0;
-		std::vector<file_slice> files = fs.map_block(i, 0, fs.piece_size(i));
-		for (auto& f : files)
-		{
-			if (fs.pad_file_at(f.file_index))
-			{
-				for (int j = 0; j < f.size; ++j, ++k)
-					piece.push_back('\0');
-			}
-			else
-			{
-				for (int j = 0; j < f.size; ++j, ++k)
-					piece.push_back((k % 26) + 'A');
-			}
-		}
-
-		t.set_hash(i, hasher(piece).final());
-		if (!v1_only)
-		{
-			piece_index_t const file_first_piece(int(fs.file_offset(files[0].file_index) / fs.piece_length()));
-			t.set_hash2(files[0].file_index, i - file_first_piece
-				, hasher256(span<char>(piece).first(files[0].size)).final());
-		}
-		piece.clear();
-	}
-
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-
-	entry tor = t.generate();
-
-	bencode(out, tor);
 	add_torrent_params ret;
-	ret.ti = std::make_shared<torrent_info>(tmp, from_span);
+	ret.ti = ::make_torrent(std::move(files), 0, v1_only ? create_torrent::v1_only : create_flags_t{});
 	ret.flags &= ~lt::torrent_flags::auto_managed;
 	ret.flags &= ~lt::torrent_flags::paused;
 	ret.save_path = ".";
@@ -170,9 +132,9 @@ TORRENT_TEST(single_file)
 {
 	using namespace lt;
 
-	file_storage fs;
-	fs.add_file("abc'abc", 0x8000); // this filename will have to be escaped
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("abc'abc", 0x8000); // this filename will have to be escaped
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	bool expected = false;
@@ -207,10 +169,10 @@ TORRENT_TEST(single_file)
 TORRENT_TEST(multi_file)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "abc'abc"), 0x8000); // this filename will have to be escaped
-	fs.add_file(combine_path("foo", "bar"), 0x3000);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "abc'abc"), 0x8000); // this filename will have to be escaped
+	files.emplace_back(combine_path("foo", "bar"), 0x3000);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	std::array<bool, 2> expected{{ false, false }};
@@ -248,24 +210,35 @@ TORRENT_TEST(multi_file)
 	TEST_CHECK(expected[1]);
 }
 
-std::string generate_content(lt::file_storage const& fs, file_index_t file
-	, std::int64_t offset, std::int64_t len)
+std::string generate_content(std::int64_t const file_offset, int const piece_size
+	, std::int64_t const offset, std::int64_t len)
 {
 	std::string ret;
 	ret.reserve(lt::aux::numeric_cast<std::size_t>(len));
-	std::int64_t const file_offset = fs.file_offset(file);
-	int const piece_sz = fs.piece_length();
-	for (std::int64_t i = offset + file_offset; i < offset + file_offset + len; ++i)
-		ret.push_back(((i % piece_sz) % 26) + 'A');
+	piece_index_t piece(int((file_offset + offset) / piece_size));
+	int piece_offset = (file_offset + offset) % piece_size;
+
+	while (len > 0)
+	{
+		auto piece_buf = generate_piece(piece, piece_size);
+		int const step = int(std::min(len, std::int64_t(piece_size - piece_offset)));
+		ret.append(piece_buf.data() + piece_offset, step);
+		len -= step;
+		piece_offset = 0;
+		++piece;
+	}
 	return ret;
 }
 
 void serve_content_for(sim::http_server& http, std::string const& path
 	, lt::file_storage const& fs, file_index_t const file)
 {
-	http.register_content(path, fs.file_size(file_index_t(file))
-		, [&fs,file](std::int64_t offset, std::int64_t len)
-		{ return generate_content(fs, file, offset, len); });
+	TORRENT_ASSERT(!fs.pad_file_at(file));
+	std::int64_t const file_offset = fs.file_offset(file);
+	int const piece_size = fs.piece_length();
+	http.register_content(path, fs.file_size(file)
+		, [file_offset, piece_size](std::int64_t const offset, std::int64_t const len)
+		{ return generate_content(file_offset, piece_size, offset, len); });
 }
 
 // test redirecting *unaligned* files to the same server still working. i.e. the
@@ -273,13 +246,15 @@ void serve_content_for(sim::http_server& http, std::string const& path
 TORRENT_TEST(unaligned_file_redirect)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "1"), 0xc030);
-	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs, true);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "1"), 0xc030);
+	files.emplace_back(combine_path("foo", "2"), 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files), true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	bool seeding = false;
+
+	lt::file_storage const& fs = params.ti->files();
 
 	run_test(
 		[&params](lt::session& ses)
@@ -317,11 +292,11 @@ TORRENT_TEST(unaligned_file_redirect)
 TORRENT_TEST(multi_file_redirect_pad_files)
 {
 	using namespace lt;
-	file_storage fs_;
-	fs_.add_file(combine_path("foo", "1"), 0xc030);
-	fs_.add_file(combine_path("foo", "2"), 0xc030);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "1"), 0xc030);
+	files.emplace_back(combine_path("foo", "2"), 0xc030);
 	// true means use padfiles
-	lt::add_torrent_params params = ::create_torrent(fs_);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	// since the final torrent is different than what we built (because of pad
@@ -370,11 +345,13 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 TORRENT_TEST(multi_file_redirect)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "1"), 0xc000);
-	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "1"), 0xc000);
+	files.emplace_back(combine_path("foo", "2"), 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	file_storage const& fs = params.ti->files();
 
 	bool seeding = false;
 
@@ -418,11 +395,13 @@ TORRENT_TEST(multi_file_redirect)
 TORRENT_TEST(multi_file_redirect_through_proxy)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "1"), 0xc000);
-	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "1"), 0xc000);
+	files.emplace_back(combine_path("foo", "2"), 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	file_storage const& fs = params.ti->files();
 
 	bool seeding = false;
 
@@ -481,11 +460,13 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 TORRENT_TEST(multi_file_unaligned_redirect)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "1"), 0xc030);
-	fs.add_file(combine_path("foo", "2"), 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs, true);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back(combine_path("foo", "1"), 0xc030);
+	files.emplace_back(combine_path("foo", "2"), 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files), true);
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	file_storage const& fs = params.ti->files();
 
 	run_test(
 		[&params](lt::session& ses)
@@ -526,9 +507,9 @@ TORRENT_TEST(urlseed_timeout)
 	run_test(
 		[](lt::session& ses)
 		{
-			file_storage fs;
-			fs.add_file("timeout_test", 0x8000);
-			lt::add_torrent_params params = ::create_torrent(fs);
+			std::vector<lt::create_file_entry> files;
+			files.emplace_back("timeout_test", 0x8000);
+			lt::add_torrent_params params = ::create_torrent(std::move(files));
 			params.url_seeds.push_back("http://2.2.2.2:8080/");
 			params.flags &= ~lt::torrent_flags::auto_managed;
 			params.flags &= ~lt::torrent_flags::paused;
@@ -561,9 +542,9 @@ TORRENT_TEST(no_close_redudant_webseed)
 {
 	using namespace lt;
 
-	file_storage fs;
-	fs.add_file("file1", 1);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 
 	bool expected = false;
@@ -606,9 +587,9 @@ TORRENT_TEST(web_seed_connection_limit)
 {
 	using namespace lt;
 
-	file_storage fs;
-	fs.add_file("file1", 1);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.push_back("http://2.2.2.1:8080/");
 	params.url_seeds.push_back("http://2.2.2.2:8080/");
 	params.url_seeds.push_back("http://2.2.2.3:8080/");
@@ -665,10 +646,12 @@ TORRENT_TEST(web_seed_connection_limit)
 bool test_idna(char const* url, char const* redirect, bool allow_idna)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file("1", 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.emplace_back(url);
+
+	file_storage const& fs = params.ti->files();
 
 	bool seeding = false;
 
@@ -740,10 +723,12 @@ TORRENT_TEST(idna_redirect)
 bool test_ssrf(char const* url, char const* redirect, bool enable_feature)
 {
 	using namespace lt;
-	file_storage fs;
-	fs.add_file("1", 0xc030);
-	lt::add_torrent_params params = ::create_torrent(fs);
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
 	params.url_seeds.emplace_back(url);
+
+	file_storage const& fs = params.ti->files();
 
 	bool seeding = false;
 

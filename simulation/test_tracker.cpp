@@ -1218,9 +1218,9 @@ TORRENT_TEST(clear_error)
 
 std::shared_ptr<torrent_info> make_torrent(bool priv)
 {
-	file_storage fs;
-	fs.add_file("foobar", 13241);
-	lt::create_torrent ct(fs);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("foobar", 13241);
+	lt::create_torrent ct(std::move(fs));
 
 	ct.add_tracker("http://tracker.com:8080/announce");
 

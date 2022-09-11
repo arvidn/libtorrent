@@ -97,6 +97,7 @@ bool exists(std::string const& f)
 	return lt::exists(f, ec);
 }
 
+#if TORRENT_ABI_VERSION < 4
 std::vector<char> serialize(lt::torrent_info const& ti)
 {
 	lt::create_torrent ct(ti);
@@ -106,20 +107,18 @@ std::vector<char> serialize(lt::torrent_info const& ti)
 	bencode(std::back_inserter(out_buffer), e);
 	return out_buffer;
 }
+#endif
 
-lt::file_storage make_files(std::vector<file_ent> const files, int const piece_size)
+std::vector<lt::create_file_entry> make_files(std::vector<file_ent> const files)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 	int i = 0;
 	for (auto const& e : files)
 	{
 		char filename[200];
 		std::snprintf(filename, sizeof(filename), "t/test%d", int(i++));
-		fs.add_file(filename, e.size, e.pad ? file_storage::flag_pad_file : file_flags_t{});
+		fs.emplace_back(filename, e.size, e.pad ? file_storage::flag_pad_file : file_flags_t{});
 	}
-
-	fs.set_piece_length(piece_size);
-	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
 	return fs;
 }

@@ -158,9 +158,13 @@ void run_test(
 			if (ti->v2())
 				TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
-			auto downloaded = serialize(*ti);
-			auto added = serialize(*torrent);
-			TEST_CHECK(downloaded == added);
+#if TORRENT_ABI_VERSION < 4
+			{
+				auto downloaded = serialize(*ti);
+				auto added = serialize(*torrent);
+				TEST_CHECK(downloaded == added);
+			}
+#endif
 		}
 
 		test(ses);

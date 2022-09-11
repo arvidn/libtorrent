@@ -49,15 +49,14 @@ void test_read_piece(int flags)
 	if (ec) std::printf("ERROR: creating directory test_torrent: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	file_storage fs;
 	int piece_size = 0x4000;
 
 	static std::array<const int, 2> const file_sizes{{ 100000, 10000 }};
 
 	create_random_files(combine_path("tmp1_read_piece", "test_torrent"), file_sizes);
 
-	add_files(fs, combine_path("tmp1_read_piece", "test_torrent"));
-	lt::create_torrent t(fs, piece_size);
+	auto fs = list_files(combine_path("tmp1_read_piece", "test_torrent"));
+	lt::create_torrent t(std::move(fs), piece_size);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);

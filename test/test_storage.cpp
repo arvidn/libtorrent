@@ -139,13 +139,13 @@ void run_until(io_context& ios, bool const& done)
 
 std::shared_ptr<torrent_info> setup_torrent_info(std::vector<char>& buf)
 {
-	file_storage fs;
-	fs.add_file(combine_path("temp_storage", "test1.tmp"), 0x8000);
-	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 0x8000);
-	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
-	fs.add_file(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
-	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 0x8000);
-	lt::create_torrent t(fs, 0x4000);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back(combine_path("temp_storage", "test1.tmp"), 0x8000);
+	fs.emplace_back(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 0x8000);
+	fs.emplace_back(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
+	fs.emplace_back(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
+	fs.emplace_back(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 0x8000);
+	lt::create_torrent t(std::move(fs), 0x4000);
 
 	sha1_hash h = hasher(std::vector<char>(0x4000, 0)).final();
 	for (piece_index_t i(0); i < 6_piece; ++i) t.set_hash(i, h);
@@ -529,15 +529,15 @@ void test_check_files(check_files_flag_t const flags
 	constexpr int piece_size_check = 16 * 1024;
 	delete_dirs("temp_storage");
 
-	file_storage fs;
-	fs.add_file("temp_storage/test1.tmp", piece_size_check);
-	fs.add_file("temp_storage/test2.tmp", piece_size_check * 2);
-	fs.add_file("temp_storage/test3.tmp", piece_size_check);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp_storage/test1.tmp", piece_size_check);
+	fs.emplace_back("temp_storage/test2.tmp", piece_size_check * 2);
+	fs.emplace_back("temp_storage/test3.tmp", piece_size_check);
 
 	std::vector<char> piece0 = new_piece(piece_size_check);
 	std::vector<char> piece2 = new_piece(piece_size_check);
 
-	lt::create_torrent t(fs, piece_size_check);
+	lt::create_torrent t(std::move(fs), piece_size_check);
 	t.set_hash(0_piece, hasher(piece0).final());
 	t.set_hash(1_piece, sha1_hash::max());
 	t.set_hash(2_piece, sha1_hash::max());
@@ -625,15 +625,15 @@ void run_test()
 
 	delete_dirs("temp_storage");
 
-	file_storage fs;
-	fs.add_file("temp_storage/test1.tmp", 17);
-	fs.add_file("temp_storage/test2.tmp", 612);
-	fs.add_file("temp_storage/test3.tmp", 0);
-	fs.add_file("temp_storage/test4.tmp", 0);
-	fs.add_file("temp_storage/test5.tmp", 3253);
-	fs.add_file("temp_storage/test6.tmp", 841);
-	int const last_file_size = 4 * int(piece_size) - int(fs.total_size());
-	fs.add_file("temp_storage/test7.tmp", last_file_size);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp_storage/test1.tmp", 17);
+	fs.emplace_back("temp_storage/test2.tmp", 612);
+	fs.emplace_back("temp_storage/test3.tmp", 0);
+	fs.emplace_back("temp_storage/test4.tmp", 0);
+	fs.emplace_back("temp_storage/test5.tmp", 3253);
+	fs.emplace_back("temp_storage/test6.tmp", 841);
+	int const last_file_size = 4 * int(piece_size) - (17 + 612 + 3253 + 841);
+	fs.emplace_back("temp_storage/test7.tmp", last_file_size);
 
 	// File layout
 	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
@@ -642,7 +642,7 @@ void run_test()
 	// |                           |                           |                           |                           |
 	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
 
-	lt::create_torrent t(fs, piece_size, create_torrent::v1_only);
+	lt::create_torrent t(std::move(fs), piece_size, create_torrent::v1_only);
 	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(0_piece, hasher(piece0).final());
 	t.set_hash(1_piece, hasher(piece1).final());
