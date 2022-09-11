@@ -69,9 +69,13 @@ jobs:
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build and run simulations
-        run: |
-          cd simulation
-          b2 -j2 -l400 debug-iterators=on invariant-checks=full asserts=on cxxstd=11
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 3
+          timeout_minutes: 120
+          command: |
+            cd simulation
+            b2 -j2 -l400 debug-iterators=on invariant-checks=full asserts=on cxxstd=11
 
 
    build:
