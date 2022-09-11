@@ -148,6 +148,7 @@ TORRENT_TEST(disk_io_thread_pool_max_threads)
 	TEST_EQUAL(pool.num_threads(), 3);
 	// now check that the number of threads is reduced when the max threads is reduced
 	pool.set_max_threads(2);
-	std::this_thread::sleep_for(10ms);
-	TEST_EQUAL(pool.num_threads(), 2);
+	std::this_thread::sleep_for(20ms);
+	int const num_threads = pool.num_threads();
+	TEST_EQUAL(num_threads, 2);
 }
