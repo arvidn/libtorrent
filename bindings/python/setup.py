@@ -23,6 +23,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 import warnings
 
 import setuptools
@@ -33,6 +34,25 @@ def b2_bool(value: bool) -> str:
     if value:
         return "on"
     return "off"
+
+
+def b2_version() -> Tuple[int, ...]:
+    # NB: b2 --version returns exit status 1
+    proc = subprocess.run(
+        ["b2", "--version"], stdout=subprocess.PIPE, universal_newlines=True
+    )
+    # Expected output examples:
+    #   Boost.Build 2015.07-git
+    #   B2 4.3-git
+    m = re.match(r".*\s([\d\.]+).*", proc.stdout)
+    assert m is not None, f"{proc.stdout} doesn't match expected output"
+    result = tuple(int(part) for part in re.split(r"\.", m.group(1)))
+    # Boost 1.71 changed from YYYY.MM to version 4.0. Return an "epoch" as the first
+    # part of the tuple to distinguish these version patterns.
+    if result[0] > 1999:
+        return (0, *result)
+    else:
+        return (1, *result)
 
 
 # Frustratingly, the "bdist_*" unconditionally (re-)run "build" without
@@ -218,7 +238,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         (
             "cxxstd=",
             None,
-            "(DEPRECATED; use --b2-args=cxxstd=...) "
             "boost cxxstd value (14, 17, 20, etc.)",
         ),
     ]
@@ -240,6 +259,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         self._b2_args_split: List[str] = []
         self._b2_args_configured: Set[str] = set()
+
+        self._b2_version = b2_version()
+
+        log.info("b2 version: %s", self._b2_version)
 
         super().initialize_options()
 
@@ -303,9 +326,14 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             warnings.warn("--hash is deprecated; use --b2-args=--hash")
             self._maybe_add_arg("--hash")
         if self.cxxstd:
-            warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
-            self._maybe_add_arg(f"cxxstd={self.cxxstd}")
-            self._b2_args_configured.add("cxxstd")
+            # the cxxstd feature was introduced in boost 1.66. However the output of
+            # b2 --version is 2015.07 for both 1.65 and 1.66.
+            if self._b2_version > (0, 2015, 7):
+                self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+            else:
+                warnings.warn(
+                    f"--cxxstd supplied, but b2 is too old ({self._b2_version}). "
+                )
 
     def _should_add_arg(self, arg: str) -> bool:
         m = re.match(r"(-\w).*", arg)
@@ -363,7 +391,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             # on boost 1.77+ breaks with toolset=clang if using a framework-type
             # python installation, such as installed by homebrew.
             self._maybe_add_arg("toolset=darwin")
-            self._maybe_add_arg("cxxstd=11")
 
         self._configure_from_autotools()
 
