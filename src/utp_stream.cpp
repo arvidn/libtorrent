@@ -1357,6 +1357,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	auto const close_reason = static_cast<std::uint32_t>(m_close_reason);
 
+	// size in bytes of the sack payload
+	// according to BEP 29, when sending a sack this
+	// 'must be at least 4, and in multiples of 4'
 	int sack = 0;
 	if (m_inbuf.size())
 	{
@@ -1367,8 +1370,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		// the SACK bitfield should ideally fit all
 		// the pieces we have successfully received
-		sack = (m_inbuf.span() + 7) / 8;
-		if (sack > max_sack_size) sack = max_sack_size;
+		sack = ((m_inbuf.span() + 31) / 32) * 4;
+		if (sack > max_sack_size) sack = (max_sack_size / 4) * 4;
 	}
 
 	int const header_size = int(sizeof(utp_header))
@@ -1548,6 +1551,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 		write_sack(ptr, sack);
 		ptr += sack;
 		TORRENT_ASSERT(ptr <= p->buf + p->header_size);
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: Including SACK payload size: %d bytes\n"
+			, static_cast<void*>(this), sack);
+#endif
 	}
 
 	if (close_reason)
