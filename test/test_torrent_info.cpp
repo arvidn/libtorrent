@@ -33,11 +33,11 @@ using namespace lt;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 TORRENT_TEST(mutable_torrents)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 
-	fs.add_file("test/temporary.txt", 0x4000);
+	fs.emplace_back("test/temporary.txt", 0x4000);
 
-	lt::create_torrent t(fs, 0x4000);
+	lt::create_torrent t(std::move(fs), 0x4000);
 
 	// calculate the hash for all pieces
 	for (auto const i : t.piece_range())
@@ -81,7 +81,7 @@ struct test_torrent_t
 
 using namespace lt;
 
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define SEPARATOR "\\"
 #else
 #define SEPARATOR "/"
@@ -1177,14 +1177,14 @@ std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
 
 void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 {
-	file_storage fs;
-	for (auto const& f : test) fs.add_file(f.filename, f.size, f.flags);
+	std::vector<lt::create_file_entry> fs;
+	for (auto const& f : test) fs.emplace_back(f.filename, f.size, f.flags);
 
 	// This test creates torrents with duplicate (identical) filenames, which
 	// isn't supported by v2 torrents, so we can only test this with v1 torrents
-	lt::create_torrent t(fs, 0x4000, create_torrent::v1_only);
+	lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only);
 
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 		t.set_hash(i, sha1_hash::max());
 
 	std::vector<char> tmp;
@@ -1318,6 +1318,7 @@ TORRENT_TEST(copy_ptr)
 	TEST_EQUAL(b->val, 4);
 }
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 {
 	std::string const root_dir = parent_path(current_working_directory());
@@ -1363,6 +1364,7 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 
 	TEST_EQUAL(out_buffer, data);
 }
+#endif
 
 TORRENT_TEST(write_torrent_file_session_roundtrip)
 {

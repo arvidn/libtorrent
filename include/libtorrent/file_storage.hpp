@@ -460,9 +460,10 @@ TORRENT_VERSION_NAMESPACE_4
 		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti) noexcept;
 
-		// arrange files and padding to match the canonical form required
-		// by BEP 52
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED
 		void canonicalize();
+#endif
 
 #if TORRENT_ABI_VERSION < 4
 		// The ``hash()`` is a SHA-1 hash of the file, or 0 if none was
@@ -634,10 +635,12 @@ TORRENT_VERSION_NAMESPACE_4
 		// internal
 		void remove_tail_padding();
 
+	private:
+
+#if TORRENT_ABI_VERSION < 4
 		// internal
 		void canonicalize_impl(bool backwards_compatible);
-
-	private:
+#endif
 
 		void add_file_borrow_impl(error_code& ec, string_view filename
 			, std::string const& path, std::int64_t const file_size

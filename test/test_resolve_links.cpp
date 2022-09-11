@@ -126,16 +126,16 @@ TORRENT_TEST(resolve_links)
 // since the zero-hash piece is in the second place
 TORRENT_TEST(range_lookup_duplicated_files)
 {
-	file_storage fs1;
-	file_storage fs2;
+	std::vector<lt::create_file_entry> fs1;
+	std::vector<lt::create_file_entry> fs2;
 
-	fs1.add_file("test_resolve_links_dir/tmp1", 1024);
-	fs1.add_file("test_resolve_links_dir/tmp2", 1024);
-	fs2.add_file("test_resolve_links_dir/tmp1", 1024);
-	fs2.add_file("test_resolve_links_dir/tmp2", 1024);
+	fs1.emplace_back("test_resolve_links_dir/tmp1", 1024);
+	fs1.emplace_back("test_resolve_links_dir/tmp2", 1024);
+	fs2.emplace_back("test_resolve_links_dir/tmp1", 1024);
+	fs2.emplace_back("test_resolve_links_dir/tmp2", 1024);
 
-	lt::create_torrent t1(fs1, 1024, lt::create_torrent::v1_only);
-	lt::create_torrent t2(fs2, 1024, lt::create_torrent::v1_only);
+	lt::create_torrent t1(std::move(fs1), 1024, lt::create_torrent::v1_only);
+	lt::create_torrent t2(std::move(fs2), 1024, lt::create_torrent::v1_only);
 
 	t1.set_hash(0_piece, sha1_hash::max());
 	t1.set_hash(1_piece, sha1_hash::max());

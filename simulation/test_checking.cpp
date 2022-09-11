@@ -131,11 +131,10 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	// the two first files are exactly the size of a piece
 	static std::array<const int, 8> const file_sizes{{ 0x40000, 0x40000, 4300, 0, 400, 4300, 6, 4}};
 
-	lt::file_storage fs;
-	create_random_files("test_torrent_dir", file_sizes, &fs);
+	auto fs = create_random_files("test_torrent_dir", file_sizes);
 	// the torrent needs to be v1 only because the zero_priority_missing_partfile
 	// test relies on non-aligned files
-	lt::create_torrent t(fs, 0x40000, lt::create_torrent::v1_only);
+	lt::create_torrent t(std::move(fs), 0x40000, lt::create_torrent::v1_only);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".");

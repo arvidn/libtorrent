@@ -54,6 +54,44 @@ add_torrent_params object by calling save_resume_data() and pass in the
 save_info_dict flag. The resulting save_resume_data_alert will contain an
 add_torrent_params object which can be saved to disk using write_torrent_file().
 
+Creating torrents
+=================
+
+There is a new API to create torrents. Previously the file structure and layout
+would first be defined in a file_storage object then passed to a create_torrent
+object's constructor. The new API instead builds the file list as a
+std::vector<lt::create_file_entry>.
+
+The new API can be summarized by this example:
+
+.. code:: c++
+
+	// recursively create a list of all files in the directory
+	auto files = list_files("./my_torrent");
+
+	create_torrent t(std::move(files));
+	t.add_tracker("http://my.tracker.com/announce");
+	t.set_creator("libtorrent example");
+
+	// reads the files and calculates the hashes
+	set_piece_hashes(t, ".");
+
+	ofstream out("my_torrent.torrent", std::ios_base::binary);
+	bencode(std::ostream_iterator<char>(out), t.generate());
+
+The main motivations are:
+
+1. To simplify the torrent creation logic by not conflating loading and parsing
+	existing torrents with the act of creating them. The file_storage object is
+	primarily used for the former and has an API that's largely internal. e.g.
+	it never makes sense to specify the file root when adding files to a torrent
+	about to be created. The file root is computed by the hashes added later.
+2. To allow further optimizations of file_storage. By being used solely for
+	representing an existing torrents file layout, it can be made more space
+	efficient.
+
+For more details, see create_torrent and create_file_entry.
+
 standard string_view
 ====================
 

@@ -59,11 +59,14 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
+#if TORRENT_ABI_VERSION < 4
 constexpr aux::path_index_t operator""_path(unsigned long long i)
 { return aux::path_index_t(static_cast<std::uint32_t>(i)); }
+#endif
 
 } // anonymous namespace
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(coalesce_path)
 {
 	file_storage st;
@@ -94,6 +97,7 @@ TORRENT_TEST(coalesce_path)
 	TEST_EQUAL(st.paths()[1_path], "c");
 	TEST_EQUAL(st.paths()[2_path], ".pad");
 }
+#endif
 
 TORRENT_TEST(rename_file)
 {
@@ -266,6 +270,7 @@ TORRENT_TEST(file_path_hash)
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 
+#if TORRENT_ABI_VERSION < 4
 // make sure every file is tail padded
 TORRENT_TEST(canonicalize_pad)
 {
@@ -323,6 +328,7 @@ TORRENT_TEST(canonicalize_path)
 	TEST_EQUAL(fs.file_path(2_file), combine_path("b", combine_path("2", "a")));
 	TEST_EQUAL(fs.file_path(3_file), combine_path("b", combine_path("3", "a")));
 }
+#endif
 
 TORRENT_TEST(piece_range_exclusive)
 {
@@ -956,6 +962,7 @@ TORRENT_TEST(piece_size2)
 	TEST_EQUAL(fs.piece_size2(5_piece), 1);
 }
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(file_num_blocks)
 {
 	file_storage fs;
@@ -1019,6 +1026,7 @@ TORRENT_TEST(file_num_pieces)
 	TEST_CHECK(fs.pad_file_at(8_file));
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{9}), 0);
 }
+#endif
 
 namespace {
 int first_piece_node(int piece_size, int file_size)

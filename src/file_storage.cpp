@@ -1245,6 +1245,9 @@ namespace {
 		swap(ti.m_v2, m_v2);
 	}
 
+#if TORRENT_ABI_VERSION < 4
+	// using file_storage when creating torrents is deprecated. Use a vector of
+	// create_file_entry with create_torrent instead.
 	void file_storage::canonicalize()
 	{
 		canonicalize_impl(false);
@@ -1288,17 +1291,13 @@ namespace {
 		});
 
 		aux::vector<aux::file_entry, file_index_t> new_files;
-#if TORRENT_ABI_VERSION < 4
 		aux::vector<char const*, file_index_t> new_file_hashes;
-#endif
 		aux::vector<std::time_t, file_index_t> new_mtime;
 
 		// reserve enough space for the worst case after padding
 		new_files.reserve(new_order.size() * 2 - 1);
-#if TORRENT_ABI_VERSION < 4
 		if (!m_file_hashes.empty())
 			new_file_hashes.reserve(new_order.size() * 2 - 1);
-#endif
 		if (!m_mtime.empty())
 			new_mtime.reserve(new_order.size() * 2 - 1);
 
@@ -1323,10 +1322,8 @@ namespace {
 				pad.set_name(name);
 				pad.pad_file = true;
 
-#if TORRENT_ABI_VERSION < 4
 				if (!m_file_hashes.empty())
 					new_file_hashes.push_back(nullptr);
-#endif
 				if (!m_mtime.empty())
 					new_mtime.push_back(0);
 			}
@@ -1340,12 +1337,10 @@ namespace {
 			TORRENT_ASSERT(!m_files[i].pad_file);
 			new_files.emplace_back(std::move(m_files[i]));
 
-#if TORRENT_ABI_VERSION < 4
 			if (i < m_file_hashes.end_index())
 				new_file_hashes.push_back(m_file_hashes[i]);
 			else if (!m_file_hashes.empty())
 				new_file_hashes.push_back(nullptr);
-#endif
 
 			if (i < m_mtime.end_index())
 				new_mtime.push_back(m_mtime[i]);
@@ -1365,15 +1360,14 @@ namespace {
 		}
 
 		m_files = std::move(new_files);
-#if TORRENT_ABI_VERSION < 4
 		m_file_hashes = std::move(new_file_hashes);
-#endif
 		m_mtime = std::move(new_mtime);
 
 		m_total_size = off;
 		m_size_on_disk = on_disk;
 		TORRENT_ASSERT(m_total_size >= m_size_on_disk);
 	}
+#endif
 
 	void file_storage::sanitize_symlinks()
 	{

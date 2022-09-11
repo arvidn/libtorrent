@@ -68,14 +68,14 @@ void generate_block_fill(lt::span<char> buf, std::uint64_t& state)
 std::vector<char> generate_torrent(int num_pieces, std::string save_path
 	, lt::create_flags_t const flags)
 {
-	lt::file_storage fs;
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
 	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces + 2356;
 
 	std::string const filename = "test_checking_file";
 
-	fs.add_file(filename, total_size);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back(filename, total_size);
 
 	std::string const filepath = save_path + "/" + filename;
 
@@ -107,7 +107,7 @@ std::vector<char> generate_torrent(int num_pieces, std::string save_path
 		std::cout << '\n';
 	}
 
-	lt::create_torrent t(fs, piece_size, flags);
+	lt::create_torrent t(std::move(fs), piece_size, flags);
 
 	std::cout << "hashing torrent\n";
 	lt::set_piece_hashes(t, save_path);

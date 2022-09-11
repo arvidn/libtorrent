@@ -61,13 +61,13 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	g_params.disk_io_constructor = lt::disabled_disk_io_constructor;
 
 	// create a torrent
-	file_storage fs;
 	std::int64_t const total_size = std::int64_t(piece_size) * num_pieces;
-	fs.add_file("test_file", total_size);
 
 	g_tree.resize(num_nodes);
 
-	create_torrent t(fs, piece_size);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_file", total_size);
+	create_torrent t(std::move(fs), piece_size);
 
 	std::vector<char> piece(piece_size, 0);
 	lt::span<char const> piece_span(piece);

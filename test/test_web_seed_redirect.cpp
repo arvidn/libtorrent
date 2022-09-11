@@ -28,20 +28,20 @@ TORRENT_TEST(web_seed_redirect)
 
 	error_code ec;
 
-	file_storage fs;
+	std::vector<lt::create_file_entry> fs;
 	int piece_size = 0x4000;
 
 	std::array<char, 16000> random_data;
 	aux::random_bytes(random_data);
 
 	ofstream("test_file").write(random_data.data(), random_data.size());
-	fs.add_file("test_file", 16000);
+	fs.emplace_back("test_file", 16000);
 
 	int port = start_web_server();
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
-	lt::create_torrent t(fs, piece_size);
+	lt::create_torrent t(std::move(fs), piece_size);
 
 	char tmp[512];
 	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);

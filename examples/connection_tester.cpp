@@ -739,18 +739,15 @@ struct peer_conn
 }
 
 void hasher_thread(lt::aux::vector<sha1_hash, piece_index_t>* output
-	, lt::file_storage const& fs
+	, lt::create_torrent const& ct
+	, file_slice current_file
 	, piece_index_t const start_piece
 	, piece_index_t const end_piece
 	, bool print)
 {
 	if (print) std::fprintf(stderr, "\n");
 	std::uint32_t piece[0x4000 / 4];
-	int const piece_size = fs.piece_length();
-
-	std::vector<file_slice> files = fs.map_block(start_piece, 0
-		, std::min(static_cast<int>(end_piece - start_piece) * std::int64_t(piece_size)
-			, fs.total_size() - static_cast<int>(start_piece) * std::int64_t(piece_size)));
+	int const piece_size = ct.piece_length();
 
 	for (piece_index_t i = start_piece; i < end_piece; ++i)
 	{
@@ -763,26 +760,30 @@ void hasher_thread(lt::aux::vector<sha1_hash, piece_index_t>* output
 			// clear those bytes to 0
 			for (int k = 0; k < 0x4000; )
 			{
-				if (files.empty())
+				while (current_file.size == 0)
 				{
-					TORRENT_ASSERT(i == prev(end_piece));
-					TORRENT_ASSERT(k > 0);
-					TORRENT_ASSERT(k < 0x4000);
-					// this is the last piece of the torrent, and the piece
-					// extends a bit past the end of the last file. This part
-					// should be truncated
-					ph.update(reinterpret_cast<char*>(piece), k);
-					goto out;
+					++current_file.file_index;
+					if (current_file.file_index >= ct.end_file())
+					{
+						TORRENT_ASSERT(i == prev(end_piece));
+						TORRENT_ASSERT(k > 0);
+						TORRENT_ASSERT(k < 0x4000);
+						// this is the last piece of the torrent, and the piece
+						// extends a bit past the end of the last file. This part
+						// should be truncated
+						ph.update(reinterpret_cast<char*>(piece), k);
+						goto out;
+					}
+					current_file.offset = 0;
+					current_file.size = ct.file_at(current_file.file_index).size;
 				}
-				auto& f = files.front();
-				int const range = int(std::min(std::int64_t(0x4000 - k), f.size));
-				if (fs.pad_file_at(f.file_index))
+				int const range = int(std::min(std::int64_t(0x4000 - k), current_file.size));
+				if (ct.file_at(current_file.file_index).flags & file_storage::flag_pad_file)
 					std::memset(reinterpret_cast<char*>(piece) + k, 0, std::size_t(range));
 
-				f.offset += range;
-				f.size -= range;
+				current_file.offset += range;
+				current_file.size -= range;
 				k += range;
-				if (f.size == 0) files.erase(files.begin());
 			}
 			ph.update(reinterpret_cast<char*>(piece), 0x4000);
 		}
@@ -802,7 +803,7 @@ out:
 void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 	, char const* torrent_name, int num_trackers)
 {
-	file_storage fs;
+	std::vector<lt::create_file_entry> files;
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
 	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces;
@@ -815,12 +816,12 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 		char b[100];
 		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, file_index);
 		++file_index;
-		fs.add_file(b, std::min(s, file_size));
+		files.push_back({std::string(b), file_size, {}, 0, {}});
 		s -= file_size;
 		file_size += 200;
 	}
 
-	lt::create_torrent t(fs, piece_size, lt::create_torrent::v1_only);
+	lt::create_torrent t(std::move(files), piece_size, lt::create_torrent::v1_only);
 
 	num_pieces = t.num_pieces();
 
@@ -831,10 +832,30 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 	std::vector<std::thread> threads;
 	threads.reserve(std::size_t(num_threads));
 	lt::aux::vector<lt::sha1_hash, piece_index_t> hashes{static_cast<std::size_t>(num_pieces)};
+	lt::file_slice current_file;
+	current_file.file_index = file_index_t{0};
+	current_file.offset = 0;
+	current_file.size = t.file_at(current_file.file_index).size;
+	std::int64_t offset = 0;
 	for (int i = 0; i < num_threads; ++i)
 	{
-		threads.emplace_back(&hasher_thread, &hashes, t.files()
-			, piece_index_t(i * num_pieces / num_threads)
+		auto const start_piece = piece_index_t(i * num_pieces / num_threads);
+		auto const target_offset = static_cast<int>(start_piece) * t.piece_length();
+		while (offset < target_offset)
+		{
+			while (current_file.size == 0)
+			{
+				++current_file.file_index;
+				current_file.offset = 0;
+				current_file.size = t.file_at(current_file.file_index).size;
+			}
+			std::int64_t const increment = std::min(current_file.size, target_offset - offset);
+			current_file.offset += increment;
+			current_file.size -= increment;
+			offset += increment;
+		}
+		threads.emplace_back(&hasher_thread, &hashes, std::cref(t), current_file
+			, start_piece
 			, piece_index_t((i + 1) * num_pieces / num_threads)
 			, i == 0);
 	}
@@ -1068,12 +1089,12 @@ int main(int argc, char* argv[])
 			char torrent_name[100];
 			std::snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", torrent_file, i);
 
-			file_storage fs;
+			std::vector<create_file_entry> fs;
 			for (int j = 0; j < num_files; ++j)
 			{
 				char file_name[100];
 				std::snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
-				fs.add_file(file_name, std::int64_t(j + i + 1) * 251);
+				fs.push_back({std::string(file_name), std::int64_t(j + i + 1) * 251, {}, 0, {}});
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;

@@ -67,12 +67,11 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	g_ses = std::unique_ptr<session>(new lt::session(pack));
 
 	// create a torrent
-	file_storage fs;
 	int const piece_size = 1024 * 1024;
 	std::int64_t const total_size = std::int64_t(piece_size) * 100;
-	fs.add_file("test_file", total_size);
-
-	create_torrent t(fs, piece_size);
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_file", total_size);
+	create_torrent t(std::move(fs), piece_size);
 
 	for (piece_index_t i : t.piece_range())
 		t.set_hash(i, sha1_hash("abababababababababab"));

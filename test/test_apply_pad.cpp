@@ -146,7 +146,7 @@ TORRENT_TEST(back_to_back_pads)
 
 TORRENT_TEST(large_pad_file)
 {
-	auto const fs = make_files({{0x4001, false}, {0x100003fff, true}}, 0x4000);
+	auto const fs = make_fs({{0x4001, false}, {0x100003fff, true}}, 0x4000);
 	piece_index_t expected_piece(fs.num_pieces() - 1);
 	int num_calls = 0;
 	aux::apply_pad_files(fs, [&](piece_index_t const piece, int const bytes)
