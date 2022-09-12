@@ -45,8 +45,8 @@ def substitute_file(name):
             line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
         elif 'VERSION=' in line and name.endswith('build_dist.sh'):
             line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
-        elif 'version=' in line and name.endswith('setup.py'):
-            line = '    version="%d.%d.%d",\n' % (version[0], version[1], version[2])
+        elif 'version = ' in line and name.endswith('setup.cfg'):
+            line = '    version = "%d.%d.%d",\n' % (version[0], version[1], version[2])
         elif '"-LT' in line and name.endswith('settings_pack.cpp'):
             line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
         elif 'local FULL_VERSION = ' in line and name == 'Jamfile':
@@ -62,7 +62,7 @@ substitute_file('include/libtorrent/version.hpp')
 substitute_file('CMakeLists.txt')
 substitute_file('configure.ac')
 substitute_file('build_dist.sh')
-substitute_file('bindings/python/setup.py')
+substitute_file('bindings/python/setup.cfg')
 substitute_file('docs/gen_reference_doc.py')
 substitute_file('src/settings_pack.cpp')
 for i in glob.glob('docs/*.rst'):
