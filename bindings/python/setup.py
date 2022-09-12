@@ -240,6 +240,13 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             None,
             "boost cxxstd value (14, 17, 20, etc.)",
         ),
+        (
+            "configure-from-autotools",
+            None,
+            "(DEPRECATED) "
+            "when in --config-mode=distutils, also apply cxxflags= and linkflags= "
+            "based on files generated from autotools",
+        ),
     ]
 
     boolean_options = build_ext_lib.build_ext.boolean_options + ["pic", "hash"]
@@ -252,6 +259,7 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self.optimization: Optional[str] = None
         self.hash: Optional[bool] = None
         self.cxxstd: Optional[str] = None
+        self.configure_from_autotools: Optional[bool] = None
 
         self.config_mode = self.CONFIG_MODE_DISTUTILS
         self.b2_args = ""
@@ -392,7 +400,8 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             # python installation, such as installed by homebrew.
             self._maybe_add_arg("toolset=darwin")
 
-        self._configure_from_autotools()
+        if self.configure_from_autotools:
+            self._configure_from_autotools()
 
         # Default feature configuration
         self._maybe_add_arg("deprecated-functions=on")
@@ -426,8 +435,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         if self.parallel:
             self._maybe_add_arg(f"-j{self.parallel}")
-
-        self._configure_from_autotools()
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
@@ -488,18 +495,24 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         # This is a hack to allow building the python bindings from autotools
 
         compile_flags_path = PYTHON_BINDING_DIR / "compile_flags"
+        log.info("configure_from_autotools: checking %s", compile_flags_path)
         with contextlib.suppress(FileNotFoundError):
             for arg in shlex.split(compile_flags_path.read_text()):
                 if arg.startswith("-std=c++"):
                     self._maybe_add_arg(f"cxxflags={arg}")
+                    log.info("configure_from_autotools: adding cxxflags=%s", arg)
 
         link_flags_path = PYTHON_BINDING_DIR / "link_flags"
+        log.info("configure_from_autotools: checking %s", link_flags_path)
         with contextlib.suppress(FileNotFoundError):
             for arg in shlex.split(link_flags_path.read_text()):
                 if arg.startswith("-L"):
                     linkpath = pathlib.Path(arg[2:])
                     linkpath = linkpath.resolve()
                     self._maybe_add_arg(f"linkflags=-L{linkpath}")
+                    log.info(
+                        "configure_from_autotools: adding linkflags=-L%s", linkpath
+                    )
 
 
 class InstallDataToLibDir(install_data_lib.install_data):
