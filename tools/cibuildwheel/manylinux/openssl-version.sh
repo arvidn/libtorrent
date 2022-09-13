@@ -1,5 +1,5 @@
 #!/bin/bash
 
-export OPENSSL_ROOT=openssl-1.1.1l
-export OPENSSL_HASH=0b7a3e5e59c34827fe0c3a74b7ec8baef302b98fa80088d7f9153aa16fa76bd1
+export OPENSSL_ROOT=openssl-1.1.1q
+export OPENSSL_HASH=d7939ce614029cdff0b6c20f0e2e5703158a489a72b2507b8bd51bf8c8fd10ca
 export OPENSSL_DOWNLOAD_URL=https://www.openssl.org/source
