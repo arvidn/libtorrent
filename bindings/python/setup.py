@@ -8,6 +8,7 @@ import distutils.debug
 import distutils.errors
 import distutils.sysconfig
 import functools
+import itertools
 import os
 import pathlib
 import re
@@ -15,6 +16,7 @@ import shlex
 import subprocess
 import sys
 import sysconfig
+import tempfile
 from typing import Callable
 from typing import cast
 from typing import IO
@@ -438,8 +440,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
+        # Don't create project-config.jam if the user specified
+        # --b2-args=--project-config=..., or has an existing project-config.jam.
         config_writers: List[Callable[[IO[str]], None]] = []
-        if self._should_add_arg("--project-config"):
+        if self._should_add_arg("--project-config") or self._find_project_config():
             if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
                 config_writers.append(
                     functools.partial(
@@ -474,10 +478,16 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         # Two paths depending on whether or not we use a generated
         # project-config.jam or not.
         if config_writers:
-            # We might use a temporary file and pass it with
-            # --project-config=..., however we need to support old versions of
-            # b2 which lacked this option.
-            config_path = PYTHON_BINDING_DIR / "project-config.jam"
+            # We prefer to use a temporary file, and pass it with --project-config=...
+            # This option was introduced in boost 1.68. Otherwise, we just write to
+            # project-config.jam in the bindings directory.
+            if self._b2_version >= (0, 2018, 2):
+                temp_config = tempfile.NamedTemporaryFile(mode="w+", delete=True)
+                temp_config.close()
+                config_path = pathlib.Path(temp_config.name)
+                self._b2_args_split.append(f"--project-config={temp_config.name}")
+            else:
+                config_path = PYTHON_BINDING_DIR / "project-config.jam"
             try:
                 with config_path.open(mode="w+") as config:
                     for writer in config_writers:
@@ -487,9 +497,19 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
                     log.info(config.read())
                 yield
             finally:
-                config_path.unlink()
+                with contextlib.suppress(FileNotFoundError):
+                    config_path.unlink()
         else:
             yield
+
+    def _find_project_config(self) -> Optional[pathlib.Path]:
+        for directory in itertools.chain(
+            (PYTHON_BINDING_DIR,), PYTHON_BINDING_DIR.parents
+        ):
+            path = directory / "project-config.jam"
+            if path.exists():
+                return path
+        return None
 
     def _configure_from_autotools(self) -> None:
         # This is a hack to allow building the python bindings from autotools
