@@ -280,7 +280,7 @@ TORRENT_TEST(file_path_hash)
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 
-// make sure we fill in padding with small files
+// make sure every file is tail padded
 TORRENT_TEST(canonicalize_pad)
 {
 	file_storage fs;
@@ -291,7 +291,7 @@ TORRENT_TEST(canonicalize_pad)
 
 	fs.canonicalize();
 
-	TEST_EQUAL(fs.num_files(), 5);
+	TEST_EQUAL(fs.num_files(), 6);
 
 	TEST_EQUAL(fs.file_size(0_file), 1);
 	TEST_EQUAL(fs.file_name(0_file), "1");
@@ -310,6 +310,9 @@ TORRENT_TEST(canonicalize_pad)
 	TEST_EQUAL(fs.file_size(4_file), 0x7001);
 	TEST_EQUAL(fs.file_name(4_file), "3");
 	TEST_EQUAL(fs.pad_file_at(4_file), false);
+
+	TEST_EQUAL(fs.file_size(5_file), 0x8000 - 0x7001);
+	TEST_EQUAL(fs.pad_file_at(5_file), true);
 }
 
 // make sure canonicalize sorts by path correctly
@@ -982,13 +985,18 @@ TORRENT_TEST(file_num_blocks)
 
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{0}), 2);
 	// pad file at index 1
+	TEST_CHECK(fs.pad_file_at(1_file));
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{2}), 1);
 	// pad file at index 3
+	TEST_CHECK(fs.pad_file_at(3_file));
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{4}), 2);
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{5}), 3);
 	// pad file at index 6
+	TEST_CHECK(fs.pad_file_at(6_file));
 	TEST_EQUAL(fs.file_num_blocks(file_index_t{7}), 1);
-	TEST_EQUAL(fs.file_num_blocks(file_index_t{8}), 0);
+	// pad file at index 8
+	TEST_CHECK(fs.pad_file_at(8_file));
+	TEST_EQUAL(fs.file_num_blocks(file_index_t{9}), 0);
 }
 
 TORRENT_TEST(file_num_pieces)
@@ -1009,13 +1017,18 @@ TORRENT_TEST(file_num_pieces)
 
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{0}), 1);
 	// pad file at index 1
+	TEST_CHECK(fs.pad_file_at(1_file));
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{2}), 1);
 	// pad file at index 3
+	TEST_CHECK(fs.pad_file_at(3_file));
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{4}), 1);
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{5}), 2);
 	// pad file at index 6
+	TEST_CHECK(fs.pad_file_at(6_file));
 	TEST_EQUAL(fs.file_num_pieces(file_index_t{7}), 1);
-	TEST_EQUAL(fs.file_num_pieces(file_index_t{8}), 0);
+	// pad file at index 8
+	TEST_CHECK(fs.pad_file_at(8_file));
+	TEST_EQUAL(fs.file_num_pieces(file_index_t{9}), 0);
 }
 
 namespace {

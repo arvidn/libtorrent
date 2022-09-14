@@ -60,7 +60,7 @@ class test_create_torrent(unittest.TestCase):
         fs.add_file('test/file2', 2000)
         self.assertEqual(fs.file_name(0), 'file1')
         self.assertEqual(fs.file_name(1), 'file2')
-        ct = lt.create_torrent(fs)
+        ct = lt.create_torrent(fs, 0, lt.create_torrent.canonical_files_no_tail_padding)
         ct.add_url_seed('foo')
         ct.add_http_seed('bar')
         ct.add_tracker('bar')

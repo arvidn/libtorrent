@@ -412,7 +412,7 @@ TORRENT_TEST(discrete_checking)
 	TEST_CHECK(ti->is_valid());
 
 	// we have two files, but there are also two padfiles now
-	TEST_EQUAL(ti->num_files(), 3);
+	TEST_EQUAL(ti->num_files(), 4);
 
 	{
 		session ses1(settings());

@@ -628,6 +628,9 @@ namespace aux {
 		// internal
 		void remove_tail_padding();
 
+		// internal
+		void canonicalize_impl(bool backwards_compatible);
+
 	private:
 
 		std::string internal_file_path(file_index_t index) const;
