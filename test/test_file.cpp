@@ -552,11 +552,12 @@ TORRENT_TEST(unc_tests)
 	TEST_CHECK(!exists(long_file_name1));
 	TEST_CHECK(exists(long_file_name2));
 
-	lt::copy_file(long_file_name2, long_file_name1, ec);
-	TEST_EQUAL(ec, error_code());
-	if (ec)
+	lt::storage_error se;
+	lt::aux::copy_file(long_file_name2, long_file_name1, se);
+	TEST_EQUAL(se.ec, error_code());
+	if (se.ec)
 	{
-		std::cout << "copy_file \"" << long_file_name2 << "\" failed " << ec.message() << "\n";
+		std::cout << "copy_file \"" << long_file_name2 << "\" failed " << se.ec.message() << "\n";
 		std::wcout << convert_to_native_path_string(long_file_name2) << L"\n";
 	}
 	TEST_CHECK(exists(long_file_name1));
