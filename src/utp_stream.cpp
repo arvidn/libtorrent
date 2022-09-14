@@ -1673,7 +1673,18 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	if (!m_stalled)
+	{
 		++p->num_transmissions;
+		// Only reset the timeout for the initial packet
+		if (m_bytes_in_flight == 0)
+		{
+			m_timeout = now + milliseconds(packet_timeout());
+#if TORRENT_UTP_LOG
+			UTP_LOGV("%8p: updating timeout to: now + %d\n"
+			, static_cast<void*>(this), packet_timeout());
+#endif
+		}
+	}
 
 	// Any queued up deferred ack is now redundant
 	if (m_deferred_ack)
@@ -2463,12 +2474,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 	++m_in_packets;
 
-	// this is a valid incoming packet, update the timeout timer
-	m_num_timeouts = 0;
-	m_timeout = receive_time + milliseconds(packet_timeout());
-	UTP_LOGV("%8p: updating timeout to: now + %d\n"
-		, static_cast<void*>(this), packet_timeout());
-
 	// the test for INT_MAX here is a work-around for a bug in uTorrent where
 	// it's sometimes sent as INT_MAX when it is in fact uninitialized
 	const std::uint32_t sample = ph->timestamp_difference_microseconds == INT_MAX
@@ -2578,6 +2583,13 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		ptr += len;
 		extension = next_extension;
 	}
+
+	// this is a valid incoming packet, update the timeout timer
+	// do this after processing sacks/acks as that can effect packet_timeout()
+	m_num_timeouts = 0;
+	m_timeout = receive_time + milliseconds(packet_timeout());
+	UTP_LOGV("%8p: updating timeout to: now + %d\n"
+		, static_cast<void*>(this), packet_timeout());
 
 	// the send operation in parse_sack() may have set the socket to an error
 	// state, in which case we shouldn't continue
