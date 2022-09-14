@@ -119,6 +119,12 @@ namespace aux {
 		std::string const& target
 		, std::string const& link
 		, storage_error& ec);
+
+	TORRENT_EXTRA_EXPORT void move_file(std::string const& f
+		, std::string const& newf, storage_error& se);
+
+	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
+		, std::string const& newf, storage_error& ec);
 }}
 
 #endif

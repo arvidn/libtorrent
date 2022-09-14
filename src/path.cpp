@@ -107,6 +107,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // posix part
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // copy_file
 
 namespace libtorrent {
 
@@ -444,7 +445,9 @@ namespace {
 #endif
 
 		// if we get here, we should copy the file
-		copy_file(file, link, ec);
+		storage_error se;
+		aux::copy_file(file, link, se);
+		ec = se.ec;
 	}
 
 	bool is_directory(std::string const& f, error_code& ec)
@@ -456,23 +459,6 @@ namespace {
 		if (!e && s.mode & file_status::directory) return true;
 		ec = e;
 		return false;
-	}
-
-	void move_file(std::string const& inf, std::string const& newf, error_code& ec)
-	{
-		ec.clear();
-
-		file_status s;
-		stat_file(inf, &s, ec);
-		if (ec) return;
-
-		if (has_parent_path(newf))
-		{
-			create_directories(parent_path(newf), ec);
-			if (ec) return;
-		}
-
-		rename(inf, newf, ec);
 	}
 
 	std::string extension(std::string const& f)

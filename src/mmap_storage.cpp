@@ -410,7 +410,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (ec.ec)
 			{
 				ec.file(index);
-				ec.operation = operation_t::file_rename;
+				ec.operation = operation_t::mkdir;
 				return;
 			}
 
@@ -425,12 +425,11 @@ error_code translate_error(std::system_error const& err, bool const write)
 			if (ec)
 			{
 				ec.ec.clear();
-				copy_file(old_name, new_path, ec.ec);
+				aux::copy_file(old_name, new_path, ec);
 
 				if (ec)
 				{
 					ec.file(index);
-					ec.operation = operation_t::file_rename;
 					return;
 				}
 
@@ -442,7 +441,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		{
 			// if exists fails, report that error
 			ec.file(index);
-			ec.operation = operation_t::file_rename;
+			ec.operation = operation_t::file_stat;
 			return;
 		}
 
