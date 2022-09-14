@@ -185,6 +185,15 @@ namespace libtorrent {
 		// across systems, this flag should be set.
 		static constexpr create_flags_t no_attributes = 8_bit;
 
+		// this flag enforces the file layout to be canonical according to the
+		// bittorrent v2 specification (just like the ``canonical_files`` flag)
+		// with the one exception that tail padding is not added to the last
+		// file.
+		// This behavior deviates from the specification but was the way
+		// libtorrent created torrents in version up to and including 2.0.7.
+		// This flag is here for backwards compatibility.
+		static constexpr create_flags_t canonical_files_no_tail_padding = 9_bit;
+
 		// The ``piece_size`` is the size of each piece in bytes. It must be a
 		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
 		// specified, a piece_size will be set automatically.

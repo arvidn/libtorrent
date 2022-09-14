@@ -193,6 +193,11 @@ TORRENT_TEST(create_torrent_round_trip_v2)
 	test_round_trip_torrent("v2_only.torrent");
 }
 
+TORRENT_TEST(create_torrent_round_trip_hybrid_missing_tailpad)
+{
+	test_round_trip_torrent("v2_hybrid-missing-tailpad.torrent");
+}
+
 TORRENT_TEST(create_torrent_round_trip_hybrid)
 {
 	test_round_trip_torrent("v2_hybrid.torrent");
