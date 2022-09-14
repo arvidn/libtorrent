@@ -17,6 +17,7 @@ Documentation
 
 * reference_
 * `blog`_
+* `upgrade to 2.1`_
 * `upgrade to 2.0`_
 * `upgrade to 1.2`_
 * contributing_
@@ -75,6 +76,7 @@ Bindings
 .. _examples: examples.html
 .. _overview: manual-ref.html
 .. _reference: reference.html
+.. _`upgrade to 2.1`: upgrade_to_2.1-ref.html
 .. _`upgrade to 2.0`: upgrade_to_2.0-ref.html
 .. _`upgrade to 1.2`: upgrade_to_1.2-ref.html
 .. _troubleshooting: troubleshooting.html

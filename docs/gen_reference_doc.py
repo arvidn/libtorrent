@@ -47,6 +47,7 @@ preprocess_rst = \
         'features.rst': 'features-ref.rst',
         'upgrade_to_1.2.rst': 'upgrade_to_1.2-ref.rst',
         'upgrade_to_2.0.rst': 'upgrade_to_2.0-ref.rst',
+        'upgrade_to_2.1.rst': 'upgrade_to_2.1-ref.rst',
         'settings.rst': 'settings-ref.rst'
     }
 

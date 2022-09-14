@@ -20,6 +20,7 @@ REFERENCE_TARGETS = \
 	features-ref \
 	upgrade_to_1.2-ref \
 	upgrade_to_2.0-ref \
+	upgrade_to_2.1-ref \
 	reference \
 	reference-Core \
 	reference-DHT \
@@ -164,12 +165,14 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 	python3 filter-rst.py settings.rst >settings-plain.txt
 	python3 filter-rst.py upgrade_to_1.2.rst >upgrade-1_2-plain.txt
 	python3 filter-rst.py upgrade_to_2.0.rst >upgrade-2_0-plain.txt
+	python3 filter-rst.py upgrade_to_2.1.rst >upgrade-2_1-plain.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l manual-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l tutorial-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l tuning-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-1_2-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_0-plain.txt >>hunspell-report.txt
+	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_1-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/settings.dic -l settings-plain.txt >>hunspell-report.txt
 	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -H -l $(MANUAL_TARGETS:=.html) >>hunspell-report.txt
 	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
