@@ -1100,6 +1100,7 @@ TEST_TORRENTS = \
   v2_zero_root.torrent \
   v2_zero_root_small.torrent \
   v2_hybrid.torrent \
+  v2_hybrid-missing-tailpad.torrent \
   v2_invalid_root_hash.torrent \
   zero.torrent \
   zero2.torrent

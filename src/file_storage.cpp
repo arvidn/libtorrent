@@ -1247,6 +1247,11 @@ namespace {
 
 	void file_storage::canonicalize()
 	{
+		canonicalize_impl(false);
+	}
+
+	void file_storage::canonicalize_impl(bool const backwards_compatible)
+	{
 		TORRENT_ASSERT(piece_length() >= 16 * 1024);
 
 		// use this vector to track the new ordering of files
@@ -1300,8 +1305,8 @@ namespace {
 		// re-compute offsets and insert pad files as necessary
 		std::int64_t off = 0;
 		std::int64_t on_disk = 0;
-		for (file_index_t i : new_order)
-		{
+
+		auto add_pad_file = [&](file_index_t const i) {
 			if ((off % piece_length()) != 0 && m_files[i].size > 0)
 			{
 				auto const pad_size = piece_length() - (off % piece_length());
@@ -1325,6 +1330,12 @@ namespace {
 				if (!m_mtime.empty())
 					new_mtime.push_back(0);
 			}
+		};
+
+		for (file_index_t i : new_order)
+		{
+			if (backwards_compatible)
+				add_pad_file(i);
 
 			TORRENT_ASSERT(!m_files[i].pad_file);
 			new_files.emplace_back(std::move(m_files[i]));
@@ -1346,6 +1357,11 @@ namespace {
 			file.offset = static_cast<std::uint64_t>(off);
 			off += file.size;
 			on_disk += file.size;
+
+			// we don't pad single-file torrents. That would make it impossible
+			// to have single-file hybrid torrents.
+			if (!backwards_compatible && num_files() > 1)
+				add_pad_file(i);
 		}
 
 		m_files = std::move(new_files);

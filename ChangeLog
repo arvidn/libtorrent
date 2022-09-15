@@ -5,6 +5,7 @@
 	* added support for WebTorrent
 
 
+	* tweak pad file placement to match reference implementation (tail-padding)
 	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet
 	* uTP performance, piggy-back held back undersized packet with ACKs
 	* uTP performance, don't send redundant deferred ACKs

@@ -101,6 +101,11 @@ jobs:
           cd boost
           .\b2 headers
 
+      - shell: pwsh
+        run: |
+          echo "BOOST_ROOT=$(pwd)/boost" >> $env:GITHUB_ENV
+          echo "$(pwd)/boost" >> $env:GITHUB_PATH
+
   # debug iterators are turned off here because msvc has issues with noexcept
   # specifiers when debug iterators are enabled. Specifically, constructors that
   # allocate memory are still marked as noexcept. That results in program
@@ -109,17 +114,19 @@ jobs:
   # certain unexpected terminations (through exceptions)
       - name: build sims
         run: |
-          set BOOST_ROOT=%CD%\boost
-          set PATH=%BOOST_ROOT%;%PATH%
+          echo %BOOST_ROOT%
+          echo %PATH%
           cd simulation
           b2 --hash release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
 
       - name: run sims
-        run: |
-          set BOOST_ROOT=%CD%\boost
-          set PATH=%BOOST_ROOT%;%PATH%
-          cd simulation
-          b2 --hash -l800 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 3
+          timeout_minutes: 120
+          command: |
+            cd simulation
+            b2 --hash -l800 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build

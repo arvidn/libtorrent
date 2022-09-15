@@ -634,6 +634,9 @@ TORRENT_VERSION_NAMESPACE_4
 		// internal
 		void remove_tail_padding();
 
+		// internal
+		void canonicalize_impl(bool backwards_compatible);
+
 	private:
 
 		void add_file_borrow_impl(error_code& ec, string_view filename

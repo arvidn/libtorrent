@@ -407,8 +407,11 @@ namespace {
 		}
 
 		fs.set_piece_length(piece_size);
-		if (!(flags & v1_only) || (flags & canonical_files))
-			fs.canonicalize();
+		if (!(flags & v1_only)
+			|| (flags & canonical_files)
+			|| (flags & canonical_files_no_tail_padding))
+			fs.canonicalize_impl(bool(flags & canonical_files_no_tail_padding));
+
 		fs.set_num_pieces(aux::calc_num_pieces(fs));
 		TORRENT_ASSERT(fs.piece_length() > 0);
 	}
