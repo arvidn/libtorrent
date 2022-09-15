@@ -416,16 +416,20 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 			data_start = ::lseek(infd.fd(), data_end, SEEK_DATA);
 			if (data_start == off_t(-1))
 			{
+				int const err = errno;
+				if (err == ENOTSUP) break;
 				se.operation = operation_t::file_seek;
-				se.ec.assign(errno, system_category());
+				se.ec.assign(err, system_category());
 				return;
 			}
 
 			data_end = ::lseek(infd.fd(), data_start, SEEK_HOLE);
 			if (data_end == off_t(-1))
 			{
+				int const err = errno;
+				if (err == ENOTSUP) break;
 				se.operation = operation_t::file_seek;
-				se.ec.assign(errno, system_category());
+				se.ec.assign(err, system_category());
 				return;
 			}
 
