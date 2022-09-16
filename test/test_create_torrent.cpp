@@ -745,6 +745,54 @@ TORRENT_TEST(hybrid)
 		"e");
 }
 
+TORRENT_TEST(hybrid_single_file)
+{
+	lt::file_storage fs;
+	fs.add_file("1-small", 0x3fff);
+	TEST_EQUAL(test_create_torrent(fs, 0x4000, {})
+		, "d13:creation datei1337e4:infod"
+		"9:file tree"
+		"d7:1-smalld0:d6:lengthi16383e11:pieces root32:"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"ee"
+		"e"
+		"6:lengthi16383e"
+		"12:meta versioni2e"
+		"4:name7:1-small12:piece lengthi16384e"
+		"6:pieces20:"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"e"
+		"12:piece layersde"
+		"e");
+}
+
+TORRENT_TEST(hybrid_single_file_with_directory)
+{
+	lt::file_storage fs;
+	fs.add_file("test/1-small", 0x3fff);
+	TEST_EQUAL(test_create_torrent(fs, 0x4000, {})
+		, "d13:creation datei1337e4:infod"
+		"9:file tree"
+		"d7:1-smalld0:d6:lengthi16383e11:pieces root32:"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"ee"
+		"e"
+		"5:filesl"
+		"d6:lengthi16383e4:pathl7:1-smallee"
+		"e"
+		"12:meta versioni2e"
+		"4:name4:test12:piece lengthi16384e"
+		"6:pieces20:"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"e"
+		"12:piece layersde"
+		"e");
+}
+
 // this is a backwards compatibility feature
 TORRENT_TEST(hybrid_no_tail_padding)
 {
