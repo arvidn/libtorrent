@@ -864,7 +864,7 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 	for (auto& i : threads)
 		i.join();
 
-	for (auto i : t.files().piece_range())
+	for (auto i : t.piece_range())
 		t.set_hash(i, hashes[i]);
 
 	bencode(std::back_inserter(buf), t.generate());
