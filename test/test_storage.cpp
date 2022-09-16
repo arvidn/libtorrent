@@ -806,7 +806,7 @@ void test_fastresume(bool const test_deprecated)
 		// the whole point of the test is to have a resume
 		// data which expects the file to exist in full. If
 		// we failed to do that, we might as well abort
-		TEST_EQUAL(s.progress, 1.0f);
+		TEST_EQUAL(int(s.progress * 1000), 1000);
 		if (s.progress != 1.0f)
 			return;
 

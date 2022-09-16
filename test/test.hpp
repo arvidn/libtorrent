@@ -140,9 +140,11 @@ extern int g_test_idx;
 
 #define TEST_EQUAL(x, y) \
 	do try { \
-		if ((x) != (y)) { \
+		auto const x_ = x; \
+		auto const y_ = y; \
+		if (x_ != y_) { \
 			std::stringstream _s_; \
-			_s_ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
+			_s_ << "TEST_ERROR: " #x ": " << x_ << " expected: " << y_; \
 			TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
@@ -156,9 +158,11 @@ extern int g_test_idx;
 	} while (false)
 #define TEST_NE(x, y) \
 	do try { \
-		if ((x) == (y)) { \
+		auto const x_ = x; \
+		auto const y_ = y; \
+		if (x_ == y_) { \
 			std::stringstream _s_; \
-			_s_ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
+			_s_ << "TEST_ERROR: " #x ": " << x_ << " expected not equal to: " << y_; \
 			TEST_REPORT_AUX(_s_.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
