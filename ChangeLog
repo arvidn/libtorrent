@@ -1,3 +1,4 @@
+	* fix copy_file fall-back when SEEK_HOL/SEEK_DATA is not supported
 	* improve error reporting from file copy and move
 	* tweak pad file placement to match reference implementation (tail-padding)
 	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet
