@@ -945,7 +945,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		}
 		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
 
-		for (piece_index_t i(0); i < t.files().end_piece(); ++i)
+		for (piece_index_t i(0); i < t.end_piece(); ++i)
 			t.set_hash2(file_index_t{ 0 }, i - 0_piece, v2tree[0]);
 	}
 

@@ -820,7 +820,7 @@ namespace aux {
 	}
 
 	// this is here for backwards compatibility with hybrid torrents created
-	// with libtorrent 2.0.0-2.0.3, which would not add tail-padding
+	// with libtorrent 2.0.0-2.0.7, which would not add tail-padding
 	void file_storage::remove_tail_padding()
 	{
 		file_index_t f = end_file();

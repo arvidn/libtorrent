@@ -11,6 +11,7 @@ see LICENSE file.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -38,6 +39,7 @@ see LICENSE file.
 #endif
 
 namespace libtorrent {
+namespace aux {
 
 #ifdef TORRENT_WINDOWS
 namespace {
@@ -88,7 +90,7 @@ std::pair<std::int64_t, std::int64_t> next_allocated_region(HANDLE file
 }
 
 void copy_range(HANDLE const in_handle, HANDLE const out_handle
-	, std::int64_t in_offset, std::int64_t len, error_code& ec)
+	, std::int64_t in_offset, std::int64_t len, storage_error& se)
 {
 	char buffer[16384];
 	while (len > 0)
@@ -103,7 +105,8 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 			int const error = ::GetLastError();
 			if (error == ERROR_HANDLE_EOF) return;
 
-			ec.assign(error, system_category());
+			se.operation = operation_t::file_read;
+			se.ec.assign(error, system_category());
 			return;
 		}
 
@@ -118,7 +121,8 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 			if (WriteFile(out_handle, buffer + buf_offset, DWORD(num_read - buf_offset)
 				, &num_written, &out_ol) == 0)
 			{
-				ec.assign(::GetLastError(), system_category());
+				se.operation = operation_t::file_write;
+				se.ec.assign(::GetLastError(), system_category());
 				return;
 			}
 			buf_offset += num_written;
@@ -131,16 +135,17 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 
 }
 
-void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
+void copy_file(std::string const& inf, std::string const& newf, storage_error& se)
 {
-	ec.clear();
+	se.ec.clear();
 	native_path_string f1 = convert_to_native_path_string(inf);
 	native_path_string f2 = convert_to_native_path_string(newf);
 
 	WIN32_FILE_ATTRIBUTE_DATA in_stat;
 	if (!GetFileAttributesExW(f1.c_str(), GetFileExInfoStandard, &in_stat))
 	{
-		ec.assign(GetLastError(), system_category());
+		se.ec.assign(GetLastError(), system_category());
+		se.operation = operation_t::file_stat;
 		return;
 	}
 
@@ -148,7 +153,10 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		// if the input file is not sparse, use the system copy function
 		if (CopyFileW(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), system_category());
+		{
+			se.operation = operation_t::file_copy;
+			se.ec.assign(GetLastError(), system_category());
+		}
 		return;
 	}
 
@@ -172,7 +180,8 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 #endif
 	if (in_handle.handle() == INVALID_HANDLE_VALUE)
 	{
-		ec.assign(GetLastError(), system_category());
+		se.operation = operation_t::file_open;
+		se.ec.assign(GetLastError(), system_category());
 		return;
 	}
 
@@ -193,7 +202,8 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 #endif
 	if (out_handle.handle() == INVALID_HANDLE_VALUE)
 	{
-		ec.assign(GetLastError(), system_category());
+		se.operation = operation_t::file_open;
+		se.ec.assign(GetLastError(), system_category());
 		return;
 	}
 
@@ -201,18 +211,23 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	if (::DeviceIoControl(out_handle.handle(), FSCTL_SET_SPARSE
 		, nullptr, 0, nullptr, 0, &temp, nullptr) == 0)
 	{
-		ec.assign(GetLastError(), system_category());
+		se.operation = operation_t::iocontrol;
+		se.ec.assign(GetLastError(), system_category());
 		return;
 	}
 
 	std::pair<std::int64_t, std::int64_t> data(0, 0);
 	for (;;)
 	{
-		data = next_allocated_region(in_handle.handle(), data.second, in_size, ec);
-		if (ec) return;
+		data = next_allocated_region(in_handle.handle(), data.second, in_size, se.ec);
+		if (se.ec)
+		{
+			se.operation = operation_t::iocontrol;
+			return;
+		}
 
-		copy_range(in_handle.handle(), out_handle.handle(), data.first, data.second - data.first, ec);
-		if (ec) return;
+		copy_range(in_handle.handle(), out_handle.handle(), data.first, data.second - data.first, se);
+		if (se) return;
 		// There's a possible time-of-check-time-of-use race here.
 		// The source file may have grown during the copy operation, in which
 		// case data.second may exceed the initial size
@@ -231,7 +246,7 @@ struct copy_range_mode
 };
 
 ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
-	, std::int64_t len, error_code& ec)
+	, std::int64_t len, storage_error& se)
 {
 	char buffer[16384];
 	ssize_t total_copied = 0;
@@ -242,7 +257,8 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 		if (num_read == 0) return total_copied;
 		if (num_read < 0)
 		{
-			ec.assign(errno, system_category());
+			se.operation = operation_t::file_read;
+			se.ec.assign(errno, system_category());
 			return -1;
 		}
 		len -= num_read;
@@ -253,7 +269,8 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 				, std::size_t(num_read - buf_offset), in_offset);
 			if (ret <= 0)
 			{
-				ec.assign(errno, system_category());
+				se.operation = operation_t::file_write;
+				se.ec.assign(errno, system_category());
 				return -1;
 			}
 			buf_offset += ret;
@@ -266,11 +283,11 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 }
 
 ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
-	, std::int64_t len, copy_range_mode* const m, error_code& ec)
+	, std::int64_t len, copy_range_mode* const m, storage_error& se)
 {
 #if TORRENT_HAS_COPY_FILE_RANGE
 	if (m->use_fallback)
-		return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
+		return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
 
 	ssize_t total_copied = 0;
 	off_t out_offset = in_offset;
@@ -282,12 +299,13 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 		if (ret < 0)
 		{
 			int const err = errno;
-			if (err == EXDEV)
+			if (err == EXDEV || err == ENOTSUP)
 			{
 				m->use_fallback = true;
-				return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
+				return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
 			}
-			ec.assign(err, system_category());
+			se.operation = operation_t::file_copy;
+			se.ec.assign(err, system_category());
 			return -1;
 		}
 
@@ -297,29 +315,31 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 	return total_copied;
 #else
 	TORRENT_UNUSED(m);
-	return copy_range_fallback(fd_in, fd_out, in_offset, len, ec);
+	return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
 #endif
 }
 
 } // anonymous namespace
 
-void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
+void copy_file(std::string const& inf, std::string const& newf, storage_error& se)
 {
-	ec.clear();
+	se.ec.clear();
 	native_path_string f1 = convert_to_native_path_string(inf);
 	native_path_string f2 = convert_to_native_path_string(newf);
 
 	aux::file_descriptor const infd = ::open(f1.c_str(), O_RDONLY);
 	if (infd.fd() < 0)
 	{
-		ec.assign(errno, system_category());
+		se.operation = operation_t::file_stat;
+		se.ec.assign(errno, system_category());
 		return;
 	}
 
 	struct stat in_stat;
 	if (::fstat(infd.fd(), &in_stat) != 0)
 	{
-		ec.assign(errno, system_category());
+		se.operation = operation_t::file_stat;
+		se.ec.assign(errno, system_category());
 		return;
 	}
 
@@ -332,7 +352,8 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 		, input_is_sparse ? (O_RDWR | O_CREAT | O_TRUNC) : (O_RDWR | O_CREAT), in_stat.st_mode);
 	if (outfd.fd() < 0)
 	{
-		ec.assign(errno, system_category());
+		se.operation = operation_t::file_open;
+		se.ec.assign(errno, system_category());
 		return;
 	}
 
@@ -344,7 +365,10 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (fcopyfile(infd.fd(), outfd.fd(), state, COPYFILE_ALL) < 0)
-			ec.assign(errno, system_category());
+		{
+			se.operation = operation_t::file_copy;
+			se.ec.assign(errno, system_category());
+		}
 		copyfile_state_free(state);
 		return;
 	}
@@ -352,7 +376,8 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 
 	if (::ftruncate(outfd.fd(), in_stat.st_size) < 0)
 	{
-		ec.assign(errno, system_category());
+		se.operation = operation_t::file_truncate;
+		se.ec.assign(errno, system_category());
 		return;
 	}
 
@@ -368,18 +393,24 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 			data_start = ::lseek(infd.fd(), data_end, SEEK_DATA);
 			if (data_start == off_t(-1))
 			{
-				ec.assign(errno, system_category());
+				int const err = errno;
+				if (err == ENOTSUP) break;
+				se.operation = operation_t::file_seek;
+				se.ec.assign(err, system_category());
 				return;
 			}
 
 			data_end = ::lseek(infd.fd(), data_start, SEEK_HOLE);
 			if (data_end == off_t(-1))
 			{
-				ec.assign(errno, system_category());
+				int const err = errno;
+				if (err == ENOTSUP) break;
+				se.operation = operation_t::file_seek;
+				se.ec.assign(err, system_category());
 				return;
 			}
 
-			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, &m, ec);
+			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, &m, se);
 			if (ret <= 0) return;
 			if (data_end == in_stat.st_size) return;
 		}
@@ -387,10 +418,11 @@ void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 #endif
 
 	copy_range_mode m;
-	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, &m, ec);
+	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, &m, se);
 }
 
 #endif // TORRENT_WINDOWS
 
+}
 }
 

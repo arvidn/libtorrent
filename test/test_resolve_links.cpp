@@ -201,7 +201,7 @@ TORRENT_TEST(pick_up_existing_file)
 
 	std::vector<std::int64_t> file_progress;
 	handle.file_progress(file_progress);
-	TEST_CHECK(file_progress[2] == 9000000);
+	TEST_EQUAL(file_progress[2], 9000000);
 }
 
 #else

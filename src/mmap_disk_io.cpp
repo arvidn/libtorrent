@@ -601,19 +601,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 					r.piece,
 					(ret == 1) ? r.start : block_offset + default_block_size // offset
 				);
-
-				if (j->storage->is_blocked(j))
-				{
-					// this means the job was queued up inside storage
-					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
-					DLOG("blocked job: %s (torrent: %d total: %d)\n"
-						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
-						, int(m_stats_counters[counters::blocked_disk_jobs]));
-				}
-				else
-				{
-					add_job(j);
-				}
+				add_job(j);
 				return;
 			}
 
@@ -649,19 +637,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			r.piece,
 			r.start // offset
 		);
-
-		if (j->storage->is_blocked(j))
-		{
-			// this means the job was queued up inside storage
-			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
-			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
-				, int(m_stats_counters[counters::blocked_disk_jobs]));
-		}
-		else
-		{
-			add_job(j);
-		}
+		add_job(j);
 	}
 
 	bool mmap_disk_io::async_write(storage_index_t const storage, peer_request const& r
@@ -693,17 +669,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		);
 
 		m_store_buffer.insert({j->storage->storage_index(), r.piece, r.start}, data_ptr);
-
-		if (j->storage->is_blocked(j))
-		{
-			// this means the job was queued up inside storage
-			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
-			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
-				, int(m_stats_counters[counters::blocked_disk_jobs]));
-			return exceeded;
-		}
-
 		add_job(j);
 		return exceeded;
 	}
@@ -881,6 +846,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// it would be to have a fence for just this one piece.
 		// but it hardly seems worth the complexity and cost just for the edge
 		// case of receiving a corrupt piece
+
+		// TODO: Perhaps the job queue could be traversed and all jobs for this
+		// piece could be cancelled. If there are no threads currently writing
+		// to this piece, we could skip the fence alltogether
 		add_fence_job(j);
 	}
 
@@ -1203,23 +1172,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return;
 		}
 
-		// this happens for read jobs that get hung on pieces in the
-		// block cache, and then get issued
-		if (j->flags & aux::disk_job::in_progress)
-		{
-			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-			m_generic_threads.push_back(j);
-			l.unlock();
-
-			// if we literally have 0 disk threads, we have to execute the jobs
-			// immediately. If add job is called internally by the mmap_disk_io,
-			// we need to defer executing it. We only want the top level to loop
-			// over the job queue (as is done below)
-			if (num_threads() == 0 && user_add)
-				immediate_execute();
-			return;
-		}
+		TORRENT_ASSERT(!(j->flags & aux::mmap_disk_job::in_progress));
 
 		DLOG("add_job: %s (outstanding: %d)\n"
 			, print_job(*j).c_str()

@@ -183,7 +183,6 @@ namespace libtorrent { namespace aux {
 
 		// track how far we got in case of an error
 		file_index_t file_index{};
-		error_code e;
 		for (auto const i : f.file_range())
 		{
 			// files moved out to absolute paths are not moved
@@ -202,36 +201,35 @@ namespace libtorrent { namespace aux {
 			// TODO: ideally, if we end up copying files because of a move across
 			// volumes, the source should not be deleted until they've all been
 			// copied. That would let us rollback with higher confidence.
-			move_file(old_path, new_path, e);
+			move_file(old_path, new_path, ec);
 
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
-			if (e == boost::system::errc::no_such_file_or_directory)
-				e.clear();
-			else if (e
-				&& e != boost::system::errc::invalid_argument
-				&& e != boost::system::errc::permission_denied)
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+				ec.ec.clear();
+			else if (ec
+				&& ec.ec != boost::system::errc::invalid_argument
+				&& ec.ec != boost::system::errc::permission_denied)
 			{
 				// moving the file failed
 				// on OSX, the error when trying to rename a file across different
 				// volumes is EXDEV, which will make it fall back to copying.
-				e.clear();
-				copy_file(old_path, new_path, e);
-				if (!e) copied_files[i] = true;
+				ec.ec.clear();
+				copy_file(old_path, new_path, ec);
+				if (!ec) copied_files[i] = true;
 			}
 
-			if (e)
+			if (ec)
 			{
-				ec.ec = e;
 				ec.file(i);
-				ec.operation = operation_t::file_rename;
 				file_index = i;
 				break;
 			}
 		}
 
-		if (!e && move_partfile)
+		if (!ec && move_partfile)
 		{
+			error_code e;
 			move_partfile(new_save_path, e);
 			if (e)
 			{
@@ -241,7 +239,7 @@ namespace libtorrent { namespace aux {
 			}
 		}
 
-		if (e)
+		if (ec)
 		{
 			// rollback
 			while (--file_index >= file_index_t(0))
@@ -257,7 +255,7 @@ namespace libtorrent { namespace aux {
 				std::string const new_path = combine_path(new_save_path, f.file_path(file_index));
 
 				// ignore errors when rolling back
-				error_code ignore;
+				storage_error ignore;
 				move_file(new_path, old_path, ignore);
 			}
 
@@ -710,6 +708,33 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		TORRENT_UNUSED(link);
 		TORRENT_UNUSED(ec);
 #endif
+	}
+
+	void move_file(std::string const& inf, std::string const& newf, storage_error& se)
+	{
+		se.ec.clear();
+
+		file_status s;
+		stat_file(inf, &s, se.ec);
+		if (se)
+		{
+			se.operation = operation_t::file_stat;
+			return;
+		}
+
+		if (has_parent_path(newf))
+		{
+			create_directories(parent_path(newf), se.ec);
+			if (se)
+			{
+				se.operation = operation_t::mkdir;
+				return;
+			}
+		}
+
+		rename(inf, newf, se.ec);
+		if (se)
+			se.operation = operation_t::file_rename;
 	}
 
 }}

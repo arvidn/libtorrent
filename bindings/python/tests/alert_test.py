@@ -981,8 +981,8 @@ class StorageMovedFailedAlertTest(TorrentAlertTest):
             or alert.error.category() == lt.generic_category()
         )
         self.assertEqual(alert.file_path(), self.file_path)
-        self.assertEqual(alert.op, lt.operation_t.file_rename)
-        self.assertEqual(alert.operation, "file_rename")
+        self.assertEqual(alert.op, lt.operation_t.file_open)
+        self.assertEqual(alert.operation, "file_open")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:

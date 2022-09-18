@@ -35,6 +35,7 @@ constexpr disk_test_mode_t sparse = 0_bit;
 constexpr disk_test_mode_t even_file_sizes = 1_bit;
 constexpr disk_test_mode_t read_random_order = 2_bit;
 constexpr disk_test_mode_t flush_files = 3_bit;
+constexpr disk_test_mode_t clear_pieces = 4_bit;
 }
 
 std::mt19937 random_engine(std::random_device{}());
@@ -162,6 +163,7 @@ int run_test(test_case const& t)
 		<< ((t.flags & test_mode::even_file_sizes) ? " even-size" : "")
 		<< ((t.flags & test_mode::read_random_order) ? " random-read" : "")
 		<< ((t.flags & test_mode::flush_files) ? " flush" : "")
+		<< ((t.flags & test_mode::clear_pieces) ? " clear" : "")
 		<< "\n";
 
 	try
@@ -181,7 +183,7 @@ int run_test(test_case const& t)
 
 		auto abort_disk = lt::aux::scope_end([&] { disk_io->abort(true); });
 
-		lt::storage_holder tor = disk_io->new_torrent(params, {});
+		lt::storage_holder const tor = disk_io->new_torrent(params, {});
 
 		std::vector<lt::peer_request> blocks_to_write;
 		for (lt::piece_index_t p : fs.piece_range())
@@ -303,6 +305,19 @@ int run_test(test_case const& t)
 				});
 			}
 
+			if ((t.flags & test_mode::clear_pieces) && (job_counter % 300) == 299)
+			{
+				lt::piece_index_t const p = blocks_to_write.front().piece;
+				disk_io->async_clear_piece(tor, p, [&](lt::piece_index_t)
+					{
+					--outstanding;
+					++job_counter;
+					});
+				++outstanding;
+				// TODO: technically all blocks for this piece should be added
+				// to blocks_to_write again here
+			}
+
 			// TODO: add test_mode for async_move_storage
 			// TODO: add test_mode for async_hash and async_hash2
 			// TODO: add test_mode for abort_hash_jobs
@@ -357,6 +372,8 @@ void print_usage()
 		"      read them back in random order\n"
 		"   flush\n"
 		"      issue a 'release-files' disk job every 500 jobs\n"
+		"   clear\n"
+		"      issue a 'clear_piece' disk job every 300 jobs\n"
 		"   -f <val>\n"
 		"      specifies the number of files to use in the test torrent\n"
 		"   -q <val>\n"
@@ -451,6 +468,8 @@ int main(int argc, char const* argv[])
 			tc.flags |= test_mode::read_random_order;
 		else if (opt == "flush")
 			tc.flags |= test_mode::flush_files;
+		else if (opt == "clear")
+			tc.flags |= test_mode::clear_pieces;
 		else
 		{
 			std::cerr << "unknown option \"" << opt << "\"\n";

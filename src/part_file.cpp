@@ -302,7 +302,9 @@ namespace libtorrent::aux {
 
 			if (ec)
 			{
-				copy_file(old_path, new_path, ec);
+				storage_error se;
+				aux::copy_file(old_path, new_path, se);
+				ec = se.ec;
 				if (ec) return;
 				remove(old_path, ec);
 			}
