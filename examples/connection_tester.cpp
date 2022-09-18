@@ -312,7 +312,7 @@ struct peer_conn
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
 			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, std::size_t(ptr - write_buf_proto))
-				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+				, std::bind(&peer_conn::on_sent, this, _1, _2, "ERROR SENT HAVE ALL"));
 		}
 		else
 		{
@@ -327,15 +327,15 @@ struct peer_conn
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
 			boost::asio::async_write(s, boost::asio::buffer(buffer, std::size_t(len + 10))
-				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+				, std::bind(&peer_conn::on_sent, this, _1, _2, "ERROR SENT HAVE ALL"));
 		}
 	}
 
-	void on_have_all_sent(error_code const& ec, size_t)
+	void on_sent(error_code const& ec, size_t, char const* msg)
 	{
 		if (ec)
 		{
-			close("ERROR SEND HAVE ALL", ec);
+			close(msg, ec);
 			return;
 		}
 
@@ -703,7 +703,7 @@ struct peer_conn
 		std::array<boost::asio::const_buffer, 2> vec;
 		vec[0] = boost::asio::buffer(write_buf_proto, std::size_t(ptr - write_buf_proto));
 		vec[1] = boost::asio::buffer(write_buffer, std::size_t(length));
-		boost::asio::async_write(s, vec, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		boost::asio::async_write(s, vec, std::bind(&peer_conn::on_sent, this, _1, _2, "ERROR SENT PIECE"));
 		++blocks_sent;
 		if (churn && (blocks_sent % churn) == 0 && seed) {
 			outstanding_requests = 0;
@@ -718,7 +718,7 @@ struct peer_conn
 		write_uint32(5, ptr);
 		write_uint8(4, ptr);
 		write_uint32(static_cast<int>(piece), ptr);
-		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_sent, this, _1, _2, "ERROR SENT HAVE"));
 	}
 };
 
