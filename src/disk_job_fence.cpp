@@ -97,6 +97,7 @@ namespace aux {
 						// put the fence job back in the blocked queue
 						m_blocked_jobs.push_front(bj);
 					}
+					TORRENT_ASSERT(m_has_fence > 0 || m_blocked_jobs.size() == 0);
 					return ret;
 				}
 				TORRENT_ASSERT(!(bj->flags & mmap_disk_job::in_progress));
