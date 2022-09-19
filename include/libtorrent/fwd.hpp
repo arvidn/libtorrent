@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2017-2018, Steven Siloti
+Copyright (c) 2017-2021, Arvid Norberg
 Copyright (c) 2020, Alden Torres
 All rights reserved.
 
@@ -313,6 +313,8 @@ struct utp_status;
 struct session_status;
 
 #endif // TORRENT_ABI_VERSION
+
+	using file_layout = file_storage;
 
 }
 

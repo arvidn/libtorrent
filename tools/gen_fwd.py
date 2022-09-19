@@ -47,6 +47,8 @@ namespace libtorrent {
 
 file_footer = '''
 
+	using file_layout = file_storage;
+
 }
 
 namespace lt = libtorrent;

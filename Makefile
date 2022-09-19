@@ -457,6 +457,7 @@ HEADERS = \
   extensions.hpp               \
   file.hpp                     \
   file_storage.hpp             \
+  file_layout.hpp              \
   fingerprint.hpp              \
   flags.hpp                    \
   fwd.hpp                      \
