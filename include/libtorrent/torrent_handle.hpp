@@ -716,7 +716,6 @@ namespace aux {
 		//
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();
-		//	ses.pause();
 		//	for (torrent_handle const& h : handles) try
 		//	{
 		//		torrent_status s = h.status();
@@ -870,9 +869,9 @@ namespace aux {
 		// like piece layers, dht nodes and trackers. A torrent_info object does
 		// not round-trip cleanly when added to a session.
 		//
-		// This means if you want to create a .torrent file by passing the
-		// torrent_info object into create_torrent, you need to use
-		// torrent_file_with_hashes() instead.
+		// If you want to save a .torrent file from the torrent_handle, instead
+		// call save_resume_data() and write_torrent_file() the
+		// add_torrent_params object passed back in the alert.
 		//
 		// torrent_file_with_hashes() returns a *copy* of the internal
 		// torrent_info and piece layer hashes (if it's a v2 torrent). The piece
@@ -881,8 +880,9 @@ namespace aux {
 		// the piece layers are available. This function is more expensive than
 		// torrent_file() since it needs to make copies of this information.
 		//
-		// When constructing a create_torrent object from a torrent_info that's
-		// in a session, you need to use this function.
+		// The torrent_file_with_hashes() is here for backwards compatibility
+		// when constructing a create_torrent object from a torrent_info that's
+		// in a session. Prefer save_resume_data() + write_torrent_file().
 		//
 		// Note that a torrent added from a magnet link may not have the full
 		// merkle trees for all files, and hence not have the complete piece
