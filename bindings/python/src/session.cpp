@@ -995,6 +995,9 @@ void bind_session()
         .def_readwrite("url", &add_torrent_params::url)
         .add_property("resume_data", PROP(&add_torrent_params::resume_data))
 #endif
+        .add_property("comment", PROP(&add_torrent_params::comment))
+        .add_property("created_by", PROP(&add_torrent_params::created_by))
+        .add_property("creation_date", PROP(&add_torrent_params::creation_date))
       ;
 
 #ifndef TORRENT_DISABLE_DHT

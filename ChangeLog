@@ -1,3 +1,4 @@
+	* add comment, created_by and creation_date to add_torrent_params
 	* move session_flags to session_params
 	* the entry class is now a standard variant type
 	* use std::string_view instead of boost counterpart

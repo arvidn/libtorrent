@@ -6913,6 +6913,9 @@ namespace {
 
 		ret.save_path = m_save_path;
 
+		ret.comment = torrent_file().comment();
+		ret.created_by = torrent_file().creator();
+		ret.creation_date = torrent_file().creation_date();
 		ret.info_hashes = torrent_file().info_hashes();
 		if (m_name) ret.name = *m_name;
 

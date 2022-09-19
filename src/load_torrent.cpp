@@ -70,6 +70,10 @@ namespace {
 			}
 			ti->free_piece_layers();
 		}
+
+		atp.comment = atp.ti->comment();
+		atp.created_by = atp.ti->creator();
+		atp.creation_date = atp.ti->creation_date();
 		atp.info_hashes = atp.ti->info_hashes();
 	}
 }
