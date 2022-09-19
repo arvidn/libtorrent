@@ -112,13 +112,14 @@ namespace {
 		{
 			auto const info = atp.ti->info_section();
 			ret["info"].preformatted().assign(info.data(), info.data() + info.size());
-			if (!atp.ti->comment().empty())
-				ret["comment"] = atp.ti->comment();
-			if (atp.ti->creation_date() != 0)
-				ret["creation date"] = atp.ti->creation_date();
-			if (!atp.ti->creator().empty())
-				ret["created by"] = atp.ti->creator();
 		}
+
+		if (!atp.comment.empty())
+			ret["comment"] = atp.comment;
+		if (atp.creation_date != 0)
+			ret["creation date"] = atp.creation_date;
+		if (!atp.created_by.empty())
+			ret["created by"] = atp.created_by;
 
 		if (!atp.merkle_trees.empty())
 		{
@@ -286,12 +287,13 @@ namespace {
 
 		auto const info = atp.ti->info_section();
 		ret["info"].preformatted().assign(info.data(), info.data() + info.size());
-		if (!atp.ti->comment().empty())
-			ret["comment"] = atp.ti->comment();
-		if (atp.ti->creation_date() != 0)
-			ret["creation date"] = atp.ti->creation_date();
-		if (!atp.ti->creator().empty())
-			ret["created by"] = atp.ti->creator();
+
+		if (!atp.comment.empty())
+			ret["comment"] = atp.comment;
+		if (atp.creation_date != 0)
+			ret["creation date"] = atp.creation_date;
+		if (!atp.created_by.empty())
+			ret["created by"] = atp.created_by;
 
 		if (!atp.merkle_trees.empty())
 		{

@@ -338,6 +338,19 @@ TORRENT_VERSION_NAMESPACE_3
 		std::time_t last_download = 0;
 		std::time_t last_upload = 0;
 
+		// if a comment is found in the torrent file
+		// this will be set to that comment
+		std::string comment;
+
+		// an optional string naming the software used
+		// to create the torrent file
+		std::string created_by;
+
+		// if a creation date is found in the torrent file
+		// this will be set to that, otherwise it'll be
+		// 1970, Jan 1
+		std::time_t creation_date = 0;
+
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
 
