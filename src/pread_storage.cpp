@@ -334,12 +334,11 @@ namespace {
 			if (ec)
 			{
 				ec.ec.clear();
-				copy_file(old_name, new_path, ec.ec);
+				copy_file(old_name, new_path, ec);
 
 				if (ec)
 				{
 					ec.file(index);
-					ec.operation = operation_t::file_rename;
 					return;
 				}
 
