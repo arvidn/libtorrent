@@ -480,8 +480,8 @@ TORRENT_TEST(active_timer_no_seed)
 			{
 				// some part of the simulation is not deterministic, and causes this to vary
 				// between platforms/compilers
-				TEST_CHECK(active_time >= 10);
-				TEST_CHECK(active_time <= 14);
+				TEST_CHECK(active_time >= 6);
+				TEST_CHECK(active_time <= 9);
 			}
 
 			torrent_status st = handle.status();
