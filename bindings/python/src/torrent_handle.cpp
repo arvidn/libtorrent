@@ -615,6 +615,7 @@ void bind_torrent_handle()
 #if TORRENT_ABI_VERSION == 1
     s.attr("locked") = 0;
 #endif
+    s.attr("mmapped") = file_open_mode::mmapped;
     }
 
     {
