@@ -701,7 +701,8 @@ void utp_writable(utp_socket_impl* s)
 
 void utp_send_ack(utp_socket_impl* s)
 {
-	TORRENT_ASSERT(s->m_deferred_ack);
+	if(!s->m_deferred_ack)
+		return;
 	s->m_deferred_ack = false;
 	s->send_pkt(utp_socket_impl::pkt_ack);
 }
@@ -2112,6 +2113,16 @@ bool utp_socket_impl::send_pkt(int const flags)
 			, static_cast<void*>(this), packet_timeout());
 #endif
 		}
+	}
+
+	// Any queued up deferred ack is now redundant
+	if (m_deferred_ack)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: Cancelling redundant deferred ack\n"
+			, static_cast<void*>(this));
+#endif
+		m_deferred_ack = false;
 	}
 
 	// if we have payload, we need to save the packet until it's acked
