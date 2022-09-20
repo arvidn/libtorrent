@@ -45,7 +45,7 @@ namespace libtorrent::aux {
 
 	namespace mi = boost::multi_index;
 
-	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t);
+	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t, bool const has_mapping);
 
 	using file_id = std::pair<storage_index_t, file_index_t>;
 

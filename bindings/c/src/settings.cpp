@@ -217,6 +217,7 @@ int settings_key(int const tag)
 		case SET_MAX_PIECE_COUNT: return sp::max_piece_count;
 		case SET_METADATA_TOKEN_LIMIT: return sp::metadata_token_limit;
 		case SET_DISK_WRITE_MODE: return sp::disk_write_mode;
+		case SET_MMAP_FILE_SIZE_CUTOFF: return sp::mmap_file_size_cutoff;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
 		default:

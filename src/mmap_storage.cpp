@@ -867,6 +867,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 		if (sett.get_bool(settings_pack::no_atime_storage))
 			mode |= aux::open_mode::no_atime;
 
+		if (files().file_size(file) / default_block_size
+			<= sett.get_int(settings_pack::mmap_file_size_cutoff))
+			mode |= aux::open_mode::no_mmap;
+
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
 		if (write_mode == settings_pack::disable_os_cache

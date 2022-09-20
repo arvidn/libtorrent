@@ -37,16 +37,19 @@ namespace libtorrent {
 
 TORRENT_VERSION_NAMESPACE_3
 
-	// The add_torrent_params is a parameter pack for adding torrents to a
-	// session. The key fields when adding a torrent are:
+	// The add_torrent_params contains all the information in a .torrent file
+	// along with all information necessary to add that torrent to a session.
+	// The key fields when adding a torrent are:
 	//
-	// * ti - when you have loaded a .torrent file into a torrent_info object
-	// * info_hash - when you don't have the metadata (.torrent file) but. This
-	//   is set when adding a magnet link.
+	// * ti - the immutable info-dict part of the torrent
+	// * info_hash - when you don't have the metadata (.torrent file). This
+	//   uniquely identifies the torrent and can validate the info-dict when
+	//   received from the swarm.
 	//
-	// one of those fields must be set. Another mandatory field is
-	// ``save_path``. The add_torrent_params object is passed into one of the
-	// ``session::add_torrent()`` overloads or ``session::async_add_torrent()``.
+	// In order to add a torrent to a session, one of those fields must be set
+	// in addition to ``save_path``. The add_torrent_params object can then be
+	// passed into one of the ``session::add_torrent()`` overloads or
+	// ``session::async_add_torrent()``.
 	//
 	// If you only specify the info-hash, the torrent file will be downloaded
 	// from peers, which requires them to support the metadata extension. For
@@ -62,6 +65,10 @@ TORRENT_VERSION_NAMESPACE_3
 	// new session. For serialization and de-serialization of
 	// ``add_torrent_params`` objects, see read_resume_data() and
 	// write_resume_data().
+	//
+	// The ``add_torrent_params`` is also used to represent a parsed .torrent
+	// file. It can be loaded via load_torrent_file(), load_torrent_buffer() and
+	// load_torrent_parsed(). It can be saved via write_torrent_file().
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{

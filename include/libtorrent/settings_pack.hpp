@@ -105,6 +105,11 @@ namespace aux {
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
 	// change.
 	//
+	// The ``settings_pack`` only stores values for settings that have been
+	// explicitly set on this object. However, it can still be queried for
+	// settings that have not been set and returns the default value for those
+	// settings.
+	//
 	// .. include:: settings-ref.rst
 	//
 	struct TORRENT_EXPORT settings_pack final : settings_interface
@@ -144,7 +149,8 @@ namespace aux {
 		// queries the current configuration option from the settings_pack.
 		// ``name`` is one of the enumeration values from string_types, int_types
 		// or bool_types. The enum value must match the type of the get_*
-		// function.
+		// function. If the specified setting field has not been set, the default
+		// value is returned.
 		std::string const& get_str(int name) const override;
 		int get_int(int name) const override;
 		bool get_bool(int name) const override;
@@ -2018,6 +2024,11 @@ namespace aux {
 			// mapped files likely gives the best performance.
 			// The values for this setting are specified as mmap_write_mode_t.
 			disk_write_mode,
+
+			// when using mmap_disk_io, files smaller than this number of blocks
+			// will not be memory mapped, but will use normal pread/pwrite
+			// operations. This file size limit is specified in 16 kiB blocks.
+			mmap_file_size_cutoff,
 
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is

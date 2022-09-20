@@ -89,6 +89,8 @@ namespace libtorrent::aux {
 
 		std::int64_t get_size() const;
 
+		bool has_memory_map() const { return false; }
+
 		handle_type fd() const { return m_fd; }
 	private:
 		void close();

@@ -376,6 +376,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(max_piece_count, 0x200000, nullptr),
 		SET(metadata_token_limit, 2500000, nullptr),
 		SET(disk_write_mode, settings_pack::mmap_write_mode_t::auto_mmap_write, nullptr),
+		SET(mmap_file_size_cutoff, 40, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});
@@ -752,7 +753,13 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
 				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
-		return empty;
+
+		if (str_settings[name & index_mask].default_value == nullptr)
+			return empty;
+
+		static std::string tmp;
+		tmp = str_settings[name & index_mask].default_value;
+		return tmp;
 	}
 
 	int settings_pack::get_int(int name) const
@@ -771,7 +778,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
 				, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
-		return 0;
+
+		return int_settings[name & index_mask].default_value;
 	}
 
 	bool settings_pack::get_bool(int name) const
@@ -790,7 +798,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
 			, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
-		return false;
+
+		return bool_settings[name & index_mask].default_value;
 	}
 
 	void settings_pack::clear()

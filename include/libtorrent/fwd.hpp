@@ -293,6 +293,8 @@ struct session_status;
 
 #endif // TORRENT_ABI_VERSION
 
+	using file_layout = file_storage;
+
 }
 
 namespace lt = libtorrent;

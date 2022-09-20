@@ -287,12 +287,13 @@ namespace libtorrent::aux {
 		}
 	}
 
-	file_open_mode_t to_file_open_mode(open_mode_t const mode)
+	file_open_mode_t to_file_open_mode(open_mode_t const mode, bool const has_mapping)
 	{
 		return ((mode & open_mode::write)
 				? file_open_mode::read_write : file_open_mode::read_only)
 			| ((mode & open_mode::no_atime)
 				? file_open_mode::no_atime : file_open_mode::read_only)
+			| (has_mapping ? file_open_mode::mmapped : file_open_mode_t{})
 			;
 	}
 
@@ -310,7 +311,7 @@ namespace libtorrent::aux {
 			for (auto i = start; i != end; ++i)
 			{
 				ret.push_back({i->key.second
-					, to_file_open_mode(i->mode)
+					, to_file_open_mode(i->mode, i->mapping->has_memory_map())
 					, i->last_use});
 			}
 		}

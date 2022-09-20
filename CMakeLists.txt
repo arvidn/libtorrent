@@ -40,6 +40,7 @@ set(libtorrent_include_files
 	error_code.hpp
 	extensions.hpp
 	file_storage.hpp
+	file_layout.hpp
 	fingerprint.hpp
 	flags.hpp
 	fwd.hpp

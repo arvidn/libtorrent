@@ -86,7 +86,7 @@ namespace aux {
 		// the memory range this file has been mapped into
 		span<byte> range()
 		{
-			TORRENT_ASSERT(m_mapping || m_size < aux::mapped_file_cutoff);
+			TORRENT_ASSERT(m_mapping);
 			return { static_cast<byte*>(m_mapping), static_cast<std::ptrdiff_t>(m_size) };
 		}
 

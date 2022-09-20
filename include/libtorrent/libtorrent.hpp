@@ -26,6 +26,7 @@
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
+#include "libtorrent/file_layout.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/flags.hpp"
