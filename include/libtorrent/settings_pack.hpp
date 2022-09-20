@@ -2043,6 +2043,11 @@ namespace aux {
 			// The values for this setting are specified as mmap_write_mode_t.
 			disk_write_mode,
 
+			// when using mmap_disk_io, files smaller than this number of blocks
+			// will not be memory mapped, but will use normal pread/pwrite
+			// operations. This file size limit is specified in 16 kiB blocks.
+			mmap_file_size_cutoff,
+
 			max_int_setting_internal
 		};
 
