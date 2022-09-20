@@ -447,7 +447,7 @@ TORRENT_TEST(active_timer_no_seed)
 	lt::torrent_handle handle;
 	bool ran_to_completion = false;
 
-	int const expect_complete = 13;
+	int const expect_complete = 10;
 
 	int active_time = 0;
 
