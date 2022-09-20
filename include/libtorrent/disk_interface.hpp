@@ -116,6 +116,9 @@ namespace file_open_mode {
 	// while it's still being held open by this handle
 	constexpr file_open_mode_t locked TORRENT_DEPRECATED = 6_bit;
 #endif
+
+	// the file is memory mapped
+	constexpr file_open_mode_t mmapped = 7_bit;
 }
 
 	// this contains information about a file that's currently open by the

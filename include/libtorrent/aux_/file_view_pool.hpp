@@ -73,7 +73,7 @@ namespace aux {
 
 	namespace mi = boost::multi_index;
 
-	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t);
+	TORRENT_EXTRA_EXPORT file_open_mode_t to_file_open_mode(open_mode_t, bool const mmapped);
 
 	// this is an internal cache of open file mappings.
 	struct TORRENT_EXTRA_EXPORT file_view_pool

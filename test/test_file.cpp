@@ -605,13 +605,14 @@ TORRENT_TEST(unc_paths)
 	TEST_CHECK(!ec);
 }
 
+#endif
+
 TORRENT_TEST(to_file_open_mode)
 {
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write) == file_open_mode::read_write);
-	TEST_CHECK(aux::to_file_open_mode({}) == file_open_mode::read_only);
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::no_atime) == (file_open_mode::read_only | file_open_mode::no_atime));
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime) == (file_open_mode::read_write | file_open_mode::no_atime));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, false) == file_open_mode::read_write);
+	TEST_CHECK(aux::to_file_open_mode({}, false) == file_open_mode::read_only);
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::no_atime, false) == (file_open_mode::read_only | file_open_mode::no_atime));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime, false) == (file_open_mode::read_write | file_open_mode::no_atime));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, true) == (file_open_mode::read_write | file_open_mode::mmapped));
 }
 
-
-#endif
