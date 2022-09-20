@@ -479,6 +479,12 @@ struct utp_socket_impl
 	// to that packet's sequence number
 	std::uint16_t m_fast_resend_seq_nr = 0;
 
+	// this is the sequence number of the last undersized
+	// packet that we sent. this is used to ensure there
+	// is no more than one undersized packet in flight
+	// at a time
+	std::uint16_t m_nagle_seq_nr = 0;
+
 	// this is the sequence number of the FIN packet
 	// we've received. This sequence number is only
 	// valid if m_eof is true. We should not accept
@@ -1945,11 +1951,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
-		// no bytes in flight
+		// no undersized packet currently in flight
 		if (m_bytes_in_flight > 0
 			&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 			&& !force
-			&& m_nagle)
+			&& m_nagle
+			&& compare_less_wrap(m_acked_seq_nr, m_nagle_seq_nr, ACK_MASK))
 		{
 			// the packet is still not a full MSS, so put it back into the nagle
 			// packet
@@ -1981,11 +1988,12 @@ bool utp_socket_impl::send_pkt(int const flags)
 	if (m_bytes_in_flight > 0
 		&& int(p->size) < std::min(int(p->allocated), effective_mtu)
 		&& !force
-		&& m_nagle)
+		&& m_nagle
+		&& compare_less_wrap(m_acked_seq_nr, m_nagle_seq_nr, ACK_MASK))
 	{
 		// this is nagle. If we don't have a full packet
 		// worth of payload to send AND we have at least
-		// one outstanding packet, hold off. Once the
+		// one outstanding undersized packet, hold off. Once the
 		// outstanding packet is acked, we'll send this
 		// payload
 		UTP_LOGV("%8p: NAGLE not enough payload send_buffer_size:%d cwnd:%d "
@@ -2109,6 +2117,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// we never send an mtu probe for sequence number 0
 		TORRENT_ASSERT(p->mtu_probe == (m_seq_nr == m_mtu_seq)
 			|| m_seq_nr == 0);
+
+		// If this packet is undersized then note the sequenece number so we
+		// never have more than one undersized packet in flight at once
+		if (int(p->size) < std::min(int(p->allocated), effective_mtu))
+			m_nagle_seq_nr = m_seq_nr;
 
 		// release the buffer, we're saving it in the circular
 		// buffer of outgoing packets
@@ -2785,7 +2798,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	// Note that when we send a FIN, we don't increment m_seq_nr
 	std::uint16_t const cmp_seq_nr =
 		((m_state == UTP_STATE_SYN_SENT || m_state == UTP_STATE_FIN_SENT)
-			&& ph->get_type() == ST_STATE)
+			&& (ph->get_type() == ST_STATE || ph->get_type() == ST_FIN))
 		? m_seq_nr : (m_seq_nr - 1) & ACK_MASK;
 
 	if ((m_state != UTP_STATE_NONE || ph->get_type() != ST_SYN)
