@@ -3527,18 +3527,15 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 		, scaled_gain / double(1 << 16), int(m_cwnd >> 16)
 		, int(m_slow_start));
 
-	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
-	if (-scaled_gain >= m_cwnd)
-	{
-		m_cwnd = 0;
-	}
+	// don't drop below 1*MSS. This behavior is from rfc6817 (LEDBAT). This differs
+	// from BEP 29 which allows cwnd to drop to 0, however this way avoids needing
+	// to wait until the next timeout to resume sending.
+	if ((m_cwnd + scaled_gain) >> 16 < m_mtu)
+		m_cwnd = std::int64_t(m_mtu) * (1 << 16);
 	else
-	{
 		m_cwnd += scaled_gain;
-		TORRENT_ASSERT(m_cwnd > 0);
-	}
 
-	TORRENT_ASSERT(m_cwnd >= 0);
+	TORRENT_ASSERT((m_cwnd >> 16) >= m_mtu);
 
 	int const window_size_left = std::min(int(m_cwnd >> 16), int(m_adv_wnd)) - in_flight + acked_bytes;
 	if (window_size_left >= m_mtu)
