@@ -127,6 +127,11 @@ namespace aux {
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
 	// change.
 	//
+	// The ``settings_pack`` only stores values for settings that have been
+	// explicitly set on this object. However, it can still be queried for
+	// settings that have not been set and returns the default value for those
+	// settings.
+	//
 	// .. include:: settings-ref.rst
 	//
 	struct TORRENT_EXPORT settings_pack final : settings_interface
@@ -166,7 +171,8 @@ namespace aux {
 		// queries the current configuration option from the settings_pack.
 		// ``name`` is one of the enumeration values from string_types, int_types
 		// or bool_types. The enum value must match the type of the get_*
-		// function.
+		// function. If the specified setting field has not been set, the default
+		// value is returned.
 		std::string const& get_str(int name) const override;
 		int get_int(int name) const override;
 		bool get_bool(int name) const override;
