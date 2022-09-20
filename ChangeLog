@@ -1,3 +1,4 @@
+	* settings_pack now returns default values when queried for missing settings
 	* fix copy_file fall-back when SEEK_HOL/SEEK_DATA is not supported
 	* improve error reporting from file copy and move
 	* tweak pad file placement to match reference implementation (tail-padding)
