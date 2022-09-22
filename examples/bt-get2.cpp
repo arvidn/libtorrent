@@ -120,13 +120,15 @@ int main(int argc, char const* argv[]) try
 			}
 			// if we receive the finished alert or an error, we're done
 			if (lt::alert_cast<lt::torrent_finished_alert>(a)) {
-				h.save_resume_data(lt::torrent_handle::save_info_dict);
+				h.save_resume_data(lt::torrent_handle::only_if_modified
+					| lt::torrent_handle::save_info_dict);
 				done = true;
 			}
 			if (lt::alert_cast<lt::torrent_error_alert>(a)) {
 				std::cout << a->message() << std::endl;
 				done = true;
-				h.save_resume_data(lt::torrent_handle::save_info_dict);
+				h.save_resume_data(lt::torrent_handle::only_if_modified
+					| lt::torrent_handle::save_info_dict);
 			}
 
 			// when resume data is ready, save it
@@ -164,7 +166,8 @@ int main(int argc, char const* argv[]) try
 
 		// save resume data once every 30 seconds
 		if (clk::now() - last_save_resume > std::chrono::seconds(30)) {
-			h.save_resume_data(lt::torrent_handle::save_info_dict);
+			h.save_resume_data(lt::torrent_handle::only_if_modified
+				| lt::torrent_handle::save_info_dict);
 			last_save_resume = clk::now();
 		}
 	}
