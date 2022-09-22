@@ -71,7 +71,7 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 			last_progress = st.progress_ppm;
 			last_change = clock_type::now();
 		}
-		if (clock_type::now() - last_change > seconds(20)) break;
+		if (clock_type::now() - last_change > seconds(30)) break;
 		std::this_thread::sleep_for(lt::seconds(1));
 	}
 	TEST_ERROR("torrent did not finish");
