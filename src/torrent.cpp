@@ -6856,7 +6856,8 @@ namespace {
 		ret.save_path = m_save_path;
 
 		ret.info_hashes = torrent_file().info_hashes();
-		if (m_name) ret.name = *m_name;
+		if (valid_metadata()) ret.name = m_torrent_file->name();
+		else if (m_name) ret.name = *m_name;
 
 #if TORRENT_ABI_VERSION < 3
 		ret.info_hash = ret.info_hashes.get_best();
