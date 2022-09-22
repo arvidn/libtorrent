@@ -10038,8 +10038,7 @@ namespace {
 
 		// these counters are saved in the resume data, since they updated
 		// we need to save the resume data too
-		m_need_save_resume_data = true;
-		state_updated();
+		set_need_save_resume();
 
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)

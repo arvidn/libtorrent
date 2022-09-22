@@ -581,7 +581,9 @@ namespace libtorrent {
 
 		void set_need_save_resume()
 		{
+			if (m_need_save_resume_data) return;
 			m_need_save_resume_data = true;
+			state_updated();
 		}
 
 		bool is_auto_managed() const { return m_auto_managed; }
