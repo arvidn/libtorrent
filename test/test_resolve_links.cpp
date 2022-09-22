@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "make_torrent.hpp"
 #include "setup_transfer.hpp" // for wait_for_seeding
+#include "settings.hpp"
 
 #include <functional>
 
@@ -185,9 +186,7 @@ TORRENT_TEST(range_lookup_duplicated_files)
 
 TORRENT_TEST(pick_up_existing_file)
 {
-	lt::settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, 0xffffff);
-	lt::session ses(pack);
+	lt::session ses(settings());
 
 	auto a = torrent_args()
 		.file("34092,name=cruft-1")

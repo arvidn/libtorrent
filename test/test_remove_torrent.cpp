@@ -116,7 +116,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true);
-//		print_alerts(ses2, "ses2", true, true);
+		print_alerts(ses2, "ses2", true, true);
 
 		st1 = tor1.status();
 		std::cout << "st1.total_payload_upload: " << st1.total_payload_upload << '\n';

@@ -458,7 +458,7 @@ void wait_for_downloading(lt::session& ses, char const* name)
 				return sc && sc->state == torrent_status::downloading;
 			}, false);
 		if (downloading_done) break;
-		if (total_seconds(clock_type::now() - start) > 10) break;
+		if (clock_type::now() - start > seconds(30)) break;
 		a = ses.wait_for_alert(seconds(5));
 	} while (a);
 	if (!downloading_done)
@@ -483,7 +483,7 @@ void wait_for_seeding(lt::session& ses, char const* name)
 				return sc && sc->state == torrent_status::seeding;
 			}, false);
 		if (seeding) break;
-		if (total_seconds(clock_type::now() - start) > 10) break;
+		if (clock_type::now() - start > seconds(30)) break;
 		a = ses.wait_for_alert(seconds(5));
 	} while (a);
 	if (!seeding)
