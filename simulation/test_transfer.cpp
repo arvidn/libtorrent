@@ -481,7 +481,9 @@ std::shared_ptr<lt::torrent_info> test_torrent(lt::file_storage fs, lt::create_f
 		, [](lt::piece_index_t p) { std::cout << "."; std::cout.flush();}, ec);
 
 	auto e = ct.generate();
-	return std::make_shared<lt::torrent_info>(e);
+	std::vector<char> buf;
+	lt::bencode(std::back_inserter(buf), e);
+	return std::make_shared<lt::torrent_info>(buf, lt::from_span);
 }
 
 }
