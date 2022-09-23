@@ -7,8 +7,8 @@ import distutils.command.install_data as install_data_lib
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
-import distutils.util
 import functools
+import itertools
 import os
 import pathlib
 import re
@@ -16,6 +16,7 @@ import shlex
 import subprocess
 import sys
 import sysconfig
+import tempfile
 from typing import Callable
 from typing import cast
 from typing import IO
@@ -24,6 +25,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 import warnings
 
 import setuptools
@@ -34,6 +36,25 @@ def b2_bool(value: bool) -> str:
     if value:
         return "on"
     return "off"
+
+
+def b2_version() -> Tuple[int, ...]:
+    # NB: b2 --version returns exit status 1
+    proc = subprocess.run(
+        ["b2", "--version"], stdout=subprocess.PIPE, universal_newlines=True
+    )
+    # Expected output examples:
+    #   Boost.Build 2015.07-git
+    #   B2 4.3-git
+    m = re.match(r".*\s([\d\.]+).*", proc.stdout)
+    assert m is not None, f"{proc.stdout} doesn't match expected output"
+    result = tuple(int(part) for part in re.split(r"\.", m.group(1)))
+    # Boost 1.71 changed from YYYY.MM to version 4.0. Return an "epoch" as the first
+    # part of the tuple to distinguish these version patterns.
+    if result[0] > 1999:
+        return (0, *result)
+    else:
+        return (1, *result)
 
 
 # Frustratingly, the "bdist_*" unconditionally (re-)run "build" without
@@ -219,8 +240,14 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         (
             "cxxstd=",
             None,
-            "(DEPRECATED; use --b2-args=cxxstd=...) "
             "boost cxxstd value (14, 17, 20, etc.)",
+        ),
+        (
+            "configure-from-autotools",
+            None,
+            "(DEPRECATED) "
+            "when in --config-mode=distutils, also apply cxxflags= and linkflags= "
+            "based on files generated from autotools",
         ),
     ]
 
@@ -234,6 +261,7 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         self.optimization: Optional[str] = None
         self.hash: Optional[bool] = None
         self.cxxstd: Optional[str] = None
+        self.configure_from_autotools: Optional[bool] = None
 
         self.config_mode = self.CONFIG_MODE_DISTUTILS
         self.b2_args = ""
@@ -241,6 +269,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         self._b2_args_split: List[str] = []
         self._b2_args_configured: Set[str] = set()
+
+        self._b2_version = b2_version()
+
+        log.info("b2 version: %s", self._b2_version)
 
         super().initialize_options()
 
@@ -304,8 +336,14 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             warnings.warn("--hash is deprecated; use --b2-args=--hash")
             self._maybe_add_arg("--hash")
         if self.cxxstd:
-            warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
-            self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+            # the cxxstd feature was introduced in boost 1.66. However the output of
+            # b2 --version is 2015.07 for both 1.65 and 1.66.
+            if self._b2_version > (0, 2015, 7):
+                self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+            else:
+                warnings.warn(
+                    f"--cxxstd supplied, but b2 is too old ({self._b2_version}). "
+                )
 
     def _should_add_arg(self, arg: str) -> bool:
         m = re.match(r"(-\w).*", arg)
@@ -364,6 +402,9 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             # python installation, such as installed by homebrew.
             self._maybe_add_arg("toolset=darwin")
 
+        if self.configure_from_autotools:
+            self._configure_from_autotools()
+
         # Default feature configuration
         self._maybe_add_arg("deprecated-functions=on")
         self._maybe_add_arg("boost-link=static")
@@ -399,8 +440,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
+        # Don't create project-config.jam if the user specified
+        # --b2-args=--project-config=..., or has an existing project-config.jam.
         config_writers: List[Callable[[IO[str]], None]] = []
-        if self._should_add_arg("--project-config"):
+        if self._should_add_arg("--project-config") or self._find_project_config():
             if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
                 config_writers.append(
                     functools.partial(
@@ -435,10 +478,16 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         # Two paths depending on whether or not we use a generated
         # project-config.jam or not.
         if config_writers:
-            # We might use a temporary file and pass it with
-            # --project-config=..., however we need to support old versions of
-            # b2 which lacked this option.
-            config_path = PYTHON_BINDING_DIR / "project-config.jam"
+            # We prefer to use a temporary file, and pass it with --project-config=...
+            # This option was introduced in boost 1.68. Otherwise, we just write to
+            # project-config.jam in the bindings directory.
+            if self._b2_version >= (0, 2018, 2):
+                temp_config = tempfile.NamedTemporaryFile(mode="w+", delete=True)
+                temp_config.close()
+                config_path = pathlib.Path(temp_config.name)
+                self._b2_args_split.append(f"--project-config={temp_config.name}")
+            else:
+                config_path = PYTHON_BINDING_DIR / "project-config.jam"
             try:
                 with config_path.open(mode="w+") as config:
                     for writer in config_writers:
@@ -448,9 +497,42 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
                     log.info(config.read())
                 yield
             finally:
-                config_path.unlink()
+                with contextlib.suppress(FileNotFoundError):
+                    config_path.unlink()
         else:
             yield
+
+    def _find_project_config(self) -> Optional[pathlib.Path]:
+        for directory in itertools.chain(
+            (PYTHON_BINDING_DIR,), PYTHON_BINDING_DIR.parents
+        ):
+            path = directory / "project-config.jam"
+            if path.exists():
+                return path
+        return None
+
+    def _configure_from_autotools(self) -> None:
+        # This is a hack to allow building the python bindings from autotools
+
+        compile_flags_path = PYTHON_BINDING_DIR / "compile_flags"
+        log.info("configure_from_autotools: checking %s", compile_flags_path)
+        with contextlib.suppress(FileNotFoundError):
+            for arg in shlex.split(compile_flags_path.read_text()):
+                if arg.startswith("-std=c++"):
+                    self._maybe_add_arg(f"cxxflags={arg}")
+                    log.info("configure_from_autotools: adding cxxflags=%s", arg)
+
+        link_flags_path = PYTHON_BINDING_DIR / "link_flags"
+        log.info("configure_from_autotools: checking %s", link_flags_path)
+        with contextlib.suppress(FileNotFoundError):
+            for arg in shlex.split(link_flags_path.read_text()):
+                if arg.startswith("-L"):
+                    linkpath = pathlib.Path(arg[2:])
+                    linkpath = linkpath.resolve()
+                    self._maybe_add_arg(f"linkflags=-L{linkpath}")
+                    log.info(
+                        "configure_from_autotools: adding linkflags=-L%s", linkpath
+                    )
 
 
 class InstallDataToLibDir(install_data_lib.install_data):
@@ -476,7 +558,6 @@ def find_all_files(path: str) -> Iterator[str]:
 
 setuptools.setup(
     name="libtorrent",
-    version="2.0.7",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
     description="Python bindings for libtorrent-rasterbar",
