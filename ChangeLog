@@ -1,3 +1,4 @@
+	* fix bug in hash_picker with empty files
 	* uTP performance, prevent premature timeouts/resends
 	* add option to not memory map files below a certain size
 	* settings_pack now returns default values when queried for missing settings
