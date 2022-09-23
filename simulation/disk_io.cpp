@@ -68,10 +68,9 @@ std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int cons
 	return ret;
 }
 
-lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs, int const pad_bytes)
+lt::sha1_hash generate_hash1(lt::piece_index_t const p, int const piece_size, int const pad_bytes)
 {
 	lt::hasher ret;
-	int const piece_size = fs.piece_size(p);
 	int const payload_size = piece_size - pad_bytes;
 	int offset = 0;
 	for (int block = 0; offset < payload_size; ++block)
@@ -228,7 +227,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	if (flags & lt::create_torrent::v1_only)
 	{
 		for (auto const i : fs.piece_range())
-			t.set_hash(i, generate_hash1(i, fs, pads_in_piece(pad_bytes, i)));
+			t.set_hash(i, generate_hash1(i, fs.piece_length(), pads_in_piece(pad_bytes, i)));
 	}
 	else
 	{
@@ -327,7 +326,7 @@ struct test_disk_io final : lt::disk_interface
 
 	void remove_torrent(lt::storage_index_t const idx) override
 	{
-		TORRENT_ASSERT(static_cast<int>(idx) == 0);
+		TORRENT_ASSERT(static_cast<std::uint32_t>(idx) == 0);
 		TORRENT_ASSERT(m_files != nullptr);
 
 		queue_event(lt::microseconds(1), [this] () mutable {
@@ -343,7 +342,7 @@ struct test_disk_io final : lt::disk_interface
 		, std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> h
 		, lt::disk_job_flags_t) override
 	{
-		TORRENT_ASSERT(static_cast<int>(storage) == 0);
+		TORRENT_ASSERT(static_cast<std::uint32_t>(storage) == 0);
 		TORRENT_ASSERT(m_files);
 
 		// a real diskt I/O implementation would have to support this, but in
@@ -443,27 +442,27 @@ struct test_disk_io final : lt::disk_interface
 			int const piece_size = m_files->piece_size(piece);
 			int const pad_bytes = pads_in_piece(m_pad_bytes, piece);
 			int const payload_blocks = piece_size / lt::default_block_size - pad_bytes / lt::default_block_size;
-			int const block_idx = piece * m_blocks_per_piece;
+			int const block_idx = static_cast<int>(piece) * m_blocks_per_piece;
 			for (int i = 0; i < payload_blocks; ++i)
 			{
-				if (!m_have.get_bit(block_idx + i))
+				if (m_have.get_bit(block_idx + i))
+					continue;
+
+				lt::sha1_hash ph{};
+				if (m_state.files == existing_files_mode::full_invalid)
 				{
-					lt::sha1_hash ph{};
-					if (m_state.files == existing_files_mode::full_invalid)
-					{
-						for (auto& h : block_hashes)
-							h = rand_sha256();
-						ph = rand_sha1();
-					}
-					// If we're missing a block, return an invalid hash
-					post(m_ioc, [h=std::move(h), piece, ph]{ h(piece, ph, lt::storage_error{}); });
-					return;
+					for (auto& h : block_hashes)
+						h = rand_sha256();
+					ph = rand_sha1();
 				}
+				// If we're missing a block, return an invalid hash
+				post(m_ioc, [h=std::move(h), piece, ph]{ h(piece, ph, lt::storage_error{}); });
+				return;
 			}
 
 			lt::sha1_hash hash;
 			if (block_hashes.empty())
-				hash = generate_hash1(piece, *m_files, pads_in_piece(m_pad_bytes, piece));
+				hash = generate_hash1(piece, m_files->piece_length(), pads_in_piece(m_pad_bytes, piece));
 			else
 				hash = generate_hash2(piece, *m_files, block_hashes, pads_in_piece(m_pad_bytes, piece));
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
@@ -480,7 +479,8 @@ struct test_disk_io final : lt::disk_interface
 
 		auto const delay = seek_time + m_state.hash_time + m_state.read_time;
 		queue_event(delay, [this, piece, offset, h=std::move(handler)] () mutable {
-			int const block_idx = piece * m_blocks_per_piece + offset / lt::default_block_size;
+			int const block_idx = static_cast<int>(piece) * m_blocks_per_piece
+				+ offset / lt::default_block_size;
 			lt::sha256_hash hash;
 			if (!m_have.get_bit(block_idx))
 			{
@@ -598,7 +598,7 @@ private:
 
 	int block_index(lt::peer_request const& r) const
 	{
-		return r.piece * m_blocks_per_piece + r.start / lt::default_block_size;
+		return static_cast<int>(r.piece) * m_blocks_per_piece + r.start / lt::default_block_size;
 	}
 
 	bool validate_block(lt::file_storage const& fs, char const* b, lt::peer_request const& r) const
