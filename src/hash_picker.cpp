@@ -181,9 +181,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			}
 		}
 
-		for (file_index_t fidx(0); fidx < m_piece_hash_requested.end_index(); ++fidx)
+		for (auto const fidx : m_piece_hash_requested.range())
 		{
-			if (m_files.pad_file_at(fidx)) continue;
+			if (m_files.pad_file_at(fidx) || m_files.file_size(fidx) == 0) continue;
 
 			int const file_first_piece = int(m_files.file_offset(fidx) / m_files.piece_length());
 			int const num_layers = file_num_layers(fidx);
