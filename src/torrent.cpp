@@ -9560,9 +9560,6 @@ namespace {
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
 
-		m_announce_to_dht = true;
-		m_announce_to_trackers = true;
-		m_announce_to_lsd = true;
 		m_paused = false;
 		if (!m_session_paused) m_graceful_pause_mode = false;
 
@@ -9592,6 +9589,10 @@ namespace {
 
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().emplace_alert<torrent_resumed_alert>(get_handle());
+
+		m_announce_to_dht = true;
+		m_announce_to_trackers = true;
+		m_announce_to_lsd = true;
 
 		m_started = aux::time_now32();
 		if (is_seed()) m_became_seed = m_started;

@@ -850,6 +850,91 @@ TORRENT_TEST(test_no_announce_path)
 		, "/");
 }
 
+TORRENT_TEST(paused_session)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context tracker_ios(sim, make_address_v4("123.0.0.2"));
+	// listen on port 8080
+	sim::http_server http(tracker_ios, 8080);
+
+	int announces = 0;
+
+	http.register_handler("/announce",
+		[&announces](std::string method, std::string req, std::map<std::string, std::string>&)
+		{
+			TEST_EQUAL(method, "GET");
+
+			++announces;
+			char response[500];
+			int const size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers6:aaaaaae");
+			return sim::send_response(200, "OK", size) + response;
+		}
+	);
+
+	lt::session_proxy zombie;
+
+	asio::io_context ios(sim, { make_address_v4("123.0.0.3")
+		, make_address_v6("ffff::1337") });
+	lt::settings_pack sett = settings();
+	auto ses = std::make_unique<lt::session>(sett, ios);
+
+	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
+
+	lt::add_torrent_params p;
+	p.name = "test-torrent";
+	p.save_path = ".";
+	p.info_hashes.v1.assign("abababababababababab");
+	p.trackers.push_back("http://123.0.0.2:8080/announce");
+	ses->async_add_torrent(p);
+
+	lt::seconds timeline(5);
+
+	// pause the session
+	sim::timer t1(sim, timeline
+		, [&announces,&ses](boost::system::error_code const&)
+	{
+		// make sure we got 1 announce
+		TEST_EQUAL(announces, 1);
+		ses->pause();
+	});
+
+	// wait until the next tracker announce should have happened, but didn't
+	// because the session is paused
+	timeline += seconds(1801);
+
+	sim::timer t2(sim, timeline
+		, [&announces,&ses](boost::system::error_code const&)
+	{
+		// the stop is announced
+		TEST_EQUAL(announces, 2);
+		ses->resume();
+	});
+
+	timeline += seconds(5);
+
+	sim::timer t3(sim, timeline
+		, [&announces](boost::system::error_code const&)
+	{
+		// make sure we got another announce
+		TEST_EQUAL(announces, 3);
+	});
+
+	timeline += seconds(5);
+
+	// then shut down
+	sim::timer t4(sim, timeline
+		, [&ses,&zombie](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
 TORRENT_TEST(test_warning)
 {
 	announce_entry_test(
