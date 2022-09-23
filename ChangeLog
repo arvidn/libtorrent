@@ -1,3 +1,4 @@
+	* fix trackers being stuck after session pause/resume
 	* fix bug in hash_picker with empty files
 	* uTP performance, prevent premature timeouts/resends
 	* add option to not memory map files below a certain size
