@@ -1364,6 +1364,8 @@ void utp_socket_impl::send_syn()
 
 	if (!m_stalled)
 		++p->num_transmissions;
+	else
+		p->need_resend = true;
 
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
@@ -2140,6 +2142,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 		TORRENT_ASSERT(p->mtu_probe == (m_seq_nr == m_mtu_seq)
 			|| m_seq_nr == 0);
 
+		// If we're stalled we'll need to resend
+		if (m_stalled)
+			p->need_resend = true;
+
 		// If this packet is undersized then note the sequenece number so we
 		// never have more than one undersized packet in flight at once
 		if (int(p->size) < std::min(int(p->allocated), effective_mtu))
@@ -2307,6 +2313,8 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 
 	if (!m_stalled)
 		++p->num_transmissions;
+	else
+		p->need_resend = true;
 
 	return !m_stalled;
 }

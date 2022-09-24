@@ -1,3 +1,4 @@
+	* uTP performance, fix packet loss when sending is stalled
 	* uTP performance, prevent premature timeouts/resends
 	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet
 	* uTP performance, piggy-back held back undersized packet with ACKs
