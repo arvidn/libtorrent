@@ -25,6 +25,7 @@ see LICENSE file.
 #include "setup_transfer.hpp" // for create_random_files
 #include "create_torrent.hpp"
 #include "utils.hpp"
+#include "test_utils.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -165,7 +166,7 @@ TORRENT_TEST(checking_first_piece_missing)
 
 
 			lt::typed_bitfield<lt::piece_index_t> expected_pieces(st.pieces.size(), true);
-			expected_pieces.clear_bit(0);
+			expected_pieces.clear_bit(0_piece);
 
 			// check that just the first piece is missing
 			for (lt::piece_index_t p : expected_pieces.range())

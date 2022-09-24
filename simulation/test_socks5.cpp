@@ -171,7 +171,7 @@ void test_udp_tracker(std::uint32_t const flags, socks_flags_t const sflags)
 			// The socks server in libsimulator does not support forwarding UDP
 			// packets to hostnames (just IPv4 destinations)
 			settings_pack p;
-			p.set_bool(settings_pack::proxy_hostnames, sflags & proxy_hostname);
+			p.set_bool(settings_pack::proxy_hostnames, bool(sflags & proxy_hostname));
 			ses.apply_settings(p);
 
 			lt::add_torrent_params params;

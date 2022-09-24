@@ -131,7 +131,7 @@ TORRENT_TEST(hybrid_torrent_conflict)
 		added_ih = setup_conflict(ses1, ses0);
 	},
 	[&](lt::session& ses, lt::alert const* a) {
-		if (auto const* ta = lt::alert_cast<lt::torrent_added_alert>(a))
+		if (auto const* ta = lt::alert_cast<lt::add_torrent_alert>(a))
 		{
 			handles.push_back(ta->handle);
 		}
@@ -183,7 +183,7 @@ TORRENT_TEST(resume_conflict)
 		setup_conflict(ses1, ses0);
 	},
 	[&](lt::session& ses, lt::alert const* a) {
-		if (auto const* ta = lt::alert_cast<lt::torrent_added_alert>(a))
+		if (auto const* ta = lt::alert_cast<lt::add_torrent_alert>(a))
 		{
 			handles.push_back(ta->handle);
 		}
@@ -276,7 +276,7 @@ TORRENT_TEST(conflict_readd)
 		setup_conflict(ses1, ses0);
 	},
 	[&](lt::session& ses, lt::alert const* a) {
-		if (auto const* ta = lt::alert_cast<lt::torrent_added_alert>(a))
+		if (auto const* ta = lt::alert_cast<lt::add_torrent_alert>(a))
 		{
 			handles.push_back(ta->handle);
 		}
