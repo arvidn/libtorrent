@@ -64,12 +64,14 @@ namespace aux {
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
 
-		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
+		// this is used for read buffers
+		disk_buffer_holder allocate_buffer(char const* category, int size);
+
+		// this is used for write buffers
+		disk_buffer_holder allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category);
 		void free_disk_buffer(char* b) override { free_buffer(b); }
 		void free_buffer(char* buf);
-		void free_multiple_buffers(span<char*> bufvec);
 
 		int in_use() const
 		{

@@ -99,7 +99,7 @@ namespace {
 			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
 			, disk_job_flags_t) override
 		{
-			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+			disk_buffer_holder buffer = m_buffer_pool.allocate_buffer("send buffer", default_block_size);
 			storage_error error;
 			if (!buffer)
 			{
@@ -165,7 +165,7 @@ namespace {
 			bool const v1 = bool(flags & disk_interface::v1_hash);
 			bool const v2 = !block_hashes.empty();
 
-			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("hash buffer"), default_block_size);
+			disk_buffer_holder buffer = m_buffer_pool.allocate_buffer("hash buffer", default_block_size);
 			storage_error error;
 			if (!buffer)
 			{
@@ -225,7 +225,7 @@ namespace {
 		{
 			time_point const start_time = clock_type::now();
 
-			disk_buffer_holder buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("hash buffer"), 0x4000);
+			disk_buffer_holder buffer = m_buffer_pool.allocate_buffer("hash buffer", 0x4000);
 			storage_error error;
 			if (!buffer)
 			{

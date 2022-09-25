@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
+#include "libtorrent/aux_/throw.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -102,10 +103,11 @@ namespace {
 		post(m_ios, std::bind(&watermark_callback, std::move(cbs)));
 	}
 
-	char* disk_buffer_pool::allocate_buffer(char const* category)
+	disk_buffer_holder disk_buffer_pool::allocate_buffer(char const* category, int const size)
 	{
+		TORRENT_ASSERT(size <= default_block_size);
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		return allocate_buffer_impl(l, category);
+		return disk_buffer_holder(*this, allocate_buffer_impl(l, category), size);
 	}
 
 	// we allow allocating more blocks even after we exceed the max size,
@@ -115,11 +117,11 @@ namespace {
 	// until the disk_observer object (passed in as "o") is invoked, indicating
 	// that there's more room in the pool now. This caps the amount of over-
 	// allocation to one block per peer connection.
-	char* disk_buffer_pool::allocate_buffer(bool& exceeded
+	disk_buffer_holder disk_buffer_pool::allocate_buffer(bool& exceeded
 		, std::shared_ptr<disk_observer> o, char const* category)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		char* ret = allocate_buffer_impl(l, category);
+		disk_buffer_holder ret(*this, allocate_buffer_impl(l, category), default_block_size);
 		if (m_exceeded_max_size)
 		{
 			exceeded = true;
@@ -139,10 +141,7 @@ namespace {
 		char* ret = static_cast<char*>(std::malloc(default_block_size));
 
 		if (ret == nullptr)
-		{
-			m_exceeded_max_size = true;
-			return nullptr;
-		}
+			aux::throw_ex<std::bad_alloc>();
 
 		++m_in_use;
 
@@ -155,7 +154,7 @@ namespace {
 		catch (...)
 		{
 			free_buffer_impl(ret, l);
-			return nullptr;
+			aux::throw_ex<std::bad_alloc>();
 		}
 #endif
 
@@ -166,21 +165,6 @@ namespace {
 		}
 
 		return ret;
-	}
-
-	void disk_buffer_pool::free_multiple_buffers(span<char*> bufvec)
-	{
-		// sort the pointers in order to maximize cache hits
-		std::sort(bufvec.begin(), bufvec.end());
-
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (char* buf : bufvec)
-		{
-			remove_buffer_in_use(buf);
-			free_buffer_impl(buf, l);
-		}
-
-		check_buffer_level(l);
 	}
 
 	void disk_buffer_pool::free_buffer(char* buf)

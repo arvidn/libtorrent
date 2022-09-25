@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/disk_buffer_pool.hpp"
+#include "libtorrent/aux_/simple_buffer_pool.hpp"
 #include "libtorrent/aux_/mmap_disk_job.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/debug.hpp"
@@ -323,8 +324,11 @@ private:
 	// LRU cache of open files
 	aux::file_view_pool m_file_pool;
 
-	// disk cache
-	aux::disk_buffer_pool m_buffer_pool;
+	// buffer allocator for jobs in the store buffer
+	aux::disk_buffer_pool m_store_buffer_pool;
+
+	// buffer allocator for read jobs
+	aux::simple_buffer_pool m_buffer_pool;
 
 	aux::disk_job_pool m_job_pool;
 
@@ -389,7 +393,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	mmap_disk_io::mmap_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
 		: m_settings(sett)
 		, m_file_pool(sett.get_int(settings_pack::file_pool_size))
-		, m_buffer_pool(ios)
+		, m_store_buffer_pool(ios)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 		, m_generic_io_jobs(*this)
@@ -498,7 +502,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::settings_updated()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		m_buffer_pool.set_settings(m_settings);
+		m_store_buffer_pool.set_settings(m_settings);
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
@@ -643,7 +647,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_read(aux::mmap_disk_job* j)
 	{
-		j->argument = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+		j->argument = m_buffer_pool.allocate_buffer("send buffer", default_block_size);
 		auto& buffer = boost::get<disk_buffer_holder>(j->argument);
 		if (!buffer)
 		{
@@ -762,7 +766,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
 			{
-				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				buffer = m_buffer_pool.allocate_buffer("send buffer", r.length);
 				if (!buffer)
 				{
 					ec.ec = error::no_memory;
@@ -811,7 +815,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
 			{
-				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				buffer = m_buffer_pool.allocate_buffer("send buffer", r.length);
 				if (!buffer)
 				{
 					ec.ec = error::no_memory;
@@ -843,8 +847,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		bool exceeded = false;
-		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			exceeded, o, "receive buffer"), default_block_size);
+		disk_buffer_holder buffer = m_store_buffer_pool.allocate_buffer(
+			exceeded, o, "receive buffer");
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
@@ -1283,7 +1287,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		jl.unlock();
 
 		// gauges
-		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
+		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use()
+			+ m_store_buffer_pool.in_use());
 	}
 
 	status_t mmap_disk_io::do_file_priority(aux::mmap_disk_job* j)

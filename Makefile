@@ -311,6 +311,7 @@ SOURCES = \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
+  simple_buffer_pool.cpp          \
   disk_interface.cpp              \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \
@@ -595,6 +596,7 @@ HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
   aux_/disk_buffer_pool.hpp         \
+  aux_/simple_buffer_pool.hpp       \
   aux_/disk_io_thread_pool.hpp      \
   aux_/disk_job_fence.hpp           \
   aux_/disk_job_pool.hpp            \
