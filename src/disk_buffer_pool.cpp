@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_LINUX
 #include <linux/unistd.h>
+#include <sys/mman.h>
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -138,10 +139,19 @@ namespace {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		char* ret = static_cast<char*>(std::malloc(default_block_size));
+		char* ret = nullptr;
+		if (!m_free_blocks.empty())
+		{
+			ret = m_free_blocks.back();
+			m_free_blocks.resize(m_free_blocks.size() - 1);
+		}
+		else
+		{
+			ret = static_cast<char*>(std::malloc(default_block_size));
 
-		if (ret == nullptr)
-			aux::throw_ex<std::bad_alloc>();
+			if (ret == nullptr)
+				aux::throw_ex<std::bad_alloc>();
+		}
 
 		++m_in_use;
 
@@ -180,11 +190,34 @@ namespace {
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		int const pool_size = std::max(1, sett.get_int(settings_pack::max_queued_disk_bytes) / default_block_size);
-		m_max_use = pool_size;
-		m_low_watermark = m_max_use / 2;
-		if (m_in_use >= m_max_use && !m_exceeded_max_size)
+
+		// if we're using an mmap cache, we can't resize it unless there are 0
+		// buffers in use
+		if (m_max_use != pool_size && (!m_mmap || m_in_use == 0))
 		{
-			m_exceeded_max_size = true;
+			m_max_use = pool_size;
+			m_low_watermark = m_max_use / 2;
+			if (m_in_use >= m_max_use && !m_exceeded_max_size)
+			{
+				m_exceeded_max_size = true;
+			}
+			m_mmap.reset();
+		}
+
+		std::string mmap_file = sett.get_str(settings_pack::mmap_cache);
+
+		// we can only change from mmapand heap cache when nothing is allocated
+		if (!mmap_file.empty() && m_in_use == 0 && !m_mmap)
+		{
+			// TODO: if the file exists, remove it. We don't want to read any
+			// garbage from disk that we don't want
+			std::int64_t const size = m_max_use * default_block_size;
+			open_mode_t const mode = open_mode::write | open_mode::truncate;
+			m_mmap.emplace(file_handle(mmap_file, size, mode), mode, size);
+			m_free_blocks.clear();
+			auto const memory_block = m_mmap->range();
+			for (int idx = 0; idx < m_max_use * default_block_size; idx += default_block_size)
+				m_free_blocks.push_back(&memory_block[idx]);
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -210,7 +243,24 @@ namespace {
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-		std::free(buf);
+		if (m_mmap)
+		{
+			auto const memory_block = m_mmap->range();
+			if (buf >= memory_block.data()
+				&& buf < memory_block.data() + (m_max_use * default_block_size))
+			{
+				m_free_blocks.push_back(buf);
+				::madvise(buf, default_block_size, MADV_REMOVE);
+			}
+			else
+			{
+				std::free(buf);
+			}
+		}
+		else
+		{
+			std::free(buf);
+		}
 
 		--m_in_use;
 	}

@@ -218,7 +218,6 @@ namespace aux {
 			//    option unless you also control the tracker.
 			announce_ip,
 
-#if TORRENT_ABI_VERSION == 1
 			// ``mmap_cache`` may be set to a filename where the disk cache will
 			// be mmapped to. This could be useful, for instance, to map the disk
 			// cache from regular rotating hard drives onto an SSD drive. Doing
@@ -235,10 +234,7 @@ namespace aux {
 			//
 			// This feature requires the ``mmap`` system call, on systems that
 			// don't have ``mmap`` this setting is ignored.
-			mmap_cache TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated_mmap_cache,
-#endif
+			mmap_cache,
 
 			// this is the client name and version identifier sent to peers in the
 			// handshake message. If this is an empty string, the user_agent is

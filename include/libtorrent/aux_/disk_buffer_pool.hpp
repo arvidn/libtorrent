@@ -45,9 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
+#include "libtorrent/optional.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/disk_buffer_holder.hpp" // for buffer_allocator_interface
+#include "libtorrent/aux_/mmap.hpp"
 
 namespace libtorrent {
 
@@ -115,6 +117,10 @@ namespace aux {
 		void remove_buffer_in_use(char* buf);
 
 		mutable std::mutex m_pool_mutex;
+
+		boost::optional<file_mapping> m_mmap;
+
+		std::vector<char*> m_free_blocks;
 
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug

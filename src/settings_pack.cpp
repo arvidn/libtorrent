@@ -140,7 +140,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, nullptr, nullptr),
-		DEPRECATED_SET_STR(mmap_cache, nullptr, nullptr),
+		SET(mmap_cache, "", nullptr),
 		SET(handshake_client_version, nullptr, nullptr),
 		SET(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 		SET(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
