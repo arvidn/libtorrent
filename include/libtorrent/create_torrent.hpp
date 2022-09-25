@@ -338,8 +338,21 @@ namespace libtorrent {
 
 		piece_index_t end_piece() const { return m_files.end_piece(); }
 
+		// all piece indices in the torrent to be created
 		index_range<piece_index_t> piece_range() const noexcept
 		{ return {piece_index_t{0}, end_piece()}; }
+
+		file_index_t end_file() const { return m_files.end_file(); }
+
+		// all file indices in the torrent to be created
+		index_range<file_index_t> file_range() const noexcept
+		{ return m_files.file_range(); }
+
+		// for v2 and hybrid torrents only, the pieces in the
+		// specified file, specified as delta from the first piece in the file.
+		// i.e. the first index is 0.
+		index_range<piece_index_t::diff_type> file_piece_range(file_index_t f)
+		{ return m_files.file_piece_range(f); }
 
 		// the total number of bytes of all files and pad files
 		std::int64_t total_size() const { return m_files.total_size(); }

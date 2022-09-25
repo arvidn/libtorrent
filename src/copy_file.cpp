@@ -394,6 +394,12 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 			if (data_start == off_t(-1))
 			{
 				int const err = errno;
+				// if we SEEK_DATA while the file location is past the last
+				// non-sparse region (i.e. the file has been truncated without
+				// filled in, the end of the file may be a sparse region). In
+				// this case there's nothing left to copy, and we're done
+				if (err == ENXIO) return;
+				// if SEEK_DATA is not supported, fall back to plain copy
 				if (err == ENOTSUP) break;
 				se.operation = operation_t::file_seek;
 				se.ec.assign(err, system_category());

@@ -6,6 +6,8 @@
 	* added support for WebTorrent
 
 
+	* fix copy_file when the file ends with a sparse region
+	* uTP performance, fix packet loss when sending is stalled
 	* fix trackers being stuck after session pause/resume
 	* fix bug in hash_picker with empty files
 	* uTP performance, prevent premature timeouts/resends
