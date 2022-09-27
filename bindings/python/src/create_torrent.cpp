@@ -72,6 +72,12 @@ namespace
     }
 #endif
 
+	std::vector<lt::create_file_entry> list_files_callback(std::string const& p
+        , boost::python::object cb, create_flags_t const flags)
+    {
+        return list_files(p, [&](std::string const p) -> bool { return cb(p); }, flags);
+    }
+
     void add_node(create_torrent& ct, std::string const& addr, int port)
     {
         ct.add_node(std::make_pair(addr, port));
@@ -83,25 +89,57 @@ namespace
     }
 
     struct dummy_create_torrent_flags {};
+
+#if TORRENT_ABI_VERSION < 4
+    std::shared_ptr<lt::create_torrent> file_storage_constructor(file_storage& fs
+        , int const piece_size, create_flags_t const flags)
+    {
+        python_deprecated("create_torrent constructor from file_storage is deprecated");
+        return std::make_shared<lt::create_torrent>(fs, piece_size, flags);
+    }
+
+    std::shared_ptr<lt::create_torrent> torrent_info_constructor(torrent_info const& ti)
+    {
+        python_deprecated("create_torrent constructor from torrent_info is deprecated");
+        return std::make_shared<lt::create_torrent>(ti);
+    }
+#endif
 }
 
 void bind_create_torrent()
 {
+	std::vector<lt::create_file_entry> (*list_files0)(std::string const&, create_flags_t) = &list_files;
 #ifndef BOOST_NO_EXCEPTIONS
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
 #endif
 
+    class_<lt::create_file_entry>("create_file_entry", no_init)
+        .def(init<std::string, std::int64_t, file_flags_t, std::time_t, std::string>(
+            (arg("filename"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("symlink") = std::string())))
+        .add_property("filename", &lt::create_file_entry::filename)
+        .add_property("size", &lt::create_file_entry::size)
+        .add_property("flags", &lt::create_file_entry::flags)
+        .add_property("mtime", &lt::create_file_entry::mtime)
+        .add_property("symlink", &lt::create_file_entry::symlink)
+        ;
+
     {
     scope s = class_<create_torrent>("create_torrent", no_init)
-        .def(init<file_storage&>())
-        .def(init<torrent_info const&>(arg("ti")))
-        .def(init<file_storage&, int, create_flags_t>((arg("storage"), arg("piece_size") = 0
-            , arg("flags") = create_flags_t{})))
+        .def(init<std::vector<lt::create_file_entry>,int,create_flags_t>
+            ((arg("files"), arg("piece_size") = 0, arg("flags") = 0)))
+#if TORRENT_ABI_VERSION < 4
+        .def("__init__", make_constructor(&file_storage_constructor
+            , default_call_policies()
+            , (arg("storage"), arg("piece_size") = 0, arg("flags") = 0)))
+        .def("__init__", make_constructor(&torrent_info_constructor))
+#endif
 
         .def("generate", &create_torrent::generate)
         .def("generate_buf", &create_torrent::generate_buf)
 
+#if TORRENT_ABI_VERSION < 4
         .def("files", &create_torrent::files, return_internal_reference<>())
+#endif
         .def("set_comment", &create_torrent::set_comment)
         .def("set_creator", &create_torrent::set_creator)
         .def("set_creation_date", &create_torrent::set_creation_date)
@@ -152,6 +190,10 @@ void bind_create_torrent()
         s.attr("modification_time") = create_torrent::modification_time;
         s.attr("symlinks") = create_torrent::symlinks;
     }
+
+	def("list_files", list_files0, (arg("path"), arg("flags") = 0));
+	def("list_files", list_files_callback, (arg("path")
+        , arg("predicate"), arg("flags") = 0));
 
     def("set_piece_hashes", set_piece_hashes0);
     def("set_piece_hashes", set_piece_hashes_callback);

@@ -12,19 +12,14 @@ if len(sys.argv) < 3:
 
 input = os.path.abspath(sys.argv[1])
 
-fs = libtorrent.file_storage()
-
-# def predicate(f):
-#   print f
-#   return True
-# libtorrent.add_files(fs, input, predicate)
+fs = []
 
 parent_input = os.path.split(input)[0]
 
 # if we have a single file, use it because os.walk does not work on a single files
 if os.path.isfile(input):
     size = os.path.getsize(input)
-    fs.add_file(input, size)
+    fs.append(libtorrent.create_file_entry(input, size))
 
 for root, dirs, files in os.walk(input):
     # skip directories starting with .
@@ -43,9 +38,9 @@ for root, dirs, files in os.walk(input):
         fname = os.path.join(root[len(parent_input) + 1 :], f)
         size = os.path.getsize(os.path.join(parent_input, fname))
         print("%10d kiB  %s" % (size / 1024, fname))
-        fs.add_file(fname, size)
+        fs.append(libtorrent.create_file_entry(fname, size))
 
-if fs.num_files() == 0:
+if len(fs) == 0:
     print("no files added")
     sys.exit(1)
 

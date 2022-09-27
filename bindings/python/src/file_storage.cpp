@@ -76,11 +76,21 @@ namespace
     { return FileIter(self, self.end_file()); }
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION < 4
+    void add_files_no_callback(file_storage& fs, std::string const& file
+       , create_flags_t const flags)
+    {
+        python_deprecated("add_files is deprecated, use list_files() instead");
+        add_files(fs, file, flags);
+    }
+
     void add_files_callback(file_storage& fs, std::string const& file
        , boost::python::object cb, create_flags_t const flags)
     {
+        python_deprecated("add_files is deprecated, use list_files() instead");
         add_files(fs, file, [&](std::string const& i) { return cb(i); }, flags);
     }
+#endif
 
     void add_file0(file_storage& fs, string_view const file, std::int64_t size
        , file_flags_t const flags, std::time_t md, string_view const link)
@@ -175,8 +185,6 @@ namespace
 
 void bind_file_storage()
 {
-    void (*add_files0)(file_storage&, std::string const&, create_flags_t) = add_files;
-
 #if TORRENT_ABI_VERSION < 4
     sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
 #endif
@@ -241,9 +249,11 @@ void bind_file_storage()
        s.attr("flag_symlink") = file_storage::flag_symlink;
     }
 
-    def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));
+#if TORRENT_ABI_VERSION < 4
+    def("add_files", add_files_no_callback, (arg("fs"), arg("path"), arg("flags") = 0));
     def("add_files", add_files_callback, (arg("fs"), arg("path")
         , arg("predicate"), arg("flags") = 0));
+#endif
 
 }
 
