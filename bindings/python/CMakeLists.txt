@@ -45,6 +45,7 @@ Python3_add_library(python-libtorrent MODULE WITH_SOABI
 	src/alert.cpp
 	src/converters.cpp
 	src/create_torrent.cpp
+	src/file_storage.cpp
 	src/datetime.cpp
 	src/entry.cpp
 	src/error_code.cpp
