@@ -310,12 +310,10 @@ class announce_entry:
     url: str
     verified: bool
 
-class announce_flags_t(int):
-    seed: announce_flags_t
-    implied_port: announce_flags_t
-    ssl_torrent: announce_flags_t
-    names: Mapping[str, announce_flags_t]
-    values: Mapping[int, announce_flags_t]
+class announce_flags_t:
+    seed: int
+    implied_port: int
+    ssl_torrent: int
 
 class anonymous_mode_alert(torrent_alert):
     kind: int
@@ -1106,26 +1104,24 @@ class performance_warning_t(int):
     upload_limit_too_low: performance_warning_t
     values: Mapping[int, performance_warning_t]
 
-class picker_flags_t(int):
-    backup1: picker_flags_t
-    backup2: picker_flags_t
-    end_game: picker_flags_t
-    extent_affinity: picker_flags_t
-    names: Mapping[str, picker_flags_t]
-    partial_ratio: picker_flags_t
-    prefer_contiguous: picker_flags_t
-    prio_sequential_pieces: picker_flags_t
-    prioritize_partials: picker_flags_t
-    random_pieces: picker_flags_t
-    rarest_first: picker_flags_t
-    rarest_first_partials: picker_flags_t
-    reverse_pieces: picker_flags_t
-    reverse_rarest_first: picker_flags_t
-    reverse_sequential: picker_flags_t
-    sequential_pieces: picker_flags_t
-    suggested_pieces: picker_flags_t
-    time_critical: picker_flags_t
-    values: Mapping[int, picker_flags_t]
+class picker_flags_t:
+    backup1: int
+    backup2: int
+    end_game: int
+    extent_affinity: int
+    partial_ratio: int
+    prefer_contiguous: int
+    prio_sequential_pieces: int
+    prioritize_partials: int
+    random_pieces: int
+    rarest_first: int
+    rarest_first_partials: int
+    reverse_pieces: int
+    reverse_rarest_first: int
+    reverse_sequential: int
+    sequential_pieces: int
+    suggested_pieces: int
+    time_critical: int
 
 class picker_log_alert(peer_alert):
     def blocks(self) -> List[int]: ...
