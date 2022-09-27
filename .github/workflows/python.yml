@@ -93,6 +93,12 @@ jobs:
         cd bindings\python
         python test.py
 
+    - name: build no-deprecated (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cd bindings/python
+        python3 setup.py build_ext --b2-args "deprecated-functions=off"
+
     - name: build/install (Linux)
       if: runner.os == 'Linux'
       run: |
