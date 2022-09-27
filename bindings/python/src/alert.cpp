@@ -269,6 +269,7 @@ namespace boost
 
 struct dummy3 {};
 struct dummy12 {};
+struct dummy_picker_flags {};
 
 bytes get_pkt_buf(dht_pkt_alert const& alert)
 {
@@ -1008,25 +1009,26 @@ void bind_alert()
         .def("blocks", &picker_log_alert::blocks)
         ;
 
-    enum_<picker_flags_t>("picker_flags_t")
-        .value("partial_ratio", picker_log_alert::partial_ratio)
-        .value("prioritize_partials", picker_log_alert::prioritize_partials)
-        .value("rarest_first_partials", picker_log_alert::rarest_first_partials)
-        .value("rarest_first", picker_log_alert::rarest_first)
-        .value("reverse_rarest_first", picker_log_alert::reverse_rarest_first)
-        .value("suggested_pieces", picker_log_alert::suggested_pieces)
-        .value("prio_sequential_pieces", picker_log_alert::prio_sequential_pieces)
-        .value("sequential_pieces", picker_log_alert::sequential_pieces)
-        .value("reverse_pieces", picker_log_alert::reverse_pieces)
-        .value("time_critical", picker_log_alert::time_critical)
-        .value("random_pieces", picker_log_alert::random_pieces)
-        .value("prefer_contiguous", picker_log_alert::prefer_contiguous)
-        .value("reverse_sequential", picker_log_alert::reverse_sequential)
-        .value("backup1", picker_log_alert::backup1)
-        .value("backup2", picker_log_alert::backup2)
-        .value("end_game", picker_log_alert::end_game)
-        .value("extent_affinity", picker_log_alert::extent_affinity)
-        ;
+    {
+        scope s = class_<dummy_picker_flags>("picker_flags_t");
+        s.attr("partial_ratio") = picker_log_alert::partial_ratio;
+        s.attr("prioritize_partials") = picker_log_alert::prioritize_partials;
+        s.attr("rarest_first_partials") = picker_log_alert::rarest_first_partials;
+        s.attr("rarest_first") = picker_log_alert::rarest_first;
+        s.attr("reverse_rarest_first") = picker_log_alert::reverse_rarest_first;
+        s.attr("suggested_pieces") = picker_log_alert::suggested_pieces;
+        s.attr("prio_sequential_pieces") = picker_log_alert::prio_sequential_pieces;
+        s.attr("sequential_pieces") = picker_log_alert::sequential_pieces;
+        s.attr("reverse_pieces") = picker_log_alert::reverse_pieces;
+        s.attr("time_critical") = picker_log_alert::time_critical;
+        s.attr("random_pieces") = picker_log_alert::random_pieces;
+        s.attr("prefer_contiguous") = picker_log_alert::prefer_contiguous;
+        s.attr("reverse_sequential") = picker_log_alert::reverse_sequential;
+        s.attr("backup1") = picker_log_alert::backup1;
+        s.attr("backup2") = picker_log_alert::backup2;
+        s.attr("end_game") = picker_log_alert::end_game;
+        s.attr("extent_affinity") = picker_log_alert::extent_affinity;
+    }
 
     class_<lsd_error_alert, bases<alert>, noncopyable>(
        "lsd_error_alert", no_init)

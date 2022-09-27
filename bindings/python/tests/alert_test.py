@@ -2026,7 +2026,7 @@ class PickerLogAlertTest(PeerAlertTest):
         self.assert_peer_alert(
             alert, self.peer_endpoint, fingerprint=self.peer_fingerprint
         )
-        self.assertIsInstance(alert.picker_flags, lt.picker_flags_t)
+        self.assertIsInstance(alert.picker_flags, int)
         self.assertEqual(alert.blocks(), [(0, 0)])
 
 
