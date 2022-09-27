@@ -854,6 +854,7 @@ struct dummy9 {};
 struct dummy10 {};
 struct dummy11 {};
 struct dummy17 {};
+struct dummy_announce_flags {};
 
 void bind_session()
 {
@@ -1375,11 +1376,12 @@ void bind_session()
     scope().attr("create_ut_pex_plugin") = "ut_pex";
     scope().attr("create_smart_ban_plugin") = "smart_ban";
 
-    enum_<dht::announce_flags_t>("announce_flags_t")
-        .value("seed", lt::dht::announce::seed)
-        .value("implied_port", lt::dht::announce::implied_port)
-        .value("ssl_torrent", lt::dht::announce::ssl_torrent)
-    ;
+    {
+        scope s = class_<dummy_announce_flags>("announce_flags_t");
+        s.attr("seed") = lt::dht::announce::seed;
+        s.attr("implied_port") = lt::dht::announce::implied_port;
+        s.attr("ssl_torrent") = lt::dht::announce::ssl_torrent;
+    }
 }
 
 #ifdef _MSC_VER

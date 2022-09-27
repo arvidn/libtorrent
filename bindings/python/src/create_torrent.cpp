@@ -23,7 +23,7 @@ namespace
 {
     void ct_check_piece_index(create_torrent& ct, piece_index_t index)
     {
-        if ((index < 0) || (index >= ct.num_pieces()))
+        if ((index < piece_index_t{0}) || (index >= ct.end_piece()))
             throw std::out_of_range("piece index out of range");
     }
 

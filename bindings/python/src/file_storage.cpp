@@ -23,7 +23,7 @@ namespace
 {
     void file_storage_check_index(file_storage const& fs, file_index_t index)
     {
-        if ((index < 0) || (index >= fs.num_files()))
+        if ((index < file_index_t{0}) || (index >= fs.end_file()))
             throw std::out_of_range("file index out of range");
     }
 
