@@ -260,6 +260,7 @@ my-python-extension libtorrent
 	src/info_hash.cpp
 	src/converters.cpp
 	src/create_torrent.cpp
+	src/file_storage.cpp
 	src/fingerprint.cpp
 	src/utility.cpp
 	src/session.cpp

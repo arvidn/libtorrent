@@ -210,6 +210,7 @@ PYTHON_FILES= \
   src/bytes.hpp             \
   src/converters.cpp        \
   src/create_torrent.cpp    \
+  src/file_storage.cpp      \
   src/datetime.cpp          \
   src/entry.cpp             \
   src/error_code.cpp        \
