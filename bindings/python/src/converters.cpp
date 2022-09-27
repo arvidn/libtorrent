@@ -423,6 +423,7 @@ void bind_converters()
     to_python_converter<std::pair<std::string, std::string>, pair_to_tuple<std::string, std::string>>();
     to_python_converter<lt::piece_block, piece_block_to_tuple>();
 
+    to_python_converter<std::vector<lt::create_file_entry>, vector_to_list<std::vector<lt::create_file_entry>>>();
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<std::vector<lt::stats_metric>>>();
     to_python_converter<std::vector<lt::open_file_state>, vector_to_list<std::vector<lt::open_file_state>>>();
     to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<std::vector<lt::sha1_hash>>>();
@@ -509,6 +510,7 @@ void bind_converters()
     list_to_vector<std::vector<std::pair<std::string, int>>>();
     list_to_vector<std::vector<std::pair<std::string, std::string>>>();
     list_to_vector<std::vector<lt::sha1_hash>>();
+    list_to_vector<std::vector<lt::create_file_entry>>();
 
     // work-around types
     list_to_vector<lt::aux::noexcept_movable<std::vector<int>>>();

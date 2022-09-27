@@ -141,6 +141,12 @@ def set_piece_hashes(
 ) -> None: ...
 @overload
 def set_piece_hashes(_ct: create_torrent, _path: _PathLike) -> None: ...
+@overload
+def list_files(p: _PathLike, flags: int = ...) -> List[create_file_entry]: ...
+@overload
+def list_files(
+    p: _PathLike, cb: Callable[[str], bool], flags: int = ...
+) -> List[create_file_entry]: ...
 def socks_category() -> error_category: ...
 def system_category() -> error_category: ...
 def upnp_category() -> error_category: ...
@@ -407,6 +413,21 @@ class close_reason_t(int):
     upload_to_upload: close_reason_t
     values: Mapping[int, close_reason_t]
 
+class create_file_entry:
+    def __init__(
+        self,
+        filename: str,
+        size: int,
+        flags: int = ...,
+        mtime: int = ...,
+        symlink: str = ...,
+    ) -> None: ...
+    filename: str
+    size: int
+    flags: int
+    mtime: int
+    symlink: str
+
 class create_torrent:
     canonical_files: int
     merkle: int
@@ -415,6 +436,10 @@ class create_torrent:
     symlinks: int
     v1_only: int
     v2_only: int
+    @overload
+    def __init__(
+        self, files: List[create_file_entry], piece_size: int = ..., flags: int = ...
+    ) -> None: ...
     @overload
     def __init__(
         self, storage: file_storage, piece_size: int = ..., flags: int = ...

@@ -291,22 +291,33 @@ class CreateTorrentTest(unittest.TestCase):
             }
         }
         ti = lt.torrent_info(entry)
-        ct = lt.create_torrent(ti)
+        with self.assertWarns(DeprecationWarning):
+            ct = lt.create_torrent(ti)
         # The output of generate() will have extra stuff like "creation date",
         # and the info dict will actually be in preformatted form. We can
         # only compare the bencoded forms
         self.assertEqual(lt.bencode(ct.generate()[b"info"]), lt.bencode(entry[b"info"]))
 
     def test_args(self) -> None:
-        fs = lt.file_storage()
+        fs = [lt.create_file_entry(os.path.join("path", "test1.txt"), 1024)]
 
         lt.create_torrent(fs)
         lt.create_torrent(fs, piece_size=0)
         lt.create_torrent(fs, flags=lt.create_torrent_flags_t.v2_only)
 
-    def test_generate(self) -> None:
+    def test_args_deprecated(self) -> None:
         fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs.add_file(os.path.join("path", "test1.txt"), 1024)
+
+        with self.assertWarns(DeprecationWarning):
+            lt.create_torrent(fs)
+        with self.assertWarns(DeprecationWarning):
+            lt.create_torrent(fs, piece_size=0)
+        with self.assertWarns(DeprecationWarning):
+            lt.create_torrent(fs, flags=lt.create_torrent_flags_t.v2_only)
+
+    def test_generate(self) -> None:
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         entry = ct.generate()
@@ -314,18 +325,32 @@ class CreateTorrentTest(unittest.TestCase):
         # Ensure this parses
         lt.torrent_info(entry)
 
-    def test_files(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test1.txt"), 1024)
+    def test_single_file(self) -> None:
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
-        ct.files().add_file(os.path.join("path", "test2.txt"), 1024)
         ct.set_hash(0, lib.get_random_bytes(20))
         entry = ct.generate()
-        self.assertEqual(len(entry[b"info"][b"files"]), 2)
+        self.assertEqual(entry[b"info"][b"name"], b"test1.txt")
+
+    def test_files(self) -> None:
+        fs = [lt.create_file_entry(os.path.join("path", "test1.txt"), 1024)]
+        ct = lt.create_torrent(fs)
+        ct.set_hash(0, lib.get_random_bytes(20))
+        entry = ct.generate()
+        self.assertEqual(len(entry[b"info"][b"files"]), 1)
+
+    def test_files2(self) -> None:
+        fs = [lt.create_file_entry(os.path.join("path", "test1.txt"), 1024)]
+        fs.append(lt.create_file_entry(os.path.join("path", "test2.txt"), 1024))
+        ct = lt.create_torrent(fs)
+        ct.set_hash(0, lib.get_random_bytes(20))
+        ct.set_hash(1, lib.get_random_bytes(20))
+        entry = ct.generate()
+        # there are 2 pad-files
+        self.assertEqual(len(entry[b"info"][b"files"]), 4)
 
     def test_comment(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_comment("test")
         ct.set_hash(0, lib.get_random_bytes(20))
@@ -333,8 +358,7 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"comment"], b"test")
 
     def test_creator(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_creator("test")
         ct.set_hash(0, lib.get_random_bytes(20))
@@ -342,30 +366,27 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"created by"], b"test")
 
     def test_set_hash_invalid(self) -> None:
-        fs = lt.file_storage()
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertRaises(IndexError):
-            ct.set_hash(0, lib.get_random_bytes(20))
+            ct.set_hash(1, lib.get_random_bytes(20))
         with self.assertRaises(IndexError):
             ct.set_hash(-1, lib.get_random_bytes(20))
 
     def test_set_hash_short(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertRaises(ValueError):
             ct.set_hash(0, lib.get_random_bytes(19))
 
     def test_set_hash_long_deprecated(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             ct.set_hash(0, lib.get_random_bytes(21))
 
     def test_set_file_hash(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             ct.set_file_hash(0, lib.get_random_bytes(20))
@@ -374,33 +395,30 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertIn(b"sha1", entry[b"info"])
 
     def test_set_file_hash_invalid(self) -> None:
-        fs = lt.file_storage()
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             with self.assertRaises(IndexError):
-                ct.set_file_hash(0, lib.get_random_bytes(20))
+                ct.set_file_hash(1, lib.get_random_bytes(20))
         with self.assertWarns(DeprecationWarning):
             with self.assertRaises(IndexError):
                 ct.set_file_hash(-1, lib.get_random_bytes(20))
 
     def test_set_file_hash_short(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             with self.assertRaises(ValueError):
                 ct.set_file_hash(0, lib.get_random_bytes(19))
 
     def test_set_file_hash_long_deprecated(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             ct.set_file_hash(0, lib.get_random_bytes(21))
 
     def test_url_seed(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.add_url_seed("http://example.com")
         ct.set_hash(0, lib.get_random_bytes(20))
@@ -408,14 +426,13 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"url-list"], b"http://example.com")
 
     def test_http_seed_deprecated(self) -> None:
-        fs = lt.file_storage()
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with self.assertWarns(DeprecationWarning):
             ct.add_http_seed("http://example.com")
 
     def test_add_node(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.add_node("1.2.3.4", 5678)
         ct.set_hash(0, lib.get_random_bytes(20))
@@ -423,8 +440,7 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"nodes"], [[b"1.2.3.4", 5678]])
 
     def test_add_tracker(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.add_tracker("http://example.com")
         ct.set_hash(0, lib.get_random_bytes(20))
@@ -432,8 +448,7 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"announce"], b"http://example.com")
 
     def test_add_tracker_args(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.add_tracker("http://1.com")
         ct.add_tracker("http://2.com", tier=100)
@@ -445,35 +460,30 @@ class CreateTorrentTest(unittest.TestCase):
         )
 
     def test_priv(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_priv(True)
         self.assertTrue(ct.priv())
 
     def test_num_pieces(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         self.assertEqual(ct.num_pieces(), 1)
 
     def test_piece_length(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         self.assertEqual(ct.piece_length(), 16384)
 
     def test_piece_size(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         self.assertEqual(ct.piece_size(-1), 16384)
         self.assertEqual(ct.piece_size(0), 1024)
         self.assertEqual(ct.piece_size(1), 16384)
 
     def test_root_cert(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         ct.set_root_cert("test")
@@ -481,8 +491,7 @@ class CreateTorrentTest(unittest.TestCase):
         self.assertEqual(entry[b"info"][b"ssl-cert"], b"test")
 
     def test_collections(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         ct.add_collection("ascii-str")
@@ -497,8 +506,7 @@ class CreateTorrentTest(unittest.TestCase):
         )
 
     def test_similar(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         sha1 = lt.sha1_hash(lib.get_random_bytes(20))
@@ -524,12 +532,56 @@ def get_tempdir_stack(*dirnames: AnyStr) -> Iterator[List[AnyStr]]:
         yield paths
 
 
+class ListTest(unittest.TestCase):
+    def test_args_no_pred(self) -> None:
+        with tempfile.TemporaryDirectory() as path:
+            lt.list_files(path)
+            lt.list_files(path, flags=lt.create_torrent_flags_t.v2_only)
+        # The overloads are:
+        # list_files(path, flags=0), and
+        # list_files(path, predicate, flags=0)
+
+    def test_args_pred_positional(self) -> None:
+        with tempfile.TemporaryDirectory() as path:
+            # Write some random data to two files
+            file_paths = [os.path.join(path, name) for name in ("a.txt", "b.txt")]
+            for file_path in file_paths:
+                with open(file_path, mode="wb") as fp:
+                    fp.write(lib.get_random_bytes(1024))
+            calls = [unittest.mock.call(file_path) for file_path in file_paths]
+
+            pred = unittest.mock.Mock(return_value=True)
+            fs = lt.list_files(path, pred)
+            pred.assert_has_calls(calls, any_order=True)
+            self.assertEqual(len(fs), 2)
+
+    def test_args_pred_kwargs(self) -> None:
+        with tempfile.TemporaryDirectory() as path:
+            # Write some random data to two files
+            file_paths = [os.path.join(path, name) for name in ("a.txt", "b.txt")]
+            for file_path in file_paths:
+                with open(file_path, mode="wb") as fp:
+                    fp.write(lib.get_random_bytes(1024))
+            calls = [unittest.mock.call(file_path) for file_path in file_paths]
+
+            pred = unittest.mock.Mock(return_value=True)
+            fs = lt.list_files(
+                path,
+                pred,
+                flags=lt.create_torrent_flags_t.v2_only,
+            )
+            pred.assert_has_calls(calls, any_order=True)
+            self.assertEqual(len(fs), 2)
+
+
 class AddFilesTest(unittest.TestCase):
     def test_args_no_pred(self) -> None:
         fs = lt.file_storage()
         with tempfile.TemporaryDirectory() as path:
-            lt.add_files(fs, path)
-            lt.add_files(fs, path, flags=lt.create_torrent_flags_t.v2_only)
+            with self.assertWarns(DeprecationWarning):
+                lt.add_files(fs, path)
+            with self.assertWarns(DeprecationWarning):
+                lt.add_files(fs, path, flags=lt.create_torrent_flags_t.v2_only)
 
         # The overloads are:
         # add_files(file_storage, path, flags=0), and
@@ -549,7 +601,8 @@ class AddFilesTest(unittest.TestCase):
 
             fs = lt.file_storage()
             pred = unittest.mock.Mock(return_value=True)
-            lt.add_files(fs, path, pred)
+            with self.assertWarns(DeprecationWarning):
+                lt.add_files(fs, path, pred)
             pred.assert_has_calls(calls, any_order=True)
             self.assertEqual(fs.num_files(), 2)
 
@@ -564,12 +617,13 @@ class AddFilesTest(unittest.TestCase):
 
             fs = lt.file_storage()
             pred = unittest.mock.Mock(return_value=True)
-            lt.add_files(
-                fs,
-                path,
-                pred,
-                flags=lt.create_torrent_flags_t.v2_only,
-            )
+            with self.assertWarns(DeprecationWarning):
+                lt.add_files(
+                    fs,
+                    path,
+                    pred,
+                    flags=lt.create_torrent_flags_t.v2_only,
+                )
             pred.assert_has_calls(calls, any_order=True)
             self.assertEqual(fs.num_files(), 2)
 
@@ -578,86 +632,77 @@ class AddFilesTest(unittest.TestCase):
     # can be used as input to add_files()
 
     def test_path_ascii_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("test") as (tempdir,):
             with open(os.path.join(tempdir, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, os.path.join("test", "test.txt"))
 
     def test_path_ascii_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(b"test") as (tempdir,):
             with open(os.path.join(tempdir, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, os.path.join("test", "test.txt"))
 
     def test_path_unicode_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("\u1234") as (tempdir,):
             with open(os.path.join(tempdir, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(os.path.split(fs[0].filename)[1], "test.txt")
 
     def test_path_unicode_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsencode("\u1234")) as (tempdir,):
             with open(os.path.join(tempdir, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(os.path.split(fs[0].filename)[1], "test.txt")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_non_unicode_paths()
     def test_path_non_unicode_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsdecode(b"\xff")) as (tempdir,):
             with open(os.path.join(tempdir, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, "test.txt")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_non_unicode_paths()
     def test_path_non_unicode_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(b"\xff") as (tempdir,):
             with open(os.path.join(tempdir, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, "test.txt")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_surrogate_paths()
     def test_path_surrogate_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("\udcff") as (tempdir,):
             with open(os.path.join(tempdir, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, "test.txt")
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_surrogate_paths()
     def test_path_surrogate_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsencode("\udcff")) as (tempdir,):
             with open(os.path.join(tempdir, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, tempdir)
-        self.assertEqual(fs.file_name(0), "test.txt")
+            fs = lt.list_files(tempdir)
+        self.assertEqual(fs[0].filename, "test.txt")
 
 
 class SetPieceHashesTest(unittest.TestCase):
     def test_args(self) -> None:
-        fs = lt.file_storage()
         callback = unittest.mock.Mock()
         with get_tempdir_stack("outer", "inner") as (outer, inner):
             with open(os.path.join(inner, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            lt.add_files(fs, inner)
+            fs = lt.list_files(inner)
             ct = lt.create_torrent(fs)
 
             # path str
@@ -669,8 +714,7 @@ class SetPieceHashesTest(unittest.TestCase):
             callback.assert_has_calls(calls)
 
     def test_exceptions(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
+        fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
         with tempfile.TemporaryDirectory() as path:
             with self.assertRaises(RuntimeError):
@@ -693,81 +737,73 @@ class SetPieceHashesTest(unittest.TestCase):
     # end up testing with a structure like b"/tmp/\xff/test/test.txt"
 
     def test_path_ascii_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("test", "test") as (outer, inner):
             with open(os.path.join(inner, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     def test_path_ascii_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(b"test", b"test") as (outer, inner):
             with open(os.path.join(inner, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     def test_path_non_ascii_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("\u1234", "test") as (outer, inner):
             with open(os.path.join(inner, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     def test_path_non_ascii_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsencode("\u1234"), b"test") as (outer, inner):
             with open(os.path.join(inner, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_surrogate_paths()
     def test_path_surrogate_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack("\udcff", "test") as (outer, inner):
             with open(os.path.join(inner, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_surrogate_paths()
     def test_path_surrogate_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsencode("\udcff"), b"test") as (outer, inner):
             with open(os.path.join(inner, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_non_unicode_paths()
     def test_path_non_unicode_str(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(os.fsdecode("\xff"), "test") as (outer, inner):
             with open(os.path.join(inner, "test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5984")
     @lib.uses_non_unicode_paths()
     def test_path_non_unicode_bytes(self) -> None:
-        fs = lt.file_storage()
         with get_tempdir_stack(b"\xff", b"test") as (outer, inner):
             with open(os.path.join(inner, b"test.txt"), mode="wb") as fp:
                 fp.write(lib.get_random_bytes(1024))
-            fs.add_file(os.path.join("test", "test.txt"), 1024)
+            fs = [lt.create_file_entry(os.path.join("test", "test.txt"), 1024)]
             ct = lt.create_torrent(fs)
             lt.set_piece_hashes(ct, outer)
