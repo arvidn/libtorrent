@@ -54,6 +54,10 @@ see LICENSE file.
 namespace libtorrent {
 
 	using file_attributes_t = flags::bitfield_flag<std::uint32_t, struct file_attribute_tag>;
+	using file_status_flag_t = flags::bitfield_flag<std::uint32_t, struct file_status_flag_tag>;
+
+	// internal flags for stat_file
+	constexpr file_status_flag_t dont_follow_links = 0_bit;
 
 	struct file_status
 	{
@@ -69,10 +73,8 @@ namespace libtorrent {
 		file_attributes_t mode = file_attributes_t{};
 	};
 
-	// internal flags for stat_file
-	enum { dont_follow_links = 1 };
 	TORRENT_EXTRA_EXPORT void stat_file(std::string const& f, file_status* s
-		, error_code& ec, int flags = 0);
+		, error_code& ec, file_status_flag_t flags = {});
 	TORRENT_EXTRA_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
 	TORRENT_EXTRA_EXPORT void create_directories(std::string const& f
