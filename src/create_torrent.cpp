@@ -62,7 +62,8 @@ namespace {
 		if (!pred(f)) return;
 		error_code ec;
 		file_status s;
-		stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
+		stat_file(f, &s, ec, (flags & create_torrent::symlinks)
+			? dont_follow_links : file_status_flag_t{});
 		if (ec) return;
 
 		// recurse into directories

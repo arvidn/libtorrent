@@ -183,7 +183,7 @@ namespace {
 	}
 
 	void stat_file(std::string const& inf, file_status* s
-		, error_code& ec, int const flags)
+		, error_code& ec, file_status_flag_t const flags)
 	{
 		ec.clear();
 		native_path_string f = convert_to_native_path_string(inf);
