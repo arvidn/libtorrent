@@ -66,14 +66,12 @@ namespace {
 		if (ec) return;
 
 		// recurse into directories
-		bool recurse = (s.mode & file_status::directory) != 0;
+		bool recurse = bool(s.mode & file_status::directory);
 
 		// if the file is not a link or we're following links, and it's a directory
 		// only then should we recurse
-#ifndef TORRENT_WINDOWS
-		if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
+		if ((s.mode & file_status::symlink) && (flags & create_torrent::symlinks))
 			recurse = false;
-#endif
 
 		if (recurse)
 		{
@@ -86,10 +84,12 @@ namespace {
 		}
 		else
 		{
-			// #error use the fields from s
 			file_flags_t const file_flags = (flags & create_torrent::no_attributes)
 				? file_flags_t{}
-				: aux::get_file_attributes(f);
+				: ((s.mode & file_status::hidden) ? file_storage::flag_hidden : file_flags_t{})
+					| ((s.mode & file_status::executable) ? file_storage::flag_executable : file_flags_t{})
+					| ((s.mode & file_status::symlink) ? file_storage::flag_symlink : file_flags_t{})
+					;
 
 			// mask all bits to check if the file is a symlink
 			if ((file_flags & file_storage::flag_symlink)
@@ -182,28 +182,6 @@ namespace {
 } // anonymous namespace
 
 namespace aux {
-
-	file_flags_t get_file_attributes(std::string const& p)
-	{
-		auto const path = convert_to_native_path_string(p);
-
-#ifdef TORRENT_WINDOWS
-		WIN32_FILE_ATTRIBUTE_DATA attr;
-		GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
-		if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return {};
-		if (attr.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) return file_storage::flag_hidden;
-		return {};
-#else
-		struct ::stat s{};
-		if (::lstat(path.c_str(), &s) < 0) return {};
-		file_flags_t file_attr = {};
-		if (s.st_mode & S_IXUSR)
-			file_attr |= file_storage::flag_executable;
-		if (S_ISLNK(s.st_mode))
-			file_attr |= file_storage::flag_symlink;
-		return file_attr;
-#endif
-	}
 
 	std::string get_symlink_path(std::string const& p)
 	{
