@@ -129,10 +129,10 @@ namespace {
 		s.atime = file_time_to_posix(last_access);
 		s.mtime = file_time_to_posix(last_write);
 
-		s.mode = (file_attributes & FILE_ATTRIBUTE_DIRECTORY)
-			? file_status::directory
-			: (file_attributes & FILE_ATTRIBUTE_DEVICE)
-			? file_status::character_special : file_status::regular_file;
+		s.mode = ((file_attributes & FILE_ATTRIBUTE_DIRECTORY)
+				? file_status::directory : file_attributes_t{})
+			| ((file_attributes & FILE_ATTRIBUTE_HIDDEN)
+				? file_status::hidden : file_attributes_t{});
 	}
 
 	void fill_file_status(file_status & s, DWORD file_size_low, DWORD file_size_high, DWORD file_attributes, FILETIME creation_time, FILETIME last_access, FILETIME last_write)
@@ -293,13 +293,10 @@ namespace {
 		s->mtime = std::uint64_t(ret.st_mtime);
 		s->ctime = std::uint64_t(ret.st_ctime);
 
-		s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
-			| (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
-			| (S_ISLNK(ret.st_mode) ? file_status::link : 0)
-			| (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
-			| (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
-			| (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
-			| (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
+		s->mode = (S_ISDIR(ret.st_mode) ? file_status::directory : file_attributes_t{})
+			| (S_ISLNK(ret.st_mode) ? file_status::symlink : file_attributes_t{})
+			| ((ret.st_mode & S_IXUSR) ? file_status::executable : file_attributes_t{})
+		;
 
 #endif // TORRENT_WINDOWS
 	}
