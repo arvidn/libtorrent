@@ -21,6 +21,8 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/load_torrent.hpp" // for load_torrent_buffer
+#include "libtorrent/write_resume_data.hpp" // for write_torrent_file
 
 #include <cstring>
 #include <iostream>
@@ -146,11 +148,27 @@ void test_round_trip_torrent(std::string const& name)
 
 	lt::bdecode_node in_torrent = lt::bdecode(v2_buffer);
 
-	lt::torrent_info info1(v2_buffer, lt::from_span);
-	lt::create_torrent t(info1);
+	{
+		lt::torrent_info info1(v2_buffer, lt::from_span);
+		lt::create_torrent t(info1);
 
+		std::vector<char> out_buffer;
+		lt::entry e = t.generate();
+		lt::bencode(std::back_inserter(out_buffer), e);
+
+		lt::bdecode_node out_torrent = lt::bdecode(out_buffer);
+
+		TEST_CHECK(out_torrent.dict_find("info").data_section()
+			== in_torrent.dict_find("info").data_section());
+
+		auto in_piece_layers = in_torrent.dict_find("piece layers").data_section();
+		auto out_piece_layers = out_torrent.dict_find("piece layers").data_section();
+		TEST_CHECK(out_piece_layers == in_piece_layers);
+	}
+
+	auto atp = lt::load_torrent_buffer(v2_buffer);
 	std::vector<char> out_buffer;
-	lt::entry e = t.generate();
+	lt::entry e = lt::write_torrent_file(atp);
 	lt::bencode(std::back_inserter(out_buffer), e);
 
 	lt::bdecode_node out_torrent = lt::bdecode(out_buffer);
