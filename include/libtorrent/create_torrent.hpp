@@ -92,6 +92,11 @@ POSSIBILITY OF SUCH DAMAGE.
 //	set_piece_hashes(t, ".");
 //
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
+//	std::vector<char> buf = t.generate_buf();
+//	out.write(buf.data(), buf.size());
+//
+//	// alternatively, generate an entry and encode it directly to an ostream
+//	// iterator
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
 namespace libtorrent {
@@ -232,11 +237,12 @@ namespace libtorrent {
 		// internal
 		~create_torrent();
 
-		// This function will generate the .torrent file as a bencode tree. In order to
-		// generate the flat file, use the bencode() function.
+		// This function will generate the .torrent file as a bencode tree, or a
+		// bencoded into a buffer.
+		// In order to encode the entry into a flat file, use the bencode() function.
 		//
-		// It may be useful to add custom entries to the torrent file before bencoding it
-		// and saving it to disk.
+		// The function returning an entry may be useful to add custom entries
+		// to the torrent file before bencoding it and saving it to disk.
 		//
 		// Whether the resulting torrent object is v1, v2 or hybrid depends on
 		// whether any of the v1_only or v2_only flags were set on the
@@ -256,6 +262,7 @@ namespace libtorrent {
 		//   a file. If that's encountered in the file storage, generate()
 		//   fails.
 		entry generate() const;
+		std::vector<char> generate_buf() const;
 
 		// returns an immutable reference to the file_storage used to create
 		// the torrent from.

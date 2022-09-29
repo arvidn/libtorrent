@@ -604,6 +604,14 @@ namespace {
 	}
 }
 
+	std::vector<char> create_torrent::generate_buf() const
+	{
+		// TODO: this can be optimized
+		std::vector<char> ret;
+		bencode(std::back_inserter(ret), generate());
+		return ret;
+	}
+
 	entry create_torrent::generate() const
 	{
 		if (m_files.num_files() == 0 || m_files.total_size() == 0)
