@@ -1318,6 +1318,20 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	bool const force = (flags & pkt_ack) || (flags & pkt_fin);
 
+	// If we're currently stalled then only proceeed if 'forced'
+	// If this is an ack, then defer it until writable()
+	// If this is a fin and it restalls, then it'll be
+	// stored in m_outbuf and resent once writable()
+	if (m_stalled)
+	{
+		if (!force) return false;
+		if (flags & pkt_ack)
+		{
+			defer_ack();
+			return false;
+		}
+	}
+
 //	TORRENT_ASSERT(state() != state_t::fin_sent || (flags & pkt_ack));
 
 	// first see if we need to resend any packets
@@ -1629,7 +1643,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		, reinterpret_cast<char const*>(h), p->size, ec
 		, p->mtu_probe ? udp_socket::dont_fragment : udp_send_flags_t{});
 
-	++m_out_packets;
 	m_sm.inc_stats_counter(counters::utp_packets_out);
 
 	if (ec == error::message_size)
@@ -1657,6 +1670,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			, reinterpret_cast<char const*>(h), p->size, ec, {});
 	}
 
+	bool stalled = false;
 	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
@@ -1667,6 +1681,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_stalled = true;
 			m_sm.subscribe_writable(this);
 		}
+		stalled = true;
 	}
 	else if (ec)
 	{
@@ -1677,8 +1692,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 		return false;
 	}
 
-	if (!m_stalled)
+	if (!stalled)
 	{
+		++m_out_packets;
 		++p->num_transmissions;
 		// Only reset the timeout for the initial packet
 		if (m_bytes_in_flight == 0)
@@ -1719,7 +1735,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			|| m_seq_nr == 0);
 
 		// If we're stalled we'll need to resend
-		if (m_stalled)
+		if (stalled)
 			p->need_resend = true;
 
 		// If this packet is undersized then note the sequenece number so we
@@ -1740,7 +1756,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 		TORRENT_ASSERT(payload_size >= 0);
-		m_bytes_in_flight += new_in_flight;
+		if (!stalled) m_bytes_in_flight += new_in_flight;
 	}
 	else
 	{
@@ -1783,6 +1799,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	TORRENT_ASSERT(p->need_resend || fast_resend);
 
 	if (m_error) return false;
+	if (m_stalled) return false;
 
 	if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
 		&& m_mtu_seq != 0)
@@ -1853,7 +1870,6 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	error_code ec;
 	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(p->buf), p->size, ec);
-	++m_out_packets;
 	m_sm.inc_stats_counter(counters::utp_packets_out);
 
 
@@ -1888,9 +1904,15 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	}
 
 	if (!m_stalled)
+	{
+		++m_out_packets;
 		++p->num_transmissions;
+	}
 	else
+	{
 		p->need_resend = true;
+		m_bytes_in_flight -= p->size - p->header_size;
+	}
 
 	return !m_stalled;
 }
