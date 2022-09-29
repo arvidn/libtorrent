@@ -87,14 +87,14 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 	}
 	else
 	{
-		for (auto const i : fs.piece_range())
+		for (auto const i : t.piece_range())
 		{
 			sha1_hash ph;
 			aux::random_bytes(ph);
 			t.set_hash(i, ph);
 		}
 
-		for (piece_index_t i : fs.piece_range())
+		for (piece_index_t i : t.piece_range())
 		{
 			sha256_hash ph;
 			aux::random_bytes(ph);
@@ -830,20 +830,20 @@ std::shared_ptr<lt::torrent_info> make_torrent(lt::file_storage& fs)
 {
 	lt::create_torrent ct(fs, fs.piece_length());
 
-	for (auto const i : fs.piece_range())
+	for (auto const i : ct.piece_range())
 	{
 		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
 		ct.set_hash(i, hasher(piece).final());
 
-		aux::vector<sha256_hash> tree(merkle_num_nodes(fs.piece_length() / default_block_size));
+		aux::vector<sha256_hash> tree(merkle_num_nodes(ct.piece_length() / default_block_size));
 
-		int const blocks_per_piece = fs.piece_length() / default_block_size;
+		int const blocks_per_piece = ct.piece_length() / default_block_size;
 		for (int j = 0; j < int(piece.size()); j += default_block_size)
 		{
 			tree[tree.end_index() - blocks_per_piece + j / default_block_size]
 				= hasher256(piece.data() + j, std::min(default_block_size, int(piece.size()) - j)).final();
 		}
-		merkle_fill_tree(tree, fs.piece_length() / default_block_size);
+		merkle_fill_tree(tree, ct.piece_length() / default_block_size);
 		file_index_t const f(fs.file_index_at_piece(i));
 		ct.set_hash2(f, i - fs.piece_index_at_file(f), tree[0]);
 	}
@@ -930,7 +930,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	{
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(piece).final();
-		for (auto const i : fs.piece_range())
+		for (auto const i : t.piece_range())
 			t.set_hash(i, ph);
 	}
 

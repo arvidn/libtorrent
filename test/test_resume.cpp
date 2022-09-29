@@ -1754,7 +1754,7 @@ TORRENT_TEST(resume_data_have_pieces)
 	aux::random_bytes(piece_data);
 
 	sha1_hash const ph = lt::hasher(piece_data).final();
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 		t.set_hash(i, ph);
 
 	std::vector<char> buf;

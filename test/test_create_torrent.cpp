@@ -394,7 +394,7 @@ TORRENT_TEST(implicit_v1_only)
 	fs.add_file("test/B", 0x4002);
 	lt::create_torrent t(fs, 0x4000);
 
-	for (lt::piece_index_t i : fs.piece_range())
+	for (lt::piece_index_t i : t.piece_range())
 		t.set_hash(i, lt::sha1_hash::max());
 
 	std::vector<char> buffer;
@@ -416,7 +416,7 @@ lt::torrent_info test_field(Fun f)
 	lt::file_storage fs;
 	fs.add_file("A", 0x4000);
 	lt::create_torrent t(fs, 0x4000);
-	for (lt::piece_index_t i : fs.piece_range())
+	for (lt::piece_index_t i : t.piece_range())
 		t.set_hash(i, lt::sha1_hash::max());
 
 	f(t);
@@ -539,12 +539,12 @@ std::string test_create_torrent(lt::file_storage& fs, int const piece_size
 	lt::create_torrent ct(fs, piece_size, flags);
 	ct.set_creation_date(1337);
 	if (!(flags & lt::create_torrent::v2_only))
-		for (lt::piece_index_t i : fs.piece_range())
+		for (lt::piece_index_t i : ct.piece_range())
 			ct.set_hash(i, lt::sha1_hash::max());
 	if (!(flags & lt::create_torrent::v1_only))
-		for (auto const f : fs.file_range())
+		for (auto const f : ct.file_range())
 			if (!fs.pad_file_at(f))
-				for (auto const p : fs.file_piece_range(f))
+				for (auto const p : ct.file_piece_range(f))
 					ct.set_hash2(f, p, lt::sha256_hash::max());
 	auto e = ct.generate();
 	std::string buf;

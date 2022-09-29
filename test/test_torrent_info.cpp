@@ -40,7 +40,7 @@ TORRENT_TEST(mutable_torrents)
 	lt::create_torrent t(fs, 0x4000);
 
 	// calculate the hash for all pieces
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 		t.set_hash(i, sha1_hash::max());
 
 	t.add_collection("collection1");
@@ -1194,7 +1194,7 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	bencode(out, tor);
 
 	torrent_info ti(tmp, from_span);
-	for (auto const i : fs.file_range())
+	for (auto const i : t.file_range())
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);

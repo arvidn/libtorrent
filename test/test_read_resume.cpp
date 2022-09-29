@@ -178,7 +178,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 	{
 		sha1_hash ph;
 		aux::random_bytes(ph);

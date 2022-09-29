@@ -137,9 +137,9 @@ void run_until(io_context& ios, bool const& done)
 	}
 }
 
-std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
-	, std::vector<char>& buf)
+std::shared_ptr<torrent_info> setup_torrent_info(std::vector<char>& buf)
 {
+	file_storage fs;
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 0x8000);
 	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 0x8000);
 	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
@@ -207,18 +207,19 @@ std::shared_ptr<posix_storage> make_storage(storage_params const& p
 }
 
 template <typename StorageType, typename FilePool>
-std::shared_ptr<StorageType> setup_torrent(file_storage& fs
-	, FilePool& fp
+std::pair<std::shared_ptr<StorageType>, std::shared_ptr<torrent_info>>
+setup_torrent(
+	FilePool& fp
 	, std::vector<char>& buf
 	, std::string const& test_path
 	, aux::session_settings& set)
 {
-	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
+	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
 	storage_params p{
-		fs,
+		info->files(),
 		nullptr,
 		test_path,
 		storage_mode_allocate,
@@ -238,7 +239,7 @@ std::shared_ptr<StorageType> setup_torrent(file_storage& fs
 		throw system_error(se.ec);
 	}
 
-	return s;
+	return {s, info};
 }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -302,9 +303,9 @@ std::vector<char> new_piece(std::size_t const size)
 
 template <typename StorageType>
 void run_storage_tests(std::shared_ptr<torrent_info> info
-	, file_storage& fs
 	, lt::storage_mode_t storage_mode)
 {
+	lt::file_storage const& fs = info->files();
 	TORRENT_ASSERT(fs.num_files() > 0);
 	{
 	error_code ec;
@@ -413,13 +414,12 @@ void test_remove(std::string const& test_path)
 {
 	delete_dirs("temp_storage");
 
-	file_storage fs;
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 
 	aux::session_settings set;
-	auto s = setup_torrent<StorageType>(fs, fp, buf, test_path, set);
+	auto [s, info] = setup_torrent<StorageType>(fp, buf, test_path, set);
 
 	// directories are not created up-front, unless they contain
 	// an empty file (all of which are created up-front, along with
@@ -483,13 +483,13 @@ void test_rename(std::string const& test_path)
 {
 	delete_dirs("temp_storage");
 
-	file_storage fs;
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
 	aux::session_settings set;
 
-	auto s = setup_torrent<StorageType>(fs, fp, buf, test_path, set);
+	auto [s, info] = setup_torrent<StorageType>(fp, buf, test_path, set);
+	file_storage const& fs = info->files();
 
 	// directories are not created up-front, unless they contain
 	// an empty file
@@ -573,7 +573,7 @@ void test_check_files(check_files_flag_t const flags
 
 	sha1_hash info_hash;
 	storage_params p{
-		fs,
+		info->files(),
 		nullptr,
 		test_path,
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
@@ -654,7 +654,7 @@ void run_test()
 	info = std::make_shared<torrent_info>(buf, from_span);
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
-	run_storage_tests<StorageType>(info, fs, storage_mode_sparse);
+	run_storage_tests<StorageType>(info, storage_mode_sparse);
 
 	// make sure the files have the correct size
 	std::string const base = complete("temp_storage");
@@ -861,8 +861,9 @@ bool got_file_rename_alert(alert const* a)
 TORRENT_TEST(rename_file)
 {
 	std::vector<char> buf;
-	file_storage fs;
-	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
+	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
+
+	file_storage const& fs = info->files();
 
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::disable_hash_checks, true);
@@ -1302,11 +1303,10 @@ void test_move_storage_to_self()
 	delete_dirs(test_path);
 
 	aux::session_settings set;
-	file_storage fs;
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
-	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
+	auto [s, info] = setup_torrent<StorageType>(fp, buf, save_path, set);
 
 	span<char> const b = {&buf[0], 4};
 	storage_error se;
@@ -1336,11 +1336,10 @@ void test_move_storage_into_self()
 	delete_dirs("temp_storage");
 
 	aux::session_settings set;
-	file_storage fs;
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
-	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
+	auto [s, info] = setup_torrent<StorageType>(fp, buf, save_path, set);
 
 	span<char> const b = {&buf[0], 4};
 	storage_error se;
@@ -1405,11 +1404,10 @@ TORRENT_TEST(dont_move_intermingled_files)
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
 	aux::session_settings set;
-	file_storage fs;
 	std::vector<char> buf;
 	typename file_pool_type<mmap_storage>::type fp;
 	io_context ios;
-	auto s = setup_torrent<mmap_storage>(fs, fp, buf, save_path, set);
+	auto [s, info] = setup_torrent<mmap_storage>(fp, buf, save_path, set);
 
 	span<char> b = {&buf[0], 4};
 	storage_error se;
