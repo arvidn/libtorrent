@@ -242,7 +242,7 @@ TORRENT_TEST(total_wanted)
 	// the last set priority
 	h.file_priority(file_index_t{2}, default_priority);
 	h.file_priority(file_index_t{2}, dont_download);
-	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(static_cast<std::size_t>(fs.num_files()), dont_download)));
+	TEST_CHECK(wait_priority(h, aux::vector<download_priority_t, file_index_t>(t.end_file(), dont_download)));
 	TEST_EQUAL(h.status({}).total_wanted, 0);
 }
 
@@ -403,7 +403,7 @@ TORRENT_TEST(torrent)
 		// calculate the hash for all pieces
 		sha1_hash const ph = hasher(piece).final();
 		TEST_CHECK(t.num_pieces() > 0);
-		for (auto const i : fs.piece_range())
+		for (auto const i : t.piece_range())
 			t.set_hash(i, ph);
 
 		t.set_hash2(file_index_t{ 0 }, piece_index_t::diff_type{ 0 }, lt::hasher256(piece).final());
@@ -446,7 +446,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	// calculate the hash for all pieces
 	sha1_hash ph = hasher(piece).final();
 	TEST_CHECK(t.num_pieces() > 0);
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
@@ -825,11 +825,11 @@ TORRENT_TEST(redundant_add_piece)
 
 	TEST_CHECK(t.num_pieces() > 0);
 
-	std::vector<char> piece_data(std::size_t(fs.piece_length()), 0);
+	std::vector<char> piece_data(std::size_t(t.piece_length()), 0);
 	aux::random_bytes(piece_data);
 
 	sha1_hash const ph = lt::hasher(piece_data).final();
-	for (auto const i : fs.piece_range())
+	for (auto const i : t.piece_range())
 		t.set_hash(i, ph);
 
 	std::vector<char> buf;

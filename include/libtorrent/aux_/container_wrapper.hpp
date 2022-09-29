@@ -34,6 +34,9 @@ namespace libtorrent { namespace aux {
 		explicit container_wrapper(IndexType const s)
 			: Base(numeric_cast<std::size_t>(static_cast<underlying_index>(s))) {}
 
+		container_wrapper(IndexType const s, T value)
+			: Base(numeric_cast<std::size_t>(static_cast<underlying_index>(s)), value) {}
+
 		decltype(auto) operator[](IndexType idx) const
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));

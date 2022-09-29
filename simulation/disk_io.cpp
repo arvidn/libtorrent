@@ -204,7 +204,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	if (flags & lt::create_torrent::v1_only)
 	{
 		for (auto const i : fs.piece_range())
-			t.set_hash(i, generate_hash1(i, fs.piece_length(), pads_in_piece(pad_bytes, i)));
+			t.set_hash(i, generate_hash1(i, t.piece_length(), pads_in_piece(pad_bytes, i)));
 	}
 	else
 	{
@@ -216,7 +216,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 		lt::aux::vector<lt::sha256_hash> blocks(blocks_per_piece);
 		std::vector<lt::sha256_hash> scratch_space;
 
-		for (auto const f : fs.file_range())
+		for (auto const f : t.file_range())
 		{
 			if (fs.pad_file_at(f)) continue;
 			auto const file_piece = fs.piece_index_at_file(f);

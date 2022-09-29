@@ -108,6 +108,7 @@ namespace {
 
 	struct hash_state
 	{
+		file_storage const& fs;
 		create_torrent& ct;
 		storage_holder storage;
 		disk_interface& iothread;
@@ -133,17 +134,17 @@ namespace {
 
 		if (!st->ct.is_v1_only())
 		{
-			file_index_t const current_file = st->ct.files().file_index_at_piece(piece);
-			if (!st->ct.files().pad_file_at(current_file))
+			file_index_t const current_file = st->fs.file_index_at_piece(piece);
+			if (!(st->fs.pad_file_at(current_file)))
 			{
-				piece_index_t const file_first_piece(int(st->ct.files().file_offset(current_file) / st->ct.piece_length()));
-				TORRENT_ASSERT(st->ct.files().file_offset(current_file) % st->ct.piece_length() == 0);
+				piece_index_t const file_first_piece(int(st->fs.file_offset(current_file) / st->ct.piece_length()));
+				TORRENT_ASSERT(st->fs.file_offset(current_file) % st->ct.piece_length() == 0);
 
 				auto const file_piece_offset = piece - file_first_piece;
-				auto const file_size = st->ct.files().file_size(current_file);
+				auto const file_size = st->fs.file_size(current_file);
 				TORRENT_ASSERT(file_size > 0);
-				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
-				auto const piece_blocks = st->ct.files().blocks_in_piece2(piece);
+				auto const file_blocks = st->fs.file_num_blocks(current_file);
+				auto const piece_blocks = st->fs.blocks_in_piece2(piece);
 				int const num_leafs = merkle_num_leafs(file_blocks);
 				// If the file is smaller than one piece then the block hashes
 				// should be padded to the next power of two instead of the next
@@ -166,7 +167,7 @@ namespace {
 
 		st->f(st->completed_piece);
 		++st->completed_piece;
-		if (st->piece_counter < st->ct.files().end_piece())
+		if (st->piece_counter < st->ct.end_piece())
 		{
 			span<sha256_hash> v2_span(v2_blocks);
 			st->iothread.async_hash(st->storage, st->piece_counter, v2_span, flags
@@ -174,7 +175,7 @@ namespace {
 			++st->piece_counter;
 			st->iothread.submit_jobs();
 		}
-		else if (st->completed_piece == st->ct.files().end_piece())
+		else if (st->completed_piece == st->ct.end_piece())
 		{
 			st->iothread.abort(true);
 		}
@@ -289,7 +290,7 @@ namespace {
 		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
 			, 1 * 1024 * 1024 / t.piece_length());
 
-		hash_state st = { t, std::move(storage), *disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
+		hash_state st = { params.files, t, std::move(storage), *disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
 			aux::vector<sha256_hash> v2_blocks;
@@ -306,7 +307,7 @@ namespace {
 			disk_thread->async_hash(st.storage, i, v2_span, flags
 				, std::bind(&on_hash, std::move(v2_blocks), _1, _2, _3, &st));
 			++st.piece_counter;
-			if (st.piece_counter >= t.files().end_piece()) break;
+			if (st.piece_counter >= t.end_piece()) break;
 		}
 		disk_thread->submit_jobs();
 
@@ -440,7 +441,7 @@ namespace {
 		{
 			m_fileroots.resize(m_files.num_files());
 			m_file_piece_hash.resize(m_files.num_files());
-			for (auto const i : m_files.file_range())
+			for (auto const i : file_range())
 			{
 				// don't include merkle hash trees for pad files
 				if (m_files.pad_file_at(i)) continue;
@@ -617,7 +618,7 @@ namespace {
 			sha256_hash const pad_hash = merkle_pad(m_files.piece_length() / default_block_size, 1);
 			auto& file_pieces = dict["piece layers"].dict();
 
-			for (file_index_t fi : m_files.file_range())
+			for (file_index_t fi : file_range())
 			{
 				if (files().file_flags(fi) & file_storage::flag_pad_file) continue;
 				if (files().file_size(fi) == 0) continue;
@@ -693,7 +694,7 @@ namespace {
 			{
 				entry& files = info["files"];
 
-				for (auto const i : m_files.file_range())
+				for (auto const i : file_range())
 				{
 					files.list().emplace_back();
 					entry& file_e = files.list().back();
@@ -734,7 +735,7 @@ namespace {
 		{
 			auto& tree = info["file tree"];
 
-			for (file_index_t i : m_files.file_range())
+			for (file_index_t i : file_range())
 			{
 				if (files().file_flags(i) & file_storage::flag_pad_file) continue;
 
@@ -849,7 +850,7 @@ namespace {
 	void create_torrent::set_hash2(file_index_t file, piece_index_t::diff_type piece, sha256_hash const& h)
 	{
 		TORRENT_ASSERT_PRECOND(file >= file_index_t(0));
-		TORRENT_ASSERT_PRECOND(file < m_files.end_file());
+		TORRENT_ASSERT_PRECOND(file < end_file());
 		TORRENT_ASSERT_PRECOND(piece >= piece_index_t::diff_type(0));
 		TORRENT_ASSERT_PRECOND(piece < piece_index_t::diff_type(m_files.file_num_pieces(file)));
 		TORRENT_ASSERT_PRECOND(!m_files.pad_file_at(file));

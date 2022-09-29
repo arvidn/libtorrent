@@ -1079,7 +1079,7 @@ int main(int argc, char* argv[])
 			const int piece_size = 1024 * 1024;
 			lt::create_torrent t(fs, piece_size, lt::create_torrent::v1_only);
 			sha1_hash zero(nullptr);
-			for (auto const k : fs.piece_range())
+			for (auto const k : t.piece_range())
 				t.set_hash(k, zero);
 
 			int tier = 0;
