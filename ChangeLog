@@ -1,3 +1,4 @@
+	* add create_torrent::generate_buf() function to generate into a buffer
 	* fix copy_file when the file ends with a sparse region
 	* uTP performance, fix packet loss when sending is stalled
 	* fix trackers being stuck after session pause/resume
