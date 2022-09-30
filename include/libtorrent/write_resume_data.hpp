@@ -71,8 +71,14 @@ namespace libtorrent {
 	// * The add_torrent_params object passed to this function does not contain the
 	//   info dictionary (the ``ti`` field)
 	// * The piece layers are not complete for all files that need them
+	//
+	// The ``write_torrent_file_buf()`` overload returns the torrent file in
+	// bencoded buffer form. This overload may be faster at the expense of lost
+	// flexibility to add custom fields.
 	TORRENT_EXPORT entry write_torrent_file(add_torrent_params const& atp);
 	TORRENT_EXPORT entry write_torrent_file(add_torrent_params const& atp, write_torrent_flags_t flags);
+	TORRENT_EXPORT std::vector<char> write_torrent_file_buf(add_torrent_params const& atp
+		, write_torrent_flags_t flags);
 }
 
 #endif

@@ -418,6 +418,15 @@ namespace {
 		return ret;
 	}
 
+	std::vector<char> write_torrent_file_buf(add_torrent_params const& atp
+		, write_torrent_flags_t flags)
+	{
+		std::vector<char> ret;
+		entry e = write_torrent_file(atp, flags);
+		bencode(std::back_inserter(ret), e);
+		return ret;
+	}
+
 	std::vector<char> write_resume_data_buf(add_torrent_params const& atp)
 	{
 		std::vector<char> ret;
