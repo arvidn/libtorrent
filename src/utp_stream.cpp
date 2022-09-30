@@ -938,7 +938,10 @@ void utp_socket_impl::writable()
 	m_stalled = false;
 	if (should_delete()) return;
 
-	while(send_pkt());
+	// if the socket stalled while sending an ack then there will be a
+	// pending deferred ack. make sure it gets sent out
+	if (!m_deferred_ack || send_pkt(pkt_ack))
+		while(send_pkt());
 
 	maybe_trigger_send_callback();
 }
@@ -1662,17 +1665,19 @@ bool utp_socket_impl::send_pkt(int const flags)
 			, static_cast<void*>(this), packet_timeout());
 #endif
 		}
+		// Any queued up deferred ack is now redundant
+		if (m_deferred_ack)
+		{
+	#if TORRENT_UTP_LOG
+			UTP_LOGV("%8p: Cancelling redundant deferred ack\n"
+				, static_cast<void*>(this));
+	#endif
+			m_deferred_ack = false;
+		}
 	}
-
-	// Any queued up deferred ack is now redundant
-	if (m_deferred_ack)
-	{
-#if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: Cancelling redundant deferred ack\n"
-			, static_cast<void*>(this));
-#endif
-		m_deferred_ack = false;
-	}
+	// If this is an ack then defer it to when the socket becomes writable again
+	else if (p->size == p->header_size && (flags & pkt_ack))
+		defer_ack();
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr

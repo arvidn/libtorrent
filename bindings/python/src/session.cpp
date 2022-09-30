@@ -1350,6 +1350,7 @@ void bind_session()
 
     entry (*write_torrent_file0)(add_torrent_params const&, write_torrent_flags_t) = &write_torrent_file;
     def("write_torrent_file", write_torrent_file0, (arg("atp"), arg("flags") = 0));
+    def("write_torrent_file_buf", write_torrent_file_buf, (arg("atp"), arg("flags") = 0));
 
     {
         scope s = class_<dummy17>("write_flags");

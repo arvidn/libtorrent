@@ -280,6 +280,11 @@ jobs:
           cd simulation
           b2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
 
+      - name: build simulations no deprecated
+        run: |
+          cd simulation
+          b2 testing.execute=off deprecated-functions=off
+
 
    dist:
       name: build dist

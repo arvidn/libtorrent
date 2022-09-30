@@ -44,6 +44,8 @@ TORRENT_TEST(create_verbatim_torrent)
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
 
+	TEST_CHECK(buffer == t.generate_buf());
+
 	// now, make sure the info dictionary was unchanged
 	buffer.push_back('\0');
 	char const* dest_info = std::strstr(&buffer[0], "4:info");
@@ -125,6 +127,7 @@ TORRENT_TEST(create_torrent_round_trip)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	lt::torrent_info info2(buffer, lt::from_span);
 
 	TEST_EQUAL(info2.comment(), "this is a test comment");
@@ -157,6 +160,8 @@ void test_round_trip_torrent(std::string const& name)
 		lt::bencode(std::back_inserter(out_buffer), e);
 
 		lt::bdecode_node out_torrent = lt::bdecode(out_buffer);
+
+		TEST_CHECK(out_buffer == t.generate_buf());
 
 		TEST_CHECK(out_torrent.dict_find("info").data_section()
 			== in_torrent.dict_find("info").data_section());
@@ -235,6 +240,7 @@ TORRENT_TEST(v2_path_conflict)
 		t.set_hash2(2_file, zero, dummy);
 		t.set_hash2(3_file, zero, dummy);
 		TEST_THROW(t.generate());
+		TEST_THROW(t.generate_buf());
 	}
 }
 
@@ -255,6 +261,7 @@ TORRENT_TEST(v2_only)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	lt::torrent_info info(buffer, lt::from_span);
 	TEST_CHECK(info.info_hashes().has_v2());
 	TEST_CHECK(!info.info_hashes().has_v1());
@@ -266,6 +273,7 @@ TORRENT_TEST(v2_only)
 	lt::create_torrent t2(info);
 	std::vector<char> buffer2;
 	lt::bencode(std::back_inserter(buffer2), t2.generate());
+	TEST_CHECK(buffer2 == t2.generate_buf());
 
 	TEST_CHECK(buffer == buffer2);
 }
@@ -316,6 +324,7 @@ TORRENT_TEST(create_torrent_symlink)
 
 	std::vector<char> torrent;
 	lt::bencode(back_inserter(torrent), t.generate());
+	TEST_CHECK(torrent == t.generate_buf());
 
 	lt::torrent_info ti(torrent, lt::from_span);
 
@@ -394,6 +403,7 @@ TORRENT_TEST(implicit_v2_only)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	lt::torrent_info info(buffer, lt::from_span);
 	TEST_CHECK(info.info_hashes().has_v2());
 	TEST_CHECK(!info.info_hashes().has_v1());
@@ -417,6 +427,7 @@ TORRENT_TEST(implicit_v1_only)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	lt::torrent_info info(buffer, lt::from_span);
 	TEST_CHECK(!info.info_hashes().has_v2());
 	TEST_CHECK(info.info_hashes().has_v1());
@@ -441,6 +452,7 @@ lt::torrent_info test_field(Fun f)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	return lt::torrent_info(buffer, lt::from_span);
 }
 }
@@ -518,6 +530,7 @@ TORRENT_TEST(piece_layer)
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
 	lt::torrent_info info(buffer, lt::from_span);
 
 	TEST_CHECK(info.piece_layer(0_file).size() == lt::sha256_hash::size() * 2);
@@ -567,6 +580,9 @@ std::string test_create_torrent(lt::file_storage& fs, int const piece_size
 	auto e = ct.generate();
 	std::string buf;
 	lt::bencode(std::back_inserter(buf), e);
+	std::vector<char> buf2;
+	lt::bencode(std::back_inserter(buf2), e);
+	TEST_CHECK(buf2 == ct.generate_buf());
 	return buf;
 }
 

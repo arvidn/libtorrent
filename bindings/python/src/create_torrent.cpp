@@ -99,6 +99,7 @@ void bind_create_torrent()
             , arg("flags") = create_flags_t{})))
 
         .def("generate", &create_torrent::generate)
+        .def("generate_buf", &create_torrent::generate_buf)
 
         .def("files", &create_torrent::files, return_internal_reference<>())
         .def("set_comment", &create_torrent::set_comment)

@@ -1448,6 +1448,8 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
 
+			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
+
 			if (out_buffer != data)
 			{
 				std::cout << "GOT:\n";
@@ -1468,6 +1470,8 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> out_buffer;
 			bencode(std::back_inserter(out_buffer), e);
+
+			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
 
 			if (out_buffer != data)
 			{

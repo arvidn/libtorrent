@@ -131,6 +131,12 @@ jobs:
         set PYTHON_INTERPRETER=python
         tox -e py
 
+    - name: build no-deprecated (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cd bindings/python
+        python3 setup.py build_ext --b2-args "deprecated-functions=off"
+
     - name: tests (Linux)
       if: runner.os == 'Linux'
       run: |
