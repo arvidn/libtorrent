@@ -74,11 +74,11 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 
 	create_torrent t(fs, piece_size);
 
-	for (piece_index_t i : fs.piece_range())
+	for (piece_index_t i : t.piece_range())
 		t.set_hash(i, sha1_hash("abababababababababab"));
 
-	for (file_index_t const f : fs.file_range())
-		for (piece_index_t::diff_type i : fs.file_piece_range(f))
+	for (file_index_t const f : t.file_range())
+		for (piece_index_t::diff_type i : t.file_piece_range(f))
 			t.set_hash2(f, i, sha256_hash("abababababababababababababababababababababababababababababababab"));
 
 	std::vector<char> buf;

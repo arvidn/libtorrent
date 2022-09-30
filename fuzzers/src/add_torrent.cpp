@@ -72,7 +72,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	std::vector<char> piece(piece_size, 0);
 	lt::span<char const> piece_span(piece);
 	std::vector<sha256_hash> piece_tree(merkle_num_nodes(blocks_per_piece));
-	for (piece_index_t i : fs.piece_range())
+	for (piece_index_t i : t.piece_range())
 	{
 		std::memset(piece.data(), char(static_cast<int>(i) & 0xff), piece.size());
 		t.set_hash(piece_index_t(i), lt::hasher(piece).final());
@@ -86,7 +86,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 		}
 
 		auto const r = merkle_root(piece_tree);
-		t.set_hash2(file_index_t{0}, piece_index_t::diff_type(i), r);
+		t.set_hash2(file_index_t{0}, i - piece_index_t{0}, r);
 	}
 
 	merkle_fill_tree(g_tree, num_leafs);
@@ -118,11 +118,11 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 			if (bits.read(1)) mask.set_bit(i); else mask.set_bit(i);
 	}
 	ret.have_pieces.resize(bits.read(6));
-	for (int i = 0; i < ret.have_pieces.size(); ++i)
+	for (auto const i : ret.have_pieces.range())
 		if (bits.read(1)) ret.have_pieces.set_bit(i); else ret.have_pieces.set_bit(i);
 
 	ret.verified_pieces.resize(bits.read(6));
-	for (int i = 0; i < ret.verified_pieces.size(); ++i)
+	for (auto const i : ret.verified_pieces.range())
 		if (bits.read(1)) ret.verified_pieces.set_bit(i); else ret.verified_pieces.set_bit(i);
 
 	ret.piece_priorities.resize(bits.read(6));
@@ -135,10 +135,10 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		ret.merkle_trees.resize(1);
 		ret.merkle_tree_mask.resize(1);
 		ret.verified_leaf_hashes.resize(1);
-		ret.verified_leaf_hashes[0].resize(num_leafs, true);
+		ret.verified_leaf_hashes[file_index_t{0}].resize(num_leafs, true);
 
-		auto& t = ret.merkle_trees[0];
-		auto& mask = ret.merkle_tree_mask[0];
+		auto& t = ret.merkle_trees[file_index_t{0}];
+		auto& mask = ret.merkle_tree_mask[file_index_t{0}];
 		mask.resize(num_nodes, false);
 		int idx = -1;
 		for (auto const& h : g_tree)

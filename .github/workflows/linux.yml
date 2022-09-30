@@ -111,7 +111,7 @@ jobs:
       - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang warnings-as-errors=on
+          b2 clang deprecated-functions=on,off warnings-as-errors=on
 
 
 
