@@ -709,8 +709,9 @@ own code that compiles and links with libtorrent.
 |                                        | checks. Useful for finding particular bugs      |
 |                                        | or for running before releases.                 |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_NO_DEPRECATE``               | This will exclude all deprecated functions from |
-|                                        | the header files and source files.              |
+| ``TORRENT_ABI_VERSION``                | The ABI version to support in the build.        |
+|                                        | A lower number means to support deprecated      |
+|                                        | functions, a higher number means newer versions |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
 |                                        | in release builds.                              |

@@ -713,7 +713,9 @@ feature_option(python-install-system-dir "Install python bindings to the system 
 # these options require existing target
 feature_option(dht "enable support for Mainline DHT" ON)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME deprecated-functions DEFAULT ON
-	DESCRIPTION "enable deprecated functions for backwards compatibility" DISABLED TORRENT_NO_DEPRECATE)
+	DESCRIPTION "enable deprecated functions for backwards compatibility"
+	ENABLED TORRENT_ABI_VERSION=2
+	DISABLED TORRENT_ABI_VERSION=100)
 feature_option(encryption "Enables encryption in libtorrent" ON)
 feature_option(exceptions "build with exception support" ON)
 feature_option(gnutls "build using GnuTLS instead of OpenSSL" OFF)

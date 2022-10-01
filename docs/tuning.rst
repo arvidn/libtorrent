@@ -167,7 +167,7 @@ in libtorrent. If these macros are used to strip down libtorrent, make sure the 
 macros are defined when building libtorrent as when linking against it. Some of
 these macros may affect ABI (although they are not intended to).
 
-One, probably, safe macro to define is ``TORRENT_NO_DEPRECATE`` which removes all
+One, probably, safe macro to define is ``TORRENT_ABI_VERSION=100`` which removes all
 deprecated functions and struct members. As long as no deprecated functions are
 relied upon, this should be a simple way to shave off some size from the executable.
 

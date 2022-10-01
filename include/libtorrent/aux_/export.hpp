@@ -25,8 +25,9 @@ see LICENSE file.
 // 4: libtorrent-2.1
 
 #if !defined TORRENT_ABI_VERSION
+// Supporting TORRENT_NO_DEPRECATE is here for backwards compatibility
 # ifdef TORRENT_NO_DEPRECATE
-#  define TORRENT_ABI_VERSION 4
+#  define TORRENT_ABI_VERSION 100
 # else
 #  define TORRENT_ABI_VERSION 1
 # endif
