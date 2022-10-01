@@ -37,11 +37,6 @@ namespace {
 		if (i != c.end() && i->first == v.first) i->second = std::move(v.second);
 		else c.emplace(i, std::move(v));
 	}
-
-	// return the string, unless it's null, in which case the empty string is
-	// returned
-	char const* ensure_string(char const* str)
-	{ return str == nullptr ? "" : str; }
 }
 
 namespace libtorrent {
@@ -52,7 +47,7 @@ namespace libtorrent {
 		char const* name;
 		// if present, this function is called when the setting is changed
 		void (aux::session_impl::*fun)();
-		char const *default_value;
+		std::string const default_value;
 	};
 
 	struct int_setting_entry_t
@@ -82,11 +77,11 @@ namespace libtorrent {
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
 #elif TORRENT_ABI_VERSION == 2
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
-#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
+#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
-#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, nullptr }
+#define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { "", nullptr, 0 }
 #endif
 
@@ -109,17 +104,17 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 #define CONSTEXPR_SETTINGS
 #endif
 
-	namespace {
+namespace {
 
 	using aux::session_impl;
 
-	CONSTEXPR_SETTINGS
+	// std::string is not a literal, so this can't be constexpr
 	aux::array<str_setting_entry_t, settings_pack::num_string_settings> const str_settings
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
-		SET(announce_ip, nullptr, nullptr),
-		DEPRECATED_SET_STR(mmap_cache, nullptr, nullptr),
-		SET(handshake_client_version, nullptr, nullptr),
+		SET(announce_ip, "", nullptr),
+		DEPRECATED_SET_STR(mmap_cache, "", nullptr),
+		SET(handshake_client_version, "", nullptr),
 		SET(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 		SET(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
 		SET(proxy_hostname, "", &session_impl::update_proxy),
@@ -385,7 +380,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 #undef DEPRECATED_SET
 #undef CONSTEXPR_SETTINGS
 
-	} // anonymous namespace
+} // anonymous namespace
 
 	int setting_by_name(string_view const key)
 	{
@@ -481,7 +476,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 			for (std::uint16_t i = 0; i < settings_pack::num_string_settings; ++i)
 			{
 				std::uint16_t const n = i | settings_pack::string_type_base;
-				if (ensure_string(str_settings[i].default_value) == s.get_str(n)) continue;
+				if (str_settings[i].default_value == s.get_str(n)) continue;
 				ret.set_str(n, s.get_str(n));
 			}
 
@@ -540,7 +535,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			if (str_settings[i].default_value == nullptr) continue;
+			if (str_settings[i].default_value.empty()) continue;
 			s.set_str(settings_pack::string_type_base | i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
@@ -564,7 +559,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		// TODO: it would be nice to reserve() these vectors up front
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			if (str_settings[i].default_value == nullptr) continue;
+			if (str_settings[i].default_value.empty()) continue;
 			ret.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
 		}
 
@@ -754,12 +749,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
 
-		if (str_settings[name & index_mask].default_value == nullptr)
-			return empty;
-
-		static std::string tmp;
-		tmp = str_settings[name & index_mask].default_value;
-		return tmp;
+		return str_settings[name & index_mask].default_value;
 	}
 
 	int settings_pack::get_int(int name) const
