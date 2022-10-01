@@ -60,6 +60,12 @@ standard string_view
 libtorrent now uses ``std::string_view`` instead of ``boost::string_view`` or ``boost::string_ref```.
 This affects libtorrent's API to some extent.
 
+bump API version
+================
+
+By default, functions deprecated in libtorrent 1.1 and earlier are not included
+in the build now. To enable them, build with ``deprecated-functions=1``.
+
 entry as a variant
 ==================
 

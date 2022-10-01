@@ -641,8 +641,19 @@ feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 
 feature openssl-version : 1.1 pre1.1 : composite propagated ;
 
-feature deprecated-functions : on off : composite propagated link-incompatible ;
-feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
+# ABI version numbers
+# 1: libtorrent-1.1
+# 2: libtorrent-1.2 (default)
+# 3: libtorrent-2.0
+# 4: libtorrent-2.1
+# on: oldest supported version
+# off: most recent version
+feature deprecated-functions : 2 on off 1 3 4 : composite propagated link-incompatible ;
+feature.compose <deprecated-functions>off : <define>TORRENT_ABI_VERSION=100 ;
+feature.compose <deprecated-functions>1 : <define>TORRENT_ABI_VERSION=1 ;
+feature.compose <deprecated-functions>2 : <define>TORRENT_ABI_VERSION=2 ;
+feature.compose <deprecated-functions>3 : <define>TORRENT_ABI_VERSION=3 ;
+feature.compose <deprecated-functions>4 : <define>TORRENT_ABI_VERSION=4 ;
 
 feature boost-link : default static shared : propagated composite ;
 
