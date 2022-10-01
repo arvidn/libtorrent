@@ -224,19 +224,19 @@ namespace {
 	void set_piece_hashes(create_torrent& t, std::string const& p
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
-		aux::session_settings sett;
+		settings_pack sett;
 		set_piece_hashes(t, p, sett, f, ec);
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, settings_interface const& sett
+		, settings_pack const& sett
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		set_piece_hashes(t, p, sett, default_disk_io_constructor, f, ec);
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, settings_interface const& sett, disk_io_constructor_type disk_io
+		, settings_pack const& sett, disk_io_constructor_type disk_io
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		// optimized path

@@ -507,10 +507,10 @@ namespace aux {
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, settings_interface const& settings
+		, settings_pack const& settings
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, settings_interface const& settings, disk_io_constructor_type disk_io
+		, settings_pack const& settings, disk_io_constructor_type disk_io
 		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
@@ -531,7 +531,7 @@ namespace aux {
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 	inline void set_piece_hashes(create_torrent& t, std::string const& p
-		, settings_interface const& settings
+		, settings_pack const& settings
 		, std::function<void(piece_index_t)> const& f)
 	{
 		error_code ec;

@@ -74,3 +74,11 @@ Previously, ``session_flags_t`` could be passed directly to the ``session``
 constructor. These constructors are now deprecated in favor of the unified
 constructor taking a ``session_params`` object. Flags can now be passed through
 the ``session_params`` object.
+
+set_piece_hashes()
+==================
+
+The signature of set_piece_hashes() has changed slightly, from taking a
+settings_interface to a settings_pack. The impact of this change is expected to
+be minimal, since settings_pack implements the settings_interface and is the
+only public type doing so.
