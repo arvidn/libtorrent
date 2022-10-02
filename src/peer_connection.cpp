@@ -2975,8 +2975,8 @@ namespace libtorrent {
 			counters::queued_write_bytes, p.length);
 		m_outstanding_writing_bytes += p.length;
 
-		std::int64_t const max_queue_size = m_settings.get_int(
-			settings_pack::max_queued_disk_bytes);
+		std::int64_t const max_queue_size = std::int64_t(m_settings.get_int(
+			settings_pack::max_queued_disk_bytes)) * default_block_size;
 		if (write_queue_size > max_queue_size
 			&& write_queue_size - p.length < max_queue_size
 			&& t->alerts().should_post<performance_alert>())

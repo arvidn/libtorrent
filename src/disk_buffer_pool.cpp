@@ -189,7 +189,7 @@ namespace {
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
-		int const pool_size = std::max(1, sett.get_int(settings_pack::max_queued_disk_bytes) / default_block_size);
+		int const pool_size = std::max(1, sett.get_int(settings_pack::max_queued_disk_bytes));
 
 		// if we're using an mmap cache, we can't resize it unless there are 0
 		// buffers in use
