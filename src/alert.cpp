@@ -2213,7 +2213,7 @@ namespace {
 		, m_counters_idx(alloc.allocate(sizeof(std::int64_t)
 			* counters::num_counters + sizeof(std::int64_t) - 1))
 	{
-		std::int64_t* ptr = align_pointer<std::int64_t>(alloc.ptr(m_counters_idx));
+		auto* ptr = align_pointer<std::int64_t>(alloc.ptr(m_counters_idx));
 		for (int i = 0; i < counters::num_counters; ++i, ++ptr)
 			*ptr = cnt[i];
 	}
