@@ -632,7 +632,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
-			m_stats_counters.inc_stats_counter(counters::num_read_back);
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
@@ -667,7 +666,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
-			m_stats_counters.inc_stats_counter(counters::num_read_back);
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
@@ -1049,13 +1047,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int ret = 0;
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
+		time_point const start_time = clock_type::now();
 		for (int i = 0; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
 
 			DLOG("do_hash: reading (piece: %d block: %d)\n", int(j->piece), i);
-
-			time_point const start_time = clock_type::now();
 
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
@@ -1094,16 +1091,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 						, file_mode, j->flags, j->error);
 					if (ret < 0) break;
 				}
-			}
 
-			if (!j->error.ec)
-			{
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
-
-				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
-				m_stats_counters.inc_stats_counter(counters::num_read_ops);
-				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
-				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+				if (!j->error.ec)
+				{
+					m_stats_counters.inc_stats_counter(counters::num_read_back);
+					m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+					m_stats_counters.inc_stats_counter(counters::num_read_ops);
+				}
 			}
 
 			if (v2_block)
@@ -1112,6 +1106,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			if (ret <= 0) break;
 
 			offset += default_block_size;
+		}
+
+		if (!j->error.ec)
+		{
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
 
 		if (v1)
@@ -1146,14 +1147,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			ret = j->storage->hash2(m_settings, h, len, j->piece, j->d.io.offset
 				, file_mode, j->flags, j->error);
 			if (ret < 0) return status_t::fatal_disk_error;
+			if (!j->error.ec)
+			{
+				m_stats_counters.inc_stats_counter(counters::num_read_back);
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			}
 		}
 
 		if (!j->error.ec)
 		{
 			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 
-			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
-			m_stats_counters.inc_stats_counter(counters::num_read_ops);
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
