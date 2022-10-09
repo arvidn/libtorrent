@@ -578,6 +578,9 @@ feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 
+feature simulate-slow-write : off on : composite propagated ;
+feature.compose <simulate-slow-write>on : <define>TORRENT_SIMULATE_SLOW_WRITE ;
+
 feature logging : on off : composite propagated link-incompatible ;
 feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
 

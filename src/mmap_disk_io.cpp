@@ -654,7 +654,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		time_point const start_time = clock_type::now();
 
-		aux::open_mode_t const file_mode= file_mode_for_job(j);
+		aux::open_mode_t const file_mode = file_mode_for_job(j);
 		span<char> const b = {buffer.data(), j->d.io.buffer_size};
 
 		int const ret = j->storage->read(m_settings, b

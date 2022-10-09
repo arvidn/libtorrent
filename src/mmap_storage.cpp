@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/drive_info.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
@@ -518,7 +517,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(seconds(1));
+		std::this_thread::sleep_for(milliseconds(rand() % 2000));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
@@ -605,6 +604,9 @@ error_code translate_error(std::system_error const& err, bool const write)
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+		std::this_thread::sleep_for(milliseconds(rand() % 800));
+#endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
@@ -694,7 +696,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(seconds(1));
+		std::this_thread::sleep_for(milliseconds(rand() % 2000));
 #endif
 
 		char dummy;
