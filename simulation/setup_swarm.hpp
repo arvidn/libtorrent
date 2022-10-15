@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/time.hpp"
 #include <functional>
 
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
@@ -89,12 +90,14 @@ void setup_swarm(int num_nodes
 
 struct dsl_config : sim::default_config
 {
-	dsl_config(int kb_per_second = 0, int send_queue_size = 0);
+	dsl_config(int kb_per_second = 0, int send_queue_size = 0
+		, lt::milliseconds latency = lt::milliseconds(0));
 	virtual sim::route incoming_route(lt::address ip) override;
 	virtual sim::route outgoing_route(lt::address ip) override;
 private:
 	int m_rate; // kilobytes per second
 	int m_queue_size; // bytes
+	lt::milliseconds m_latency;
 };
 
 #endif
