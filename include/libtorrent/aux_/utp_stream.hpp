@@ -798,6 +798,9 @@ private:
 	std::uint32_t m_adv_wnd = TORRENT_ETHERNET_MTU;
 
 	// the number of un-acked bytes we have sent
+	// This does not include packets that have been created but either failed to
+	// be sent or were lost. i.e. when a packet is lost, it's no longer
+	// considered in-flight.
 	std::int32_t m_bytes_in_flight = 0;
 
 	// the number of bytes read into the user provided
