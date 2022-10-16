@@ -86,22 +86,23 @@ namespace aux {
 				return {buf.data(), std::size_t(5)};
 			}
 		}
+		// val == 0 is handled in the fast-path above
+		TORRENT_ASSERT(val != 0);
 		// slow path
 		// convert positive values to negative, since the negative space is
 		// larger, so we can fit INT64_MIN
 		int sign = 1;
-		if (val >= 0)
+		if (val > 0)
 		{
 			sign = 0;
 			val = -val;
 		}
 		char* ptr = &buf.back();
-		if (val == 0) *ptr-- = '0';
-		while (val != 0)
+		do
 		{
 			*ptr-- = '0' - char(val % 10);
 			val /= 10;
-		}
+		} while (val != 0);
 		if (sign) *ptr-- = '-';
 		++ptr;
 		return {ptr, static_cast<std::size_t>(&buf.back() - ptr + 1)};
