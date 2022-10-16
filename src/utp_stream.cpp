@@ -406,6 +406,9 @@ struct utp_socket_impl
 	std::uint32_t m_adv_wnd = TORRENT_ETHERNET_MTU;
 
 	// the number of un-acked bytes we have sent
+	// This does not include packets that have been created but either failed to
+	// be sent or were lost. i.e. when a packet is lost, it's no longer
+	// considered in-flight.
 	std::int32_t m_bytes_in_flight = 0;
 
 	// the number of bytes read into the user provided
@@ -701,7 +704,7 @@ void utp_writable(utp_socket_impl* s)
 
 void utp_send_ack(utp_socket_impl* s)
 {
-	if(!s->m_deferred_ack)
+	if (!s->m_deferred_ack)
 		return;
 	s->m_deferred_ack = false;
 	s->send_pkt(utp_socket_impl::pkt_ack);
@@ -1169,6 +1172,11 @@ utp_socket_impl::~utp_socket_impl()
 		i != end; i = (i + 1) & ACK_MASK)
 	{
 		packet_ptr p = m_outbuf.remove(i);
+#if TORRENT_USE_INVARIANT_CHECKS
+		// make sure m_bytes_in_flight stays consistent even during destruction
+		// when invariant checks are enabled
+		if (p && !p->need_resend) m_bytes_in_flight -= p->size - p->header_size;
+#endif
 		release_packet(std::move(p));
 	}
 
@@ -1352,6 +1360,7 @@ void utp_socket_impl::send_syn()
 			m_stalled = true;
 			m_sm.subscribe_writable(this);
 		}
+		p->need_resend = true;
 	}
 	else if (ec)
 	{
@@ -1361,11 +1370,10 @@ void utp_socket_impl::send_syn()
 		test_socket_state();
 		return;
 	}
-
-	if (!m_stalled)
-		++p->num_transmissions;
 	else
-		p->need_resend = true;
+	{
+		++p->num_transmissions;
+	}
 
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
@@ -1475,7 +1483,7 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 
 #if TORRENT_VERBOSE_UTP_LOG
 	std::string bitmask;
-	bitmask.reserve(size);
+	bitmask.reserve(std::size_t(size));
 	for (std::uint8_t const* b = ptr, *end = ptr + size; b != end; ++b)
 	{
 		unsigned char bitfield = unsigned(*b);
@@ -1620,6 +1628,7 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 			m_duplicate_acks = 0;
 			m_fast_resend_seq_nr = (pkt_seq + 1) & ACK_MASK;
 		}
+		if (m_stalled) break;
 	}
 
 	return { min_rtt, acked_bytes };
@@ -1742,6 +1751,13 @@ bool utp_socket_impl::send_pkt(int const flags)
 	INVARIANT_CHECK;
 #endif
 
+	if (m_stalled)
+	{
+		if (flags & pkt_ack)
+			defer_ack();
+		return false;
+	}
+
 	bool const force = (flags & pkt_ack) || (flags & pkt_fin);
 
 //	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT || (flags & pkt_ack));
@@ -1764,6 +1780,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			if (!force) return false;
 			// resend_packet might have failed
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return false;
+			if (m_stalled) return false;
 			break;
 		}
 
@@ -2055,9 +2072,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 		, reinterpret_cast<char const*>(h), p->size, ec
 		, p->mtu_probe ? udp_socket::dont_fragment : udp_send_flags_t{});
 
-	++m_out_packets;
-	m_sm.inc_stats_counter(counters::utp_packets_out);
-
 	if (ec == error::message_size)
 	{
 #if TORRENT_UTP_LOG
@@ -2088,11 +2102,13 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", static_cast<void*>(this));
 #endif
-		if (!m_stalled)
-		{
-			m_stalled = true;
-			m_sm.subscribe_writable(this);
-		}
+		TORRENT_ASSERT(!m_stalled);
+		m_stalled = true;
+		m_sm.subscribe_writable(this);
+
+		// If this is an ack then defer it to when the socket becomes writable again
+		if (p->size == p->header_size && (flags & pkt_ack))
+			defer_ack();
 	}
 	else if (ec)
 	{
@@ -2102,9 +2118,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 		release_packet(std::move(p));
 		return false;
 	}
-
-	if (!m_stalled)
+	else
 	{
+		++m_out_packets;
+		m_sm.inc_stats_counter(counters::utp_packets_out);
 		++p->num_transmissions;
 		// Only reset the timeout for the initial packet
 		if (m_bytes_in_flight == 0)
@@ -2164,7 +2181,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 		TORRENT_ASSERT(payload_size >= 0);
-		m_bytes_in_flight += new_in_flight;
+		if (!m_stalled) m_bytes_in_flight += new_in_flight;
 	}
 	else
 	{
@@ -2207,6 +2224,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	TORRENT_ASSERT(p->need_resend || fast_resend);
 
 	if (m_error) return false;
+	if (m_stalled) return false;
 
 	if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
 		&& m_mtu_seq != 0)
@@ -2277,9 +2295,6 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	error_code ec;
 	m_sm.send_packet(m_sock, udp::endpoint(m_remote_address, m_port)
 		, reinterpret_cast<char const*>(p->buf), p->size, ec);
-	++m_out_packets;
-	m_sm.inc_stats_counter(counters::utp_packets_out);
-
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
@@ -2297,11 +2312,11 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", static_cast<void*>(this));
 #endif
-		if (!m_stalled)
-		{
-			m_stalled = true;
-			m_sm.subscribe_writable(this);
-		}
+		TORRENT_ASSERT(!m_stalled);
+		m_stalled = true;
+		m_sm.subscribe_writable(this);
+		p->need_resend = true;
+		m_bytes_in_flight -= p->size - p->header_size;
 	}
 	else if (ec)
 	{
@@ -2310,11 +2325,12 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		test_socket_state();
 		return false;
 	}
-
-	if (!m_stalled)
-		++p->num_transmissions;
 	else
-		p->need_resend = true;
+	{
+		m_sm.inc_stats_counter(counters::utp_packets_out);
+		++m_out_packets;
+		++p->num_transmissions;
+	}
 
 	return !m_stalled;
 }
@@ -2410,7 +2426,7 @@ std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const receive
 	, std::uint16_t seq_nr)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-	INVARIANT_CHECK;
+//	INVARIANT_CHECK;
 #endif
 
 	TORRENT_ASSERT(p);
@@ -3809,6 +3825,7 @@ void utp_socket_impl::check_receive_buffers() const
 #if TORRENT_USE_INVARIANT_CHECKS
 void utp_socket_impl::check_invariant() const
 {
+	int expected_in_flight = 0;
 	for (packet_buffer::index_type i = m_outbuf.cursor();
 		i != ((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK);
 		i = (i + 1) & ACK_MASK)
@@ -3820,7 +3837,11 @@ void utp_socket_impl::check_invariant() const
 			TORRENT_ASSERT(p->mtu_probe);
 		}
 		TORRENT_ASSERT(reinterpret_cast<utp_header*>(p->buf)->seq_nr == i);
+		if (!p->need_resend) expected_in_flight += p->size - p->header_size;
+		if (p->num_transmissions == 0) TORRENT_ASSERT(p->need_resend);
 	}
+
+	TORRENT_ASSERT(expected_in_flight == m_bytes_in_flight);
 
 	if (m_nagle_packet)
 	{
