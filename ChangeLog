@@ -146,6 +146,11 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* uTP performance, fix packet loss when sending is stalled
+	* uTP performance, prevent premature timeouts/resends
+	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet
+	* uTP performance, piggy-back held back undersized packet with ACKs
+	* uTP performance, don't send redundant deferred ACKs
 	* fix wanted_done/done accounting when force-rechecking
 	* expose userdata via torrent_handle (back-port from 2.0)
 	* fix renaming of filenames that are too long for the filesystem
