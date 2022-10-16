@@ -69,7 +69,6 @@ repos:
             tools/parse_session_stats.py|
             tools/parse_utp_log.py|
             tools/run_benchmark.py|
-            tools/set_version.py|
             tools/update_copyright.py
           )$
 - repo: https://github.com/myint/autoflake
@@ -169,7 +168,6 @@ repos:
               tools/parse_session_stats.py|
               tools/parse_utp_log.py|
               tools/run_benchmark.py|
-              tools/set_version.py|
               tools/update_copyright.py
           )$
 - repo: https://gitlab.com/pycqa/flake8.git
@@ -204,7 +202,6 @@ repos:
             tools/parse_session_stats.py|
             tools/parse_utp_log.py|
             tools/run_benchmark.py|
-            tools/set_version.py|
             tools/update_copyright.py
         )$
 #- repo: local
