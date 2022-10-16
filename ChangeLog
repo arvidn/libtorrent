@@ -1,3 +1,5 @@
+2.0.8 released
+
 	* add write_torrent_file_buf() overload for generating .torrent files
 	* add create_torrent::generate_buf() function to generate into a buffer
 	* fix copy_file when the file ends with a sparse region
