@@ -2,79 +2,120 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
-import sys
-import glob
 import re
+import sys
+from typing import Callable
+from typing import Dict
+from typing import Tuple
 
-version = (int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+v = (int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
 
 
-def v(version):
-    ret = ()
+def format_fingerprint(version: Tuple[int, int, int, int]) -> str:
+    ret = ""
     for i in version:
         if i < 10:
-            ret = ret + (chr(ord('0') + i),)
+            ret += chr(ord("0") + i)
         else:
-            ret = ret + (chr(ord('A') + i - 10),)
+            ret += chr(ord("A") + i - 10)
     return ret
 
 
-revision = os.popen('git log -1 --format=format:%h').read().strip()
+def fv(v: Tuple[int, int, int, int]) -> str:
+    return f"{v[0]}.{v[1]}.{v[2]}.{v[3]}"
 
 
-def substitute_file(name):
-    subst = ''
-    f = open(name)
-    for line in f:
-        if 'constexpr int version_major = ' in line and name.endswith('.hpp'):
-            line = '\tconstexpr int version_major = %d;\n' % version[0]
-        elif 'constexpr int version_minor = ' in line and name.endswith('.hpp'):
-            line = '\tconstexpr int version_minor = %d;\n' % version[1]
-        elif 'constexpr int version_tiny = ' in line and name.endswith('.hpp'):
-            line = '\tconstexpr int version_tiny = %d;\n' % version[2]
-        elif 'constexpr std::uint64_t version_revision = ' in line and name.endswith('.hpp'):
-            line = '\tconstexpr std::uint64_t version_revision = 0x%s;\n' % revision
-        elif 'constexpr char const* version_str = ' in line and name.endswith('.hpp'):
-            line = '\tconstexpr char const* version_str = "%d.%d.%d.%d";\n' \
-                % (version[0], version[1], version[2], version[3])
-        elif '#define LIBTORRENT_VERSION_MAJOR' in line and name.endswith('.hpp'):
-            line = '#define LIBTORRENT_VERSION_MAJOR %d\n' % version[0]
-        elif '#define LIBTORRENT_VERSION_MINOR' in line and name.endswith('.hpp'):
-            line = '#define LIBTORRENT_VERSION_MINOR %d\n' % version[1]
-        elif '#define LIBTORRENT_VERSION_TINY' in line and name.endswith('.hpp'):
-            line = '#define LIBTORRENT_VERSION_TINY %d\n' % version[2]
-        elif '#define LIBTORRENT_VERSION ' in line and name.endswith('.hpp'):
-            line = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
-        elif '#define LIBTORRENT_REVISION ' in line and name.endswith('.hpp'):
-            line = '#define LIBTORRENT_REVISION "%s"\n' % revision
-        elif 'AC_INIT([libtorrent-rasterbar]' in line and name.endswith('.ac'):
-            line = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@libtorrent.org],\n' % (
-                version[0], version[1], version[2])
-        elif 'set (VERSION ' in line and name.endswith('.txt'):
-            line = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
-        elif ':Version: ' in line and (name.endswith('.rst') or name.endswith('.py')):
-            line = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
-        elif line.startswith('VERSION = ') and name.endswith('Jamfile'):
-            line = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
-        elif 'VERSION=' in line and name.endswith('Makefile'):
-            line = 'VERSION=%d.%d.%d\n' % (version[0], version[1], version[2])
-        elif 'version=' in line and name.endswith('setup.py'):
-            line = '    version="%d.%d.%d",\n' % (version[0], version[1], version[2])
-        elif '"-LT' in line and name.endswith('settings_pack.cpp'):
-            line = re.sub('"-LT[0-9A-Za-z]{4}-"', '"-LT%c%c%c%c-"' % v(version), line)
-
-        subst += line
-
-    f.close()
-    open(name, 'w+').write(subst)
+rev = os.popen("git log -1 --format=format:%h").read().strip()
 
 
-substitute_file('include/libtorrent/version.hpp')
-substitute_file('Makefile')
-substitute_file('CMakeLists.txt')
-substitute_file('bindings/python/setup.py')
-substitute_file('docs/gen_reference_doc.py')
-substitute_file('src/settings_pack.cpp')
-for i in glob.glob('docs/*.rst'):
-    substitute_file(i)
-substitute_file('Jamfile')
+def substitute_file(name: str, subs: Dict[str, Callable[[str], str]]) -> None:
+    subst = ""
+    with open(name) as f:
+        for line in f:
+            for match, sub in subs.items():
+                if match in line:
+                    line = sub(line)
+            subst += line
+
+    with open(name, "w+") as f:
+        f.write(subst)
+
+
+tab = "\t"
+nl = "\n"
+
+substitute_file(
+    "include/libtorrent/version.hpp",
+    {
+        "constexpr int version_major = ":
+            lambda ln: f"{tab}constexpr int version_major = {v[0]};{nl}",
+        "constexpr int version_minor = ":
+            lambda ln: f"{tab}constexpr int version_minor = {v[1]};{nl}",
+        "constexpr int version_tiny = ":
+            lambda ln: f"{tab}constexpr int version_tiny = {v[2]};{nl}",
+        "constexpr std::uint64_t version_revision = ":
+            lambda ln: f"{tab}constexpr std::uint64_t version_revision = 0x{rev};{nl}",
+        "constexpr char const* version_str = ":
+            lambda ln: f'{tab}constexpr char const* version_str = "{fv(v)}";{nl}',
+        "#define LIBTORRENT_VERSION_MAJOR":
+            lambda ln: f"#define LIBTORRENT_VERSION_MAJOR {v[0]}{nl}",
+        "#define LIBTORRENT_VERSION_MINOR":
+            lambda ln: f"#define LIBTORRENT_VERSION_MINOR {v[1]}{nl}",
+        "#define LIBTORRENT_VERSION_TINY":
+            lambda ln: f"#define LIBTORRENT_VERSION_TINY {v[2]}{nl}",
+        "#define LIBTORRENT_VERSION ":
+            lambda ln: f'#define LIBTORRENT_VERSION "{fv(v)}"{nl}',
+        "#define LIBTORRENT_REVISION ":
+            lambda ln: f'#define LIBTORRENT_REVISION "{rev}"{nl}',
+    },
+)
+
+substitute_file(
+    "Makefile",
+    {
+        "VERSION=": lambda ln: f"VERSION={v[0]}.{v[1]}.{v[2]}{nl}",
+    },
+)
+
+substitute_file(
+    "bindings/python/setup.cfg",
+    {
+        "version = ": lambda ln: f"version = {v[0]}.{v[1]}.{v[2]}{nl}",
+    },
+)
+substitute_file(
+    "src/settings_pack.cpp",
+    {
+        '"-LT': lambda ln: re.sub(
+            '"-LT[0-9A-Za-z]{4}-"', f'"-LT{format_fingerprint(v)}-"', ln
+        ),
+    },
+)
+substitute_file(
+    "test/test_settings_pack.cpp",
+    {
+        '"libtorrent/': lambda ln: re.sub(
+            '"libtorrent/\\d+\\.\\d+\\.\\d+\\.\\d+"',
+            f'"libtorrent/{v[0]}.{v[1]}.{v[2]}.{v[3]}"', ln
+        ),
+    },
+)
+substitute_file(
+    "docs/header.rst",
+    {
+        ":Version: ": lambda ln: f":Version: {v[0]}.{v[1]}.{v[2]}{nl}",
+    },
+)
+substitute_file(
+    "docs/hunspell/libtorrent.dic",
+    {
+        "LT": lambda ln: re.sub(
+            "LT[0-9A-Za-z]{4}", f"LT{format_fingerprint(v)}", ln),
+    },
+)
+substitute_file(
+    "Jamfile",
+    {
+        "VERSION = ": lambda ln: f"VERSION = {v[0]}.{v[1]}.{v[2]} ;{nl}",
+    },
+)

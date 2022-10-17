@@ -337,8 +337,8 @@ rule building ( properties * )
 		result += <build>no ;
 	}
 
-	local VERSION = [ feature.get-values <cxxstd> : $(properties) ] ;
-	if ! $(VERSION) || $(VERSION) < 17
+	local CXXVER = [ feature.get-values <cxxstd> : $(properties) ] ;
+	if ! $(CXXVER) || $(CXXVER) < 17
 	{
 		ECHO "libtorrent requires at least C++17. Specify cxxstd=17 or higher" ;
 		result += <build>no ;

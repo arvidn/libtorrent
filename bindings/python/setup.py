@@ -25,6 +25,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 import warnings
 
 import setuptools
@@ -35,6 +36,25 @@ def b2_bool(value: bool) -> str:
     if value:
         return "on"
     return "off"
+
+
+def b2_version() -> Tuple[int, ...]:
+    # NB: b2 --version returns exit status 1
+    proc = subprocess.run(
+        ["b2", "--version"], stdout=subprocess.PIPE, universal_newlines=True
+    )
+    # Expected output examples:
+    #   Boost.Build 2015.07-git
+    #   B2 4.3-git
+    m = re.match(r".*\s([\d\.]+).*", proc.stdout)
+    assert m is not None, f"{proc.stdout} doesn't match expected output"
+    result = tuple(int(part) for part in re.split(r"\.", m.group(1)))
+    # Boost 1.71 changed from YYYY.MM to version 4.0. Return an "epoch" as the first
+    # part of the tuple to distinguish these version patterns.
+    if result[0] > 1999:
+        return (0, *result)
+    else:
+        return (1, *result)
 
 
 # Frustratingly, the "bdist_*" unconditionally (re-)run "build" without
@@ -217,8 +237,14 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
         (
             "cxxstd=",
             None,
-            "(DEPRECATED; use --b2-args=cxxstd=...) "
             "boost cxxstd value (14, 17, 20, etc.)",
+        ),
+        (
+            "configure-from-autotools",
+            None,
+            "(DEPRECATED) "
+            "when in --config-mode=distutils, also apply cxxflags= and linkflags= "
+            "based on files generated from autotools",
         ),
     ]
 
@@ -239,6 +265,10 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         self._b2_args_split: List[str] = []
         self._b2_args_configured: Set[str] = set()
+
+        self._b2_version = b2_version()
+
+        log.info("b2 version: %s", self._b2_version)
 
         super().initialize_options()
 
@@ -398,6 +428,8 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
 
         # We use a "project-config.jam" to instantiate a python environment
         # to exactly match the running one.
+        # Don't create project-config.jam if the user specified
+        # --b2-args=--project-config=..., or has an existing project-config.jam.
         config_writers: List[Callable[[IO[str]], None]] = []
         if self._should_add_arg("--project-config"):
             if self._maybe_add_arg(f"python={sysconfig.get_python_version()}"):
@@ -448,7 +480,8 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
                 # If we errored while writing config, windows may complain about
                 # unlinking a file "in use"
                 config.close()
-                os.unlink(config.name)
+                with contextlib.suppress(FileNotFoundError):
+                    os.unlink(config.name)
         else:
             yield
 
@@ -476,7 +509,6 @@ def find_all_files(path: str) -> Iterator[str]:
 
 setuptools.setup(
     name="libtorrent",
-    version="2.1.0",
     author="Arvid Norberg",
     author_email="arvid@libtorrent.org",
     description="Python bindings for libtorrent-rasterbar",
