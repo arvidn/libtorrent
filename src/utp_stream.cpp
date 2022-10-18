@@ -2145,9 +2145,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_deferred_ack = false;
 		}
 	}
-	// If this is an ack then defer it to when the socket becomes writable again
-	else if (p->size == p->header_size && (flags & pkt_ack))
-		defer_ack();
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
