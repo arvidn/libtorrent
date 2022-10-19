@@ -3023,6 +3023,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// After that has happened we know the remote side has all our
 			// data, and we can gracefully shut down.
 
+			// we should still ack any incoming data to prevent potential
+			// timeouts/resends at the other end
+			if (ph->get_type() == ST_DATA) defer_ack();
+
 			if (consume_incoming_data(ph, ptr, payload_size, receive_time))
 			{
 				break;
