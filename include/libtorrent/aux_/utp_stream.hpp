@@ -877,7 +877,9 @@ private:
 	std::uint16_t m_ack_nr = 0;
 
 	// the sequence number of the next packet
-	// we'll send
+	// we'll send. when we're closing the connection
+	// this becomes the sequence number of the ST_FIN packet
+	// and will no longer increase
 	std::uint16_t m_seq_nr = 0;
 
 	// this is the sequence number of the packet that
