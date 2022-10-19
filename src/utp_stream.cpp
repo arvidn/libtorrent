@@ -978,9 +978,12 @@ void utp_socket_impl::writable()
 	m_stalled = false;
 	if (should_delete()) return;
 
+	// this handles the case where send_fin() was called while stalled
+	if (state() == state_t::fin_sent && m_outbuf.at(m_seq_nr) == nullptr)
+		send_pkt(pkt_fin);
 	// if the socket stalled while sending an ack then there will be a
 	// pending deferred ack. make sure it gets sent out
-	if (!m_deferred_ack || send_pkt(pkt_ack))
+	else if (!m_deferred_ack || send_pkt(pkt_ack))
 		while(send_pkt());
 
 	maybe_trigger_send_callback();
