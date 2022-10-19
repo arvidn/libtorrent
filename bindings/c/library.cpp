@@ -151,6 +151,7 @@ TORRENT_EXPORT void* session_create(int tag, ...)
 
 		tag = va_arg(lp, int);
 	}
+	va_end(lp);
 
 	if (listen_range.first != -1 && (listen_range.second == -1
 		|| listen_range.second < listen_range.first))
@@ -253,6 +254,7 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 
 		tag = va_arg(lp, int);
 	}
+	va_end(lp);
 
 	if (!params.ti && torrent_data && torrent_size)
 		params.ti.reset(new (std::nothrow) torrent_info(torrent_data, torrent_size));
@@ -392,6 +394,7 @@ TORRENT_EXPORT int session_set_settings(void* ses, int tag, ...)
 
 		tag = va_arg(lp, int);
 	}
+	va_end(lp);
 	return 0;
 }
 
@@ -490,7 +493,7 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 	s->state = (state_t)ts.state;
 	s->paused = ts.paused;
 	s->progress = ts.progress;
-	strncpy(s->error, ts.error.c_str(), 1025);
+	strncpy(s->error, ts.error.c_str(), 1024);
 	s->next_announce = lt::total_seconds(ts.next_announce);
 	s->announce_interval = lt::total_seconds(ts.announce_interval);
 	strncpy(s->current_tracker, ts.current_tracker.c_str(), 512);
@@ -574,6 +577,7 @@ TORRENT_EXPORT int torrent_set_settings(int tor, int tag, ...)
 
 		tag = va_arg(lp, int);
 	}
+	va_end(lp);
 	return 0;
 }
 
