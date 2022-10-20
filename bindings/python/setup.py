@@ -7,7 +7,6 @@ import distutils.command.install_data as install_data_lib
 import distutils.debug
 import distutils.errors
 import distutils.sysconfig
-import distutils.util
 import functools
 import itertools
 import os
@@ -243,13 +242,6 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             None,
             "boost cxxstd value (14, 17, 20, etc.)",
         ),
-        (
-            "configure-from-autotools",
-            None,
-            "(DEPRECATED) "
-            "when in --config-mode=distutils, also apply cxxflags= and linkflags= "
-            "based on files generated from autotools",
-        ),
     ]
 
     boolean_options = build_ext_lib.build_ext.boolean_options + ["pic", "hash"]
@@ -336,8 +328,14 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             warnings.warn("--hash is deprecated; use --b2-args=--hash")
             self._maybe_add_arg("--hash")
         if self.cxxstd:
-            warnings.warn("--cxxstd is deprecated; use --b2-args=cxxstd=...")
-            self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+            # the cxxstd feature was introduced in boost 1.66. However the output of
+            # b2 --version is 2015.07 for both 1.65 and 1.66.
+            if self._b2_version > (0, 2015, 7):
+                self._maybe_add_arg(f"cxxstd={self.cxxstd}")
+            else:
+                warnings.warn(
+                    f"--cxxstd supplied, but b2 is too old ({self._b2_version}). "
+                )
 
     def _should_add_arg(self, arg: str) -> bool:
         m = re.match(r"(-\w).*", arg)
