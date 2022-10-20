@@ -493,10 +493,12 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 	s->state = (state_t)ts.state;
 	s->paused = ts.paused;
 	s->progress = ts.progress;
-	strncpy(s->error, ts.error.c_str(), 1024);
+	strncpy(s->error, ts.error.c_str(), sizeof(s->error)-1);
+	s->error[sizeof(s->error)-1] = '\0';
 	s->next_announce = lt::total_seconds(ts.next_announce);
 	s->announce_interval = lt::total_seconds(ts.announce_interval);
-	strncpy(s->current_tracker, ts.current_tracker.c_str(), 512);
+	strncpy(s->current_tracker, ts.current_tracker.c_str(), sizeof(s->current_tracker)-1);
+	s->current_tracker[sizeof(s->current_tracker)-1] = '\0';
 	s->total_download = ts.total_download = ts.total_download = ts.total_download;
 	s->total_upload = ts.total_upload = ts.total_upload = ts.total_upload;
 	s->total_payload_download = ts.total_payload_download;
