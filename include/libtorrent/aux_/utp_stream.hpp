@@ -228,6 +228,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	void add_read_buffer(void* buf, int len);
 	void issue_read();
 	void add_write_buffer(void const* buf, int len);
+	bool check_fin_sent() const;
 	void issue_write();
 	std::size_t read_some(bool clear_buffers);
 	std::size_t write_some(bool clear_buffers);
@@ -355,6 +356,13 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return 0;
 		}
 
+		if (check_fin_sent())
+		{
+			// we can't send more data after closing the socket
+			ec = boost::asio::error::broken_pipe;
+			return 0;
+		}
+
 		size_t buf_size = 0;
 
 		for (auto i = buffer_sequence_begin(buffers)
@@ -366,7 +374,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		}
 		std::size_t ret = write_some(true);
 		TORRENT_ASSERT(ret <= buf_size);
-		if(ret == 0 && buf_size > 0)
+		if (ret == 0 && buf_size > 0)
 		{
 			ec = boost::asio::error::would_block;
 			return 0;
@@ -411,6 +419,14 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			post(m_io_service, std::bind<void>(std::move(handler)
 				, boost::asio::error::operation_not_supported, std::size_t(0)));
+			return;
+		}
+
+		if (check_fin_sent())
+		{
+			// we can't send more data after closing the socket
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::broken_pipe, std::size_t(0)));
 			return;
 		}
 
@@ -607,6 +623,8 @@ struct utp_socket_impl
 
 	void issue_read();
 	void issue_write();
+
+	bool check_fin_sent() const;
 
 	void do_connect(tcp::endpoint const& ep);
 

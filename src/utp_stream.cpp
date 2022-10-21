@@ -450,6 +450,12 @@ void utp_stream::add_write_buffer(void const* buf, int const len)
 	m_impl->add_write_buffer(buf, len);
 }
 
+bool utp_stream::check_fin_sent() const
+{
+	TORRENT_ASSERT(m_impl);
+	return m_impl->check_fin_sent();
+}
+
 // this is called when all user provided read buffers have been added
 // and it's time to execute the async operation. The first thing we
 // do is to copy any data stored in m_receive_buffer into the user
@@ -658,6 +664,11 @@ void utp_socket_impl::issue_write()
 	while (send_pkt());
 
 	maybe_trigger_send_callback();
+}
+
+bool utp_socket_impl::check_fin_sent() const
+{
+	return state() == state_t::fin_sent;
 }
 
 std::size_t utp_socket_impl::write_some(bool const clear_buffers)
@@ -1369,6 +1380,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 	int const header_size = int(sizeof(utp_header))
 		+ (sack ? sack + 2 : 0)
 		+ (close_reason ? 6 : 0);
+
+	// once we're in fin-sent mode, the write buffer should not be re-filled
+	// although, we may re-send packets, but those live in m_outbuf
+	TORRENT_ASSERT(state() != state_t::fin_sent || m_write_buffer_size == 0);
 
 	int payload_size = std::min(m_write_buffer_size
 		, effective_mtu - header_size);

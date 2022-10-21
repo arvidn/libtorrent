@@ -25,7 +25,7 @@ test-command = [
 [tool.cibuildwheel.macos.environment]
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
-BOOST_VERSION = "1.76.0"
+BOOST_VERSION = "1.80.0"
 MACOSX_DEPLOYMENT_TARGET = "10.14"  # required for full C++17 support
 PATH = "/tmp/boost:$PATH"
 
@@ -48,7 +48,7 @@ test-command = [
 [tool.cibuildwheel.overrides.environment]  # sub-table of previous block!
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
-BOOST_VERSION = "1.76.0"
+BOOST_VERSION = "1.80.0"
 PATH = "/usr/local/ccache/bin:/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
@@ -92,7 +92,7 @@ test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip insta
 [tool.cibuildwheel.windows.environment]
 BOOST_BUILD_PATH = 'c:/boost/tools/build'
 BOOST_ROOT = 'c:/boost'
-BOOST_VERSION = "1.76.0"
+BOOST_VERSION = "1.80.0"
 PATH = 'c:/boost;$PATH'
 
 [tool.isort]
