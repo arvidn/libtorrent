@@ -1,3 +1,5 @@
+1.2.18 released
+
 	* fix issue where stop-when-ready would not close files
 	* uTP performance, fix packet loss when sending is stalled
 	* uTP performance, prevent premature timeouts/resends
