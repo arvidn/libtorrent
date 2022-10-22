@@ -255,7 +255,7 @@ void test_udp_tracker(std::uint32_t const flags, socks_flags_t const sflags)
 				}
 				else
 				{
-					std::printf("unsupported udp tracker action: %d\n", action);
+					std::printf("unsupported udp tracker action: %u\n", action);
 				}
 				return ret;
 			});

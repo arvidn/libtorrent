@@ -951,7 +951,7 @@ TORRENT_TEST(pex)
 						lt::duration_cast<lt::milliseconds>(d).count());
 
 					if (i == 0) {
-					std::printf("%4d.%03d: %-25s %s\n"
+					std::printf("%4u.%03u: %-25s %s\n"
 						, millis / 1000, millis % 1000
 						, a->what()
 						, a->message().c_str());
