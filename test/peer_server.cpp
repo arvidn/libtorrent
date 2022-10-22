@@ -119,7 +119,6 @@ struct peer_server
 			error_code ec;
 			tcp::endpoint from;
 			tcp::socket socket(m_ios);
-			std::condition_variable cond;
 			bool done = false;
 			m_acceptor.async_accept(socket, from, std::bind(&new_connection, _1, &ec, &done));
 			while (!done)

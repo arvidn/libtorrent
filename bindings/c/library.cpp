@@ -259,7 +259,6 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 	if (!params.ti && torrent_data && torrent_size)
 		params.ti.reset(new (std::nothrow) torrent_info(torrent_data, torrent_size));
 
-	std::vector<char> rd;
 	if (resume_data && resume_size)
 	{
 		params.resume_data.assign(resume_data, resume_data + resume_size);
