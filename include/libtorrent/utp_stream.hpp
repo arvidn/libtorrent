@@ -166,7 +166,7 @@ bool utp_incoming_packet(utp_socket_impl* s, span<char const> p
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 std::uint16_t utp_receive_id(utp_socket_impl* s);
-int utp_socket_state(utp_socket_impl const* s);
+bool check_fin_sent(utp_socket_impl const* s);
 void utp_send_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
 void utp_writable(utp_socket_impl* s);
@@ -464,6 +464,14 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			m_io_service.post(std::bind<void>(handler
 				, boost::asio::error::operation_not_supported, std::size_t(0)));
+			return;
+		}
+
+		if (check_fin_sent(m_impl))
+		{
+			// we can't send more data after closing the socket
+			m_io_service.post(std::bind<void>(handler
+				, boost::asio::error::broken_pipe, std::size_t(0)));
 			return;
 		}
 
