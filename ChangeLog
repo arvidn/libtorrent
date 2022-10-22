@@ -150,6 +150,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix issue where stop-when-ready would not close files
 	* uTP performance, fix packet loss when sending is stalled
 	* uTP performance, prevent premature timeouts/resends
 	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet
