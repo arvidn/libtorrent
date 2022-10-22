@@ -160,7 +160,7 @@ struct udp_tracker
 				std::printf("%s: UDP scrape (ignored)\n", time_now_string().c_str());
 				break;
 			default:
-				std::printf("%s: UDP unknown message: %d\n", time_now_string().c_str()
+				std::printf("%s: UDP unknown message: %u\n", time_now_string().c_str()
 					, action);
 				break;
 		}

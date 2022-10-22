@@ -134,7 +134,7 @@ TORRENT_TEST(optimistic_unchoke)
 					lt::time_duration d = lt::clock_type::now() - start_time;
 					std::uint32_t const millis = std::uint32_t(
 						lt::duration_cast<lt::milliseconds>(d).count());
-					printf("\x1b[35m%4d.%03d: [%d] %s (%d ms)\x1b[0m\n"
+					printf("\x1b[35m%4u.%03u: [%d] %s (%d ms)\x1b[0m\n"
 						, millis / 1000, millis % 1000, i, msg_str[msg]
 						, int(lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count()));
 				}
