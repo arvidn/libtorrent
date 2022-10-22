@@ -110,7 +110,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 	TEST_CHECK(st.state != torrent_status::checking_files
-		&& st.state != torrent_status::checking_files);
+		&& st.state != torrent_status::checking_resume_data);
 	TEST_CHECK(st.num_pieces == 0);
 
 	// write pieces
