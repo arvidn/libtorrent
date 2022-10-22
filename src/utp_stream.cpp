@@ -755,9 +755,9 @@ void utp_socket_impl::update_mtu_limits()
 	m_mtu_seq = 0;
 }
 
-int utp_socket_state(utp_socket_impl const* s)
+bool check_fin_sent(utp_socket_impl const* s)
 {
-	return s->m_state;
+	return s->m_state == utp_socket_impl::UTP_STATE_FIN_SENT;
 }
 
 int utp_stream::send_delay() const
@@ -1825,6 +1825,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 	int const header_size = int(sizeof(utp_header))
 		+ (sack ? sack + 2 : 0)
 		+ (close_reason ? 6 : 0);
+
+	// once we're in fin-sent mode, the write buffer should not be re-filled
+	// although, we may re-send packets, but those live in m_outbuf
+	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT || m_write_buffer_size == 0);
 
 	int payload_size = std::min(m_write_buffer_size
 		, effective_mtu - header_size);
