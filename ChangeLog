@@ -1,7 +1,7 @@
-	* fix uTP streams timing out instead of closing cleanly
 
 2.0.8 released
 
+	* fix uTP streams timing out instead of closing cleanly
 	* add write_torrent_file_buf() overload for generating .torrent files
 	* add create_torrent::generate_buf() function to generate into a buffer
 	* fix copy_file when the file ends with a sparse region
