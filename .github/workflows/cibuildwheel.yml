@@ -71,9 +71,9 @@ jobs:
     - id: set-matrix
       run: |
         if [ $GITHUB_EVENT_NAME == "pull_request" ]; then
-          echo ::set-output name=matrix::$(echo $MATRIX_PULL_REQUEST | jq -c)
+          echo "matrix=$(echo $MATRIX_PULL_REQUEST | jq -c)" >> "$GITHUB_OUTPUT"
         else
-          echo ::set-output name=matrix::$(echo $MATRIX_WORKFLOW_DISPATCH | jq -c)
+          echo "matrix=$(echo $MATRIX_WORKFLOW_DISPATCH | jq -c)" >> "$GITHUB_OUTPUT"
         fi
 
   build_wheels:
