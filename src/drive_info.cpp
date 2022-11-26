@@ -243,6 +243,7 @@ drive_info get_drive_info(std::string const& path)
 		if (dev.handle() == INVALID_HANDLE_VALUE)
 			continue;
 
+#if _WIN32_WINNT >= 0x601
 		STORAGE_PROPERTY_QUERY query{};
 		query.PropertyId = StorageDeviceSeekPenaltyProperty;
 		query.QueryType = PropertyExistsQuery;
@@ -262,6 +263,7 @@ drive_info get_drive_info(std::string const& path)
 		{
 			seek_penalty = false;
 		}
+#endif
 	}
 	if (seek_penalty && !*seek_penalty)
 		return drive_info::ssd_disk;
