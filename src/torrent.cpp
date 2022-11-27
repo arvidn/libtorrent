@@ -7146,22 +7146,15 @@ namespace {
 		alerts().emplace_alert<peer_info_alert>(get_handle(), std::move(v));
 	}
 
-	void torrent::get_download_queue(std::vector<partial_piece_info>* queue) const
+namespace {
+	void initialize_piece_info(piece_picker const& p
+		, torrent_info const& ti
+		, int const block_size
+		, std::vector<block_info>& blk
+		, span<piece_picker::downloading_piece const> q
+		, std::vector<partial_piece_info>* queue)
 	{
-		TORRENT_ASSERT(is_single_thread());
-		queue->clear();
-		std::vector<block_info>& blk = m_ses.block_info_storage();
-		blk.clear();
-
-		if (!valid_metadata() || !has_picker()) return;
-		piece_picker const& p = picker();
-		std::vector<piece_picker::downloading_piece> q
-			= p.get_download_queue();
-		if (q.empty()) return;
-
-		const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
-		blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
-
+		const int blocks_per_piece = p.blocks_in_piece(piece_index_t(0));
 		int counter = 0;
 		for (auto i = q.begin(); i != q.end(); ++i, ++counter)
 		{
@@ -7176,16 +7169,16 @@ namespace {
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			block_info* blocks = &blk[std::size_t(counter * blocks_per_piece)];
 			pi.blocks = blocks;
-			int const piece_size = torrent_file().piece_size(i->index);
+			int const piece_size = ti.piece_size(i->index);
 			int idx = -1;
-			for (auto const& info : m_picker->blocks_for_piece(*i))
+			for (auto const& info : p.blocks_for_piece(*i))
 			{
 				++idx;
 				block_info& bi = blocks[idx];
 				bi.state = info.state;
 				bi.block_size = idx < pi.blocks_in_piece - 1
-					? aux::numeric_cast<std::uint32_t>(block_size())
-					: aux::numeric_cast<std::uint32_t>(piece_size - (idx * block_size()));
+					? aux::numeric_cast<std::uint32_t>(block_size)
+					: aux::numeric_cast<std::uint32_t>(piece_size - (idx * block_size));
 				bool const complete = bi.state == block_info::writing
 					|| bi.state == block_info::finished;
 				if (info.peer == nullptr)
@@ -7232,7 +7225,42 @@ namespace {
 			pi.piece_index = i->index;
 			queue->push_back(pi);
 		}
+	}
+}
 
+	void torrent::post_download_queue()
+	{
+		std::vector<block_info> blk;
+		if (!valid_metadata() || !has_picker()) return;
+		piece_picker const& p = picker();
+		std::vector<piece_picker::downloading_piece> const q = p.get_download_queue();
+		std::vector<partial_piece_info> queue;
+		if (!q.empty())
+		{
+			const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
+			blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
+			initialize_piece_info(p, torrent_file(), block_size(), blk, q, &queue);
+		}
+		alerts().emplace_alert<piece_info_alert>(get_handle(), std::move(queue), std::move(blk));
+	}
+
+	void torrent::get_download_queue(std::vector<partial_piece_info>* queue) const
+	{
+		TORRENT_ASSERT(is_single_thread());
+		queue->clear();
+		std::vector<block_info>& blk = m_ses.block_info_storage();
+		blk.clear();
+
+		if (!valid_metadata() || !has_picker()) return;
+		piece_picker const& p = picker();
+		std::vector<piece_picker::downloading_piece> q
+			= p.get_download_queue();
+		if (q.empty()) return;
+
+		const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
+		blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
+
+		initialize_piece_info(p, torrent_file(), block_size(), blk, q, queue);
 	}
 
 #if defined TORRENT_SSL_PEERS

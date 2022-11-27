@@ -920,6 +920,8 @@ struct client_state_t
 	std::deque<std::string> events;
 	std::vector<lt::peer_info> peers;
 	std::vector<std::int64_t> file_progress;
+	std::vector<lt::partial_piece_info> download_queue;
+	std::vector<lt::block_info> download_queue_block_info;
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -947,6 +949,17 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 			client_state.file_progress = std::move(p->files);
 		return true;
 	}
+
+	if (auto* p = alert_cast<piece_info_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+		{
+			client_state.download_queue = std::move(p->piece_info);
+			client_state.download_queue_block_info = std::move(p->block_data);
+		}
+		return true;
+	}
+
 
 #ifndef TORRENT_DISABLE_DHT
 	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
@@ -1356,7 +1369,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}, {}, {}
+		view, ses_view, {}, {}, {}, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -1640,6 +1653,8 @@ int main(int argc, char* argv[])
 					{
 						client_state.peers.clear();
 						client_state.file_progress.clear();
+						client_state.download_queue.clear();
+						client_state.download_queue_block_info.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
@@ -1647,6 +1662,8 @@ int main(int argc, char* argv[])
 					{
 						client_state.peers.clear();
 						client_state.file_progress.clear();
+						client_state.download_queue.clear();
+						client_state.download_queue_block_info.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -2049,10 +2066,10 @@ done:
 
 			if (print_downloads)
 			{
-				std::vector<lt::partial_piece_info> queue = h.get_download_queue();
+				h.post_download_queue();
 
 				int p = 0; // this is horizontal position
-				for (lt::partial_piece_info const& i : queue)
+				for (lt::partial_piece_info const& i : client_state.download_queue)
 				{
 					if (pos + 3 >= terminal_height) break;
 

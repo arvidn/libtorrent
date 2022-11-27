@@ -880,6 +880,11 @@ namespace libtorrent {
 		return queue;
 	}
 
+	void torrent_handle::post_download_queue() const
+	{
+		async_call(&torrent::post_download_queue);
+	}
+
 	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline
 		, deadline_flags_t const flags) const
 	{
