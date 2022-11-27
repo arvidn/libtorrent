@@ -913,16 +913,22 @@ int save_file(std::string const& filename, std::vector<char> const& v)
 	return !f.fail();
 }
 
+struct client_state_t
+{
+	torrent_view& view;
+	session_view& ses_view;
+	std::deque<std::string> events;
+};
+
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
-bool handle_alert(torrent_view& view, session_view& ses_view
-	, lt::session&, lt::alert* a)
+bool handle_alert(client_state_t& client_state, lt::alert* a)
 {
 	using namespace lt;
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
-		ses_view.update_counters(s->counters(), s->timestamp());
+		client_state.ses_view.update_counters(s->counters(), s->timestamp());
 		return !stats_enabled;
 	}
 
@@ -1082,13 +1088,13 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 
 	if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
-		view.update_torrents(std::move(p->status));
+		client_state.view.update_torrents(std::move(p->status));
 		return true;
 	}
 
 	if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a))
 	{
-		view.remove_torrent(std::move(p->handle));
+		client_state.view.remove_torrent(std::move(p->handle));
 	}
 	return false;
 
@@ -1098,20 +1104,19 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 
 }
 
-void pop_alerts(torrent_view& view, session_view& ses_view
-	, lt::session& ses, std::deque<std::string>& events)
+void pop_alerts(client_state_t& client_state, lt::session& ses)
 {
 	std::vector<lt::alert*> alerts;
 	ses.pop_alerts(&alerts);
 	for (auto a : alerts)
 	{
-		if (::handle_alert(view, ses_view, ses, a)) continue;
+		if (::handle_alert(client_state, a)) continue;
 
 		// if we didn't handle the alert, print it to the log
 		std::string event_string;
 		print_alert(a, event_string);
-		events.push_back(event_string);
-		if (events.size() >= 20) events.pop_front();
+		client_state.events.push_back(event_string);
+		if (client_state.events.size() >= 20) client_state.events.pop_front();
 	}
 }
 
@@ -1334,7 +1339,9 @@ int main(int argc, char* argv[])
 	lt::time_duration refresh_delay = lt::milliseconds(500);
 	bool rate_limit_locals = false;
 
-	std::deque<std::string> events;
+	client_state_t client_state{
+		view, ses_view, {}
+	};
 	int loop_limit = -1;
 
 	lt::time_point next_dir_scan = lt::clock_type::now();
@@ -1854,7 +1861,7 @@ COLUMN OPTIONS
 			}
 		}
 
-		pop_alerts(view, ses_view, ses, events);
+		pop_alerts(client_state, ses);
 
 		std::string out;
 
@@ -2137,7 +2144,7 @@ done:
 
 		if (print_log)
 		{
-			for (auto const& e : events)
+			for (auto const& e : client_state.events)
 			{
 				if (pos + 1 >= terminal_height) break;
 				out += e;
@@ -2181,7 +2188,7 @@ done:
 		if ((idx % 32) == 0)
 		{
 			std::printf("\r%d  ", num_outstanding_resume_data);
-			pop_alerts(view, ses_view, ses, events);
+			pop_alerts(client_state, ses);
 		}
 	}
 	std::printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
@@ -2190,7 +2197,7 @@ done:
 	{
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == nullptr) continue;
-		pop_alerts(view, ses_view, ses, events);
+		pop_alerts(client_state, ses);
 	}
 
 	if (g_log_file) std::fclose(g_log_file);
