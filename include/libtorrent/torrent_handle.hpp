@@ -319,11 +319,19 @@ namespace aux {
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 #endif
 
-		// takes a reference to a vector that will be cleared and filled with one
-		// entry for each peer connected to this torrent, given the handle is
-		// valid. If the torrent_handle is invalid, it will throw
-		// system_error exception. Each entry in the vector contains
-		// information about that particular peer. See peer_info.
+		// Query information about connected peers for this torrent. If the
+		// torrent_handle is invalid, it will throw a system_error exception.
+		//
+		// ``post_peer_info()`` is asynchronous and will trigger the posting of
+		// a peer_info_alert. The alert contain a list of peer_info objects, one
+		// for each connected peer.
+		//
+		// ``get_peer_info()`` is synchronous and takes a reference to a vector
+		// that will be cleared and filled with one entry for each peer
+		// connected to this torrent, given the handle is valid. Each entry in
+		// the vector contains information about that particular peer. See
+		// peer_info.
+		void post_peer_info() const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 
 		// calculates ``distributed_copies``, ``distributed_full_copies`` and

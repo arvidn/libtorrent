@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp" // for event_t
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/client_data.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_info
 #include "libtorrent/aux_/deprecated.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -98,7 +99,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 100;
+	constexpr int num_alert_types = 101;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -3031,6 +3032,21 @@ TORRENT_VERSION_NAMESPACE_3_END
 		// One way to resolve the conflict is to remove both failing torrents
 		// and re-add it using this metadata
 		std::shared_ptr<torrent_info> metadata;
+	};
+
+	// posted when torrent_handle::post_peer_info() is called
+	struct TORRENT_EXPORT peer_info_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT peer_info_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<lt::peer_info> p);
+		TORRENT_DEFINE_ALERT_PRIO(peer_info_alert, 100, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::status;
+		std::string message() const override;
+
+		// the list of the currently connected peers
+		std::vector<lt::peer_info> peer_info;
 	};
 
 	// internal
