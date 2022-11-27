@@ -1,3 +1,4 @@
+	* add async download queue query, post_download_queue()
 	* add async file_progress query, post_file_progress()
 	* add async peer_info query, post_peer_info()
 

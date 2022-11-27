@@ -3024,7 +3024,7 @@ namespace {
 		"session_stats_header", "dht_sample_infohashes",
 		"block_uploaded", "alerts_dropped", "socks5",
 		"file_prio", "oversized_file", "torrent_conflict",
-		"peer_info", "file_progress"
+		"peer_info", "file_progress", "piece_info"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -3142,6 +3142,22 @@ namespace {
 #endif
 	}
 
+	piece_info_alert::piece_info_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<partial_piece_info> pi, std::vector<block_info>&& bd)
+		: torrent_alert(alloc, std::move(h))
+		, piece_info(std::move(pi))
+		, block_data(std::move(bd))
+	{}
+
+	std::string piece_info_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " piece_info";
+#endif
+	}
+
 	// this will no longer be necessary in C++17
 	constexpr alert_category_t torrent_removed_alert::static_category;
 	constexpr alert_category_t read_piece_alert::static_category;
@@ -3238,6 +3254,7 @@ namespace {
 	constexpr alert_category_t torrent_conflict_alert::static_category;
 	constexpr alert_category_t peer_info_alert::static_category;
 	constexpr alert_category_t file_progress_alert::static_category;
+	constexpr alert_category_t piece_info_alert::static_category;
 #if TORRENT_ABI_VERSION == 1
 	constexpr alert_category_t anonymous_mode_alert::static_category;
 	constexpr alert_category_t mmap_cache_alert::static_category;

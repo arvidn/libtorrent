@@ -182,6 +182,8 @@ namespace aux {
 		// .. warning:: This is a pointer that points to an array
 		//	that's owned by the session object. The next time
 		//	get_download_queue() is called, it will be invalidated.
+		//	In the case of piece_info_alert, these pointers point into the alert
+		//	object itself, and will be invalidated when the alert destruct.
 		block_info const* blocks;
 
 #if TORRENT_ABI_VERSION == 1
@@ -373,10 +375,13 @@ namespace aux {
 		// what to *include* are defined in this class.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
 
-		// ``get_download_queue()`` returns a vector with information about pieces
-		// that are partially downloaded or not downloaded but partially
-		// requested. See partial_piece_info for the fields in the returned
-		// vector.
+		// ``post_download_queue()`` triggers a download_queue_alert to be
+		// posted.
+		// ``get_download_queue()`` is a synchronous call and returns a vector
+		// with information about pieces that are partially downloaded or not
+		// downloaded but partially requested. See partial_piece_info for the
+		// fields in the returned vector.
+		void post_download_queue() const;
 		std::vector<partial_piece_info> get_download_queue() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
