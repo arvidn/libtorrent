@@ -11261,7 +11261,15 @@ namespace {
 #endif
 #endif // TORRENT_ABI_VERSION
 
-	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t const flags)
+	void torrent::post_file_progress(file_progress_flags_t const flags)
+	{
+		aux::vector<std::int64_t, file_index_t> fp;
+		file_progress(fp, flags);
+		alerts().emplace_alert<file_progress_alert>(get_handle(), std::move(fp));
+	}
+
+	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp
+		, file_progress_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())

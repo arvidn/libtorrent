@@ -469,6 +469,11 @@ namespace libtorrent {
 		return std::move(ret);
 	}
 
+	void torrent_handle::post_file_progress(file_progress_flags_t const flags) const
+	{
+		async_call(&torrent::post_file_progress, flags);
+	}
+
 	torrent_status torrent_handle::status(status_flags_t const flags) const
 	{
 		torrent_status st;
