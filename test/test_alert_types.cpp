@@ -185,10 +185,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(oversized_file_alert, 98, alert_priority::normal, alert_category::storage);
 	TEST_ALERT_TYPE(torrent_conflict_alert, 99, alert_priority::high, alert_category::error);
 	TEST_ALERT_TYPE(peer_info_alert, 100, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(file_progress_alert, 101, alert_priority::critical, alert_category::file_progress);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 101);
+	TEST_EQUAL(num_alert_types, 102);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 

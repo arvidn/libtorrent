@@ -1,3 +1,4 @@
+	* add async file_progress query, post_file_progress()
 	* add async peer_info query, post_peer_info()
 
 2.0.8 released

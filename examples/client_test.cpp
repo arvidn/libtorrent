@@ -919,6 +919,7 @@ struct client_state_t
 	session_view& ses_view;
 	std::deque<std::string> events;
 	std::vector<lt::peer_info> peers;
+	std::vector<std::int64_t> file_progress;
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -937,6 +938,13 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 	{
 		if (client_state.view.get_active_torrent().handle == p->handle)
 			client_state.peers = std::move(p->peer_info);
+		return true;
+	}
+
+	if (auto* p = alert_cast<file_progress_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+			client_state.file_progress = std::move(p->files);
 		return true;
 	}
 
@@ -1348,7 +1356,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}, {}
+		view, ses_view, {}, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -1631,12 +1639,14 @@ int main(int argc, char* argv[])
 					else if (c2 == up_arrow)
 					{
 						client_state.peers.clear();
+						client_state.file_progress.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
 					else if (c2 == down_arrow)
 					{
 						client_state.peers.clear();
+						client_state.file_progress.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -2081,14 +2091,15 @@ done:
 
 			if (print_file_progress && s.has_metadata)
 			{
-				std::vector<std::int64_t> const file_progress = h.file_progress();
+				h.post_file_progress({});
 				std::vector<lt::open_file_state> file_status = h.file_status();
 				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
 
+				auto& file_progress = client_state.file_progress;
 				int p = 0; // this is horizontal position
-				for (file_index_t i(0); i < file_index_t(ti->num_files()); ++i)
+				for (file_index_t const i : ti->files().file_range())
 				{
 					auto const idx = std::size_t(static_cast<int>(i));
 					if (pos + 1 >= terminal_height) break;
@@ -2096,9 +2107,11 @@ done:
 					bool const pad_file = ti->files().pad_file_at(i);
 					if (pad_file && !show_pad_files) continue;
 
+					if (idx >= file_progress.size()) break;
+
 					int const progress = ti->files().file_size(i) > 0
 						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
-					assert(file_progress[idx] <= ti->files().file_size(i));
+					TORRENT_ASSERT(file_progress[idx] <= ti->files().file_size(i));
 
 					bool const complete = file_progress[idx] == ti->files().file_size(i);
 

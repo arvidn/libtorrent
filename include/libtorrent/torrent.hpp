@@ -633,6 +633,7 @@ namespace libtorrent {
 		void state_updated();
 
 		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t flags);
+		void post_file_progress(file_progress_flags_t flags);
 
 #if TORRENT_ABI_VERSION == 1
 		void use_interface(std::string net_interface);

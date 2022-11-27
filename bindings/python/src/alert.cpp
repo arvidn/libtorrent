@@ -1157,6 +1157,11 @@ void bind_alert()
         "peer_info_alert", no_init)
         .add_property("peer_info", make_getter(&peer_info_alert::peer_info, by_value()))
         ;
+
+    class_<file_progress_alert, bases<torrent_alert>, noncopyable>(
+        "file_progress_alert", no_init)
+        .add_property("files", make_getter(&file_progress_alert::files, by_value()))
+        ;
 }
 
 #ifdef _MSC_VER

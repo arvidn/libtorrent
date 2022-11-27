@@ -476,6 +476,7 @@ namespace aux {
 		// already keeps track of this internally and no calculation is required.
 		void file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags = {}) const;
 		std::vector<std::int64_t> file_progress(file_progress_flags_t flags = {}) const;
+		void post_file_progress(file_progress_flags_t flags) const;
 
 		// This function returns a vector with status about files
 		// that are open for this torrent. Any file that is not open
