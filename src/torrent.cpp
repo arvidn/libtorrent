@@ -7139,6 +7139,13 @@ namespace {
 		}
 	}
 
+	void torrent::post_peer_info()
+	{
+		std::vector<peer_info> v;
+		get_peer_info(&v);
+		alerts().emplace_alert<peer_info_alert>(get_handle(), std::move(v));
+	}
+
 	void torrent::get_download_queue(std::vector<partial_piece_info>* queue) const
 	{
 		TORRENT_ASSERT(is_single_thread());

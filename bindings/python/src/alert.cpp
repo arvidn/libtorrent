@@ -1153,6 +1153,10 @@ void bind_alert()
         .add_property("metadata", make_getter(&torrent_conflict_alert::metadata, by_value()))
         ;
 
+    class_<peer_info_alert, bases<torrent_alert>, noncopyable>(
+        "peer_info_alert", no_init)
+        .add_property("peer_info", make_getter(&peer_info_alert::peer_info, by_value()))
+        ;
 }
 
 #ifdef _MSC_VER

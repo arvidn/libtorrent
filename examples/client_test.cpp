@@ -918,6 +918,7 @@ struct client_state_t
 	torrent_view& view;
 	session_view& ses_view;
 	std::deque<std::string> events;
+	std::vector<lt::peer_info> peers;
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -930,6 +931,13 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 	{
 		client_state.ses_view.update_counters(s->counters(), s->timestamp());
 		return !stats_enabled;
+	}
+
+	if (auto* p = alert_cast<peer_info_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+			client_state.peers = std::move(p->peer_info);
+		return true;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1340,7 +1348,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}
+		view, ses_view, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -1529,7 +1537,6 @@ int main(int argc, char* argv[])
 	});
 
 	// main loop
-	std::vector<lt::peer_info> peers;
 
 #ifndef _WIN32
 	signal(SIGTERM, signal_handler);
@@ -1623,11 +1630,13 @@ int main(int argc, char* argv[])
 					}
 					else if (c2 == up_arrow)
 					{
+						client_state.peers.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
 					else if (c2 == down_arrow)
 					{
+						client_state.peers.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -1941,8 +1950,9 @@ COLUMN OPTIONS
 
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
-				h.get_peer_info(peers);
+				h.post_peer_info();
 
+			auto& peers = client_state.peers;
 			if (print_peers && !peers.empty())
 			{
 				using lt::peer_info;
