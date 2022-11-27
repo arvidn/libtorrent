@@ -79,7 +79,6 @@ std::int64_t session_view::prev_value(int idx) const
 void session_view::render()
 {
 	char str[1024];
-	int pos = 0;
 
 	int y = m_position;
 
@@ -91,7 +90,7 @@ void session_view::render()
 	int const upload_rate = int((value(m_sent_idx) - prev_value(m_sent_idx))
 		/ seconds);
 
-	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
+	std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
 		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d queued-trackers: %02d%*s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
