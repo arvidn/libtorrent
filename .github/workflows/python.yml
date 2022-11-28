@@ -28,8 +28,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install boost-build boost boost-python3 python@3.10 openssl@1.1
-        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.11 openssl@1.1
+        export PATH=$(brew --prefix)/opt/python@3.11/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -110,8 +110,8 @@ jobs:
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
-        python3 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.10/site-packages
+        export PATH=$(brew --prefix)/opt/python@3.11/bin:$PATH
+        python3.11 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.11/site-packages
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
@@ -123,5 +123,5 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
-        python3 test.py
+        export PATH=$(brew --prefix)/opt/python@3.11/bin:$PATH
+        python3.11 test.py
