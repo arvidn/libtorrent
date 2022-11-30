@@ -178,6 +178,7 @@ set(libtorrent_aux_include_files
 	ffs.hpp
 	file.hpp
 	file_descriptor.hpp
+	file_entry.hpp
 	file_progress.hpp
 	file_view_pool.hpp
 	file_pool.hpp

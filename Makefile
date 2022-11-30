@@ -569,6 +569,7 @@ HEADERS = \
   aux_/ffs.hpp                      \
   aux_/file.hpp                     \
   aux_/file_descriptor.hpp          \
+  aux_/file_entry.hpp               \
   aux_/file_pointer.hpp             \
   aux_/file_pool_impl.hpp           \
   aux_/file_progress.hpp            \
