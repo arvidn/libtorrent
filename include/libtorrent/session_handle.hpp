@@ -194,7 +194,7 @@ namespace aux { struct torrent; }
 		// containing the status of all torrents whose state changed since the
 		// last time this function was called.
 		//
-		// Only torrents who has the state subscription flag set will be
+		// Only torrents who have the state subscription flag set will be
 		// included. This flag is on by default. See add_torrent_params.
 		// the ``flags`` argument is the same as for torrent_handle::status().
 		// see status_flags_t in torrent_handle.

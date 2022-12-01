@@ -89,7 +89,7 @@ TORRENT_VERSION_NAMESPACE_4
 	struct TORRENT_EXPORT create_file_entry
 	{
 		create_file_entry(std::string fn, std::int64_t const sz
-			, file_flags_t const f = {}, time_t const ts = 0, std::string sl = {})
+			, file_flags_t const f = {}, std::time_t const ts = 0, std::string sl = {})
 			: filename(std::move(fn))
 			, size(sz)
 			, flags(f)
@@ -105,7 +105,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		file_flags_t flags;
 
-		time_t mtime;
+		std::time_t mtime;
 
 		// only considered if the symlink flag is set
 		std::string symlink;
