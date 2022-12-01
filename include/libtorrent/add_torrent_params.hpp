@@ -288,7 +288,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// bittorrent peers.
 		std::vector<tcp::endpoint> peers;
 
-		// peers banned from this torrent. The will not be connected to
+		// peers banned from this torrent. They will not be connected to
 		std::vector<tcp::endpoint> banned_peers;
 
 		// this is a map of partially downloaded piece. The key is the piece index

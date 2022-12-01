@@ -2970,7 +2970,6 @@ TORRENT_VERSION_NAMESPACE_3_END
 	// as the error code. This alert is posted containing the metadata. For more
 	// information, see BitTorrent-v2-torrents_.
 	// The torrent this alert originated from was the one that downloaded the
-	//
 	// metadata (i.e. the `handle` member from the torrent_alert base class).
 	struct TORRENT_EXPORT torrent_conflict_alert final : torrent_alert
 	{

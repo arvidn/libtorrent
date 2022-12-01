@@ -293,8 +293,8 @@ namespace aux {
 		// omitted then it is implicitly set to the end of the file the first
 		// piece is set to. If the torrent metadata has not been downloaded yet
 		// then the functions do nothing.
-		void set_sequential_range(piece_index_t const first_piece, piece_index_t const last_piece) const;
-		void set_sequential_range(piece_index_t const first_piece) const;
+		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece) const;
+		void set_sequential_range(piece_index_t first_piece) const;
 		// Returns true if this piece has been completely downloaded and written
 		// to disk, and false otherwise.
 		bool have_piece(piece_index_t piece) const;

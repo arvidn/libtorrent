@@ -360,7 +360,7 @@ namespace {
 		for (auto const i : fs.file_range())
 		{
 			if (fs.file_flags(i) & file_storage::flag_symlink)
-				ret.push_back({fs.file_path(i), 0, fs.file_flags(i), fs.mtime(i), fs.internal_symlink(i)});
+				ret.emplace_back(fs.file_path(i), 0, fs.file_flags(i), fs.mtime(i), fs.internal_symlink(i));
 			else
 				ret.push_back({fs.file_path(i), fs.file_size(i), fs.file_flags(i), fs.mtime(i), {}});
 		}
