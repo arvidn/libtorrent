@@ -559,6 +559,11 @@ bool is_downloading_state(int const st)
 				add_peer(peer, peer_info::resume_data);
 			}
 
+			if (!p.peers.empty())
+			{
+				do_connect_boost();
+			}
+
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log() && !p.peers.empty())
 			{
