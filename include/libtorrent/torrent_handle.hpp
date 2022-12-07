@@ -982,14 +982,18 @@ namespace aux {
 		// ================ end deprecation ============
 #endif
 
-		// Fills the specified ``std::vector<int>`` with the availability for
-		// each piece in this torrent. libtorrent does not keep track of
-		// availability for seeds, so if the torrent is seeding the availability
-		// for all pieces is reported as 0.
-		//
 		// The piece availability is the number of peers that we are connected
 		// that has advertised having a particular piece. This is the information
 		// that libtorrent uses in order to prefer picking rare pieces.
+		//
+		// ``post_piece_availability()`` will trigger a piece_availability_alert
+		// to be posted.
+		//
+		// ``piece_availability()`` fills the specified ``std::vector<int>``
+		// with the availability for each piece in this torrent. libtorrent does
+		// not keep track of availability for seeds, so if the torrent is
+		// seeding the availability for all pieces is reported as 0.
+		void post_piece_availability() const;
 		void piece_availability(std::vector<int>& avail) const;
 
 		// These functions are used to set and get the priority of individual

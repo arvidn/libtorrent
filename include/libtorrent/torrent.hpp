@@ -600,6 +600,7 @@ namespace libtorrent {
 #endif
 #endif // TORRENT_ABI_VERSION
 
+		void post_piece_availability();
 		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
 		void set_piece_priority(piece_index_t index, download_priority_t priority);
