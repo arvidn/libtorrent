@@ -5193,6 +5193,13 @@ namespace {
 	}
 #endif // TORRENT_DISABLE_STREAMING
 
+	void torrent::post_piece_availability()
+	{
+		aux::vector<int, piece_index_t> avail;
+		piece_availability(avail);
+		alerts().emplace_alert<piece_availability_alert>(get_handle(), std::move(avail));
+	}
+
 	void torrent::piece_availability(aux::vector<int, piece_index_t>& avail) const
 	{
 		INVARIANT_CHECK;

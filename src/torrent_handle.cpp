@@ -481,6 +481,11 @@ namespace libtorrent {
 		return st;
 	}
 
+	void torrent_handle::post_piece_availability() const
+	{
+		async_call(&torrent::post_piece_availability);
+	}
+
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
 		auto availr = std::ref(static_cast<aux::vector<int, piece_index_t>&>(avail));

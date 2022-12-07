@@ -99,7 +99,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 103;
+	constexpr int num_alert_types = 104;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -3080,6 +3080,21 @@ TORRENT_VERSION_NAMESPACE_3_END
 
 		// storage for block_info pointers in partial_piece_info objects
 		std::vector<block_info> block_data;
+	};
+
+	// posted when torrent_handle::post_piece_availability() is called
+	struct TORRENT_EXPORT piece_availability_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT piece_availability_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<int> pa);
+		TORRENT_DEFINE_ALERT_PRIO(piece_availability_alert, 103, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::status;
+		std::string message() const override;
+
+		// info about pieces being downloaded for the torrent
+		std::vector<int> piece_availability;
 	};
 
 	// internal
