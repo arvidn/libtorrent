@@ -128,14 +128,6 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
-namespace {
-int get_piece(lt::bitfield const& p, int index)
-{
-	if (index < 0 || index >= p.size()) return 0;
-	return p.get_bit(index) ? 1 : 0;
-}
-}
-
 std::string const& piece_bar(lt::bitfield const& p, int width)
 {
 #ifdef _WIN32
@@ -206,6 +198,63 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 	bar += esc("0");
 	bar += "]";
 	return bar;
+}
+
+std::string avail_bar(lt::span<int> avail, int const width, int& pos)
+{
+	std::string ret;
+	int const max_avail = (std::max)(1, *std::max_element(avail.begin(), avail.end()));
+	int cursor = 0;
+#ifndef _WIN32
+	for (int piece = 0; piece < avail.size(); piece += 2)
+	{
+		int p[2];
+		p[0] = avail[piece] * 22 / max_avail;
+		p[1] = piece + 1 < avail.size() ? avail[piece + 1] * 22 / max_avail : 0;
+		assert(p[0] >= 0);
+		assert(p[0] < 23);
+		assert(p[1] >= 0);
+		assert(p[1] < 23);
+		char buf[50];
+		std::snprintf(buf, sizeof(buf), "\x1b[38;5;%dm\x1b[48;5;%dm\u258c"
+			, 232 + p[0], 232 + p[1]);
+		ret += buf;
+		cursor += 1;
+		if (cursor >= width)
+		{
+			cursor = 0;
+			pos += 1;
+			ret += "\n";
+		}
+	}
+#else
+	for (int piece = 0; piece < avail.size(); ++piece)
+	{
+		static char const table[] = {' ', '\xb0', '\xb1', '\xb2', '\xdb'};
+		int const p = avail[piece] * 4 / max_avail;
+		assert(p >= 0);
+		assert(p < 5);
+		ret += table[p];
+		cursor += 1;
+		if (cursor >= width)
+		{
+			cursor = 0;
+			pos += 1;
+			ret += "\n";
+		}
+	}
+#endif
+	if (cursor > 0)
+		ret += "\x1b[K\n";
+	return ret;
+}
+
+namespace {
+int get_piece(lt::bitfield const& p, int index)
+{
+	if (index < 0 || index >= p.size()) return 0;
+	return p.get_bit(index) ? 1 : 0;
+}
 }
 
 #ifndef _WIN32
