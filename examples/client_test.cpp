@@ -210,6 +210,7 @@ bool print_log = false;
 bool print_downloads = false;
 bool print_matrix = false;
 bool print_file_progress = false;
+bool print_piece_availability = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
 
@@ -922,6 +923,7 @@ struct client_state_t
 	std::vector<std::int64_t> file_progress;
 	std::vector<lt::partial_piece_info> download_queue;
 	std::vector<lt::block_info> download_queue_block_info;
+	std::vector<int> piece_availability;
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -960,6 +962,12 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 		return true;
 	}
 
+	if (auto* p = alert_cast<piece_availability_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+			client_state.piece_availability = std::move(p->piece_availability);
+		return true;
+	}
 
 #ifndef TORRENT_DISABLE_DHT
 	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
@@ -1369,7 +1377,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}, {}, {}, {}, {}
+		view, ses_view, {}, {}, {}, {}, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -1655,6 +1663,7 @@ int main(int argc, char* argv[])
 						client_state.file_progress.clear();
 						client_state.download_queue.clear();
 						client_state.download_queue_block_info.clear();
+						client_state.piece_availability.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
@@ -1664,6 +1673,7 @@ int main(int argc, char* argv[])
 						client_state.file_progress.clear();
 						client_state.download_queue.clear();
 						client_state.download_queue_block_info.clear();
+						client_state.piece_availability.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -1836,6 +1846,7 @@ int main(int argc, char* argv[])
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'y') print_matrix = !print_matrix;
 				if (c == 'f') print_file_progress = !print_file_progress;
+				if (c == 'a') print_piece_availability = !print_piece_availability;
 				if (c == 'P') show_pad_files = !show_pad_files;
 				if (c == 'g') show_dht_status = !show_dht_status;
 				if (c == 'x') print_disk_stats = !print_disk_stats;
@@ -1878,6 +1889,7 @@ up/down arrow keys: select torrent
 [g] show DHT                                    [x] toggle disk cache stats
 [t] show trackers                               [l] toggle show log
 [y] toggle show piece matrix                    [I] toggle show peer flag legend
+[a] toggle show piece availability
 
 COLUMN OPTIONS
 [1] toggle IP column                            [2] toggle show peer connection attempts
@@ -2062,6 +2074,13 @@ done:
 				print(piece_matrix(s.pieces, terminal_width, &height_out).c_str());
 				print("\n");
 				pos += height_out;
+			}
+
+			if (print_piece_availability)
+			{
+				h.post_piece_availability();
+				if (!client_state.piece_availability.empty())
+					print(avail_bar(client_state.piece_availability, terminal_width, pos).c_str());
 			}
 
 			if (print_downloads)
