@@ -122,6 +122,10 @@ struct file_prio_alert;
 TORRENT_VERSION_NAMESPACE_3_END
 struct oversized_file_alert;
 struct torrent_conflict_alert;
+struct peer_info_alert;
+struct file_progress_alert;
+struct piece_info_alert;
+struct piece_availability_alert;
 
 // include/libtorrent/announce_entry.hpp
 TORRENT_VERSION_NAMESPACE_2

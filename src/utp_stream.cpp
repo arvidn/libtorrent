@@ -954,9 +954,12 @@ void utp_socket_impl::writable()
 	m_stalled = false;
 	if (should_delete()) return;
 
+	// this handles the case where send_fin() was called while stalled
+	if (state() == state_t::fin_sent && m_outbuf.at(m_seq_nr) == nullptr)
+		send_pkt(pkt_fin);
 	// if the socket stalled while sending an ack then there will be a
 	// pending deferred ack. make sure it gets sent out
-	if (!m_deferred_ack || send_pkt(pkt_ack))
+	else if (!m_deferred_ack || send_pkt(pkt_ack))
 		while(send_pkt());
 
 	maybe_trigger_send_callback();
@@ -1385,7 +1388,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// although, we may re-send packets, but those live in m_outbuf
 	TORRENT_ASSERT(state() != state_t::fin_sent || m_write_buffer_size == 0);
 
-	int payload_size = std::min(m_write_buffer_size
+	// If the connection is finalizing we no longer want to include any payload
+	bool const finalizing = state() == state_t::fin_sent || (flags & pkt_fin);
+
+	int payload_size = finalizing ? 0 : std::min(m_write_buffer_size
 		, effective_mtu - header_size);
 	TORRENT_ASSERT(payload_size >= 0);
 
@@ -1447,7 +1453,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// payload size being zero means we're just sending
 	// an force. For efficiency, pick up the nagle packet
 	// if there's room
-	if (!m_nagle_packet || (payload_size == 0 && force
+	if (!m_nagle_packet || finalizing || (payload_size == 0 && force
 		&& m_bytes_in_flight + m_nagle_packet->size
 		> std::min(int(m_cwnd >> 16), int(m_adv_wnd))))
 	{
@@ -1744,6 +1750,13 @@ bool utp_socket_impl::send_pkt(int const flags)
 		TORRENT_ASSERT(payload_size >= 0);
 		if (!m_stalled) m_bytes_in_flight += new_in_flight;
 	}
+	else if (flags & pkt_fin)
+	{
+		TORRENT_ASSERT(payload_size == 0);
+		// If we're stalled we'll need to resend
+		if (m_stalled) p->need_resend = true;
+		m_outbuf.insert(m_seq_nr, std::move(p));
+	}
 	else
 	{
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
@@ -1961,7 +1974,10 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 	// supposed to be in m_outbuf
 	// if the slot in m_outbuf is 0, it means the
 	// packet has been ACKed and removed from the send buffer
-	while (((m_acked_seq_nr + 1) & ACK_MASK) != m_seq_nr
+	// once we're in the fin_sent state m_acked_seq_nr can equal
+	// m_seq_nr, but shouldn't reach m_seq_nr + 1
+	while (((m_acked_seq_nr + 1) & ACK_MASK) !=
+		(state() == state_t::fin_sent ? ((m_seq_nr + 1) & ACK_MASK) : m_seq_nr)
 		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == nullptr)
 	{
 		// increment the fast resend sequence number
@@ -2982,6 +2998,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			//
 			// After that has happened we know the remote side has all our
 			// data, and we can gracefully shut down.
+
+			// we should still ack any incoming data to prevent potential
+			// timeouts/resends at the other end
+			if (ph->get_type() == ST_DATA) defer_ack();
 
 			if (consume_incoming_data(ph, ptr, payload_size, receive_time))
 			{

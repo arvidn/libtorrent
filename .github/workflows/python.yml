@@ -75,8 +75,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install boost-build boost boost-python3 python@3.10 openssl@1.1
-        export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.11 openssl@1.1
+        export PATH=$(brew --prefix)/opt/python@3.11/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -149,5 +149,5 @@ jobs:
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
-        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.10/bin/python3
+        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.11/bin/python3
         tox -e py

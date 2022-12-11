@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #if TORRENT_ABI_VERSION == 1
@@ -2932,7 +2933,9 @@ namespace {
 		"picker_log", "session_error", "dht_live_nodes",
 		"session_stats_header", "dht_sample_infohashes",
 		"block_uploaded", "alerts_dropped", "socks5",
-		"file_prio", "oversized_file", "torrent_conflict"
+		"file_prio", "oversized_file", "torrent_conflict",
+		"peer_info", "file_progress", "piece_info",
+		"piece_availability"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -3017,6 +3020,67 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " has a conflict with another torrent";
+#endif
+	}
+
+	peer_info_alert::peer_info_alert(aux::stack_allocator& alloc, torrent_handle h
+		, std::vector<lt::peer_info> p)
+		: torrent_alert(alloc, std::move(h))
+		, peer_info(std::move(p))
+	{}
+
+	std::string peer_info_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " peer_info";
+#endif
+	}
+
+	file_progress_alert::file_progress_alert(aux::stack_allocator& alloc, torrent_handle h
+		, aux::vector<std::int64_t, file_index_t> fp)
+		: torrent_alert(alloc, std::move(h))
+		, files(std::move(fp))
+	{}
+
+	std::string file_progress_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " file_progress";
+#endif
+	}
+
+	piece_info_alert::piece_info_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<partial_piece_info> pi, std::vector<block_info>&& bd)
+		: torrent_alert(alloc, std::move(h))
+		, piece_info(std::move(pi))
+		, block_data(std::move(bd))
+	{}
+
+	std::string piece_info_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " piece_info";
+#endif
+	}
+
+	piece_availability_alert::piece_availability_alert(aux::stack_allocator& alloc
+			, torrent_handle h, std::vector<int> pa)
+		: torrent_alert(alloc, std::move(h))
+		, piece_availability(std::move(pa))
+	{}
+
+	std::string piece_availability_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " piece_availability";
 #endif
 	}
 

@@ -426,11 +426,21 @@ namespace libtorrent {
 		return std::move(ret);
 	}
 
+	void torrent_handle::post_file_progress(file_progress_flags_t const flags) const
+	{
+		async_call(&aux::torrent::post_file_progress, flags);
+	}
+
 	torrent_status torrent_handle::status(status_flags_t const flags) const
 	{
 		torrent_status st;
 		sync_call(&aux::torrent::status, &st, flags);
 		return st;
+	}
+
+	void torrent_handle::post_piece_availability() const
+	{
+		async_call(&aux::torrent::post_piece_availability);
 	}
 
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
@@ -838,6 +848,11 @@ namespace libtorrent {
 		sync_call(&aux::torrent::get_peer_info, vp);
 	}
 
+	void torrent_handle::post_peer_info() const
+	{
+		async_call(&aux::torrent::post_peer_info);
+	}
+
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		auto* queuep = &queue;
@@ -849,6 +864,11 @@ namespace libtorrent {
 		std::vector<partial_piece_info> queue;
 		sync_call(&aux::torrent::get_download_queue, &queue);
 		return queue;
+	}
+
+	void torrent_handle::post_download_queue() const
+	{
+		async_call(&aux::torrent::post_download_queue);
 	}
 
 	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline

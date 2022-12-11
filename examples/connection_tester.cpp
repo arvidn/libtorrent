@@ -461,7 +461,7 @@ struct peer_conn
 		unsigned int length = read_uint32(ptr);
 		if (length > sizeof(buffer))
 		{
-			std::fprintf(stderr, "len: %d\n", length);
+			std::fprintf(stderr, "len: %u\n", length);
 			close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 			return;
 		}

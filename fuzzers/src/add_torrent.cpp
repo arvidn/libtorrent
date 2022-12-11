@@ -115,15 +115,15 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		auto& mask = ret.unfinished_pieces[piece_index_t(bits.read(32))];
 		mask.resize(bits.read(5));
 		for (int i = 0; i < mask.size(); ++i)
-			if (bits.read(1)) mask.set_bit(i); else mask.set_bit(i);
+			if (bits.read(1)) mask.set_bit(i);
 	}
 	ret.have_pieces.resize(bits.read(6));
 	for (auto const i : ret.have_pieces.range())
-		if (bits.read(1)) ret.have_pieces.set_bit(i); else ret.have_pieces.set_bit(i);
+		if (bits.read(1)) ret.have_pieces.set_bit(i);
 
 	ret.verified_pieces.resize(bits.read(6));
 	for (auto const i : ret.verified_pieces.range())
-		if (bits.read(1)) ret.verified_pieces.set_bit(i); else ret.verified_pieces.set_bit(i);
+		if (bits.read(1)) ret.verified_pieces.set_bit(i);
 
 	ret.piece_priorities.resize(bits.read(6));
 	for (auto& p : ret.piece_priorities)

@@ -326,7 +326,7 @@ void setup_swarm(int num_nodes
 #if DEBUG_SWARM != 0
 							"[%d] "
 #endif
-							"%4d.%03d: %-25s %s\n"
+							"%4u.%03u: %-25s %s\n"
 #if DEBUG_SWARM != 0
 							, i
 #endif

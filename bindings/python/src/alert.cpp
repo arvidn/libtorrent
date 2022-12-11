@@ -1159,6 +1159,26 @@ void bind_alert()
         .add_property("metadata", make_getter(&torrent_conflict_alert::metadata, by_value()))
         ;
 
+    class_<peer_info_alert, bases<torrent_alert>, noncopyable>(
+        "peer_info_alert", no_init)
+        .add_property("peer_info", make_getter(&peer_info_alert::peer_info, by_value()))
+        ;
+
+    class_<file_progress_alert, bases<torrent_alert>, noncopyable>(
+        "file_progress_alert", no_init)
+        .add_property("files", make_getter(&file_progress_alert::files, by_value()))
+        ;
+
+    class_<piece_info_alert, bases<torrent_alert>, noncopyable>(
+        "piece_info_alert", no_init)
+        .add_property("piece_info", make_getter(&piece_info_alert::piece_info, by_value()))
+        ;
+
+    class_<piece_availability_alert, bases<torrent_alert>, noncopyable>(
+        "piece_availability_alert", no_init)
+        .add_property("piece_availability", make_getter(&piece_availability_alert::piece_availability, by_value()))
+        ;
+
     enum_<close_reason_t>("close_reason_t")
         .value("none", close_reason_t::none)
         .value("duplicate_peer_id", close_reason_t::duplicate_peer_id)

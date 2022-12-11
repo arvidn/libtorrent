@@ -333,7 +333,7 @@ void on_alert_notify(lt::session* ses)
 			lt::time_duration d = a->timestamp().time_since_epoch();
 			std::uint32_t const millis = std::uint32_t(
 				lt::duration_cast<lt::milliseconds>(d).count());
-			std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+			std::printf("%4u.%03u: %s\n", millis / 1000, millis % 1000,
 				a->message().c_str());
 		}
 	});
@@ -493,7 +493,7 @@ void test_udpv6_support(char const* listen_interfaces
 					lt::time_duration d = a->timestamp().time_since_epoch();
 					std::uint32_t const millis = std::uint32_t(
 						lt::duration_cast<lt::milliseconds>(d).count());
-					std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+					std::printf("%4u.%03u: %s\n", millis / 1000, millis % 1000,
 						a->message().c_str());
 					if (auto tr = alert_cast<tracker_announce_alert>(a))
 					{

@@ -7,8 +7,15 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+
+	* add async piece availibility query, post_piece_availibility()
+	* add async download queue query, post_download_queue()
+	* add async file_progress query, post_file_progress()
+	* add async peer_info query, post_peer_info()
+
 2.0.8 released
 
+	* fix uTP streams timing out instead of closing cleanly
 	* add write_torrent_file_buf() overload for generating .torrent files
 	* add create_torrent::generate_buf() function to generate into a buffer
 	* fix copy_file when the file ends with a sparse region
@@ -157,6 +164,7 @@
 	* added support for GnuTLS for HTTPS and torrents over SSL
 
 
+	* fix issue where stop-when-ready would not close files
 	* uTP performance, fix packet loss when sending is stalled
 	* uTP performance, prevent premature timeouts/resends
 	* uTP performance, more lenient nagle's algorithm to always allow one outstanding undersized packet

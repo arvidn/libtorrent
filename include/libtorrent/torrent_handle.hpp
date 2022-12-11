@@ -160,6 +160,8 @@ namespace aux {
 		// .. warning:: This is a pointer that points to an array
 		//	that's owned by the session object. The next time
 		//	get_download_queue() is called, it will be invalidated.
+		//	In the case of piece_info_alert, these pointers point into the alert
+		//	object itself, and will be invalidated when the alert destruct.
 		block_info const* blocks;
 
 #if TORRENT_ABI_VERSION == 1
@@ -305,11 +307,19 @@ namespace aux {
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 #endif
 
-		// takes a reference to a vector that will be cleared and filled with one
-		// entry for each peer connected to this torrent, given the handle is
-		// valid. If the torrent_handle is invalid, it will throw
-		// system_error exception. Each entry in the vector contains
-		// information about that particular peer. See peer_info.
+		// Query information about connected peers for this torrent. If the
+		// torrent_handle is invalid, it will throw a system_error exception.
+		//
+		// ``post_peer_info()`` is asynchronous and will trigger the posting of
+		// a peer_info_alert. The alert contain a list of peer_info objects, one
+		// for each connected peer.
+		//
+		// ``get_peer_info()`` is synchronous and takes a reference to a vector
+		// that will be cleared and filled with one entry for each peer
+		// connected to this torrent, given the handle is valid. Each entry in
+		// the vector contains information about that particular peer. See
+		// peer_info.
+		void post_peer_info() const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 
 		// calculates ``distributed_copies``, ``distributed_full_copies`` and
@@ -351,10 +361,13 @@ namespace aux {
 		// what to *include* are defined in this class.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
 
-		// ``get_download_queue()`` returns a vector with information about pieces
-		// that are partially downloaded or not downloaded but partially
-		// requested. See partial_piece_info for the fields in the returned
-		// vector.
+		// ``post_download_queue()`` triggers a download_queue_alert to be
+		// posted.
+		// ``get_download_queue()`` is a synchronous call and returns a vector
+		// with information about pieces that are partially downloaded or not
+		// downloaded but partially requested. See partial_piece_info for the
+		// fields in the returned vector.
+		void post_download_queue() const;
 		std::vector<partial_piece_info> get_download_queue() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
@@ -454,6 +467,7 @@ namespace aux {
 		// already keeps track of this internally and no calculation is required.
 		void file_progress(std::vector<std::int64_t>& progress, file_progress_flags_t flags = {}) const;
 		std::vector<std::int64_t> file_progress(file_progress_flags_t flags = {}) const;
+		void post_file_progress(file_progress_flags_t flags) const;
 
 		// This function returns a vector with status about files
 		// that are open for this torrent. Any file that is not open
@@ -959,14 +973,18 @@ namespace aux {
 		// ================ end deprecation ============
 #endif
 
-		// Fills the specified ``std::vector<int>`` with the availability for
-		// each piece in this torrent. libtorrent does not keep track of
-		// availability for seeds, so if the torrent is seeding the availability
-		// for all pieces is reported as 0.
-		//
 		// The piece availability is the number of peers that we are connected
 		// that has advertised having a particular piece. This is the information
 		// that libtorrent uses in order to prefer picking rare pieces.
+		//
+		// ``post_piece_availability()`` will trigger a piece_availability_alert
+		// to be posted.
+		//
+		// ``piece_availability()`` fills the specified ``std::vector<int>``
+		// with the availability for each piece in this torrent. libtorrent does
+		// not keep track of availability for seeds, so if the torrent is
+		// seeding the availability for all pieces is reported as 0.
+		void post_piece_availability() const;
 		void piece_availability(std::vector<int>& avail) const;
 
 		// These functions are used to set and get the priority of individual

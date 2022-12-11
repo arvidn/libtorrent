@@ -571,6 +571,7 @@ namespace libtorrent::aux {
 #endif
 #endif // TORRENT_ABI_VERSION
 
+		void post_piece_availability();
 		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
 		void set_piece_priority(piece_index_t index, download_priority_t priority);
@@ -604,6 +605,7 @@ namespace libtorrent::aux {
 		void state_updated();
 
 		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t flags);
+		void post_file_progress(file_progress_flags_t flags);
 
 #if TORRENT_ABI_VERSION == 1
 		void use_interface(std::string net_interface);
@@ -718,8 +720,10 @@ namespace libtorrent::aux {
 #if TORRENT_ABI_VERSION == 1
 		void get_full_peer_list(std::vector<peer_list_entry>* v) const;
 #endif
+		void post_peer_info();
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
+		void post_download_queue();
 
 		void update_auto_sequential();
 	private:

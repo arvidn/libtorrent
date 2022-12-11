@@ -45,6 +45,7 @@ see LICENSE file.
 #include "libtorrent/tracker_event.hpp" // for event_t enum
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/client_data.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_info
 #include "libtorrent/aux_/deprecated.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -74,7 +75,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 100;
+	constexpr int num_alert_types = 104;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -2990,6 +2991,69 @@ TORRENT_VERSION_NAMESPACE_3_END
 		// One way to resolve the conflict is to remove both failing torrents
 		// and re-add it using this metadata
 		std::shared_ptr<torrent_info> metadata;
+	};
+
+	// posted when torrent_handle::post_peer_info() is called
+	struct TORRENT_EXPORT peer_info_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT peer_info_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<lt::peer_info> p);
+		TORRENT_DEFINE_ALERT_PRIO(peer_info_alert, 100, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::status;
+		std::string message() const override;
+
+		// the list of the currently connected peers
+		std::vector<lt::peer_info> peer_info;
+	};
+
+	// posted when torrent_handle::post_file_progress() is called
+	struct TORRENT_EXPORT file_progress_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT file_progress_alert(aux::stack_allocator& alloc, torrent_handle h
+			, aux::vector<std::int64_t, file_index_t> fp);
+		TORRENT_DEFINE_ALERT_PRIO(file_progress_alert, 101, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::file_progress;
+		std::string message() const override;
+
+		// the list of the files in the torrent
+		aux::vector<std::int64_t, file_index_t> files;
+	};
+
+	// posted when torrent_handle::post_download_queue() is called
+	struct TORRENT_EXPORT piece_info_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT piece_info_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<partial_piece_info> pi, std::vector<block_info>&& bd);
+		TORRENT_DEFINE_ALERT_PRIO(piece_info_alert, 102, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::piece_progress;
+		std::string message() const override;
+
+		// info about pieces being downloaded for the torrent
+		std::vector<partial_piece_info> piece_info;
+
+		// storage for block_info pointers in partial_piece_info objects
+		std::vector<block_info> block_data;
+	};
+
+	// posted when torrent_handle::post_piece_availability() is called
+	struct TORRENT_EXPORT piece_availability_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT piece_availability_alert(aux::stack_allocator& alloc, torrent_handle h
+			, std::vector<int> pa);
+		TORRENT_DEFINE_ALERT_PRIO(piece_availability_alert, 103, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::status;
+		std::string message() const override;
+
+		// info about pieces being downloaded for the torrent
+		std::vector<int> piece_availability;
 	};
 
 	// internal

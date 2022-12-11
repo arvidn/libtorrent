@@ -112,8 +112,7 @@ TORRENT_TEST(utp_pmtud)
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 0);
 
-	// TODO: 3 This timeout happens at shutdown. It's not very clean
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 1);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 0);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 593);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 66);
@@ -137,7 +136,7 @@ TORRENT_TEST(utp_plain)
 	std::vector<std::int64_t> cnt = utp_test(cfg);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 1);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
@@ -163,7 +162,7 @@ TORRENT_TEST(utp_buffer_bloat)
 	std::vector<std::int64_t> cnt = utp_test(cfg);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 1);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
@@ -221,7 +220,7 @@ TORRENT_TEST(utp_small_kernel_send_buf)
 	std::vector<std::int64_t> cnt = utp_test(cfg, 5000);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 1);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 190);
 
