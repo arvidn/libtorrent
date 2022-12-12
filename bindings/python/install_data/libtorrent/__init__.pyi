@@ -48,6 +48,7 @@ _Entry = Union[bytes, int, List, Dict[bytes, Any], Tuple[int, ...]]
 create_smart_ban_plugin: str
 create_ut_metadata_plugin: str
 create_ut_pex_plugin: str
+api_version: int
 version: str
 version_major: int
 version_minor: int
