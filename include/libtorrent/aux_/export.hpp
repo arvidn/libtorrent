@@ -122,23 +122,15 @@ see LICENSE file.
 # define TORRENT_EXTRA_EXPORT
 #endif
 
-// only export this type if deprecated functions are enabled
+// export and mark as deprecated
 // mingw doesn't like combining C++11 attributes with __attribute__ apparently
 #if defined __MINGW64__ || defined __MINGW32__
 
-# if TORRENT_ABI_VERSION >= 2
-#  define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
-# else
-#  define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
-# endif
+#define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
 
 #else
 
-# if TORRENT_ABI_VERSION >= 2
-#  define TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED TORRENT_EXTRA_EXPORT
-# else
-#  define TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED TORRENT_EXPORT
-# endif
+#define TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED TORRENT_EXPORT
 
 #endif
 

@@ -53,15 +53,16 @@ class GenerateFingerprintTest(unittest.TestCase):
 
 class FingerprintTest(unittest.TestCase):
     def test_fingerprint(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            fprint = lt.fingerprint("AB", 1, 2, 3, 4)
-        self.assertEqual(str(fprint), "-AB1234-")
-        self.assertEqual(fprint.major_version, 1)
-        self.assertEqual(fprint.minor_version, 2)
-        self.assertEqual(fprint.revision_version, 3)
-        self.assertEqual(fprint.tag_version, 4)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                fprint = lt.fingerprint("AB", 1, 2, 3, 4)
+            self.assertEqual(str(fprint), "-AB1234-")
+            self.assertEqual(fprint.major_version, 1)
+            self.assertEqual(fprint.minor_version, 2)
+            self.assertEqual(fprint.revision_version, 3)
+            self.assertEqual(fprint.tag_version, 4)
 
-        # short names behave differently
-        with self.assertWarns(DeprecationWarning):
-            fprint = lt.fingerprint("A", 1, 2, 3, 4)
-        self.assertEqual(str(fprint), "-A\x001234-")
+            # short names behave differently
+            with self.assertWarns(DeprecationWarning):
+                fprint = lt.fingerprint("A", 1, 2, 3, 4)
+            self.assertEqual(str(fprint), "-A\x001234-")

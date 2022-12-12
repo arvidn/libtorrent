@@ -48,12 +48,14 @@ class BencodeTest(unittest.TestCase):
 
 class IdentifyClientTest(unittest.TestCase):
     def test_identify_client(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.identify_client(lt.sha1_hash()), "Unknown")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.identify_client(lt.sha1_hash()), "Unknown")
 
 
 class ClientFingerprintTest(unittest.TestCase):
     def test_identify_client(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            fprint = lt.client_fingerprint(lt.sha1_hash(b"-AB1200-............"))
-        self.assertEqual(str(fprint), "-AB1200-")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                fprint = lt.client_fingerprint(lt.sha1_hash(b"-AB1200-............"))
+            self.assertEqual(str(fprint), "-AB1200-")

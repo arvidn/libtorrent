@@ -27,10 +27,10 @@ class File:
         length: int,
         start: int,
         stop: int,
-        data: bytes = None,
-        path: bytes = None,
-        path_split: List[bytes] = None,
-        attr: bytes = None
+        data: Optional[bytes] = None,
+        path: Optional[bytes] = None,
+        path_split: Optional[List[bytes]] = None,
+        attr: Optional[bytes] = None
     ):
         assert stop - start == length, (start, stop, length)
         if data is not None:
@@ -70,9 +70,9 @@ class Torrent:
         *,
         length: int,
         piece_length: int = 16384,
-        name: bytes = None,
-        attr: bytes = None,
-        data: bytes = None
+        name: Optional[bytes] = None,
+        attr: Optional[bytes] = None,
+        data: Optional[bytes] = None
     ) -> _T:
         return cls(
             piece_length=piece_length,

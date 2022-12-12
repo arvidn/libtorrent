@@ -26,8 +26,9 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.file_flags_t.flag_symlink, int)
 
     def test_create_torrent_static_vars(self) -> None:
-        self.assertIsInstance(lt.create_torrent.optimize_alignment, int)
-        self.assertIsInstance(lt.create_torrent.merkle, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.create_torrent.optimize_alignment, int)
+            self.assertIsInstance(lt.create_torrent.merkle, int)
         self.assertIsInstance(lt.create_torrent.v1_only, int)
         self.assertIsInstance(lt.create_torrent.v2_only, int)
         self.assertIsInstance(lt.create_torrent.canonical_files, int)
@@ -35,21 +36,24 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.create_torrent.symlinks, int)
 
     def test_create_torrent_flags_t(self) -> None:
-        self.assertIsInstance(lt.create_torrent_flags_t.optimize_alignment, int)
-        self.assertIsInstance(lt.create_torrent_flags_t.optimize, int)
-        self.assertIsInstance(lt.create_torrent_flags_t.merkle, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.create_torrent_flags_t.optimize_alignment, int)
+            self.assertIsInstance(lt.create_torrent_flags_t.merkle, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.create_torrent_flags_t.optimize, int)
         self.assertIsInstance(lt.create_torrent_flags_t.v2_only, int)
         self.assertIsInstance(lt.create_torrent_flags_t.modification_time, int)
         self.assertIsInstance(lt.create_torrent_flags_t.symlinks, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.create_torrent.optimize_alignment, int)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.create_torrent.optimize_alignment, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.create_torrent_flags_t.optimize_alignment, int)
         with self.assertWarns(DeprecationWarning):
             self.assertIsInstance(lt.create_torrent.merkle, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.create_torrent_flags_t.optimize_alignment, int)
         with self.assertWarns(DeprecationWarning):
             self.assertIsInstance(lt.create_torrent_flags_t.optimize, int)
         with self.assertWarns(DeprecationWarning):
@@ -101,46 +105,51 @@ class FileStorageTest(unittest.TestCase):
         self.assertEqual(fs.num_files(), 1)
 
     def test_add_file_entry(self) -> None:
-        fs = lt.file_storage()
-        # It's not clear this path has ever been useful, as the entry size can't
-        # be modified
-        with self.assertWarns(DeprecationWarning):
-            fe = lt.file_entry()
-        fe.path = "file.txt"
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(fe)
+        if lt.api_version < 2:
+            fs = lt.file_storage()
+            # It's not clear this path has ever been useful, as the entry size can't
+            # be modified
+            with self.assertWarns(DeprecationWarning):
+                fe = lt.file_entry()
+            fe.path = "file.txt"
+            with self.assertWarns(DeprecationWarning):
+                fs.add_file(fe)
 
     def test_at_invalid(self) -> None:
-        fs = lt.file_storage()
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(IndexError):
-                fs.at(0)
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(IndexError):
-                fs.at(-1)
+        if lt.api_version < 2:
+            fs = lt.file_storage()
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(IndexError):
+                    fs.at(0)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(IndexError):
+                    fs.at(-1)
 
     def test_at(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
-        with self.assertWarns(DeprecationWarning):
-            fe = fs.at(0)
-        self.assertEqual(fe.path, os.path.join("path", "test.txt"))
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(fe.size, 1024)
+        if lt.api_version < 2:
+            fs = lt.file_storage()
+            fs.add_file(os.path.join("path", "test.txt"), 1024)
+            with self.assertWarns(DeprecationWarning):
+                fe = fs.at(0)
+            self.assertEqual(fe.path, os.path.join("path", "test.txt"))
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(fe.size, 1024)
 
     def test_iter(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual([fe.path for fe in fs], ["test.txt"])
+        if lt.api_version < 2:
+            fs = lt.file_storage()
+            fs.add_file("test.txt", 1024)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual([fe.path for fe in fs], ["test.txt"])
 
     def test_len(self) -> None:
-        fs = lt.file_storage()
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(fs), 0)
-        fs.add_file("test.txt", 1024)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(fs), 1)
+        if lt.api_version < 2:
+            fs = lt.file_storage()
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(len(fs), 0)
+            fs.add_file("test.txt", 1024)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(len(fs), 1)
 
     def test_symlink(self) -> None:
         fs = lt.file_storage()
@@ -386,36 +395,40 @@ class CreateTorrentTest(unittest.TestCase):
             ct.set_hash(0, lib.get_random_bytes(21))
 
     def test_set_file_hash(self) -> None:
-        fs = [lt.create_file_entry("test1.txt", 1024)]
-        ct = lt.create_torrent(fs)
-        with self.assertWarns(DeprecationWarning):
-            ct.set_file_hash(0, lib.get_random_bytes(20))
-        ct.set_hash(0, lib.get_random_bytes(20))
-        entry = ct.generate()
-        self.assertIn(b"sha1", entry[b"info"])
+        if lt.api_version < 3:
+            fs = [lt.create_file_entry("test1.txt", 1024)]
+            ct = lt.create_torrent(fs)
+            with self.assertWarns(DeprecationWarning):
+                ct.set_file_hash(0, lib.get_random_bytes(20))
+            ct.set_hash(0, lib.get_random_bytes(20))
+            entry = ct.generate()
+            self.assertIn(b"sha1", entry[b"info"])
 
     def test_set_file_hash_invalid(self) -> None:
-        fs = [lt.create_file_entry("test1.txt", 1024)]
-        ct = lt.create_torrent(fs)
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(IndexError):
-                ct.set_file_hash(1, lib.get_random_bytes(20))
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(IndexError):
-                ct.set_file_hash(-1, lib.get_random_bytes(20))
+        if lt.api_version < 3:
+            fs = [lt.create_file_entry("test1.txt", 1024)]
+            ct = lt.create_torrent(fs)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(IndexError):
+                    ct.set_file_hash(1, lib.get_random_bytes(20))
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(IndexError):
+                    ct.set_file_hash(-1, lib.get_random_bytes(20))
 
     def test_set_file_hash_short(self) -> None:
-        fs = [lt.create_file_entry("test1.txt", 1024)]
-        ct = lt.create_torrent(fs)
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(ValueError):
-                ct.set_file_hash(0, lib.get_random_bytes(19))
+        if lt.api_version < 3:
+            fs = [lt.create_file_entry("test1.txt", 1024)]
+            ct = lt.create_torrent(fs)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(ValueError):
+                    ct.set_file_hash(0, lib.get_random_bytes(19))
 
     def test_set_file_hash_long_deprecated(self) -> None:
-        fs = [lt.create_file_entry("test1.txt", 1024)]
-        ct = lt.create_torrent(fs)
-        with self.assertWarns(DeprecationWarning):
-            ct.set_file_hash(0, lib.get_random_bytes(21))
+        if lt.api_version < 3:
+            fs = [lt.create_file_entry("test1.txt", 1024)]
+            ct = lt.create_torrent(fs)
+            with self.assertWarns(DeprecationWarning):
+                ct.set_file_hash(0, lib.get_random_bytes(21))
 
     def test_url_seed(self) -> None:
         fs = [lt.create_file_entry("test1.txt", 1024)]

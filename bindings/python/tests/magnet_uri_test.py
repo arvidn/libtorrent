@@ -1,9 +1,19 @@
 import tempfile
+from typing import Any
+from typing import Dict
 import unittest
 
 import libtorrent as lt
 
 from . import lib
+
+
+def filter(atp: Dict[str, Any]) -> Dict[str, Any]:
+    if lt.api_version >= 3:
+        del atp["info_hash"]
+    if lt.api_version >= 2:
+        del atp["url"]
+    return atp
 
 
 class ParseMagnetTest(unittest.TestCase):
@@ -14,7 +24,9 @@ class ParseMagnetTest(unittest.TestCase):
     def test_parse_to_atp(self) -> None:
         uri = f"magnet:?xt=urn:btih:{self.info_hash_sha1}"
         atp = lt.parse_magnet_uri(uri)
-        self.assertEqual(str(atp.info_hash).lower(), self.info_hash_sha1)
+        if lt.api_version < 3:
+            self.assertEqual(str(atp.info_hash).lower(), self.info_hash_sha1)
+        self.assertEqual(str(atp.info_hashes.v1).lower(), self.info_hash_sha1)
 
     def test_parse_to_atp_error(self) -> None:
         with self.assertRaises(RuntimeError):
@@ -39,18 +51,20 @@ class ParseMagnetTest(unittest.TestCase):
             params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
-            {
-                "dht_nodes": [("1.2.3.4", 5678)],
-                "flags": lt.torrent_flags.default_flags
-                | lt.torrent_flags.default_dont_download,
-                "info_hash": bytes.fromhex(self.info_hash_sha1),
-                "info_hashes": bytes.fromhex(self.info_hash_sha1),
-                "name": "test.txt",
-                "save_path": "",
-                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-                "trackers": ["http://example.com/tr"],
-                "url": "",
-            },
+            filter(
+                {
+                    "dht_nodes": [("1.2.3.4", 5678)],
+                    "flags": lt.torrent_flags.default_flags
+                    | lt.torrent_flags.default_dont_download,
+                    "info_hash": bytes.fromhex(self.info_hash_sha1),
+                    "info_hashes": bytes.fromhex(self.info_hash_sha1),
+                    "name": "test.txt",
+                    "save_path": "",
+                    "storage_mode": lt.storage_mode_t.storage_mode_sparse,
+                    "trackers": ["http://example.com/tr"],
+                    "url": "",
+                }
+            ),
         )
 
         # The dict is intended to be usable as argument to session.add_torrent()
@@ -82,20 +96,22 @@ class ParseMagnetTest(unittest.TestCase):
         params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
-            {
-                "dht_nodes": [("1.2.3.4", 5678)],
-                "file_priorities": [4, 4, 4, 0, 4],
-                "flags": lt.torrent_flags.default_flags
-                | lt.torrent_flags.default_dont_download,
-                "info_hash": bytes.fromhex(self.info_hash_sha1),
-                "info_hashes": bytes.fromhex(self.info_hash_sha1),
-                "name": "test.txt",
-                "save_path": "",
-                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-                "trackers": ["http://example.com/tr"],
-                "url": "",
-                "url_seeds": ["http://example.com/ws"],
-            },
+            filter(
+                {
+                    "dht_nodes": [("1.2.3.4", 5678)],
+                    "file_priorities": [4, 4, 4, 0, 4],
+                    "flags": lt.torrent_flags.default_flags
+                    | lt.torrent_flags.default_dont_download,
+                    "info_hash": bytes.fromhex(self.info_hash_sha1),
+                    "info_hashes": bytes.fromhex(self.info_hash_sha1),
+                    "name": "test.txt",
+                    "save_path": "",
+                    "storage_mode": lt.storage_mode_t.storage_mode_sparse,
+                    "trackers": ["http://example.com/tr"],
+                    "url": "",
+                    "url_seeds": ["http://example.com/ws"],
+                }
+            ),
         )
 
         # The dict is intended to be usable as argument to session.add_torrent()
@@ -126,18 +142,20 @@ class ParseMagnetTest(unittest.TestCase):
             params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
-            {
-                "dht_nodes": [("1.2.3.4", 5678)],
-                "flags": lt.torrent_flags.default_flags
-                | lt.torrent_flags.default_dont_download,
-                "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
-                "info_hashes": bytes.fromhex(self.info_hash_sha256),
-                "name": "test.txt",
-                "save_path": "",
-                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-                "trackers": ["http://example.com/tr"],
-                "url": "",
-            },
+            filter(
+                {
+                    "dht_nodes": [("1.2.3.4", 5678)],
+                    "flags": lt.torrent_flags.default_flags
+                    | lt.torrent_flags.default_dont_download,
+                    "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
+                    "info_hashes": bytes.fromhex(self.info_hash_sha256),
+                    "name": "test.txt",
+                    "save_path": "",
+                    "storage_mode": lt.storage_mode_t.storage_mode_sparse,
+                    "trackers": ["http://example.com/tr"],
+                    "url": "",
+                }
+            ),
         )
 
         # The dict is intended to be usable as argument to session.add_torrent()
@@ -169,21 +187,23 @@ class ParseMagnetTest(unittest.TestCase):
         params = lt.parse_magnet_uri_dict(uri)
         self.assertEqual(
             params,
-            {
-                "dht_nodes": [("1.2.3.4", 5678)],
-                "file_priorities": [4, 4, 4, 0, 4],
-                "flags": lt.torrent_flags.default_flags
-                | lt.torrent_flags.default_dont_download,
-                "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
-                "info_hashes": bytes.fromhex(self.info_hash_sha256),
-                "name": "test.txt",
-                "peers": [("0.1.2.3", 4567)],
-                "save_path": "",
-                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-                "trackers": ["http://example.com/tr"],
-                "url": "",
-                "url_seeds": "http://example.com/ws",
-            },
+            filter(
+                {
+                    "dht_nodes": [("1.2.3.4", 5678)],
+                    "file_priorities": [4, 4, 4, 0, 4],
+                    "flags": lt.torrent_flags.default_flags
+                    | lt.torrent_flags.default_dont_download,
+                    "info_hash": bytes.fromhex(self.info_hash_sha256)[:20],
+                    "info_hashes": bytes.fromhex(self.info_hash_sha256),
+                    "name": "test.txt",
+                    "peers": [("0.1.2.3", 4567)],
+                    "save_path": "",
+                    "storage_mode": lt.storage_mode_t.storage_mode_sparse,
+                    "trackers": ["http://example.com/tr"],
+                    "url": "",
+                    "url_seeds": "http://example.com/ws",
+                }
+            ),
         )
 
         # The dict is intended to be usable as argument to session.add_torrent()
@@ -219,15 +239,19 @@ class AddMagnetUriTest(unittest.TestCase):
         lib.cleanup_with_windows_fix(self.dir, timeout=5)
 
     def test_error(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(RuntimeError):
-                lt.add_magnet_uri(self.session, "magnet:?", {})
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(RuntimeError):
+                    lt.add_magnet_uri(self.session, "magnet:?", {})
 
     def test_add(self) -> None:
-        uri = f"magnet:?xt=urn:btih:{self.info_hash_sha1}"
-        with self.assertWarns(DeprecationWarning):
-            handle = lt.add_magnet_uri(self.session, uri, {"save_path": self.dir.name})
-        self.assertEqual(str(handle.info_hashes().v1), self.info_hash_sha1)
+        if lt.api_version < 2:
+            uri = f"magnet:?xt=urn:btih:{self.info_hash_sha1}"
+            with self.assertWarns(DeprecationWarning):
+                handle = lt.add_magnet_uri(
+                    self.session, uri, {"save_path": self.dir.name}
+                )
+            self.assertEqual(str(handle.info_hashes().v1), self.info_hash_sha1)
 
 
 class MakeMagnetUriTest(unittest.TestCase):

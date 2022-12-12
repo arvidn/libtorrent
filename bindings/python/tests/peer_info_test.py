@@ -14,7 +14,8 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.peer_info.outgoing_connection, int)
         self.assertIsInstance(lt.peer_info.handshake, int)
         self.assertIsInstance(lt.peer_info.connecting, int)
-        self.assertIsInstance(lt.peer_info.queued, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.peer_info.queued, int)
         self.assertIsInstance(lt.peer_info.on_parole, int)
         self.assertIsInstance(lt.peer_info.seed, int)
         self.assertIsInstance(lt.peer_info.optimistic_unchoke, int)
@@ -36,8 +37,9 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.peer_info.resume_data, int)
 
         self.assertIsInstance(lt.peer_info.bw_idle, int)
-        self.assertIsInstance(lt.peer_info.bw_torrent, int)
-        self.assertIsInstance(lt.peer_info.bw_global, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.peer_info.bw_torrent, int)
+            self.assertIsInstance(lt.peer_info.bw_global, int)
         self.assertIsInstance(lt.peer_info.bw_limit, int)
         self.assertIsInstance(lt.peer_info.bw_network, int)
         self.assertIsInstance(lt.peer_info.bw_disk, int)

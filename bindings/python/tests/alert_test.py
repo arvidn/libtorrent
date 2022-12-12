@@ -33,12 +33,14 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.alert.category_t.tracker_notification, int)
         self.assertIsInstance(lt.alert.category_t.connect_notification, int)
         self.assertIsInstance(lt.alert.category_t.status_notification, int)
-        self.assertIsInstance(lt.alert.category_t.debug_notification, int)
-        self.assertIsInstance(lt.alert.category_t.progress_notification, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.alert.category_t.debug_notification, int)
+            self.assertIsInstance(lt.alert.category_t.progress_notification, int)
         self.assertIsInstance(lt.alert.category_t.ip_block_notification, int)
         self.assertIsInstance(lt.alert.category_t.performance_warning, int)
         self.assertIsInstance(lt.alert.category_t.dht_notification, int)
-        self.assertIsInstance(lt.alert.category_t.stats_notification, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.alert.category_t.stats_notification, int)
         self.assertIsInstance(lt.alert.category_t.session_log_notification, int)
         self.assertIsInstance(lt.alert.category_t.torrent_log_notification, int)
         self.assertIsInstance(lt.alert.category_t.peer_log_notification, int)
@@ -55,12 +57,14 @@ class EnumTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_category_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.alert.category_t.debug_notification, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.alert.category_t.progress_notification, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.alert.category_t.stats_notification, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.alert.category_t.debug_notification, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.alert.category_t.progress_notification, int)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.alert.category_t.stats_notification, int)
 
     def test_alert_category(self) -> None:
         self.assertIsInstance(lt.alert_category.error, int)
@@ -141,35 +145,44 @@ class EnumTest(unittest.TestCase):
             self.assertIsInstance(lt.operation_name(value), str)
 
     def test_listen_succeded_alert_socket_type_t(self) -> None:
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp_ssl, int)
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.socks5, int)
-        self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.utp_ssl, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp_ssl, int)
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.socks5, int)
+            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.utp_ssl, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_listen_succeded_alert_socket_type_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp_ssl, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.socks5, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.utp_ssl, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.listen_succeded_alert_socket_type_t.tcp_ssl, int
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.listen_succeded_alert_socket_type_t.socks5, int
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.listen_succeded_alert_socket_type_t.utp_ssl, int
+                )
 
     def test_listen_failed_alert_socket_type_t(self) -> None:
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.tcp, int)
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.tcp_ssl, int)
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.udp, int)
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.i2p, int)
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.socks5, int)
-        self.assertIsInstance(lt.listen_failed_alert_socket_type_t.utp_ssl, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.tcp, int)
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.tcp_ssl, int)
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.udp, int)
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.i2p, int)
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.socks5, int)
+            self.assertIsInstance(lt.listen_failed_alert_socket_type_t.utp_ssl, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_listen_failed_alert_socket_type_t_deprecated(self) -> None:
@@ -191,7 +204,8 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.socket_type_t.socks5, int)
         self.assertIsInstance(lt.socket_type_t.http, int)
         self.assertIsInstance(lt.socket_type_t.utp, int)
-        self.assertIsInstance(lt.socket_type_t.udp, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.socket_type_t.udp, int)
         self.assertIsInstance(lt.socket_type_t.i2p, int)
         self.assertIsInstance(lt.socket_type_t.tcp_ssl, int)
         self.assertIsInstance(lt.socket_type_t.socks5_ssl, int)
@@ -227,60 +241,70 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(
             lt.performance_warning_t.too_many_optimistic_unchoke_slots, int
         )
-        self.assertIsInstance(lt.performance_warning_t.bittyrant_with_no_uplimit, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(
+                lt.performance_warning_t.bittyrant_with_no_uplimit, int
+            )
         self.assertIsInstance(lt.performance_warning_t.too_high_disk_queue_limit, int)
         self.assertIsInstance(lt.performance_warning_t.too_few_outgoing_ports, int)
         self.assertIsInstance(lt.performance_warning_t.too_few_file_descriptors, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_performance_warning_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                lt.performance_warning_t.bittyrant_with_no_uplimit, int
-            )
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.performance_warning_t.bittyrant_with_no_uplimit, int
+                )
 
     def test_stats_channel(self) -> None:
-        self.assertIsInstance(lt.stats_channel.upload_payload, int)
-        self.assertIsInstance(lt.stats_channel.upload_protocol, int)
-        self.assertIsInstance(lt.stats_channel.upload_ip_protocol, int)
-        self.assertIsInstance(lt.stats_channel.upload_dht_protocol, int)
-        self.assertIsInstance(lt.stats_channel.upload_tracker_protocol, int)
-        self.assertIsInstance(lt.stats_channel.download_payload, int)
-        self.assertIsInstance(lt.stats_channel.download_protocol, int)
-        self.assertIsInstance(lt.stats_channel.download_ip_protocol, int)
-        self.assertIsInstance(lt.stats_channel.download_dht_protocol, int)
-        self.assertIsInstance(lt.stats_channel.download_tracker_protocol, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.stats_channel.upload_payload, int)
+            self.assertIsInstance(lt.stats_channel.upload_protocol, int)
+            self.assertIsInstance(lt.stats_channel.upload_ip_protocol, int)
+            if lt.api_version < 2:
+                self.assertIsInstance(lt.stats_channel.upload_dht_protocol, int)
+                self.assertIsInstance(lt.stats_channel.upload_tracker_protocol, int)
+            self.assertIsInstance(lt.stats_channel.download_payload, int)
+            self.assertIsInstance(lt.stats_channel.download_protocol, int)
+            self.assertIsInstance(lt.stats_channel.download_ip_protocol, int)
+            if lt.api_version < 2:
+                self.assertIsInstance(lt.stats_channel.download_dht_protocol, int)
+                self.assertIsInstance(lt.stats_channel.download_tracker_protocol, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_stats_channel_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.upload_payload, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.upload_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.upload_ip_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.upload_dht_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.upload_tracker_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.download_payload, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.download_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.download_ip_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.download_dht_protocol, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.stats_channel.download_tracker_protocol, int)
-
-    def test_kind(self) -> None:
-        self.assertIsInstance(lt.kind.tracker_no_anonymous, int)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.upload_payload, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.upload_protocol, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.upload_ip_protocol, int)
+            if lt.api_version < 2:
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIsInstance(lt.stats_channel.upload_dht_protocol, int)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIsInstance(lt.stats_channel.upload_tracker_protocol, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.download_payload, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.download_protocol, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.stats_channel.download_ip_protocol, int)
+            if lt.api_version < 2:
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIsInstance(lt.stats_channel.download_dht_protocol, int)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIsInstance(
+                        lt.stats_channel.download_tracker_protocol, int
+                    )
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_kind_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.kind.tracker_no_anonymous, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.kind.tracker_no_anonymous, int)
 
     def test_close_reason_t(self) -> None:
         self.assertIsInstance(lt.close_reason_t.blocked, int)
@@ -365,7 +389,11 @@ _A = TypeVar("_A", bound=lt.alert)
 
 
 def wait_for(
-    session: lt.session, alert_type: Type[_A], *, timeout: float, prefix: str = None
+    session: lt.session,
+    alert_type: Type[_A],
+    *,
+    timeout: float,
+    prefix: Optional[str] = None,
 ) -> _A:
     # Return the first alert of type _A, but log all alerts.
     result: Optional[_A] = None
@@ -423,6 +451,12 @@ class AlertTest(unittest.TestCase):
         self.assertIsInstance(alert.message(), str)
         self.assertNotEqual(alert.message(), "")
         self.assertEqual(str(alert), alert.message())
+
+
+if lt.api_version < 2:
+    maybe_progress_notification = lt.alert.category_t.progress_notification
+else:
+    maybe_progress_notification = 0
 
 
 class TorrentAlertTest(AlertTest):
@@ -498,16 +532,18 @@ class TorrentAddedAlertTest(TorrentAlertTest):
     ALERT_MASK = lt.alert_category.status
 
     def test_torrent_added_alert(self) -> None:
-        handle = self.session.add_torrent(self.atp)
-        alert = wait_for(self.session, lt.torrent_added_alert, timeout=5)
+        if lt.api_version < 2:
+            handle = self.session.add_torrent(self.atp)
+            alert = wait_for(self.session, lt.torrent_added_alert, timeout=5)
 
-        self.assert_alert(alert, lt.alert_category.status, "torrent_added")
-        self.assert_torrent_alert(alert, handle)
+            self.assert_alert(alert, lt.alert_category.status, "torrent_added")
+            self.assert_torrent_alert(alert, handle)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(issubclass(lt.torrent_added_alert, lt.torrent_alert))
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertTrue(issubclass(lt.torrent_added_alert, lt.torrent_alert))
 
 
 class TorrentRemovedAlertTest(TorrentAlertTest):
@@ -518,7 +554,8 @@ class TorrentRemovedAlertTest(TorrentAlertTest):
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_removed")
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 3:
+            self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
         self.assertEqual(alert.info_hashes.v1, self.torrent.sha1_hash)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -526,8 +563,9 @@ class TorrentRemovedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         self.session.remove_torrent(handle)
         alert = wait_for(self.session, lt.torrent_removed_alert, timeout=5)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
 
 
 class ReadPieceAlertTest(TorrentAlertTest):
@@ -543,7 +581,8 @@ class ReadPieceAlertTest(TorrentAlertTest):
         self.assert_alert(alert, lt.alert_category.storage, "read_piece")
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.error.value(), 0)
-        self.assertEqual(alert.ec.value(), 0)
+        if lt.api_version < 2:
+            self.assertEqual(alert.ec.value(), 0)
         self.assertEqual(alert.buffer, self.torrent.pieces[0])
         self.assertEqual(alert.piece, 0)
         self.assertEqual(alert.size, len(self.torrent.pieces[0]))
@@ -559,8 +598,9 @@ class ReadPieceAlertTest(TorrentAlertTest):
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.error.value(), errno.ECANCELED)
         self.assertEqual(alert.error.category(), lt.generic_category())
-        self.assertEqual(alert.ec.value(), errno.ECANCELED)
-        self.assertEqual(alert.ec.category(), lt.generic_category())
+        if lt.api_version < 2:
+            self.assertEqual(alert.ec.value(), errno.ECANCELED)
+            self.assertEqual(alert.ec.category(), lt.generic_category())
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -570,8 +610,9 @@ class ReadPieceAlertTest(TorrentAlertTest):
         handle.piece_priority(0, 0)
         alert = wait_for(self.session, lt.read_piece_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.ec.value(), errno.ECANCELED)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.ec.value(), errno.ECANCELED)
 
 
 class PeerAlertTest(TorrentAlertTest):
@@ -598,10 +639,11 @@ class PeerAlertTest(TorrentAlertTest):
         alert: lt.peer_alert,
         endpoint: Tuple[str, int],
         *,
-        pid: lt.sha1_hash = None,
-        fingerprint: bytes = None,
+        pid: Optional[lt.sha1_hash] = None,
+        fingerprint: Optional[bytes] = None,
     ) -> None:
-        self.assertEqual(alert.ip, endpoint)
+        if lt.api_version < 2:
+            self.assertEqual(alert.ip, endpoint)
         self.assertEqual(alert.endpoint, endpoint)
         if pid is not None:
             self.assertEqual(alert.pid, pid)
@@ -662,7 +704,8 @@ class TrackerAlertTest(TorrentAlertTest):
         return None
 
     def assert_tracker_alert(self, alert: lt.tracker_alert) -> None:
-        self.assertEqual(alert.url, self.tracker_url)
+        if lt.api_version < 2:
+            self.assertEqual(alert.url, self.tracker_url)
         self.assertEqual(alert.tracker_url(), self.tracker_url)
         endpoint = alert.local_endpoint
         self.assertIsInstance(endpoint, tuple)
@@ -687,8 +730,9 @@ class TrackerErrorAlertTest(TrackerAlertTest):
         )
         self.assert_torrent_alert(alert, handle)
         self.assert_tracker_alert(alert)
-        self.assertEqual(alert.msg, "test")
-        self.assertEqual(alert.status_code, -1)
+        if lt.api_version < 2:
+            self.assertEqual(alert.msg, "test")
+            self.assertEqual(alert.status_code, -1)
         self.assertEqual(alert.error_message(), "test")
         self.assertEqual(alert.failure_reason(), "test")
         self.assertEqual(alert.times_in_row, 1)
@@ -704,12 +748,13 @@ class TrackerErrorAlertTest(TrackerAlertTest):
         handle.add_tracker({"url": self.tracker_url})
         alert = wait_for(self.session, lt.tracker_error_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.url, self.tracker_url)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.msg, "test")
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.status_code, -1)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.url, self.tracker_url)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.msg, "test")
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.status_code, -1)
 
 
 class TrackerWarningAlertTest(TrackerAlertTest):
@@ -852,8 +897,7 @@ class PieceFinishedAlertTest(TorrentAlertTest):
 
         self.assert_alert(
             alert,
-            lt.alert_category.piece_progress
-            | lt.alert.category_t.progress_notification,
+            lt.alert_category.piece_progress | maybe_progress_notification,
             "piece_finished",
         )
         self.assert_torrent_alert(alert, handle)
@@ -875,8 +919,7 @@ class BlockFinishedAlertTest(PeerAlertTest):
 
         self.assert_alert(
             alert,
-            lt.alert_category.block_progress
-            | lt.alert.category_t.progress_notification,
+            lt.alert_category.block_progress | maybe_progress_notification,
             "block_finished",
         )
         self.assert_torrent_alert(alert, handle)
@@ -899,14 +942,14 @@ class BlockDownloadingAlertTest(PeerAlertTest):
 
         self.assert_alert(
             alert,
-            lt.alert_category.block_progress
-            | lt.alert.category_t.progress_notification,
+            lt.alert_category.block_progress | maybe_progress_notification,
             "block_downloading",
         )
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.piece_index, 0)
         self.assertEqual(alert.block_index, 0)
-        self.assertIsInstance(alert.peer_speedmsg, str)
+        if lt.api_version < 2:
+            self.assertIsInstance(alert.peer_speedmsg, str)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -919,8 +962,9 @@ class BlockDownloadingAlertTest(PeerAlertTest):
 
         alert = wait_for(self.session, lt.block_downloading_alert, timeout=10)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.peer_speedmsg, str)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(alert.peer_speedmsg, str)
 
 
 class StorageMovedAlertTest(TorrentAlertTest):
@@ -936,7 +980,8 @@ class StorageMovedAlertTest(TorrentAlertTest):
 
         self.assert_alert(alert, lt.alert_category.storage, "storage_moved")
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.path, new)
+        if lt.api_version < 2:
+            self.assertEqual(alert.path, new)
         self.assertEqual(alert.storage_path(), new)
         self.assertEqual(alert.old_path(), self.dir.name)
 
@@ -949,8 +994,9 @@ class StorageMovedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.storage_moved_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.path, new)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.path, new)
 
 
 class StorageMovedFailedAlertTest(TorrentAlertTest):
@@ -984,7 +1030,8 @@ class StorageMovedFailedAlertTest(TorrentAlertTest):
         self.assertTrue(
             alert.op in [lt.operation_t.file_open, lt.operation_t.file_rename]
         )
-        self.assertTrue(alert.operation in ["file_open", "file_rename"])
+        if lt.api_version < 2:
+            self.assertTrue(alert.operation in ["file_open", "file_rename"])
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -1022,7 +1069,8 @@ class TorrentDeletedAlertTest(TorrentAlertTest):
 
         self.assert_alert(alert, lt.alert_category.storage, "torrent_deleted")
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 2:
+            self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
         self.assertEqual(alert.info_hashes.v1, self.torrent.sha1_hash)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1038,8 +1086,9 @@ class TorrentDeletedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.torrent_deleted_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
 
 
 class TorrentPausedAlertTest(TorrentAlertTest):
@@ -1080,8 +1129,9 @@ class UrlSeedAlertTest(TorrentAlertTest):
             alert, lt.alert_category.peer | lt.alert_category.error, "url_seed"
         )
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.url, "test://test")
-        self.assertIsInstance(alert.msg, str)
+        if lt.api_version < 2:
+            self.assertEqual(alert.url, "test://test")
+            self.assertIsInstance(alert.msg, str)
         self.assertEqual(alert.error.category(), lt.libtorrent_category())
         self.assertEqual(alert.error.value(), 24)  # unsupported URL protocol
         self.assertEqual(alert.server_url(), "test://test")
@@ -1095,10 +1145,11 @@ class UrlSeedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.url_seed_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.url, "test://test")
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.msg, str)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.url, "test://test")
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(alert.msg, str)
 
 
 class FileErrorAlertTest(TorrentAlertTest):
@@ -1125,8 +1176,9 @@ class FileErrorAlertTest(TorrentAlertTest):
         # NB: posix storage results in different error codes than mmap storage
         self.assertIsInstance(alert.error.category(), lt.error_category)
         self.assertEqual(alert.filename(), self.file_path)
-        self.assertEqual(alert.file, self.file_path)
-        self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            self.assertEqual(alert.file, self.file_path)
+            self.assertEqual(alert.msg, alert.error.message())
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -1136,10 +1188,11 @@ class FileErrorAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.file_error_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.file, self.file_path)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.file, self.file_path)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.msg, alert.error.message())
 
 
 class MetadataFailedAlertTest(TorrentAlertTest):
@@ -1187,15 +1240,16 @@ class ListenFailedAlertTest(AlertTest):
         self.assert_alert(
             alert, lt.alert_category.status | lt.alert_category.error, "listen_failed"
         )
-        self.assertEqual(alert.endpoint, ("0.0.0.0", 0))
         self.assertEqual(alert.address, "0.0.0.0")
         self.assertEqual(alert.port, 0)
         self.assertEqual(alert.listen_interface(), "does-not-exist")
         self.assertEqual(alert.error.category(), lt.libtorrent_category())
         self.assertEqual(alert.error.value(), 32)  # parse error
         self.assertEqual(alert.op, lt.operation_t.parse_address)
-        self.assertEqual(alert.operation, 0)
-        self.assertIsInstance(alert.sock_type, lt.listen_failed_alert_socket_type_t)
+        if lt.api_version < 2:
+            self.assertEqual(alert.endpoint, ("0.0.0.0", 0))
+            self.assertEqual(alert.operation, 0)
+            self.assertIsInstance(alert.sock_type, lt.listen_failed_alert_socket_type_t)
         self.assertIsInstance(alert.socket_type, lt.socket_type_t)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1204,12 +1258,15 @@ class ListenFailedAlertTest(AlertTest):
 
         alert = wait_for(self.session, lt.listen_failed_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.endpoint, ("0.0.0.0", 0))
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.operation, 0)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.sock_type, lt.listen_failed_alert_socket_type_t)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.endpoint, ("0.0.0.0", 0))
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.operation, 0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    alert.sock_type, lt.listen_failed_alert_socket_type_t
+                )
 
 
 class ListenSucceededAlertTest(AlertTest):
@@ -1219,20 +1276,28 @@ class ListenSucceededAlertTest(AlertTest):
         alert = wait_for(self.session, lt.listen_succeeded_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "listen_succeeded")
-        self.assertEqual(alert.endpoint, ("127.0.0.1", self.session.listen_port()))
+        if lt.api_version < 2:
+            self.assertEqual(alert.endpoint, ("127.0.0.1", self.session.listen_port()))
+            self.assertIsInstance(
+                alert.sock_type, lt.listen_succeded_alert_socket_type_t
+            )
         self.assertEqual(alert.address, "127.0.0.1")
         self.assertEqual(alert.port, self.session.listen_port())
-        self.assertIsInstance(alert.sock_type, lt.listen_succeded_alert_socket_type_t)
         self.assertIsInstance(alert.socket_type, lt.socket_type_t)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
         alert = wait_for(self.session, lt.listen_succeeded_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.endpoint, ("127.0.0.1", self.session.listen_port()))
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.sock_type, lt.listen_failed_alert_socket_type_t)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(
+                    alert.endpoint, ("127.0.0.1", self.session.listen_port())
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    alert.sock_type, lt.listen_failed_alert_socket_type_t
+                )
 
 
 class PortmapErrorAlertTest(AlertTest):
@@ -1277,8 +1342,9 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
         self.assertEqual(alert.error.category(), lt.libtorrent_category())
         self.assertEqual(alert.file_path(), self.file_path)
         self.assertEqual(alert.op, lt.operation_t.check_resume)
-        self.assertEqual(alert.operation, "check_resume")
-        self.assertIsInstance(alert.msg, str)
+        if lt.api_version < 2:
+            self.assertEqual(alert.operation, "check_resume")
+            self.assertIsInstance(alert.msg, str)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
@@ -1291,10 +1357,11 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.fastresume_rejected_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.operation, "check_resume")
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.msg, str)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.operation, "check_resume")
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(alert.msg, str)
 
 
 class PeerBlockedAlertTest(PeerAlertTest):
@@ -1317,7 +1384,8 @@ class PeerBlockedAlertTest(PeerAlertTest):
         self.assert_alert(alert, lt.alert_category.ip_block, "peer_blocked")
         self.assert_torrent_alert(alert, handle)
         self.assert_peer_alert(alert, self.peer_endpoint, pid=lt.sha1_hash())
-        self.assertEqual(alert.ip, self.peer_endpoint)
+        if lt.api_version < 2:
+            self.assertEqual(alert.ip, self.peer_endpoint)
         self.assertEqual(alert.reason, lt.reason_t.ip_filter)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1383,7 +1451,8 @@ class ScrapeFailedAlertTest(TrackerAlertTest):
         )
         self.assert_torrent_alert(alert, handle)
         self.assert_tracker_alert(alert)
-        self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            self.assertEqual(alert.msg, alert.error.message())
         self.assertEqual(alert.error_message(), "")
         self.assertEqual(alert.error.category(), lt.libtorrent_category())
         self.assertEqual(alert.error.value(), 174)  # invalid files entry
@@ -1423,9 +1492,10 @@ class SaveResumeDataAlertTest(TorrentAlertTest):
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.params, lt.add_torrent_params)
         self.assertEqual(alert.params.info_hashes.v1, self.torrent.sha1_hash)
-        with self.assertWarns(DeprecationWarning):
-            atp = lt.read_resume_data(lt.bencode(alert.resume_data))
-        self.assertEqual(atp.info_hashes.v1, self.torrent.sha1_hash)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                atp = lt.read_resume_data(lt.bencode(alert.resume_data))
+            self.assertEqual(atp.info_hashes.v1, self.torrent.sha1_hash)
 
 
 class FileCompletedAlertTest(TorrentAlertTest):
@@ -1441,7 +1511,7 @@ class FileCompletedAlertTest(TorrentAlertTest):
 
         self.assert_alert(
             alert,
-            lt.alert_category.file_progress | lt.alert.category_t.progress_notification,
+            lt.alert_category.file_progress | maybe_progress_notification,
             "file_completed",
         )
         self.assert_torrent_alert(alert, handle)
@@ -1460,7 +1530,8 @@ class FileRenamedAlertTest(TorrentAlertTest):
         self.assert_alert(alert, lt.alert_category.storage, "file_renamed")
         self.assert_torrent_alert(alert, handle)
         self.assertEqual(alert.index, 0)
-        self.assertEqual(alert.name, "other.txt")
+        if lt.api_version < 2:
+            self.assertEqual(alert.name, "other.txt")
         self.assertEqual(alert.new_name(), "other.txt")
         ti = self.atp.ti
         assert ti is not None
@@ -1685,19 +1756,21 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
         self.assertIsInstance(alert.error.value(), int)
         self.assertNotEqual(alert.error.value(), 0)
         self.assertIsInstance(alert.reason, lt.close_reason_t)
-        self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            self.assertEqual(alert.msg, alert.error.message())
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        handle = self.session.add_torrent(self.atp)
-        peer_handle = self.peer.add_torrent(self.peer_atp)
-        handle.connect_peer(self.peer_endpoint)
-        self.peer.remove_torrent(peer_handle)
+        if lt.api_version < 2:
+            handle = self.session.add_torrent(self.atp)
+            peer_handle = self.peer.add_torrent(self.peer_atp)
+            handle.connect_peer(self.peer_endpoint)
+            self.peer.remove_torrent(peer_handle)
 
-        alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=15)
+            alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=15)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.msg, alert.error.message())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.msg, alert.error.message())
 
 
 class RequestDroppedAlertTest(PeerAlertTest):
@@ -1763,7 +1836,8 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
             "torrent_delete_failed",
         )
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            self.assertEqual(alert.msg, alert.error.message())
         errno_value = alert.error.value()
         # On non-Windows, the error value is an errno. On Windows it's a
         # "winerror" value. This uses python's winerror-to-errno translation on
@@ -1771,7 +1845,8 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
         errno_value = OSError(errno_value, "", None, errno_value).errno
         self.assertEqual(errno_value, errno.ENOTEMPTY)
         self.assertEqual(alert.error.category(), lt.system_category())
-        self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 3:
+            self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
         self.assertEqual(alert.info_hashes.v1, self.torrent.sha1_hash)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1829,7 +1904,8 @@ class SaveResumeDataFailedAlertTest(TorrentAlertTest):
             "save_resume_data_failed",
         )
         self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            self.assertEqual(alert.msg, alert.error.message())
         self.assertEqual(alert.error.category(), lt.libtorrent_category())
         self.assertEqual(alert.error.value(), 143)  # not modified since last save
 
@@ -1841,8 +1917,9 @@ class SaveResumeDataFailedAlertTest(TorrentAlertTest):
 
         alert = wait_for(self.session, lt.save_resume_data_failed_alert, timeout=5)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(alert.msg, alert.error.message())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(alert.msg, alert.error.message())
 
 
 class PerformanceAlertTest(AlertTest):
@@ -1867,19 +1944,21 @@ class StatsAlert(TorrentAlertTest):
     ALERT_MASK = lt.alert_category.stats
 
     def test_stats_alert(self) -> None:
-        handle = self.session.add_torrent(self.atp)
+        if lt.api_version < 3:
+            handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.stats_alert, timeout=5)
+            alert = wait_for(self.session, lt.stats_alert, timeout=5)
 
-        self.assert_alert(alert, lt.alert_category.stats, "stats")
-        self.assert_torrent_alert(alert, handle)
-        self.assertEqual(alert.transferred, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        self.assertGreater(alert.interval, 0)
+            self.assert_alert(alert, lt.alert_category.stats, "stats")
+            self.assert_torrent_alert(alert, handle)
+            self.assertEqual(alert.transferred, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            self.assertGreater(alert.interval, 0)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(issubclass(lt.stats_alert, lt.torrent_alert))
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertTrue(issubclass(lt.stats_alert, lt.torrent_alert))
 
 
 class CacheFlushedAlert(TorrentAlertTest):
@@ -1913,7 +1992,8 @@ class IncomingConnectionAlertTest(PeerAlertTest):
 
         self.assert_alert(alert, lt.alert_category.peer, "incoming_connection")
         self.assertIsInstance(alert.socket_type, lt.socket_type_t)
-        self.assertEqual(alert.ip, self.peer_endpoint)
+        if lt.api_version < 2:
+            self.assertEqual(alert.ip, self.peer_endpoint)
         self.assertEqual(alert.endpoint, self.peer_endpoint)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1960,7 +2040,8 @@ class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
         self.assertFalse(alert.obfuscated_info_hash.is_all_zeros())
         # Our peer may return us as a peer, so we may get alerts for querying
         # ourselves
-        self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
+        if lt.api_version < 2:
+            self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
         self.assertIn(alert.endpoint, (self.peer_endpoint, self.endpoint))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1970,8 +2051,9 @@ class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
 
         alert = wait_for(self.session, lt.dht_outgoing_get_peers_alert, timeout=10)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIn(alert.ip, (self.peer_endpoint, self.endpoint))
 
 
 class LogAlertTest(AlertTest):
@@ -1981,10 +2063,11 @@ class LogAlertTest(AlertTest):
         alert = wait_for(self.session, lt.log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.session_log, "log")
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.msg(), str)
-        with self.assertWarns(DeprecationWarning):
-            self.assertNotEqual(alert.msg(), "")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(alert.msg(), str)
+            with self.assertWarns(DeprecationWarning):
+                self.assertNotEqual(alert.msg(), "")
         self.assertIsInstance(alert.log_message(), str)
         self.assertNotEqual(alert.log_message(), "")
 
@@ -2000,10 +2083,11 @@ class PeerLogAlertTest(PeerAlertTest):
         self.assert_alert(alert, lt.alert_category.peer_log, "peer_log")
         self.assert_torrent_alert(alert, handle)
         self.assert_peer_alert(alert, self.peer_endpoint, pid=lt.sha1_hash())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(alert.msg(), str)
-        with self.assertWarns(DeprecationWarning):
-            self.assertNotEqual(alert.msg(), "")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(alert.msg(), str)
+            with self.assertWarns(DeprecationWarning):
+                self.assertNotEqual(alert.msg(), "")
         self.assertIsInstance(alert.log_message(), str)
         self.assertNotEqual(alert.log_message(), "")
 
@@ -2245,7 +2329,7 @@ class BlockUploadedAlertTest(PeerAlertTest):
 
         self.assert_alert(
             alert,
-            lt.alert_category.upload | lt.alert.category_t.progress_notification,
+            lt.alert_category.upload | maybe_progress_notification,
             "block_uploaded",
         )
         self.assertIsInstance(alert.block_index, int)

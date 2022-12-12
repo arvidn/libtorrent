@@ -202,72 +202,74 @@ class DhtStateTest(unittest.TestCase):
 
 class SessionStatusTest(unittest.TestCase):
     def test_fields(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            stat = lt.session_status()
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                stat = lt.session_status()
 
-        self.assertIsInstance(stat.has_incoming_connections, bool)
+            self.assertIsInstance(stat.has_incoming_connections, bool)
 
-        self.assertIsInstance(stat.upload_rate, int)
-        self.assertIsInstance(stat.download_rate, int)
-        self.assertIsInstance(stat.total_download, int)
-        self.assertIsInstance(stat.total_upload, int)
+            self.assertIsInstance(stat.upload_rate, int)
+            self.assertIsInstance(stat.download_rate, int)
+            self.assertIsInstance(stat.total_download, int)
+            self.assertIsInstance(stat.total_upload, int)
 
-        self.assertIsInstance(stat.payload_upload_rate, int)
-        self.assertIsInstance(stat.payload_download_rate, int)
-        self.assertIsInstance(stat.total_payload_download, int)
-        self.assertIsInstance(stat.total_payload_upload, int)
+            self.assertIsInstance(stat.payload_upload_rate, int)
+            self.assertIsInstance(stat.payload_download_rate, int)
+            self.assertIsInstance(stat.total_payload_download, int)
+            self.assertIsInstance(stat.total_payload_upload, int)
 
-        self.assertIsInstance(stat.ip_overhead_upload_rate, int)
-        self.assertIsInstance(stat.ip_overhead_download_rate, int)
-        self.assertIsInstance(stat.total_ip_overhead_download, int)
-        self.assertIsInstance(stat.total_ip_overhead_upload, int)
+            self.assertIsInstance(stat.ip_overhead_upload_rate, int)
+            self.assertIsInstance(stat.ip_overhead_download_rate, int)
+            self.assertIsInstance(stat.total_ip_overhead_download, int)
+            self.assertIsInstance(stat.total_ip_overhead_upload, int)
 
-        self.assertIsInstance(stat.dht_upload_rate, int)
-        self.assertIsInstance(stat.dht_download_rate, int)
-        self.assertIsInstance(stat.total_dht_download, int)
-        self.assertIsInstance(stat.total_dht_upload, int)
+            self.assertIsInstance(stat.dht_upload_rate, int)
+            self.assertIsInstance(stat.dht_download_rate, int)
+            self.assertIsInstance(stat.total_dht_download, int)
+            self.assertIsInstance(stat.total_dht_upload, int)
 
-        self.assertIsInstance(stat.tracker_upload_rate, int)
-        self.assertIsInstance(stat.tracker_download_rate, int)
-        self.assertIsInstance(stat.total_tracker_download, int)
-        self.assertIsInstance(stat.total_tracker_upload, int)
+            self.assertIsInstance(stat.tracker_upload_rate, int)
+            self.assertIsInstance(stat.tracker_download_rate, int)
+            self.assertIsInstance(stat.total_tracker_download, int)
+            self.assertIsInstance(stat.total_tracker_upload, int)
 
-        self.assertIsInstance(stat.total_redundant_bytes, int)
-        self.assertIsInstance(stat.total_failed_bytes, int)
+            self.assertIsInstance(stat.total_redundant_bytes, int)
+            self.assertIsInstance(stat.total_failed_bytes, int)
 
-        self.assertIsInstance(stat.num_peers, int)
-        self.assertIsInstance(stat.num_unchoked, int)
-        self.assertIsInstance(stat.allowed_upload_slots, int)
+            self.assertIsInstance(stat.num_peers, int)
+            self.assertIsInstance(stat.num_unchoked, int)
+            self.assertIsInstance(stat.allowed_upload_slots, int)
 
-        self.assertIsInstance(stat.up_bandwidth_queue, int)
-        self.assertIsInstance(stat.down_bandwidth_queue, int)
+            self.assertIsInstance(stat.up_bandwidth_queue, int)
+            self.assertIsInstance(stat.down_bandwidth_queue, int)
 
-        self.assertIsInstance(stat.up_bandwidth_bytes_queue, int)
-        self.assertIsInstance(stat.down_bandwidth_bytes_queue, int)
+            self.assertIsInstance(stat.up_bandwidth_bytes_queue, int)
+            self.assertIsInstance(stat.down_bandwidth_bytes_queue, int)
 
-        self.assertIsInstance(stat.optimistic_unchoke_counter, int)
-        self.assertIsInstance(stat.unchoke_counter, int)
+            self.assertIsInstance(stat.optimistic_unchoke_counter, int)
+            self.assertIsInstance(stat.unchoke_counter, int)
 
-        self.assertIsInstance(stat.dht_nodes, int)
-        self.assertIsInstance(stat.dht_node_cache, int)
-        self.assertIsInstance(stat.dht_torrents, int)
-        self.assertIsInstance(stat.dht_global_nodes, int)
-        self.assertEqual(stat.active_requests, [])
-        self.assertIsInstance(stat.dht_total_allocations, int)
+            self.assertIsInstance(stat.dht_nodes, int)
+            self.assertIsInstance(stat.dht_node_cache, int)
+            self.assertIsInstance(stat.dht_torrents, int)
+            self.assertIsInstance(stat.dht_global_nodes, int)
+            self.assertEqual(stat.active_requests, [])
+            self.assertIsInstance(stat.dht_total_allocations, int)
 
-        with self.assertWarns(DeprecationWarning):
-            utp = stat.utp_stats
-        self.assertIsInstance(utp["num_idle"], int)
-        self.assertIsInstance(utp["num_syn_sent"], int)
-        self.assertIsInstance(utp["num_connected"], int)
-        self.assertIsInstance(utp["num_fin_sent"], int)
-        self.assertIsInstance(utp["num_close_wait"], int)
+            with self.assertWarns(DeprecationWarning):
+                utp = stat.utp_stats
+            self.assertIsInstance(utp["num_idle"], int)
+            self.assertIsInstance(utp["num_syn_sent"], int)
+            self.assertIsInstance(utp["num_connected"], int)
+            self.assertIsInstance(utp["num_fin_sent"], int)
+            self.assertIsInstance(utp["num_close_wait"], int)
 
     def test_from_session(self) -> None:
         session = lt.session(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            stat = session.status()
-        self.assertIsInstance(stat, lt.session_status)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                stat = session.status()
+            self.assertIsInstance(stat, lt.session_status)
 
 
 class AddTorrentParamsTest(unittest.TestCase):
@@ -557,15 +559,20 @@ class EnumsTest(unittest.TestCase):
 
     def test_session_flags_t(self) -> None:
         self.assertIsInstance(lt.session_flags_t.paused, int)
-        self.assertIsInstance(lt.session_flags_t.add_default_plugins, int)
-        self.assertIsInstance(lt.session_flags_t.start_default_features, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.session_flags_t.add_default_plugins, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.session_flags_t.start_default_features, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_session_flags_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.session_flags_t.add_default_plugins, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.session_flags_t.start_default_features, int)
+
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.session_flags_t.add_default_plugins, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.session_flags_t.start_default_features, int)
 
     def test_torrent_flags(self) -> None:
         self.assertIsInstance(lt.torrent_flags.seed_mode, int)
@@ -589,43 +596,53 @@ class EnumsTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_atp_flags_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.add_torrent_params_flags_t.default_flags, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.add_torrent_params_flags_t.default_flags, int)
 
     def test_atp_flags_t(self) -> None:
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_seed_mode, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_upload_mode, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_share_mode, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_apply_ip_filter, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_paused, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_auto_managed, int)
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_duplicate_is_error, int
-        )
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_update_subscribe, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_super_seeding, int)
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_sequential_download, int
-        )
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_stop_when_ready, int)
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_override_trackers, int)
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_override_web_seeds, int
-        )
-        self.assertIsInstance(lt.add_torrent_params_flags_t.flag_pinned, int)
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_override_resume_data, int
-        )
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_merge_resume_trackers, int
-        )
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_use_resume_save_path, int
-        )
-        self.assertIsInstance(
-            lt.add_torrent_params_flags_t.flag_merge_resume_http_seeds, int
-        )
-        self.assertIsInstance(lt.add_torrent_params_flags_t.default_flags, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_seed_mode, int)
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_upload_mode, int)
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_share_mode, int)
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_apply_ip_filter, int
+            )
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_paused, int)
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_auto_managed, int)
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_duplicate_is_error, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_update_subscribe, int
+            )
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_super_seeding, int)
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_sequential_download, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_stop_when_ready, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_override_trackers, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_override_web_seeds, int
+            )
+            self.assertIsInstance(lt.add_torrent_params_flags_t.flag_pinned, int)
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_override_resume_data, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_merge_resume_trackers, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_use_resume_save_path, int
+            )
+            self.assertIsInstance(
+                lt.add_torrent_params_flags_t.flag_merge_resume_http_seeds, int
+            )
+            self.assertIsInstance(lt.add_torrent_params_flags_t.default_flags, int)
 
     def test_portmap_protocol(self) -> None:
         self.assertIsInstance(lt.portmap_protocol.none, int)
@@ -646,58 +663,68 @@ class EnumsTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_protocol_type_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.protocol_type.udp, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.protocol_type.udp, int)
 
     def test_protocol_type(self) -> None:
-        self.assertIsInstance(lt.protocol_type.udp, int)
-        self.assertIsInstance(lt.protocol_type.tcp, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.protocol_type.udp, int)
+            self.assertIsInstance(lt.protocol_type.tcp, int)
 
     def test_save_state_flags_t(self) -> None:
         self.assertIsInstance(lt.save_state_flags_t.all, int)
         self.assertIsInstance(lt.save_state_flags_t.save_settings, int)
         self.assertIsInstance(lt.save_state_flags_t.save_dht_state, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_dht_settings, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_encryption_settings, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_as_map, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_i2p_proxy, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_proxy, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_dht_proxy, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_peer_proxy, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_web_proxy, int)
-        self.assertIsInstance(lt.save_state_flags_t.save_tracker_proxy, int)
+        if lt.api_version < 3:
+            self.assertIsInstance(lt.save_state_flags_t.save_dht_settings, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.save_state_flags_t.save_encryption_settings, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_as_map, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_i2p_proxy, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_proxy, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_dht_proxy, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_peer_proxy, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_web_proxy, int)
+            self.assertIsInstance(lt.save_state_flags_t.save_tracker_proxy, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_save_state_flags_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_dht_settings, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_encryption_settings, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_as_map, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_i2p_proxy, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_proxy, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_dht_proxy, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_peer_proxy, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_web_proxy, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.save_state_flags_t.save_tracker_proxy, int)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_dht_settings, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.save_state_flags_t.save_encryption_settings, int
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_as_map, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_i2p_proxy, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_proxy, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_dht_proxy, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_peer_proxy, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_web_proxy, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.save_state_flags_t.save_tracker_proxy, int)
 
     def test_listen_on_flags_t(self) -> None:
-        self.assertIsInstance(lt.listen_on_flags_t.listen_reuse_address, int)
-        self.assertIsInstance(lt.listen_on_flags_t.listen_no_system_port, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.listen_on_flags_t.listen_reuse_address, int)
+            self.assertIsInstance(lt.listen_on_flags_t.listen_no_system_port, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_listen_on_flags_t_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_on_flags_t.listen_reuse_address, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.listen_on_flags_t.listen_no_system_port, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.listen_on_flags_t.listen_reuse_address, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.listen_on_flags_t.listen_no_system_port, int)
 
     def test_metric_type_t(self) -> None:
         self.assertIsInstance(lt.metric_type_t.counter, int)
@@ -803,7 +830,10 @@ class ConstructorTest(unittest.TestCase):
 
         lt.session(settings=lib.get_isolated_settings())
 
-        session = lt.session(flags=0)
+        if lt.api_version < 2:
+            session = lt.session(flags=0)
+        else:
+            session = lt.session()
         session.apply_settings(lib.get_isolated_settings())
 
         lt.session(settings=lib.get_isolated_settings(), flags=0)
@@ -825,48 +855,50 @@ class ConstructorTest(unittest.TestCase):
         session.apply_settings(lib.get_isolated_settings())
 
     def test_fingerprint(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
 
-        session = lt.session(fingerprint)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint)
+            session.apply_settings(lib.get_isolated_settings())
 
-        session = lt.session(fingerprint, 0)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint, 0)
+            session.apply_settings(lib.get_isolated_settings())
 
-        session = lt.session(fingerprint, 0, 0)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint, 0, 0)
+            session.apply_settings(lib.get_isolated_settings())
 
-        session = lt.session(fingerprint=fingerprint)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint=fingerprint)
+            session.apply_settings(lib.get_isolated_settings())
 
-        session = lt.session(fingerprint=fingerprint, flags=0)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint=fingerprint, flags=0)
+            session.apply_settings(lib.get_isolated_settings())
 
-        session = lt.session(fingerprint=fingerprint, flags=0, alert_mask=0)
-        session.apply_settings(lib.get_isolated_settings())
+            session = lt.session(fingerprint=fingerprint, flags=0, alert_mask=0)
+            session.apply_settings(lib.get_isolated_settings())
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_fingerprint_deprecated(self) -> None:
-        fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint)
-            session.apply_settings(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint, 0)
-            session.apply_settings(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint, 0, 0)
-            session.apply_settings(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint=fingerprint)
-            session.apply_settings(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint=fingerprint, flags=0)
-            session.apply_settings(lib.get_isolated_settings())
-        with self.assertWarns(DeprecationWarning):
-            session = lt.session(fingerprint=fingerprint, flags=0, alert_mask=0)
-            session.apply_settings(lib.get_isolated_settings())
+        if lt.api_version < 2:
+            fingerprint = lt.fingerprint("AB", 1, 2, 3, 4)
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint)
+                session.apply_settings(lib.get_isolated_settings())
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint, 0)
+                session.apply_settings(lib.get_isolated_settings())
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint, 0, 0)
+                session.apply_settings(lib.get_isolated_settings())
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint=fingerprint)
+                session.apply_settings(lib.get_isolated_settings())
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint=fingerprint, flags=0)
+                session.apply_settings(lib.get_isolated_settings())
+            with self.assertWarns(DeprecationWarning):
+                session = lt.session(fingerprint=fingerprint, flags=0, alert_mask=0)
+                session.apply_settings(lib.get_isolated_settings())
 
 
 class DhtTest(unittest.TestCase):
@@ -903,8 +935,9 @@ class DhtTest(unittest.TestCase):
         self.session.dht_live_nodes(sha1)
         self.session.dht_sample_infohashes(endpoint, sha1)
 
-        with self.assertWarns(DeprecationWarning):
-            self.session.add_dht_router(*endpoint)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.session.add_dht_router(*endpoint)
 
         dht_settings = self.session.get_dht_settings()
         self.session.set_dht_settings(dht_settings)
@@ -937,12 +970,13 @@ class DhtTest(unittest.TestCase):
             )
 
     def test_dht_lookup(self) -> None:
-        lookup = lt.dht_lookup()
-        self.assertIsInstance(lookup.branch_factor, int)
-        self.assertIsInstance(lookup.outstanding_requests, int)
-        self.assertIsInstance(lookup.response, int)
-        self.assertIsInstance(lookup.timeouts, int)
-        self.assertIsNone(lookup.type)  # Should be a str, for real lookups
+        if lt.api_version < 2:
+            lookup = lt.dht_lookup()
+            self.assertIsInstance(lookup.branch_factor, int)
+            self.assertIsInstance(lookup.outstanding_requests, int)
+            self.assertIsInstance(lookup.response, int)
+            self.assertIsInstance(lookup.timeouts, int)
+            self.assertIsNone(lookup.type)  # Should be a str, for real lookups
 
 
 class AlertHandlingTest(unittest.TestCase):
@@ -1094,36 +1128,37 @@ class AddTorrentTest(unittest.TestCase):
             )
 
     def test_old_style(self) -> None:
-        ti = self.torrent.torrent_info()
-        # positional args
-        with self.assertWarns(DeprecationWarning):
-            handle = self.session.add_torrent(ti, self.dir.name)
-        self.assertIsInstance(handle, lt.torrent_handle)
-        self.assertTrue(handle.is_valid())
-        self.assertEqual(handle.status().save_path, self.dir.name)
+        if lt.api_version < 2:
+            ti = self.torrent.torrent_info()
+            # positional args
+            with self.assertWarns(DeprecationWarning):
+                handle = self.session.add_torrent(ti, self.dir.name)
+            self.assertIsInstance(handle, lt.torrent_handle)
+            self.assertTrue(handle.is_valid())
+            self.assertEqual(handle.status().save_path, self.dir.name)
 
-        with self.assertWarns(DeprecationWarning):
-            handle = self.session.add_torrent(
-                ti,
-                self.dir.name,
-                None,
-                lt.storage_mode_t.storage_mode_sparse,
-                False,
-            )
-        self.assertIsInstance(handle, lt.torrent_handle)
-        self.assertTrue(handle.is_valid())
+            with self.assertWarns(DeprecationWarning):
+                handle = self.session.add_torrent(
+                    ti,
+                    self.dir.name,
+                    None,
+                    lt.storage_mode_t.storage_mode_sparse,
+                    False,
+                )
+            self.assertIsInstance(handle, lt.torrent_handle)
+            self.assertTrue(handle.is_valid())
 
-        # kwargs
-        with self.assertWarns(DeprecationWarning):
-            handle = self.session.add_torrent(
-                ti,
-                self.dir.name,
-                resume_data=None,
-                storage_mode=lt.storage_mode_t.storage_mode_sparse,
-                paused=False,
-            )
-        self.assertIsInstance(handle, lt.torrent_handle)
-        self.assertTrue(handle.is_valid())
+            # kwargs
+            with self.assertWarns(DeprecationWarning):
+                handle = self.session.add_torrent(
+                    ti,
+                    self.dir.name,
+                    resume_data=None,
+                    storage_mode=lt.storage_mode_t.storage_mode_sparse,
+                    paused=False,
+                )
+            self.assertIsInstance(handle, lt.torrent_handle)
+            self.assertTrue(handle.is_valid())
 
     def test_atp(self) -> None:
         atp = self.torrent.atp()
@@ -1151,26 +1186,28 @@ class AddTorrentTest(unittest.TestCase):
 
     def test_dict(self) -> None:
         ti = self.torrent.torrent_info()
-        handle = self.do_test_dict(
-            {
-                "ti": ti,
-                "info_hash": ti.info_hashes().v1.to_bytes(),
-                "info_hashes": ti.info_hashes().v1.to_bytes(),
-                "save_path": self.dir.name,
-                "storage_mode": lt.storage_mode_t.storage_mode_allocate,
-                "trackers": ["http://127.1.2.1/tr"],
-                "url_seeds": ["http://127.1.2.2/us"],
-                "http_seeds": ["http://127.1.2.3/hs"],
-                "dht_nodes": [("127.1.2.4", 1234)],
-                "banned_peers": [("127.1.2.5", 1234)],
-                "peers": [("127.1.2.6", 1234)],
-                "flags": lt.torrent_flags.sequential_download,
-                "trackerid": "trackerid",
-                "url": "http://127.1.2.7/u",
-                "renamed_files": {0: "renamed.txt"},
-                "file_priorities": [2],
-            }
-        )
+        atp = {
+            "ti": ti,
+            "info_hash": ti.info_hashes().v1.to_bytes(),
+            "info_hashes": ti.info_hashes().v1.to_bytes(),
+            "save_path": self.dir.name,
+            "storage_mode": lt.storage_mode_t.storage_mode_allocate,
+            "trackers": ["http://127.1.2.1/tr"],
+            "url_seeds": ["http://127.1.2.2/us"],
+            "http_seeds": ["http://127.1.2.3/hs"],
+            "dht_nodes": [("127.1.2.4", 1234)],
+            "banned_peers": [("127.1.2.5", 1234)],
+            "peers": [("127.1.2.6", 1234)],
+            "flags": lt.torrent_flags.sequential_download,
+            "trackerid": "trackerid",
+            "renamed_files": {0: "renamed.txt"},
+            "file_priorities": [2],
+        }
+
+        if lt.api_version < 2:
+            atp["url"] = "http://127.1.2.7/u"
+
+        handle = self.do_test_dict(atp)
 
         status = handle.status()
         self.assertEqual(handle.status().save_path, self.dir.name)
@@ -1303,22 +1340,23 @@ class ComponentsTest(unittest.TestCase):
         self.session = lt.session(lib.get_isolated_settings())
 
     def test_start_stop(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.session.start_upnp()
-        with self.assertWarns(DeprecationWarning):
-            self.session.stop_upnp()
-        with self.assertWarns(DeprecationWarning):
-            self.session.start_lsd()
-        with self.assertWarns(DeprecationWarning):
-            self.session.stop_lsd()
-        with self.assertWarns(DeprecationWarning):
-            self.session.start_natpmp()
-        with self.assertWarns(DeprecationWarning):
-            self.session.stop_natpmp()
-        with self.assertWarns(DeprecationWarning):
-            self.session.start_dht()
-        with self.assertWarns(DeprecationWarning):
-            self.session.stop_dht()
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.session.start_upnp()
+            with self.assertWarns(DeprecationWarning):
+                self.session.stop_upnp()
+            with self.assertWarns(DeprecationWarning):
+                self.session.start_lsd()
+            with self.assertWarns(DeprecationWarning):
+                self.session.stop_lsd()
+            with self.assertWarns(DeprecationWarning):
+                self.session.start_natpmp()
+            with self.assertWarns(DeprecationWarning):
+                self.session.stop_natpmp()
+            with self.assertWarns(DeprecationWarning):
+                self.session.start_dht()
+            with self.assertWarns(DeprecationWarning):
+                self.session.stop_dht()
 
 
 class PortsTest(unittest.TestCase):
@@ -1336,35 +1374,36 @@ class PortsTest(unittest.TestCase):
         self.assertTrue(self.session.is_listening())
         self.assertIsInstance(self.session.listen_port(), int)
 
-        with self.assertWarns(DeprecationWarning):
-            self.session.outgoing_ports(1024, 65535)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.session.outgoing_ports(1024, 65535)
 
-        # not sure how to correctly test str arg, because it raises
-        # RuntimeError on an invalid interface
+            # not sure how to correctly test str arg, because it raises
+            # RuntimeError on an invalid interface
 
-        # positional args
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(1024, 65535)
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(1024, 65535, None)
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(
-                1024, 65535, None, lt.listen_on_flags_t.listen_no_system_port
-            )
+            # positional args
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(1024, 65535)
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(1024, 65535, None)
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(
+                    1024, 65535, None, lt.listen_on_flags_t.listen_no_system_port
+                )
 
-        # kwargs
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(1024, 65535)
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(1024, 65535, interface=None)
-        with self.assertWarns(DeprecationWarning):
-            self.session.listen_on(
-                1024, 65535, flags=lt.listen_on_flags_t.listen_no_system_port
-            )
+            # kwargs
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(1024, 65535)
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(1024, 65535, interface=None)
+            with self.assertWarns(DeprecationWarning):
+                self.session.listen_on(
+                    1024, 65535, flags=lt.listen_on_flags_t.listen_no_system_port
+                )
 
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(RuntimeError):
-                self.session.listen_on(1024, 65535, "interface-does-not-exist")
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(RuntimeError):
+                    self.session.listen_on(1024, 65535, "interface-does-not-exist")
 
 
 class SettingsTest(unittest.TestCase):
@@ -1383,72 +1422,75 @@ class SettingsTest(unittest.TestCase):
         self.assertIsInstance(self.session.get_settings(), dict)
 
     def test_old_settings(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.local_download_rate_limit(), int)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_local_download_rate_limit(0)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.local_upload_rate_limit(), int)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_local_upload_rate_limit(0)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.local_download_rate_limit(), int)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_local_download_rate_limit(0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.local_upload_rate_limit(), int)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_local_upload_rate_limit(0)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.download_rate_limit(), int)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_download_rate_limit(0)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.upload_rate_limit(), int)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_upload_rate_limit(0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.download_rate_limit(), int)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_download_rate_limit(0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.upload_rate_limit(), int)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_upload_rate_limit(0)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.max_connections(), int)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_max_connections(0)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.max_connections(), int)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_max_connections(0)
 
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_max_uploads(0)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_max_half_open_connections(0)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_alert_queue_size_limit(0)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_alert_mask(0)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_max_uploads(0)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_max_half_open_connections(0)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_alert_queue_size_limit(0)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_alert_mask(0)
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.proxy(), lt.proxy_type_t.proxy_settings)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_proxy(lt.proxy_type_t.proxy_settings())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                self.session.dht_proxy(), lt.proxy_type_t.proxy_settings
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_dht_proxy(lt.proxy_type_t.proxy_settings())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                self.session.peer_proxy(), lt.proxy_type_t.proxy_settings
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_peer_proxy(lt.proxy_type_t.proxy_settings())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                self.session.tracker_proxy(), lt.proxy_type_t.proxy_settings
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_tracker_proxy(lt.proxy_type_t.proxy_settings())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                self.session.web_seed_proxy(), lt.proxy_type_t.proxy_settings
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_web_seed_proxy(lt.proxy_type_t.proxy_settings())
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(
-                self.session.i2p_proxy(), lt.proxy_type_t.proxy_settings
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_i2p_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.dht_proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_dht_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.peer_proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_peer_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.tracker_proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_tracker_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.web_seed_proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_web_seed_proxy(lt.proxy_type_t.proxy_settings())
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    self.session.i2p_proxy(), lt.proxy_type_t.proxy_settings
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_i2p_proxy(lt.proxy_type_t.proxy_settings())
 
 
 class PeSettingsTest(unittest.TestCase):
@@ -1456,10 +1498,11 @@ class PeSettingsTest(unittest.TestCase):
         self.session = lt.session(lib.get_isolated_settings())
 
     def test_pe_settings(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.get_pe_settings(), lt.pe_settings)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_pe_settings(lt.pe_settings())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.get_pe_settings(), lt.pe_settings)
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_pe_settings(lt.pe_settings())
 
 
 class IpFilterTest(unittest.TestCase):
@@ -1575,14 +1618,16 @@ class FieldsTest(unittest.TestCase):
 
     def test_peer_id(self) -> None:
         sha1 = lt.sha1_hash(b"a" * 20)
-        with self.assertWarns(DeprecationWarning):
-            self.session.set_peer_id(sha1)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.session.id(), sha1)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.session.set_peer_id(sha1)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.session.id(), sha1)
 
     def test_num_connections(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.session.num_connections(), int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.session.num_connections(), int)
 
 
 class PeerClassTest(unittest.TestCase):
