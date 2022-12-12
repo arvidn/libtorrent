@@ -25,18 +25,22 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.move_flags_t.dont_replace, int)
 
     def test_deprecated_move_flags_t(self) -> None:
-        self.assertIsInstance(lt.deprecated_move_flags_t.always_replace_files, int)
-        self.assertIsInstance(lt.deprecated_move_flags_t.fail_if_exist, int)
-        self.assertIsInstance(lt.deprecated_move_flags_t.dont_replace, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.deprecated_move_flags_t.always_replace_files, int)
+            self.assertIsInstance(lt.deprecated_move_flags_t.fail_if_exist, int)
+            self.assertIsInstance(lt.deprecated_move_flags_t.dont_replace, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_depr_is_depr(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.deprecated_move_flags_t.always_replace_files, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.deprecated_move_flags_t.fail_if_exist, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(lt.deprecated_move_flags_t.dont_replace, int)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(
+                    lt.deprecated_move_flags_t.always_replace_files, int
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.deprecated_move_flags_t.fail_if_exist, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(lt.deprecated_move_flags_t.dont_replace, int)
 
     def test_static_vars(self) -> None:
         self.assertIsInstance(lt.torrent_handle.ignore_min_interval, int)
@@ -61,7 +65,8 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.file_open_mode.sparse, int)
         self.assertIsInstance(lt.file_open_mode.no_atime, int)
         self.assertIsInstance(lt.file_open_mode.random_access, int)
-        self.assertIsInstance(lt.file_open_mode.locked, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.file_open_mode.locked, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_file_open_mode_deprecated(self) -> None:
@@ -176,14 +181,15 @@ class StatusTest(TorrentHandleTest):
     def test_deprecated_methods(self) -> None:
         status = self.handle.status()
 
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.name(), status.name)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.save_path(), status.save_path)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.is_finished(), False)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.is_seed(), False)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.name(), status.name)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.save_path(), status.save_path)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.is_finished(), False)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.is_seed(), False)
 
 
 class DownloadQueueTest(TorrentHandleTest):
@@ -252,17 +258,20 @@ class TrackersTest(TorrentHandleTest):
         self.assertIsInstance(tr["fail_limit"], int)
         self.assertIsInstance(tr["source"], int)
         self.assertIsInstance(tr["verified"], bool)
-        self.assertIsInstance(tr["send_stats"], bool)
-        # The overall tracker result has the status layout
-        check(tr)
+        if lt.api_version < 2:
+            self.assertIsInstance(tr["send_stats"], bool)
+        if lt.api_version < 2:
+            # The overall tracker result has the status layout
+            check(tr)
         self.assertEqual(len(tr["endpoints"]), 1)
         ip = tr["endpoints"][0]["local_address"]
         self.assertIsInstance(ip, tuple)
         self.assertEqual(len(ip), 2)
         self.assertIsInstance(ip[0], str)
         self.assertIsInstance(ip[1], int)
-        # The endpoint has the status layout
-        check(tr["endpoints"][0])
+        if lt.api_version < 2:
+            # The endpoint has the status layout
+            check(tr["endpoints"][0])
         # The per-info-hash structures have the status layout
         check(tr["endpoints"][0]["info_hashes"][0])
         check(tr["endpoints"][0]["info_hashes"][1])
@@ -322,13 +331,14 @@ class TorrentFileTest(TorrentHandleTest):
             torrent_file.info_section(),
             self.torrent.torrent_info().info_section(),
         )
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(self.handle.has_metadata())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                self.handle.get_torrent_info().info_section(),
-                self.torrent.torrent_info().info_section(),
-            )
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertTrue(self.handle.has_metadata())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(
+                    self.handle.get_torrent_info().info_section(),
+                    self.torrent.torrent_info().info_section(),
+                )
 
     def test_set_metadata(self) -> None:
         self.session.remove_torrent(self.handle)
@@ -336,11 +346,13 @@ class TorrentFileTest(TorrentHandleTest):
         self.atp.info_hashes = lt.info_hash_t(self.torrent.sha1_hash)
 
         handle = self.session.add_torrent(self.atp)
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(handle.has_metadata())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(handle.has_metadata())
         handle.set_metadata(lt.bencode(self.torrent.info))
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(handle.has_metadata())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertTrue(handle.has_metadata())
 
 
 class IsValidTest(TorrentHandleTest):
@@ -496,8 +508,9 @@ class PrioritiesTest(TorrentHandleTest):
         # List of priorities
         prio_list = self.handle.get_piece_priorities()
         self.assertEqual(len(prio_list), len(self.torrent.pieces))
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.piece_priorities(), prio_list)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.piece_priorities(), prio_list)
         prio_list = [2] * len(prio_list)
         self.handle.prioritize_pieces(prio_list)
 
@@ -518,13 +531,15 @@ class PrioritiesTest(TorrentHandleTest):
         prio_list = [2] * len(self.torrent.files)
         self.handle.prioritize_files(prio_list)
         self.assertEqual(self.handle.get_file_priorities(), prio_list)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.handle.file_priorities(), prio_list)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(self.handle.file_priorities(), prio_list)
 
     def test_set_priority(self) -> None:
         # No way to test this
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_priority(0)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_priority(0)
 
 
 class FileStatusTest(TorrentHandleTest):
@@ -539,10 +554,11 @@ class ResumeDataTest(TorrentHandleTest):
         self.handle.save_resume_data()
         self.assertFalse(self.handle.need_save_resume_data())
         self.handle.save_resume_data(flags=lt.save_resume_flags_t.save_info_dict)
-        with self.assertWarns(DeprecationWarning):
-            resume_data = self.handle.write_resume_data()
-        # This should parse as resume data
-        lt.read_resume_data(lt.bencode(resume_data))
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                resume_data = self.handle.write_resume_data()
+            # This should parse as resume data
+            lt.read_resume_data(lt.bencode(resume_data))
 
 
 class ForceReannounceTest(TorrentHandleTest):
@@ -561,13 +577,20 @@ class ForceReannounceTest(TorrentHandleTest):
         self.handle.add_tracker({"url": "http://127.1.2.3"})
         self.handle.scrape_tracker()  # updates endpoints
 
-        baseline = self.handle.trackers()[0]["endpoints"][0]["next_announce"]
-        assert baseline is not None
+        baseline = self.handle.trackers()[0]["endpoints"][0]["info_hashes"][
+            lt.protocol_version.V1
+        ]["next_announce"]
         # this requires a really long timeout for some reason
         for _ in lib.loop_until_timeout(120, msg="next_announce update"):
             reannounce()
-            next_announce = self.handle.trackers()[0]["endpoints"][0]["next_announce"]
-            if next_announce is not None and next_announce > baseline:
+            next_announce = self.handle.trackers()[0]["endpoints"][0]["info_hashes"][
+                lt.protocol_version.V1
+            ]["next_announce"]
+            if (
+                next_announce is not None
+                and baseline is not None
+                and next_announce > baseline
+            ):
                 break
 
     def test_force_reannounce(self) -> None:
@@ -760,44 +783,50 @@ class FlagsTest(TorrentHandleTest):
 
     def test_old_apply_ip_filter(self) -> None:
         self.assertTrue(self.handle.flags() & lt.torrent_flags.apply_ip_filter)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.apply_ip_filter(False)
-        self.assertFalse(self.handle.flags() & lt.torrent_flags.apply_ip_filter)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.apply_ip_filter(False)
+            self.assertFalse(self.handle.flags() & lt.torrent_flags.apply_ip_filter)
 
     def test_old_auto_managed(self) -> None:
         self.assertTrue(self.handle.flags() & lt.torrent_flags.auto_managed)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.auto_managed(False)
-        self.assertFalse(self.handle.flags() & lt.torrent_flags.auto_managed)
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(self.handle.is_auto_managed())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.auto_managed(False)
+            self.assertFalse(self.handle.flags() & lt.torrent_flags.auto_managed)
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(self.handle.is_auto_managed())
 
     def test_old_paused(self) -> None:
         for _ in lib.loop_until_timeout(5, msg="unpause"):
             if not (self.handle.flags() & lt.torrent_flags.paused):
                 break
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(self.handle.is_paused())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(self.handle.is_paused())
 
     def test_old_sequential_download(self) -> None:
         self.assertFalse(self.handle.flags() & lt.torrent_flags.sequential_download)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_sequential_download(True)
-        self.assertTrue(self.handle.flags() & lt.torrent_flags.sequential_download)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_sequential_download(True)
+            self.assertTrue(self.handle.flags() & lt.torrent_flags.sequential_download)
 
     def test_old_share_mode(self) -> None:
         self.assertFalse(self.handle.flags() & lt.torrent_flags.share_mode)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_share_mode(True)
-        self.assertTrue(self.handle.flags() & lt.torrent_flags.share_mode)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_share_mode(True)
+            self.assertTrue(self.handle.flags() & lt.torrent_flags.share_mode)
 
     def test_old_stop_when_ready(self) -> None:
         self.assertFalse(self.handle.flags() & lt.torrent_flags.stop_when_ready)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.stop_when_ready(True)
-        # stop_when_ready is a one-shot flag, which gets unset when it fires.
-        # Just check the torrent is paused.
-        self.assertTrue(self.handle.flags() & lt.torrent_flags.paused)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.stop_when_ready(True)
+            # stop_when_ready is a one-shot flag, which gets unset when it fires.
+            # Just check the torrent is paused.
+            self.assertTrue(self.handle.flags() & lt.torrent_flags.paused)
 
     def test_old_super_seeding(self) -> None:
         # super_seeding turns itself off when done checking. To prevent
@@ -810,17 +839,19 @@ class FlagsTest(TorrentHandleTest):
                 break
 
         self.assertFalse(self.handle.flags() & lt.torrent_flags.super_seeding)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.super_seeding(True)
-        self.assertTrue(self.handle.flags() & lt.torrent_flags.super_seeding)
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(self.handle.super_seeding())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.super_seeding(True)
+            self.assertTrue(self.handle.flags() & lt.torrent_flags.super_seeding)
+            with self.assertWarns(DeprecationWarning):
+                self.assertTrue(self.handle.super_seeding())
 
     def test_old_upload_mode(self) -> None:
         self.assertFalse(self.handle.flags() & lt.torrent_flags.upload_mode)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_upload_mode(True)
-        self.assertTrue(self.handle.flags() & lt.torrent_flags.upload_mode)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_upload_mode(True)
+            self.assertTrue(self.handle.flags() & lt.torrent_flags.upload_mode)
 
     def test_pause(self) -> None:
         for _ in lib.loop_until_timeout(5, msg="unpause"):
@@ -844,19 +875,22 @@ class FlagsTest(TorrentHandleTest):
 class DeprecatedFeaturesTest(TorrentHandleTest):
     def test_dead_features(self) -> None:
         # These all do nothing
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_peer_upload_limit(("127.1.2.3", 1234), 1)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_peer_download_limit(("127.1.2.3", 1234), 1)
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_ratio(0.1)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_peer_upload_limit(("127.1.2.3", 1234), 1)
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_peer_download_limit(("127.1.2.3", 1234), 1)
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_ratio(0.1)
 
     def test_set_tracker_login(self) -> None:
         # This is technically still functional, but no simple way to test it
-        with self.assertWarns(DeprecationWarning):
-            self.handle.set_tracker_login("username", "password")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.set_tracker_login("username", "password")
 
     def test_use_interface(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.handle.use_interface("test")
-        self.assertEqual(self.session.get_settings()["outgoing_interfaces"], "test")
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.handle.use_interface("test")
+            self.assertEqual(self.session.get_settings()["outgoing_interfaces"], "test")

@@ -23,18 +23,19 @@ class ErrorCategoryTest(unittest.TestCase):
         self.assertNotEqual(lt.generic_category(), lt.system_category())
 
     def test_accessors(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_libtorrent_category(), lt.libtorrent_category())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_upnp_category(), lt.upnp_category())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_http_category(), lt.http_category())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_socks_category(), lt.socks_category())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_bdecode_category(), lt.bdecode_category())
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.get_i2p_category(), lt.i2p_category())
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_libtorrent_category(), lt.libtorrent_category())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_upnp_category(), lt.upnp_category())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_http_category(), lt.http_category())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_socks_category(), lt.socks_category())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_bdecode_category(), lt.bdecode_category())
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(lt.get_i2p_category(), lt.i2p_category())
 
     def test_name(self) -> None:
         self.assertEqual(lt.generic_category().name(), "generic")

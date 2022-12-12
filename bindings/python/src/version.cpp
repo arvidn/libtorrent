@@ -12,6 +12,12 @@ void bind_version()
 {
     scope().attr("__version__") = version();
 
+#ifdef TORRENT_ABI_VERSION
+    scope().attr("api_version") = TORRENT_ABI_VERSION;
+#else
+    scope().attr("api_version") = 0;
+#endif
+
 #if TORRENT_ABI_VERSION == 1
     scope().attr("version") = lt::version_str;
     scope().attr("version_major") = LIBTORRENT_VERSION_MAJOR;

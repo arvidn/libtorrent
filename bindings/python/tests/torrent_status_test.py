@@ -37,10 +37,11 @@ class TorrentStatusTest(unittest.TestCase):
         )
 
         self.assertIsInstance(self.status.state, lt.torrent_status.states)
-        self.assertIsInstance(self.status.paused, bool)
-        self.assertIsInstance(self.status.stop_when_ready, bool)
-        self.assertIsInstance(self.status.auto_managed, bool)
-        self.assertIsInstance(self.status.sequential_download, bool)
+        if lt.api_version < 2:
+            self.assertIsInstance(self.status.paused, bool)
+            self.assertIsInstance(self.status.stop_when_ready, bool)
+            self.assertIsInstance(self.status.auto_managed, bool)
+            self.assertIsInstance(self.status.sequential_download, bool)
 
         self.assertIsInstance(self.status.is_seeding, bool)
         self.assertIsInstance(self.status.is_finished, bool)
@@ -50,7 +51,8 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertIsInstance(self.status.progress_ppm, int)
 
         self.assertIsInstance(self.status.next_announce, datetime.timedelta)
-        self.assertIsInstance(self.status.announce_interval, datetime.timedelta)
+        if lt.api_version < 2:
+            self.assertIsInstance(self.status.announce_interval, datetime.timedelta)
 
         self.assertIsInstance(self.status.current_tracker, str)
 
@@ -105,22 +107,23 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertIsInstance(self.status.seed_rank, int)
         self.assertIsInstance(self.status.has_incoming, bool)
 
-        self.assertIsInstance(self.status.seed_mode, bool)
-        self.assertIsInstance(self.status.upload_mode, bool)
-        self.assertIsInstance(self.status.share_mode, bool)
-        self.assertIsInstance(self.status.super_seeding, bool)
+        if lt.api_version < 2:
+            self.assertIsInstance(self.status.seed_mode, bool)
+            self.assertIsInstance(self.status.upload_mode, bool)
+            self.assertIsInstance(self.status.share_mode, bool)
+            self.assertIsInstance(self.status.super_seeding, bool)
 
-        self.assertIsInstance(self.status.active_time, int)
-        self.assertIsInstance(self.status.finished_time, int)
-        self.assertIsInstance(self.status.seeding_time, int)
-        self.assertIsInstance(self.status.last_scrape, int)
+            self.assertIsInstance(self.status.active_time, int)
+            self.assertIsInstance(self.status.finished_time, int)
+            self.assertIsInstance(self.status.seeding_time, int)
+            self.assertIsInstance(self.status.last_scrape, int)
 
-        self.assertIsInstance(self.status.error, str)
+            self.assertIsInstance(self.status.error, str)
 
-        self.assertIsInstance(self.status.priority, int)
+            self.assertIsInstance(self.status.priority, int)
 
-        self.assertIsInstance(self.status.time_since_upload, int)
-        self.assertIsInstance(self.status.time_since_download, int)
+            self.assertIsInstance(self.status.time_since_upload, int)
+            self.assertIsInstance(self.status.time_since_download, int)
 
         self.assertIsInstance(self.status.errc, lt.error_code)
         self.assertIsInstance(self.status.error_file, int)
@@ -135,16 +138,19 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertIsInstance(self.status.queue_position, int)
         self.assertIsInstance(self.status.need_save_resume, bool)
 
-        self.assertIsInstance(self.status.ip_filter_applies, bool)
+        if lt.api_version < 2:
+            self.assertIsInstance(self.status.ip_filter_applies, bool)
         self.assertIsInstance(self.status.moving_storage, bool)
-        self.assertIsInstance(self.status.is_loaded, bool)
+        if lt.api_version < 2:
+            self.assertIsInstance(self.status.is_loaded, bool)
 
         self.assertIsInstance(self.status.announcing_to_trackers, bool)
         self.assertIsInstance(self.status.announcing_to_lsd, bool)
         self.assertIsInstance(self.status.announcing_to_dht, bool)
 
-        self.assertIsInstance(self.status.info_hash, lt.sha1_hash)
-        self.assertEqual(self.status.info_hash, self.torrent.sha1_hash)
+        if lt.api_version < 3:
+            self.assertIsInstance(self.status.info_hash, lt.sha1_hash)
+            self.assertEqual(self.status.info_hash, self.torrent.sha1_hash)
         self.assertIsInstance(self.status.info_hashes, lt.info_hash_t)
         self.assertEqual(self.status.info_hashes.v1, self.torrent.sha1_hash)
 
@@ -161,57 +167,61 @@ class TorrentStatusTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.paused, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.stop_when_ready, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.auto_managed, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.sequential_download, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.announce_interval, datetime.timedelta)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.seed_mode, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.upload_mode, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.share_mode, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.super_seeding, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.active_time, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.finished_time, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.seeding_time, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.last_scrape, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.error, str)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.priority, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.time_since_upload, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.time_since_download, int)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.ip_filter_applies, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.is_loaded, bool)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsInstance(self.status.info_hash, lt.sha1_hash)
+        if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.paused, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.stop_when_ready, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.auto_managed, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.sequential_download, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.announce_interval, datetime.timedelta)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.seed_mode, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.upload_mode, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.share_mode, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.super_seeding, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.active_time, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.finished_time, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.seeding_time, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.last_scrape, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.error, str)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.priority, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.time_since_upload, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.time_since_download, int)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.ip_filter_applies, bool)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.is_loaded, bool)
+        if lt.api_version < 3:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.info_hash, lt.sha1_hash)
 
 
 class EnumTest(unittest.TestCase):
     def test_states(self) -> None:
-        self.assertIsInstance(lt.torrent_status.states.queued_for_checking, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.torrent_status.states.queued_for_checking, int)
         self.assertIsInstance(lt.torrent_status.states.checking_files, int)
         self.assertIsInstance(lt.torrent_status.states.downloading_metadata, int)
         self.assertIsInstance(lt.torrent_status.states.downloading, int)
         self.assertIsInstance(lt.torrent_status.states.finished, int)
         self.assertIsInstance(lt.torrent_status.states.seeding, int)
-        self.assertIsInstance(lt.torrent_status.states.allocating, int)
+        if lt.api_version < 2:
+            self.assertIsInstance(lt.torrent_status.states.allocating, int)
         self.assertIsInstance(lt.torrent_status.states.checking_resume_data, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")

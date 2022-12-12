@@ -25,10 +25,10 @@ namespace
     }
 #endif
 #if TORRENT_ABI_VERSION <= 2
-    std::shared_ptr<dht_settings> dht_settings_constructor()
+    std::shared_ptr<dht::dht_settings> dht_settings_constructor()
     {
         python_deprecated("dht_settings is deprecated");
-        return std::make_shared<dht_settings>();
+        return std::make_shared<dht::dht_settings>();
     }
 #endif
 };
