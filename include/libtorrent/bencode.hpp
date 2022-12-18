@@ -365,7 +365,7 @@ namespace aux {
 	// function assumes the value_type of the iterator is a ``char``.
 	// In order to encode entry ``e`` into a buffer, do::
 	//
-	//	std::vector<char> buffer;
+	//	std::vector<char> buf;
 	//	bencode(std::back_inserter(buf), e);
 	//
 	// .. _OutputIterator:  https://en.cppreference.com/w/cpp/named_req/OutputIterator
