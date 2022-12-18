@@ -105,8 +105,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["save_path"] = "/resume_data save_path";
 #endif
 
-	std::vector<char> ret;
-	bencode(back_inserter(ret), rd);
+	std::vector<char> const ret = bencode(rd);
 
 	std::printf("%s\n", rd.to_string().c_str());
 
@@ -979,8 +978,7 @@ void test_zero_file_prio(bool test_deprecated = false, bool mix_prios = false)
 	if (mix_prios)
 		rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 	TORRENT_UNUSED(test_deprecated);
 #if TORRENT_ABI_VERSION == 1
 	if (test_deprecated)
@@ -1044,8 +1042,7 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hashes().v1;
 	rd["info"] = bdecode(ti->info_section());
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
+	std::vector<char> resume_data = bencode(rd);
 
 	add_torrent_params atp;
 	atp.resume_data = std::move(resume_data);
@@ -1113,8 +1110,7 @@ TORRENT_TEST(resume_info_dict)
 	rd["name"] = ti->name();
 	rd["info-hash"] = ti->info_hashes().v1;
 	rd["info"] = bdecode(ti->info_section());
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
@@ -1217,8 +1213,7 @@ void test_seed_mode(test_mode_t const flags)
 
 	rd["seed_mode"] = 1;
 
-	std::vector<char> resume_data;
-	bencode(back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 #if TORRENT_ABI_VERSION == 1
 	if (flags & test_mode::deprecated)
@@ -1757,8 +1752,7 @@ TORRENT_TEST(resume_data_have_pieces)
 	for (auto const i : t.piece_range())
 		t.set_hash(i, ph);
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, from_span);
 
 	lt::session ses(settings());

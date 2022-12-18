@@ -276,8 +276,7 @@ int main(int argc_, char const* argv_[]) try
 	}
 
 	// create the torrent and print it to stdout
-	std::vector<char> torrent;
-	lt::bencode(back_inserter(torrent), t.generate());
+	std::vector<char> const torrent = t.generate_buf();
 	if (!outfile.empty()) {
 		std::fstream out;
 		out.exceptions(std::ifstream::failbit);

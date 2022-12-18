@@ -20,7 +20,7 @@ see LICENSE file.
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/disabled_disk_io.hpp>
-#include <libtorrent/write_resume_data.hpp> // for write_torrent_file
+#include <libtorrent/write_resume_data.hpp> // for write_torrent_file_buf
 
 int main(int argc, char const* argv[]) try
 {
@@ -78,9 +78,8 @@ int main(int argc, char const* argv[]) try
 			{
 				// don't include piece layers
 				rda->params.merkle_trees.clear();
-				lt::entry e = lt::write_torrent_file(rda->params, lt::write_flags::allow_missing_piece_layer);
-				std::vector<char> torrent;
-				lt::bencode(std::back_inserter(torrent), e);
+				std::vector<char> const torrent = lt::write_torrent_file_buf(
+					rda->params, lt::write_flags::allow_missing_piece_layer);
 				std::ofstream out(argv[2]);
 				out.write(torrent.data(), int(torrent.size()));
 				goto done;

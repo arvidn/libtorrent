@@ -70,8 +70,7 @@ std::array<bool, 2> test(
 		lt::set_piece_hashes(t, ".");
 		if (sflags & st::collection)
 			t.add_collection("test collection");
-		std::vector<char> torrent;
-		lt::bencode(back_inserter(torrent), t.generate());
+		std::vector<char> const torrent = lt::bencode(t.generate());
 		return std::make_shared<lt::torrent_info>(torrent, lt::from_span);
 	}();
 
@@ -110,8 +109,7 @@ std::array<bool, 2> test(
 			t.add_collection("test collection");
 		else
 			t.add_similar_torrent(t1->info_hash());
-		std::vector<char> torrent;
-		lt::bencode(back_inserter(torrent), t.generate());
+		std::vector<char> const torrent = lt::bencode(t.generate());
 		return std::make_shared<lt::torrent_info>(torrent, lt::from_span);
 	}();
 

@@ -282,8 +282,7 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 				{
 					item = "mutable item";
 					seq = 1;
-					std::vector<char> v;
-					lt::bencode(std::back_inserter(v), item);
+					std::vector<char> const v = lt::bencode(item);
 					lt::dht::signature sign = lt::dht::sign_mutable_item(v, salt
 						, lt::dht::sequence_number(seq), pk, sk);
 					put_count++;

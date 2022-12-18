@@ -800,7 +800,7 @@ out:
 }
 
 // size is in megabytes
-void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
+std::vector<char> generate_torrent(int num_pieces, int num_files
 	, char const* torrent_name, int num_trackers)
 {
 	std::vector<lt::create_file_entry> files;
@@ -873,7 +873,7 @@ void generate_torrent(std::vector<char>& buf, int num_pieces, int num_files
 		t.add_tracker(b);
 	}
 
-	bencode(std::back_inserter(buf), t.generate());
+	return t.generate_buf();
 }
 
 void write_handler(file_storage const& fs
@@ -1045,11 +1045,10 @@ int main(int argc, char* argv[])
 
 	if (command == "gen-torrent"_sv)
 	{
-		std::vector<char> tmp;
 		std::string name = leaf_path(torrent_file);
 		name = name.substr(0, name.find_last_of('.'));
 		std::printf("generating torrent: %s\n", name.c_str());
-		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
+		std::vector<char> tmp = generate_torrent(size ? size : 1024, num_files ? num_files : 1
 			, name.c_str(), num_trackers);
 
 		FILE* output = stdout;
@@ -1083,7 +1082,6 @@ int main(int argc, char* argv[])
 	}
 	else if (command == "gen-test-torrents"_sv)
 	{
-		std::vector<char> buf;
 		for (int i = 0; i < num_torrents; ++i)
 		{
 			char torrent_name[100];
@@ -1107,9 +1105,7 @@ int main(int argc, char* argv[])
 			for (auto const& tr : trackers)
 				t.add_tracker(tr, tier++);
 
-			buf.clear();
-			std::back_insert_iterator<std::vector<char>> out(buf);
-			bencode(out, t.generate());
+			std::vector<char> buf = t.generate_buf();
 			FILE* f = std::fopen(torrent_name, "w+");
 			if (f == nullptr)
 			{

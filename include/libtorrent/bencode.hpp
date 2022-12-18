@@ -288,24 +288,27 @@ namespace aux {
 #endif // TORRENT_ABI_VERSION
 }
 
-	// This function will encode data to bencoded form.
+	// The ``bencode()`` function has two overloads that serializes a tree
+	// structure of entry objects into a bencoded, flat, buffer.
+	// The entry class is the internal representation of the bencoded data.
 	//
-	// The entry_ class is the internal representation of the bencoded data
-	// and it can be used to retrieve information, an entry_ can also be build by
-	// the program and given to ``bencode()`` to encode it into the ``OutIt``
-	// iterator.
+	// The simplest overload simply takes an entry object and returns a vector
+	// with the serialized data.
+	//
+	// The second overload encode it into the ``OutIt`` iterator.
 	//
 	// ``OutIt`` is an OutputIterator_. It's a template and usually
 	// instantiated as ostream_iterator_ or back_insert_iterator_. This
 	// function assumes the value_type of the iterator is a ``char``.
 	// In order to encode entry ``e`` into a buffer, do::
 	//
-	//	std::vector<char> buffer;
+	//	std::vector<char> buf;
 	//	bencode(std::back_inserter(buf), e);
 	//
 	// .. _OutputIterator:  https://en.cppreference.com/w/cpp/named_req/OutputIterator
 	// .. _ostream_iterator: https://en.cppreference.com/w/cpp/iterator/ostream_iterator
 	// .. _back_insert_iterator: https://en.cppreference.com/w/cpp/iterator/back_insert_iterator
+	TORRENT_EXPORT std::vector<char> bencode(entry const& e);
 	template<class OutIt> int bencode(OutIt out, const entry& e)
 	{
 		return std::visit(aux::bencode_visitor<OutIt>{out}, static_cast<entry::variant_type const&>(e));

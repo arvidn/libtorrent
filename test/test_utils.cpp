@@ -103,8 +103,7 @@ std::vector<char> serialize(lt::torrent_info const& ti)
 	lt::create_torrent ct(ti);
 	ct.set_creation_date(0);
 	entry e = ct.generate();
-	std::vector<char> out_buffer;
-	bencode(std::back_inserter(out_buffer), e);
+	std::vector<char> const out_buffer = bencode(e);
 	return out_buffer;
 }
 #endif

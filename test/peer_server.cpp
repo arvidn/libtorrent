@@ -8,7 +8,6 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/io_context.hpp"

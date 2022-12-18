@@ -50,8 +50,7 @@ TORRENT_TEST(mutable_torrents)
 	t.add_similar_torrent(sha1_hash("babababababababababa"));
 
 	entry tor = t.generate();
-	std::vector<char> tmp;
-	bencode(std::back_inserter(tmp), tor);
+	std::vector<char> const tmp = bencode(tor);
 
 	torrent_info ti(tmp, from_span);
 
@@ -477,8 +476,7 @@ TORRENT_TEST(url_list_duplicate)
 	entry torrent;
 	torrent["url-list"] = e;
 	torrent["info"] = info;
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), torrent);
+	std::vector<char> const buf = bencode(torrent);
 	torrent_info ti(buf, from_span);
 	TEST_EQUAL(ti.web_seeds().size(), 2);
 }
@@ -959,9 +957,8 @@ TORRENT_TEST(parse_torrents)
 	entry torrent;
 	torrent["info"] = info;
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti1(buf, from_span);
+	std::vector<char> const buf1 = bencode(torrent);
+	torrent_info ti1(buf1, from_span);
 	std::cout << ti1.name() << std::endl;
 	TEST_CHECK(ti1.name() == "test1");
 
@@ -971,9 +968,8 @@ TORRENT_TEST(parse_torrents)
 	info["name.utf-8"] = "/test1/test2/test3";
 #endif
 	torrent["info"] = info;
-	buf.clear();
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti2(buf, from_span);
+	std::vector<char> const buf2 = bencode(torrent);
+	torrent_info ti2(buf2, from_span);
 	std::cout << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(ti2.name(), "c_test1test2test3");
@@ -983,9 +979,8 @@ TORRENT_TEST(parse_torrents)
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
-	buf.clear();
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti3(buf, from_span);
+	std::vector<char> const buf3 = bencode(torrent);
+	torrent_info ti3(buf3, from_span);
 	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
@@ -1187,12 +1182,7 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	for (auto const i : t.piece_range())
 		t.set_hash(i, sha1_hash::max());
 
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-
-	entry tor = t.generate();
-	bencode(out, tor);
-
+	std::vector<char> const tmp = bencode(t.generate());
 	torrent_info ti(tmp, from_span);
 	for (auto const i : t.file_range())
 	{
@@ -1447,8 +1437,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		{
 			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
 			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
-			std::vector<char> out_buffer;
-			bencode(std::back_inserter(out_buffer), e);
+			std::vector<char> const out_buffer = bencode(e);
 
 			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
 
@@ -1470,8 +1459,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		{
 			add_torrent_params p = load_torrent_file(filename);
 			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
-			std::vector<char> out_buffer;
-			bencode(std::back_inserter(out_buffer), e);
+			std::vector<char> const out_buffer = bencode(e);
 
 			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
 
