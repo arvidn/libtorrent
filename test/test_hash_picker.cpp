@@ -369,7 +369,7 @@ TORRENT_TEST(set_block_hash)
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
 	trees.emplace_back(4 * 512, 4, full_tree[0].data());
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, bitfield(merkle_num_leafs(4 * 512)));
 
 	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
 
@@ -407,7 +407,7 @@ TORRENT_TEST(set_block_hash_fail)
 	full_tree[merkle_get_parent(first_leaf + 14)].clear();
 	full_tree[first_leaf + 13].clear();
 
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, bitfield(merkle_num_leafs(4 * 512)));
 
 	aux::hash_picker picker(fs, trees);
 
@@ -448,7 +448,7 @@ TORRENT_TEST(set_block_hash_pass)
 	auto const orig_hash = full_tree[first_leaf + 13];
 	full_tree[first_leaf + 13].clear();
 
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, bitfield(merkle_num_leafs(4 * 512)));
 
 	aux::hash_picker picker(fs, trees);
 

@@ -68,6 +68,14 @@ namespace {
 			return ret;
 		}
 
+		std::int64_t const file_version = rd.dict_find_int_value("file-version", 1);
+
+		if (file_version != 1 && file_version != 2)
+		{
+			ec = errors::invalid_file_tag;
+			return ret;
+		}
+
 		auto info_hash = rd.dict_find_string_value("info-hash");
 		auto info_hash2 = rd.dict_find_string_value("info-hash2");
 		if (info_hash.size() != std::size_t(sha1_hash::size())
@@ -142,20 +150,40 @@ namespace {
 					ret.merkle_trees.back().emplace_back(hashes);
 				}
 
-				auto const verified = de.dict_find_string_value("verified");
-				ret.verified_leaf_hashes.emplace_back(verified.size(), false);
-				for (std::size_t j = 0; j < verified.size(); ++j)
+				if (bdecode_node const verified = de.dict_find_string("verified"))
 				{
-					if (verified[j] == '1')
-						ret.verified_leaf_hashes.back()[j] = true;
+					string_view const str = verified.string_value();
+					if (file_version == 1)
+					{
+						ret.verified_leaf_hashes.emplace_back(int(str.size()));
+						for (std::size_t j = 0; j < str.size(); ++j)
+						{
+							if (str[j] == '1')
+								ret.verified_leaf_hashes.back().set_bit(int(j));
+						}
+					}
+					else
+					{
+						ret.verified_leaf_hashes.emplace_back(str.data(), int(str.size()) * 8);
+					}
 				}
 
-				auto const mask = de.dict_find_string_value("mask");
-				ret.merkle_tree_mask.emplace_back(mask.size(), false);
-				for (std::size_t j = 0; j < mask.size(); ++j)
+				if (bdecode_node const mask = de.dict_find_string("mask"))
 				{
-					if (mask[j] == '1')
-						ret.merkle_tree_mask.back()[j] = true;
+					string_view const str = mask.string_value();
+					if (file_version == 1)
+					{
+						ret.merkle_tree_mask.emplace_back(int(str.size()));
+						for (std::size_t j = 0; j < str.size(); ++j)
+						{
+							if (str[j] == '1')
+								ret.merkle_tree_mask.back().set_bit(int(j));
+						}
+					}
+					else
+					{
+						ret.merkle_tree_mask.emplace_back(str.data(), int(str.size()) * 8);
+					}
 				}
 			}
 		}
@@ -292,20 +320,34 @@ namespace {
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
 		if (bdecode_node const pieces = rd.dict_find_string("pieces"))
 		{
-			char const* pieces_str = pieces.string_ptr();
-			int const pieces_len = pieces.string_length();
-			ret.have_pieces.resize(pieces_len);
-			ret.verified_pieces.resize(pieces_len);
-			for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
+			if (file_version == 1)
 			{
-				// being in seed mode and missing a piece is not compatible.
-				// Leave seed mode if that happens
-				if (pieces_str[static_cast<int>(i)] & 1) ret.have_pieces.set_bit(i);
-				else ret.have_pieces.clear_bit(i);
+				char const* pieces_str = pieces.string_ptr();
+				int const pieces_len = pieces.string_length();
+				ret.have_pieces.resize(pieces_len);
+				ret.verified_pieces.resize(pieces_len);
+				for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
+				{
+					// being in seed mode and missing a piece is not compatible.
+					// Leave seed mode if that happens
+					if (pieces_str[static_cast<int>(i)] & 1) ret.have_pieces.set_bit(i);
+					else ret.have_pieces.clear_bit(i);
 
-				if (pieces_str[static_cast<int>(i)] & 2) ret.verified_pieces.set_bit(i);
-				else ret.verified_pieces.clear_bit(i);
+					if (pieces_str[static_cast<int>(i)] & 2) ret.verified_pieces.set_bit(i);
+					else ret.verified_pieces.clear_bit(i);
+				}
 			}
+			else if (file_version == 2)
+			{
+				string_view const str = pieces.string_value();
+				ret.have_pieces.assign(str.data(), int(str.size()) * 8);
+			}
+		}
+
+		if (bdecode_node const verified = rd.dict_find_string("verified"))
+		{
+			string_view const str = verified.string_value();
+			ret.verified_pieces.assign(str.data(), int(str.size()) * 8);
 		}
 
 		if (bdecode_node const piece_priority = rd.dict_find_string("piece_priority"))

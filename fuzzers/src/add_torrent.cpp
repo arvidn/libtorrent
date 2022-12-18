@@ -145,7 +145,7 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		{
 			++idx;
 			if (h.is_all_zeros()) continue;
-			mask[std::size_t(idx)] = true;
+			mask.set_bit(idx);
 			t.push_back(g_tree[std::size_t(idx)]);
 		}
 	}
@@ -167,14 +167,14 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		{
 			m.resize(bits.read(13));
 			for (std::size_t i = 0; i < m.size(); ++i)
-				m[i] = bits.read(1);
+				if (bits.read(1)) m.set_bit(i);
 		}
 		ret.verified_leaf_hashes.resize(bits.read(2));
 		for (auto& m : ret.verified_leaf_hashes)
 		{
 			m.resize(bits.read(4));
 			for (std::size_t i = 0; i < m.size(); ++i)
-				m[i] = bits.read(1);
+				if (bits.read(1)) m.set_bit(i);
 		}
 	}
 

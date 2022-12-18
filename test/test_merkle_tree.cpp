@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/bitfield.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -29,8 +30,8 @@ int const num_leafs = merkle_num_leafs(num_blocks);
 int const num_nodes = merkle_num_nodes(num_leafs);
 int const num_pad_leafs = num_leafs - num_blocks;
 
-using verified_t = std::vector<bool>;
-verified_t const empty_verified(std::size_t(num_blocks), false);
+using verified_t = bitfield;
+verified_t const empty_verified(num_blocks);
 
 using s = span<sha256_hash const>;
 
@@ -66,23 +67,23 @@ std::vector<sha256_hash> corrupt(span<sha256_hash const> hashes)
 	return ret;
 }
 
-std::vector<bool> all_set(int count)
+bitfield all_set(int count)
 {
-	return std::vector<bool>(std::size_t(count), true);
+	return bitfield(count, true);
 }
 
-std::vector<bool> none_set(int count)
+bitfield none_set(int count)
 {
-	return std::vector<bool>(std::size_t(count), false);
+	return bitfield(count);
 }
 
-std::vector<bool> set_range(std::vector<bool> bits, int start, int count)
+bitfield set_range(bitfield bits, int start, int count)
 {
 	while (count > 0)
 	{
 		TORRENT_ASSERT(start >= 0);
-		TORRENT_ASSERT(std::size_t(start) < bits.size());
-		bits[std::size_t(start)] = true;
+		TORRENT_ASSERT(start < bits.size());
+		bits.set_bit(start);
 		++start;
 		--count;
 	}
@@ -132,7 +133,7 @@ TORRENT_TEST(load_sparse_tree)
 {
 	// test with full tree and valid root
 	{
-		std::vector<bool> mask(f.size(), true);
+		bitfield mask(int(f.size()), true);
 		aux::merkle_tree t(num_blocks, 1, f[0].data());
 		t.load_sparse_tree(f, mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
@@ -151,9 +152,9 @@ TORRENT_TEST(load_sparse_tree)
 	{
 		sha256_hash const bad_root("01234567890123456789012345678901");
 		aux::merkle_tree t(num_blocks, 1, bad_root.data());
-		std::vector<bool> mask(f.size(), false);
-		mask[1] = true;
-		mask[2] = true;
+		bitfield mask(int(f.size()), false);
+		mask.set_bit(1);
+		mask.set_bit(2);
 		t.load_sparse_tree(span<sha256_hash const>(f).subspan(1, 2), mask, empty_verified);
 		TEST_CHECK(t.has_node(0));
 		for (int i = 1; i < num_nodes; ++i)
@@ -165,9 +166,9 @@ TORRENT_TEST(load_sparse_tree)
 		aux::merkle_tree t(num_blocks, 1, f[0].data());
 		int const first_block = merkle_first_leaf(num_leafs);
 		int const end_block = first_block + num_blocks;
-		std::vector<bool> mask(f.size(), false);
+		bitfield mask(int(f.size()), false);
 		for (int i = first_block; i < end_block; ++i)
-			mask[std::size_t(i)] = true;
+			mask.set_bit(i);
 		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_block, num_blocks), mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
@@ -186,9 +187,9 @@ TORRENT_TEST(load_sparse_tree)
 		int const num_pieces = (num_blocks + 1) / 2;
 		int const first_piece = merkle_first_leaf(merkle_num_leafs(num_pieces));
 		aux::merkle_tree t(num_blocks, 2, f[0].data());
-		std::vector<bool> mask(f.size(), false);
+		bitfield mask(int(f.size()), false);
 		for (int i = first_piece, end = i + num_pieces; i < end; ++i)
-			mask[std::size_t(i)] = true;
+			mask.set_bit(i);
 		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_piece, num_pieces), mask, empty_verified);
 		int const end_piece_layer = first_piece + merkle_num_leafs(num_pieces);
 		for (int i = 0; i < end_piece_layer; ++i)

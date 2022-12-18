@@ -48,6 +48,11 @@ namespace {
 		}
 		return ret;
 	}
+
+	std::string to_string(bitfield const& b)
+	{
+		return std::string(b.data(), std::size_t(b.num_bytes()));
+	}
 }
 
 	entry write_resume_data(add_torrent_params const& atp)
@@ -56,7 +61,7 @@ namespace {
 
 		using namespace libtorrent::aux; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
-		ret["file-version"] = 1;
+		ret["file-version"] = 2;
 		ret["libtorrent-version"] = lt::version_str;
 		ret["allocation"] = atp.storage_mode == storage_mode_allocate
 			? "allocate" : "sparse";
@@ -141,24 +146,13 @@ namespace {
 				{
 					auto const& verified = atp.verified_leaf_hashes[f];
 					if (!verified.empty())
-					{
-						auto& ret_verified = ret_dict["verified"].string();
-						ret_verified.reserve(verified.size());
-						for (auto const bit : verified)
-							ret_verified.push_back(bit ? '1' : '0');
-					}
+						ret_dict["verified"] = to_string(verified);
 				}
 
 				if (f < atp.merkle_tree_mask.end_index())
 				{
 					auto const& mask = atp.merkle_tree_mask[f];
-					if (!mask.empty())
-					{
-						auto& ret_mask = ret_dict["mask"].string();
-						ret_mask.reserve(mask.size());
-						for (auto const bit : mask)
-							ret_mask.push_back(bit ? '1' : '0');
-					}
+					if (!mask.empty()) ret_dict["mask"] = to_string(mask);
 				}
 			}
 		}
@@ -191,22 +185,14 @@ namespace {
 		std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
 
 		// write have bitmask
-		entry::string_type& pieces = ret["pieces"].string();
-		pieces.resize(aux::numeric_cast<std::size_t>(std::max(
-			atp.have_pieces.size(), atp.verified_pieces.size())));
-
-		std::size_t piece(0);
-		for (auto const bit : atp.have_pieces)
+		if (!atp.have_pieces.empty())
 		{
-			pieces[piece] = bit ? 1 : 0;
-			++piece;
+			ret["pieces"] = to_string(atp.have_pieces);
 		}
 
-		piece = 0;
-		for (auto const bit : atp.verified_pieces)
+		if (!atp.verified_pieces.empty() && !atp.verified_pieces.none_set())
 		{
-			pieces[piece] |= bit ? 2 : 0;
-			++piece;
+			ret["verified"] = to_string(atp.verified_pieces);
 		}
 
 		// write renamed files
@@ -303,7 +289,7 @@ namespace {
 				aux::throw_ex<system_error>(errors::torrent_missing_piece_layer);
 
 			auto& piece_layers = ret["piece layers"].dict();
-			std::vector<bool> const empty_verified;
+			bitfield const empty_verified;
 			for (file_index_t f : fs.file_range())
 			{
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
@@ -312,7 +298,7 @@ namespace {
 				aux::merkle_tree t(fs.file_num_blocks(f)
 					, fs.piece_length() / default_block_size, fs.root_ptr(f));
 
-				std::vector<bool> const& verified = (f >= atp.verified_leaf_hashes.end_index())
+				bitfield const& verified = (f >= atp.verified_leaf_hashes.end_index())
 					? empty_verified : atp.verified_leaf_hashes[f];
 
 				auto const& tree = trees[f];

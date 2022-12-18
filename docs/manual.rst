@@ -471,6 +471,9 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file-format``          | string: "libtorrent resume file"                             |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
+| ``file-version``         | integer: 2                                                   |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
 |                          | This is a 20 byte SHA-1 hash of the info section of the      |
 |                          | torrent if this is a v1 or v1+v2-hybrid torrent.             |
@@ -479,10 +482,18 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | for, in case it is a v2 or v1+v2-hybrid torrent. This is a   |
 |                          | 32 byte SHA-256 hash of the info section of the torrent.     |
 +--------------------------+--------------------------------------------------------------+
-| ``pieces``               | A string with piece flags, one character per piece.          |
-|                          | Bit 1 means we have that piece.                              |
-|                          | Bit 2 means we have verified that this piece is correct.     |
-|                          | This only applies when the torrent is in seed_mode.          |
+| ``pieces``               | A string where each bit indicates whether we have the piece  |
+|                          | or not.                                                      |
+|                          |                                                              |
+|                          | In version 1 of this file format, this was a string with one |
+|                          | byte for every piece. Bit 0 meant we had the piece, bit 1    |
+|                          | meant the piece was verified (for seed-mode lazy checking)   |
++--------------------------+--------------------------------------------------------------+
+| ``verified``             | A string where each bit indicates whether the piece has been |
+|                          | verified to be correct. This is used in seed-mode, where     |
+|                          | pieces are checked lazily.                                   |
+|                          |                                                              |
+|                          | This field did not exist in version 1 of this file format.   |
 +--------------------------+--------------------------------------------------------------+
 | ``total_uploaded``       | integer. The number of bytes that have been uploaded in      |
 |                          | total for this torrent.                                      |
@@ -570,13 +581,24 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | |              | hashes may be all zeros, if we haven't    | |
 |                          | |              | downloaded them yet.                      | |
 |                          | +--------------+-------------------------------------------+ |
-|                          | | ``mask``     | string. When present, a bitmask (of ``0`` | |
+|                          | | ``mask``     | string. When present, each bit indicates  | |
+|                          | |              | whether the tree node's hash is included  | |
+|                          | |              | in the ``hashes`` key. This allows the    | |
+|                          | |              | resume data to omit hashes we don't have  | |
+|                          | |              |                                           | |
+|                          | |              | In version 1 of this file format:         | |
+|                          | |              | string. When present, a bitmask (of ``0`` | |
 |                          | |              | and ``1`` characters, indicating which    | |
 |                          | |              | hashes of the full tree are included in   | |
 |                          | |              | the ``hashes`` key. This is used to avoid | |
 |                          | |              | storing large numbers of zeros.           | |
 |                          | +--------------+-------------------------------------------+ |
 |                          | | ``verified`` | string. This indicates which leaf nodes   | |
+|                          | |              | in the tree have been verified correct.   | |
+|                          | |              | One bit per leaf, set bit means verified. | |
+|                          | |              |                                           | |
+|                          | |              | In version 1 of this file format:         | |
+|                          | |              | string. This indicates which leaf nodes   | |
 |                          | |              | in the tree have been verified correct.   | |
 |                          | |              | There is one character per leaf, ``0``    | |
 |                          | |              | means not verified, ``1`` means verified. | |
