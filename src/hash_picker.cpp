@@ -105,7 +105,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 						m_piece_hash_requested[f][i].have = true;
 						break;
 					}
-					if ((m_files.piece_length() == default_block_size && !v[std::size_t(j)])
+					if ((m_files.piece_length() == default_block_size && !v.get_bit(j))
 						|| (m_files.piece_length() > default_block_size
 							&& !tree.has_node(piece_layer_start + j)))
 						break;

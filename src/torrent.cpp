@@ -380,22 +380,22 @@ bool is_downloading_state(int const st)
 
 	void torrent::load_merkle_trees(
 		aux::vector<std::vector<sha256_hash>, file_index_t> trees_import
-		, aux::vector<std::vector<bool>, file_index_t> mask
-		, aux::vector<std::vector<bool>, file_index_t> verified)
+		, aux::vector<bitfield, file_index_t> mask
+		, aux::vector<bitfield, file_index_t> verified)
 	{
 		auto const& fs = m_torrent_file->orig_files();
 
-		std::vector<bool> const empty_verified;
+		bitfield const empty_verified;
 		for (file_index_t i{0}; i < fs.end_file(); ++i)
 		{
 			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
 				continue;
 
 			if (i >= trees_import.end_index()) break;
-			std::vector<bool> const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
+			bitfield const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
 			if (i < mask.end_index() && !mask[i].empty())
 			{
-				mask[i].resize(m_merkle_trees[i].size(), false);
+				mask[i].resize(int(m_merkle_trees[i].size()));
 				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i], verified_bitmask);
 			}
 			else

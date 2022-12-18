@@ -92,6 +92,27 @@ The main motivations are:
 
 For more details, see create_torrent and create_file_entry.
 
+resume data format
+==================
+
+The resume data format has been optimized to use less space, especially for v2
+torrents. The ``file-version`` has been bumped from ``1`` to ``2`` with some
+fields being serialized in a more space efficient manner.
+
+The version-1 ``pieces`` field uses 8 bits per piece. 1 bit to indicate whether the piece
+had been downloaded and 1 bit to indicate whether the piece had been verified,
+in seed-mode. 6 of those bits were unused. In version-2, This field is now split
+into ``pieces`` and a ``verified``, both of which are actual bitfields, one bit per piece.
+
+Likewise, for merkle trees (for v2 torrents) the version-1 ``verified`` and ``mask``
+fields are encoded as text. In version-2, these have been changed to actual bitfields.
+
+A user-facing consequence is that the add_torrent_params class has changed
+slightly. The ``merkle_tree_mask`` and ``verified_leaf_hashes`` fields are now
+a sequences of bitfield objects.
+
+load_resume_data() can still load the previous resume data format.
+
 standard string_view
 ====================
 

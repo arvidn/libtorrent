@@ -51,6 +51,8 @@ TORRENT_TEST(bitfield)
 {
 	bitfield test1(10, false);
 	TEST_EQUAL(test1.size(), 10);
+	TEST_EQUAL(test1.num_words(), 1);
+	TEST_EQUAL(test1.num_bytes(), 2);
 	TEST_EQUAL(test1.empty(), false);
 	TEST_EQUAL(test1.count(), 0);
 	test1.set_bit(9);
@@ -128,6 +130,8 @@ TORRENT_TEST(bitfield)
 
 	test1 = test2;
 	TEST_EQUAL(test1.size(), 20);
+	TEST_EQUAL(test1.num_words(), 1);
+	TEST_EQUAL(test1.num_bytes(), 3);
 	TEST_EQUAL(test1.count(), 19);
 	TEST_EQUAL(test1.get_bit(0), true);
 	TEST_EQUAL(test1.get_bit(1), false);
@@ -156,6 +160,22 @@ TORRENT_TEST(test_iterators)
 		test1.resize(i, false);
 		test_iterators(test1);
 	}
+}
+
+TORRENT_TEST(test_iterator_arithmetic)
+{
+	bitfield test1(128);
+	test1.set_bit(0);
+	test1.set_bit(1);
+	test1.set_bit(40);
+	test1.set_bit(127);
+	TEST_EQUAL(std::count(test1.begin(), test1.end(), true), 4);
+	TEST_EQUAL(std::count(test1.begin() + 1, test1.end(), true), 3);
+	TEST_EQUAL(std::count(test1.begin() + 2, test1.end(), true), 2);
+	TEST_EQUAL(std::count(test1.begin() + 2, test1.begin() + 41, true), 1);
+	TEST_EQUAL(std::count(test1.begin() + 41, test1.end(), true), 1);
+	TEST_EQUAL(std::count(test1.begin() + 41, test1.begin() + 126, true), 0);
+	TEST_EQUAL(std::count((test1.begin() + 30) + 10, test1.begin() + 50, true), 1);
 }
 
 TORRENT_TEST(test_assign)
@@ -346,6 +366,7 @@ TORRENT_TEST(not_initialized)
 	TEST_EQUAL(test1.all_set(), false);
 	TEST_EQUAL(test1.size(), 0);
 	TEST_EQUAL(test1.num_words(), 0);
+	TEST_EQUAL(test1.num_bytes(), 0);
 	TEST_EQUAL(test1.empty(), true);
 	TEST_CHECK(test1.data() == nullptr);
 	TEST_EQUAL(test1.count(), 0);
@@ -372,6 +393,8 @@ TORRENT_TEST(self_assign)
 	test1 = *self_ptr;
 	TEST_EQUAL(test1.size(), 123);
 	TEST_EQUAL(test1.count(), 0);
+	TEST_EQUAL(test1.num_words(), (123 + 31) / 32);
+	TEST_EQUAL(test1.num_bytes(), (123 + 7) / 8);
 }
 
 TORRENT_TEST(not_initialized_assign)
@@ -393,6 +416,8 @@ TORRENT_TEST(not_initialized_resize)
 	bitfield test2(0);
 	test2.resize(8);
 	TEST_EQUAL(test2.size(), 8);
+	TEST_EQUAL(test2.num_words(), 1);
+	TEST_EQUAL(test2.num_bytes(), 1);
 }
 
 TORRENT_TEST(bitfield_index_range)

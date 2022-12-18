@@ -111,6 +111,13 @@ namespace libtorrent {
 			return (size() + 31) / 32;
 		}
 
+		// returns the number of bytes needed to represent all bits in this
+		// bitfield
+		int num_bytes() const noexcept
+		{
+			return (size() + 7) / 8;
+		}
+
 		// returns true if the bitfield has zero size.
 		bool empty() const noexcept { return size() == 0; }
 
@@ -148,6 +155,8 @@ namespace libtorrent {
 		// returns the index to the last cleared bit in the bitfield, i.e. 0 bit.
 		int find_last_clear() const noexcept;
 
+		bool operator==(lt::bitfield const& rhs) const;
+
 		// internal
 		struct const_iterator
 		{
@@ -173,6 +182,24 @@ namespace libtorrent {
 
 			bool operator!=(const_iterator const& rhs) const noexcept
 			{ return buf != rhs.buf || bit != rhs.bit; }
+
+			const_iterator operator+(int const o) const noexcept
+			{
+				auto const* new_buf = buf + (o / 32);
+				auto bit_offset = o & 31;
+				if (bit == 0x80000000)
+					return const_iterator(new_buf, bit_offset);
+				if ((bit >> bit_offset) != 0)
+					return const_iterator(new_buf, bit >> bit_offset, raw_t{});
+
+				const_iterator ret = *this;
+				while (bit_offset > 0)
+				{
+					--bit_offset;
+					ret.inc();
+				}
+				return ret;
+			}
 
 		private:
 			void inc()
@@ -203,6 +230,9 @@ namespace libtorrent {
 			}
 			const_iterator(std::uint32_t const* ptr, int offset)
 				: buf(ptr), bit(0x80000000 >> offset) {}
+			struct raw_t {};
+			const_iterator(std::uint32_t const* ptr, std::uint32_t mask, raw_t)
+				: buf(ptr), bit(mask) {}
 			std::uint32_t const* buf = nullptr;
 			std::uint32_t bit = 0x80000000;
 		};
