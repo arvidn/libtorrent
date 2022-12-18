@@ -139,8 +139,7 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	// calculate the hash for all pieces
 	set_piece_hashes(t, ".");
 
-	std::vector<char> buf;
-	lt::bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = lt::bencode(t.generate());
 	return std::make_shared<lt::torrent_info>(buf, lt::from_span);
 }
 

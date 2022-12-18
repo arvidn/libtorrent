@@ -54,8 +54,7 @@ TORRENT_TEST(read_resume)
 	rd["sequential_download"] = 0;
 	rd["paused"] = 0;
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	add_torrent_params atp = read_resume_data(resume_data);
 
@@ -102,8 +101,7 @@ TORRENT_TEST(read_resume_missing_info_hash)
 	rd["file-version"] = 1;
 	// missing info-hash
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
@@ -119,8 +117,7 @@ TORRENT_TEST(read_resume_info_hash2)
 	// it's OK to *only* have a v2 hash
 	rd["info-hash2"] = "01234567890123456789012345678901";
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
@@ -135,8 +132,7 @@ TORRENT_TEST(read_resume_missing_file_format)
 	rd["file-version"] = 1;
 	rd["info-hash"] = "abcdefghijklmnopqrst";
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
@@ -155,8 +151,7 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 	info["name"] = "test";
 
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
@@ -185,8 +180,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 		t.set_hash(i, ph);
 	}
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 } // anonymous namespace
@@ -201,8 +195,7 @@ TORRENT_TEST(read_resume_torrent)
 	rd["info-hash"] = ti->info_hashes().v1.to_string();
 	rd["info"] = bdecode(ti->info_section());
 
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
+	std::vector<char> const resume_data = bencode(rd);
 
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored

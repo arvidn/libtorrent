@@ -58,8 +58,7 @@ TORRENT_TEST(web_seed_redirect)
 		return;
 	}
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	auto torrent_file = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	{

@@ -165,11 +165,8 @@ TORRENT_TEST(magnet)
 
 	p1 = s->abort();
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), session_state);
-	bdecode_node session_state2;
-	int ret = bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
-	TEST_CHECK(ret == 0);
+	std::vector<char> const buf = lt::bencode(session_state);
+	bdecode_node session_state2 = bdecode(buf);
 
 	std::printf("session_state\n%s\n", print_entry(session_state2).c_str());
 
@@ -386,8 +383,7 @@ TORRENT_TEST(make_magnet_uri)
 	al.push_back(entry("udp://tracker.openbittorrent.com:80"));
 	al.push_back(entry("udp://tracker.publicbt.com:80"));
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), torrent);
+	std::vector<char> buf = bencode(torrent);
 	buf.push_back('\0');
 	std::printf("%s\n", &buf[0]);
 	error_code ec;
@@ -413,8 +409,7 @@ TORRENT_TEST(make_magnet_uri2)
 
 	torrent["url-list"] = "http://foo.com/bar";
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), torrent);
+	std::vector<char> buf = bencode(torrent);
 	buf.push_back('\0');
 	std::printf("%s\n", &buf[0]);
 	error_code ec;

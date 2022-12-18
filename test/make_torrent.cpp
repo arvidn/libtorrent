@@ -137,8 +137,7 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 
 	info["pieces"] = piece_hashes;
 
-	std::vector<char> tmp;
-	bencode(std::back_inserter(tmp), e);
+	std::vector<char> const tmp = bencode(e);
 
 	FILE* f = fopen("test.torrent", "w+");
 	fwrite(&tmp[0], 1, tmp.size(), f);

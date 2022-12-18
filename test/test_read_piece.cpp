@@ -63,8 +63,7 @@ void test_read_piece(int flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"

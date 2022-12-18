@@ -142,10 +142,8 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	t2.set_hash(0_piece, sha1_hash::max());
 	t2.set_hash(1_piece, sha1_hash("01234567890123456789"));
 
-	std::vector<char> tmp1;
-	std::vector<char> tmp2;
-	bencode(std::back_inserter(tmp1), t1.generate());
-	bencode(std::back_inserter(tmp2), t2.generate());
+	std::vector<char> const tmp1 = bencode(t1.generate());
+	std::vector<char> const tmp2 = bencode(t2.generate());
 	auto ti1 = std::make_shared<torrent_info>(tmp1, from_span);
 	auto ti2 = std::make_shared<torrent_info>(tmp2, from_span);
 

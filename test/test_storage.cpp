@@ -554,8 +554,7 @@ void test_check_files(check_files_flag_t const flags
 	ofstream(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str())
 		.write(piece2.data(), std::streamsize(piece2.size()));
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	aux::session_settings set;
@@ -649,8 +648,7 @@ void run_test()
 	t.set_hash(2_piece, hasher(piece2).final());
 	t.set_hash(3_piece, hasher(piece3).final());
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	info = std::make_shared<torrent_info>(buf, from_span);
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
@@ -802,8 +800,7 @@ void test_fastresume(bool const test_deprecated)
 		settings_pack pack = settings();
 		lt::session ses(pack);
 
-		std::vector<char> resume_data;
-		bencode(std::back_inserter(resume_data), resume);
+		std::vector<char> const resume_data = bencode(resume);
 
 		add_torrent_params p;
 		TORRENT_UNUSED(test_deprecated);
@@ -991,8 +988,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		lt::session ses(pack);
 
 		add_torrent_params p;
-		std::vector<char> resume_data;
-		bencode(std::back_inserter(resume_data), resume_ent);
+		std::vector<char> const resume_data = bencode(resume_ent);
 		TORRENT_UNUSED(test_deprecated);
 #if TORRENT_ABI_VERSION == 1
 		if (test_deprecated)

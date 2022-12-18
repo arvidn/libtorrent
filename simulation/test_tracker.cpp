@@ -1230,8 +1230,7 @@ std::shared_ptr<torrent_info> make_torrent(bool priv)
 	ct.set_priv(priv);
 
 	entry e = ct.generate();
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), e);
+	std::vector<char> const buf = bencode(e);
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 

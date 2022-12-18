@@ -375,4 +375,10 @@ namespace {
 		return ret;
 	}
 
+	std::vector<char> bencode(entry const& e)
+	{
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), e);
+		return buf;
+	}
 }

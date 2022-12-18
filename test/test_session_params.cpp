@@ -110,8 +110,7 @@ TORRENT_TEST(dht_state)
 	TEST_EQUAL(params1.settings.get_int(settings_pack::dht_max_peers), 20000);
 	entry const e = write_session_params(params1);
 
-	std::vector<char> tmp;
-	bencode(std::back_inserter(tmp), e);
+	std::vector<char> const tmp = bencode(e);
 
 	session_params params2 = read_session_params(tmp);
 	TEST_EQUAL(params2.settings.get_int(settings_pack::dht_max_dht_items), 10000);

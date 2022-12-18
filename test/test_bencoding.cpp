@@ -29,6 +29,9 @@ std::string encode(entry const& e)
 {
 	std::string ret;
 	bencode(std::back_inserter(ret), e);
+
+	std::vector<char> const out = bencode(e);
+	TEST_EQUAL(ret, std::string(out.begin(), out.end()));
 	return ret;
 }
 

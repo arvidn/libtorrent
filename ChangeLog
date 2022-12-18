@@ -1,3 +1,4 @@
+	* add a simpler overload to bencode() returning a vector<char>
 	* introduced a new API for creating torrents, enabling file_storage optimizations
 	* default build to not include functions deprecated in libtorrent 1.1 and earlier
 	* add comment, created_by and creation_date to add_torrent_params

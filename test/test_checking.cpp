@@ -100,8 +100,7 @@ void test_checking(int const flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 	TEST_CHECK(ti->is_valid());
 
@@ -377,8 +376,7 @@ TORRENT_TEST(discrete_checking)
 	set_piece_hashes(t, ".", ec);
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
 	printf("generated torrent: %s test_torrent_dir result: %s\n"
 		, aux::to_hex(ti->info_hashes().v1.to_string()).c_str()

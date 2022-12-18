@@ -105,8 +105,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 		}
 	}
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
+	std::vector<char> const buf = bencode(t.generate());
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 
@@ -885,8 +884,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry
 		}
 	}
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), ct.generate());
+	std::vector<char> const buf = bencode(ct.generate());
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 
@@ -996,10 +994,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		}
 	}
 
-	entry tor = t.generate();
-
-	std::vector<char> tmp;
-	bencode(std::back_inserter(tmp), tor);
+	std::vector<char> tmp = bencode(t.generate());
 	error_code ec;
 	return std::make_shared<torrent_info>(tmp, ec, from_span);
 }

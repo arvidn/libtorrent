@@ -301,10 +301,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 		}
 	}
 
-	lt::entry tor = t.generate();
-
-	std::vector<char> tmp;
-	bencode(std::back_inserter(tmp), tor);
+	std::vector<char> const tmp = bencode(t.generate());
 	lt::error_code ec;
 	return std::make_shared<lt::torrent_info>(tmp, ec, lt::from_span);
 }
