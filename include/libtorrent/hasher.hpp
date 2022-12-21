@@ -5,6 +5,7 @@ Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2016, Alden Torres
 Copyright (c) 2017, 2019, Andrei Kurushin
 Copyright (c) 2017, Steven Siloti
+Copyright (c) 2022, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,6 +56,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
+
+#elif TORRENT_USE_LIBISAL_CRYPTO
+#include "isa-l_crypto.h"
 
 #if !TORRENT_USE_CRYPTOAPI_SHA_512
 #include "libtorrent/sha256.hpp"
@@ -130,6 +134,9 @@ TORRENT_CRYPTO_NAMESPACE
 		aux::cng_hash<aux::cng_sha1_algorithm> m_context;
 #elif TORRENT_USE_CRYPTOAPI
 		aux::crypt_hash<CALG_SHA1, PROV_RSA_FULL> m_context;
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		SHA1_HASH_CTX_MGR mgr;
+		SHA1_HASH_CTX m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else
@@ -172,6 +179,9 @@ TORRENT_CRYPTO_NAMESPACE
 		aux::cng_hash<aux::cng_sha256_algorithm> m_context;
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		aux::crypt_hash<CALG_SHA_256, PROV_RSA_AES> m_context;
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		SHA256_HASH_CTX_MGR mgr;
+		SHA256_HASH_CTX m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_CTX m_context;
 #else

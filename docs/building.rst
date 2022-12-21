@@ -349,6 +349,8 @@ Build features
 |                          |   to use the SHA-1 implementation. (no SSL support)|
 |                          | * ``gcrypt`` - links against libgcrypt             |
 |                          |   to use the SHA-1 implementation. (no SSL support)|
+|                          | * ``isal_crypto`` - links against libisa-l_cyrpto  |
+|                          |   to use the SHA-1 implementation. (no SSL support)|
 +--------------------------+----------------------------------------------------+
 | ``openssl-version``      | This can be used on windows to link against the    |
 |                          | special OpenSSL library names used on windows      |
@@ -732,6 +734,9 @@ own code that compiles and links with libtorrent.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_LIBGCRYPT``              | Link against ``libgcrypt`` for SHA-1 support    |
 |                                        | and other hashing algorithms.                   |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_LIBISAL_CYRPTO``         | Link against ``libisa-l_crypto`` for SHA-1      |
+|                                        | support and other hashing algorithms.           |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_SSL_PEERS``                  | Define to enable support for SSL torrents,      |
 |                                        | peers are connected over authenticated SSL      |

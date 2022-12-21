@@ -4,6 +4,7 @@ Copyright (c) 2014-2015, 2017-2020, Arvid Norberg
 Copyright (c) 2019, Alden Torres
 Copyright (c) 2019, Steven Siloti
 Copyright (c) 2021, Matthew Guidry
+Copyright (c) 2022, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,6 +77,9 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_CRYPTO_NAMESPACE_END }
 #elif defined TORRENT_USE_WOLFSSL
 # define TORRENT_CRYPTO_NAMESPACE inline namespace wcrypto {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#elif defined TORRENT_USE_LIBISAL_CRYPTO
+# define TORRENT_CRYPTO_NAMESPACE inline namespace isal_crypto {
 # define TORRENT_CRYPTO_NAMESPACE_END }
 #elif defined TORRENT_USE_LIBCRYPTO
 # define TORRENT_CRYPTO_NAMESPACE inline namespace lcrypto {

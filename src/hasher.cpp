@@ -5,6 +5,7 @@ Copyright (c) 2016, 2018, Alden Torres
 Copyright (c) 2017, 2019, Andrei Kurushin
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2022, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,11 @@ TORRENT_CRYPTO_NAMESPACE
 		CC_SHA1_Init(&m_context);
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha1_ctx_mgr_init(&mgr);
+		hash_ctx_init(&m_context);
+		sha1_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_FIRST);
+		sha1_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -106,6 +112,9 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.update(data);
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.update(data);
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha1_ctx_mgr_submit(&mgr, &m_context, data.data(), data.size(), HASH_UPDATE);
+		sha1_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -128,6 +137,10 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.get_hash(digest.data(), digest.size());
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.get_hash(digest.data(), digest.size());
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha1_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_LAST);
+		sha1_ctx_mgr_flush(&mgr);
+		std::memcpy(digest.data(), m_context.job.result_digest, SHA1_DIGEST_NWORDS);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
@@ -146,6 +159,11 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.reset();
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.reset();
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha1_ctx_mgr_init(&mgr);
+		hash_ctx_init(&m_context);
+		sha1_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_FIRST);
+		sha1_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -168,6 +186,11 @@ TORRENT_CRYPTO_NAMESPACE
 		CC_SHA256_Init(&m_context);
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha256_ctx_mgr_init(&mgr);
+		hash_ctx_init(&m_context);
+		sha256_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_FIRST);
+		sha256_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
 #else
@@ -222,6 +245,9 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.update(data);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.update(data);
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha256_ctx_mgr_submit(&mgr, &m_context, data.data(), data.size(), HASH_UPDATE);
+		sha256_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data())
 			, static_cast<std::size_t>(data.size()));
@@ -244,6 +270,10 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.get_hash(digest.data(), digest.size());
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.get_hash(digest.data(), digest.size());
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha256_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_LAST);
+		sha256_ctx_mgr_flush(&mgr);
+		std::memcpy(digest.data(), m_context.job.result_digest, SHA256_DIGEST_NWORDS);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
@@ -262,6 +292,11 @@ TORRENT_CRYPTO_NAMESPACE
 		m_context.reset();
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
+#elif TORRENT_USE_LIBISAL_CRYPTO
+		sha256_ctx_mgr_init(&mgr);
+		hash_ctx_init(&m_context);
+		sha256_ctx_mgr_submit(&mgr, &m_context, nullptr, 0, HASH_FIRST);
+		sha256_ctx_mgr_flush(&mgr);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA256_Init(&m_context);
 #else

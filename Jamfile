@@ -99,6 +99,10 @@ rule linking ( properties * )
 	{
 		result += <library>wolfssl ;
 	}
+	else if <crypto>isal in $(properties)
+	{
+		result += <library>isal_crypto ;
+	}
 
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
@@ -596,7 +600,7 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : openssl built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
+feature crypto : openssl built-in wolfssl gnutls libcrypto gcrypt isal_crypto : composite propagated ;
 feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
@@ -617,7 +621,7 @@ feature.compose <crypto>gnutls
 	<define>TORRENT_SSL_PEERS ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_LIBGCRYPT ;
-
+feature.compose <crypto>isal_crypto : <define>TORRENT_USE_LIBISAL_CRYPTO ;
 feature openssl-version : 1.1 pre1.1 : composite propagated ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
@@ -684,6 +688,8 @@ lib gnutls : : <name>gnutls <conditional>@gnutls-lib-path : :
 
 lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
 	<conditional>@wolfssl-include-path ;
+
+lib isal_crypto ;
 
 lib dbghelp : : <name>dbghelp ;
 
