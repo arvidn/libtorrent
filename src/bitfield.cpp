@@ -60,6 +60,20 @@ namespace libtorrent {
 		return true;
 	}
 
+	bool bitfield::operator==(lt::bitfield const& rhs) const
+	{
+		if (m_buf == rhs.m_buf)
+			return true;
+
+		if (size() != rhs.size())
+			return false;
+
+		std::uint32_t const* lb = buf();
+		std::uint32_t const* rb = rhs.buf();
+
+		return std::memcmp(lb, rb, std::size_t(num_words()) * 4) == 0;
+	}
+
 	int bitfield::count() const noexcept
 	{
 		int ret = 0;

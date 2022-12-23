@@ -471,6 +471,9 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file-format``          | string: "libtorrent resume file"                             |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
+| ``file-version``         | integer: 1                                                   |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
 |                          | This is a 20 byte SHA-1 hash of the info section of the      |
 |                          | torrent if this is a v1 or v1+v2-hybrid torrent.             |

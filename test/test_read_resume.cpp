@@ -238,12 +238,40 @@ TORRENT_TEST(read_resume_torrent)
 
 namespace {
 
-void test_roundtrip(add_torrent_params const& input)
+void test_roundtrip(add_torrent_params input)
 {
+	// in order to accept that certain bitfields round up to even 8 (bytes)
+	// we round up the input bitfields
+	input.have_pieces.resize(input.have_pieces.num_bytes() * 8);
+	input.verified_pieces.resize(input.verified_pieces.num_bytes() * 8);
+	for (auto& b: input.unfinished_pieces)
+		b.second.resize(b.second.num_bytes() * 8);
+	for (auto& b: input.merkle_tree_mask)
+		b.resize((b.size() + 7) / 8 * 8);
+	for (auto& b: input.verified_leaf_hashes)
+		b.resize((b.size() + 7) / 8 * 8);
+
 	auto b = write_resume_data_buf(input);
 	error_code ec;
-	auto output = read_resume_data(b, ec);
-	TEST_CHECK(write_resume_data_buf(output) == b);
+	auto const output = read_resume_data(b, ec);
+
+	TEST_CHECK(input.verified_leaf_hashes == output.verified_leaf_hashes);
+	TEST_CHECK(input.merkle_tree_mask == output.merkle_tree_mask);
+	TEST_CHECK(input.file_priorities == output.file_priorities);
+	TEST_CHECK(input.save_path == output.save_path);
+	TEST_CHECK(input.name == output.name);
+	TEST_CHECK(input.trackers == output.trackers);
+	TEST_CHECK(input.tracker_tiers == output.tracker_tiers);
+	TEST_CHECK(input.info_hashes == output.info_hashes);
+	TEST_CHECK(input.url_seeds == output.url_seeds);
+	TEST_CHECK(input.unfinished_pieces == output.unfinished_pieces);
+	TEST_CHECK(input.verified_pieces == output.verified_pieces);
+	TEST_CHECK(input.piece_priorities == output.piece_priorities);
+	TEST_CHECK(input.merkle_trees == output.merkle_trees);
+	TEST_CHECK(input.renamed_files == output.renamed_files);
+
+	auto const compare = write_resume_data_buf(output);
+	TEST_CHECK(compare == b);
 }
 
 template <typename T>
@@ -260,10 +288,12 @@ lt::typed_bitfield<T> bits()
 lt::bitfield bits()
 {
 	lt::bitfield b;
-	b.resize(19);
+	b.resize(190);
 	b.set_bit(2);
 	b.set_bit(6);
 	b.set_bit(12);
+	b.set_bit(100);
+	b.set_bit(103);
 	return b;
 }
 
@@ -392,7 +422,93 @@ TORRENT_TEST(round_trip_merkle_tree_mask)
 TORRENT_TEST(round_trip_verified_leaf_hashes)
 {
 	add_torrent_params atp;
+	atp.merkle_trees = aux::vector<std::vector<sha256_hash>, file_index_t>{
+		{sha256_hash{"01010101010101010101010101010101"}},
+		{sha256_hash{"12121212121212121212121212121212"}}};
+
 	atp.verified_leaf_hashes = aux::vector<std::vector<bool>, file_index_t>{
 		{true, true, false, false}, {false, true, false, true}};
 	test_roundtrip(atp);
+}
+
+TORRENT_TEST(invalid_resume_version)
+{
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["file-version"] = 0;
+	ret["info-hash"] = "                    ";
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	TEST_THROW(read_resume_data(resume_data));
+
+	ret["file-version"] = 3;
+	resume_data.clear();
+	bencode(std::back_inserter(resume_data), ret);
+	TEST_THROW(read_resume_data(resume_data));
+
+	ret["file-version"] = 42;
+	resume_data.clear();
+	bencode(std::back_inserter(resume_data), ret);
+	TEST_THROW(read_resume_data(resume_data));
+}
+
+TORRENT_TEST(v2_pieces_field)
+{
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["file-version"] = 2;
+	ret["info-hash"] = "                    ";
+	ret["pieces"] = std::string("\x05\xc0", 2);
+	ret["verified"] = std::string("\xc6\x80", 2);
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	add_torrent_params const atp = read_resume_data(resume_data);
+
+	TEST_EQUAL(atp.have_pieces.get_bit(0_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(1_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(2_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(3_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(4_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(5_piece), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(6_piece), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(7_piece), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(8_piece), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(9_piece), true);
+
+	TEST_EQUAL(atp.verified_pieces.get_bit(0_piece), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(1_piece), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(2_piece), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(3_piece), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(4_piece), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(5_piece), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(6_piece), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(7_piece), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(8_piece), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(9_piece), false);
+}
+
+TORRENT_TEST(v2_trees_fields)
+{
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["file-version"] = 2;
+	ret["info-hash"] = "                    ";
+	auto& tree = ret["trees"].list();
+
+	tree.emplace_back(entry::dictionary_t);
+	auto& file = tree.back().dict();
+
+	file["hashes"] = std::string();
+	file["mask"] = "\x1a\xb8";
+	file["verified"] = "\xe5\x78";
+
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	add_torrent_params const atp = read_resume_data(resume_data);
+
+	TEST_CHECK((atp.merkle_tree_mask.at(0) == std::vector<bool>
+		{false, false, false, true, true, false, true, false, true, false, true, true, true, false, false, false}));
+
+	TEST_CHECK((atp.verified_leaf_hashes.at(0) == std::vector<bool>
+		{true, true, true, false, false, true, false, true, false, true, true, true, true, false, false, false}));
 }
