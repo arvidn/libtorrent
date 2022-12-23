@@ -134,6 +134,13 @@ namespace libtorrent {
 			return (size() + 31) / 32;
 		}
 
+		// returns the number of bytes needed to represent all bits in this
+		// bitfield
+		int num_bytes() const noexcept
+		{
+			return (size() + 7) / 8;
+		}
+
 		// returns true if the bitfield has zero size.
 		bool empty() const noexcept { return size() == 0; }
 
@@ -170,6 +177,8 @@ namespace libtorrent {
 
 		// returns the index to the last cleared bit in the bitfield, i.e. 0 bit.
 		int find_last_clear() const noexcept;
+
+		bool operator==(lt::bitfield const& rhs) const;
 
 		// internal
 		struct const_iterator
