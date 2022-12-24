@@ -1,3 +1,6 @@
+
+	* fix issue with odd piece sizes
+
 1.2.18 released
 
 	* fix issue where stop-when-ready would not close files
