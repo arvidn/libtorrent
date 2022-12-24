@@ -359,8 +359,9 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		int request_offset = r.start + r.length - size;
 		pr.start = request_offset % piece_size;
-		pr.length = std::min(block_size, size);
+		pr.length = std::min(std::min(block_size, size), piece_size - pr.start);
 		pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
+		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
 		if (m_web->restart_request == m_requests.front())
