@@ -151,6 +151,11 @@ namespace {
 		return (piece_size2(index) + default_block_size - 1) / default_block_size;
 	}
 
+	int file_storage::blocks_per_piece() const
+	{
+		return (m_piece_length + default_block_size - 1) / default_block_size;
+	}
+
 	// path is supposed to include the name of the torrent itself.
 	// or an absolute path, to move a file outside of the download directory
 	void file_storage::update_path_index(aux::file_entry& e

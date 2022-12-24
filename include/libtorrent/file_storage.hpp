@@ -451,6 +451,10 @@ namespace aux {
 		// returns the number of blocks in the specified piece, for v2 torrents.
 		int blocks_in_piece2(piece_index_t index) const;
 
+		// returns the number of blocks there are in the typical piece. There
+		// may be fewer in the last piece)
+		int blocks_per_piece() const;
+
 		// set and get the name of this torrent. For multi-file torrents, this is also
 		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }

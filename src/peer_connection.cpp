@@ -4051,7 +4051,7 @@ namespace libtorrent {
 			// blocks that are in the same piece into larger requests
 			if (m_request_large_blocks)
 			{
-				int const blocks_per_piece = t->torrent_file().piece_length() / t->block_size();
+				int const blocks_per_piece = t->torrent_file().blocks_per_piece();
 
 				while (!m_request_queue.empty())
 				{
@@ -5491,7 +5491,7 @@ namespace libtorrent {
 		case set_block_hash_result::success:
 		{
 			t->need_picker();
-			int const blocks_per_piece = t->torrent_file().files().piece_length() / default_block_size;
+			int const blocks_per_piece = t->torrent_file().files().blocks_per_piece();
 			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
 				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
 				; verified_piece < end; ++verified_piece)
@@ -6720,8 +6720,7 @@ namespace libtorrent {
 		{
 			piece_picker& p = t->picker();
 			const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-			const int blocks_per_piece = static_cast<int>(
-				t->torrent_file().piece_length() / t->block_size());
+			const int blocks_per_piece = static_cast<int>(t->torrent_file().blocks_per_piece);
 
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dlq.begin(); i != dlq.end(); ++i)
