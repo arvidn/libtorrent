@@ -355,6 +355,10 @@ namespace libtorrent {
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 
+		// returns the number of blocks there are in the typical piece. There
+		// may be fewer in the last piece)
+		int blocks_per_piece() const { return m_files.blocks_per_piece(); }
+
 		// ``last_piece()`` returns the index to the last piece in the torrent and
 		// ``end_piece()`` returns the index to the one-past-end piece in the
 		// torrent

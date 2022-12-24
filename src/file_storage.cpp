@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -120,6 +121,11 @@ namespace {
 	}
 
 }
+
+	int file_storage::blocks_per_piece() const
+	{
+		return (m_piece_length + default_block_size - 1) / default_block_size;
+	}
 
 	// path is supposed to include the name of the torrent itself.
 	// or an absolute path, to move a file outside of the download directory
