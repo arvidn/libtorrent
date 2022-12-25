@@ -261,7 +261,7 @@ int get_piece(lt::bitfield const& p, int index)
 
 #ifndef _WIN32
 // this function uses the braille characters to print 8 pieces per character
-std::string piece_matrix(lt::bitfield const& p, int width, int* height)
+std::string piece_matrix(lt::bitfield const& p, int const width, int* height)
 {
 	if (width <= 0) return {};
 
@@ -270,6 +270,8 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 	++*height;
 	std::string ret;
 	ret.reserve(std::size_t((p.size() + width * 2 - 1) / width / 2 * 4));
+	// each character covers 2 pieces in width
+	int const row_span = width * 2;
 	while (piece < p.size())
 	{
 		if (piece > 0)
@@ -285,13 +287,13 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 			// each character has 8 pieces. store them in a byte to use for
 			// lookups
 			std::int32_t const c = get_piece(p, piece) // bit 0
-				| (get_piece(p, width+piece) << 1) // bit 1
-				| (get_piece(p, width*2+piece) << 2) // bit 2
+				| (get_piece(p, row_span+piece) << 1) // bit 1
+				| (get_piece(p, row_span*2+piece) << 2) // bit 2
 				| (get_piece(p, piece+1) << 3) // bit 3
-				| (get_piece(p, width+piece+1) << 4) // bit 4
-				| (get_piece(p, width*2+piece+1) << 5) // bit 5
-				| (get_piece(p, width*3+piece) << 6) // bit 6
-				| (get_piece(p, width*3+piece+1) << 7); // bit 7
+				| (get_piece(p, row_span+piece+1) << 4) // bit 4
+				| (get_piece(p, row_span*2+piece+1) << 5) // bit 5
+				| (get_piece(p, row_span*3+piece) << 6) // bit 6
+				| (get_piece(p, row_span*3+piece+1) << 7); // bit 7
 
 			std::int32_t const codepoint = 0x2800 | c;
 			lt::aux::append_utf8_codepoint(ret, codepoint);
@@ -299,7 +301,7 @@ std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 		}
 		ret += "\x1b[K";
 		++*height;
-		piece += width * 4; // skip 4 rows, as we've already printed them
+		piece += row_span * 4; // skip 4 rows, as we've already printed them
 	}
 	return ret;
 }
