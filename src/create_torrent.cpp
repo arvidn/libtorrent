@@ -77,6 +77,7 @@ namespace libtorrent {
 	constexpr create_flags_t create_torrent::canonical_files;
 	constexpr create_flags_t create_torrent::no_attributes;
 	constexpr create_flags_t create_torrent::canonical_files_no_tail_padding;
+	constexpr create_flags_t create_torrent::allow_odd_piece_size;
 
 namespace {
 
@@ -446,7 +447,8 @@ namespace {
 				aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
 		else if ((piece_size % (16 * 1024)) != 0
-			&& (piece_size & (piece_size - 1)) != 0)
+			&& (piece_size & (piece_size - 1)) != 0
+			&& !(flags & allow_odd_piece_size))
 		{
 			// v1 torrents should have piece sizes divisible by 16 kiB
 			aux::throw_ex<system_error>(errors::invalid_piece_size);
