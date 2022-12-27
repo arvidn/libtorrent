@@ -154,18 +154,24 @@ lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset)
 	return ret.final();
 }
 
-void generate_block(char* b, lt::peer_request const& r, int const pad_bytes)
+void generate_block(char* b, lt::peer_request r, int const pad_bytes, int const piece_size)
 {
-	auto const fill = generate_block_fill(r.piece, (r.start / lt::default_block_size));
-
 	// for now we don't support unaligned start address
-	TORRENT_ASSERT((r.start % fill.size()) == 0);
 	char* end = b + r.length - pad_bytes;
 	while (b < end)
 	{
-		int const bytes = std::min(int(fill.size()), int(end - b));
-		std::memcpy(b, fill.data(), bytes);
+		auto const fill = generate_block_fill(r.piece, (r.start / lt::default_block_size));
+
+		int const block_offset = r.start % int(fill.size());
+		int const bytes = std::min(std::min(int(fill.size() - block_offset), int(end - b)), piece_size - r.start);
+		std::memcpy(b, fill.data() + block_offset, bytes);
 		b += bytes;
+		r.start += bytes;
+		if (r.start >= piece_size)
+		{
+			r.start = 0;
+			++r.piece;
+		}
 	}
 
 	if (pad_bytes > 0)
@@ -360,7 +366,9 @@ struct test_disk_io final : lt::disk_interface
 				if (m_state.corrupt_data_in-- <= 0)
 					lt::aux::random_bytes(buf);
 				else
-					generate_block(buf.data(), r, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece)));
+					generate_block(buf.data(), r
+						, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece))
+						, m_files->piece_size(r.piece));
 			}
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });

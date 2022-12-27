@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
 #include "simulator/utils.hpp"
+#include "simulator/http_server.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/address.hpp"
@@ -48,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/random.hpp"
@@ -131,31 +133,92 @@ void run_test(
 
 	setup(*ses[0], *ses[1]);
 
+	lt::time_point last_save_resume = lt::clock_type::now();
+
 	// only monitor alerts for session 0 (the downloader)
-	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
+	print_alerts(*ses[0], [=, &last_save_resume](lt::session& ses, lt::alert const* a) {
 		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
-			if (flags & tx::connect_proxy)
-				ta->handle.connect_peer(lt::tcp::endpoint(proxy, 3000));
-			else
-				ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+			if (!(flags & tx::web_seed))
+			{
+				if (flags & tx::connect_proxy)
+					ta->handle.connect_peer(lt::tcp::endpoint(proxy, 3000));
+				else
+					ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+			}
+		}
+		auto const now = lt::clock_type::now();
+		if (now - last_save_resume > lt::seconds(1))
+		{
+			last_save_resume = now;
+			auto torrents = ses.get_torrents();
+			if (!torrents.empty())
+				torrents.front().save_resume_data();
 		}
 		on_alert(ses, a);
 	}, 0);
 
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
-	lt::add_torrent_params atp = ::create_test_torrent(10
-		, (flags & tx::v2_only) ? lt::create_torrent::v2_only
+	int const piece_size = (flags & tx::small_pieces) ? lt::default_block_size
+		: (flags & tx::large_pieces) ? (4 * lt::default_block_size)
+		: (flags & tx::odd_pieces) ? (2 * lt::default_block_size + 123)
+		: (2 * lt::default_block_size);
+
+	int const num_pieces = 10;
+
+	lt::create_flags_t const cflags
+		= ((flags & tx::v2_only) ? lt::create_torrent::v2_only
 		: (flags & tx::v1_only) ? lt::create_torrent::v1_only
-		: lt::create_flags_t{}
-		, (flags & tx::small_pieces) ? 1 : (flags & tx::large_pieces) ? 4 : 2
-		, (flags & tx::multiple_files) ? 3 : 1
-		);
+		: lt::create_flags_t{})
+		| lt::create_torrent::allow_odd_piece_size;
+
+	int const num_files = (flags & tx::multiple_files) ? 3 : 1;
+
+	lt::add_torrent_params atp;
+
+	atp.ti = ::create_test_torrent(piece_size, num_pieces, cflags, num_files);
+	// this is unused by the test disk I/O
+	atp.save_path = ".";
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
 
-	ses[1]->async_add_torrent(atp);
+	sim::asio::io_context web_server(sim, lt::make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	int corrupt_counter = INT_MAX;
+	if (flags & tx::corruption)
+		corrupt_counter = lt::default_block_size * 2;
+
+	if (flags & tx::web_seed)
+	{
+		auto const& fs = atp.ti->files();
+		for (lt::file_index_t f : fs.file_range())
+		{
+			std::string file_path = fs.file_path(f, "/");
+			lt::convert_path_to_posix(file_path);
+			http.register_content(file_path, fs.file_size(f)
+				, [&fs,f,&corrupt_counter](std::int64_t offset, std::int64_t len)
+				{
+					TORRENT_ASSERT(offset + len <= fs.file_size(f));
+					auto const req = fs.map_file(f, offset, len);
+					std::string ret;
+					ret.resize(req.length);
+					generate_block(&ret[0], req, 0, fs.piece_length());
+					if (corrupt_counter < 0)
+						lt::aux::random_bytes(ret);
+					else if (corrupt_counter - len < 0)
+						lt::aux::random_bytes(lt::span<char>(ret).subspan(corrupt_counter));
+					corrupt_counter -= len;
+					return ret;
+				});
+		}
+	}
+
+	// if we're seeding with a web server, no need to start the second session
+	if (!(flags & tx::web_seed))
+		ses[1]->async_add_torrent(atp);
+
 	auto torrent = atp.ti;
 
 	atp.save_path = save_path(0);
@@ -164,6 +227,9 @@ void run_test(
 		atp.info_hashes = atp.ti->info_hashes();
 		atp.ti.reset();
 	}
+	if (flags & tx::web_seed)
+		atp.url_seeds.emplace_back("http://2.2.2.2:8080/");
+
 	ses[0]->async_add_torrent(atp);
 
 	sim::timer t(sim, timeout, [&](boost::system::error_code const&)
