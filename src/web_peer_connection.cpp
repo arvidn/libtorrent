@@ -1182,9 +1182,10 @@ void web_peer_connection::maybe_harvest_piece()
 		, static_cast<int>(front_request.piece)
 		, front_request.start, front_request.length);
 #endif
+	peer_request const req = m_requests.front();
 	m_requests.pop_front();
 
-	incoming_piece(front_request, m_piece.data());
+	incoming_piece(req, m_piece.data());
 	m_piece.clear();
 }
 
