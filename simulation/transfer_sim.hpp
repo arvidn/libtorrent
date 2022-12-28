@@ -266,6 +266,8 @@ void run_test(
 	sim.run();
 }
 
+bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode const files);
+
 void no_init(lt::session& ses0, lt::session& ses1);
 
 struct record_finished_pieces
