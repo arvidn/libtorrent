@@ -27,7 +27,6 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew update
         brew install boost-build boost boost-python3 python@3.10 openssl@1.1
         export PATH=$(brew --prefix)/opt/python@3.10/bin:$PATH
 
