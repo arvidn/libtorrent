@@ -4776,6 +4776,8 @@ namespace {
 		{
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<torrent_removed_alert>(get_handle()
+				, info_hash(), get_userdata());
 		}
 
 		// TODO: 2 abort lookups this torrent has made via the
@@ -9351,6 +9353,9 @@ namespace {
 		// there should be no more disk activity for this torrent now, we can
 		// release the disk io handle
 		m_storage.reset();
+
+		alerts().emplace_alert<torrent_removed_alert>(get_handle()
+			, info_hash(), get_userdata());
 	}
 
 	bool torrent::is_paused() const

@@ -335,11 +335,9 @@ struct test_disk_io final : lt::disk_interface
 		TORRENT_ASSERT(static_cast<std::uint32_t>(idx) == 0);
 		TORRENT_ASSERT(m_files != nullptr);
 
-		queue_event(lt::microseconds(1), [this] () mutable {
-			m_files = nullptr;
-			m_blocks_per_piece = 0;
-			m_have.clear();
-		});
+		m_files = nullptr;
+		m_blocks_per_piece = 0;
+		m_have.clear();
 	}
 
 	void abort(bool) override {}
