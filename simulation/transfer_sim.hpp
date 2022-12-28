@@ -288,4 +288,18 @@ struct expect_seed
 int blocks_per_piece(test_transfer_flags_t const flags);
 int num_pieces(test_transfer_flags_t const flags);
 
+template <typename F>
+void run_all_combinations(F fun)
+{
+	for (test_transfer_flags_t piece_size : {test_transfer_flags_t{}, tx::odd_pieces, tx::small_pieces, tx::large_pieces})
+		for (test_transfer_flags_t web_seed : {tx::web_seed, test_transfer_flags_t{}})
+			for (test_transfer_flags_t corruption : {test_transfer_flags_t{}, tx::corruption})
+				for (test_transfer_flags_t bt_version : {test_transfer_flags_t{}, tx::v2_only, tx::v1_only})
+					for (test_transfer_flags_t magnet : {test_transfer_flags_t{}, tx::magnet_download})
+						for (test_transfer_flags_t multi_file : {test_transfer_flags_t{}, tx::multiple_files})
+							if (fun(piece_size | bt_version | magnet
+								| multi_file | web_seed | corruption))
+								return;
+}
+
 #endif
