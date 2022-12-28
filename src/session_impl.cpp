@@ -4882,11 +4882,11 @@ namespace {
 
 		torrent_handle handle(torrent_ptr);
 
-        if (!torrent_ptr)
-        {
-            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
-            return handle;
-        }
+		if (!torrent_ptr)
+		{
+			m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
+			return handle;
+		}
 
 		TORRENT_ASSERT(info_hash.has_v1() || info_hash.has_v2());
 
@@ -4900,7 +4900,7 @@ namespace {
 		if (!added)
 		{
 			abort_torrent.disarm();
-            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
+			m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 			return handle;
 		}
 
@@ -5235,9 +5235,6 @@ namespace {
 
 		std::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
-
-		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
-			, tptr->info_hash(), tptr->get_userdata());
 
 		remove_torrent_impl(tptr, options);
 
