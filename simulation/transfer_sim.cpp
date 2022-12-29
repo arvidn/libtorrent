@@ -8,6 +8,8 @@ see LICENSE file.
 */
 
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/read_resume_data.hpp"
 
 #include "transfer_sim.hpp"
 
@@ -23,6 +25,52 @@ void record_finished_pieces::operator()(lt::session&, lt::alert const* a) const
 {
 	if (auto const* pf = lt::alert_cast<lt::piece_finished_alert>(a))
 		m_passed->insert(pf->piece_index);
+}
+
+restore_from_resume::restore_from_resume()
+	: m_last_check()
+{}
+
+void restore_from_resume::operator()(lt::session& ses, lt::alert const* a)
+{
+	if (m_done) return;
+
+	if (auto* rd = lt::alert_cast<lt::save_resume_data_alert>(a))
+	{
+		m_resume_buffer = lt::write_resume_data_buf(rd->params);
+		auto torrents = ses.get_torrents();
+		ses.remove_torrent(torrents[0]);
+		return;
+	}
+
+	if (lt::alert_cast<lt::torrent_removed_alert>(a))
+	{
+		lt::add_torrent_params atp = lt::read_resume_data(m_resume_buffer);
+		m_resume_buffer.clear();
+		ses.async_add_torrent(atp);
+		m_done = true;
+		return;
+	}
+
+	// we only want to do this once
+	if (m_triggered)
+		return;
+
+	auto const now = lt::clock_type::now();
+	if (now < m_last_check + lt::milliseconds(100))
+		return;
+
+	m_last_check = now;
+	auto torrents = ses.get_torrents();
+	if (torrents.empty())
+		return;
+
+	auto h = torrents.front();
+	if (h.status().num_pieces < 7)
+		return;
+
+	h.save_resume_data(lt::torrent_handle::save_info_dict);
+	m_triggered = true;
 }
 
 expect_seed::expect_seed(bool e) : m_expect(e) {}
@@ -65,6 +113,15 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 	if ((flags & tx::web_seed) && (flags & tx::magnet_download))
 		return false;
 
+	// the web server in libsimulator only supports a single connection at a
+	// time. When disconnecting and re-connecting quickly, the initial
+	// connection is still held open, causing the second connection to fail.
+	// therefore, this test configuration does not work (yet). Perhaps the
+	// server could be changed to boot any existing connection when accepting a
+	// new one.
+	if ((flags & tx::web_seed) && (flags && tx::resume_restart))
+		return false;
+
 	// this will clear the history of all output we've printed so far.
 	// if we encounter an error from now on, we'll only print the relevant
 	// iteration
@@ -84,6 +141,7 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 		<< "-" << ((flags & tx::magnet_download) ? "magnet" : "torrent")
 		<< "-" << ((flags & tx::multiple_files) ? "multi_file" : "single_file")
 		<< "-" << ((flags & tx::web_seed) ? "web_seed" : "bt_peers")
+		<< "-" << ((flags & tx::resume_restart) ? "resume_restart" : "continuous")
 		<< "-" << files
 		<< "\n\n";
 
@@ -95,6 +153,9 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 
 	combine_t handler;
 	handler.add(record_finished_pieces(passed));
+
+	if (flags & tx::resume_restart)
+		handler.add(restore_from_resume());
 
 	run_test(no_init
 		, handler
