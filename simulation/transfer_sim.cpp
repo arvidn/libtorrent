@@ -92,8 +92,12 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 	if (flags & tx::corruption)
 		seeder_disk = seeder_disk.send_corrupt_data(num_pieces(flags) / 4 * blocks_per_piece(flags));
 	std::set<lt::piece_index_t> passed;
+
+	combine_t handler;
+	handler.add(record_finished_pieces(passed));
+
 	run_test(no_init
-		, record_finished_pieces(passed)
+		, handler
 		, expect_seed(!(flags & tx::corruption))
 		, flags
 		, downloader_disk

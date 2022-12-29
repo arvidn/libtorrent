@@ -117,7 +117,6 @@ void run_test(
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer0_ip[use_ipv6], use_ipv6, "6881"));
-
 	// create session
 	std::shared_ptr<lt::session> ses[2];
 
@@ -136,7 +135,7 @@ void run_test(
 	lt::time_point last_save_resume = lt::clock_type::now();
 
 	// only monitor alerts for session 0 (the downloader)
-	print_alerts(*ses[0], [=, &last_save_resume](lt::session& ses, lt::alert const* a) {
+	print_alerts(*ses[0], [&, &last_save_resume](lt::session& ses, lt::alert const* a) {
 		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
 			if (!(flags & tx::web_seed))
@@ -270,11 +269,31 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 
 void no_init(lt::session& ses0, lt::session& ses1);
 
+
+struct combine_t
+{
+	combine_t() {}
+
+	void operator()(lt::session& s, lt::alert const* a)
+	{
+		for (auto& h : m_handlers)
+			h(s, a);
+	}
+
+	void add(std::function<void(lt::session&, lt::alert const*)> h)
+	{
+		m_handlers.emplace_back(std::move(h));
+	}
+
+	std::vector<std::function<void(lt::session&, lt::alert const*)>> m_handlers;
+};
+
+// this alert handler records all pieces that complete and pass hash check into
+// the set passed in to its constructor
 struct record_finished_pieces
 {
 	record_finished_pieces(std::set<lt::piece_index_t>& p);
 	void operator()(lt::session&, lt::alert const* a) const;
-
 	std::set<lt::piece_index_t>* m_passed;
 };
 
