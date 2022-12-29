@@ -59,13 +59,12 @@ namespace aux {
 
 	void merkle_tree::load_verified_bits(std::vector<bool> const& verified)
 	{
-		TORRENT_ASSERT(int(verified.size()) <= m_num_blocks);
 		TORRENT_ASSERT(m_block_verified.size() == m_num_blocks);
 
 		// The verified bitfield may be invalid. If so, correct it to
 		// maintain the invariant of this class
 		int block_index = block_layer_start();
-		for (int i = 0; i < int(verified.size()); ++i)
+		for (int i = 0; i < std::min(int(verified.size()), m_num_blocks); ++i)
 		{
 			if (verified[std::size_t(i)] && has_node(block_index))
 				m_block_verified.set_bit(i);
