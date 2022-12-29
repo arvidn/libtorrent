@@ -27,6 +27,13 @@ void record_finished_pieces::operator()(lt::session&, lt::alert const* a) const
 		m_passed->insert(pf->piece_index);
 }
 
+template <typename Container>
+void lengthen(Container& c)
+{
+	if (c.size() == 0) return;
+	c.resize(c.size() + 1);
+}
+
 restore_from_resume::restore_from_resume()
 	: m_last_check()
 {}
@@ -47,6 +54,17 @@ void restore_from_resume::operator()(lt::session& ses, lt::alert const* a)
 	{
 		lt::add_torrent_params atp = lt::read_resume_data(m_resume_buffer);
 		m_resume_buffer.clear();
+
+		// make sure loading resume data tolerates oversized bitfields
+		lengthen(atp.have_pieces);
+		lengthen(atp.verified_pieces);
+
+		for (auto& m : atp.merkle_tree_mask)
+			lengthen(m);
+
+		for (auto& v : atp.verified_leaf_hashes)
+			lengthen(v);
+
 		ses.async_add_torrent(atp);
 		m_done = true;
 		return;
