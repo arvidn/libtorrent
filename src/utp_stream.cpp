@@ -168,7 +168,7 @@ utp_socket_impl::utp_socket_impl(std::uint16_t const recv_id
 	, m_recv_id(recv_id)
 	, m_delay_sample_idx(0)
 	, m_state(static_cast<std::uint8_t>(state_t::none))
-	, m_eof(false)
+	, m_in_eof(false)
 	, m_attached(true)
 	, m_nagle(true)
 	, m_slow_start(true)
@@ -2179,7 +2179,7 @@ bool utp_socket_impl::consume_incoming_data(
 
 	if (ph->get_type() != ST_DATA) return false;
 
-	if (m_eof && m_ack_nr == m_eof_seq_nr)
+	if (m_in_eof && m_ack_nr == m_in_eof_seq_nr)
 	{
 		// What?! We've already received a FIN and everything up
 		// to it has been acked. Ignore this packet
@@ -2485,12 +2485,12 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// if the socket is closing, always ignore any packet
 	// with a higher sequence number than the FIN sequence number
 	// ST_STATE messages always include the next seqnr.
-	if (m_eof && (compare_less_wrap(m_eof_seq_nr, ph->seq_nr, ACK_MASK)
-		|| (m_eof_seq_nr == ph->seq_nr && ph->get_type() != ST_STATE)))
+	if (m_in_eof && (compare_less_wrap(m_in_eof_seq_nr, ph->seq_nr, ACK_MASK)
+		|| (m_in_eof_seq_nr == ph->seq_nr && ph->get_type() != ST_STATE)))
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOG("%8p: ERROR: incoming packet type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
-			, static_cast<void*>(this), packet_type_names[ph->get_type()], int(ph->seq_nr), m_eof_seq_nr);
+			, static_cast<void*>(this), packet_type_names[ph->get_type()], int(ph->seq_nr), m_in_eof_seq_nr);
 #endif
 		return true;
 	}
@@ -2724,15 +2724,13 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			}
 		}
 
-		if (m_eof)
+		if (m_in_eof)
 		{
 			UTP_LOGV("%8p: duplicate FIN packet (ignoring)\n", static_cast<void*>(this));
 			return true;
 		}
-		m_eof = true;
-		m_eof_seq_nr = ph->seq_nr;
-
-		// we will respond with a fin once we have received everything up to m_eof_seq_nr
+		m_in_eof = true;
+		m_in_eof_seq_nr = ph->seq_nr;
 	}
 
 	switch (state())
@@ -2874,7 +2872,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 			// Everything up to the FIN has been received, respond with a FIN
 			// from our side.
-			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
+			if (m_in_eof && m_ack_nr == ((m_in_eof_seq_nr - 1) & ACK_MASK))
 			{
 				UTP_LOGV("%8p: incoming stream consumed\n", static_cast<void*>(this));
 
@@ -2975,10 +2973,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// There are two ways we can end up in this state:
 			//
 			// 1. If the socket has been explicitly closed on our
-			//    side, in which case m_eof is false.
+			//    side, in which case m_in_eof is false.
 			//
 			// 2. If we received a FIN from the remote side, in which
-			//    case m_eof is true. If this is the case, we don't
+			//    case m_in_eof is true. If this is the case, we don't
 			//    come here until everything up to the FIN has been
 			//    received.
 			//

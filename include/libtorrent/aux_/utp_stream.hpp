@@ -905,7 +905,7 @@ private:
 	// valid if m_eof is true. We should not accept
 	// any packets beyond this sequence number from the
 	// other end
-	std::uint16_t m_eof_seq_nr = 0;
+	std::uint16_t m_in_eof_seq_nr = 0;
 
 	// this is the lowest sequence number that, when lost,
 	// will cause the window size to be cut in half
@@ -948,7 +948,9 @@ private:
 	std::uint8_t m_state:3;
 
 	// this is set to true when we receive a fin
-	bool m_eof:1;
+	// The incoming stream is being closed at sequence number
+	// indicated by m_in_eof_seq_nr
+	bool m_in_eof:1;
 
 	// is this socket state attached to a user space socket?
 	bool m_attached:1;
