@@ -64,6 +64,10 @@ constexpr test_transfer_flags_t small_pieces = 5_bit;
 constexpr test_transfer_flags_t large_pieces = 6_bit;
 constexpr test_transfer_flags_t multiple_files = 7_bit;
 constexpr test_transfer_flags_t connect_proxy = 8_bit;
+constexpr test_transfer_flags_t odd_pieces = 9_bit;
+constexpr test_transfer_flags_t web_seed = 10_bit;
+constexpr test_transfer_flags_t corruption = 11_bit;
+constexpr test_transfer_flags_t resume_restart = 12_bit;
 }
 
 void set_proxy(lt::session& ses, int proxy_type

@@ -617,7 +617,8 @@ TORRENT_VERSION_NAMESPACE_4
 				aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
 		else if ((piece_size % (16 * 1024)) != 0
-			&& (piece_size & (piece_size - 1)) != 0)
+			&& (piece_size & (piece_size - 1)) != 0
+			&& !(flags & allow_odd_piece_size))
 		{
 			// v1 torrents should have piece sizes divisible by 16 kiB
 			aux::throw_ex<system_error>(errors::invalid_piece_size);

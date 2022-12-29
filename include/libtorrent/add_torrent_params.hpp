@@ -394,7 +394,7 @@ TORRENT_VERSION_NAMESPACE_3
 TORRENT_VERSION_NAMESPACE_3_END
 
 namespace aux {
-	bool contains_resume_data(add_torrent_params const&);
+	TORRENT_EXTRA_EXPORT bool contains_resume_data(add_torrent_params const&);
 }
 
 }

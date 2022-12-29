@@ -295,8 +295,7 @@ namespace {
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
 					continue;
 
-				aux::merkle_tree t(fs.file_num_blocks(f)
-					, fs.piece_length() / default_block_size, fs.root_ptr(f));
+				aux::merkle_tree t(fs.file_num_blocks(f), fs.blocks_per_piece(), fs.root_ptr(f));
 
 				bitfield const& verified = (f >= atp.verified_leaf_hashes.end_index())
 					? empty_verified : atp.verified_leaf_hashes[f];

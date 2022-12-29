@@ -1417,8 +1417,8 @@ bool is_downloading_state(int const st)
 
 	peer_request torrent::to_req(piece_block const& p) const
 	{
-		int block_offset = p.block_index * block_size();
-		int block = std::min(torrent_file().piece_size(
+		int const block_offset = p.block_index * block_size();
+		int const block = std::min(torrent_file().piece_size(
 			p.piece_index) - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
@@ -2177,7 +2177,7 @@ bool is_downloading_state(int const st)
 
 				// --- UNFINISHED PIECES ---
 
-				int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
+				int const num_blocks_per_piece = torrent_file().blocks_per_piece();
 
 				for (auto const& p : m_add_torrent_params->unfinished_pieces)
 				{
@@ -4248,7 +4248,7 @@ namespace {
 		need_hash_picker();
 
 		int const blocks_in_piece = torrent_file().orig_files().blocks_in_piece2(piece);
-		int const blocks_per_piece = torrent_file().orig_files().piece_length() / default_block_size;
+		int const blocks_per_piece = torrent_file().blocks_per_piece();
 
 		// the blocks are guaranteed to represent exactly one piece
 		TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
@@ -4847,6 +4847,8 @@ namespace {
 		{
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<torrent_removed_alert>(get_handle()
+				, info_hash(), get_userdata());
 		}
 
 		// TODO: 2 abort lookups this torrent has made via the
@@ -6946,7 +6948,7 @@ namespace {
 		// in either case; there will be no half-finished pieces.
 		if (has_picker())
 		{
-			int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
+			int const num_blocks_per_piece = torrent_file().blocks_per_piece();
 
 			std::vector<piece_picker::downloading_piece> const q
 				= m_picker->get_download_queue();
@@ -7587,7 +7589,7 @@ namespace {
 				continue;
 			}
 			m_merkle_trees.emplace_back(fs.file_num_blocks(i)
-				, fs.piece_length() / default_block_size, fs.root_ptr(i));
+				, fs.blocks_per_piece(), fs.root_ptr(i));
 			auto const piece_layer = m_torrent_file->piece_layer(i);
 			if (piece_layer.empty())
 			{
@@ -9383,6 +9385,9 @@ namespace {
 		// there should be no more disk activity for this torrent now, we can
 		// release the disk io handle
 		m_storage.reset();
+
+		alerts().emplace_alert<torrent_removed_alert>(get_handle()
+			, info_hash(), get_userdata());
 	}
 
 	bool torrent::is_paused() const

@@ -10,6 +10,8 @@
 	* added support for WebTorrent
 
 
+	* fix issue with odd piece sizes
+	* add async piece availability query, post_piece_availability()
 	* add async piece availibility query, post_piece_availibility()
 	* add async download queue query, post_download_queue()
 	* add async file_progress query, post_file_progress()
