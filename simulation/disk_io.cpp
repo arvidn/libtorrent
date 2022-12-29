@@ -541,6 +541,9 @@ struct test_disk_io final : lt::disk_interface
 		else if (m_state.files == existing_files_mode::no_files)
 			ret = lt::status_t::no_error;
 
+		if (p && lt::aux::contains_resume_data(*p))
+			ret = lt::status_t::no_error;
+
 		queue_event(lt::microseconds(1), [this,ret,h=std::move(handler)] () mutable {
 			post(m_ioc, [ret,h=std::move(h)] { h(ret, lt::storage_error()); });
 		});

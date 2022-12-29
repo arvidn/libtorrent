@@ -126,17 +126,21 @@ void run_test(
 	ses[0] = std::make_shared<lt::session>(params, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
+	if (flags & tx::resume_restart)
+	{
+		// if we don't enable this, the second connection attempt will be
+		// rejected
+		pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	}
 
 	params.disk_io_constructor = seed_disk_constructor.set_files(existing_files_mode::full_valid);
 	ses[1] = std::make_shared<lt::session>(params, ios1);
 
 	setup(*ses[0], *ses[1]);
 
-	lt::time_point last_save_resume = lt::clock_type::now();
-
 	// only monitor alerts for session 0 (the downloader)
-	print_alerts(*ses[0], [&, &last_save_resume](lt::session& ses, lt::alert const* a) {
-		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
+	print_alerts(*ses[0], [&](lt::session& ses, lt::alert const* a) {
+		if (auto ta = lt::alert_cast<lt::add_torrent_alert>(a))
 		{
 			if (!(flags & tx::web_seed))
 			{
@@ -145,14 +149,6 @@ void run_test(
 				else
 					ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 			}
-		}
-		auto const now = lt::clock_type::now();
-		if (now - last_save_resume > lt::seconds(1))
-		{
-			last_save_resume = now;
-			auto torrents = ses.get_torrents();
-			if (!torrents.empty())
-				torrents.front().save_resume_data();
 		}
 		on_alert(ses, a);
 	}, 0);
@@ -297,6 +293,19 @@ struct record_finished_pieces
 	std::set<lt::piece_index_t>* m_passed;
 };
 
+// this alert handler will save resume data, remove the torrent and add it back
+// resuming from the saved state
+struct restore_from_resume
+{
+	restore_from_resume();
+	void operator()(lt::session&, lt::alert const* a);
+
+	lt::time_point m_last_check;
+	std::vector<char> m_resume_buffer;
+	bool m_triggered = false;
+	bool m_done = false;
+};
+
 struct expect_seed
 {
 	expect_seed(bool e);
@@ -316,9 +325,10 @@ void run_all_combinations(F fun)
 				for (test_transfer_flags_t bt_version : {test_transfer_flags_t{}, tx::v2_only, tx::v1_only})
 					for (test_transfer_flags_t magnet : {test_transfer_flags_t{}, tx::magnet_download})
 						for (test_transfer_flags_t multi_file : {test_transfer_flags_t{}, tx::multiple_files})
-							if (fun(piece_size | bt_version | magnet
-								| multi_file | web_seed | corruption))
-								return;
+							for (test_transfer_flags_t resume : {tx::resume_restart, test_transfer_flags_t{}})
+								if (fun(piece_size | bt_version | magnet
+									| multi_file | web_seed | corruption | resume))
+									return;
 }
 
 #endif
