@@ -248,10 +248,12 @@ lt::typed_bitfield<T> bits()
 lt::bitfield bits()
 {
 	lt::bitfield b;
-	b.resize(19);
+	b.resize(190);
 	b.set_bit(2);
 	b.set_bit(6);
 	b.set_bit(12);
+	b.set_bit(100);
+	b.set_bit(103);
 	return b;
 }
 

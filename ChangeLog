@@ -10,6 +10,7 @@
 	* added support for WebTorrent
 
 
+	* support loading version 2 of resume data format
 	* fix issue with odd piece sizes
 	* add async piece availability query, post_piece_availability()
 	* add async piece availibility query, post_piece_availibility()

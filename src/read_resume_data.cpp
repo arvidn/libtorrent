@@ -326,6 +326,7 @@ namespace {
 				int const pieces_len = pieces.string_length();
 				ret.have_pieces.resize(pieces_len);
 				ret.verified_pieces.resize(pieces_len);
+				bool any_verified = false;
 				for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
 				{
 					// being in seed mode and missing a piece is not compatible.
@@ -333,9 +334,17 @@ namespace {
 					if (pieces_str[static_cast<int>(i)] & 1) ret.have_pieces.set_bit(i);
 					else ret.have_pieces.clear_bit(i);
 
-					if (pieces_str[static_cast<int>(i)] & 2) ret.verified_pieces.set_bit(i);
-					else ret.verified_pieces.clear_bit(i);
+					if (pieces_str[static_cast<int>(i)] & 2)
+					{
+						ret.verified_pieces.set_bit(i);
+						any_verified = true;
+					}
+					else
+					{
+						ret.verified_pieces.clear_bit(i);
+					}
 				}
+				if (!any_verified) ret.verified_pieces.clear();
 			}
 			else if (file_version == 2)
 			{
