@@ -681,7 +681,6 @@ TORRENT_VERSION_NAMESPACE_4
 
 		if (make_v2)
 		{
-			m_fileroots.resize(m_files.size());
 			m_file_piece_hash.resize(m_files.size());
 			for (auto const i : file_range())
 			{
@@ -866,10 +865,11 @@ TORRENT_VERSION_NAMESPACE_4
 			}
 		}
 
+		aux::vector<sha256_hash, file_index_t> fileroots;
 		if (make_v2)
 		{
 			TORRENT_ASSERT(!m_file_piece_hash.empty());
-			m_fileroots.resize(m_files.size());
+			fileroots.resize(m_files.size());
 
 			sha256_hash const pad_hash = merkle_pad(m_piece_length / default_block_size, 1);
 			auto& file_pieces = dict["piece layers"].dict();
@@ -879,12 +879,12 @@ TORRENT_VERSION_NAMESPACE_4
 				if (m_files[fi].flags & file_storage::flag_pad_file) continue;
 				if (m_files[fi].size == 0) continue;
 
-				m_fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
+				fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
 
 				// files that only have one piece store the piece hash as the
 				// root, we don't need a pieces layer entry for such files
 				if (m_file_piece_hash[fi].size() < 2) continue;
-				auto& pieces = file_pieces[m_fileroots[fi].to_string()].string();
+				auto& pieces = file_pieces[fileroots[fi].to_string()].string();
 				pieces.clear();
 				pieces.reserve(m_file_piece_hash[fi].size() * sha256_hash::size());
 				for (auto const& p : m_file_piece_hash[fi])
@@ -893,12 +893,14 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 
 		entry& info = dict["info"];
+#if TORRENT_ABI_VERSION < 4
 		if (m_info_dict.type() == entry::dictionary_t
 			|| m_info_dict.type() == entry::preformatted_t)
 		{
 			info = m_info_dict;
 			return dict;
 		}
+#endif
 
 		if (!m_collections.empty())
 		{
@@ -929,20 +931,21 @@ TORRENT_VERSION_NAMESPACE_4
 		{
 			if (!m_multifile)
 			{
-				file_index_t const first(0);
-				if (m_include_mtime) info["mtime"] = m_files[first].mtime;
-				info["length"] = m_files[first].size;
-				file_flags_t const flags = m_files[first].flags;
+				auto const& file = m_files.front();
+				if (m_include_mtime && file.mtime)
+					info["mtime"] = file.mtime;
+				info["length"] = file.size;
+				file_flags_t const flags = file.flags;
 				add_file_attrs(info, flags, m_include_symlinks);
 				if (m_include_symlinks
 					&& (flags & file_storage::flag_symlink))
 				{
-					add_symlink_path(info, m_files[first].symlink);
+					add_symlink_path(info, file.symlink);
 				}
 #if TORRENT_ABI_VERSION < 3
 				if (!m_filehashes.empty())
 				{
-					info["sha1"] = m_filehashes[first];
+					info["sha1"] = m_filehashes.front();
 				}
 #endif
 			}
@@ -993,7 +996,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 			for (file_index_t i : file_range())
 			{
-				if (m_files[i].flags & file_storage::flag_pad_file) continue;
+				file_flags_t const flags = m_files[i].flags;
+				if (flags & file_storage::flag_pad_file) continue;
 
 				entry* file_e_ptr = &tree;
 
@@ -1031,7 +1035,6 @@ TORRENT_VERSION_NAMESPACE_4
 
 				if (m_include_mtime && m_files[i].mtime) file_e["mtime"] = m_files[i].mtime;
 
-				file_flags_t const flags = m_files[i].flags;
 				add_file_attrs(file_e, flags, m_include_symlinks);
 
 				if (m_include_symlinks && (flags & file_storage::flag_symlink))
@@ -1041,7 +1044,7 @@ TORRENT_VERSION_NAMESPACE_4
 				else
 				{
 					if (m_files[i].size > 0)
-						file_e["pieces root"] = m_fileroots[i];
+						file_e["pieces root"] = fileroots[i];
 					file_e["length"] = m_files[i].size;
 				}
 			}
