@@ -6720,7 +6720,7 @@ namespace libtorrent {
 		{
 			piece_picker& p = t->picker();
 			const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-			const int blocks_per_piece = static_cast<int>(t->torrent_file().blocks_per_piece);
+			const int blocks_per_piece = static_cast<int>(t->torrent_file().blocks_per_piece());
 
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dlq.begin(); i != dlq.end(); ++i)
