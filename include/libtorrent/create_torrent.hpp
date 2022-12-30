@@ -479,10 +479,12 @@ TORRENT_VERSION_NAMESPACE_4
 
 		std::string m_name;
 
+#if TORRENT_ABI_VERSION < 4
 		// if m_info_dict is initialized, it is
 		// used instead of m_files to generate
 		// the info dictionary
 		entry m_info_dict;
+#endif
 
 		// the URLs to the trackers
 		std::vector<std::pair<std::string, int>> m_urls;
@@ -502,7 +504,6 @@ TORRENT_VERSION_NAMESPACE_4
 		mutable std::optional<file_storage> m_file_storage_compat;
 #endif
 
-		mutable aux::vector<sha256_hash, file_index_t> m_fileroots;
 		aux::vector<aux::vector<sha256_hash, piece_index_t::diff_type>, file_index_t> m_file_piece_hash;
 
 		std::vector<sha1_hash> m_similar;
