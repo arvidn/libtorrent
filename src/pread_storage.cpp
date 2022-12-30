@@ -52,7 +52,7 @@ namespace {
 
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len)
 	{
-#if defined TORRENT_LINUX
+#if defined TORRENT_LINUX && defined SYNC_FILE_RANGE_WRITE
 		::sync_file_range(handle, offset, len, SYNC_FILE_RANGE_WRITE);
 #elif defined TORRENT_BSD && ! defined __APPLE__
 		::fsync_range(handle, FFILESYNC, offset, len);
