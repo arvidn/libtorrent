@@ -1234,24 +1234,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		aux::set_thread_name("Disk");
 
-#ifdef _WIN32
-		using SetThreadInformation_t = BOOL (WINAPI*)(HANDLE, THREAD_INFORMATION_CLASS, LPVOID, DWORD);
-		auto SetThreadInformation =
-			aux::get_library_procedure<aux::kernel32, SetThreadInformation_t>("SetThreadInformation");
-		if (SetThreadInformation) {
-			// MEMORY_PRIORITY_INFORMATION
-			struct MPI {
-				ULONG MemoryPriority;
-			};
-#ifndef MEMORY_PRIORITY_LOW
-			ULONG const MEMORY_PRIORITY_LOW = 2;
-#endif
-			MPI info{MEMORY_PRIORITY_LOW};
-			SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority
-				, &info, sizeof(info));
-		}
-#endif
-
 		DLOG("started disk thread\n");
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
