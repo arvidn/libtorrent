@@ -135,7 +135,7 @@ namespace {
 								error_code err;
 								int const r = pwrite_all(f->fd(), buf, file_offset, err);
 								if (err)
-									throw_ex<std::system_error>(err);
+									throw_ex<lt::system_error>(err);
 								buf = buf.subspan(r);
 								file_offset += r;
 							} while (buf.size() > 0);
@@ -148,7 +148,7 @@ namespace {
 							return;
 						}
 					}
-					catch (std::system_error const& err)
+					catch (lt::system_error const& err)
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_write;
