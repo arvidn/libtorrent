@@ -11578,6 +11578,14 @@ namespace {
 		m_links[aux::session_interface::torrent_state_updates].insert(list, this);
 	}
 
+	void torrent::post_status(status_flags_t const flags)
+	{
+		std::vector<torrent_status> s;
+		s.resize(1);
+		status(&s.front(), flags);
+		m_ses.alerts().emplace_alert<state_update_alert>(std::move(s));
+	}
+
 	void torrent::status(torrent_status* st, status_flags_t const flags)
 	{
 		INVARIANT_CHECK;

@@ -627,6 +627,7 @@ namespace libtorrent {
 		void update_piece_priorities(
 			aux::vector<download_priority_t, file_index_t> const& file_prios);
 
+		void post_status(status_flags_t flags);
 		void status(torrent_status* st, status_flags_t flags);
 
 		// this torrent changed state, if the user is subscribing to

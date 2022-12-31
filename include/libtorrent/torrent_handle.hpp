@@ -371,9 +371,19 @@ namespace aux {
 		// you're not interested in it (and see performance issues), you can
 		// filter them out.
 		//
+		// The ``status()`` function will block until the internal libtorrent
+		// thread responds with the torrent_status object. To avoid blocking,
+		// instead call ``post_status()``. It will trigger posting of a
+		// state_update_alert with a single torrent_status object for this
+		// torrent.
+		//
+		// In order to get regular updates for torrents whose status changes,
+		// consider calling session::post_torrent_updates()`` instead.
+		//
 		// By default everything is included. The flags you can use to decide
 		// what to *include* are defined in this class.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
+		void post_status(status_flags_t flags = status_flags_t::all()) const;
 
 		// ``post_download_queue()`` triggers a download_queue_alert to be
 		// posted.
