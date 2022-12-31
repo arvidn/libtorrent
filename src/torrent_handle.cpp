@@ -481,6 +481,11 @@ namespace libtorrent {
 		return st;
 	}
 
+	void torrent_handle::post_status(status_flags_t const flags) const
+	{
+		async_call(&torrent::post_status, flags);
+	}
+
 	void torrent_handle::post_piece_availability() const
 	{
 		async_call(&torrent::post_piece_availability);
