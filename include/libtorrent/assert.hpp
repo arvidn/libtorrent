@@ -86,15 +86,15 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 #ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, nullptr, 1); } TORRENT_WHILE_0
+	do { try { if (x) { break; } } catch (...) {}; libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, nullptr, 1); } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, nullptr, 0); } TORRENT_WHILE_0
+	do { try { if (x) { break; } } catch (...) {}; libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, nullptr, 0); } TORRENT_WHILE_0
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
-	do { if (x) {} else { std::stringstream _s; _s << #y ": " << y; \
-	libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, _s.str().c_str(), 0); } } TORRENT_WHILE_0
+	do { try { if (x) { break; } } catch (...) {}; std::stringstream _s; _s << #y ": " << y; \
+	libtorrent::assert_fail(#x, __LINE__, __FILE__, __func__, _s.str().c_str(), 0); } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT_FAIL_VAL(y) \
 	do { std::stringstream _s; _s << #y ": " << y; \
