@@ -22,11 +22,14 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/aux_/directory.hpp"
+#include "libtorrent/aux_/bencoder.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <string>
 #include <functional>
+#include <optional>
 #include <memory>
 #include <cinttypes>
 
@@ -752,20 +755,27 @@ namespace {
 			, [](sha1_hash const& h) { return h.is_all_zeros(); });
 	}
 
-	void add_file_attrs(entry& e, file_flags_t const flags, bool const include_symlinks)
+	std::optional<std::string> get_file_attrs(file_flags_t const flags, bool const include_symlinks)
 	{
 		if (!(flags & (file_storage::flag_pad_file
 			| file_storage::flag_hidden
 			| file_storage::flag_executable
 			| file_storage::flag_symlink)))
 		{
-			return;
+			return std::nullopt;
 		}
-		std::string& attr = e["attr"].string();
+		std::string attr;
 		if (flags & file_storage::flag_pad_file) attr += 'p';
 		if (flags & file_storage::flag_hidden) attr += 'h';
 		if (flags & file_storage::flag_executable) attr += 'x';
 		if (include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+		return attr;
+	}
+
+	void add_file_attrs(entry& e, file_flags_t const flags, bool const include_symlinks)
+	{
+		auto attr = get_file_attrs(flags, include_symlinks);
+		if (attr) e["attr"] = *attr;
 	}
 
 	void add_symlink_path(entry& e, std::string symlink_path)
@@ -777,14 +787,366 @@ namespace {
 			elems = lsplit_path(elems.second))
 			sympath_e.list().emplace_back(elems.first);
 	}
+
+	void print_symlink_path(std::vector<char>& out, std::string symlink_path)
+	{
+		using namespace lt::aux::bencode;
+		list path_elements(out);
+
+		std::string const link = lexically_relative("", symlink_path);
+		for (auto elems = lsplit_path(link); !elems.first.empty();
+			elems = lsplit_path(elems.second))
+			path_elements.add(elems.first);
+	}
 }
 
 TORRENT_VERSION_NAMESPACE_4
 	std::vector<char> create_torrent::generate_buf() const
 	{
-		// TODO: this can be optimized
+		if (m_files.empty() || m_total_size == 0)
+			aux::throw_ex<system_error>(errors::torrent_missing_file_tree);
+
+		// if all v2 hashes are set correctly, generate the v2 parts of the
+		// torrent
+		bool const make_v2 = validate_v2_hashes(m_files, m_file_piece_hash, m_piece_length);
+		bool const make_v1 = validate_v1_hashes(m_piece_hash, m_total_size, m_piece_length);
+
+		// if neither v1 nor v2 hashes were set, we can't create a torrent
+		if (!make_v1 && !make_v2)
+			aux::throw_ex<system_error>(errors::invalid_hash_entry);
+
+		TORRENT_ASSERT(m_piece_length > 0);
+
+		// compute file roots
+		aux::vector<sha256_hash, file_index_t> fileroots;
+		if (make_v2)
+		{
+			TORRENT_ASSERT(!m_file_piece_hash.empty());
+			fileroots.resize(m_files.size());
+			sha256_hash const pad_hash = merkle_pad(m_piece_length / default_block_size, 1);
+
+			for (file_index_t fi : file_range())
+			{
+				if (m_files[fi].flags & file_storage::flag_pad_file) continue;
+				if (m_files[fi].size == 0) continue;
+
+				fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
+			}
+		}
+
 		std::vector<char> ret;
-		bencode(std::back_inserter(ret), generate());
+		{
+			using namespace lt::aux::bencode;
+
+			dict torrent_file(ret);
+
+			if (!m_urls.empty())
+				torrent_file.add("announce", m_urls.front().first);
+
+			if (m_urls.size() > 1)
+			{
+				torrent_file.add_key("announce-list");
+				list announce_list(ret);
+				list tier_list(ret);
+
+				int current_tier = m_urls.front().second;
+				for (auto const& url : m_urls)
+				{
+					if (url.second != current_tier)
+					{
+						ret.push_back('e');
+						ret.push_back('l');
+						current_tier = url.second;
+					}
+					tier_list.add(url.first);
+				}
+			}
+
+			if (!m_comment.empty())
+				torrent_file.add("comment", m_comment);
+
+			if (!m_created_by.empty())
+				torrent_file.add("created by", m_created_by);
+
+			if (m_creation_date != 0)
+				torrent_file.add("creation date", m_creation_date);
+
+			torrent_file.add_key("info");
+#if TORRENT_ABI_VERSION < 4
+			if (m_info_dict.type() == entry::preformatted_t)
+			{
+				auto const& pre = m_info_dict.preformatted();
+				ret.insert(ret.end(), pre.begin(), pre.end());
+			}
+			else
+#endif
+
+			{
+				dict info(ret);
+
+				if (make_v1 && !m_multifile)
+				{
+					auto attrs = get_file_attrs(m_files.front().flags, m_include_symlinks);
+					if (attrs) info.add("attr", *attrs);
+				}
+
+				if (make_v2)
+				{
+					info.add_key("file tree");
+					dict tree(ret);
+
+					// the file indices ordered by path, to create a correctly
+					// ordered file tree
+					std::vector<file_index_t> sorted_files;
+					sorted_files.reserve(m_files.size());
+					for (file_index_t i : file_range())
+					{
+						if (m_files[i].flags & file_storage::flag_pad_file) continue;
+						sorted_files.push_back(i);
+					}
+
+					std::sort(sorted_files.begin(), sorted_files.end()
+						, [&](file_index_t lhs, file_index_t rhs)
+						{ return m_files[lhs].filename < m_files[rhs].filename; });
+
+					std::vector<string_view> current_path;
+					for (file_index_t i : sorted_files)
+					{
+						create_file_entry const& file = m_files[i];
+
+						TORRENT_ASSERT(!(file.flags & file_storage::flag_pad_file));
+
+						std::string const& file_path = file.filename;
+						auto const split = m_multifile
+							? lsplit_path(file_path)
+							: std::pair<string_view, string_view>(file_path, file_path);
+						TORRENT_ASSERT(split.first == m_name);
+
+						std::size_t depth = 0;
+						bool extended_branch = false;
+						// the first file we add we'll only extend the branch,
+						// se we initialize this to true since it's not a
+						// collision yet
+						bool truncated_branch = current_path.empty();
+						for (auto e = lsplit_path(split.second);
+							!e.first.empty();
+							e = lsplit_path(e.second))
+						{
+							if (depth < current_path.size())
+							{
+								if (current_path[depth] == e.first)
+								{
+									++depth;
+									continue;
+								}
+								TORRENT_ASSERT(current_path[depth] != e.first);
+
+								while (current_path.size() > depth)
+								{
+									truncated_branch = true;
+									ret.push_back('e');
+									current_path.pop_back();
+								}
+							}
+							if (depth == current_path.size())
+							{
+								extended_branch = true;
+								tree.add_key(e.first);
+								current_path.push_back(e.first);
+								++depth;
+								ret.push_back('d');
+								continue;
+							}
+						}
+
+						if (!extended_branch || !truncated_branch)
+						{
+							// you can't creata a torrent where a file name
+							// conflicts with a directory or another file
+							aux::throw_ex<system_error>(errors::torrent_inconsistent_files);
+						}
+
+						tree.add_key("");
+						dict file_entry(ret);
+
+						auto attrs = get_file_attrs(file.flags, m_include_symlinks);
+						if (attrs) file_entry.add("attr", *attrs);
+
+						if (!m_include_symlinks
+							|| !(file.flags & file_storage::flag_symlink))
+							file_entry.add("length", file.size);
+
+						if (m_include_mtime && file.mtime)
+							file_entry.add("mtime", file.mtime);
+
+						if (m_include_symlinks
+							&& (file.flags & file_storage::flag_symlink))
+						{
+							file_entry.add_key("symlink path");
+							print_symlink_path(ret, file.symlink);
+						}
+						else
+						{
+							if (file.size > 0)
+								file_entry.add("pieces root", fileroots[i].to_string());
+						}
+					}
+
+					while (!current_path.empty())
+					{
+						ret.push_back('e');
+						current_path.pop_back();
+					}
+				}
+
+				if (make_v1 && m_multifile)
+				{
+					info.add_key("files");
+					list files(ret);
+
+					for (auto const i : file_range())
+					{
+						dict file_e(ret);
+
+						auto attrs = get_file_attrs(m_files[i].flags, m_include_symlinks);
+						if (attrs) file_e.add("attr", *attrs);
+
+						file_e.add("length", m_files[i].size);
+
+						if (m_include_mtime && m_files[i].mtime)
+							file_e.add("mtime", m_files[i].mtime);
+
+						TORRENT_ASSERT(has_parent_path(m_files[i].filename));
+						{
+							file_e.add_key("path");
+							list path_e(ret);
+
+							std::string const p = m_files[i].filename;
+							// deliberately skip the first path element, since that's the
+							// "name" of the torrent already
+							string_view path = lsplit_path(p).second;
+							for (auto elems = lsplit_path(path); !elems.first.empty(); elems = lsplit_path(elems.second))
+								path_e.add(elems.first);
+						}
+
+#if TORRENT_ABI_VERSION < 3
+						if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
+							file_e.add("sha1", m_filehashes[i].to_string());
+#endif
+						if (m_include_symlinks && (m_files[i].flags & file_storage::flag_symlink))
+						{
+							file_e.add_key("symlink path");
+							print_symlink_path(ret, m_files[i].symlink);
+						}
+					}
+				}
+
+				if (make_v1 && !m_multifile)
+					info.add("length", m_files.front().size);
+
+				if (make_v2) info.add("meta version", 2);
+
+				info.add("name", m_name);
+				info.add("piece length", m_piece_length);
+
+				if (make_v1)
+				{
+					info.add("pieces", string_view(reinterpret_cast<char const*>(m_piece_hash.data())
+						, m_piece_hash.size() * sha1_hash::size()));
+				}
+
+				if (m_private)
+					info.add("private", 1);
+
+				if (!m_root_cert.empty())
+					info.add("ssl-cert", m_root_cert);
+
+				if (make_v1 && !m_multifile)
+				{
+					if (m_include_mtime && m_files.front().mtime)
+						info.add("mtime", m_files.front().mtime);
+
+#if TORRENT_ABI_VERSION < 3
+					if (!m_filehashes.empty())
+						info.add("sha1", m_filehashes.front().to_string());
+#endif
+					if (m_include_symlinks
+						&& (m_files.front().flags & file_storage::flag_symlink))
+					{
+						info.add_key("symlink path");
+						print_symlink_path(ret, m_files.front().symlink);
+					}
+				}
+			}
+
+			if (!m_nodes.empty())
+			{
+				torrent_file.add_key("nodes");
+				list nodes(ret);
+				for (auto const& n : m_nodes)
+				{
+					list entry(ret);
+					entry.add(n.first);
+					entry.add(n.second);
+				}
+			}
+
+			if (make_v2)
+			{
+				torrent_file.add_key("piece layers");
+				dict file_pieces(ret);
+
+				// the keys in this dictionary are file roots
+				// in order to print the keys ordered correctly
+				// we need to first create a sorted list of all file roots
+				std::map<sha256_hash, file_index_t> sorted_roots;
+				for (file_index_t fi : file_range())
+				{
+					if (m_files[fi].flags & file_storage::flag_pad_file) continue;
+					if (m_files[fi].size == 0) continue;
+
+					// files that only have one piece store the piece hash as the
+					// root, we don't need a pieces layer entry for such files
+					if (m_file_piece_hash[fi].size() < 2) continue;
+					sorted_roots.emplace(fileroots[fi], fi);
+				}
+
+				std::string pieces;
+				for (auto [root, fi] : sorted_roots)
+				{
+					// all the hashes are contiguous in memory, just copy them
+					// in one go
+					auto const& p = m_file_piece_hash[fi];
+					pieces.assign(reinterpret_cast<const char*>(p.data())
+						, p.size() * sha256_hash::size());
+					file_pieces.add(root.to_string(), pieces);
+				}
+			}
+
+			if (!m_url_seeds.empty())
+			{
+				torrent_file.add_key("url-list");
+				if (m_url_seeds.size() == 1)
+					torrent_file.add_value(m_url_seeds.front());
+				else
+				{
+					list url_list(ret);
+					for (auto const& url : m_url_seeds)
+					{
+						url_list.add(url);
+					}
+				}
+			}
+		}
+
+#if TORRENT_USE_ASSERTS
+		try {
+			TORRENT_ASSERT(ret == bencode(generate()));
+		} catch (...)
+		{
+			TORRENT_ASSERT_FAIL();
+		}
+#endif
 		return ret;
 	}
 
