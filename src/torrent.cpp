@@ -5669,6 +5669,12 @@ namespace {
 		}
 	}
 
+	void torrent::post_trackers()
+	{
+		auto t = trackers();
+		m_ses.alerts().emplace_alert<tracker_list_alert>(get_handle(), std::move(t));
+	}
+
 	std::vector<announce_entry> torrent::trackers() const
 	{
 		std::vector<announce_entry> ret;

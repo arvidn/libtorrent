@@ -663,6 +663,11 @@ namespace libtorrent {
 		return sync_call_ret<std::vector<announce_entry>>(empty, &torrent::trackers);
 	}
 
+	void torrent_handle::post_trackers() const
+	{
+		async_call(&torrent::post_trackers);
+	}
+
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		async_call(&torrent::add_web_seed, url, web_seed_entry::url_seed

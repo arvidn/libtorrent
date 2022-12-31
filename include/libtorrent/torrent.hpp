@@ -1094,6 +1094,7 @@ namespace libtorrent {
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 
+		void post_trackers();
 		std::vector<announce_entry> trackers() const;
 
 		// this sets all the "enabled" states on all trackers, giving them

@@ -506,7 +506,7 @@ namespace aux {
 		// non-empty), this will clear the error and start the torrent again.
 		void clear_error() const;
 
-		// ``trackers()`` will return the list of trackers for this torrent. The
+		// ``trackers()`` returns the list of trackers for this torrent. The
 		// announce entry contains both a string ``url`` which specify the
 		// announce url for the tracker as well as an int ``tier``, which is
 		// specifies the order in which this tracker is tried. If you want
@@ -515,6 +515,9 @@ namespace aux {
 		// one returned from ``trackers()`` and will replace it. If you want an
 		// immediate effect, you have to call force_reannounce(). See
 		// announce_entry.
+		//
+		// ``post_trackers()`` is the asynchronous version of ``trackers()``. It
+		// will trigger a tracker_list_alert to be posted.
 		//
 		// ``add_tracker()`` will look if the specified tracker is already in the
 		// set. If it is, it doesn't do anything. If it's not in the current set
@@ -527,6 +530,7 @@ namespace aux {
 		std::vector<announce_entry> trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 		void add_tracker(announce_entry const&) const;
+		void post_trackers() const;
 
 		// TODO: 3 unify url_seed and http_seed with just web_seed, using the
 		// web_seed_entry.
