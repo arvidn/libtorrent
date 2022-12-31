@@ -534,6 +534,7 @@ HEADERS = \
   aux_/bandwidth_manager.hpp        \
   aux_/bandwidth_queue_entry.hpp    \
   aux_/bandwidth_socket.hpp         \
+  aux_/bencoder.hpp                 \
   aux_/bind_to_device.hpp           \
   aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \

@@ -143,6 +143,7 @@ set(libtorrent_aux_include_files
 	bandwidth_manager.hpp
 	bandwidth_queue_entry.hpp
 	bandwidth_socket.hpp
+	bencoder.hpp
 	bind_to_device.hpp
 	bloom_filter.hpp
 	bt_peer_connection.hpp
