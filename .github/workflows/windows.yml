@@ -113,7 +113,7 @@ jobs:
           echo %BOOST_ROOT%
           echo %PATH%
           cd simulation
-          b2 --hash release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+          b2 --hash release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=system testing.execute=off
 
       - name: run sims
         uses: nick-fields/retry@v2
@@ -122,7 +122,7 @@ jobs:
           timeout_minutes: 120
           command: |
             cd simulation
-            b2 --hash -l700 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
+            b2 --hash -l700 release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=system
 
    build:
       name: Build

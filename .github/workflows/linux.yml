@@ -277,7 +277,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 debug-iterators=on invariant-checks=full asserts=on picker-debugging=on
+          b2 debug-iterators=on invariant-checks=full asserts=system picker-debugging=on
 
       - name: build simulations no deprecated
         run: |

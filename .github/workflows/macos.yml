@@ -73,7 +73,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -l400 debug-iterators=on invariant-checks=full asserts=on
+          b2 -l400 debug-iterators=on invariant-checks=full asserts=system
 
 
    build:
