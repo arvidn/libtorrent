@@ -1021,7 +1021,7 @@ void utp_socket_impl::send_fin()
 #endif
 }
 
-void utp_socket_impl::send_reset(utp_header const* ph)
+void utp_socket_impl::send_reset(std::uint16_t const ack_nr)
 {
 	INVARIANT_CHECK;
 
@@ -1032,13 +1032,13 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 	h.timestamp_difference_microseconds = m_reply_micro;
 	h.wnd_size = 0;
 	h.seq_nr = std::uint16_t(random(0xffff));
-	h.ack_nr = ph->seq_nr;
+	h.ack_nr = ack_nr;
 	time_point const now = clock_type::now();
 	h.timestamp_microseconds = std::uint32_t(
 		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
 	UTP_LOGV("%8p: send_reset seq_nr:%d id:%d ack_nr:%d\n"
-		, static_cast<void*>(this), int(h.seq_nr), int(m_send_id), int(ph->seq_nr));
+		, static_cast<void*>(this), int(h.seq_nr), int(m_send_id), int(ack_nr));
 
 	// ignore errors here
 	error_code ec;
@@ -3068,7 +3068,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		case state_t::error_wait:
 		{
 			// respond with a reset
-			send_reset(ph);
+			send_reset(ph->seq_nr);
 			break;
 		}
 	}

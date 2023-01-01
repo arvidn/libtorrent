@@ -603,7 +603,7 @@ struct utp_socket_impl
 	enum packet_flags_t { pkt_ack = 1, pkt_fin = 2 };
 	bool send_pkt(int flags = 0);
 	bool resend_packet(packet* p, bool fast_resend = false);
-	void send_reset(utp_header const* ph);
+	void send_reset(std::uint16_t ack_nr);
 	std::pair<std::uint32_t, int> parse_sack(std::uint16_t packet_ack, std::uint8_t const* ptr
 		, int size, time_point now);
 	void parse_close_reason(std::uint8_t const* ptr, int size);
