@@ -254,7 +254,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	void add_write_buffer(void const* buf, int len);
 	bool check_fin_sent() const;
 	void issue_write();
-	std::size_t read_some(bool clear_buffers);
+	std::size_t read_some(bool clear_buffers, error_code& ec);
 	std::size_t write_some(bool clear_buffers);
 
 	int send_delay() const;
@@ -364,7 +364,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			buf_size += i->size();
 #endif
 		}
-		std::size_t ret = read_some(true);
+		std::size_t ret = read_some(true, ec);
 		TORRENT_ASSERT(ret <= buf_size);
 		TORRENT_ASSERT(ret > 0);
 		return ret;
@@ -616,7 +616,7 @@ struct utp_socket_impl
 	void do_ledbat(int acked_bytes, int delay, int in_flight);
 	int packet_timeout() const;
 	bool test_socket_state();
-	void maybe_trigger_receive_callback();
+	void maybe_trigger_receive_callback(error_code const& ec);
 	void maybe_trigger_send_callback();
 	bool cancel_handlers(error_code const& ec, bool shutdown);
 	bool consume_incoming_data(
@@ -655,7 +655,7 @@ struct utp_socket_impl
 
 	void do_connect(tcp::endpoint const& ep);
 
-	std::size_t read_some(bool const clear_buffers);
+	std::size_t read_some(bool const clear_buffers, error_code& ec);
 	std::size_t write_some(bool const clear_buffers); // Warning: non-blocking
 	int receive_buffer_size() const { return m_receive_buffer_size; }
 

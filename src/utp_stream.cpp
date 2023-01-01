@@ -240,7 +240,7 @@ void utp_socket_impl::socket_drained()
 	// more packets this round. So, we may want to
 	// call the receive callback function to
 	// let the user consume it
-	maybe_trigger_receive_callback();
+	maybe_trigger_receive_callback({});
 	maybe_trigger_send_callback();
 }
 
@@ -490,9 +490,9 @@ void utp_stream::issue_read()
 	m_impl->issue_read();
 }
 
-std::size_t utp_stream::read_some(bool const clear_buffers)
+std::size_t utp_stream::read_some(bool const clear_buffers, error_code& ec)
 {
-	return m_impl->read_some(clear_buffers);
+	return m_impl->read_some(clear_buffers, ec);
 }
 
 // Warning: this is always non-blocking, it only tries to send
@@ -570,12 +570,14 @@ void utp_socket_impl::issue_read()
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
 
-	m_read += int(read_some(false));
-	maybe_trigger_receive_callback();
+	error_code read_error;
+	m_read += int(read_some(false, read_error));
+	maybe_trigger_receive_callback(read_error);
 }
 
-std::size_t utp_socket_impl::read_some(bool const clear_buffers)
+std::size_t utp_socket_impl::read_some(bool const clear_buffers, error_code& ec)
 {
+	ec.clear();
 	TORRENT_ASSERT(m_receive_buffer_size >= 0);
 	if (m_receive_buffer_size <= 0)
 	{
@@ -666,6 +668,15 @@ std::size_t utp_socket_impl::read_some(bool const clear_buffers)
 		m_read_buffer.clear();
 	}
 	TORRENT_ASSERT(ret > 0 || m_null_buffers);
+
+	// if we have passed all data up to the application, and we're at EOF, set ec to eof
+	if (ret == 0
+		&& m_receive_buffer.empty()
+		&& m_in_eof
+		&& m_in_eof_seq_nr == m_ack_nr)
+	{
+		ec = boost::asio::error::eof;
+	}
 	return ret;
 }
 
@@ -795,19 +806,20 @@ bool utp_socket_impl::should_delete() const
 	return ret;
 }
 
-void utp_socket_impl::maybe_trigger_receive_callback()
+void utp_socket_impl::maybe_trigger_receive_callback(error_code const& ec)
 {
 	INVARIANT_CHECK;
 
 	if (m_read_handler == false) return;
 
 	// nothing has been read or there's no outstanding read operation
-	if (m_null_buffers && m_receive_buffer_size == 0) return;
-	else if (!m_null_buffers && m_read == 0) return;
+	if (m_null_buffers && m_receive_buffer_size == 0 && !ec) return;
+	else if (!m_null_buffers && m_read == 0 && !ec) return;
 
 	UTP_LOGV("%8p: calling read handler read:%d\n", static_cast<void*>(this), m_read);
 	m_read_handler = false;
-	utp_stream::on_read(m_userdata, aux::numeric_cast<std::size_t>(m_read), m_error, false);
+	error_code const error_to_report = ec ? ec : m_error;
+	utp_stream::on_read(m_userdata, aux::numeric_cast<std::size_t>(m_read), error_to_report, false);
 	m_read = 0;
 	m_read_buffer_size = 0;
 	m_read_buffer.clear();
@@ -2651,10 +2663,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	UTP_LOGV("%8p: updating timeout to: now + %d\n"
 		, static_cast<void*>(this), packet_timeout());
 
-	// the send operation in parse_sack() may have set the socket to an error
-	// state, in which case we shouldn't continue
-	if (state() == state_t::error_wait || state() == state_t::deleting) return true;
-
 	if (m_duplicate_acks >= dup_ack_limit
 		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_fast_resend_seq_nr)
 	{
@@ -2676,7 +2684,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// signal congestion
 			if (!p->mtu_probe) experienced_loss(m_fast_resend_seq_nr, receive_time);
 			resend_packet(p, true);
-			if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 		}
 	}
 
@@ -2704,8 +2711,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 			// The FIN arrived in order, nothing else is in the
 			// reorder buffer.
-
-//			TORRENT_ASSERT(m_inbuf.size() == 0);
 			m_ack_nr = ph->seq_nr;
 
 			// Transition to state_t::fin_sent. The sent FIN is also an ack
@@ -2726,12 +2731,20 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 		if (m_in_eof)
 		{
-			UTP_LOGV("%8p: duplicate FIN packet (ignoring)\n", static_cast<void*>(this));
+			UTP_LOGV("%8p: duplicate FIN packet (not updating EOF seq_nr: %d to %d)\n"
+				, static_cast<void*>(this), m_in_eof_seq_nr, int(ph->seq_nr));
 			return true;
 		}
 		m_in_eof = true;
 		m_in_eof_seq_nr = ph->seq_nr;
+
+		if (m_ack_nr == m_in_eof_seq_nr && m_receive_buffer.empty())
+			maybe_trigger_receive_callback(boost::asio::error::eof);
 	}
+
+	// the send operation in parse_sack() may have set the socket to an error
+	// state, in which case we shouldn't continue
+	if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 
 	switch (state())
 	{
@@ -2874,7 +2887,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// from our side.
 			if (m_in_eof && m_ack_nr == ((m_in_eof_seq_nr - 1) & ACK_MASK))
 			{
-				UTP_LOGV("%8p: incoming stream consumed\n", static_cast<void*>(this));
+				UTP_LOGV("%8p: incoming stream at EOF\n", static_cast<void*>(this));
 
 				// This transitions to the state_t::fin_sent state.
 				send_fin();
