@@ -588,6 +588,7 @@ struct utp_socket_impl
 	bool should_delete() const;
 	tcp::endpoint remote_endpoint(error_code& ec) const;
 	std::size_t available() const;
+	void close();
 	// returns true if there were handlers cancelled
 	// if it returns false, we can detach immediately
 	bool destroy();
@@ -617,7 +618,7 @@ struct utp_socket_impl
 	int packet_timeout() const;
 	bool test_socket_state();
 	void maybe_trigger_receive_callback(error_code const& ec);
-	void maybe_trigger_send_callback();
+	void maybe_trigger_send_callback(error_code const& ec);
 	bool cancel_handlers(error_code const& ec, bool shutdown);
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
@@ -951,6 +952,11 @@ private:
 	// The incoming stream is being closed at sequence number
 	// indicated by m_in_eof_seq_nr
 	bool m_in_eof:1;
+
+	// this is true when the application has called close() on the socket.
+	// at this point, we will send a FIN at the current sequence number,
+	// and will not allow it to be incremented any further
+	bool m_out_eof:1;
 
 	// is this socket state attached to a user space socket?
 	bool m_attached:1;
