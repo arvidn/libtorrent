@@ -169,6 +169,7 @@ utp_socket_impl::utp_socket_impl(std::uint16_t const recv_id
 	, m_delay_sample_idx(0)
 	, m_state(static_cast<std::uint8_t>(state_t::none))
 	, m_in_eof(false)
+	, m_out_eof(false)
 	, m_attached(true)
 	, m_nagle(true)
 	, m_slow_start(true)
@@ -241,7 +242,7 @@ void utp_socket_impl::socket_drained()
 	// call the receive callback function to
 	// let the user consume it
 	maybe_trigger_receive_callback({});
-	maybe_trigger_send_callback();
+	maybe_trigger_send_callback({});
 }
 
 void utp_socket_impl::update_mtu_limits()
@@ -312,12 +313,7 @@ close_reason_t utp_stream::get_close_reason() const
 void utp_stream::close()
 {
 	if (!m_impl) return;
-	if (!m_impl->destroy())
-	{
-		if (!m_impl) return;
-		m_impl->detach();
-		m_impl = nullptr;
-	}
+	m_impl->close();
 }
 
 std::size_t utp_stream::available() const
@@ -526,6 +522,7 @@ void utp_socket_impl::add_read_buffer(void* buf, int const len)
 
 void utp_socket_impl::add_write_buffer(void const* buf, int const len)
 {
+	TORRENT_ASSERT(!m_out_eof);
 	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void const*>(this), len);
 	if (len <= 0) return;
 
@@ -585,6 +582,13 @@ std::size_t utp_socket_impl::read_some(bool const clear_buffers, error_code& ec)
 		{
 			m_read_buffer_size = 0;
 			m_read_buffer.clear();
+		}
+		// if we have passed all data up to the application, and we're at EOF, set ec to eof
+		if (m_receive_buffer.empty()
+			&& m_in_eof
+			&& m_in_eof_seq_nr == m_ack_nr)
+		{
+			ec = boost::asio::error::eof;
 		}
 		return 0;
 	}
@@ -688,9 +692,17 @@ void utp_socket_impl::issue_write()
 	TORRENT_ASSERT(m_write_buffer_size > 0);
 	TORRENT_ASSERT(m_write_handler == false);
 	TORRENT_ASSERT(m_userdata);
+	TORRENT_ASSERT(!m_out_eof);
 
 	m_write_handler = true;
 	m_written = 0;
+	if (m_out_eof)
+	{
+		// this happens if the application keeps trying to send data after
+		// having closed the socket
+		maybe_trigger_send_callback(boost::asio::error::eof);
+		return;
+	}
 	if (test_socket_state()) return;
 
 	// try to write. send_pkt returns false if there's
@@ -698,7 +710,7 @@ void utp_socket_impl::issue_write()
 	// is full and we can't send more packets right now
 	while (send_pkt());
 
-	maybe_trigger_send_callback();
+	maybe_trigger_send_callback({});
 }
 
 bool utp_socket_impl::check_fin_sent() const
@@ -825,20 +837,27 @@ void utp_socket_impl::maybe_trigger_receive_callback(error_code const& ec)
 	m_read_buffer.clear();
 }
 
-void utp_socket_impl::maybe_trigger_send_callback()
+void utp_socket_impl::maybe_trigger_send_callback(error_code const& ec)
 {
 	INVARIANT_CHECK;
 
-	// nothing has been written or there's no outstanding write operation
-	if (m_written == 0 || m_write_handler == false) return;
+	if (m_write_handler == false) return;
+
+	// nothing has been written
+	if (m_written == 0 && !ec) return;
 
 	UTP_LOGV("%8p: calling write handler written:%d\n", static_cast<void*>(this), m_written);
 
 	m_write_handler = false;
-	utp_stream::on_write(m_userdata, aux::numeric_cast<std::size_t>(m_written), m_error, false);
+	error_code const error_to_report = ec ? ec : m_error;
+	utp_stream::on_write(m_userdata, aux::numeric_cast<std::size_t>(m_written), error_to_report, false);
 	m_written = 0;
 	m_write_buffer_size = 0;
 	m_write_buffer.clear();
+	if (m_out_eof
+		&& !m_nagle_packet
+		&& state() == state_t::connected)
+		send_fin();
 }
 
 void utp_socket_impl::set_close_reason(close_reason_t code)
@@ -848,6 +867,23 @@ void utp_socket_impl::set_close_reason(close_reason_t code)
 		, static_cast<void*>(this), static_cast<int>(m_close_reason));
 #endif
 	m_close_reason = code;
+}
+
+void utp_socket_impl::close()
+{
+#if TORRENT_UTP_LOG
+	UTP_LOGV("%8p: client closing socket\n", static_cast<void*>(this));
+#endif
+	// the FIN packet is supposed to be last, so if we still have user data
+	// waiting to be sent, we have to defer sending the FIN
+	m_out_eof = true;
+	maybe_trigger_send_callback(boost::asio::error::eof);
+
+	if (!m_nagle_packet
+		&& m_write_buffer_size == 0
+		&& state() == state_t::connected
+		&& m_outbuf.at(m_seq_nr) == nullptr)
+		send_fin();
 }
 
 bool utp_socket_impl::destroy()
@@ -861,8 +897,7 @@ bool utp_socket_impl::destroy()
 
 	if (m_userdata == nullptr) return false;
 
-	if (state() == state_t::connected)
-		send_fin();
+	close();
 
 	bool cancelled = cancel_handlers(boost::asio::error::operation_aborted, true);
 
@@ -885,8 +920,6 @@ bool utp_socket_impl::destroy()
 	}
 
 	return cancelled;
-
-	// #error our end is closing. Wait for everything to be acked
 }
 
 void utp_socket_impl::detach()
@@ -995,26 +1028,49 @@ void utp_socket_impl::writable()
 	m_stalled = false;
 	if (should_delete()) return;
 
-	// this handles the case where send_fin() was called while stalled
-	if (state() == state_t::fin_sent && m_outbuf.at(m_seq_nr) == nullptr)
-		send_pkt(pkt_fin);
 	// if the socket stalled while sending an ack then there will be a
 	// pending deferred ack. make sure it gets sent out
 	else if (!m_deferred_ack || send_pkt(pkt_ack))
 		while(send_pkt());
 
-	maybe_trigger_send_callback();
+	// try to flush the last part of the send buffer before sending a FIN
+	if (m_out_eof && m_nagle_packet) send_pkt();
+
+	// this handles the case where send_fin() was called while stalled
+	if (m_out_eof
+		&& !m_nagle_packet
+		&& m_write_buffer_size == 0
+		&& state() == state_t::connected
+		&& m_outbuf.at(m_seq_nr) == nullptr)
+		send_fin();
+
+	maybe_trigger_send_callback({});
 }
 
 void utp_socket_impl::send_fin()
 {
 	INVARIANT_CHECK;
 
+	TORRENT_ASSERT(m_write_buffer_size == 0);
+	TORRENT_ASSERT(m_out_eof);
+	TORRENT_ASSERT(!m_nagle_packet);
+
 	send_pkt(pkt_fin);
 	// unless there was an error, we're now
 	// in FIN-SENT state
 	if (!m_error)
+	{
 		set_state(state_t::fin_sent);
+	}
+	else
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: send_fin error:%s\n", static_cast<void*>(this)
+			, m_error.message().c_str());
+#endif
+		set_state(state_t::error_wait);
+		test_socket_state();
+	}
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
@@ -1360,9 +1416,14 @@ bool utp_socket_impl::send_pkt(int const flags)
 		return false;
 	}
 
-	bool const force = (flags & pkt_ack) || (flags & pkt_fin);
+	// m_out_eof means we're trying to close the write side of this socket,
+	// we need to flush all payload before we can send the FIN packet, so don't
+	// store any payload in the nagle packet
+	bool const force = (flags & pkt_ack) || (flags & pkt_fin) || m_out_eof;
 
-//	TORRENT_ASSERT(state() != state_t::fin_sent || (flags & pkt_ack));
+	// when we want to close the outgoing stream, we need to send the
+	// remaining nagle packet even though it won't fill a packet.
+	bool const force_flush_nagle = m_out_eof && m_write_buffer_size;
 
 	// first see if we need to resend any packets
 
@@ -1429,12 +1490,13 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// although, we may re-send packets, but those live in m_outbuf
 	TORRENT_ASSERT(state() != state_t::fin_sent || m_write_buffer_size == 0);
 
-	// If the connection is finalizing we no longer want to include any payload
-	bool const finalizing = state() == state_t::fin_sent || (flags & pkt_fin);
+	int const nagle_size = m_nagle_packet ? m_nagle_packet->size - m_nagle_packet->header_size : 0;
+	int payload_size = std::min(m_write_buffer_size + nagle_size, effective_mtu - header_size);
 
-	int payload_size = finalizing ? 0 : std::min(m_write_buffer_size
-		, effective_mtu - header_size);
 	TORRENT_ASSERT(payload_size >= 0);
+
+	// we cannot include any payload in FIN packets
+	TORRENT_ASSERT((flags & pkt_fin) == 0 || payload_size == 0);
 
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertised receive window from
@@ -1442,11 +1504,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 	if (m_bytes_in_flight + payload_size > std::min(int(m_cwnd >> 16)
 		, int(m_adv_wnd)))
 	{
-		// this means there's not enough room in the send window for
-		// another packet. We have to hold off sending this data.
-		// we still need to send an ACK though
-		// if we're trying to send a FIN, make an exception
-		if ((flags & pkt_fin) == 0) payload_size = 0;
+		// we can't fit a full packet of payload in the cwnd, but if
+		// we're sending an ACK, we can send a packet without payload
+		if (flags & pkt_ack) payload_size = 0;
 
 		// we're constrained by the window size
 		m_cwnd_full = true;
@@ -1473,7 +1533,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// if we don't have any data to send, or can't send any data
 	// and we don't have any data to force, don't send a packet
-	if (payload_size == 0 && !force && !m_nagle_packet)
+	if (payload_size == 0 && !force)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: skipping send (no payload and no force) seq_nr:%d ack_nr:%d "
@@ -1494,10 +1554,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// payload size being zero means we're just sending
 	// an force. For efficiency, pick up the nagle packet
 	// if there's room
-	if (!m_nagle_packet || finalizing || (payload_size == 0 && force
-		&& m_bytes_in_flight + m_nagle_packet->size
-		> std::min(int(m_cwnd >> 16), int(m_adv_wnd))))
+	// note that if there is a nagle packet, payload_size will include its
+	// size, so we won't take the first branch here
+	if (!m_nagle_packet || (payload_size == 0 && force && m_cwnd_full))
 	{
+		TORRENT_ASSERT(!(force_flush_nagle && m_nagle_packet));
 		p = acquire_packet(effective_mtu);
 
 		if (payload_size)
@@ -1536,6 +1597,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 			UTP_LOGV("%8p: Picking up Nagled packet due to forced send (%d bytes)\n"
 				, static_cast<void*>(this), m_nagle_packet->size);
 #endif
+
+		TORRENT_ASSERT(state() != state_t::fin_sent);
 
 		// pick up the nagle packet and keep adding bytes to it
 		p = std::move(m_nagle_packet);
@@ -1592,10 +1655,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 			m_nagle_packet = std::move(p);
 			return false;
 		}
-
-#if TORRENT_USE_ASSERTS
-		payload_size = p->size - p->header_size;
-#endif
 	}
 
 	if (sack)
@@ -1616,6 +1675,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	if (m_bytes_in_flight > 0
 		&& int(p->size) < std::min(int(p->allocated), effective_mtu)
+		&& !force_flush_nagle
 		&& !force
 		&& m_nagle
 		&& compare_less_wrap(m_acked_seq_nr, m_nagle_seq_nr, ACK_MASK))
@@ -1788,6 +1848,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 			release_packet(std::move(old));
 		}
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
+		// we shouldn't be sending payload at sequence numbers past the FIN
+		TORRENT_ASSERT(state() != state_t::fin_sent);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 		TORRENT_ASSERT(payload_size >= 0);
 		if (!m_stalled) m_bytes_in_flight += new_in_flight;
@@ -1802,6 +1864,16 @@ bool utp_socket_impl::send_pkt(int const flags)
 	else
 	{
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
+
+		// this is a re-entrant call, so we have to be careful only
+		// making it if we're not already sending a FIN
+		if (m_out_eof
+			&& m_write_buffer_size == 0
+			&& !m_nagle_packet
+			&& state() == state_t::connected)
+		{
+			send_fin();
+		}
 	}
 
 	// if the socket is stalled, always return false, don't
@@ -2696,34 +2768,40 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// The FIN arrived in order, nothing else is in the
 			// reorder buffer.
 			m_ack_nr = ph->seq_nr;
+		}
+		else
+		{
+			UTP_LOGV("%8p: FIN received out-of-order\n", static_cast<void*>(this));
+		}
 
-			// Transition to state_t::fin_sent. The sent FIN is also an ack
-			// to the FIN we received. Once we're in state_t::fin_sent we
-			// just need to wait for our FIN to be acked.
-
-			if (state() == state_t::fin_sent)
-			{
-				send_pkt(pkt_ack);
-				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
-			}
-			else
-			{
-				send_fin();
-				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
-			}
+		if (payload_size > 0)
+		{
+			UTP_LOGV("%8p: FIN packet carries payload, which is not allowed (%d bytes)\n"
+				, static_cast<void*>(this), payload_size);
 		}
 
 		if (m_in_eof)
 		{
-			UTP_LOGV("%8p: duplicate FIN packet (not updating EOF seq_nr: %d to %d)\n"
-				, static_cast<void*>(this), m_in_eof_seq_nr, int(ph->seq_nr));
-			return true;
+			UTP_LOGV("%8p: duplicate FIN packet (not updating, m_in_eof_seq_nr=%d)\n"
+				, static_cast<void*>(this), m_in_eof_seq_nr);
 		}
-		m_in_eof = true;
-		m_in_eof_seq_nr = ph->seq_nr;
+		else
+		{
+			m_in_eof = true;
+			// even though invalid, tolerate FIN packets with payload
+			if (payload_size > 0)
+				m_in_eof_seq_nr = (ph->seq_nr + 1) & ACK_MASK;
+			else
+				m_in_eof_seq_nr = ph->seq_nr;
+			UTP_LOGV("%8p: in_eof_seq_nr=%d m_receive_buffer=%d\n"
+				, static_cast<void*>(this), m_in_eof_seq_nr, int(m_receive_buffer.size()));
+		}
+
+		defer_ack();
 
 		if (m_ack_nr == m_in_eof_seq_nr && m_receive_buffer.empty())
 			maybe_trigger_receive_callback(boost::asio::error::eof);
+		return true;
 	}
 
 	// the send operation in parse_sack() may have set the socket to an error
@@ -2803,7 +2881,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// notify the client that the socket connected
 			if (m_connect_handler)
 			{
-				UTP_LOGV("%8p: calling connect handler\n", static_cast<void*>(this));
 				m_connect_handler = false;
 				utp_stream::on_connect(m_userdata, m_error, false);
 			}
@@ -2874,9 +2951,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			if (m_in_eof && m_ack_nr == ((m_in_eof_seq_nr - 1) & ACK_MASK))
 			{
 				UTP_LOGV("%8p: incoming stream at EOF\n", static_cast<void*>(this));
-
-				// This transitions to the state_t::fin_sent state.
-				send_fin();
 				if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 			}
 
@@ -3225,9 +3299,11 @@ void utp_socket_impl::tick(time_point const now)
 	INVARIANT_CHECK;
 
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: tick:%s r: %d (%s) w: %d (%s)\n"
-		, static_cast<void*>(this), socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
-		, m_written, m_write_handler ? "handler" : "no handler");
+	UTP_LOGV("%8p: tick:%s r: %d (%s) w: %d (%s) connect: (%s)\n"
+		, static_cast<void*>(this), socket_state_names[m_state], m_read
+		, m_read_handler ? "handler" : "no handler"
+		, m_written, m_write_handler ? "handler" : "no handler"
+		, m_connect_handler ? "handler" : "no handler");
 #endif
 
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
@@ -3438,6 +3514,8 @@ void utp_socket_impl::check_invariant() const
 	{
 		// if this packet is full, it should have been sent
 		TORRENT_ASSERT(m_nagle_packet->size < m_nagle_packet->allocated);
+
+		TORRENT_ASSERT(state() != state_t::fin_sent);
 	}
 }
 #endif
