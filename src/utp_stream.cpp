@@ -1533,8 +1533,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 	{
 #if TORRENT_UTP_LOG
 		if (payload_size == 0 && force)
-			UTP_LOGV("%8p: Picking up Nagled packet due to forced send\n"
-				, static_cast<void*>(this));
+			UTP_LOGV("%8p: Picking up Nagled packet due to forced send (%d bytes)\n"
+				, static_cast<void*>(this), m_nagle_packet->size);
 #endif
 
 		// pick up the nagle packet and keep adding bytes to it
@@ -2443,6 +2443,9 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			, static_cast<void*>(this), m_reply_micro, prev_base ? base_change : 0);
 	}
 
+	bool const state_or_fin = ph->get_type() == ST_STATE
+		|| ph->get_type() == ST_FIN;
+
 	// is this ACK valid? If the other end is ACKing
 	// a packet that hasn't been sent yet
 	// just ignore it. A 3rd party could easily inject a packet
@@ -2455,8 +2458,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 	// and the ack_nr should be ignored
 	// Note that when we send a FIN, we don't increment m_seq_nr
 	std::uint16_t const cmp_seq_nr =
-		((state() == state_t::syn_sent || state() == state_t::fin_sent)
-			&& (ph->get_type() == ST_STATE || ph->get_type() == ST_FIN))
+		((state() == state_t::syn_sent
+		  || state() == state_t::fin_sent
+		  || state() == state_t::deleting)
+			&& state_or_fin)
 		? m_seq_nr : (m_seq_nr - 1) & ACK_MASK;
 
 	if ((state() != state_t::none || ph->get_type() != ST_SYN)
@@ -2471,29 +2476,6 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		return true;
 	}
 
-	// check to make sure the sequence number of this packet
-	// is reasonable. If it's a data packet and we've already
-	// received it, ignore it. This is either a stray old packet
-	// that finally made it here (after having been re-sent) or
-	// an attempt to interfere with the connection from a 3rd party
-	// in both cases, we can safely ignore the timestamp and ACK
-	// information in this packet
-/*
-	// even if we've already received this packet, we need to
-	// send another ack to it, since it may be a resend caused by
-	// our ack getting dropped
-	if (state() != state_t::syn_sent
-		&& ph->get_type() == ST_DATA
-		&& !compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
-	{
-		// we've already received this packet
-		UTP_LOGV("%8p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
-			, static_cast<void*>(this), int(ph->seq_nr), m_ack_nr);
-		m_sm.inc_stats_counter(counters::utp_redundant_pkts_in);
-		return true;
-	}
-*/
-
 	// if the socket is closing, always ignore any packet
 	// with a higher sequence number than the FIN sequence number
 	// ST_STATE messages always include the next seqnr.
@@ -2501,7 +2483,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 		|| (m_in_eof_seq_nr == ph->seq_nr && ph->get_type() != ST_STATE)))
 	{
 #if TORRENT_UTP_LOG
-		UTP_LOG("%8p: ERROR: incoming packet type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
+		UTP_LOG("%8p: ERROR: incoming payload after FIN type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
 			, static_cast<void*>(this), packet_type_names[ph->get_type()], int(ph->seq_nr), m_in_eof_seq_nr);
 #endif
 		return true;
@@ -2855,7 +2837,10 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 			// space left in our send window or not. If we just got an ACK
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
-			bool has_ack = ph->get_type() == ST_DATA || ph->get_type() == ST_FIN || ph->get_type() == ST_SYN;
+			bool const has_ack = ph->get_type() == ST_DATA
+				|| ph->get_type() == ST_FIN
+				|| ph->get_type() == ST_SYN;
+
 			std::uint32_t prev_out_packets = m_out_packets;
 
 			// the connection is connected and this packet made it past all the
@@ -2883,8 +2868,7 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 			if (state() == state_t::error_wait || state() == state_t::deleting) return true;
 
-			// Everything up to the FIN has been received, respond with a FIN
-			// from our side.
+			// Everything up to the FIN has been received
 			if (m_in_eof && m_ack_nr == ((m_in_eof_seq_nr - 1) & ACK_MASK))
 			{
 				UTP_LOGV("%8p: incoming stream at EOF\n", static_cast<void*>(this));
