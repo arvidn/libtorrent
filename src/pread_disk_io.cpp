@@ -844,7 +844,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// there are no blocks being written, we would like to issue as
 		// large of a read as possible (i.e. not just individual blocks).
 		// so we defer calling hash() and hash2()
-		std::int64_t deferred_offset = 0;
+		int deferred_offset = 0;
 		int deferred_length = 0;
 
 		for (int i = 0; i < blocks_to_read; ++i)
