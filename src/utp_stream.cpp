@@ -2478,9 +2478,11 @@ bool utp_socket_impl::incoming_packet(span<char const> b
 
 	// if the socket is closing, always ignore any packet
 	// with a higher sequence number than the FIN sequence number
-	// ST_STATE messages always include the next seqnr.
-	if (m_in_eof && (compare_less_wrap(m_in_eof_seq_nr, ph->seq_nr, ACK_MASK)
-		|| (m_in_eof_seq_nr == ph->seq_nr && ph->get_type() != ST_STATE)))
+	// ST_STATE messages always include the next seqnr, so it's acceptable to
+	// receive the same seq_nr as the EOF as long as it's a STATE or FIN packet
+	if (m_in_eof
+		&& compare_less_wrap(m_in_eof_seq_nr, ph->seq_nr, ACK_MASK)
+		&& !(m_in_eof_seq_nr == ph->seq_nr && state_or_fin))
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOG("%8p: ERROR: incoming payload after FIN type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
