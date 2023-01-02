@@ -1172,6 +1172,11 @@ void bind_alert()
         "piece_availability_alert", no_init)
         .add_property("piece_availability", make_getter(&piece_availability_alert::piece_availability, by_value()))
         ;
+
+    class_<tracker_list_alert, bases<torrent_alert>, noncopyable>(
+        "tracker_list_alert", no_init)
+        .add_property("trackers", make_getter(&tracker_list_alert::trackers, by_value()))
+        ;
 }
 
 #ifdef _MSC_VER
