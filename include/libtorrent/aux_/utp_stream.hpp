@@ -624,7 +624,7 @@ struct utp_socket_impl
 	void update_mtu_limits();
 	void experienced_loss(std::uint32_t seq_nr, time_point now);
 
-	void send_ack();
+	void send_deferred_ack();
 	void socket_drained();
 
 	void set_userdata(utp_stream* s) { m_userdata = s; }

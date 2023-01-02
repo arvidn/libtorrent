@@ -224,10 +224,10 @@ udp::endpoint utp_socket_impl::remote_endpoint() const
 	return {m_remote_address, m_port};
 }
 
-void utp_socket_impl::send_ack()
+void utp_socket_impl::send_deferred_ack()
 {
-	if (!m_deferred_ack)
-		return;
+	TORRENT_ASSERT(m_deferred_ack);
+	if (!m_deferred_ack) return;
 	m_deferred_ack = false;
 	send_pkt(utp_socket_impl::pkt_ack);
 }
@@ -729,8 +729,13 @@ utp_socket_impl::~utp_socket_impl()
 {
 	INVARIANT_CHECK;
 
+	if (m_deferred_ack)
+	{
+		m_deferred_ack = false;
+		m_sm.cancel_deferred_ack(this);
+	}
+
 	TORRENT_ASSERT(!m_attached);
-	TORRENT_ASSERT(!m_deferred_ack);
 
 	m_sm.inc_stats_counter(counters::num_utp_idle + m_state, -1);
 
@@ -1732,6 +1737,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 				, static_cast<void*>(this));
 	#endif
 			m_deferred_ack = false;
+			m_sm.cancel_deferred_ack(this);
 		}
 	}
 

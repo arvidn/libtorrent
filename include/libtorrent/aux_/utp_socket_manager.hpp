@@ -119,6 +119,7 @@ namespace aux {
 		int num_sockets() const { return int(m_utp_sockets.size()); }
 
 		void defer_ack(utp_socket_impl* s);
+		void cancel_deferred_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
 		void restrict_mtu(int const mtu)
