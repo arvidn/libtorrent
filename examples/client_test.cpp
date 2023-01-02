@@ -901,6 +901,7 @@ struct client_state_t
 	std::vector<lt::partial_piece_info> download_queue;
 	std::vector<lt::block_info> download_queue_block_info;
 	std::vector<int> piece_availability;
+	std::vector<lt::announce_entry> trackers;
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -943,6 +944,13 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 	{
 		if (client_state.view.get_active_torrent().handle == p->handle)
 			client_state.piece_availability = std::move(p->piece_availability);
+		return true;
+	}
+
+	if (auto* p = alert_cast<tracker_list_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+			client_state.trackers = std::move(p->trackers);
 		return true;
 	}
 
@@ -1354,7 +1362,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}, {}, {}, {}, {}, {}
+		view, ses_view, {}, {}, {}, {}, {}, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -1639,6 +1647,7 @@ int main(int argc, char* argv[])
 						client_state.download_queue.clear();
 						client_state.download_queue_block_info.clear();
 						client_state.piece_availability.clear();
+						client_state.trackers.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
@@ -1649,6 +1658,7 @@ int main(int argc, char* argv[])
 						client_state.download_queue.clear();
 						client_state.download_queue_block_info.clear();
 						client_state.piece_availability.clear();
+						client_state.trackers.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -1999,8 +2009,8 @@ COLUMN OPTIONS
 					, s.current_tracker.c_str());
 				out += str;
 				pos += 1;
-				std::vector<lt::announce_entry> tr = h.trackers();
-				for (lt::announce_entry const& ae : h.trackers())
+				h.post_trackers();
+				for (lt::announce_entry const& ae : client_state.trackers)
 				{
 					std::snprintf(str, sizeof(str), "%2d %-55s %s\x1b[K\n"
 						, ae.tier, ae.url.c_str(), ae.verified?"OK ":"-  ");

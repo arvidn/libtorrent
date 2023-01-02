@@ -1097,9 +1097,9 @@ int main(int argc, char* argv[])
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;
 			lt::create_torrent t(fs, piece_size, lt::create_torrent::v1_only);
-			sha1_hash zero(nullptr);
+			sha1_hash dummy("abcdefghijklmnopqrst");
 			for (auto const k : t.piece_range())
-				t.set_hash(k, zero);
+				t.set_hash(k, dummy);
 
 			int tier = 0;
 			for (auto const& tr : trackers)

@@ -126,6 +126,7 @@ struct peer_info_alert;
 struct file_progress_alert;
 struct piece_info_alert;
 struct piece_availability_alert;
+struct tracker_list_alert;
 
 // include/libtorrent/announce_entry.hpp
 TORRENT_VERSION_NAMESPACE_2

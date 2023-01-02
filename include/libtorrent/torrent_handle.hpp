@@ -357,9 +357,19 @@ namespace aux {
 		// you're not interested in it (and see performance issues), you can
 		// filter them out.
 		//
+		// The ``status()`` function will block until the internal libtorrent
+		// thread responds with the torrent_status object. To avoid blocking,
+		// instead call ``post_status()``. It will trigger posting of a
+		// state_update_alert with a single torrent_status object for this
+		// torrent.
+		//
+		// In order to get regular updates for torrents whose status changes,
+		// consider calling session::post_torrent_updates()`` instead.
+		//
 		// By default everything is included. The flags you can use to decide
 		// what to *include* are defined in this class.
 		torrent_status status(status_flags_t flags = status_flags_t::all()) const;
+		void post_status(status_flags_t flags = status_flags_t::all()) const;
 
 		// ``post_download_queue()`` triggers a download_queue_alert to be
 		// posted.
@@ -482,7 +492,7 @@ namespace aux {
 		// non-empty), this will clear the error and start the torrent again.
 		void clear_error() const;
 
-		// ``trackers()`` will return the list of trackers for this torrent. The
+		// ``trackers()`` returns the list of trackers for this torrent. The
 		// announce entry contains both a string ``url`` which specify the
 		// announce url for the tracker as well as an int ``tier``, which is
 		// specifies the order in which this tracker is tried. If you want
@@ -491,6 +501,9 @@ namespace aux {
 		// one returned from ``trackers()`` and will replace it. If you want an
 		// immediate effect, you have to call force_reannounce(). See
 		// announce_entry.
+		//
+		// ``post_trackers()`` is the asynchronous version of ``trackers()``. It
+		// will trigger a tracker_list_alert to be posted.
 		//
 		// ``add_tracker()`` will look if the specified tracker is already in the
 		// set. If it is, it doesn't do anything. If it's not in the current set
@@ -503,6 +516,7 @@ namespace aux {
 		std::vector<announce_entry> trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 		void add_tracker(announce_entry const&) const;
+		void post_trackers() const;
 
 		// TODO: 3 unify url_seed and http_seed with just web_seed, using the
 		// web_seed_entry.

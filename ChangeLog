@@ -10,6 +10,8 @@
 	* added support for WebTorrent
 
 
+	* add async tracker status query, post_trackers()
+	* add async torrent status query, post_status()
 	* support loading version 2 of resume data format
 	* fix issue with odd piece sizes
 	* add async piece availability query, post_piece_availability()

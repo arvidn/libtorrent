@@ -438,6 +438,11 @@ namespace libtorrent {
 		return st;
 	}
 
+	void torrent_handle::post_status(status_flags_t const flags) const
+	{
+		async_call(&aux::torrent::post_status, flags);
+	}
+
 	void torrent_handle::post_piece_availability() const
 	{
 		async_call(&aux::torrent::post_piece_availability);
@@ -613,6 +618,11 @@ namespace libtorrent {
 	{
 		static const std::vector<announce_entry> empty;
 		return sync_call_ret<std::vector<announce_entry>>(empty, &aux::torrent::trackers);
+	}
+
+	void torrent_handle::post_trackers() const
+	{
+		async_call(&aux::torrent::post_trackers);
 	}
 
 	void torrent_handle::add_url_seed(std::string const& url) const

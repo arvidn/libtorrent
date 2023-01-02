@@ -598,6 +598,7 @@ namespace libtorrent::aux {
 		void update_piece_priorities(
 			aux::vector<download_priority_t, file_index_t> const& file_prios);
 
+		void post_status(status_flags_t flags);
 		void status(torrent_status* st, status_flags_t flags);
 
 		// this torrent changed state, if the user is subscribing to
@@ -1073,6 +1074,7 @@ namespace libtorrent::aux {
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 
+		void post_trackers();
 		std::vector<lt::announce_entry> trackers() const;
 
 		// this sets all the "enabled" states on all trackers, giving them
