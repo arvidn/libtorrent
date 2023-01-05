@@ -167,7 +167,7 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 std::uint16_t utp_receive_id(utp_socket_impl* s);
 bool check_fin_sent(utp_socket_impl const* s);
-void utp_send_ack(utp_socket_impl* s);
+void utp_send_deferred_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
 void utp_writable(utp_socket_impl* s);
 
