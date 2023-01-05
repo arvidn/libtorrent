@@ -166,9 +166,14 @@ namespace libtorrent {
 			return utp_incoming_packet(m_last_socket, p, ep, receive_time);
 		}
 
+		// we send the deferred ACK when the socket is drained as well,
+		// so as long as the incoming packets go to the last socket
+		// (m_last_socket) we can derfer the ACK more. However, if we
+		// receive a packet for another socket, we have to trigger the
+		// ACK in case the new socket also wants to defer an ACK.
 		if (m_deferred_ack)
 		{
-			utp_send_ack(m_deferred_ack);
+			utp_send_deferred_ack(m_deferred_ack);
 			m_deferred_ack = nullptr;
 		}
 
@@ -262,7 +267,7 @@ namespace libtorrent {
 		{
 			utp_socket_impl* s = m_deferred_ack;
 			m_deferred_ack = nullptr;
-			utp_send_ack(s);
+			utp_send_deferred_ack(s);
 		}
 
 		if (!m_drained_event.empty())
@@ -280,6 +285,12 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(m_deferred_ack == NULL || m_deferred_ack == s);
 		m_deferred_ack = s;
+	}
+
+	void utp_socket_manager::cancel_deferred_ack(utp_socket_impl* s)
+	{
+		if (m_deferred_ack == s)
+			m_deferred_ack = nullptr;
 	}
 
 	void utp_socket_manager::subscribe_drained(utp_socket_impl* s)
