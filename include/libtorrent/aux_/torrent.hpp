@@ -772,6 +772,9 @@ namespace libtorrent::aux {
 		// The key is passed to http trackers as ``&key=``.
 		std::uint32_t tracker_key() const;
 
+		// the peer id for tracker interaction only, generated when we add the torrent
+		peer_id const& pid() const { return m_peer_id; }
+
 		// if we need a connect boost, connect some peers
 		// immediately
 		void do_connect_boost();
