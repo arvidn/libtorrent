@@ -21,7 +21,6 @@ see LICENSE file.
 #include "libtorrent/aux_/rtc_signaling.hpp"
 #include "libtorrent/aux_/rtc_stream.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/aux_/generate_peer_id.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <rtc/rtc.hpp>
@@ -140,7 +139,7 @@ void rtc_signaling::generate_offers(int count, offers_handler handler)
 	while (count--)
 	{
 		rtc_offer_id offer_id = generate_offer_id();
-		peer_id pid = aux::generate_peer_id(m_torrent->settings());
+		peer_id pid = m_torrent->pid();
 
 		auto& conn = create_connection(offer_id, [weak_this = weak_from_this(), offer_id, pid]
 			(error_code const& ec, std::string sdp)
@@ -359,8 +358,7 @@ void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer,
 	debug_log("*** RTC signaling generated answer");
 #endif
 	TORRENT_ASSERT(offer.answer_callback);
-	peer_id pid = aux::generate_peer_id(m_torrent->settings());
-	offer.answer_callback(pid, answer);
+	offer.answer_callback(m_torrent->pid(), answer);
 }
 
 void rtc_signaling::on_data_channel(error_code const& ec
