@@ -1329,28 +1329,37 @@ TORRENT_VERSION_NAMESPACE_3
 
 	// This alert is generated when the metadata has been completely received and the torrent
 	// can start downloading. It is not generated on torrents that are started with metadata, but
-	// only those that needs to download it from peers (when utilizing the libtorrent extension).
+	// only those that needs to download it from peers (via ut_metadata).
 	//
 	// There are no additional data members in this alert.
 	//
-	// Typically, when receiving this alert, you would want to save the torrent file in order
-	// to load it back up again when the session is restarted. Here's an example snippet of
-	// code to do that:
-	//
+	// Typically, when receiving this alert, you would want to trigger saving
+	// its resume data. You do that by calling save_resume_data() on the torrent
+	// handle, like this:
 	// .. code:: c++
 	//
 	//	torrent_handle h = alert->handle();
-	//	std::shared_ptr<torrent_info const> ti = h.torrent_file();
-	//	create_torrent ct(*ti);
-	//	entry te = ct.generate();
-	//	std::vector<char> buffer;
-	//	bencode(std::back_inserter(buffer), te);
-	//	FILE* f = fopen((to_hex(ti->info_hashes().get_best().to_string()) + ".torrent").c_str(), "wb+");
-	//	if (f) {
-	//		fwrite(&buffer[0], 1, buffer.size(), f);
-	//		fclose(f);
-	//	}
+	//	h.save_resume_data(torrent_handle::save_info_dict);
 	//
+	// In the handler for the save_resume_alert, you can save the resume data
+	// but also a copy of torrent file:
+	// .. code:: c++
+	//
+	//	save_resume_data_alert* alert = ...;
+	//	std::vector<char> buf = write_resume_data_buf(alert->params);
+	//	std::ofstream f("resume-data");
+	//	f.write(buf.data(), buf.size());
+	//
+	// If writing a .torrent file that may be a v2 torrent and may not yet have
+	// downloaded the piece layers from its peers, you need to specify the
+	// allow_missing_piece_layer flag.
+	//
+	// .. code: c++
+	//
+	//	std::vector<char> buf = write_torrent_file_buf(alert->params
+	//	    , write_flags::allow_missing_piece_layer);
+	//	std::ofstream f("resume-data");
+	//	f.write(buf.data(), buf.size());
 	struct TORRENT_EXPORT metadata_received_alert final : torrent_alert
 	{
 		// internal
