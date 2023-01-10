@@ -272,8 +272,10 @@ bool is_downloading_state(int const st)
 			// correct URLs to end with a "/" for multi-file torrents
 			if (multi_file)
 				ensure_trailing_slash(ws.back().url);
+#if TORRENT_ABI_VERSION < 4
 			if (!m_torrent_file->is_valid())
 				m_torrent_file->add_url_seed(ws.back().url);
+#endif
 		}
 
 		aux::random_shuffle(ws);
@@ -304,11 +306,13 @@ bool is_downloading_state(int const st)
 			if (!m_trackers.add_tracker(e))
 				continue;
 
+#if TORRENT_ABI_VERSION < 4
 			// add the tracker to the m_torrent_file here so that the trackers
 			// will be preserved via create_torrent() when passing in just the
 			// torrent_info object.
 			if (!m_torrent_file->is_valid())
 				m_torrent_file->add_tracker(e.url, e.tier, lt::announce_entry::tracker_source(e.source));
+#endif
 		}
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))

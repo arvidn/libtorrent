@@ -931,7 +931,7 @@ TORRENT_TEST(verify_encoding)
 }
 
 namespace {
-void sanity_check(std::shared_ptr<torrent_info> const& ti)
+void sanity_check(std::shared_ptr<torrent_info const> const& ti)
 {
 	// construct a piece_picker to get some more test coverage. Perhaps
 	// loading the torrent is fine, but if we can't construct a piece_picker

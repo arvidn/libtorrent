@@ -32,15 +32,15 @@ namespace libtorrent::aux {
 	{
 		struct TORRENT_EXTRA_EXPORT link_t
 		{
-			std::shared_ptr<const torrent_info> ti;
+			std::shared_ptr<torrent_info const> ti;
 			std::string save_path;
 			file_index_t file_idx;
 		};
 
-		explicit resolve_links(std::shared_ptr<torrent_info> ti);
+		explicit resolve_links(std::shared_ptr<torrent_info const> ti);
 
 		// check to see if any files are shared with this torrent
-		void match(std::shared_ptr<const torrent_info> const& ti
+		void match(std::shared_ptr<torrent_info const> const& ti
 			, std::string const& save_path);
 
 		aux::vector<link_t, file_index_t> const& get_links() const
@@ -48,13 +48,13 @@ namespace libtorrent::aux {
 
 	private:
 
-		void match_v1(std::shared_ptr<const torrent_info> const& ti
+		void match_v1(std::shared_ptr<torrent_info const> const& ti
 			, std::string const& save_path);
-		void match_v2(std::shared_ptr<const torrent_info> const& ti
+		void match_v2(std::shared_ptr<torrent_info const> const& ti
 			, std::string const& save_path);
 
 		// this is the torrent we're trying to find files for.
-		std::shared_ptr<torrent_info> m_torrent_file;
+		std::shared_ptr<torrent_info const> m_torrent_file;
 
 		// each file in m_torrent_file has an entry in this vector. Any file
 		// that also exists somewhere else, is filled in with the corresponding

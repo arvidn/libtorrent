@@ -15,7 +15,7 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
+resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 	: m_torrent_file(std::move(ti))
 {
 	TORRENT_ASSERT(m_torrent_file);
@@ -45,7 +45,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 	m_links.resize(m_torrent_file->num_files());
 }
 
-void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
+void resolve_links::match(std::shared_ptr<torrent_info const> const& ti
 	, std::string const& save_path)
 {
 	if (!ti) return;
@@ -61,7 +61,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 	}
 }
 
-void resolve_links::match_v1(std::shared_ptr<const torrent_info> const& ti
+void resolve_links::match_v1(std::shared_ptr<torrent_info const> const& ti
 	, std::string const& save_path)
 {
 	// only torrents with the same piece size
@@ -128,7 +128,7 @@ void resolve_links::match_v1(std::shared_ptr<const torrent_info> const& ti
 	}
 }
 
-void resolve_links::match_v2(std::shared_ptr<const torrent_info> const& ti
+void resolve_links::match_v2(std::shared_ptr<torrent_info const> const& ti
 	, std::string const& save_path)
 {
 	file_storage const& fs = ti->files();

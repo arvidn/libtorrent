@@ -915,7 +915,7 @@ TORRENT_TEST(v2_only_file_sorting)
 }
 
 namespace {
-std::shared_ptr<lt::torrent_info>
+std::shared_ptr<lt::torrent_info const>
 make_load_torrent(std::vector<lt::create_file_entry> files, int const piece_size)
 {
 	lt::create_torrent ct(std::move(files), piece_size);
