@@ -106,10 +106,10 @@ namespace {
 			if ((!ret.info_hashes.has_v1() || resume_ih.v1 == ret.info_hashes.v1)
 				&& (!ret.info_hashes.has_v2() || resume_ih.v2 == ret.info_hashes.v2))
 			{
-				ret.ti = std::make_shared<torrent_info>(resume_ih);
+				auto ti = std::make_shared<torrent_info>(resume_ih);
 
 				error_code err;
-				if (!ret.ti->parse_info_section(info, err, piece_limit))
+				if (!ti->parse_info_section(info, err, piece_limit))
 				{
 					ec = err;
 				}
@@ -117,11 +117,12 @@ namespace {
 				{
 					// time_t might be 32 bit if we're unlucky, but there isn't
 					// much to do about it
-					ret.ti->internal_set_creation_date(static_cast<std::time_t>(
+					ti->internal_set_creation_date(static_cast<std::time_t>(
 						rd.dict_find_int_value("creation date", 0)));
-					ret.ti->internal_set_creator(rd.dict_find_string_value("created by", ""));
-					ret.ti->internal_set_comment(rd.dict_find_string_value("comment", ""));
+					ti->internal_set_creator(rd.dict_find_string_value("created by", ""));
+					ti->internal_set_comment(rd.dict_find_string_value("comment", ""));
 				}
+				ret.ti = std::move(ti);
 			}
 		}
 

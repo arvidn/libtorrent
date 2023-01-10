@@ -392,12 +392,22 @@ Build features
 |                          |   symbols.                                         |
 |                          | * ``off`` - default for release builds.            |
 +--------------------------+----------------------------------------------------+
-| ``deprecated-functions`` | * ``on`` - default. Includes deprecated functions  |
-|                          |   of the API (might produce warnings during build  |
-|                          |   when deprecated functions are used).             |
-|                          | * ``off`` - excludes deprecated functions from the |
-|                          |   API. Generates build errors when deprecated      |
-|                          |   functions are used.                              |
+| ``deprecated-functions`` | Enables or disables deprecated functionality by    |
+|                          | specifying the API version to build.               |
+|                          | Defaults to version 2, options are:                |
+|                          |                                                    |
+|                          | * ``1`` libtorrent-1.1                             |
+|                          | * ``2`` libtorrent-1.2                             |
+|                          | * ``3`` libtorrent-2.0                             |
+|                          | * ``4`` libtorrent-2.1                             |
+|                          |                                                    |
+|                          | For backwards compatibility, it's also possible    |
+|                          | to specify:                                        |
+|                          |                                                    |
+|                          | * ``on`` - Includes deprecated functions from the  |
+|                          |   oldest supported version.                        |
+|                          | * ``off`` - Disables all deprecated functions.     |
+|                          |   Same as specifying the newest version.           |
 +--------------------------+----------------------------------------------------+
 | ``i2p``                  | * ``on`` - default. build with I2P support         |
 |                          | * ``off`` - build without I2P support              |

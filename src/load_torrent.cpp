@@ -16,9 +16,8 @@ see LICENSE file.
 namespace libtorrent {
 
 namespace {
-	void update_atp(add_torrent_params& atp)
+	void update_atp(std::shared_ptr<torrent_info> ti, add_torrent_params& atp)
 	{
-		auto const& ti = atp.ti;
 		for (auto const& ae : ti->trackers())
 		{
 			atp.trackers.push_back(ae.url);
@@ -71,10 +70,11 @@ namespace {
 			ti->free_piece_layers();
 		}
 
-		atp.comment = atp.ti->comment();
-		atp.created_by = atp.ti->creator();
-		atp.creation_date = atp.ti->creation_date();
-		atp.info_hashes = atp.ti->info_hashes();
+		atp.comment = ti->comment();
+		atp.created_by = ti->creator();
+		atp.creation_date = ti->creation_date();
+		atp.info_hashes = ti->info_hashes();
+		atp.ti = std::move(ti);
 	}
 }
 
@@ -88,25 +88,25 @@ namespace {
 	// TODO: move the loading logic from torrent_info constructor into here
 	add_torrent_params load_torrent_file(std::string const& filename, load_torrent_limits const& cfg)
 	{
+		auto ti = std::make_shared<torrent_info>(filename, cfg);
 		add_torrent_params ret;
-		ret.ti = std::make_shared<torrent_info>(filename, cfg);
-		update_atp(ret);
+		update_atp(std::move(ti), ret);
 		return ret;
 	}
 
 	add_torrent_params load_torrent_buffer(span<char const> buffer, load_torrent_limits const& cfg)
 	{
+		auto ti = std::make_shared<torrent_info>(buffer, cfg, from_span);
 		add_torrent_params ret;
-		ret.ti = std::make_shared<torrent_info>(buffer, cfg, from_span);
-		update_atp(ret);
+		update_atp(std::move(ti), ret);
 		return ret;
 	}
 
 	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file, load_torrent_limits const& cfg)
 	{
+		auto ti = std::make_shared<torrent_info>(torrent_file, cfg);
 		add_torrent_params ret;
-		ret.ti = std::make_shared<torrent_info>(torrent_file, cfg);
-		update_atp(ret);
+		update_atp(std::move(ti), ret);
 		return ret;
 	}
 
