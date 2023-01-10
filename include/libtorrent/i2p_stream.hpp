@@ -234,11 +234,6 @@ private:
 			m_buffer.resize(read_pos + 1);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
-
-			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));
 			}, std::move(h)));
 			return;
@@ -408,7 +403,7 @@ private:
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
-				read_line(ec, std::move(hn));
+				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
 	}
 
