@@ -431,6 +431,17 @@ void utp_stream::on_write(utp_stream* s, std::size_t const bytes_transferred
 	}
 }
 
+void utp_stream::on_writeable(utp_stream* s, error_code const& ec)
+{
+	UTP_LOGV("%8p: calling writeable handler ec:%s\n"
+		, static_cast<void*>(s->m_impl)
+		, ec.message().c_str());
+
+	TORRENT_ASSERT(s->m_writeable_handler);
+	post(s->m_io_service, std::bind<void>(std::move(s->m_writeable_handler), ec));
+	s->m_writeable_handler = nullptr;
+}
+
 void utp_stream::on_connect(utp_stream* s, error_code const& ec, bool const shutdown)
 {
 	TORRENT_ASSERT(s);
@@ -503,6 +514,11 @@ std::size_t utp_stream::write_some(bool const clear_buffers)
 void utp_stream::issue_write()
 {
 	m_impl->issue_write();
+}
+
+void utp_stream::subscribe_writeable()
+{
+	m_impl->subscribe_writeable();
 }
 
 void utp_stream::do_connect(tcp::endpoint const& ep)
@@ -713,6 +729,13 @@ void utp_socket_impl::issue_write()
 	maybe_trigger_send_callback({});
 }
 
+void utp_socket_impl::subscribe_writeable()
+{
+	TORRENT_ASSERT(!m_writeable_handler);
+	m_writeable_handler = true;
+	maybe_trigger_writeable_callback({});
+}
+
 bool utp_socket_impl::check_fin_sent() const
 {
 	return state() == state_t::fin_sent;
@@ -858,6 +881,19 @@ void utp_socket_impl::maybe_trigger_send_callback(error_code const& ec)
 		&& !m_nagle_packet
 		&& state() == state_t::connected)
 		send_fin();
+}
+
+void utp_socket_impl::maybe_trigger_writeable_callback(error_code const& ec)
+{
+	INVARIANT_CHECK;
+
+	if (m_writeable_handler == false) return;
+
+	if (m_stalled) return;
+
+	m_writeable_handler = false;
+	error_code const error_to_report = ec ? ec : m_error;
+	utp_stream::on_writeable(m_userdata, error_to_report);
 }
 
 void utp_socket_impl::set_close_reason(close_reason_t code)
@@ -1026,6 +1062,7 @@ void utp_socket_impl::writable()
 #endif
 	TORRENT_ASSERT(m_stalled);
 	m_stalled = false;
+	maybe_trigger_writeable_callback({});
 	if (should_delete()) return;
 
 	// if the socket stalled while sending an ack then there will be a
@@ -2242,15 +2279,18 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool shutdown)
 	// calling the callbacks with m_userdata being 0 will just crash
 	TORRENT_ASSERT((ret && m_userdata != nullptr) || !ret);
 
-	bool read = m_read_handler;
-	bool write = m_write_handler;
-	bool connect = m_connect_handler;
+	bool const read = m_read_handler;
+	bool const write = m_write_handler;
+	bool const writeable = m_writeable_handler;
+	bool const connect = m_connect_handler;
 	m_read_handler = false;
 	m_write_handler = false;
+	m_writeable_handler = false;
 	m_connect_handler = false;
 
 	if (read) utp_stream::on_read(m_userdata, 0, ec, shutdown);
 	if (write) utp_stream::on_write(m_userdata, 0, ec, shutdown);
+	if (writeable) utp_stream::on_writeable(m_userdata, ec);
 	if (connect) utp_stream::on_connect(m_userdata, ec, shutdown);
 	return ret;
 }

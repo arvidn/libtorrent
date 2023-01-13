@@ -248,12 +248,14 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		, error_code const& ec, bool shutdown);
 	static void on_connect(utp_stream* self, error_code const& ec, bool shutdown);
 	static void on_close_reason(utp_stream* self, close_reason_t reason);
+	static void on_writeable(utp_stream* self, error_code const& ec);
 
 	void add_read_buffer(void* buf, int len);
 	void issue_read();
 	void add_write_buffer(void const* buf, int len);
 	bool check_fin_sent() const;
 	void issue_write();
+	void subscribe_writeable();
 	std::size_t read_some(bool clear_buffers, error_code& ec);
 	std::size_t write_some(bool clear_buffers);
 
@@ -325,6 +327,25 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			return;
 		}
 
+		m_read_handler = std::move(handler);
+		issue_read();
+	}
+
+	template <class Handler>
+	void async_wait_read(Handler handler)
+	{
+		if (m_impl == nullptr)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler), boost::asio::error::not_connected, std::size_t(0)));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_read_handler);
+		if (m_read_handler)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler), boost::asio::error::operation_not_supported, std::size_t(0)));
+			return;
+		}
 		m_read_handler = std::move(handler);
 		issue_read();
 	}
@@ -476,6 +497,35 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_write();
 	}
 
+	template <class Handler>
+	void async_wait_write(Handler handler)
+	{
+		if (m_impl == nullptr)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::not_connected));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_writeable_handler);
+		if (m_writeable_handler)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::operation_not_supported));
+			return;
+		}
+
+		if (check_fin_sent())
+		{
+			// we can't send more data after closing the socket
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::broken_pipe));
+			return;
+		}
+		m_writeable_handler = std::move(handler);
+		subscribe_writeable();
+	}
+
 #if BOOST_VERSION >= 106600
 	// Compatiblity with the async_wait method introduced in boost 1.66
 
@@ -486,13 +536,11 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		switch(type)
 		{
 		case wait_read:
-			async_read_some(boost::asio::null_buffers()
-					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			async_wait_read([handler](error_code ec, size_t) { handler(std::move(ec)); });
 			break;
 
 		case wait_write:
-			async_write_some(boost::asio::null_buffers()
-					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			async_wait_write(std::move(handler));
 			break;
 
 		case wait_error:
@@ -510,6 +558,7 @@ private:
 	std::function<void(error_code const&)> m_connect_handler;
 	std::function<void(error_code const&, std::size_t)> m_read_handler;
 	std::function<void(error_code const&, std::size_t)> m_write_handler;
+	std::function<void(error_code const&)> m_writeable_handler;
 
 	io_context& m_io_service;
 	utp_socket_impl* m_impl;
@@ -619,6 +668,7 @@ struct utp_socket_impl
 	bool test_socket_state();
 	void maybe_trigger_receive_callback(error_code const& ec);
 	void maybe_trigger_send_callback(error_code const& ec);
+	void maybe_trigger_writeable_callback(error_code const& ec);
 	bool cancel_handlers(error_code const& ec, bool shutdown);
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
@@ -651,6 +701,7 @@ struct utp_socket_impl
 
 	void issue_read();
 	void issue_write();
+	void subscribe_writeable();
 
 	bool check_fin_sent() const;
 
@@ -762,6 +813,7 @@ private:
 	// connect operation. i.e. is there upper layer subscribed to these events.
 	bool m_read_handler = false;
 	bool m_write_handler = false;
+	bool m_writeable_handler = false;
 	bool m_connect_handler = false;
 
 	// the address of the remote endpoint
