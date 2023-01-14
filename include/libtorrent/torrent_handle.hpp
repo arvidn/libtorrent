@@ -667,8 +667,8 @@ namespace aux {
 		static inline constexpr resume_data_flags_t flush_disk_cache = 0_bit;
 
 		// the resume data will contain the metadata from the torrent file as
-		// well. This is default for any torrent that's added without a
-		// torrent file (such as a magnet link or a URL).
+		// well. This is useful for clients that don't keep .torrent files
+		// around separately, or for torrents that were added via a magnet link.
 		static inline constexpr resume_data_flags_t save_info_dict = 1_bit;
 
 		// if nothing significant has changed in the torrent since the last

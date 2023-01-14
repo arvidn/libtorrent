@@ -1179,6 +1179,10 @@ void bind_alert()
         .add_property("piece_availability", make_getter(&piece_availability_alert::piece_availability, by_value()))
         ;
 
+    class_<tracker_list_alert, bases<torrent_alert>, noncopyable>(
+        "tracker_list_alert", no_init)
+        .add_property("trackers", make_getter(&tracker_list_alert::trackers, by_value()));
+
     enum_<close_reason_t>("close_reason_t")
         .value("none", close_reason_t::none)
         .value("duplicate_peer_id", close_reason_t::duplicate_peer_id)

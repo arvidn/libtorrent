@@ -10,6 +10,7 @@
 	* added support for WebTorrent
 
 
+	* fix I2P issue introduced in 2.0.0
 	* add async tracker status query, post_trackers()
 	* add async torrent status query, post_status()
 	* support loading version 2 of resume data format
