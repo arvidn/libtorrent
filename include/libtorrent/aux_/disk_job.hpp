@@ -265,7 +265,7 @@ namespace job {
 
 		// passed out
 		// return value of operation
-		status_t ret = status_t::no_error;
+		status_t ret{};
 
 		// the error code from the file operation
 		// on error, this also contains the path of the

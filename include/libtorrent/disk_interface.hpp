@@ -56,11 +56,21 @@ namespace libtorrent {
 
 	struct storage_holder;
 
-	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, struct file_open_mode_tag>;
+	// return values from check_fastresume, and move_storage
+	using status_t = flags::bitfield_flag<std::uint8_t, struct disk_storage_status_tag>;
+
+namespace disk_status {
+	constexpr status_t fatal_disk_error = 0_bit;
+	constexpr status_t need_full_check = 1_bit;
+	constexpr status_t file_exist = 2_bit;
+	constexpr status_t oversized_file = 3_bit;
+}
 
 	// internal
 	// this is a bittorrent constant
 	constexpr int default_block_size = 0x4000;
+
+	using file_open_mode_t = flags::bitfield_flag<std::uint8_t, struct file_open_mode_tag>;
 
 namespace file_open_mode {
 	// open the file for reading only

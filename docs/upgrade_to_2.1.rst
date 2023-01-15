@@ -147,3 +147,16 @@ The signature of set_piece_hashes() has changed slightly, from taking a
 settings_interface to a settings_pack. The impact of this change is expected to
 be minimal, since settings_pack implements the settings_interface and is the
 only public type doing so.
+
+disk_interface
+==============
+
+The disk_interface class is a pure virtual interface implemented by disk I/O
+subsystems. Part of its interface is the status_t type. This type used to be an
+``enum class``, but has been turned into a flags type in 2.1. This is primarily
+to allow reporting the oversized_file condition (which was introduced in
+2.0.6).
+
+The flags can be found in the ``lt::disk_status`` namespace.
+
+This change affects custom storage implementations.

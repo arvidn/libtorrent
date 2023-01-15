@@ -78,8 +78,9 @@ void delete_dirs(std::string path)
 void on_check_resume_data(lt::status_t const status, storage_error const& error, bool* done, bool* oversized)
 {
 	std::cout << time_now_string() << " on_check_resume_data ret: "
-		<< static_cast<int>(status);
-	if ((status & lt::status_t::oversized_file) != status_t{})
+		<< int(static_cast<std::uint8_t>(status));
+
+	if (status & lt::disk_status::oversized_file)
 	{
 		std::cout << " oversized file(s) - ";
 		*oversized = true;
@@ -89,24 +90,22 @@ void on_check_resume_data(lt::status_t const status, storage_error const& error,
 		*oversized = false;
 	}
 
-	switch (status & ~lt::status_t::mask)
+	if (status & lt::disk_status::fatal_disk_error)
 	{
-		case lt::status_t::no_error:
-			std::cout << " success" << std::endl;
-			break;
-		case lt::status_t::fatal_disk_error:
-			std::cout << " disk error: " << error.ec.message()
-				<< " file: " << error.file() << std::endl;
-			break;
-		case lt::status_t::need_full_check:
-			std::cout << " need full check" << std::endl;
-			break;
-		case lt::status_t::file_exist:
-			std::cout << " file exist" << std::endl;
-			break;
-		case lt::status_t::mask:
-		case lt::status_t::oversized_file:
-			break;
+		std::cout << " disk error: " << error.ec.message()
+			<< " file: " << error.file() << std::endl;
+	}
+	else if (status & lt::disk_status::need_full_check)
+	{
+		std::cout << " need full check" << std::endl;
+	}
+	else if (status & lt::disk_status::file_exist)
+	{
+		std::cout << " file exist" << std::endl;
+	}
+	else
+	{
+		std::cout << " success" << std::endl;
 	}
 	std::cout << std::endl;
 	*done = true;
