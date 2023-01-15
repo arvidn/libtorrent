@@ -875,6 +875,7 @@ SOURCES =
 	load_torrent
 	rtc_signaling
 	rtc_stream
+	web_seed_entry
 	websocket_stream
 	websocket_tracker_connection
 	disk_job

@@ -110,4 +110,5 @@
 #include "libtorrent/units.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/web_seed_entry.hpp"
 #include "libtorrent/write_resume_data.hpp"

@@ -688,18 +688,6 @@ namespace {
 
 } // anonymous namespace
 
-	web_seed_entry::web_seed_entry(std::string url_, std::string auth_, headers_t extra_headers_)
-		: url(std::move(url_))
-		, auth(std::move(auth_))
-		, extra_headers(std::move(extra_headers_))
-	{
-	}
-
-	web_seed_entry::web_seed_entry(web_seed_entry const&) = default;
-	web_seed_entry::web_seed_entry(web_seed_entry&&) = default;
-	web_seed_entry& web_seed_entry::operator=(web_seed_entry const&) = default;
-	web_seed_entry& web_seed_entry::operator=(web_seed_entry&&) = default;
-
 TORRENT_VERSION_NAMESPACE_3
 
 	torrent_info::torrent_info(torrent_info const&) = default;

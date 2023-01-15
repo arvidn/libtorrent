@@ -260,7 +260,6 @@ struct partial_piece_info;
 struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
-struct web_seed_entry;
 struct load_torrent_limits;
 TORRENT_VERSION_NAMESPACE_3
 class torrent_info;
@@ -270,6 +269,9 @@ TORRENT_VERSION_NAMESPACE_3_END
 TORRENT_VERSION_NAMESPACE_3
 struct torrent_status;
 TORRENT_VERSION_NAMESPACE_3_END
+
+// include/libtorrent/web_seed_entry.hpp
+struct web_seed_entry;
 
 #if TORRENT_ABI_VERSION <= 2
 
