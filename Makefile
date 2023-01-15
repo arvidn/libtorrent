@@ -431,6 +431,7 @@ SOURCES = \
   version.cpp                     \
   web_connection_base.cpp         \
   web_peer_connection.cpp         \
+  web_seed_entry.cpp              \
   write_resume_data.cpp           \
   xml_parse.cpp                   \
   rtc_signaling.cpp               \
@@ -521,6 +522,7 @@ HEADERS = \
   units.hpp                    \
   upnp.hpp                     \
   version.hpp                  \
+  web_seed_entry.hpp           \
   write_resume_data.hpp        \
   \
   aux_/alert_manager.hpp            \

@@ -72,6 +72,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp" // for add_peer_flags_t
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/tracker_list.hpp"
+#include "libtorrent/web_seed_entry.hpp"
 
 #if TORRENT_USE_RTC
     #include "libtorrent/aux_/rtc_signaling.hpp"

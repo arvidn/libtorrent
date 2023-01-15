@@ -94,6 +94,7 @@ set(libtorrent_include_files
 	units.hpp
 	upnp.hpp
 	version.hpp
+	web_seed_entry.hpp
 	write_resume_data.hpp
 )
 
@@ -433,6 +434,7 @@ set(sources
 	version.cpp
 	web_connection_base.cpp
 	web_peer_connection.cpp
+	web_seed_entry.cpp
 	websocket_stream.cpp
 	websocket_tracker_connection.cpp
 	write_resume_data.cpp
