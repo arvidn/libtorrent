@@ -379,32 +379,32 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// call disk function
 		// TODO: in the future, propagate exceptions back to the handlers
-		status_t ret = status_t::no_error;
+		status_t ret{};
 		try
 		{
 			ret = std::visit([this, j](auto& a) { return this->do_job(a, j); }, j->action);
 		}
 		catch (boost::system::system_error const& err)
 		{
-			ret = status_t::fatal_disk_error;
+			ret = disk_status::fatal_disk_error;
 			j->error.ec = err.code();
 			j->error.operation = operation_t::exception;
 		}
 		catch (std::bad_alloc const&)
 		{
-			ret = status_t::fatal_disk_error;
+			ret = disk_status::fatal_disk_error;
 			j->error.ec = errors::no_memory;
 			j->error.operation = operation_t::exception;
 		}
 		catch (std::exception const&)
 		{
-			ret = status_t::fatal_disk_error;
+			ret = disk_status::fatal_disk_error;
 			j->error.ec = boost::asio::error::fault;
 			j->error.operation = operation_t::exception;
 		}
 
 		// note that -2 errors are OK
-		TORRENT_ASSERT(ret != status_t::fatal_disk_error
+		TORRENT_ASSERT(!(ret & disk_status::fatal_disk_error)
 			|| (j->error.ec && j->error.operation != operation_t::unknown));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
@@ -436,7 +436,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
-		return status_t::no_error;
+		return {};
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::read& a, aux::mmap_disk_job* j)
@@ -446,7 +446,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = operation_t::alloc_cache_piece;
-			return status_t::fatal_disk_error;
+			return disk_status::fatal_disk_error;
 		}
 
 		time_point const start_time = clock_type::now();
@@ -469,7 +469,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
-		return status_t::no_error;
+		return {};
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::write& a, aux::mmap_disk_job* j)
@@ -507,7 +507,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		return ret != a.buffer_size
-			? status_t::fatal_disk_error : status_t::no_error;
+			? disk_status::fatal_disk_error : status_t{};
 	}
 
 	void mmap_disk_io::async_read(storage_index_t storage, peer_request const& r
@@ -943,7 +943,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (v1)
 			a.piece_hash = h.final();
-		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
+		return ret >= 0 ? status_t{} : disk_status::fatal_disk_error;
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::hash2& a, aux::mmap_disk_job* j)
@@ -972,7 +972,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 				, file_mode, j->flags, j->error);
-			if (ret < 0) return status_t::fatal_disk_error;
+			if (ret < 0) return disk_status::fatal_disk_error;
 			if (!j->error.ec)
 			{
 				m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -990,7 +990,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 
 		a.piece_hash2 = h.final();
-		return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
+		return ret >= 0 ? status_t{} : disk_status::fatal_disk_error;
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::move_storage& a, aux::mmap_disk_job* j)
@@ -1010,7 +1010,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 		j->storage->release_files(j->error);
-		return j->error ? status_t::fatal_disk_error : status_t::no_error;
+		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::delete_files& a, aux::mmap_disk_job* j)
@@ -1020,7 +1020,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 		j->storage->delete_files(a.flags, j->error);
-		return j->error ? status_t::fatal_disk_error : status_t::no_error;
+		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::check_fastresume& a, aux::mmap_disk_job* j)
@@ -1046,7 +1046,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// always initialize the storage
 		auto const ret_flag = j->storage->initialize(m_settings, j->error);
-		if (j->error) return status_t::fatal_disk_error | ret_flag;
+		if (j->error) return disk_status::fatal_disk_error | ret_flag;
 
 		// we must call verify_resume() unconditionally of the setting below, in
 		// order to set up the links (if present)
@@ -1058,7 +1058,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// as they succeed.
 
 		if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
-			return status_t::no_error | ret_flag;
+			return ret_flag;
 
 		if (!aux::contains_resume_data(*rd))
 		{
@@ -1066,15 +1066,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// full re-check, if there are *any* files.
 			storage_error ignore;
 			return ((j->storage->has_any_file(ignore))
-				? status_t::need_full_check
-				: status_t::no_error)
-				| ret_flag;
+				? disk_status::need_full_check | ret_flag
+				: ret_flag);
 		}
 
-		return (verify_success
-			? status_t::no_error
-			: status_t::need_full_check)
-			| ret_flag;
+		return (verify_success ? ret_flag : disk_status::need_full_check | ret_flag);
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::rename_file& a, aux::mmap_disk_job* j)
@@ -1084,7 +1080,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// if files need to be closed, that's the storage's responsibility
 		j->storage->rename_file(a.file_index, a.name, j->error);
-		return j->error ? status_t::fatal_disk_error : status_t::no_error;
+		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::stop_torrent&, aux::mmap_disk_job* j)
@@ -1092,7 +1088,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 		j->storage->release_files(j->error);
-		return j->error ? status_t::fatal_disk_error : status_t::no_error;
+		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
 
 	void mmap_disk_io::update_stats_counters(counters& c) const
@@ -1118,7 +1114,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		j->storage->set_file_priority(m_settings
 			, a.prio
 			, j->error);
-		return status_t::no_error;
+		return {};
 	}
 
 	// this job won't return until all outstanding jobs on this
@@ -1128,7 +1124,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		// there's nothing to do here, by the time this is called the jobs for
 		// this storage has been completed since this is a fence job
-		return status_t::no_error;
+		return {};
 	}
 
 	void mmap_disk_io::add_fence_job(aux::mmap_disk_job* j, bool const user_add)
@@ -1233,7 +1229,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		jobqueue_t completed_jobs;
 		if (j->flags & aux::disk_job::aborted)
 		{
-			j->ret = status_t::fatal_disk_error;
+			j->ret = disk_status::fatal_disk_error;
 			j->error = storage_error(boost::asio::error::operation_aborted);
 			completed_jobs.push_back(j);
 			add_completed_jobs(std::move(completed_jobs));
@@ -1468,7 +1464,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			{
 				auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
 				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-				j->ret = status_t::fatal_disk_error;
+				j->ret = disk_status::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
 				completed.push_back(j);
 			}

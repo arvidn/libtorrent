@@ -23,7 +23,7 @@ namespace libtorrent::aux {
 
 void disk_completed_queue::abort_job(io_context& ioc, aux::disk_job* j)
 {
-	j->ret = status_t::fatal_disk_error;
+	j->ret = disk_status::fatal_disk_error;
 	j->error = storage_error(boost::asio::error::operation_aborted);
 	j->flags |= aux::disk_job::aborted;
 #if TORRENT_USE_ASSERTS

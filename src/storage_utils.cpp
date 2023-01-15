@@ -123,7 +123,7 @@ namespace libtorrent { namespace aux {
 		, std::function<void(std::string const&, error_code&)> const& move_partfile
 		, move_flags_t const flags, storage_error& ec)
 	{
-		status_t ret = status_t::no_error;
+		status_t ret{};
 		std::string const new_save_path = complete(destination_save_path);
 
 		// check to see if any of the files exist
@@ -146,7 +146,7 @@ namespace libtorrent { namespace aux {
 						ec.ec = err;
 						ec.file(i);
 						ec.operation = operation_t::file_stat;
-						return { status_t::file_exist, save_path };
+						return { disk_status::file_exist, save_path };
 					}
 				}
 			}
@@ -165,7 +165,7 @@ namespace libtorrent { namespace aux {
 					ec.ec = err;
 					ec.file(file_index_t(-1));
 					ec.operation = operation_t::mkdir;
-					return { status_t::fatal_disk_error, save_path };
+					return { disk_status::fatal_disk_error, save_path };
 				}
 			}
 			else if (err)
@@ -173,7 +173,7 @@ namespace libtorrent { namespace aux {
 				ec.ec = err;
 				ec.file(file_index_t(-1));
 				ec.operation = operation_t::file_stat;
-				return { status_t::fatal_disk_error, save_path };
+				return { disk_status::fatal_disk_error, save_path };
 			}
 		}
 
@@ -194,7 +194,7 @@ namespace libtorrent { namespace aux {
 			error_code ignore;
 			if (flags == move_flags_t::dont_replace && exists(new_path, ignore))
 			{
-				if (ret == status_t::no_error) ret = status_t::need_full_check;
+				ret |= disk_status::need_full_check;
 				continue;
 			}
 
@@ -259,7 +259,7 @@ namespace libtorrent { namespace aux {
 				move_file(new_path, old_path, ignore);
 			}
 
-			return { status_t::fatal_disk_error, save_path };
+			return { disk_status::fatal_disk_error, save_path };
 		}
 
 		// TODO: 2 technically, this is where the transaction of moving the files

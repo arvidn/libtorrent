@@ -20,7 +20,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
-#include "libtorrent/storage_defs.hpp" // for status_t
+#include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
 

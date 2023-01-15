@@ -192,7 +192,7 @@ struct temp_disk_io final : lt::disk_interface
 		, std::function<void(lt::status_t, std::string const&, lt::storage_error const&)> handler) override
 	{
 		post(m_ioc, [=]{
-			handler(lt::status_t::fatal_disk_error, p
+			handler(lt::disk_status::fatal_disk_error, p
 				, lt::storage_error(lt::error_code(boost::system::errc::operation_not_supported, lt::system_category())));
 		});
 	}
@@ -210,7 +210,7 @@ struct temp_disk_io final : lt::disk_interface
 		, lt::aux::vector<std::string, lt::file_index_t>
 		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
 	{
-		post(m_ioc, [=]{ handler(lt::status_t::no_error, lt::storage_error()); });
+		post(m_ioc, [=]{ handler(lt::status_t{}, lt::storage_error()); });
 	}
 
 	void async_rename_file(lt::storage_index_t

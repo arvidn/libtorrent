@@ -310,7 +310,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			{
 				use_partfile(i, false);
 				if (size > fs.file_size(i))
-					ret = ret | status_t::oversized_file;
+					ret |= disk_status::oversized_file;
 			}
 			else
 			{
@@ -326,7 +326,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			, [&sett, this](file_index_t const file_index, storage_error& e)
 			{ open_file(sett, file_index, aux::open_mode::write, e); }
 			, aux::create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
+			, [&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; }
 			, ec);
 
 		// close files that were opened in write mode

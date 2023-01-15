@@ -1957,7 +1957,7 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
-			on_resume_data_checked(status_t::no_error, storage_error{});
+			on_resume_data_checked({}, storage_error{});
 		}
 
 		update_want_peers();
@@ -2011,7 +2011,7 @@ bool is_downloading_state(int const st)
 		return m_outgoing_pids.count(pid) > 0;
 	}
 
-	void torrent::on_resume_data_checked(status_t status
+	void torrent::on_resume_data_checked(status_t const status
 		, storage_error const& error) try
 	{
 #if TORRENT_USE_ASSERTS
@@ -2031,15 +2031,13 @@ bool is_downloading_state(int const st)
 
 		if (m_abort) return;
 
-		if ((status & status_t::oversized_file) != status_t{})
+		if (status & disk_status::oversized_file)
 		{
-			// clear the flag
-			status = status & ~status_t::oversized_file;
 			if (m_ses.alerts().should_post<oversized_file_alert>())
 				m_ses.alerts().emplace_alert<oversized_file_alert>(get_handle());
 		}
 
-		if (status == status_t::fatal_disk_error)
+		if (status & disk_status::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
 			handle_disk_error("check_resume_data", error);
@@ -2092,9 +2090,14 @@ bool is_downloading_state(int const st)
 #endif
 		}
 
+		bool const has_error_status
+			= (status & disk_status::fatal_disk_error)
+			|| (status & disk_status::need_full_check)
+			|| (status & disk_status::file_exist);
+
 		// only report this error if the user actually provided resume data
 		// (i.e. m_add_torrent_params->have_pieces)
-		if ((error || status != status_t::no_error)
+		if ((error || has_error_status)
 			&& m_add_torrent_params
 			&& aux::contains_resume_data(*m_add_torrent_params)
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
@@ -2108,10 +2111,10 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			if (status != status_t::no_error || error)
+			if (has_error_status || error)
 			{
 				debug_log("fastresume data rejected: ret: %d (%d) op: %s file: %d %s"
-					, static_cast<int>(status), error.ec.value()
+					, int(static_cast<std::uint8_t>(status)), error.ec.value()
 					, operation_name(error.operation)
 					, static_cast<int>(error.file())
 					, error.ec.message().c_str());
@@ -2123,11 +2126,11 @@ bool is_downloading_state(int const st)
 		}
 #endif
 
-		bool should_start_full_check = (status != status_t::no_error);
+		bool should_start_full_check = has_error_status;
 
 		// if we got a partial pieces bitfield, it means we were in the middle of
 		// checking this torrent. pick it up where we left off
-		if (status == status_t::no_error
+		if (!has_error_status
 			&& m_add_torrent_params
 			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_add_torrent_params->have_pieces.size() < m_torrent_file->num_pieces())
@@ -2141,7 +2144,7 @@ bool is_downloading_state(int const st)
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (status == status_t::no_error)
+		if (!has_error_status)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
@@ -2310,7 +2313,7 @@ bool is_downloading_state(int const st)
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_force_recheck(status_t status, storage_error const& error) try
+	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2319,10 +2322,8 @@ bool is_downloading_state(int const st)
 
 		if (m_abort) return;
 
-		if ((status & status_t::oversized_file) != status_t{})
+		if (status & disk_status::oversized_file)
 		{
-			// clear the flag
-			status = status & ~status_t::oversized_file;
 			if (m_ses.alerts().should_post<oversized_file_alert>())
 				m_ses.alerts().emplace_alert<oversized_file_alert>(get_handle());
 		}
@@ -2332,7 +2333,11 @@ bool is_downloading_state(int const st)
 			handle_disk_error("force_recheck", error);
 			return;
 		}
-		if (status == status_t::no_error)
+		bool const has_error_status
+			= (status & disk_status::fatal_disk_error)
+			|| (status & disk_status::need_full_check)
+			|| (status & disk_status::file_exist);
+		if (!has_error_status)
 		{
 			// if there are no files, just start
 			files_checked();
@@ -8661,14 +8666,17 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 
 		m_moving_storage = false;
-		if (status == status_t::no_error
-			|| status == status_t::need_full_check)
+		bool const has_error_status
+			= (status & disk_status::fatal_disk_error)
+			|| (status & disk_status::file_exist);
+
+		if (!has_error_status)
 		{
 			if (alerts().should_post<storage_moved_alert>())
 				alerts().emplace_alert<storage_moved_alert>(get_handle(), path, m_save_path);
 			m_save_path = path;
 			set_need_save_resume();
-			if (status == status_t::need_full_check)
+			if (status & disk_status::need_full_check)
 				force_recheck();
 		}
 		else

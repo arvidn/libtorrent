@@ -544,7 +544,7 @@ struct test_disk_io final : lt::disk_interface
 	{
 		TORRENT_ASSERT(m_files);
 		post(m_ioc, [=]{
-			handler(lt::status_t::fatal_disk_error, p
+			handler(lt::disk_status::fatal_disk_error, p
 				, lt::storage_error(lt::error_code(boost::system::errc::operation_not_supported, lt::system_category())));
 		});
 	}
@@ -573,14 +573,14 @@ struct test_disk_io final : lt::disk_interface
 	{
 		TORRENT_ASSERT(m_files);
 
-		auto ret = lt::status_t::need_full_check;
+		auto ret = lt::disk_status::need_full_check;
 		if (p && p->flags & lt::torrent_flags::seed_mode)
-			ret = lt::status_t::no_error;
+			ret = lt::status_t{};
 		else if (m_state.files == existing_files_mode::no_files)
-			ret = lt::status_t::no_error;
+			ret = lt::status_t{};
 
 		if (p && lt::aux::contains_resume_data(*p))
-			ret = lt::status_t::no_error;
+			ret = lt::status_t{};
 
 		queue_event(lt::microseconds(1), [this,ret,h=std::move(handler)] () mutable {
 			post(m_ioc, [ret,h=std::move(h)] { h(ret, lt::storage_error()); });

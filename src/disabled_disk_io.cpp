@@ -97,7 +97,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler), path = std::move(p)] () mutable
-			{ h(status_t::no_error, std::move(path), storage_error{}); });
+			{ h(status_t{}, std::move(path), storage_error{}); });
 	}
 
 	void async_release_files(storage_index_t, std::function<void()> handler) override
@@ -116,7 +116,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		, aux::vector<std::string, file_index_t>
 		, std::function<void(status_t, storage_error const&)> handler) override
 	{
-		post(m_ios, [h = std::move(handler)] { h(status_t::no_error, storage_error{}); });
+		post(m_ios, [h = std::move(handler)] { h(status_t{}, storage_error{}); });
 	}
 
 	void async_rename_file(storage_index_t

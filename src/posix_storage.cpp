@@ -294,7 +294,7 @@ namespace aux {
 	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
 		, move_flags_t const flags, storage_error& ec)
 	{
-		lt::status_t ret;
+		lt::status_t ret{};
 		auto move_partfile = [&](std::string const& new_save_path, error_code& e)
 		{
 			if (!m_part_file) return;
@@ -379,7 +379,7 @@ namespace aux {
 			stat_file(file_path, &s, err);
 
 			if (s.file_size > fs.file_size(i))
-				ret = ret | status_t::oversized_file;
+				ret |= disk_status::oversized_file;
 
 			if (!err)
 			{
@@ -395,7 +395,7 @@ namespace aux {
 			, [this](file_index_t const file_index, storage_error& e)
 			{ open_file(file_index, aux::open_mode::write, 0, e); }
 			, aux::create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
+			, [&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; }
 			, ec);
 		return ret;
 	}
