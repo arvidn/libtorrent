@@ -54,13 +54,13 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 } // anonymous namespace
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
+void test_transfer(lt::session& ses, lt::add_torrent_params p
 	, int proxy, char const* protocol, bool url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
 {
 	using namespace lt;
 
-	TORRENT_ASSERT(torrent_file->web_seeds().size() > 0);
+	TORRENT_ASSERT(p.url_seeds.size() > 0);
 
 	std::string save_path = "tmp2_web_seed";
 	save_path += proxy_name[proxy];
@@ -109,7 +109,6 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	}
 	ses.apply_settings(pack);
 
-	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 
@@ -117,19 +116,18 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	// which files are requested from the web server is consistent. Any specific
 	// scenario that needs testing should be an explicit test case
 	p.flags |= torrent_flags::sequential_download;
-	p.ti = torrent_file;
 	p.save_path = save_path;
 	torrent_handle th = ses.add_torrent(p, ec);
 	std::printf("adding torrent, save_path = \"%s\" cwd = \"%s\" torrent = \"%s\"\n"
 		, save_path.c_str(), current_working_directory().c_str()
-		, torrent_file->name().c_str());
+		, p.ti->name().c_str());
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
 
-	const std::int64_t total_size = torrent_file->total_size();
+	std::int64_t const total_size = p.ti->total_size();
 
-	file_storage const& fs = torrent_file->files();
+	file_storage const& fs = p.ti->files();
 	int pad_file_size = 0;
 	for (auto const i : fs.file_range())
 	{
@@ -184,7 +182,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		// the url seed (i.e. banned it)
 		// torrents that don't have very many pieces will not ban the web seeds,
 		// since they won't have an opportunity to accrue enough negative points
-		if (torrent_file->files().num_pieces() > 3)
+		if (p.ti->files().num_pieces() > 3)
 			TEST_CHECK(th.url_seeds().empty());
 	}
 	else
@@ -324,11 +322,11 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 	{
 		std::printf("\n\n ====  test case %d ====\n\n\n", idx++);
 
-		std::shared_ptr<torrent_info> torrent_file = make_test_torrent(c);
+		lt::add_torrent_params atp = make_test_torrent(c);
 
 		// if test_ban is true, we create the files with alternate content (that
 		// doesn't match the hashes in the .torrent file)
-		generate_files(*torrent_file, save_path, test_ban);
+		generate_files(*atp.ti, save_path, test_ban);
 
 		if (ec)
 		{
@@ -349,13 +347,13 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 			pack.set_bool(settings_pack::enable_dht, false);
 			lt::session ses(session_params{pack, {}});
 
-			test_transfer(ses, torrent_file, proxy, protocol, true
+			test_transfer(ses, atp, proxy, protocol, true
 				, chunked_encoding, test_ban, keepalive, proxy_peers);
 
 			if (test_rename)
 			{
-				torrent_file->rename_file(0_file, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
-				test_transfer(ses, torrent_file, 0, protocol, true
+				atp.renamed_files.emplace(0_file, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
+				test_transfer(ses, atp, 0, protocol, true
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}
 		}

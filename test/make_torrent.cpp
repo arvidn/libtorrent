@@ -15,12 +15,13 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
 
 using namespace lt;
 
-std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
+lt::add_torrent_params make_test_torrent(torrent_args const& args)
 {
 	entry e;
 
@@ -139,11 +140,7 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 
 	std::vector<char> const tmp = bencode(e);
 
-	FILE* f = fopen("test.torrent", "w+");
-	fwrite(&tmp[0], 1, tmp.size(), f);
-	fclose(f);
-
-	return std::make_shared<torrent_info>(tmp, from_span);
+	return lt::load_torrent_buffer(tmp);
 }
 
 void generate_files(lt::torrent_info const& ti, std::string const& path
