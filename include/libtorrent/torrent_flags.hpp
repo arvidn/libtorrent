@@ -163,6 +163,7 @@ namespace torrent_flags {
 	// has been downloaded, instead set all file priorities to dont_download
 	constexpr torrent_flags_t stop_when_ready = 10_bit;
 
+#if TORRENT_ABI_VERSION < 4
 	// when this flag is set, the tracker list in the add_torrent_params
 	// object override any trackers from the torrent file. If the flag is
 	// not set, the trackers from the add_torrent_params object will be
@@ -173,7 +174,12 @@ namespace torrent_flags {
 	// there's an empty list of trackers, to support the case where they were
 	// explicitly removed in the previous session.
 	// This flag is not saved by write_resume_data()
-	constexpr torrent_flags_t override_trackers = 11_bit;
+	TORRENT_DEPRECATED constexpr torrent_flags_t override_trackers = 11_bit;
+#endif
+
+	// hidden
+	// this is used for the transition away from storing trackers in torrent_info
+	constexpr torrent_flags_t deprecated_override_trackers = 11_bit;
 
 #if TORRENT_ABI_VERSION < 4
 	// If this flag is set, the web seeds from the add_torrent_params

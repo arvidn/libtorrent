@@ -217,6 +217,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// the current one.
 		void remap_files(file_storage const& f);
 
+#if TORRENT_ABI_VERSION < 4
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
 		// The ``trackers()`` function will return a sorted vector of
@@ -229,11 +230,20 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``trackers()`` returns all entries from announce-list.
 		//
 		// ``clear_trackers()`` removes all trackers from announce-list.
+		TORRENT_DEPRECATED
 		void add_tracker(std::string const& url, int tier = 0);
+		TORRENT_DEPRECATED
 		void add_tracker(std::string const& url, int tier
 			, announce_entry::tracker_source source);
+		TORRENT_DEPRECATED
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
+		TORRENT_DEPRECATED
 		void clear_trackers();
+#endif
+
+		// internal
+		std::vector<announce_entry> const& internal_trackers() const { return m_urls; }
+		void internal_clear_trackers() { m_urls.clear(); }
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and

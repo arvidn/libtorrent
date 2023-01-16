@@ -447,6 +447,7 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(add_tracker)
 {
 	torrent_info ti(info_hash_t(sha1_hash("                   ")));
@@ -462,7 +463,6 @@ TORRENT_TEST(add_tracker)
 	TEST_EQUAL(ti.trackers().size(), 0);
 }
 
-#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(url_list_duplicate)
 {
 	entry info;
@@ -997,10 +997,10 @@ TORRENT_TEST(parse_torrents)
 		lt::add_torrent_params atp = lt::load_torrent_file(filename);
 		sanity_check(atp.ti);
 
+#if TORRENT_ABI_VERSION < 4
 		// trackers are loaded into atp.trackers
 		TEST_CHECK(atp.ti->trackers().empty());
 
-#if TORRENT_ABI_VERSION < 4
 		// web seeds are loaded into atp.url_seeds
 		TEST_CHECK(atp.ti->web_seeds().empty());
 #endif

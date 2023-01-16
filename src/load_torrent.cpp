@@ -18,12 +18,12 @@ namespace libtorrent {
 namespace {
 	void update_atp(std::shared_ptr<torrent_info> ti, add_torrent_params& atp)
 	{
-		for (auto const& ae : ti->trackers())
+		for (auto const& ae : ti->internal_trackers())
 		{
 			atp.trackers.push_back(ae.url);
 			atp.tracker_tiers.push_back(ae.tier);
 		}
-		ti->clear_trackers();
+		ti->internal_clear_trackers();
 
 		for (auto const& ws : ti->internal_web_seeds())
 		{

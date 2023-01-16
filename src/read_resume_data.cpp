@@ -282,7 +282,7 @@ namespace {
 			// resume data with an empty trackers list. Since we found a trackers
 			// list here, these should replace whatever we find in the .torrent
 			// file.
-			ret.flags |= torrent_flags::override_trackers;
+			ret.flags |= torrent_flags::deprecated_override_trackers;
 
 			int tier = 0;
 			for (int i = 0; i < trackers.list_size(); ++i)

@@ -1672,6 +1672,7 @@ namespace {
 		return true;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	void torrent_info::add_tracker(std::string const& url, int const tier)
 	{
 		add_tracker(url, tier, announce_entry::source_client);
@@ -1699,6 +1700,7 @@ namespace {
 	{
 		m_urls.clear();
 	}
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 	std::vector<std::string> torrent_info::url_seeds() const

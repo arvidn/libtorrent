@@ -705,12 +705,12 @@ TORRENT_TEST(websocket_tracker)
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
+	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "ws://127.0.0.1:%d/announce"
 		, http_port);
-	t->add_tracker(tracker_url, 0);
+	addp.trackers.push_back(tracker_url);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;

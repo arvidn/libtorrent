@@ -37,6 +37,7 @@ namespace
         return ti.piece_size(i);
     }
 
+#if TORRENT_ABI_VERSION < 4
     std::vector<announce_entry>::const_iterator begin_trackers(torrent_info& i)
     {
         return i.trackers().begin();
@@ -46,6 +47,7 @@ namespace
     {
         return i.trackers().end();
     }
+#endif
 
     void add_node(torrent_info& ti, char const* hostname, int port)
     {
@@ -398,7 +400,9 @@ void bind_torrent_info()
         .value("source_tex", announce_entry::source_tex)
     ;
 
+#if TORRENT_ABI_VERSION < 4
     using add_tracker1 = void (torrent_info::*)(std::string const&, int, announce_entry::tracker_source);
+#endif
 
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
         .def(init<info_hash_t const&>(arg("info_hash")))
@@ -413,10 +417,10 @@ void bind_torrent_info()
         .def("__init__", make_constructor(&sha1_constructor0))
         .def("__init__", make_constructor(&sha256_constructor0))
 
+#if TORRENT_ABI_VERSION < 4
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker
             , (arg("url"), arg("tier") = 0
             , arg("source") = announce_entry::source_client))
-#if TORRENT_ABI_VERSION < 4
         .def("add_url_seed", &torrent_info::add_url_seed, (arg("url")
             , arg("extern_auth") = std::string{}
             , arg("extra_headers") = web_seed_entry::headers_t{}))
@@ -461,7 +465,9 @@ void bind_torrent_info()
 #if TORRENT_ABI_VERSION <= 2
         .def("is_merkle_torrent", depr(&torrent_info::is_merkle_torrent))
 #endif
+#if TORRENT_ABI_VERSION < 4
         .def("trackers", range(begin_trackers, end_trackers))
+#endif
 
         .def("creation_date", &torrent_info::creation_date)
 

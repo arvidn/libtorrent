@@ -1079,8 +1079,8 @@ void bind_session()
     s.attr("super_seeding") = torrent_flags::super_seeding;
     s.attr("sequential_download") = torrent_flags::sequential_download;
     s.attr("stop_when_ready") = torrent_flags::stop_when_ready;
-    s.attr("override_trackers") = torrent_flags::override_trackers;
 #if TORRENT_ABI_VERSION < 4
+    s.attr("override_trackers") = torrent_flags::override_trackers;
     s.attr("override_web_seeds") = torrent_flags::override_web_seeds;
 #endif
     s.attr("disable_dht") = torrent_flags::disable_dht;

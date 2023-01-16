@@ -1628,7 +1628,10 @@ void test_tracker_tiers(lt::settings_pack pack
 	params.flags &= ~lt::torrent_flags::paused;
 
 	for (auto const& t : trackers)
-		params.ti->add_tracker("http://" + t.url + ":8080/announce", t.tier);
+	{
+		params.trackers.push_back("http://" + t.url + ":8080/announce");
+		params.tracker_tiers.push_back(t.tier);
+	}
 
 	params.save_path = save_path(0);
 	ses->async_add_torrent(params);
