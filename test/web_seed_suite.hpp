@@ -14,7 +14,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 	, bool keepalive = true, bool test_rename = false, bool proxy_peers = true);
 
 void EXPORT test_transfer(lt::session& ses
-	, std::shared_ptr<lt::torrent_info> torrent_file
+	, lt::add_torrent_params atp
 	, int proxy = 0, char const* protocol = "http"
 	, bool url_seed = true, bool chunked_encoding = false
 	, bool test_ban = false, bool keepalive = true, bool proxy_peers = true);

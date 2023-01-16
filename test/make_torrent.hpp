@@ -38,8 +38,7 @@ struct torrent_args
 	std::string m_collection;
 };
 
-EXPORT std::shared_ptr<lt::torrent_info>
-	make_test_torrent(torrent_args const& args);
+EXPORT lt::add_torrent_params make_test_torrent(torrent_args const& args);
 
 EXPORT void generate_files(lt::torrent_info const& ti, std::string const& path, bool random = false);
 

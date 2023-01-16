@@ -171,11 +171,9 @@ TORRENT_TEST(pick_up_existing_file)
 		.file("1348,name=cruft-2")
 		.name("test-1")
 		.collection("test-collection");
-	auto seeding_torrent = make_test_torrent(a);
-	generate_files(*seeding_torrent, ".");
+	auto atp = make_test_torrent(a);
+	generate_files(*atp.ti, ".");
 
-	lt::add_torrent_params atp;
-	atp.ti = seeding_torrent;
 	atp.save_path = ".";
 	ses.add_torrent(atp);
 
@@ -189,9 +187,8 @@ TORRENT_TEST(pick_up_existing_file)
 		.file("40346,name=cruft-4")
 		.name("test-2")
 		.collection("test-collection");
-	auto downloading_torrent = make_test_torrent(b);
-
-	atp.ti = downloading_torrent;
+	atp = make_test_torrent(b);
+	atp.save_path = ".";
 	auto handle = ses.add_torrent(atp);
 
 	wait_for_downloading(ses, "add-downloader");

@@ -16,7 +16,7 @@ see LICENSE file.
 #include "settings.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 
@@ -59,7 +59,7 @@ TORRENT_TEST(web_seed_redirect)
 	}
 
 	std::vector<char> const buf = bencode(t.generate());
-	auto torrent_file = std::make_shared<torrent_info>(buf, ec, from_span);
+	lt::add_torrent_params atp = load_torrent_buffer(buf);
 
 	{
 		settings_pack p = settings();
@@ -68,7 +68,7 @@ TORRENT_TEST(web_seed_redirect)
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)
-		test_transfer(ses, torrent_file, 0, "http", true, false, false, false);
+		test_transfer(ses, atp, 0, "http", true, false, false, false);
 	}
 
 	stop_web_server();
