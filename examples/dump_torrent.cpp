@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/span.hpp"
@@ -114,27 +114,36 @@ int main(int argc, char const* argv[]) try
 		}
 	}
 
-	lt::torrent_info const t(filename, cfg);
+	lt::add_torrent_params const atp = lt::load_torrent_file(filename, cfg);
 
 	// print info about torrent
-	if (!t.nodes().empty())
+	if (!atp.dht_nodes.empty())
 	{
 		std::printf("nodes:\n");
-		for (auto const& i : t.nodes())
+		for (auto const& i : atp.dht_nodes)
 			std::printf("%s: %d\n", i.first.c_str(), i.second);
 	}
 
-	if (!t.trackers().empty())
+	if (!atp.trackers.empty())
 	{
 		puts("trackers:\n");
-		for (auto const& i : t.trackers())
-			std::printf("%2d: %s\n", i.tier, i.url.c_str());
+		auto tier_it = atp.tracker_tiers.begin();
+		int tier = 0;
+		for (auto const& i : atp.trackers)
+		{
+			if (tier_it != atp.tracker_tiers.end())
+			{
+				tier = *tier_it;
+				++tier_it;
+			}
+			std::printf("%2d: %s\n", tier, i.c_str());
+		}
 	}
 
 	std::stringstream ih;
-	ih << t.info_hashes().v1;
-	if (t.info_hashes().has_v2())
-		ih << ", " << t.info_hashes().v2;
+	ih << atp.info_hashes.v1;
+	if (atp.info_hashes.has_v2())
+		ih << ", " << atp.info_hashes.v2;
 	std::printf("number of pieces: %d\n"
 		"piece length: %d\n"
 		"info hash: %s\n"
@@ -144,15 +153,15 @@ int main(int argc, char const* argv[]) try
 		"name: %s\n"
 		"number of files: %d\n"
 		"files:\n"
-		, t.num_pieces()
-		, t.piece_length()
+		, atp.ti->num_pieces()
+		, atp.ti->piece_length()
 		, ih.str().c_str()
-		, t.comment().c_str()
-		, t.creator().c_str()
-		, make_magnet_uri(t).c_str()
-		, t.name().c_str()
-		, t.num_files());
-	lt::file_storage const& st = t.files();
+		, atp.ti->comment().c_str()
+		, atp.ti->creator().c_str()
+		, make_magnet_uri(atp).c_str()
+		, atp.name.c_str()
+		, atp.ti->num_files());
+	lt::file_storage const& st = atp.ti->files();
 	for (auto const i : st.file_range())
 	{
 		auto const first = st.map_file(i, 0, 0).piece;
@@ -178,12 +187,8 @@ int main(int argc, char const* argv[]) try
 			, (flags & lt::file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
 	}
 	std::printf("web seeds:\n");
-	for (auto const& ws : t.web_seeds())
-	{
-		std::printf("%s %s\n"
-			, ws.type == lt::web_seed_entry::url_seed ? "BEP19" : "BEP17"
-			, ws.url.c_str());
-	}
+	for (auto const& ws : atp.url_seeds)
+		std::printf("%s\n", ws.c_str());
 
 	return 0;
 }
