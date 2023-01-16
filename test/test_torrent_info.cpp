@@ -49,8 +49,7 @@ TORRENT_TEST(mutable_torrents)
 	t.add_similar_torrent(sha1_hash("abababababababababab"));
 	t.add_similar_torrent(sha1_hash("babababababababababa"));
 
-	entry tor = t.generate();
-	std::vector<char> const tmp = bencode(tor);
+	std::vector<char> const tmp = t.generate_buf();
 
 	torrent_info ti(tmp, from_span);
 
@@ -1182,7 +1181,7 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	for (auto const i : t.piece_range())
 		t.set_hash(i, sha1_hash::max());
 
-	std::vector<char> const tmp = bencode(t.generate());
+	std::vector<char> const tmp = t.generate_buf();
 	torrent_info ti(tmp, from_span);
 	for (auto const i : t.file_range())
 	{

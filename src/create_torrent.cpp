@@ -890,6 +890,14 @@ TORRENT_VERSION_NAMESPACE_4
 					if (attrs) info.add("attr", *attrs);
 				}
 
+				if (!m_collections.empty())
+				{
+					info.add_key("collections");
+					list coll(ret);
+					for (auto const& c : m_collections)
+						coll.add(c);
+				}
+
 				if (make_v2)
 				{
 					info.add_key("file tree");
@@ -1058,6 +1066,14 @@ TORRENT_VERSION_NAMESPACE_4
 				if (m_private)
 					info.add("private", 1);
 
+				if (!m_similar.empty())
+				{
+					info.add_key("similar");
+					list sim(ret);
+					for (auto const& ih : m_similar)
+						sim.add(ih.to_string());
+				}
+
 				if (!m_root_cert.empty())
 					info.add("ssl-cert", m_root_cert);
 
@@ -1141,7 +1157,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 #if TORRENT_USE_ASSERTS
 		try {
-			TORRENT_ASSERT(ret == bencode(generate()));
+			auto const expected = bencode(generate());
+			TORRENT_ASSERT(ret == expected);
 		} catch (...)
 		{
 			TORRENT_ASSERT_FAIL();
