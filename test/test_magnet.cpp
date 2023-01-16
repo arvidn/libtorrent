@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "settings.hpp"
 #include "test_utils.hpp" // for _pri
+#include "libtorrent/load_torrent.hpp"
 
 using namespace lt;
 
@@ -386,12 +387,11 @@ TORRENT_TEST(make_magnet_uri)
 	std::vector<char> buf = bencode(torrent);
 	buf.push_back('\0');
 	std::printf("%s\n", &buf[0]);
-	error_code ec;
-	torrent_info ti(buf, ec, from_span);
+	lt::add_torrent_params atp = lt::load_torrent_buffer(buf);
 
-	TEST_EQUAL(al.size(), ti.trackers().size());
+	TEST_EQUAL(al.size(), atp.trackers.size());
 
-	std::string magnet = make_magnet_uri(ti);
+	std::string magnet = make_magnet_uri(*atp.ti);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 }
 

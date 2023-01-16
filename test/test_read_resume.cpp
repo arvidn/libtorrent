@@ -308,7 +308,7 @@ TORRENT_TEST(round_trip_unfinished)
 TORRENT_TEST(round_trip_trackers)
 {
 	add_torrent_params atp;
-	atp.flags |= torrent_flags::override_trackers;
+	atp.flags |= torrent_flags::deprecated_override_trackers;
 	test_roundtrip(atp);
 }
 
@@ -333,8 +333,8 @@ TORRENT_TEST(round_trip_flags)
 		torrent_flags::super_seeding,
 		torrent_flags::sequential_download,
 		torrent_flags::stop_when_ready,
-		torrent_flags::override_trackers,
 #if TORRENT_ABI_VERSION < 4
+		torrent_flags::override_trackers,
 		torrent_flags::override_web_seeds,
 #endif
 		torrent_flags::need_save_resume,

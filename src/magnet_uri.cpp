@@ -68,8 +68,8 @@ namespace libtorrent {
 		add_torrent_params atp;
 		atp.info_hashes = info.info_hashes();
 		atp.name = info.name();
-		atp.trackers.reserve(info.trackers().size());
-		for (auto const& tr : info.trackers())
+		atp.trackers.reserve(info.internal_trackers().size());
+		for (auto const& tr : info.internal_trackers())
 			atp.trackers.emplace_back(tr.url);
 		for (auto const& s : info.internal_web_seeds())
 			atp.url_seeds.emplace_back(s.url);

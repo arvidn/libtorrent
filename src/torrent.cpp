@@ -284,9 +284,9 @@ bool is_downloading_state(int const st)
 		// --- TRACKERS ---
 
 		// if override trackers flag is set, don't load trackers from torrent file
-		if (!(p.flags & torrent_flags::override_trackers))
+		if (!(p.flags & torrent_flags::deprecated_override_trackers))
 		{
-			m_trackers.replace(m_torrent_file->trackers());
+			m_trackers.replace(m_torrent_file->internal_trackers());
 		}
 
 		int tier = 0;
@@ -582,7 +582,7 @@ bool is_downloading_state(int const st)
 				, ""
 #endif
 				, m_sequential_download ? "sequential-download " : ""
-				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
+				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::deprecated_override_trackers)
 					? "override-trackers "  : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::deprecated_override_web_seeds)
 					? "override-web-seeds " : ""
