@@ -462,6 +462,7 @@ TORRENT_TEST(add_tracker)
 	TEST_EQUAL(ti.trackers().size(), 0);
 }
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(url_list_duplicate)
 {
 	entry info;
@@ -511,6 +512,7 @@ TORRENT_TEST(set_web_seeds)
 	TEST_EQUAL(ti.web_seeds().size(), 2);
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
+#endif
 
 TORRENT_TEST(sanitize_path_truncate)
 {
@@ -998,8 +1000,10 @@ TORRENT_TEST(parse_torrents)
 		// trackers are loaded into atp.trackers
 		TEST_CHECK(atp.ti->trackers().empty());
 
+#if TORRENT_ABI_VERSION < 4
 		// web seeds are loaded into atp.url_seeds
 		TEST_CHECK(atp.ti->web_seeds().empty());
+#endif
 
 		// piece layers are loaded into atp.merkle_trees and
 		// atp.merkle_trees_mask

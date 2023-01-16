@@ -62,6 +62,7 @@ namespace
         return result;
     }
 
+#if TORRENT_ABI_VERSION < 4
     list get_web_seeds(torrent_info const& ti)
     {
         std::vector<web_seed_entry> const& ws = ti.web_seeds();
@@ -91,6 +92,7 @@ namespace
         }
         ti.set_web_seeds(web_seeds);
     }
+#endif
 
 #if TORRENT_ABI_VERSION <= 2
     list get_merkle_tree(torrent_info const& ti)
@@ -414,16 +416,16 @@ void bind_torrent_info()
         .def("add_tracker", (add_tracker1)&torrent_info::add_tracker
             , (arg("url"), arg("tier") = 0
             , arg("source") = announce_entry::source_client))
+#if TORRENT_ABI_VERSION < 4
         .def("add_url_seed", &torrent_info::add_url_seed, (arg("url")
             , arg("extern_auth") = std::string{}
             , arg("extra_headers") = web_seed_entry::headers_t{}))
-#if TORRENT_ABI_VERSION < 4
         .def("add_http_seed", depr(&torrent_info::add_http_seed), (arg("url")
             , arg("extern_auth") = std::string{}
             , arg("extra_headers") = web_seed_entry::headers_t{}))
-#endif
         .def("web_seeds", get_web_seeds)
         .def("set_web_seeds", set_web_seeds)
+#endif
 
         .def("name", &torrent_info::name, copy)
         .def("comment", &torrent_info::comment, copy)

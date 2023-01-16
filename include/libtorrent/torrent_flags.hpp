@@ -175,6 +175,7 @@ namespace torrent_flags {
 	// This flag is not saved by write_resume_data()
 	constexpr torrent_flags_t override_trackers = 11_bit;
 
+#if TORRENT_ABI_VERSION < 4
 	// If this flag is set, the web seeds from the add_torrent_params
 	// object will override any web seeds in the torrent file. If it's not
 	// set, web seeds in the add_torrent_params object will be added to the
@@ -185,7 +186,12 @@ namespace torrent_flags {
 	// there's an empty list of web seeds, to support the case where they were
 	// explicitly removed in the previous session.
 	// This flag is not saved by write_resume_data()
-	constexpr torrent_flags_t override_web_seeds = 12_bit;
+	TORRENT_DEPRECATED constexpr torrent_flags_t override_web_seeds = 12_bit;
+#endif
+
+	// hidden
+	// this is used for the transition away from storing web seeds in torrent_info
+	constexpr torrent_flags_t deprecated_override_web_seeds = 12_bit;
 
 	// if this flag is set (which it is by default) the torrent will be
 	// considered needing to save its resume data immediately as it's

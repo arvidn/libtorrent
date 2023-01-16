@@ -309,7 +309,7 @@ namespace {
 		{
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
-			ret.flags |= torrent_flags::override_web_seeds;
+			ret.flags |= torrent_flags::deprecated_override_web_seeds;
 			for (int i = 0; i < url_list.list_size(); ++i)
 			{
 				auto url = url_list.list_string_value_at(i);

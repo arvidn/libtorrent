@@ -255,9 +255,9 @@ bool is_downloading_state(int const st)
 		// if override web seed flag is set, don't load any web seeds from the
 		// torrent file.
 		std::vector<web_seed_t> ws;
-		if (!(p.flags & torrent_flags::override_web_seeds))
+		if (!(p.flags & torrent_flags::deprecated_override_web_seeds))
 		{
-			for (auto const& e : m_torrent_file->web_seeds())
+			for (auto const& e : m_torrent_file->internal_web_seeds())
 				ws.emplace_back(e);
 		}
 
@@ -584,7 +584,7 @@ bool is_downloading_state(int const st)
 				, m_sequential_download ? "sequential-download " : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_trackers)
 					? "override-trackers "  : ""
-				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::override_web_seeds)
+				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::deprecated_override_web_seeds)
 					? "override-web-seeds " : ""
 				, m_save_path.c_str()
 				);

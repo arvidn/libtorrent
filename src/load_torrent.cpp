@@ -25,7 +25,7 @@ namespace {
 		}
 		ti->clear_trackers();
 
-		for (auto const& ws : ti->web_seeds())
+		for (auto const& ws : ti->internal_web_seeds())
 		{
 #if TORRENT_ABI_VERSION < 4
 			if (ws.type == web_seed_entry::url_seed)

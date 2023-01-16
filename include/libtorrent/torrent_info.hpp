@@ -251,6 +251,9 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<std::string> http_seeds() const;
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION < 4
+		// Deprecated. Add and query web seeds from add_torrent_params instead.
+		//
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
 		// Each entry is a ``web_seed_entry`` and may refer to either a url seed
 		// or http seed.
@@ -270,12 +273,14 @@ TORRENT_VERSION_NAMESPACE_3
 		// seed.
 		//
 		// See http-seeding_ for more information.
+		TORRENT_DEPRECATED
 		void add_url_seed(std::string const& url
 			, std::string const& ext_auth = std::string()
 			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
+		TORRENT_DEPRECATED
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
+		TORRENT_DEPRECATED
 		void set_web_seeds(std::vector<web_seed_entry> seeds);
-#if TORRENT_ABI_VERSION < 4
 		TORRENT_DEPRECATED
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
@@ -284,6 +289,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// internal
 		void clear_web_seeds() { m_web_seeds.clear(); }
+		std::vector<web_seed_entry> const& internal_web_seeds() const { return m_web_seeds; }
 
 		// ``total_size()`` returns the total number of bytes the torrent-file
 		// represents. Note that this is the number of pieces times the piece

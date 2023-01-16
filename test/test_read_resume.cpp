@@ -334,7 +334,9 @@ TORRENT_TEST(round_trip_flags)
 		torrent_flags::sequential_download,
 		torrent_flags::stop_when_ready,
 		torrent_flags::override_trackers,
+#if TORRENT_ABI_VERSION < 4
 		torrent_flags::override_web_seeds,
+#endif
 		torrent_flags::need_save_resume,
 		torrent_flags::disable_dht,
 		torrent_flags::disable_lsd,
