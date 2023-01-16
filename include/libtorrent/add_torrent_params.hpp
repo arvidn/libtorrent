@@ -272,7 +272,7 @@ TORRENT_VERSION_NAMESPACE_3
 		int num_downloaded = -1;
 
 		// URLs can be added to these two lists to specify additional web
-		// seeds to be used by the torrent. If the ``flag_override_web_seeds``
+		// seeds to be used by the torrent. If the ``override_web_seeds`` flag
 		// is set, these will be the _only_ ones to be used. i.e. any web seeds
 		// found in the .torrent file will be overridden.
 		//

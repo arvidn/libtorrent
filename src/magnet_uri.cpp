@@ -71,7 +71,7 @@ namespace libtorrent {
 		atp.trackers.reserve(info.trackers().size());
 		for (auto const& tr : info.trackers())
 			atp.trackers.emplace_back(tr.url);
-		for (auto const& s : info.web_seeds())
+		for (auto const& s : info.internal_web_seeds())
 			atp.url_seeds.emplace_back(s.url);
 
 		return make_magnet_uri(atp);
