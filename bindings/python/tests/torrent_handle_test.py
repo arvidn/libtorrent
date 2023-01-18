@@ -108,6 +108,7 @@ class TorrentHandleTest(unittest.TestCase):
         self.dir = tempfile.TemporaryDirectory()
         self.torrent = tdummy.get_default()
         self.atp = self.torrent.atp()
+        self.atp.flags |= lt.torrent_flags.auto_managed | lt.torrent_flags.paused
         self.atp.save_path = self.dir.name
         self.handle = self.session.add_torrent(self.atp)
 

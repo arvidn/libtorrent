@@ -224,7 +224,7 @@ void torrent_view::arrow_up()
 	if (m_active_torrent - 1 < m_scroll_position)
 	{
 		--m_active_torrent;
-		m_scroll_position = m_active_torrent;
+		m_scroll_position = std::max(0, m_active_torrent - 8);
 		TORRENT_ASSERT(m_scroll_position >= 0);
 		render();
 		return;
@@ -242,13 +242,14 @@ void torrent_view::arrow_up()
 void torrent_view::arrow_down()
 {
 	if (m_filtered_handles.empty()) return;
-	if (m_active_torrent >= int(m_filtered_handles.size()) - 1) return;
+	int const max_pos = int(m_filtered_handles.size()) - 1;
+	if (m_active_torrent >= max_pos) return;
 
 	int bottom_pos = m_height - header_size - 1;
 	if (m_active_torrent - m_scroll_position + 1 > bottom_pos)
 	{
 		++m_active_torrent;
-		m_scroll_position = m_active_torrent - bottom_pos;
+		m_scroll_position = std::min(max_pos, m_active_torrent + 8) - bottom_pos;
 		TORRENT_ASSERT(m_scroll_position >= 0);
 		render();
 		return;

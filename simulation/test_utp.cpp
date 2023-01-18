@@ -225,12 +225,12 @@ TORRENT_TEST(utp_small_kernel_send_buf)
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 190);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 786);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 785);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 795);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 793);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 66);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 809);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 807);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);

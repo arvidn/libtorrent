@@ -1743,9 +1743,10 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
         handle = self.session.add_torrent(self.atp)
         peer_handle = self.peer.add_torrent(self.peer_atp)
         handle.connect_peer(self.peer_endpoint)
+        wait_for(self.session, lt.peer_connect_alert, timeout=5)
         self.peer.remove_torrent(peer_handle)
 
-        alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=15)
+        alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.connect, "peer_disconnected")
         self.assert_torrent_alert(alert, handle)

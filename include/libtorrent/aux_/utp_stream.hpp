@@ -224,13 +224,15 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		, error_code const& ec, bool shutdown);
 	static void on_connect(utp_stream* self, error_code const& ec, bool shutdown);
 	static void on_close_reason(utp_stream* self, close_reason_t reason);
+	static void on_writeable(utp_stream* self, error_code const& ec);
 
 	void add_read_buffer(void* buf, int len);
 	void issue_read();
 	void add_write_buffer(void const* buf, int len);
 	bool check_fin_sent() const;
 	void issue_write();
-	std::size_t read_some(bool clear_buffers);
+	void subscribe_writeable();
+	std::size_t read_some(bool clear_buffers, error_code& ec);
 	std::size_t write_some(bool clear_buffers);
 
 	int send_delay() const;
@@ -305,6 +307,25 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_read();
 	}
 
+	template <class Handler>
+	void async_wait_read(Handler handler)
+	{
+		if (m_impl == nullptr)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler), boost::asio::error::not_connected, std::size_t(0)));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_read_handler);
+		if (m_read_handler)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler), boost::asio::error::operation_not_supported, std::size_t(0)));
+			return;
+		}
+		m_read_handler = std::move(handler);
+		issue_read();
+	}
+
 	template <class Protocol>
 	void open(Protocol const&, error_code&)
 	{ m_open = true; }
@@ -340,7 +361,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 			buf_size += i->size();
 #endif
 		}
-		std::size_t ret = read_some(true);
+		std::size_t ret = read_some(true, ec);
 		TORRENT_ASSERT(ret <= buf_size);
 		TORRENT_ASSERT(ret > 0);
 		return ret;
@@ -449,6 +470,35 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		issue_write();
 	}
 
+	template <class Handler>
+	void async_wait_write(Handler handler)
+	{
+		if (m_impl == nullptr)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::not_connected));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_writeable_handler);
+		if (m_writeable_handler)
+		{
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::operation_not_supported));
+			return;
+		}
+
+		if (check_fin_sent())
+		{
+			// we can't send more data after closing the socket
+			post(m_io_service, std::bind<void>(std::move(handler)
+				, boost::asio::error::broken_pipe));
+			return;
+		}
+		m_writeable_handler = std::move(handler);
+		subscribe_writeable();
+	}
+
 #if BOOST_VERSION >= 106600
 	// Compatiblity with the async_wait method introduced in boost 1.66
 
@@ -459,13 +509,11 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		switch(type)
 		{
 		case wait_read:
-			async_read_some(boost::asio::null_buffers()
-					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			async_wait_read([handler](error_code ec, size_t) { handler(std::move(ec)); });
 			break;
 
 		case wait_write:
-			async_write_some(boost::asio::null_buffers()
-					, [handler](error_code ec, size_t) { handler(std::move(ec)); });
+			async_wait_write(std::move(handler));
 			break;
 
 		case wait_error:
@@ -483,6 +531,7 @@ private:
 	std::function<void(error_code const&)> m_connect_handler;
 	std::function<void(error_code const&, std::size_t)> m_read_handler;
 	std::function<void(error_code const&, std::size_t)> m_write_handler;
+	std::function<void(error_code const&)> m_writeable_handler;
 
 	io_context& m_io_service;
 	utp_socket_impl* m_impl;
@@ -561,6 +610,7 @@ struct utp_socket_impl
 	bool should_delete() const;
 	tcp::endpoint remote_endpoint(error_code& ec) const;
 	std::size_t available() const;
+	void close();
 	// returns true if there were handlers cancelled
 	// if it returns false, we can detach immediately
 	bool destroy();
@@ -576,7 +626,7 @@ struct utp_socket_impl
 	enum packet_flags_t { pkt_ack = 1, pkt_fin = 2 };
 	bool send_pkt(int flags = 0);
 	bool resend_packet(packet* p, bool fast_resend = false);
-	void send_reset(utp_header const* ph);
+	void send_reset(std::uint16_t ack_nr);
 	std::pair<std::uint32_t, int> parse_sack(std::uint16_t packet_ack, std::uint8_t const* ptr
 		, int size, time_point now);
 	void parse_close_reason(std::uint8_t const* ptr, int size);
@@ -589,8 +639,9 @@ struct utp_socket_impl
 	void do_ledbat(int acked_bytes, int delay, int in_flight);
 	int packet_timeout() const;
 	bool test_socket_state();
-	void maybe_trigger_receive_callback();
-	void maybe_trigger_send_callback();
+	void maybe_trigger_receive_callback(error_code const& ec);
+	void maybe_trigger_send_callback(error_code const& ec);
+	void maybe_trigger_writeable_callback(error_code const& ec);
 	bool cancel_handlers(error_code const& ec, bool shutdown);
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
@@ -623,12 +674,13 @@ struct utp_socket_impl
 
 	void issue_read();
 	void issue_write();
+	void subscribe_writeable();
 
 	bool check_fin_sent() const;
 
 	void do_connect(tcp::endpoint const& ep);
 
-	std::size_t read_some(bool const clear_buffers);
+	std::size_t read_some(bool const clear_buffers, error_code& ec);
 	std::size_t write_some(bool const clear_buffers); // Warning: non-blocking
 	int receive_buffer_size() const { return m_receive_buffer_size; }
 
@@ -734,6 +786,7 @@ private:
 	// connect operation. i.e. is there upper layer subscribed to these events.
 	bool m_read_handler = false;
 	bool m_write_handler = false;
+	bool m_writeable_handler = false;
 	bool m_connect_handler = false;
 
 	// the address of the remote endpoint
@@ -878,7 +931,7 @@ private:
 	// valid if m_eof is true. We should not accept
 	// any packets beyond this sequence number from the
 	// other end
-	std::uint16_t m_eof_seq_nr = 0;
+	std::uint16_t m_in_eof_seq_nr = 0;
 
 	// this is the lowest sequence number that, when lost,
 	// will cause the window size to be cut in half
@@ -921,7 +974,14 @@ private:
 	std::uint8_t m_state:3;
 
 	// this is set to true when we receive a fin
-	bool m_eof:1;
+	// The incoming stream is being closed at sequence number
+	// indicated by m_in_eof_seq_nr
+	bool m_in_eof:1;
+
+	// this is true when the application has called close() on the socket.
+	// at this point, we will send a FIN at the current sequence number,
+	// and will not allow it to be incremented any further
+	bool m_out_eof:1;
 
 	// is this socket state attached to a user space socket?
 	bool m_attached:1;

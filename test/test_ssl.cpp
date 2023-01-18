@@ -35,6 +35,10 @@ see LICENSE file.
 #include <fstream>
 #include <iostream>
 
+#ifdef TORRENT_UTP_LOG_ENABLE
+#include "libtorrent/aux_/utp_stream.hpp"
+#endif
+
 using namespace std::placeholders;
 using namespace lt;
 using std::ignore;
@@ -110,6 +114,10 @@ void test_ssl(int const test_idx, bool const use_utp)
 	// the sessions to destruct in parallel
 	session_proxy p1;
 	session_proxy p2;
+
+#ifdef TORRENT_UTP_LOG_ENABLE
+	lt::aux::set_utp_stream_logging(use_utp);
+#endif
 
 	test_config_t const& test = test_config[test_idx];
 

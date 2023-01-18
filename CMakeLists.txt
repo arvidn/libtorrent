@@ -515,11 +515,6 @@ if(static_runtime)
 	set(OPENSSL_MSVC_STATIC_RT ON)
 endif()
 
-if (NOT BUILD_SHARED_LIBS)
-	set(Boost_USE_STATIC_LIBS ON)
-	set(OPENSSL_USE_STATIC_LIBS ON)
-endif()
-
 add_library(torrent-rasterbar
 	${sources}
 	${try_signal_sources}

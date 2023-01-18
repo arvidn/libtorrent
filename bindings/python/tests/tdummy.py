@@ -177,6 +177,7 @@ class Torrent:
         # atp == read_resume_data(write_resume_data(atp))
         atp.info_hash = self.sha1_hash
         atp.ti = self.torrent_info()
+        atp.flags &= ~(lt.torrent_flags.paused | lt.torrent_flags.auto_managed)
 
 
 def get_default() -> Torrent:
