@@ -3145,7 +3145,7 @@ namespace {
 					req.key = tracker_key();
 
 #if TORRENT_USE_I2P
-					if (is_i2p())
+					if (is_i2p_url(req.url))
 					{
 						req.kind |= tracker_request::i2p;
 					}
@@ -3741,6 +3741,8 @@ namespace {
 		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, {}, &st))
 			state_updated();
 		peers_erased(st.erased);
+
+		update_want_peers();
 	}
 	catch (...) { handle_exception(); }
 #endif
