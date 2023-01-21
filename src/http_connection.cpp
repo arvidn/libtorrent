@@ -337,11 +337,11 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 #endif
-		m_hostname = hostname;
 		if (ps && ps->proxy_hostnames
 			&& (ps->type == settings_pack::socks5
 				|| ps->type == settings_pack::socks5_pw))
 		{
+			m_hostname = hostname;
 			m_port = std::uint16_t(port);
 			m_endpoints.emplace_back(address(), m_port);
 			connect();
@@ -354,6 +354,7 @@ void http_connection::start(std::string const& hostname, int port
 				, std::bind(&http_connection::on_resolve
 				, me, _1, _2));
 		}
+		m_hostname = hostname;
 		m_port = std::uint16_t(port);
 	}
 }

@@ -527,6 +527,10 @@ TORRENT_VERSION_NAMESPACE_3
 		TORRENT_DEPRECATED
 		void set_merkle_tree(std::vector<sha1_hash>& h)
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
+
+        // internal
+        std::size_t merkle_tree_size() const
+        { return m_merkle_tree.size(); }
 #endif
 
 		// ``name()`` returns the name of the torrent.

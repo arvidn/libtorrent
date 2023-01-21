@@ -9,15 +9,57 @@
 
 bytes generate_fingerprint_bytes(bytes name, int major, int minor = 0, int revision = 0, int tag = 0)
 {
+    using namespace boost::python;
+    if (name.arr.size() != 2)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint name must be 2 bytes");
+        throw_error_already_set();
+    }
+
+    if (major < 0 || minor < 0 || revision < 0 || tag < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint version must be a positive integer");
+        throw_error_already_set();
+    }
     return lt::generate_fingerprint(name.arr, major, minor, revision, tag);
+}
+
+std::string generate_fingerprint_str(std::string name, int major, int minor = 0, int revision = 0, int tag = 0)
+{
+    using namespace boost::python;
+    if (name.size() != 2)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint name must be 2 bytes");
+        throw_error_already_set();
+    }
+
+    if (major < 0 || minor < 0 || revision < 0 || tag < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint version must be a positive integer");
+        throw_error_already_set();
+    }
+    return lt::generate_fingerprint(name, major, minor, revision, tag);
 }
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
-std::shared_ptr<lt::fingerprint> fingerprint_constructor(char const* name, int major, int minor, int revision, int tag)
+std::shared_ptr<lt::fingerprint> fingerprint_constructor(char const* name
+	, int const major, int const minor, int const revision, int const tag)
 {
     python_deprecated("the fingerprint class is deprecated");
+    using namespace boost::python;
+    if (std::strlen(name) != 2)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint name must be 2 bytes");
+        throw_error_already_set();
+    }
+
+    if (major < 0 || minor < 0 || revision < 0 || tag < 0)
+    {
+        PyErr_SetString(PyExc_ValueError, "fingerprint version must be a positive integer");
+        throw_error_already_set();
+    }
     return std::make_shared<lt::fingerprint>(name, major, minor, revision, tag);
 }
 
@@ -29,7 +71,7 @@ void bind_fingerprint()
     using namespace boost::python;
     using namespace lt;
 
-    def("generate_fingerprint", &generate_fingerprint);
+    def("generate_fingerprint", &generate_fingerprint_str);
     def("generate_fingerprint_bytes", &generate_fingerprint_bytes,
         (arg("name"), arg("major"), arg("minor") = 0, arg("revision") = 0, arg("tag") = 0));
 

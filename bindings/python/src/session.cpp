@@ -405,14 +405,16 @@ namespace
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
 
+        if (p.save_path.empty())
+        {
+            PyErr_SetString(PyExc_KeyError,
+                "save_path must be set in add_torrent_params");
+            throw_error_already_set();
+        }
+
         allow_threading_guard guard;
 
-#ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(std::move(p));
-#else
-        error_code ec;
-        return s.add_torrent(std::move(p), ec);
-#endif
     }
 
     void async_add_torrent(lt::session& s, dict params)
@@ -420,6 +422,13 @@ namespace
         python_deprecated("async_add_torrent(dict) is deprecated");
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
+
+        if (p.save_path.empty())
+        {
+            PyErr_SetString(PyExc_KeyError,
+                "save_path must be set in add_torrent_params");
+            throw_error_already_set();
+        }
 
         allow_threading_guard guard;
 
@@ -432,14 +441,16 @@ namespace
         if (p.ti)
             atp.ti = std::make_shared<torrent_info>(*p.ti);
 
+        if (p.save_path.empty())
+        {
+            PyErr_SetString(PyExc_KeyError,
+                "save_path must be set in add_torrent_params");
+            throw_error_already_set();
+        }
+
         allow_threading_guard guard;
 
-#ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(std::move(p));
-#else
-        error_code ec;
-        return s.add_torrent(std::move(p), ec);
-#endif
     }
 
     void wrap_async_add_torrent(lt::session& s, lt::add_torrent_params const& p)
@@ -447,6 +458,13 @@ namespace
         add_torrent_params atp = p;
         if (p.ti)
             atp.ti = std::make_shared<torrent_info>(*p.ti);
+
+        if (p.save_path.empty())
+        {
+            PyErr_SetString(PyExc_ValueError,
+                "save_path must be set in add_torrent_params");
+            throw_error_already_set();
+        }
 
         allow_threading_guard guard;
 

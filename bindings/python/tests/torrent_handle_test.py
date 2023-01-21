@@ -626,10 +626,10 @@ class LimitTest(TorrentHandleTest):
         self.assertEqual(self.handle.upload_limit(), 1)
         self.handle.set_download_limit(1)
         self.assertEqual(self.handle.download_limit(), 1)
-        self.handle.set_max_uploads(1)
-        self.assertEqual(self.handle.max_uploads(), 1)
-        self.handle.set_max_connections(1)
-        self.assertEqual(self.handle.max_connections(), 1)
+        with self.assertRaises(ValueError):
+            self.handle.set_max_uploads(1)
+        with self.assertRaises(ValueError):
+            self.handle.set_max_connections(1)
 
 
 class MoveStorageTest(TorrentHandleTest):

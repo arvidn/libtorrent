@@ -25,6 +25,13 @@ namespace {
 
 		dict_to_add_torrent_params(params, p);
 
+		if (p.save_path.empty())
+		{
+			PyErr_SetString(PyExc_KeyError,
+				"save_path must be set in add_torrent_params");
+			throw_error_already_set();
+		}
+
 		allow_threading_guard guard;
 
 		p.url = uri;

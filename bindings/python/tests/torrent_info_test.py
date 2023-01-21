@@ -1,6 +1,7 @@
 import os
 import tempfile
 from typing import AnyStr
+from typing import List
 import unittest
 
 import libtorrent as lt
@@ -440,9 +441,11 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(ti.total_size(), 1024)
         self.assertEqual(ti.piece_length(), 16384)
         self.assertEqual(ti.num_pieces(), 1)
-        self.assertEqual(ti.piece_size(-1), 16384)
+        with self.assertRaises(IndexError):
+            ti.piece_size(-1)
         self.assertEqual(ti.piece_size(0), 1024)
-        self.assertEqual(ti.piece_size(1), 16384)
+        with self.assertRaises(IndexError):
+            ti.piece_size(1)
         self.assertEqual(ti.hash_for_piece(0), piece)
         self.assertEqual(ti.num_files(), 1)
         self.assertTrue(ti.is_valid())
@@ -465,11 +468,11 @@ class FieldTest(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ti.merkle_tree(), [])
 
-        tree = [lib.get_random_bytes(20)]
+        tree: List[bytes] = []
         with self.assertWarns(DeprecationWarning):
             self.ti.set_merkle_tree(tree)
         with self.assertWarns(DeprecationWarning):
-            self.assertTrue(self.ti.is_merkle_torrent())
+            self.assertFalse(self.ti.is_merkle_torrent())
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(self.ti.merkle_tree(), tree)
 

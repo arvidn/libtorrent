@@ -441,6 +441,26 @@ class dummy8 {};
 class dummy15 {};
 class dummy16 {};
 
+void torrent_handle_set_max_uploads(torrent_handle& h, int i)
+{
+    if (i < 2 && i != -1)
+    {
+        PyErr_SetString(PyExc_ValueError, "max_uploads must be at least 2");
+        throw_error_already_set();
+    }
+    h.set_max_uploads(i);
+}
+
+void torrent_handle_set_max_connections(torrent_handle& h, int i)
+{
+    if (i < 2 && i != -1)
+    {
+        PyErr_SetString(PyExc_ValueError, "max_connections must be at least 2");
+        throw_error_already_set();
+    }
+    h.set_max_connections(i);
+}
+
 void rename_file0(torrent_handle& th, file_index_t index, string_view const& path)
 {
     th.rename_file(index, std::string(path));
@@ -567,9 +587,9 @@ void bind_torrent_handle()
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("connect_peer", &torrent_handle::connect_peer, (arg("endpoint"), arg("source")=0, arg("flags")=0xd))
-        .def("set_max_uploads", &torrent_handle::set_max_uploads)
+        .def("set_max_uploads", &torrent_handle_set_max_uploads)
         .def("max_uploads", _(&torrent_handle::max_uploads))
-        .def("set_max_connections", &torrent_handle::set_max_connections)
+        .def("set_max_connections", &torrent_handle_set_max_connections)
         .def("max_connections", _(&torrent_handle::max_connections))
         .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = move_flags_t::always_replace_files))
         .def("info_hash", _(&torrent_handle::info_hash))

@@ -242,7 +242,7 @@ class AddMagnetUriTest(unittest.TestCase):
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
                 with self.assertRaises(RuntimeError):
-                    lt.add_magnet_uri(self.session, "magnet:?", {})
+                    lt.add_magnet_uri(self.session, "magnet:?", {"save_path": "."})
 
     def test_add(self) -> None:
         if lt.api_version < 2:

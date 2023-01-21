@@ -27,6 +27,15 @@ using namespace lt;
 
 namespace
 {
+    int torrent_info_piece_size(torrent_info& ti, piece_index_t i)
+    {
+        if (i < piece_index_t{0} || i >= ti.end_piece())
+        {
+            PyErr_SetString(PyExc_IndexError, "invalid piece index");
+            throw_error_already_set();
+        }
+        return ti.piece_size(i);
+    }
 
     std::vector<announce_entry>::const_iterator begin_trackers(torrent_info& i)
     {
@@ -101,6 +110,12 @@ namespace
         std::vector<sha1_hash> h;
         for (int i = 0, e = int(len(hashes)); i < e; ++i)
             h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr.data()));
+
+        if (h.size() != ti.merkle_tree_size())
+        {
+            PyErr_SetString(PyExc_ValueError, "invalid size of merkle tree hashes");
+            throw_error_already_set();
+        }
 
         ti.set_merkle_tree(h);
     }
@@ -424,7 +439,7 @@ void bind_torrent_info()
         .def("merkle_tree", depr(&get_merkle_tree))
         .def("set_merkle_tree", depr(&set_merkle_tree))
 #endif
-        .def("piece_size", &torrent_info::piece_size)
+        .def("piece_size", &torrent_info_piece_size)
 
         .def("similar_torrents", &torrent_info::similar_torrents)
         .def("collections", &torrent_info::collections)

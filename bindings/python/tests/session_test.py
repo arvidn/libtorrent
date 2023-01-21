@@ -1073,6 +1073,7 @@ class Test5155(unittest.TestCase):
             )
             atp = lt.add_torrent_params()
             atp.ti = torrent.torrent_info()
+            atp.save_path = "."
             return self.session.add_torrent(atp)
 
         handle = do_add()
@@ -1171,9 +1172,11 @@ class AddTorrentTest(unittest.TestCase):
 
     def test_dict_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            self.session.add_torrent({"ti": self.torrent.torrent_info()})
+            atp = {"save_path": ".", "ti": self.torrent.torrent_info()}
+            self.session.add_torrent(atp)
         with self.assertWarns(DeprecationWarning):
-            self.session.async_add_torrent({"ti": self.torrent.torrent_info()})
+            atp = {"save_path": ".", "ti": self.torrent.torrent_info()}
+            self.session.async_add_torrent(atp)
 
     def do_test_dict(self, params: Dict[str, Any]) -> lt.torrent_handle:
         with self.assertWarns(DeprecationWarning):
