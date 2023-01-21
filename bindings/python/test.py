@@ -760,6 +760,7 @@ class test_magnet_link(unittest.TestCase):
         ses = lt.session()
         atp = lt.add_torrent_params()
         atp.info_hashes = lt.info_hash_t(lt.sha1_hash(b"a" * 20))
+        atp.save_path = "."
         h = ses.add_torrent(atp)
 
         self.assertTrue(h.status().info_hashes == lt.info_hash_t(lt.sha1_hash(b"a" * 20)))
@@ -767,6 +768,7 @@ class test_magnet_link(unittest.TestCase):
     def test_add_magnet_link(self):
         ses = lt.session()
         atp = lt.add_torrent_params()
+        atp.save_path = "."
         atp.info_hash = lt.sha1_hash(b"a" * 20)
         h = ses.add_torrent(atp)
 
