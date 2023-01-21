@@ -21,10 +21,19 @@ using namespace lt;
 
 namespace
 {
-    void ct_check_piece_index(create_torrent& ct, piece_index_t index)
+    void ct_check_piece_index(create_torrent const& ct, piece_index_t index)
     {
-        if ((index < piece_index_t{0}) || (index >= ct.end_piece()))
-            throw std::out_of_range("piece index out of range");
+        if (index < piece_index_t{0} || index >= ct.end_piece())
+        {
+            PyErr_SetString(PyExc_IndexError, "invalid piece index");
+            throw_error_already_set();
+        }
+    }
+
+    int ct_piece_size(create_torrent const& ct, piece_index_t index)
+    {
+        ct_check_piece_index(ct, index);
+        return ct.piece_size(index);
     }
 
     void set_hash(create_torrent& c, piece_index_t p, bytes const& b)
@@ -156,7 +165,7 @@ void bind_create_torrent()
         .def("set_priv", &create_torrent::set_priv)
         .def("num_pieces", &create_torrent::num_pieces)
         .def("piece_length", &create_torrent::piece_length)
-        .def("piece_size", &create_torrent::piece_size)
+        .def("piece_size", &ct_piece_size)
         .def("priv", &create_torrent::priv)
         .def("set_root_cert", &create_torrent::set_root_cert, (arg("pem")))
         .def("add_collection", &create_torrent::add_collection)

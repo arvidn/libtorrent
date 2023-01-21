@@ -23,8 +23,20 @@ namespace
 {
     void file_storage_check_index(file_storage const& fs, file_index_t index)
     {
-        if ((index < file_index_t{0}) || (index >= fs.end_file()))
-            throw std::out_of_range("file index out of range");
+        if (index < file_index_t{0} || index >= fs.end_file())
+        {
+            PyErr_SetString(PyExc_IndexError, "invalid file index");
+            throw_error_already_set();
+        }
+    }
+
+    void file_storage_check_index(file_storage const& fs, piece_index_t index)
+    {
+        if (index < piece_index_t{0} || index >= fs.end_piece())
+        {
+            PyErr_SetString(PyExc_IndexError, "invalid piece index");
+            throw_error_already_set();
+        }
     }
 
 #if TORRENT_ABI_VERSION == 1
@@ -114,40 +126,10 @@ namespace
 
     struct dummy_file_flags {};
 
-    std::string file_storage_symlink(file_storage const& fs, file_index_t index)
-    {
-        file_storage_check_index(fs, index);
-        return fs.symlink(index);
-    }
-
     std::string file_storage_file_path(file_storage const& fs, file_index_t index, std::string const& base)
     {
         file_storage_check_index(fs, index);
         return fs.file_path(index, base);
-    }
-
-    string_view file_storage_file_name(file_storage const& fs, file_index_t index)
-    {
-        file_storage_check_index(fs, index);
-        return fs.file_name(index);
-    }
-
-    std::int64_t file_storage_file_size(file_storage const& fs, file_index_t index)
-    {
-        file_storage_check_index(fs, index);
-        return fs.file_size(index);
-    }
-
-    std::int64_t file_storage_file_offset(file_storage const& fs, file_index_t index)
-    {
-        file_storage_check_index(fs, index);
-        return fs.file_offset(index);
-    }
-
-    file_flags_t file_storage_file_flags(file_storage const& fs, file_index_t index)
-    {
-        file_storage_check_index(fs, index);
-        return fs.file_flags(index);
     }
 
     void rename_file0(file_storage& fs, file_index_t index, string_view const path)
@@ -156,12 +138,14 @@ namespace
         fs.rename_file(index, std::string(path));
     }
 
+#if TORRENT_ABI_VERSION < 4
     void rename_file1(file_storage& fs, file_index_t index, bytes path)
     {
         python_deprecated("rename_file with bytes is deprecated");
         file_storage_check_index(fs, index);
         fs.rename_file(index, path.arr);
     }
+#endif
 
 #if TORRENT_ABI_VERSION == 1
     file_entry file_storage_at(file_storage const& fs, file_index_t index)
@@ -181,14 +165,24 @@ namespace
         python_deprecated("set_name with bytes is deprecated");
         fs.set_name(name.arr);
     }
+
+    template <typename Ret, Ret (file_storage::*fun)(file_index_t) const>
+    Ret wrap_file_check(file_storage const& fs, file_index_t const i)
+    {
+        file_storage_check_index(fs, i);
+        return (fs.*fun)(i);
+    }
+
+    template <typename Ret, Ret (file_storage::*fun)(piece_index_t) const>
+    Ret wrap_piece_check(file_storage const& fs, piece_index_t const i)
+    {
+        file_storage_check_index(fs, i);
+        return (fs.*fun)(i);
+    }
 }
 
 void bind_file_storage()
 {
-#if TORRENT_ABI_VERSION < 4
-    sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
-#endif
-
     {
     scope s = class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
@@ -203,21 +197,22 @@ void bind_file_storage()
         .def("__len__", depr(&file_storage::num_files))
 #endif // TORRENT_ABI_VERSION
 #if TORRENT_ABI_VERSION < 4
-        .def("hash", file_storage_hash)
+        .def("hash", &wrap_file_check<sha1_hash, &file_storage::hash>)
 #endif
-        .def("symlink", file_storage_symlink)
-        .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
-        .def("file_name", file_storage_file_name)
-        .def("file_size", file_storage_file_size)
+        .def("symlink", &wrap_file_check<std::string, &file_storage::symlink>)
+        .def("file_path", &file_storage_file_path, (arg("idx"), arg("save_path") = ""))
+        .def("file_name", &wrap_file_check<string_view, &file_storage::file_name>)
+        .def("file_size", &wrap_file_check<std::int64_t, &file_storage::file_size>)
         .def("root", &file_storage::root)
-        .def("file_offset", file_storage_file_offset)
-        .def("file_flags", file_storage_file_flags)
+        .def("file_offset", &wrap_file_check<std::int64_t, &file_storage::file_offset>)
+        .def("file_flags", &wrap_file_check<file_flags_t, &file_storage::file_flags>)
 
         .def("file_index_for_root", &file_storage::file_index_for_root)
-        .def("piece_index_at_file", &file_storage::piece_index_at_file)
-        .def("file_index_at_piece", &file_storage::file_index_at_piece)
+        .def("piece_index_at_file", &wrap_file_check<piece_index_t, &file_storage::piece_index_at_file>)
+        .def("file_index_at_piece", &wrap_piece_check<file_index_t, &file_storage::file_index_at_piece>)
+        .def("last_file_index_at_piece", &wrap_piece_check<file_index_t, &file_storage::last_file_index_at_piece>)
         .def("file_index_at_offset", &file_storage::file_index_at_offset)
-        .def("file_absolute_path", &file_storage::file_absolute_path)
+        .def("file_absolute_path", &wrap_file_check<bool, &file_storage::file_absolute_path>)
 
         .def("v2", &file_storage::v2)
 
@@ -227,19 +222,21 @@ void bind_file_storage()
         .def("num_pieces", &file_storage::num_pieces)
         .def("set_piece_length", &file_storage::set_piece_length)
         .def("piece_length", &file_storage::piece_length)
-        .def("piece_size", &file_storage::piece_size)
+        .def("piece_size", &wrap_piece_check<int, &file_storage::piece_size>)
         .def("set_name", &set_name0)
         .def("set_name", &set_name1)
         .def("rename_file", &rename_file0)
+#if TORRENT_ABI_VERSION < 4
         .def("rename_file", &rename_file1)
+#endif
         .def("name", &file_storage::name, return_value_policy<copy_const_reference>())
         ;
 
-     s.attr("flag_pad_file") = file_storage::flag_pad_file;
-     s.attr("flag_hidden") = file_storage::flag_hidden;
-     s.attr("flag_executable") = file_storage::flag_executable;
-     s.attr("flag_symlink") = file_storage::flag_symlink;
-     }
+    s.attr("flag_pad_file") = file_storage::flag_pad_file;
+    s.attr("flag_hidden") = file_storage::flag_hidden;
+    s.attr("flag_executable") = file_storage::flag_executable;
+    s.attr("flag_symlink") = file_storage::flag_symlink;
+    }
 
     {
        scope s = class_<dummy_file_flags>("file_flags_t");

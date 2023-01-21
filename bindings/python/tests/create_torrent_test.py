@@ -249,7 +249,8 @@ class FileStorageTest(unittest.TestCase):
         fs.set_piece_length(16384)
         fs.set_num_pieces(1)
         self.assertEqual(fs.piece_size(0), 1024)
-        self.assertEqual(fs.piece_size(1), 16384)
+        with self.assertRaises(IndexError):
+            fs.piece_size(1)
 
     def test_name(self) -> None:
         fs = lt.file_storage()
@@ -286,7 +287,8 @@ class FileStorageTest(unittest.TestCase):
 
     def test_hash_invalid(self) -> None:
         fs = lt.file_storage()
-        self.assertEqual(fs.hash(0), lt.sha1_hash())
+        with self.assertRaises(IndexError):
+            fs.hash(0)
 
 
 class CreateTorrentTest(unittest.TestCase):
@@ -491,9 +493,11 @@ class CreateTorrentTest(unittest.TestCase):
     def test_piece_size(self) -> None:
         fs = [lt.create_file_entry("test1.txt", 1024)]
         ct = lt.create_torrent(fs)
-        self.assertEqual(ct.piece_size(-1), 16384)
+        with self.assertRaises(IndexError):
+            ct.piece_size(-1)
         self.assertEqual(ct.piece_size(0), 1024)
-        self.assertEqual(ct.piece_size(1), 16384)
+        with self.assertRaises(IndexError):
+            ct.piece_size(1)
 
     def test_root_cert(self) -> None:
         fs = [lt.create_file_entry("test1.txt", 1024)]
