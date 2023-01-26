@@ -143,10 +143,10 @@ namespace aux {
 
 	struct get_close_reason_visitor {
 #if TORRENT_USE_SSL
-		close_reason_t operator()(ssl_stream<utp_stream>& s) const
+		close_reason_t operator()(ssl_stream<utp_stream> const& s) const
 		{ return s.next_layer().get_close_reason(); }
 #endif
-		close_reason_t operator()(utp_stream& s) const
+		close_reason_t operator()(utp_stream const& s) const
 		{ return s.get_close_reason(); }
 		template <typename T>
 		close_reason_t operator()(T const&) const { return close_reason_t::none; }
