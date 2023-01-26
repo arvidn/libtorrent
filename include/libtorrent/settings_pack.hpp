@@ -1438,6 +1438,11 @@ namespace aux {
 			// default (i.e. don't change the buffer sizes).
 			// The socket buffer sizes are changed using setsockopt() with
 			// SOL_SOCKET/SO_RCVBUF and SO_SNDBUFFER.
+			//
+			// Note that uTP peers share a single UDP socket buffer for each of the
+			// ``listen_interfaces``, along with DHT and UDP tracker traffic.
+			// If the buffer size is too small for the combined traffic through the
+			// socket, packets may be dropped.
 			recv_socket_buffer_size,
 			send_socket_buffer_size,
 
