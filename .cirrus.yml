@@ -34,6 +34,7 @@ build_macos_arm64_task:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
   env:
+    CIRRUS_CLONE_SUBMODULES: true
     PATH: /opt/homebrew/bin:$PATH
 
   install_pre_requirements_script:
@@ -46,8 +47,8 @@ test_macos_arm64_task:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
   env:
+    CIRRUS_CLONE_SUBMODULES: true
     PATH: /opt/homebrew/bin:$PATH
-
   install_pre_requirements_script:
     - brew install python@3.9
     - brew install boost-build boost openssl@1.1
