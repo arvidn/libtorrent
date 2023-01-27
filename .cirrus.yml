@@ -34,11 +34,10 @@ build_macos_arm64_task:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
   env:
-    PATH: /opt/homebrew/opt/python@3.9/bin:$PATH
+    PATH: /opt/homebrew/bin:$PATH
 
   install_pre_requirements_script:
     - brew install python@3.9
-    - ln -s python3 /opt/homebrew/opt/python@3.9/bin/python
   <<: *BUILD_AND_STORE_WHEELS
 
 test_macos_arm64_task:
@@ -47,11 +46,10 @@ test_macos_arm64_task:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
   env:
-    PATH: /opt/homebrew/opt/python@3.9/bin:$PATH
+    PATH: /opt/homebrew/bin:$PATH
 
   install_pre_requirements_script:
     - brew install python@3.9
-    - ln -s python3 /opt/homebrew/opt/python@3.9/bin/python
     - brew install boost-build boost openssl@1.1
     - echo "using darwin ;" >>~/user-config.jam
 
