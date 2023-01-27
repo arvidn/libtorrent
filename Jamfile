@@ -396,7 +396,7 @@ rule openssl-lib-path ( properties * )
 		# on macOS, default to pick up openssl from the homebrew installation
 		# brew install openssl
 		# homebrew on M1 Macs install to /opt/homebrew
-		OPENSSL_LIB = /opt/homebrew/opt/openssl/lib /usr/local/opt/openssl/lib ;
+		OPENSSL_LIB = /opt/homebrew/opt/openssl@1.1/lib /opt/homebrew/opt/openssl/lib /usr/local/opt/openssl/lib ;
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_LIB) = ""
 	{
@@ -423,7 +423,7 @@ rule openssl-include-path ( properties * )
 		# on macOS, default to pick up openssl from the homebrew installation
 		# brew install openssl
 		# homebrew on M1 Macs install to /opt/homebrew
-		OPENSSL_INCLUDE = /opt/homebrew/opt/openssl/include /usr/local/opt/openssl/include ;
+		OPENSSL_INCLUDE = /opt/homebrew/opt/openssl@1.1/include /opt/homebrew/opt/openssl/include /usr/local/opt/openssl/include ;
 	}
 	else if <target-os>windows in $(properties) && $(OPENSSL_INCLUDE) = ""
 	{
