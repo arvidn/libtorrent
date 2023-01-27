@@ -21,6 +21,9 @@ task:
     LD_LIBRARY_PATH=./dependencies ./enum_if
 
 build_and_store_wheels: &BUILD_AND_STORE_WHEELS
+  debug_script:
+    - echo $PATH
+    - ls -l /opt/homebrew/bin
   install_cibuildwheel_script:
     - python -m pip install cibuildwheel==2.12.0
   run_cibuildwheel_script:
@@ -39,6 +42,11 @@ build_macos_arm64_task:
 
   install_pre_requirements_script:
     - brew install python@3.9
+
+  debug_script:
+    - echo $PATH
+    - ls -l /opt/homebrew/bin
+
   <<: *BUILD_AND_STORE_WHEELS
 
 test_macos_arm64_task:
@@ -49,10 +57,15 @@ test_macos_arm64_task:
   env:
     CIRRUS_CLONE_SUBMODULES: true
     PATH: /opt/homebrew/bin:$PATH
+
   install_pre_requirements_script:
     - brew install python@3.9
     - brew install boost-build boost openssl@1.1
     - echo "using darwin ;" >>~/user-config.jam
+
+  debug_script:
+    - echo $PATH
+    - ls -l /opt/homebrew/bin
 
   test_script:
     - cd test
