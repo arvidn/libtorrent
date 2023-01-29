@@ -243,7 +243,7 @@ namespace {
 			{
 				use_partfile(i, false);
 				if (size > fs.file_size(i))
-					ret = ret | status_t::oversized_file;
+					ret = ret | disk_status::oversized_file;
 			}
 			else
 			{
@@ -259,7 +259,7 @@ namespace {
 			, [&sett, this](file_index_t const file_index, storage_error& e)
 			{ open_file(sett, file_index, open_mode::write, e); }
 			, create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret = ret | status_t::oversized_file; }
+			, [&ret](file_index_t, std::int64_t) { ret = ret | disk_status::oversized_file; }
 			, ec);
 
 		// close files that were opened in write mode
