@@ -166,6 +166,7 @@ set(libtorrent_aux_include_files
 	disable_warnings_pop.hpp
 	disable_warnings_push.hpp
 	disk_buffer_pool.hpp
+	disk_cache.hpp
 	disk_completed_queue.hpp
 	mmap_disk_job.hpp
 	disk_job.hpp

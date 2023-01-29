@@ -562,6 +562,7 @@ HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
   aux_/disk_buffer_pool.hpp         \
+  aux_/disk_cache.hpp               \
   aux_/disk_completed_queue.hpp     \
   aux_/disk_io_thread_pool.hpp      \
   aux_/disk_job_fence.hpp           \
