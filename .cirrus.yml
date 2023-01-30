@@ -45,6 +45,7 @@ build_macos_arm64_task:
 
   env:
     CIRRUS_CLONE_SUBMODULES: true
+    CIBW_BUILD: cp39-*
     PATH: /opt/homebrew/bin:$PATH
     PYTHON: python3.9
 
