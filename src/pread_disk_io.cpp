@@ -24,7 +24,7 @@ see LICENSE file.
 #include "libtorrent/aux_/platform_util.hpp" // for set_thread_name
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
-#include "libtorrent/aux_/store_buffer.hpp"
+#include "libtorrent/aux_/disk_cache.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -173,7 +173,7 @@ private:
 	// It is removed after the write completes. This will let subsequent reads
 	// pull the buffers straight out of the queue instead of having to
 	// synchronize with the writing thread(s)
-	aux::store_buffer m_store_buffer;
+	aux::disk_cache m_cache;
 
 	settings_interface const& m_settings;
 
@@ -268,7 +268,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(m_abort);
 
 		// there are not supposed to be any writes in-flight by now
-		TORRENT_ASSERT(m_store_buffer.size() == 0);
+		TORRENT_ASSERT(m_cache.size() == 0);
 
 		// all torrents are supposed to have been removed by now
 		TORRENT_ASSERT(m_torrents.empty());
@@ -468,7 +468,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
-		m_store_buffer.erase({j->storage->storage_index(), a.piece, a.offset});
+		m_cache.erase({j->storage->storage_index(), a.piece, a.offset});
 
 		{
 			std::lock_guard<std::mutex> l(m_need_tick_mutex);
@@ -500,7 +500,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		}
 
 		// in case r.start is not aligned to a block, calculate that offset,
-		// since that's how the store_buffer is indexed. block_offset is the
+		// since that's how the disk_cache is indexed. block_offset is the
 		// aligned offset to the first block this read touches. In the case the
 		// request is aligned, it's the same as r.start
 		int const block_offset = r.start - (r.start % default_block_size);
@@ -525,7 +525,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 			TORRENT_ASSERT(r.length > len1);
 
-			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
+			int const ret = m_cache.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool
 					, m_buffer_pool.allocate_buffer("send buffer")
@@ -578,7 +578,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		}
 		else
 		{
-			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
+			if (m_cache.get({ storage, r.piece, block_offset }, [&](char const* buf)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 				if (!buffer)
@@ -636,7 +636,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
-		m_store_buffer.insert({j->storage->storage_index(), r.piece, r.start}, data_ptr);
+		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, data_ptr, j);
 
 		add_job(j);
 		return exceeded;

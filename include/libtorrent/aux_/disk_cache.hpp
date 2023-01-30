@@ -31,10 +31,12 @@ see LICENSE file.
 namespace libtorrent {
 namespace aux {
 
+namespace mi = boost::multi_index;
+
 // uniquely identifies a torrent and piece
 struct piece_location
 {
-	peice_location(storage_index_t const t, piece_index_t const p)
+	piece_location(storage_index_t const t, piece_index_t const p)
 		: torrent(t), piece(p) {}
 	storage_index_t torrent;
 	piece_index_t piece;
@@ -43,67 +45,53 @@ struct piece_location
 		return std::tie(torrent, piece)
 			== std::tie(rhs.torrent, rhs.piece);
 	}
-};
 
-}
-}
-
-namespace std {
-
-template <>
-struct hash<libtorrent::aux::piecelocation>
-{
-	using argument_type = libtorrent::aux::piece_location;
-	using result_type = std::size_t;
-	std::size_t operator()(argument_type const& l) const
+	bool operator<(piece_location const& rhs) const
 	{
-		using namespace libtorrent;
-		std::size_t ret = 0;
-		boost::hash_combine(ret, std::hash<storage_index_t>{}(l.torrent));
-		boost::hash_combine(ret, std::hash<piece_index_t>{}(l.piece));
-		return ret;
+		return std::tie(torrent, piece)
+			< std::tie(rhs.torrent, rhs.piece);
 	}
 };
 
-}
-
-namespace libtorrent {
-namespace aux {
-
-namespace mi = boost::multi_index;
-
 struct cached_block_entry
 {
-	char const* buffer;
-	#error write job
-};
-
-struct piece_hash_state
-{
-	// the current piece hash context
-	hasher ctx;
-	// the number of blocks that have been hashed so far
-	int cursor;
+	pread_disk_job* write_job;
 };
 
 struct cached_piece_entry
 {
-	piece_location piece;
+	cached_piece_entry::cached_piece_entry(piece_location const& loc, int const num_blocks)
+		: piece(loc)
+		, blocks_in_piece(num_blocks)
+		, blocks(std::make_unique<cached_block_entry[]>(num_blocks))
+		, ph(hasher())
+	{}
 
-	// the number of threads currently using this piece and its data. As long as
-	// this is > 0, the piece may not be removed
-	int references = 0;
+	piece_location piece;
 
 	// this is set to true when the piece has been populated with all blocks
 	bool ready_to_flush = false;
 
 	// when this is true, there is a thread currently hashing blocks and
-	// updating the piece_hash_state in "ph".
+	// updating the hash context in "ph".
 	bool hashing = false;
+
+	// when a thread sis writing this piece to disk, this is true. Only one
+	// thread at a time should be writing a piece.
+	bool flushing = false;
+
+	// this is set to true if the piece hash has been computed and returned
+	// to the bittorrent engine.
+	bool piece_hash_returned = false;
+
+	int blocks_in_piece = 0;
+
+	// the number of blocks that have been hashed so far
+	int hasher_cursor = 0;
 
 	std::unique_ptr<cached_block_entry[]> blocks;
 
-	std::variant<sha1_hash, piece_hash_state> ph;
+	std::variant<sha1_hash, hasher> ph;
 };
 
 struct disk_cache
@@ -113,12 +101,14 @@ struct disk_cache
 		mi::indexed_by<
 		// look up pieces by (torrent, piece-index) key
 		mi::ordered_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>,
-		// ordered by least recently used
-		mi::sequenced<>,
-		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::ready_to_flush>>,
+		// ordered by the number of contiguous blocks we can flush without
+		// read-back
+		mi::ordered_non_unique<mi::member<cached_piece_entry, int, &cached_piece_entry::hasher_cursor>>,
+		// ordered by whether the piece is ready to be flushed or not
+		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::ready_to_flush>>
 		>
 	>;
-
+/*
 	template <typename Fun>
 	bool get(piece_location const loc, Fun f) const
 	{
@@ -153,18 +143,139 @@ struct disk_cache
 
 		return f(buf1, buf2);
 	}
-
-	void insert(piece_location const loc, int block_idx, char const* buf)
+*/
+	void insert(piece_location const loc, int const block_idx, pread_disk_job* write_job)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 
 		auto& view = m_pieces.template get<0>();
-		auto i = iew.find(loc);
+		auto i = view.find(loc);
 		if (i == view.end())
 		{
-
-			i = m_pieces.insert({loc, buf});
+			int const blocks_in_piece = (write_job->storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
+			cached_piece_entry pe(loc, blocks_in_piece);
+			i = m_pieces.insert(std::move(pe)).first;
 		}
+
+		//TORRENT_ASSERT(i->blocks[block_idx].buffer == nullptr);
+		TORRENT_ASSERT(i->blocks[block_idx].write_job == nullptr);
+		//i->blocks[block_idx].buffer = job->buf.get();
+		i->blocks[block_idx].write_job = write_job;
+		++m_blocks;
+		// TODO: maybe trigger hash job
+	}
+
+	// this should be called by a disk thread
+	// the callback should return the number of blocks it successfully flushed
+	// to disk
+	void flush_to_disk(std::function<int(span<cached_block_entry>)> f, int const target_blocks)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		// first we look for pieces that are ready to be flushed and should be
+		auto& view = m_pieces.template get<2>();
+		for (auto piece_iter = view.rbegin(); piece_iter != view.rend();)
+		{
+			// We avoid flushing if other threads have already initiated sufficient
+			// amount of flushing
+			if (m_blocks - m_flushing_blocks <= target_blocks)
+				return;
+
+			if (piece_iter->flushing)
+			{
+				++piece_iter;
+				continue;
+			}
+
+			if (!piece_iter->ready_to_flush)
+				break;
+
+			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			m_flushing_blocks += piece_iter->blocks_in_piece;
+
+			// we have to release the lock while flushing, but since we set the
+			// "flushing" member to true, this piece is pinned to the cache
+			l.unlock();
+			span<cached_block_entry> blocks(piece_iter->blocks.get()
+				, piece_iter->blocks_in_piece);
+
+			int count = 0;
+			try
+			{
+				count = f(blocks);
+			}
+			catch (...)
+			{
+				l.lock();
+				view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+				throw;
+			}
+			l.lock();
+
+			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
+			m_flushing_blocks -= piece_iter->blocks_in_piece;
+			if (count < piece_iter->blocks_in_piece)
+				return;
+
+			if (piece_iter->piece_hash_returned)
+				piece_iter = view.erase(piece_iter);
+			else
+				++piece_iter;
+		}
+
+		// if we get here, we have to "force flush" some blocks even though we
+		// don't have all the blocks yet. Start by flushing pieces that have the
+		// most contiguous blocks to flush:
+
+
+		auto& view2 = m_pieces.template get<1>();
+		for (auto piece_iter = view2.rbegin(); piece_iter != view2.rend(); ++piece_iter)
+		{
+			// We avoid flushing if other threads have already initiated sufficient
+			// amount of flushing
+			if (m_blocks - m_flushing_blocks <= target_blocks)
+				return;
+
+			if (piece_iter->flushing)
+				continue;
+
+			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+
+			m_flushing_blocks += piece_iter->hasher_cursor;
+
+			// we have to release the lock while flushing, but since we set the
+			// "flushing" member to true, this piece is pinned to the cache
+			l.unlock();
+			span<cached_block_entry> blocks(piece_iter->blocks.get()
+				, piece_iter->hasher_cursor);
+
+			int count = 0;
+			try
+			{
+				count = f(blocks);
+			}
+			catch (...)
+			{
+				l.lock();
+				view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+				throw;
+			}
+			l.lock();
+
+			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
+			m_flushing_blocks -= blocks.size();
+			if (count < blocks.size())
+				return;
+		}
+
+		// TODO: we may still need to flush blocks at this point, even though we
+		// would require read-back later to compute the piece hash
 	}
 
 	std::size_t size() const
@@ -177,6 +288,10 @@ private:
 	mutable std::mutex m_mutex;
 	piece_container m_pieces;
 	int m_blocks = 0;
+
+	// the number of blocks currently being flushed by a disk thread
+	// we use this to avoid over-shooting flushing blocks
+	int m_flushing_blocks = 0;
 };
 
 }
