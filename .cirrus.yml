@@ -72,6 +72,9 @@ test_macos_arm64_task:
     CIRRUS_CLONE_SUBMODULES: true
     PATH: /opt/homebrew/bin:$PATH
     PYTHON: python3.9
+    OPENSSL_OPTS: >
+      openssl-lib=/opt/homebrew/opt/openssl@1.1/lib
+      openssl-include=/opt/homebrew/opt/openssl@1.1/include
 
   install_pre_requirements_script:
     - brew install python@3.9
@@ -86,9 +89,11 @@ test_macos_arm64_task:
   test_script:
     - cd test
     - b2 crypto=built-in -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
-    - b2 deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+    - b2 $OPENSSL_OPTS crypto=openssl -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+    - b2 $OPENSSL_OPTS deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
 
   test_flaky_script:
     - cd test
     - b2 crypto=built-in -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
-    - b2 deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
+    - b2 $OPENSSL_OPTS crypto=openssl -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
+    - b2 $OPENSSL_OPTS deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
