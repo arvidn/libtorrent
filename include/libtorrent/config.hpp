@@ -567,19 +567,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #error "invariant checks cannot be enabled without asserts"
 #endif
 
-// for non-exception builds
-#ifdef BOOST_NO_EXCEPTIONS
-#define TORRENT_TRY if (true)
-#define TORRENT_CATCH(x) else if (false)
-#define TORRENT_CATCH_ALL else if (false)
-#define TORRENT_DECLARE_DUMMY(x, y) x y
-#else
-#define TORRENT_TRY try
-#define TORRENT_CATCH(x) catch(x)
-#define TORRENT_CATCH_ALL catch(...)
-#define TORRENT_DECLARE_DUMMY(x, y)
-#endif // BOOST_NO_EXCEPTIONS
-
 // SSE is x86 / amd64 specific. On top of that, we only
 // know how to access it on msvc and gcc (and gcc compatibles).
 // GCC requires the user to enable SSE support in order for

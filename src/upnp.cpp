@@ -433,7 +433,7 @@ void upnp::resend_request(error_code const& ec)
 void upnp::connect(rootdevice& d)
 {
 	TORRENT_ASSERT(d.magic == 1337);
-	TORRENT_TRY
+	try
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("connecting to: %s", d.url.c_str());
@@ -452,9 +452,8 @@ void upnp::connect(rootdevice& d)
 			);
 		d.upnp_connection->get(d.url, seconds(30));
 	}
-	TORRENT_CATCH (std::exception const& exc)
+	catch (std::exception const& exc)
 	{
-		TORRENT_DECLARE_DUMMY(std::exception, exc);
 		TORRENT_UNUSED(exc);
 #ifndef TORRENT_DISABLE_LOGGING
 		log("connection failed to: %s %s", d.url.c_str(), exc.what());

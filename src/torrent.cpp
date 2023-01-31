@@ -7477,7 +7477,7 @@ namespace {
 		m_peers_to_disconnect.reserve(m_connections.size() + 1);
 
 		sorted_insert(m_connections, c.get());
-		TORRENT_TRY
+		try
 		{
 			m_outgoing_pids.insert(our_pid);
 			m_ses.insert_peer(c);
@@ -7494,7 +7494,7 @@ namespace {
 
 			if (c->is_disconnecting()) return false;
 		}
-		TORRENT_CATCH (std::exception const&)
+		catch (std::exception const&)
 		{
 			TORRENT_ASSERT(m_iterating_connections == 0);
 			c->disconnect(errors::no_error, operation_t::bittorrent, peer_connection_interface::failure);

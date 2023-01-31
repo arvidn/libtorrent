@@ -77,7 +77,8 @@ namespace aux {
 
 	bool is_local(address const& a)
 	{
-		TORRENT_TRY {
+		try
+		{
 			if (a.is_v6())
 			{
 				// NOTE: site local is deprecated but by
@@ -101,17 +102,20 @@ namespace aux {
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
 				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
 				|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
-		} TORRENT_CATCH(std::exception const&) { return false; }
+		}
+		catch (std::exception const&) { return false; }
 	}
 
 	bool is_teredo(address const& addr)
 	{
-		TORRENT_TRY {
+		try
+		{
 			if (!addr.is_v6()) return false;
 			static const std::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
 			return std::memcmp(b.data(), teredo_prefix, 4) == 0;
-		} TORRENT_CATCH(std::exception const&) { return false; }
+		}
+		catch (std::exception const&) { return false; }
 	}
 
 	address ensure_v6(address const& a)

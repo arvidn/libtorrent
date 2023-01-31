@@ -220,11 +220,13 @@ bool supports_ipv6()
 #if defined TORRENT_BUILD_SIMULATOR
 	return true;
 #elif defined TORRENT_WINDOWS
-	TORRENT_TRY {
+	try
+	{
 		error_code ec;
 		make_address("::1", ec);
 		return !ec;
-	} TORRENT_CATCH(std::exception const&) { return false; }
+	}
+	catch (std::exception const&) { return false; }
 #else
 	io_context ios;
 	tcp::socket test(ios);
