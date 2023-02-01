@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include <array>
 #include <unordered_map>
-#elif TORRENT_USE_SYSTEMCONFIGURATION
+#elif TORRENT_USE_SYSTEMCONFIGURATION || TORRENT_USE_SC_NETWORK_REACHABILITY
 #include <SystemConfiguration/SystemConfiguration.h>
 #elif defined TORRENT_WINDOWS
 #include "libtorrent/aux_/throw.hpp"
@@ -62,6 +62,59 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux {
 
 namespace {
+
+#if (TORRENT_USE_SYSTEMCONFIGURATION || TORRENT_USE_SC_NETWORK_REACHABILITY) && \
+	!defined TORRENT_BUILD_SIMULATOR
+
+// common utilities for Mac and iOS
+template <typename T> void CFRefRetain(T h) { CFRetain(h); }
+template <typename T> void CFRefRelease(T h) { CFRelease(h); }
+
+template <typename T
+	, void (*Retain)(T) = CFRefRetain<T>, void (*Release)(T) = CFRefRelease<T>>
+struct CFRef
+{
+	CFRef() = default;
+	explicit CFRef(T h) : m_h(h) {} // take ownership
+	~CFRef() { release(); }
+
+	CFRef(CFRef&& rhs) : m_h(rhs.m_h) { rhs.m_h = nullptr; }
+	CFRef& operator=(CFRef&& rhs) &
+	{
+		if (m_h == rhs.m_h) return *this;
+		release();
+		m_h = rhs.m_h;
+		rhs.m_h = nullptr;
+		return *this;
+	}
+
+	CFRef(CFRef const& rhs) : m_h(rhs.m_h) { retain(); }
+	CFRef& operator=(CFRef const& rhs) &
+	{
+		if (m_h == rhs.m_h) return *this;
+		release();
+		m_h = rhs.m_h;
+		retain();
+		return *this;
+	}
+
+	CFRef& operator=(T h) & { m_h = h; return *this;}
+	CFRef& operator=(std::nullptr_t) & { release(); return *this;}
+
+	T get() const { return m_h; }
+	explicit operator bool() const { return m_h != nullptr; }
+
+private:
+	T m_h = nullptr; // handle
+
+	void retain() { if (m_h != nullptr) Retain(m_h); }
+	void release() { if (m_h != nullptr) Release(m_h); m_h = nullptr; }
+};
+
+void CFDispatchRetain(dispatch_queue_t q) { dispatch_retain(q); }
+void CFDispatchRelease(dispatch_queue_t q) { dispatch_release(q); }
+using CFDispatchRef = CFRef<dispatch_queue_t, CFDispatchRetain, CFDispatchRelease>;
+#endif
 
 #if defined TORRENT_BUILD_SIMULATOR
 struct ip_change_notifier_impl final : ip_change_notifier
@@ -179,57 +232,9 @@ private:
 		}
 	}
 };
-#elif TORRENT_USE_SYSTEMCONFIGURATION
 
-template <typename T> void CFRefRetain(T h) { CFRetain(h); }
-template <typename T> void CFRefRelease(T h) { CFRelease(h); }
+#elif TORRENT_USE_SC_NETWORK_REACHABILITY
 
-template <typename T
-	, void (*Retain)(T) = CFRefRetain<T>, void (*Release)(T) = CFRefRelease<T>>
-struct CFRef
-{
-	CFRef() = default;
-	explicit CFRef(T h) : m_h(h) {} // take ownership
-	~CFRef() { release(); }
-
-	CFRef(CFRef&& rhs) : m_h(rhs.m_h) { rhs.m_h = nullptr; }
-	CFRef& operator=(CFRef&& rhs) &
-	{
-		if (m_h == rhs.m_h) return *this;
-		release();
-		m_h = rhs.m_h;
-		rhs.m_h = nullptr;
-		return *this;
-	}
-
-	CFRef(CFRef const& rhs) : m_h(rhs.m_h) { retain(); }
-	CFRef& operator=(CFRef const& rhs) &
-	{
-		if (m_h == rhs.m_h) return *this;
-		release();
-		m_h = rhs.m_h;
-		retain();
-		return *this;
-	}
-
-	CFRef& operator=(T h) & { m_h = h; return *this;}
-	CFRef& operator=(std::nullptr_t) & { release(); return *this;}
-
-	T get() const { return m_h; }
-	explicit operator bool() const { return m_h != nullptr; }
-
-private:
-	T m_h = nullptr; // handle
-
-	void retain() { if (m_h != nullptr) Retain(m_h); }
-	void release() { if (m_h != nullptr) Release(m_h); m_h = nullptr; }
-};
-
-void CFDispatchRetain(dispatch_queue_t q) { dispatch_retain(q); }
-void CFDispatchRelease(dispatch_queue_t q) { dispatch_release(q); }
-using CFDispatchRef = CFRef<dispatch_queue_t, CFDispatchRetain, CFDispatchRelease>;
-
-#if TORRENT_USE_SC_NETWORK_REACHABILITY
 CFRef<SCNetworkReachabilityRef> create_reachability(SCNetworkReachabilityCallBack callback
 	, void* context_info)
 {
@@ -307,7 +312,7 @@ private:
 	CFRef<SCNetworkReachabilityRef> m_reach;
 	std::function<void(error_code const&)> m_cb = nullptr;
 };
-#else
+#elif TORRENT_USE_SYSTEMCONFIGURATION
 // see https://developer.apple.com/library/content/technotes/tn1145/_index.html
 CFRef<CFMutableArrayRef> create_keys_array()
 {
@@ -407,7 +412,6 @@ private:
 	CFRef<SCDynamicStoreRef> m_store;
 	std::function<void(error_code const&)> m_cb = nullptr;
 };
-#endif // TORRENT_USE_SC_NETWORK_REACHABILITY
 
 #elif defined TORRENT_WINDOWS
 struct ip_change_notifier_impl final : ip_change_notifier
