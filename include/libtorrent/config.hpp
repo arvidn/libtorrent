@@ -127,7 +127,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_EXECINFO 1
 #endif
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+// this is used for the ip_change_notifier on macOS, which isn't supported on
+// 10.6 and earlier
 #define TORRENT_USE_SYSTEMCONFIGURATION 1
+#endif
 
 #if TARGET_OS_IPHONE
 #define TORRENT_USE_SC_NETWORK_REACHABILITY 1
