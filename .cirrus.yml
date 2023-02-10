@@ -38,7 +38,6 @@ build_and_store_wheels: &BUILD_AND_STORE_WHEELS
 
 build_macos_arm64_task:
   name: Build macOS arm64 wheels.
-  trigger_type: manual
 
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
@@ -63,7 +62,6 @@ build_macos_arm64_task:
 
 test_macos_arm64_task:
   name: Test macOS arm64.
-  trigger_type: manual
 
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
