@@ -233,8 +233,8 @@ bool is_downloading_state(int const st)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
 		, m_deleted(false)
-		, m_last_download(seconds32(p.last_download))
-		, m_last_upload(seconds32(p.last_upload))
+		, m_last_download(aux::from_time_t(p.last_download))
+		, m_last_upload(aux::from_time_t(p.last_upload))
 		, m_userdata(p.userdata)
 		, m_auto_managed(p.flags & torrent_flags::auto_managed)
 		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
@@ -6863,8 +6863,8 @@ namespace {
 		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
 		ret.seeding_time = static_cast<int>(total_seconds(seeding_time()));
 		ret.last_seen_complete = m_last_seen_complete;
-		ret.last_upload = std::time_t(total_seconds(m_last_upload.time_since_epoch()));
-		ret.last_download = std::time_t(total_seconds(m_last_download.time_since_epoch()));
+		ret.last_upload = aux::to_time_t(m_last_upload);
+		ret.last_download = aux::to_time_t(m_last_download);
 
 		ret.num_complete = m_complete;
 		ret.num_incomplete = m_incomplete;
