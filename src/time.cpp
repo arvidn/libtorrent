@@ -32,9 +32,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/time.hpp"
 
+#include <chrono>
+
 namespace libtorrent { namespace aux {
 
 	time_point time_now() { return clock_type::now(); }
 	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
+
+	// for simplying implementation
+	using std::chrono::system_clock;
+
+
+	// consider using std::chrono::clock_cast on C++20
+	time_t to_time_t(const time_point32 tp)
+	{
+		const auto lt_now = clock_type::now();
+		const auto sys_now = system_clock::now();
+
+		const auto r = sys_now + std::chrono::duration_cast<system_clock::duration>(lt_now - tp);
+		return system_clock::to_time_t(r);
+	}
+
+	// consider using std::chrono::clock_cast on C++20
+	time_point32 from_time_t(const std::time_t t)
+	{
+		const auto tp = system_clock::from_time_t(t);
+		const auto lt_now = clock_type::now();
+		const auto sys_now = system_clock::now();
+
+		auto r = lt_now + std::chrono::duration_cast<clock_type::duration>(sys_now - tp);
+		return std::chrono::time_point_cast<seconds32>(r);
+	}
 
 } }
