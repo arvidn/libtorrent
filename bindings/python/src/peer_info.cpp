@@ -120,7 +120,7 @@ void bind_peer_info()
     pi.attr("outgoing_connection") = peer_info::outgoing_connection;
     pi.attr("handshake") = peer_info::handshake;
     pi.attr("connecting") = peer_info::connecting;
-    pi.attr("i2p_socket") = peer.info::i2p_socket;
+    pi.attr("i2p_socket") = peer_info::i2p_socket;
 #if TORRENT_ABI_VERSION == 1
     pi.attr("queued") = peer_info::queued;
 #endif
