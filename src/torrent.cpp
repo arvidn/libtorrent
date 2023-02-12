@@ -11252,18 +11252,17 @@ namespace {
 		if (!m_peer_list) return;
 
 		port_filter ports;
-		ports.add_rule(0, 1024, port_filter::blocked);
+		ports.add_rule(0, 1023, port_filter::blocked);
 
 		torrent_state st = get_peer_list_state();
-		std::vector<address> banned;
+		std::vector<tcp::endpoint> banned;
 		m_peer_list->apply_port_filter(ports, &st, banned);
 
 		if (alerts().should_post<peer_blocked_alert>())
 		{
-			for (auto const& addr : banned)
+			for (auto const& ep : banned)
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, tcp::endpoint(addr, 0)
-					, peer_blocked_alert::privileged_ports);
+					, ep, peer_blocked_alert::privileged_ports);
 		}
 
 		peers_erased(st.erased);
@@ -11274,15 +11273,14 @@ namespace {
 		if (!m_peer_list) return;
 
 		torrent_state st = get_peer_list_state();
-		std::vector<address> banned;
+		std::vector<tcp::endpoint> banned;
 		m_peer_list->apply_port_filter(m_ses.get_port_filter(), &st, banned);
 
 		if (alerts().should_post<peer_blocked_alert>())
 		{
-			for (auto const& addr : banned)
+			for (auto const& ep : banned)
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, tcp::endpoint(addr, 0)
-					, peer_blocked_alert::port_filter);
+					, ep, peer_blocked_alert::port_filter);
 		}
 
 		peers_erased(st.erased);
