@@ -1191,10 +1191,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
-		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
-		// by the new ip-filter
+		// by the new port-filter
 		for (auto const& t : m_torrents)
 			t->port_filter_updated();
 	}
@@ -5340,16 +5338,10 @@ namespace {
 	{
 		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
 		{
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
-
 			// Close connections whose endpoint is filtered
-			// by the new ip-filter
+			// by the new setting
 			for (auto const& t : m_torrents)
-				t->port_filter_updated();
-		}
-		else
-		{
-			m_port_filter.add_rule(0, 1024, 0);
+				t->privileged_port_updated();
 		}
 	}
 

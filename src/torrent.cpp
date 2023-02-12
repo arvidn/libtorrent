@@ -11246,9 +11246,31 @@ namespace {
 		peers_erased(st.erased);
 	}
 
+	// this call will disconnect any peers whose remote port is < 1024
+	void torrent::privileged_port_updated()
+	{
+		if (!m_peer_list) return;
+
+		port_filter ports;
+		ports.add_rule(0, 1024, port_filter::blocked);
+
+		torrent_state st = get_peer_list_state();
+		std::vector<address> banned;
+		m_peer_list->apply_port_filter(ports, &st, banned);
+
+		if (alerts().should_post<peer_blocked_alert>())
+		{
+			for (auto const& addr : banned)
+				alerts().emplace_alert<peer_blocked_alert>(get_handle()
+					, tcp::endpoint(addr, 0)
+					, peer_blocked_alert::privileged_ports);
+		}
+
+		peers_erased(st.erased);
+	}
+
 	void torrent::port_filter_updated()
 	{
-		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
 
 		torrent_state st = get_peer_list_state();
