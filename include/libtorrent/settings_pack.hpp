@@ -363,7 +363,10 @@ namespace aux {
 			proxy_password,
 
 			// sets the i2p_ SAM bridge to connect to. set the port with the
-			// ``i2p_port`` setting.
+			// ``i2p_port`` setting. Unless this is set, i2p torrents are not
+			// supported. This setting is separate from the other proxy settings
+			// since i2p torrents and their peers are orthogonal. You can have
+			// i2p peers as well as regular peers via a proxy.
 			//
 			// .. _i2p: http://www.i2p2.de
 			i2p_hostname,
@@ -2206,8 +2209,13 @@ namespace aux {
 			// authorization. The username and password will be sent to the proxy.
 			http_pw,
 
-			// route through a i2p SAM proxy
+#if TORRENT_USE_I2P
+			// internal
+			// This is used internally to communicate with the
+			// http_tracker_connection. To configure an i2p SAM bridge, set
+			// i2p_hostname and i2p_port.
 			i2p_proxy
+#endif
 		};
 	private:
 

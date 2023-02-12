@@ -2354,17 +2354,6 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-
-	proxy_settings session_impl::i2p_proxy() const
-	{
-		proxy_settings ret;
-
-		ret.hostname = m_settings.get_str(settings_pack::i2p_hostname);
-		ret.type = settings_pack::i2p_proxy;
-		ret.port = std::uint16_t(m_settings.get_int(settings_pack::i2p_port));
-		return ret;
-	}
-
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
 		if (ec)

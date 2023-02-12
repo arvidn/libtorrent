@@ -7350,7 +7350,7 @@ namespace {
 #if TORRENT_USE_I2P
 		if (peerinfo->is_i2p_addr)
 		{
-			if (m_ses.i2p_proxy().hostname.empty())
+			if (settings().get_str(settings_pack::i2p_hostname).empty())
 			{
 				// we have an i2p torrent, but we're not connected to an i2p
 				// SAM proxy.
@@ -7396,8 +7396,14 @@ namespace {
 			// one. The main feature of a peer connection is that whether or not we
 			// proxy it is configurable. When we use i2p, we want to always prox
 			// everything via i2p.
+
+			aux::proxy_settings proxy;
+			proxy.hostname = settings().get_str(settings_pack::i2p_hostname);
+			proxy.port = std::uint16_t(settings().get_int(settings_pack::i2p_port));
+			proxy.type = settings_pack::i2p_proxy;
+
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
-				, m_ses.i2p_proxy(), nullptr, nullptr, false, false);
+				, proxy, nullptr, nullptr, false, false);
 			boost::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
 			boost::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
 			boost::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());

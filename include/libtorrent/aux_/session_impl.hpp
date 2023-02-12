@@ -729,7 +729,6 @@ namespace aux {
 
 #if TORRENT_USE_I2P
 			char const* i2p_session() const override { return m_i2p_conn.session_id(); }
-			proxy_settings i2p_proxy() const override;
 
 			void on_i2p_open(error_code const& ec);
 			void open_new_incoming_i2p_connection();
