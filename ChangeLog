@@ -1,3 +1,4 @@
+	* improve error messages for no_connect_privileged_ports, by untangle it from the port filter
 	* fix I2P issue introduced in 2.0.0
 	* add async tracker status query, post_trackers()
 	* add async torrent status query, post_status()
