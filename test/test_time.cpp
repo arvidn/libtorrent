@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 
 #include "libtorrent/time.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #include <functional>
 #include <thread>
