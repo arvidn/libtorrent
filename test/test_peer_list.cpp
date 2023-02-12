@@ -447,14 +447,14 @@ TORRENT_TEST(port_filter)
 	// now, filter one of the IPs and make sure the peer is removed
 	port_filter filter;
 	filter.add_rule(9000, 10000, 1);
-	std::vector<address> banned;
+	std::vector<tcp::endpoint> banned;
 	p.apply_port_filter(filter, &st, banned);
 	// we just erased a peer, because it was filtered by the ip filter
 	TEST_EQUAL(st.erased.size(), 1);
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(banned.size(), 1);
-	TEST_EQUAL(banned[0], addr4("11.0.0.2"));
+	TEST_EQUAL(banned[0], ep("11.0.0.2", 9020));
 	TEST_EQUAL(con2->was_disconnected(), true);
 	TEST_EQUAL(con1->was_disconnected(), false);
 }
@@ -566,7 +566,7 @@ TORRENT_TEST(set_ip_filter)
 TORRENT_TEST(set_port_filter)
 {
 	torrent_state st = init_state();
-	std::vector<address> banned;
+	std::vector<tcp::endpoint> banned;
 
 	mock_torrent t(&st);
 	peer_list p(allocator);
