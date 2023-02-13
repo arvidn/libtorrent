@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
+#include <map>
+#include <string_view>
 
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/string_util.hpp"
@@ -192,22 +194,29 @@ exit:
 		}
 	}
 
-	bool has_tracker_query_string(string_view query_string)
+	bool has_tracker_query_string(std::string_view query_string)
 	{
-		static string_view const tracker_args[] = {
-			"info_hash"_sv, "event"_sv, "port"_sv, "left"_sv, "key"_sv,
-			"uploaded"_sv, "downloaded"_sv, "corrupt"_sv, "peer_id"_sv
+		static const std::map<std::string_view, bool> tracker_args = {
+			{"info_hash", true},
+			{"event", true},
+			{"port", true},
+			{"left", true},
+			{"key", true},
+			{"uploaded", true},
+			{"downloaded", true},
+			{"corrupt", true},
+			{"peer_id", true}
 		};
+
 		while (!query_string.empty())
 		{
-			string_view arg;
+			std::string_view arg;
 			std::tie(arg, query_string) = split_string(query_string, '&');
 
-			auto const name = split_string(arg, '=').first;
-			for (auto const& tracker_arg : tracker_args)
+			std::string_view name = split_string(arg, '=').first;
+			if (tracker_args.count(name) > 0)
 			{
-				if (string_equal_no_case(name, tracker_arg))
-					return true;
+				return true;
 			}
 		}
 		return false;
