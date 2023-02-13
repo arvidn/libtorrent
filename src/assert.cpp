@@ -190,16 +190,21 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	std::array<void*, 50> stack;
 
 	STACKFRAME64 stack_frame = {};
-#if defined(_WIN64)
-	int const machine_type = IMAGE_FILE_MACHINE_AMD64;
-	stack_frame.AddrPC.Offset = context_record.Rip;
-	stack_frame.AddrFrame.Offset = context_record.Rbp;
-	stack_frame.AddrStack.Offset = context_record.Rsp;
-#else
+#if defined(_M_IX86)
 	int const machine_type = IMAGE_FILE_MACHINE_I386;
 	stack_frame.AddrPC.Offset = context_record.Eip;
 	stack_frame.AddrFrame.Offset = context_record.Ebp;
 	stack_frame.AddrStack.Offset = context_record.Esp;
+#elif defined(_M_X64)
+	int const machine_type = IMAGE_FILE_MACHINE_AMD64;
+	stack_frame.AddrPC.Offset = context_record.Rip;
+	stack_frame.AddrFrame.Offset = context_record.Rbp;
+	stack_frame.AddrStack.Offset = context_record.Rsp;
+#elif defined(_M_ARM64)
+	int const machine_type = IMAGE_FILE_MACHINE_ARM64;
+	stack_frame.AddrPC.Offset = context_record.Pc;
+	stack_frame.AddrFrame.Offset = context_record.Fp;
+	stack_frame.AddrStack.Offset = context_record.Sp;
 #endif
 	stack_frame.AddrPC.Mode = AddrModeFlat;
 	stack_frame.AddrFrame.Mode = AddrModeFlat;
