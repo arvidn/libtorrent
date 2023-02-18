@@ -1647,11 +1647,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 			write_payload(p->buf + p->size, size_left);
 			p->size += std::uint16_t(size_left);
 
-			if (size_left > 0)
-			{
-				UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-					, static_cast<void*>(this), size_left, p->size, p->allocated);
-			}
+			UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
+				, static_cast<void*>(this), size_left, p->size, p->allocated);
 		}
 
 		// did we fill up the whole mtu?
