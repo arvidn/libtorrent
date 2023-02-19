@@ -28,6 +28,11 @@
 *.app
 libtool
 
+# windows
+*.ilk
+*.pdb
+*.exp
+
 *.m4
 *.in
 *.pc
