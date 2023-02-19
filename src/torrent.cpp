@@ -11675,11 +11675,14 @@ namespace {
 		st->seeding_time = int(total_seconds(seeding_time()));
 
 		time_point32 const unset{seconds32(0)};
+		auto const last_upload_unix = aux::to_time_t(m_last_upload),
+			last_download_unix = aux::to_time_t(m_last_download);
 
 		st->time_since_upload = m_last_upload == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_upload));
+			: static_cast<int>(std::time(nullptr) - last_upload_unix);
 		st->time_since_download = m_last_download == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_download));
+			: static_cast<int>(std::time(nullptr) - last_download_unix);
+
 #endif
 
 		st->finished_duration = finished_time();
