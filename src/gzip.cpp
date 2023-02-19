@@ -181,9 +181,12 @@ namespace {
 
 		do
 		{
-			TORRENT_TRY {
+			try
+			{
 				buffer.resize(destlen);
-			} TORRENT_CATCH (std::exception const&) {
+			}
+			catch (std::exception const&)
+			{
 				ec = errors::no_memory;
 				return;
 			}

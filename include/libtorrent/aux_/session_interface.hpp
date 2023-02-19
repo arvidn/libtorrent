@@ -190,7 +190,6 @@ namespace libtorrent::aux {
 		virtual proxy_settings proxy() const = 0;
 
 #if TORRENT_USE_I2P
-		virtual proxy_settings i2p_proxy() const = 0;
 		virtual char const* i2p_session() const = 0;
 #endif
 

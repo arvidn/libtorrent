@@ -151,7 +151,6 @@ struct session_mock : aux::session_interface
 #endif
 
 #if TORRENT_USE_I2P
-	aux::proxy_settings i2p_proxy() const override { return {}; }
 	char const* i2p_session() const override { return nullptr; }
 #endif
 

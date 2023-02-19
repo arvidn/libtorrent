@@ -19,3 +19,79 @@ task:
     cd test
     b2 -l250 warnings-as-errors=on warnings=all crypto=openssl stage_enum_if stage_dependencies include=/usr/local/include library-path=/usr/local/lib
     LD_LIBRARY_PATH=./dependencies ./enum_if
+
+build_and_store_wheels: &BUILD_AND_STORE_WHEELS
+  env:
+    CIBW_BUILD_VERBOSITY: 3
+    CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+      delocate-listdeps {wheel} &&
+      delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
+
+  install_cibuildwheel_script:
+    - $PYTHON -m pip install cibuildwheel==2.12.0
+
+  run_cibuildwheel_script:
+    - cibuildwheel
+
+  wheels_artifacts:
+    path: "wheelhouse/*"
+
+build_macos_arm64_task:
+  name: Build macOS arm64 wheels.
+
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-monterey-xcode
+
+  env:
+    CIRRUS_CLONE_SUBMODULES: true
+    CIBW_SKIP: pp* cp38-* # cp38-* has problem with x86_64 / arm64 confusion
+    CIBW_BUILD: cp39-* cp310-* # cp311-* can be added after boost-python version >= 1.81
+    CIBW_ARCH: arm64
+    PATH: /opt/homebrew/bin:$PATH
+    PYTHON: python3.9
+
+  install_pre_requirements_script:
+    - brew install python@3.9
+
+  debug_script:
+    - echo $PATH
+    - ls -l /opt/homebrew/bin
+    - find /opt/homebrew -name '*openssl*' -ls
+
+  <<: *BUILD_AND_STORE_WHEELS
+
+test_macos_arm64_task:
+  name: Test macOS arm64.
+
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-monterey-xcode
+
+  env:
+    CIRRUS_CLONE_SUBMODULES: true
+    PATH: /opt/homebrew/bin:$PATH
+    PYTHON: python3.9
+    OPENSSL_OPTS: >
+      openssl-lib=/opt/homebrew/opt/openssl@1.1/lib
+      openssl-include=/opt/homebrew/opt/openssl@1.1/include
+
+  install_pre_requirements_script:
+    - brew install python@3.9
+    - brew install boost-build boost openssl@1.1
+    - echo "using darwin ;" >>~/user-config.jam
+
+  debug_script:
+    - echo $PATH
+    - ls -l /opt/homebrew/bin
+    - find /opt/homebrew -name '*openssl*' -ls
+
+  test_script:
+    - cd test
+    - b2 crypto=built-in -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+    - b2 $OPENSSL_OPTS crypto=openssl -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+    - b2 $OPENSSL_OPTS deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+
+  test_flaky_script:
+    - cd test
+    - b2 crypto=built-in -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
+    - b2 $OPENSSL_OPTS crypto=openssl -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on
+    - b2 $OPENSSL_OPTS deprecated-functions=off -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on

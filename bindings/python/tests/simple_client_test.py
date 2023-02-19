@@ -49,7 +49,7 @@ class TestSimpleClient(unittest.TestCase):
         # construct a .torrent to point to our web seed
         self.tdict = dict(self.torrent.dict)
         self.tdict[b"url-list"] = b"".join(
-            [b"http://", addr.encode(), b":", str(port).encode()]
+            [b"http://", str(addr).encode(), b":", str(port).encode()]
         )
         self.torrent_path = self.tempdir_path / "dummy.torrent"
         self.torrent_path.write_bytes(lt.bencode(self.tdict))

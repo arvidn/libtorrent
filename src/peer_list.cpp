@@ -220,7 +220,7 @@ namespace libtorrent::aux {
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
 	void peer_list::apply_port_filter(port_filter const& filter
-		, torrent_state* state, std::vector<address>& banned)
+		, torrent_state* state, std::vector<tcp::endpoint>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -250,7 +250,7 @@ namespace libtorrent::aux {
 				int count = int(m_peers.size());
 				peer_connection_interface* p = (*i)->connection;
 
-				banned.push_back(p->remote().address());
+				banned.push_back(p->remote());
 
 				p->disconnect(errors::banned_by_port_filter, operation_t::bittorrent);
 				// what *i refers to has changed, i.e. cur was deleted

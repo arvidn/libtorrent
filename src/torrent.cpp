@@ -7424,7 +7424,7 @@ namespace {
 #if TORRENT_USE_I2P
 		if (peerinfo->is_i2p_addr)
 		{
-			if (m_ses.i2p_proxy().hostname.empty())
+			if (settings().get_str(settings_pack::i2p_hostname).empty())
 			{
 				// we have an i2p torrent, but we're not connected to an i2p
 				// SAM proxy.
@@ -7470,8 +7470,14 @@ namespace {
 			// one. The main feature of a peer connection is that whether or not we
 			// proxy it is configurable. When we use i2p, we want to always prox
 			// everything via i2p.
+
+			aux::proxy_settings proxy;
+			proxy.hostname = settings().get_str(settings_pack::i2p_hostname);
+			proxy.port = std::uint16_t(settings().get_int(settings_pack::i2p_port));
+			proxy.type = settings_pack::i2p_proxy;
+
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
-				, m_ses.i2p_proxy(), nullptr, nullptr, false, false);
+				, proxy, nullptr, nullptr, false, false);
 			std::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
 			std::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
 			std::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
@@ -7559,7 +7565,7 @@ namespace {
 		m_peers_to_disconnect.reserve(m_connections.size() + 1);
 
 		sorted_insert(m_connections, c.get());
-		TORRENT_TRY
+		try
 		{
 			m_outgoing_pids.insert(our_pid);
 			m_ses.insert_peer(c);
@@ -7576,7 +7582,7 @@ namespace {
 
 			if (c->is_disconnecting()) return false;
 		}
-		TORRENT_CATCH (std::exception const&)
+		catch (std::exception const&)
 		{
 			TORRENT_ASSERT(m_iterating_connections == 0);
 			c->disconnect(errors::no_error, operation_t::bittorrent, peer_connection_interface::failure);
@@ -11260,21 +11266,41 @@ namespace {
 		peers_erased(st.erased);
 	}
 
+	// this call will disconnect any peers whose remote port is < 1024
+	void torrent::privileged_port_updated()
+	{
+		if (!m_peer_list) return;
+
+		port_filter ports;
+		ports.add_rule(0, 1023, port_filter::blocked);
+
+		torrent_state st = get_peer_list_state();
+		std::vector<tcp::endpoint> banned;
+		m_peer_list->apply_port_filter(ports, &st, banned);
+
+		if (alerts().should_post<peer_blocked_alert>())
+		{
+			for (auto const& ep : banned)
+				alerts().emplace_alert<peer_blocked_alert>(get_handle()
+					, ep, peer_blocked_alert::privileged_ports);
+		}
+
+		peers_erased(st.erased);
+	}
+
 	void torrent::port_filter_updated()
 	{
-		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
 
 		torrent_state st = get_peer_list_state();
-		std::vector<address> banned;
+		std::vector<tcp::endpoint> banned;
 		m_peer_list->apply_port_filter(m_ses.get_port_filter(), &st, banned);
 
 		if (alerts().should_post<peer_blocked_alert>())
 		{
-			for (auto const& addr : banned)
+			for (auto const& ep : banned)
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, tcp::endpoint(addr, 0)
-					, peer_blocked_alert::port_filter);
+					, ep, peer_blocked_alert::port_filter);
 		}
 
 		peers_erased(st.erased);

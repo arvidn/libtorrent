@@ -1151,10 +1151,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
-		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
-		// by the new ip-filter
+		// by the new port-filter
 		for (auto const& t : m_torrents)
 			t->port_filter_updated();
 	}
@@ -2319,17 +2317,6 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-
-	proxy_settings session_impl::i2p_proxy() const
-	{
-		proxy_settings ret;
-
-		ret.hostname = m_settings.get_str(settings_pack::i2p_hostname);
-		ret.type = settings_pack::i2p_proxy;
-		ret.port = std::uint16_t(m_settings.get_int(settings_pack::i2p_port));
-		return ret;
-	}
-
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
 		if (ec)
@@ -5305,16 +5292,10 @@ namespace {
 	{
 		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
 		{
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
-
 			// Close connections whose endpoint is filtered
-			// by the new ip-filter
+			// by the new setting
 			for (auto const& t : m_torrents)
-				t->port_filter_updated();
-		}
-		else
-		{
-			m_port_filter.add_rule(0, 1024, 0);
+				t->privileged_port_updated();
 		}
 	}
 

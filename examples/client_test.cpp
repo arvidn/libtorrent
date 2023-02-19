@@ -902,6 +902,16 @@ struct client_state_t
 	std::vector<lt::block_info> download_queue_block_info;
 	std::vector<int> piece_availability;
 	std::vector<lt::announce_entry> trackers;
+
+	void clear()
+	{
+		peers.clear();
+		file_progress.clear();
+		download_queue.clear();
+		download_queue_block_info.clear();
+		piece_availability.clear();
+		trackers.clear();
+	}
 };
 
 // returns true if the alert was handled (and should not be printed to the log)
@@ -1627,6 +1637,7 @@ int main(int argc, char* argv[])
 						int const filter = view.filter();
 						if (filter > 0)
 						{
+							client_state.clear();
 							view.set_filter(filter - 1);
 							h = view.get_active_handle();
 						}
@@ -1636,29 +1647,20 @@ int main(int argc, char* argv[])
 						int const filter = view.filter();
 						if (filter < torrent_view::torrents_max - 1)
 						{
+							client_state.clear();
 							view.set_filter(filter + 1);
 							h = view.get_active_handle();
 						}
 					}
 					else if (c2 == up_arrow)
 					{
-						client_state.peers.clear();
-						client_state.file_progress.clear();
-						client_state.download_queue.clear();
-						client_state.download_queue_block_info.clear();
-						client_state.piece_availability.clear();
-						client_state.trackers.clear();
+						client_state.clear();
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
 					else if (c2 == down_arrow)
 					{
-						client_state.peers.clear();
-						client_state.file_progress.clear();
-						client_state.download_queue.clear();
-						client_state.download_queue_block_info.clear();
-						client_state.piece_availability.clear();
-						client_state.trackers.clear();
+						client_state.clear();
 						view.arrow_down();
 						h = view.get_active_handle();
 					}
@@ -2114,7 +2116,7 @@ done:
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
 
-				auto& file_progress = client_state.file_progress;
+				auto const& file_progress = client_state.file_progress;
 				int p = 0; // this is horizontal position
 				for (file_index_t const i : ti->files().file_range())
 				{

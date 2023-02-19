@@ -506,6 +506,7 @@ namespace libtorrent::aux {
 		void received_synack(bool ipv6);
 
 		void set_ip_filter(std::shared_ptr<const ip_filter> ipf);
+		void privileged_port_updated();
 		void port_filter_updated();
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 

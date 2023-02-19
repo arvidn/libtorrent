@@ -97,7 +97,11 @@ see LICENSE file.
 #define TORRENT_USE_EXECINFO 1
 #endif
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+// this is used for the ip_change_notifier on macOS, which isn't supported on
+// 10.6 and earlier
 #define TORRENT_USE_SYSTEMCONFIGURATION 1
+#endif
 
 #if TARGET_OS_IPHONE
 #define TORRENT_USE_SC_NETWORK_REACHABILITY 1
@@ -539,19 +543,6 @@ see LICENSE file.
 #if TORRENT_USE_INVARIANT_CHECKS && !TORRENT_USE_ASSERTS
 #error "invariant checks cannot be enabled without asserts"
 #endif
-
-// for non-exception builds
-#ifdef BOOST_NO_EXCEPTIONS
-#define TORRENT_TRY if (true)
-#define TORRENT_CATCH(x) else if (false)
-#define TORRENT_CATCH_ALL else if (false)
-#define TORRENT_DECLARE_DUMMY(x, y) x y
-#else
-#define TORRENT_TRY try
-#define TORRENT_CATCH(x) catch(x)
-#define TORRENT_CATCH_ALL catch(...)
-#define TORRENT_DECLARE_DUMMY(x, y)
-#endif // BOOST_NO_EXCEPTIONS
 
 // SSE is x86 / amd64 specific. On top of that, we only
 // know how to access it on msvc and gcc (and gcc compatibles).

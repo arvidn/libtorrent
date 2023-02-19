@@ -129,7 +129,7 @@ namespace
 				throw_error_already_set();
 			}
 
-			TORRENT_TRY
+			try
 			{
 				// if the dictionary doesn't contain "key", it will throw, hence
 				// the try-catch here
@@ -154,7 +154,7 @@ namespace
 						break;
 				}
 			}
-			TORRENT_CATCH(...) {}
+			catch (...) {}
 		}
 	}
 
