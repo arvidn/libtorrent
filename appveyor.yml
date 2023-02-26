@@ -68,7 +68,7 @@ build_script:
   # test
   - cd %ROOT_DIRECTORY%\test
   - if defined tests (
-    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10 testing.execute=off
+    b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10 testing.execute=off deterministic-tests
     )
 
   # python binding
@@ -99,7 +99,7 @@ build_script:
 test_script:
   - cd %ROOT_DIRECTORY%\test
   - if defined tests (
-    appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10
+    appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10 deterministic-tests
     )
 
   - if defined cmake (
