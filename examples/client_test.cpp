@@ -1143,7 +1143,12 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 
 	if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
+		lt::torrent_handle const prev = client_state.view.get_active_handle();
 		client_state.view.update_torrents(std::move(p->status));
+
+		// when the active torrent changes, we need to clear the peers, trackers, files, etc.
+		if (client_state.view.get_active_handle() != prev)
+			client_state.clear();
 		return true;
 	}
 
