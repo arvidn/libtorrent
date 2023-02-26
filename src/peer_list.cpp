@@ -1062,7 +1062,7 @@ namespace libtorrent {
 		auto const remote_address = remote.address();
 
 		// just ignore the obviously invalid entries
-		if (remote_address == address() || remote.port() == 0)
+		if (remote_address == address() || remote.port() == 0 || remote.port() == 1)
 			return nullptr;
 
 		// don't allow link-local IPv6 addresses since they
