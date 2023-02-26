@@ -94,7 +94,7 @@ aux::vector<sha256_hash> build_tree(int const size)
 	return full_tree;
 }
 
-#ifdef _WIN32
+#if defined _WIN32 && !defined TORRENT_MINGW
 int EXPORT truncate(char const* file, std::int64_t size)
 {
 	int fd = ::_open(file, _O_WRONLY);

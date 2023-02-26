@@ -222,10 +222,10 @@ namespace {
 			out_policy = settings_pack::pe_disabled;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-		static char const* policy_name[] = {"forced", "enabled", "disabled"};
-		TORRENT_ASSERT(out_policy < sizeof(policy_name)/sizeof(policy_name[0]));
+		static char const* policy_name[] = {"forced", "enabled", "disabled", "invalid-setting"};
+		int const policy_name_idx = out_policy > 3 ? 3 : out_policy;
 		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "outgoing encryption policy: %s", policy_name[out_policy]);
+			, "outgoing encryption policy: %s", policy_name[policy_name_idx]);
 #endif
 
 		if (out_policy == settings_pack::pe_forced)
