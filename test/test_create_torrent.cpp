@@ -291,6 +291,7 @@ TORRENT_TEST(v2_only_set_hash)
 	TEST_THROW(t.set_hash(0_piece, lt::sha1_hash::max()));
 }
 
+#if TORRENT_HAS_SYMLINK || !defined TORRENT_WINDOWS
 namespace {
 
 void check(int ret)
@@ -302,6 +303,7 @@ void check(int ret)
 }
 
 }
+#endif
 
 #if TORRENT_HAS_SYMLINK
 

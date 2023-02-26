@@ -43,7 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#if !defined __MINGW64__ && !defined __MINGW32__
 #define _FILE_OFFSET_BITS 64
+#endif
 
 #include <cstddef>
 
@@ -61,6 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // format codes are. So we need to disable those for mingw targets
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
+// Mingw does not like friend declarations of dllexport functions. This
+// suppresses those warnings
+#pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
 #if defined __GNUC__

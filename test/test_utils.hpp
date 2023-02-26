@@ -66,7 +66,7 @@ EXPORT std::vector<char> serialize(lt::torrent_info const& ti);
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
 
-#ifdef _WIN32
+#if defined _WIN32 && !defined TORRENT_MINGW
 int EXPORT truncate(char const* file, std::int64_t size);
 #endif
 
