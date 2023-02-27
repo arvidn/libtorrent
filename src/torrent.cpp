@@ -9784,13 +9784,18 @@ namespace {
 #endif
 
 					if (settings().get_bool(settings_pack::announce_to_all_tiers)
+						&& !settings().get_bool(settings_pack::announce_to_all_trackers)
 						&& state.found_working
 						&& t.tier <= state.tier
 						&& state.tier != INT_MAX)
 						continue;
 
-					if (t.tier > state.tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
-					if (a.is_working()) { state.tier = t.tier; state.found_working = false; }
+					if (t.tier > state.tier)
+					{
+						if (!settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+						state.found_working = false;
+					}
+					state.tier = t.tier;
 					if (a.fails >= t.fail_limit && t.fail_limit != 0) continue;
 					if (a.updating)
 					{
@@ -9799,8 +9804,7 @@ namespace {
 					else
 					{
 						time_point32 const next_tracker_announce = std::max(a.next_announce, a.min_announce);
-						if (next_tracker_announce < next_announce
-							&& (!state.found_working || a.is_working()))
+						if (next_tracker_announce < next_announce)
 							next_announce = next_tracker_announce;
 					}
 					if (a.is_working()) state.found_working = true;
