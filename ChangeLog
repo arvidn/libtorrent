@@ -1,3 +1,4 @@
+	* fix issue with retrying trackers in tiers > 0
 	* fix last_upload and last_download resume data fields to use posix time
 	* improve error messages for no_connect_privileged_ports, by untangle it from the port filter
 	* fix I2P issue introduced in 2.0.0
