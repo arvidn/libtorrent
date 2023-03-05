@@ -1,3 +1,4 @@
+	* fix web seed request for renamed single-file torrents
 	* fix issue where web seeds could disappear from resume data
 	* improve save_resume behavior with only_if_modified flag
 	* fix issue with retrying trackers in tiers > 0
