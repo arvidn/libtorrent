@@ -116,7 +116,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			m_url += escape_file_path(t->torrent_file().files(), file_index_t(0));
+			m_url += escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
 		}
 	}
 
