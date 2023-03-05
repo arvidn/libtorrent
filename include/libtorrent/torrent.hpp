@@ -208,6 +208,14 @@ namespace libtorrent {
 		// web seed from resolving to any local network IPs.
 		bool no_local_ips = false;
 
+		// This means we want to preserve the web seed in resume data, but not
+		// use it for the remainder of this session. For example:
+		// this web seed maye have responded with a redirect. The redirected
+		// URLs have been added as ephemeral. If an ephemeral URL is redirected,
+		// its web seed entry is removed. It could also mean we don't support
+		// the URL protocol, but maybe another client may support it.
+		bool disabled = false;
+
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
@@ -239,6 +247,7 @@ namespace libtorrent {
 			removed = std::move(rhs.removed);
 			ephemeral = std::move(rhs.ephemeral);
 			no_local_ips = std::move(rhs.no_local_ips);
+			disabled = std::move(rhs.disabled);
 			restart_request = std::move(rhs.restart_request);
 			restart_piece = std::move(rhs.restart_piece);
 			redirects = std::move(rhs.redirects);
@@ -668,7 +677,12 @@ namespace libtorrent {
 // --------------------------------------------
 		// PEER MANAGEMENT
 
+		// A web seed entry that's added because of a redirect is flagged as
+		// ephemeral. We don't want to save these in the resume data.
 		static constexpr web_seed_flag_t ephemeral = 0_bit;
+		// A web seed entry with this flag set is not allowed to resolve to an
+		// IP on a local network. This is part of SSRF mitigation, as it may be
+		// malicious
 		static constexpr web_seed_flag_t no_local_ips = 1_bit;
 
 		// add_web_seed won't add duplicates. If we have already added an entry
@@ -680,12 +694,10 @@ namespace libtorrent {
 			, web_seed_flag_t flags = {});
 
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
-		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, boost::optional<seconds32> retry = boost::none);
 
-		void remove_web_seed_conn(peer_connection* p, error_code const& ec
-			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal);
+		void remove_web_seed_conn(peer_connection* peer);
 
 		std::set<std::string> web_seeds(web_seed_entry::type_t type) const;
 

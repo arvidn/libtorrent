@@ -6196,7 +6196,7 @@ namespace {
 					, web->url, error_code(errors::blocked_by_idna));
 			}
 			// never try it again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6232,7 +6232,7 @@ namespace {
 					, libtorrent::errors::peer_banned);
 			}
 			// never try it again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6246,8 +6246,8 @@ namespace {
 			{
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url, errors::unsupported_url_protocol);
 			}
-			// never try it again
-			remove_web_seed_iter(web);
+			// never try it again for this session
+			web->disabled = true;
 			return;
 		}
 
@@ -6283,7 +6283,7 @@ namespace {
 					, web->url, errors::port_blocked);
 			}
 			// never try it again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6372,7 +6372,7 @@ namespace {
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6486,7 +6486,7 @@ namespace {
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6578,7 +6578,7 @@ namespace {
 					, web->url, error_code(errors::blocked_by_idna));
 			}
 			// never try it again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -6602,7 +6602,7 @@ namespace {
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, a, peer_blocked_alert::ssrf_mitigation);
 			// never try it again
-			remove_web_seed_iter(web);
+			web->disabled = true;
 			return;
 		}
 
@@ -10218,7 +10218,7 @@ namespace {
 		for (auto i = m_web_seeds.begin(); i != m_web_seeds.end() && limit > 0;)
 		{
 			auto const w = i++;
-			if (w->removed || w->retry > now || !w->interesting)
+			if (w->disabled || w->removed || w->retry > now || !w->interesting)
 				continue;
 
 			--limit;
@@ -10955,41 +10955,13 @@ namespace {
 		}
 	}
 
-	void torrent::disconnect_web_seed(peer_connection* p)
-	{
-		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, [p] (web_seed_t const& ws) { return ws.peer_info.connection == p; });
-
-		// this happens if the web server responded with a redirect
-		// or with something incorrect, so that we removed the web seed
-		// immediately, before we disconnected
-		if (i == m_web_seeds.end()) return;
-
-		TORRENT_ASSERT(i->resolving == false);
-
-		TORRENT_ASSERT(i->peer_info.connection);
-		i->peer_info.connection = nullptr;
-	}
-
-	void torrent::remove_web_seed_conn(peer_connection* p, error_code const& ec
-		, operation_t const op, disconnect_severity_t const error)
+	void torrent::remove_web_seed_conn(peer_connection* p)
 	{
 		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, [p] (web_seed_t const& ws) { return ws.peer_info.connection == p; });
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
-
-		auto* peer = static_cast<peer_connection*>(i->peer_info.connection);
-		if (peer != nullptr)
-		{
-			// if we have a connection for this web seed, we also need to
-			// disconnect it and clear its reference to the peer_info object
-			// that's part of the web_seed_t we're about to remove
-			TORRENT_ASSERT(peer->m_in_use == 1337);
-			peer->disconnect(ec, op, error);
-			peer->set_peer_info(nullptr);
-		}
 		remove_web_seed_iter(i);
 	}
 
@@ -11001,7 +10973,7 @@ namespace {
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
-		if (i->removed) return;
+		if (i->removed || i->disabled) return;
 		i->retry = aux::time_now32() + value_or(retry, seconds32(
 			settings().get_int(settings_pack::urlseed_wait_retry)));
 	}
