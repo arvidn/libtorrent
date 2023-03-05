@@ -79,6 +79,21 @@ namespace libtorrent {
 #endif
 	}
 
+	void http_seed_connection::disable(error_code const& ec)
+	{
+		// we should not try this server again.
+		m_web->disabled = true;
+		disconnect(ec, operation_t::bittorrent, peer_error);
+		if (m_web->ephemeral)
+		{
+			std::shared_ptr<torrent> t = associated_torrent().lock();
+			TORRENT_ASSERT(t);
+			t->remove_web_seed_conn(this);
+		}
+		m_web = nullptr;
+		TORRENT_ASSERT(is_disconnecting());
+	}
+
 	void http_seed_connection::on_connected()
 	{
 		peer_id pid;
@@ -104,7 +119,8 @@ namespace libtorrent {
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		peer_connection::disconnect(ec, op, error);
-		if (t) t->disconnect_web_seed(this);
+		TORRENT_ASSERT(m_web->resolving == false);
+		m_web->peer_info.connection = nullptr;
 	}
 
 	piece_block_progress http_seed_connection::downloading_piece_progress() const
@@ -322,7 +338,7 @@ namespace libtorrent {
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed_conn(this, errors::missing_location, operation_t::bittorrent, peer_error);
+						disable(errors::missing_location);
 						return;
 					}
 
@@ -337,7 +353,7 @@ namespace libtorrent {
 					t->add_web_seed(location, web_seed_entry::http_seed
 						, std::string{}, web_seed_entry::headers_t{}
 						, web_seed_flags);
-					t->remove_web_seed_conn(this, errors::redirecting, operation_t::bittorrent, peer_error);
+					disable(errors::redirecting);
 					return;
 				}
 
@@ -352,14 +368,14 @@ namespace libtorrent {
 				{
 					received_bytes(0, int(bytes_transferred));
 					// we should not try this server again.
-					t->remove_web_seed_conn(this, errors::no_content_length, operation_t::bittorrent, peer_error);
+					disable(errors::no_content_length);
 					return;
 				}
 				if (m_response_left != front_request.length)
 				{
 					received_bytes(0, int(bytes_transferred));
 					// we should not try this server again.
-					t->remove_web_seed_conn(this, errors::invalid_range, operation_t::bittorrent, peer_error);
+					disable(errors::invalid_range);
 					return;
 				}
 				m_body_start = m_parser.body_start();

@@ -87,6 +87,8 @@ namespace libtorrent {
 		// will be invalid.
 		piece_block_progress downloading_piece_progress() const override;
 
+		void disable(error_code const& ec);
+
 		// this is const since it's used as a key in the web seed list in the torrent
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;

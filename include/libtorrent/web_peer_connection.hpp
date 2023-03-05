@@ -89,6 +89,7 @@ namespace libtorrent {
 		void handle_redirect(int bytes_left);
 		void handle_error(int bytes_left);
 		void maybe_harvest_piece();
+		void disable(error_code const& ec);
 
 		// returns the block currently being
 		// downloaded. And the progress of that
