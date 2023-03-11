@@ -2148,7 +2148,7 @@ done:
 				std::vector<lt::open_file_state> file_status = h.file_status();
 				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
-				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
+				std::shared_ptr<const lt::torrent_info> ti = s.torrent_file.lock();
 
 				auto const& file_progress = client_state.file_progress;
 				int p = 0; // this is horizontal position
