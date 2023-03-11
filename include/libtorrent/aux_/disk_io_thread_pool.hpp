@@ -38,6 +38,13 @@ namespace libtorrent::aux {
 	using disk_thread_fun = std::function<void(
 		aux::disk_io_thread_pool&, executor_work_guard<io_context::executor_type> work)>;
 
+	enum class wait_result: std::uint8_t
+	{
+		new_job,
+		exit_thread,
+		interrupt,
+	};
+
 	// this class implements the policy for creating and destroying I/O threads
 	// threads are created when job_queued is called to signal the arrival of
 	// new jobs
@@ -61,7 +68,7 @@ namespace libtorrent::aux {
 		}
 
 		// returns true if the thread should exit
-		bool wait_for_job(std::unique_lock<std::mutex>& l);
+		wait_result wait_for_job(std::unique_lock<std::mutex>& l);
 
 		// thread_idle, thread_active, and job_queued are NOT thread safe
 		// all calls to them must be serialized
@@ -134,6 +141,12 @@ namespace libtorrent::aux {
 			job_queued(m_queued_jobs.size());
 		}
 
+		void interrupt()
+		{
+			m_interrupt = true;
+			m_job_cond.notify_one();
+		}
+
 		template<typename Fun>
 		void visit_jobs(Fun f)
 		{
@@ -183,6 +196,10 @@ namespace libtorrent::aux {
 
 		// jobs queued for servicing
 		jobqueue_t m_queued_jobs;
+
+		// when this is set, one thread is interrupted and wait_for_job() will
+		// return even if the queue is empty (with the interrupt result)
+		std::atomic<bool> m_interrupt;
 	};
 } // namespace libtorrent::aux
 

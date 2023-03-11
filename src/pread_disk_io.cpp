@@ -169,6 +169,11 @@ private:
 	// std::mutex to protect the m_generic_threads and m_hash_threads lists
 	mutable std::mutex m_job_mutex;
 
+	// when set, it means we're trying to flush the disk cache down to this size
+	// it's a signal to generic disk threads to start flushing. Once flushing
+	// starts, m_flush_target is cleared.
+	std::optional<int> m_flush_target = std::nullopt;
+
 	// every write job is inserted into this map while it is in the job queue.
 	// It is removed after the write completes. This will let subsequent reads
 	// pull the buffers straight out of the queue instead of having to
@@ -468,8 +473,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
-		m_cache.erase({j->storage->storage_index(), a.piece, a.offset});
-
 		{
 			std::lock_guard<std::mutex> l(m_need_tick_mutex);
 			if (!j->storage->set_need_tick())
@@ -504,14 +507,17 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// aligned offset to the first block this read touches. In the case the
 		// request is aligned, it's the same as r.start
 		int const block_offset = r.start - (r.start % default_block_size);
+		int const block_idx = r.start / default_block_size;
 		// this is the offset into the block that we're reading from
 		int const read_offset = r.start - block_offset;
 
-		DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
-			, block_offset / default_block_size, read_offset);
+		//DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
+		//	, block_offset / default_block_size, read_offset);
 
 		disk_buffer_holder buffer;
 
+		// TODO: query the block cache
+/*
 		if (read_offset + r.length > default_block_size)
 		{
 			// This is an unaligned request spanning two blocks. One of the two
@@ -577,8 +583,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			// as a normal read job
 		}
 		else
+*/
 		{
-			if (m_cache.get({ storage, r.piece, block_offset }, [&](char const* buf)
+			if (m_cache.get({ storage, r.piece }, block_idx, [&](char const* buf)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 				if (!buffer)
@@ -624,8 +631,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(r.start % default_block_size == 0);
 		TORRENT_ASSERT(r.length <= default_block_size);
 
-		auto data_ptr = buffer.data();
-
 		aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::write>(
 			flags,
 			m_torrents[storage]->shared_from_this(),
@@ -636,9 +641,17 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
-		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, data_ptr, j);
+		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
 
-		add_job(j);
+		if (!m_flush_target)
+		{
+			// if the disk buffer wants to free up blocks, notify the thread
+			// pool that we may need to flush blocks
+			m_flush_target = m_buffer_pool.flush_target();
+			// wake up a thread
+			m_generic_threads.interrupt();
+		}
+
 		return exceeded;
 	}
 
@@ -839,6 +852,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
+		// TODO: maybe we have the hash already, otherwise, hang the hash job on
+		// the piece
+
 		// Since there may be outstanding write operations on this piece,
 		// we have to check the store buffer for every block. However, if
 		// there are no blocks being written, we would like to issue as
@@ -860,7 +876,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 			hasher256 h2;
 
-			if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, offset }
+			// TODO: query the cache
+/*
+			if (!m_cache.get({ j->storage->storage_index(), a.piece, offset }
 				, [&](char const* buf)
 				{
 					if (deferred_length > 0)
@@ -886,6 +904,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					}
 					deferred_offset = offset + len;
 				}))
+
+*/
 			{
 				if (v1)
 				{
@@ -947,12 +967,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(piece_size > a.offset);
 		std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
 
-		if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, a.offset }
+		// TODO: query the cache
+/*
+		if (!m_cache.get({ j->storage->storage_index(), a.piece, a.offset }
 			, [&](char const* buf)
 		{
 			h.update({ buf, len });
 			ret = int(len);
 		}))
+*/
 		{
 			ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 				, file_mode, j->flags, j->error);
@@ -1247,10 +1270,39 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		for (;;)
 		{
-			aux::pread_disk_job* j = nullptr;
-			bool const should_exit = pool.wait_for_job(l);
-			if (should_exit) break;
-			j = static_cast<aux::pread_disk_job*>(pool.pop_front());
+			auto const res = pool.wait_for_job(l);
+			if (res == aux::wait_result::exit_thread) break;
+
+			// if we need to flush the cache, let one of the generic threads do
+			// that
+			if (m_flush_target && &pool == &m_generic_threads)
+			{
+				int const target_cache_size = *m_flush_target;
+				m_flush_target = std::nullopt;
+				l.unlock();
+				m_cache.flush_to_disk([&](span<aux::cached_block_entry> blocks) {
+					TORRENT_ASSERT(blocks.size() > 0);
+					TORRENT_ASSERT(blocks[0].write_job);
+
+					jobqueue_t completed_jobs;
+					for (auto& be : blocks)
+					{
+#error move the buffer back into the write job? read jobs still need to be able to access it
+						perform_job(be.write_job, completed_jobs);
+					}
+
+					if (!completed_jobs.empty())
+						add_completed_jobs(std::move(completed_jobs));
+					// TODO: actually count
+					return int(blocks.size());
+				}, target_cache_size);
+				l.lock();
+				continue;
+			}
+			if (res != aux::wait_result::new_job)
+				continue;
+
+			aux::pread_disk_job* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
 			l.unlock();
 
 			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);

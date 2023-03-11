@@ -1279,8 +1279,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		for (;;)
 		{
 			aux::mmap_disk_job* j = nullptr;
-			bool const should_exit = pool.wait_for_job(l);
-			if (should_exit) break;
+			auto const result = pool.wait_for_job(l);
+			if (result == aux::wait_result::exit_thread) break;
 			j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
 			l.unlock();
 

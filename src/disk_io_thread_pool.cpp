@@ -190,7 +190,7 @@ namespace libtorrent::aux {
 		m_job_cond.notify_all();
 	}
 
-	bool disk_io_thread_pool::wait_for_job(std::unique_lock<std::mutex>& l)
+	wait_result disk_io_thread_pool::wait_for_job(std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(l.owns_lock());
 
@@ -203,6 +203,7 @@ namespace libtorrent::aux {
 		{
 			thread_idle();
 
+			if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			do
 			{
 				// if the number of wanted threads is decreased,
@@ -217,17 +218,18 @@ namespace libtorrent::aux {
 				{
 					// time to exit this thread.
 					thread_active();
-					return true;
+					return wait_result::exit_thread;
 				}
 
 				using namespace std::literals::chrono_literals;
 				m_job_cond.wait_for(l, 1s);
+				if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			} while (m_queued_jobs.empty());
 
 			thread_active();
 		}
 
-		return false;
+		return wait_result::new_job;
 	}
 
 
