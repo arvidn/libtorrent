@@ -6527,7 +6527,16 @@ namespace libtorrent {
 		}
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
-		if (t && t->valid_metadata() && !m_disconnecting)
+		if (t
+			&& t->valid_metadata()
+			&& !m_disconnecting
+#ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			// if our download queue is too long, this invariant
+			// check is somewhat expensive. Don't run it unless we
+			// opted-in to expensive invariant checks
+			&& m_download_queue.size() <= 128
+#endif
+			)
 		{
 			torrent_info const& ti = t->torrent_file();
 			// if the piece is fully downloaded, we might have popped it from the
@@ -6577,12 +6586,21 @@ namespace libtorrent {
 			TORRENT_ASSERT(r.start >= 0);
 		}
 
-		std::set<piece_block> unique;
-		std::transform(m_download_queue.begin(), m_download_queue.end()
-			, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
-		std::transform(m_request_queue.begin(), m_request_queue.end()
-			, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
-		TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
+#ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		// it's somewhat expensive to perform the uniqueness check,
+		// only do it for small queues, or if we've opted-in to
+		// expensive invariant checks
+		if (m_download_queue.size() + m_request_queue.size() <= 200)
+#endif
+		{
+			std::set<piece_block> unique;
+			std::transform(m_download_queue.begin(), m_download_queue.end()
+				, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
+			std::transform(m_request_queue.begin(), m_request_queue.end()
+				, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
+			TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
+		}
+
 		if (m_peer_info)
 		{
 			TORRENT_ASSERT(m_peer_info->prev_amount_upload == 0);

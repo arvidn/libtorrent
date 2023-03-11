@@ -214,6 +214,12 @@ struct torrent_list
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const
 	{
+#ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		// if we have many torrents, this would be an expensive
+		// invariant check, so don't run it in that case (unless we
+		// enabled expensive invariant checks)
+		if (m_array.size() > 100) return;
+#endif
 		std::set<T*> all_torrents;
 		std::set<T*> all_indexed_torrents;
 #if !defined TORRENT_DISABLE_ENCRYPTION
