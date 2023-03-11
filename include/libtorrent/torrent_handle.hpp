@@ -683,10 +683,20 @@ namespace aux {
 		// if nothing significant has changed in the torrent since the last
 		// time resume data was saved, fail this attempt. Significant changes
 		// primarily include more data having been downloaded, file or piece
-		// priorities having changed etc. If the resume data doesn't need
-		// saving, a save_resume_data_failed_alert is posted with the error
+		// priorities, paused-state, transfer limit settings  having changed etc.
+		// Counters keeping statistics are notably *not* considered significant.
+		// Things like total_uploaded, total_downloaded, last_seen_complete,
+		// tracker scrape counters, are not considered significant enough
+		// changes for this flag to save the resume data.
+		// If the resume data doesn't need saving, a
+		// save_resume_data_failed_alert is posted with the error
 		// resume_data_not_modified.
 		static constexpr resume_data_flags_t only_if_modified = 2_bit;
+
+		// this flag amends the behavior of only_if_modified to include
+		// stats counter or scrape data updating to also count as an update, so
+		// it becomes more eager to save resume data.
+		static constexpr resume_data_flags_t save_counters = 3_bit;
 
 		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
 		// this torrent. The fast resume data (stored in an add_torrent_params

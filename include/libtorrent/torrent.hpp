@@ -873,7 +873,7 @@ namespace libtorrent {
 
 		// called when we learn that we have a piece
 		// only once per piece
-		void we_have(piece_index_t index);
+		void we_have(piece_index_t index, bool loading_resume = false);
 
 		// process the v2 block hashes for a piece
 		boost::tribool on_blocks_hashed(piece_index_t piece
@@ -1670,7 +1670,11 @@ namespace libtorrent {
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// 4 unused bits
+		// 3 unused bits
+
+		// set to false when saving resume data. Set to true
+		// whenever some statistics that's saved in the resume data is updated
+		bool m_counters_updated:1;
 
 		// when this is true, this torrent supports peer exchange
 		bool m_enable_pex:1;

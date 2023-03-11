@@ -69,6 +69,7 @@ namespace libtorrent {
 	constexpr resume_data_flags_t torrent_handle::flush_disk_cache;
 	constexpr resume_data_flags_t torrent_handle::save_info_dict;
 	constexpr resume_data_flags_t torrent_handle::only_if_modified;
+	constexpr resume_data_flags_t torrent_handle::save_counters;
 	constexpr add_piece_flags_t torrent_handle::overwrite_existing;
 	constexpr pause_flags_t torrent_handle::graceful_pause;
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
