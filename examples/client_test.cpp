@@ -1111,7 +1111,7 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
 		torrent_handle h = p->handle;
-		h.save_resume_data(torrent_handle::save_info_dict);
+		h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 		++num_outstanding_resume_data;
 		if (exit_on_finish) quit = true;
 	}

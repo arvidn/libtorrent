@@ -224,6 +224,7 @@ bool is_downloading_state(int const st)
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
+		, m_counters_updated(false)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
@@ -2170,7 +2171,7 @@ bool is_downloading_state(int const st)
 					m_picker->we_have(i);
 					inc_stats_counter(counters::num_piece_passed);
 					update_gauge();
-					we_have(i);
+					we_have(i, true);
 				}
 
 				// --- UNFINISHED PIECES ---
@@ -3363,7 +3364,7 @@ namespace {
 			update_auto_sequential();
 
 			// these numbers are cached in the resume data
-			set_need_save_resume();
+			m_counters_updated = true;
 		}
 	}
 
@@ -4056,7 +4057,7 @@ namespace {
 	// piece, it just does all the torrent-level accounting that needs to
 	// happen. It may not be called twice for the same piece (if it is,
 	// file_progress will assert)
-	void torrent::we_have(piece_index_t const index)
+	void torrent::we_have(piece_index_t const index, bool const loading_resume)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!has_picker() || m_picker->has_piece_passed(index));
@@ -4123,9 +4124,12 @@ namespace {
 			p->update_interest();
 		}
 
-		set_need_save_resume();
-		state_updated();
-		update_want_tick();
+		if (!loading_resume)
+		{
+			set_need_save_resume();
+			state_updated();
+			update_want_tick();
+		}
 
 		if (m_ses.alerts().should_post<piece_finished_alert>())
 			m_ses.alerts().emplace_alert<piece_finished_alert>(get_handle(), index);
@@ -8975,7 +8979,8 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		// TODO: perhaps 0 should actially mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
-		if (int(m_max_uploads) != limit && state_update) state_updated();
+		if (int(m_max_uploads) == limit) return;
+		if (state_update) state_updated();
 		m_max_uploads = aux::numeric_cast<std::uint32_t>(limit);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log() && state_update)
@@ -8991,7 +8996,8 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		// TODO: perhaps 0 should actially mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
-		if (int(m_max_connections) != limit && state_update) state_updated();
+		if (int(m_max_connections) == limit) return;
+		if (state_update) state_updated();
 		m_max_connections = aux::numeric_cast<std::uint32_t>(limit);
 		update_want_peers();
 
@@ -9013,7 +9019,6 @@ namespace {
 	void torrent::set_upload_limit(int const limit)
 	{
 		set_limit_impl(limit, peer_connection::upload_channel);
-		set_need_save_resume();
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-upload-limit: %d", limit);
 #endif
@@ -9022,7 +9027,6 @@ namespace {
 	void torrent::set_download_limit(int const limit)
 	{
 		set_limit_impl(limit, peer_connection::download_channel);
-		set_need_save_resume();
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-download-limit: %d", limit);
 #endif
@@ -9041,8 +9045,12 @@ namespace {
 
 		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
 		TORRENT_ASSERT(tpc);
-		if (tpc->channel[channel].throttle() != limit && state_update)
+		if (tpc->channel[channel].throttle() == limit) return;
+		if (state_update)
+		{
 			state_updated();
+			set_need_save_resume();
+		}
 		tpc->channel[channel].throttle(limit);
 	}
 
@@ -9301,6 +9309,9 @@ namespace {
 			return;
 		}
 
+		if ((flags & torrent_handle::save_counters) && m_counters_updated)
+			m_need_save_resume_data = true;
+
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -9309,6 +9320,7 @@ namespace {
 		}
 
 		m_need_save_resume_data = false;
+		m_counters_updated = false;
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
@@ -9557,7 +9569,11 @@ namespace {
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
 		if (it != m_web_seeds.end()) return &*it;
 		m_web_seeds.emplace_back(std::move(ent));
-		set_need_save_resume();
+
+		// ephemeral web seeds are not saved in the resume data
+		if (!ent.ephemeral)
+			set_need_save_resume();
+
 		update_want_tick();
 		return &m_web_seeds.back();
 	}
@@ -10109,7 +10125,7 @@ namespace {
 
 		// these counters are saved in the resume data, since they updated
 		// we need to save the resume data too
-		set_need_save_resume();
+		m_counters_updated = true;
 
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
