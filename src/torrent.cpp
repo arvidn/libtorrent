@@ -9567,7 +9567,17 @@ namespace {
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
-		if (it != m_web_seeds.end()) return &*it;
+		if (it != m_web_seeds.end())
+		{
+			// if we're adding a web seed (as non-ephemeral) and we have an
+			// ephemeral web seed already, promote it to non-ephemeral
+			if (it->ephemeral && !ent.ephemeral)
+			{
+				set_need_save_resume();
+				it->ephemeral = false;
+			}
+			return &*it;
+		}
 		m_web_seeds.emplace_back(std::move(ent));
 
 		// ephemeral web seeds are not saved in the resume data
