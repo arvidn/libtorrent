@@ -10960,8 +10960,9 @@ namespace {
 
 		if (i != m_web_seeds.end())
 		{
+			if (!i->ephemeral)
+				set_need_save_resume();
 			remove_web_seed_iter(i);
-			set_need_save_resume();
 		}
 	}
 
