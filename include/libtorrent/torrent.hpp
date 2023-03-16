@@ -587,12 +587,19 @@ namespace libtorrent {
 		void force_recheck();
 		void save_resume_data(resume_data_flags_t flags);
 
-		bool need_save_resume_data() const { return m_need_save_resume_data; }
-
-		void set_need_save_resume()
+		bool need_save_resume_data(resume_data_flags_t flags) const
 		{
-			if (m_need_save_resume_data) return;
-			m_need_save_resume_data = true;
+			return bool(m_need_save_resume_data & flags);
+		}
+
+		void set_need_save_resume(resume_data_flags_t const flag)
+		{
+			// every category sets this bit. TODO: make this flag a combination
+			// of the other ones
+			m_need_save_resume_data |= torrent_handle::only_if_modified;
+
+			if (m_need_save_resume_data & flag) return;
+			m_need_save_resume_data |= flag;
 			state_updated();
 		}
 
@@ -1651,16 +1658,13 @@ namespace libtorrent {
 		// from a non-downloading/seeding state, the torrent is paused.
 		bool m_stop_when_ready:1;
 
-		// set to false when saving resume data. Set to true
-		// whenever something is downloaded
-		bool m_need_save_resume_data:1;
-
 		// when this is true, this torrent participates in the DHT
 		bool m_enable_dht:1;
 
 		// when this is true, this torrent participates in local service discovery
 		bool m_enable_lsd:1;
 
+		// 1 bit free
 // ----
 
 		// total time we've been available as a seed on this torrent.
@@ -1675,18 +1679,15 @@ namespace libtorrent {
 		// the maximum number of uploads for this torrent
 		std::uint32_t m_max_uploads:24;
 
-		// 8 bits free
+		// bits set to indicate which category of resume data state has updated
+		resume_data_flags_t m_need_save_resume_data;
 
 // ----
 
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// 3 unused bits
-
-		// set to false when saving resume data. Set to true
-		// whenever some statistics that's saved in the resume data is updated
-		bool m_counters_updated:1;
+		// 4 unused bits
 
 		// when this is true, this torrent supports peer exchange
 		bool m_enable_pex:1;

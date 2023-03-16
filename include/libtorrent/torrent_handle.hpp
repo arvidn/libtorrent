@@ -680,23 +680,52 @@ namespace aux {
 		// around separately, or for torrents that were added via a magnet link.
 		static constexpr resume_data_flags_t save_info_dict = 1_bit;
 
-		// if nothing significant has changed in the torrent since the last
-		// time resume data was saved, fail this attempt. Significant changes
-		// primarily include more data having been downloaded, file or piece
-		// priorities, paused-state, transfer limit settings  having changed etc.
-		// Counters keeping statistics are notably *not* considered significant.
-		// Things like total_uploaded, total_downloaded, last_seen_complete,
-		// tracker scrape counters, are not considered significant enough
-		// changes for this flag to save the resume data.
-		// If the resume data doesn't need saving, a
-		// save_resume_data_failed_alert is posted with the error
-		// resume_data_not_modified.
+		// this flag has the same behavior as the combination of:
+		// if_counters_changed | if_download_progress | if_config_changed |
+		// if_state_changed | if_metadata_changed
 		static constexpr resume_data_flags_t only_if_modified = 2_bit;
 
-		// this flag amends the behavior of only_if_modified to include
-		// stats counter or scrape data updating to also count as an update, so
-		// it becomes more eager to save resume data.
-		static constexpr resume_data_flags_t save_counters = 3_bit;
+		// save resume data if any counters has changed since the last time
+		// resume data was saved. This includes upload/download counters, active
+		// time counters and scrape data. A torrent that is not paused will have
+		// its active time counters incremented continuously.
+		static constexpr resume_data_flags_t if_counters_changed = 3_bit;
+
+		// save the resume data if any blocks have been downloaded since the
+		// last time resume data was saved. This includes:
+		// * checking existing files on disk
+		// * downloading a block from a peer
+		static constexpr resume_data_flags_t if_download_progress = 4_bit;
+
+		// save the resume data if configuration options changed since last time
+		// the resume data was saved. This includes:
+		// * file- or piece priorities
+		// * upload- and download rate limits
+		// * change max-uploads (unchoke slots)
+		// * change max connection limit
+		// * enable/disable peer-exchange, local service discovery or DHT
+		// * enable/disable apply IP-filter
+		// * enable/disable auto-managed
+		// * enable/disable share-mode
+		// * enable/disable sequential-mode
+		// * files renamed
+		// * storage moved (save_path changed)
+		static constexpr resume_data_flags_t if_config_changed = 5_bit;
+
+		// save the resume data if torrent state has changed since last time the
+		// resume data was saved. This includes:
+		// * upload mode
+		// * paused state
+		// * super-seeding
+		// * seed-mode
+		static constexpr resume_data_flags_t if_state_changed = 6_bit;
+
+		// save the resume data if any *metadata* changed since the last time
+		// resume data was saved. This includes:
+		// * add/remove web seeds
+		// * add/remove trackers
+		// * receiving metadata for a magnet link
+		static constexpr resume_data_flags_t if_metadata_changed = 7_bit;
 
 		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
 		// this torrent. The fast resume data (stored in an add_torrent_params
@@ -796,11 +825,16 @@ namespace aux {
 		//	the initial loop, and thwart the counter otherwise.
 		void save_resume_data(resume_data_flags_t flags = {}) const;
 
-		// This function returns true if any whole chunk has been downloaded
-		// since the torrent was first loaded or since the last time the resume
-		// data was saved. When saving resume data periodically, it makes sense
-		// to skip any torrent which hasn't downloaded anything since the last
-		// time.
+		// This function returns true if anything that is stored in the resume
+		// data has changed since the last time resume data was saved.
+		// The overload that takes ``flags`` let you ask if specific categories
+		// of properties have changed. These flags have the same behavior as in
+		// the save_resume_data() call.
+		//
+		// This is a *blocking* call. It will wait for a response from
+		// libtorrent's main thread. A way to avoid blocking is to instead
+		// call save_resume_data() directly, specifying the conditions under
+		// which resume data should be saved.
 		//
 		//.. note::
 		//	A torrent's resume data is considered saved as soon as the
@@ -808,6 +842,7 @@ namespace aux {
 		//	alert is received and handled in order for this function to be
 		//	meaningful.
 		bool need_save_resume_data() const;
+		bool need_save_resume_data(resume_data_flags_t flags) const;
 
 		// Every torrent that is added is assigned a queue position exactly one
 		// greater than the greatest queue position of all existing torrents.

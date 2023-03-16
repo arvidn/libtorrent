@@ -457,6 +457,9 @@ void bind_torrent_handle()
     void (torrent_handle::*move_storage0)(std::string const&, lt::move_flags_t) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
+    bool (torrent_handle::*need_save_resume_data0)() const = &torrent_handle::need_save_resume_data;
+    bool (torrent_handle::*need_save_resume_data1)(resume_data_flags_t) const = &torrent_handle::need_save_resume_data;
+
     std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
 
 #define _ allow_threads
@@ -531,7 +534,8 @@ void bind_torrent_handle()
         .def("file_priority", &file_prioritity1)
         .def("file_status", _(file_status0))
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
-        .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
+        .def("need_save_resume_data", _(need_save_resume_data0))
+        .def("need_save_resume_data", _(need_save_resume_data1), arg("flags"))
         .def("force_reannounce", _(force_reannounce0)
             , (arg("seconds") = 0, arg("tracker_idx") = -1, arg("flags") = reannounce_flags_t{}))
 #ifndef TORRENT_DISABLE_DHT
