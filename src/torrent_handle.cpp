@@ -69,7 +69,12 @@ namespace libtorrent {
 	constexpr resume_data_flags_t torrent_handle::flush_disk_cache;
 	constexpr resume_data_flags_t torrent_handle::save_info_dict;
 	constexpr resume_data_flags_t torrent_handle::only_if_modified;
-	constexpr resume_data_flags_t torrent_handle::save_counters;
+	constexpr resume_data_flags_t torrent_handle::if_counters_changed;
+	constexpr resume_data_flags_t torrent_handle::if_download_progress;
+	constexpr resume_data_flags_t torrent_handle::if_config_changed;
+	constexpr resume_data_flags_t torrent_handle::if_state_changed;
+	constexpr resume_data_flags_t torrent_handle::if_metadata_changed;
+
 	constexpr add_piece_flags_t torrent_handle::overwrite_existing;
 	constexpr pause_flags_t torrent_handle::graceful_pause;
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
@@ -393,7 +398,19 @@ namespace libtorrent {
 
 	bool torrent_handle::need_save_resume_data() const
 	{
-		return sync_call_ret<bool>(false, &torrent::need_save_resume_data);
+		auto const all_categories
+			= torrent_handle::if_counters_changed
+			| torrent_handle::if_download_progress
+			| torrent_handle::if_config_changed
+			| torrent_handle::if_state_changed
+			| torrent_handle::if_metadata_changed
+			;
+		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, all_categories);
+	}
+
+	bool torrent_handle::need_save_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, flags);
 	}
 
 	void torrent_handle::force_recheck() const
