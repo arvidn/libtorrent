@@ -105,7 +105,7 @@ namespace {
 			{
 				error.ec = errors::no_memory;
 				error.operation = operation_t::alloc_cache_piece;
-				post(m_ios, [=, h = std::move(handler)]{ h(disk_buffer_holder(m_buffer_pool, nullptr, 0), error); });
+				post(m_ios, [this, error, h = std::move(handler)]{ h(disk_buffer_holder(m_buffer_pool, nullptr, 0), error); });
 				return;
 			}
 
