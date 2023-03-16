@@ -109,7 +109,7 @@ namespace aux {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			post(m_ios, [=]{ callback(h, ec, std::vector<address>{ip}); });
+			post(m_ios, [this, h, ec, ip]{ callback(h, ec, std::vector<address>{ip}); });
 			return;
 		}
 		ec.clear();
@@ -122,7 +122,7 @@ namespace aux {
 				|| i->second.last_seen + m_timeout >= time_now())
 			{
 				std::vector<address> ips = i->second.addresses;
-				post(m_ios, [=] { callback(h, ec, ips); });
+				post(m_ios, [this, h, ec, ips] { callback(h, ec, ips); });
 				return;
 			}
 		}
@@ -130,7 +130,7 @@ namespace aux {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			post(m_ios, [=] {
+			post(m_ios, [this, h] {
 				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
 			});
 			return;
