@@ -47,7 +47,7 @@ namespace libtorrent::aux {
 
 namespace {
 
-error_code translate_error(std::system_error const& err, bool const write)
+error_code translate_error(std::error_code const& err, bool const write)
 {
 	// We don't really know why we failed to read or write. SIGBUS essentially
 	// means I/O failure. We assume that if we were writing, the failure was
@@ -55,10 +55,10 @@ error_code translate_error(std::system_error const& err, bool const write)
 	if (write)
 	{
 #ifdef TORRENT_WINDOWS
-		if (err.code() == std::error_code(sig::seh_errors::in_page_error))
+		if (err == std::error_code(sig::seh_errors::in_page_error))
 			return error_code(boost::system::errc::no_space_on_device, generic_category());
 #else
-		if (err.code() == std::error_code(sig::errors::bus))
+		if (err == std::error_code(sig::errors::bus))
 			return error_code(boost::system::errc::no_space_on_device, generic_category());
 #endif
 	}
@@ -66,14 +66,14 @@ error_code translate_error(std::system_error const& err, bool const write)
 #if BOOST_VERSION >= 107700
 
 #ifdef TORRENT_WINDOWS
-	if (err.code() == std::error_code(sig::seh_errors::in_page_error))
+	if (err == std::error_code(sig::seh_errors::in_page_error))
 		return error_code(boost::system::errc::io_error, generic_category());
 #else
-	if (err.code() == std::error_code(sig::errors::bus))
+	if (err == std::error_code(sig::errors::bus))
 		return error_code(boost::system::errc::io_error, generic_category());
 #endif
 
-	return err.code();
+	return err;
 #else
 
 	return error_code(boost::system::errc::io_error, generic_category());
@@ -157,7 +157,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 							{
 								lt::error_code err;
 								aux::pwrite_all(f->fd(), buf, file_offset, err);
-								if (err) throw std::system_error(err);
+								if (err) throw lt::system_error(err);
 								return;
 							}
 
@@ -181,7 +181,14 @@ error_code translate_error(std::system_error const& err, bool const write)
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_write;
-						ec.ec = translate_error(err, true);
+						ec.ec = translate_error(err.code(), true);
+						return;
+					}
+					catch (lt::system_error const& err)
+					{
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						ec.ec = err.code();
 						return;
 					}
 				}
@@ -566,7 +573,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 			catch (std::system_error const& err)
 			{
-				ec.ec = translate_error(err, false);
+				ec.ec = translate_error(err.code(), false);
 				return -1;
 			}
 
@@ -653,7 +660,7 @@ error_code translate_error(std::system_error const& err, bool const write)
 			}
 			catch (std::system_error const& err)
 			{
-				ec.ec = translate_error(err, true);
+				ec.ec = translate_error(err.code(), true);
 				return -1;
 			}
 

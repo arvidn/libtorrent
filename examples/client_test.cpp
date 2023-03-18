@@ -1060,7 +1060,7 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 		{
 			torrent_handle h = p->handle;
 
-			h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
+			h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::if_metadata_changed);
 			++num_outstanding_resume_data;
 
 			// if we have a peer specified, connect to it
@@ -1088,7 +1088,7 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
 		torrent_handle h = p->handle;
-		h.save_resume_data(torrent_handle::save_info_dict);
+		h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::if_download_progress);
 		++num_outstanding_resume_data;
 		if (exit_on_finish) quit = true;
 	}
@@ -1120,7 +1120,12 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 
 	if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
+		lt::torrent_handle const prev = client_state.view.get_active_handle();
 		client_state.view.update_torrents(std::move(p->status));
+
+		// when the active torrent changes, we need to clear the peers, trackers, files, etc.
+		if (client_state.view.get_active_handle() != prev)
+			client_state.clear();
 		return true;
 	}
 
@@ -2114,7 +2119,7 @@ done:
 				std::vector<lt::open_file_state> file_status = h.file_status();
 				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
-				std::shared_ptr<const lt::torrent_info> ti = h.torrent_file();
+				std::shared_ptr<const lt::torrent_info> ti = s.torrent_file.lock();
 
 				auto const& file_progress = client_state.file_progress;
 				int p = 0; // this is horizontal position

@@ -81,13 +81,13 @@ namespace libtorrent {
 				(t.get()->*f)(std::move(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
-				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(t)
 					, e.code(), e.what());
 			} catch (std::exception const& e) {
-				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(t)
 					, error_code(), e.what());
 			} catch (...) {
-				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(t)
 					, error_code(), "unknown error");
 			}
 #endif
@@ -349,7 +349,19 @@ namespace libtorrent {
 
 	bool torrent_handle::need_save_resume_data() const
 	{
-		return sync_call_ret<bool>(false, &aux::torrent::need_save_resume_data);
+		auto const all_categories
+			= torrent_handle::if_counters_changed
+			| torrent_handle::if_download_progress
+			| torrent_handle::if_config_changed
+			| torrent_handle::if_state_changed
+			| torrent_handle::if_metadata_changed
+			;
+		return sync_call_ret<bool>(false, &aux::torrent::need_save_resume_data, all_categories);
+	}
+
+	bool torrent_handle::need_save_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<bool>(false, &aux::torrent::need_save_resume_data, flags);
 	}
 
 	void torrent_handle::force_recheck() const

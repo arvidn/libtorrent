@@ -7037,19 +7037,25 @@ namespace {
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
 			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == std::numeric_limits<int>::max());
 
-		for (torrent_list_index_t l{}; l != m_torrent_lists.end_index(); ++l)
+#ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+		// this can get expensive when there are a lot of torrents
+		if (m_download_queue.size() < 500)
+#endif
 		{
-			std::vector<torrent*> const& list = m_torrent_lists[l];
-			for (auto const& i : list)
+			for (torrent_list_index_t l{}; l != m_torrent_lists.end_index(); ++l)
 			{
-				TORRENT_ASSERT(i->m_links[l].in_list());
-			}
+				std::vector<torrent*> const& list = m_torrent_lists[l];
+				for (auto const& i : list)
+				{
+					TORRENT_ASSERT(i->m_links[l].in_list());
+				}
 
-			queue_position_t idx{};
-			for (auto t : m_download_queue)
-			{
-				TORRENT_ASSERT(t->queue_position() == idx);
-				++idx;
+				queue_position_t idx{};
+				for (auto t : m_download_queue)
+				{
+					TORRENT_ASSERT(t->queue_position() == idx);
+					++idx;
+				}
 			}
 		}
 

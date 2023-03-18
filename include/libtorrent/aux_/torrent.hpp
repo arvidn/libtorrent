@@ -178,6 +178,14 @@ namespace libtorrent::aux {
 		// web seed from resolving to any local network IPs.
 		bool no_local_ips = false;
 
+		// This means we want to preserve the web seed in resume data, but not
+		// use it for the remainder of this session. For example:
+		// this web seed maye have responded with a redirect. The redirected
+		// URLs have been added as ephemeral. If an ephemeral URL is redirected,
+		// its web seed entry is removed. It could also mean we don't support
+		// the URL protocol, but maybe another client may support it.
+		bool disabled = false;
+
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
@@ -209,6 +217,7 @@ namespace libtorrent::aux {
 			removed = std::move(rhs.removed);
 			ephemeral = std::move(rhs.ephemeral);
 			no_local_ips = std::move(rhs.no_local_ips);
+			disabled = std::move(rhs.disabled);
 			restart_request = std::move(rhs.restart_request);
 			restart_piece = std::move(rhs.restart_piece);
 			redirects = std::move(rhs.redirects);
@@ -550,12 +559,19 @@ namespace libtorrent::aux {
 		void force_recheck();
 		void save_resume_data(resume_data_flags_t flags);
 
-		bool need_save_resume_data() const { return m_need_save_resume_data; }
-
-		void set_need_save_resume()
+		bool need_save_resume_data(resume_data_flags_t flags) const
 		{
-			if (m_need_save_resume_data) return;
-			m_need_save_resume_data = true;
+			return bool(m_need_save_resume_data & flags);
+		}
+
+		void set_need_save_resume(resume_data_flags_t const flag)
+		{
+			// every category sets this bit. TODO: make this flag a combination
+			// of the other ones
+			m_need_save_resume_data |= torrent_handle::only_if_modified;
+
+			if (m_need_save_resume_data & flag) return;
+			m_need_save_resume_data |= flag;
 			state_updated();
 		}
 
@@ -641,7 +657,12 @@ namespace libtorrent::aux {
 // --------------------------------------------
 		// PEER MANAGEMENT
 
+		// A web seed entry that's added because of a redirect is flagged as
+		// ephemeral. We don't want to save these in the resume data.
 		static inline constexpr web_seed_flag_t ephemeral = 0_bit;
+		// A web seed entry with this flag set is not allowed to resolve to an
+		// IP on a local network. This is part of SSRF mitigation, as it may be
+		// malicious
 		static inline constexpr web_seed_flag_t no_local_ips = 1_bit;
 
 		// add_web_seed won't add duplicates. If we have already added an entry
@@ -652,12 +673,10 @@ namespace libtorrent::aux {
 			, web_seed_flag_t flags = {});
 
 		void remove_web_seed(std::string const& url);
-		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, std::optional<seconds32> retry = std::nullopt);
 
-		void remove_web_seed_conn(peer_connection* p, error_code const& ec
-			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal);
+		void remove_web_seed_conn(peer_connection* peer);
 
 		std::set<std::string> web_seeds() const;
 
@@ -857,7 +876,7 @@ namespace libtorrent::aux {
 
 		// called when we learn that we have a piece
 		// only once per piece
-		void we_have(piece_index_t index);
+		void we_have(piece_index_t index, bool loading_resume = false);
 
 		// process the v2 block hashes for a piece
 		boost::tribool on_blocks_hashed(piece_index_t piece
@@ -1616,16 +1635,13 @@ namespace libtorrent::aux {
 		// from a non-downloading/seeding state, the torrent is paused.
 		bool m_stop_when_ready:1;
 
-		// set to false when saving resume data. Set to true
-		// whenever something is downloaded
-		bool m_need_save_resume_data:1;
-
 		// when this is true, this torrent participates in the DHT
 		bool m_enable_dht:1;
 
 		// when this is true, this torrent participates in local service discovery
 		bool m_enable_lsd:1;
 
+		// 1 bit free
 // ----
 
 		// total time we've been available as a seed on this torrent.
@@ -1640,7 +1656,8 @@ namespace libtorrent::aux {
 		// the maximum number of uploads for this torrent
 		std::uint32_t m_max_uploads:24;
 
-		// 8 bits free
+		// bits set to indicate which category of resume data state has updated
+		resume_data_flags_t m_need_save_resume_data;
 
 // ----
 

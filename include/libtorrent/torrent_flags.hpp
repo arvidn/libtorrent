@@ -200,8 +200,10 @@ namespace torrent_flags {
 	constexpr torrent_flags_t deprecated_override_web_seeds = 12_bit;
 
 	// if this flag is set (which it is by default) the torrent will be
-	// considered needing to save its resume data immediately as it's
-	// added. New torrents that don't have any resume data should do that.
+	// considered needing to save its resume data immediately, in the
+	// category if_metadata_changed. See resume_data_flags_t and
+	// save_resume_data() for details.
+	//
 	// This flag is cleared by a successful call to save_resume_data()
 	// This flag is not saved by write_resume_data(), since it represents an
 	// ephemeral state of a running torrent.

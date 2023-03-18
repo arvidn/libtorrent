@@ -93,7 +93,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			m_url += escape_file_path(t->torrent_file().files(), file_index_t(0));
+			m_url += escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
 		}
 	}
 
@@ -280,7 +280,8 @@ void web_peer_connection::disconnect(error_code const& ec
 	}
 
 	peer_connection::disconnect(ec, op, error);
-	if (t) t->disconnect_web_seed(this);
+	TORRENT_ASSERT(m_web->resolving == false);
+	m_web->peer_info.connection = nullptr;
 }
 
 piece_block_progress web_peer_connection::downloading_piece_progress() const
@@ -613,6 +614,21 @@ void web_peer_connection::handle_error(int const bytes_left)
 	disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, failure);
 }
 
+void web_peer_connection::disable(error_code const& ec)
+{
+	// we should not try this server again.
+	m_web->disabled = true;
+	disconnect(ec, operation_t::bittorrent, peer_error);
+	if (m_web->ephemeral)
+	{
+		std::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		t->remove_web_seed_conn(this);
+	}
+	m_web = nullptr;
+	TORRENT_ASSERT(is_disconnecting());
+}
+
 void web_peer_connection::handle_redirect(int const bytes_left)
 {
 	// this means we got a redirection request
@@ -625,10 +641,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 	if (location.empty())
 	{
-		// we should not try this server again.
-		t->remove_web_seed_conn(this, errors::missing_location, operation_t::bittorrent, peer_error);
-		m_web = nullptr;
-		TORRENT_ASSERT(is_disconnecting());
+		disable(errors::missing_location);
 		return;
 	}
 
@@ -876,10 +889,7 @@ void web_peer_connection::on_receive(error_code const& error
 		if (ec)
 		{
 			received_bytes(0, int(recv_buffer.size()));
-			// we should not try this server again.
-			t->remove_web_seed_conn(this, ec, operation_t::bittorrent, peer_error);
-			m_web = nullptr;
-			TORRENT_ASSERT(is_disconnecting());
+			disable(ec);
 			return;
 		}
 
