@@ -2029,6 +2029,7 @@ class torrent_status:
     moving_storage: bool
     name: str
     need_save_resume: bool
+    need_save_resume_data: int
     next_announce: datetime.timedelta
     num_complete: int
     num_connections: int

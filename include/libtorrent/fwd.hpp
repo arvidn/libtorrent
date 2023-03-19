@@ -266,7 +266,7 @@ class torrent_info;
 TORRENT_VERSION_NAMESPACE_3_END
 
 // include/libtorrent/torrent_status.hpp
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 struct torrent_status;
 TORRENT_VERSION_NAMESPACE_3_END
 
@@ -300,6 +300,10 @@ struct pe_settings;
 // include/libtorrent/session_status.hpp
 struct utp_status;
 struct session_status;
+
+// include/libtorrent/torrent_status.hpp
+TORRENT_VERSION_NAMESPACE_4
+TORRENT_VERSION_NAMESPACE_3_END
 
 #endif // TORRENT_ABI_VERSION
 
