@@ -633,7 +633,10 @@ TORRENT_TEST(file_priority_stress_test)
 
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(atp);
+#if TORRENT_ABI_VERSION < 4
 	TEST_CHECK(h.status().need_save_resume == false);
+#endif
+	TEST_CHECK(!(h.status().need_save_resume_data & torrent_handle::if_metadata_changed));
 
 	std::mt19937 rng(0x82daf973);
 	bool first = true;
@@ -647,7 +650,13 @@ TORRENT_TEST(file_priority_stress_test)
 		// updating the file priorities is asynchronous, it shouldn't have taken
 		// effect quite yet
 		if (first)
-			TEST_CHECK(h.status().need_save_resume == false);
+		{
+			auto const st = h.status();
+#if TORRENT_ABI_VERSION < 4
+			TEST_CHECK(st.need_save_resume == false);
+#endif
+			TEST_CHECK(!(st.need_save_resume_data & torrent_handle::if_config_changed));
+		}
 		first = false;
 	}
 
@@ -669,7 +678,10 @@ TORRENT_TEST(file_priority_stress_test)
 	std::cout << '\n';
 
 	TEST_CHECK(tp == local_prios);
+#if TORRENT_ABI_VERSION < 4
 	TEST_CHECK(h.status().need_save_resume == true);
+#endif
+	TEST_EQUAL(h.status().need_save_resume_data, torrent_handle::if_config_changed | torrent_handle::if_counters_changed);
 
 	auto const pp = h.get_piece_priorities();
 	auto const& fs = ti->files();

@@ -136,7 +136,7 @@ class TorrentStatusTest(unittest.TestCase):
         self.assertIsInstance(self.status.last_seen_complete, int)
 
         self.assertIsInstance(self.status.queue_position, int)
-        self.assertIsInstance(self.status.need_save_resume, bool)
+        self.assertIsInstance(self.status.need_save_resume_data, int)
 
         if lt.api_version < 2:
             self.assertIsInstance(self.status.ip_filter_applies, bool)
@@ -168,6 +168,8 @@ class TorrentStatusTest(unittest.TestCase):
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
         if lt.api_version < 2:
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsInstance(self.status.need_save_resume, bool)
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(self.status.paused, bool)
             with self.assertWarns(DeprecationWarning):

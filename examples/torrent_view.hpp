@@ -49,6 +49,7 @@ struct torrent_view
 	void update_torrents(std::vector<lt::torrent_status> st);
 	int num_visible_torrents() const { return int(m_filtered_handles.size()); }
 
+	void for_each_torrent(std::function<void(lt::torrent_status const&)> f);
 	int height() const;
 
 	void arrow_up();

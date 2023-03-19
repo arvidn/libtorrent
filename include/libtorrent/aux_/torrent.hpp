@@ -566,10 +566,6 @@ namespace libtorrent::aux {
 
 		void set_need_save_resume(resume_data_flags_t const flag)
 		{
-			// every category sets this bit. TODO: make this flag a combination
-			// of the other ones
-			m_need_save_resume_data |= torrent_handle::only_if_modified;
-
 			if (m_need_save_resume_data & flag) return;
 			m_need_save_resume_data |= flag;
 			state_updated();

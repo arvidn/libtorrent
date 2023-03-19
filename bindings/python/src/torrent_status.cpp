@@ -101,7 +101,10 @@ void bind_torrent_status()
         .def_readonly("completed_time", &torrent_status::completed_time)
         .def_readonly("last_seen_complete", &torrent_status::last_seen_complete)
         .add_property("queue_position", make_getter(&torrent_status::queue_position, by_value()))
+#if TORRENT_ABI_VERSION < 3
         .def_readonly("need_save_resume", &torrent_status::need_save_resume)
+#endif
+        .add_property("need_save_resume_data", make_getter(&torrent_status::need_save_resume_data, by_value()))
 #if TORRENT_ABI_VERSION == 1
         .def_readonly("ip_filter_applies", &torrent_status::ip_filter_applies)
 #endif

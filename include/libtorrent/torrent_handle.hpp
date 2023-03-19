@@ -671,11 +671,6 @@ namespace aux {
 		// around separately, or for torrents that were added via a magnet link.
 		static inline constexpr resume_data_flags_t save_info_dict = 1_bit;
 
-		// this flag has the same behavior as the combination of:
-		// if_counters_changed | if_download_progress | if_config_changed |
-		// if_state_changed | if_metadata_changed
-		static inline constexpr resume_data_flags_t only_if_modified = 2_bit;
-
 		// save resume data if any counters has changed since the last time
 		// resume data was saved. This includes upload/download counters, active
 		// time counters and scrape data. A torrent that is not paused will have
@@ -717,6 +712,15 @@ namespace aux {
 		// * add/remove trackers
 		// * receiving metadata for a magnet link
 		static inline constexpr resume_data_flags_t if_metadata_changed = 7_bit;
+
+		// this flag has the same behavior as the combination of:
+		// if_counters_changed | if_download_progress | if_config_changed |
+		// if_state_changed | if_metadata_changed
+		static inline constexpr resume_data_flags_t only_if_modified = if_metadata_changed
+			| if_state_changed
+			| if_config_changed
+			| if_download_progress
+			| if_counters_changed;
 
 		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
 		// this torrent. The fast resume data (stored in an add_torrent_params

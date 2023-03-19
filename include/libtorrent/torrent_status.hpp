@@ -32,7 +32,7 @@ namespace libtorrent {
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 #endif
 
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 
 	// holds a snapshot of the status of a torrent, as queried by
 	// torrent_handle::status().
@@ -443,10 +443,17 @@ TORRENT_VERSION_NAMESPACE_3
 		// the main state the torrent is in. See torrent_status::state_t.
 		state_t state = checking_resume_data;
 
+#if TORRENT_ABI_VERSION < 4
 		// true if this torrent has unsaved changes
 		// to its download state and statistics since the last resume data
 		// was saved.
-		bool need_save_resume = false;
+		TORRENT_DEPRECATED bool need_save_resume = false;
+#endif
+
+		// These are the flags indicating which aspects of this torrent have
+		// changed since the last time resume data was saved. See
+		// torrent_handle::save_resume_data().
+		resume_data_flags_t need_save_resume_data;
 
 #if TORRENT_ABI_VERSION == 1
 		// true if the session global IP filter applies

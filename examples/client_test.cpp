@@ -1765,14 +1765,11 @@ int main(int argc, char* argv[])
 				if (c == 'R')
 				{
 					// save resume data for all torrents
-					std::vector<torrent_status> const torr = ses.get_torrent_status(
-						[](torrent_status const& st)
-						{ return st.need_save_resume; }, {});
-					for (torrent_status const& st : torr)
-					{
-						st.handle.save_resume_data(torrent_handle::save_info_dict);
-						++num_outstanding_resume_data;
-					}
+					view.for_each_torrent([&](lt::torrent_status const& st)
+						{
+							st.handle.save_resume_data(torrent_handle::save_info_dict);
+							++num_outstanding_resume_data;
+						});
 				}
 
 				if (c == 'o' && h.is_valid())
@@ -2219,25 +2216,19 @@ done:
 	std::printf("saving resume data\n");
 
 	// get all the torrent handles that we need to save resume data for
-	std::vector<torrent_status> const temp = ses.get_torrent_status(
-		[](torrent_status const& st)
-		{
-			return st.handle.is_valid() && st.has_metadata && st.need_save_resume;
-		}, {});
-
 	int idx = 0;
-	for (auto const& st : temp)
-	{
-		// save_resume_data will generate an alert when it's done
-		st.handle.save_resume_data(torrent_handle::save_info_dict);
-		++num_outstanding_resume_data;
-		++idx;
-		if ((idx % 32) == 0)
+	view.for_each_torrent([&](lt::torrent_status const& st)
 		{
-			std::printf("\r%d  ", num_outstanding_resume_data);
-			pop_alerts(client_state, ses);
-		}
-	}
+			// save_resume_data will generate an alert when it's done
+			st.handle.save_resume_data(torrent_handle::save_info_dict);
+			++num_outstanding_resume_data;
+			++idx;
+			if ((idx % 32) == 0)
+			{
+				std::printf("\r%d  ", num_outstanding_resume_data);
+				pop_alerts(client_state, ses);
+			}
+		});
 	std::printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
 
 	while (num_outstanding_resume_data > 0)

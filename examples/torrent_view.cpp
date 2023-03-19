@@ -211,6 +211,14 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> st)
 	}
 }
 
+void torrent_view::for_each_torrent(std::function<void(lt::torrent_status const&)> f)
+{
+	for (auto const& h : m_all_handles)
+	{
+		f(h.second);
+	}
+}
+
 int torrent_view::height() const
 {
 	return m_height;
@@ -393,7 +401,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		, s.num_peers - s.num_seeds, s.num_seeds
 		, color(add_suffix(s.all_time_download), col_green).c_str()
 		, color(add_suffix(s.all_time_upload), col_red).c_str()
-		, s.need_save_resume?'S':' ');
+		, bool(s.need_save_resume_data)?'S':' ');
 	if (ret >= 0 && ret <= dest.size()) dest = dest.subspan(ret);
 
 	// if this is the selected torrent, restore the background color
