@@ -209,27 +209,6 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	node_id const& id = o->id();
 	int const shared_prefix = 160 - distance_exp(id, target());
 
-	// when we get close to the target zone in the DHT
-	// start using the correct info-hash, in order to
-	// start receiving peers
-	if (shared_prefix > m_node.m_table.depth() - 4)
-	{
-		m_obfuscated = false;
-		// clear the queried bits on all successful nodes in
-		// our node-list for this traversal algorithm, to
-		// allow the get_peers traversal to regress in case
-		// nodes further down end up being dead
-		for (auto const& node : m_results)
-		{
-			// don't re-request from nodes that didn't respond
-			if (node->flags & observer::flag_failed) continue;
-			// don't interrupt with queries that are already in-flight
-			if (!(node->flags & observer::flag_alive)) continue;
-			node->flags &= ~(observer::flag_queried | observer::flag_alive);
-		}
-		return get_peers::invoke(o);
-	}
-
 	entry e;
 	e["y"] = "q";
 	e["q"] = "get_peers";
