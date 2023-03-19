@@ -3370,6 +3370,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
+	o->flags |= observer::flag_queried;
 	rpc.invoke(req, source, o);
 
 	// here's the incoming (malformed) error message
