@@ -53,7 +53,6 @@ using namespace std::placeholders;
 namespace libtorrent {
 namespace dht {
 
-constexpr traversal_flags_t traversal_algorithm::prevent_request;
 constexpr traversal_flags_t traversal_algorithm::short_timeout;
 
 #if TORRENT_USE_ASSERTS
@@ -77,6 +76,7 @@ bool is_sorted(It b, It e, Cmp cmp)
 observer_ptr traversal_algorithm::new_observer(udp::endpoint const& ep
 	, node_id const& id)
 {
+	INVARIANT_CHECK;
 	auto o = m_node.m_rpc.allocate_observer<null_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
 	if (o) o->m_in_constructor = false;
@@ -88,6 +88,7 @@ traversal_algorithm::traversal_algorithm(node& dht_node, node_id const& target)
 	: m_node(dht_node)
 	, m_target(target)
 {
+	INVARIANT_CHECK;
 #ifndef TORRENT_DISABLE_LOGGING
 	m_id = m_node.search_id();
 	dht_observer* logger = get_node().observer();
@@ -101,6 +102,7 @@ traversal_algorithm::traversal_algorithm(node& dht_node, node_id const& target)
 
 void traversal_algorithm::resort_result(observer* o)
 {
+	//INVARIANT_CHECK;
 	// find the given observer, remove it and insert it in its sorted location
 	auto it = std::find_if(m_results.begin(), m_results.end()
 		, [=](observer_ptr const& ptr) { return ptr.get() == o; });
@@ -131,6 +133,7 @@ void traversal_algorithm::resort_result(observer* o)
 void traversal_algorithm::add_entry(node_id const& id
 	, udp::endpoint const& addr, observer_flags_t const flags)
 {
+	INVARIANT_CHECK;
 	if (m_done) return;
 
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -262,6 +265,12 @@ void traversal_algorithm::add_entry(node_id const& id
 				ptr->flags |= observer::flag_done;
 				TORRENT_ASSERT(m_invoke_count > 0);
 				--m_invoke_count;
+
+				if (ptr->flags & observer::flag_short_timeout)
+				{
+					TORRENT_ASSERT(m_branch_factor > 0);
+					--m_branch_factor;
+				}
 			}
 
 #if TORRENT_USE_ASSERTS
@@ -275,6 +284,7 @@ void traversal_algorithm::add_entry(node_id const& id
 
 void traversal_algorithm::start()
 {
+	INVARIANT_CHECK;
 	// in case the routing table is empty, use the
 	// router nodes in the table
 	if (m_results.size() < 3) add_router_entries();
@@ -290,6 +300,7 @@ char const* traversal_algorithm::name() const
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 {
+	INVARIANT_CHECK;
 	if (m_done) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -312,7 +323,7 @@ void traversal_algorithm::finished(observer_ptr o)
 {
 #if TORRENT_USE_ASSERTS
 	auto i = std::find(m_results.begin(), m_results.end(), o);
-	TORRENT_ASSERT(i != m_results.end() || m_results.size() == 100);
+	TORRENT_ASSERT(i != m_results.end());
 #endif
 
 	// if this flag is set, it means we increased the
@@ -323,7 +334,10 @@ void traversal_algorithm::finished(observer_ptr o)
 		--m_branch_factor;
 	}
 
-	TORRENT_ASSERT(o->flags & observer::flag_queried);
+	TORRENT_ASSERT((o->flags & (observer::flag_queried
+		| observer::flag_alive
+		| observer::flag_failed
+		)) == observer::flag_queried);
 	o->flags |= observer::flag_alive;
 
 	++m_responses;
@@ -382,13 +396,9 @@ void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 		--m_invoke_count;
 	}
 
-	// this is another reason to decrement the branch factor, to prevent another
-	// request from filling this slot. Only ever decrement once per response though
-	decrement_branch_factor |= bool(flags & prevent_request);
-
 	if (decrement_branch_factor)
 	{
-		TORRENT_ASSERT(m_branch_factor > 0);
+		TORRENT_ASSERT(m_branch_factor > 1);
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
 	}
@@ -416,6 +426,7 @@ void traversal_algorithm::log_timeout(observer_ptr const& o, char const* prefix)
 
 void traversal_algorithm::done()
 {
+	INVARIANT_CHECK;
 	TORRENT_ASSERT(m_done == false);
 	m_done = true;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -425,6 +436,17 @@ void traversal_algorithm::done()
 
 	for (auto const& o : m_results)
 	{
+		if ((o->flags & (observer::flag_queried
+			| observer::flag_alive
+			| observer::flag_done
+			| observer::flag_failed
+			| observer::flag_short_timeout))
+			== (observer::flag_queried | observer::flag_short_timeout))
+		{
+			TORRENT_ASSERT(m_branch_factor > 0);
+			--m_branch_factor;
+		}
+
 		if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)
 		{
 			// set the done flag on any outstanding queries to prevent them from
@@ -469,6 +491,7 @@ void traversal_algorithm::done()
 
 bool traversal_algorithm::add_requests()
 {
+	INVARIANT_CHECK;
 	if (m_done) return true;
 
 	int results_target = m_node.m_table.bucket_size();
@@ -531,6 +554,10 @@ bool traversal_algorithm::add_requests()
 		}
 #endif
 
+		// we're shutting down, don't issue any more lookups
+		if (m_abort) continue;
+
+		TORRENT_ASSERT(!(o->flags & observer::flag_queried));
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
@@ -554,6 +581,7 @@ bool traversal_algorithm::add_requests()
 
 void traversal_algorithm::add_router_entries()
 {
+	INVARIANT_CHECK;
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
@@ -569,17 +597,24 @@ void traversal_algorithm::add_router_entries()
 
 void traversal_algorithm::init()
 {
+	INVARIANT_CHECK;
 	m_branch_factor = aux::numeric_cast<std::int8_t>(m_node.branch_factor());
 	m_node.add_traversal_algorithm(this);
+
+#if TORRENT_USE_ASSERTS
+	m_initialized = true;
+#endif
 }
 
 traversal_algorithm::~traversal_algorithm()
 {
+	INVARIANT_CHECK;
 	m_node.remove_traversal_algorithm(this);
 }
 
 void traversal_algorithm::status(dht_lookup& l)
 {
+	INVARIANT_CHECK;
 	l.timeouts = m_timeouts;
 	l.responses = m_responses;
 	l.outstanding_requests = m_invoke_count;
@@ -605,6 +640,51 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.last_sent = last_sent;
 }
 
+#if TORRENT_USE_INVARIANT_CHECKS
+void traversal_algorithm::check_invariant() const
+{
+	int outstanding_requests = 0;
+	int outstanding_short_timeout = 0;
+
+	for (auto const& r : m_results)
+	{
+		observer const& o = *r;
+		if ((o.flags & (observer::flag_short_timeout
+			| observer::flag_alive
+			| observer::flag_failed
+			| observer::flag_done))
+			== observer::flag_short_timeout)
+		{
+			++outstanding_short_timeout;
+		}
+
+		if ((o.flags & (observer::flag_queried
+			| observer::flag_alive
+			| observer::flag_done
+			| observer::flag_failed))
+			== observer::flag_queried)
+		{
+			++outstanding_requests;
+		}
+
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(!o.m_in_constructor);
+		TORRENT_ASSERT(o.m_in_use);
+		TORRENT_ASSERT(o.m_was_sent == bool(o.flags & observer::flag_queried) || (o.flags & observer::flag_failed));
+		if (o.m_was_abandoned)
+			TORRENT_ASSERT(o.flags & observer::flag_done);
+#endif
+	}
+
+	if (m_initialized)
+	{
+		int const default_branch_factor = aux::numeric_cast<std::int8_t>(m_node.branch_factor());
+		TORRENT_ASSERT(outstanding_short_timeout + default_branch_factor == m_branch_factor);
+	}
+	TORRENT_ASSERT(outstanding_requests == m_invoke_count);
+}
+#endif
+
 void look_for_nodes(char const* nodes_key, udp const& protocol, bdecode_node const& r, std::function<void(const node_endpoint&)> f)
 {
 	bdecode_node const n = r.dict_find_string(nodes_key);
@@ -626,6 +706,7 @@ void traversal_observer::reply(msg const& m)
 	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
+		timeout();
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_observer() != nullptr)
 		{
@@ -657,6 +738,7 @@ void traversal_observer::reply(msg const& m)
 
 	if (!id || id.string_length() != 20)
 	{
+		timeout();
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_observer() != nullptr)
 		{

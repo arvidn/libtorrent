@@ -63,6 +63,7 @@ struct TORRENT_EXTRA_EXPORT observer
 		: m_algorithm(std::move(a))
 		, m_id(id)
 	{
+		TORRENT_ASSERT(!m_was_sent);
 		TORRENT_ASSERT(m_algorithm);
 		set_target(ep);
 	}
@@ -105,13 +106,27 @@ struct TORRENT_EXTRA_EXPORT observer
 	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
+	// an entry that has the queried flag set will have incremented the m_invoke_count
+	// and is supposed to decrement it, once a response is received. It
+	// will also have sent its query to its node
 	static constexpr observer_flags_t flag_queried = 0_bit;
 	static constexpr observer_flags_t flag_initial = 1_bit;
 	static constexpr observer_flags_t flag_no_id = 2_bit;
+	// after a short timeout, we may increase the branch factor and set
+	// this flag. We still wait for the full timeout for a response.
+	// Incrementing the branch factor is a middle-ground of no longer
+	// having much faith in this node responding (so we allow another query
+	// to use its "slot"). When the request completes (either by receiving
+	// a response or timing out), we need to restore the branch factor by
+	// decrementing it.
 	static constexpr observer_flags_t flag_short_timeout = 3_bit;
+	// a node
 	static constexpr observer_flags_t flag_failed = 4_bit;
+	// This determines whether the m_addr union has the IPv4 or IPv6 address active
 	static constexpr observer_flags_t flag_ipv6_address = 5_bit;
+	// This means we have received a response from this node
 	static constexpr observer_flags_t flag_alive = 6_bit;
+	// the request has been cancelled
 	static constexpr observer_flags_t flag_done = 7_bit;
 
 protected:
