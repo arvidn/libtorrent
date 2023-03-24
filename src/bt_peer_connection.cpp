@@ -270,11 +270,15 @@ namespace {
 				setup_receive();
 			}
 		}
-		else if (out_policy == settings_pack::pe_disabled)
+		else
 #endif
 		{
+#if !defined TORRENT_DISABLE_ENCRYPTION
+			TORRENT_ASSERT(out_policy == settings_pack::pe_disabled);
+#endif
 			write_handshake();
 
+			TORRENT_ASSERT(m_sent_handshake);
 			// start in the state where we are trying to read the
 			// handshake from the other side
 			m_recv_buffer.reset(20);
@@ -3273,6 +3277,8 @@ namespace {
 
 		if (m_state == state_t::read_protocol_identifier)
 		{
+			TORRENT_ASSERT(!m_outgoing || m_sent_handshake);
+
 			received_bytes(0, int(bytes_transferred));
 			bytes_transferred = 0;
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 20);
@@ -3359,6 +3365,7 @@ namespace {
 #endif
 			}
 
+			TORRENT_ASSERT(!m_outgoing || m_sent_handshake);
 			m_state = state_t::read_info_hash;
 			m_recv_buffer.reset(28);
 		}

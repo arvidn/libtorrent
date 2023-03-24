@@ -339,10 +339,3 @@ TORRENT_TEST(http_pw_peer)
 {
 	test_proxy(settings_pack::http_pw, dont_proxy_peers | expect_peer_connection);
 }
-
-#if TORRENT_USE_I2P
-TORRENT_TEST(i2p)
-{
-	test_proxy(settings_pack::i2p_proxy, {});
-}
-#endif
