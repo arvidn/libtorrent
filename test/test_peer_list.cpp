@@ -1031,6 +1031,18 @@ TORRENT_TEST(peer_info_comparison)
 #endif
 }
 
+#if TORRENT_USE_I2P
+TORRENT_TEST(peer_info_set_i2p_destination)
+{
+	peer_info p;
+	TORRENT_ASSERT(!(p.flags & peer_info::i2p_socket));
+	p.set_i2p_destination(sha256_hash("................................"));
+
+	TORRENT_ASSERT(p.i2p_destination() == sha256_hash("................................"));
+	TORRENT_ASSERT(p.flags & peer_info::i2p_socket);
+}
+#endif
+
 // TODO: test erasing peers
 // TODO: test update_peer_port with allow_multiple_connections_per_ip and without
 // TODO: test add i2p peers

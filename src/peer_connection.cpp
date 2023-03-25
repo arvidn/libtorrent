@@ -4553,7 +4553,6 @@ namespace libtorrent {
 		p.payload_down_speed = statistics().download_payload_rate();
 		p.payload_up_speed = statistics().upload_payload_rate();
 		p.pid = pid();
-		p.ip = remote();
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
 		p.pending_disk_read_bytes = m_reading_bytes;
 		p.send_quota = m_quota[upload_channel];
@@ -4613,6 +4612,15 @@ namespace libtorrent {
 		p.flags = {};
 		get_specific_peer_info(p);
 
+#if TORRENT_USE_I2P
+		if (!(p.flags & peer_info::i2p_socket))
+#endif
+		{
+			p.ip = remote();
+			error_code ec;
+			p.local_endpoint = get_socket().local_endpoint(ec);
+		}
+
 		if (m_snubbed) p.flags |= peer_info::snubbed;
 		if (upload_only()) p.flags |= peer_info::upload_only;
 		if (m_endgame_mode) p.flags |= peer_info::endgame_mode;
@@ -4663,8 +4671,6 @@ namespace libtorrent {
 			p.progress_ppm = int(std::int64_t(p.pieces.count()) * 1000000 / p.pieces.size());
 		}
 
-		error_code ec;
-		p.local_endpoint = get_socket().local_endpoint(ec);
 	}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
