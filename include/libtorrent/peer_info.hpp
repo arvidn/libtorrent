@@ -249,7 +249,7 @@ TORRENT_VERSION_NAMESPACE_2
 		int payload_up_speed;
 		int payload_down_speed;
 
-		// the peer's id as used in the bit torrent protocol. This id can be used
+		// the peer's id as used in the bittorrent protocol. This id can be used
 		// to extract 'fingerprints' from the peer. Sometimes it can tell you
 		// which client the peer is using. See identify_client()_
 		peer_id pid;
@@ -389,7 +389,8 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 
 		// the IP-address to this peer. The type is an asio endpoint. For
-		// more info, see the asio_ documentation.
+		// more info, see the asio_ documentation. This field is not valid for
+		// i2p peers. Instead use the i2p_destination() function.
 		//
 		// .. _asio: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 		tcp::endpoint ip;
@@ -397,6 +398,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// the IP and port pair the socket is bound to locally. i.e. the IP
 		// address of the interface it's going out over. This may be useful for
 		// multi-homed clients with multiple interfaces to the internet.
+		// This field is not valid for i2p peers.
 		tcp::endpoint local_endpoint;
 
 		// The peer is not waiting for any external events to
@@ -422,6 +424,15 @@ TORRENT_VERSION_NAMESPACE_2
 		// class.
 		bandwidth_state_flags_t read_state;
 		bandwidth_state_flags_t write_state;
+
+#if TORRENT_USE_I2P
+		// If this peer is an i2p peer, this function returns the destination
+		// address of the peer
+		sha256_hash i2p_destination() const;
+
+		// internal
+		void set_i2p_destination(sha256_hash dest);
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED static constexpr bandwidth_state_flags_t bw_torrent = bw_limit;

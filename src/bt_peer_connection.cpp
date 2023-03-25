@@ -485,7 +485,13 @@ namespace {
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
 		if (is_outgoing()) p.flags |= peer_info::local_connection;
 #if TORRENT_USE_I2P
-		if (is_i2p(get_socket())) p.flags |= peer_info::i2p_socket;
+		if (is_i2p(get_socket()))
+		{
+			p.flags |= peer_info::i2p_socket;
+			auto const* pi = peer_info_struct();
+			sha256_hash const b32_hash = hasher256(pi->dest()).final();
+			p.set_i2p_destination(b32_hash);
+		}
 #endif
 		if (is_utp(get_socket())) p.flags |= peer_info::utp_socket;
 		if (is_ssl(get_socket())) p.flags |= peer_info::ssl_socket;
