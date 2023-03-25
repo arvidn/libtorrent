@@ -297,7 +297,7 @@ namespace libtorrent {
 	}
 
 #if TORRENT_USE_I2P
-	std::string base32encode(string_view s, encode_string_flags_t const flags)
+	std::string base32encode(span<char const> s, encode_string_flags_t const flags)
 	{
 		static char const base32_table_canonical[] =
 		{

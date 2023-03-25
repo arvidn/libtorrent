@@ -228,18 +228,18 @@ TORRENT_TEST(base32)
 	// base32 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
 #if TORRENT_USE_I2P
-	TEST_CHECK(base32encode("") == "");
-	TEST_CHECK(base32encode("f") == "MY======");
-	TEST_CHECK(base32encode("fo") == "MZXQ====");
-	TEST_CHECK(base32encode("foo") == "MZXW6===");
-	TEST_CHECK(base32encode("foob") == "MZXW6YQ=");
-	TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
-	TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
+	TEST_CHECK(base32encode(""_sv) == "");
+	TEST_CHECK(base32encode("f"_sv) == "MY======");
+	TEST_CHECK(base32encode("fo"_sv) == "MZXQ====");
+	TEST_CHECK(base32encode("foo"_sv) == "MZXW6===");
+	TEST_CHECK(base32encode("foob"_sv) == "MZXW6YQ=");
+	TEST_CHECK(base32encode("fooba"_sv) == "MZXW6YTB");
+	TEST_CHECK(base32encode("foobar"_sv) == "MZXW6YTBOI======");
 
 	// base32 for i2p
-	TEST_CHECK(base32encode("fo", string::no_padding) == "MZXQ");
-	TEST_CHECK(base32encode("foob", string::i2p) == "mzxw6yq");
-	TEST_CHECK(base32encode("foobar", string::lowercase) == "mzxw6ytboi======");
+	TEST_CHECK(base32encode("fo"_sv, string::no_padding) == "MZXQ");
+	TEST_CHECK(base32encode("foob"_sv, string::i2p) == "mzxw6yq");
+	TEST_CHECK(base32encode("foobar"_sv, string::lowercase) == "mzxw6ytboi======");
 
 	std::string test;
 	for (int i = 0; i < 255; ++i)
