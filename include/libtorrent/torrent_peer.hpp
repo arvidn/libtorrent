@@ -249,35 +249,47 @@ namespace libtorrent {
 		const address_v6::bytes_type addr;
 	};
 
+	// if we have i2p peer addresses, sort them *after* all IP addresses
 	struct peer_address_compare
 	{
 		bool operator()(torrent_peer const* lhs, address const& rhs) const
 		{
+#if TORRENT_USE_I2P
+			if (lhs->is_i2p_addr) return false;
+#endif
 			return lhs->address() < rhs;
 		}
 
 		bool operator()(address const& lhs, torrent_peer const* rhs) const
 		{
+#if TORRENT_USE_I2P
+			if (rhs->is_i2p_addr) return true;
+#endif
 			return lhs < rhs->address();
 		}
 
 #if TORRENT_USE_I2P
 		bool operator()(torrent_peer const* lhs, string_view rhs) const
 		{
-			return lhs->dest().compare(rhs) < 0;
+			if (!lhs->is_i2p_addr) return true;
+			return lhs->dest() < rhs;
 		}
 
 		bool operator()(string_view lhs, torrent_peer const* rhs) const
 		{
-			return lhs.compare(rhs->dest()) < 0;
+			if (!rhs->is_i2p_addr) return false;
+			return lhs < rhs->dest();
 		}
 #endif
 
 		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
 #if TORRENT_USE_I2P
-			if (rhs->is_i2p_addr == lhs->is_i2p_addr)
-				return lhs->dest().compare(rhs->dest()) < 0;
+			if (lhs->is_i2p_addr != rhs->is_i2p_addr)
+				return lhs->is_i2p_addr < rhs->is_i2p_addr;
+
+			if (lhs->is_i2p_addr)
+				return lhs->dest() < rhs->dest();
 #endif
 			return lhs->address() < rhs->address();
 		}
