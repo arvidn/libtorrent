@@ -75,6 +75,8 @@ std::string torrent_state(lt::torrent_status const& s)
 		else
 			ret += " [F]";
 	}
+	if (s.flags & lt::torrent_flags::i2p_torrent)
+		ret += " i2p";
 	char buf[10];
 	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.0);
 	ret += buf;
