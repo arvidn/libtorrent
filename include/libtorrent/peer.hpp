@@ -65,6 +65,12 @@ namespace libtorrent {
 		std::uint16_t port;
 	};
 
+#if TORRENT_USE_I2P
+	struct i2p_peer_entry
+	{
+		sha256_hash destination;
+	};
+#endif
 }
 
 #endif // TORRENT_PEER_HPP_INCLUDED

@@ -168,7 +168,7 @@ TORRENT_TEST(parse_i2p_peers)
 		, ec, tracker_request::i2p, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 11);
+	TEST_EQUAL(resp.i2p_peers.size(), 11);
 
 	if (resp.peers.size() == 11)
 	{

@@ -3518,7 +3518,7 @@ namespace {
 				{
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer(i.hostname.c_str (), peer_info::tracker, {}, &st))
+					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, {}, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
@@ -3531,6 +3531,24 @@ namespace {
 					, std::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port, v));
 			}
 		}
+
+#if TORRENT_USE_I2P
+		if (r.i2pconn)
+		{
+			for (auto const& i : resp.i2p_peers)
+			{
+				torrent_state st = get_peer_list_state();
+				peer_entry p;
+				std::string destination = base32encode(i.destination, string::i2p);
+				destination += ".b32.i2p";
+
+				ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
+				r.i2pconn->async_name_lookup(destination.c_str()
+					, [self = shared_from_this()] (error_code const& ec, char const* dest)
+					{ self->torrent::on_i2p_resolve(ec, dest); });
+			}
+		}
+#endif
 
 		// there are 2 reasons to allow local IPs to be returned from a
 		// non-local tracker
@@ -3583,8 +3601,12 @@ namespace {
 		if (m_ses.alerts().should_post<tracker_reply_alert>()
 			|| r.triggered_manually)
 		{
+			int peer_count = int(resp.peers.size() + resp.peers4.size());
+#if TORRENT_USE_I2P
+			peer_count += int(resp.i2p_peers.size());
+#endif
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
-				get_handle(), local_endpoint, int(resp.peers.size() + resp.peers4.size())
+				get_handle(), local_endpoint, peer_count
 				+ int(resp.peers6.size()), v, r.url);
 		}
 

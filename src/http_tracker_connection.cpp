@@ -587,11 +587,9 @@ namespace libtorrent {
 				for (int i = 0; i < len; i += 32)
 				{
 					if (len - i < 32) break;
-					peer_entry p;
-					p.hostname = base32encode(std::string(peers + i, 32), string::i2p);
-					p.hostname += ".b32.i2p";
-					p.port = 6881;
-					resp.peers.push_back(p);
+					i2p_peer_entry p;
+					std::memcpy(p.destination.data(), peers + i, 32);
+					resp.i2p_peers.push_back(p);
 				}
 			}
 			else
