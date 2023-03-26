@@ -2850,9 +2850,27 @@ bool is_downloading_state(int const st)
 
 namespace {
 	void refresh_endpoint_list(aux::session_interface& ses
+		, std::string const& url
 		, bool const is_ssl, bool const complete_sent
 		, std::vector<aux::announce_endpoint>& aeps)
 	{
+#if TORRENT_USE_I2P
+		if (is_i2p_url(url))
+		{
+			if (aeps.size() > 1)
+			{
+				aeps.erase(aeps.begin() + 1, aeps.end());
+			}
+			else if (aeps.empty())
+			{
+				aeps.emplace_back(aux::listen_socket_handle(), complete_sent);
+			}
+			return;
+		}
+#else
+		TORRENT_UNUSED(url);
+#endif
+
 		// update the endpoint list by adding entries for new listen sockets
 		// and removing entries for non-existent ones
 		std::size_t valid_endpoints = 0;
@@ -3071,7 +3089,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
+			refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3270,7 +3288,7 @@ namespace {
 
 		req.kind |= tracker_request::scrape_request;
 		auto& ae = m_trackers[idx];
-		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
+		refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 		req.url = ae.url;
 		req.private_torrent = m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
@@ -3720,7 +3738,7 @@ namespace {
 			for (auto& e : m_trackers)
 			{
 				// make sure we check for new endpoints from the listen sockets
-				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e.endpoints);
+				refresh_endpoint_list(m_ses, e.url, is_ssl_torrent(), bool(m_complete_sent), e.endpoints);
 				for (auto& aep : e.endpoints)
 				{
 					for (auto& a : aep.info_hashes)

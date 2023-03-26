@@ -1300,18 +1300,21 @@ namespace {
 			req.ssl_ctx = &m_ssl_ctx;
 #endif
 
-		TORRENT_ASSERT(req.outgoing_socket);
-			auto ls = req.outgoing_socket.get();
-
-		req.listen_port =
-#if TORRENT_USE_I2P
-			(req.kind == tracker_request::i2p) ? 1 :
-#endif
+		auto ls = req.outgoing_socket.get();
+		if (ls)
+		{
+			req.listen_port =
 #ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
 			use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
 			make_announce_port(listen_port(ls));
+		}
+		else
+		{
+			TORRENT_ASSERT(req.kind == tracker_request::i2p);
+			req.listen_port = 1;
+		}
 		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c);
 	}
 
