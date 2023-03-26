@@ -56,12 +56,16 @@ struct piece_location
 
 struct cached_block_entry
 {
+	char* buf = nullptr;
+	// once the write job has been executed, and we've flushed the buffer, we
+	// move it into buf_holder, to keep the buffer alive until any hash job has
+	// completed as well. The underlying data can be accessed through buf, but
+	// the owner moves from the pread_disk_job object to this buf_holder.
 	// TODO: save space by just storing the buffer pointer here. The
 	// cached_piece_entry could hold the pointer to the buffer pool to be able
 	// to free these on destruction
-	char* buf;
 	disk_buffer_holder buf_holder;
-	pread_disk_job* write_job;
+	pread_disk_job* write_job = nullptr;
 };
 
 struct cached_piece_entry
@@ -135,7 +139,7 @@ struct disk_cache
 			// TODO: it would be nice if this could be called without holding
 			// the mutex. It would require making a copy of the buffer, which
 			// would be problematic
-			f(i->blocks[block_idx].buf.data());
+			f(i->blocks[block_idx].buf);
 			return true;
 		}
 		return false;
@@ -170,10 +174,9 @@ struct disk_cache
 			i = m_pieces.insert(std::move(pe)).first;
 		}
 
-		//TORRENT_ASSERT(i->blocks[block_idx].buffer == nullptr);
+		TORRENT_ASSERT(i->blocks[block_idx].buf == nullptr);
 		TORRENT_ASSERT(i->blocks[block_idx].write_job == nullptr);
-		//i->blocks[block_idx].buffer = job->buf.get();
-		i->blocks[block_idx].buf = std::move(std::get<job::write>(write_job->action).buf);
+		i->blocks[block_idx].buf = std::get<job::write>(write_job->action).buf.data();
 		i->blocks[block_idx].write_job = write_job;
 		++m_blocks;
 		// TODO: maybe trigger hash job
@@ -208,7 +211,7 @@ keep_going:
 		{
 			// TODO: support the end piece, with smaller block size
 			// and torrents with small pieces
-			ctx.update({piece_iter->blocks[cursor].buf.data(), default_block_size});
+			ctx.update({piece_iter->blocks[cursor].buf, default_block_size});
 		}
 
 		l.lock();
@@ -243,6 +246,8 @@ keep_going:
 	void flush_to_disk(std::function<int(span<cached_block_entry>)> f, int const target_blocks)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
+
+		// TODO: refactor this to avoid so much duplicated code
 
 		// first we look for pieces that are ready to be flushed and should be
 		auto& view = m_pieces.template get<2>();
@@ -284,6 +289,13 @@ keep_going:
 
 				TORRENT_ASSERT(m_blocks >= count);
 				m_blocks -= count;
+			}
+			for (auto& be : blocks.first(count))
+			{
+				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(!be.buf_holder);
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
 			}
 			if (count < piece_iter->blocks_in_piece)
 				return;
@@ -333,6 +345,13 @@ keep_going:
 
 				TORRENT_ASSERT(m_blocks >= count);
 				m_blocks -= count;
+			}
+			for (auto& be : blocks.first(count))
+			{
+				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(!be.buf_holder);
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
 			}
 			if (count < blocks.size())
 				return;

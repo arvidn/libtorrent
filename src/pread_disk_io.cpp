@@ -1282,19 +1282,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				l.unlock();
 				m_cache.flush_to_disk([&](span<aux::cached_block_entry> blocks) {
 					TORRENT_ASSERT(blocks.size() > 0);
-					TORRENT_ASSERT(blocks[0].write_job);
 
+					int count = 0;
 					jobqueue_t completed_jobs;
 					for (auto& be : blocks)
 					{
-#error move the buffer back into the write job? read jobs still need to be able to access it
+						TORRENT_ASSERT(be.write_job);
+						++count;
 						perform_job(be.write_job, completed_jobs);
+						if (be.write_job->error)
+							break;
 					}
 
 					if (!completed_jobs.empty())
 						add_completed_jobs(std::move(completed_jobs));
-					// TODO: actually count
-					return int(blocks.size());
+					return count;
 				}, target_cache_size);
 				l.lock();
 				continue;

@@ -31,6 +31,7 @@ namespace libtorrent::aux {
 		, m_min_idle_threads(0)
 		, m_idle_timer(ios)
 		, m_ioc(ios)
+		, m_interrupt(false)
 	{}
 
 	disk_io_thread_pool::~disk_io_thread_pool()
