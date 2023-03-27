@@ -3557,7 +3557,7 @@ namespace {
 			{
 				torrent_state st = get_peer_list_state();
 				peer_entry p;
-				std::string destination = base32encode(i.destination, string::i2p);
+				std::string destination = base32encode_i2p(i.destination);
 				destination += ".b32.i2p";
 
 				ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
