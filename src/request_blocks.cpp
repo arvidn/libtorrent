@@ -141,10 +141,6 @@ namespace libtorrent {
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-#if TORRENT_USE_ASSERTS
-		error_code ec;
-		TORRENT_ASSERT(c.remote() == c.get_socket().remote_endpoint(ec) || ec);
-#endif
 
 		aux::session_interface& ses = t.session();
 
