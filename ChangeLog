@@ -1,3 +1,7 @@
+	* add an i2p torrent state to control interactions with clear swarms
+	* fix i2p SAM protocol parsing of quoted messages
+	* expose i2p peer destination in peer_info
+	* fix i2p tracker announces
 	* fix issue with read_piece() stopping torrent on pieces not yet downloaded
 	* improve handling of allow_i2p_mixed setting to work for magnet links
 	* fix web seed request for renamed single-file torrents
