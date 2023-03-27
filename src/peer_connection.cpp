@@ -2230,7 +2230,7 @@ namespace libtorrent {
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
 			t->set_seed(m_peer_info, m_num_pieces == bits.size());
-			TORRENT_ASSERT(is_seed() == (m_num_pieces == bits.size()));
+			TORRENT_ASSERT(!t->valid_metadata() || (is_seed() == (m_num_pieces == bits.size())));
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
