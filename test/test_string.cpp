@@ -211,6 +211,32 @@ TORRENT_TEST(to_string)
 	TEST_CHECK(to_string(-999999999999999999).data() == std::string("-999999999999999999"));
 }
 
+namespace {
+
+template <size_t N>
+std::vector<char> to_vec(char const (&str)[N])
+{
+	return std::vector<char>(&str[0], &str[N - 1]);
+}
+
+std::string to_str(std::vector<char> const& v)
+{
+	return std::string(v.begin(), v.end());
+}
+
+// convert the standard base64 alphabet to the i2p aphabet
+std::string transcode_alphabet(std::string in)
+{
+	std::string ret;
+	std::transform(in.begin(), in.end(), std::back_inserter(ret), [](char const c) {
+		if (c == '+') return '-';
+		if (c == '/') return '~';
+		return c;
+	});
+	return ret;
+}
+}
+
 TORRENT_TEST(base64)
 {
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
@@ -221,6 +247,20 @@ TORRENT_TEST(base64)
 	TEST_CHECK(base64encode("foob") == "Zm9vYg==");
 	TEST_CHECK(base64encode("fooba") == "Zm9vYmE=");
 	TEST_CHECK(base64encode("foobar") == "Zm9vYmFy");
+#if TORRENT_USE_I2P
+	TEST_CHECK(base64decode_i2p("") == to_vec(""));
+	TEST_CHECK(base64decode_i2p("Zg==") == to_vec("f"));
+	TEST_CHECK(base64decode_i2p("Zm8=") == to_vec("fo"));
+	TEST_CHECK(base64decode_i2p("Zm9v") == to_vec("foo"));
+	TEST_CHECK(base64decode_i2p("Zm9vYg==") == to_vec("foob"));
+	TEST_CHECK(base64decode_i2p("Zm9vYmE=") == to_vec("fooba"));
+	TEST_CHECK(base64decode_i2p("Zm9vYmFy") == to_vec("foobar"));
+
+	std::vector<char> test;
+	for (int i = 0; i < 255; ++i)
+		test.push_back(char(i));
+	TEST_CHECK(base64decode_i2p(transcode_alphabet(base64encode(to_str(test)))) == test);
+#endif
 }
 
 TORRENT_TEST(base32)
@@ -228,24 +268,20 @@ TORRENT_TEST(base32)
 	// base32 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
 #if TORRENT_USE_I2P
-	TEST_CHECK(base32encode(""_sv) == "");
-	TEST_CHECK(base32encode("f"_sv) == "MY======");
-	TEST_CHECK(base32encode("fo"_sv) == "MZXQ====");
-	TEST_CHECK(base32encode("foo"_sv) == "MZXW6===");
-	TEST_CHECK(base32encode("foob"_sv) == "MZXW6YQ=");
-	TEST_CHECK(base32encode("fooba"_sv) == "MZXW6YTB");
-	TEST_CHECK(base32encode("foobar"_sv) == "MZXW6YTBOI======");
-
-	// base32 for i2p
-	TEST_CHECK(base32encode("fo"_sv, string::no_padding) == "MZXQ");
-	TEST_CHECK(base32encode("foob"_sv, string::i2p) == "mzxw6yq");
-	TEST_CHECK(base32encode("foobar"_sv, string::lowercase) == "mzxw6ytboi======");
+	// i2p uses lower case and no padding
+	TEST_CHECK(base32encode_i2p(""_sv) == "");
+	TEST_CHECK(base32encode_i2p("f"_sv) == "my");
+	TEST_CHECK(base32encode_i2p("fo"_sv) == "mzxq");
+	TEST_CHECK(base32encode_i2p("foo"_sv) == "mzxw6");
+	TEST_CHECK(base32encode_i2p("foob"_sv) == "mzxw6yq");
+	TEST_CHECK(base32encode_i2p("fooba"_sv) == "mzxw6ytb");
+	TEST_CHECK(base32encode_i2p("foobar"_sv) == "mzxw6ytboi");
 
 	std::string test;
 	for (int i = 0; i < 255; ++i)
 		test += char(i);
 
-	TEST_CHECK(base32decode(base32encode(test)) == test);
+	TEST_CHECK(base32decode(base32encode_i2p(test)) == test);
 #endif // TORRENT_USE_I2P
 
 	TEST_CHECK(base32decode("") == "");

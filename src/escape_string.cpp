@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <mutex>
 #include <cstring>
+#include <vector>
 
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/windows.hpp"
@@ -54,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 
 namespace libtorrent {
 
@@ -297,23 +299,70 @@ namespace libtorrent {
 	}
 
 #if TORRENT_USE_I2P
-	std::string base32encode(span<char const> s, encode_string_flags_t const flags)
+
+namespace {
+	std::uint32_t map_base64_char(char const c)
 	{
-		static char const base32_table_canonical[] =
+		if (c >= 'A' && c <= 'Z')
+			return std::uint32_t(c - 'A');
+		if (c >= 'a' && c <= 'z')
+			return std::uint32_t(26 + c - 'a');
+		if (c >= '0' && c <= '9')
+			return std::uint32_t(52 + c - '0');
+		if (c == '-') return 62;
+		if (c == '~') return 63;
+		throw system_error(error_code(lt::errors::invalid_escaped_string));
+	}
+}
+
+	// this decodes the i2p alphabet
+	std::vector<char> base64decode_i2p(string_view s)
+	{
+		std::uint32_t output = 0;
+
+		std::vector<char> ret;
+		int bit_offset = 18;
+		for (auto const c : s)
 		{
-			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-			'Y', 'Z', '2', '3', '4', '5', '6', '7'
-		};
-		static char const base32_table_lowercase[] =
+			if (c == '=') break;
+			output |= map_base64_char(c) << bit_offset;
+			if (bit_offset == 0)
+			{
+				output = aux::host_to_network(output);
+				aux::array<char, 4> tmp;
+				std::memcpy(tmp.data(), &output, 4);
+				ret.push_back(tmp[1]);
+				ret.push_back(tmp[2]);
+				ret.push_back(tmp[3]);
+				output = 0;
+				bit_offset = 18;
+			}
+			else
+			{
+				bit_offset -= 6;
+			}
+		}
+		if (bit_offset < 18)
+		{
+			output = aux::host_to_network(output);
+			aux::array<char, 4> tmp;
+			std::memcpy(tmp.data(), &output, 4);
+			ret.push_back(tmp[1]);
+			if (bit_offset < 6)
+				ret.push_back(tmp[2]);
+		}
+		return ret;
+	}
+
+	std::string base32encode_i2p(span<char const> s)
+	{
+		static char const base32_table[] =
 		{
 			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
 			'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
 			'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 			'y', 'z', '2', '3', '4', '5', '6', '7'
 		};
-		char const *base32_table = (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
 		static aux::array<int, 6> const input_output_mapping{{{0, 2, 4, 5, 7, 8}}};
 
@@ -323,7 +372,7 @@ namespace libtorrent {
 		std::string ret;
 		for (auto i = s.begin(); i != s.end();)
 		{
-			int available_input = std::min(int(inbuf.size()), int(s.end() - i));
+			int const available_input = std::min(int(inbuf.size()), int(s.end() - i));
 
 			// clear input buffer
 			inbuf.fill(0);
@@ -345,18 +394,8 @@ namespace libtorrent {
 			// write output
 			int const num_out = input_output_mapping[available_input];
 			for (int j = 0; j < num_out; ++j)
-			{
 				ret += base32_table[outbuf[j]];
-			}
-
-			if (!(flags & string::no_padding))
-			{
-				// write pad
-				for (int j = 0; j < int(outbuf.size()) - num_out; ++j)
-				{
-					ret += '=';
-				}
-			}
+			// i2p does not use padding
 		}
 		return ret;
 	}
