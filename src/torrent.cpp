@@ -747,7 +747,7 @@ bool is_downloading_state(int const st)
 		{
 			ec.assign(errors::no_metadata, libtorrent_category());
 		}
-		else if (piece < piece_index_t{0} || piece >= m_torrent_file->end_piece())
+		else if (!has_piece_passed(piece))
 		{
 			ec.assign(errors::invalid_piece_index, libtorrent_category());
 		}
