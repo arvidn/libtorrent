@@ -108,6 +108,9 @@ void bind_peer_info()
         .def_readonly("estimated_reciprocation_rate", &peer_info::estimated_reciprocation_rate)
 #endif
         .add_property("local_endpoint", get_local_endpoint)
+#if TORRENT_USE_I2P
+        .def("i2p_destination", &peer_info::i2p_destination)
+#endif
         ;
 
     // flags
