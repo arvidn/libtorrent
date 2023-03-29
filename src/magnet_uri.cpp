@@ -346,6 +346,11 @@ namespace libtorrent {
 				std::string tracker = unescape_string(value, e);
 				if (!e && !tracker.empty())
 				{
+#if TORRENT_USE_I2P
+					if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
+						p.flags |= torrent_flags::i2p_torrent;
+#endif
+
 					p.trackers.push_back(std::move(tracker));
 					p.tracker_tiers.push_back(tier++);
 				}

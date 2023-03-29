@@ -221,6 +221,7 @@ bool is_downloading_state(int const st)
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
+		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
@@ -265,6 +266,11 @@ bool is_downloading_state(int const st)
 
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
+
+#if TORRENT_USE_I2P
+		if (m_torrent_file->is_i2p())
+			m_i2p = true;
+#endif
 
 		if (m_torrent_file->is_valid())
 		{
@@ -881,12 +887,18 @@ bool is_downloading_state(int const st)
 			ret |= torrent_flags::disable_lsd;
 		if (!m_enable_pex)
 			ret |= torrent_flags::disable_pex;
+		if (m_i2p)
+			ret |= torrent_flags::i2p_torrent;
 		return ret;
 	}
 
 	void torrent::set_flags(torrent_flags_t const flags
 		, torrent_flags_t const mask)
 	{
+		if (mask & torrent_flags::i2p_torrent)
+		{
+			m_i2p = bool(flags & torrent_flags::i2p_torrent);
+		}
 		if ((mask & torrent_flags::seed_mode)
 			&& !(flags & torrent_flags::seed_mode))
 		{
@@ -2666,11 +2678,12 @@ bool is_downloading_state(int const st)
 		// private torrents are never announced on LSD
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return;
 
+#if TORRENT_USE_I2P
 		// i2p torrents are also never announced on LSD
 		// unless we allow mixed swarms
-		if (m_torrent_file->is_valid()
-			&& (torrent_file().is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed)))
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
 			return;
+#endif
 
 		if (is_paused()) return;
 
@@ -2803,8 +2816,11 @@ bool is_downloading_state(int const st)
 				get_handle(), int(peers.size()));
 		}
 
-		if (torrent_file().priv() || (torrent_file().is_i2p()
-			&& !settings().get_bool(settings_pack::allow_i2p_mixed))) return;
+#if TORRENT_USE_I2P
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed)) return;
+#endif
+
+		if (torrent_file().priv()) return;
 
 		for (auto& p : peers)
 			add_peer(p, peer_info::dht, v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0));
@@ -3061,6 +3077,19 @@ namespace {
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			req.url = ae.url;
 
+#if TORRENT_USE_I2P
+			if (is_i2p_url(req.url))
+			{
+				req.kind |= tracker_request::i2p;
+			}
+			else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			{
+				// if we don't allow mixing normal peers into this i2p
+				// torrent, skip this announce
+				continue;
+			}
+#endif
+
 			for (auto& aep : ae.endpoints)
 			{
 				// do not add code which continues to the next endpoint here!
@@ -3150,13 +3179,6 @@ namespace {
 					req.auth = tracker_login();
 #endif
 					req.key = tracker_key();
-
-#if TORRENT_USE_I2P
-					if (is_i2p_url(req.url))
-					{
-						req.kind |= tracker_request::i2p;
-					}
-#endif
 
 					req.outgoing_socket = aep.socket;
 					req.info_hash = m_torrent_file->info_hashes().get(ih);

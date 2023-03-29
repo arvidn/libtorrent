@@ -954,7 +954,7 @@ namespace libtorrent {
 
 #if TORRENT_USE_I2P
 		void on_i2p_resolve(error_code const& ec, char const* dest);
-		bool is_i2p() const { return m_torrent_file && m_torrent_file->is_i2p(); }
+		bool is_i2p() const { return m_i2p; }
 #endif
 
 		// this is the asio callback that is called when a name
@@ -1664,7 +1664,7 @@ namespace libtorrent {
 		// when this is true, this torrent participates in local service discovery
 		bool m_enable_lsd:1;
 
-		// 1 bit free
+		bool m_i2p:1;
 // ----
 
 		// total time we've been available as a seed on this torrent.
