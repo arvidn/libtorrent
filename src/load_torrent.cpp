@@ -48,6 +48,8 @@ namespace {
 			atp.tracker_tiers.push_back(ae.tier);
 		}
 		ti->clear_trackers();
+		if (ti->is_i2p())
+			atp.flags |= torrent_flags::i2p_torrent;
 
 		for (auto const& ws : ti->web_seeds())
 		{

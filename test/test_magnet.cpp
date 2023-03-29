@@ -362,6 +362,18 @@ TORRENT_TEST(parse_dht_node)
 }
 #endif
 
+#if TORRENT_USE_I2P
+TORRENT_TEST(parse_i2p_tracker)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=https://test.i2p/announce");
+	TEST_CHECK(p.flags & torrent_flags::i2p_torrent);
+	p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=https://test.com/announce");
+	TEST_CHECK(!(p.flags & torrent_flags::i2p_torrent));
+}
+#endif
+
 TORRENT_TEST(make_magnet_uri)
 {
 	// make_magnet_uri

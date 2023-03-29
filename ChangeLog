@@ -1,3 +1,4 @@
+	* improve handling of allow_i2p_mixed setting to work for magnet links
 	* fix web seed request for renamed single-file torrents
 	* fix issue where web seeds could disappear from resume data
 	* extend save_resume with additional conditional flags
