@@ -68,6 +68,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
+// This is the GCC indication of building with address sanitizer
+#if defined __SANITIZE_ADDRESS__ && __SANITIZE_ADDRESS__
+#define TORRENT_ADDRESS_SANITIZER 1
+#endif
+
+// This is the clang indication of building with address sanitizer
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define TORRENT_ADDRESS_SANITIZER 1
+#endif
+#endif
+
 #if defined __GNUC__
 
 #ifdef _GLIBCXX_CONCEPT_CHECKS
