@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
+#ifdef TORRENT_ADDRESS_SANITIZER
+#include <sanitizer/common_interface_defs.h>
+#endif
+
 namespace libtorrent {
 namespace aux {
 
@@ -82,6 +86,20 @@ namespace aux {
 			static_assert(alignof(U) <= 256
 				, "heterogeneous_queue does not support types with alignment requirements > 256");
 
+#ifdef TORRENT_ADDRESS_SANITIZER
+			std::size_t const hdr_len = sizeof(U)
+				+ aux::calculate_pad_bytes(ptr + sizeof(header_t) + pad_bytes + sizeof(U)
+					, alignof(header_t));
+
+			int const new_size = m_size + int(sizeof(header_t) + pad_bytes + hdr_len);
+
+			__sanitizer_annotate_contiguous_container(
+				m_storage.get()
+				, m_storage.get() + m_capacity
+				, ptr
+				, m_storage.get() + new_size);
+#endif
+
 			// if this assert triggers, the type being added to the queue has
 			// alignment requirements stricter than what malloc() returns. This is
 			// not supported
@@ -99,7 +117,7 @@ namespace aux {
 			hdr->move = &move<U>;
 			ptr += sizeof(header_t) + pad_bytes;
 			hdr->len = static_cast<std::uint16_t>(sizeof(U)
-				+ aux::calculate_pad_bytes(ptr + sizeof(U),  alignof(header_t)));
+				+ aux::calculate_pad_bytes(ptr + sizeof(U), alignof(header_t)));
 
 			// make sure ptr is correctly aligned for the object we're about to
 			// create there
@@ -113,6 +131,9 @@ namespace aux {
 			// update counters to indicate the new item is in there
 			++m_num_items;
 			m_size += int(sizeof(header_t) + pad_bytes + hdr->len);
+#ifdef TORRENT_ADDRESS_SANITIZER
+			TORRENT_ASSERT(m_size == new_size);
+#endif
 			return *ret;
 		}
 
@@ -157,6 +178,17 @@ namespace aux {
 				ptr += hdr->len;
 				hdr->~header_t();
 			}
+
+#ifdef TORRENT_ADDRESS_SANITIZER
+			if (m_size > 0)
+			{
+				__sanitizer_annotate_contiguous_container(
+					m_storage.get()
+					, m_storage.get() + m_capacity
+					, m_storage.get() + m_size
+					, m_storage.get());
+			}
+#endif
 			m_size = 0;
 			m_num_items = 0;
 		}
@@ -224,12 +256,20 @@ namespace aux {
 				// this is no-throw
 				src_hdr->move(dst, src);
 				src_hdr->~header_t();
-				src += len ;
+				src += len;
 				dst += len;
 			}
 
 			m_storage.swap(new_storage);
 			m_capacity += amount_to_grow;
+
+#ifdef TORRENT_ADDRESS_SANITIZER
+			__sanitizer_annotate_contiguous_container(
+				m_storage.get()
+				, m_storage.get() + m_capacity
+				, m_storage.get()
+				, m_storage.get() + m_size);
+#endif
 		}
 
 		template <class U>

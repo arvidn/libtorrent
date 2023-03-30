@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/unistd.h>
 #endif
 
+#ifdef TORRENT_ADDRESS_SANITIZER
+#include <sanitizer/asan_interface.h>
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
