@@ -232,6 +232,13 @@ rule linking ( properties * )
 		result += <library>$(json) ;
 	}
 
+	if ! <target-os>windows in $(properties)
+	{
+		# MingW defines a macro called "stat" if this is set, which causes build
+		# failures
+		result += <define>_FILE_OFFSET_BITS=64 ;
+	}
+
 	result += <define>BOOST_ALL_NO_LIB
 		<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 		<define>BOOST_SYSTEM_NO_DEPRECATED
@@ -926,7 +933,6 @@ local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<variant>release:<define>NDEBUG
-	<define>_FILE_OFFSET_BITS=64
 # enable cancel support in asio
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 # make sure asio uses std::chrono

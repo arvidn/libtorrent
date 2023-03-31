@@ -219,7 +219,7 @@ namespace aux {
 		friend struct aux::session_impl;
 		friend struct session_handle;
 		friend struct aux::torrent;
-		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
+		TORRENT_EXPORT friend std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.

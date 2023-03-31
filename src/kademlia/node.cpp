@@ -379,6 +379,7 @@ namespace {
 			a["seed"] = (flags & announce::seed) ? 1 : 0;
 			if (flags & announce::implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
+			o->flags |= observer::flag_queried;
 			node.m_rpc.invoke(e, p.first.ep(), o);
 		}
 	}
@@ -454,6 +455,7 @@ void node::direct_request(udp::endpoint const& ep, entry& e
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
+	o->flags |= observer::flag_queried;
 	m_rpc.invoke(e, ep, o);
 }
 
@@ -584,6 +586,7 @@ void node::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
 
 	stats_counters().inc_stats_counter(counters::dht_sample_infohashes_out);
 
+	o->flags |= observer::flag_queried;
 	m_rpc.invoke(e, ep, o);
 }
 
@@ -686,6 +689,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 		m_counters.inc_stats_counter(counters::dht_get_peers_out);
 	}
 
+	o->flags |= observer::flag_queried;
 	m_rpc.invoke(e, ep, o);
 }
 

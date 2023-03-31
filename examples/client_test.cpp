@@ -1350,8 +1350,6 @@ int main(int argc, char* argv[])
 	std::vector<char> in;
 	if (load_file(".ses_state", in))
 		params = read_session_params(in, session_handle::save_dht_state);
-
-	params.settings.set_bool(settings_pack::dht_privacy_lookups, true);
 #endif
 
 	auto& settings = params.settings;

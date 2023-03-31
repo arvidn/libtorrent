@@ -24,6 +24,10 @@ see LICENSE file.
 #include <memory> // for unique_ptr
 #include <vector>
 
+#ifdef TORRENT_ADDRESS_SANITIZER
+#include <sanitizer/asan_interface.h>
+#endif
+
 namespace libtorrent::aux {
 
 	// internal: some MTU and protocol header sizes constants
@@ -42,6 +46,10 @@ namespace libtorrent::aux {
 	{
 		// the last time this packet was sent
 		time_point send_time;
+
+#if TORRENT_USE_ASSERTS
+		int64_t num_fast_resend;
+#endif
 
 		// the number of bytes actually allocated in 'buf'
 		std::uint16_t allocated;
@@ -66,13 +74,11 @@ namespace libtorrent::aux {
 		// sent with the DF bit set (Don't Fragment)
 		bool mtu_probe:1;
 
-#if TORRENT_USE_ASSERTS
-		int num_fast_resend;
-#endif
-
 		// the actual packet buffer
 		std::uint8_t buf[1];
 	};
+
+	static_assert((sizeof(packet) & 0x7) == 0, "packet structure size should be divisible by 8");
 
 	struct packet_deleter
 	{
@@ -80,6 +86,9 @@ namespace libtorrent::aux {
 		void operator()(packet* p) const
 		{
 			TORRENT_ASSERT(p != nullptr);
+#ifdef TORRENT_ADDRESS_SANITIZER
+			__asan_unpoison_memory_region(p, sizeof(packet));
+#endif
 			p->~packet();
 			std::free(p);
 		}
@@ -88,7 +97,7 @@ namespace libtorrent::aux {
 	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
 	// internal
-	inline packet_ptr create_packet(int const size)
+	inline packet_ptr create_packet(int size)
 	{
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + aux::numeric_cast<std::uint16_t>(size)));
 		if (p == nullptr) aux::throw_ex<std::bad_alloc>();
@@ -99,7 +108,7 @@ namespace libtorrent::aux {
 
 	struct TORRENT_EXTRA_EXPORT packet_slab
 	{
-		int const allocate_size;
+		int allocate_size;
 
 		explicit packet_slab(int const alloc_size, std::size_t const limit = 10)
 			: allocate_size(alloc_size)
@@ -114,13 +123,21 @@ namespace libtorrent::aux {
 		void try_push_back(packet_ptr &p)
 		{
 			if (m_storage.size() < m_limit)
+			{
+#ifdef TORRENT_ADDRESS_SANITIZER
+				__asan_poison_memory_region(p.get(), sizeof(packet) + std::size_t(allocate_size));
+#endif
 				m_storage.push_back(std::move(p));
+			}
 		}
 
 		packet_ptr alloc()
 		{
 			if (m_storage.empty()) return create_packet(allocate_size);
 			auto ret = std::move(m_storage.back());
+#ifdef TORRENT_ADDRESS_SANITIZER
+			__asan_unpoison_memory_region(ret.get(), sizeof(packet) + std::size_t(allocate_size));
+#endif
 			m_storage.pop_back();
 			return ret;
 		}
@@ -188,6 +205,7 @@ namespace libtorrent::aux {
 			if (allocate <= m_syn_slab.allocate_size) { return m_syn_slab.alloc(); }
 			else if (allocate <= m_mtu_floor_slab.allocate_size) { return m_mtu_floor_slab.alloc(); }
 			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
+
 			return create_packet(allocate);
 		}
 		static constexpr int mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;

@@ -533,6 +533,9 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		, m_close_file_timer(m_io_context)
 		, m_paused(flags & session::paused)
 	{
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
+		validate_settings();
+#endif
 	}
 
 	template <typename Fun, typename... Args>
@@ -1478,6 +1481,34 @@ namespace {
 	}
 }
 
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
+	void session_impl::validate_setting(int const int_name, int const min, int const max)
+	{
+		int const val = m_settings.get_int(int_name);
+		TORRENT_ASSERT_PRECOND_MSG(val >= min, name_for_setting(int_name));
+		TORRENT_ASSERT_PRECOND_MSG(val <= max, name_for_setting(int_name));
+#ifndef TORRENT_DISABLE_LOGGING
+		if (val < min || val > max)
+			session_log("invalid %s setting: %d", name_for_setting(int_name), val);
+#endif
+	}
+
+	void session_impl::validate_settings()
+	{
+		validate_setting(settings_pack::out_enc_policy, 0, 2);
+		validate_setting(settings_pack::in_enc_policy, 0, 2);
+		validate_setting(settings_pack::allowed_enc_level, 1, 3);
+		validate_setting(settings_pack::mixed_mode_algorithm, 0, 1);
+		validate_setting(settings_pack::proxy_type, 0, 5);
+		validate_setting(settings_pack::disk_io_read_mode, 0, 3);
+		validate_setting(settings_pack::disk_io_write_mode, 0, 3);
+		validate_setting(settings_pack::choking_algorithm, 0, 3);
+		validate_setting(settings_pack::seed_choking_algorithm, 0, 3);
+		validate_setting(settings_pack::suggest_mode, 0, 1);
+		validate_setting(settings_pack::disk_write_mode, 0, 2);
+	}
+#endif
+
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool const reopen_listen_port
@@ -1501,6 +1532,11 @@ namespace {
 #endif
 
 		apply_pack(&pack, m_settings, this);
+
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
+		validate_settings();
+#endif
+
 		m_disk_thread->settings_updated();
 
 		if (!reopen_listen_port)

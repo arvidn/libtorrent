@@ -20,7 +20,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#if !defined __MINGW64__ && !defined __MINGW32__
 #define _FILE_OFFSET_BITS 64
+#endif
 
 #include <cstddef>
 
@@ -38,6 +40,21 @@ see LICENSE file.
 // format codes are. So we need to disable those for mingw targets
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic ignored "-Wformat-extra-args"
+// Mingw does not like friend declarations of dllexport functions. This
+// suppresses those warnings
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
+// This is the GCC indication of building with address sanitizer
+#if defined __SANITIZE_ADDRESS__ && __SANITIZE_ADDRESS__
+#define TORRENT_ADDRESS_SANITIZER 1
+#endif
+
+// This is the clang indication of building with address sanitizer
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define TORRENT_ADDRESS_SANITIZER 1
+#endif
 #endif
 
 // ======= SUNPRO =========

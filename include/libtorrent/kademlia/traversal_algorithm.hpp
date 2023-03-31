@@ -25,6 +25,7 @@ see LICENSE file.
 #include <libtorrent/address.hpp>
 #include <libtorrent/flags.hpp>
 #include <libtorrent/bdecode.hpp>
+#include <libtorrent/aux_/invariant_check.hpp>
 
 namespace libtorrent {
 
@@ -42,8 +43,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 	void traverse(node_id const& id, udp::endpoint const& addr);
 	void finished(observer_ptr o);
 
-	static inline constexpr traversal_flags_t prevent_request = 0_bit;
-	static inline constexpr traversal_flags_t short_timeout = 1_bit;
+	static inline constexpr traversal_flags_t short_timeout = 0_bit;
 
 	void failed(observer_ptr o, traversal_flags_t flags = {});
 	virtual ~traversal_algorithm();
@@ -65,8 +65,14 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 
 	node& get_node() const { return m_node; }
 
+	void abort() { m_abort = true; }
+
 #ifndef TORRENT_DISABLE_LOGGING
 	std::uint32_t id() const { return m_id; }
+#endif
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void check_invariant() const;
 #endif
 
 protected:
@@ -118,6 +124,10 @@ private:
 	// and leak
 	bool m_done = false;
 
+	// abort is set when we're cancelling the remaining lookups. Whenever a
+	// lookup completes, we won't issue another one
+	bool m_abort = false;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	// this is a unique ID for this specific traversal_algorithm instance,
 	// just used for logging
@@ -129,6 +139,9 @@ private:
 	std::set<std::uint64_t> m_peer6_prefixes;
 #ifndef TORRENT_DISABLE_LOGGING
 	void log_timeout(observer_ptr const& o, char const* prefix) const;
+#endif
+#if TORRENT_USE_ASSERTS
+	bool m_initialized = false;
 #endif
 };
 

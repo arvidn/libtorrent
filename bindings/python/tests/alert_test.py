@@ -569,12 +569,16 @@ class TorrentRemovedAlertTest(TorrentAlertTest):
 
 
 class ReadPieceAlertTest(TorrentAlertTest):
+    ALERT_MASK = lt.alert_category.piece_progress
+
     def test_read_piece(self) -> None:
         handle = self.session.add_torrent(self.atp)
         # add_piece() does not work in the checking_* states
         wait_until_done_checking(handle, timeout=5)
 
         handle.add_piece(0, self.torrent.pieces[0], 0)
+        # read_piece() does not work until we have the piece
+        self.alert = wait_for(self.session, lt.piece_finished_alert, timeout=5)
         handle.read_piece(0)
         alert = wait_for(self.session, lt.read_piece_alert, timeout=5)
 
