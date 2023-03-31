@@ -25,6 +25,7 @@ jobs:
            include:
              - config: address-model=32 crypto=built-in
              - config: address-model=64
+             - config: address-sanitizer=on
              - config: release
 
       steps:
@@ -43,7 +44,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0.beta1 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
