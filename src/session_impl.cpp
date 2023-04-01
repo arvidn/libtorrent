@@ -991,7 +991,6 @@ namespace aux {
 			m_i2p_listen_socket->close(ec);
 			TORRENT_ASSERT(!ec);
 		}
-		m_i2p_listen_socket.reset();
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2207,6 +2206,7 @@ namespace {
 			m_i2p_conn.close(ec);
 			return;
 		}
+		TORRENT_ASSERT(!m_abort);
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
 			, std::bind(&session_impl::on_i2p_open, this, _1));
@@ -2262,6 +2262,7 @@ namespace {
 
 	void session_impl::open_new_incoming_i2p_connection()
 	{
+		if (m_abort) return;
 		if (!m_i2p_conn.is_open()) return;
 
 		if (m_i2p_listen_socket) return;
@@ -2301,8 +2302,9 @@ namespace {
 #endif
 			return;
 		}
-		open_new_incoming_i2p_connection();
 		incoming_connection(s);
+		m_i2p_listen_socket.reset();
+		open_new_incoming_i2p_connection();
 	}
 #endif
 
