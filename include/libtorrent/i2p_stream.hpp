@@ -159,7 +159,7 @@ private:
 
 	state_t m_state;
 #if TORRENT_USE_ASSERTS
-	int m_magic;
+	int m_magic = 0x1337;
 #endif
 };
 
