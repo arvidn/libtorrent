@@ -443,7 +443,7 @@ private:
 
 	// send and receive buffer
 	aux::noexcept_movable<aux::vector<char>> m_buffer;
-	char const* m_id;
+	char const* m_id = nullptr;
 	std::string m_dest;
 	std::string m_name_lookup;
 
@@ -459,7 +459,7 @@ private:
 	command_t m_command;
 	state_t m_state;
 #if TORRENT_USE_ASSERTS
-	int m_magic;
+	int m_magic = 0x1337;
 #endif
 };
 
