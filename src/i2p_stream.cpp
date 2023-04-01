@@ -117,14 +117,9 @@ namespace libtorrent {
 
 	i2p_stream::i2p_stream(io_context& io_context)
 		: proxy_base(io_context)
-		, m_id(nullptr)
 		, m_command(cmd_create_session)
 		, m_state(read_hello_response)
-	{
-#if TORRENT_USE_ASSERTS
-		m_magic = 0x1337;
-#endif
-	}
+	{}
 
 #if TORRENT_USE_ASSERTS
 	i2p_stream::~i2p_stream()
