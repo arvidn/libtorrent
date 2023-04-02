@@ -795,6 +795,13 @@ bool is_downloading_state(int const st)
 		if (!m_enable_dht) return false;
 		if (!m_ses.announce_dht()) return false;
 
+#if TORRENT_USE_I2P
+		// i2p torrents don't announced on the DHT
+		// unless we allow mixed swarms
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return false;
+#endif
+
 		if (!m_ses.dht()) return false;
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
 		if (!m_announce_to_dht) return false;
@@ -2731,6 +2738,10 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
+#if TORRENT_USE_I2P
+				if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+					debug_log("DHT: i2p torrent (and mixed peers not allowed)");
+#endif
 				if (!m_ses.announce_dht())
 					debug_log("DHT: no listen sockets");
 
