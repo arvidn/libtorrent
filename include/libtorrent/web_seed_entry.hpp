@@ -31,7 +31,7 @@ struct TORRENT_EXPORT web_seed_entry
 	using headers_t = std::vector<std::pair<std::string, std::string>>;
 
 	// hidden
-	web_seed_entry(std::string url_
+	explicit web_seed_entry(std::string url_
 		, std::string auth_ = std::string()
 		, headers_t extra_headers_ = headers_t());
 
