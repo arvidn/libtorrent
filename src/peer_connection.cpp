@@ -1334,8 +1334,8 @@ namespace libtorrent {
 		}
 
 #if TORRENT_USE_I2P
-		auto* i2ps = boost::get<i2p_stream>(&m_socket);
-		if (!i2ps && t->torrent_file().is_i2p()
+		if (!aux::is_i2p(m_socket)
+			&& t->is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
 		{
 			// the torrent is an i2p torrent, the peer is a regular peer
