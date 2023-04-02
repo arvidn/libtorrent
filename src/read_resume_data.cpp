@@ -259,6 +259,9 @@ namespace {
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		apply_flag(ret.flags, rd, "super_seeding", torrent_flags::super_seeding);
 #endif
+#if TORRENT_USE_I2P
+		apply_flag(ret.flags, rd, "i2p", torrent_flags::i2p_torrent);
+#endif
 		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
 		apply_flag(ret.flags, rd, "stop_when_ready", torrent_flags::stop_when_ready);
 		apply_flag(ret.flags, rd, "disable_dht", torrent_flags::disable_dht);
@@ -330,6 +333,9 @@ namespace {
 				{
 					ret.trackers.push_back(tier_list.list_string_value_at(j).to_string());
 					ret.tracker_tiers.push_back(tier);
+#if TORRENT_USE_I2P
+					if (is_i2p_url(ret.trackers.back())) ret.flags |= torrent_flags::i2p_torrent;
+#endif
 				}
 				++tier;
 			}

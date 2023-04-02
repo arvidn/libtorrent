@@ -75,7 +75,8 @@ torrent_flags_t const flags_mask
 	| torrent_flags::super_seeding
 	| torrent_flags::share_mode
 	| torrent_flags::upload_mode
-	| torrent_flags::apply_ip_filter;
+	| torrent_flags::apply_ip_filter
+	| torrent_flags::i2p_torrent;
 
 std::vector<char> generate_resume_data(torrent_info* ti
 	, char const* file_priorities = "")
@@ -97,6 +98,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["max_connections"] = 1345;
 	rd["max_uploads"] = 1346;
 	rd["seed_mode"] = 0;
+	rd["i2p"] = 0;
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
