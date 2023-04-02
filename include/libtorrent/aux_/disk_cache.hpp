@@ -15,6 +15,7 @@ see LICENSE file.
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
@@ -105,7 +106,12 @@ struct cached_piece_entry
 
 	// if there is a hash_job set on this piece, whenever we complete hashing
 	// the last block, we should post this
-	pread_disk_job* hash_job;
+	pread_disk_job* hash_job = nullptr;
+
+	// if the piece has been requested to be cleared, but it was locked
+	// (flushing) at the time. We hang this job here to complete it once the
+	// thread currently flushing is done with it
+	pread_disk_job* clear_piece = nullptr;
 };
 
 struct disk_cache
@@ -137,12 +143,44 @@ struct disk_cache
 		if (i->blocks[block_idx].buf)
 		{
 			// TODO: it would be nice if this could be called without holding
-			// the mutex. It would require making a copy of the buffer, which
-			// would be problematic
+			// the mutex. It would require ibeing able to lock the piece
 			f(i->blocks[block_idx].buf);
 			return true;
 		}
 		return false;
+	}
+
+	// If the specified piece exists in the cache, and it's unlocked, clear all
+	// write jobs (return them in "aborted"). Returns true if the clear_piece
+	// job should be posted as complete. Returns false if the piece is locked by
+	// another thread, and the clear_piece job has been queued to be issued once
+	// the piece is unlocked.
+	bool try_clear_piece(piece_location const loc, pread_disk_job* j, jobqueue_t& aborted)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		auto& view = m_pieces.template get<0>();
+		auto i = view.find(loc);
+		if (i == view.end()) return true;
+		if (i->flushing)
+		{
+			// postpone the clearing until we're done flushing
+			view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
+			return false;
+		}
+
+		// we clear a piece after it fails the hash check. It doesn't make sense
+		// to be hashing still
+		TORRENT_ASSERT(!i->hashing);
+		if (i->hashing)
+		{
+			// postpone the clearing until we're done flushing
+			view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
+			return false;
+		}
+
+		clear_piece_impl(const_cast<cached_piece_entry&>(*i), aborted);
+		return true;
 	}
 
 /*
@@ -243,7 +281,9 @@ keep_going:
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
 	// to disk
-	void flush_to_disk(std::function<int(span<cached_block_entry>)> f, int const target_blocks)
+	void flush_to_disk(std::function<int(span<cached_block_entry>)> f
+		, int const target_blocks
+		, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -274,7 +314,7 @@ keep_going:
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
-			span<cached_block_entry> blocks(piece_iter->blocks.get()
+			span<cached_block_entry> const blocks(piece_iter->blocks.get()
 				, piece_iter->blocks_in_piece);
 
 			int count = 0;
@@ -289,6 +329,13 @@ keep_going:
 
 				TORRENT_ASSERT(m_blocks >= count);
 				m_blocks -= count;
+			}
+			if (piece_iter->clear_piece)
+			{
+				jobqueue_t aborted;
+				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
+				clear_piece_impl(cpe, aborted);
+				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
 			}
 			for (auto& be : blocks.first(count))
 			{
@@ -309,8 +356,6 @@ keep_going:
 		// if we get here, we have to "force flush" some blocks even though we
 		// don't have all the blocks yet. Start by flushing pieces that have the
 		// most contiguous blocks to flush:
-
-
 		auto& view2 = m_pieces.template get<1>();
 		for (auto piece_iter = view2.begin(); piece_iter != view2.end(); ++piece_iter)
 		{
@@ -322,6 +367,11 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
+			// the pieces are ordered by hasher_cursor, decreasing order. If we
+			// encounter a 0, all the remaining ones will also be zero
+			if (piece_iter->hasher_cursor == 0)
+				break;
+
 			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 
 			int const num_blocks = piece_iter->hasher_cursor;
@@ -330,8 +380,7 @@ keep_going:
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
-			span<cached_block_entry> blocks(piece_iter->blocks.get()
-				, num_blocks);
+			span<cached_block_entry> const blocks(piece_iter->blocks.get(), num_blocks);
 
 			int count = 0;
 			{
@@ -346,6 +395,13 @@ keep_going:
 				TORRENT_ASSERT(m_blocks >= count);
 				m_blocks -= count;
 			}
+			if (piece_iter->clear_piece)
+			{
+				jobqueue_t aborted;
+				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
+				clear_piece_impl(cpe, aborted);
+				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+			}
 			for (auto& be : blocks.first(count))
 			{
 				TORRENT_ASSERT(be.write_job);
@@ -357,8 +413,68 @@ keep_going:
 				return;
 		}
 
-		// TODO: we may still need to flush blocks at this point, even though we
+		// we may still need to flush blocks at this point, even though we
 		// would require read-back later to compute the piece hash
+		auto& view3 = m_pieces.template get<0>();
+		for (auto piece_iter = view3.begin(); piece_iter != view3.end(); ++piece_iter)
+		{
+			// We avoid flushing if other threads have already initiated sufficient
+			// amount of flushing
+			if (m_blocks - m_flushing_blocks <= target_blocks)
+				return;
+
+			if (piece_iter->flushing)
+				continue;
+
+			view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+
+			TORRENT_ALLOCA(blocks, cached_block_entry, piece_iter->blocks_in_piece);
+
+			int num_blocks = 0;
+			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
+			{
+				auto const& cbe = piece_iter->blocks[blk];
+				if (cbe.buf == nullptr) continue;
+				blocks[num_blocks].write_job = cbe.write_job;
+				++num_blocks;
+			}
+			blocks = blocks.first(num_blocks);
+
+			m_flushing_blocks += num_blocks;
+			// we have to release the lock while flushing, but since we set the
+			// "flushing" member to true, this piece is pinned to the cache
+			l.unlock();
+
+			int count = 0;
+			{
+				auto se = scope_end([&] {
+					l.lock();
+					view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
+					m_flushing_blocks -= num_blocks;
+				});
+				count = f(blocks);
+			}
+			if (piece_iter->clear_piece)
+			{
+				jobqueue_t aborted;
+				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
+				clear_piece_impl(cpe, aborted);
+				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+			}
+			TORRENT_ASSERT(m_blocks >= count);
+			TORRENT_ASSERT(count <= blocks.size());
+			m_blocks -= count;
+			for (auto& be : blocks.first(count))
+			{
+				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(!be.buf_holder);
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
+			}
+			if (count < blocks.size())
+				return;
+		}
 	}
 
 	std::size_t size() const
@@ -367,6 +483,24 @@ keep_going:
 	}
 
 private:
+
+	// this requires the mutex to be locked
+	void clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
+	{
+		TORRENT_ASSERT(!cpe.flushing);
+		TORRENT_ASSERT(!cpe.hashing);
+		for (int idx = 0; idx < cpe.blocks_in_piece; ++idx)
+		{
+			auto& cbe = cpe.blocks[idx];
+			if (cbe.write_job)
+			{
+				aborted.push_back(cbe.write_job);
+				cbe.write_job = nullptr;
+			}
+			cbe.buf = nullptr;
+			cbe.buf_holder.reset();
+		}
+	}
 
 	mutable std::mutex m_mutex;
 	piece_container m_pieces;

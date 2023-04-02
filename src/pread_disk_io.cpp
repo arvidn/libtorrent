@@ -649,7 +649,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			// pool that we may need to flush blocks
 			m_flush_target = m_buffer_pool.flush_target();
 			// wake up a thread
-			m_generic_threads.interrupt();
+			if (m_flush_target) m_generic_threads.interrupt();
 		}
 
 		return exceeded;
@@ -668,6 +668,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			v2,
 			sha1_hash{}
 		);
+
+		// TODO: this may need to be attached to the cached_piece_entry
 		add_job(j);
 	}
 
@@ -684,6 +686,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			offset,
 			sha256_hash{}
 		);
+
+		// TODO: this may need to be attached to the cached_piece_entry
 		add_job(j);
 	}
 
@@ -820,15 +824,20 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			index
 		);
 
-		// regular jobs are not guaranteed to be executed in-order
-		// since clear piece must guarantee that all write jobs that
-		// have been issued finish before the clear piece job completes
+		// regular jobs are not executed in-order.
+		// clear piece must wait for all write jobs issued to the piece finish
+		// before it completes.
+		jobqueue_t aborted_jobs;
+		bool const immediate_completion = m_cache.try_clear_piece(
+			{j->storage->storage_index(), index}, j, aborted_jobs);
 
-		// TODO: this is potentially very expensive. One way to solve
-		// it would be to have a fence for just this one piece.
-		// but it hardly seems worth the complexity and cost just for the edge
-		// case of receiving a corrupt piece
-		add_fence_job(j);
+		m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
+		if (immediate_completion)
+		{
+			jobqueue_t jobs;
+			jobs.push_back(j);
+			m_completed_jobs.append(m_ios, std::move(jobs));
+		}
 	}
 
 	status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
@@ -1271,13 +1280,23 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		for (;;)
 		{
 			auto const res = pool.wait_for_job(l);
-			if (res == aux::wait_result::exit_thread) break;
+
+			if (res == aux::wait_result::exit_thread)
+			{
+				if (&pool != &m_generic_threads)
+					break;
+
+				// flush everything before exiting this thread
+				m_flush_target = 0;
+				DLOG("exiting, flushing disk cache\n");
+			}
 
 			// if we need to flush the cache, let one of the generic threads do
 			// that
 			if (m_flush_target && &pool == &m_generic_threads)
 			{
 				int const target_cache_size = *m_flush_target;
+				DLOG("flushing, cache target: %d\n", target_cache_size);
 				m_flush_target = std::nullopt;
 				l.unlock();
 				m_cache.flush_to_disk([&](span<aux::cached_block_entry> blocks) {
@@ -1289,6 +1308,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					{
 						TORRENT_ASSERT(be.write_job);
 						++count;
+						be.write_job->flags |= aux::disk_job::in_progress;
 						perform_job(be.write_job, completed_jobs);
 						if (be.write_job->error)
 							break;
@@ -1297,10 +1317,20 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					if (!completed_jobs.empty())
 						add_completed_jobs(std::move(completed_jobs));
 					return count;
-				}, target_cache_size);
+				}
+				, target_cache_size
+				, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
+					m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
+					jobqueue_t jobs;
+					jobs.push_back(clear_piece);
+					m_completed_jobs.append(m_ios, std::move(jobs));
+				});
 				l.lock();
 				continue;
 			}
+			if (res == aux::wait_result::exit_thread)
+				break;
+
 			if (res != aux::wait_result::new_job)
 				continue;
 

@@ -18,6 +18,8 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
+#include "libtorrent/aux_/file_pool_impl.hpp"
 #include "test.hpp"
 #include "test_utils.hpp"
 #include <vector>
