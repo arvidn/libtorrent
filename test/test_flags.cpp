@@ -12,12 +12,10 @@ see LICENSE file.
 #include "test.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/session_params.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "settings.hpp"
-#include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
 using namespace libtorrent;
@@ -25,7 +23,7 @@ namespace lt = libtorrent;
 
 namespace {
 
-std::string file(std::string name)
+std::string file(std::string const& name)
 {
 	return combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", name));

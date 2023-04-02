@@ -86,11 +86,11 @@ struct udp : boost::asio::ip::udp {
 #endif
 
 	// internal
-	inline udp::endpoint make_udp(tcp::endpoint const ep)
+	inline udp::endpoint make_udp(tcp::endpoint const& ep)
 	{ return {ep.address(), ep.port()}; }
 
 	// internal
-	inline tcp::endpoint make_tcp(udp::endpoint const ep)
+	inline tcp::endpoint make_tcp(udp::endpoint const& ep)
 	{ return {ep.address(), ep.port()}; }
 
 #ifdef TORRENT_WINDOWS

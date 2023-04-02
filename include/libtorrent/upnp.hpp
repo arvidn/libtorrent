@@ -34,16 +34,14 @@ see LICENSE file.
 
 namespace libtorrent {
 
-	namespace aux {
-		struct http_connection;
-		class http_parser;
-	}
-
 namespace aux {
+
+	struct http_connection;
+	class http_parser;
 
 	struct socket_package
 	{
-		socket_package(io_context& ios) : socket(ios) {}
+		explicit socket_package(io_context& ios) : socket(ios) {}
 		udp::socket socket;
 		std::array<char, 1500> buffer;
 		udp::endpoint remote;
