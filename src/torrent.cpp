@@ -3299,6 +3299,13 @@ namespace {
 
 		req.kind |= tracker_request::scrape_request;
 		auto& ae = m_trackers[idx];
+
+#if TORRENT_USE_I2P
+		if (is_i2p_url(ae.url))
+			req.kind |= tracker_request::i2p;
+		else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return;
+#endif
 		refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 		req.url = ae.url;
 		req.private_torrent = m_torrent_file->priv();
