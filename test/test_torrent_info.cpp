@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
 #include "test_utils.hpp"
+#include "settings.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -1363,7 +1364,7 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 	atp.ti = ti;
 	atp.save_path = ".";
 
-	session ses;
+	session ses(settings());
 	torrent_handle h = ses.add_torrent(atp);
 
 	TEST_CHECK(ti->v2());
@@ -1459,7 +1460,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		atp.ti = ti;
 		atp.save_path = ".";
 
-		session ses;
+		session ses(settings());
 		torrent_handle h = ses.add_torrent(atp);
 
 		h.save_resume_data(torrent_handle::save_info_dict);
