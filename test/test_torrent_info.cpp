@@ -1092,8 +1092,14 @@ TORRENT_TEST(parse_invalid_torrents)
 		auto ti = std::make_shared<torrent_info>(filename, ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, e.error.message().c_str());
-		TEST_EQUAL(ec.message(), e.error.message());
-		TEST_EQUAL(ti->is_valid(), false);
+		// Some checks only happen in the load_torrent_*() functions, not in the
+		// torrent_info constructor. For these, it's OK for ec to not report an
+		// error
+		if (e.error != errors::torrent_invalid_piece_layer || ec)
+		{
+			TEST_EQUAL(ec.message(), e.error.message());
+			TEST_EQUAL(ti->is_valid(), false);
+		}
 
 		try
 		{

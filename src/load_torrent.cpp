@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent {
 
@@ -65,6 +66,9 @@ namespace {
 
 		if (ti->v2_piece_hashes_verified())
 		{
+			int const blocks_per_piece = ti->files().blocks_per_piece();
+			std::vector<sha256_hash> scratch;
+			sha256_hash const pad = merkle_pad(blocks_per_piece, 1);
 			file_storage const& fs = ti->files();
 			atp.merkle_trees.resize(fs.num_files());
 			atp.merkle_tree_mask.resize(fs.num_files());
@@ -77,12 +81,23 @@ namespace {
 				layer.reserve(std::size_t(bytes.size() / sha256_hash::size()));
 				for (int i = 0; i < bytes.size(); i += int(sha256_hash::size()))
 					layer.emplace_back(bytes.data() + i);
-				auto& mask = atp.merkle_tree_mask[f];
 
 				int const full_size = merkle_num_nodes(
 					merkle_num_leafs(fs.file_num_blocks(f)));
 				int const num_pieces = fs.file_num_pieces(f);
 				int const piece_layer_size = merkle_num_leafs(num_pieces);
+
+				if (!layer.empty())
+				{
+					sha256_hash const computed_root = merkle_root_scratch(layer
+						, piece_layer_size
+						, pad
+						, scratch);
+					if (computed_root != fs.root(f))
+						aux::throw_ex<system_error>(errors::torrent_invalid_piece_layer);
+				}
+
+				auto& mask = atp.merkle_tree_mask[f];
 				mask.resize(std::size_t(full_size), false);
 				for (int i = merkle_first_leaf(piece_layer_size)
 					, end = i + num_pieces; i < end; ++i)
