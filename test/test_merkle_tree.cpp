@@ -856,7 +856,10 @@ TORRENT_TEST(set_block_invalid_empty_tree)
 		// the tree is complete, we know all hashes already. This is just
 		// comparing the hash against what we have in the tree
 		auto const result = t.set_block(block, rand_sha256());
-		TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+		if (block == num_blocks - 1)
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::hash_failed);
+		else
+			TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
 		TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
 	}
 }
