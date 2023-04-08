@@ -435,6 +435,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{ "v2_invalid_piece_layer_root.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
 	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
 	{ "v2_unordered_files.torrent", errors::invalid_bencoding},

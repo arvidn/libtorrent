@@ -1061,6 +1061,7 @@ TEST_TORRENTS = \
   v2_incomplete_piece_layer.torrent \
   v2_invalid_pad_file.torrent \
   v2_invalid_piece_layer.torrent \
+  v2_invalid_piece_layer_root.torrent \
   v2_invalid_piece_layer_size.torrent \
   v2_multiple_files.torrent \
   v2_bad_file_alignment.torrent \
