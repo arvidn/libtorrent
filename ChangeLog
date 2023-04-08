@@ -1,3 +1,4 @@
+	* cache failed DNS lookups as well as successful ones
 	* add an i2p torrent state to control interactions with clear swarms
 	* fix i2p SAM protocol parsing of quoted messages
 	* expose i2p peer destination in peer_info
