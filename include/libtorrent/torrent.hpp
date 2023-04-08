@@ -554,6 +554,7 @@ namespace libtorrent {
 		void handle_disk_error(string_view job_name
 			, storage_error const& error, peer_connection* c = nullptr
 			, disk_class rw = disk_class::none);
+		void handle_inconsistent_hashes(piece_index_t piece);
 		void clear_error();
 
 		void set_error(error_code const& ec, file_index_t file);

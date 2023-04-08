@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 
 namespace libtorrent {

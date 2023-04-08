@@ -528,27 +528,12 @@ namespace {
 
 		if (root != m_tree[root_index])
 		{
-			int const first_piece_idx = piece_layer_start();
 			// hash failure, clear all the internal nodes
-			// not the block hashes though, except for the one we just added
-			if (root_index >= first_piece_idx)
-			{
-				// the whole piece failed the hash check. Clear all block hashes
-				// in this piece and report a hash failure
-				merkle_clear_tree(m_tree, leafs_size, first_leaf + leafs_start);
-				m_tree[root_index] = root;
-				return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
-			}
-			else
-			{
-				// in this case, the root that we validated these hashes against
-				// were above the piece layer, so we don't really know whether
-				// this piece is invalid, or some other piece. So, just clear
-				// the internal nodes
-				merkle_clear_tree(m_tree, leafs_size / 2, merkle_get_parent(first_leaf + leafs_start));
-				m_tree[root_index] = root;
-				return std::make_tuple(set_block_result::unknown, leafs_start, leafs_size);
-			}
+			// the whole piece failed the hash check. Clear all block hashes
+			// in this piece and report a hash failure
+			merkle_clear_tree(m_tree, leafs_size, first_leaf + leafs_start);
+			m_tree[root_index] = root;
+			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);
 		}
 
 		// TODO: this could be done more efficiently if bitfield had a function
