@@ -76,7 +76,14 @@ private:
 		std::vector<address> addresses;
 	};
 
+	struct failed_dns_cache_entry
+	{
+		time_point last_seen;
+		error_code error;
+	};
+
 	std::unordered_map<std::string, dns_cache_entry> m_cache;
+	std::unordered_map<std::string, failed_dns_cache_entry> m_failed_cache;
 	io_context& m_ios;
 
 	// all lookups in this resolver are aborted on shutdown.
