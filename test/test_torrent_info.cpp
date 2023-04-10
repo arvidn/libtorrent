@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -731,6 +732,9 @@ TORRENT_TEST(parse_torrents)
 		if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
 
+		add_torrent_params atp = load_torrent_file(filename);
+		TEST_CHECK(atp.info_hash == ti->info_hash());
+
 		if (t.file == "whitespace_url.torrent"_sv)
 		{
 			// make sure we trimmed the url
@@ -895,16 +899,29 @@ TORRENT_TEST(parse_torrents)
 		}
 	}
 
-	for (int i = 0; i < int(sizeof(test_error_torrents)/sizeof(test_error_torrents[0])); ++i)
+	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
-		std::printf("loading %s\n", test_error_torrents[i].file);
-		auto ti = std::make_shared<torrent_info>(combine_path(
-			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
+		std::printf("loading %s\n", e.file);
+		std::string const filename = combine_path(
+			combine_path(root_dir, "test_torrents"), e.file);
+		auto ti = std::make_shared<torrent_info>(filename, ec);
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
-			, test_error_torrents[i].error.message().c_str());
-		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
+			, e.error.message().c_str());
+		TEST_CHECK(ec.message() == e.error.message());
 		TEST_EQUAL(ti->is_valid(), false);
+
+		try
+		{
+			add_torrent_params atp = load_torrent_file(filename);
+			TEST_CHECK(false);
+		}
+		catch (system_error const& err)
+		{
+			std::printf("E:        \"%s\"\nexpected: \"%s\"\n", err.code().message().c_str()
+				, e.error.message().c_str());
+			TEST_EQUAL(err.code().message(), e.error.message());
+		}
 	}
 }
 

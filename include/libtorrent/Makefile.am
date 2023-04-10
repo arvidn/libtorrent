@@ -70,6 +70,7 @@ nobase_include_HEADERS = \
   lazy_entry.hpp               \
   link.hpp                     \
   linked_list.hpp              \
+  load_torrent.hpp             \
   lsd.hpp                      \
   magnet_uri.hpp               \
   natpmp.hpp                   \

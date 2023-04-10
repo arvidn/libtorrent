@@ -89,6 +89,7 @@ libtorrent_rasterbar_la_SOURCES = \
   ip_voter.cpp                    \
   lazy_bdecode.cpp                \
   listen_socket_handle.cpp        \
+  load_torrent.cpp                \
   lsd.cpp                         \
   magnet_uri.cpp                  \
   merkle.cpp                      \
