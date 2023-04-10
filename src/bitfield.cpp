@@ -42,20 +42,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	bool bitfield::all_set() const noexcept
+	bool bitfield::all_set() const noexcept //all set 
 	{
-		if(size() == 0) return false;
+		if(size() == 0) return false; //checks if all bits in the bitfield are set to 1. If the size of the bitfield is zero, it returns false.
 
 		int const words = size() / 32;
 		for (int i = 1; i < words + 1; ++i)
 		{
 			if (m_buf[i] != 0xffffffff) return false;
+			// divides the size of the bitfield by 32 to determine the number of 32-bit words required to represent the entire bitfield. It then iterates over each word and checks if the word is
+			//equal to 0xffffffff. If any word is not equal to 0xffffffff, it means not all bits in the bitfield are set to 1, and the function returns false.
 		}
 		int const rest = size() & 31;
 		if (rest > 0)
 		{
 			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32 - rest));
 			if ((m_buf[words + 1] & mask) != mask) return false;
+			//checks any remaining bits that are not part of a full 32-bit word. It determines the number of bits that are not part of a full word by using a bitwise AND operation with the number 31. It then creates a mask with the remaining bits set to 1, and checks if the bits in the last word of the bitfield are equal to the mask. 
+			//If they are not equal, it means not all bits in the bitfield are set to 1, and the function returns false.
 		}
 		return true;
 	}
