@@ -371,6 +371,7 @@ rule openssl-lib-path ( properties * )
 		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
 		OPENSSL_LIB += "C:/Program Files/OpenSSL-Win$(address_model)/lib" ;
 		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
+		OPENSSL_LIB += "C:/Program Files/OpenSSL/lib" ;
 	}
 
 	local result ;
@@ -398,6 +399,7 @@ rule openssl-include-path ( properties * )
 		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
 		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL-Win$(address_model)/include" ;
 		OPENSSL_INCLUDE += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/include" ;
+		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL/include" ;
 	}
 
 	local result ;
