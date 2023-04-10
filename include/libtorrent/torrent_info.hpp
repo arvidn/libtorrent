@@ -292,6 +292,16 @@ namespace libtorrent {
 			, announce_entry::tracker_source source);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
+		// hidden
+		std::vector<announce_entry> _drain_trackers() { return std::move(m_urls); }
+
+		// internal
+		std::vector<web_seed_entry> _drain_web_seeds() { return std::move(m_web_seeds); }
+
+		// internal
+		std::vector<std::pair<std::string, int>> _drain_nodes()
+		{ return std::move(m_nodes); }
+
 		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and
 		// "collections" keys in the .torrent file. Both info-hashes and

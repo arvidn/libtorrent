@@ -88,6 +88,7 @@ set(libtorrent_include_files
 	lazy_entry.hpp
 	link.hpp
 	linked_list.hpp
+	load_torrent.hpp
 	lsd.hpp
 	magnet_uri.hpp
 	natpmp.hpp
@@ -326,6 +327,7 @@ set(sources
 	ip_voter.cpp
 	lazy_bdecode.cpp
 	listen_socket_handle.cpp
+	load_torrent.cpp
 	lsd.cpp
 	magnet_uri.cpp
 	merkle.cpp
