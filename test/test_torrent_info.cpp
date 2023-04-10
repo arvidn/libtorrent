@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for load_file
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -39,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/write_resume_data.hpp" // write_torrent_file
+#include "libtorrent/alert_types.hpp"
 
 #include <iostream>
 
@@ -1146,4 +1149,121 @@ TORRENT_TEST(copy_ptr)
 	TEST_CHECK(&*a != &*b);
 	a->val = 5;
 	TEST_EQUAL(b->val, 4);
+}
+
+TORRENT_TEST(write_torrent_file_session_roundtrip)
+{
+	std::string const root_dir = combine_path(parent_path(current_working_directory()), "test_torrents");
+
+	auto const files = {
+		"base.torrent",
+		"empty_path.torrent",
+		"parent_path.torrent",
+		"hidden_parent_path.torrent",
+		"single_multi_file.torrent",
+		"slash_path.torrent",
+		"slash_path2.torrent",
+		"slash_path3.torrent",
+		"backslash_path.torrent",
+		"long_name.torrent",
+		"duplicate_files.torrent",
+		"pad_file.torrent",
+		"creation_date.torrent",
+		"no_creation_date.torrent",
+		"url_seed.torrent",
+		"url_seed_multi_single_file.torrent",
+		"empty_path_multi.torrent",
+		"invalid_name2.torrent",
+		"invalid_name3.torrent",
+		"symlink1.torrent",
+		"symlink2.torrent",
+		"unordered.torrent",
+		"symlink_zero_size.torrent",
+		"pad_file_no_path.torrent",
+		"large.torrent",
+		"absolute_filename.torrent",
+		"invalid_filename.torrent",
+		"invalid_filename2.torrent",
+		"overlapping_symlinks.torrent",
+	};
+
+	for (auto const& name : files)
+	{
+		std::string const filename = combine_path(root_dir, name);
+
+		std::printf("loading(\"%s\")\n", name);
+		error_code ec;
+		std::vector<char> data;
+		TEST_CHECK(load_file(filename, data, ec) == 0);
+
+		// apparently the test files have a garbage character at the end
+		// on windows, it can even be two bytes. Perhaps if git checks them out
+		// as text files and adds newline
+		if (!data.empty() && data.back() != 'e')
+			data.resize(data.size() - 1);
+
+		if (!data.empty() && data.back() != 'e')
+			data.resize(data.size() - 1);
+
+		auto ti = std::make_shared<torrent_info>(data, ec, from_span);
+		TEST_CHECK(!ec);
+		if (ec) std::printf(" -> failed %s\n", ec.message().c_str());
+
+		add_torrent_params atp;
+		atp.ti = ti;
+		atp.save_path = ".";
+
+		session ses;
+		torrent_handle h = ses.add_torrent(atp);
+
+		h.save_resume_data(torrent_handle::save_info_dict);
+		alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+		TORRENT_ASSERT(a);
+		{
+			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
+			std::vector<char> out_buffer;
+			bencode(std::back_inserter(out_buffer), e);
+
+			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
+
+			if (out_buffer != data)
+			{
+				std::cout << "GOT:\n";
+				for (char b : out_buffer)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+
+				std::cout << "EXPECTED:\n";
+				for (char b : data)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+			}
+			TEST_CHECK(out_buffer == data);
+		}
+
+		{
+			add_torrent_params p = load_torrent_file(filename);
+			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
+			std::vector<char> out_buffer;
+			bencode(std::back_inserter(out_buffer), e);
+
+			TEST_CHECK(out_buffer == write_torrent_file_buf(p, write_flags::include_dht_nodes));
+
+			if (out_buffer != data)
+			{
+				std::cout << "GOT:\n";
+				for (char b : out_buffer)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+
+				std::cout << "EXPECTED:\n";
+				for (char b : data)
+					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
+				std::cout << '\n';
+			}
+			TEST_CHECK(out_buffer == data);
+		}
+	}
 }
