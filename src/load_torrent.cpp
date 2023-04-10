@@ -42,25 +42,26 @@ namespace {
 	void update_atp(add_torrent_params& atp)
 	{
 		auto const& ti = atp.ti;
-		for (auto const& ae : ti->trackers())
+		// This is a temporary measure until all non info-dict content is parsed
+		// here, rather than the torrent_info constructor
+		auto drained_state = ti->_internal_drain();
+		for (auto const& ae : drained_state.urls)
 		{
-			atp.trackers.push_back(ae.url);
+			atp.trackers.push_back(std::move(ae.url));
 			atp.tracker_tiers.push_back(ae.tier);
 		}
-		ti->clear_trackers();
 		if (ti->is_i2p())
 			atp.flags |= torrent_flags::i2p_torrent;
 
-		for (auto const& ws : ti->web_seeds())
+		for (auto const& ws : drained_state.web_seeds)
 		{
 			if (ws.type == web_seed_entry::url_seed)
-				atp.url_seeds.push_back(ws.url);
+				atp.url_seeds.push_back(std::move(ws.url));
 			else if (ws.type == web_seed_entry::http_seed)
-				atp.http_seeds.push_back(ws.url);
+				atp.http_seeds.push_back(std::move(ws.url));
 		}
-		ti->clear_web_seeds();
 
-		atp.dht_nodes = ti->nodes();
+		atp.dht_nodes = std::move(drained_state.nodes);
 
 		if (ti->v2_piece_hashes_verified())
 		{
