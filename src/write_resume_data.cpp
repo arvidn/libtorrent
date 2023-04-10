@@ -42,6 +42,30 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp" // for clamp
 
 namespace libtorrent {
+namespace {
+	entry build_tracker_list(std::vector<std::string> const& trackers
+		, std::vector<int> const& tracker_tiers)
+	{
+		entry ret;
+		entry::list_type& tr_list = ret.list();
+		if (trackers.empty()) return ret;
+
+		tr_list.emplace_back(entry::list_type());
+		std::size_t tier = 0;
+		auto tier_it = tracker_tiers.begin();
+		for (std::string const& tr : trackers)
+		{
+			if (tier_it != tracker_tiers.end())
+				tier = aux::clamp(std::size_t(*tier_it++), std::size_t{0}, std::size_t{1024});
+
+			if (tr_list.size() <= tier)
+				tr_list.resize(tier + 1);
+
+			tr_list[tier].list().emplace_back(tr);
+		}
+		return ret;
+	}
+}
 
 	entry write_resume_data(add_torrent_params const& atp)
 	{
@@ -257,6 +281,89 @@ namespace libtorrent {
 		std::vector<char> ret;
 		entry rd = write_resume_data(atp);
 		bencode(std::back_inserter(ret), rd);
+		return ret;
+	}
+
+	entry write_torrent_file(add_torrent_params const& atp)
+	{
+		return write_torrent_file(atp, {});
+	}
+
+	entry write_torrent_file(add_torrent_params const& atp, write_torrent_flags_t const flags)
+	{
+		entry ret;
+		if (!atp.ti)
+			aux::throw_ex<system_error>(errors::torrent_missing_info);
+
+		auto const info = span<char const>(atp.ti->metadata().get(), atp.ti->metadata_size());
+		ret["info"].preformatted().assign(info.data(), info.data() + info.size());
+		if (!atp.ti->comment().empty())
+			ret["comment"] = atp.ti->comment();
+		if (atp.ti->creation_date() != 0)
+			ret["creation date"] = atp.ti->creation_date();
+		if (!atp.ti->creator().empty())
+			ret["created by"] = atp.ti->creator();
+
+		// save web seeds
+		if (!atp.url_seeds.empty() && !(flags & write_flags::no_http_seeds))
+		{
+			auto& url_list = ret["url-list"].list();
+			url_list.reserve(atp.url_seeds.size());
+			std::copy(atp.url_seeds.begin(), atp.url_seeds.end(), std::back_inserter(url_list));
+		}
+
+		if (!atp.http_seeds.empty() && !(flags & write_flags::no_http_seeds))
+		{
+			auto& httpseeds_list = ret["httpseeds"].list();
+			httpseeds_list.reserve(atp.http_seeds.size());
+			std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
+		}
+
+		// save DHT nodes
+		if (!atp.dht_nodes.empty() && (flags & write_flags::include_dht_nodes))
+		{
+			auto& nodes = ret["nodes"].list();
+			nodes.reserve(atp.dht_nodes.size());
+			for (auto const& n : atp.dht_nodes)
+			{
+				entry::list_type node(2);
+				node[0] = std::move(n.first);
+				node[1] = n.second;
+				nodes.emplace_back(std::move(node));
+			}
+		}
+
+		if (!atp.ti->similar_torrents().empty() && !atp.ti->info("similar"))
+		{
+			auto& l = ret["similar"].list();
+			l.reserve(atp.ti->similar_torrents().size());
+			for (auto const& n : atp.ti->similar_torrents())
+				l.emplace_back(n.to_string());
+		}
+
+		if (!atp.ti->collections().empty() && !atp.ti->info("collections"))
+		{
+			auto& l = ret["collections"].list();
+			l.reserve(atp.ti->collections().size());
+			for (auto const& n : atp.ti->collections())
+				l.emplace_back(n);
+		}
+
+		// save trackers
+		if (atp.trackers.size() == 1)
+			ret["announce"] = atp.trackers.front();
+		else if (atp.trackers.size() > 1)
+			ret["announce-list"] = build_tracker_list(atp.trackers, atp.tracker_tiers);
+
+		return ret;
+	}
+
+	std::vector<char> write_torrent_file_buf(add_torrent_params const& atp
+		, write_torrent_flags_t flags)
+	{
+		std::vector<char> ret;
+		entry e = write_torrent_file(atp, flags);
+		bencode(std::back_inserter(ret), e);
 		return ret;
 	}
 }
