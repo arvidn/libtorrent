@@ -1056,7 +1056,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 			m_i2p_listen_socket->close(ec);
 			TORRENT_ASSERT(!ec);
 		}
-		m_i2p_listen_socket.reset();
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1260,18 +1259,21 @@ namespace {
 			req.ssl_ctx = &m_ssl_ctx;
 #endif
 
-		TORRENT_ASSERT(req.outgoing_socket);
-		auto* ls = req.outgoing_socket.get();
-
-		req.listen_port =
-#if TORRENT_USE_I2P
-			(req.kind == tracker_request::i2p) ? 1 :
-#endif
+		auto ls = req.outgoing_socket.get();
+		if (ls)
+		{
+			req.listen_port =
 #ifdef TORRENT_SSL_PEERS
 			// SSL torrents use the SSL listen port
 			use_ssl ? make_announce_port(ssl_listen_port(ls)) :
 #endif
 			make_announce_port(listen_port(ls));
+		}
+		else
+		{
+			TORRENT_ASSERT(req.kind == tracker_request::i2p);
+			req.listen_port = 1;
+		}
 		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c);
 	}
 
@@ -2330,6 +2332,7 @@ namespace {
 			m_i2p_conn.close(ec);
 			return;
 		}
+		TORRENT_ASSERT(!m_abort);
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
 			, std::bind(&session_impl::on_i2p_open, this, _1));
@@ -2374,6 +2377,7 @@ namespace {
 
 	void session_impl::open_new_incoming_i2p_connection()
 	{
+		if (m_abort) return;
 		if (!m_i2p_conn.is_open()) return;
 
 		if (m_i2p_listen_socket) return;
@@ -2408,9 +2412,9 @@ namespace {
 #endif
 			return;
 		}
-		open_new_incoming_i2p_connection();
 		incoming_connection(std::move(*m_i2p_listen_socket));
 		m_i2p_listen_socket.reset();
+		open_new_incoming_i2p_connection();
 	}
 #endif
 

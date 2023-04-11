@@ -470,7 +470,27 @@ namespace {
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
 		if (is_outgoing()) p.flags |= peer_info::local_connection;
 #if TORRENT_USE_I2P
-		if (is_i2p(get_socket())) p.flags |= peer_info::i2p_socket;
+		if (is_i2p(get_socket()))
+		{
+			p.flags |= peer_info::i2p_socket;
+			auto const* pi = peer_info_struct();
+			if (pi != nullptr)
+			{
+				try
+				{
+					sha256_hash const b32_addr = hasher256(base64decode_i2p(pi->dest())).final();
+					p.set_i2p_destination(b32_addr);
+				}
+				catch (lt::system_error const&)
+				{
+					p.set_i2p_destination(sha256_hash());
+				}
+			}
+			else
+			{
+				p.set_i2p_destination(sha256_hash());
+			}
+		}
 #endif
 		if (is_utp(get_socket())) p.flags |= peer_info::utp_socket;
 		if (is_ssl(get_socket())) p.flags |= peer_info::ssl_socket;

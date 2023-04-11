@@ -44,6 +44,7 @@ TORRENT_TEST(read_resume)
 	rd["max_connections"] = 1345;
 	rd["max_uploads"] = 1346;
 	rd["seed_mode"] = 0;
+	rd["i2p"] = 0;
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
@@ -75,6 +76,7 @@ TORRENT_TEST(read_resume)
 		| torrent_flags::super_seeding
 		| torrent_flags::auto_managed
 		| torrent_flags::paused
+		| torrent_flags::i2p_torrent
 		| torrent_flags::sequential_download;
 
 	TEST_CHECK(!(atp.flags & flags_mask));
@@ -341,6 +343,9 @@ TORRENT_TEST(round_trip_flags)
 		torrent_flags::disable_dht,
 		torrent_flags::disable_lsd,
 		torrent_flags::disable_pex,
+#if TORRENT_USE_I2P
+		torrent_flags::i2p_torrent,
+#endif
 	};
 
 	for (auto const& f : flags)

@@ -943,6 +943,84 @@ TORRENT_TEST(new_peer_size_limit)
 		, 5);
 }
 
+TORRENT_TEST(peer_info_comparison)
+{
+	peer_address_compare cmp;
+	ipv4_peer const ip_low(ep("1.1.1.1", 6888), true, {});
+	ipv4_peer const ip_high(ep("100.1.1.1", 6888), true, {});
+	TEST_CHECK(cmp(&ip_low, &ip_high));
+	TEST_CHECK(!cmp(&ip_high, &ip_low));
+	TEST_CHECK(!cmp(&ip_high, &ip_high));
+	TEST_CHECK(!cmp(&ip_low, &ip_low));
+
+	TEST_CHECK(!cmp(&ip_low, addr("1.1.1.1")));
+	TEST_CHECK(cmp(&ip_low, addr("1.1.1.2")));
+	TEST_CHECK(cmp(&ip_low, addr("100.1.1.1")));
+
+	TEST_CHECK(!cmp(addr("1.1.1.1"), &ip_low));
+	TEST_CHECK(cmp(addr("1.1.1.0"), &ip_low));
+	TEST_CHECK(!cmp( addr("100.1.1.1"), &ip_low));
+
+#if TORRENT_USE_I2P
+	i2p_peer const i2p_low("aaaaaa", true, {});
+	i2p_peer const i2p_high("zzzzzz", true, {});
+
+	// noremal IPs always sort before i2p addresses
+	TEST_CHECK(cmp(&ip_low, &i2p_high));
+	TEST_CHECK(cmp(&ip_low, &i2p_low));
+	TEST_CHECK(cmp(&ip_high, &i2p_high));
+	TEST_CHECK(cmp(&ip_high, &i2p_low));
+
+	// i2p addresses always sort after noremal IPs
+	TEST_CHECK(!cmp(&i2p_high, &ip_low));
+	TEST_CHECK(!cmp(&i2p_low, &ip_low));
+	TEST_CHECK(!cmp(&i2p_high, &ip_high));
+	TEST_CHECK(!cmp(&i2p_low, &ip_high));
+
+	// noremal IPs always sort before i2p addresses
+	TEST_CHECK(cmp(addr4("1.1.1.1"), &i2p_high));
+	TEST_CHECK(cmp(addr4("1.1.1.1"), &i2p_low));
+	TEST_CHECK(cmp(addr4("100.1.1.1"), &i2p_high));
+	TEST_CHECK(cmp(addr4("100.1.1.1"), &i2p_low));
+
+	// i2p addresses always sort after noremal IPs
+	TEST_CHECK(!cmp(&i2p_high, addr4("1.1.1.1")));
+	TEST_CHECK(!cmp(&i2p_low, addr4("1.1.1.1")));
+	TEST_CHECK(!cmp(&i2p_high, addr4("100.1.1.1")));
+	TEST_CHECK(!cmp(&i2p_low, addr4("100.1.1.1")));
+
+	// internal i2p sorting
+	TEST_CHECK(cmp(&i2p_low, &i2p_high));
+	TEST_CHECK(!cmp(&i2p_high, &i2p_low));
+	TEST_CHECK(!cmp(&i2p_high, &i2p_high));
+	TEST_CHECK(!cmp(&i2p_low, &i2p_low));
+
+	TEST_CHECK(cmp(&i2p_low, "zzzzzz"));
+	TEST_CHECK(!cmp(&i2p_high, "aaaaaa"));
+	TEST_CHECK(!cmp(&i2p_high, "zzzzzz"));
+	TEST_CHECK(!cmp(&i2p_low, "aaaaaa"));
+	TEST_CHECK(cmp(&i2p_low, "aaaaab"));
+
+	TEST_CHECK(cmp("aaaaaa", &i2p_high));
+	TEST_CHECK(!cmp("zzzzzz", &i2p_low));
+	TEST_CHECK(!cmp("zzzzzz", &i2p_high));
+	TEST_CHECK(cmp("zzzzzy", &i2p_high));
+	TEST_CHECK(!cmp("aaaaaa", &i2p_low));
+#endif
+}
+
+#if TORRENT_USE_I2P
+TORRENT_TEST(peer_info_set_i2p_destination)
+{
+	peer_info p;
+	TORRENT_ASSERT(!(p.flags & peer_info::i2p_socket));
+	p.set_i2p_destination(sha256_hash("................................"));
+
+	TORRENT_ASSERT(p.i2p_destination() == sha256_hash("................................"));
+	TORRENT_ASSERT(p.flags & peer_info::i2p_socket);
+}
+#endif
+
 // TODO: test erasing peers
 // TODO: test update_peer_port with allow_multiple_connections_per_ip and without
 // TODO: test add i2p peers

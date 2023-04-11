@@ -1394,6 +1394,15 @@ namespace {
 			return false;
 		}
 
+		std::set<sha256_hash> all_file_roots;
+		auto const& fs = orig_files();
+		for (file_index_t i : fs.file_range())
+		{
+			if (fs.file_size(i) <= fs.piece_length())
+				continue;
+			all_file_roots.insert(fs.root(i));
+		}
+
 		for (int i = 0; i < e.dict_size(); ++i)
 		{
 			auto const f = e.dict_at(i);
@@ -1405,20 +1414,28 @@ namespace {
 				return false;
 			}
 
+			sha256_hash const root(f.first);
+			if (all_file_roots.find(root) == all_file_roots.end())
+			{
+				// This piece layer doesn't refer to any file in this torrent
+				ec = errors::torrent_invalid_piece_layer;
+				return false;
+			}
+
 			piece_layers.emplace(sha256_hash(f.first), f.second.string_value());
 		}
 
-		m_piece_layers.resize(orig_files().num_files());
+		m_piece_layers.resize(fs.num_files());
 
-		for (file_index_t i : orig_files().file_range())
+		for (file_index_t i : fs.file_range())
 		{
-			if (orig_files().file_size(i) <= orig_files().piece_length())
+			if (fs.file_size(i) <= fs.piece_length())
 				continue;
 
-			auto const piece_layer = piece_layers.find(orig_files().root(i));
+			auto const piece_layer = piece_layers.find(fs.root(i));
 			if (piece_layer == piece_layers.end()) continue;
 
-			int const num_pieces = orig_files().file_num_pieces(i);
+			int const num_pieces = fs.file_num_pieces(i);
 
 			if (ptrdiff_t(piece_layer->second.size()) != num_pieces * sha256_hash::size())
 			{

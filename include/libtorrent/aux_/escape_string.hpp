@@ -17,21 +17,12 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/flags.hpp"
+#if TORRENT_USE_I2P
+#include <vector>
+#include "libtorrent/span.hpp"
+#endif
 
 namespace libtorrent {
-
-	// hidden
-	using encode_string_flags_t = flags::bitfield_flag<std::uint8_t, struct encode_string_flags_tag>;
-
-	namespace string
-	{
-		// use lower case alphabet used with i2p
-		constexpr encode_string_flags_t lowercase = 0_bit;
-		// don't insert padding
-		constexpr encode_string_flags_t no_padding = 1_bit;
-		// shortcut used for addresses as sha256 hashes
-		constexpr encode_string_flags_t i2p = lowercase | no_padding;
-	}
 
 	TORRENT_EXTRA_EXPORT std::string unescape_string(string_view s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
@@ -54,7 +45,8 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
 #if TORRENT_USE_I2P
 	// encodes a string using the base32 scheme
-	TORRENT_EXTRA_EXPORT std::string base32encode(string_view s, encode_string_flags_t flags = {});
+	TORRENT_EXTRA_EXPORT std::string base32encode_i2p(span<char const> s);
+	TORRENT_EXTRA_EXPORT std::vector<char> base64decode_i2p(string_view s);
 #endif
 	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);
 

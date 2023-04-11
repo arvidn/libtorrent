@@ -11,7 +11,7 @@ see LICENSE file.
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	lt::base32encode({reinterpret_cast<char const*>(data), size});
+	lt::base32encode_i2p({reinterpret_cast<char const*>(data), static_cast<int>(size)});
 	return 0;
 }
 

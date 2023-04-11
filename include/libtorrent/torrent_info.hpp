@@ -38,6 +38,7 @@ see LICENSE file.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/web_seed_entry.hpp"
 
@@ -51,6 +52,13 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
 		, string_view element);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
+
+	struct internal_drained_state
+	{
+		aux::vector<lt::announce_entry> urls;
+		std::vector<web_seed_entry> web_seeds;
+		std::vector<std::pair<std::string, int>> nodes;
+	};
 }
 
 	// hidden
@@ -243,7 +251,6 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// internal
 		std::vector<announce_entry> const& internal_trackers() const { return m_urls; }
-		void internal_clear_trackers() { m_urls.clear(); }
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and
@@ -298,7 +305,9 @@ TORRENT_VERSION_NAMESPACE_3
 #endif
 
 		// internal
-		void clear_web_seeds() { m_web_seeds.clear(); }
+		aux::internal_drained_state _internal_drain() {
+			return aux::internal_drained_state{std::move(m_urls), std::move(m_web_seeds), std::move(m_nodes)};
+		}
 		std::vector<web_seed_entry> const& internal_web_seeds() const { return m_web_seeds; }
 
 		// ``total_size()`` returns the total number of bytes the torrent-file

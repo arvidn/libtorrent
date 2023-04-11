@@ -144,6 +144,9 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		std::vector<peer_entry> peers;
 		std::vector<ipv4_peer_entry> peers4;
 		std::vector<ipv6_peer_entry> peers6;
+#if TORRENT_USE_I2P
+		std::vector<i2p_peer_entry> i2p_peers;
+#endif
 		// our external IP address (if the tracker responded with ti, otherwise
 		// INADDR_ANY)
 		address external_ip;

@@ -307,6 +307,56 @@ int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
 	return int(i - peers.begin());
 }
 
+#if TORRENT_USE_I2P
+void base32encode_i2p(lt::sha256_hash const& s, std::string& out, int limit)
+{
+	static char const base32_table[] =
+	{
+		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+		'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+		'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+		'y', 'z', '2', '3', '4', '5', '6', '7'
+	};
+
+	static std::array<int, 6> const input_output_mapping{{0, 2, 4, 5, 7, 8}};
+
+	std::array<std::uint8_t, 5> inbuf;
+	std::array<std::uint8_t, 8> outbuf;
+
+	TORRENT_ASSERT(s.size() % 5 );
+	for (auto i = s.begin(); i != s.end();)
+	{
+		int const available_input = std::min(int(inbuf.size()), int(s.end() - i));
+
+		// clear input buffer
+		inbuf.fill(0);
+
+		// read a chunk of input into inbuf
+		std::copy(i, i + available_input, inbuf.begin());
+		i += available_input;
+
+		// encode inbuf to outbuf
+		outbuf[0] = (inbuf[0] & 0xf8) >> 3;
+		outbuf[1] = (((inbuf[0] & 0x07) << 2) | ((inbuf[1] & 0xc0) >> 6)) & 0xff;
+		outbuf[2] = ((inbuf[1] & 0x3e) >> 1);
+		outbuf[3] = (((inbuf[1] & 0x01) << 4) | ((inbuf[2] & 0xf0) >> 4)) & 0xff;
+		outbuf[4] = (((inbuf[2] & 0x0f) << 1) | ((inbuf[3] & 0x80) >> 7)) & 0xff;
+		outbuf[5] = ((inbuf[3] & 0x7c) >> 2);
+		outbuf[6] = (((inbuf[3] & 0x03) << 3) | ((inbuf[4] & 0xe0) >> 5)) & 0xff;
+		outbuf[7] = inbuf[4] & 0x1f;
+
+		// write output
+		int const num_out = input_output_mapping[std::size_t(available_input)];
+		for (int j = 0; j < num_out; ++j)
+		{
+			out += base32_table[outbuf[std::size_t(j)]];
+			--limit;
+			if (limit <= 0) return;
+		}
+	}
+}
+#endif
+
 // returns the number of lines printed
 int print_peer_info(std::string& out
 	, std::vector<lt::peer_info> const& peers, int max_lines)
@@ -340,13 +390,29 @@ int print_peer_info(std::string& out
 
 		if (print_ip)
 		{
-			std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->ip).c_str());
-			out += str;
+#if TORRENT_USE_I2P
+			if (i->flags & peer_info::i2p_socket)
+			{
+				base32encode_i2p(i->i2p_destination(), out, 31);
+			}
+			else
+#endif
+			{
+				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->ip).c_str());
+				out += str;
+			}
 		}
 		if (print_local_ip)
 		{
-			std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->local_endpoint).c_str());
-			out += str;
+#if TORRENT_USE_I2P
+			if (i->flags & peer_info::i2p_socket)
+				out += "                               ";
+			else
+#endif
+			{
+				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->local_endpoint).c_str());
+				out += str;
+			}
 		}
 
 		char temp[10];
@@ -627,7 +693,6 @@ void assign_setting(lt::settings_pack& settings, std::string const& key, char co
 				{"socks5_pw"_sv, settings_pack::socks5_pw},
 				{"http"_sv, settings_pack::http},
 				{"http_pw"_sv, settings_pack::http_pw},
-				{"i2p_proxy"_sv, settings_pack::i2p_proxy},
 			};
 
 			{

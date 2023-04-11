@@ -273,7 +273,16 @@ private:
 			std::tie(name, remaining) = aux::split_string(remaining, '=');
 			if (name.empty()) break;
 			string_view value;
-			std::tie(value, remaining) = aux::split_string(remaining, ' ');
+			if (remaining[0] == '"')
+			{
+				std::tie(value, remaining) = aux::split_string(remaining.substr(1), '"');
+				if (value.empty()) { handle_error(invalid_response, h); return; }
+				value.remove_suffix(1);
+			}
+			else
+			{
+				std::tie(value, remaining) = aux::split_string(remaining, ' ');
+			}
 			if (value.empty()) { handle_error(invalid_response, h); return; }
 
 			if ("RESULT"_sv == name)
@@ -314,16 +323,10 @@ private:
 		}
 
 		error_code ec(result, i2p_category());
-		switch (result)
+		if (ec)
 		{
-			case i2p_error::no_error:
-			case i2p_error::invalid_key:
-				break;
-			default:
-			{
-				handle_error (ec, h);
-				return;
-			}
+			std::forward<Handler>(h)(ec);
+			return;
 		}
 
 		switch (m_state)
@@ -343,14 +346,14 @@ private:
 				case cmd_none:
 				case cmd_name_lookup:
 				case cmd_incoming:
-					h(e);
+					std::forward<Handler>(h)(ec);
 					std::vector<char>().swap(m_buffer);
 			}
 			break;
 		case read_connect_response:
 		case read_session_create_response:
 		case read_name_lookup_response:
-			h(ec);
+			std::forward<Handler>(h)(ec);
 			std::vector<char>().swap(m_buffer);
 			break;
 		case read_accept_response:
@@ -416,7 +419,7 @@ private:
 
 	// send and receive buffer
 	aux::vector<char> m_buffer;
-	char const* m_id;
+	char const* m_id = nullptr;
 	std::string m_dest;
 	std::string m_name_lookup;
 
@@ -432,7 +435,7 @@ private:
 	command_t m_command;
 	state_t m_state;
 #if TORRENT_USE_ASSERTS
-	int m_magic;
+	int m_magic = 0x1337;
 #endif
 };
 

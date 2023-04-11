@@ -190,7 +190,9 @@ namespace libtorrent::aux {
 			}
 		}
 
-		if (!tracker_req().outgoing_socket)
+		// i2p trackers don't use our outgoing sockets, they use the SAM
+		// connection
+		if (!i2p && !tracker_req().outgoing_socket)
 		{
 			fail(errors::invalid_listen_socket, operation_t::get_interface
 				, "outgoing socket was closed");
@@ -223,7 +225,12 @@ namespace libtorrent::aux {
 			: settings.get_str(settings_pack::user_agent);
 
 		auto const ls = bind_socket();
-		bind_info_t bi{ls.device(), ls.get_local_endpoint().address()};
+		bind_info_t bi = [&ls](){
+			if (ls.get() == nullptr)
+				return bind_info_t{};
+			else
+				return bind_info_t{ls.device(), ls.get_local_endpoint().address()};
+		}();
 
 		// when sending stopped requests, prefer the cached DNS entry
 		// to avoid being blocked for slow or failing responses. Chances
@@ -278,9 +285,12 @@ namespace libtorrent::aux {
 		// be all of them, in which case we should not announce this listen socket
 		// to this tracker
 		auto const ls = bind_socket();
-		endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
-			, [&](tcp::endpoint const& ep) { return !ls.can_route(ep.address()); })
-			, endpoints.end());
+		if (ls.get() != nullptr)
+		{
+			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
+				, [&](tcp::endpoint const& ep) { return !ls.can_route(ep.address()); })
+				, endpoints.end());
+		}
 
 		if (endpoints.empty())
 		{
@@ -566,11 +576,9 @@ namespace libtorrent::aux {
 				for (int i = 0; i < len; i += 32)
 				{
 					if (len - i < 32) break;
-					peer_entry p;
-					p.hostname = base32encode(std::string(peers + i, 32), string::i2p);
-					p.hostname += ".b32.i2p";
-					p.port = 6881;
-					resp.peers.push_back(p);
+					i2p_peer_entry p;
+					std::memcpy(p.destination.data(), peers + i, 32);
+					resp.i2p_peers.push_back(p);
 				}
 			}
 			else
