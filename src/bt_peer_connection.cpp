@@ -489,11 +489,13 @@ namespace {
 		{
 			p.flags |= peer_info::i2p_socket;
 			auto const* pi = peer_info_struct();
-			if (pi != nullptr)
+			if (pi != nullptr && !pi->dest().empty())
 			{
 				try
 				{
-					sha256_hash const b32_addr = hasher256(base64decode_i2p(pi->dest())).final();
+					std::vector<char> const destination = base64decode_i2p(pi->dest());
+					TORRENT_ASSERT(!destination.empty());
+					sha256_hash const b32_addr = hasher256(destination).final();
 					p.set_i2p_destination(b32_addr);
 				}
 				catch (lt::system_error const&)
