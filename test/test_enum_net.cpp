@@ -50,6 +50,10 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 	TEST_CHECK(is_local(make_address("10.1.1.56", ec)));
 	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("100.64.0.0", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("100.127.255.255", ec)));
+	TEST_CHECK(!ec);
 	TEST_CHECK(!is_local(make_address("14.14.251.63", ec)));
 	TEST_CHECK(!ec);
 }
