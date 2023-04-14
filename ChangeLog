@@ -1,3 +1,4 @@
+	* treat CGNAT address range as local IPs
 	* add stricter checking of piece layers when loading torrents
 	* add stricter checking of v1 and v2 hashes being consistent
 	* cache failed DNS lookups as well as successful ones
