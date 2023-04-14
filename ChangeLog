@@ -1,4 +1,5 @@
 	* back-port fix last_upload and last_download resume data fields to use posix time
+	* back-port treat CGNAT address range as local IPs
 
 1.2.19 released
 

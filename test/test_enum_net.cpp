@@ -47,6 +47,10 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(address::from_string("100.64.0.0", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(address::from_string("100.127.255.255", ec)));
+	TEST_CHECK(!ec);
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
 	TEST_CHECK(!ec);
 }
