@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace lt;
 
+#if 0
 struct mock_peer_connection final : peer_connection_interface
 {
 	tcp::endpoint const& remote() const override { return m_remote; }
@@ -66,6 +67,18 @@ struct mock_peer_connection final : peer_connection_interface
 	void peer_log(peer_log_alert::direction_t
 		, char const*, char const*, ...) const noexcept override TORRENT_FORMAT(4, 5) {}
 #endif
+#if TORRENT_USE_I2P
+	std::string const& destination() const override
+	{
+		static std::string const empty;
+		return empty;
+	}
+	std::string const& local_i2p_endpoint() const override
+	{
+		static std::string const empty;
+		return empty;
+	}
+#endif
 
 	torrent_peer* m_torrent_peer;
 	lt::stat m_stat;
@@ -73,7 +86,6 @@ struct mock_peer_connection final : peer_connection_interface
 	peer_id m_pid;
 };
 
-#if 0
 TORRENT_TEST(pick_piece_layer)
 {
 	file_storage fs;

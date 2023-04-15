@@ -492,6 +492,11 @@ namespace aux {
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
+#if TORRENT_USE_I2P
+		std::string const& destination() const override;
+		std::string const& local_i2p_endpoint() const override;
+#endif
+
 		typed_bitfield<piece_index_t> const& get_bitfield() const;
 		std::vector<piece_index_t> const& allowed_fast();
 		std::vector<piece_index_t> const& suggested_pieces() const { return m_suggested_pieces; }

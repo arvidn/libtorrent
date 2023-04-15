@@ -125,8 +125,10 @@ struct i2p_stream : proxy_base
 
 	void set_session_id(char const* id) { m_id = id; }
 
+	void set_local_i2p_endpoint(string_view d) { m_local = d.to_string(); }
+	std::string const& local_i2p_endpoint() const { return m_local; }
 	void set_destination(string_view d) { m_dest = d.to_string(); }
-	std::string const& destination() { return m_dest; }
+	std::string const& destination() const { return m_dest; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const&, Handler h)
@@ -445,6 +447,7 @@ private:
 	aux::noexcept_movable<aux::vector<char>> m_buffer;
 	char const* m_id = nullptr;
 	std::string m_dest;
+	std::string m_local;
 	std::string m_name_lookup;
 
 	enum state_t : std::uint8_t
@@ -513,6 +516,7 @@ public:
 	}
 	void close(error_code&);
 
+	// TODO: make this a string_view
 	char const* session_id() const { return m_session_id.c_str(); }
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }
 
