@@ -55,6 +55,10 @@ namespace libtorrent {
 		static constexpr disconnect_severity_t failure{1};
 		static constexpr disconnect_severity_t peer_error{2};
 
+#if TORRENT_USE_I2P
+		virtual std::string const& destination() const = 0;
+		virtual std::string const& local_i2p_endpoint() const = 0;
+#endif
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;
 		virtual void disconnect(error_code const& ec

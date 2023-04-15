@@ -7516,9 +7516,11 @@ namespace {
 
 			aux::socket_type ret = instantiate_connection(m_ses.get_context()
 				, proxy, nullptr, nullptr, false, false);
-			boost::get<i2p_stream>(ret).set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			boost::get<i2p_stream>(ret).set_command(i2p_stream::cmd_connect);
-			boost::get<i2p_stream>(ret).set_session_id(m_ses.i2p_session());
+			i2p_stream& str = boost::get<i2p_stream>(ret);
+			str.set_local_i2p_endpoint(m_ses.local_i2p_endpoint());
+			str.set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+			str.set_command(i2p_stream::cmd_connect);
+			str.set_session_id(m_ses.i2p_session());
 			return ret;
 		}
 		else
