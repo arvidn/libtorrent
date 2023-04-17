@@ -289,6 +289,19 @@ namespace libtorrent::aux {
 			return lhs->address() < rhs->address();
 		}
 	};
+
+	inline bool torrent_peer_equal(torrent_peer const* lhs, torrent_peer const* rhs)
+	{
+#if TORRENT_USE_I2P
+		if (lhs->is_i2p_addr != rhs->is_i2p_addr)
+			return false;
+
+		if (lhs->is_i2p_addr)
+			return lhs->dest() == rhs->dest();
+#endif
+		return lhs->address() == rhs->address()
+			&& lhs->port == rhs->port;
+	}
 }
 
 #endif

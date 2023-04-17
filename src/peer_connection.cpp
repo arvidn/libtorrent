@@ -1150,6 +1150,22 @@ namespace {
 		t->received_synack(ipv6);
 	}
 
+#if TORRENT_USE_I2P
+	std::string const& peer_connection::destination() const
+	{
+		static std::string const empty;
+		auto s = std::get_if<i2p_stream>(&m_socket);
+		return s ? s->destination() : empty;
+	}
+
+	std::string const& peer_connection::local_i2p_endpoint() const
+	{
+		static std::string const empty;
+		auto s = std::get_if<i2p_stream>(&m_socket);
+		return s ? s->local_i2p_endpoint() : empty;
+	}
+#endif
+
 	typed_bitfield<piece_index_t> const& peer_connection::get_bitfield() const
 	{
 		TORRENT_ASSERT(is_single_thread());

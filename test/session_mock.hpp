@@ -151,6 +151,11 @@ struct session_mock : aux::session_interface
 #endif
 
 #if TORRENT_USE_I2P
+	std::string const& local_i2p_endpoint() const override
+	{
+		static std::string const empty;
+		return empty;
+	}
 	char const* i2p_session() const override { return nullptr; }
 #endif
 
