@@ -676,6 +676,12 @@ namespace libtorrent {
 		sync_call(&torrent::add_piece, piece, data, flags);
 	}
 
+	void torrent_handle::add_piece(piece_index_t piece, std::vector<char> data
+		, add_piece_flags_t const flags) const
+	{
+		async_call(&torrent::add_piece_async, piece, std::move(data), flags);
+	}
+
 	void torrent_handle::read_piece(piece_index_t piece) const
 	{
 		async_call(&torrent::read_piece, piece);

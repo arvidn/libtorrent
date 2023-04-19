@@ -1395,6 +1395,22 @@ bool is_downloading_state(int const st)
 		piece_index_t m_piece;
 	};
 
+	void torrent::add_piece_async(piece_index_t const piece
+		, std::vector<char> data, add_piece_flags_t const flags)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		// make sure the piece index is correct
+
+		if (piece >= torrent_file().end_piece())
+			return;
+
+		// make sure the piece size is correct
+		if (data.size() != std::size_t(m_torrent_file->piece_size(piece)))
+			return;
+
+		add_piece(piece, data.data(), flags);
+	}
+
 	// TODO: 3 there's some duplication between this function and
 	// peer_connection::incoming_piece(). is there a way to merge something?
 	void torrent::add_piece(piece_index_t const piece, char const* data
