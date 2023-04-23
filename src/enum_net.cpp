@@ -1408,6 +1408,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return std::vector<ip_route>();
 		}
 
+#elif defined TORRENT_ANDROID && __ANDROID_API__ >= 24
+		ec = boost::asio::error::operation_not_supported;
 #else
 #error "don't know how to enumerate network routes on this platform"
 #endif
