@@ -30,7 +30,7 @@ void thread_fun(lt::aux::disk_io_thread_pool& pool, lt::executor_work_guard<io_c
 	for (;;)
 	{
 		auto const result = pool.wait_for_job(l);
-		if (result == aux::wait_result::exit_thread) break;
+		if (result == lt::aux::wait_result::exit_thread) break;
 		lt::aux::disk_job* j = static_cast<lt::aux::disk_job*>(pool.pop_front());
 		l.unlock();
 
