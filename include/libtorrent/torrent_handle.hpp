@@ -292,7 +292,7 @@ namespace aux {
 		// The overload taking a ``std::vector<char>`` is not blocking, it will
 		// send the buffer to the main thread and return immediately.
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags = {}) const;
-		void add_piece(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags) const;
+		void add_piece(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified
 		// piece from this torrent. You must have completed the download of the

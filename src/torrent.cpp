@@ -1392,8 +1392,8 @@ bool is_downloading_state(int const st)
 		, std::vector<char> data, add_piece_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// make sure the piece index is correct
 
+		// make sure the piece index is correct
 		if (piece >= torrent_file().end_piece())
 			return;
 
@@ -1410,6 +1410,11 @@ bool is_downloading_state(int const st)
 		, add_piece_flags_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		
+		// make sure the piece index is correct
+		if (piece >= torrent_file().end_piece())
+			return;
+
 		int const piece_size = m_torrent_file->piece_size(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
