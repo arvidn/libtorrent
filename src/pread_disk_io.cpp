@@ -150,6 +150,10 @@ private:
 	void abort_jobs();
 	void abort_hash_jobs(storage_index_t storage);
 
+	void try_flush_cache(int const target_cache_size
+		, jobqueue_t& completed_jobs
+		, std::unique_lock<std::mutex>& l);
+
 	// returns the maximum number of threads
 	// the actual number of threads may be less
 	int num_threads() const;
@@ -641,6 +645,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
+		if (j->storage && j->storage->is_blocked(j))
+		{
+			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
+			DLOG("blocked job: %s (torrent: %d total: %d)\n"
+				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
+				, int(m_stats_counters[counters::blocked_disk_jobs]));
+			return exceeded;
+		}
+
 		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
 
 		if (!m_flush_target)
@@ -824,6 +837,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			index
 		);
 
+		DLOG("async_clear_piece: piece: %d\n", int(index));
 		// regular jobs are not executed in-order.
 		// clear piece must wait for all write jobs issued to the piece finish
 		// before it completes.
@@ -834,9 +848,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
 		if (immediate_completion)
 		{
+			DLOG("immediate clear\n");
 			jobqueue_t jobs;
+			j->flags |= aux::disk_job::in_progress;
 			jobs.push_back(j);
-			m_completed_jobs.append(m_ios, std::move(jobs));
+			add_completed_jobs(std::move(jobs));
+		}
+		else
+		{
+			DLOG("deferred clear\n");
 		}
 	}
 
@@ -1255,6 +1275,40 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			add_completed_jobs(std::move(completed_jobs));
 	}
 
+	void pread_disk_io::try_flush_cache(int const target_cache_size
+		, jobqueue_t& completed_jobs
+		, std::unique_lock<std::mutex>& l)
+	{
+		DLOG("flushing, cache target: %d\n", target_cache_size);
+		l.unlock();
+		m_cache.flush_to_disk(
+			[&](span<aux::cached_block_entry> blocks) {
+				TORRENT_ASSERT(blocks.size() > 0);
+
+				int count = 0;
+				for (auto& be : blocks)
+				{
+					TORRENT_ASSERT(be.write_job);
+					++count;
+					be.write_job->flags |= aux::disk_job::in_progress;
+					perform_job(be.write_job, completed_jobs);
+					if (be.write_job->error)
+						break;
+				}
+
+				return count;
+			}
+			, target_cache_size
+			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
+				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
+				jobqueue_t jobs;
+				jobs.push_back(clear_piece);
+				add_completed_jobs(std::move(jobs));
+			});
+		l.lock();
+		DLOG("flushed blocks (%d blocks left), return to disk loop\n", m_cache.size());
+	}
+
 	void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		, executor_work_guard<io_context::executor_type> work)
 	{
@@ -1286,53 +1340,25 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				if (&pool != &m_generic_threads)
 					break;
 
-				// flush everything before exiting this thread
-				m_flush_target = 0;
-				DLOG("exiting, flushing disk cache\n");
+				DLOG("exit disk loop\n");
+				break;
 			}
 
 			// if we need to flush the cache, let one of the generic threads do
 			// that
 			if (m_flush_target && &pool == &m_generic_threads)
 			{
-				int const target_cache_size = *m_flush_target;
-				DLOG("flushing, cache target: %d\n", target_cache_size);
-				m_flush_target = std::nullopt;
-				l.unlock();
-				m_cache.flush_to_disk([&](span<aux::cached_block_entry> blocks) {
-					TORRENT_ASSERT(blocks.size() > 0);
-
-					int count = 0;
-					jobqueue_t completed_jobs;
-					for (auto& be : blocks)
-					{
-						TORRENT_ASSERT(be.write_job);
-						++count;
-						be.write_job->flags |= aux::disk_job::in_progress;
-						perform_job(be.write_job, completed_jobs);
-						if (be.write_job->error)
-							break;
-					}
-
-					if (!completed_jobs.empty())
-						add_completed_jobs(std::move(completed_jobs));
-					return count;
-				}
-				, target_cache_size
-				, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
-					m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
-					jobqueue_t jobs;
-					jobs.push_back(clear_piece);
-					m_completed_jobs.append(m_ios, std::move(jobs));
-				});
-				l.lock();
+				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
+				jobqueue_t completed_jobs;
+				try_flush_cache(target_cache_size, completed_jobs, l);
+				if (!completed_jobs.empty())
+					add_completed_jobs(std::move(completed_jobs));
+			}
+			if (res != aux::wait_result::new_job)
+			{
+				DLOG("continue disk loop\n");
 				continue;
 			}
-			if (res == aux::wait_result::exit_thread)
-				break;
-
-			if (res != aux::wait_result::new_job)
-				continue;
 
 			aux::pread_disk_job* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
 			l.unlock();
@@ -1397,6 +1423,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			, threads_left
 			, m_generic_threads.queue_size()
 			, m_hash_threads.queue_size());
+
+		// flush everything before exiting this thread
+		jobqueue_t completed_jobs;
+		try_flush_cache(0, completed_jobs, l);
+		if (!completed_jobs.empty())
+			add_completed_jobs(std::move(completed_jobs));
 
 		// it is important to hold the job mutex while calling try_thread_exit()
 		// and continue to hold it until checking m_abort above so that abort()

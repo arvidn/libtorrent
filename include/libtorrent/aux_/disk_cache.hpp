@@ -325,17 +325,18 @@ keep_going:
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
 				});
-				count = f(blocks);
-
-				TORRENT_ASSERT(m_blocks >= count);
-				m_blocks -= count;
+				if (!blocks.empty())
+					count = f(blocks);
 			}
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
 				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
 				clear_piece_impl(cpe, aborted);
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+				return;
 			}
 			for (auto& be : blocks.first(count))
 			{
@@ -390,17 +391,19 @@ keep_going:
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
 				});
-				count = f(blocks);
+				if (!blocks.empty())
+					count = f(blocks);
 
-				TORRENT_ASSERT(m_blocks >= count);
-				m_blocks -= count;
 			}
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
 				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
 				clear_piece_impl(cpe, aborted);
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+				return;
 			}
 			for (auto& be : blocks.first(count))
 			{
@@ -453,18 +456,20 @@ keep_going:
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
 				});
-				count = f(blocks);
+				if (!blocks.empty())
+					count = f(blocks);
 			}
+			TORRENT_ASSERT(count <= blocks.size());
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
 				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
 				clear_piece_impl(cpe, aborted);
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+				return;
 			}
-			TORRENT_ASSERT(m_blocks >= count);
-			TORRENT_ASSERT(count <= blocks.size());
-			m_blocks -= count;
 			for (auto& be : blocks.first(count))
 			{
 				TORRENT_ASSERT(be.write_job);
