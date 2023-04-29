@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/aux_/invariant_check.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
@@ -136,6 +137,8 @@ struct disk_cache
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		auto& view = m_pieces.template get<0>();
 		auto i = view.find(loc);
 		if (i == view.end()) return false;
@@ -158,6 +161,8 @@ struct disk_cache
 	bool try_clear_piece(piece_location const loc, pread_disk_job* j, jobqueue_t& aborted)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
 
 		auto& view = m_pieces.template get<0>();
 		auto i = view.find(loc);
@@ -203,6 +208,8 @@ struct disk_cache
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		auto& view = m_pieces.template get<0>();
 		auto i = view.find(loc);
 		if (i == view.end())
@@ -224,6 +231,8 @@ struct disk_cache
 	void kick_hasher(piece_location const& loc, jobqueue_t& completed_jobs)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
 
 		auto& view = m_pieces.template get<0>();
 		auto piece_iter = view.find(loc);
@@ -287,12 +296,18 @@ keep_going:
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		// TODO: refactor this to avoid so much duplicated code
 
 		// first we look for pieces that are ready to be flushed and should be
 		auto& view = m_pieces.template get<2>();
 		for (auto piece_iter = view.begin(); piece_iter != view.end();)
 		{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			INVARIANT_CHECK;
+#endif
+
 			// We avoid flushing if other threads have already initiated sufficient
 			// amount of flushing
 			if (m_blocks - m_flushing_blocks <= target_blocks)
@@ -330,6 +345,13 @@ keep_going:
 			}
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
+			for (auto& be : blocks.first(count))
+			{
+				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(!be.buf_holder);
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
+			}
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -337,13 +359,6 @@ keep_going:
 				clear_piece_impl(cpe, aborted);
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
 				return;
-			}
-			for (auto& be : blocks.first(count))
-			{
-				TORRENT_ASSERT(be.write_job);
-				TORRENT_ASSERT(!be.buf_holder);
-				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				be.write_job = nullptr;
 			}
 			if (count < piece_iter->blocks_in_piece)
 				return;
@@ -360,6 +375,10 @@ keep_going:
 		auto& view2 = m_pieces.template get<1>();
 		for (auto piece_iter = view2.begin(); piece_iter != view2.end(); ++piece_iter)
 		{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			INVARIANT_CHECK;
+#endif
+
 			// We avoid flushing if other threads have already initiated sufficient
 			// amount of flushing
 			if (m_blocks - m_flushing_blocks <= target_blocks)
@@ -397,6 +416,13 @@ keep_going:
 			}
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
+			for (auto& be : blocks.first(count))
+			{
+				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(!be.buf_holder);
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
+			}
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -404,13 +430,6 @@ keep_going:
 				clear_piece_impl(cpe, aborted);
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
 				return;
-			}
-			for (auto& be : blocks.first(count))
-			{
-				TORRENT_ASSERT(be.write_job);
-				TORRENT_ASSERT(!be.buf_holder);
-				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				be.write_job = nullptr;
 			}
 			if (count < blocks.size())
 				return;
@@ -421,6 +440,10 @@ keep_going:
 		auto& view3 = m_pieces.template get<0>();
 		for (auto piece_iter = view3.begin(); piece_iter != view3.end(); ++piece_iter)
 		{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			INVARIANT_CHECK;
+#endif
+
 			// We avoid flushing if other threads have already initiated sufficient
 			// amount of flushing
 			if (m_blocks - m_flushing_blocks <= target_blocks)
@@ -437,7 +460,7 @@ keep_going:
 			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
 			{
 				auto const& cbe = piece_iter->blocks[blk];
-				if (cbe.buf == nullptr) continue;
+				if (cbe.write_job == nullptr) continue;
 				blocks[num_blocks].write_job = cbe.write_job;
 				++num_blocks;
 			}
@@ -462,6 +485,19 @@ keep_going:
 			TORRENT_ASSERT(count <= blocks.size());
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
+
+			// make sure to only clear the job pointers for the blocks that were
+			// actually flushed, indicated by "count".
+			int clear_count = count;
+			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), num_blocks))
+			{
+				if (clear_count == 0)
+					break;
+				if (!be.write_job) continue;
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
+				--clear_count;
+			}
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -470,13 +506,6 @@ keep_going:
 				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
 				return;
 			}
-			for (auto& be : blocks.first(count))
-			{
-				TORRENT_ASSERT(be.write_job);
-				TORRENT_ASSERT(!be.buf_holder);
-				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				be.write_job = nullptr;
-			}
 			if (count < blocks.size())
 				return;
 		}
@@ -484,8 +513,40 @@ keep_going:
 
 	std::size_t size() const
 	{
+		std::unique_lock<std::mutex> l(m_mutex);
+		INVARIANT_CHECK;
 		return m_blocks;
 	}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	void check_invariant() const
+	{
+		// mutex must be held by caller
+		int dirty_blocks = 0;
+		int clean_blocks = 0;
+		int flushing_blocks = 0;
+
+		auto& view = m_pieces.template get<2>();
+		for (auto const& piece_entry : view)
+		{
+			int const num_blocks = piece_entry.blocks_in_piece;
+
+			if (piece_entry.flushing)
+				flushing_blocks += num_blocks;
+
+			span<cached_block_entry> const blocks(piece_entry.blocks.get()
+				, num_blocks);
+
+			for (auto& be : blocks)
+			{
+				if (be.write_job) ++dirty_blocks;
+				if (be.buf_holder) ++clean_blocks;
+			}
+		}
+		TORRENT_ASSERT(dirty_blocks == m_blocks);
+		TORRENT_ASSERT(m_flushing_blocks <= flushing_blocks);
+	}
+#endif
 
 private:
 
@@ -501,6 +562,7 @@ private:
 			{
 				aborted.push_back(cbe.write_job);
 				cbe.write_job = nullptr;
+				--m_blocks;
 			}
 			cbe.buf = nullptr;
 			cbe.buf_holder.reset();
@@ -509,6 +571,10 @@ private:
 
 	mutable std::mutex m_mutex;
 	piece_container m_pieces;
+
+	// the number of *dirty* blocks in the cache. i.e. blocks that need to be
+	// flushed to disk. The cache may (briefly) hold more buffers than this
+	// while finishing hashing blocks.
 	int m_blocks = 0;
 
 	// the number of blocks currently being flushed by a disk thread
