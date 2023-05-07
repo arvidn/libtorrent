@@ -682,7 +682,23 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			sha1_hash{}
 		);
 
-		// TODO: this may need to be attached to the cached_piece_entry
+		hash_result const ret = m_cache.try_hash_piece({j->storage->storage_index(), r.piece}, j);
+
+		// if we have already computed the piece hash, just post the completion
+		// immediately
+		if (ret == job_completed)
+		{
+			jobqueue_t jobs;
+			jobs.push_back(j);
+			add_completed_jobs(std::move(jobs));
+			return;
+		}
+
+		// In this case the job has been queued on the piece, and will be posted
+		// once the hashing completes
+		if (ret == job_queued)
+			return;
+
 		add_job(j);
 	}
 
@@ -876,13 +892,20 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
 
+		if (m_cache.hash_piece({j->storage->storage_index(), r.piece}, [&] {
+
+			}))
+		{
+			jobqueue_t jobs;
+			jobs.push_back(j);
+			add_completed_jobs(std::move(jobs));
+		}
+
+		// fall back to reading everything from disk
 		hasher h;
 		int ret = 0;
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
-
-		// TODO: maybe we have the hash already, otherwise, hang the hash job on
-		// the piece
 
 		// Since there may be outstanding write operations on this piece,
 		// we have to check the store buffer for every block. However, if
@@ -891,6 +914,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// so we defer calling hash() and hash2()
 		int deferred_offset = 0;
 		int deferred_length = 0;
+
+//#error look up this piece from the cache. We may have an incomplete hash context to resume, we may be able to start at i > 0
 
 		for (int i = 0; i < blocks_to_read; ++i)
 		{
@@ -905,9 +930,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 			hasher256 h2;
 
-			// TODO: query the cache
-/*
-			if (!m_cache.get({ j->storage->storage_index(), a.piece, offset }
+#error m_cache.hash_piece
+			if (!m_cache.get({ j->storage->storage_index(), a.piece}, i
 				, [&](char const* buf)
 				{
 					if (deferred_length > 0)
@@ -933,8 +957,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					}
 					deferred_offset = offset + len;
 				}))
-
-*/
 			{
 				if (v1)
 				{

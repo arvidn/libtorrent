@@ -811,6 +811,7 @@ void test_fastresume(bool const test_deprecated)
 		{
 			print_alerts(ses, "ses");
 			s = h.status();
+			std::cout << "progress: " << s.progress << std::endl;
 			if (s.progress == 1.0f)
 			{
 				std::cout << "progress: 1.0f" << std::endl;

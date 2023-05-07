@@ -26,6 +26,7 @@ see LICENSE file.
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/member.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -68,6 +69,9 @@ struct cached_block_entry
 	// to free these on destruction
 	disk_buffer_holder buf_holder;
 	pread_disk_job* write_job = nullptr;
+
+	// TODO: only allocate this field for v2 torrents
+	sha256_hash block_hash;
 };
 
 struct cached_piece_entry
@@ -96,10 +100,32 @@ struct cached_piece_entry
 	// to the bittorrent engine.
 	bool piece_hash_returned = false;
 
+	// this indicates that this piece belongs to a v2 torrent, and it has the
+	// block_hash member if cached_block_entry and we need to compute the block
+	// hashes as well
+	bool v2_hashes = false;
+
+//#error we need a field indicating whether some blocks were flushed and removed from the cache before hashed, since otherwise we may hang the hash job on the piece but it never completes
+
 	int blocks_in_piece = 0;
 
-	// the number of blocks that have been hashed so far
+	// the number of blocks that have been hashed so far. Specifically for the
+	// v1 SHA1 hash of the piece, so all blocks are contiguous starting at block
+	// 0.
 	int hasher_cursor = 0;
+
+	// the number of contiguous blocks, starting at 0, that have been flushed to
+	// disk so far. This is used to determine how many blocks are left to flush
+	// from this piece without requiring read-back to hash them, by substracting
+	// flushed_cursor from hasher_cursor.
+	int flushed_cursor = 0;
+
+	// returns the number of blocks in this piece that have been hashed and
+	// ready to be flushed without requiring reading them back in the future.
+	int cheap_to_flush() const
+	{
+		return int(hasher_cursor) - int(flushed_cursor);
+	}
 
 	std::unique_ptr<cached_block_entry[]> blocks;
 
@@ -123,9 +149,8 @@ struct disk_cache
 		// look up pieces by (torrent, piece-index) key
 		mi::ordered_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>,
 		// ordered by the number of contiguous blocks we can flush without
-		// read-back
-		// large numbers are ordered first
-		mi::ordered_non_unique<mi::member<cached_piece_entry, int, &cached_piece_entry::hasher_cursor>, std::greater<void>>,
+		// read-back. large numbers are ordered first
+		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, int, &cached_piece_entry::cheap_to_flush>, std::greater<void>>,
 		// ordered by whether the piece is ready to be flushed or not
 		// true is ordered before false
 		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::ready_to_flush>, std::greater<void>>
@@ -146,7 +171,36 @@ struct disk_cache
 		if (i->blocks[block_idx].buf)
 		{
 			// TODO: it would be nice if this could be called without holding
-			// the mutex. It would require ibeing able to lock the piece
+			// the mutex. It would require being able to lock the piece
+			f(i->blocks[block_idx].buf);
+			return true;
+		}
+		return false;
+	}
+
+	template <typename Fun>
+	void hash_piece(piece_location const loc, Fun f) const
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		auto& view = m_pieces.template get<0>();
+		auto i = view.find(loc);
+		if (i == view.end())
+		{
+			l.unlock();
+			std::span<>
+			f();
+			return;
+		}
+
+#error set hashing = true on the piece
+#error pass in the hash context and all buffers
+		if (i->blocks[block_idx].buf)
+		{
+			// TODO: it would be nice if this could be called without holding
+			// the mutex. It would require being able to lock the piece
 			f(i->blocks[block_idx].buf);
 			return true;
 		}
@@ -216,15 +270,71 @@ struct disk_cache
 		{
 			int const blocks_in_piece = (write_job->storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
 			cached_piece_entry pe(loc, blocks_in_piece);
+			pe.v2_hashes = write_job->storage->files().v2();
 			i = m_pieces.insert(std::move(pe)).first;
 		}
 
-		TORRENT_ASSERT(i->blocks[block_idx].buf == nullptr);
-		TORRENT_ASSERT(i->blocks[block_idx].write_job == nullptr);
-		i->blocks[block_idx].buf = std::get<job::write>(write_job->action).buf.data();
-		i->blocks[block_idx].write_job = write_job;
+		cached_block_entry& blk = i->blocks[block_idx];
+		TORRENT_ASSERT(blk.buf == nullptr);
+		TORRENT_ASSERT(blk.write_job == nullptr);
+		blk.buf = std::get<job::write>(write_job->action).buf.data();
+		blk.write_job = write_job;
 		++m_blocks;
-		// TODO: maybe trigger hash job
+
+		if (block_idx == 0 ||i->hasher_cursor == block_idx - 1)
+		{
+			// TODO: trigger hash job
+		}
+	}
+
+	enum hash_result: std::uint8_t
+	{
+		job_completed,
+		job_queued,
+		post_job,
+	};
+
+	// this call can have 3 outcomes:
+	// 1. the job is immediately satisfied and should be posted to the
+	//    completion queue
+	// 2. The piece is in the cache and currently hashing, but it's not done
+	//    yet. We hang the hash job on the piece itself so the hashing thread
+	//    can complete it when hashing finishes
+	// 3. The piece is not in the cache and should be posted to the disk thread
+	//    to read back the bytes.
+	hash_result try_hash_piece(piece_location const loc, pread_disk_job* hash_job)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		auto& view = m_pieces.template get<0>();
+		auto i = view.find(loc);
+		if (i == view.end()) return hash_result::post_job;
+
+		// we should only ask for the hash once
+		TORRENT_ASSERT(!i->piece_hash_returned);
+
+		if (i->hashing
+			|| i->hasher_cursor < i->blocks_in_piece)
+		{
+			// We're not done hashing yet, let the hashing thread post the
+			// completion once it's done
+
+			// We don't expect to ever have simultaneous async_hash() requests
+			// for the same piece
+			TORRENT_ASSERT(i->hash_job == nullptr);
+			view.modify(i, [&](cached_piece_entry& e) { e.hash_job = hash_job; });
+			return hash_result::job_queued;
+		}
+
+		view.modify(i, [&](cached_piece_entry& e) {
+			e.piece_hash_returned = true;
+
+			job::hash& job = std::get<aux::job::hash>(hash_job->action);
+			job.piece_hash = e.ph.final();
+		});
+		return hash_result::post_job;
 	}
 
 	// this should be called from a hasher thread
@@ -253,12 +363,22 @@ keep_going:
 
 		view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
 
+		bool const need_v2 = piece_iter->v2_hashes;
+
 		l.unlock();
 		for (; cursor < end; ++cursor)
 		{
+			cached_block_entry& cbe = piece_iter->blocks[cursor];
+
 			// TODO: support the end piece, with smaller block size
 			// and torrents with small pieces
-			ctx.update({piece_iter->blocks[cursor].buf, default_block_size});
+			int const block_size = default_block_size;
+
+			// TODO: don't compute sha1 hash for v2-only torrents
+			ctx.update({cbe.buf, block_size});
+
+			if (need_v2)
+				cbe.block_hash = hasher256(cbe.buf, block_size).final();
 		}
 
 		l.lock();
@@ -272,11 +392,23 @@ keep_going:
 			pread_disk_job* j = nullptr;
 			view.modify(piece_iter, [&](cached_piece_entry& e) {
 				j = std::exchange(e.hash_job, nullptr);
+				e.ready_to_flush = true;
 			});
 			// we've hashed all blocks, and there's a hash job associated with
 			// this piece, post it.
 			sha1_hash const piece_hash = ctx.final();
-			std::get<job::hash>(j->action).piece_hash = piece_hash;
+
+			job::hash& job = std::get<job::hash>(j->action);
+			job.piece_hash = piece_hash;
+			if (!job.block_hashes.empty())
+			{
+				TORRENT_ASSERT(need_v2);
+				int const to_copy = std::min(
+					piece_iter->blocks_in_piece,
+					int(job.block_hashes.size()));
+				for (int i = 0; i < to_copy; ++i)
+					job.block_hashes[i] = piece_iter->blocks[i].block_hash;
+			}
 			completed_jobs.push_back(j);
 		}
 		else
@@ -336,7 +468,10 @@ keep_going:
 			{
 				auto se = scope_end([&] {
 					l.lock();
-					view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+					view.modify(piece_iter, [&](cached_piece_entry& e) {
+						e.flushing = false;
+						e.flushed_cursor += count;
+					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
 				});
@@ -387,9 +522,10 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
-			// the pieces are ordered by hasher_cursor, decreasing order. If we
-			// encounter a 0, all the remaining ones will also be zero
-			if (piece_iter->hasher_cursor == 0)
+			// the pieces are ordered by the number of blocks that are cheap to
+			// flush (i.e. won't require read-back later)
+			// if we encounter a 0, all the remaining ones will also be zero
+			if (piece_iter->cheap_to_flush() == 0)
 				break;
 
 			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
@@ -406,7 +542,10 @@ keep_going:
 			{
 				auto se = scope_end([&] {
 					l.lock();
-					view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = false; });
+					view2.modify(piece_iter, [&](cached_piece_entry& e) {
+						e.flushing = false;
+						e.flushed_cursor += count;
+					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
 				});
