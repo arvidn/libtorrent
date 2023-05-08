@@ -59,6 +59,8 @@ struct piece_location
 
 struct cached_block_entry
 {
+	// TODO: make this a function that first looks at the job, then the
+	// buf_holde
 	char* buf = nullptr;
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
@@ -178,33 +180,41 @@ struct disk_cache
 		return false;
 	}
 
+	// returns false if the piece is not in the cache
 	template <typename Fun>
-	void hash_piece(piece_location const loc, Fun f) const
+	bool hash_piece(piece_location const loc, Fun f)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		INVARIANT_CHECK;
 
 		auto& view = m_pieces.template get<0>();
-		auto i = view.find(loc);
-		if (i == view.end())
+		auto piece_iter = view.find(loc);
+		if (piece_iter == view.end()) return false;
+
+		TORRENT_ALLOCA(blocks, char const*, piece_iter->blocks_in_piece);
+		TORRENT_ALLOCA(v2_hashes, sha256_hash, piece_iter->blocks_in_piece);
+
+		for (int i = 0; i < piece_iter->blocks_in_piece; ++i)
 		{
-			l.unlock();
-			std::span<>
-			f();
-			return;
+			blocks[i] = piece_iter->blocks[i].buf;
+			v2_hashes[i] = piece_iter->blocks[i].block_hash;
 		}
 
-#error set hashing = true on the piece
-#error pass in the hash context and all buffers
-		if (i->blocks[block_idx].buf)
+		view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
+		int const hasher_cursor = piece_iter->hasher_cursor;
+		l.unlock();
+
 		{
-			// TODO: it would be nice if this could be called without holding
-			// the mutex. It would require being able to lock the piece
-			f(i->blocks[block_idx].buf);
-			return true;
+			auto se = scope_end([&] {
+				l.lock();
+				view.modify(piece_iter, [&](cached_piece_entry& e) {
+					e.hashing = false;
+				});
+			});
+			f(piece_iter->ph, hasher_cursor, blocks, v2_hashes);
 		}
-		return false;
+		return true;
 	}
 
 	// If the specified piece exists in the cache, and it's unlocked, clear all

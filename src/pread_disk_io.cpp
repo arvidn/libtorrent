@@ -907,6 +907,57 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
+		auto hash_partial_piece = [&] (lt::hasher& ph
+			, int const hasher_cursor
+			, span<char const*> const blocks
+			, span<sha256_hash> const v2_hashes)
+		{
+			if (v2 && hasher_cursor > 0)
+			{
+				for (int i = 0; i < hasher_cursor; ++i)
+				{
+					TORRENT_ASSERT(!v2_hashes[i].is_all_zeros());
+					a.block_hashes[i] = v2_hashes[i];
+				}
+			}
+
+			int offset = hasher_cursor * default_block_size;
+			for (int i = hasher_cursor; i < blocks_to_read; ++i)
+			{
+				time_point const start_time = clock_type::now();
+
+				std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
+				std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
+
+				int ret = 0;
+				char const* buf = blocks[i].buf;
+				if (buf == nullptr)
+				{
+					DLOG("do_hash: reading (piece: %d block: %d)\n", int(a.piece), i);
+
+					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
+					j->error.ec.clear();
+					ret = j->storage->hash(m_settings, ph, len, a.piece
+						, offset, file_mode, flags, j->error);
+#error how are a.block_hashes updated here?
+				}
+				else
+				{
+					ret = int(len);
+					if (v1)
+						ph.update({ buf, len });
+					if (v2)
+						a.block_hashes[i] = hasher256({ buf, len }).final();
+				}
+			}
+		}
+
+		if (!m_cache.hash_piece({ j->storage->storage_index(), a.piece}
+			, hash_partial_piece))
+		{
+			#error read the whole piece and hash
+		}
+
 		// Since there may be outstanding write operations on this piece,
 		// we have to check the store buffer for every block. However, if
 		// there are no blocks being written, we would like to issue as
@@ -921,17 +972,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		{
 			bool const v2_block = i < blocks_in_piece2;
 
-			DLOG("do_hash: reading (piece: %d block: %d)\n", int(a.piece), i);
 
-			time_point const start_time = clock_type::now();
-
-			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
-			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
-
-			hasher256 h2;
 
 #error m_cache.hash_piece
-			if (!m_cache.get({ j->storage->storage_index(), a.piece}, i
+			if (!m_cache.get(, i
 				, [&](char const* buf)
 				{
 					if (deferred_length > 0)
