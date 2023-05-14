@@ -205,15 +205,13 @@ struct disk_cache
 		int const hasher_cursor = piece_iter->hasher_cursor;
 		l.unlock();
 
-		{
-			auto se = scope_end([&] {
-				l.lock();
-				view.modify(piece_iter, [&](cached_piece_entry& e) {
-					e.hashing = false;
-				});
+		auto se = scope_end([&] {
+			l.lock();
+			view.modify(piece_iter, [&](cached_piece_entry& e) {
+				e.hashing = false;
 			});
-			f(piece_iter->ph, hasher_cursor, blocks, v2_hashes);
-		}
+		});
+		f(const_cast<hasher&>(piece_iter->ph), hasher_cursor, blocks, v2_hashes);
 		return true;
 	}
 

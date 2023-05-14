@@ -388,6 +388,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		j->ret = ret;
 
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		completed_jobs.push_back(j);
 	}
 
@@ -414,6 +415,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
+
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		return status_t{};
 	}
 
@@ -448,6 +451,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		return status_t{};
 	}
 
@@ -483,6 +487,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
 		}
 
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		return ret != a.buffer_size
 			? disk_status::fatal_disk_error : status_t{};
 	}
@@ -645,7 +650,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
-		if (j->storage && j->storage->is_blocked(j))
+		if (j->storage->is_blocked(j))
 		{
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
@@ -654,6 +659,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			return exceeded;
 		}
 
+		j->flags |= aux::disk_job::in_progress;
 		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
 
 		if (!m_flush_target)
@@ -682,12 +688,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			sha1_hash{}
 		);
 
-		hash_result const ret = m_cache.try_hash_piece({j->storage->storage_index(), r.piece}, j);
+		aux::disk_cache::hash_result const ret = m_cache.try_hash_piece({j->storage->storage_index(), piece}, j);
 
 		// if we have already computed the piece hash, just post the completion
 		// immediately
-		if (ret == job_completed)
+		if (ret == aux::disk_cache::job_completed)
 		{
+			j->flags |= aux::disk_job::in_progress;
 			jobqueue_t jobs;
 			jobs.push_back(j);
 			add_completed_jobs(std::move(jobs));
@@ -696,8 +703,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		// In this case the job has been queued on the piece, and will be posted
 		// once the hashing completes
-		if (ret == job_queued)
+		if (ret == aux::disk_cache::job_queued)
+		{
+			j->flags |= aux::disk_job::in_progress;
 			return;
+		}
 
 		add_job(j);
 	}
@@ -892,26 +902,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
 
-		if (m_cache.hash_piece({j->storage->storage_index(), r.piece}, [&] {
-
-			}))
-		{
-			jobqueue_t jobs;
-			jobs.push_back(j);
-			add_completed_jobs(std::move(jobs));
-		}
-
-		// fall back to reading everything from disk
-		hasher h;
 		int ret = 0;
-		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
+		// this creates a function object, ready to be passed to
+		// m_cache.hash_piece()
 		auto hash_partial_piece = [&] (lt::hasher& ph
 			, int const hasher_cursor
 			, span<char const*> const blocks
 			, span<sha256_hash> const v2_hashes)
 		{
+			time_point const start_time = clock_type::now();
+
 			if (v2 && hasher_cursor > 0)
 			{
 				for (int i = 0; i < hasher_cursor; ++i)
@@ -922,42 +924,80 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			}
 
 			int offset = hasher_cursor * default_block_size;
+			int blocks_read_from_disk = 0;
 			for (int i = hasher_cursor; i < blocks_to_read; ++i)
 			{
-				time_point const start_time = clock_type::now();
+				bool const v2_block = i < blocks_in_piece2;
 
 				std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 				std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
+				hasher256 ph2;
 				int ret = 0;
-				char const* buf = blocks[i].buf;
+				char const* buf = blocks[i];
 				if (buf == nullptr)
 				{
 					DLOG("do_hash: reading (piece: %d block: %d)\n", int(a.piece), i);
 
-					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 					j->error.ec.clear();
-					ret = j->storage->hash(m_settings, ph, len, a.piece
-						, offset, file_mode, flags, j->error);
-#error how are a.block_hashes updated here?
+
+					if (v1)
+					{
+						auto const flags = v2_block
+							? (j->flags & ~disk_interface::flush_piece)
+							: j->flags;
+
+						ret = j->storage->hash(m_settings, ph, len, a.piece
+							, offset, file_mode, flags, j->error);
+					}
+					if (v2_block)
+					{
+						ret = j->storage->hash2(m_settings, ph2, len2, a.piece, offset
+							, file_mode, j->flags, j->error);
+						if (ret < 0) break;
+					}
+					++blocks_read_from_disk;
 				}
 				else
 				{
 					ret = int(len);
 					if (v1)
 						ph.update({ buf, len });
-					if (v2)
-						a.block_hashes[i] = hasher256({ buf, len }).final();
+					if (v2_block)
+						ph2.update({buf, len2});
 				}
+				offset += default_block_size;
+
+				if (v2_block)
+					a.block_hashes[i] = ph2.final();
 			}
-		}
+
+			if (v1)
+				a.piece_hash = ph.final();
+
+			if (!j->error.ec)
+			{
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_read_from_disk);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops, blocks_read_from_disk);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+			}
+		};
 
 		if (!m_cache.hash_piece({ j->storage->storage_index(), a.piece}
 			, hash_partial_piece))
 		{
-			#error read the whole piece and hash
-		}
+			// fall back to reading everything from disk
 
+			TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
+			TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece);
+			for (char const*& b : blocks) b = nullptr;
+			hasher ph;
+			hash_partial_piece(ph, 0, blocks, v2_hashes);
+		}
+/*
 		// Since there may be outstanding write operations on this piece,
 		// we have to check the store buffer for every block. However, if
 		// there are no blocks being written, we would like to issue as
@@ -1044,6 +1084,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		if (v1)
 			a.piece_hash = h.final();
+
+*/
 		return ret >= 0 ? status_t{} : disk_status::fatal_disk_error;
 	}
 
