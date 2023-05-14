@@ -103,18 +103,10 @@ namespace libtorrent {
 
 struct i2p_session_options
 {
-	i2p_session_options(int inbound_quantity = 3,
-		int outbound_quantity = 3, int inbound_length = 3, int outbound_length = 3)
-		: m_inbound_quantity(inbound_quantity)
-		, m_outbound_quantity(outbound_quantity)
-		, m_inbound_length(inbound_length)
-		, m_outbound_length(outbound_length)
-	{}
-
-	int m_inbound_quantity;
-	int m_outbound_quantity;
-	int m_inbound_length;
-	int m_outbound_length;
+	int m_inbound_quantity = 3;
+	int m_outbound_quantity = 3;
+	int m_inbound_length = 3;
+	int m_outbound_length = 3;
 };
 
 struct i2p_stream : proxy_base
@@ -139,7 +131,7 @@ struct i2p_stream : proxy_base
 
 	void set_command(command_t c) { m_command = c; }
 
-	void set_session_options(const i2p_session_options& session_options)
+	void set_session_options(i2p_session_options const& session_options)
 	{
 		m_session_options = session_options;
 	}
@@ -509,7 +501,7 @@ public:
 	}
 	template <typename Handler>
 	void open(std::string const& hostname, int port,
-		const i2p_session_options& session_options, Handler handler)
+		i2p_session_options const& session_options, Handler handler)
 	{
 		// we already seem to have a session to this SAM router
 		if (m_hostname == hostname
