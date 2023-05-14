@@ -2056,6 +2056,18 @@ namespace aux {
 			// operations. This file size limit is specified in 16 kiB blocks.
 			mmap_file_size_cutoff,
 
+			// quantity of I2P inbound tunnels [1..16]
+			i2p_inbound_quantity,
+
+			// quantity of I2P outbound tunnels [1..16]
+			i2p_outbound_quantity,
+
+			// amount of hops for I2P inbound tunnels [0..7]
+			i2p_inbound_length,
+
+			// amount of hops for I2P outbound tunnels [0..7]
+			i2p_outbound_length,
+
 			max_int_setting_internal
 		};
 
