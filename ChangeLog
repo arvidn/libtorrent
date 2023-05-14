@@ -1,3 +1,4 @@
+	* fix proxying of IPv6 connections via IPv4 proxy
 	* treat CGNAT address range as local IPs
 	* add stricter checking of piece layers when loading torrents
 	* add stricter checking of v1 and v2 hashes being consistent
