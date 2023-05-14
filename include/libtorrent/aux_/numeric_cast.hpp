@@ -12,6 +12,7 @@ see LICENSE file.
 #ifndef TORRENT_NUMERIC_CAST_HPP
 #define TORRENT_NUMERIC_CAST_HPP
 
+#include <cstdint>
 #include <type_traits>
 #include <limits>
 

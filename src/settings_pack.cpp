@@ -372,6 +372,10 @@ namespace {
 		SET(metadata_token_limit, 2500000, nullptr),
 		SET(disk_write_mode, settings_pack::mmap_write_mode_t::auto_mmap_write, nullptr),
 		SET(mmap_file_size_cutoff, 40, nullptr),
+		SET(i2p_inbound_quantity, 3, nullptr),
+		SET(i2p_outbound_quantity, 3, nullptr),
+		SET(i2p_inbound_length, 3, nullptr),
+		SET(i2p_outbound_length, 3, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});

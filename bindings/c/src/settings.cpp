@@ -218,6 +218,10 @@ int settings_key(int const tag)
 		case SET_METADATA_TOKEN_LIMIT: return sp::metadata_token_limit;
 		case SET_DISK_WRITE_MODE: return sp::disk_write_mode;
 		case SET_MMAP_FILE_SIZE_CUTOFF: return sp::mmap_file_size_cutoff;
+		case SET_I2P_INBOUND_QUANTITY: return sp::i2p_inbound_quantity;
+		case SET_I2P_OUTBOUND_QUANTITY: return sp::i2p_outbound_quantity;
+		case SET_I2P_INBOUND_LENGTH: return sp::i2p_inbound_length;
+		case SET_I2P_OUTBOUND_LENGTH: return sp::i2p_outbound_length;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
 		default:

@@ -2333,8 +2333,15 @@ namespace {
 			return;
 		}
 		TORRENT_ASSERT(!m_abort);
+		i2p_session_options session_options{
+			m_settings.get_int(settings_pack::i2p_inbound_quantity)
+			, m_settings.get_int(settings_pack::i2p_outbound_quantity)
+			, m_settings.get_int(settings_pack::i2p_inbound_length)
+			, m_settings.get_int(settings_pack::i2p_outbound_length)
+		};
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
+			, session_options
 			, std::bind(&session_impl::on_i2p_open, this, _1));
 #endif
 	}
@@ -2461,7 +2468,12 @@ namespace {
 
 		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
 
-		TORRENT_ASSERT(s->sock.is_closed() || s->sock.local_endpoint().protocol() == ep.protocol());
+		// the destination address family matching the local socket's address
+		// family does not hold for proxies that we talk to over IPv4 but can
+		// route to IPv6
+		TORRENT_ASSERT(s->sock.is_closed()
+			|| s->sock.get_proxy_settings().type != settings_pack::none
+			|| s->sock.local_endpoint().protocol() == ep.protocol());
 
 		s->sock.send(ep, p, ec, flags);
 
@@ -5118,12 +5130,16 @@ namespace {
 			std::shared_ptr<listen_socket_t> match;
 			for (auto const& ls : m_listen_sockets)
 			{
-				if (is_v4(ls->local_endpoint) != remote_address.is_v4()) continue;
+				// this is almost, but not quite, like can_route()
+				if (!(ls->flags & listen_socket_t::proxy)
+					&& is_v4(ls->local_endpoint) != remote_address.is_v4())
+					continue;
 				if (ls->ssl != ssl) continue;
 				if (!(ls->flags & listen_socket_t::local_network))
 					with_gateways.push_back(ls);
 
-				if (match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
+				if (ls->flags & listen_socket_t::proxy
+					|| match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
 				{
 					// is this better than the previous match?
 					match = ls;

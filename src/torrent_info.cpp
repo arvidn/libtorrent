@@ -174,10 +174,12 @@ namespace aux {
 			element = string_view();
 		}
 #endif
+#ifdef TORRENT_WINDOWS
 		// this counts the number of unicode characters
 		// we've added (which is different from the number
 		// of bytes)
 		int unicode_chars = 0;
+#endif
 
 		int added = 0;
 		// the number of dots we've added
@@ -200,7 +202,9 @@ namespace aux {
 				// invalid utf8 sequence, replace with "_"
 				path += '_';
 				++added;
+#ifdef TORRENT_WINDOWS
 				++unicode_chars;
+#endif
 				continue;
 			}
 
@@ -214,7 +218,9 @@ namespace aux {
 			if (code_point == '.') ++num_dots;
 
 			added += seq_len;
+#ifdef TORRENT_WINDOWS
 			++unicode_chars;
+#endif
 
 			// any given path element should not
 			// be more than 255 characters

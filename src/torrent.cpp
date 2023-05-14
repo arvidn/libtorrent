@@ -2275,6 +2275,7 @@ bool is_downloading_state(int const st)
 
 		if (should_start_full_check)
 		{
+			stop_announcing();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
 

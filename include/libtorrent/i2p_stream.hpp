@@ -77,6 +77,14 @@ namespace libtorrent {
 	{ return i2p_category(); }
 #endif
 
+struct i2p_session_options
+{
+	int m_inbound_quantity = 3;
+	int m_outbound_quantity = 3;
+	int m_inbound_length = 3;
+	int m_outbound_length = 3;
+};
+
 struct i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
@@ -98,6 +106,11 @@ struct i2p_stream : aux::proxy_base
 	};
 
 	void set_command(command_t c) { m_command = c; }
+
+	void set_session_options(i2p_session_options const& session_options)
+	{
+		m_session_options = session_options;
+	}
 
 	void set_session_id(char const* id) { m_id = id; }
 
@@ -411,7 +424,9 @@ private:
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd),
 			"SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT SIGNATURE_TYPE=7 "
-			"inbound.quantity=3 outbound.quantity=3 inbound.length=3 outbound.length=3\n", m_id);
+			"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d\n",
+			m_id, m_session_options.m_inbound_quantity, m_session_options.m_outbound_quantity,
+			m_session_options.m_inbound_length, m_session_options.m_outbound_length);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
@@ -425,6 +440,8 @@ private:
 	std::string m_dest;
 	std::string m_local;
 	std::string m_name_lookup;
+
+	i2p_session_options m_session_options;
 
 	enum state_t : std::uint8_t
 	{
@@ -459,7 +476,8 @@ public:
 			&& m_state != sam_connecting;
 	}
 	template <typename Handler>
-	void open(std::string const& hostname, int port, Handler handler)
+	void open(std::string const& hostname, int port,
+		i2p_session_options const& session_options, Handler handler)
 	{
 		// we already seem to have a session to this SAM router
 		if (m_hostname == hostname
@@ -483,6 +501,7 @@ public:
 		m_sam_socket->set_proxy(m_hostname, m_port);
 		m_sam_socket->set_command(i2p_stream::cmd_create_session);
 		m_sam_socket->set_session_id(m_session_id.c_str());
+		m_sam_socket->set_session_options(session_options);
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::on_sam_connect");
 		m_sam_socket->async_connect(tcp::endpoint(), aux::wrap_allocator(
