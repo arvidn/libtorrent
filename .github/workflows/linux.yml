@@ -314,7 +314,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev
-          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick python3-setuptools
+          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick python3-setuptools
           python3 -m pip install aafigure
           echo "using gcc ;" >>~/user-config.jam
 
