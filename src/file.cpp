@@ -499,7 +499,7 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			int const ret = ::posix_fallocate(m_fd, 0, size);
 			// posix_allocate fails with EINVAL in case the underlying
 			// filesystem does not support this operation
-			if (ret != 0 && ret != EINVAL)
+			if (ret != 0 && ret != EINVAL && ret != ENOTSUP)
 			{
 				::close(m_fd);
 				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
@@ -512,8 +512,11 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			if (fcntl(m_fd, F_ALLOCSP64, &fl64) < 0)
 			{
 				int const err = errno;
-				::close(m_fd);
-				throw_ex<storage_error>(error_code(ret, system_category()), operation_t::file_fallocate);
+				if (err != ENOTSUP)
+				{
+					::close(m_fd);
+					throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_fallocate);
+				}
 			}
 #elif defined F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, size, 0};
@@ -522,11 +525,11 @@ file_handle::file_handle(string_view name, std::int64_t const size
 				// It appears Apple's new filesystem (APFS) does not
 				// support this control message and fails with EINVAL
 				// if so, just skip it
-				if (errno != EINVAL)
+				int const err = errno;
+				if (err != EINVAL && err != ENOTSUP)
 				{
-					if (errno != ENOSPC)
+					if (err != ENOSPC)
 					{
-						int const err = errno;
 						::close(m_fd);
 						throw_ex<storage_error>(error_code(err, system_category())
 							, operation_t::file_fallocate);
@@ -535,9 +538,9 @@ file_handle::file_handle(string_view name, std::int64_t const size
 					f.fst_flags = F_ALLOCATEALL;
 					if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
 					{
-						int const err = errno;
+						int const err2 = errno;
 						::close(m_fd);
-						throw_ex<storage_error>(error_code(err, system_category())
+						throw_ex<storage_error>(error_code(err2, system_category())
 							, operation_t::file_fallocate);
 					}
 				}
