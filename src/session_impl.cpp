@@ -2023,9 +2023,10 @@ namespace {
 			int const port = m_listen_interfaces.empty()
 				? int(random(63000) + 2000)
 				: m_listen_interfaces.front().port;
-			listen_endpoint_t ep(address_v4::any(), port, {}
-				, transport::plaintext, listen_socket_t::proxy);
-			eps.emplace_back(ep);
+			listen_endpoint_t ep4(address_v4::any(), port, {}, transport::plaintext, listen_socket_t::proxy);
+			eps.emplace_back(ep4);
+			listen_endpoint_t ep6(address_v4::any(), port, {}, transport::plaintext, listen_socket_t::proxy);
+			eps.emplace_back(ep6);
 			++m_listen_socket_version;
 		}
 		else
@@ -2461,7 +2462,12 @@ namespace {
 
 		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
 
-		TORRENT_ASSERT(s->sock.is_closed() || s->sock.local_endpoint().protocol() == ep.protocol());
+		// the destination address family matching the local socket's address
+		// family does not hold for proxies that we talk to over IPv4 but can
+		// route to IPv6
+		TORRENT_ASSERT(s->sock.is_closed()
+			|| s->sock.get_proxy_settings().type != settings_pack::none
+			|| s->sock.local_endpoint().protocol() == ep.protocol());
 
 		s->sock.send(ep, p, ec, flags);
 
