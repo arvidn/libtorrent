@@ -2062,10 +2062,9 @@ namespace {
 			int const port = m_listen_interfaces.empty()
 				? int(random(63000) + 2000)
 				: m_listen_interfaces.front().port;
-			listen_endpoint_t ep4(address_v4::any(), port, {}, transport::plaintext, listen_socket_t::proxy);
-			eps.emplace_back(ep4);
-			listen_endpoint_t ep6(address_v6::any(), port, {}, transport::plaintext, listen_socket_t::proxy);
-			eps.emplace_back(ep6);
+			listen_endpoint_t ep(address_v4::any(), port, {}
+				, transport::plaintext, listen_socket_t::proxy);
+			eps.emplace_back(ep);
 		}
 		else
 		{
@@ -5166,12 +5165,16 @@ namespace {
 			std::shared_ptr<listen_socket_t> match;
 			for (auto& ls : m_listen_sockets)
 			{
-				if (is_v4(ls->local_endpoint) != remote_address.is_v4()) continue;
+				// this is almost, but not quite, like can_route()
+				if (!(ls->flags & listen_socket_t::proxy)
+					&& is_v4(ls->local_endpoint) != remote_address.is_v4())
+					continue;
 				if (ls->ssl != ssl) continue;
 				if (!(ls->flags & listen_socket_t::local_network))
 					with_gateways.push_back(ls);
 
-				if (match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
+				if (ls->flags & listen_socket_t::proxy
+					|| match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
 				{
 					// is this better than the previous match?
 					match = ls;
