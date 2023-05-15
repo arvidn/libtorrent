@@ -29,12 +29,12 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
       - name: install openssl (64 bit)
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v2
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -82,7 +82,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -138,7 +138,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2.3.3
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -149,7 +149,7 @@ jobs:
           bootstrap.bat
 
       - name: install openssl (64 bit)
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v2
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -195,12 +195,12 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
       - name: install openssl (64 bit)
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v2
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4

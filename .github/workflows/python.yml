@@ -20,7 +20,7 @@ jobs:
         os: [ubuntu-20.04, macos-latest, windows-latest ]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
 
@@ -66,7 +66,7 @@ jobs:
 
     - name: install openssl (windows)
       if: runner.os == 'Windows'
-      uses: nick-invision/retry@v2
+      uses: nick-fields/retry@v2
       with:
         shell: cmd
         timeout_minutes: 5
