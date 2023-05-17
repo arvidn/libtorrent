@@ -5278,6 +5278,7 @@ namespace {
 
 		std::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
+		if (!tptr->is_added()) return;
 
 		remove_torrent_impl(tptr, options);
 

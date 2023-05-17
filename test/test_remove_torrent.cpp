@@ -59,7 +59,8 @@ namespace {
 enum test_case {
 	complete_download,
 	partial_download,
-	mid_download
+	mid_download,
+	double_remove,
 };
 
 void test_remove_torrent(remove_flags_t const remove_options
@@ -152,6 +153,12 @@ void test_remove_torrent(remove_flags_t const remove_options
 	ses2.remove_torrent(tor2, remove_options);
 	ses1.remove_torrent(tor1, remove_options);
 
+	if (test == double_remove)
+	{
+		ses2.remove_torrent(tor2, remove_options);
+		ses1.remove_torrent(tor1, remove_options);
+	}
+
 	std::cerr << "removed" << std::endl;
 
 	for (int i = 0; tor2.is_valid() || tor1.is_valid(); ++i)
@@ -221,4 +228,12 @@ TORRENT_TEST(remove_torrent_and_files_mid_download)
 	test_remove_torrent(session::delete_files, mid_download);
 }
 
+TORRENT_TEST(remove_torrent_twice)
+{
+	test_remove_torrent({}, double_remove);
+}
 
+TORRENT_TEST(remove_torrent_and_files_twice)
+{
+	test_remove_torrent(session::delete_files, double_remove);
+}
