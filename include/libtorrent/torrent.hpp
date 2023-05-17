@@ -220,7 +220,7 @@ namespace libtorrent {
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
 		peer_request restart_request = { piece_index_t(-1), -1, -1};
-		std::vector<char> restart_piece;
+		aux::vector<char> restart_piece;
 
 		// this maps file index to a URL it has been redirected to. If an entry is
 		// missing, it means it has not been redirected and the full path should
