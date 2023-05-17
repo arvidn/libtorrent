@@ -1237,7 +1237,7 @@ void print_compact_piece(lt::partial_piece_info const& pp, std::string& out)
 	for (int j = 0; j < num_blocks; ++j)
 		if (pp.blocks[j].state == block_info::finished) blocks.set_bit(j);
 	int height = 0;
-	out += piece_matrix(blocks, num_blocks / 4, &height);
+	out += piece_matrix(blocks, num_blocks / 8, &height);
 	out += esc("0");
 	out += "]";
 }
