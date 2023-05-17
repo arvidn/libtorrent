@@ -1,3 +1,4 @@
+	* fix issue with web seed connections when they close and re-open
 	* fallocate() not supported is not a fatal error
 	* fix proxying of IPv6 connections via IPv4 proxy
 	* treat CGNAT address range as local IPs
