@@ -396,6 +396,8 @@ namespace libtorrent {
 			update_gauge();
 		}
 
+		bool is_added() const { return m_added; }
+
 		// returns which stats gauge this torrent currently
 		// has incremented.
 		int current_stats_state() const;
