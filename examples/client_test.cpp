@@ -1198,12 +1198,15 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 
 	if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
 	{
-		// write resume data for the finished torrent
-		// the alert handler for save_resume_data_alert
-		// will save it to disk
-		torrent_handle h = p->handle;
-		h.save_resume_data(torrent_handle::save_info_dict);
-		++num_outstanding_resume_data;
+		if (!quit)
+		{
+			// write resume data for the finished torrent
+			// the alert handler for save_resume_data_alert
+			// will save it to disk
+			torrent_handle h = p->handle;
+			h.save_resume_data(torrent_handle::save_info_dict);
+			++num_outstanding_resume_data;
+		}
 	}
 
 	if (state_update_alert* p = alert_cast<state_update_alert>(a))
@@ -1759,12 +1762,6 @@ int main(int argc, char* argv[])
 					}
 				}
 
-				if (c == ' ')
-				{
-					if (ses.is_paused()) ses.resume();
-					else ses.pause();
-				}
-
 				if (c == '[' && h.is_valid())
 				{
 					h.queue_position_up();
@@ -1835,6 +1832,7 @@ int main(int argc, char* argv[])
 							std::printf("failed to delete torrent, invalid handle: %s\n"
 								, st.name.c_str());
 						}
+						client_state.clear();
 					}
 				}
 
@@ -2205,13 +2203,15 @@ done:
 				pos += 1;
 			}
 
-			if (print_file_progress && s.has_metadata)
+			if (print_file_progress && s.has_metadata && h.is_valid())
 			{
 				h.post_file_progress({});
 				std::vector<lt::open_file_state> file_status = h.file_status();
 				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = s.torrent_file.lock();
+
+				// TODO: ti may be nullptr here, we should check
 
 				auto const& file_progress = client_state.file_progress;
 				int p = 0; // this is horizontal position
@@ -2307,6 +2307,7 @@ done:
 
 	resume_data_loader.join();
 
+	quit = true;
 	ses.pause();
 	std::printf("saving resume data\n");
 
