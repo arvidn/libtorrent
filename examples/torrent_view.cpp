@@ -77,13 +77,21 @@ std::string torrent_state(lt::torrent_status const& s)
 	}
 	if (s.flags & lt::torrent_flags::i2p_torrent)
 		ret += " i2p";
-	char buf[10];
-	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.0);
-	ret += buf;
+	if (s.state == lt::torrent_status::seeding)
+	{
+		ret += " ";
+		ret += add_suffix(s.total_done);
+	}
+	else
+	{
+		char buf[20];
+		std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.0);
+		ret += buf;
+	}
 	return ret;
 }
 
-bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rhs)
+bool cmp_torrent_position(lt::torrent_status const* lhs, lt::torrent_status const* rhs)
 {
 	if (lhs->queue_position != queue_position_t{-1} && rhs->queue_position != queue_position_t{-1})
 	{
@@ -102,6 +110,16 @@ bool compare_torrent(lt::torrent_status const* lhs, lt::torrent_status const* rh
 
 	return (lhs->queue_position == queue_position_t{-1})
 		< (rhs->queue_position == queue_position_t{-1});
+}
+
+bool cmp_torrent_name(lt::torrent_status const* lhs, lt::torrent_status const* rhs)
+{
+	return lhs->name < rhs->name;
+}
+
+bool cmp_torrent_size(lt::torrent_status const* lhs, lt::torrent_status const* rhs)
+{
+	return lhs->total_done > rhs->total_done;
 }
 
 }
@@ -128,6 +146,20 @@ void torrent_view::set_filter(int filter)
 	m_torrent_filter = filter;
 
 	update_filtered_torrents();
+	render();
+}
+
+int torrent_view::sort_order() const
+{
+	return m_sort_order;
+}
+
+void torrent_view::set_sort_order(int const o)
+{
+	if (o == m_sort_order) return;
+	m_sort_order = order(o);
+
+	update_sort_order();
 	render();
 }
 
@@ -353,20 +385,55 @@ void torrent_view::print_tabs()
 	print(str.data());
 }
 
+namespace {
+
+struct column_info
+{
+	char const* name;
+	int width;
+	int sort_order;
+};
+
+std::array<column_info, 10> const torrent_columns = {{
+	{"#", 3, 0},
+	{"Name", 50, 1},
+	{"Progress", 35, -1},
+	{"Pieces", 14, 2},
+	{"Download", 17, -1},
+	{"Upload", 17, -1},
+	{"Peers (D:S)", 11, -1},
+	{"Down", 6, -1},
+	{"Up", 6, -1},
+	{"Flags", 4, -1},
+}};
+
+}
+
 void torrent_view::print_headers()
 {
 	set_cursor_pos(0, 1);
 
-	std::array<char, 400> str;
-
 	// print title bar for torrent list
-	std::snprintf(str.data(), str.size()
-		, " %-3s %-50s %-35s %-14s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
-		, "#", "Name", "Progress", "Pieces", "Download", "Upload", "Peers (D:S)"
-		, "Down", "Up", "Flags");
+	std::array<char, 400> str;
+	int cursor = 0;
+	for (auto const& ci : torrent_columns)
+	{
+		if (ci.sort_order == m_sort_order)
+		{
+			cursor += std::snprintf(str.data() + cursor, str.size() - std::size_t(cursor), "\x1b[7m");
+			if (std::size_t(cursor) > str.size()) break;
+		}
+		cursor += std::snprintf(str.data() + cursor, str.size() - std::size_t(cursor), "%-*s ", ci.width, ci.name);
+		if (std::size_t(cursor) > str.size()) break;
+		if (ci.sort_order == m_sort_order)
+		{
+			cursor += std::snprintf(str.data() + cursor, str.size() - std::size_t(cursor), "\x1b[0m");
+			if (std::size_t(cursor) > str.size()) break;
+		}
+	}
+	cursor += std::snprintf(str.data() + cursor, str.size() - std::size_t(cursor), "\x1b[K");
 
-	if (m_width + 1 < int(str.size()))
-		str.back() = '\0';
+	str.back() = '\0';
 
 	print(str.data());
 }
@@ -477,10 +544,27 @@ void torrent_view::update_filtered_torrents()
 	if (m_active_torrent >= int(m_filtered_handles.size())) m_active_torrent = int(m_filtered_handles.size()) - 1;
 	if (m_active_torrent < 0) m_active_torrent = 0;
 	TORRENT_ASSERT(m_active_torrent >= 0);
-	std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &compare_torrent);
+
+	update_sort_order();
 	if (m_scroll_position + m_height - header_size > int(m_filtered_handles.size()))
 	{
 		m_scroll_position = std::max(0, int(m_filtered_handles.size()) - m_height + header_size);
 	}
 }
 
+
+void torrent_view::update_sort_order()
+{
+	switch (m_sort_order)
+	{
+		case order::queue:
+			std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &cmp_torrent_position);
+			break;
+		case order::name:
+			std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &cmp_torrent_name);
+			break;
+		case order::size:
+			std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &cmp_torrent_size);
+			break;
+	}
+}

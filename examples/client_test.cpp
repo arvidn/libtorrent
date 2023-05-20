@@ -1762,6 +1762,20 @@ int main(int argc, char* argv[])
 					}
 				}
 
+				if (c == '<')
+				{
+					int const order = view.sort_order();
+					if (order > 0)
+						view.set_sort_order(order - 1);
+				}
+
+				if (c == '>')
+				{
+					int const order = view.sort_order();
+					if (order < 2)
+						view.set_sort_order(order + 1);
+				}
+
 				if (c == '[' && h.is_valid())
 				{
 					h.queue_position_up();
