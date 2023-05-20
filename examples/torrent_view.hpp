@@ -48,6 +48,7 @@ struct torrent_view
 
 	void set_size(int width, int height);
 
+	// torrent filter
 	enum {
 		torrents_all,
 		torrents_downloading,
@@ -60,9 +61,18 @@ struct torrent_view
 		torrents_max
 	};
 
-	int filter() const;
+	// sort order
+	enum order: std::uint8_t {
+		queue,
+		name,
+		size,
+	};
 
+	int filter() const;
 	void set_filter(int filter);
+
+	int sort_order() const;
+	void set_sort_order(int);
 
 	// returns the lt::torrent_status of the currently selected torrent.
 	lt::torrent_status const& get_active_torrent() const;
@@ -95,6 +105,9 @@ private:
 	// visible or filtered
 	void update_filtered_torrents();
 
+	// re-sorts m_filtered_handles based on m_sort_order
+	void update_sort_order();
+
 	// all torrents
 	std::unordered_map<lt::torrent_handle, lt::torrent_status> m_all_handles;
 
@@ -104,6 +117,7 @@ private:
 	mutable int m_active_torrent = 0; // index into m_filtered_handles
 	int m_scroll_position = 0;
 	int m_torrent_filter = 0;
+	order m_sort_order = order::queue;
 	int m_width = 80;
 	int m_height = 30;
 };
