@@ -71,9 +71,9 @@ jobs:
     - id: set-matrix
       run: |
         if [ $GITHUB_EVENT_NAME == "pull_request" ]; then
-          echo ::set-output name=matrix::$(echo $MATRIX_PULL_REQUEST | jq -c)
+          echo "matrix=$(echo $MATRIX_PULL_REQUEST | jq -c)" >> "$GITHUB_OUTPUT"
         else
-          echo ::set-output name=matrix::$(echo $MATRIX_WORKFLOW_DISPATCH | jq -c)
+          echo "matrix=$(echo $MATRIX_WORKFLOW_DISPATCH | jq -c)" >> "$GITHUB_OUTPUT"
         fi
 
   build_wheels:
@@ -90,23 +90,23 @@ jobs:
       CIBW_ARCHS: ${{ matrix.CIBW_ARCHS }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: cache-wheel
       with:
         path: wheelhouse
         key: wheel-${{ matrix.CIBW_BUILD }}-${{ matrix.CIBW_ARCHS }}-${{ github.sha }}
 
-    - uses: docker/setup-qemu-action@v1
+    - uses: docker/setup-qemu-action@v2
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.9.0
+    - uses: pypa/cibuildwheel@v2.12.3
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
         name: wheels
@@ -117,7 +117,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish == 'PUBLISH'
 
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: wheels
         path: wheelhouse
@@ -134,7 +134,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish_test == 'PUBLISH_TEST'
 
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: wheels
         path: wheelhouse

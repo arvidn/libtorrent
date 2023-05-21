@@ -257,7 +257,7 @@ void web_peer_connection::disconnect(error_code const& ec
 			if (t) t->add_redundant_bytes(int(m_web->restart_piece.size())
 				, aux::waste_reason::piece_closing);
 		}
-		m_web->restart_piece.swap(m_piece);
+		m_web->restart_piece = std::move(m_piece);
 
 		// we have to do this to not count this data as redundant. The
 		// upper layer will call downloading_piece_progress and assume
@@ -344,7 +344,9 @@ void web_peer_connection::write_request(peer_request const& r)
 
 		if (m_web->restart_request == m_requests.front())
 		{
-			m_piece.swap(m_web->restart_piece);
+			TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
+			TORRENT_ASSERT(m_piece.empty());
+			m_piece = std::move(m_web->restart_piece);
 			peer_request const& front = m_requests.front();
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
@@ -364,6 +366,8 @@ void web_peer_connection::write_request(peer_request const& r)
 			// it doesn't know we just re-wrote the request
 			incoming_piece_fragment(int(m_piece.size()));
 			m_web->restart_request.piece = piece_index_t(-1);
+
+			TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 		}
 
 #if 0
@@ -1073,7 +1077,11 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 	// deliver all complete bittorrent requests to the bittorrent engine
 	while (len > 0)
 	{
-		if (m_requests.empty()) return;
+		if (m_requests.empty())
+		{
+			TORRENT_ASSERT(m_piece.empty());
+			return;
+		}
 
 		TORRENT_ASSERT(!m_requests.empty());
 		peer_request const& front_request = m_requests.front();
@@ -1082,6 +1090,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
+		TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 
 		// copy_size is the number of bytes we need to add to the end of m_piece
 		// to not exceed the size of the next bittorrent request to be delivered.
@@ -1095,28 +1104,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		incoming_piece_fragment(copy_size);
 
 		TORRENT_ASSERT(front_request.length >= piece_size);
-		if (int(m_piece.size()) == front_request.length)
-		{
-			auto t = associated_torrent().lock();
-			TORRENT_ASSERT(t);
-
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
-				, "piece: %d start: %d len: %d"
-				, static_cast<int>(front_request.piece), front_request.start, front_request.length);
-#endif
-
-			// Make a copy of the request and pop it off the queue before calling
-			// incoming_piece because that may lead to a call to disconnect()
-			// which will clear the request queue and invalidate any references
-			// to the request
-			peer_request const front_request_copy = front_request;
-			m_requests.pop_front();
-
-			incoming_piece(front_request_copy, m_piece.data());
-
-			m_piece.clear();
-		}
+		maybe_harvest_piece();
 	}
 }
 
@@ -1152,6 +1140,8 @@ void web_peer_connection::incoming_zeroes(int len)
 
 void web_peer_connection::maybe_harvest_piece()
 {
+	TORRENT_ASSERT(!m_requests.empty());
+
 	peer_request const& front_request = m_requests.front();
 	TORRENT_ASSERT(front_request.length >= int(m_piece.size()));
 	if (int(m_piece.size()) != front_request.length) return;
@@ -1165,6 +1155,10 @@ void web_peer_connection::maybe_harvest_piece()
 		, static_cast<int>(front_request.piece)
 		, front_request.start, front_request.length);
 #endif
+	// Make a copy of the request and pop it off the queue before calling
+	// incoming_piece because that may lead to a call to disconnect()
+	// which will clear the request queue and invalidate any references
+	// to the request
 	peer_request const req = m_requests.front();
 	m_requests.pop_front();
 

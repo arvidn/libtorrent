@@ -15,13 +15,13 @@ jobs:
       # TODO: matrix across python version and os
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
            submodules: recursive
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
            python-version: 3.8
-      - uses: pre-commit/action@v2.0.0
+      - uses: pre-commit/action@v3.0.0
 
    build:
       name: build
@@ -34,7 +34,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -82,7 +82,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -121,7 +121,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -154,7 +154,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -200,7 +200,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: recursive
 
@@ -239,7 +239,7 @@ jobs:
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
 
       - name: run tests (flaky)
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v2
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -254,7 +254,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -296,7 +296,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            submodules: true
 
@@ -322,7 +322,7 @@ jobs:
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz

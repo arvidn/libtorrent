@@ -122,6 +122,7 @@ namespace {
 		, m_upload_only(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
+		, m_deferred_send_block_requests(false)
 		, m_holepunch_mode(false)
 		, m_peer_choked(true)
 		, m_have_all(false)
@@ -3969,6 +3970,25 @@ namespace {
 
 	void peer_connection::send_block_requests()
 	{
+		if (m_deferred_send_block_requests) return;
+
+		std::weak_ptr<peer_connection> weak_self = shared_from_this();
+		defer(m_ios, [weak_self]()
+		{
+			std::shared_ptr<peer_connection> p = weak_self.lock();
+			if (!p) return;
+
+			if (!p->m_deferred_send_block_requests)
+				return;
+
+			p->m_deferred_send_block_requests = false;
+			p->send_block_requests_impl();
+		});
+		m_deferred_send_block_requests = true;
+	}
+
+	void peer_connection::send_block_requests_impl()
+	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
@@ -4171,7 +4191,7 @@ namespace {
 				// we can't touch m_connections here, since we're likely looping
 				// over it. So defer the actual reconnection to after we've handled
 				// the existing message queue
-				post(m_ses.get_context(), [weak_t, weak_self]()
+				post(m_ios, [weak_t, weak_self]()
 				{
 					auto tor = weak_t.lock();
 					std::shared_ptr<peer_connection> p = weak_self.lock();
@@ -5177,7 +5197,7 @@ namespace {
 			// the block we just picked (potentially)
 			// hasn't been put in m_download_queue yet.
 			// it's in m_request_queue and will be sent
-			// once send_block_requests() is called.
+			// once send_block_requests_impl() is called.
 
 			m_desired_queue_size = 1;
 
@@ -6201,6 +6221,12 @@ namespace {
 		m_channel_state[download_channel] &= ~peer_info::bw_network;
 
 		setup_receive();
+
+		if (m_deferred_send_block_requests)
+		{
+			m_deferred_send_block_requests = false;
+			send_block_requests_impl();
+		}
 	}
 
 	bool peer_connection::can_write() const
@@ -6359,8 +6385,15 @@ namespace {
 #endif
 
 		on_connected();
-		setup_send();
+
+		if (m_deferred_send_block_requests)
+		{
+			m_deferred_send_block_requests = false;
+			send_block_requests_impl();
+		}
+
 		setup_receive();
+		setup_send();
 	}
 
 	// --------------------------

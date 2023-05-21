@@ -614,6 +614,7 @@ namespace libtorrent::aux {
 		// picker, allowing another peer to request it immediately
 		void cancel_request(piece_block const& b, bool force = false);
 		void send_block_requests();
+		void send_block_requests_impl();
 
 		void assign_bandwidth(int channel, int amount) override;
 
@@ -1126,7 +1127,8 @@ namespace libtorrent::aux {
 		// pick any pieces from this peer
 		bool m_no_download:1;
 
-		// 1 bit
+		// indicates that we want to request more blocks from this peer
+		bool m_deferred_send_block_requests:1;
 
 		// set to true while we're trying to holepunch
 		bool m_holepunch_mode:1;
