@@ -34,7 +34,7 @@ namespace lt = libtorrent;
 '''
 
 classes = os.popen(
-    r'git grep "\(TORRENT_EXPORT\|TORRENT_DEPRECATED_EXPORT\|^TORRENT_[A-Z0-9]\+_NAMESPACE\)"').read().split('\n')
+    r'git grep -E "(TORRENT_EXPORT|TORRENT_DEPRECATED_EXPORT|^TORRENT_[A-Z0-9]+_NAMESPACE)"').read().split('\n')
 
 
 def print_classes(out, classes, keyword):
