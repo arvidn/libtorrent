@@ -16,7 +16,7 @@ chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes
 make dist
 
-VERSION=1.2.18
+VERSION=1.2.19
 
 tar xvzf libtorrent-rasterbar-${VERSION}.tar.gz
 cd libtorrent-rasterbar-${VERSION}/test

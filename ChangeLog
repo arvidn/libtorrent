@@ -1,4 +1,6 @@
 
+1.2.19 released
+
 	* back-port load_torrent_*() functions
 	* fix issue with odd piece sizes
 
