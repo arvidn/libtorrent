@@ -338,7 +338,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->next == nullptr);
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 #if DEBUG_DISK_THREAD
 		{
@@ -388,7 +387,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		j->ret = ret;
 
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		completed_jobs.push_back(j);
 	}
 
@@ -487,7 +485,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
 		}
 
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		return ret != a.buffer_size
 			? disk_status::fatal_disk_error : status_t{};
 	}
@@ -650,16 +647,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
-		if (j->storage->is_blocked(j))
-		{
-			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
-			DLOG("blocked job: %s (torrent: %d total: %d)\n"
-				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
-				, int(m_stats_counters[counters::blocked_disk_jobs]));
-			return exceeded;
-		}
-
-		j->flags |= aux::disk_job::in_progress;
 		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
 
 		if (!m_flush_target)
@@ -694,7 +681,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// immediately
 		if (ret == aux::disk_cache::job_completed)
 		{
-			j->flags |= aux::disk_job::in_progress;
 			jobqueue_t jobs;
 			jobs.push_back(j);
 			add_completed_jobs(std::move(jobs));
@@ -704,10 +690,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// In this case the job has been queued on the piece, and will be posted
 		// once the hashing completes
 		if (ret == aux::disk_cache::job_queued)
-		{
-			j->flags |= aux::disk_job::in_progress;
 			return;
-		}
 
 		add_job(j);
 	}
@@ -876,7 +859,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		{
 			DLOG("immediate clear\n");
 			jobqueue_t jobs;
-			j->flags |= aux::disk_job::in_progress;
 			jobs.push_back(j);
 			add_completed_jobs(std::move(jobs));
 		}
@@ -991,8 +973,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		{
 			// fall back to reading everything from disk
 
-			TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
-			TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece);
+			TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
+			TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece2);
 			for (char const*& b : blocks) b = nullptr;
 			hasher ph;
 			hash_partial_piece(ph, 0, blocks, v2_hashes);
@@ -1231,6 +1213,34 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
+		storage_index_t const torrent = j->storage->storage_index();
+		jobqueue_t completed_jobs;
+		m_cache.flush_storage(
+			[&](span<aux::cached_block_entry> blocks) {
+				TORRENT_ASSERT(blocks.size() > 0);
+
+				int count = 0;
+				for (auto& be : blocks)
+				{
+					TORRENT_ASSERT(be.write_job);
+					++count;
+					perform_job(be.write_job, completed_jobs);
+					if (be.write_job->error)
+						break;
+				}
+
+				return count;
+			}
+			, torrent
+			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
+				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
+				jobqueue_t jobs;
+				jobs.push_back(clear_piece);
+				add_completed_jobs(std::move(jobs));
+			});
+		if (!completed_jobs.empty())
+			add_completed_jobs(std::move(completed_jobs));
+
 		j->storage->release_files(j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1398,7 +1408,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				{
 					TORRENT_ASSERT(be.write_job);
 					++count;
-					be.write_job->flags |= aux::disk_job::in_progress;
 					perform_job(be.write_job, completed_jobs);
 					if (be.write_job->error)
 						break;
@@ -1613,7 +1622,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
 			auto* j = static_cast<aux::pread_disk_job*>(i.get());
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
 			if (j->flags & aux::disk_job::fence)
 			{
@@ -1621,9 +1629,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
 			}
 
-			TORRENT_ASSERT(j->storage);
-			if (j->storage)
-				ret += j->storage->job_complete(j, new_jobs);
+			if (j->flags & aux::disk_job::in_progress)
+			{
+				TORRENT_ASSERT(j->storage);
+				if (j->storage)
+					ret += j->storage->job_complete(j, new_jobs);
+			}
 
 			TORRENT_ASSERT(ret == new_jobs.size());
 			TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));

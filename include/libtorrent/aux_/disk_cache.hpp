@@ -143,6 +143,19 @@ struct cached_piece_entry
 	pread_disk_job* clear_piece = nullptr;
 };
 
+struct compare_storage
+{
+	bool operator()(piece_location const& lhs, storage_index_t const rhs) const
+	{
+		return lhs.torrent < rhs;
+	}
+
+	bool operator()(storage_index_t const lhs, piece_location const& rhs) const
+	{
+		return lhs < rhs.torrent;
+	}
+};
+
 struct disk_cache
 {
 	using piece_container = mi::multi_index_container<
@@ -462,6 +475,8 @@ keep_going:
 			if (!piece_iter->ready_to_flush)
 				break;
 
+//#error we need to avoid flushing storages that have a fence raised. Maybe the cache should replace some capacity of disk_job_fence
+
 			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 			int const num_blocks = piece_iter->blocks_in_piece;
 			m_flushing_blocks += num_blocks;
@@ -506,6 +521,7 @@ keep_going:
 			if (count < piece_iter->blocks_in_piece)
 				return;
 
+// #error this is not thread safe!
 			if (piece_iter->piece_hash_returned)
 				piece_iter = view.erase(piece_iter);
 			else
@@ -655,6 +671,91 @@ keep_going:
 			}
 			if (count < blocks.size())
 				return;
+		}
+	}
+
+	void flush_storage(std::function<int(span<cached_block_entry>)> f
+		, storage_index_t const storage
+		, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		auto& view = m_pieces.template get<0>();
+		auto const [begin, end] = view.equal_range(storage, compare_storage());
+
+		for (auto piece_iter = begin; piece_iter != end; ++piece_iter)
+		{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			INVARIANT_CHECK;
+#endif
+
+			if (piece_iter->flushing)
+			{
+				++piece_iter;
+				continue;
+			}
+
+			TORRENT_ALLOCA(blocks, cached_block_entry, piece_iter->blocks_in_piece);
+			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			int num_blocks = 0;
+			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
+			{
+				auto const& cbe = piece_iter->blocks[blk];
+				if (cbe.write_job == nullptr) continue;
+				blocks[num_blocks].write_job = cbe.write_job;
+				++num_blocks;
+			}
+			m_flushing_blocks += num_blocks;
+			blocks = blocks.first(num_blocks);
+			// we have to release the lock while flushing, but since we set the
+			// "flushing" member to true, this piece is pinned to the cache
+			l.unlock();
+
+			int count = 0;
+			{
+				auto se = scope_end([&] {
+					l.lock();
+					view.modify(piece_iter, [&](cached_piece_entry& e) {
+						e.flushing = false;
+						e.flushed_cursor += count;
+					});
+					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
+					m_flushing_blocks -= num_blocks;
+				});
+				if (!blocks.empty())
+					count = f(blocks);
+			}
+			TORRENT_ASSERT(m_blocks >= count);
+			m_blocks -= count;
+
+			// make sure to only clear the job pointers for the blocks that were
+			// actually flushed, indicated by "count".
+			int clear_count = count;
+			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), num_blocks))
+			{
+				if (clear_count == 0)
+					break;
+				if (!be.write_job) continue;
+				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				be.write_job = nullptr;
+				--clear_count;
+			}
+			if (piece_iter->clear_piece)
+			{
+				jobqueue_t aborted;
+				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
+				clear_piece_impl(cpe, aborted);
+				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
+				return;
+			}
+
+// #error this is not thread safe!
+			if (piece_iter->piece_hash_returned)
+				piece_iter = view.erase(piece_iter);
+			else
+				++piece_iter;
 		}
 	}
 
