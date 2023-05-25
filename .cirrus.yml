@@ -45,7 +45,7 @@ build_macos_arm64_task:
   env:
     CIRRUS_CLONE_SUBMODULES: true
     CIBW_SKIP: pp* cp38-* # cp38-* has problem with x86_64 / arm64 confusion
-    CIBW_BUILD: cp39-* cp310-* # cp311-* can be added after boost-python version >= 1.81
+    CIBW_BUILD: cp39-* cp310-* cp311-*
     CIBW_ARCH: arm64
     PATH: /opt/homebrew/bin:$PATH
     PYTHON: python3.9
