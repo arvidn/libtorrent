@@ -95,8 +95,8 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
 	rd["completed_time"] = 1348;
-	rd["last_download"] = 2;
-	rd["last_upload"] = 3;
+	rd["last_download"] = time(nullptr) - 1350;
+	rd["last_upload"] = time(nullptr) - 1351;
 	rd["finished_time"] = 1352;
 	rd["last_seen_complete"] = 1353;
 	if (file_priorities && file_priorities[0])
@@ -203,19 +203,20 @@ void default_tests(torrent_status const& s)
 	TEST_CHECK(s.active_time >= 1339);
 	TEST_CHECK(s.active_time < 1339 + 10);
 
-	auto const now = duration_cast<seconds>(clock_type::now().time_since_epoch()).count();
-	TEST_CHECK(s.time_since_download >= now - 2);
-	TEST_CHECK(s.time_since_upload >= now - 3);
+	std::cout << "time since download: " << s.time_since_download << std::endl;
+	TEST_CHECK(s.time_since_download >= 1350 - 3);
+	TEST_CHECK(s.time_since_download <= 1350 + 2);
 
-	TEST_CHECK(s.time_since_download < now - 2 + 10);
-	TEST_CHECK(s.time_since_upload < now - 3 + 10);
+	std::cout << "time since upload: " << s.time_since_upload << std::endl;
+	TEST_CHECK(s.time_since_upload >= 1351 - 3);
+	TEST_CHECK(s.time_since_upload <= 1351 + 2);
 
 	TEST_CHECK(s.finished_time < 1352 + 2);
 	TEST_CHECK(s.finished_time >= 1352);
 #endif
 
 	using lt::seconds;
-	TEST_CHECK(s.finished_duration< seconds(1352 + 2));
+	TEST_CHECK(s.finished_duration < seconds(1352 + 2));
 	TEST_CHECK(s.seeding_duration < seconds(1340 + 2));
 	TEST_CHECK(s.active_duration >= seconds(1339));
 	TEST_CHECK(s.active_duration < seconds(1339 + 10));
