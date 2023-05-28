@@ -10999,7 +10999,7 @@ bool is_downloading_state(int const st)
 		st->completed_time = m_completed_time;
 
 #if TORRENT_ABI_VERSION == 1
-		st->last_scrape = static_cast<int>(total_seconds(aux::time_now32() - m_last_scrape));
+		st->last_scrape = static_cast<int>(total_seconds(now - m_last_scrape));
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -11036,9 +11036,9 @@ bool is_downloading_state(int const st)
 		time_point32 const unset{seconds32(0)};
 
 		st->time_since_upload = m_last_upload == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_upload));
+			: static_cast<int>(total_seconds(now - m_last_upload));
 		st->time_since_download = m_last_download == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_download));
+			: static_cast<int>(total_seconds(now - m_last_download));
 #endif
 
 		st->finished_duration = finished_time();
