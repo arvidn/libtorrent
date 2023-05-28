@@ -334,7 +334,9 @@ TORRENT_VERSION_NAMESPACE_2
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
 
 		// the posix time of the last time payload was received or sent for this
-		// torrent, respectively.
+		// torrent, respectively. A value of 0 means we don't know when we last
+		// uploaded or downloaded, or we have never uploaded or downloaded any
+		// payload for this torrent.
 		std::time_t last_download = 0;
 		std::time_t last_upload = 0;
 
