@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/time.hpp"
 
+#include <chrono>
+
 namespace libtorrent { namespace aux {
 
 	time_point time_now() { return clock_type::now(); }
