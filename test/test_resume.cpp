@@ -44,14 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
+
+#include <iostream>
 
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
-
-#include <fstream>
 
 #ifdef TORRENT_WINDOWS
 #define SEP "\\"
