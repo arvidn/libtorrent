@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 
+#include <ctime> // for std::time_t
+
 namespace libtorrent { namespace aux {
 
 	// returns the current time, as represented by time_point. The
