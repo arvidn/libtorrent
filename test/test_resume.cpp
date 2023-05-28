@@ -225,6 +225,16 @@ void default_tests(torrent_status const& s)
 	TEST_CHECK(s.completed_time < 1348 + 2);
 	TEST_CHECK(s.completed_time >= 1348);
 
+	auto const now = lt::clock_type::now();
+	std::cout << "now: " << now.time_since_epoch().count() << std::endl;
+	std::cout << "last_download: " << s.last_download.time_since_epoch().count() << std::endl;
+	TEST_CHECK(s.last_download <= now - lt::seconds(1350 - 3));
+	TEST_CHECK(s.last_download >= now - lt::seconds(1350 + 2));
+
+	std::cout << "last_upload: " << s.last_upload.time_since_epoch().count() << std::endl;
+	TEST_CHECK(s.last_upload <= now - lt::seconds(1351 - 3));
+	TEST_CHECK(s.last_upload >= now - lt::seconds(1351 + 2));
+
 	TEST_EQUAL(s.last_seen_complete, 1353);
 }
 
