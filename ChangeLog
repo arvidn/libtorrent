@@ -1,4 +1,8 @@
 
+1.2.20 released
+
+	* back-port fix last_upload and last_download resume data fields to use posix time
+
 1.2.19 released
 
 	* back-port load_torrent_*() functions
