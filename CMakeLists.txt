@@ -595,10 +595,16 @@ target_compile_definitions(torrent-rasterbar
 		BOOST_ASIO_NO_DEPRECATED
 	PRIVATE
 		TORRENT_BUILDING_LIBRARY
-		_FILE_OFFSET_BITS=64
 		BOOST_EXCEPTION_DISABLE
 		BOOST_ASIO_HAS_STD_CHRONO
 )
+
+if (NOT WIN32)
+	target_compile_definitions(torrent-rasterbar
+		PRIVATE
+			_FILE_OFFSET_BITS=64
+	)
+endif()
 
 target_link_libraries(torrent-rasterbar
 	PUBLIC
