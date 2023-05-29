@@ -39,8 +39,6 @@ std::string const& progress_bar(int progress, int width, color_code c = col_gree
 
 std::string const& piece_bar(lt::bitfield const& p, int width);
 
-std::string avail_bar(lt::span<int> avail, int const width, int& pos);
-
 void set_cursor_pos(int x, int y);
 
 void clear_screen();
