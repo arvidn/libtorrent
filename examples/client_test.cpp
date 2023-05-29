@@ -581,7 +581,8 @@ int print_peer_legend(std::string& out, int max_lines)
 #endif
 
 	char const* ip = "                               ";
-	char const* indentation = "                                                                     ";
+	char const* indentation = "                                                   ";
+	char const* peaks = "                  ";
 	int ret = 0;
 	for (auto const& l : lines)
 	{
@@ -592,6 +593,8 @@ int print_peer_legend(std::string& out, int max_lines)
 			out += ip;
 		if (print_local_ip)
 			out += ip;
+		if (print_peaks)
+			out += peaks;
 		out += l;
 	}
 	return ret;
