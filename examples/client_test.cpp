@@ -2140,7 +2140,19 @@ done:
 			{
 				h.post_piece_availability();
 				if (!client_state.piece_availability.empty())
-					print(avail_bar(client_state.piece_availability, terminal_width, pos).c_str());
+				{
+					int const num_pieces = int(client_state.piece_availability.size());
+					lt::bitfield avail(num_pieces);
+					for (int idx = 0; idx != num_pieces; ++idx)
+					{
+						if (client_state.piece_availability[idx] > 0)
+							avail.set_bit(idx);
+					}
+					int height_out = 0;
+					print(piece_matrix(avail, terminal_width, &height_out).c_str());
+					print("\n");
+					pos += height_out;
+				}
 			}
 
 			if (print_downloads)
