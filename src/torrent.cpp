@@ -8982,9 +8982,9 @@ namespace {
 			for (std::map<piece_block, int>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
-				piece_block b = i->first;
-				int count = i->second;
-				int picker_count = m_picker->num_peers(b);
+				piece_block const b = i->first;
+				int const count = i->second;
+				int const picker_count = m_picker->num_peers(b);
 				// if we're no longer downloading the piece
 				// (for instance, it may be fully downloaded and waiting
 				// for the hash check to return), the piece picker always
@@ -8995,26 +8995,68 @@ namespace {
 					if (picker_count != count)
 					{
 						std::fprintf(stderr, "picker count discrepancy: "
-							"picker: %d != peerlist: %d\n", picker_count, count);
+							"picker peer-count: %d != "
+							"peers download queue count: %d "
+							"block: (%d, %d)\n", picker_count, count, int(b.piece_index), int(b.block_index));
 
 						for (const_peer_iterator j = this->begin(); j != this->end(); ++j)
 						{
 							peer_connection const& p = *(*j);
 							std::fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
+							std::fprintf(stderr, "  rq: ");
 							for (auto const& k : p.request_queue())
 							{
-								std::fprintf(stderr, "  rq: (%d, %d) %s %s %s\n"
+								std::fprintf(stderr, "(%d, %d)%s%s%s | "
 									, static_cast<int>(k.block.piece_index)
-									, k.block.block_index, k.not_wanted ? "not-wanted" : ""
-									, k.timed_out ? "timed-out" : "", k.busy ? "busy": "");
+									, k.block.block_index, k.not_wanted ? " not-wanted" : ""
+									, k.timed_out ? " timed-out" : "", k.busy ? " busy": "");
 							}
+							std::fprintf(stderr, "\n  dq: ");
 							for (auto const& k : p.download_queue())
 							{
-								std::fprintf(stderr, "  dq: (%d, %d) %s %s %s\n"
+								std::fprintf(stderr, "(%d, %d)%s%s%s | "
 									, static_cast<int>(k.block.piece_index)
-									, k.block.block_index, k.not_wanted ? "not-wanted" : ""
-									, k.timed_out ? "timed-out" : "", k.busy ? "busy": "");
+									, k.block.block_index, k.not_wanted ? " not-wanted" : ""
+									, k.timed_out ? " timed-out" : "", k.busy ? " busy": "");
 							}
+							std::fprintf(stderr, "\n");
+						}
+
+						piece_picker::downloading_piece dp;
+						m_picker->piece_info(b.piece_index, dp);
+						std::fprintf(stderr, "picker piece: %d "
+							"finished: %d writing: %d "
+							"requested: %d hashing: %d "
+							"locked: %d passed-hash-check: %d (info-idx: %d)\n"
+							, int(b.piece_index)
+							, int(dp.finished), int(dp.writing)
+							, int(dp.requested), int(dp.hashing)
+							, int(dp.locked), int(dp.passed_hash_check)
+							, int(dp.info_idx));
+
+						if (dp.writing + dp.finished + dp.requested > 0)
+						{
+							span<piece_picker::block_info const> blocks = m_picker->blocks_for_piece(dp);
+							std::fprintf(stderr, "blocks:\n");
+							int marker = b.block_index;
+							int counter = 0;
+							for (auto const& bi : blocks)
+							{
+								if (marker == 0)
+									std::fprintf(stderr, "\x1b[7m");
+								static const char state_chars[4] = {'.', 'r', 'w', 'f'};
+								std::fprintf(stderr, "%c", state_chars[bi.state]);
+								if (marker == 0)
+									std::fprintf(stderr, "\x1b[0m");
+								if (++counter == 64)
+								{
+									std::fprintf(stderr, "\n");
+									counter = 0;
+								}
+								--marker;
+							}
+							if (counter != 0)
+								std::fprintf(stderr, "\n");
 						}
 						TORRENT_ASSERT_FAIL();
 					}
