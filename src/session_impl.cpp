@@ -6597,7 +6597,7 @@ namespace {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
+		int delay = std::max(1000 * m_settings.get_int(settings_pack::dht_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
 
 		if (!m_dht_torrents.empty())
@@ -6605,10 +6605,10 @@ namespace {
 			// we have prioritized torrents that need
 			// an initial DHT announce. Don't wait too long
 			// until we announce those.
-			delay = std::min(4, delay);
+			delay = std::min(4000, delay);
 		}
 
-		m_dht_announce_timer.expires_after(seconds(delay));
+		m_dht_announce_timer.expires_after(milliseconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			wrap(&session_impl::on_dht_announce, e); });
 #endif
