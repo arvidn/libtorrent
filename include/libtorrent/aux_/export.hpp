@@ -100,7 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if !defined TORRENT_EXPORT_EXTRA \
-  && ((defined __GNUC__ && __GNUC__ >= 4) || defined __clang__)
+  && ((defined __GNUC__ && __GNUC__ >= 4) || defined __clang__) && !defined _WIN32
 # define TORRENT_UNEXPORT __attribute__((visibility("hidden")))
 #else
 # define TORRENT_UNEXPORT
