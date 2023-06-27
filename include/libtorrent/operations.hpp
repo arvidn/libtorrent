@@ -175,6 +175,9 @@ namespace libtorrent {
 
 		// enumeration network routes
 		enum_route,
+
+		// Try to compress block data before sent it to peer
+		compress_block_data,
 	};
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)

@@ -697,6 +697,7 @@ namespace aux {
 		virtual void write_have(piece_index_t index) = 0;
 		virtual void write_dont_have(piece_index_t index) = 0;
 		virtual void write_keepalive() = 0;
+		virtual void try_compress_piece(peer_request const& r, disk_buffer_holder buffer) = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder buffer) = 0;
 		virtual void write_suggest(piece_index_t piece) = 0;
 		virtual void write_bitfield() = 0;

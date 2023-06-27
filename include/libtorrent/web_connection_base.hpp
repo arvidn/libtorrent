@@ -87,6 +87,9 @@ namespace libtorrent {
 		void write_cancel(peer_request const&) override {}
 		void write_have(piece_index_t) override {}
 		void write_dont_have(piece_index_t) override {}
+		void try_compress_piece(peer_request const& r, disk_buffer_holder buffer) override {
+			write_piece(std::move(r), std::move(buffer));
+		}
 		void write_piece(peer_request const&, disk_buffer_holder) override
 		{ TORRENT_ASSERT_FAIL(); }
 		void write_keepalive() override {}

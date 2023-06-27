@@ -175,6 +175,7 @@ constexpr int CLOSE_FILE_INTERVAL = 0;
 		SET(enable_incoming_utp, true, nullptr),
 		SET(enable_outgoing_tcp, true, nullptr),
 		SET(enable_incoming_tcp, true, nullptr),
+		SET(enable_piece_compression_transmission, true, nullptr),
 		SET(ignore_resume_timestamps, false, nullptr),
 		SET(no_recheck_incomplete_resume, false, nullptr),
 		SET(anonymous_mode, false, nullptr),

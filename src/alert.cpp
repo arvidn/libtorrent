@@ -1056,6 +1056,7 @@ namespace {
 			case o::handshake: return -1;
 			case o::sock_option: return -1;
 			case o::enum_route: return -1;
+			case o::compress_block_data: return -1;
 		}
 		return -1;
 	}
@@ -1838,6 +1839,7 @@ namespace {
 			"handshake",
 			"sock_option",
 			"enum_route"
+			"compress_block_data"
 		};
 
 		int const idx = static_cast<int>(op);

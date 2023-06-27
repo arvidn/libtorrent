@@ -239,6 +239,7 @@ namespace libtorrent {
 		void write_bitfield() override;
 		void write_have(piece_index_t index) override;
 		void write_dont_have(piece_index_t index) override;
+		void try_compress_piece(peer_request const& r, disk_buffer_holder buffer) override;
 		void write_piece(peer_request const& r, disk_buffer_holder buffer) override;
 		void write_keepalive() override;
 		void write_handshake();

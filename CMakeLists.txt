@@ -677,7 +677,7 @@ if (NOT Windows)
 endif()
 
 feature_option(build_tests "build tests" OFF)
-feature_option(build_examples "build examples" OFF)
+feature_option(build_examples "build examples" ON)
 feature_option(build_tools "build tools" OFF)
 feature_option(python-bindings "build python bindings" OFF)
 feature_option(python-egg-info "generate python egg info" OFF)
@@ -787,6 +787,8 @@ if (Boost_MAJOR_VERSION LESS_EQUAL 1 AND Boost_MINOR_VERSION LESS 69)
 	find_package(Boost REQUIRED COMPONENTS system)
 	target_link_libraries(torrent-rasterbar PUBLIC ${Boost_SYSTEM_LIBRARY})
 endif()
+
+target_link_libraries(torrent-rasterbar PUBLIC /usr/lib/x86_64-linux-gnu/libsnappy.so)
 
 if (exceptions)
 	if (MSVC)

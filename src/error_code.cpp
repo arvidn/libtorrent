@@ -273,6 +273,8 @@ namespace libtorrent {
 			"", "", "", "", "",
 #endif
 			"random number generator failed",
+			"invalid input when compress or decompress block data",
+			"the output buffer is too small when compress or decompress block data"
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";

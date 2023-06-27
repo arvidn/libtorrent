@@ -454,6 +454,10 @@ namespace libtorrent {
 
 			// random number generation failed
 			no_entropy = 200,
+			// Invalid input when compress or decompress block data
+			snappy_invalid_input,
+			// The output buffer is too small when compress or decompress block data
+			snappy_buffer_too_small,
 
 			// the number of error codes
 			error_code_max

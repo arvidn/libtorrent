@@ -583,6 +583,10 @@ namespace aux {
 			enable_outgoing_tcp,
 			enable_incoming_tcp,
 
+			// If enabled, we will try to compress block data for each piece
+			// before sent it to peer.
+			enable_piece_compression_transmission,
+
 #if TORRENT_ABI_VERSION == 1
 			// ``ignore_resume_timestamps`` determines if the storage, when
 			// loading resume data files, should verify that the file modification
