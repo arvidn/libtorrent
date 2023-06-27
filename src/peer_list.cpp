@@ -157,7 +157,9 @@ namespace libtorrent {
 		for (auto const p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 		m_peers.clear();
+		m_candidate_cache.clear();
 		m_num_connect_candidates = 0;
+		m_num_seeds = 0;
 	}
 
 	peer_list::~peer_list()
