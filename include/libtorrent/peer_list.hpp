@@ -159,6 +159,7 @@ namespace libtorrent {
 #endif
 
 		int num_peers() const { return int(m_peers.size()); }
+		int num_candidate_cache() const { return int(m_candidate_cache.size()); }
 
 		using peers_t = aux::deque<torrent_peer*>;
 		using iterator = peers_t::iterator;
