@@ -1206,6 +1206,38 @@ TORRENT_TEST(peer_info_set_i2p_destination)
 }
 #endif
 
+TORRENT_TEST(clear_peers)
+{
+	torrent_state st = init_state();
+	st.max_peerlist_size = 5;
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 8080));
+	TEST_CHECK(peer1);
+	p.set_seed(peer1, true);
+
+	torrent_peer* peer2 = add_peer(p, st, ep("10.0.0.2", 8080));
+	TEST_CHECK(peer2);
+
+	torrent_peer* peer3 = add_peer(p, st, ep("10.0.0.3", 8080));
+	TEST_CHECK(peer3);
+
+	p.connect_one_peer(1, &st);
+
+	TEST_EQUAL(p.num_peers(), 3);
+	TEST_EQUAL(p.num_candidate_cache(), 2);
+	TEST_EQUAL(p.num_connect_candidates(), 3);
+	TEST_EQUAL(p.num_seeds(), 1);
+
+	p.clear();
+	TEST_EQUAL(p.num_peers(), 0);
+	TEST_EQUAL(p.num_candidate_cache(), 0);
+	TEST_EQUAL(p.num_connect_candidates(), 0);
+	TEST_EQUAL(p.num_seeds(), 0);
+}
+
 // TODO: test erasing peers
 // TODO: test update_peer_port with allow_multiple_connections_per_ip and without
 // TODO: test add i2p peers
