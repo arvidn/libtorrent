@@ -220,8 +220,8 @@ bool is_downloading_state(int const st)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
 		, m_deleted(false)
-		, m_last_download(seconds32(p.last_download))
-		, m_last_upload(seconds32(p.last_upload))
+		, m_last_download(aux::from_time_t(p.last_download))
+		, m_last_upload(aux::from_time_t(p.last_upload))
 		, m_userdata(p.userdata)
 		, m_auto_managed(p.flags & torrent_flags::auto_managed)
 		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
@@ -6492,8 +6492,8 @@ bool is_downloading_state(int const st)
 		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
 		ret.seeding_time = static_cast<int>(total_seconds(seeding_time()));
 		ret.last_seen_complete = m_last_seen_complete;
-		ret.last_upload = std::time_t(total_seconds(m_last_upload.time_since_epoch()));
-		ret.last_download = std::time_t(total_seconds(m_last_download.time_since_epoch()));
+		ret.last_upload = aux::to_time_t(m_last_upload);
+		ret.last_download = aux::to_time_t(m_last_download);
 
 		ret.num_complete = m_complete;
 		ret.num_incomplete = m_incomplete;
@@ -10999,7 +10999,7 @@ bool is_downloading_state(int const st)
 		st->completed_time = m_completed_time;
 
 #if TORRENT_ABI_VERSION == 1
-		st->last_scrape = static_cast<int>(total_seconds(aux::time_now32() - m_last_scrape));
+		st->last_scrape = static_cast<int>(total_seconds(now - m_last_scrape));
 #endif
 
 #if TORRENT_ABI_VERSION == 1
@@ -11036,9 +11036,9 @@ bool is_downloading_state(int const st)
 		time_point32 const unset{seconds32(0)};
 
 		st->time_since_upload = m_last_upload == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_upload));
+			: static_cast<int>(total_seconds(now - m_last_upload));
 		st->time_since_download = m_last_download == unset ? -1
-			: static_cast<int>(total_seconds(aux::time_now32() - m_last_download));
+			: static_cast<int>(total_seconds(now - m_last_download));
 #endif
 
 		st->finished_duration = finished_time();

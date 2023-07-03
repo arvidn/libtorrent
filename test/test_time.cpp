@@ -33,11 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 
 #include "libtorrent/time.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #include <functional>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <iostream>
 
 using namespace lt;
 
@@ -102,3 +104,43 @@ TORRENT_TEST(time)
 	t4.join();
 }
 
+TORRENT_TEST(test_time_conversion)
+{
+	int success = 0;
+	const int test_count = 10;
+
+	for (int i = 0; i < test_count; ++i)
+	{
+		auto now = aux::time_now32() + seconds32(rand() % 1000);
+		auto ctime = aux::to_time_t(now);
+		auto converted = aux::from_time_t(ctime);
+		if (now == converted)
+			++success;
+		else
+			std::cout << "now: " << now.time_since_epoch().count() << " converted: " << converted.time_since_epoch().count() << '\n';
+	}
+
+	// conversion depends on wall clock and may be flaky
+	TEST_CHECK(success >= test_count - 1);
+}
+
+TORRENT_TEST(test_time_conversion_with_offset)
+{
+	int success = 0;
+	const int test_count = 10;
+
+	for (int i = 0; i < test_count; ++i)
+	{
+		auto now = aux::time_now32() + seconds32(rand() % 1000);
+		auto ctime = aux::to_time_t(now);
+		// offset by 100 seconds
+		auto converted = aux::from_time_t(ctime + 100);
+		if (now + seconds32(100) == converted)
+			++success;
+		else
+			std::cout << "now: " << now.time_since_epoch().count() << " converted: " << converted.time_since_epoch().count() << '\n';
+	}
+
+	// conversion depends on wall clock and may be flaky
+	TEST_CHECK(success >= test_count - 1);
+}
