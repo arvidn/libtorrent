@@ -85,6 +85,11 @@ struct cached_piece_entry
 		, ph(hasher())
 	{}
 
+	span<cached_block_entry> get_blocks() const
+	{
+		return {blocks.get(), blocks_in_piece};
+	}
+
 	piece_location piece;
 
 	// this is set to true when the piece has been populated with all blocks
@@ -106,8 +111,6 @@ struct cached_piece_entry
 	// block_hash member if cached_block_entry and we need to compute the block
 	// hashes as well
 	bool v2_hashes = false;
-
-//#error we need a field indicating whether some blocks were flushed and removed from the cache before hashed, since otherwise we may hang the hash job on the piece but it never completes
 
 	int blocks_in_piece = 0;
 
@@ -155,6 +158,13 @@ struct compare_storage
 		return lhs < rhs.torrent;
 	}
 };
+
+bool have_buffers(span<const cached_block_entry> blocks)
+{
+	for (auto const& b : blocks)
+		if (b.buf == nullptr) return false;
+	return true;
+}
 
 struct disk_cache
 {
@@ -336,8 +346,21 @@ struct disk_cache
 		// we should only ask for the hash once
 		TORRENT_ASSERT(!i->piece_hash_returned);
 
+		if (!i->hashing && i->hasher_cursor == i->blocks_in_piece)
+		{
+			view.modify(i, [&](cached_piece_entry& e) {
+				e.piece_hash_returned = true;
+
+				job::hash& job = std::get<aux::job::hash>(hash_job->action);
+				job.piece_hash = e.ph.final();
+			});
+			return hash_result::job_completed;
+		}
+
 		if (i->hashing
-			|| i->hasher_cursor < i->blocks_in_piece)
+			&& i->hasher_cursor < i->blocks_in_piece
+			&& have_buffers(i->get_blocks().subspan(i->hasher_cursor))
+			)
 		{
 			// We're not done hashing yet, let the hashing thread post the
 			// completion once it's done
@@ -349,12 +372,6 @@ struct disk_cache
 			return hash_result::job_queued;
 		}
 
-		view.modify(i, [&](cached_piece_entry& e) {
-			e.piece_hash_returned = true;
-
-			job::hash& job = std::get<aux::job::hash>(hash_job->action);
-			job.piece_hash = e.ph.final();
-		});
 		return hash_result::post_job;
 	}
 
@@ -521,7 +538,6 @@ keep_going:
 			if (count < piece_iter->blocks_in_piece)
 				return;
 
-// #error this is not thread safe!
 			if (piece_iter->piece_hash_returned)
 				piece_iter = view.erase(piece_iter);
 			else
@@ -751,7 +767,6 @@ keep_going:
 				return;
 			}
 
-// #error this is not thread safe!
 			if (piece_iter->piece_hash_returned)
 				piece_iter = view.erase(piece_iter);
 			else
