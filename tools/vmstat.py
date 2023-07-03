@@ -174,7 +174,6 @@ if platform.system() == "Linux":
                     val = val / time_delta
                 output[key] = [val]
             else:
-
                 if m.cumulative:
                     raw_val = val
                     val = (val - output[key + "-raw"][-1]) / time_delta
@@ -209,7 +208,6 @@ if platform.system() == "Linux":
 #    Locked:                0 kB
 
 else:
-
     import psutil
 
     def capture_sample(
@@ -231,7 +229,6 @@ else:
             output["time"].append(timestamp)
 
         for key in dir(mem):
-
             if key not in metrics:
                 if not key.startswith("_") and key not in [
                     "pagefile",
@@ -259,7 +256,6 @@ else:
                 output[key].append(val)
 
         for key in dir(io_cnt):
-
             if key not in metrics:
                 if not key.startswith("_") and key not in [
                     "pagefile",
@@ -286,7 +282,6 @@ else:
 
 
 def print_output_to_file(out: Dict[str, List[int]], filename: str) -> List[str]:
-
     if out == {}:
         return []
 

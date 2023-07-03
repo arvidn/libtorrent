@@ -174,7 +174,6 @@ PYTHON_BINDING_DIR = pathlib.Path(__file__).parent.absolute()
 
 
 class LibtorrentBuildExt(build_ext_lib.build_ext):
-
     CONFIG_MODE_DISTUTILS = "distutils"
     CONFIG_MODE_B2 = "b2"
     CONFIG_MODES = (CONFIG_MODE_DISTUTILS, CONFIG_MODE_B2)
