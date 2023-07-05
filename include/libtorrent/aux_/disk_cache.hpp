@@ -541,6 +541,7 @@ keep_going:
 				TORRENT_ASSERT(be.write_job);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
 			if (piece_iter->clear_piece)
@@ -621,6 +622,7 @@ keep_going:
 				TORRENT_ASSERT(be.write_job);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
 			if (piece_iter->clear_piece)
@@ -695,6 +697,7 @@ keep_going:
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
 			}
@@ -788,6 +791,7 @@ keep_going:
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
 			}

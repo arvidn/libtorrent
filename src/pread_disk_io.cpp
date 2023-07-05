@@ -56,6 +56,34 @@ namespace {
 			== disk_job_flags_t{};
 	}
 #endif
+
+	template <typename Fun>
+	void translate_error(aux::disk_job* j, Fun f)
+	{
+		try
+		{
+			j->ret = f();
+		}
+		catch (boost::system::system_error const& err)
+		{
+			j->ret = disk_status::fatal_disk_error;
+			j->error.ec = err.code();
+			j->error.operation = operation_t::exception;
+		}
+		catch (std::bad_alloc const&)
+		{
+			j->ret = disk_status::fatal_disk_error;
+			j->error.ec = errors::no_memory;
+			j->error.operation = operation_t::exception;
+		}
+		catch (std::exception const&)
+		{
+			j->ret = disk_status::fatal_disk_error;
+			j->error.ec = boost::asio::error::fault;
+			j->error.operation = operation_t::exception;
+		}
+	}
+
 } // anonymous namespace
 
 // this is a singleton consisting of the thread and a queue
@@ -151,9 +179,12 @@ private:
 	void abort_hash_jobs(storage_index_t storage);
 
 	void try_flush_cache(int const target_cache_size
-		, jobqueue_t& completed_jobs
 		, std::unique_lock<std::mutex>& l);
 	void flush_storage(storage_index_t torrent);
+
+	int flush_cache_blocks(span<aux::cached_block_entry> blocks
+		, jobqueue_t& completed_jobs);
+	void clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear);
 
 	// returns the maximum number of threads
 	// the actual number of threads may be less
@@ -178,12 +209,6 @@ private:
 	// it's a signal to generic disk threads to start flushing. Once flushing
 	// starts, m_flush_target is cleared.
 	std::optional<int> m_flush_target = std::nullopt;
-
-	// every write job is inserted into this map while it is in the job queue.
-	// It is removed after the write completes. This will let subsequent reads
-	// pull the buffers straight out of the queue instead of having to
-	// synchronize with the writing thread(s)
-	aux::disk_cache m_cache;
 
 	settings_interface const& m_settings;
 
@@ -214,6 +239,12 @@ private:
 	aux::storage_array<aux::pread_storage> m_torrents;
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
+
+	// every write job is inserted into this map while it is in the job queue.
+	// It is removed after the write completes. This will let subsequent reads
+	// pull the buffers straight out of the queue instead of having to
+	// synchronize with the writing thread(s)
+	aux::disk_cache m_cache;
 
 	// most jobs are posted to m_generic_io_jobs
 	// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
@@ -356,37 +387,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		// call disk function
 		// TODO: in the future, propagate exceptions back to the handlers
-		status_t ret = status_t{};
-		try
-		{
-			ret = std::visit([this, j](auto& a) { return this->do_job(a, j); }, j->action);
-		}
-		catch (boost::system::system_error const& err)
-		{
-			ret = disk_status::fatal_disk_error;
-			j->error.ec = err.code();
-			j->error.operation = operation_t::exception;
-		}
-		catch (std::bad_alloc const&)
-		{
-			ret = disk_status::fatal_disk_error;
-			j->error.ec = errors::no_memory;
-			j->error.operation = operation_t::exception;
-		}
-		catch (std::exception const&)
-		{
-			ret = disk_status::fatal_disk_error;
-			j->error.ec = boost::asio::error::fault;
-			j->error.operation = operation_t::exception;
-		}
+		translate_error(j, [&] {
+			return std::visit([this, j](auto& a) { return this->do_job(a, j); }, j->action);
+		});
 
 		// note that -2 errors are OK
-		TORRENT_ASSERT(ret != disk_status::fatal_disk_error
+		TORRENT_ASSERT(j->ret != disk_status::fatal_disk_error
 			|| (j->error.ec && j->error.operation != operation_t::unknown));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
-
-		j->ret = ret;
 
 		completed_jobs.push_back(j);
 	}
@@ -1053,7 +1062,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			if (v2_block)
 				a.block_hashes[i] = h2.final();
 
-			if (ret <= 0) break;
+			if (j->ret <= 0) break;
 
 			offset += default_block_size;
 		}
@@ -1061,7 +1070,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		if (deferred_length > 0)
 		{
 			j->error.ec.clear();
-			ret = j->storage->hash(m_settings, h, deferred_length, a.piece
+			j->ret = j->storage->hash(m_settings, h, deferred_length, a.piece
 				, deferred_offset, file_mode, j->flags, j->error);
 		}
 
@@ -1370,37 +1379,84 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			add_completed_jobs(std::move(completed_jobs));
 	}
 
+	int pread_disk_io::flush_cache_blocks(span<aux::cached_block_entry> blocks
+		, jobqueue_t& completed_jobs)
+	{
+		TORRENT_ASSERT(blocks.size() > 0);
+
+		std::shared_ptr<aux::pread_storage> storage = blocks[0].write_job->storage;
+		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
+		time_point const start_time = clock_type::now();
+		int count = 0;
+		bool failed = false;
+		for (auto& be : blocks)
+		{
+			auto* j = be.write_job;
+			TORRENT_ASSERT(j);
+			++count;
+
+			auto& a = std::get<aux::job::write>(j->action);
+			// TODO: build a longer span of contiguous blocks
+			span<char> const b = { a.buf.data(), a.buffer_size};
+			aux::open_mode_t const file_mode = file_mode_for_job(j);
+
+			translate_error(j, [&] {
+				int const ret = j->storage->write(m_settings, b
+					, a.piece, a.offset, file_mode, j->flags, j->error);
+				return ret != a.buffer_size ? disk_status::fatal_disk_error : status_t{};
+				});
+
+			completed_jobs.push_back(j);
+			if (j->error)
+			{
+				failed = true;
+				break;
+			}
+		}
+
+		if (!failed)
+		{
+			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
+
+			m_stats_counters.inc_stats_counter(counters::num_blocks_written, count);
+			m_stats_counters.inc_stats_counter(counters::num_write_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
+		}
+
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
+		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
+
+		return count;
+	}
+
+	void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear)
+	{
+		m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
+		jobqueue_t jobs;
+		jobs.push_back(clear);
+		add_completed_jobs(std::move(jobs));
+	}
+
 	void pread_disk_io::try_flush_cache(int const target_cache_size
-		, jobqueue_t& completed_jobs
 		, std::unique_lock<std::mutex>& l)
 	{
 		DLOG("flushing, cache target: %d\n", target_cache_size);
 		l.unlock();
+		jobqueue_t completed_jobs;
 		m_cache.flush_to_disk(
 			[&](span<aux::cached_block_entry> blocks) {
-				TORRENT_ASSERT(blocks.size() > 0);
-
-				int count = 0;
-				for (auto& be : blocks)
-				{
-					TORRENT_ASSERT(be.write_job);
-					++count;
-					perform_job(be.write_job, completed_jobs);
-					if (be.write_job->error)
-						break;
-				}
-
-				return count;
+				return flush_cache_blocks(blocks, completed_jobs);
 			}
 			, target_cache_size
-			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
-				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
-				jobqueue_t jobs;
-				jobs.push_back(clear_piece);
-				add_completed_jobs(std::move(jobs));
+			, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
+				clear_piece_jobs(std::move(aborted), clear);
 			});
 		l.lock();
 		DLOG("flushed blocks (%d blocks left), return to disk loop\n", m_cache.size());
+		if (!completed_jobs.empty())
+			add_completed_jobs(std::move(completed_jobs));
 	}
 
 	void pread_disk_io::flush_storage(storage_index_t torrent)
@@ -1408,26 +1464,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		jobqueue_t completed_jobs;
 		m_cache.flush_storage(
 			[&](span<aux::cached_block_entry> blocks) {
-				TORRENT_ASSERT(blocks.size() > 0);
-
-				int count = 0;
-				for (auto& be : blocks)
-				{
-					TORRENT_ASSERT(be.write_job);
-					++count;
-					perform_job(be.write_job, completed_jobs);
-					if (be.write_job->error)
-						break;
-				}
-
-				return count;
+				return flush_cache_blocks(blocks, completed_jobs);
 			}
 			, torrent
-			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
-				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
-				jobqueue_t jobs;
-				jobs.push_back(clear_piece);
-				add_completed_jobs(std::move(jobs));
+			, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
+				clear_piece_jobs(std::move(aborted), clear);
 			});
 		if (!completed_jobs.empty())
 			add_completed_jobs(std::move(completed_jobs));
@@ -1473,10 +1514,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			if (m_flush_target && &pool == &m_generic_threads)
 			{
 				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
-				jobqueue_t completed_jobs;
-				try_flush_cache(target_cache_size, completed_jobs, l);
-				if (!completed_jobs.empty())
-					add_completed_jobs(std::move(completed_jobs));
+				try_flush_cache(target_cache_size, l);
 			}
 			if (res != aux::wait_result::new_job)
 			{
@@ -1549,10 +1587,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			, m_hash_threads.queue_size());
 
 		// flush everything before exiting this thread
-		jobqueue_t completed_jobs;
-		try_flush_cache(0, completed_jobs, l);
-		if (!completed_jobs.empty())
-			add_completed_jobs(std::move(completed_jobs));
+		try_flush_cache(0, l);
 
 		// it is important to hold the job mutex while calling try_thread_exit()
 		// and continue to hold it until checking m_abort above so that abort()
