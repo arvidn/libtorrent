@@ -153,6 +153,7 @@ private:
 	void try_flush_cache(int const target_cache_size
 		, jobqueue_t& completed_jobs
 		, std::unique_lock<std::mutex>& l);
+	void flush_storage(storage_index_t torrent);
 
 	// returns the maximum number of threads
 	// the actual number of threads may be less
@@ -1131,6 +1132,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
+		storage_index_t const torrent = j->storage->storage_index();
+		flush_storage(torrent);
 		j->storage->release_files(j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1214,33 +1217,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 		storage_index_t const torrent = j->storage->storage_index();
-		jobqueue_t completed_jobs;
-		m_cache.flush_storage(
-			[&](span<aux::cached_block_entry> blocks) {
-				TORRENT_ASSERT(blocks.size() > 0);
-
-				int count = 0;
-				for (auto& be : blocks)
-				{
-					TORRENT_ASSERT(be.write_job);
-					++count;
-					perform_job(be.write_job, completed_jobs);
-					if (be.write_job->error)
-						break;
-				}
-
-				return count;
-			}
-			, torrent
-			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
-				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
-				jobqueue_t jobs;
-				jobs.push_back(clear_piece);
-				add_completed_jobs(std::move(jobs));
-			});
-		if (!completed_jobs.empty())
-			add_completed_jobs(std::move(completed_jobs));
-
+		flush_storage(torrent);
 		j->storage->release_files(j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1424,6 +1401,36 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			});
 		l.lock();
 		DLOG("flushed blocks (%d blocks left), return to disk loop\n", m_cache.size());
+	}
+
+	void pread_disk_io::flush_storage(storage_index_t torrent)
+	{
+		jobqueue_t completed_jobs;
+		m_cache.flush_storage(
+			[&](span<aux::cached_block_entry> blocks) {
+				TORRENT_ASSERT(blocks.size() > 0);
+
+				int count = 0;
+				for (auto& be : blocks)
+				{
+					TORRENT_ASSERT(be.write_job);
+					++count;
+					perform_job(be.write_job, completed_jobs);
+					if (be.write_job->error)
+						break;
+				}
+
+				return count;
+			}
+			, torrent
+			, [&](jobqueue_t aborted_jobs, aux::pread_disk_job* clear_piece) {
+				m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
+				jobqueue_t jobs;
+				jobs.push_back(clear_piece);
+				add_completed_jobs(std::move(jobs));
+			});
+		if (!completed_jobs.empty())
+			add_completed_jobs(std::move(completed_jobs));
 	}
 
 	void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool

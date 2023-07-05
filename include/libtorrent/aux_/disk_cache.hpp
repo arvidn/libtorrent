@@ -25,9 +25,12 @@ see LICENSE file.
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/member.hpp>
+
+#include <boost/functional/hash.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -57,10 +60,18 @@ struct piece_location
 	}
 };
 
+inline size_t hash_value(piece_location const& l)
+{
+	std::size_t ret = 0;
+	boost::hash_combine(ret, std::hash<storage_index_t>{}(l.torrent));
+	boost::hash_combine(ret, std::hash<piece_index_t>{}(l.piece));
+	return ret;
+}
+
 struct cached_block_entry
 {
 	// TODO: make this a function that first looks at the job, then the
-	// buf_holde
+	// buf_holder
 	char* buf = nullptr;
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
@@ -159,7 +170,7 @@ struct compare_storage
 	}
 };
 
-bool have_buffers(span<const cached_block_entry> blocks)
+static bool have_buffers(span<const cached_block_entry> blocks)
 {
 	for (auto const& b : blocks)
 		if (b.buf == nullptr) return false;
@@ -171,14 +182,16 @@ struct disk_cache
 	using piece_container = mi::multi_index_container<
 		cached_piece_entry,
 		mi::indexed_by<
-		// look up pieces by (torrent, piece-index) key
+		// look up ranges of pieces by (torrent, piece-index)
 		mi::ordered_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>,
 		// ordered by the number of contiguous blocks we can flush without
 		// read-back. large numbers are ordered first
 		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, int, &cached_piece_entry::cheap_to_flush>, std::greater<void>>,
 		// ordered by whether the piece is ready to be flushed or not
 		// true is ordered before false
-		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::ready_to_flush>, std::greater<void>>
+		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::ready_to_flush>, std::greater<void>>,
+		// hash-table lookup of individual pieces. faster than index 0
+		mi::hashed_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>
 		>
 	>;
 
@@ -471,6 +484,7 @@ keep_going:
 		// TODO: refactor this to avoid so much duplicated code
 
 		// first we look for pieces that are ready to be flushed and should be
+		// updating
 		auto& view = m_pieces.template get<2>();
 		for (auto piece_iter = view.begin(); piece_iter != view.end();)
 		{
@@ -493,6 +507,8 @@ keep_going:
 				break;
 
 //#error we need to avoid flushing storages that have a fence raised. Maybe the cache should replace some capacity of disk_job_fence
+			// maybe this storage doesn't need to support fence operations
+			// (other than syncing a piece whose hash failed)
 
 			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 			int const num_blocks = piece_iter->blocks_in_piece;
@@ -539,7 +555,11 @@ keep_going:
 				return;
 
 			if (piece_iter->piece_hash_returned)
+			{
+				TORRENT_ASSERT(!piece_iter->flushing);
+				TORRENT_ASSERT(!piece_iter->hashing);
 				piece_iter = view.erase(piece_iter);
+			}
 			else
 				++piece_iter;
 		}
@@ -584,6 +604,8 @@ keep_going:
 					l.lock();
 					view2.modify(piece_iter, [&](cached_piece_entry& e) {
 						e.flushing = false;
+						// This is not OK. This modifies the view we're
+						// iterating over
 						e.flushed_cursor += count;
 					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
@@ -591,7 +613,6 @@ keep_going:
 				});
 				if (!blocks.empty())
 					count = f(blocks);
-
 			}
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
@@ -698,23 +719,35 @@ keep_going:
 
 		INVARIANT_CHECK;
 
-		auto& view = m_pieces.template get<0>();
-		auto const [begin, end] = view.equal_range(storage, compare_storage());
+		auto& range_view = m_pieces.template get<0>();
+		auto& piece_view = m_pieces.template get<3>();
+		auto const [begin, end] = range_view.equal_range(storage, compare_storage());
 
-		for (auto piece_iter = begin; piece_iter != end; ++piece_iter)
+		std::vector<piece_index_t> pieces;
+		for (auto i = begin; i != end; ++i)
+			pieces.push_back(i->piece.piece);
+
+		for (auto piece : pieces)
 		{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			INVARIANT_CHECK;
 #endif
-
-			if (piece_iter->flushing)
-			{
-				++piece_iter;
+			auto piece_iter = piece_view.find(piece_location{storage, piece});
+			if (piece_iter == piece_view.end())
 				continue;
-			}
+
+			// There's a risk that some other thread is flushing this piece, but
+			// won't force-flush it completely. In that case parts of the piece
+			// may not be flushed
+			// TODO: maybe we should track these pieces and synchronize with
+			// them later. maybe wait for them to be flushed or hang our job on
+			// them, but that would really only work if there's only one piece
+			// left
+			if (piece_iter->flushing)
+				continue;
 
 			TORRENT_ALLOCA(blocks, cached_block_entry, piece_iter->blocks_in_piece);
-			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			piece_view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 			int num_blocks = 0;
 			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
 			{
@@ -733,7 +766,7 @@ keep_going:
 			{
 				auto se = scope_end([&] {
 					l.lock();
-					view.modify(piece_iter, [&](cached_piece_entry& e) {
+					piece_view.modify(piece_iter, [&](cached_piece_entry& e) {
 						e.flushing = false;
 						e.flushed_cursor += count;
 					});
@@ -768,9 +801,11 @@ keep_going:
 			}
 
 			if (piece_iter->piece_hash_returned)
-				piece_iter = view.erase(piece_iter);
-			else
-				++piece_iter;
+			{
+				TORRENT_ASSERT(!piece_iter->flushing);
+				TORRENT_ASSERT(!piece_iter->hashing);
+				piece_iter = piece_view.erase(piece_iter);
+			}
 		}
 	}
 
