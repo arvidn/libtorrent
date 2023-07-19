@@ -9,6 +9,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
+#include "settings.hpp" // for settings()
 
 #include "libtorrent/flags.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -77,7 +78,7 @@ lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const 
 		atp.ti.reset();
 	}
 
-	lt::session_params p;
+	lt::session_params p = settings();
 	p.settings.set_int(lt::settings_pack::alert_mask, lt::alert_category::error | lt::alert_category::status);
 	p.settings.set_str(lt::settings_pack::listen_interfaces, "127.0.0.1:6881");
 	lt::session ses(p);

@@ -216,6 +216,39 @@ struct disk_cache
 		return false;
 	}
 
+	template <typename Fun>
+	sha256_hash hash2(piece_location const loc, int const block_idx, Fun f) const
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		auto& view = m_pieces.template get<0>();
+		auto i = view.find(loc);
+		if (i != view.end())
+		{
+			if (i->hashing)
+			{
+				// TODO: it would probably be more efficient to wait here
+				l.unlock();
+				return f();
+			}
+			auto const& cbe = i->blocks[block_idx];
+			if (i->hasher_cursor > block_idx)
+				return cbe.block_hash;
+			if (cbe.buf)
+			{
+				hasher256 h;
+				// TODO: support smaller last block
+				std::ptrdiff_t const block_size = default_block_size;
+				h.update( { cbe.buf, block_size });
+				return h.final();
+			}
+		}
+		l.unlock();
+		return f();
+	}
+
 	// returns false if the piece is not in the cache
 	template <typename Fun>
 	bool hash_piece(piece_location const loc, Fun f)
