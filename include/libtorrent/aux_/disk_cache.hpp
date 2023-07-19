@@ -319,22 +319,26 @@ struct disk_cache
 		return true;
 	}
 
-/*
 	template <typename Fun>
-	int get2(piece_location const loc1, piece_location const loc2, Fun f) const
+	int get2(piece_location const loc, int const block_idx, Fun f) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		auto const it1 = m_store_buffer.find(loc1);
-		auto const it2 = m_store_buffer.find(loc2);
-		char const* buf1 = (it1 == m_store_buffer.end()) ? nullptr : it1->second;
-		char const* buf2 = (it2 == m_store_buffer.end()) ? nullptr : it2->second;
+
+		INVARIANT_CHECK;
+
+		auto& view = m_pieces.template get<0>();
+		auto i = view.find(loc);
+		if (i == view.end()) return 0;
+
+		char const* buf1 = i->blocks[block_idx].buf;
+		char const* buf2 = i->blocks[block_idx + 1].buf;
 
 		if (buf1 == nullptr && buf2 == nullptr)
 			return 0;
 
 		return f(buf1, buf2);
 	}
-*/
+
 	void insert(piece_location const loc, int const block_idx, pread_disk_job* write_job)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);

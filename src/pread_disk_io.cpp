@@ -527,27 +527,25 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		// this is the offset into the block that we're reading from
 		int const read_offset = r.start - block_offset;
 
-		//DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
-		//	, block_offset / default_block_size, read_offset);
+		DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
+			, block_offset / default_block_size, read_offset);
 
 		disk_buffer_holder buffer;
 
 		// TODO: query the block cache
-/*
 		if (read_offset + r.length > default_block_size)
 		{
 			// This is an unaligned request spanning two blocks. One of the two
-			// blocks may be in the store buffer, or neither.
-			// If neither is in the store buffer, we can just issue a normal
+			// blocks may be in the cache, or neither.
+			// If neither is in the cache, we can just issue a normal
 			// read job for the unaligned request.
 
-			aux::torrent_location const loc1{storage, r.piece, block_offset};
-			aux::torrent_location const loc2{storage, r.piece, block_offset + default_block_size};
+			aux::piece_location const loc{storage, r.piece};
 			std::ptrdiff_t const len1 = default_block_size - read_offset;
 
 			TORRENT_ASSERT(r.length > len1);
 
-			int const ret = m_cache.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
+			int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool
 					, m_buffer_pool.allocate_buffer("send buffer")
@@ -595,12 +593,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				return;
 			}
 
-			// if we couldn't find any block in the store buffer, just post it
+			// if we couldn't find any block in the cache, fall through and post it
 			// as a normal read job
 		}
 		else
-*/
 		{
+			// this is an aligned read request for one block
 			if (m_cache.get({ storage, r.piece }, block_idx, [&](char const* buf)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
@@ -720,7 +718,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			sha256_hash{}
 		);
 
-		// TODO: this may need to be attached to the cached_piece_entry
 		add_job(j);
 	}
 
@@ -1160,13 +1157,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		return status_t{};
 	}
 
-	// this job won't return until all outstanding jobs on this
-	// piece are completed or cancelled and the buffers for it
-	// have been evicted
 	status_t pread_disk_io::do_job(aux::job::clear_piece&, aux::pread_disk_job*)
 	{
-		// there's nothing to do here, by the time this is called the jobs for
-		// this storage has been completed since this is a fence job
+		TORRENT_ASSERT_FAIL();
 		return {};
 	}
 
