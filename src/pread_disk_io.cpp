@@ -180,7 +180,7 @@ private:
 
 	void try_flush_cache(int const target_cache_size
 		, std::unique_lock<std::mutex>& l);
-	void flush_storage(storage_index_t torrent);
+	void flush_storage(std::shared_ptr<aux::pread_storage> const& storage);
 
 	int flush_cache_blocks(span<aux::cached_block_entry> blocks
 		, jobqueue_t& completed_jobs);
@@ -998,6 +998,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
+		flush_storage(j->storage);
 
 		// if files have to be closed, that's the storage's responsibility
 		auto const [ret, p] = j->storage->move_storage(std::move(a.path), a.move_flags, j->error);
@@ -1010,8 +1011,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-		storage_index_t const torrent = j->storage->storage_index();
-		flush_storage(torrent);
+		flush_storage(j->storage);
 		j->storage->release_files(j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1022,6 +1022,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
+
+		// TODO: maybe we don't need to write to files we're about to delete
+		flush_storage(j->storage);
+
 		j->storage->delete_files(a.flags, j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1030,7 +1034,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-
+		flush_storage(j->storage);
 		add_torrent_params const* rd = a.resume_data;
 		add_torrent_params tmp;
 		if (rd == nullptr) rd = &tmp;
@@ -1094,8 +1098,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-		storage_index_t const torrent = j->storage->storage_index();
-		flush_storage(torrent);
+		flush_storage(j->storage);
 		j->storage->release_files(j->error);
 		return j->error ? disk_status::fatal_disk_error : status_t{};
 	}
@@ -1150,7 +1153,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(j->storage);
 		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->get_type()));
 
-		int ret = j->storage->raise_fence(j, m_stats_counters);
+		int const ret = j->storage->raise_fence(j, m_stats_counters);
 		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
@@ -1370,8 +1373,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			add_completed_jobs(std::move(completed_jobs));
 	}
 
-	void pread_disk_io::flush_storage(storage_index_t torrent)
+	void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& storage)
 	{
+		storage_index_t const torrent = storage->storage_index();
 		jobqueue_t completed_jobs;
 		m_cache.flush_storage(
 			[&](span<aux::cached_block_entry> blocks) {

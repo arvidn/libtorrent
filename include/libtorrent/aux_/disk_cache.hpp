@@ -542,10 +542,6 @@ keep_going:
 			if (!piece_iter->ready_to_flush)
 				break;
 
-//#error we need to avoid flushing storages that have a fence raised. Maybe the cache should replace some capacity of disk_job_fence
-			// maybe this storage doesn't need to support fence operations
-			// (other than syncing a piece whose hash failed)
-
 			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 			int const num_blocks = piece_iter->blocks_in_piece;
 			m_flushing_blocks += num_blocks;
