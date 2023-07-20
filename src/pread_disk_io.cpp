@@ -625,7 +625,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		);
 
 		DLOG("async_write: piece: %d offset: %d\n", int(r.piece), int(r.start));
-		m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
+		bool const need_kick = m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
+
+		if (need_kick)
+		{
+#error allocate kick_hasher job. maybe this should not be a job queue, but a priority queue
+			m_hash_threads.push_back(khj);
+		}
 
 		if (!m_flush_target)
 		{

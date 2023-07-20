@@ -332,7 +332,8 @@ struct disk_cache
 		return f(buf1, buf2);
 	}
 
-	void insert(piece_location const loc, int const block_idx, pread_disk_job* write_job)
+	// returns true if this piece needs to have its hasher kicked
+	bool insert(piece_location const loc, int const block_idx, pread_disk_job* write_job)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -363,10 +364,7 @@ struct disk_cache
 		}
 		++m_blocks;
 
-		if (block_idx == 0 ||i->hasher_cursor == block_idx - 1)
-		{
-			// TODO: trigger hash job
-		}
+		return block_idx == 0 || i->hasher_cursor == block_idx - 1;
 	}
 
 	enum hash_result: std::uint8_t
@@ -427,7 +425,8 @@ struct disk_cache
 	}
 
 	// this should be called from a hasher thread
-	// #error this is not hooked up
+	// #error this is not hooked up. we need a new job type to post to the
+	// hasher_threads
 	void kick_hasher(piece_location const& loc, jobqueue_t& completed_jobs)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
