@@ -150,6 +150,7 @@ int run_test(test_case const& t)
 	lt::settings_pack pack;
 	pack.set_int(lt::settings_pack::aio_threads, t.num_threads);
 	pack.set_int(lt::settings_pack::file_pool_size, t.file_pool_size);
+	pack.set_int(lt::settings_pack::max_queued_disk_bytes, t.queue_size * lt::default_block_size);
 
 	std::unique_ptr<lt::disk_interface> disk_io
 		= lt::default_disk_io_constructor(ioc, pack, cnt);

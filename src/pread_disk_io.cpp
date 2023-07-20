@@ -1254,6 +1254,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		aux::open_mode_t const file_mode = file_mode_for_job(cbe.write_job);
 		piece_index_t const piece = std::get<aux::job::write>(cbe.write_job->action).piece;
 		auto const flags = cbe.write_job->flags;
+		int offset = std::get<aux::job::write>(cbe.write_job->action).offset;
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
@@ -1263,8 +1264,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		bool failed = false;
 		std::size_t count = 0;
 		std::size_t start_idx = 0;
-		int offset = 0;
-		int start_offset = 0;
+		int start_offset = offset;
 
 		storage_error error;
 		for (auto& be : blocks)
@@ -1278,6 +1278,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 			if (a.offset > offset)
 			{
+				TORRENT_ASSERT(count > 0);
 				storage->write(m_settings, iovec.subspan(count)
 					, piece, start_offset, file_mode, flags, error);
 

@@ -235,23 +235,8 @@ struct disk_cache
 		auto i = view.find(loc);
 		if (i != view.end())
 		{
-			if (i->hashing)
-			{
-				// TODO: it would probably be more efficient to wait here
-				l.unlock();
-				return f();
-			}
 			auto const& cbe = i->blocks[block_idx];
-			if (i->hasher_cursor > block_idx)
-				return cbe.block_hash;
-			if (cbe.buf())
-			{
-				hasher256 h;
-				// TODO: support smaller last block
-				std::ptrdiff_t const block_size = default_block_size;
-				h.update( { cbe.buf(), block_size });
-				return h.final();
-			}
+			if (cbe.buf()) return cbe.block_hash;
 		}
 		l.unlock();
 		return f();
@@ -366,7 +351,16 @@ struct disk_cache
 		cached_block_entry& blk = i->blocks[block_idx];
 		TORRENT_ASSERT(!blk.buf_holder);
 		TORRENT_ASSERT(blk.write_job == nullptr);
+
+		TORRENT_ASSERT(std::get_if<aux::job::write>(&write_job->action) != nullptr);
 		blk.write_job = write_job;
+		if (i->v2_hashes)
+		{
+			// TODO: support the end piece, with smaller block size
+			// and torrents with small pieces
+			int const block_size = default_block_size;
+			blk.block_hash = hasher256(blk.buf(), block_size).final();
+		}
 		++m_blocks;
 
 		if (block_idx == 0 ||i->hasher_cursor == block_idx - 1)
@@ -433,6 +427,7 @@ struct disk_cache
 	}
 
 	// this should be called from a hasher thread
+	// #error this is not hooked up
 	void kick_hasher(piece_location const& loc, jobqueue_t& completed_jobs)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -471,9 +466,6 @@ keep_going:
 
 			// TODO: don't compute sha1 hash for v2-only torrents
 			ctx.update({cbe.buf(), block_size});
-
-			if (need_v2)
-				cbe.block_hash = hasher256(cbe.buf(), block_size).final();
 		}
 
 		l.lock();
@@ -582,9 +574,11 @@ keep_going:
 			m_blocks -= count;
 			for (auto& be : blocks.first(count))
 			{
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.write_job);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
@@ -663,9 +657,11 @@ keep_going:
 			m_blocks -= count;
 			for (auto& be : blocks.first(count))
 			{
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.write_job);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
@@ -707,6 +703,7 @@ keep_going:
 			{
 				auto const& cbe = piece_iter->blocks[blk];
 				if (cbe.write_job == nullptr) continue;
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&cbe.write_job->action) != nullptr);
 				blocks[num_blocks].write_job = cbe.write_job;
 				++num_blocks;
 			}
@@ -735,16 +732,18 @@ keep_going:
 			// make sure to only clear the job pointers for the blocks that were
 			// actually flushed, indicated by "count".
 			int clear_count = count;
-			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), num_blocks))
+			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), piece_iter->blocks_in_piece))
 			{
 				if (clear_count == 0)
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
 			}
+			TORRENT_ASSERT(clear_count == 0);
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -800,6 +799,7 @@ keep_going:
 			{
 				auto const& cbe = piece_iter->blocks[blk];
 				if (cbe.write_job == nullptr) continue;
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&cbe.write_job->action) != nullptr);
 				blocks[num_blocks].write_job = cbe.write_job;
 				++num_blocks;
 			}
@@ -835,6 +835,7 @@ keep_going:
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
+				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
@@ -887,6 +888,10 @@ keep_going:
 			{
 				if (be.write_job) ++dirty_blocks;
 				if (be.buf_holder) ++clean_blocks;
+				// a block holds either a write job or buffer, never both
+				TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
+				if (be.write_job)
+					TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 			}
 		}
 		TORRENT_ASSERT(dirty_blocks == m_blocks);
