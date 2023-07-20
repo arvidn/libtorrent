@@ -70,9 +70,17 @@ inline size_t hash_value(piece_location const& l)
 
 struct cached_block_entry
 {
-	// TODO: make this a function that first looks at the job, then the
-	// buf_holder
-	char* buf = nullptr;
+	char* buf() const {
+		if (buf_holder)
+			return buf_holder.data();
+
+		if (write_job != nullptr)
+		{
+			TORRENT_ASSERT(std::get_if<aux::job::write>(&write_job->action) != nullptr);
+			return std::get<job::write>(write_job->action).buf.data();
+		}
+		return nullptr;
+	}
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
 	// completed as well. The underlying data can be accessed through buf, but
@@ -173,7 +181,7 @@ struct compare_storage
 static bool have_buffers(span<const cached_block_entry> blocks)
 {
 	for (auto const& b : blocks)
-		if (b.buf == nullptr) return false;
+		if (b.buf() == nullptr) return false;
 	return true;
 }
 
@@ -206,11 +214,11 @@ struct disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return false;
 
-		if (i->blocks[block_idx].buf)
+		if (i->blocks[block_idx].buf())
 		{
 			// TODO: it would be nice if this could be called without holding
 			// the mutex. It would require being able to lock the piece
-			f(i->blocks[block_idx].buf);
+			f(i->blocks[block_idx].buf());
 			return true;
 		}
 		return false;
@@ -236,12 +244,12 @@ struct disk_cache
 			auto const& cbe = i->blocks[block_idx];
 			if (i->hasher_cursor > block_idx)
 				return cbe.block_hash;
-			if (cbe.buf)
+			if (cbe.buf())
 			{
 				hasher256 h;
 				// TODO: support smaller last block
 				std::ptrdiff_t const block_size = default_block_size;
-				h.update( { cbe.buf, block_size });
+				h.update( { cbe.buf(), block_size });
 				return h.final();
 			}
 		}
@@ -266,7 +274,7 @@ struct disk_cache
 
 		for (int i = 0; i < piece_iter->blocks_in_piece; ++i)
 		{
-			blocks[i] = piece_iter->blocks[i].buf;
+			blocks[i] = piece_iter->blocks[i].buf();
 			v2_hashes[i] = piece_iter->blocks[i].block_hash;
 		}
 
@@ -330,8 +338,8 @@ struct disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return 0;
 
-		char const* buf1 = i->blocks[block_idx].buf;
-		char const* buf2 = i->blocks[block_idx + 1].buf;
+		char const* buf1 = i->blocks[block_idx].buf();
+		char const* buf2 = i->blocks[block_idx + 1].buf();
 
 		if (buf1 == nullptr && buf2 == nullptr)
 			return 0;
@@ -356,9 +364,8 @@ struct disk_cache
 		}
 
 		cached_block_entry& blk = i->blocks[block_idx];
-		TORRENT_ASSERT(blk.buf == nullptr);
+		TORRENT_ASSERT(!blk.buf_holder);
 		TORRENT_ASSERT(blk.write_job == nullptr);
-		blk.buf = std::get<job::write>(write_job->action).buf.data();
 		blk.write_job = write_job;
 		++m_blocks;
 
@@ -444,7 +451,7 @@ struct disk_cache
 		int cursor = piece_iter->hasher_cursor;
 keep_going:
 		int end = cursor;
-		while (end < piece_iter->blocks_in_piece && piece_iter->blocks[end].buf)
+		while (end < piece_iter->blocks_in_piece && piece_iter->blocks[end].buf())
 			++end;
 
 		hasher& ctx = const_cast<hasher&>(piece_iter->ph);
@@ -463,10 +470,10 @@ keep_going:
 			int const block_size = default_block_size;
 
 			// TODO: don't compute sha1 hash for v2-only torrents
-			ctx.update({cbe.buf, block_size});
+			ctx.update({cbe.buf(), block_size});
 
 			if (need_v2)
-				cbe.block_hash = hasher256(cbe.buf, block_size).final();
+				cbe.block_hash = hasher256(cbe.buf(), block_size).final();
 		}
 
 		l.lock();
@@ -502,7 +509,7 @@ keep_going:
 		else
 		{
 			// if some other thread added the next block, keep going
-			if (piece_iter->blocks[cursor].buf)
+			if (piece_iter->blocks[cursor].buf())
 				goto keep_going;
 		}
 	}
@@ -903,7 +910,6 @@ private:
 				cbe.write_job = nullptr;
 				--m_blocks;
 			}
-			cbe.buf = nullptr;
 			cbe.buf_holder.reset();
 		}
 	}
