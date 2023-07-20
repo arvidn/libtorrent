@@ -473,10 +473,26 @@ namespace {
 	}
 
 	int pread_storage::write(settings_interface const& sett
+		, span<span<char> const> buffers
+		, piece_index_t const piece, int offset
+		, open_mode_t const mode
+		, disk_job_flags_t const flags
+		, storage_error& error)
+	{
+		for (auto const& buf : buffers)
+		{
+			write(sett, buf, piece, offset, mode, flags, error);
+			offset += buf.size();
+			if (error) return offset;
+		}
+		return offset;
+	}
+
+	int pread_storage::write(settings_interface const& sett
 		, span<char> buffer
 		, piece_index_t const piece, int const offset
 		, open_mode_t const mode
-		, disk_job_flags_t const
+		, disk_job_flags_t
 		, storage_error& error)
 	{
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);

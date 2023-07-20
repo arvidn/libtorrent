@@ -465,6 +465,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 	status_t pread_disk_io::do_job(aux::job::write& a, aux::pread_disk_job* j)
 	{
+		TORRENT_ASSERT_FAIL();
+/*
 		time_point const start_time = clock_type::now();
 		auto buffer = std::move(a.buf);
 
@@ -497,6 +499,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		return ret != a.buffer_size
 			? disk_status::fatal_disk_error : status_t{};
+*/
+		return status_t{};
 	}
 
 	void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
@@ -532,7 +536,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		disk_buffer_holder buffer;
 
-		// TODO: query the block cache
 		if (read_offset + r.length > default_block_size)
 		{
 			// This is an unaligned request spanning two blocks. One of the two
@@ -1280,51 +1283,96 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		TORRENT_ASSERT(blocks.size() > 0);
 
-		std::shared_ptr<aux::pread_storage> storage = blocks[0].write_job->storage;
+		auto const& cbe = blocks.front();
+		std::shared_ptr<aux::pread_storage> storage = cbe.write_job->storage;
+		aux::open_mode_t const file_mode = file_mode_for_job(cbe.write_job);
+		piece_index_t const piece = std::get<aux::job::write>(cbe.write_job->action).piece;
+		auto const flags = cbe.write_job->flags;
+
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 		time_point const start_time = clock_type::now();
-		int count = 0;
+
+		TORRENT_ALLOCA(iovec, span<char>, blocks.size());
 		bool failed = false;
+		std::size_t count = 0;
+		std::size_t start_idx = 0;
+		int offset = 0;
+		int start_offset = 0;
+
+		storage_error error;
 		for (auto& be : blocks)
 		{
 			auto* j = be.write_job;
 			TORRENT_ASSERT(j);
-			++count;
-
+			TORRENT_ASSERT(j->storage == storage);
+			TORRENT_ASSERT(std::get_if<aux::job::write>(&j->action) != nullptr);
 			auto& a = std::get<aux::job::write>(j->action);
-			// TODO: build a longer span of contiguous blocks
-			span<char> const b = { a.buf.data(), a.buffer_size};
-			aux::open_mode_t const file_mode = file_mode_for_job(j);
+			TORRENT_ASSERT(a.piece == piece);
 
-			translate_error(j, [&] {
-				int const ret = j->storage->write(m_settings, b
-					, a.piece, a.offset, file_mode, j->flags, j->error);
-				return ret != a.buffer_size ? disk_status::fatal_disk_error : status_t{};
-				});
-
-			completed_jobs.push_back(j);
-			if (j->error)
+			if (a.offset > offset)
 			{
-				failed = true;
-				break;
+				storage->write(m_settings, iovec.subspan(count)
+					, piece, start_offset, file_mode, flags, error);
+
+				start_offset = a.offset;
+				start_idx = count;
+				count = 0;
+
+				for (std::size_t i = start_idx ; i < start_idx + count; ++i)
+				{
+					auto* j2 = be.write_job;
+					j2->error = error;
+					completed_jobs.push_back(j2);
+				}
+
+				if (error) {
+					// if there was a failure, fail the remaining jobs as well
+					for (std::size_t i = start_idx + count; i < blocks.size(); ++i)
+					{
+						auto* j2 = be.write_job;
+						j2->error = error;
+						completed_jobs.push_back(j2);
+					}
+					failed = true;
+					break;
+				}
 			}
+
+			iovec[count] = span<char>{ a.buf.data(), a.buffer_size};
+			++count;
+			offset = a.offset + a.buffer_size;
+		}
+
+		if (count > 0)
+		{
+			storage->write(m_settings, iovec.subspan(count)
+				, piece, start_offset, file_mode, flags, error);
+
+			for (std::size_t i = start_idx; i < blocks.size(); ++i)
+			{
+				auto* j = blocks[i].write_job;
+				j->error = error;
+				completed_jobs.push_back(j);
+			}
+			if (error) failed = true;
 		}
 
 		if (!failed)
 		{
 			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 
-			m_stats_counters.inc_stats_counter(counters::num_blocks_written, count);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_written, blocks.size());
 			m_stats_counters.inc_stats_counter(counters::num_write_ops);
 			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
+		// TODO: put this in an RAII object
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
-		return count;
+		return blocks.size();
 	}
 
 	void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear)

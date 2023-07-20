@@ -72,6 +72,12 @@ namespace libtorrent::aux {
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags
 			, storage_error&);
+		int write(settings_interface const& sett
+			, span<span<char> const> buffers
+			, piece_index_t const piece, int offset
+			, open_mode_t const mode
+			, disk_job_flags_t const flags
+			, storage_error& error);
 		int hash(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
