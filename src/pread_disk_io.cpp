@@ -466,40 +466,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	status_t pread_disk_io::do_job(aux::job::write& a, aux::pread_disk_job* j)
 	{
 		TORRENT_ASSERT_FAIL();
-/*
-		time_point const start_time = clock_type::now();
-		auto buffer = std::move(a.buf);
-
-		span<char> const b = { buffer.data(), a.buffer_size};
-		aux::open_mode_t const file_mode = file_mode_for_job(j);
-
-		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
-
-		// the actual write operation
-		int const ret = j->storage->write(m_settings, b
-			, a.piece, a.offset, file_mode, j->flags, j->error);
-
-		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
-
-		if (!j->error.ec)
-		{
-			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
-
-			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
-			m_stats_counters.inc_stats_counter(counters::num_write_ops);
-			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
-			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
-		}
-
-		{
-			std::lock_guard<std::mutex> l(m_need_tick_mutex);
-			if (!j->storage->set_need_tick())
-				m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
-		}
-
-		return ret != a.buffer_size
-			? disk_status::fatal_disk_error : status_t{};
-*/
 		return status_t{};
 	}
 
