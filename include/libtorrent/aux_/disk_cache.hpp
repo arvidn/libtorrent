@@ -235,8 +235,28 @@ struct disk_cache
 		auto i = view.find(loc);
 		if (i != view.end())
 		{
+			if (i->hashing)
+			{
+				// TODO: it would probably be more efficient to wait here.
+				// #error we should hang the hash job onto the piece. If there is a
+				// job already, form a queue
+				l.unlock();
+				return f();
+			}
 			auto const& cbe = i->blocks[block_idx];
-			if (cbe.buf()) return cbe.block_hash;
+			// There's nothing stopping the hash threads from hashing the blocks in
+			// parallel. This should not depend on the hasher_cursor. That's a v1
+			// concept
+			if (i->hasher_cursor > block_idx)
+				return cbe.block_hash;
+			if (cbe.buf())
+			{
+				hasher256 h;
+				// TODO: support smaller last block
+				std::ptrdiff_t const block_size = default_block_size;
+				h.update( { cbe.buf(), block_size });
+				return h.final();
+			}
 		}
 		l.unlock();
 		return f();
@@ -355,13 +375,6 @@ struct disk_cache
 
 		TORRENT_ASSERT(std::get_if<aux::job::write>(&write_job->action) != nullptr);
 		blk.write_job = write_job;
-		if (i->v2_hashes)
-		{
-			// TODO: support the end piece, with smaller block size
-			// and torrents with small pieces
-			int const block_size = default_block_size;
-			blk.block_hash = hasher256(blk.buf(), block_size).final();
-		}
 		++m_blocks;
 
 		return block_idx == 0 || i->hasher_cursor == block_idx - 1;
@@ -465,6 +478,9 @@ keep_going:
 
 			// TODO: don't compute sha1 hash for v2-only torrents
 			ctx.update({cbe.buf(), block_size});
+
+			if (need_v2)
+				cbe.block_hash = hasher256(cbe.buf(), block_size).final();
 		}
 
 		l.lock();

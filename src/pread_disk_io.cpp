@@ -693,6 +693,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			sha256_hash{}
 		);
 
+		// TODO: check the disk cache here
+
 		add_job(j);
 	}
 
