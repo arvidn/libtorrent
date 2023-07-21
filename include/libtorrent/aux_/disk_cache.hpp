@@ -76,7 +76,7 @@ struct cached_block_entry
 
 		if (write_job != nullptr)
 		{
-			TORRENT_ASSERT(std::get_if<aux::job::write>(&write_job->action) != nullptr);
+			TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
 			return std::get<job::write>(write_job->action).buf.data();
 		}
 		return nullptr;
@@ -373,7 +373,7 @@ struct disk_cache
 		TORRENT_ASSERT(!blk.buf_holder);
 		TORRENT_ASSERT(blk.write_job == nullptr);
 
-		TORRENT_ASSERT(std::get_if<aux::job::write>(&write_job->action) != nullptr);
+		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
 		blk.write_job = write_job;
 		++m_blocks;
 
@@ -585,11 +585,10 @@ keep_going:
 			m_blocks -= count;
 			for (auto& be : blocks.first(count))
 			{
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
@@ -668,11 +667,10 @@ keep_going:
 			m_blocks -= count;
 			for (auto& be : blocks.first(count))
 			{
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.write_job);
+				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 			}
@@ -714,7 +712,7 @@ keep_going:
 			{
 				auto const& cbe = piece_iter->blocks[blk];
 				if (cbe.write_job == nullptr) continue;
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&cbe.write_job->action) != nullptr);
+				TORRENT_ASSERT(cbe.write_job->get_type() == aux::job_action_t::write);
 				blocks[num_blocks].write_job = cbe.write_job;
 				++num_blocks;
 			}
@@ -749,7 +747,7 @@ keep_going:
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
+				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
@@ -810,7 +808,7 @@ keep_going:
 			{
 				auto const& cbe = piece_iter->blocks[blk];
 				if (cbe.write_job == nullptr) continue;
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&cbe.write_job->action) != nullptr);
+				TORRENT_ASSERT(cbe.write_job->get_type() == aux::job_action_t::write);
 				blocks[num_blocks].write_job = cbe.write_job;
 				++num_blocks;
 			}
@@ -846,7 +844,7 @@ keep_going:
 					break;
 				if (!be.write_job) continue;
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
+				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 				TORRENT_ASSERT(be.buf_holder);
 				be.write_job = nullptr;
 				--clear_count;
@@ -902,7 +900,7 @@ keep_going:
 				// a block holds either a write job or buffer, never both
 				TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
 				if (be.write_job)
-					TORRENT_ASSERT(std::get_if<aux::job::write>(&be.write_job->action) != nullptr);
+					TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 			}
 		}
 		TORRENT_ASSERT(dirty_blocks == m_blocks);

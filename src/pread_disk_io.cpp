@@ -158,6 +158,7 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 	status_t do_job(aux::job::stop_torrent& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::file_priority& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::clear_piece& a, aux::pread_disk_job* j);
+	status_t do_job(aux::job::kick_hasher& a, aux::pread_disk_job* j);
 
 private:
 
@@ -629,7 +630,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		if (need_kick)
 		{
-#error allocate kick_hasher job. maybe this should not be a job queue, but a priority queue
+			aux::pread_disk_job* khj = m_job_pool.allocate_job<aux::job::kick_hasher>(
+				flags,
+				m_torrents[storage]->shared_from_this(),
+				r.piece
+			);
 			m_hash_threads.push_back(khj);
 		}
 
@@ -1143,6 +1148,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		return {};
 	}
 
+	status_t pread_disk_io::do_job(aux::job::kick_hasher& a, aux::pread_disk_job* j)
+	{
+		jobqueue_t jobs;
+		m_cache.kick_hasher({j->storage->storage_index(), a.piece}, jobs);
+		add_completed_jobs(std::move(jobs));
+		return {};
+	}
+
 	void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 	{
 		// if this happens, it means we started to shut down
@@ -1283,7 +1296,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			auto* j = be.write_job;
 			TORRENT_ASSERT(j);
 			TORRENT_ASSERT(j->storage == storage);
-			TORRENT_ASSERT(std::get_if<aux::job::write>(&j->action) != nullptr);
+			TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 			auto& a = std::get<aux::job::write>(j->action);
 			TORRENT_ASSERT(a.piece == piece);
 

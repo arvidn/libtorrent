@@ -93,6 +93,10 @@ inline std::string print_job(aux::disk_job const& j)
 				<< " buf-offset:" << j.buffer_offset << " size:" << j.buffer_size << " )";
 		}
 
+		void operator()(job::kick_hasher const& j) const {
+			m_ss << "kick-hasher( piece:" << j.piece << " )";
+		}
+
 	private:
 		std::stringstream& m_ss;
 	};

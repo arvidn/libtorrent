@@ -67,7 +67,7 @@ namespace libtorrent::aux {
 			m_job_cond.notify_all();
 		}
 
-		// returns true if the thread should exit
+		// returns wait_result::exit_thread if the thread should exit
 		wait_result wait_for_job(std::unique_lock<std::mutex>& l);
 
 		// thread_idle, thread_active, and job_queued are NOT thread safe
