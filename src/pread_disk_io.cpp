@@ -630,12 +630,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 		if (need_kick)
 		{
+			// TODO: if the most recently added job to the hash thread pool is a
+			// kick-hasher job for the same piece, skip this
 			aux::pread_disk_job* khj = m_job_pool.allocate_job<aux::job::kick_hasher>(
 				flags,
 				m_torrents[storage]->shared_from_this(),
 				r.piece
 			);
-			m_hash_threads.push_back(khj);
+			add_job(khj);
 		}
 
 		if (!m_flush_target)
@@ -1273,13 +1275,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		TORRENT_ASSERT(blocks.size() > 0);
 
-		auto const& cbe = blocks.front();
-		std::shared_ptr<aux::pread_storage> storage = cbe.write_job->storage;
-		aux::open_mode_t const file_mode = file_mode_for_job(cbe.write_job);
-		piece_index_t const piece = std::get<aux::job::write>(cbe.write_job->action).piece;
-		auto const flags = cbe.write_job->flags;
-		int offset = std::get<aux::job::write>(cbe.write_job->action).offset;
-
+		// blocks may be sparse. We need to skip any block entry where write_job is null
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 		time_point const start_time = clock_type::now();
@@ -1288,32 +1284,52 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		bool failed = false;
 		std::size_t count = 0;
 		std::size_t start_idx = 0;
-		int start_offset = offset;
+		std::size_t idx = 0;
+
+		// the total number of blocks we ended up flushing to disk
+		int ret = 0;
+
+		// the piece offset of the start of the range of contiguous blocks we're
+		// currently assembling into iovec
+		int start_offset = 0;
+
+		// the offset of the end of the range of contiguous blocks we're currently
+		// assembing
+		int end_offset = 0;
+
+		aux::open_mode_t file_mode;
+		piece_index_t piece = piece_index_t(-1);
+		disk_job_flags_t flags;
+
+		std::shared_ptr<aux::pread_storage> storage;
 
 		storage_error error;
 		for (auto& be : blocks)
 		{
 			auto* j = be.write_job;
-			TORRENT_ASSERT(j);
-			TORRENT_ASSERT(j->storage == storage);
-			TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
-			auto& a = std::get<aux::job::write>(j->action);
-			TORRENT_ASSERT(a.piece == piece);
 
-			if (a.offset > offset)
+			auto const job_offset = [&] {
+				if (j != nullptr)
+					return std::get<aux::job::write>(j->action).offset;
+				else
+					return 0;
+			}();
+
+			if (!storage && j) storage = j->storage;
+			if (count > 0 && (j == nullptr || job_offset > end_offset))
 			{
-				TORRENT_ASSERT(count > 0);
-				storage->write(m_settings, iovec.subspan(count)
+				TORRENT_ASSERT(piece != piece_index_t(-1));
+				storage->write(m_settings, iovec.first(count)
 					, piece, start_offset, file_mode, flags, error);
 
-				start_offset = a.offset;
-				start_idx = count;
-				count = 0;
-
-				for (std::size_t i = start_idx ; i < start_idx + count; ++i)
+				for (aux::cached_block_entry& blk : blocks.subspan(start_idx, count))
 				{
-					auto* j2 = be.write_job;
+					auto* j2 = blk.write_job;
 					j2->error = error;
+					TORRENT_ASSERT(blk.write_job->get_type() == aux::job_action_t::write);
+					blk.buf_holder = std::move(std::get<aux::job::write>(j2->action).buf);
+					TORRENT_ASSERT(blk.buf_holder);
+					blk.write_job = nullptr;
 					completed_jobs.push_back(j2);
 				}
 
@@ -1323,30 +1339,59 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					{
 						auto* j2 = be.write_job;
 						j2->error = error;
+						// TODO: should we free the job's buffer here?
 						completed_jobs.push_back(j2);
 					}
 					failed = true;
 					break;
 				}
+
+				ret += count;
+
+				start_offset = job_offset;
+				start_idx = idx;
+				count = 0;
 			}
+
+			if (j == nullptr)
+			{
+				++idx;
+				start_idx = idx;
+				continue;
+			}
+
+			TORRENT_ASSERT(j->storage == storage);
+			TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
+			auto& a = std::get<aux::job::write>(j->action);
 
 			iovec[count] = span<char>{ a.buf.data(), a.buffer_size};
 			++count;
-			offset = a.offset + a.buffer_size;
+			flags = j->flags;
+			piece = std::get<aux::job::write>(j->action).piece;
+			file_mode = file_mode_for_job(j);
+			end_offset = job_offset + a.buffer_size;
+			++idx;
 		}
 
 		if (count > 0)
 		{
-			storage->write(m_settings, iovec.subspan(count)
+			storage->write(m_settings, iovec.first(count)
 				, piece, start_offset, file_mode, flags, error);
 
-			for (std::size_t i = start_idx; i < blocks.size(); ++i)
+			for (aux::cached_block_entry& blk : blocks.subspan(start_idx, count))
 			{
-				auto* j = blocks[i].write_job;
+				auto* j = blk.write_job;
+				TORRENT_ASSERT(j);
+				TORRENT_ASSERT(blk.write_job->get_type() == aux::job_action_t::write);
 				j->error = error;
+				blk.buf_holder = std::move(std::get<aux::job::write>(j->action).buf);
+				TORRENT_ASSERT(blk.buf_holder);
+				blk.write_job = nullptr;
 				completed_jobs.push_back(j);
 			}
+			// TODO: if we failed, post the remaining block's jobs as failures too
 			if (error) failed = true;
+			else ret += count;
 		}
 
 		if (!failed)
@@ -1363,7 +1408,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
-		return blocks.size();
+		return ret;
 	}
 
 	void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear)
@@ -1436,22 +1481,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		{
 			auto const res = pool.wait_for_job(l);
 
-			if (res == aux::wait_result::exit_thread)
-			{
-				if (&pool != &m_generic_threads)
-					break;
-
-				DLOG("exit disk loop\n");
-				break;
-			}
-
 			// if we need to flush the cache, let one of the generic threads do
 			// that
 			if (m_flush_target && &pool == &m_generic_threads)
 			{
 				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
+				DLOG("try_flush_cache(%d)\n", target_cache_size);
 				try_flush_cache(target_cache_size, l);
 			}
+
+			if (res == aux::wait_result::exit_thread)
+			{
+				DLOG("exit disk loop\n");
+				break;
+			}
+
 			if (res != aux::wait_result::new_job)
 			{
 				DLOG("continue disk loop\n");
@@ -1572,7 +1616,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	{
 		if (m_hash_threads.max_threads() > 0
 			&& (j->get_type() == aux::job_action_t::hash
-				|| j->get_type() == aux::job_action_t::hash2))
+				|| j->get_type() == aux::job_action_t::hash2
+				|| j->get_type() == aux::job_action_t::kick_hasher))
 			return m_hash_threads;
 		else
 			return m_generic_threads;

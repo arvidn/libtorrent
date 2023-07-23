@@ -645,7 +645,8 @@ keep_going:
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
-			span<cached_block_entry> const blocks(piece_iter->blocks.get(), num_blocks);
+			span<cached_block_entry> const blocks(piece_iter->blocks.get()
+				, piece_iter->blocks_in_piece);
 
 			int count = 0;
 			{
@@ -665,9 +666,12 @@ keep_going:
 			}
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
-			for (auto& be : blocks.first(count))
+			int count_down = count;
+			for (auto& be : blocks)
 			{
-				TORRENT_ASSERT(be.write_job);
+				if (!be.write_job) continue;
+				--count_down;
+				if (count_down == 0) break;
 				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 				TORRENT_ASSERT(!be.buf_holder);
 				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
@@ -705,18 +709,9 @@ keep_going:
 
 			view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
 
-			TORRENT_ALLOCA(blocks, cached_block_entry, piece_iter->blocks_in_piece);
-
-			int num_blocks = 0;
-			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
-			{
-				auto const& cbe = piece_iter->blocks[blk];
-				if (cbe.write_job == nullptr) continue;
-				TORRENT_ASSERT(cbe.write_job->get_type() == aux::job_action_t::write);
-				blocks[num_blocks].write_job = cbe.write_job;
-				++num_blocks;
-			}
-			blocks = blocks.first(num_blocks);
+			span<cached_block_entry> const blocks(piece_iter->blocks.get()
+				, piece_iter->blocks_in_piece);
+			int const num_blocks = std::count_if(blocks.begin(), blocks.end(), [](cached_block_entry const& b) { return b.write_job; });
 
 			m_flushing_blocks += num_blocks;
 			// we have to release the lock while flushing, but since we set the
@@ -737,22 +732,6 @@ keep_going:
 			TORRENT_ASSERT(count <= blocks.size());
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
-
-			// make sure to only clear the job pointers for the blocks that were
-			// actually flushed, indicated by "count".
-			int clear_count = count;
-			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), piece_iter->blocks_in_piece))
-			{
-				if (clear_count == 0)
-					break;
-				if (!be.write_job) continue;
-				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
-				TORRENT_ASSERT(be.buf_holder);
-				be.write_job = nullptr;
-				--clear_count;
-			}
-			TORRENT_ASSERT(clear_count == 0);
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -801,19 +780,11 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
-			TORRENT_ALLOCA(blocks, cached_block_entry, piece_iter->blocks_in_piece);
+			span<cached_block_entry> const blocks(piece_iter->blocks.get()
+				, piece_iter->blocks_in_piece);
 			piece_view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
-			int num_blocks = 0;
-			for (int blk = 0; blk < piece_iter->blocks_in_piece; ++blk)
-			{
-				auto const& cbe = piece_iter->blocks[blk];
-				if (cbe.write_job == nullptr) continue;
-				TORRENT_ASSERT(cbe.write_job->get_type() == aux::job_action_t::write);
-				blocks[num_blocks].write_job = cbe.write_job;
-				++num_blocks;
-			}
+			int const num_blocks = std::count_if(blocks.begin(), blocks.end(), [](cached_block_entry const& b) { return b.write_job; });
 			m_flushing_blocks += num_blocks;
-			blocks = blocks.first(num_blocks);
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
@@ -834,21 +805,6 @@ keep_going:
 			}
 			TORRENT_ASSERT(m_blocks >= count);
 			m_blocks -= count;
-
-			// make sure to only clear the job pointers for the blocks that were
-			// actually flushed, indicated by "count".
-			int clear_count = count;
-			for (auto& be : span<cached_block_entry>(piece_iter->blocks.get(), num_blocks))
-			{
-				if (clear_count == 0)
-					break;
-				if (!be.write_job) continue;
-				be.buf_holder = std::move(std::get<job::write>(be.write_job->action).buf);
-				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
-				TORRENT_ASSERT(be.buf_holder);
-				be.write_job = nullptr;
-				--clear_count;
-			}
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
@@ -888,7 +844,16 @@ keep_going:
 			int const num_blocks = piece_entry.blocks_in_piece;
 
 			if (piece_entry.flushing)
+			{
 				flushing_blocks += num_blocks;
+
+				// while another thread is flushing, it owns the cached_block_entry
+				// array, and will be updating the job and buffer pointers as it
+				// goes. We cannot count these (because it would be a data race) and
+				// also because the flushing thread will not have updated m_blocks
+				// yet
+				continue;
+			}
 
 			span<cached_block_entry> const blocks(piece_entry.blocks.get()
 				, num_blocks);
@@ -903,7 +868,12 @@ keep_going:
 					TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 			}
 		}
-		TORRENT_ASSERT(dirty_blocks == m_blocks);
+		// if one or more blocks are being flushed, we cannot know how many blocks
+		// are in flight. We just know the limit
+		if (flushing_blocks > 0)
+			TORRENT_ASSERT(dirty_blocks <= m_blocks);
+		else
+			TORRENT_ASSERT(dirty_blocks == m_blocks);
 		TORRENT_ASSERT(m_flushing_blocks <= flushing_blocks);
 	}
 #endif
