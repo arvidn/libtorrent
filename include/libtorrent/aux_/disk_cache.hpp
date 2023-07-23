@@ -489,8 +489,9 @@ keep_going:
 			e.hashing = false;
 		});
 
-		if (cursor == piece_iter->blocks_in_piece && piece_iter->hash_job)
+		if (cursor == piece_iter->blocks_in_piece)
 		{
+			if (!piece_iter->hash_job) return;
 			pread_disk_job* j = nullptr;
 			view.modify(piece_iter, [&](cached_piece_entry& e) {
 				j = std::exchange(e.hash_job, nullptr);
@@ -512,6 +513,7 @@ keep_going:
 					job.block_hashes[i] = piece_iter->blocks[i].block_hash;
 			}
 			completed_jobs.push_back(j);
+			return;
 		}
 		else
 		{
