@@ -203,6 +203,9 @@ namespace libtorrent { namespace aux {
         if (flags == move_flags_t::reset_save_path)
 			return { status_t::need_full_check, new_save_path };
 
+        if (flags == move_flags_t::reset_save_path_unchecked)
+            return { status_t::no_error, new_save_path };
+
 		// indices of all files we ended up copying. These need to be deleted
 		// later
 		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
