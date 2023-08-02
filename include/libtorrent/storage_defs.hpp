@@ -115,7 +115,11 @@ namespace libtorrent {
 
 		// don't move any source files, just forget about them
 		// and begin checking files at new save path
-		reset_save_path
+		reset_save_path,
+
+		// don't move any source files, just change save path
+		// and continue working without any checks
+		reset_save_path_unchecked
 	};
 
 #if TORRENT_ABI_VERSION == 1
