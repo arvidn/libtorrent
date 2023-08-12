@@ -241,7 +241,7 @@ disconnects_t test_no_interest_timeout(int const num_peers
 }
 
 // if a peer is not interested in us, and we're not interested in it for long
-// enoguh, we disconenct it, but only if we are close to peer connection capacity
+// enough, we disconnect it, but only if we are close to peer connection capacity
 TORRENT_TEST(no_interest_timeout)
 {
 	// with 10 peers, we're close enough to the connection limit to enable

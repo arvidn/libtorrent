@@ -115,7 +115,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
 
 	// in non-anonymous mode we circumvent/ignore the proxy if it fails
-	// wheras in anonymous mode, we just fail
+	// whereas in anonymous mode, we just fail
 	sett.set_str(settings_pack::proxy_hostname, "non-existing.com");
 	sett.set_int(settings_pack::proxy_type, proxy_type);
 	sett.set_bool(settings_pack::proxy_peer_connections, !(flags & dont_proxy_peers));

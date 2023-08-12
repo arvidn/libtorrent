@@ -81,7 +81,7 @@ void generate_block(span<std::uint32_t> buffer, piece_index_t const piece
 // in order to circumvent the restricton of only
 // one connection per IP that most clients implement
 // all sockets created by this tester are bound to
-// uniqe local IPs in the range (127.0.0.1 - 127.255.255.255)
+// unique local IPs in the range (127.0.0.1 - 127.255.255.255)
 // it's only enabled if the target is also on the loopback
 int local_if_counter = 0;
 bool local_bind = false;

@@ -527,7 +527,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	}
 
 #if BOOST_VERSION >= 106600
-	// Compatiblity with the async_wait method introduced in boost 1.66
+	// Compatibility with the async_wait method introduced in boost 1.66
 
 	enum wait_type { wait_read, wait_write, wait_error };
 

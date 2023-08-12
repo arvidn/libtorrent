@@ -218,7 +218,7 @@ namespace aux {
 		// serialized on a per-file basis. See github issue #3842 for details.
 
 		// This array stores a mutex for each file in the storage object
-		// It must be aquired before calling CreateFileMapping or UnmapViewOfFile
+		// It must be acquired before calling CreateFileMapping or UnmapViewOfFile
 		mutable std::shared_ptr<std::mutex> m_file_open_unmap_lock;
 #endif
 

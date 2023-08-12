@@ -224,7 +224,7 @@ std::string to_str(std::vector<char> const& v)
 	return std::string(v.begin(), v.end());
 }
 
-// convert the standard base64 alphabet to the i2p aphabet
+// convert the standard base64 alphabet to the i2p alphabet
 std::string transcode_alphabet(std::string in)
 {
 	std::string ret;

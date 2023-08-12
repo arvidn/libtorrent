@@ -39,7 +39,7 @@ namespace libtorrent { namespace aux {
 	time_point time_now() { return clock_type::now(); }
 	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
 
-	// for simplying implementation
+	// for simplifying implementation
 	using std::chrono::system_clock;
 
 

@@ -152,7 +152,7 @@ namespace libtorrent {
 	// layer that can be verified, and the root_index is the node that needs to
 	// be known in (tree) to do so. The num_valid_leafs specifies how many of
 	// the leafs that are actually *supposed* to be non-zero. Any leafs beyond
-	// thses are padding and expected to be zero.
+	// these are padding and expected to be zero.
 	// The caller must validate the hash at root_index.
 	TORRENT_EXTRA_EXPORT
 	std::tuple<int, int, int> merkle_find_known_subtree(span<sha256_hash const> const tree

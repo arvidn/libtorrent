@@ -127,7 +127,7 @@ public:
 
 	void set_dst_name(std::string const& host)
 	{
-		// if this assert trips, set_dst_name() is called wth an IP address rather
+		// if this assert trips, set_dst_name() is called with an IP address rather
 		// than a hostname. Instead, resolve the IP into an address and pass it to
 		// async_connect instead
 		TORRENT_ASSERT(!aux::is_ip_address(host));

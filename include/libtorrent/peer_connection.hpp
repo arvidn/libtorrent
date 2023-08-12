@@ -659,7 +659,7 @@ namespace aux {
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
-		// a piece for the moment, implementors
+		// a piece for the moment, implementers
 		// must return an object with the piece_index
 		// value invalid (the default constructor).
 		virtual piece_block_progress downloading_piece_progress() const;

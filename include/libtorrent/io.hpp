@@ -49,7 +49,7 @@ namespace aux {
 
 	// reads an integer from a byte stream
 	// in big endian byte order and converts
-	// it to native endianess
+	// it to native endianness
 	template <class T, class InIt>
 	inline T read_impl(InIt& start, type<T>)
 	{

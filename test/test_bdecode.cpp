@@ -1201,7 +1201,7 @@ TORRENT_TEST(non_owning_refs)
 }
 
 // test that a partial parse can be still be printed up to the
-// point where it faild
+// point where it failed
 TORRENT_TEST(partial_parse)
 {
 	char b[] = "d1:ai1e1:b3:foo1:cli1ei2ee1:dd1:xi1-eee";

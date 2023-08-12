@@ -274,7 +274,7 @@ void run_suite(lt::aux::proxy_settings ps)
 	{
 		// this hostname will resolve to multiple IPs, all but one that we cannot
 		// connect to and the second one where we'll get the test file response. Make
-		// sure the http_connection correcly tries the second IP if the first one
+		// sure the http_connection correctly tries the second IP if the first one
 		// fails.
 		run_test(ps, "http://try-next.com:8080/test_file", 1337, 200
 			, error_condition(), { 1, 1, 1});

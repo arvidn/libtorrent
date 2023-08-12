@@ -852,7 +852,7 @@ void test_fastresume(bool const test_deprecated)
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(std::move(p), ec);
 
-		std::printf("expecting fastresume to be rejected becase the files were removed");
+		std::printf("expecting fastresume to be rejected because the files were removed");
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
 			, "ses");
 		// we expect the fast resume to be rejected because the files were removed
@@ -1323,7 +1323,7 @@ TORRENT_TEST(readwrite_zero_size_files)
 template <typename StorageType>
 void test_move_storage_to_self()
 {
-	// call move_storage with the path to the exising storage. should be a no-op
+	// call move_storage with the path to the existing storage. should be a no-op
 	std::string const save_path = current_working_directory();
 	std::string const test_path = complete("temp_storage");
 	delete_dirs(test_path);

@@ -76,7 +76,7 @@ namespace {
 		send_buffer_limit = 0x4000 * 10,
 
 		// this is the max number of requests we'll queue
-		// up. If we get more requests tha this, we'll
+		// up. If we get more requests than this, we'll
 		// start rejecting them, claiming we don't have
 		// metadata. If the torrent is greater than 16 MiB,
 		// we may hit this case (and the client requesting

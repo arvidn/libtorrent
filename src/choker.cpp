@@ -70,7 +70,7 @@ namespace {
 		int const cmp = compare_peers(lhs, rhs);
 		if (cmp != 0) return cmp > 0;
 
-		// when seeding, rotate which peer is unchoked in a round-robin fasion
+		// when seeding, rotate which peer is unchoked in a round-robin fashion
 
 		// the amount uploaded since unchoked (not just in the last round)
 		std::int64_t const u1 = lhs->uploaded_since_unchoked();

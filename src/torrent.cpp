@@ -7205,7 +7205,7 @@ namespace {
 			ret.verified_leaf_hashes.reserve(num_files);
 			for (auto const& t : m_merkle_trees)
 			{
-				// use stuctured binding in C++17
+				// use structured binding in C++17
 				aux::vector<bool> mask;
 				std::vector<sha256_hash> sparse_tree;
 				std::tie(sparse_tree, mask) = t.build_sparse_vector();
@@ -9088,7 +9088,7 @@ namespace {
 	void torrent::set_max_uploads(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// TODO: perhaps 0 should actially mean 0
+		// TODO: perhaps 0 should actually mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (int(m_max_uploads) == limit) return;
 		if (state_update) state_updated();
@@ -9105,7 +9105,7 @@ namespace {
 	void torrent::set_max_connections(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// TODO: perhaps 0 should actially mean 0
+		// TODO: perhaps 0 should actually mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (int(m_max_connections) == limit) return;
 		if (state_update) state_updated();

@@ -125,7 +125,7 @@ struct proxy_base
 	}
 
 #if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
-	// Compatiblity with the async_wait method introduced in boost 1.66
+	// Compatibility with the async_wait method introduced in boost 1.66
 
 	static constexpr auto wait_read = tcp::socket::wait_read;
 	static constexpr auto wait_write = tcp::socket::wait_write;

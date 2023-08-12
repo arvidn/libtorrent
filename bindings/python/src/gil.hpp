@@ -80,7 +80,7 @@ struct visitor : boost::python::def_visitor<visitor<F>>
     F fn;
 };
 
-// Member function adaptor that releases and aqcuires the GIL
+// Member function adaptor that releases and acquires the GIL
 // around the function call.
 template <class F>
 visitor<F> allow_threads(F fn)

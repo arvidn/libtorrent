@@ -478,7 +478,7 @@ struct nat_config : sim::default_config
 
 	sim::route outgoing_route(lt::address ip) override
 	{
-		// This is extremely simplistic. It will simply alter the percieved source
+		// This is extremely simplistic. It will simply alter the perceived source
 		// IP of the connecting client.
 		sim::route r;
 		if (ip == addr("50.0.0.1")) r.append(m_nat_hop);

@@ -1756,7 +1756,7 @@ TORRENT_TEST(unfinished_pieces_check_all)
 
 TORRENT_TEST(unfinished_pieces_finished)
 {
-	// make sure that a piece that isn't maked as "have", but whose blocks are
+	// make sure that a piece that isn't marked as "have", but whose blocks are
 	// all downloaded gets checked and turn into "have".
 	test_unfinished_pieces([](torrent_info const& ti, add_torrent_params& atp)
 	{
@@ -1767,7 +1767,7 @@ TORRENT_TEST(unfinished_pieces_finished)
 
 TORRENT_TEST(unfinished_pieces_all_finished)
 {
-	// make sure that a piece that isn't maked as "have", but whose blocks are
+	// make sure that a piece that isn't marked as "have", but whose blocks are
 	// all downloaded gets checked and turn into "have".
 	test_unfinished_pieces([](torrent_info const& ti, add_torrent_params& atp)
 	{

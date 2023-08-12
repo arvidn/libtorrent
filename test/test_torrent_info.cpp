@@ -1132,7 +1132,7 @@ std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
 		{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
 		{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
 		{"test/TeMPorArY.txT", 0x4000, {}, "test/TeMPorArY.2.txT"},
-		// a file with the same name in a seprate directory is fine
+		// a file with the same name in a separate directory is fine
 		{"test/test/TEMPORARY.TXT", 0x4000, {}, "test/test/TEMPORARY.TXT"},
 	},
 	{
