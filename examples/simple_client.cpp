@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) try
 	lt::session_params params;
 	auto& settings = params.settings;
 
+	settings = lt::high_performance_seed();
 	settings.set_int(settings_pack::cache_size, -1);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 	settings.set_bool(lt::setting_by_name("enable_outgoing_utp"), false);
@@ -80,6 +81,10 @@ int main(int argc, char* argv[]) try
 	settings.set_bool(lt::setting_by_name("enable_outgoing_tcp"), true);
 	settings.set_bool(lt::setting_by_name("enable_ingoing_tcp"), true);
 	settings.set_bool(lt::setting_by_name("enable_dht"), false);
+	settings.set_int(lt::settings_pack::max_allowed_in_request_queue, 20000);
+    settings.set_int(lt::settings_pack::max_out_request_queue, 20000);
+	settings.set_bool(lt::settings_pack::smooth_connects, false);
+	settings.set_bool(lt::settings_pack::auto_sequential, false);
 
 	settings.set_int(settings_pack::alert_mask
 		, lt::alert_category::error

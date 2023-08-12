@@ -1223,6 +1223,10 @@ examples:
 		| lt::alert_category::ip_block
 		| lt::alert_category::performance_warning
 		| lt::alert_category::dht
+		| lt::alert_category::stats
+		| lt::alert_category::session_log
+		| lt::alert_category::torrent_log
+		| lt::alert_category::peer_log
 		| lt::alert_category::incoming_request
 		| lt::alert_category::dht_operation
 		| lt::alert_category::port_mapping_log
