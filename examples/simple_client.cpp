@@ -31,32 +31,85 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdlib>
+
+#include "print.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/settings_pack.hpp"
+
+using namespace libtorrent;
 
 #include <iostream>
 
+char const* timestamp()
+{
+	time_t t = std::time(nullptr);
+	tm* timeinfo = std::localtime(&t);
+	static char str[200];
+	std::strftime(str, 200, "%b %d %X", timeinfo);
+	return str;
+}
+
+void pop_alerts(lt::session& ses)
+{
+	std::vector<lt::alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (auto a : alerts)
+	{
+		std::cout << timestamp() << " " << a->message() << std::endl;
+	}
+}
+
 int main(int argc, char* argv[]) try
 {
-	if (argc != 2) {
-		std::cerr << "usage: ./simple_client torrent-file\n"
-			"to stop the client, press return.\n";
+	if (argc != 3) {
+		std::cerr << "usage: ./simple_client <save path> <torrent seed file>\n";
 		return 1;
 	}
 
-	lt::session s;
-	lt::add_torrent_params p;
-	p.save_path = ".";
-	p.ti = std::make_shared<lt::torrent_info>(argv[1]);
-	s.add_torrent(p);
+	lt::session_params params;
+	auto& settings = params.settings;
 
-	// wait for the user to end
-	char a;
-	int ret = std::scanf("%c\n", &a);
-	(void)ret; // ignore
-	return 0;
+	settings.set_int(settings_pack::cache_size, -1);
+	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
+	settings.set_bool(lt::setting_by_name("enable_outgoing_utp"), false);
+	settings.set_bool(lt::setting_by_name("enable_ingoing_utp"), false);
+	settings.set_bool(lt::setting_by_name("enable_outgoing_tcp"), true);
+	settings.set_bool(lt::setting_by_name("enable_ingoing_tcp"), true);
+	settings.set_bool(lt::setting_by_name("enable_dht"), false);
+
+	settings.set_int(settings_pack::alert_mask
+		, lt::alert_category::error
+		| lt::alert_category::peer
+		| lt::alert_category::port_mapping
+		| lt::alert_category::storage
+		| lt::alert_category::tracker
+		| lt::alert_category::connect
+		| lt::alert_category::status
+		| lt::alert_category::ip_block
+		| lt::alert_category::performance_warning
+		| lt::alert_category::dht
+		| lt::alert_category::incoming_request
+		| lt::alert_category::dht_operation
+		| lt::alert_category::port_mapping_log
+		| lt::alert_category::file_progress);
+
+
+	lt::session ses(std::move(params));
+	lt::add_torrent_params p;
+	p.save_path = argv[1];
+	p.ti = std::make_shared<lt::torrent_info>(argv[2]);
+	auto handle = ses.add_torrent(p);
+
+	while (!handle.is_finished())
+	{
+		libtorrent::alert const* a = ses.wait_for_alert(std::chrono::seconds(2));
+		if (a == nullptr) continue;
+		pop_alerts(ses);
+	}
 }
 catch (std::exception const& e) {
 	std::cerr << "ERROR: " << e.what() << "\n";
