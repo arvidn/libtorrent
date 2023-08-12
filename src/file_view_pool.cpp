@@ -277,7 +277,7 @@ namespace libtorrent { namespace aux {
 		}
 		catch (storage_error& se)
 		{
-			// opening the file failed. If it was becase the directory was
+			// opening the file failed. If it was because the directory was
 			// missing, create it and try again. Otherwise, propagate the
 			// error
 			if (!(m & open_mode::write)

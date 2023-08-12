@@ -644,7 +644,7 @@ TORRENT_TEST(tracker_proxy)
 namespace {
 void test_stop_tracker_timeout(int const timeout)
 {
-	// trick the min interval so that the stopped anounce is permitted immediately
+	// trick the min interval so that the stopped announce is permitted immediately
 	// after the initial announce
 	int port = start_web_server(false, false, true, -1);
 

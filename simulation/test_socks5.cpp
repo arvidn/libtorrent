@@ -299,7 +299,7 @@ TORRENT_TEST(socks5_udp_retry)
 	lt::session_proxy zombie;
 
 	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50") };
-	// close UDP associate connectons prematurely
+	// close UDP associate connections prematurely
 	sim::socks_server socks5(proxy_ios, 5555, 5, socks_flag::disconnect_udp_associate);
 
 	lt::settings_pack pack = settings();

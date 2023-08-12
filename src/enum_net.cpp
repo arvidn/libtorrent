@@ -299,7 +299,7 @@ namespace {
 		if (::send(sock, request_msg, request_msg->nlmsg_len, 0) < 0)
 			return -1;
 
-		// get the socket's port ID so that we can verify it in the repsonse
+		// get the socket's port ID so that we can verify it in the response
 		sockaddr_nl sock_addr;
 		socklen_t sock_addr_len = sizeof(sock_addr);
 		if (::getsockname(sock, reinterpret_cast<sockaddr*>(&sock_addr), &sock_addr_len) < 0)

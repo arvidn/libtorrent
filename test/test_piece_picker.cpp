@@ -437,7 +437,7 @@ TORRENT_TEST(get_downloaders)
 	}
 
 	// if we ask for downloaders for a piece that's not
-	// curently being downloaded, we get zeroes back
+	// currently being downloaded, we get zeroes back
 	{
 		std::vector<torrent_peer*> d = p->get_downloaders(1_piece);
 
@@ -1281,7 +1281,7 @@ TORRENT_TEST(picking_downloading_blocks)
 	// don't pick both busy pieces, if there are already other blocks picked
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 2);
 
-	// make sure we still pick from a partial piece even when prefering whole pieces
+	// make sure we still pick from a partial piece even when preferring whole pieces
 	picked.clear();
 	p->pick_pieces(string2vec(" *     "), picked, 1, blocks_per_piece, nullptr
 		, piece_picker::rarest_first
@@ -1575,7 +1575,7 @@ TORRENT_TEST(bitfield_optimization)
 
 TORRENT_TEST(seed_optimization)
 {
-	// test seed optimizaton
+	// test seed optimization
 	auto p = setup_picker("0000000000000000", "                ", "", "");
 
 	// make sure it's not dirty
@@ -2717,7 +2717,7 @@ TORRENT_TEST(piece_extent_affinity_large_pieces)
 TORRENT_TEST(piece_extent_affinity_active_limit)
 {
 	// an extent is two pieces wide, 6 extents total.
-	// make ure we limit the number of extents to 5
+	// make sure we limit the number of extents to 5
 	int const blocks = 128;
 	auto const have_none = "            ";
 

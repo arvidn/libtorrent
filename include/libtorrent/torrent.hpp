@@ -1023,7 +1023,7 @@ namespace libtorrent {
 		// piece_failed is called when a piece fails the hash check
 		// for failures detected with v2 hashes the failing blocks(s)
 		// are specified in blocks
-		// *blocks must be sorted in acending order*
+		// *blocks must be sorted in ascending order*
 		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
 
 		// the peers in "peers" participated in sending a bad piece. If
@@ -1436,7 +1436,7 @@ namespace libtorrent {
 		// peers. This vector is ordered, to make lookups fast.
 
 		// TODO: 3 factor out predictive pieces and all operations on it into a
-		// separate class (to use as memeber here instead)
+		// separate class (to use as member here instead)
 		std::vector<piece_index_t> m_predictive_pieces;
 #endif
 

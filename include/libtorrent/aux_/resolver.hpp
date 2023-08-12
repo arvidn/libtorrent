@@ -99,7 +99,7 @@ private:
 	time_duration m_timeout;
 
 	// the callbacks to call when a host resolution completes. This allows to
-	// attach more callbacks if the same host is looked up mutliple times
+	// attach more callbacks if the same host is looked up multiple times
 	std::multimap<std::string, resolver_interface::callback_t> m_callbacks;
 };
 

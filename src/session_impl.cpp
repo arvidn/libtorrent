@@ -2613,7 +2613,7 @@ namespace {
 				span<char const> const buf = packet.data;
 				if (!packet.hostname.empty())
 				{
-					// only the tracker manager supports receiveing UDP packets
+					// only the tracker manager supports receiving UDP packets
 					// from hostnames. If it won't handle it, no one else will
 					// either
 					m_tracker_manager.incoming_packet(packet.hostname, buf);
@@ -3736,7 +3736,7 @@ namespace {
 					// has reached its local limit
 					for (auto const& t : m_torrents)
 					{
-						// ths disconnect logic is disabled for torrents with
+						// this disconnect logic is disabled for torrents with
 						// too low connection limit
 						int const max = std::min(t->max_connections()
 							, std::numeric_limits<int>::max() / 100);

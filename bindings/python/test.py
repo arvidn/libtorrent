@@ -208,7 +208,7 @@ class test_torrent_handle(unittest.TestCase):
         self.assertEqual(new_trackers[1]['fail_limit'], 2)
 
     def test_pickle_trackers(self):
-        """Test lt objects convertors are working and trackers can be pickled"""
+        """Test lt objects converters are working and trackers can be pickled"""
         self.setup()
         tracker = lt.announce_entry('udp://tracker1.com')
         tracker.tier = 0

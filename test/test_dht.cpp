@@ -305,7 +305,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	{
 		if (i == g_sent_packets.end())
 		{
-			TEST_ERROR("not response from DHT node");
+			TEST_ERROR("no response from DHT node");
 			return;
 		}
 
@@ -3215,7 +3215,7 @@ TORRENT_TEST(read_only_node)
 	sett.set_bool(settings_pack::dht_read_only, false);
 
 	send_dht_request(node, "get", source, &response);
-	// sender should be added to repacement bucket
+	// sender should be added to replacement bucket
 	TEST_EQUAL(std::get<1>(node.size()), 1);
 
 	g_sent_packets.clear();

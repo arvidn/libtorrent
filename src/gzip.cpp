@@ -128,7 +128,7 @@ namespace {
 		int const method = buffer[2];
 		int const flags = buffer[3];
 
-		// check for reserved flag and make sure it's compressed with the correct metod
+		// check for reserved flag and make sure it's compressed with the correct method
 		// we only support deflate
 		if (method != 8 || (flags & FRESERVED) != 0) return -1;
 

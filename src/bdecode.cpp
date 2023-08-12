@@ -150,7 +150,7 @@ namespace aux {
 
 
 
-	// reads the string between start and end, or up to the first occurrance of
+	// reads the string between start and end, or up to the first occurrence of
 	// 'delimiter', whichever comes first. This string is interpreted as an
 	// integer which is assigned to 'val'. If there's a non-delimiter and
 	// non-digit in the range, a parse error is reported in 'ec'. If the value

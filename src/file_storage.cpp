@@ -1226,7 +1226,7 @@ namespace {
 		TORRENT_ASSERT(piece_length() >= 16 * 1024);
 
 		// use this vector to track the new ordering of files
-		// this allows the use of STL algorthims despite them
+		// this allows the use of STL algorithms despite them
 		// not supporting a custom swap functor
 		aux::vector<file_index_t, file_index_t> new_order(end_file());
 		for (auto i : file_range())
@@ -1246,7 +1246,7 @@ namespace {
 		std::sort(new_order.begin(), new_order.end()
 			, [this](file_index_t l, file_index_t r)
 		{
-			// assuming m_paths are unqiue!
+			// assuming m_paths are unique!
 			auto const& lf = m_files[l];
 			auto const& rf = m_files[r];
 			if (lf.path_index != rf.path_index)

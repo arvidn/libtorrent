@@ -53,7 +53,7 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 	using callback_t = std::function<void(error_code const&, std::vector<address> const&)>;
 
 	// this flag will make async_resolve() only use the cache and fail if we
-	// don't have a cache entry, regardless of how old it is. This is usefull
+	// don't have a cache entry, regardless of how old it is. This is useful
 	// when completing the lookup quickly is more important than accuracy,
 	// like on shutdown
 	static constexpr resolver_flags cache_only = 0_bit;

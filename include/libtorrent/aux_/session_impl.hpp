@@ -246,7 +246,7 @@ namespace aux {
 		}
 
 		// 0 is natpmp 1 is upnp
-		// the order of these arrays determines the priorty in
+		// the order of these arrays determines the priority in
 		// which their ports will be announced to peers
 		aux::array<listen_port_mapping, 2, portmap_transport> tcp_port_mapping;
 		aux::array<listen_port_mapping, 2, portmap_transport> udp_port_mapping;

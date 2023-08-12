@@ -1021,7 +1021,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// TODO: Perhaps the job queue could be traversed and all jobs for this
 		// piece could be cancelled. If there are no threads currently writing
-		// to this piece, we could skip the fence alltogether
+		// to this piece, we could skip the fence altogether
 		add_fence_job(j);
 	}
 

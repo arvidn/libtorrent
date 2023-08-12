@@ -285,7 +285,7 @@ TORRENT_TEST(shared_files_seed_mode_v1)
 
 TORRENT_TEST(shared_files_seed_mode_v1_no_files)
 {
-	// no files on disk, just an (incorrect) promise of beeing in seed mode
+	// no files on disk, just an (incorrect) promise of being in seed mode
 	// creating the hard links will fail
 	TEST_CHECK(test(st::no_files | st::seed_mode, v1 | canon, v1 | canon) == bools({false, false}));
 }

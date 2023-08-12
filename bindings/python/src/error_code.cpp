@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace boost
 {
-	// this fixe mysterious link error on msvc
+	// this fixes mysterious link error on msvc
 	template <>
 	inline boost::system::error_category const volatile*
 	get_pointer(class boost::system::error_category const volatile* p)

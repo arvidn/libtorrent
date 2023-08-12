@@ -388,7 +388,7 @@ TORRENT_TEST(update_peer_port)
 }
 
 // test incoming connection
-// and update_peer_port, causing collission
+// and update_peer_port, causing collision
 TORRENT_TEST(update_peer_port_collide)
 {
 	torrent_state st = init_state();

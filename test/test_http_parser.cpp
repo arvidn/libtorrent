@@ -749,7 +749,7 @@ TORRENT_TEST(missing_chunked_header)
 		"\r\n"
 		"\n";
 
-	// make the inpout not be null terminated. If the parser reads off the end,
+	// make the input not be null terminated. If the parser reads off the end,
 	// address sanitizer will trigger
 	char chunked_input[sizeof(input)-1];
 	std::memcpy(chunked_input, input, sizeof(chunked_input));

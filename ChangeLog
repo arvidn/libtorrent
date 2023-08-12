@@ -152,7 +152,7 @@
 
 2.0 released
 
-	* dropped depenency on iconv
+	* dropped dependency on iconv
 	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
@@ -270,7 +270,7 @@
 	* fix issue with moving the session object
 	* deprecate torrent_status::allocating. This state is no longer used
 	* fix bug creating torrents with symbolic links
-	* remove special case to save metadata in resume data unconditionally when added throught magnet link
+	* remove special case to save metadata in resume data unconditionally when added through magnet link
 	* fix bugs in mutable-torrent support (reusing identical files from different torrents)
 	* fix incorrectly inlined move-assignment of file_storage
 	* add session::paused flag, and the ability to construct a session in paused mode
@@ -324,7 +324,7 @@
 	* limit number of concurrent HTTP announces
 	* fix queue position for force_rechecking a torrent that is not auto-managed
 	* improve rate-based choker documentation, and minor tweak
-	* undeprecate upnp_ignore_nonrouters (but refering to devices on our subnet)
+	* undeprecate upnp_ignore_nonrouters (but referring to devices on our subnet)
 	* increase default tracker timeout
 	* retry failed socks5 server connections
 	* allow UPnP lease duration to be changed after device discovery
@@ -404,7 +404,7 @@
 1.2.1 release
 
 	* add dht_pkt_alert and alerts_dropped_alert to python bindings
-	* fix python bindins for block_uploaded_alert
+	* fix python bindings for block_uploaded_alert
 	* optimize resolving duplicate filenames in loading torrent files
 	* fix python binding of dht_settings
 	* tighten up various input validation checks
@@ -413,7 +413,7 @@
 	* fix python bindings for peer_info
 	* support creating symlinks, for torrents with symlinks in them
 	* fix error in seed_mode flag
-	* support magnet link parameters with number siffixes
+	* support magnet link parameters with number suffixes
 	* consistently use "lt" namespace in examples and documentation
 	* fix Mingw build to use native cryptoAPI
 	* uPnP/NAT-PMP errors no longer set the client's advertised listen port to zero
@@ -607,7 +607,7 @@
 
 	* fix infinite loop when parsing certain invalid magnet links
 	* fix parsing of torrents with certain invalid filenames
-	* fix leak of torrent_peer objecs (entries in peer_list)
+	* fix leak of torrent_peer objects (entries in peer_list)
 	* fix leak of peer_class objects (when setting per-torrent rate limits)
 	* expose peer_class API to python binding
 	* fix integer overflow in whole_pieces_threshold logic
@@ -642,7 +642,7 @@
 	* fix proxying of https connections
 	* fix race condition in disk I/O storage class
 	* fix http connection timeout on multi-homed hosts
-	* removed depdendency on boost::uintptr_t for better compatibility
+	* removed dependency on boost::uintptr_t for better compatibility
 	* fix memory leak in the disk cache
 	* fix double free in disk cache
 	* forward declaring libtorrent types is discouraged. a new fwd.hpp header is provided
@@ -928,7 +928,7 @@
 	* tweak flag_override_resume_data semantics to make more sense (breaks
 	  backwards compatibility of edge-cases)
 	* improve DHT bootstrapping and periodic refresh
-	* improve DHT maintanence performance (by pinging instead of full lookups)
+	* improve DHT maintenance performance (by pinging instead of full lookups)
 	* fix bug in DHT routing table node-id prefix optimization
 	* fix incorrect behavior of flag_use_resume_save_path
 	* fix protocol race-condition in super seeding mode
@@ -1111,7 +1111,7 @@
 	* fix piece-picker stat bug when only selecting some files for download
 	* fix bug in async_add_torrent when settings file_priorities
 	* fix boost-1.42 support for python bindings
-	* fix memory allocation issue (virtual addres space waste) on windows
+	* fix memory allocation issue (virtual address space waste) on windows
 
 0.16.11 release
 
@@ -1127,7 +1127,7 @@
 	* GCC 4.8 fix
 	* fix proxy failure semantics with regards to anonymous mode
 	* fix round-robin seed-unchoke algorithm
-	* add bootstrap.sh to generage configure script and run configure
+	* add bootstrap.sh to generate configure script and run configure
 	* fix bug in SOCK5 UDP support
 	* fix issue where torrents added by URL would not be started immediately
 
@@ -1304,7 +1304,7 @@
 	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
-	* improved peer exchange performance by sharing incoming connections which advertize listen port
+	* improved peer exchange performance by sharing incoming connections which advertise listen port
 	* deprecate set_ratio(), and per-peer rate limits
 	* add web seed support for torrents with pad files
 	* introduced a more scalable API for torrent status updates (post_torrent_updates()) and updated client_test to use it
@@ -1696,7 +1696,7 @@ release 0.14.9
 
 release 0.14.8
 
-	* ignore unkown metadata messages
+	* ignore unknown metadata messages
 	* fixed typo that would sometimes prevent queued torrents to be checked
 	* fixed bug in auto-manager where active_downloads and active_seeds would
 	  sometimes be used incorrectly
@@ -1723,7 +1723,7 @@ release 0.14.7
 	  ended with a /
 	* fixed bug in error handling when parsing torrent files
 	* fixed file checking bug when renaming a file before checking the torrent
-	* fixed race conditon when receiving metadata from swarm
+	* fixed race condition when receiving metadata from swarm
 	* fixed assert in ut_metadata plugin
 	* back-ported some fixes for building with no exceptions
 	* fixed create_torrent when passing in a path ending with /
@@ -1816,7 +1816,7 @@ release 0.14.3
 	* fixed issue where renamed files were sometimes not saved in resume data
 	* accepts tracker responses with no 'peers' field, as long as 'peers6'
 	  is present
-	* fixed CIDR-distance calculation in the precense of IPv6 peers
+	* fixed CIDR-distance calculation in the presence of IPv6 peers
 	* save partial resume data for torrents that are queued for checking
 	  or checking, to maintain stats and renamed files
 	* Don't try IPv6 on windows if it's not installed
@@ -1841,7 +1841,7 @@ release 0.14.2
 	  tracker urls
 	* fixed bug where the files requested from web seeds would be the
 	  renamed file names instead of the original file names in the torrent.
-	* documentation fix of queing section
+	* documentation fix of queueing section
 	* fixed potential issue in udp_socket (affected udp tracker support)
 	* made name, comment and created by also be subject to utf-8 error
 	  correction (filenames already were)
@@ -1855,7 +1855,7 @@ release 0.14.2
 	* fixed race condition when saving DHT state
 	* fixed bugs related to lexical_cast being locale dependent
 	* added support for SunPro C++ compiler
-	* fixed bug where messeges sometimes could be encrypted in the
+	* fixed bug where messages sometimes could be encrypted in the
 	  wrong order, for encrypted connections.
 	* fixed race condition where torrents could get stuck waiting to
 	  get checked
@@ -1876,7 +1876,7 @@ release 0.14.1
 	  sometimes quit when an error occurred
 	* fixed DHT bug
 	* fixed potential shutdown crash in disk_io_thread
-	* fixed usage of deprecated boost.filsystem functions
+	* fixed usage of deprecated boost.filesystem functions
 	* fixed http_connection unit test
 	* fixed bug in DHT when a DHT state was loaded
 	* made rate limiter change in 0.14 optional (to take estimated
@@ -1947,7 +1947,7 @@ release 0.14
 	* Disk cache support.
 	* New, more memory efficient, piece picker with sequential download
 	  support (instead of the more complicated sequential download threshold).
-	* Auto Upload slots. Automtically opens up more slots if
+	* Auto Upload slots. Automatically opens up more slots if
 	  upload limit is not met.
 	* Improved NAT-PMP support by querying the default gateway
 	* Improved UPnP support by ignoring routers not on the clients subnet.
@@ -2058,7 +2058,7 @@ release 0.12
 	* fixed bug in DHT code which would send incorrect announce messages.
 	* fixed bug where the http header parser was case sensitive to the header
 	  names.
-	* Implemented an optmization which frees the piece_picker once a torrent
+	* Implemented an optimization which frees the piece_picker once a torrent
 	  turns into a seed.
 	* Added support for uT peer exchange extension, implemented by Massaroddel.
 	* Modified the quota management to offer better bandwidth balancing
@@ -2088,9 +2088,9 @@ release 0.11
 	* fixed bug with file_progress() with files = 0 bytes
 	* fixed a race condition bug in udp_tracker_connection that could
 	  cause a crash.
-	* fixed bug occuring when increasing the sequenced download threshold
+	* fixed bug occurring when increasing the sequenced download threshold
 	  with max availability lower than previous threshold.
-	* fixed an integer overflow bug occuring when built with gcc 4.1.x
+	* fixed an integer overflow bug occurring when built with gcc 4.1.x
 	* fixed crasing bug when closing while checking a torrent
 	* fixed bug causing a crash with a torrent with piece length 0
 	* added an extension to the DHT network protocol to support the
@@ -2156,7 +2156,7 @@ release 0.10
 
 release 0.9.1
 
-	* made the session disable file name checks within the boost.filsystem library
+	* made the session disable file name checks within the boost.filesystem library
 	* fixed race condition in the sockets
 	* strings that are invalid utf-8 strings are now decoded with the
 	  local codepage on windows

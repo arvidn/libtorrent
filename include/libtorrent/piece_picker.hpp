@@ -807,8 +807,8 @@ namespace libtorrent {
 		// blocks covered by the pad bytes are not picked by the piece picker
 		std::unordered_map<piece_index_t, int> m_pads_in_piece;
 
-		// when the adjecent_piece affinity is enabled, this contains the most
-		// recent "extents" of adjecent pieces that have been requested from
+		// when the adjacent_piece affinity is enabled, this contains the most
+		// recent "extents" of adjacent pieces that have been requested from
 		// this is mutable because it's updated by functions to pick pieces, which
 		// are const. That's an efficient place to update it, since it's being
 		// traversed already.

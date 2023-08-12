@@ -205,8 +205,8 @@ void SHA1_update(sha1_ctx* context, u8 const* data, size_t len)
 #elif BOOST_ENDIAN_LITTLE_BYTE
 	internal_update<little_endian_blk0>(context, data, len);
 #else
-	// select different functions depending on endianess
-	// and figure out the endianess runtime
+	// select different functions depending on endianness
+	// and figure out the endianness runtime
 	if (is_big_endian())
 		internal_update<big_endian_blk0>(context, data, len);
 	else
@@ -307,9 +307,9 @@ By Arvid Norberg <arvidn@sourceforge.net>
 2- uses C99 types with size guarantees
    from boost
 3- if none of BOOST_BIG_ENDIAN or BOOST_LITTLE_ENDIAN
-   are defined, endianess is determined
+   are defined, endianness is determined
    at runtime. templates are used to duplicate
-   the transform function for each endianess
+   the transform function for each endianness
 4- using anonymous namespace to avoid external
    linkage on internal functions
 5- using standard C++ includes

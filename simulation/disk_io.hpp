@@ -100,7 +100,7 @@ struct test_disk
 	std::unique_ptr<lt::disk_interface> operator()(
 		lt::io_context& ioc, lt::settings_interface const&, lt::counters&);
 
-	// seek time in fron of every read and write
+	// seek time in front of every read and write
 	lt::time_duration seek_time = lt::milliseconds(10);
 
 	// hash time per block

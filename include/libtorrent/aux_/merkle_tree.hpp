@@ -176,7 +176,7 @@ private:
 	aux::vector<sha256_hash> m_tree;
 
 	// when the full tree is allocated, this has one bit for each block hash. a
-	// 1 means we have verified the block hash to be corret, otherwise the block
+	// 1 means we have verified the block hash to be correct, otherwise the block
 	// hash may represent what's on disk, but we haven't been able to verify it
 	// yet
 	bitfield m_block_verified;

@@ -172,7 +172,7 @@ private:
 		int family;
 		std::array<char, 16> data;
 	};
-	// maps if_index to the most recently advertized local address
+	// maps if_index to the most recently advertised local address
 	// this is used to filter duplicate updates
 	std::unordered_map<std::uint32_t, local_address> m_state;
 

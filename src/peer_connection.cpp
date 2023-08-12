@@ -5523,7 +5523,7 @@ namespace libtorrent {
 		{
 		case set_block_hash_result::block_hash_failed:
 			// If the hash failed immediately at the leaf layer it means that
-			// the chuck hash is known so this peer definately sent bad data.
+			// the chuck hash is known so this peer definitely sent bad data.
 			t->piece_failed(r.piece, std::vector<int>{r.start / default_block_size});
 			TORRENT_ASSERT(m_disconnecting);
 			return;

@@ -159,7 +159,7 @@ namespace {
 			TORRENT_ASSERT(first_piece < int(mask.size()));
 			TORRENT_ASSERT(end_piece <= int(mask.size()));
 
-			// if the mask convers all pieces, and nothing below that layer, go
+			// if the mask covers all pieces, and nothing below that layer, go
 			// straight to piece_layer mode and validate
 			if (std::all_of(mask.begin() + first_piece, mask.begin() + end_piece, identity())
 

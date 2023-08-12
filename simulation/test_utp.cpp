@@ -110,7 +110,7 @@ std::vector<std::int64_t> utp_test(sim::configuration& cfg, int send_buffer_size
 }
 
 // TODO: 3 simulate non-congestive packet loss
-// TODO: 3 simulate unpredictible latencies
+// TODO: 3 simulate unpredictable latencies
 // TODO: 3 simulate proper (taildrop) queues (perhaps even RED and BLUE)
 
 // The counters checked by these tests are proxies for the expected behavior. If

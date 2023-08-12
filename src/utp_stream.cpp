@@ -259,7 +259,7 @@ void utp_socket_impl::update_mtu_limits()
 		m_mtu_ceiling = m_mtu_floor;
 
 		// the path MTU may have changed. Perform another search
-		// dont' start all the way from start, just half way down.
+		// don't start all the way from start, just half way down.
 		m_mtu_floor = ((TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER) + m_mtu_ceiling) / 2;
 
 		UTP_LOGV("%8p: reducing MTU floor\n", static_cast<void*>(this));
@@ -2324,7 +2324,7 @@ bool utp_socket_impl::consume_incoming_data(
 		// number of queued up bytes, waiting for the upper layer,
 		// exceeds the advertised receive window, start ignoring
 		// more data packets
-		UTP_LOG("%8p: ERROR: our advertized window is not honored. "
+		UTP_LOG("%8p: ERROR: our advertised window is not honored. "
 			"recv_buf: %d buffered_in: %d max_size: %d\n"
 			, static_cast<void*>(this), m_receive_buffer_size, m_buffered_incoming_bytes, m_receive_buffer_capacity);
 		return false;
@@ -3304,7 +3304,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	{
 		m_slow_start = false;
 		m_ssthres = (m_cwnd >> 16);
-		UTP_LOGV("%8p: cwnd > advertized wnd (%u) slow_start -> 0\n"
+		UTP_LOGV("%8p: cwnd > advertised wnd (%u) slow_start -> 0\n"
 			, static_cast<void*>(this), m_adv_wnd);
 	}
 */

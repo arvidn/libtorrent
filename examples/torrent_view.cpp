@@ -443,8 +443,8 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	std::array<char, 512> str;
 	lt::span<char> dest(str);
 
-	// the active torrent is highligted in the list
-	// this inverses the forground and background colors
+	// the active torrent is highlighted in the list
+	// this inverses the foreground and background colors
 	char const* selection = "";
 	if (selected)
 		selection = "\x1b[1m\x1b[44m";
