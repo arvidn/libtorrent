@@ -78,7 +78,7 @@ public:
 	using handler_type = std::function<void(error_code const&)>;
 
 	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	void async_connect(endpoint_type const& endpoint, Handler handler)
 	{
 		// the connect is split up in the following steps:
 		// 1. connect to peer
@@ -110,7 +110,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_shutdown(Handler const& handler)
+	void async_shutdown(Handler handler)
 	{
 		error_code ec;
 		m_sock.next_layer().cancel(ec);
@@ -123,9 +123,9 @@ public:
 	}
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
-		m_sock.async_read_some(buffers, handler);
+		m_sock.async_read_some(buffers, std::move(handler));
 	}
 
 	template <class Mutable_Buffers>
@@ -190,9 +190,9 @@ public:
 	{ return m_sock.next_layer().non_blocking(b, ec); }
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
+	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
-		m_sock.async_write_some(buffers, handler);
+		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
 	template <class Const_Buffers>

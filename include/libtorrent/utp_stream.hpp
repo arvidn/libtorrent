@@ -297,31 +297,31 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 	io_service& get_io_service() { return m_io_service; }
 
 	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	void async_connect(endpoint_type const& endpoint, Handler handler)
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected));
+			m_io_service.post(std::bind<void>(std::move(handler), boost::asio::error::not_connected));
 			return;
 		}
 
-		m_connect_handler = handler;
+		m_connect_handler = std::move(handler);
 		do_connect(endpoint);
 	}
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
 		int bytes_added = 0;
@@ -344,20 +344,20 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			// if we're reading 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(std::bind<void>(handler, error_code(), std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), error_code(), std::size_t(0)));
 			return;
 		}
 
-		m_read_handler = handler;
+		m_read_handler = std::move(handler);
 		issue_read();
 	}
 
 	template <class Handler>
-	void async_read_some(null_buffers const&, Handler const& handler)
+	void async_read_some(null_buffers const&, Handler handler)
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
 
@@ -365,10 +365,10 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		if (m_read_handler)
 		{
 			TORRENT_ASSERT_FAIL(); // we should never do this!
-			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
-		m_read_handler = handler;
+		m_read_handler = std::move(handler);
 		issue_read();
 	}
 
@@ -450,11 +450,11 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 #endif
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
+	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
 		if (m_impl == nullptr)
 		{
-			m_io_service.post(std::bind<void>(handler
+			m_io_service.post(std::bind<void>(std::move(handler)
 				, boost::asio::error::not_connected, std::size_t(0)));
 			return;
 		}
@@ -462,7 +462,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		TORRENT_ASSERT(!m_write_handler);
 		if (m_write_handler)
 		{
-			m_io_service.post(std::bind<void>(handler
+			m_io_service.post(std::bind<void>(std::move(handler)
 				, boost::asio::error::operation_not_supported, std::size_t(0)));
 			return;
 		}
@@ -470,7 +470,7 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		if (check_fin_sent(m_impl))
 		{
 			// we can't send more data after closing the socket
-			m_io_service.post(std::bind<void>(handler
+			m_io_service.post(std::bind<void>(std::move(handler)
 				, boost::asio::error::broken_pipe, std::size_t(0)));
 			return;
 		}
@@ -495,10 +495,10 @@ struct TORRENT_EXTRA_EXPORT utp_stream
 		{
 			// if we're writing 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(std::bind<void>(handler, error_code(), std::size_t(0)));
+			m_io_service.post(std::bind<void>(std::move(handler), error_code(), std::size_t(0)));
 			return;
 		}
-		m_write_handler = handler;
+		m_write_handler = std::move(handler);
 		issue_write();
 	}
 
