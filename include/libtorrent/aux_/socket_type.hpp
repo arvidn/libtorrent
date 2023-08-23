@@ -224,20 +224,20 @@ namespace aux {
 		{ TORRENT_SOCKTYPE_FORWARD_RET(read_some(buffers, ec), 0) }
 
 		template <class Mutable_Buffers, class Handler>
-		void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_read_some(buffers, handler)) }
+		void async_read_some(Mutable_Buffers const& buffers, Handler handler)
+		{ TORRENT_SOCKTYPE_FORWARD(async_read_some(buffers, std::move(handler))) }
 
 		template <class Const_Buffers>
 		std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(write_some(buffers, ec), 0) }
 
 		template <class Const_Buffers, class Handler>
-		void async_write_some(Const_Buffers const& buffers, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_write_some(buffers, handler)) }
+		void async_write_some(Const_Buffers const& buffers, Handler handler)
+		{ TORRENT_SOCKTYPE_FORWARD(async_write_some(buffers, std::move(handler))) }
 
 		template <class Handler>
-		void async_connect(endpoint_type const& endpoint, Handler const& handler)
-		{ TORRENT_SOCKTYPE_FORWARD(async_connect(endpoint, handler)) }
+		void async_connect(endpoint_type const& endpoint, Handler handler)
+		{ TORRENT_SOCKTYPE_FORWARD(async_connect(endpoint, std::move(handler))) }
 
 #ifndef BOOST_NO_EXCEPTIONS
 		template <class IO_Control_Command>
