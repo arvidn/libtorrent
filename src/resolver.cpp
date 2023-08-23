@@ -111,7 +111,11 @@ namespace libtorrent {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
+#if __cplusplus >= 202002L
+			m_ios.post([=, this]{ callback(h, ec, std::vector<address>{ip}); });
+#else
 			m_ios.post([=]{ callback(h, ec, std::vector<address>{ip}); });
+#endif
 			return;
 		}
 		ec.clear();
@@ -124,7 +128,11 @@ namespace libtorrent {
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				std::vector<address> ips = i->second.addresses;
+#if __cplusplus >= 202002L
+				m_ios.post([=, this] { callback(h, ec, ips); });
+#else
 				m_ios.post([=] { callback(h, ec, ips); });
+#endif
 				return;
 			}
 		}
@@ -132,7 +140,11 @@ namespace libtorrent {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
+#if __cplusplus >= 202002L
+			m_ios.post([=, this] {
+#else
 			m_ios.post([=] {
+#endif
 				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
 			});
 			return;

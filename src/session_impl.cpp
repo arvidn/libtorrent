@@ -5892,7 +5892,11 @@ namespace {
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
 			, m_io_service
+#if __cplusplus >= 202002L
+			, [=, this](aux::listen_socket_handle const& sock
+#else
 			, [=](aux::listen_socket_handle const& sock
+#endif
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
