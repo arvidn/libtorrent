@@ -52,7 +52,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo apt install libboost-python-dev libboost-tools-dev libboost-dev libboost-system-dev python3
           echo "using gcc ;" >>~/user-config.jam
 
       - name: install gcrypt
@@ -73,6 +73,11 @@ jobs:
           cd tools
           b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
 
+      - name: build python bindings
+        run: |
+          cd bindings/python
+          echo "using python ;" >>~/user-config.jam
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
 
 
    fuzzers:
