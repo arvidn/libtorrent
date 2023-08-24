@@ -5889,6 +5889,7 @@ namespace {
 
 		// TODO: refactor, move the storage to dht_tracker
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
+		session_impl* ses = this;
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
 			, m_io_service
@@ -5897,7 +5898,7 @@ namespace {
 				, span<char const> p
 				, error_code& ec
 				, udp_send_flags_t const flags)
-				{ send_udp_packet_listen(sock, ep, p, ec, flags); }
+				{ ses->send_udp_packet_listen(sock, ep, p, ec, flags); }
 			, m_dht_settings
 			, m_stats_counters
 			, *m_dht_storage
