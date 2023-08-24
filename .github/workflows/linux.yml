@@ -221,16 +221,16 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
-      - name: install clang-10
+      - name: install clang-12
         continue-on-error: true
         run: |
-          sudo apt install clang-10
+          sudo apt install clang-12
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
-          echo "using clang : 10 : clang++-10 ;" >>~/user-config.jam
+          echo "using clang : 12 : clang++-12 ;" >>~/user-config.jam
 
       - name: build and run tests
         run: |
