@@ -48,8 +48,8 @@ namespace libtorrent {
 		, m_timeout(seconds(1200))
 	{}
 
-
-	void resolver::callback(resolver_interface::callback_t h
+namespace {
+	void callback(resolver_interface::callback_t h
 		, error_code const& ec, std::vector<address> const& ips)
 	{
 		try {
@@ -58,6 +58,7 @@ namespace libtorrent {
 			TORRENT_ASSERT_FAIL();
 		}
 	}
+}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
 		, std::string const& hostname)

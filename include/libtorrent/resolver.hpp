@@ -65,9 +65,6 @@ private:
 	void on_lookup(error_code const& ec, tcp::resolver::iterator i
 		, std::string const& hostname);
 
-	void callback(resolver_interface::callback_t h
-		, error_code const& ec, std::vector<address> const& ips);
-
 	struct dns_cache_entry
 	{
 		time_point last_seen;
