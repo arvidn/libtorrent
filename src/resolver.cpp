@@ -50,7 +50,8 @@ namespace aux {
 		, m_timeout(seconds(1200))
 	{}
 
-	void resolver::callback(resolver_interface::callback_t h
+namespace {
+	void callback(resolver_interface::callback_t h
 		, error_code const& ec, std::vector<address> const& ips)
 	{
 		try {
@@ -59,6 +60,7 @@ namespace aux {
 			TORRENT_ASSERT_FAIL();
 		}
 	}
+}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type ips
 		, std::string const& hostname)
@@ -134,7 +136,7 @@ namespace aux {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			post(m_ios, [this, h, ec, ip]{ callback(h, ec, std::vector<address>{ip}); });
+			post(m_ios, [h, ec, ip]{ callback(h, ec, std::vector<address>{ip}); });
 			return;
 		}
 		ec.clear();
@@ -147,7 +149,7 @@ namespace aux {
 				|| i->second.last_seen + m_timeout >= time_now())
 			{
 				std::vector<address> ips = i->second.addresses;
-				post(m_ios, [this, h, ec, ips] { callback(h, ec, ips); });
+				post(m_ios, [h, ec, ips] { callback(h, ec, ips); });
 				return;
 			}
 		}
@@ -160,7 +162,7 @@ namespace aux {
 				|| k->second.last_seen + m_timeout >= time_now())
 			{
 				error_code error_code = k->second.error;
-				post(m_ios, [this, h, error_code] { callback(h, error_code, {}); });
+				post(m_ios, [h, error_code] { callback(h, error_code, {}); });
 				return;
 			}
 		}
@@ -168,7 +170,7 @@ namespace aux {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			post(m_ios, [this, h] {
+			post(m_ios, [h] {
 				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
 			});
 			return;
