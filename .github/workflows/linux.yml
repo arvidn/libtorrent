@@ -226,10 +226,15 @@ jobs:
         run: |
           sudo apt install clang-12
 
+      - name: install GCC-12
+        continue-on-error: true
+        run: |
+          sudo apt install gcc-12
+
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
-          echo "using gcc ;" >>~/user-config.jam
+          echo "using gcc : 12 : g++-12 ;" >>~/user-config.jam
           echo "using clang : 12 : clang++-12 ;" >>~/user-config.jam
 
       - name: build and run tests
