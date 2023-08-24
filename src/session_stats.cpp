@@ -584,7 +584,7 @@ namespace {
 			stats[i].type = metrics[i].value_index >= counters::num_stats_counters
 				? metric_type_t::gauge : metric_type_t::counter;
 		}
-		return std::move(stats);
+		return TORRENT_RVO(stats);
 	}
 
 	int find_metric_idx(string_view name)
