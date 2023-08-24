@@ -63,6 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #if __GNUC__ >= 9
 #pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
+#if __GNUC__ >= 12
+#pragma GCC diagnostic ignored "-Woverflow"
+#endif
 #endif
 
 #ifdef __clang__
