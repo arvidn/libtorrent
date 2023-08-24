@@ -194,7 +194,7 @@ jobs:
             include:
                - config: address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
                - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover
-               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on
+               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
                - config: crypto=gnutls
                - config: deprecated-functions=off
 
