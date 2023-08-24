@@ -25,7 +25,7 @@ jobs:
 
    build:
       name: build
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-22.04
       continue-on-error: true
 
       strategy:
@@ -61,17 +61,17 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=14
+          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }}
+          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
 
 
 
