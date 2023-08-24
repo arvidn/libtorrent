@@ -1387,6 +1387,48 @@ void test_move_storage_into_self()
 		, combine_path("_folder3", "test4.tmp")))));
 }
 
+template <typename StorageType>
+void test_move_storage_reset(move_flags_t const flags)
+{
+	std::string const save_path = current_working_directory();
+	std::string const test_path = complete("temp_storage2");
+	delete_dirs(test_path);
+
+	aux::session_settings set;
+	file_storage fs;
+	std::vector<char> buf;
+	typename file_pool_type<StorageType>::type fp;
+	io_context ios;
+	auto s = setup_torrent<StorageType>(fs, fp, buf, save_path, set);
+
+	span<char> const b = {&buf[0], 4};
+	storage_error se;
+	TEST_EQUAL(se.ec, boost::system::errc::success);
+	write(s, set, b, 1_piece, 0, aux::open_mode::write, se);
+
+	std::string const root = combine_path(save_path, "temp_storage");
+	TEST_CHECK(exists(combine_path(root, combine_path("folder2", "test3.tmp"))));
+	TEST_CHECK(exists(combine_path(root, combine_path("_folder3", "test4.tmp"))));
+	std::string const root2 = combine_path(test_path, "temp_storage");
+	TEST_CHECK(!exists(combine_path(root2, combine_path("folder2", "test3.tmp"))));
+	TEST_CHECK(!exists(combine_path(root2, combine_path("_folder3", "test4.tmp"))));
+	TEST_EQUAL(se.ec, boost::system::errc::success);
+
+	std::string new_path;
+	status_t ret;
+	std::tie(ret, new_path) = s->move_storage(test_path, flags, se);
+	TEST_EQUAL(new_path, test_path);
+	TEST_EQUAL(se.ec, boost::system::errc::success);
+	std::cerr << "file: " << se.file() << '\n';
+	std::cerr << "op: " << int(se.operation) << '\n';
+	std::cerr << "ec: " << se.ec.message() << '\n';
+
+	// the root directory is created, but none of the files are moved
+	TEST_CHECK(exists(test_path));
+	TEST_CHECK(!exists(combine_path(root2, combine_path("folder2", "test3.tmp"))));
+	TEST_CHECK(!exists(combine_path(root2, combine_path("_folder3", "test4.tmp"))));
+}
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(move_default_storage_to_self)
 {
@@ -1398,6 +1440,11 @@ TORRENT_TEST(move_default_storage_into_self)
 	test_move_storage_into_self<mmap_storage>();
 }
 
+TORRENT_TEST(move_default_storage_reset)
+{
+	test_move_storage_reset<mmap_storage>(move_flags_t::reset_save_path);
+	test_move_storage_reset<mmap_storage>(move_flags_t::reset_save_path_unchecked);
+}
 #endif
 
 TORRENT_TEST(move_posix_storage_to_self)
@@ -1408,6 +1455,12 @@ TORRENT_TEST(move_posix_storage_to_self)
 TORRENT_TEST(move_posix_storage_into_self)
 {
 	test_move_storage_into_self<posix_storage>();
+}
+
+TORRENT_TEST(move_posix_storage_reset)
+{
+	test_move_storage_reset<posix_storage>(move_flags_t::reset_save_path);
+	test_move_storage_reset<posix_storage>(move_flags_t::reset_save_path_unchecked);
 }
 
 TORRENT_TEST(storage_paths_string_pooling)
