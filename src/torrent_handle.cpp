@@ -487,7 +487,7 @@ namespace libtorrent {
 		aux::vector<download_priority_t, piece_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::piece_priorities, retp);
-		return std::move(ret);
+		return TORRENT_RVO(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -543,7 +543,7 @@ namespace libtorrent {
 		aux::vector<download_priority_t, file_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::file_priorities, retp);
-		return std::move(ret);
+		return TORRENT_RVO(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
