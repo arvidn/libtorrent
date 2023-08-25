@@ -73,7 +73,14 @@ namespace libtorrent {
 		if (end < begin + 96)
 		{
 			int const len = int(end - begin);
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
 		}
 		return ret;

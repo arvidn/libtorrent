@@ -207,7 +207,14 @@ node_id generate_prefix_mask(int const bits)
 	TORRENT_ASSERT(bits <= 160);
 	node_id mask;
 	std::size_t b = 0;
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 	for (; int(b) < bits - 7; b += 8) mask[b / 8] |= 0xff;
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }
