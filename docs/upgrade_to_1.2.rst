@@ -124,7 +124,7 @@ For example, the following expressions are deprecated::
 
 	atp.flags = 0;
 
-Insted say::
+Instead say::
 
 	if (!(atp.flags & torrent_flags::paused))
 

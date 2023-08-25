@@ -54,7 +54,7 @@ TORRENT_TEST(close_file_interval)
 			}
 			else if (ticks > 21)
 			{
-				// the close file timer shuold have kicked in at 20 seconds
+				// the close file timer should have kicked in at 20 seconds
 				// and closed the file
 				TEST_EQUAL(file_status.size(), 0);
 			}

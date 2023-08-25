@@ -5,7 +5,6 @@ import libtorrent as lt
 
 class GenerateFingerprintTest(unittest.TestCase):
     def test_generate(self) -> None:
-
         # full version
         self.assertEqual(
             lt.generate_fingerprint_bytes(b"AB", 1, 2, 3, 4),

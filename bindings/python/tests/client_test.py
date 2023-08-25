@@ -42,7 +42,7 @@ class TestClient(unittest.TestCase):
     torrent: tdummy.Torrent
 
     def setUp(self) -> None:
-        if sys.platform != "linux":
+        if not sys.platform.startswith("linux"):
             return
 
         # path relative to this file

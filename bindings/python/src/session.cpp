@@ -849,10 +849,12 @@ namespace
         }
     };
 
+#ifndef TORRENT_DISABLE_DHT
     void dht_announce(lt::session& ses, sha1_hash const& info_hash, int port, int flags)
     {
         ses.dht_announce(info_hash, port, lt::dht::announce_flags_t(flags));
     }
+#endif
 
 #if TORRENT_ABI_VERSION == 1
     std::shared_ptr<session_status> session_status_constructor()

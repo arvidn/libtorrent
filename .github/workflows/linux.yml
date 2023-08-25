@@ -25,7 +25,7 @@ jobs:
 
    build:
       name: build
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-22.04
       continue-on-error: true
 
       strategy:
@@ -52,7 +52,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo apt install libboost-python-dev libboost-tools-dev libboost-dev libboost-system-dev python3
           echo "using gcc ;" >>~/user-config.jam
 
       - name: install gcrypt
@@ -61,18 +61,23 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }}
+          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }}
+          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
 
+      - name: build python bindings
+        run: |
+          cd bindings/python
+          echo "using python ;" >>~/user-config.jam
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
 
 
    fuzzers:
@@ -186,7 +191,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-22.04
       continue-on-error: true
 
       strategy:
@@ -194,7 +199,7 @@ jobs:
             include:
                - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
                - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover
-               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on
+               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
                - config: crypto=gnutls
                - config: deprecated-functions=off
 
@@ -221,17 +226,22 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
-      - name: install clang-10
+      - name: install clang-12
         continue-on-error: true
         run: |
-          sudo apt install clang-10
+          sudo apt install clang-12
+
+      - name: install GCC-12
+        continue-on-error: true
+        run: |
+          sudo apt install gcc-12
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           pip install websockets
-          echo "using gcc ;" >>~/user-config.jam
-          echo "using clang : 10 : clang++-10 ;" >>~/user-config.jam
+          echo "using gcc : 12 : g++-12 ;" >>~/user-config.jam
+          echo "using clang : 12 : clang++-12 ;" >>~/user-config.jam
 
       - name: build and run tests
         run: |

@@ -506,6 +506,8 @@ void bind_torrent_handle()
         .value("always_replace_files", move_flags_t::always_replace_files)
         .value("fail_if_exist", move_flags_t::fail_if_exist)
         .value("dont_replace", move_flags_t::dont_replace)
+        .value("reset_save_path", move_flags_t::reset_save_path)
+        .value("reset_save_path_unchecked", move_flags_t::reset_save_path_unchecked)
     ;
 
 #if TORRENT_ABI_VERSION == 1

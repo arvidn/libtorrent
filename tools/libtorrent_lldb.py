@@ -56,7 +56,6 @@ def __lldb_init_module(debugger: lldb.SBDebugger, internal_dict: Dict) -> None:
 
 
 def print_hash(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 
@@ -65,7 +64,6 @@ def print_hash(valobj: lldb.SBValue, internal_dict: Dict) -> str:
 
 
 def print_flag(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 
@@ -83,7 +81,6 @@ def pairs(lst: List[Any]) -> Iterator[List[Any]]:
 
 
 def print_endpoint(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 
@@ -125,7 +122,6 @@ def print_endpoint(valobj: lldb.SBValue, internal_dict: Dict) -> str:
 
 
 def print_bitfield(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 
@@ -147,7 +143,6 @@ def print_bitfield(valobj: lldb.SBValue, internal_dict: Dict) -> str:
 
 
 def print_span(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 
@@ -164,7 +159,6 @@ def print_span(valobj: lldb.SBValue, internal_dict: Dict) -> str:
 
 
 def print_strong_type(valobj: lldb.SBValue, internal_dict: Dict) -> str:
-
     if valobj.GetType().IsReferenceType():
         valobj = valobj.Dereference()
 

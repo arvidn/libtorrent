@@ -566,7 +566,6 @@ class EnumsTest(unittest.TestCase):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_session_flags_t_deprecated(self) -> None:
-
         if lt.api_version < 3:
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(lt.session_flags_t.add_default_plugins, int)
@@ -811,7 +810,6 @@ class ResumeDataTest(unittest.TestCase):
 
 
 class ConstructorTest(unittest.TestCase):
-
     # A bunch of these technically break isolation, but they need to be tested.
     # We compensate by immediately setting isolated settings
 

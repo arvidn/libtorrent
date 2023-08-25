@@ -136,7 +136,9 @@ namespace libtorrent::aux {
 		for (auto* p : m_peers)
 			m_peer_allocator.free_peer_entry(p);
 		m_peers.clear();
+		m_candidate_cache.clear();
 		m_num_connect_candidates = 0;
+		m_num_seeds = 0;
 	}
 
 	peer_list::~peer_list()
@@ -441,7 +443,7 @@ namespace libtorrent::aux {
 
 		const bool was_conn_cand = is_connect_candidate(*p);
 		p->connection = c;
-		// now that we're connected, no need to assume ther peer is a seed
+		// now that we're connected, no need to assume the peer is a seed
 		// anymore. We'll soon know.
 		p->maybe_upload_only = false;
 		if (was_conn_cand) update_connect_candidates(-1);

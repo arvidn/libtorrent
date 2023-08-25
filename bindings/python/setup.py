@@ -174,7 +174,6 @@ PYTHON_BINDING_DIR = pathlib.Path(__file__).parent.absolute()
 
 
 class LibtorrentBuildExt(build_ext_lib.build_ext):
-
     CONFIG_MODE_DISTUTILS = "distutils"
     CONFIG_MODE_B2 = "b2"
     CONFIG_MODES = (CONFIG_MODE_DISTUTILS, CONFIG_MODE_B2)
@@ -412,7 +411,7 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             # macOS uses multi-arch binaries. Attempt to match the
             # configuration of the running python by translating distutils
             # platform modes to b2 architecture modes
-            machine = distutils.util.get_platform().split("-")[-1]
+            machine = sysconfig.get_platform().split("-")[-1]
             if machine == "arm64":
                 self._maybe_add_arg("architecture=arm")
             elif machine in ("ppc", "ppc64"):

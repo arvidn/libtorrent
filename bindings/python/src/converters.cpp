@@ -25,6 +25,7 @@
 #include "libtorrent/pex_flags.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/kademlia/announce_flags.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include <vector>
 #include <map>

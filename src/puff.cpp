@@ -628,7 +628,7 @@ local int fixed(struct state *s)
  *   are themselves compressed using Huffman codes and run-length encoding.  In
  *   the list of code lengths, a 0 symbol means no code, a 1..15 symbol means
  *   that length, and the symbols 16, 17, and 18 are run-length instructions.
- *   Each of 16, 17, and 18 are follwed by extra bits to define the length of
+ *   Each of 16, 17, and 18 are followed by extra bits to define the length of
  *   the run.  16 copies the last length 3 to 6 times.  17 represents 3 to 10
  *   zero lengths, and 18 represents 11 to 138 zero lengths.  Unused symbols
  *   are common, hence the special coding for zero lengths.

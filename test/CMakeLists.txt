@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
-# Our tests contain printf formating checks therefore we disable GCC format string errors:
+# Our tests contain printf formatting checks therefore we disable GCC format string errors:
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	check_cxx_compiler_flag("-Wno-error=format-truncation" _WNO_ERROR_FORMAT_TRUNCATION)
 	if (_WNO_ERROR_FORMAT_TRUNCATION)

@@ -48,7 +48,7 @@ session_stats_header_alert that will be posted on startup containing the column 
 for all metrics. Logging this line will greatly simplify interpreting the output,
 and is required for the script to work out-of-the-box.
 
-The python scrip in ``tools/parse_session_stats.py`` can parse the resulting
+The python script in ``tools/parse_session_stats.py`` can parse the resulting
 file and produce graphs of relevant stats. It requires gnuplot_.
 
 .. _gnuplot: http://www.gnuplot.info
@@ -332,7 +332,7 @@ contributions
 =============
 
 If you have added instrumentation for some part of libtorrent that is not
-covered here, or if you have improved any of the parser scrips, please consider
+covered here, or if you have improved any of the parser scripts, please consider
 contributing it back to the project.
 
 If you have run tests and found that some algorithm or default value in

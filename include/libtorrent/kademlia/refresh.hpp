@@ -38,7 +38,7 @@ protected:
 
 };
 
-} // namesapce dht
+} // namespace dht
 } // namespace libtorrent
 
 #endif // REFRESH_050324_HPP

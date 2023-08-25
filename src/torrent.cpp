@@ -9175,7 +9175,7 @@ namespace {
 	void torrent::set_max_uploads(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// TODO: perhaps 0 should actially mean 0
+		// TODO: perhaps 0 should actually mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (int(m_max_uploads) == limit) return;
 		if (state_update) state_updated();
@@ -9192,7 +9192,7 @@ namespace {
 	void torrent::set_max_connections(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// TODO: perhaps 0 should actially mean 0
+		// TODO: perhaps 0 should actually mean 0
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (int(m_max_connections) == limit) return;
 		if (state_update) state_updated();

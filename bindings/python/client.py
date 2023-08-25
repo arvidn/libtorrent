@@ -102,11 +102,9 @@ def progress_bar(progress: float, width: int) -> str:
 
 
 def print_peer_info(console: ConsoleType, peers: List[lt.peer_info]) -> None:
-
     out = " down    (total )   up     (total )" "  q  r flags  block progress  client\n"
 
     for p in peers:
-
         out += "%s/s " % add_suffix(p.down_speed)
         out += "(%s) " % add_suffix(p.total_download)
         out += "%s/s " % add_suffix(p.up_speed)
@@ -147,7 +145,6 @@ def print_peer_info(console: ConsoleType, peers: List[lt.peer_info]) -> None:
 def print_download_queue(
     console: ConsoleType, download_queue: Sequence[Mapping[str, Any]]
 ) -> None:
-
     out = ""
 
     for e in download_queue:

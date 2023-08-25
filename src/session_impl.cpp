@@ -2578,7 +2578,7 @@ namespace {
 				span<char const> const buf = packet.data;
 				if (!packet.hostname.empty())
 				{
-					// only the tracker manager supports receiveing UDP packets
+					// only the tracker manager supports receiving UDP packets
 					// from hostnames. If it won't handle it, no one else will
 					// either
 					m_tracker_manager.incoming_packet(packet.hostname, buf);
@@ -3701,7 +3701,7 @@ namespace {
 					// has reached its local limit
 					for (auto const& t : m_torrents)
 					{
-						// ths disconnect logic is disabled for torrents with
+						// this disconnect logic is disabled for torrents with
 						// too low connection limit
 						int const max = std::min(t->max_connections()
 							, std::numeric_limits<int>::max() / 100);
@@ -6558,7 +6558,7 @@ namespace {
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
-		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
+		int delay = std::max(1000 * m_settings.get_int(settings_pack::dht_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
 
 		if (!m_dht_torrents.empty())
@@ -6566,10 +6566,10 @@ namespace {
 			// we have prioritized torrents that need
 			// an initial DHT announce. Don't wait too long
 			// until we announce those.
-			delay = std::min(4, delay);
+			delay = std::min(4000, delay);
 		}
 
-		m_dht_announce_timer.expires_after(seconds(delay));
+		m_dht_announce_timer.expires_after(milliseconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			wrap(&session_impl::on_dht_announce, e); });
 #endif

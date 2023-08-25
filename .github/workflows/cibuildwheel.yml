@@ -88,6 +88,7 @@ jobs:
       CIBW_BUILD_VERBOSITY: 1
       CIBW_BUILD: ${{ matrix.CIBW_BUILD }}
       CIBW_ARCHS: ${{ matrix.CIBW_ARCHS }}
+      CIBW_TEST_SKIP: "*-win32"
 
     steps:
     - uses: actions/checkout@v3

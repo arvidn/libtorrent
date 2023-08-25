@@ -20,7 +20,6 @@ start_block = False
 filter_indent: Optional[str] = None
 
 for line in open(sys.argv[1]):
-
     if line == "\n":
         continue
 

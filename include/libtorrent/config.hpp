@@ -589,6 +589,12 @@ see LICENSE file.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
+#if __cplusplus >= 202002L
+#define TORRENT_RVO(x) x
+#else
+#define TORRENT_RVO(x) std::move(x)
+#endif
+
 #if (TORRENT_HAS_SSE && defined __GNUC__)
 #	define TORRENT_HAS_BUILTIN_CLZ 1
 #elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)

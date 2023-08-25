@@ -656,6 +656,7 @@ TORRENT_TEST(file_priority_stress_test)
 			TEST_CHECK(st.need_save_resume == false);
 #endif
 			TEST_CHECK(!(st.need_save_resume_data & torrent_handle::if_config_changed));
+			TEST_CHECK(!(st.need_save_resume_data & torrent_handle::if_counters_changed));
 		}
 		first = false;
 	}
@@ -678,10 +679,13 @@ TORRENT_TEST(file_priority_stress_test)
 	std::cout << '\n';
 
 	TEST_CHECK(tp == local_prios);
+	auto const st = h.status();
 #if TORRENT_ABI_VERSION < 4
-	TEST_CHECK(h.status().need_save_resume == true);
+	TEST_CHECK(st.need_save_resume == true);
 #endif
-	TEST_EQUAL(h.status().need_save_resume_data, torrent_handle::if_config_changed | torrent_handle::if_counters_changed);
+	// the if_counters_changed may also be set here, depending on whether
+	// second_tick() fired or not
+	TEST_CHECK(st.need_save_resume_data & torrent_handle::if_config_changed);
 
 	auto const pp = h.get_piece_priorities();
 	auto const& fs = ti->files();

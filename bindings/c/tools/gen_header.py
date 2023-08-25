@@ -73,7 +73,6 @@ for line in f:
     elif not in_block:
         continue
     else:
-
         if line.startswith("#if"):
             in_define_block = True
             continue

@@ -76,6 +76,7 @@ def unlink_all_files(path: str) -> None:
 # race condition which only happens with very short-lived tests which write
 # data. Work around by cleaning up the tempdir in a loop.
 
+
 # TODO: why is this necessary?
 def cleanup_with_windows_fix(
     tempdir: tempfile.TemporaryDirectory, *, timeout: float

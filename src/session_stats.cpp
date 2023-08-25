@@ -492,7 +492,7 @@ namespace {
 		// the buffer sizes accepted by
 		// socket send and receive calls respectively.
 		// The larger the buffers are, the more efficient,
-		// because it reqire fewer system calls per byte.
+		// because it require fewer system calls per byte.
 		// The size is 1 << n, where n is the number
 		// at the end of the counter name. i.e.
 		// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
@@ -556,7 +556,7 @@ namespace {
 			stats[i].type = metrics[i].value_index >= counters::num_stats_counters
 				? metric_type_t::gauge : metric_type_t::counter;
 		}
-		return std::move(stats);
+		return TORRENT_RVO(stats);
 	}
 
 	int find_metric_idx(string_view name)

@@ -44,7 +44,7 @@ def read_to_end_of_chunks(file_like):
     """Reads a chunked-encoded stream from a file-like object.
 
     This will read up to the end of the chunked encoding, including chunk
-    delimeters, trailers, and the terminal empty line.
+    delimiters, trailers, and the terminal empty line.
 
     The stream will be returned as an iterator of bytes objects. The split
     between bytes objects is arbitrary.
