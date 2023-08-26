@@ -183,7 +183,7 @@ private:
 		, std::unique_lock<std::mutex>& l);
 	void flush_storage(std::shared_ptr<aux::pread_storage> const& storage);
 
-	int flush_cache_blocks(span<aux::cached_block_entry> blocks
+	int flush_cache_blocks(bitfield& flushed, span<aux::cached_block_entry const> blocks
 		, int hash_cursor
 		, jobqueue_t& completed_jobs);
 	void clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear);
@@ -1277,7 +1277,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			add_completed_jobs(std::move(completed_jobs));
 	}
 
-	int pread_disk_io::flush_cache_blocks(span<aux::cached_block_entry> blocks
+	int pread_disk_io::flush_cache_blocks(bitfield& flushed
+		, span<aux::cached_block_entry const> blocks
 		, int const hash_cursor, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(blocks.size() > 0);
@@ -1350,22 +1351,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 					, piece, start_offset, file_mode, flags, error);
 
 				int i = start_idx;
-				for (aux::cached_block_entry& blk : blocks.subspan(start_idx, count))
+				for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
 				{
 					auto* j2 = blk.write_job;
 					TORRENT_ASSERT(j2);
 					TORRENT_ASSERT(j2->get_type() == aux::job_action_t::write);
 					j2->error = error;
-					blk.buf_holder = std::move(std::get<aux::job::write>(j2->action).buf);
-					blk.flushed_to_disk = true;
-					TORRENT_ASSERT(blk.buf_holder);
-
-					// TODO: free these in bulk at the end, or something
-//#error when reading blocks from the cache, this causes a race
-					if (i < hash_cursor)
-						blk.buf_holder.reset();
-
-					blk.write_job = nullptr;
+					flushed.set_bit(i);
 					completed_jobs.push_back(j2);
 					++i;
 				}
@@ -1417,21 +1409,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				, piece, start_offset, file_mode, flags, error);
 
 			int i = start_idx;
-			for (aux::cached_block_entry& blk : blocks.subspan(start_idx, count))
+			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
 			{
 				auto* j = blk.write_job;
 				TORRENT_ASSERT(j);
 				TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 				j->error = error;
-				blk.buf_holder = std::move(std::get<aux::job::write>(j->action).buf);
-				blk.flushed_to_disk = true;
-				TORRENT_ASSERT(blk.buf_holder);
-				// TODO: free these in bulk at the end, or something
-//#error when reading blocks from the cache, this causes a race
-				if (i < hash_cursor)
-					blk.buf_holder.reset();
-
-				blk.write_job = nullptr;
+				flushed.set_bit(i);
 				completed_jobs.push_back(j);
 				++i;
 			}
@@ -1473,8 +1457,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		l.unlock();
 		jobqueue_t completed_jobs;
 		m_cache.flush_to_disk(
-			[&](span<aux::cached_block_entry> blocks, int const hash_cursor) {
-				return flush_cache_blocks(blocks, hash_cursor, completed_jobs);
+			[&](bitfield& flushed, span<aux::cached_block_entry const> blocks, int const hash_cursor) {
+				return flush_cache_blocks(flushed, blocks, hash_cursor, completed_jobs);
 			}
 			, target_cache_size
 			, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
@@ -1491,8 +1475,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		storage_index_t const torrent = storage->storage_index();
 		jobqueue_t completed_jobs;
 		m_cache.flush_storage(
-			[&](span<aux::cached_block_entry> blocks, int const hash_cursor) {
-				return flush_cache_blocks(blocks, hash_cursor, completed_jobs);
+			[&](bitfield& flushed, span<aux::cached_block_entry const> blocks, int const hash_cursor) {
+				return flush_cache_blocks(flushed, blocks, hash_cursor, completed_jobs);
 			}
 			, torrent
 			, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
