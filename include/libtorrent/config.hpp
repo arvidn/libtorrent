@@ -616,7 +616,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_guaranteed_copy_elision
 #define TORRENT_RVO(x) x
 #else
 #define TORRENT_RVO(x) std::move(x)
