@@ -55,7 +55,7 @@ namespace aux {
 			return m_in_use;
 		}
 
-		std::optional<int> flush_target() const;
+		std::optional<int> flush_request() const;
 
 		void set_settings(settings_interface const& sett);
 

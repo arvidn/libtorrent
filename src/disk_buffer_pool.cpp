@@ -189,11 +189,11 @@ namespace {
 #endif
 	}
 
-	std::optional<int> disk_buffer_pool::flush_target() const
+	std::optional<int> disk_buffer_pool::flush_request() const
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		if (m_in_use >= m_max_use)
-			return m_low_watermark;
+			return m_in_use - m_low_watermark;
 		return std::nullopt;
 	}
 
