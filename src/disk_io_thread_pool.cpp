@@ -17,6 +17,18 @@ see LICENSE file.
 namespace {
 
 	constexpr std::chrono::seconds reap_idle_threads_interval(60);
+
+	struct idle
+	{
+		libtorrent::aux::disk_io_thread_pool& m_pool;
+		idle(libtorrent::aux::disk_io_thread_pool& p): m_pool(p) {
+			m_pool.thread_idle();
+		}
+
+		~idle() {
+			m_pool.thread_active();
+		}
+	};
 }
 
 namespace libtorrent::aux {
@@ -202,8 +214,6 @@ namespace libtorrent::aux {
 		// if there is already work to do
 		if (m_queued_jobs.empty())
 		{
-			thread_idle();
-
 			if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			do
 			{
@@ -218,16 +228,14 @@ namespace libtorrent::aux {
 					&& try_thread_exit(std::this_thread::get_id()))
 				{
 					// time to exit this thread.
-					thread_active();
 					return wait_result::exit_thread;
 				}
 
+				idle i(*this);
 				using namespace std::literals::chrono_literals;
 				m_job_cond.wait_for(l, 1s);
 				if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			} while (m_queued_jobs.empty());
-
-			thread_active();
 		}
 
 		return wait_result::new_job;

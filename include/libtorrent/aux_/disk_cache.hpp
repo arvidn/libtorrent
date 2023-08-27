@@ -601,12 +601,13 @@ keep_going:
 			m_flushing_blocks += num_blocks;
 
 			int const hash_cursor = piece_iter->hasher_cursor;
+			TORRENT_ASSERT(num_blocks >= 0);
+			span<cached_block_entry> const blocks(piece_iter->blocks.get()
+				, num_blocks);
 
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
-			span<cached_block_entry> const blocks(piece_iter->blocks.get()
-				, num_blocks);
 
 			TORRENT_ASSERT(num_blocks == count_jobs(blocks));
 			TORRENT_ASSERT(num_blocks > 0);
@@ -690,18 +691,20 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
+			int const num_blocks = piece_iter->hasher_cursor - piece_iter->flushed_cursor;
+
 			// the pieces are ordered by the number of blocks that are cheap to
 			// flush (i.e. won't require read-back later)
 			// if we encounter a 0, all the remaining ones will also be zero
-			if (piece_iter->cheap_to_flush() == 0)
-				break;
+			if (num_blocks <= 0) break;
 
-			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
-
-			int const num_blocks = piece_iter->hasher_cursor - piece_iter->flushed_cursor;
+			TORRENT_ASSERT(num_blocks >= 0);
 			span<cached_block_entry> const blocks(piece_iter->blocks.get()
 				+ piece_iter->flushed_cursor, num_blocks);
 			if (num_blocks == 0) continue;
+
+			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+
 			m_flushing_blocks += num_blocks;
 
 			int const hash_cursor = piece_iter->hasher_cursor;
@@ -783,20 +786,22 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
-			view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
-
+			TORRENT_ASSERT(piece_iter->blocks_in_piece >= 0);
 			span<cached_block_entry> const blocks(piece_iter->blocks.get()
 				, piece_iter->blocks_in_piece);
 			int const num_blocks = count_jobs(blocks);
 			if (num_blocks == 0) continue;
+
+			view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+
 			m_flushing_blocks += num_blocks;
+			int const hash_cursor = piece_iter->hasher_cursor;
 
 			// we have to release the lock while flushing, but since we set the
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
 
 			int count = 0;
-			int hash_cursor = piece_iter->hasher_cursor;
 			{
 				auto se = scope_end([&] {
 					l.lock();
@@ -886,12 +891,13 @@ keep_going:
 			if (piece_iter->flushing)
 				continue;
 
-			piece_view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
-
 			span<cached_block_entry> const blocks(piece_iter->blocks.get()
 				, piece_iter->blocks_in_piece);
 			int const num_blocks = count_jobs(blocks);
 			if (num_blocks == 0) continue;
+
+			piece_view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+
 			m_flushing_blocks += num_blocks;
 
 			int const hash_cursor = piece_iter->hasher_cursor;

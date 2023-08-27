@@ -642,6 +642,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			add_job(khj);
 		}
 
+		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (!m_flush_target)
 		{
 			// if the disk buffer wants to free up blocks, notify the thread
@@ -1519,6 +1520,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
 				DLOG("try_flush_cache(%d)\n", target_cache_size);
 				try_flush_cache(target_cache_size, l);
+				continue;
 			}
 
 			if (res == aux::wait_result::exit_thread)
