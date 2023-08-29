@@ -1157,6 +1157,7 @@ void bind_session()
         .def("post_session_stats", allow_threads(&lt::session::post_session_stats))
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
+        .def("ssl_listen_port", allow_threads(&lt::session::ssl_listen_port))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", &add_dht_node)
 #if TORRENT_ABI_VERSION == 1
