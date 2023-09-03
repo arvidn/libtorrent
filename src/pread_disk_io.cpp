@@ -610,7 +610,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 		TORRENT_ASSERT(valid_flags(flags));
 		bool exceeded = false;
 		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			exceeded, o, "receive buffer"), default_block_size);
+			exceeded, o, "receive buffer"), r.length);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 

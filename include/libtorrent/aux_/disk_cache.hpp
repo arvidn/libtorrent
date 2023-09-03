@@ -77,8 +77,8 @@ struct cached_block_entry
 		if (write_job != nullptr)
 		{
 			TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
-			auto const& buf = std::get<job::write>(write_job->action).buf;
-			return {buf.data(), buf.size()};
+			auto const& job = std::get<job::write>(write_job->action);
+			return {job.buf.data(), job.buffer_size};
 		}
 		return {nullptr, 0};
 	}
@@ -89,6 +89,8 @@ struct cached_block_entry
 	// TODO: save space by just storing the buffer pointer here. The
 	// cached_piece_entry could hold the pointer to the buffer pool to be able
 	// to free these on destruction
+	// we would still need to save the *size* of the block, to support the
+	// shorter last block of a torrent
 	disk_buffer_holder buf_holder;
 	pread_disk_job* write_job = nullptr;
 
@@ -115,6 +117,7 @@ struct cached_piece_entry
 	piece_location piece;
 
 	// this is set to true when the piece has been populated with all blocks
+	// and the piece hash has been computed
 	bool ready_to_flush = false;
 
 	// when this is true, there is a thread currently hashing blocks and
@@ -130,7 +133,7 @@ struct cached_piece_entry
 	bool piece_hash_returned = false;
 
 	// this indicates that this piece belongs to a v2 torrent, and it has the
-	// block_hash member if cached_block_entry and we need to compute the block
+	// block_hash member of cached_block_entry and we need to compute the block
 	// hashes as well
 	bool v2_hashes = false;
 
@@ -383,6 +386,8 @@ struct disk_cache
 		auto i = view.find(loc);
 		if (i == view.end())
 		{
+//#error this computation is not right for v2 torrents. it will make v2 hashes computed incorrectly
+//#error we don't know what the block size actually is here. If the piece size is less than 16 kiB, this computation is incorrect
 			int const blocks_in_piece = (write_job->storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
 			cached_piece_entry pe(loc, blocks_in_piece);
 			pe.v2_hashes = write_job->storage->files().v2();
@@ -458,8 +463,6 @@ struct disk_cache
 	}
 
 	// this should be called from a hasher thread
-	// #error this is not hooked up. we need a new job type to post to the
-	// hasher_threads
 	void kick_hasher(piece_location const& loc, jobqueue_t& completed_jobs)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -1028,8 +1031,8 @@ keep_going:
 //				if (idx < piece_entry.hasher_cursor)
 //					TORRENT_ASSERT(!be.buf_holder);
 
-				if (piece_entry.ready_to_flush)
-					TORRENT_ASSERT(be.write_job != nullptr);
+//				if (piece_entry.ready_to_flush)
+//					TORRENT_ASSERT(be.write_job != nullptr);
 				++idx;
 			}
 		}

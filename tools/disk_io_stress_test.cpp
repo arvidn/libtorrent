@@ -226,11 +226,14 @@ int run_test(test_case const& t)
 			|| !blocks_to_read.empty()
 			|| outstanding > 0)
 		{
-//			printf("o: %d w: %d r: %d\r"
-//				, outstanding
-//				, int(blocks_to_write.size())
-//				, int(blocks_to_read.size()));
-//			fflush(stdout);
+			if ((job_counter & 0x1fff) == 0)
+			{
+				printf("o: %d w: %d r: %d\r"
+					, outstanding
+					, int(blocks_to_write.size())
+					, int(blocks_to_read.size()));
+				fflush(stdout);
+			}
 			for (int i = 0; i < t.read_multiplier; ++i)
 			{
 				if (!blocks_to_read.empty() && outstanding < t.queue_size)
