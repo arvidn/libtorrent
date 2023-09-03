@@ -238,6 +238,21 @@ namespace aux {
 			, std::int64_t((std::numeric_limits<int>::max)() / 2) * default_block_size);
 		static constexpr std::int64_t max_file_offset = (std::int64_t(1) << 48) - 1;
 
+		// we use a signed 32 bit integer for piece indices internally, but
+		// frequently need headroom for intermediate calculations, so we limit
+		// the number of pieces 1 bit below the maximum
+		static constexpr std::int32_t max_num_pieces = (std::int32_t(1) << 30) - 1;
+
+		// limit the piece length at (2 ^ 30) to get a bit of headroom. We
+		// commonly compute the number of blocks per pieces by adding
+		// block_size - 1 before dividing by block_size. That would overflow with
+		// a piece size of 2 ^ 31. This limit is still an unreasonably large
+		// piece size anyway.
+		// The piece picker (currently) has a limit of no more than (2^15)-1
+		// blocks per piece, which is more restrictive, at a block size of 16
+		// kiB (0x4000).
+		static constexpr std::int32_t max_piece_size = ((1 << 15) - 1) * 0x4000;
+
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
 		// of whether the file_storage as a whole is initialized or

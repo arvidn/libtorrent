@@ -377,7 +377,7 @@ namespace {
 		// calculations of the size of the merkle tree (which is all 'int'
 		// indices)
 		if (file_size < 0
-			|| (file_size / default_block_size) >= std::numeric_limits<int>::max() / 2
+			|| (file_size / default_block_size) >= file_storage::max_num_pieces
 			|| file_size > file_storage::max_file_size)
 		{
 			ec = errors::torrent_invalid_length;
@@ -1162,12 +1162,7 @@ namespace {
 
 		// extract piece length
 		std::int64_t const piece_length = info.dict_find_int_value("piece length", -1);
-		// limit the piece length at INT_MAX / 2 to get a bit of headroom. We
-		// commonly compute the number of blocks per pieces by adding
-		// block_size - 1 before dividing by block_size. That would overflow with
-		// a piece size of INT_MAX. This limit is still an unreasonably large
-		// piece size anyway.
-		if (piece_length <= 0 || piece_length > std::numeric_limits<int>::max() / 2)
+		if (piece_length <= 0 || piece_length > file_storage::max_piece_size)
 		{
 			ec = errors::torrent_missing_piece_length;
 			return false;
@@ -1319,8 +1314,7 @@ namespace {
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		if (files.total_size() / files.piece_length() >=
-			std::numeric_limits<int>::max())
+		if (files.total_size() / files.piece_length() > file_storage::max_num_pieces)
 		{
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid

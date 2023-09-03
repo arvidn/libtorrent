@@ -398,6 +398,10 @@ static test_torrent_t const test_torrents[] =
 			TEST_CHECK((ti->nodes() == std::vector<np>{np("127.0.0.1", 6881), np("192.168.1.1", 6881)}));
 		}
 	},
+	{ "large_piece_size.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->piece_length(), (32767 * 0x4000));
+		}
+	},
 };
 
 struct test_failing_torrent_t
@@ -980,7 +984,7 @@ void sanity_check(std::shared_ptr<torrent_info> const& ti)
 	// for it, it's still no good.
 	piece_picker pp(ti->total_size(), ti->piece_length());
 
-	TEST_CHECK(ti->piece_length() < std::numeric_limits<int>::max() / 2);
+	TEST_CHECK(ti->piece_length() <= file_storage::max_piece_size);
 	TEST_EQUAL(ti->v1(), ti->info_hashes().has_v1());
 	TEST_EQUAL(ti->v2(), ti->info_hashes().has_v2());
 }

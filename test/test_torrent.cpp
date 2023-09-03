@@ -186,14 +186,16 @@ void test_large_piece_size(int const size)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	add_torrent_params atp = load_torrent_buffer(buf);
-	atp.save_path = ".";
-
-	lt::session ses;
-	auto h = ses.add_torrent(std::move(atp));
-	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
-	h.clear_error();
-	TEST_CHECK(h.status().errc == error_code(lt::errors::invalid_piece_size));
+	try
+	{
+		add_torrent_params atp = load_torrent_buffer(buf);
+		// we expect this to fail with an exception
+		TEST_CHECK(false);
+	}
+	catch (lt::system_error const& e)
+	{
+		TEST_CHECK(e.code() == error_code(lt::errors::torrent_missing_piece_length));
+	}
 }
 
 } // anonymous namespace
