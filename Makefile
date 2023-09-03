@@ -1012,6 +1012,7 @@ TEST_TORRENTS = \
   invalid_pieces.torrent \
   invalid_symlink.torrent \
   large.torrent \
+  large_piece_size.torrent \
   long_name.torrent \
   many_pieces.torrent \
   missing_path_list.torrent \
