@@ -160,3 +160,10 @@ to allow reporting the oversized_file condition (which was introduced in
 The flags can be found in the ``lt::disk_status`` namespace.
 
 This change affects custom storage implementations.
+
+storage_params
+--------------
+
+The storage_params type has two new fields indicating whether the torrent has v1
+and/or v2 hashes. this allows disk I/O subsystems to know in advance whether
+block-hashes (v2 torrents) or flat piece hashes (v1 torrents) will be required.

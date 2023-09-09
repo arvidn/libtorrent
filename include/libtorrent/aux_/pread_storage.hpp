@@ -107,6 +107,9 @@ namespace libtorrent::aux {
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 
+		bool v1() const { return m_v1; }
+		bool v2() const { return m_v2; }
+
 	private:
 
 		bool m_need_tick = false;
@@ -172,6 +175,11 @@ namespace libtorrent::aux {
 		mutable typed_bitfield<file_index_t> m_file_created;
 
 		bool m_allocate_files;
+		// this is a v1 torrent
+		bool m_v1;
+		// this is a v2 torrent. If both v1 and v2 are set, it's a hybrid
+		// torrent
+		bool m_v2;
 	};
 
 }

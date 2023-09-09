@@ -135,6 +135,7 @@ struct cached_piece_entry
 	// this indicates that this piece belongs to a v2 torrent, and it has the
 	// block_hash member of cached_block_entry and we need to compute the block
 	// hashes as well
+	bool v1_hashes = false;
 	bool v2_hashes = false;
 
 	// TODO: bool v1_hashes = false;
@@ -193,7 +194,7 @@ static bool have_buffers(span<const cached_block_entry> blocks)
 	return true;
 }
 
-int compute_flushed_cursor(span<const cached_block_entry> blocks)
+static int compute_flushed_cursor(span<const cached_block_entry> blocks)
 {
 	int ret = 0;
 	for (auto const& b : blocks)
@@ -204,7 +205,7 @@ int compute_flushed_cursor(span<const cached_block_entry> blocks)
 	return ret;
 }
 
-int count_jobs(span<const cached_block_entry> blocks)
+static int count_jobs(span<const cached_block_entry> blocks)
 {
 	return std::count_if(blocks.begin(), blocks.end()
 		, [](cached_block_entry const& b) { return b.write_job; });
@@ -351,7 +352,9 @@ struct disk_cache
 			return false;
 		}
 
-		clear_piece_impl(const_cast<cached_piece_entry&>(*i), aborted);
+		view.modify(i, [&](cached_piece_entry& e) {
+			clear_piece_impl(e, aborted);
+		});
 		return true;
 	}
 
@@ -376,7 +379,9 @@ struct disk_cache
 	}
 
 	// returns true if this piece needs to have its hasher kicked
-	bool insert(piece_location const loc, int const block_idx, pread_disk_job* write_job)
+	bool insert(piece_location const loc
+		, int const block_idx
+		, pread_disk_job* write_job)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -388,15 +393,20 @@ struct disk_cache
 		{
 //#error this computation is not right for v2 torrents. it will make v2 hashes computed incorrectly
 //#error we don't know what the block size actually is here. If the piece size is less than 16 kiB, this computation is incorrect
-			int const blocks_in_piece = (write_job->storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
+			pread_storage* storage = write_job->storage.get();
+			int const blocks_in_piece = (storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
 			cached_piece_entry pe(loc, blocks_in_piece);
-			pe.v2_hashes = write_job->storage->files().v2();
+			pe.v1_hashes = storage->v1();
+			pe.v2_hashes = storage->v2();
 			i = m_pieces.insert(std::move(pe)).first;
 		}
 
 		cached_block_entry& blk = i->blocks[block_idx];
 		TORRENT_ASSERT(!blk.buf_holder);
 		TORRENT_ASSERT(blk.write_job == nullptr);
+		TORRENT_ASSERT(blk.flushed_to_disk == false);
+		TORRENT_ASSERT(block_idx >= i->flushed_cursor);
+		TORRENT_ASSERT(block_idx >= i->hasher_cursor);
 
 		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
 		blk.write_job = write_job;
@@ -495,6 +505,7 @@ keep_going:
 
 		view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
 
+		bool const need_v1 = piece_iter->v1_hashes;
 		bool const need_v2 = piece_iter->v2_hashes;
 
 		l.unlock();
@@ -503,8 +514,8 @@ keep_going:
 		{
 			cached_block_entry& cbe = piece_iter->blocks[cursor];
 
-			// TODO: don't compute sha1 hash for v2-only torrents
-			ctx.update(buf);
+			if (need_v1)
+				ctx.update(buf);
 
 			if (need_v2)
 				cbe.block_hash = hasher256(buf).final();
@@ -585,10 +596,10 @@ keep_going:
 			INVARIANT_CHECK;
 #endif
 
-			// We avoid flushing if other threads have already initiated sufficient
-			// amount of flushing
-			if (m_blocks - m_flushing_blocks <= target_blocks)
-				return;
+			// We want to flush all pieces that are ready to flush regardless of
+			// the flush target. There's not much value in keeping them in RAM
+			// when we've completely downloaded the piece and hashed it
+			// so, we don't check flush target in this loop
 
 			if (piece_iter->flushing)
 			{
@@ -621,6 +632,7 @@ keep_going:
 					l.lock();
 					view.modify(piece_iter, [&blocks](cached_piece_entry& e) {
 						e.flushing = false;
+						e.ready_to_flush = false;
 					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 					m_flushing_blocks -= num_blocks;
@@ -658,10 +670,12 @@ keep_going:
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
-				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
-				clear_piece_impl(cpe, aborted);
-				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
-				return;
+				pread_disk_job* clear_piece = nullptr;
+				view.modify(piece_iter, [&](cached_piece_entry& e) {
+					clear_piece_impl(e, aborted);
+					clear_piece = std::exchange(e.clear_piece, nullptr);
+				});
+				clear_piece_fun(std::move(aborted), clear_piece);
 			}
 			if (piece_iter->piece_hash_returned)
 			{
@@ -762,10 +776,12 @@ keep_going:
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
-				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
-				clear_piece_impl(cpe, aborted);
-				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
-				return;
+				pread_disk_job* clear_piece = nullptr;
+				view2.modify(piece_iter, [&](cached_piece_entry& e) {
+					clear_piece_impl(e, aborted);
+					clear_piece = std::exchange(e.clear_piece, nullptr);
+				});
+				clear_piece_fun(std::move(aborted), clear_piece);
 			}
 			// if we failed to flush all blocks we wanted to, we're done
 			if (count < num_blocks)
@@ -847,10 +863,12 @@ keep_going:
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
-				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
-				clear_piece_impl(cpe, aborted);
-				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
-				return;
+				pread_disk_job* clear_piece = nullptr;
+				view3.modify(piece_iter, [&](cached_piece_entry& e) {
+					clear_piece_impl(e, aborted);
+					clear_piece = std::exchange(e.clear_piece, nullptr);
+				});
+				clear_piece_fun(std::move(aborted), clear_piece);
 			}
 			if (count < num_blocks)
 				return;
@@ -953,18 +971,20 @@ keep_going:
 			if (piece_iter->clear_piece)
 			{
 				jobqueue_t aborted;
-				auto& cpe = const_cast<cached_piece_entry&>(*piece_iter);
-				clear_piece_impl(cpe, aborted);
-				clear_piece_fun(std::move(aborted), std::exchange(cpe.clear_piece, nullptr));
-				return;
+				pread_disk_job* clear_piece = nullptr;
+				piece_view.modify(piece_iter, [&](cached_piece_entry& e) {
+					clear_piece_impl(e, aborted);
+					clear_piece = std::exchange(e.clear_piece, nullptr);
+				});
+				clear_piece_fun(std::move(aborted), clear_piece);
 			}
 
-			if (piece_iter->piece_hash_returned)
-			{
-				TORRENT_ASSERT(!piece_iter->flushing);
-				TORRENT_ASSERT(!piece_iter->hashing);
+//			if (piece_iter->piece_hash_returned)
+//			{
+//				TORRENT_ASSERT(!piece_iter->flushing);
+//				TORRENT_ASSERT(!piece_iter->hashing);
 				piece_iter = piece_view.erase(piece_iter);
-			}
+//			}
 		}
 	}
 
@@ -1031,8 +1051,8 @@ keep_going:
 //				if (idx < piece_entry.hasher_cursor)
 //					TORRENT_ASSERT(!be.buf_holder);
 
-//				if (piece_entry.ready_to_flush)
-//					TORRENT_ASSERT(be.write_job != nullptr);
+				if (piece_entry.ready_to_flush)
+					TORRENT_ASSERT(be.write_job != nullptr);
 				++idx;
 			}
 		}
@@ -1060,10 +1080,16 @@ private:
 			{
 				aborted.push_back(cbe.write_job);
 				cbe.write_job = nullptr;
+				cbe.flushed_to_disk = false;
 				--m_blocks;
 			}
 			cbe.buf_holder.reset();
 		}
+		cpe.ready_to_flush = false;
+		cpe.piece_hash_returned = false;
+		cpe.hasher_cursor = 0;
+		cpe.flushed_cursor = 0;
+		cpe.ph = hasher{};
 	}
 
 	mutable std::mutex m_mutex;

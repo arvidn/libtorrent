@@ -24,6 +24,7 @@ see LICENSE file.
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <thread>
 
 #include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/disk_interface.hpp"

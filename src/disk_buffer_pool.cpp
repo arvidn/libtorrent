@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
+#include "libtorrent/aux_/debug_disk_thread.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -192,7 +193,7 @@ namespace {
 	std::optional<int> disk_buffer_pool::flush_request() const
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		if (m_in_use >= m_max_use)
+		if (m_in_use >= m_low_watermark)
 			return m_in_use - m_low_watermark;
 		return std::nullopt;
 	}

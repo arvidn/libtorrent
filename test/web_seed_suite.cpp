@@ -220,7 +220,10 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 		{
 			bool const expect = !fs.pad_file_at(i);
 			std::string file_path = combine_path(save_path, fs.file_path(i));
-			std::printf("checking file: %s\n", file_path.c_str());
+			std::printf("checking file: %s (pad-file: %d size: %" PRId64 ")\n"
+				, file_path.c_str()
+				, !expect
+				, fs.file_size(i));
 			TEST_EQUAL(exists(file_path), expect);
 		}
 	}

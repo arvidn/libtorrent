@@ -477,14 +477,15 @@ namespace {
 		file_storage fs = make_file_storage(t.file_list(), t.piece_length());
 
 		aux::vector<download_priority_t, file_index_t> priorities;
-		sha1_hash info_hash;
 		storage_params params{
 			fs,
 			nullptr,
 			path,
 			storage_mode_t::storage_mode_sparse,
 			priorities,
-			info_hash
+			sha1_hash{},
+			!t.is_v2_only(), // v1-hashes
+			!t.is_v1_only() // v2-hashes
 		};
 
 		storage_holder storage = disk_thread->new_torrent(params

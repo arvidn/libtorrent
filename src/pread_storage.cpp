@@ -72,7 +72,11 @@ namespace {
 		, m_part_file_name("." + to_hex(params.info_hash) + ".parts")
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
+		, m_v1(params.v1)
+		, m_v2(params.v2)
 	{
+		// a torrent must be either v1 or v2 (or both)
+		TORRENT_ASSERT(m_v1 || m_v2);
 		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
 
 		TORRENT_ASSERT(files().num_files() > 0);

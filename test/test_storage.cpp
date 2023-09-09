@@ -224,14 +224,15 @@ setup_torrent(
 	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
-	sha1_hash info_hash;
 	storage_params p{
 		info->files(),
 		nullptr,
 		test_path,
 		storage_mode_allocate,
 		priorities,
-		info_hash
+		sha1_hash{},
+		info->v1(),
+		info->v2()
 	};
 	auto s = make_storage<StorageType>(p, fp);
 
@@ -363,7 +364,6 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	typename file_pool_type<StorageType>::type fp;
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
-	sha1_hash info_hash;
 	std::string const cwd = current_working_directory();
 	storage_params p{
 		fs,
@@ -371,7 +371,9 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 		cwd,
 		storage_mode,
 		priorities,
-		info_hash
+		sha1_hash{},
+		info->v1(),
+		info->v2(),
 	};
 	auto s = make_storage<StorageType>(p, fp);
 
@@ -604,14 +606,15 @@ void test_check_files(check_files_flag_t const flags
 	if (flags & zero_prio)
 		priorities.resize(std::size_t(info->num_files()), download_priority_t{});
 
-	sha1_hash info_hash;
 	storage_params p{
 		info->files(),
 		nullptr,
 		test_path,
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
 		priorities,
-		info_hash
+		sha1_hash{},
+		info->v1(),
+		info->v2()
 	};
 
 	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
@@ -1597,7 +1600,10 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 		, save_path
 		, lt::storage_mode_sparse
 		, prios
-		, lt::sha1_hash("01234567890123456789"));
+		, lt::sha1_hash("01234567890123456789")
+		, true // v1-hashes
+		, true // v2-hashes
+		);
 
 	lt::storage_holder t = disk_io->new_torrent(params, {});
 

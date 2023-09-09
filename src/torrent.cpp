@@ -1744,7 +1744,9 @@ bool is_downloading_state(int const st)
 			m_save_path,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
-			m_info_hash.get_best()
+			m_info_hash.get_best(),
+			m_torrent_file->v1(),
+			m_torrent_file->v2()
 		};
 
 		// the shared_from_this() will create an intentional

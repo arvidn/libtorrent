@@ -1394,10 +1394,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 			auto& a = std::get<aux::job::write>(j->action);
 
+			if (count == 0) start_offset = job_offset;
 			iovec[count] = span<char>{ a.buf.data(), a.buffer_size};
 			++count;
 			flags = j->flags;
-			piece = std::get<aux::job::write>(j->action).piece;
+			piece = a.piece;
 			file_mode = file_mode_for_job(j);
 			end_offset = job_offset + a.buffer_size;
 			++idx;
@@ -1474,6 +1475,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 	void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& storage)
 	{
 		storage_index_t const torrent = storage->storage_index();
+		DLOG("flush_storage (%d)\n", torrent);
 		jobqueue_t completed_jobs;
 		m_cache.flush_storage(
 			[&](bitfield& flushed, span<aux::cached_block_entry const> blocks, int const hash_cursor) {
@@ -1483,6 +1485,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 			, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
 				clear_piece_jobs(std::move(aborted), clear);
 			});
+		DLOG("flush_storage - done (%d left)\n", m_cache.size());
 		if (!completed_jobs.empty())
 			add_completed_jobs(std::move(completed_jobs));
 	}
