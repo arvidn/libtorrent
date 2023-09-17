@@ -1562,8 +1562,10 @@ int main(int argc, char* argv[])
 #endif
 				if (arg == "posix"_sv)
 					params.disk_io_constructor = lt::posix_disk_io_constructor;
+#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
 				else if (arg == "pread"_sv)
 					params.disk_io_constructor = lt::pread_disk_io_constructor;
+#endif
 				else if (arg == "disabled"_sv)
 					params.disk_io_constructor = lt::disabled_disk_io_constructor;
 				else

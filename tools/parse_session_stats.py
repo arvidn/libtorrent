@@ -130,7 +130,8 @@ for i in range(0, 6):
 
 def plot_fun(script):
     try:
-        ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+        print('gnuplot "%s"' % script)
+        ret = os.system('gnuplot "%s"' % script)
     except Exception as e:
         print('please install gnuplot: sudo apt install gnuplot')
         raise e

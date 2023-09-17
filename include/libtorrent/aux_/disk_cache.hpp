@@ -194,6 +194,15 @@ static bool have_buffers(span<const cached_block_entry> blocks)
 	return true;
 }
 
+static bool compute_ready_to_flush(span<const cached_block_entry> blocks)
+{
+	for (auto const& b : blocks)
+	{
+		if (!b.write_job) return false;
+	}
+	return true;
+}
+
 static int compute_flushed_cursor(span<const cached_block_entry> blocks)
 {
 	int ret = 0;
@@ -488,18 +497,18 @@ struct disk_cache
 		if (piece_iter->hashing)
 			return;
 
-		TORRENT_ALLOCA(blocks, span<char const>, piece_iter->blocks_in_piece);
+		TORRENT_ALLOCA(blocks_storage, span<char const>, piece_iter->blocks_in_piece);
 		int cursor = piece_iter->hasher_cursor;
 keep_going:
 		int i = 0;
 		int end = cursor;
 		while (end < piece_iter->blocks_in_piece && piece_iter->blocks[end].buf().data())
 		{
-			blocks[i] = piece_iter->blocks[end].buf();
+			blocks_storage[i] = piece_iter->blocks[end].buf();
 			++i;
 			++end;
 		}
-		blocks = blocks.first(i);
+		auto blocks = blocks_storage.first(i);
 
 		hasher& ctx = const_cast<hasher&>(piece_iter->ph);
 
@@ -550,9 +559,11 @@ keep_going:
 
 		// there's a hash job hung on this piece, post it now
 		pread_disk_job* j = nullptr;
-		view.modify(piece_iter, [&](cached_piece_entry& e) {
+		span<cached_block_entry> const cached_blocks(piece_iter->blocks.get()
+			, piece_iter->blocks_in_piece);
+		view.modify(piece_iter, [&cached_blocks, &j](cached_piece_entry& e) {
 			j = std::exchange(e.hash_job, nullptr);
-			e.ready_to_flush = true;
+			e.ready_to_flush = compute_ready_to_flush(cached_blocks);
 		});
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
@@ -610,7 +621,7 @@ keep_going:
 			if (!piece_iter->ready_to_flush)
 				break;
 
-			view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(e.flushing == false); e.flushing = true; });
 			int const num_blocks = piece_iter->blocks_in_piece;
 			m_flushing_blocks += num_blocks;
 
@@ -623,6 +634,7 @@ keep_going:
 			// "flushing" member to true, this piece is pinned to the cache
 			l.unlock();
 
+			TORRENT_ASSERT(piece_iter->ready_to_flush);
 			TORRENT_ASSERT(num_blocks == count_jobs(blocks));
 			TORRENT_ASSERT(num_blocks > 0);
 
@@ -630,8 +642,9 @@ keep_going:
 			{
 				auto se = scope_end([&] {
 					l.lock();
-					view.modify(piece_iter, [&blocks](cached_piece_entry& e) {
+					view.modify(piece_iter, [](cached_piece_entry& e) {
 						e.flushing = false;
+						TORRENT_ASSERT(e.ready_to_flush);
 						e.ready_to_flush = false;
 					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
@@ -663,6 +676,7 @@ keep_going:
 			}
 			view.modify(piece_iter, [&blocks](cached_piece_entry& e) {
 				e.flushed_cursor = compute_flushed_cursor(blocks);
+				e.ready_to_flush = e.flushed_cursor == 0;
 			});
 
 			TORRENT_ASSERT(m_blocks >= count);
@@ -720,7 +734,7 @@ keep_going:
 				+ piece_iter->flushed_cursor, num_blocks);
 			if (num_blocks == 0) continue;
 
-			view2.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			view2.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!e.flushing); e.flushing = true; });
 
 			m_flushing_blocks += num_blocks;
 
@@ -735,6 +749,7 @@ keep_going:
 				auto se = scope_end([&] {
 					l.lock();
 					view2.modify(piece_iter, [&](cached_piece_entry& e) {
+						TORRENT_ASSERT(e.flushing); 
 						e.flushing = false;
 					});
 					TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
@@ -811,7 +826,7 @@ keep_going:
 			int const num_blocks = count_jobs(blocks);
 			if (num_blocks == 0) continue;
 
-			view3.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			view3.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!e.flushing); e.flushing = true; });
 
 			m_flushing_blocks += num_blocks;
 			int const hash_cursor = piece_iter->hasher_cursor;
@@ -917,7 +932,7 @@ keep_going:
 			int const num_blocks = count_jobs(blocks);
 			if (num_blocks == 0) continue;
 
-			piece_view.modify(piece_iter, [](cached_piece_entry& e) { e.flushing = true; });
+			piece_view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!e.flushing); e.flushing = true; });
 
 			m_flushing_blocks += num_blocks;
 
@@ -981,8 +996,8 @@ keep_going:
 
 //			if (piece_iter->piece_hash_returned)
 //			{
-//				TORRENT_ASSERT(!piece_iter->flushing);
-//				TORRENT_ASSERT(!piece_iter->hashing);
+				TORRENT_ASSERT(!piece_iter->flushing);
+				TORRENT_ASSERT(!piece_iter->hashing);
 				piece_iter = piece_view.erase(piece_iter);
 //			}
 		}
@@ -1016,16 +1031,7 @@ keep_going:
 			int const num_blocks = piece_entry.blocks_in_piece;
 
 			if (piece_entry.flushing)
-			{
 				flushing_blocks += num_blocks;
-
-				// while another thread is flushing, it owns the cached_block_entry
-				// array, and will be updating the job and buffer pointers as it
-				// goes. We cannot count these (because it would be a data race) and
-				// also because the flushing thread will not have updated m_blocks
-				// yet
-				continue;
-			}
 
 			span<cached_block_entry> const blocks(piece_entry.blocks.get()
 				, num_blocks);
@@ -1058,10 +1064,7 @@ keep_going:
 		}
 		// if one or more blocks are being flushed, we cannot know how many blocks
 		// are in flight. We just know the limit
-		if (flushing_blocks > 0)
-			TORRENT_ASSERT(dirty_blocks <= m_blocks);
-		else
-			TORRENT_ASSERT(dirty_blocks == m_blocks);
+		TORRENT_ASSERT(dirty_blocks == m_blocks);
 		TORRENT_ASSERT(m_flushing_blocks <= flushing_blocks);
 	}
 #endif
