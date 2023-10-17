@@ -179,7 +179,7 @@ namespace {
 
 		int const pool_size = std::max(1, sett.get_int(settings_pack::max_queued_disk_bytes) / default_block_size);
 		m_max_use = pool_size;
-		m_low_watermark = m_max_use / 2;
+		m_low_watermark = std::max(0, m_max_use - 32);
 		if (m_in_use >= m_max_use && !m_exceeded_max_size)
 		{
 			m_exceeded_max_size = true;
