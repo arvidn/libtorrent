@@ -13,6 +13,7 @@ Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2020, Fonic
 Copyright (c) 2020, Viktor Elofsson
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1891,11 +1892,16 @@ TORRENT_VERSION_NAMESPACE_3
 	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert
 	{
 		// internal
-		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc,
+			torrent_handle const& h, client_data_t userdata = {});
 
 		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority::high)
 
 		static constexpr alert_category_t static_category = alert_category::storage;
+
+		// '`userdata`` as set in torrent_handle::flush_cache on call.
+		// This can be used to associate the call with related data.
+		client_data_t userdata;
 	};
 
 #if TORRENT_ABI_VERSION == 1

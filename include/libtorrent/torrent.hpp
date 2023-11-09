@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -563,7 +564,7 @@ namespace libtorrent {
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
-		void flush_cache();
+		void flush_cache(client_data_t userdata = {});
 		void pause(pause_flags_t flags = {});
 		void resume();
 
@@ -1307,7 +1308,7 @@ namespace libtorrent {
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);
-		void on_cache_flushed(bool manually_triggered);
+		void on_cache_flushed(bool manually_triggered, client_data_t userdata = {});
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread

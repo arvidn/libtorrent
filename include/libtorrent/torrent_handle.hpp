@@ -9,6 +9,7 @@ Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, Falcosc
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -652,13 +653,15 @@ namespace aux {
 
 		// Instructs libtorrent to flush all the disk caches for this torrent and
 		// close all file handles. This is done asynchronously and you will be
-		// notified that it's complete through cache_flushed_alert.
+		// notified that it's complete through cache_flushed_alert
+		// with custom data (client_data_t) to be associated with this operation.
 		//
 		// Note that by the time you get the alert, libtorrent may have cached
 		// more data for the torrent, but you are guaranteed that whatever cached
 		// data libtorrent had by the time you called
-		// ``torrent_handle::flush_cache()`` has been written to disk.
-		void flush_cache() const;
+		// ``torrent_handle::flush_cache(client_data_t)`` with the provided client_data_t
+		// has been written to disk.
+		void flush_cache(client_data_t userdata = {}) const;
 
 		// ``force_recheck`` puts the torrent back in a state where it assumes to
 		// have no resume data. All peers will be disconnected and the torrent

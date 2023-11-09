@@ -1561,8 +1561,9 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h) {}
+		, torrent_handle const& h, client_data_t u)
+		: torrent_alert(alloc, h)
+		, userdata(u) {}
 
 #if TORRENT_ABI_VERSION == 1
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc

@@ -18,7 +18,7 @@ Copyright (c) 2018, airium
 Copyright (c) 2018, d-komarov
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
-Copyright (c) 2021, Joris CARRIER
+Copyright (c) 2021, 2023, Joris CARRIER
 Copyright (c) 2021, thrnz
 All rights reserved.
 
@@ -8397,7 +8397,7 @@ namespace {
 		{
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage
-				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false, client_data_t()));
 			m_ses.deferred_submit_jobs();
 		}
 
@@ -9462,7 +9462,7 @@ namespace {
 			&& !m_session_paused;
 	}
 
-	void torrent::flush_cache()
+	void torrent::flush_cache(client_data_t userdata)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9473,18 +9473,18 @@ namespace {
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage
-			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true));
+			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true, userdata));
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_cache_flushed(bool const manually_triggered) try
+	void torrent::on_cache_flushed(bool const manually_triggered, client_data_t userdata) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_ses.is_aborted()) return;
 
 		if (manually_triggered || alerts().should_post<cache_flushed_alert>())
-			alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<cache_flushed_alert>(get_handle(), userdata);
 	}
 	catch (...) { handle_exception(); }
 
