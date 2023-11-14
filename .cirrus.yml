@@ -1,5 +1,5 @@
 freebsd_instance:
-  image_family: freebsd-12-1
+  image_family: freebsd-13-2
 
 task:
   install_script: |
@@ -28,7 +28,7 @@ build_and_store_wheels: &BUILD_AND_STORE_WHEELS
       delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
 
   install_cibuildwheel_script:
-    - $PYTHON -m pip install cibuildwheel==2.12.0
+    - $PYTHON -m pip install cibuildwheel==2.16.2
 
   run_cibuildwheel_script:
     - cibuildwheel

@@ -47,8 +47,9 @@ jobs:
           "include": [
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "macos-12", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
+            {"os": "macos-latest", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
+            {"os": "macos-latest", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "arm64"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
@@ -58,9 +59,10 @@ jobs:
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "aarch64"},
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
             {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
-            {"os": "macos-12", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
+            {"os": "macos-latest", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
+            {"os": "macos-latest", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "arm64"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
           ]
         }
 
@@ -91,7 +93,7 @@ jobs:
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
 
@@ -101,10 +103,10 @@ jobs:
         path: wheelhouse
         key: wheel-${{ matrix.CIBW_BUILD }}-${{ matrix.CIBW_ARCHS }}-${{ github.sha }}
 
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.12.3
+    - uses: pypa/cibuildwheel@v2.16.2
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v3
