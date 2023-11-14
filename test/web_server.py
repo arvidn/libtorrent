@@ -220,7 +220,9 @@ if __name__ == '__main__':
     http_handler.protocol_version = 'HTTP/1.1'
     httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)
     if use_ssl:
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile='../ssl/server.pem', server_side=True)
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain("../ssl/server.pem")
+        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
 
     while True:
         httpd.handle_request()
