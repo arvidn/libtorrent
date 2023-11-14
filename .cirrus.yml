@@ -28,7 +28,7 @@ build_and_store_wheels: &BUILD_AND_STORE_WHEELS
       delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
 
   install_cibuildwheel_script:
-    - $PYTHON -m pip install cibuildwheel==2.16.5
+    - $PYTHON -m pip install cibuildwheel==2.19.1
 
   run_cibuildwheel_script:
     - cibuildwheel
@@ -71,12 +71,12 @@ test_macos_arm64_task:
     PATH: /opt/homebrew/bin:$PATH
     PYTHON: python3.9
     OPENSSL_OPTS: >
-      openssl-lib=/opt/homebrew/opt/openssl@3.0/lib
-      openssl-include=/opt/homebrew/opt/openssl@3.0/include
+      openssl-lib=/opt/homebrew/opt/openssl@3/lib
+      openssl-include=/opt/homebrew/opt/openssl@3/include
 
   install_pre_requirements_script:
     - brew install python@3.9
-    - brew install boost-build boost openssl@3.0
+    - brew install boost-build boost openssl@3
     - echo "using darwin ;" >>~/user-config.jam
 
   debug_script:

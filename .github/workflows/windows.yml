@@ -33,17 +33,9 @@ jobs:
         with:
            submodules: true
 
-      - name: install openssl (64 bit)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          retry_wait_seconds: 4
-          max_attempts: 3
-          command: choco install openssl --limitoutput --no-progress
-
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -78,7 +70,7 @@ jobs:
 
    simulations:
       name: Simulations
-      runs-on: windows-2019
+      runs-on: windows-latest
 
       steps:
       - name: checkout
@@ -88,7 +80,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -126,7 +118,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: windows-2019
+      runs-on: windows-latest
       continue-on-error: true
 
       strategy:
@@ -144,17 +136,9 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
-
-      - name: install openssl (64 bit)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          retry_wait_seconds: 4
-          max_attempts: 3
-          command: choco install openssl --limitoutput --no-progress
 
       - name: boost headers
         run: |
@@ -199,17 +183,9 @@ jobs:
         with:
            submodules: true
 
-      - name: install openssl (64 bit)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          retry_wait_seconds: 4
-          max_attempts: 3
-          command: choco install openssl --limitoutput --no-progress
-
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 

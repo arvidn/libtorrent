@@ -31,7 +31,7 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.12 openssl@1.1 python-setuptools
+        brew install boost-build boost boost-python3 python@3.12 openssl@3 python-setuptools
         export PATH=$(brew --prefix)/opt/python@3.12/bin:$PATH
 
     - name: update package lists (linux)
@@ -57,7 +57,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.82.0 https://github.com/boostorg/boost.git
         cd boost
         bootstrap.bat
 
@@ -67,16 +67,6 @@ jobs:
       run: |
         cd boost
         .\b2 headers
-
-    - name: install openssl (windows)
-      if: runner.os == 'Windows'
-      uses: nick-fields/retry@v3
-      with:
-        shell: cmd
-        timeout_minutes: 5
-        retry_wait_seconds: 4
-        max_attempts: 3
-        command: choco install openssl --limitoutput --no-progress
 
     - name: build/install (windows)
       if: runner.os == 'Windows'
