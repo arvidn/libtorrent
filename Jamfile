@@ -355,6 +355,12 @@ rule building ( properties * )
 			# https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170
 			result += <cxxflags>/permissive- ;
 		}
+
+		# ask the compiler to correctly set __cplusplus version
+		if <toolset>msvc in $(properties)
+		{
+			result += <msvc-version-macro>on ;
+		}
 	}
 
 
@@ -685,6 +691,10 @@ feature export-extra : off on : composite propagated ;
 # this is off by default to keep the export
 # symbol table reasonably small
 feature.compose <export-extra>on : <define>TORRENT_EXPORT_EXTRA ;
+
+feature msvc-version-macro : off on : composite propagated link-incompatible ;
+# ask the compiler to correctly set __cplusplus version
+feature.compose <msvc-version-macro>on : <cxxflags>/Zc\:__cplusplus ;
 
 lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
