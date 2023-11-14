@@ -155,6 +155,14 @@ rule linking ( properties * )
 		result += <framework>CoreFoundation <framework>SystemConfiguration ;
 	}
 
+	if <target-os>iphone in $(properties)
+	{
+		# boost.asio seems to mis-detect iOS as supporting the __thread
+		# keyword, resulting in the error:
+		# error: thread-local storage is not supported for the current target
+		result += <define>BOOST_ASIO_DISABLE_THREAD_KEYWORD_EXTENSION ;
+	}
+
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
 		&& ( <asserts>on in $(properties)
