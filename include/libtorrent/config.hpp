@@ -589,10 +589,17 @@ see LICENSE file.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
-#if __cplusplus >= 202002L
-#define TORRENT_RVO(x) x
+#if defined __clang__
+// for some reason, clang warns on relying on guaranteed copy elision,
+// suggesting an explicit call to std::move() instead
+// local variable 'X' will be copied despite being returned by name
+// call 'std::move' explicitly to avoid copying
+#	define TORRENT_RVO(x) std::move(x)
+#elif (__cplusplus >= 201703L && defined __cpp_guaranteed_copy_elision) \
+	|| (defined _MSC_VER && _MSC_VER > 1928)
+#	define TORRENT_RVO(x) x
 #else
-#define TORRENT_RVO(x) std::move(x)
+#	define TORRENT_RVO(x) std::move(x)
 #endif
 
 #if (TORRENT_HAS_SSE && defined __GNUC__)

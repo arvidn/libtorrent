@@ -14,6 +14,10 @@ see LICENSE file.
 #include <string>
 #include "libtorrent/config.hpp"
 
+#if TORRENT_ABI_VERSION < 4
+#include <cstdint>
+#endif
+
 namespace libtorrent {
 
 // the web_seed_entry holds information about a web seed (also known
