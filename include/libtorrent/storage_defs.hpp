@@ -1,5 +1,6 @@
 /*
 
+Copyright (c) 2023, Vladimir Golovnev
 Copyright (c) 2003-2018, Arvid Norberg
 All rights reserved.
 
@@ -88,7 +89,15 @@ namespace libtorrent {
 
 		// if any file exist in the target, take those files instead
 		// of the ones we may have in the source.
-		dont_replace
+		dont_replace,
+
+		// don't move any source files, just forget about them
+		// and begin checking files at new save path
+		reset_save_path,
+
+		// don't move any source files, just change save path
+		// and continue working without any checks
+		reset_save_path_unchecked
 	};
 
 #if TORRENT_ABI_VERSION == 1
