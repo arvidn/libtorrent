@@ -1,5 +1,6 @@
 /*
 
+Copyright (c) 2023, Vladimir Golovnev
 Copyright (c) 2003-2016, Arvid Norberg
 All rights reserved.
 
@@ -260,6 +261,12 @@ namespace libtorrent { namespace aux {
 				return { status_t::fatal_disk_error, save_path };
 			}
 		}
+
+		if (flags == move_flags_t::reset_save_path)
+			return { status_t::need_full_check, new_save_path };
+
+		if (flags == move_flags_t::reset_save_path_unchecked)
+			return { status_t::no_error, new_save_path };
 
 		// indices of all files we ended up copying. These need to be deleted
 		// later
