@@ -69,7 +69,7 @@ namespace aux {
 		~alert_manager();
 
 		template <class T, typename... Args>
-		void emplace_alert(Args&&... args) try
+		const T* emplace_alert(Args&&... args) try
 		{
 			std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
@@ -82,13 +82,15 @@ namespace aux {
 			{
 				// record that we dropped an alert of this type
 				m_dropped.set(T::alert_type);
-				return;
+				return nullptr;
 			}
 
 			T& alert = queue.emplace_back<T>(
 				m_allocations[m_generation], std::forward<Args>(args)...);
 
 			maybe_notify(&alert);
+
+			return &alert;
 		}
 		catch (std::bad_alloc const&)
 		{
