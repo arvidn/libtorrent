@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <functional>
 #include <memory>
+#include <future>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #if TORRENT_ABI_VERSION == 1
@@ -80,6 +81,9 @@ namespace aux {
 #endif
 	struct torrent;
 	struct client_data_t;
+
+	struct cache_flushed_alert;
+	struct read_piece_alert;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	[[noreturn]] void throw_invalid_handle();
@@ -310,6 +314,7 @@ namespace aux {
 		// Note that if you read multiple pieces, the read operations are not
 		// guaranteed to finish in the same order as you initiated them.
 		void read_piece(piece_index_t piece) const;
+		std::future<const read_piece_alert*> async_read_piece(piece_index_t piece);
 
 		// Returns true if this piece has been completely downloaded and written
 		// to disk, and false otherwise.
@@ -659,6 +664,7 @@ namespace aux {
 		// data libtorrent had by the time you called
 		// ``torrent_handle::flush_cache()`` has been written to disk.
 		void flush_cache() const;
+		std::future<const cache_flushed_alert*> async_flush_cache();
 
 		// ``force_recheck`` puts the torrent back in a state where it assumes to
 		// have no resume data. All peers will be disconnected and the torrent

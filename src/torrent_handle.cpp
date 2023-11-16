@@ -358,7 +358,14 @@ namespace libtorrent {
 
 	void torrent_handle::flush_cache() const
 	{
-		async_call(&torrent::flush_cache);
+		async_call(&torrent::flush_cache, nullptr);
+	}
+
+	std::future<const cache_flushed_alert*> torrent_handle::async_flush_cache()
+	{
+		auto promise = std::make_shared<std::promise<const cache_flushed_alert*>>();
+		async_call(&torrent::flush_cache, promise);
+		return promise->get_future();
 	}
 
 	void torrent_handle::set_ssl_certificate(

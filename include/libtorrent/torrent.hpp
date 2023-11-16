@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <future>
 #include <deque>
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
@@ -563,7 +564,8 @@ namespace libtorrent {
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
-		void flush_cache();
+
+		void flush_cache(std::shared_ptr<std::promise<const cache_flushed_alert*>> promise = nullptr);
 		void pause(pause_flags_t flags = {});
 		void resume();
 
@@ -1307,7 +1309,8 @@ namespace libtorrent {
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);
-		void on_cache_flushed(bool manually_triggered);
+
+		void on_cache_flushed(bool manually_triggered, std::shared_ptr<std::promise<const cache_flushed_alert*>> promise = nullptr);
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread
