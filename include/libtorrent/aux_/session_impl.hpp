@@ -6,6 +6,7 @@ Copyright (c) 2015-2020, Alden Torres
 Copyright (c) 2015, Thomas
 Copyright (c) 2016-2017, Pavel Pimenov
 Copyright (c) 2020, Paul-Louis Ageneau
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -349,7 +350,8 @@ namespace aux {
 				plugins_all_idx = 0, // to store all plugins
 				plugins_optimistic_unchoke_idx = 1, // optimistic_unchoke_feature
 				plugins_tick_idx = 2, // tick_feature
-				plugins_dht_request_idx = 3 // dht_request_feature
+				plugins_dht_request_idx = 3, // dht_request_feature
+				plugins_unknown_torrent_idx = 4 // unknown_torrent_feature
 			};
 
 			template <typename Fun, typename... Args>
@@ -1330,7 +1332,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			std::array<std::vector<std::shared_ptr<plugin>>, 4> m_ses_extensions;
+			std::array<std::vector<std::shared_ptr<plugin>>, 5> m_ses_extensions;
 #endif
 
 #if TORRENT_ABI_VERSION == 1

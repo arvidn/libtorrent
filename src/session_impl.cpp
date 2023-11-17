@@ -17,6 +17,7 @@ Copyright (c) 2020, Fonic
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2022, Vladimir Golovnev (glassez)
 Copyright (c) 2022, thrnz
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -992,6 +993,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 			m_ses_extensions[plugins_tick_idx].push_back(ext);
 		if (features & plugin::dht_request_feature)
 			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
+		if (features & plugin::unknown_torrent_feature)
+			m_ses_extensions[plugins_unknown_torrent_idx].push_back(ext);
 		if (features & plugin::alert_feature)
 			m_alerts.add_extension(ext);
 		session_handle h(shared_from_this());
@@ -3084,9 +3087,15 @@ namespace {
 			return;
 		}
 
+		bool want_on_unknown_torrent = false;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		want_on_unknown_torrent = !m_ses_extensions[plugins_unknown_torrent_idx].empty();
+#endif
+
 		// check if we have any active torrents
+		// or if there is an extension that wants on_unknown_torrent
 		// if we don't reject the connection
-		if (m_torrents.empty())
+		if (m_torrents.empty() && !want_on_unknown_torrent)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("<== INCOMING CONNECTION [ rejected, there are no torrents ]");
@@ -3138,9 +3147,10 @@ namespace {
 		// if we don't have any active torrents, there's no
 		// point in accepting this connection. If, however,
 		// the setting to start up queued torrents when they
-		// get an incoming connection is enabled, we cannot
+		// get an incoming connection is enabled or if there is
+		// an extension that wants on_unknown_torrent, we cannot
 		// perform this check.
-		if (!m_settings.get_bool(settings_pack::incoming_starts_queued_torrents))
+		if (!m_settings.get_bool(settings_pack::incoming_starts_queued_torrents) && !want_on_unknown_torrent)
 		{
 			bool has_active_torrent = std::any_of(m_torrents.begin(), m_torrents.end()
 				, [](std::shared_ptr<torrent> const& i)

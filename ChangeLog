@@ -1,3 +1,4 @@
+	* allow on_unknown_torrent method in the absence of active torrents (new plugin feature added)
 	* fix missing python converter for dht::announce_flags_t
 
 2.0.9 released
