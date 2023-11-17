@@ -751,7 +751,14 @@ namespace libtorrent {
 
 	void torrent_handle::read_piece(piece_index_t piece) const
 	{
-		async_call(&torrent::read_piece, piece);
+		async_call(&torrent::read_piece, piece, nullptr);
+	}
+
+	std::future<const read_piece_alert*> torrent_handle::async_read_piece(piece_index_t piece)
+	{
+		auto promise = std::make_shared<std::promise<const read_piece_alert*>>();
+		async_call(&torrent::read_piece, piece, promise);
+		return promise->get_future();
 	}
 
 	bool torrent_handle::have_piece(piece_index_t piece) const

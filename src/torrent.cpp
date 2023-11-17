@@ -743,7 +743,7 @@ bool is_downloading_state(int const st)
 			m_ses.close_connection(p);
 	}
 
-	void torrent::read_piece(piece_index_t const piece)
+	void torrent::read_piece(piece_index_t const piece, std::shared_ptr<std::promise<const read_piece_alert*>> promise)
 	{
 		error_code ec;
 		if (m_abort || m_deleted)
@@ -761,7 +761,8 @@ bool is_downloading_state(int const st)
 
 		if (ec)
 		{
-			m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), piece, ec);
+			auto* a = m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), piece, ec);
+			if (promise) promise->set_value(a);
 			return;
 		}
 
@@ -775,8 +776,9 @@ bool is_downloading_state(int const st)
 		{
 			// this shouldn't actually happen
 			boost::shared_array<char> buf;
-			m_ses.alerts().emplace_alert<read_piece_alert>(
+			auto* a = m_ses.alerts().emplace_alert<read_piece_alert>(
 				get_handle(), piece, buf, 0);
+			if (promise) promise->set_value(a);
 			return;
 		}
 
@@ -784,12 +786,14 @@ bool is_downloading_state(int const st)
 		rp->piece_data.reset(new (std::nothrow) char[std::size_t(piece_size)]);
 		if (!rp->piece_data)
 		{
-			m_ses.alerts().emplace_alert<read_piece_alert>(
+			auto* a = m_ses.alerts().emplace_alert<read_piece_alert>(
 				get_handle(), piece, error_code(boost::system::errc::not_enough_memory, generic_category()));
+			if (promise) promise->set_value(a);
 			return;
 		}
 		rp->blocks_left = blocks_in_piece;
 		rp->fail = false;
+		rp->promise = promise;
 
 		disk_job_flags_t flags{};
 		auto const read_mode = settings().get_int(settings_pack::disk_io_read_mode);
@@ -1215,13 +1219,15 @@ bool is_downloading_state(int const st)
 			int size = m_torrent_file->piece_size(r.piece);
 			if (rp->fail)
 			{
-				m_ses.alerts().emplace_alert<read_piece_alert>(
+				const auto* a = m_ses.alerts().emplace_alert<read_piece_alert>(
 					get_handle(), r.piece, rp->error);
+				if (rp->promise) rp->promise->set_value(a);
 			}
 			else
 			{
-				m_ses.alerts().emplace_alert<read_piece_alert>(
+				const auto* a = m_ses.alerts().emplace_alert<read_piece_alert>(
 					get_handle(), r.piece, rp->piece_data, size);
+				if (rp->promise) rp->promise->set_value(a);
 			}
 		}
 	}
