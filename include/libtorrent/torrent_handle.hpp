@@ -84,6 +84,7 @@ namespace aux {
 
 	struct cache_flushed_alert;
 	struct read_piece_alert;
+	struct storage_moved_alert;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	[[noreturn]] void throw_invalid_handle();
@@ -1334,6 +1335,9 @@ namespace aux {
 		void move_storage(std::string const& save_path
 			, move_flags_t flags = move_flags_t::always_replace_files
 			) const;
+
+		std::future<const storage_moved_alert*> async_move_storage(std::string const& save_path
+			, move_flags_t flags = move_flags_t::always_replace_files);
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2

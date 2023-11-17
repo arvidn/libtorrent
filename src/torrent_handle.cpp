@@ -270,14 +270,22 @@ namespace libtorrent {
 
 	void torrent_handle::move_storage(std::string const& save_path, move_flags_t flags) const
 	{
-		async_call(&torrent::move_storage, save_path, flags);
+		async_call(&torrent::move_storage, save_path, flags, nullptr);
+	}
+
+	std::future<const storage_moved_alert*> torrent_handle::async_move_storage(std::string const& save_path
+		, move_flags_t flags)
+	{
+		auto promise = std::make_shared<std::promise<const storage_moved_alert*>>();
+		async_call(&torrent::move_storage, save_path, flags, promise);
+		return promise->get_future();
 	}
 
 #if TORRENT_ABI_VERSION == 1
 	void torrent_handle::move_storage(
 		std::string const& save_path, int const flags) const
 	{
-		async_call(&torrent::move_storage, save_path, static_cast<move_flags_t>(flags));
+		async_call(&torrent::move_storage, save_path, static_cast<move_flags_t>(flags), nullptr);
 	}
 #endif // TORRENT_ABI_VERSION
 

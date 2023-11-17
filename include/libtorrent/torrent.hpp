@@ -1165,7 +1165,7 @@ namespace libtorrent {
 		// RESOURCE MANAGEMENT
 
 		// flags are defined in storage.hpp
-		void move_storage(std::string const& save_path, move_flags_t flags);
+		void move_storage(std::string const& save_path, move_flags_t flags, std::shared_ptr<std::promise<const storage_moved_alert*>> promise = nullptr);
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path
@@ -1308,7 +1308,7 @@ namespace libtorrent {
 		void on_files_deleted(storage_error const& error);
 		void on_torrent_paused();
 		void on_storage_moved(status_t status, std::string const& path
-			, storage_error const& error);
+			, storage_error const& error, std::shared_ptr<std::promise<const storage_moved_alert*>> promise = nullptr);
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);

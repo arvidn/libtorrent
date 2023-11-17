@@ -8690,17 +8690,22 @@ namespace {
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::move_storage(std::string const& save_path, move_flags_t const flags)
+	void torrent::move_storage(std::string const& save_path, move_flags_t const flags, std::shared_ptr<std::promise<const storage_moved_alert*>> promise)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		if (m_abort)
 		{
-			if (alerts().should_post<storage_moved_failed_alert>())
-				alerts().emplace_alert<storage_moved_failed_alert>(get_handle()
+			if (alerts().should_post<storage_moved_failed_alert>()) {
+				auto* a = alerts().emplace_alert<storage_moved_failed_alert>(get_handle()
 					, boost::asio::error::operation_aborted
 					, "", operation_t::unknown);
+
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_exception(a)));
+			} else {
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_dont_post_exception<storage_moved_failed_alert>()));
+			}
 			return;
 		}
 
@@ -8708,8 +8713,12 @@ namespace {
 		// structure and we have to assume we don't have any file.
 		if (!valid_metadata())
 		{
-			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
+			if (alerts().should_post<storage_moved_alert>()) {
+				auto* a = alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
+				if (promise) promise->set_value(a);
+			} else {
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_dont_post_exception<storage_moved_alert>()));
+			}
 #if TORRENT_USE_UNC_PATHS
 			std::string path = canonicalize_path(save_path);
 #else
@@ -8728,14 +8737,18 @@ namespace {
 			std::string path = save_path;
 #endif
 			m_ses.disk_thread().async_move_storage(m_storage, std::move(path), flags
-				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
+				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3, promise));
 			m_moving_storage = true;
 			m_ses.deferred_submit_jobs();
 		}
 		else
 		{
-			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
+			if (alerts().should_post<storage_moved_alert>()) {
+				auto* a = alerts().emplace_alert<storage_moved_alert>(get_handle(), save_path, m_save_path);
+				if (promise) promise->set_value(a);
+			} else {
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_dont_post_exception<storage_moved_alert>()));
+			}
 
 #if TORRENT_USE_UNC_PATHS
 			m_save_path = canonicalize_path(save_path);
@@ -8748,7 +8761,7 @@ namespace {
 	}
 
 	void torrent::on_storage_moved(status_t const status, std::string const& path
-		, storage_error const& error) try
+		, storage_error const& error, std::shared_ptr<std::promise<const storage_moved_alert*>> promise) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -8756,8 +8769,12 @@ namespace {
 		if (status == status_t::no_error
 			|| status == status_t::need_full_check)
 		{
-			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), path, m_save_path);
+			if (alerts().should_post<storage_moved_alert>()) {
+				auto* a = alerts().emplace_alert<storage_moved_alert>(get_handle(), path, m_save_path);
+				if (promise) promise->set_value(a);
+			} else {
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_dont_post_exception<storage_moved_alert>()));
+			}
 			m_save_path = path;
 			set_need_save_resume(torrent_handle::if_config_changed);
 			if (status == status_t::need_full_check)
@@ -8765,9 +8782,13 @@ namespace {
 		}
 		else
 		{
-			if (alerts().should_post<storage_moved_failed_alert>())
-				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), error.ec
+			if (alerts().should_post<storage_moved_failed_alert>()) {
+				auto* a = alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), error.ec
 					, resolve_filename(error.file()), error.operation);
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_exception(a)));
+			} else {
+				if (promise) promise->set_exception(std::make_exception_ptr(alert_dont_post_exception<storage_moved_failed_alert>()));
+			}
 		}
 	}
 	catch (...) { handle_exception(); }
