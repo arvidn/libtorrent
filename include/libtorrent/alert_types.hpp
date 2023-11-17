@@ -79,6 +79,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <bitset>
 #include <cstdarg> // for va_list
 
+#include <boost/type_index.hpp>
+
 #if TORRENT_ABI_VERSION == 1
 #define PROGRESS_NOTIFICATION | alert::progress_notification
 #else
@@ -3114,6 +3116,27 @@ TORRENT_VERSION_NAMESPACE_3_END
 
 	// internal
 	TORRENT_EXTRA_EXPORT char const* performance_warning_str(performance_alert::performance_warning_t i);
+
+
+	template<typename T>
+	class alert_exception : public std::exception {
+	public:
+		alert_exception(const T* a) : m_alert(a) {}
+
+		const char* what() const noexcept override {
+			return m_alert->message().c_str();
+		}
+
+	private:
+		const T* m_alert;
+	};
+
+	template<typename T>
+	class alert_dont_post_exception: public std::exception {
+		const char* what() const noexcept override {
+			return std::string(boost::typeindex::type_id<T>().pretty_name() + " ignored").c_str();
+		}
+	};
 
 
 #undef TORRENT_DEFINE_ALERT_IMPL
