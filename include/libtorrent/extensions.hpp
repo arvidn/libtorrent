@@ -211,6 +211,10 @@ TORRENT_VERSION_NAMESPACE_3
 		// called
 		static constexpr feature_flags_t alert_feature = 4_bit;
 
+		// include this bit if your plugin needs to have on_unknown_torrent()
+		// called even if there is no active torrent in the session
+		static constexpr feature_flags_t unknown_torrent_feature = 5_bit;
+
 		// This function is expected to return a bitmask indicating which features
 		// this plugin implements. Some callbacks on this object may not be called
 		// unless the corresponding feature flag is returned here. Note that

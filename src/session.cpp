@@ -53,6 +53,7 @@ namespace libtorrent {
 	constexpr feature_flags_t plugin::tick_feature;
 	constexpr feature_flags_t plugin::dht_request_feature;
 	constexpr feature_flags_t plugin::alert_feature;
+	constexpr feature_flags_t plugin::unknown_torrent_feature;
 #endif
 
 namespace aux {
