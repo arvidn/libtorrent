@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -485,8 +486,9 @@ namespace libtorrent {
 			int blocks_left;
 			bool fail;
 			error_code error;
+			callback_t<read_piece_alert>::type callback;
 		};
-		void read_piece(piece_index_t);
+		void read_piece(piece_index_t, callback_t<read_piece_alert>::type callback = {});
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
 			, peer_request const&, std::shared_ptr<read_piece_struct>);
 
