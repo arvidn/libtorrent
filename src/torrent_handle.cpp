@@ -357,9 +357,9 @@ namespace libtorrent {
 	{ async_call(&torrent::set_sequential_download, sd); }
 #endif
 
-	void torrent_handle::flush_cache() const
+	void torrent_handle::flush_cache(callback_t<cache_flushed_alert>::type callback) const
 	{
-		async_call(&torrent::flush_cache);
+		async_call(&torrent::flush_cache, callback);
 	}
 
 	void torrent_handle::set_ssl_certificate(

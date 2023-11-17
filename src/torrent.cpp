@@ -8398,7 +8398,7 @@ namespace {
 		{
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage
-				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false, nullptr));
 			m_ses.deferred_submit_jobs();
 		}
 
@@ -9463,7 +9463,7 @@ namespace {
 			&& !m_session_paused;
 	}
 
-	void torrent::flush_cache()
+	void torrent::flush_cache(callback_t<cache_flushed_alert>::type callback)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9474,18 +9474,18 @@ namespace {
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage
-			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true));
+			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true, callback));
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_cache_flushed(bool const manually_triggered) try
+	void torrent::on_cache_flushed(bool const manually_triggered, callback_t<cache_flushed_alert>::type callback) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_ses.is_aborted()) return;
 
 		if (manually_triggered || alerts().should_post<cache_flushed_alert>())
-			alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<cache_flushed_alert>(get_handle(), callback);
 	}
 	catch (...) { handle_exception(); }
 

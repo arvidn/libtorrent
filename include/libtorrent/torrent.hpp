@@ -565,7 +565,7 @@ namespace libtorrent {
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
-		void flush_cache();
+		void flush_cache(callback_t<cache_flushed_alert>::type callback = {});
 		void pause(pause_flags_t flags = {});
 		void resume();
 
@@ -1309,7 +1309,7 @@ namespace libtorrent {
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);
-		void on_cache_flushed(bool manually_triggered);
+		void on_cache_flushed(bool manually_triggered, callback_t<cache_flushed_alert>::type callback = {});
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread

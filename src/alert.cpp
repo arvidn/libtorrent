@@ -1565,8 +1565,9 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h) {}
+		, torrent_handle const& h, callback_t<cache_flushed_alert>::type c)
+		: torrent_alert(alloc, h)
+		, callback_t<cache_flushed_alert>(std::move(c)) {}
 
 #if TORRENT_ABI_VERSION == 1
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc

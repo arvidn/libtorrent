@@ -660,7 +660,7 @@ namespace aux {
 		// more data for the torrent, but you are guaranteed that whatever cached
 		// data libtorrent had by the time you called
 		// ``torrent_handle::flush_cache()`` has been written to disk.
-		void flush_cache() const;
+		void flush_cache(callback_t<cache_flushed_alert>::type callback = {}) const;
 
 		// ``force_recheck`` puts the torrent back in a state where it assumes to
 		// have no resume data. All peers will be disconnected and the torrent

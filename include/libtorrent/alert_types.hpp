@@ -1888,10 +1888,11 @@ TORRENT_VERSION_NAMESPACE_3
 	// enabled to let this alert through. The alert is also posted when removing
 	// a torrent from the session, once the outstanding cache flush is complete
 	// and the torrent does no longer have any files open.
-	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert
+	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert, callback_t<cache_flushed_alert>
 	{
 		// internal
-		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc,
+			torrent_handle const& h, callback_t<cache_flushed_alert>::type callback = {});
 
 		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority::high)
 
