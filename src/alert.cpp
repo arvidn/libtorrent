@@ -248,6 +248,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, index(idx)
 		, m_name_idx(alloc.copy_string(n))
+		, m_old_name_idx(alloc.copy_string(old))
 #if TORRENT_ABI_VERSION == 1
 		, name(n)
 #endif
@@ -258,6 +259,11 @@ namespace libtorrent {
 		return m_alloc.get().ptr(m_name_idx);
 	}
 
+	char const* file_renamed_alert::old_name() const
+	{
+		return m_alloc.get().ptr(m_old_name_idx);
+	}
+
 	std::string file_renamed_alert::message() const
 	{
 #ifdef TORRENT_DISABLE_ALERT_MSG
@@ -265,10 +271,13 @@ namespace libtorrent {
 #else
 		std::string ret { torrent_alert::message() };
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), ": file %d renamed to "
+		std::snprintf(msg, sizeof(msg), ": file %d renamed from \""
 			, static_cast<int>(index));
 		ret.append(msg);
+		ret.append(old_name());
+		ret.append("\" to \"");
 		ret.append(new_name());
+		ret.append("\"");
 		return ret;
 #endif
 	}
