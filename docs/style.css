@@ -15,7 +15,7 @@
 /* STYLE */
 
 body {
-    margin: 0px;
+    margin: 0;
     font-size: 12pt;
 }
 
@@ -37,50 +37,62 @@ tt {
 h1 {
     font-size: 1.7em;
 }
+
 h2 {
     font-size: 1.5em;
 }
 
 @media (prefers-color-scheme: light) {
     tt {
-        background-color: rgba(0, 0, 0, 0.05);
+        background-color: rgb(0 0 0 / 5%);
     }
+
     table {
         border-color: #ccc;
     }
+
     th,
     td {
         border-color: #ddd;
     }
+
     th {
         border-bottom-color: black;
     }
+
     a.reference,
     a {
         color: #000070;
     }
+
     hr {
         border-color: #eee;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     tt {
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: rgb(255 255 255 / 20%);
     }
+
     table {
         border-color: #777;
     }
+
     th,
     td {
         border-color: #444;
     }
+
     th {
         border-bottom-color: white;
     }
+
     a.reference,
     a {
         color: #bbf;
     }
+
     hr {
         border-color: #777;
     }
@@ -139,36 +151,46 @@ p.first {
     #footer {
         color: #777;
     }
+
     #footer a {
         color: #555;
     }
+
     #footer a:hover {
         color: #000;
     }
+
     #gradient {
         background: linear-gradient(#aaa, #ddd);
     }
+
     #filler {
         background: linear-gradient(#ddd, #fff);
     }
 }
+
 @media (prefers-color-scheme: dark) {
     #footer {
         color: #888;
     }
+
     #footer a {
         color: #ccc;
     }
+
     #footer a:hover {
         color: #fff;
     }
+
     #gradient {
         background: #444;
     }
+
     #filler {
         background: linear-gradient(#444, black);
     }
 }
+
 #container {
     text-align: left;
     max-width: 60em;
@@ -187,11 +209,10 @@ p.first {
 }
 
 #footer {
-    margin-bottom: 0px;
+    margin-bottom: 0;
     margin-left: auto;
     margin-right: auto;
-    column-count: 3;
-    column-width: 7em;
+    columns: 7em 3;
     max-width: 40em;
 }
 
@@ -206,13 +227,13 @@ p.first {
 table.docinfo {
     float: right;
     width: 200px;
-    margin-right: 0px;
+    margin-right: 0;
     margin-left: 20px;
     margin-bottom: 20px;
     border: none;
 }
 
-@media screen and (max-width: 499px) {
+@media screen and (width <= 499px) {
     table.docinfo {
         display: none;
     }
@@ -230,20 +251,21 @@ table.docinfo td {
 
 /* FRONT PAGE */
 
-@media screen and (min-width: 500px) {
+@media screen and (width >= 500px) {
     #librarySidebar {
         float: left;
         width: 13em;
     }
+
     #libraryBody {
         margin-left: 13em;
     }
 }
 
-@media screen and (max-width: 240px) {
+@media screen and (width <= 240px) {
     #librarySidebar ul {
         list-style-type: none;
-        padding-inline-start: 0px;
+        padding-inline-start: 0;
     }
 }
 
@@ -256,6 +278,7 @@ table.docinfo td {
         border-color: #eee;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     #libraryBody {
         border-color: #777;
@@ -276,7 +299,8 @@ table.docinfo td {
 .front-page-screenshot {
     float: right;
 }
-@media screen and (max-width: 890px) {
+
+@media screen and (width <= 890px) {
     .front-page-screenshot {
         display: none;
     }
@@ -286,7 +310,8 @@ table.docinfo td {
     float: right;
     clear: right;
 }
-@media screen and (max-width: 600px) {
+
+@media screen and (width <= 600px) {
     .front-page-qr {
         display: none;
     }
@@ -304,14 +329,15 @@ table.docinfo td {
         border-color: #999;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     div.main-toc {
         border-color: #888;
     }
 }
+
 div.main-toc {
-    column-count: 4;
-    column-width: 13em;
+    columns: 13em 4;
     border-style: solid;
     border-width: 1px;
     padding: 5px;
@@ -333,12 +359,14 @@ div.main-toc {
         border-color: #a1c5d6;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     #table-of-contents {
         background-color: black;
         border-color: #76c;
     }
 }
+
 #table-of-contents {
     margin-left: 20px;
     padding: 0.8em;
@@ -348,7 +376,7 @@ div.main-toc {
     z-index: 1;
 }
 
-@media screen and (min-width: 500px) {
+@media screen and (width >= 500px) {
     #table-of-contents {
         width: 15em;
         float: right;
@@ -371,10 +399,10 @@ div.main-toc {
     line-height: 1.5em;
 }
 
-@media screen and (max-width: 319px) {
+@media screen and (width <= 319px) {
     #table-of-contents ul {
         list-style-type: none;
-        padding-inline-start: 0px;
+        padding-inline-start: 0;
     }
 }
 
@@ -396,15 +424,17 @@ div.main-toc {
         border-color: #bbb;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     pre {
         background: #222;
         border-color: #666;
     }
 }
+
 pre {
     font-family: monospace;
-    padding: 5px 10px 5px 10px;
+    padding: 5px 10px;
     border-style: solid;
     border-width: 1px;
     margin: 1em 0;
@@ -420,30 +450,37 @@ pre {
     .string {
         color: #771;
     }
+
     .comment {
         font-style: italic;
         color: #559;
     }
+
     .preproc {
         font-style: italic;
         color: #959;
     }
+
     .number {
         color: #595;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     .string {
         color: #ff6;
     }
+
     .comment {
         font-style: italic;
         color: #99f;
     }
+
     .preproc {
         font-style: italic;
         color: #f7f;
     }
+
     .number {
         color: #7f7;
     }
@@ -458,17 +495,21 @@ pre {
         background: #f1fff5;
         border-color: #d1dfd5;
     }
+
     div.warning {
         background: #fffdca;
         border-color: #dddd80;
     }
+
     div.note .admonition-title {
         border-bottom-color: #d1dfd5;
     }
+
     div.warning .admonition-title {
         border-bottom-color: #dddd80;
     }
 }
+
 @media (prefers-color-scheme: dark) {
     div.warning,
     div.note,
@@ -476,17 +517,21 @@ pre {
         background: #0f3a0f;
         border-color: #5d9e5d;
     }
+
     div.warning {
         background: #666507;
         border-color: #dbd818;
     }
+
     div.warning .admonition-title {
         border-bottom-color: #dbd818;
     }
+
     div.note .admonition-title {
         border-bottom-color: #5d9e5d;
     }
 }
+
 div.warning,
 div.note,
 div.important {
@@ -494,7 +539,7 @@ div.important {
     margin: 1.5em auto;
     border-style: solid;
     border-width: 1px;
-    padding: 5px 10px 5px 10px;
+    padding: 5px 10px;
 }
 
 div.warning {
@@ -506,7 +551,7 @@ p.admonition-title {
     font-size: 128%;
     letter-spacing: 2px;
     text-transform: uppercase;
-    margin: 0 0 0.5em 0;
+    margin: 0 0 0.5em;
     border-bottom-style: solid;
     border-bottom-width: 1px;
 }
