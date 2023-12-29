@@ -1983,7 +1983,9 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 
 	// plus one since we have fast-resend as well, which doesn't
 	// necessarily trigger by a timeout
-	TORRENT_ASSERT(p->num_transmissions < m_sm.num_resends() + 1);
+	// the fast-resend path does not check for too many resends, that's only in
+	// the time-out path
+	TORRENT_ASSERT_VAL(fast_resend || p->num_transmissions < m_sm.num_resends() + 1, m_sm.num_resends());
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
