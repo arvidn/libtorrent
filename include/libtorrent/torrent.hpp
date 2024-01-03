@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2024, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
+#include <chrono>
+#include <mutex>
+#include <condition_variable>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
@@ -356,12 +360,20 @@ namespace libtorrent {
 		std::unique_ptr<peer_list> m_peer_list;
 	};
 
+	struct torrent_sync_handler
+	{
+	protected:
+		std::mutex m_mutex;
+		std::condition_variable m_cv;
+	};
+
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
 	struct TORRENT_EXTRA_EXPORT torrent
 		: private single_threaded
 		, private torrent_hot_members
+		, private torrent_sync_handler
 		, request_callback
 		, peer_class_set
 		, std::enable_shared_from_this<torrent>
@@ -1823,6 +1835,48 @@ namespace libtorrent {
 		// mutate the list while doing this
 		mutable int m_iterating_connections = 0;
 #endif
+public:
+		template< class Predicate>
+		error_code wait(Predicate stop_waiting)
+		{
+			std::unique_lock<std::mutex> lck(m_mutex);
+			m_cv.wait(lck, [&, stop_waiting] () {
+				return m_abort || stop_waiting();
+			});
+
+			return m_abort ? errors::torrent_aborted : errors::no_error;
+		}
+
+		template< class Rep, class Period, class Predicate>
+		error_code wait_for(const std::chrono::duration<Rep, Period>& rel_time, Predicate stop_waiting)
+		{
+			std::unique_lock<std::mutex> lck(m_mutex);
+			if (!m_cv.wait_for(lck, rel_time, [&, stop_waiting] () {
+				return m_abort || stop_waiting();
+			})) {
+				return errors::timed_out;
+			}
+
+			return m_abort ? errors::torrent_aborted : errors::no_error;
+		}
+
+		template<class Clock, class Duration, class Predicate>
+		error_code wait_until(const std::chrono::time_point<Clock, Duration>& timeout_time, Predicate stop_waiting)
+		{
+			std::unique_lock<std::mutex> lck(m_mutex);
+			if (!m_cv.wait_until(lck, timeout_time, [&, stop_waiting] () {
+				return m_abort || stop_waiting();
+			})) {
+				return errors::timed_out;
+			}
+
+			return m_abort ? errors::torrent_aborted : errors::no_error;
+		}
+
+		inline void notify()
+		{
+			m_cv.notify_all();
+		}
 	};
 }
 
