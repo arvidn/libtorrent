@@ -710,6 +710,8 @@ feature_option(exceptions "build with exception support" ON)
 feature_option(gnutls "build using GnuTLS instead of OpenSSL" OFF)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extensions DEFAULT ON
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME torrent_auto_notify DEFAULT OFF
+	DESCRIPTION "Enables torrent notify on torrent_alert" DISABLED TORRENT_DISABLE_TORRENT_AUTO_NOTIFY)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
 	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
