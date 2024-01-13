@@ -85,10 +85,12 @@ namespace libtorrent {
 		{
 			if (e1.port() > e2.port())
 				swap(e1, e2);
-			std::uint32_t p;
-			auto ptr = reinterpret_cast<char*>(&p);
+			std::array<char, 4> buf;
+			auto ptr = buf.data();
 			aux::write_uint16(e1.port(), ptr);
 			aux::write_uint16(e2.port(), ptr);
+			std::uint32_t p;
+			std::memcpy(&p, buf.data(), 4);
 			ret = crc32c_32(p);
 		}
 		else if (aux::is_v6(e1))
