@@ -227,6 +227,7 @@ jobs:
       - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
+          static: 0
           platform: x64
 
       - name: tests (deterministic)

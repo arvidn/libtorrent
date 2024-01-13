@@ -46,7 +46,7 @@ jobs:
           - os: ubuntu-20.04
             python-version: 3.8
           - os: macos-latest
-            python-version: "3.11"
+            python-version: "3.12"
           - os: windows-2019
             python-version: 3.6
 
@@ -74,8 +74,8 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.11 openssl@1.1
-        export PATH=$(brew --prefix)/opt/python@3.11/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.12 openssl@1.1
+        export PATH=$(brew --prefix)/opt/python@3.12/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -148,5 +148,5 @@ jobs:
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
-        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.11/bin/python3
+        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.12/bin/python3
         tox -e py
