@@ -447,7 +447,8 @@ private:
 		m_state = read_session_create_response;
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd),
-			"SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT SIGNATURE_TYPE=7 "
+			"SESSION CREATE STYLE=STREAM ID=%s "
+			"DESTINATION=TRANSIENT SIGNATURE_TYPE=7 i2cp.leaseSetEncType=4,0 "
 			"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d\n",
 			m_id, m_session_options.m_inbound_quantity, m_session_options.m_outbound_quantity,
 			m_session_options.m_inbound_length, m_session_options.m_outbound_length);
