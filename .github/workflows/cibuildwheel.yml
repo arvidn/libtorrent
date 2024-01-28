@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.2.0a1/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v2.16.5/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -91,20 +91,20 @@ jobs:
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: cache-wheel
       with:
         path: wheelhouse
         key: wheel-${{ matrix.CIBW_BUILD }}-${{ matrix.CIBW_ARCHS }}-${{ github.sha }}
 
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.12.3
+    - uses: pypa/cibuildwheel@v2.16.5
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v3
