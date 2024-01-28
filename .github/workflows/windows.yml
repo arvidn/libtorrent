@@ -29,12 +29,12 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
       - name: install openssl (64 bit)
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -82,7 +82,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
@@ -116,7 +116,7 @@ jobs:
           b2 --hash release address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
 
       - name: run sims
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           max_attempts: 3
           timeout_minutes: 120
@@ -138,7 +138,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
@@ -149,7 +149,7 @@ jobs:
           bootstrap.bat
 
       - name: install openssl (64 bit)
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -195,12 +195,12 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
       - name: install openssl (64 bit)
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
