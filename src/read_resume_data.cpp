@@ -135,6 +135,11 @@ namespace {
 				{
 					ec = err;
 				}
+				else if (((ret.info_hashes.has_v1() && ret.info_hashes.v1 != ret.ti->info_hashes().v1)
+					|| (ret.info_hashes.has_v2() && ret.info_hashes.v2 != ret.ti->info_hashes().v2)))
+				{
+					ec = errors::mismatching_info_hash;
+				}
 				else
 				{
 					// time_t might be 32 bit if we're unlucky, but there isn't
