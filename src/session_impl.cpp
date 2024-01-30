@@ -5707,8 +5707,11 @@ namespace {
 			listen_socket->external_address.cast_vote(external_ip, source_router, address());
 		}
 
-		if (proto == portmap_protocol::tcp) listen_socket->tcp_port_mapping[transport].port = port;
-		else if (proto == portmap_protocol::udp) listen_socket->udp_port_mapping[transport].port = port;
+		// need to check whether this mapping is for one of session ports (it could also be a user mapping)
+		if ((proto == portmap_protocol::tcp) && (listen_socket->tcp_port_mapping[transport].mapping == mapping))
+			listen_socket->tcp_port_mapping[transport].port = port;
+		else if ((proto == portmap_protocol::udp) && (listen_socket->udp_port_mapping[transport].mapping == mapping))
+			listen_socket->udp_port_mapping[transport].port = port;
 
 		if (!ec && m_alerts.should_post<portmap_alert>())
 		{
