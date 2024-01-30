@@ -61,6 +61,7 @@ namespace aux {
 	posix_storage::posix_storage(storage_params const& p)
 		: m_files(p.files)
 		, m_save_path(p.path)
+		, m_file_priority(p.priorities)
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 	{
 		if (p.mapped_files) m_mapped_files.reset(new file_storage(*p.mapped_files));
