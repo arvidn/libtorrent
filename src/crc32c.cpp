@@ -26,6 +26,12 @@ see LICENSE file.
 #include <arm_acle.h>
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent::aux {
 
 	std::uint32_t crc32c_32(std::uint32_t v)
@@ -126,3 +132,7 @@ namespace libtorrent::aux {
 		return crc.checksum();
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

@@ -24,6 +24,13 @@ see LICENSE file.
 #include <sanitizer/common_interface_defs.h>
 #endif
 
+#ifdef __clang__
+// disable these warnings until this class is re-worked in a way clang likes
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 namespace aux {
 
@@ -273,5 +280,9 @@ namespace aux {
 		int m_num_items = 0;
 	};
 } // namespace libtorrent
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif

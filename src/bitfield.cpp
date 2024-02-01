@@ -17,6 +17,13 @@ see LICENSE file.
 #include <intrin.h>
 #endif
 
+#ifdef __clang__
+// disable these warnings until this class is re-worked in a way clang likes
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 
 	bool bitfield::all_set() const noexcept
@@ -225,3 +232,8 @@ namespace libtorrent {
 	static_assert(std::is_nothrow_default_constructible<typed_bitfield<int>>::value
 		, "should be nothrow default constructible");
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+

@@ -45,10 +45,16 @@ see LICENSE file.
 
 #include <cxxabi.h>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 std::string demangle(char const* name)
 {
-// in case this string comes
+	// in case this string comes
 	// this is needed on linux
 	char const* start = std::strchr(name, '(');
 	if (start != nullptr)
@@ -83,6 +89,10 @@ std::string demangle(char const* name)
 	::free(unmangled);
 	return ret;
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }
 #elif defined _WIN32 && !defined TORRENT_WINRT
 
@@ -113,6 +123,12 @@ std::string demangle(char const* name) { return name; }
 #if TORRENT_USE_EXECINFO
 #include <execinfo.h>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
@@ -132,6 +148,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 	::free(symbols);
 }
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #elif defined _WIN32 && !defined TORRENT_WINRT
 

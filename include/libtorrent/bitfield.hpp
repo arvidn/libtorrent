@@ -22,6 +22,13 @@ see LICENSE file.
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
 
+#ifdef __clang__
+// disable these warnings until this class is re-worked in a way clang likes
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 
 	// The bitfield type stores any number of bits as a bitfield
@@ -329,5 +336,9 @@ namespace libtorrent {
 		IndexType end_index() const noexcept { return IndexType(this->size()); }
 	};
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif // TORRENT_BITFIELD_HPP_INCLUDED

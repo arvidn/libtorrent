@@ -51,6 +51,13 @@ namespace libtorrent {
 		return ret;
 	}
 
+#ifdef __clang__
+// TODO: the fingerprint constructor should take a string_view
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 	fingerprint::fingerprint(const char* id_string, int major, int minor
 		, int revision, int tag)
 		: major_version(major)
@@ -67,6 +74,10 @@ namespace libtorrent {
 		name[0] = id_string[0];
 		name[1] = id_string[1];
 	}
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 	std::string fingerprint::to_string() const

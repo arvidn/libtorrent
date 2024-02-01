@@ -42,6 +42,13 @@ namespace aux {
 	};
 }
 
+#ifdef __clang__
+// disable these warnings until this class is re-worked in a way clang likes
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 	template <typename T>
 	struct span
 	{
@@ -152,6 +159,10 @@ namespace aux {
 		T* m_ptr;
 		difference_type m_len;
 	};
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	template <class T, class U>
 	inline bool operator==(span<T> const& lhs, span<U> const& rhs)
