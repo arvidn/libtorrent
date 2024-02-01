@@ -48,6 +48,8 @@ namespace aux {
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wcast-qual"
 #pragma clang diagnostic ignored "-Wcast-align"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
 	// these are here to concentrate all the shady casts these macros expand to,
 	// to disable the warnings for them all

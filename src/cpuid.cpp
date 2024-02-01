@@ -57,6 +57,12 @@ namespace libtorrent {
 namespace aux {
 namespace {
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 #if TORRENT_HAS_SSE
 	// internal
 	void cpuid(std::uint32_t* info, int type) noexcept
@@ -129,6 +135,10 @@ namespace {
 		return false;
 #endif
 	}
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 } // anonymous namespace
 

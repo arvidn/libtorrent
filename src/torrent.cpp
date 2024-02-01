@@ -10436,7 +10436,7 @@ namespace {
 		int num_peers = 0;
 		int num_downloaders = 0;
 		int missing_pieces = 0;
-		for (auto* p : m_connections)
+		for (auto const* const p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 			if (p->is_connecting()) continue;

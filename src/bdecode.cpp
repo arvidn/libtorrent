@@ -25,6 +25,13 @@ see LICENSE file.
 #define BOOST_SYSTEM_NOEXCEPT throw()
 #endif
 
+#ifdef __clang__
+// disable these warnings until this class is re-worked in a way clang likes
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent {
 
 	using aux::bdecode_token;
@@ -1160,3 +1167,7 @@ done:
 		return ret;
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

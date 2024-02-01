@@ -25,6 +25,12 @@ see LICENSE file.
 #include "libtorrent/time.hpp" // for seconds32
 #include "libtorrent/aux_/numeric_cast.hpp"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 namespace libtorrent::aux {
 
 	bool is_ok_status(int http_status)
@@ -623,3 +629,8 @@ restart_response:
 		return buffer.first(write_ptr - buffer.data());
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
