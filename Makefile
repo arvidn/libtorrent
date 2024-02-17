@@ -1050,6 +1050,7 @@ TEST_TORRENTS = \
   url_seed_multi_space_nolist.torrent \
   whitespace_url.torrent \
   v2.torrent \
+  v2_empty_file.torrent \
   v2_multipiece_file.torrent \
   v2_only.torrent \
   v2_invalid_filename.torrent \
