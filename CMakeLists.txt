@@ -589,6 +589,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-exit-time-destructors
 		-Wno-weak-vtables
 		-Wno-return-std-move-in-c++11
+		-Wno-unsafe-buffer-usage
 		-Wno-unknown-warning-option
 	)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)

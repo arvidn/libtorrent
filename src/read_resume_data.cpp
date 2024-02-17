@@ -124,6 +124,10 @@ namespace {
 				}
 				ret.ti = std::move(ti);
 			}
+			else
+			{
+				ec = errors::mismatching_info_hash;
+			}
 		}
 
 #if TORRENT_ABI_VERSION < 3

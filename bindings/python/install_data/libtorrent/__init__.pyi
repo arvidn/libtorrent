@@ -257,6 +257,7 @@ class alert:
         torrent_log_notification: int
         tracker_notification: int
         upload_notification: int
+
     def category(self) -> int: ...
     def message(self) -> str: ...
     def what(self) -> str: ...
@@ -1216,6 +1217,7 @@ class proxy_type_t(int):
         type: proxy_type_t
         proxy_peer_connections: bool
         proxy_hostnames: bool
+
     proxy_type: proxy_type_t
     socks4: proxy_type_t
     socks5: proxy_type_t
@@ -1983,6 +1985,7 @@ class torrent_status:
         queued_for_checking: torrent_status.states
         seeding: torrent_status.states
         values: Mapping[int, torrent_status.states]
+
     def __eq__(self, other: Any) -> bool: ...
     active_duration: datetime.timedelta
     active_time: int
