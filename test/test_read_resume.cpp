@@ -168,27 +168,6 @@ TORRENT_TEST(read_resume_missing_file_format)
 	TEST_EQUAL(ec, error_code(errors::invalid_file_tag));
 }
 
-TORRENT_TEST(read_resume_mismatching_torrent)
-{
-	entry rd;
-
-	rd["file-format"] = "libtorrent resume file";
-	rd["file-version"] = 1;
-	rd["info-hash"] = "abcdefghijklmnopqrst";
-	entry& info = rd["info"];
-	info["piece length"] = 16384 * 16;
-	info["name"] = "test";
-
-
-	std::vector<char> resume_data;
-	bencode(std::back_inserter(resume_data), rd);
-
-	// the info-hash field does not match the torrent in the "info" field, so it
-	// will be ignored
-	add_torrent_params atp = read_resume_data(resume_data);
-	TEST_CHECK(!atp.ti);
-}
-
 namespace {
 std::shared_ptr<torrent_info> generate_torrent()
 {
@@ -236,6 +215,48 @@ TORRENT_TEST(read_resume_torrent)
 
 	TEST_EQUAL(atp.ti->info_hashes(), ti->info_hashes());
 	TEST_EQUAL(atp.ti->name(), ti->name());
+}
+
+TORRENT_TEST(mismatching_v1_hash)
+{
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "abababababababababab";
+	rd["info-hash2"] = ti->info_hashes().v2;
+	rd["info"] = bdecode(ti->info_section());
+
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), rd);
+
+	// the info-hash field does not match the torrent in the "info" field, so it
+	// will be ignored
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_CHECK(ec == errors::mismatching_info_hash);
+}
+
+TORRENT_TEST(mismatching_v2_hash)
+{
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hashes().v1;
+	rd["info-hash2"] = "abababababababababababababababab";
+	rd["info"] = bdecode(ti->info_section());
+
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), rd);
+
+	// the info-hash field does not match the torrent in the "info" field, so it
+	// will be ignored
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_CHECK(ec == errors::mismatching_info_hash);
 }
 
 namespace {
