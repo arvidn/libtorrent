@@ -181,7 +181,7 @@ jobs:
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev
-          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-unix.*\" : <cxxflags>-std=c++14 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-unix.*\" : <cxxflags>-std=c++14 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
 
       - name: analyze
         run: |

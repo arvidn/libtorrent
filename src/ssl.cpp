@@ -100,6 +100,8 @@ void set_server_name_callback(context_handle_type c, server_name_callback_type c
 #if defined __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wcast-function-type-strict"
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
 #endif
 	SSL_CTX_set_tlsext_servername_callback(c, cb);
 	SSL_CTX_set_tlsext_servername_arg(c, arg);

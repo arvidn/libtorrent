@@ -270,6 +270,10 @@ rule warnings ( properties * )
 
 # libtorrent uses alloca() carefully
 		result += <cxxflags>-Wno-alloca ;
+
+# these warnings should all be addressed. Either by transitioning to span and
+# array, or by suppressing the warning for specific code
+		result += <cxxflags>-Wno-unsafe-buffer-usage ;
 	}
 
 	if <toolset>gcc in $(properties)

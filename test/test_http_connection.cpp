@@ -240,7 +240,7 @@ TORRENT_TEST(socks5_pw_proxy_ssl) { run_suite("https", settings_pack::socks5_pw)
 #endif // USE_SSL
 
 TORRENT_TEST(http_proxy) { run_suite("http", settings_pack::http); }
-TORRENT_TEST(http__pwproxy) { run_suite("http", settings_pack::http_pw); }
+TORRENT_TEST(http_pwproxy) { run_suite("http", settings_pack::http_pw); }
 TORRENT_TEST(socks5_proxy) { run_suite("http", settings_pack::socks5); }
 TORRENT_TEST(socks5_pw_proxy) { run_suite("http", settings_pack::socks5_pw); }
 
