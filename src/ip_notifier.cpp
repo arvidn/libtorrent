@@ -124,8 +124,8 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		post(m_ios, [cb]()
-		{ cb(make_error_code(boost::system::errc::not_supported)); });
+		post(m_ios, [cb1=std::move(cb)]()
+		{ cb1(make_error_code(boost::system::errc::not_supported)); });
 	}
 
 	void cancel() override {}
@@ -153,10 +153,10 @@ struct ip_change_notifier_impl final : ip_change_notifier
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
 		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, [cb=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
+			, [cb1=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
 			{
-				if (ec) cb(ec);
-				else this->on_notify(int(bytes_transferred), std::move(cb));
+				if (ec) cb1(ec);
+				else this->on_notify(int(bytes_transferred), std::move(cb1));
 			});
 	}
 
@@ -216,10 +216,10 @@ private:
 		if (!pertinent)
 		{
 			m_socket.async_receive(boost::asio::buffer(m_buf)
-				, [cb=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
+				, [cb1=std::move(cb), this] (error_code const& ec, std::size_t const bytes_transferred)
 				{
-					if (ec) cb(ec);
-					else this->on_notify(int(bytes_transferred), std::move(cb));
+					if (ec) cb1(ec);
+					else this->on_notify(int(bytes_transferred), std::move(cb1));
 				});
 		}
 		else

@@ -46,7 +46,7 @@ private:
 	int m_bit_idx;
 };
 
-constexpr bit_t operator "" _bit(unsigned long long int b) { return bit_t{static_cast<int>(b)}; }
+constexpr bit_t operator ""_bit(unsigned long long int b) { return bit_t{static_cast<int>(b)}; }
 
 namespace flags {
 
