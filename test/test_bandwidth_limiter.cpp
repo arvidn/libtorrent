@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <cmath>
 #include <functional>
@@ -82,13 +83,13 @@ void peer_connection::assign_bandwidth(int /*channel*/, int amount)
 
 void peer_connection::start()
 {
-	aux::bandwidth_channel* channels[] = {
+	aux::array<aux::bandwidth_channel*, 3> channels{{
 		&m_bandwidth_channel
 		, &m_torrent_bandwidth_channel
 		, &global_bwc
-	};
+	}};
 
-	m_bwm.request_bandwidth(shared_from_this(), 400000000, m_priority, channels, 3);
+	m_bwm.request_bandwidth(shared_from_this(), 400000000, m_priority, channels);
 }
 
 

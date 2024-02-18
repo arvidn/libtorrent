@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_queue_entry.hpp"
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -43,7 +44,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
 	int request_bandwidth(std::shared_ptr<bandwidth_socket> peer
-		, int blk, int priority, bandwidth_channel** chan, int num_channels);
+		, int blk, int priority, span<bandwidth_channel*> channels);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;

@@ -65,7 +65,7 @@ namespace libtorrent::aux {
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	int bandwidth_manager::request_bandwidth(std::shared_ptr<bandwidth_socket> peer
-		, int const blk, int const priority, bandwidth_channel** chan, int const num_channels)
+		, int const blk, int const priority, span<bandwidth_channel*> channels)
 	{
 		INVARIANT_CHECK;
 		if (m_abort) return 0;
@@ -77,7 +77,7 @@ namespace libtorrent::aux {
 		// being assigned bandwidth for an already outstanding request
 		TORRENT_ASSERT(!is_queued(peer.get()));
 
-		if (num_channels == 0)
+		if (channels.empty())
 		{
 			// the connection is not rate limited by any of its
 			// bandwidth channels, or it doesn't belong to any
@@ -88,10 +88,10 @@ namespace libtorrent::aux {
 
 		int k = 0;
 		bw_request bwr(std::move(peer), blk, priority);
-		for (int i = 0; i < num_channels; ++i)
+		for (auto const& c : channels)
 		{
-			if (chan[i]->need_queueing(blk))
-				bwr.channel[k++] = chan[i];
+			if (c->need_queueing(blk))
+				bwr.channel[k++] = c;
 		}
 
 		if (k == 0) return blk;
