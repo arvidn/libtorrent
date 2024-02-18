@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/deque.hpp"
 
 #include <vector>
+#include <array>
 #include <string>
 #include <cstdint>
 #include <memory>
@@ -102,7 +103,7 @@ namespace libtorrent {
 		// priority for bandwidth allocation
 		// in rate limiter. One for upload and one
 		// for download
-		int priority[2];
+		std::array<int, 2> priority;
 
 		// the name of this peer class
 		std::string label;
