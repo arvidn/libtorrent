@@ -10,6 +10,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/hex.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
 
@@ -48,9 +49,12 @@ namespace libtorrent {
 		return true;
 	}
 
-	extern char const hex_chars[];
+	extern aux::array<char, 16> const hex_chars;
 
-	char const hex_chars[] = "0123456789abcdef";
+	aux::array<char, 16> const hex_chars{{
+		'0', '1', '2', '3', '4', '5', '6', '7',
+		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+	}};
 	void to_hex(char const* in, int const len, char* out)
 	{
 		int idx = 0;
