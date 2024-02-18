@@ -11,6 +11,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/puff.hpp"
 #include "libtorrent/gzip.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <string>
 
@@ -48,7 +49,7 @@ namespace libtorrent {
 
 	std::string gzip_error_category::message(int ev) const
 	{
-		static char const* msgs[] =
+		static aux::array<char const*, 16> msgs{
 		{
 			"no error",
 			"invalid gzip header",
@@ -66,8 +67,8 @@ namespace libtorrent {
 			"invalid literal/length or distance code in fixed or dynamic block",
 			"distance is too far back in fixed or dynamic block",
 			"unknown gzip error",
-		};
-		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
+		}};
+		if (ev < 0 || ev >= msgs.end_index())
 			return "Unknown error";
 		return msgs[ev];
 	}
