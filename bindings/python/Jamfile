@@ -34,6 +34,9 @@ feature python-install-scope : user system : ;
 feature auto-ptr : off on : composite propagated ;
 feature.compose <auto-ptr>off : <define>BOOST_NO_AUTO_PTR=1 ;
 
+feature cxx98-function-base : off on : composite propagated ;
+feature.compose <cxx98-function-base>off : <define>BOOST_NO_CXX98_FUNCTION_BASE=1 ;
+
 # copied from boost 1.63's boost python jamfile
 rule find-py3-version
 {
@@ -302,6 +305,7 @@ my-python-extension libtorrent
 	<warnings>all
 	<cxxstd>17
 	<auto-ptr>off
+	<cxx98-function-base>off
 	: # usage-requirements
 	<suppress-import-lib>false
 	;
