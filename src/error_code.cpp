@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for to_string()
+#include "libtorrent/aux_/array.hpp"
 
 #include <sstream>
 
@@ -33,7 +34,7 @@ namespace libtorrent {
 
 	std::string libtorrent_error_category::message(int ev) const
 	{
-		static char const* msgs[] =
+		static aux::array<char const*, errors::error_code_max> msgs{
 		{
 			"no error",
 			"torrent file collides with file from another torrent",
@@ -272,8 +273,8 @@ namespace libtorrent {
 			"a v2 file entry has no root hash",
 			"v1 and v2 hashes do not describe the same data",
 			"a file in the v2 metadata has the pad attribute set"
-		};
-		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
+		}};
+		if (ev < 0 || ev >= msgs.end_index())
 			return "Unknown error";
 		return msgs[ev];
 	}
