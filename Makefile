@@ -765,7 +765,7 @@ ASIO_GNUTLS = \
   test/gnutls/rfc2818_verification.cpp \
   test/gnutls/stream.cpp
 
-DATACHANNEL = $(shell cd deps/libdatachannel && git ls-files)
+DATACHANNEL = $(shell cd deps/libdatachannel && git ls-files | grep -v "^examples")
 
 SIM_SOURCES = \
   Jamfile \
