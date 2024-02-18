@@ -9,12 +9,13 @@ see LICENSE file.
 */
 
 #include <vector>
+#include "libtorrent/aux_/array.hpp"
 
 #include "test.hpp"
 
 namespace unit_test {
 
-unit_test_t g_unit_tests[1024];
+lt::aux::array<unit_test_t, 1024> g_unit_tests;
 int g_num_unit_tests = 0;
 int g_test_failures = 0; // flushed at start of every unit
 int g_test_idx = 0;

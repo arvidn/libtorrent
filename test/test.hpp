@@ -13,6 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <boost/config.hpp>
 #include <exception>
@@ -57,7 +58,7 @@ struct unit_test_t
 	FILE* output;
 };
 
-extern unit_test_t EXPORT g_unit_tests[1024];
+extern lt::aux::array<unit_test_t, 1024> EXPORT g_unit_tests;
 extern int EXPORT g_num_unit_tests;
 extern int EXPORT g_test_failures;
 extern int g_test_idx;
