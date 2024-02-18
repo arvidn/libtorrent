@@ -5708,10 +5708,10 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		// make sure we don't have duplicates
 		std::set<aux::bandwidth_channel*> unique_classes;
-		for (int i = 0; i < c; ++i)
+		for (auto chan : channels.first(c))
 		{
-			TORRENT_ASSERT(unique_classes.count(channels[i]) == 0);
-			unique_classes.insert(channels[i]);
+			TORRENT_ASSERT(unique_classes.count(chan) == 0);
+			unique_classes.insert(chan);
 		}
 #endif
 
@@ -5720,7 +5720,7 @@ namespace {
 		aux::bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
 
 		int const ret = manager->request_bandwidth(self()
-			, bytes, priority, channels.data(), c);
+			, bytes, priority, channels.first(c));
 
 		if (ret == 0)
 		{
