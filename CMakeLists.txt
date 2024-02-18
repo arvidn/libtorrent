@@ -612,14 +612,14 @@ if (WIN32)
 		)
 		target_compile_options(torrent-rasterbar
 			PRIVATE
+				# allow larger .obj files (with more sections)
+				/bigobj
 				# https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170
 				/permissive-
 				# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
 				/utf-8
 				# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
 				/Zc:__cplusplus
-				/MP # for multi-core compilation
-				/bigobj # increase the number of sections for obj files
 		)
 		set_target_properties(torrent-rasterbar PROPERTIES LINK_FLAGS_RELEASE "/OPT:ICF=5 /OPT:REF")
 	endif()
