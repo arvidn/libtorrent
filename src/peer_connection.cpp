@@ -253,7 +253,7 @@ namespace {
 		int prio = 1;
 		for (int i = 0; i < num_classes(); ++i)
 		{
-			int class_prio = m_ses.peer_classes().at(class_at(i))->priority[channel];
+			int class_prio = m_ses.peer_classes().at(class_at(i))->priority[std::size_t(channel)];
 			if (prio < class_prio) prio = class_prio;
 		}
 
@@ -263,7 +263,7 @@ namespace {
 		{
 			for (int i = 0; i < t->num_classes(); ++i)
 			{
-				int class_prio = m_ses.peer_classes().at(t->class_at(i))->priority[channel];
+				int class_prio = m_ses.peer_classes().at(t->class_at(i))->priority[std::size_t(channel)];
 				if (prio < class_prio) prio = class_prio;
 			}
 		}

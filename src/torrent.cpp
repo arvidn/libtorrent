@@ -12090,7 +12090,7 @@ namespace {
 		int priority = 0;
 		for (int i = 0; i < num_classes(); ++i)
 		{
-			int const* prio = m_ses.peer_classes().at(class_at(i))->priority;
+			span<int const> prio = m_ses.peer_classes().at(class_at(i))->priority;
 			priority = std::max(priority, prio[peer_connection::upload_channel]);
 			priority = std::max(priority, prio[peer_connection::download_channel]);
 		}
