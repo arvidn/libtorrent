@@ -280,7 +280,11 @@ my-python-extension libtorrent
 	src/load_torrent.cpp
 	: # requirements
 	<include>src
+	# the bindings will expose deprecated functions, so there's no point in
+	# warning about referencing them
+	<toolset>msvc:<cxxflags>/wd4996
 	<toolset>gcc:<cxxflags>-Wno-deprecated-declarations
+	<toolset>clang:<cxxflags>-Wno-deprecated-declarations
 	<toolset>darwin:<cxxflags>-Wno-deprecated-declarations
 	<toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
 	<conditional>@libtorrent_linking
