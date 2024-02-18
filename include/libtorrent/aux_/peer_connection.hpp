@@ -808,7 +808,7 @@ namespace libtorrent::aux {
 	public:
 		// upload and download channel state
 		// enum from peer_info::bw_state
-		bandwidth_state_flags_t m_channel_state[2];
+		aux::array<bandwidth_state_flags_t, 2> m_channel_state;
 
 	protected:
 		aux::receive_buffer m_recv_buffer;
