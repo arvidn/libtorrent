@@ -1103,7 +1103,6 @@ TEST_EXTRA = Jamfile \
   root2.xml                          \
   root3.xml                          \
   ssl/regenerate_test_certificate.sh \
-  ssl/cert_request.pem               \
   ssl/dhparams.pem                   \
   ssl/invalid_peer_certificate.pem   \
   ssl/invalid_peer_private_key.pem   \
