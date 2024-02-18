@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent {
 
@@ -28,7 +29,7 @@ namespace libtorrent {
 		{ return "i2p error"; }
 		std::string message(int ev) const override
 		{
-			static char const* messages[] =
+			static aux::array<char const*, i2p_error::num_errors> messages{
 			{
 				"no error",
 				"parse failed",
@@ -39,7 +40,7 @@ namespace libtorrent {
 				"timeout",
 				"key not found",
 				"duplicated id"
-			};
+			}};
 
 			if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
 			return messages[ev];
