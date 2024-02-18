@@ -281,7 +281,7 @@ namespace libtorrent {
 		TORRENT_UNUSED(i);
 		return "";
 #else
-		static char const* const warning_str[] =
+		static aux::array<char const*, 11> const warning_str{
 		{
 			"max outstanding disk writes reached",
 			"max outstanding piece requests reached",
@@ -294,10 +294,10 @@ namespace libtorrent {
 			"",
 			"too few ports allowed for outgoing connections",
 			"too few file descriptors are allowed for this process. connection limit lowered"
-		};
+		}};
 
 		TORRENT_ASSERT(i >= 0);
-		TORRENT_ASSERT(i < std::end(warning_str) - std::begin(warning_str));
+		TORRENT_ASSERT(i < warning_str.end_index());
 		return warning_str[i];
 #endif
 	}
@@ -1370,8 +1370,7 @@ namespace {
 		return {};
 #else
 		char ret[600];
-		static char const* const reason_str[] =
-		{
+		static aux::array<char const*, 8> const reason_str{{
 			"ip_filter",
 			"port_filter",
 			"i2p_mixed",
@@ -1380,7 +1379,7 @@ namespace {
 			"tcp_disabled",
 			"invalid_local_interface",
 			"ssrf_mitigation"
-		};
+		}};
 
 		std::snprintf(ret, sizeof(ret), "%s: blocked peer [%s]"
 			, peer_alert::message().c_str(), reason_str[reason]);
@@ -1508,9 +1507,9 @@ namespace {
 		return {};
 #else
 		char msg[200];
-		static char const* const msgs[] = {
+		static aux::array<char const*, 1> const msgs{{
 			"tracker is not anonymous, set a proxy"
-		};
+		}};
 		std::snprintf(msg, sizeof(msg), "%s: %s: %s"
 			, torrent_alert::message().c_str()
 			, msgs[kind], str.c_str());
@@ -2156,8 +2155,8 @@ namespace {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		static char const* const mode[] =
-		{ "<==", "==>", "<<<", ">>>", "***" };
+		static aux::array<char const*, 5, direction_t> const mode{
+		{ "<==", "==>", "<<<", ">>>", "***" }};
 		return peer_alert::message() + " [" + print_endpoint(endpoint) + "] "
 			+ mode[direction] + " " + event_type + " [ " + log_message() + " ]";
 #endif
@@ -2385,14 +2384,13 @@ namespace {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		static char const* const dht_modules[] =
-		{
+		static aux::array<char const*, 5, dht_module_t> const dht_modules{{
 			"tracker",
 			"node",
 			"routing_table",
 			"rpc_manager",
 			"traversal"
-		};
+		}};
 
 		char ret[900];
 		std::snprintf(ret, sizeof(ret), "DHT %s: %s", dht_modules[module]
@@ -2434,7 +2432,7 @@ namespace {
 
 		std::string msg = print_entry(print, true);
 
-		static char const* const prefix[2] = {"<==", "==>"};
+		static aux::array<char const*, 2, direction_t> const prefix{{"<==", "==>"}};
 		char buf[1024];
 		std::snprintf(buf, sizeof(buf), "%s [%s] %s", prefix[direction]
 			, print_endpoint(node).c_str(), msg.c_str());
@@ -2589,8 +2587,7 @@ namespace {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		static char const* const flag_names[] =
-		{
+		static aux::array<char const*, 17> const flag_names{{
 			"partial_ratio ",
 			"prioritize_partials ",
 			"rarest_first_partials ",
@@ -2608,7 +2605,7 @@ namespace {
 			"backup2 ",
 			"end_game ",
 			"extent_affinity ",
-		};
+		}};
 
 		std::string ret = peer_alert::message();
 
