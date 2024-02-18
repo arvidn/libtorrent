@@ -39,7 +39,7 @@ namespace libtorrent {
 	// defined in hex.cpp
 	namespace aux {
 
-		extern const char hex_chars[];
+		extern const aux::array<char, 16> hex_chars;
 	}
 
 	std::string unescape_string(string_view s, error_code& ec)
@@ -223,7 +223,7 @@ namespace libtorrent {
 
 	std::string base64encode(const std::string& s)
 	{
-		static char const base64_table[] =
+		static aux::array<char, 64> const base64_table{
 		{
 			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -233,7 +233,7 @@ namespace libtorrent {
 			'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 			'w', 'x', 'y', 'z', '0', '1', '2', '3',
 			'4', '5', '6', '7', '8', '9', '+', '/'
-		};
+		}};
 
 		aux::array<std::uint8_t, 3> inbuf;
 		aux::array<std::uint8_t, 4> outbuf;
@@ -331,13 +331,13 @@ namespace {
 
 	std::string base32encode_i2p(span<char const> s)
 	{
-		static char const base32_table[] =
+		static aux::array<char, 32> const base32_table{
 		{
 			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
 			'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
 			'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 			'y', 'z', '2', '3', '4', '5', '6', '7'
-		};
+		}};
 
 		static aux::array<int, 6> const input_output_mapping{{{0, 2, 4, 5, 7, 8}}};
 
