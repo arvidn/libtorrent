@@ -612,6 +612,8 @@ if (WIN32)
 		)
 		target_compile_options(torrent-rasterbar
 			PRIVATE
+				# https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170
+				/permissive-
 				# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
 				/utf-8
 				# https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
