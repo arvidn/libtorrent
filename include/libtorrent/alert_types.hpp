@@ -345,19 +345,22 @@ TORRENT_VERSION_NAMESPACE_2
 	{
 		// internal
 		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view n, file_index_t idx);
+			, string_view n, string_view old, file_index_t idx);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7, alert_priority_critical)
 
 		static constexpr alert_category_t static_category = alert_category::storage;
 		std::string message() const override;
 
+		// returns the new and previous file name, respectively.
 		char const* new_name() const;
+		char const* old_name() const;
 
 		// refers to the index of the file that was renamed,
 		file_index_t const index;
 	private:
 		aux::allocation_slot m_name_idx;
+		aux::allocation_slot m_old_name_idx;
 #if TORRENT_ABI_VERSION == 1
 
 #if defined __clang__
