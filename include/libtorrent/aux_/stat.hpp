@@ -18,6 +18,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent::aux {
 
@@ -256,7 +257,7 @@ namespace libtorrent::aux {
 
 	private:
 
-		stat_channel m_stat[num_channels];
+		aux::array<stat_channel, num_channels> m_stat;
 	};
 
 }
