@@ -83,7 +83,7 @@ struct alloca_destructor
 	if (TORRENT_ALLOCA_size > ::libtorrent::aux::alloca_destructor<t>::cutoff) {\
 		v = ::libtorrent::span<t>(new t[::libtorrent::aux::numeric_cast<std::size_t>(n)], TORRENT_ALLOCA_size); \
 	} \
-	else { \
+	else if (n > 0) { \
 		auto* TORRENT_ALLOCA_tmp = static_cast<t*>(TORRENT_ALLOCA_FUN(sizeof(t) * static_cast<std::size_t>(n))); \
 		v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); \
 		::libtorrent::aux::uninitialized_default_construct(v.begin(), v.end()); \
