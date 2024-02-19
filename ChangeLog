@@ -1,4 +1,9 @@
+2.0.10 released
+
 	* allow on_unknown_torrent method in the absence of active torrents (new plugin feature added)
+	* add feature to async_move_storage() to not move files
+	* fix reject resume data if it contains mismatching info hashes
+	* fix clear the candidate_cache when clear peer_list
 	* fix missing python converter for dht::announce_flags_t
 
 2.0.9 released
