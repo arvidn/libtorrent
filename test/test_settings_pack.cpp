@@ -194,7 +194,7 @@ TORRENT_TEST(clear_single_string)
 	sp.clear(settings_pack::user_agent);
 
 	// when cleared, we'll get the default value
-	TEST_EQUAL(sp.get_str(settings_pack::user_agent), "libtorrent/2.0.10.0");
+	TEST_EQUAL(sp.get_str(settings_pack::user_agent), "libtorrent/2.0.11.0");
 }
 
 TORRENT_TEST(duplicates)
