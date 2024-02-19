@@ -621,8 +621,8 @@ feature simulator : off on : composite propagated link-incompatible ;
 feature.compose <simulator>on : <define>TORRENT_BUILD_SIMULATOR ;
 
 feature invariant-checks : off on full : composite propagated link-incompatible ;
-feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
-feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
+feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>BOOST_MULTI_INDEX_ENABLE_INVARIANT_CHECKING=1 ;
+feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS <define>BOOST_MULTI_INDEX_ENABLE_INVARIANT_CHECKING=1 ;
 
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
@@ -695,6 +695,8 @@ feature boost-link : default static shared : propagated composite ;
 # clang do not, that's why "default" is there. msvc has incorrect noexcept
 # constructors on some containers when enabling debug iterators, so it's
 # possible to turn them off
+# TODO: it would be nice to enable BOOST_MULTI_INDEX_ENABLE_SAFE_MODE=1 with
+# debug iterators, but it seems to have problems with thread-sanitizer
 feature debug-iterators : default off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC ;
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
