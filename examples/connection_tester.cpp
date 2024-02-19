@@ -939,7 +939,9 @@ void generate_data(std::string const path, torrent_info const& ti)
 		path,
 		storage_mode_sparse,
 		priorities,
-		info_hash
+		info_hash,
+		ti.v1(),
+		ti.v2(),
 	};
 
 	storage_holder st = disk->new_torrent(params, std::shared_ptr<void>());
