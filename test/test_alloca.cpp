@@ -57,3 +57,11 @@ TORRENT_TEST(alloca_large)
 		TEST_EQUAL(a.val, 1337);
 }
 
+TORRENT_TEST(alloca_empty)
+{
+	{
+		destructed = 0;
+		TORRENT_ALLOCA(vec, B, 0);
+	}
+	TEST_EQUAL(destructed, 0);
+}
