@@ -19,7 +19,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include "settings.hpp"
+#include "settings.hpp" // for settings()
 #include "test_utils.hpp"
 
 #include <tuple>
@@ -274,7 +274,7 @@ TORRENT_TEST(no_contiguous_buffers)
 	using namespace lt;
 
 	// test no contiguous_recv_buffers
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_bool(settings_pack::contiguous_recv_buffer, false);
 	test_transfer(0, p);
 
@@ -331,7 +331,7 @@ TORRENT_TEST(allow_fast)
 {
 	using namespace lt;
 	// test allowed fast
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::allowed_fast_set_size, 2000);
 	test_transfer(0, p);
 
@@ -351,7 +351,7 @@ TORRENT_TEST(allocate)
 TORRENT_TEST(suggest)
 {
 	using namespace lt;
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 	test_transfer(0, p);
 
@@ -361,7 +361,7 @@ TORRENT_TEST(suggest)
 TORRENT_TEST(disable_os_cache)
 {
 	using namespace lt;
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
 	test_transfer(0, p, {}, storage_mode_allocate);
 
@@ -372,7 +372,7 @@ TORRENT_TEST(disable_os_cache)
 TORRENT_TEST(write_through)
 {
 	using namespace lt;
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
 	test_transfer(0, p, {}, storage_mode_allocate);
 
