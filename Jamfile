@@ -367,9 +367,19 @@ rule building ( properties * )
 	{
 		# allow larger .obj files (with more sections)
 		result += <cxxflags>/bigobj ;
+
 		# https://docs.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
 		result += <cxxflags>/utf-8 ;
+
+		# two-phase lookup is not supported by C++/CX on msvc, so it needs to be
+		# disabled. We can't set permissive- in that case
+		if ! <windows-api>store in $(properties)
+		{
+			# https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170
+			result += <cxxflags>/permissive- ;
+		}
 	}
+
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
 	{
