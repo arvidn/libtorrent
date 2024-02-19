@@ -29,8 +29,8 @@ void thread_fun(lt::aux::disk_io_thread_pool& pool, lt::executor_work_guard<io_c
 	std::unique_lock<std::mutex> l(g_job_mutex);
 	for (;;)
 	{
-		bool const should_exit = pool.wait_for_job(l);
-		if (should_exit) break;
+		auto const result = pool.wait_for_job(l);
+		if (result == lt::aux::wait_result::exit_thread) break;
 		lt::aux::disk_job* j = static_cast<lt::aux::disk_job*>(pool.pop_front());
 		l.unlock();
 

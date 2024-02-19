@@ -17,6 +17,18 @@ see LICENSE file.
 namespace {
 
 	constexpr std::chrono::seconds reap_idle_threads_interval(60);
+
+	struct idle
+	{
+		libtorrent::aux::disk_io_thread_pool& m_pool;
+		idle(libtorrent::aux::disk_io_thread_pool& p): m_pool(p) {
+			m_pool.thread_idle();
+		}
+
+		~idle() {
+			m_pool.thread_active();
+		}
+	};
 }
 
 namespace libtorrent::aux {
@@ -31,6 +43,7 @@ namespace libtorrent::aux {
 		, m_min_idle_threads(0)
 		, m_idle_timer(ios)
 		, m_ioc(ios)
+		, m_interrupt(false)
 	{}
 
 	disk_io_thread_pool::~disk_io_thread_pool()
@@ -190,7 +203,7 @@ namespace libtorrent::aux {
 		m_job_cond.notify_all();
 	}
 
-	bool disk_io_thread_pool::wait_for_job(std::unique_lock<std::mutex>& l)
+	wait_result disk_io_thread_pool::wait_for_job(std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(l.owns_lock());
 
@@ -201,8 +214,7 @@ namespace libtorrent::aux {
 		// if there is already work to do
 		if (m_queued_jobs.empty())
 		{
-			thread_idle();
-
+			if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			do
 			{
 				// if the number of wanted threads is decreased,
@@ -216,18 +228,17 @@ namespace libtorrent::aux {
 					&& try_thread_exit(std::this_thread::get_id()))
 				{
 					// time to exit this thread.
-					thread_active();
-					return true;
+					return wait_result::exit_thread;
 				}
 
+				idle i(*this);
 				using namespace std::literals::chrono_literals;
 				m_job_cond.wait_for(l, 1s);
+				if (m_interrupt.exchange(false)) return wait_result::interrupt;
 			} while (m_queued_jobs.empty());
-
-			thread_active();
 		}
 
-		return false;
+		return wait_result::new_job;
 	}
 
 
