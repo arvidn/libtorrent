@@ -1567,6 +1567,7 @@ namespace {
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 		tcp::endpoint bind_ep(lep.addr, std::uint16_t(lep.port));
+		udp::endpoint udp_bind_ep(lep.addr, std::uint16_t(lep.port));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -1592,6 +1593,7 @@ namespace {
 			? socket_type_t::tcp_ssl
 			: socket_type_t::tcp;
 
+retry:
 		// if we're in force-proxy mode, don't open TCP listen sockets. We cannot
 		// accept connections on our local machine in this case.
 		// TODO: 3 the logic in this if-block should be factored out into a
@@ -1793,90 +1795,106 @@ namespace {
 			= (lep.ssl == transport::ssl)
 			? socket_type_t::utp_ssl
 			: socket_type_t::utp;
-		udp::endpoint udp_bind_ep(bind_ep.address(), bind_ep.port());
 
-		ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context, ret);
-		ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
-		if (ec)
+		if (!ret->udp_sock || udp_bind_ep.port() != bind_ep.port())
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
+			udp_bind_ep.port(bind_ep.port());
+
+			ret->udp_sock = std::make_shared<session_udp_socket>(m_io_context, ret);
+			ret->udp_sock->sock.open(udp_bind_ep.protocol(), ec);
+			if (ec)
 			{
-				session_log("failed to open UDP socket: %s: %s"
-					, lep.device.c_str(), ec.message().c_str());
-			}
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("failed to open UDP socket: %s: %s"
+						, lep.device.c_str(), ec.message().c_str());
+				}
 #endif
 
-			last_op = operation_t::sock_open;
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(lep.device
-					, bind_ep, last_op, ec, udp_sock_type);
+				last_op = operation_t::sock_open;
+				if (m_alerts.should_post<listen_failed_alert>())
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device
+						, bind_ep, last_op, ec, udp_sock_type);
 
-			return ret;
-		}
+				return ret;
+			}
 
 #if TORRENT_HAS_BINDTODEVICE
-		if (!lep.device.empty())
-		{
-			bind_device(ret->udp_sock->sock, lep.device.c_str(), ec);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (ec && should_log())
+			if (!lep.device.empty())
 			{
-				session_log("bind to device failed (device: %s): %s"
-					, lep.device.c_str(), ec.message().c_str());
-			}
+				bind_device(ret->udp_sock->sock, lep.device.c_str(), ec);
+#ifndef TORRENT_DISABLE_LOGGING
+				if (ec && should_log())
+				{
+					session_log("bind to device failed (device: %s): %s"
+						, lep.device.c_str(), ec.message().c_str());
+				}
 #endif // TORRENT_DISABLE_LOGGING
-			ec.clear();
-		}
+				ec.clear();
+			}
 #endif
-		ret->udp_sock->sock.bind(udp_bind_ep, ec);
+			ret->udp_sock->sock.bind(udp_bind_ep, ec);
 
-		while (ec == error_code(error::address_in_use) && retries > 0)
+			while (ec == error_code(error::address_in_use) && retries > 0)
+			{
+				TORRENT_ASSERT_VAL(ec, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("failed to bind udp socket to: %s on device: %s :"
+						" [%s] (%d) %s (retries: %d)"
+						, print_endpoint(udp_bind_ep).c_str()
+						, lep.device.c_str()
+						, ec.category().name(), ec.value(), ec.message().c_str()
+						, retries);
+				}
+#endif
+				ec.clear();
+				--retries;
+				udp_bind_ep.port(udp_bind_ep.port() + 1);
+				ret->udp_sock->sock.bind(udp_bind_ep, ec);
+			}
+
+			if (ec == error_code(error::address_in_use)
+				&& m_settings.get_bool(settings_pack::listen_system_port_fallback)
+				&& udp_bind_ep.port() != 0)
+			{
+				// instead of giving up, try let the OS pick a port
+				udp_bind_ep.port(0);
+				ec.clear();
+				ret->udp_sock->sock.bind(udp_bind_ep, ec);
+			}
+
+			last_op = operation_t::sock_bind;
+			if (ec)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					session_log("failed to bind UDP socket: %s: %s"
+						, lep.device.c_str(), ec.message().c_str());
+				}
+#endif
+
+				if (m_alerts.should_post<listen_failed_alert>())
+					m_alerts.emplace_alert<listen_failed_alert>(lep.device
+						, udp_bind_ep, last_op, ec, udp_sock_type);
+
+				return ret;
+			}
+		}
+
+		if (bind_ep.port() != udp_bind_ep.port())
 		{
-			TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				session_log("failed to bind udp socket to: %s on device: %s :"
-					" [%s] (%d) %s (retries: %d)"
-					, print_endpoint(bind_ep).c_str()
-					, lep.device.c_str()
-					, ec.category().name(), ec.value(), ec.message().c_str()
-					, retries);
+				session_log("TCP and UDP sockets bound to different ports, starting over");
 			}
 #endif
-			ec.clear();
-			--retries;
-			udp_bind_ep.port(udp_bind_ep.port() + 1);
-			ret->udp_sock->sock.bind(udp_bind_ep, ec);
-		}
-
-		if (ec == error_code(error::address_in_use)
-			&& m_settings.get_bool(settings_pack::listen_system_port_fallback)
-			&& udp_bind_ep.port() != 0)
-		{
-			// instead of giving up, try let the OS pick a port
-			udp_bind_ep.port(0);
-			ec.clear();
-			ret->udp_sock->sock.bind(udp_bind_ep, ec);
-		}
-
-		last_op = operation_t::sock_bind;
-		if (ec)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				session_log("failed to bind UDP socket: %s: %s"
-					, lep.device.c_str(), ec.message().c_str());
-			}
-#endif
-
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(lep.device
-					, bind_ep, last_op, ec, udp_sock_type);
-
-			return ret;
+			bind_ep.port(udp_bind_ep.port());
+			goto retry;
 		}
 
 		// if we did not open a TCP listen socket, ret->local_endpoint was never
