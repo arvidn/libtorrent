@@ -12008,7 +12008,24 @@ namespace {
 				st->pieces.resize(num_pieces, false);
 			}
 		}
-		st->num_pieces = num_have();
+		st->num_pieces = num_passed();
+#if TORRENT_USE_INVARIANT_CHECKS
+		{
+			// The documentation states that `num_pieces` is the count of number
+			// of bits set in `pieces`. Ensure that invariant holds.
+			int num_have_pieces = 0;
+			if (has_picker())
+			{
+				for (auto const i : m_torrent_file->piece_range())
+					if (m_picker->has_piece_passed(i)) ++num_have_pieces;
+			}
+			else if (m_have_all)
+			{
+				num_have_pieces = m_torrent_file->num_pieces();
+			}
+			TORRENT_ASSERT(num_have_pieces == st->num_pieces);
+		}
+#endif
 		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
 		{
