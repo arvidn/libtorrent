@@ -357,6 +357,8 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``std::accumulate(pieces->begin(), pieces->end())``. So you don't have
 		// to count yourself. This can be used to see if anything has updated
 		// since last time if you want to keep a graph of the pieces up to date.
+		// Note that these pieces have not necessarily been written to disk yet,
+		// and there is a risk the write to disk will fail.
 		int num_pieces = 0;
 
 		// the number of distributed copies of the torrent. Note that one copy
