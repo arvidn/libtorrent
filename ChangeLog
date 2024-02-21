@@ -1,3 +1,5 @@
+2.1.0 not released
+
 	* try harder to bind TCP and UDP sockets to the same port
 	* made disk_interface's status_t type a flags type
 	* optimize resume data format to use less space
@@ -10,6 +12,10 @@
 	* use std::string_view instead of boost counterpart
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
+
+2.0.11 not released
+
+	* torrent_status::num_pieces counts pieces passed hash check, as documented
 
 2.0.10 released
 
