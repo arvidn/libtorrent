@@ -84,7 +84,6 @@ cached_piece_entry::cached_piece_entry(piece_location const& loc, int const num_
 	, piece_size2(piece_size_v2)
 	, blocks_in_piece(num_blocks)
 	, blocks(aux::make_unique<cached_block_entry[], std::ptrdiff_t>(num_blocks))
-	, ph(hasher())
 {}
 
 span<cached_block_entry> cached_piece_entry::get_blocks() const
@@ -199,7 +198,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 		view.modify(i, [&](cached_piece_entry& e) {
 			e.piece_hash_returned = true;
 
-			job::hash& job = std::get<aux::job::hash>(hash_job->action);
+			auto& job = std::get<aux::job::hash>(hash_job->action);
 			job.piece_hash = e.ph.final();
 			if (!job.block_hashes.empty())
 			{
@@ -258,7 +257,7 @@ keep_going:
 	}
 	auto const blocks = blocks_storage.first(block_idx);
 
-	hasher& ctx = const_cast<hasher&>(piece_iter->ph);
+	auto& ctx = const_cast<hasher&>(piece_iter->ph);
 
 	view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
 
@@ -319,7 +318,7 @@ keep_going:
 	// this piece, post it.
 	sha1_hash const piece_hash = ctx.final();
 
-	job::hash& job = std::get<job::hash>(j->action);
+	auto& job = std::get<job::hash>(j->action);
 	job.piece_hash = piece_hash;
 	if (!job.block_hashes.empty())
 	{
