@@ -8,6 +8,10 @@ see LICENSE file.
 */
 
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
+#include "libtorrent/disabled_disk_io.hpp"
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
+
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -122,6 +126,7 @@ struct test_case
 	int read_multiplier;
 	int file_pool_size;
 	disk_test_mode_t flags;
+	std::string disk_backend;
 };
 
 int run_test(test_case const& t)
@@ -150,9 +155,29 @@ int run_test(test_case const& t)
 	lt::settings_pack pack;
 	pack.set_int(lt::settings_pack::aio_threads, t.num_threads);
 	pack.set_int(lt::settings_pack::file_pool_size, t.file_pool_size);
+	pack.set_int(lt::settings_pack::max_queued_disk_bytes, t.queue_size * lt::default_block_size);
 
-	std::unique_ptr<lt::disk_interface> disk_io
-		= lt::default_disk_io_constructor(ioc, pack, cnt);
+	std::unique_ptr<lt::disk_interface> disk_io;
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+	if (t.disk_backend == "mmap"_sv)
+		disk_io = lt::mmap_disk_io_constructor(ioc, pack, cnt);
+	else
+#endif
+	{
+		if (t.disk_backend  == "posix"_sv)
+			disk_io = lt::posix_disk_io_constructor(ioc, pack, cnt);
+		else if (t.disk_backend  == "disabled"_sv)
+			disk_io = lt::disabled_disk_io_constructor(ioc, pack, cnt);
+		else
+		{
+			if (t.disk_backend != "default")
+			{
+				std::fprintf(stderr, "unknown disk-io subsystem: \"%s\". Using default.\n", t.disk_backend.c_str());
+			}
+			disk_io = lt::default_disk_io_constructor(ioc, pack, cnt);
+		}
+	}
 
 	std::cerr << "RUNNING: -f " << t.num_files
 		<< " -q " << t.queue_size
@@ -164,6 +189,7 @@ int run_test(test_case const& t)
 		<< ((t.flags & test_mode::read_random_order) ? " random-read" : "")
 		<< ((t.flags & test_mode::flush_files) ? " flush" : "")
 		<< ((t.flags & test_mode::clear_pieces) ? " clear" : "")
+		<< " -d " << t.disk_backend
 		<< "\n";
 
 	try
@@ -225,6 +251,14 @@ int run_test(test_case const& t)
 			|| !blocks_to_read.empty()
 			|| outstanding > 0)
 		{
+			if ((job_counter & 0x1fff) == 0)
+			{
+				printf("o: %d w: %d r: %d\r"
+					, outstanding
+					, int(blocks_to_write.size())
+					, int(blocks_to_read.size()));
+				fflush(stdout);
+			}
 			for (int i = 0; i < t.read_multiplier; ++i)
 			{
 				if (!blocks_to_read.empty() && outstanding < t.queue_size)
@@ -397,18 +431,18 @@ int main(int argc, char const* argv[])
 		namespace tm = test_mode;
 
 		test_case tests[] = {
-			// files, queue, threads, read-mult, pool, flags
-			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes},
-			{20, 32, 16, 3, 10, tm::sparse},
-			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order},
-			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes},
-			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes},
+			// files, queue, threads, read-mult, pool, flags, disk_backend
+			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes, "default"},
+			{20, 32, 16, 3, 10, tm::sparse, "default"},
+			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order, "default"},
+			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes, "default"},
+			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes, "default"},
 
 			// test with small pool size
-			{10, 32, 16, 3, 1, tm::sparse | tm::read_random_order},
+			{10, 32, 16, 3, 1, tm::sparse | tm::read_random_order, "default"},
 
 			// test with many threads pool size
-			{10, 32, 64, 3, 9, tm::sparse | tm::read_random_order},
+			{10, 32, 64, 3, 9, tm::sparse | tm::read_random_order, "default"},
 		};
 
 		int ret = 0;
@@ -421,7 +455,7 @@ int main(int argc, char const* argv[])
 	// strip program name
 	argc -= 1;
 	argv += 1;
-	test_case tc{20, 32, 16, 3, 10, test_mode::sparse};
+	test_case tc{20, 32, 16, 3, 10, test_mode::sparse, "default"};
 	while (argc > 0)
 	{
 		lt::string_view opt(argv[0]);
@@ -450,6 +484,8 @@ int main(int argc, char const* argv[])
 				tc.read_multiplier = std::atoi(argv[1]);
 			else if (opt == "-p")
 				tc.file_pool_size = std::atoi(argv[1]);
+			else if (opt == "-d")
+				tc.disk_backend = argv[1];
 			else
 			{
 				std::cerr << "unknown option \"" << opt << "\"\n";
