@@ -1307,128 +1307,54 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 	time_point const start_time = clock_type::now();
 
-	TORRENT_ALLOCA(iovec, span<char>, blocks.size());
 	bool failed = false;
-	int count = 0;
-	int start_idx = 0;
-	int idx = 0;
 
 	// the total number of blocks we ended up flushing to disk
 	int ret = 0;
 
-	// the piece offset of the start of the range of contiguous blocks we're
-	// currently assembling into iovec
-	int start_offset = 0;
-
-	// the offset of the end of the range of contiguous blocks we're currently
-	// assembing
-	int end_offset = 0;
-
-	aux::open_mode_t file_mode;
-	auto piece = piece_index_t(-1);
-	disk_job_flags_t flags;
-
-	std::shared_ptr<aux::pread_storage> storage;
-
-	storage_error error;
-	// TODO: refactor this loop into an iterator adapter that returns
-	// contiguous ranges of blocks. Then de-duplicate the write-to-disk logic
-	// into the loop
-	TORRENT_ASSERT(blocks.size() > 0);
-	for (auto& be : blocks)
-	{
-		auto* j = be.write_job;
-
-		auto const job_offset = [&] {
-			if (j != nullptr)
-				return std::get<aux::job::write>(j->action).offset;
-			else
-				return 0;
-		}();
-
-		if (!storage && j) storage = j->storage;
-		if (count > 0 && (j == nullptr || job_offset > end_offset))
-		{
-			TORRENT_ASSERT(piece != piece_index_t(-1));
-			DLOG("write: blocks: %d (piece: %d)\n", count, int(piece));
-			storage->write(m_settings, iovec.first(count)
-				, piece, start_offset, file_mode, flags, error);
-
-			int i = start_idx;
-			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
-			{
-				auto* j2 = blk.write_job;
-				TORRENT_ASSERT(j2);
-				TORRENT_ASSERT(j2->get_type() == aux::job_action_t::write);
-				j2->error = error;
-				flushed.set_bit(i);
-				completed_jobs.push_back(j2);
-				++i;
-			}
-
-			if (error) {
-				// if there was a failure, fail the remaining jobs as well
-				for (int k = start_idx + count; k < blocks.size(); ++k)
-				{
-					auto* j2 = be.write_job;
-					if (j2 == nullptr) continue;
-					j2->error = error;
-					// TODO: should we free the job's buffer here?
-					completed_jobs.push_back(j2);
-				}
-				failed = true;
-				break;
-			}
-
-			ret += count;
-
-			start_offset = job_offset;
-			start_idx = idx;
-			count = 0;
-		}
-
-		if (j == nullptr)
-		{
-			++idx;
-			start_idx = idx;
-			continue;
-		}
-
-		TORRENT_ASSERT(j->storage == storage);
+	visit_block_iovecs(blocks, [&] (span<span<char>> iovec, int const start_idx) {
+		auto* j = blocks[start_idx].write_job;
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& a = std::get<aux::job::write>(j->action);
+		aux::open_mode_t const file_mode = file_mode_for_job(j);
+		aux::pread_storage* storage = j->storage.get();
 
-		if (count == 0) start_offset = job_offset;
-		iovec[count] = span<char>{ a.buf.data(), a.buffer_size};
-		++count;
-		flags = j->flags;
-		piece = a.piece;
-		file_mode = file_mode_for_job(j);
-		end_offset = job_offset + a.buffer_size;
-		++idx;
-	}
+		TORRENT_ASSERT(a.piece != piece_index_t(-1));
+		int const count = static_cast<int>(iovec.size());
+		DLOG("write: blocks: %d (piece: %d)\n", count, int(a.piece));
 
-	if (count > 0)
-	{
-		DLOG("write: blocks: %d (piece: %d)\n", count, int(piece));
-		storage->write(m_settings, iovec.first(count)
-			, piece, start_offset, file_mode, flags, error);
+		storage_error error;
+		storage->write(m_settings, iovec
+			, a.piece, a.offset, file_mode, j->flags, error);
 
 		int i = start_idx;
 		for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
 		{
-			auto* j = blk.write_job;
-			TORRENT_ASSERT(j);
-			TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
-			j->error = error;
+			auto* j2 = blk.write_job;
+			TORRENT_ASSERT(j2);
+			TORRENT_ASSERT(j2->get_type() == aux::job_action_t::write);
+			j2->error = error;
 			flushed.set_bit(i);
-			completed_jobs.push_back(j);
+			completed_jobs.push_back(j2);
 			++i;
 		}
-		// TODO: if we failed, post the remaining block's jobs as failures too
-		if (error) failed = true;
-		else ret += count;
-	}
+
+		ret += count;
+
+		if (error) {
+			// if there was a failure, fail the remaining jobs as well
+			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx + count))
+			{
+				auto* j2 = blk.write_job;
+				if (j2 == nullptr) continue;
+				j2->error = error;
+				// TODO: should we free the job's buffer here?
+				completed_jobs.push_back(j2);
+			}
+			failed = true;
+		}
+		return failed;
+	});
 
 	if (!failed)
 	{
