@@ -316,14 +316,6 @@ struct disk_cache
 		post_job,
 	};
 
-	// this call can have 3 outcomes:
-	// 1. the job is immediately satisfied and should be posted to the
-	//    completion queue
-	// 2. The piece is in the cache and currently hashing, but it's not done
-	//    yet. We hang the hash job on the piece itself so the hashing thread
-	//    can complete it when hashing finishes
-	// 3. The piece is not in the cache and should be posted to the disk thread
-	//    to read back the bytes.
 	hash_result try_hash_piece(piece_location const loc, pread_disk_job* hash_job);
 
 	// this should be called from a hasher thread

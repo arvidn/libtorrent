@@ -708,8 +708,9 @@ void pread_disk_io::async_hash2(storage_index_t const storage
 		sha256_hash{}
 	);
 
-	// TODO: check the disk cache here
-
+	// In theory, we could check the cache for this block hash, but we
+	// only retain cached_piece_entries until the main piece hash has been
+	// returned, asking for individual blocks may not be available
 	add_job(j);
 }
 
