@@ -666,6 +666,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		file_index_t const file_index = m_file_requests.front().file_index;
 
 		location = aux::resolve_redirect_location(m_url, location);
+		location = maybe_url_encode(location);
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
@@ -735,6 +736,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	else
 	{
 		location = aux::resolve_redirect_location(m_url, location);
+		location = maybe_url_encode(location);
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
