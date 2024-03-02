@@ -4412,10 +4412,6 @@ namespace {
 
 		inc_stats_counter(counters::num_piece_passed);
 
-#ifndef TORRENT_DISABLE_STREAMING
-		remove_time_critical_piece(index, true);
-#endif
-
 		if (settings().get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)
 		{
@@ -4463,6 +4459,10 @@ namespace {
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
+
+#ifndef TORRENT_DISABLE_STREAMING
+		remove_time_critical_piece(index, true);
+#endif
 	}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
