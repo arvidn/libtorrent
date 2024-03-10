@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/disk_cache.hpp"
+#include "libtorrent/aux_/visit_block_iovecs.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -1312,7 +1313,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	// the total number of blocks we ended up flushing to disk
 	int ret = 0;
 
-	visit_block_iovecs(blocks, [&] (span<span<char>> iovec, int const start_idx) {
+	visit_block_iovecs(blocks, [&] (span<span<char const>> iovec, int const start_idx) {
 		auto* j = blocks[start_idx].write_job;
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& a = std::get<aux::job::write>(j->action);

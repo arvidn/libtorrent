@@ -73,7 +73,15 @@ inline size_t hash_value(piece_location const& l)
 
 struct cached_block_entry
 {
+	// returns the buffer associated with this block. It either picks it from
+	// the write job that's hung on this block, or from the buffer in the block
+	// object, if it has been flushed to disk already.
+	// If there is no buffer, it returns an empty span.
 	span<char const> buf() const;
+
+	// returns the buffer associated with the write job hanging on this block.
+	// If there is no write job, it returns an empty span.
+	span<char const> write_buf() const;
 
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
@@ -166,52 +174,6 @@ struct cached_piece_entry
 	// thread currently flushing is done with it
 	pread_disk_job* clear_piece = nullptr;
 };
-
-// TODO: add unit test for this function
-template <typename Fun>
-void visit_block_iovecs(span<aux::cached_block_entry const> blocks
-	, Fun const& f)
-{
-	TORRENT_ASSERT(blocks.size() > 0);
-	TORRENT_ALLOCA(iovec, span<char>, blocks.size());
-
-	int count = 0;
-
-	int start_idx = 0;
-	int idx = 0;
-
-	for (auto& be : blocks)
-	{
-		auto* j = be.write_job;
-		if (count > 0 && j == nullptr)
-		{
-			bool const interrupt = f(iovec.first(count), start_idx);
-			if (interrupt) return;
-
-			start_idx = idx;
-			count = 0;
-		}
-
-		if (j == nullptr)
-		{
-			++idx;
-			start_idx = idx;
-			continue;
-		}
-
-		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
-		auto& a = std::get<aux::job::write>(j->action);
-
-		iovec[count] = span<char>{ a.buf.data(), a.buffer_size};
-		++count;
-		++idx;
-	}
-
-	if (count > 0)
-	{
-		f(iovec.first(count), start_idx);
-	}
-}
 
 struct disk_cache
 {
