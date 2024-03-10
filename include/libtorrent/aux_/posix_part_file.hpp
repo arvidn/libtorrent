@@ -23,7 +23,6 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include "libtorrent/aux_/file_pointer.hpp"
 
 namespace libtorrent {
@@ -38,7 +37,7 @@ namespace aux {
 		posix_part_file(std::string path, std::string name, int num_pieces, int piece_size);
 		~posix_part_file();
 
-		int write(span<char> bufs, piece_index_t piece, int offset, error_code& ec);
+		int write(span<char const> bufs, piece_index_t piece, int offset, error_code& ec);
 		int read(span<char> buf, piece_index_t piece, int offset, error_code& ec);
 		int hash(hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 		int hash2(hasher256& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);

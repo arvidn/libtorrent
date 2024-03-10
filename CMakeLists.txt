@@ -231,6 +231,7 @@ set(libtorrent_aux_include_files
 	puff.hpp
 	random.hpp
 	range.hpp
+	readwrite.hpp
 	receive_buffer.hpp
 	request_blocks.hpp
 	resolve_links.hpp

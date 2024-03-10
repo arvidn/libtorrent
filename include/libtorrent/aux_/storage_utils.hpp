@@ -18,32 +18,14 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
-
-	// TODO: 3 remove this typedef, and use span<char const> for disk write
-	// operations
-	using iovec_t = span<char>;
-
-namespace aux {
+namespace libtorrent::aux {
 
 	struct stat_cache;
-
-	// this is a read or write operation so that readwrite() knows
-	// what to do when it's actually touching the file
-	using fileop = std::function<int(file_index_t, std::int64_t, span<char>, storage_error&)>;
-
-	// this function is responsible for turning read and write operations in the
-	// torrent space (pieces) into read and write operations in the filesystem
-	// space (files on disk).
-	TORRENT_EXTRA_EXPORT int readwrite(file_storage const& files
-		, span<char> buf, piece_index_t piece, int offset
-		, storage_error& ec, fileop op);
 
 	// moves the files in file_storage f from ``save_path`` to
 	// ``destination_save_path`` according to the rules defined by ``flags``.
@@ -102,6 +84,6 @@ namespace aux {
 
 	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
 		, std::string const& newf, storage_error& se);
-}}
+}
 
 #endif

@@ -17,6 +17,8 @@ see LICENSE file.
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/torrent_status.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for read_zeroes, move_storage
+#include "libtorrent/aux_/readwrite.hpp"
 
 using namespace libtorrent::flags; // for flag operators
 
@@ -197,7 +199,7 @@ namespace aux {
 	}
 
 	int posix_storage::write(settings_interface const&
-		, span<char> buffer
+		, span<char const> buffer
 		, piece_index_t const piece, int const offset
 		, storage_error& error)
 	{
@@ -207,7 +209,7 @@ namespace aux {
 		return readwrite(files(), buffer, piece, offset, error
 			, [this](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<char> buf, storage_error& ec)
+				, span<char const> buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 			{
