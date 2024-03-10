@@ -66,10 +66,22 @@ int count_jobs(span<const cached_block_entry> blocks)
 
 }
 
-span<char const> cached_block_entry::buf() const {
+span<char const> cached_block_entry::buf() const
+{
 	if (buf_holder)
 		return {buf_holder.data(), buf_holder.size()};
 
+	if (write_job != nullptr)
+	{
+		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
+		auto const& job = std::get<job::write>(write_job->action);
+		return {job.buf.data(), job.buffer_size};
+	}
+	return {nullptr, 0};
+}
+
+span<char const> cached_block_entry::write_buf() const
+{
 	if (write_job != nullptr)
 	{
 		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);

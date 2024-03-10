@@ -498,7 +498,7 @@ namespace {
 	}
 
 	int pread_storage::write(settings_interface const& sett
-		, span<span<char> const> buffers
+		, span<span<char const> const> buffers
 		, piece_index_t const piece, int offset
 		, open_mode_t const mode
 		, disk_job_flags_t const flags
@@ -514,17 +514,17 @@ namespace {
 	}
 
 	int pread_storage::write(settings_interface const& sett
-		, span<char> buffer
+		, span<char const> buffer
 		, piece_index_t const piece, int const offset
 		, open_mode_t const mode
 		, disk_job_flags_t
 		, storage_error& error)
 	{
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
-		return readwrite(files(), buffer, piece, offset, error
+		return readwrite(files(), reinterpret_cast<span<char>>(buffer), piece, offset, error
 			, [this, mode, &sett, write_mode](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<char> buf, storage_error& ec)
+				, span<char const> buf, storage_error& ec)
 		{
 			// writing to a pad-file is a no-op
 			if (files().pad_file_at(file_index))
