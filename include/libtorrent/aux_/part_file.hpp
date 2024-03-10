@@ -26,7 +26,6 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 namespace libtorrent::aux {
 
@@ -39,7 +38,7 @@ namespace libtorrent::aux {
 		part_file(std::string path, std::string name, int num_pieces, int piece_size);
 		~part_file();
 
-		int write(span<char> buf, piece_index_t piece, int offset, error_code& ec);
+		int write(span<char const> buf, piece_index_t piece, int offset, error_code& ec);
 		int read(span<char> buf, piece_index_t piece, int offset, error_code& ec);
 		int hash(hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 		int hash2(hasher256& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);

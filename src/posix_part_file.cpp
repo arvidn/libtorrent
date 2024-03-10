@@ -47,7 +47,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
+#include "libtorrent/aux_/storage_utils.hpp" // for copy_file
 
 #include <functional> // for std::function
 #include <cstdint>
@@ -153,7 +153,7 @@ namespace aux {
 		return slot;
 	}
 
-	int posix_part_file::write(span<char> buf, piece_index_t const piece
+	int posix_part_file::write(span<char const> buf, piece_index_t const piece
 		, int const offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);

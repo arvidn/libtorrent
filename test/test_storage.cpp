@@ -35,6 +35,7 @@ see LICENSE file.
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/aux_/readwrite.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -1179,8 +1180,7 @@ TORRENT_TEST(readwrite_stripe_1)
 	std::vector<char> buf(std::size_t(fs.total_size()));
 	fill_pattern(buf);
 
-	int ret = readwrite(fs, buf, 0_piece, 0, ec
-		, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1204,7 +1204,7 @@ TORRENT_TEST(readwrite_single_buffer)
 	std::vector<char> buf(size_t(fs.total_size()));
 	fill_pattern(buf);
 
-	int ret = readwrite(fs, buf, 0_piece, 0, ec, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1228,7 +1228,7 @@ TORRENT_TEST(readwrite_read)
 	std::vector<char> buf(size_t(fs.total_size()));
 
 	// read everything
-	int ret = readwrite(fs, buf, 0_piece, 0, ec, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1243,7 +1243,7 @@ TORRENT_TEST(readwrite_read_short)
 	std::vector<char> buf(size_t(fs.total_size()));
 
 	// read everything
-	int ret = readwrite(fs, buf, 0_piece, 0, ec, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(static_cast<int>(ec.file()), 3);
 
@@ -1261,7 +1261,7 @@ TORRENT_TEST(readwrite_error)
 	std::vector<char> buf(size_t(fs.total_size()));
 
 	// read everything
-	int ret = readwrite(fs, buf, 0_piece, 0, ec, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, 12);
 	TEST_EQUAL(static_cast<int>(ec.file()), 2);
@@ -1286,7 +1286,7 @@ TORRENT_TEST(readwrite_zero_size_files)
 	std::vector<char> buf(size_t(fs.total_size()));
 
 	// read everything
-	int ret = readwrite(fs, buf, 0_piece, 0, ec, std::ref(fop));
+	int ret = readwrite(fs, span<char>(buf), 0_piece, 0, ec, std::ref(fop));
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));

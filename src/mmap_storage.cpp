@@ -39,6 +39,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file_view_pool.hpp"
 #include "libtorrent/aux_/drive_info.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
+#include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -582,7 +583,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 	}
 
 	int mmap_storage::write(settings_interface const& sett
-		, span<char> buffer
+		, span<char const> buffer
 		, piece_index_t const piece, int const offset
 		, aux::open_mode_t const mode
 		, disk_job_flags_t const flags
@@ -594,7 +595,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<char> buf, storage_error& ec)
+				, span<char const> buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 			{
@@ -682,10 +683,10 @@ error_code translate_error(std::error_code const& err, bool const write)
 		char dummy;
 		std::vector<char> scratch;
 
-		return readwrite(files(), {&dummy, len}, piece, offset, error
+		return readwrite(files(), span<char const>{&dummy, len}, piece, offset, error
 			, [this, mode, flags, &ph, &sett, &scratch](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<char> const buf, storage_error& ec)
+				, span<char const> const buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 				return aux::hash_zeroes(ph, buf.size());

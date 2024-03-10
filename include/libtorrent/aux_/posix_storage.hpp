@@ -16,7 +16,6 @@ see LICENSE file.
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/aux_/file_pointer.hpp"
@@ -41,7 +40,7 @@ namespace aux {
 			, storage_error& error);
 
 		int write(settings_interface const& sett
-			, span<char> buffer
+			, span<char const> buffer
 			, piece_index_t const piece, int const offset
 			, storage_error& error);
 

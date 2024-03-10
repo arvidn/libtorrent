@@ -23,7 +23,6 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include <cstdint>
 #include <limits>
 

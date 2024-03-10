@@ -23,7 +23,6 @@ see LICENSE file.
 #include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 #include <functional>
 
@@ -34,6 +33,8 @@ see LICENSE file.
 #endif
 
 namespace libtorrent::aux {
+
+	using iovec_t = span<char>;
 
 #ifndef TORRENT_UTP_LOG_ENABLE
 	#define TORRENT_UTP_LOG 0
