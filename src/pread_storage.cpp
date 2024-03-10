@@ -28,6 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file.hpp" // for file_handle, pread_all, pwrite_all
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
+#include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #include <sys/types.h>
@@ -521,7 +522,7 @@ namespace {
 		, storage_error& error)
 	{
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
-		return readwrite(files(), reinterpret_cast<span<char>>(buffer), piece, offset, error
+		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, &sett, write_mode](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<char const> buf, storage_error& ec)
@@ -590,11 +591,11 @@ namespace {
 
 		std::vector<char> scratch_buffer;
 
-		return readwrite(files(), {&dummy, len}, piece, offset, error
+		return readwrite(files(), span<char const>{&dummy, len}, piece, offset, error
 			, [this, mode, flags, &ph, &sett, &scratch_buffer](
 				file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<char> buf, storage_error& ec)
+				, span<char const> buf, storage_error& ec)
 		{
 			if (files().pad_file_at(file_index))
 				return hash_zeroes(ph, buf.size());
