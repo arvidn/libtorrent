@@ -11,10 +11,12 @@ see LICENSE file.
 #define TORRENT_VISIT_BLOCK_IOVECS
 
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 
 namespace libtorrent::aux {
 
 // Fun is a function object that's called with f(span<span<char const>>, int)
+// and is expected to return a bool. true=interrupt, false=continue
 template <typename Fun, typename BlockEntry>
 void visit_block_iovecs(span<BlockEntry const> blocks
 	, Fun const& f)
