@@ -2545,9 +2545,7 @@ bool is_downloading_state(int const st)
 			// if the v1 hash failed the check, don't add the v2 hashes to the
 			// merkle tree. They are most likely invalid.
 			if (torrent_file().info_hashes().has_v2() && !bool(hash_passed[0] == false))
-			{
-				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
-			}
+			{ hash_passed[1] = on_blocks_hashed(piece, block_hashes); }
 		}
 		else
 		{
@@ -6949,7 +6947,9 @@ namespace {
 				return result.valid;
 			}
 
-			if (m_picker && m_picker->is_downloading(p) && m_picker->is_piece_finished(p)
+			if (m_picker
+				&& m_picker->is_downloading(p)
+				&& !m_picker->has_piece_passed(p)
 				&& !m_picker->is_hashing(p))
 			{
 				piece_passed(p);

@@ -26,6 +26,7 @@ struct disk_completed_queue
 	{}
 
 	void abort_job(io_context& ioc, aux::disk_job* j);
+	void abort_jobs(io_context& ioc, jobqueue_t jobs);
 	void append(io_context& ioc, jobqueue_t jobs);
 
 private:

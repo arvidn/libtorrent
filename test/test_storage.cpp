@@ -19,7 +19,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/mmap_storage.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
+#include "libtorrent/aux_/pread_storage.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/file_pool.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
@@ -45,20 +47,13 @@ see LICENSE file.
 using namespace std::placeholders;
 using namespace lt;
 
-#if ! TORRENT_HAVE_MMAP && ! TORRENT_HAVE_MAP_VIEW_OF_FILE
-namespace libtorrent {
-namespace aux {
-	struct file_view_pool {};
-}
-}
-#endif
-
 namespace {
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 using lt::aux::mmap_storage;
 #endif
 using lt::aux::posix_storage;
+using lt::aux::pread_storage;
 
 constexpr int piece_size = 16 * 1024 * 16;
 constexpr int half = piece_size / 2;
@@ -186,6 +181,12 @@ struct file_pool_type<posix_storage>
 	using type = int;
 };
 
+template <>
+struct file_pool_type<pread_storage>
+{
+	using type = aux::file_pool;
+};
+
 template <typename StorageType>
 std::shared_ptr<StorageType> make_storage(storage_params const& p
 	, typename file_pool_type<StorageType>::type& fp);
@@ -204,6 +205,13 @@ std::shared_ptr<posix_storage> make_storage(storage_params const& p
 	, int&)
 {
 	return std::make_shared<posix_storage>(p);
+}
+
+template <>
+std::shared_ptr<pread_storage> make_storage(storage_params const& p
+	, aux::file_pool& fp)
+{
+	return std::make_shared<pread_storage>(p, fp);
 }
 
 template <typename StorageType, typename FilePool>
@@ -294,6 +302,33 @@ int read(std::shared_ptr<posix_storage> s
 }
 
 void release_files(std::shared_ptr<posix_storage>, storage_error&) {}
+
+int write(std::shared_ptr<pread_storage> s
+	, aux::session_settings const& sett
+	, span<char> buf
+	, piece_index_t const piece
+	, int const offset
+	, aux::open_mode_t mode
+	, storage_error& error)
+{
+	return s->write(sett, buf, piece, offset, mode, disk_job_flags_t{}, error);
+}
+
+int read(std::shared_ptr<pread_storage> s
+	, aux::session_settings const& sett
+	, span<char> buf
+	, piece_index_t piece
+	, int offset
+	, aux::open_mode_t mode
+	, storage_error& ec)
+{
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+}
+
+void release_files(std::shared_ptr<pread_storage> s, storage_error& ec)
+{
+	s->release_files(ec);
+}
 
 std::vector<char> new_piece(std::size_t const size)
 {
@@ -732,6 +767,17 @@ TORRENT_TEST(remove_posix_disk_io)
 	test_remove<posix_storage>(current_working_directory());
 }
 
+TORRENT_TEST(rename_pread_disk_io)
+{
+	test_rename<pread_storage>(current_working_directory());
+}
+
+TORRENT_TEST(remove_pread_disk_io)
+{
+	test_remove<pread_storage>(current_working_directory());
+}
+
+
 void test_fastresume(bool const test_deprecated)
 {
 	std::string test_path = current_working_directory();
@@ -769,6 +815,7 @@ void test_fastresume(bool const test_deprecated)
 		{
 			print_alerts(ses, "ses");
 			s = h.status();
+			std::cout << "progress: " << s.progress << std::endl;
 			if (s.progress == 1.0f)
 			{
 				std::cout << "progress: 1.0f" << std::endl;
@@ -1079,6 +1126,7 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
+TORRENT_TEST(pread_disk_io) { run_test<pread_storage>(); }
 
 namespace {
 
@@ -1431,6 +1479,22 @@ TORRENT_TEST(move_posix_storage_reset)
 {
 	test_move_storage_reset<posix_storage>(move_flags_t::reset_save_path);
 	test_move_storage_reset<posix_storage>(move_flags_t::reset_save_path_unchecked);
+}
+
+TORRENT_TEST(move_pread_storage_to_self)
+{
+	test_move_storage_to_self<pread_storage>();
+}
+
+TORRENT_TEST(move_pread_storage_into_self)
+{
+	test_move_storage_into_self<pread_storage>();
+}
+
+TORRENT_TEST(move_pread_storage_reset)
+{
+	test_move_storage_reset<pread_storage>(move_flags_t::reset_save_path);
+	test_move_storage_reset<pread_storage>(move_flags_t::reset_save_path_unchecked);
 }
 
 TORRENT_TEST(storage_paths_string_pooling)

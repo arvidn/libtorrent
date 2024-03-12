@@ -21,6 +21,7 @@ see LICENSE file.
 #include <mutex>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
@@ -53,6 +54,8 @@ namespace aux {
 			std::unique_lock<std::mutex> l(m_pool_mutex);
 			return m_in_use;
 		}
+
+		std::optional<int> flush_request() const;
 
 		void set_settings(settings_interface const& sett);
 
