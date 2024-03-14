@@ -18,7 +18,7 @@ Copyright (c) 2018, airium
 Copyright (c) 2018, d-komarov
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
-Copyright (c) 2021, Joris CARRIER
+Copyright (c) 2021, 2023 Joris CARRIER
 Copyright (c) 2021, thrnz
 All rights reserved.
 
@@ -743,7 +743,7 @@ bool is_downloading_state(int const st)
 			m_ses.close_connection(p);
 	}
 
-	void torrent::read_piece(piece_index_t const piece)
+	void torrent::read_piece(piece_index_t const piece, callback_t<read_piece_alert>::type callback)
 	{
 		error_code ec;
 		if (m_abort || m_deleted)
@@ -761,7 +761,7 @@ bool is_downloading_state(int const st)
 
 		if (ec)
 		{
-			m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), piece, ec);
+			m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), piece, ec, callback);
 			return;
 		}
 
@@ -776,7 +776,7 @@ bool is_downloading_state(int const st)
 			// this shouldn't actually happen
 			boost::shared_array<char> buf;
 			m_ses.alerts().emplace_alert<read_piece_alert>(
-				get_handle(), piece, buf, 0);
+				get_handle(), piece, buf, 0, callback);
 			return;
 		}
 
@@ -785,11 +785,12 @@ bool is_downloading_state(int const st)
 		if (!rp->piece_data)
 		{
 			m_ses.alerts().emplace_alert<read_piece_alert>(
-				get_handle(), piece, error_code(boost::system::errc::not_enough_memory, generic_category()));
+				get_handle(), piece, error_code(boost::system::errc::not_enough_memory, generic_category()), callback);
 			return;
 		}
 		rp->blocks_left = blocks_in_piece;
 		rp->fail = false;
+		rp->callback = callback;
 
 		disk_job_flags_t flags{};
 		auto const read_mode = settings().get_int(settings_pack::disk_io_read_mode);
@@ -1216,12 +1217,12 @@ bool is_downloading_state(int const st)
 			if (rp->fail)
 			{
 				m_ses.alerts().emplace_alert<read_piece_alert>(
-					get_handle(), r.piece, rp->error);
+					get_handle(), r.piece, rp->error, rp->callback);
 			}
 			else
 			{
 				m_ses.alerts().emplace_alert<read_piece_alert>(
-					get_handle(), r.piece, rp->piece_data, size);
+					get_handle(), r.piece, rp->piece_data, size, rp->callback);
 			}
 		}
 	}
@@ -8397,7 +8398,7 @@ namespace {
 		{
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage
-				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this(), false, nullptr));
 			m_ses.deferred_submit_jobs();
 		}
 
@@ -9462,7 +9463,7 @@ namespace {
 			&& !m_session_paused;
 	}
 
-	void torrent::flush_cache()
+	void torrent::flush_cache(callback_t<cache_flushed_alert>::type callback)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9473,18 +9474,18 @@ namespace {
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage
-			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true));
+			, std::bind(&torrent::on_cache_flushed, shared_from_this(), true, callback));
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_cache_flushed(bool const manually_triggered) try
+	void torrent::on_cache_flushed(bool const manually_triggered, callback_t<cache_flushed_alert>::type callback) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_ses.is_aborted()) return;
 
 		if (manually_triggered || alerts().should_post<cache_flushed_alert>())
-			alerts().emplace_alert<cache_flushed_alert>(get_handle());
+			alerts().emplace_alert<cache_flushed_alert>(get_handle(), callback);
 	}
 	catch (...) { handle_exception(); }
 
