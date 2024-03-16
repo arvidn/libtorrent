@@ -58,6 +58,7 @@ using std::ignore;
 namespace {
 
 int peer_disconnects = 0;
+int read_piece_alerts = 0;
 
 bool on_alert(alert const* a)
 {
@@ -66,6 +67,11 @@ bool on_alert(alert const* a)
 		++peer_disconnects;
 	else if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
+	else if (auto rp = alert_cast<read_piece_alert>(a))
+	{
+		++read_piece_alerts;
+		TORRENT_ASSERT(!rp->error);
+	}
 
 	return false;
 }
@@ -75,6 +81,7 @@ using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, transfer_tag>;
 
 constexpr transfer_flags_t delete_files = 2_bit;
 constexpr transfer_flags_t move_storage = 3_bit;
+constexpr transfer_flags_t piece_deadline = 4_bit;
 
 void test_transfer(int proxy_type, settings_pack const& sett
 	, transfer_flags_t flags = {}
@@ -197,6 +204,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	wait_for_listen(ses2, "ses2");
 
 	peer_disconnects = 0;
+	read_piece_alerts = 0;
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
@@ -204,6 +212,16 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
+
+	if (flags & piece_deadline)
+	{
+		int deadline = 1;
+		for (auto const p : t->piece_range())
+		{
+			++deadline;
+			tor2.set_piece_deadline(p, deadline, lt::torrent_handle::alert_when_available);
+		}
+	}
 
 	lt::time_point const start_time = lt::clock_type::now();
 
@@ -266,6 +284,11 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		if (peer_disconnects >= 2) break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	if (flags & piece_deadline)
+	{
+		TEST_CHECK(read_piece_alerts > 0);
 	}
 
 	if (!(flags & delete_files))
@@ -338,6 +361,13 @@ TORRENT_TEST(move_storage)
 {
 	using namespace lt;
 	test_transfer(0, settings_pack(), move_storage);
+	cleanup();
+}
+
+TORRENT_TEST(piece_deadline)
+{
+	using namespace lt;
+	test_transfer(0, settings_pack(), piece_deadline);
 	cleanup();
 }
 
