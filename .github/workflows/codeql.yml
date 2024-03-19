@@ -36,9 +36,9 @@ jobs:
 
       - name: After Prepare (cpp)
         if: ${{ matrix.language == 'cpp' }}
-        run: 'wget -q "https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-linux-x86_64.tar.gz"
+        run: 'wget -q "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz"
 
-  tar xzf cmake-3.21.2-linux-x86_64.tar.gz
+  tar xzf cmake-3.28.3-linux-x86_64.tar.gz
 
   '
 
@@ -50,9 +50,9 @@ jobs:
 
       - name: Build cpp
         if: ${{ matrix.language == 'cpp' }}
-        run: './cmake-3.21.2-linux-x86_64/bin/cmake -Dbuild_examples=ON -Dbuild_tests=ON -Dbuild_tools=ON -GNinja .
+        run: './cmake-3.28.3-linux-x86_64/bin/cmake -Dbuild_examples=ON -Dbuild_tests=ON -Dbuild_tools=ON -GNinja .
 
-  ./cmake-3.21.2-linux-x86_64/bin/cmake --build .
+  ./cmake-3.28.3-linux-x86_64/bin/cmake --build .
 
   '
 
