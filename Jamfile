@@ -181,6 +181,12 @@ rule linking ( properties * )
 		result += <visibility>hidden ;
 	}
 
+	if <toolset>msvc in $(properties)
+	{
+		# ask the compiler to correctly set __cplusplus version
+		result += <cxxflags>/Zc\:__cplusplus ;
+	}
+
 	if <boost-link>static in $(properties)
 	{
 		if <link>shared in $(properties)
