@@ -3,6 +3,7 @@
 Copyright (c) 2003-2013, Daniel Wallin
 Copyright (c) 2013, 2015-2020, Arvid Norberg
 Copyright (c) 2016, 2018, 2020, Alden Torres
+Copyright (c) 2024, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <condition_variable>
 #include <atomic>
 #include <bitset>
+#include <type_traits> // for std::is_base_of
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 #include "libtorrent/extensions.hpp"
@@ -58,6 +60,21 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace aux {
 
+	template<typename T>
+#ifndef TORRENT_DISABLE_TORRENT_AUTO_NOTIFY
+	void handle_alert_on_torrent_impl(const T& a, std::true_type) {
+		auto t = a.handle.native_handle();
+		if (t) t->notify();
+#else
+	void handle_alert_on_torrent_impl(const T&, std::true_type) {
+#endif
+	}
+
+	template<typename T>
+	void handle_alert_on_torrent_impl(const T&, std::false_type) {
+		// Do nothing if alert is not derivied from torrent_alert
+	}
+
 	struct TORRENT_EXTRA_EXPORT alert_manager
 	{
 		explicit alert_manager(int queue_limit
@@ -67,6 +84,12 @@ namespace aux {
 		alert_manager& operator=(alert_manager const&) = delete;
 
 		~alert_manager();
+
+		template<class T>
+		void handle_alert(T& a) {
+			handle_alert_on_torrent_impl(a, std::is_base_of<torrent_alert, T>());
+			maybe_notify(&a);
+		}
 
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args) try
@@ -88,7 +111,7 @@ namespace aux {
 			T& alert = queue.emplace_back<T>(
 				m_allocations[m_generation], std::forward<Args>(args)...);
 
-			maybe_notify(&alert);
+			handle_alert(alert);
 		}
 		catch (std::bad_alloc const&)
 		{
