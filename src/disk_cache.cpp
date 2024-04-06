@@ -662,10 +662,10 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 		{
 			aborted.push_back(cbe.write_job);
 			cbe.write_job = nullptr;
-			cbe.flushed_to_disk = false;
 			++jobs;
 			--m_blocks;
 		}
+		cbe.flushed_to_disk = false;
 		cbe.buf_holder.reset();
 	}
 	cpe.ready_to_flush = false;
