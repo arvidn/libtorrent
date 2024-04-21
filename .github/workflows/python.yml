@@ -51,7 +51,7 @@ jobs:
             python-version: 3.8
           - os: macos-latest
             python-version: "3.12"
-          - os: windows-2019
+          - os: windows-2022
             python-version: 3.6
 
     steps:
@@ -114,16 +114,6 @@ jobs:
       run: |
         cd boost
         .\b2 headers
-
-    - name: install openssl (windows)
-      if: runner.os == 'Windows'
-      uses: nick-fields/retry@v2
-      with:
-        shell: cmd
-        timeout_minutes: 5
-        retry_wait_seconds: 4
-        max_attempts: 3
-        command: choco install openssl --limitoutput --no-progress
 
     - name: build/test with tox (windows)
       if: runner.os == 'Windows'

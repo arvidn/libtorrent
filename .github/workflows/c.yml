@@ -25,7 +25,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ubuntu-20.04, macos-latest, windows-2022 ]
 
     steps:
     - uses: actions/checkout@v2
@@ -63,11 +63,6 @@ jobs:
       run: |
         cd boost
         .\b2 headers
-
-    - name: install openssl (64 bit) (windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: choco install openssl --limitoutput
 
     - name: build (windows)
       if: runner.os == 'Windows'

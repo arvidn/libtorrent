@@ -37,14 +37,6 @@ jobs:
         with:
            submodules: true
 
-      - name: install openssl (64 bit)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 30
-          retry_wait_seconds: 4
-          max_attempts: 3
-          command: choco install openssl --limitoutput --no-progress
-
       - name: install boost
         run: |
           git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
@@ -82,7 +74,7 @@ jobs:
 
    simulations:
       name: Simulations
-      runs-on: windows-2019
+      runs-on: windows-2022
 
       steps:
       - name: checkout
@@ -130,7 +122,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: windows-2019
+      runs-on: windows-2022
       continue-on-error: true
 
       strategy:
