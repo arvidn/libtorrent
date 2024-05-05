@@ -573,7 +573,8 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 		// this is an aligned read request for one block
 		if (m_cache.get({ storage, r.piece }, block_idx, [&](span<char const> buf)
 		{
-			TORRENT_ASSERT(buf.size() <= read_offset + r.length);
+			TORRENT_ASSERT_VAL(read_offset <= buf.size(), read_offset);
+			TORRENT_ASSERT_VAL(read_offset + r.length <= buf.size(), r.length);
 			buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
 			if (!buffer)
 			{
