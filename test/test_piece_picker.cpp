@@ -2154,6 +2154,18 @@ TORRENT_TEST(set_pad_bytes)
 	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
 }
 
+TORRENT_TEST(set_pad_bytes_overflow)
+{
+	int const ps = file_storage::max_piece_size;
+	auto p = setup_picker("11111111111", "           ", "44444444444", "", ps);
+	p->set_pad_bytes(0_piece, ps - 1);
+	p->set_pad_bytes(2_piece, ps - 1);
+	p->set_pad_bytes(4_piece, ps - 1);
+	p->set_pad_bytes(6_piece, ps - 1);
+
+	TEST_EQUAL(p->want().pad_bytes, std::int64_t(ps - 1) * 4);
+}
+
 TORRENT_TEST(pad_bytes_in_piece_bytes)
 {
 	for (int i = 1; i < 10; ++i)

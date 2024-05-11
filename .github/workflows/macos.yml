@@ -30,7 +30,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -50,7 +50,7 @@ jobs:
         run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests)
 
       - name: run tests (flaky)
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 1
@@ -64,7 +64,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
@@ -96,7 +96,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 
@@ -123,7 +123,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
            submodules: true
 

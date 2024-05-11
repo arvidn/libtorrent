@@ -64,7 +64,7 @@ namespace libtorrent::aux {
 		int num_pieces;
 		// the number of bytes, out of those pieces, that are pad
 		// files
-		int pad_bytes;
+		std::int64_t pad_bytes;
 		// true if the last piece is part of the set
 		bool last_piece;
 	};
@@ -521,7 +521,7 @@ namespace libtorrent::aux {
 
 		void record_downloading_piece(piece_index_t const p);
 
-		int num_pad_bytes() const { return m_num_pad_bytes; }
+		std::int64_t num_pad_bytes() const { return m_num_pad_bytes; }
 
 		span<block_info> mutable_blocks_for_piece(downloading_piece const& dp);
 
@@ -796,16 +796,16 @@ namespace libtorrent::aux {
 		mutable std::vector<piece_extent_t> m_recent_extents;
 
 		// the number of bytes of pad file set in this piece picker
-		int m_num_pad_bytes = 0;
+		std::int64_t m_num_pad_bytes = 0;
 
 		// the number of pad blocks that we already have
-		int m_have_pad_bytes = 0;
+		std::int64_t m_have_pad_bytes = 0;
 
 		// the number of pad blocks part of filtered pieces we don't have
-		int m_filtered_pad_bytes = 0;
+		std::int64_t m_filtered_pad_bytes = 0;
 
 		// the number of pad blocks we have that are also filtered
-		int m_have_filtered_pad_bytes = 0;
+		std::int64_t m_have_filtered_pad_bytes = 0;
 
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces

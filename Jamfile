@@ -71,6 +71,17 @@ rule linking ( properties * )
 		result += <library>dbghelp ;
 	}
 
+	if <target-os>windows in $(properties)
+	{
+		switch [ feature.get-values <windows-version> : $(properties) ]
+		{
+			case xp : result += <define>_WIN32_WINNT=0x0501 ;
+			case vista : result += <define>_WIN32_WINNT=0x0600 ;
+			case win7 : result += <define>_WIN32_WINNT=0x0601 ;
+			case win10 : result += <define>_WIN32_WINNT=0x0A00 ;
+		}
+	}
+
 	# gcrypt libraries, if enabled
 	if <crypto>gcrypt in $(properties)
 	{
@@ -599,11 +610,7 @@ feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>system : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
-feature windows-version : win7 win10 vista xp : composite propagated ;
-feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
-feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
-feature.compose <windows-version>win10 : <define>_WIN32_WINNT=0x0A00 ;
-feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
+feature windows-version : win10 vista xp win7 : composite propagated ;
 
 feature extensions : on off : composite propagated link-incompatible ;
 feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSIONS ;
