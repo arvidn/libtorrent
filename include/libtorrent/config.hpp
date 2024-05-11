@@ -186,7 +186,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_MMAP 1
 #endif
 
-#if defined __GLIBC__ && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 27))
+#if defined __GLIBC__ && (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 27))
+#define TORRENT_HAS_COPY_FILE_RANGE 0
+#elif defined __ANDROID__
+#define TORRENT_HAS_COPY_FILE_RANGE 0
+#else
 #define TORRENT_HAS_COPY_FILE_RANGE 1
 #endif
 
