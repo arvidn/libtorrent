@@ -149,7 +149,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(proxy_password, "", &session_impl::update_proxy),
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT20B0-", nullptr),
-		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
+		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
+		SET(nat_pmp_gateway, "", &session_impl::update_upnp)
 	}});
 
 	CONSTEXPR_SETTINGS
