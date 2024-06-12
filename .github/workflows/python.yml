@@ -68,16 +68,6 @@ jobs:
         cd boost
         .\b2 headers
 
-    - name: install openssl (windows)
-      if: runner.os == 'Windows'
-      uses: nick-fields/retry@v3
-      with:
-        shell: cmd
-        timeout_minutes: 5
-        retry_wait_seconds: 4
-        max_attempts: 3
-        command: choco install openssl --limitoutput --no-progress
-
     - name: build/install (windows)
       if: runner.os == 'Windows'
       shell: cmd
