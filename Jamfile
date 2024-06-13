@@ -972,6 +972,9 @@ local usage-requirements =
 	<define>BOOST_ASIO_HAS_STD_CHRONO
 	<define>BOOST_ASIO_NO_DEPRECATED
 	<define>BOOST_SYSTEM_USE_UTF8
+	# C++17 removed std::unary_function which is used by boost/container_hash/hash.hpp
+	# in old versions of boost, without this define
+	<define>_HAS_AUTO_PTR_ETC=0
 	<conditional>@linking
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"

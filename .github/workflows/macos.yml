@@ -43,7 +43,7 @@ jobs:
       - name: install boost
         run: |
           brew install boost-build boost openssl@1.1
-          pip3 install websockets
+          pip3 install websockets --break-system-packages
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build and run tests

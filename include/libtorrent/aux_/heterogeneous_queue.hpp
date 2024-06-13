@@ -16,6 +16,7 @@ see LICENSE file.
 #include <cstdlib> // for malloc
 #include <type_traits>
 #include <memory>
+#include <algorithm>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
