@@ -306,13 +306,13 @@ TORRENT_VERSION_NAMESPACE_3
 	// number of bytes that was read.
 	//
 	// If the operation fails, ``error`` will indicate what went wrong.
-	struct TORRENT_EXPORT read_piece_alert final : torrent_alert
+	struct TORRENT_EXPORT read_piece_alert final : torrent_alert, callback_t<read_piece_alert>
 	{
 		// internal
 		TORRENT_UNEXPORT read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, piece_index_t p, boost::shared_array<char> d, int s);
+			, piece_index_t p, boost::shared_array<char> d, int s, callback_t<read_piece_alert>::type callback = {});
 		TORRENT_UNEXPORT read_piece_alert(aux::stack_allocator& alloc, torrent_handle h
-			, piece_index_t p, error_code e);
+			, piece_index_t p, error_code e, callback_t<read_piece_alert>::type callback = {});
 
 		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5, alert_priority::critical)
 
@@ -1888,10 +1888,11 @@ TORRENT_VERSION_NAMESPACE_3
 	// enabled to let this alert through. The alert is also posted when removing
 	// a torrent from the session, once the outstanding cache flush is complete
 	// and the torrent does no longer have any files open.
-	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert
+	struct TORRENT_EXPORT cache_flushed_alert final : torrent_alert, callback_t<cache_flushed_alert>
 	{
 		// internal
-		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		TORRENT_UNEXPORT cache_flushed_alert(aux::stack_allocator& alloc,
+			torrent_handle const& h, callback_t<cache_flushed_alert>::type callback = {});
 
 		TORRENT_DEFINE_ALERT_PRIO(cache_flushed_alert, 58, alert_priority::high)
 
