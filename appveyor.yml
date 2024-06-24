@@ -100,6 +100,7 @@ build_script:
 
 test_script:
   - cd %ROOT_DIRECTORY%\test
+  - set PATH=%PATH%;c:\OpenSSL-v111-Win64\bin
   - if defined tests (
     appveyor-retry b2.exe -l500 --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all warnings-as-errors=on %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% webtorrent=%webtorrent% asserts=on export-extra=on windows-api=%api% windows-version=win10 deterministic-tests
     )
