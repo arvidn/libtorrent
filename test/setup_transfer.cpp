@@ -659,7 +659,7 @@ void wait_for_port(int const port)
 		}
 		s.connect(tcp::endpoint(make_address("127.0.0.1")
 			, std::uint16_t(port)), ec);
-		if (ec == boost::system::errc::connection_refused)
+		if (ec)
 		{
 			if (i == 100)
 			{
