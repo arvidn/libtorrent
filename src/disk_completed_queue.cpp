@@ -60,7 +60,7 @@ void disk_completed_queue::abort_jobs(io_context& ioc, jobqueue_t jobs)
 	std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
 	m_completed_jobs.append(std::move(jobs));
 
-	if (!m_job_completions_in_flight)
+	if (!m_job_completions_in_flight && !m_completed_jobs.empty())
 	{
 		DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
@@ -74,7 +74,7 @@ void disk_completed_queue::append(io_context& ioc, jobqueue_t jobs)
 	std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
 	m_completed_jobs.append(std::move(jobs));
 
-	if (!m_job_completions_in_flight)
+	if (!m_job_completions_in_flight && !m_completed_jobs.empty())
 	{
 		DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
