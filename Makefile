@@ -900,6 +900,7 @@ TEST_SOURCES = \
   test_dht.cpp \
   test_dht_storage.cpp \
   test_direct_dht.cpp \
+  test_disk_cache.cpp \
   test_dos_blocker.cpp \
   test_ed25519.cpp \
   test_enum_net.cpp \
