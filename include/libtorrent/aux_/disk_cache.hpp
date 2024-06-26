@@ -71,6 +71,18 @@ inline size_t hash_value(piece_location const& l)
 	return ret;
 }
 
+struct piece_hasher
+{
+	piece_hasher() : ph(hasher{}) {}
+
+	sha1_hash final_hash();
+	void update(span<char const> const buf);
+	lt::hasher& ctx();
+
+private:
+	std::variant<hasher, sha1_hash> ph;
+};
+
 struct cached_block_entry
 {
 	// returns the buffer associated with this block. It either picks it from
@@ -105,7 +117,9 @@ struct cached_piece_entry
 {
 	cached_piece_entry(piece_location const& loc
 		, int const num_blocks
-		, int const piece_size_v2);
+		, int const piece_size_v2
+		, bool v1
+		, bool v2);
 
 	span<cached_block_entry> get_blocks() const;
 
@@ -117,7 +131,8 @@ struct cached_piece_entry
 	bool ready_to_flush = false;
 
 	// when this is true, there is a thread currently hashing blocks and
-	// updating the hash context in "ph".
+	// updating the hash context in "ph". Other threads may not touch "ph",
+	// "hasing_cursor", and may only read "hasing".
 	bool hashing = false;
 
 	// when a thread is writing this piece to disk, this is true. Only one
@@ -163,7 +178,7 @@ struct cached_piece_entry
 
 	unique_ptr<cached_block_entry[]> blocks;
 
-	hasher ph;
+	piece_hasher ph;
 
 	// if there is a hash_job set on this piece, whenever we complete hashing
 	// the last block, we should post this
@@ -281,7 +296,7 @@ struct disk_cache
 				e.hashing = false;
 			});
 		});
-		f(const_cast<hasher&>(piece_iter->ph), hasher_cursor, blocks, v2_hashes);
+		f(const_cast<piece_hasher&>(piece_iter->ph), hasher_cursor, blocks, v2_hashes);
 		return true;
 	}
 

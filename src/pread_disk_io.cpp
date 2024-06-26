@@ -891,7 +891,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	// this creates a function object, ready to be passed to
 	// m_cache.hash_piece()
-	auto hash_partial_piece = [&] (lt::hasher& ph
+	auto hash_partial_piece = [&] (lt::aux::piece_hasher& ph
 		, int const hasher_cursor
 		, span<char const*> const blocks
 		, span<sha256_hash> const v2_hashes)
@@ -930,7 +930,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 						? (j->flags & ~disk_interface::flush_piece)
 						: j->flags;
 
-					j->storage->hash(m_settings, ph, len, a.piece
+					j->storage->hash(m_settings, ph.ctx(), len, a.piece
 						, offset, file_mode, flags, j->error);
 				}
 				if (v2_block)
@@ -955,7 +955,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		}
 
 		if (v1)
-			a.piece_hash = ph.final();
+			a.piece_hash = ph.final_hash();
 
 		if (!j->error.ec)
 		{
@@ -976,7 +976,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
 		TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece2);
 		for (char const*& b : blocks) b = nullptr;
-		hasher ph;
+		lt::aux::piece_hasher ph;
 		hash_partial_piece(ph, 0, blocks, v2_hashes);
 	}
 	return j->error ? disk_status::fatal_disk_error : status_t{};
@@ -1471,6 +1471,14 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		}
 
 		auto* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
+
+		if (&pool == &m_generic_threads)
+		{
+			// This will attempt to flush any pieces that have been completely
+			// downloaded
+			try_flush_cache(m_cache.size(), l);
+		}
+
 		l.unlock();
 
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);

@@ -8,6 +8,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/disk_cache.hpp"
+#include "libtorrent/aux_/debug_disk_thread.hpp"
 
 namespace libtorrent::aux {
 
@@ -91,8 +92,41 @@ span<char const> cached_block_entry::write_buf() const
 	return {nullptr, 0};
 }
 
-cached_piece_entry::cached_piece_entry(piece_location const& loc, int const num_blocks, int const piece_size_v2)
+template <typename... Type>
+struct overload : Type... {
+	using Type::operator()...;
+};
+template<class... Type> overload(Type...) -> overload<Type...>;
+
+sha1_hash piece_hasher::final_hash()
+{
+	sha1_hash ret;
+	std::visit(overload{
+		[&] (hasher& h) { ret = h.final(); ph = ret; },
+		[&] (sha1_hash const& h) { ret = h; },
+	}, ph);
+	TORRENT_ASSERT(!ret.is_all_zeros());
+	return ret;
+}
+
+void piece_hasher::update(span<char const> const buf)
+{
+	hasher* ctx = std::get_if<hasher>(&ph);
+	TORRENT_ASSERT(ctx != nullptr);
+	ctx->update(buf);
+}
+
+lt::hasher& piece_hasher::ctx()
+{
+	hasher* ctx = std::get_if<hasher>(&ph);
+	TORRENT_ASSERT(ctx != nullptr);
+	return *ctx;
+}
+
+cached_piece_entry::cached_piece_entry(piece_location const& loc, int const num_blocks, int const piece_size_v2, bool const v1, bool const v2)
 	: piece(loc)
+	, v1_hashes(v1)
+	, v2_hashes(v2)
 	, piece_size2(piece_size_v2)
 	, blocks_in_piece(num_blocks)
 	, blocks(aux::make_unique<cached_block_entry[], std::ptrdiff_t>(num_blocks))
@@ -158,13 +192,17 @@ bool disk_cache::insert(piece_location const loc
 		file_storage const& fs = storage->files();
 		int const blocks_in_piece = (storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
 		int const piece_size2 = fs.piece_size2(loc.piece);
-		cached_piece_entry pe(loc, blocks_in_piece, piece_size2);
-		pe.v1_hashes = storage->v1();
-		pe.v2_hashes = storage->v2();
-		i = m_pieces.insert(std::move(pe)).first;
+		i = m_pieces.emplace(loc, blocks_in_piece, piece_size2, storage->v1(), storage->v2()).first;
 	}
 
 	cached_block_entry& blk = i->blocks[block_idx];
+	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p flushed_cursor: %d hashed_cursor: %d\n"
+		, static_cast<int>(i->piece.piece)
+		, block_idx
+		, blk.flushed_to_disk
+		, blk.write_job
+		, i->flushed_cursor
+		, i->hasher_cursor);
 	TORRENT_ASSERT(!blk.buf_holder);
 	TORRENT_ASSERT(blk.write_job == nullptr);
 	TORRENT_ASSERT(blk.flushed_to_disk == false);
@@ -211,7 +249,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			e.piece_hash_returned = true;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
-			job.piece_hash = e.ph.final();
+			job.piece_hash = e.ph.final_hash();
 			if (!job.block_hashes.empty())
 			{
 				TORRENT_ASSERT(i->v2_hashes);
@@ -269,13 +307,16 @@ keep_going:
 	}
 	auto const blocks = blocks_storage.first(block_idx);
 
-	auto& ctx = const_cast<hasher&>(piece_iter->ph);
-
 	view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
 
 	bool const need_v1 = piece_iter->v1_hashes;
 	bool const need_v2 = piece_iter->v2_hashes;
 
+	DLOG("kick_hasher: piece: %d hashed_cursor: [%d, %d] v1: %d v2: %d ctx: %p\n"
+		, static_cast<int>(piece_iter->piece.piece)
+		, cursor, end
+		, need_v1, need_v2
+		, &piece_iter->ph);
 	l.unlock();
 
 	int bytes_left = piece_iter->piece_size2 - (cursor * default_block_size);
@@ -284,7 +325,10 @@ keep_going:
 		cached_block_entry& cbe = piece_iter->blocks[cursor];
 
 		if (need_v1)
+		{
+			aux::piece_hasher& ctx = const_cast<aux::piece_hasher&>(piece_iter->ph);
 			ctx.update(buf);
+		}
 
 		if (need_v2 && bytes_left > 0)
 		{
@@ -297,6 +341,7 @@ keep_going:
 	}
 
 	l.lock();
+
 	for (auto& cbe : piece_iter->get_blocks().subspan(piece_iter->hasher_cursor, block_idx))
 	{
 		// TODO: free these in bulk, acquiring the mutex just once
@@ -315,6 +360,8 @@ keep_going:
 		// if some other thread added the next block, keep going
 		if (piece_iter->blocks[cursor].buf().data())
 			goto keep_going;
+		DLOG("kick_hasher: no attached hash job\n");
+		return;
 	}
 
 	if (!piece_iter->hash_job) return;
@@ -322,13 +369,17 @@ keep_going:
 	// there's a hash job hung on this piece, post it now
 	pread_disk_job* j = nullptr;
 	span<cached_block_entry> const cached_blocks = piece_iter->get_blocks();
-	view.modify(piece_iter, [&cached_blocks, &j](cached_piece_entry& e) {
+
+	sha1_hash piece_hash;
+	TORRENT_ASSERT(!piece_iter->piece_hash_returned);
+	view.modify(piece_iter, [&cached_blocks, &j, &piece_hash](cached_piece_entry& e) {
 		j = std::exchange(e.hash_job, nullptr);
 		e.ready_to_flush = compute_ready_to_flush(cached_blocks);
+		e.piece_hash_returned = true;
+		// we've hashed all blocks, and there's a hash job associated with
+		// this piece, post it.
+		piece_hash = e.ph.final_hash();
 	});
-	// we've hashed all blocks, and there's a hash job associated with
-	// this piece, post it.
-	sha1_hash const piece_hash = ctx.final();
 
 	auto& job = std::get<job::hash>(j->action);
 	job.piece_hash = piece_hash;
@@ -341,6 +392,8 @@ keep_going:
 		for (int i = 0; i < to_copy; ++i)
 			job.block_hashes[i] = piece_iter->blocks[i].block_hash;
 	}
+	DLOG("kick_hasher: posting attached job piece: %d\n"
+		, static_cast<int>(piece_iter->piece.piece));
 	completed_jobs.push_back(j);
 }
 
@@ -408,6 +461,8 @@ Iter disk_cache::flush_piece_impl(View& view
 		TORRENT_ASSERT(e.num_jobs >= jobs);
 		e.num_jobs -= jobs;
 	});
+	DLOG("flush_piece_impl: piece: %d flushed_cursor: %d ready_to_flush: %d\n"
+		, static_cast<int>(piece_iter->piece.piece), piece_iter->flushed_cursor, piece_iter->ready_to_flush);
 	TORRENT_ASSERT(count <= blocks.size());
 	TORRENT_ASSERT(m_blocks >= count);
 	m_blocks -= count;
@@ -674,7 +729,8 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	cpe.flushed_cursor = 0;
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
-	cpe.ph = hasher{};
+	cpe.ph = piece_hasher{};
+	DLOG("clear_piece: piece: %d\n", static_cast<int>(cpe.piece.piece));
 }
 
 }
