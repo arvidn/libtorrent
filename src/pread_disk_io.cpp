@@ -1476,7 +1476,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		{
 			// This will attempt to flush any pieces that have been completely
 			// downloaded
-			try_flush_cache(m_cache.size(), l);
+			try_flush_cache(int(m_cache.size()), l);
 		}
 
 		l.unlock();

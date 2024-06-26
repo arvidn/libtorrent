@@ -326,7 +326,7 @@ keep_going:
 
 		if (need_v1)
 		{
-			aux::piece_hasher& ctx = const_cast<aux::piece_hasher&>(piece_iter->ph);
+			auto& ctx = const_cast<aux::piece_hasher&>(piece_iter->ph);
 			ctx.update(buf);
 		}
 
