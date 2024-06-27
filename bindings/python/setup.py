@@ -8,7 +8,6 @@ import os
 import pathlib
 import re
 import shlex
-import shutil
 import subprocess
 import sys
 import sysconfig
@@ -503,15 +502,6 @@ def find_all_files(path: str) -> Iterator[str]:
             yield os.path.join(dirpath, filename)
 
 
-# Our stubs end up in the "libtorrent" directory in the wheel.
-# Setuptools expects it to exist beforehand.
-if not os.path.exists("libtorrent"):
-    os.mkdir("libtorrent")
-try:
-    shutil.copytree("install_data/libtorrent", "libtorrent")
-except FileExistsError:
-    pass
-
 setuptools.setup(
     name="libtorrent",
     author="Arvid Norberg",
@@ -526,5 +516,5 @@ setuptools.setup(
     },
     distclass=B2Distribution,
     packages=["libtorrent"],
-    package_data={"libtorrent": list(find_all_files("install_data"))},
+    package_data={"libtorrent": list(find_all_files("libtorrent"))},
 )
