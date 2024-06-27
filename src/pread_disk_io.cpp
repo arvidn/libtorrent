@@ -1472,8 +1472,9 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		auto* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
 
-		if (&pool == &m_generic_threads)
+		if (&pool == &m_generic_threads || (j->flags & disk_interface::flush_piece))
 		{
+			DLOG("optimistic flush\n");
 			// This will attempt to flush any pieces that have been completely
 			// downloaded
 			try_flush_cache(int(m_cache.size()), l);
