@@ -41,7 +41,7 @@ see LICENSE file.
 #include <fcntl.h> // for sync_file_range
 #elif defined TORRENT_WINDOWS
 #include "libtorrent/aux_/windows.hpp" // for FlushFileBuffers
-#elif defined TORRENT_BSD && ! defined __APPLE__
+#elif TORRENT_HAS_FSYNC_RANGE
 #include <unistd.h> // for fsync_range
 #else
 #include <unistd.h> // for fsync
@@ -72,8 +72,8 @@ namespace {
 		::FlushFileBuffers(handle);
 		TORRENT_UNUSED(offset);
 		TORRENT_UNUSED(len);
-#elif defined TORRENT_BSD && ! defined __APPLE__
-		::fsync_range(handle, FFILESYNC, offset, len);
+#elif TORRENT_HAS_FSYNC_RANGE
+		::fsync_range(handle, FDATASYNC, offset, len);
 #else
 		::fsync(handle);
 		TORRENT_UNUSED(offset);
@@ -634,8 +634,6 @@ namespace {
 				ph.update(scratch_buffer);
 				if (flags & disk_interface::volatile_read)
 					advise_dont_need(handle->fd(), file_offset, buf.size());
-				if (flags & disk_interface::flush_piece)
-					sync_file(handle->fd(), file_offset, buf.size());
 			}
 
 			return ret;
@@ -688,8 +686,6 @@ namespace {
 		ph.update(b);
 		if (flags & disk_interface::volatile_read)
 			advise_dont_need(handle->fd(), file_offset, len);
-		if (flags & disk_interface::flush_piece)
-			sync_file(handle->fd(), file_offset, len);
 
 		return static_cast<int>(len);
 	}
