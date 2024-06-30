@@ -91,6 +91,10 @@ see LICENSE file.
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
 
+#ifdef __NetBSD__
+#define TORRENT_HAS_FSYNC_RANGE 1
+#endif
+
 #if defined __APPLE__
 
 #include <AvailabilityMacros.h>
@@ -558,6 +562,10 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_COPYFILE
 #define TORRENT_HAS_COPYFILE 0
+#endif
+
+#ifndef TORRENT_HAS_FSYNC_RANGE
+#define TORRENT_HAS_FSYNC_RANGE 0
 #endif
 
 // debug builds have asserts enabled by default, release
